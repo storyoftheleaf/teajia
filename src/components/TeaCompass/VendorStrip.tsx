@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   MapPin, X, Plus, Camera, Check, Phone,
   MessageCircle, ExternalLink, Loader2,
-  Contact, Image,
+  Contact, Image, Link, UserCheck,
 } from 'lucide-react';
 import { api, hasToken } from '../../lib/api';
 import { compressImage } from '../../lib/imageCompressor';
@@ -25,6 +25,8 @@ interface VendorStripProps {
   onVendorSelect: (vendorId: string | undefined, vendorName: string) => void;
   onClear: () => void;
   onDetailsChange: (details: VendorDetails) => void;
+  linkedCustomerId?: string;
+  onLinkedCustomerChange?: (customerId: string | undefined) => void;
 }
 
 /* ── Helpers ────────────────────────────────────────────── */
@@ -115,6 +117,8 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
   onVendorSelect,
   onClear,
   onDetailsChange,
+  linkedCustomerId,
+  onLinkedCustomerChange,
 }) => {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -128,6 +132,36 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
   const contactMenuRef = useRef<HTMLDivElement>(null);
   const businessCardRef = useRef<HTMLInputElement>(null);
   const storefrontRef = useRef<HTMLInputElement>(null);
+
+  // Feature 28: linked customer suggestion
+  const [suggestedCustomer, setSuggestedCustomer] = useState<Vendor | null>(null);
+  const [suggestDismissed, setSuggestDismissed] = useState(false);
+  const [linkedCustomerName, setLinkedCustomerName] = useState<string | undefined>(undefined);
+
+  // Load linked customer name when ID changes
+  useEffect(() => {
+    if (!linkedCustomerId) { setLinkedCustomerName(undefined); return; }
+    const found = vendors.find(v => v.id === linkedCustomerId);
+    if (found) { setLinkedCustomerName(found.name); return; }
+    // Fetch on demand if not in list yet
+    if (!hasToken()) return;
+    api.customers.get(linkedCustomerId)
+      .then((c: { name?: string } | null) => { if (c?.name) setLinkedCustomerName(c.name); })
+      .catch(() => {});
+  }, [linkedCustomerId, vendors]);
+
+  // Auto-suggest: fuzzy-match vendorName against vendor customers
+  useEffect(() => {
+    if (!vendorName || !vendorName.trim() || linkedCustomerId || suggestDismissed || vendors.length === 0) {
+      setSuggestedCustomer(null);
+      return;
+    }
+    const q = vendorName.toLowerCase().trim();
+    const match = vendors.find(v =>
+      v.name.toLowerCase().includes(q) || q.includes(v.name.toLowerCase())
+    );
+    setSuggestedCustomer(match ?? null);
+  }, [vendorName, vendors, linkedCustomerId, suggestDismissed]);
 
   // Recent vendors from compass store
   const entries = useTeaCompassStore((s) => s.entries);
@@ -501,6 +535,84 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ── Auto-suggest: link this vendor name to a customer record ── */}
+      <AnimatePresence>
+        {suggestedCustomer && !linkedCustomerId && onLinkedCustomerChange && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.18 }}
+            className="overflow-hidden"
+          >
+            <div className="flex items-center gap-2 mt-1 px-2 py-2 rounded-lg bg-tea-gold-lt border border-tea-border text-[12px]">
+              <UserCheck size={13} className="text-tea-gold shrink-0" />
+              <span className="flex-1 text-tea-text-sec min-w-0 truncate">
+                This looks like <span className="font-medium text-tea-text">{suggestedCustomer.name}</span> — link them?
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  onLinkedCustomerChange(suggestedCustomer.id);
+                  setSuggestDismissed(true);
+                  setSuggestedCustomer(null);
+                }}
+                className="text-tea-gold font-semibold text-[11px] uppercase tracking-[0.06em] hover:text-tea-gold/80 transition-colors shrink-0"
+              >
+                Link
+              </button>
+              <button
+                type="button"
+                onClick={() => { setSuggestDismissed(true); setSuggestedCustomer(null); }}
+                className="text-tea-text-dim hover:text-tea-text-sec transition-colors shrink-0 p-0.5"
+                aria-label="Dismiss suggestion"
+              >
+                <X size={12} />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Linked customer record ── */}
+      {onLinkedCustomerChange && (
+        <div className="mt-1">
+          {linkedCustomerId ? (
+            <div className="flex items-center gap-2 text-[12px] text-tea-text-sec py-1">
+              <Link size={12} className="text-tea-gold shrink-0" />
+              <a
+                href={`/admin/people?customer=${linkedCustomerId}`}
+                className="hover:text-tea-gold transition-colors truncate flex-1"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {linkedCustomerName || linkedCustomerId}
+              </a>
+              <button
+                type="button"
+                onClick={() => { onLinkedCustomerChange(undefined); setSuggestDismissed(false); }}
+                className="text-tea-text-dim hover:text-tea-text-sec transition-colors shrink-0 p-0.5"
+                aria-label="Unlink customer"
+              >
+                <X size={12} />
+              </button>
+            </div>
+          ) : vendorId && (
+            <button
+              type="button"
+              onClick={() => {
+                // vendorId is the customer ID when selected from the dropdown
+                onLinkedCustomerChange(vendorId);
+              }}
+              className="flex items-center gap-1.5 text-[11px] text-tea-text-dim hover:text-tea-text-sec transition-colors py-0.5"
+            >
+              <Link size={11} />
+              Link to customer profile
+            </button>
+          )}
+        </div>
+      )}
 
       {/* ── Vendor details expandable (triggered by contact icon) ── */}
       {!pickerOpen && (

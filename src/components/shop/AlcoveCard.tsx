@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Pencil, Leaf, ChevronRight } from 'lucide-react';
+import { Pencil, Leaf, ChevronRight, X, Loader2 } from 'lucide-react';
 import type { InventoryItem, Story } from '../../types';
 import { ContentType } from '../../types';
 import { useAppStore } from '../../lib/store';
+import { api } from '../../lib/api';
 import { useTastingCount } from '../../hooks/useTastingCount';
 import { fmtNum } from '../../utils/formatNumber';
 import { TeaPlaceholder } from './TeaPlaceholder';
@@ -81,7 +82,48 @@ function getStockStatus(stockG: number, status?: string, isOneOfAKind?: boolean,
 
 export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClose, isAdmin, onEdit, formatPrice, onTermClick, onTaste, items, onItemSelect }) => {
   const navigate = useNavigate();
-  const { favoriteTeas, toggleFavoriteTea } = useAppStore();
+  const { favoriteTeas, toggleFavoriteTea, activeAccountId } = useAppStore();
+
+  // Sample request modal state
+  const [sampleModalOpen, setSampleModalOpen] = useState(false);
+  const [sampleGrams, setSampleGrams] = useState<5 | 10 | 15>(5);
+  const [sampleNote, setSampleNote] = useState('');
+  const [sampleSubmitting, setSampleSubmitting] = useState(false);
+  const [sampleDone, setSampleDone] = useState(false);
+  const [sampleError, setSampleError] = useState<string | null>(null);
+
+  // Check if user is authenticated by looking for a stored token
+  const isLoggedIn = typeof localStorage !== 'undefined' && !!localStorage.getItem('teajia_token');
+
+  const handleSampleClick = () => {
+    setSampleModalOpen(true);
+    setSampleDone(false);
+    setSampleError(null);
+    setSampleNote('');
+    setSampleGrams(5);
+  };
+
+  const handleSampleSubmit = async () => {
+    setSampleSubmitting(true);
+    setSampleError(null);
+    try {
+      await api.samples.request({
+        product_id: item.id,
+        quantity_grams: sampleGrams,
+        note: sampleNote || undefined,
+        account_id: activeAccountId ?? undefined,
+      });
+      setSampleDone(true);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to submit request.';
+      setSampleError(msg);
+    } finally {
+      setSampleSubmitting(false);
+    }
+  };
+
+  const pricePerGram = parseFloat(item.price_per_gram || '0');
+
   const favorited = favoriteTeas.includes(item.id);
   const tastingCount = useTastingCount(item.id);
   const [grams, setGrams] = useState(25);
@@ -109,7 +151,6 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   const sliderMax = Math.max(25, Math.floor(item.stock_g || 500));
   const sliderStep = 5;
   const snapPoints = [25, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500].filter(p => p <= sliderMax);
-  const pricePerGram = parseFloat(item.price_per_gram || '0');
   const total = formatPrice ? formatPrice(pricePerGram, grams) : fmtNum(pricePerGram * grams);
   const perGramDisplay = formatPrice ? formatPrice(pricePerGram, 1) : fmtNum(pricePerGram);
   const sliderPercentage = sliderMax > sliderMin ? ((grams - sliderMin) / (sliderMax - sliderMin)) * 100 : 0;
@@ -1175,6 +1216,39 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
               </div>
             )}
 
+            {/* Session reserve soft warning */}
+            {item.sessionReserveGrams != null && item.sessionReserveGrams > 0 && item.stock_g <= item.sessionReserveGrams && !isSoldOut && (
+              <div style={{ marginBottom: "4px" }}>
+                <span className="text-tea-gold text-xs">
+                  Last ~{item.stock_g}g available — we'll confirm quantity before dispatching.
+                </span>
+              </div>
+            )}
+
+            {/* Sample request — in-app flow (tea only) */}
+            {item.category === 'tea' && (
+              <div style={{ marginBottom: "6px" }}>
+                <button
+                  onClick={handleSampleClick}
+                  style={{
+                    background: "none", border: "none", padding: 0,
+                    cursor: "pointer",
+                    fontFamily: "var(--font-sans)",
+                    fontSize: "12px",
+                    color: "var(--tea-text-sec)",
+                    textDecoration: "underline",
+                    textDecorationColor: "var(--tea-border)",
+                    textUnderlineOffset: "2px",
+                    transition: "color 0.2s",
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.color = "var(--tea-text)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.color = "var(--tea-text-sec)"; }}
+                >
+                  Request a sample →
+                </button>
+              </div>
+            )}
+
             {/* Row 2: Save/Share(/Edit) + Add button */}
             <div style={{ display: "flex", gap: "4px" }}>
               <div style={{
@@ -1332,6 +1406,187 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
           transition: "opacity 0.3s ease",
         }} />
       </div>
+
+      {/* Sample request modal */}
+      {sampleModalOpen && (
+        <div
+          onClick={() => { if (!sampleSubmitting) setSampleModalOpen(false); }}
+          style={{
+            position: "fixed", inset: 0, zIndex: 9999,
+            background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            padding: "16px",
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: "var(--tea-surface)",
+              border: "1px solid var(--tea-border)",
+              borderRadius: "8px",
+              width: "100%", maxWidth: "360px",
+              padding: "24px",
+              position: "relative",
+            }}
+          >
+            {/* Close */}
+            <button
+              onClick={() => setSampleModalOpen(false)}
+              style={{
+                position: "absolute", top: "12px", right: "12px",
+                background: "none", border: "none", cursor: "pointer",
+                color: "var(--tea-text-dim)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}
+            >
+              <X size={16} />
+            </button>
+
+            {sampleDone ? (
+              <div style={{ textAlign: "center", padding: "8px 0" }}>
+                <p style={{ fontFamily: "var(--font-display)", fontSize: "18px", color: "var(--tea-text)", marginBottom: "8px" }}>
+                  Sample requested.
+                </p>
+                <p style={{ fontFamily: "var(--font-body)", fontSize: "14px", color: "var(--tea-text-sec)", lineHeight: 1.6 }}>
+                  We'll be in touch to arrange delivery.
+                </p>
+                <button
+                  onClick={() => setSampleModalOpen(false)}
+                  style={{
+                    marginTop: "16px",
+                    background: "var(--tea-gold)", color: "var(--tea-bg)",
+                    border: "none", borderRadius: "4px",
+                    padding: "8px 20px", cursor: "pointer",
+                    fontFamily: "var(--font-sans)", fontSize: "12px",
+                    fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase",
+                  }}
+                >
+                  Done
+                </button>
+              </div>
+            ) : !isLoggedIn ? (
+              <div style={{ textAlign: "center", padding: "8px 0" }}>
+                <p style={{ fontFamily: "var(--font-display)", fontSize: "16px", color: "var(--tea-text)", marginBottom: "8px" }}>
+                  Create an account to request samples
+                </p>
+                <p style={{ fontFamily: "var(--font-body)", fontSize: "13px", color: "var(--tea-text-sec)", lineHeight: 1.6, marginBottom: "16px" }}>
+                  Sign in or create a free account to request a sample of {item.name}.
+                </p>
+                <button
+                  onClick={() => { setSampleModalOpen(false); window.dispatchEvent(new CustomEvent('openAccountPanel', { detail: { view: 'signup' } })); }}
+                  style={{
+                    background: "var(--tea-gold)", color: "var(--tea-bg)",
+                    border: "none", borderRadius: "4px",
+                    padding: "10px 20px", cursor: "pointer",
+                    fontFamily: "var(--font-sans)", fontSize: "12px",
+                    fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase",
+                    width: "100%",
+                  }}
+                >
+                  Sign In / Create Account
+                </button>
+              </div>
+            ) : (
+              <div>
+                {/* Product info */}
+                <div style={{ display: "flex", gap: "12px", marginBottom: "20px", alignItems: "center" }}>
+                  {item.image && (
+                    <img
+                      src={item.image}
+                      alt=""
+                      style={{ width: "48px", height: "48px", borderRadius: "4px", objectFit: "cover", flexShrink: 0 }}
+                    />
+                  )}
+                  <div style={{ minWidth: 0 }}>
+                    <p style={{ fontFamily: "var(--font-display)", fontSize: "15px", color: "var(--tea-text)", margin: 0 }}>
+                      {item.name}
+                    </p>
+                    {item.origin && (
+                      <p style={{ fontFamily: "var(--font-body)", fontSize: "12px", color: "var(--tea-text-sec)", margin: "2px 0 0" }}>
+                        {item.origin}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Size selector */}
+                <div style={{ marginBottom: "16px" }}>
+                  <p style={{ fontFamily: "var(--font-sans)", fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.15em", color: "var(--tea-text-sec)", marginBottom: "8px" }}>
+                    Sample size
+                  </p>
+                  <div style={{ display: "flex", gap: "6px" }}>
+                    {([5, 10, 15] as const).map(g => {
+                      const cost = pricePerGram * g;
+                      const costDisplay = formatPrice ? formatPrice(pricePerGram, g) : `$${fmtNum(cost)}`;
+                      return (
+                        <button
+                          key={g}
+                          onClick={() => setSampleGrams(g)}
+                          style={{
+                            flex: 1, padding: "8px 4px",
+                            borderRadius: "4px",
+                            border: sampleGrams === g ? "1px solid var(--tea-gold)" : "1px solid var(--tea-border)",
+                            background: sampleGrams === g ? "var(--tea-gold)/10" : "var(--tea-bg)",
+                            cursor: "pointer", textAlign: "center",
+                          }}
+                        >
+                          <div style={{ fontFamily: "var(--font-mono)", fontSize: "13px", fontWeight: 600, color: sampleGrams === g ? "var(--tea-gold)" : "var(--tea-text)" }}>
+                            {g}g
+                          </div>
+                          <div style={{ fontFamily: "var(--font-mono)", fontSize: "10px", color: "var(--tea-text-sec)", marginTop: "2px" }}>
+                            {costDisplay}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Note */}
+                <div style={{ marginBottom: "16px" }}>
+                  <p style={{ fontFamily: "var(--font-sans)", fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.15em", color: "var(--tea-text-sec)", marginBottom: "6px" }}>
+                    Note (optional)
+                  </p>
+                  <textarea
+                    value={sampleNote}
+                    onChange={e => setSampleNote(e.target.value)}
+                    placeholder="Anything you'd like us to know?"
+                    rows={2}
+                    style={{
+                      width: "100%", boxSizing: "border-box",
+                      background: "var(--tea-bg)", border: "1px solid var(--tea-border)",
+                      borderRadius: "4px", padding: "8px 10px",
+                      fontFamily: "var(--font-body)", fontSize: "13px", color: "var(--tea-text)",
+                      outline: "none", resize: "none",
+                    }}
+                  />
+                </div>
+
+                {sampleError && (
+                  <p style={{ fontSize: "12px", color: "var(--tea-text-sec)", marginBottom: "12px" }}>{sampleError}</p>
+                )}
+
+                <button
+                  onClick={handleSampleSubmit}
+                  disabled={sampleSubmitting}
+                  style={{
+                    width: "100%", padding: "10px",
+                    background: "var(--tea-gold)", color: "var(--tea-bg)",
+                    border: "none", borderRadius: "4px", cursor: sampleSubmitting ? "not-allowed" : "pointer",
+                    fontFamily: "var(--font-sans)", fontSize: "12px",
+                    fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase",
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
+                    opacity: sampleSubmitting ? 0.7 : 1,
+                  }}
+                >
+                  {sampleSubmitting && <Loader2 size={13} style={{ animation: "spin 1s linear infinite" }} />}
+                  Request sample
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Fullscreen image overlay */}
       {imageExpanded && expandedImageUrl && (

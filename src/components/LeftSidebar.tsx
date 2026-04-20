@@ -7,7 +7,7 @@ import { Section } from '../types';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../hooks/useAuth';
 import { useAppStore } from '../lib/store';
-import { Settings, Calendar, LayoutDashboard, Briefcase, ChevronsLeft, ChevronsRight, ChevronDown, Leaf, Coffee, Sparkles, Store, Users, FolderOpen, UserCheck } from 'lucide-react';
+import { Settings, Calendar, LayoutDashboard, Briefcase, ChevronsLeft, ChevronsRight, Leaf, Coffee, Store, Users, FolderOpen, UserCheck } from 'lucide-react';
 
 
 interface SubNavItem {
@@ -64,7 +64,7 @@ const NavButton: React.FC<{
       {isActive && (
         <motion.div
           layoutId="sidebar-active-indicator"
-          className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-tea-gold rounded-l-full"
+          className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-6 bg-tea-gold rounded-r-full"
           transition={{ type: 'spring', stiffness: 350, damping: 30 }}
         />
       )}
@@ -72,7 +72,7 @@ const NavButton: React.FC<{
   );
 
   const className = `relative flex items-center ${collapsed ? 'justify-center px-2 min-h-[44px]' : 'gap-3 px-4'} py-3 rounded-md transition-all duration-300 group animate-[fadeIn_0.5s_ease-out] ${
-    isActive ? 'bg-tea-gold/8' : 'hover:bg-tea-elevated/50'
+    isActive ? 'bg-tea-accent-sub' : 'hover:bg-tea-elevated/50'
   }`;
 
   if (item.action) {
@@ -155,8 +155,6 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
     { id: 'SHOP', label: 'Shop', icon: <Icons.Bag className="w-5 h-5" strokeWidth={2} />, section: 'SHOP' as Section },
   ];
 
-  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
-  const toggleGroup = (id: string) => setExpandedGroups(prev => ({ ...prev, [id]: !prev[id] }));
   const isChildActive = (children?: SubNavItem[]) => children?.some(c => currentPath === c.path) ?? false;
 
   const adminItems: NavItem[] = [
@@ -188,7 +186,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
       <button
         onClick={() => { onNavigate('HOME'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
         className={`h-20 flex items-center ${collapsed ? 'justify-center px-2' : 'justify-start px-6 gap-3'} animate-[fadeIn_0.5s_ease-out] transition-all duration-300 group ${
-          activeSection === 'HOME' ? 'bg-tea-gold/8' : 'hover:bg-tea-elevated/50'
+          activeSection === 'HOME' ? 'bg-tea-accent-sub' : 'hover:bg-tea-elevated/50'
         }`}
         title="Home"
         style={{ boxShadow: '0 1px 0 var(--tea-border)' }}
@@ -206,7 +204,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
         {activeSection === 'HOME' && (
           <motion.div
             layoutId="sidebar-active-indicator"
-            className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-tea-gold rounded-l-full"
+            className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-8 bg-tea-gold rounded-r-full"
             transition={{ type: 'spring', stiffness: 350, damping: 30 }}
           />
         )}
@@ -245,42 +243,32 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
         <nav className={`flex flex-col gap-1 ${collapsed ? 'px-1.5' : 'px-3'} pt-2 pb-4`} style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub)' }}>
           {!collapsed && <span className="text-[10px] uppercase tracking-[0.2em] text-tea-gold/70 font-sans font-semibold px-4 py-2">Admin</span>}
           {adminItems.map((item, index) => {
-            const hasChildren = !collapsed && item.children && item.children.length > 0;
-            const isExpanded = expandedGroups[item.id] || isChildActive(item.children);
+            const isParentActive = currentPath === item.path && !isChildActive(item.children);
             return (
               <div key={item.id}>
-                <div className="flex items-center">
-                  <div className="flex-1">
-                    <NavButton
-                      item={item}
-                      isActive={currentPath === item.path}
-                      onClick={() => {}}
-                      animationDelay={(browseItems.length + index) * 50}
-                      collapsed={collapsed}
-                    />
-                  </div>
-                  {hasChildren && (
-                    <button
-                      onClick={() => toggleGroup(item.id)}
-                      className="p-2 text-tea-text-sec hover:text-tea-text transition-colors"
-                      aria-label={isExpanded ? `Collapse ${item.label}` : `Expand ${item.label}`}
-                    >
-                      <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} strokeWidth={2} />
-                    </button>
-                  )}
-                </div>
-                {hasChildren && isExpanded && (
-                  <div className="ml-4 flex flex-col gap-0.5 mt-0.5">
-                    {item.children!.map((child) => (
+                <NavButton
+                  item={item}
+                  isActive={isParentActive}
+                  onClick={() => {}}
+                  animationDelay={(browseItems.length + index) * 50}
+                  collapsed={collapsed}
+                />
+                {/* Always-visible indented sub-items — no accordion toggle */}
+                {!collapsed && item.children && item.children.length > 0 && (
+                  <div className="ml-4 flex flex-col gap-0.5 mt-0.5 mb-1">
+                    {item.children.map((child) => (
                       <Link
                         key={child.id}
                         to={child.path}
-                        className={`flex items-center gap-2.5 px-4 py-2 rounded-md text-xs font-medium transition-colors duration-200 group ${
+                        className={`relative flex items-center gap-2.5 px-4 py-2 rounded-md text-xs font-medium transition-colors duration-200 group ${
                           currentPath === child.path
-                            ? 'text-tea-gold bg-tea-gold/8'
+                            ? 'text-tea-gold bg-tea-accent-sub'
                             : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated/50'
                         }`}
                       >
+                        {currentPath === child.path && (
+                          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 bg-tea-gold rounded-r-full" />
+                        )}
                         <div className={`shrink-0 transition-colors duration-200 ${currentPath === child.path ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'}`}>
                           {child.icon}
                         </div>
@@ -362,7 +350,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
         {/* Collapse/Expand toggle */}
         <button
           onClick={toggleSidebarCollapsed}
-          className={`w-full flex items-center ${collapsed ? 'justify-center px-2' : 'gap-3 px-4'} py-3 rounded-md transition-all duration-300 group hover:bg-tea-elevated/50 mt-1`}
+          className={`w-full flex items-center cursor-pointer ${collapsed ? 'justify-center px-2' : 'gap-3 px-4'} py-3 rounded-md transition-all duration-300 group hover:bg-tea-accent-sub mt-1`}
           title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >

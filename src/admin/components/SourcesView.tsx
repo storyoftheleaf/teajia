@@ -638,6 +638,13 @@ export const SourcesView = () => {
         <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
           {!isEditMode && (
             <>
+              {source.id && (
+                <button
+                  onClick={() => navigate(`/admin/vendors/${source.id}`)}
+                  className="text-tea-text-sec hover:text-tea-gold p-1 transition-colors"
+                  title="View vendor profile"
+                ><ExternalLink size={13} /></button>
+              )}
               <button
                 onClick={() => { setEditingSource(source); setIsModalOpen(true); }}
                 className="text-tea-text-sec hover:text-tea-text p-1 transition-colors"

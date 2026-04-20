@@ -40,6 +40,8 @@ export interface Product {
   isCurated?: boolean; // Curated selection flag
   isSample?: boolean; // Sample/trial tea not yet committed to inventory
   inTransit?: boolean; // Stock ordered but not yet physically arrived
+  inTransitGrams?: number; // Quantity currently in transit (grams)
+  inTransitEta?: string; // Expected arrival date (ISO date string)
   lore?: string; // AI or handcrafted history/story
   isCustomWisdom?: boolean; // True if manually edited
   showWisdom?: boolean; // Toggle to display on public card
@@ -58,6 +60,7 @@ export interface Product {
   teaKey?: string; // Normalised tea identity key — shared across accounts for cross-store review aggregation
   wholesalePrice?: number;
   catalogVisible?: boolean;
+  sessionReserveGrams?: number; // Stock below this threshold shows a soft low-availability warning on the public shop
 }
 
 export interface Invoice {

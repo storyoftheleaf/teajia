@@ -1,12 +1,14 @@
 import React, { useState, lazy, Suspense } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ChevronDown, Clock, AlertCircle, Copy, Check, Bookmark } from 'lucide-react';
+import { ChevronDown, Clock, AlertCircle, Copy, Check, Bookmark, Save } from 'lucide-react';
 import {
   useGuestManagement,
   useCancelRSVP,
   useClaimSeat,
   useMarkBriefed,
+  useUpdateRSVPNotes,
+  useUpdateApprovedGuests,
 } from '../../hooks/useEventPolling';
 import { api } from '../../lib/api';
 import EventCountdown from './EventCountdown';
@@ -124,6 +126,8 @@ const GuestManagement: React.FC = () => {
   const cancelRSVP = useCancelRSVP(magicToken || '');
   const claimSeat = useClaimSeat(magicToken || '');
   const markBriefed = useMarkBriefed(magicToken || '');
+  const updateNotes = useUpdateRSVPNotes(magicToken || '');
+  const updateGuests = useUpdateApprovedGuests(magicToken || '');
 
   // Post-session archive data (gallery, session notes, aggregated tasting
   // impressions). Fetched lazily for the post-event recap view. Returns
@@ -145,6 +149,9 @@ const GuestManagement: React.FC = () => {
   const [guidelinesExpanded, setGuidelinesExpanded] = useState(false);
   const [showBriefing, setShowBriefing] = useState(false);
   const [showTasting, setShowTasting] = useState(true);
+  const [notesValue, setNotesValue] = useState<string | null>(null);
+  const [notesSaved, setNotesSaved] = useState(false);
+  const [plusOneValue, setPlusOneValue] = useState<boolean | null>(null);
 
   // ---- Loading ----
   if (isLoading) {
@@ -181,6 +188,10 @@ const GuestManagement: React.FC = () => {
   const eventPast = isPast(event.eventDate);
   const isCompleted = event.status === 'closed' || eventPast;
   const status = attendee.status;
+
+  // Initialize local notes/guest state from attendee data on first load
+  const currentNotes = notesValue ?? (attendee.notes || '');
+  const currentPlusOne = plusOneValue ?? (attendee.plusOne ?? false);
 
   const handleCancel = () => {
     cancelRSVP.mutate(undefined, {
@@ -255,6 +266,26 @@ const GuestManagement: React.FC = () => {
       );
     }
 
+    // Determine if the current attendee attended this session
+    const didAttend = attendee.attended === true;
+
+    // Count tasting notes collected across all attendees
+    const tastingNotesCount = Array.isArray(postSession?.tasting_notes)
+      ? (postSession.tasting_notes as unknown[]).length
+      : 0;
+
+    // Extract recap content — may come as session_notes or recap_content
+    const recapContent = typeof postSession?.session_notes === 'string' && postSession.session_notes.trim()
+      ? postSession.session_notes
+      : typeof (postSession as Record<string, unknown> | null)?.recap_content === 'string'
+        ? (postSession as Record<string, unknown>).recap_content as string
+        : null;
+
+    const hasPostSessionData = !!(
+      postSession &&
+      (recapContent || (postSession as Record<string, unknown>).playlist_url || Array.isArray((postSession as Record<string, unknown>).gallery_images))
+    );
+
     return (
       <div className="min-h-screen bg-tea-bg animate-[fadeIn_0.5s_ease-out]">
         <div className="max-w-xl mx-auto px-6 py-10">
@@ -266,11 +297,46 @@ const GuestManagement: React.FC = () => {
             <p className="text-sm text-tea-text-sec">Session Complete</p>
           </div>
 
+          {/* Session Recap — only for attendees who were present */}
+          {didAttend && (
+            <div className="mb-10">
+              {hasPostSessionData ? (
+                <>
+                  {/* Recap header */}
+                  <div className="mb-6">
+                    <p className="text-[10px] uppercase tracking-[0.3em] text-tea-gold mb-2">Session Recap</p>
+                    {tastingNotesCount > 0 && (
+                      <p className="text-xs text-tea-text-sec">
+                        {tastingNotesCount} tasting {tastingNotesCount === 1 ? 'note' : 'notes'} collected from this session.
+                      </p>
+                    )}
+                  </div>
+                  {/* Recap prose */}
+                  {recapContent && (
+                    <div className="mb-8 p-5 bg-tea-surface border border-tea-border rounded-sm">
+                      {recapContent.split('\n').filter(Boolean).map((para, idx) => (
+                        <p key={idx} className="text-sm text-tea-text leading-relaxed mb-3 last:mb-0">
+                          {para}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="p-5 bg-tea-surface border border-tea-border rounded-sm text-center mb-8">
+                  <p className="text-sm text-tea-text-sec italic leading-relaxed">
+                    Your session recap will appear here after the host publishes it.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
           <Suspense fallback={null}>
             <PostSessionArchive
               teaMenu={data.teaMenu}
               playlistUrl={postSession?.playlist_url || event.playlistUrl}
-              galleryImages={Array.isArray(postSession?.gallery_images) ? postSession.gallery_images : undefined}
+              galleryImages={Array.isArray(postSession?.gallery_images) ? postSession.gallery_images as string[] : undefined}
               aggregatedNotes={
                 Array.isArray(postSession?.tasting_notes)
                   ? (postSession.tasting_notes as Array<{ impression?: string | null }>)
@@ -713,6 +779,88 @@ const GuestManagement: React.FC = () => {
             View your tea journey →
           </a>
         </div>
+
+        {/* Guest count toggle (plus one) */}
+        {status === 'confirmed' && (
+          <div className="mb-8 p-5 bg-tea-surface border border-tea-border rounded-md">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec mb-3">
+              Bringing a guest?
+            </p>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => {
+                  const next = !currentPlusOne;
+                  setPlusOneValue(next);
+                  updateGuests.mutate({ plusOne: next });
+                }}
+                disabled={updateGuests.isPending}
+                className={`flex items-center gap-2 px-4 py-2 rounded-sm text-xs uppercase tracking-[0.15em] border transition-all duration-200 ${
+                  currentPlusOne
+                    ? 'bg-tea-gold/10 border-tea-border text-tea-gold'
+                    : 'bg-tea-surface border-tea-border text-tea-text-sec hover:border-tea-gold/30 hover:text-tea-text'
+                }`}
+              >
+                {currentPlusOne ? <Check className="w-3.5 h-3.5" /> : null}
+                {currentPlusOne ? '1 guest added' : 'Add +1'}
+              </button>
+              {updateGuests.isPending && (
+                <span className="text-xs text-tea-text-dim">Updating...</span>
+              )}
+              {updateGuests.isError && (
+                <span className="text-xs text-red-400">
+                  {(updateGuests.error as Error)?.message || 'Could not update'}
+                </span>
+              )}
+            </div>
+            {currentPlusOne && (
+              <p className="text-xs text-tea-text-dim mt-2">
+                Your seat covers you + 1 additional guest.
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Dietary requirements / notes */}
+        {status === 'confirmed' && (
+          <div className="mb-8 p-5 bg-tea-surface border border-tea-border rounded-md">
+            <label className="block text-[10px] uppercase tracking-[0.2em] text-tea-text-sec mb-3">
+              Dietary notes or special requests
+            </label>
+            <textarea
+              value={currentNotes}
+              onChange={e => { setNotesValue(e.target.value); setNotesSaved(false); }}
+              placeholder="Allergies, dietary needs, or anything helpful for the host..."
+              rows={3}
+              className="w-full bg-tea-bg border border-tea-border rounded-sm px-3 py-2.5 text-sm text-tea-text placeholder-tea-text-dim resize-none focus:outline-none focus:border-tea-gold/40 transition-colors"
+            />
+            <div className="flex items-center justify-between mt-2">
+              {notesSaved ? (
+                <span className="flex items-center gap-1 text-xs text-tea-gold">
+                  <Check className="w-3.5 h-3.5" /> Saved
+                </span>
+              ) : (
+                <span />
+              )}
+              <button
+                onClick={() => {
+                  updateNotes.mutate(currentNotes, {
+                    onSuccess: () => setNotesSaved(true),
+                  });
+                }}
+                disabled={updateNotes.isPending || currentNotes === (attendee.notes || '')}
+                className="flex items-center gap-1.5 text-xs text-tea-text-sec hover:text-tea-gold disabled:opacity-40 transition-colors"
+              >
+                <Save className="w-3.5 h-3.5" />
+                {updateNotes.isPending ? 'Saving...' : 'Save notes'}
+              </button>
+            </div>
+            {updateNotes.isError && (
+              <p className="text-xs text-red-400 mt-1">
+                {(updateNotes.error as Error)?.message || 'Could not save notes'}
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Cancel reservation */}
         <div className="text-center pt-6 pb-12 border-t border-tea-border">

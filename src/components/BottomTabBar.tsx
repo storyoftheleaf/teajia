@@ -1,11 +1,12 @@
 import React from 'react';
-import { LayoutGroup, motion } from 'framer-motion';
-import { LogoText } from './Logos';
+import { motion } from 'framer-motion';
+import { LogoText, LogoIcon } from './Logos';
 import { Section } from '../types';
 
 import { useLongPress } from '../hooks/useLongPress';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAppStore } from '../lib/store';
+import { useAuth } from '../hooks/useAuth';
 
 
 
@@ -15,7 +16,7 @@ interface BottomTabBarProps {
   hidden?: boolean;
   onAccountClick?: () => void;
   onSearchClick?: () => void;
-  onLaunchPadClick?: () => void;
+  isAdminRoute?: boolean;
 }
 
 export const BottomTabBar: React.FC<BottomTabBarProps> = ({
@@ -24,24 +25,89 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
   hidden = false,
   onAccountClick,
   onSearchClick,
-  onLaunchPadClick,
+  isAdminRoute = false,
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const isOnAdmin = location.pathname.startsWith('/admin');
 
   const { activeAccount } = useAppStore();
+  const auth = useAuth();
+  const isAdmin = auth.isAdmin;
+  const isStaff = auth.user?.role === 'staff' || auth.user?.role === 'admin' || auth.user?.role === 'owner';
   const locationAbbr = activeAccount?.location_country?.slice(0, 2).toUpperCase()
     ?? activeAccount?.location_city?.slice(0, 2).toUpperCase()
     ?? null;
+
+  // Admin tab definitions (path-based routing)
+  type AdminTab = { id: string; label: string; path: string };
+  const [adminLeftTabs, adminRightTabs] = ((): [AdminTab[], AdminTab[]] => {
+    if (isAdmin) return [
+      [{ id: 'compass',   label: 'compass',  path: '/admin/compass' },
+       { id: 'inventory', label: 'stock',    path: '/admin/inventory' }],
+      [{ id: 'activity',  label: 'activity', path: '/admin/activity' },
+       { id: 'events',    label: 'events',   path: '/admin/events' }],
+    ];
+    if (isStaff) return [
+      [{ id: 'compass',  label: 'compass',  path: '/admin/compass' },
+       { id: 'activity', label: 'activity', path: '/admin/activity' }],
+      [{ id: 'events',   label: 'events',   path: '/admin/events' },
+       { id: 'people',   label: 'people',   path: '/admin/people' }],
+    ];
+    return [
+      [{ id: 'compass', label: 'compass', path: '/admin/compass' },
+       { id: 'samples', label: 'samples', path: '/admin/samples' }],
+      [{ id: 'capture', label: 'capture', path: '/admin/capture' },
+       { id: 'events',  label: 'events',  path: '/admin/events' }],
+    ];
+  })();
+
+  const renderAdminTabButton = (tab: AdminTab, index: number) => {
+    const isActive = location.pathname === tab.path || location.pathname.startsWith(tab.path + '/');
+    return (
+      <button
+        key={tab.id}
+        onClick={() => {
+          if ('vibrate' in navigator) { navigator.vibrate?.(10); }
+          navigate(tab.path);
+        }}
+        className="flex-1 w-full min-w-0 h-full flex items-center justify-center relative transition-all duration-200 group animate-[fadeIn_0.5s_ease-out] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none"
+        style={{ animationDelay: `${index * 50}ms`, WebkitTouchCallout: 'none', WebkitUserSelect: 'none', touchAction: 'manipulation' }}
+        title={tab.label}
+        aria-current={isActive ? 'page' : undefined}
+        aria-label={tab.label}
+      >
+        <motion.span
+          className="text-[15px] tracking-normal lowercase font-medium pointer-events-none select-none whitespace-nowrap"
+          style={{ fontFamily: 'var(--font-display)', WebkitUserSelect: 'none', userSelect: 'none' }}
+          animate={
+            isActive
+              ? { color: 'var(--tea-gold)', filter: 'drop-shadow(0 0 6px rgb(var(--tea-gold-rgb) / 0.55)) drop-shadow(0 0 16px rgb(var(--tea-gold-rgb) / 0.22))' }
+              : { color: 'var(--tea-text-sec)', filter: 'drop-shadow(0 0 0px transparent)' }
+          }
+          transition={{ duration: 0.45, ease: 'easeOut' }}
+        >
+          {tab.label.toLowerCase()}
+        </motion.span>
+      </button>
+    );
+  };
 
   const centerLongPress = useLongPress({
     delay: 500,
     onLongPress: () => {
       if ('vibrate' in navigator) { navigator.vibrate?.(20); }
-      navigate('/admin');
+      if (isAdminRoute) {
+        navigate('/');
+      } else {
+        navigate('/admin');
+      }
     },
     onClick: () => {
+      if (isAdminRoute) {
+        onAccountClick?.();
+        return;
+      }
       if (isOnAdmin) {
         navigate('/');
         onNavigate('HOME');
@@ -82,28 +148,23 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
         aria-current={isActive ? 'page' : undefined}
         aria-label={section.label}
       >
-        <span
-          className={`text-[14px] tracking-normal lowercase transition-all duration-300 pointer-events-none select-none whitespace-nowrap overflow-hidden ${
-            isActive ? 'text-tea-gold font-bold' : 'text-tea-text-sec font-medium group-hover:text-tea-text'
-          }`}
+        <motion.span
+          className="text-[15px] tracking-normal lowercase font-medium pointer-events-none select-none whitespace-nowrap"
           style={{ fontFamily: 'var(--font-display)', WebkitUserSelect: 'none', userSelect: 'none' }}
+          animate={
+            isActive
+              ? { color: 'var(--tea-gold)', filter: 'drop-shadow(0 0 6px rgb(var(--tea-gold-rgb) / 0.55)) drop-shadow(0 0 16px rgb(var(--tea-gold-rgb) / 0.22))' }
+              : { color: 'var(--tea-text-sec)', filter: 'drop-shadow(0 0 0px transparent)' }
+          }
+          transition={{ duration: 0.45, ease: 'easeOut' }}
         >
           {section.label.toLowerCase()}
-        </span>
-        {isActive && (
-          <motion.div
-            layoutId="bottomtab-indicator"
-            className="absolute bottom-1 w-1 h-1 rounded-full bg-tea-gold"
-            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-          />
-        )}
+        </motion.span>
       </button>
     );
   };
 
   return (
-    <LayoutGroup>
-      {/* Navigation Tab Bar */}
       <nav
         aria-label="Main navigation"
         onContextMenu={(e) => e.preventDefault()}
@@ -145,17 +206,26 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
             </svg>
           </button>
 
+          {/* Left sections */}
+          {isAdminRoute ? (
+            adminLeftTabs.map((tab, index) => (
+              <React.Fragment key={tab.id}>
+                <div className="w-px h-4 bg-tea-gold/20 self-center flex-shrink-0" />
+                {renderAdminTabButton(tab, index)}
+              </React.Fragment>
+            ))
+          ) : (
+            leftSections.map((section, index) => (
+              <React.Fragment key={section.id}>
+                <div className="w-px h-4 bg-tea-gold/20 self-center flex-shrink-0" />
+                {renderTabButton(section, index)}
+              </React.Fragment>
+            ))
+          )}
+
           <div className="w-px h-4 bg-tea-gold/20 self-center flex-shrink-0" />
 
-          {/* Left sections */}
-          {leftSections.map((section, index) => (
-            <React.Fragment key={section.id}>
-              {renderTabButton(section, index)}
-              <div className="w-px h-4 bg-tea-gold/20 self-center flex-shrink-0" />
-            </React.Fragment>
-          ))}
-
-          {/* Center - HOME */}
+          {/* Center - HOME / ADMIN HOME */}
           <button
             {...centerLongPress}
             className="flex-1 w-full h-full flex items-center justify-center relative transition-all duration-300 animate-[fadeIn_0.5s_ease-out] select-none"
@@ -165,27 +235,38 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
               WebkitUserSelect: 'none',
               touchAction: 'manipulation',
             }}
-            title="Home · Long press for launchpad"
-            aria-label="Return to home, long press to open launchpad"
+            title={isAdminRoute ? 'Admin Home · Long press to go to storefront' : 'Home · Long press for admin'}
+            aria-label={isAdminRoute ? 'Admin home, long press to go to storefront' : 'Return to home, long press to open launchpad'}
           >
-            <span style={{ display: 'inline-block', transform: 'scale(0.78)', transformOrigin: 'center', lineHeight: 0 }}>
+            <span style={{ display: 'inline-block', transform: 'scale(0.89)', transformOrigin: 'center', lineHeight: 0 }}>
               <LogoText
                 size="sm"
-                color={activeSection === 'HOME' ? 'var(--tea-gold)' : 'var(--tea-text-sec)'}
+                color={isAdminRoute
+                  ? 'var(--tea-text-sec)'
+                  : (activeSection === 'HOME' ? 'var(--tea-gold)' : 'var(--tea-text-sec)')}
                 className="transition-all duration-300 pointer-events-none"
               />
             </span>
           </button>
 
-          {/* Right sections */}
-          {rightSections.map((section, index) => (
-            <React.Fragment key={section.id}>
-              <div className="w-px h-4 bg-tea-gold/20 self-center flex-shrink-0" />
-              {renderTabButton(section, index + leftSections.length + 1)}
-            </React.Fragment>
-          ))}
-
           <div className="w-px h-4 bg-tea-gold/20 self-center flex-shrink-0" />
+
+          {/* Right sections */}
+          {isAdminRoute ? (
+            adminRightTabs.map((tab, index) => (
+              <React.Fragment key={tab.id}>
+                {renderAdminTabButton(tab, index + adminLeftTabs.length + 1)}
+                <div className="w-px h-4 bg-tea-gold/20 self-center flex-shrink-0" />
+              </React.Fragment>
+            ))
+          ) : (
+            rightSections.map((section, index) => (
+              <React.Fragment key={section.id}>
+                {renderTabButton(section, index + leftSections.length + 1)}
+                <div className="w-px h-4 bg-tea-gold/20 self-center flex-shrink-0" />
+              </React.Fragment>
+            ))
+          )}
 
           {/* Far right — Account/Admin icon (fixed narrow slot) */}
           <button
@@ -195,27 +276,13 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
             title="Account"
             aria-label="Account"
           >
-            <svg
-              viewBox="0 0 24 24"
-              className="w-[13px] h-[13px] transition-colors duration-200 text-tea-text-sec group-hover:text-tea-text pointer-events-none"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <circle cx="12" cy="8" r="4" />
-              <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
-            </svg>
-            {locationAbbr && (
-              <span className="text-[7px] leading-none font-mono text-tea-text-sec/60 group-hover:text-tea-text-sec transition-colors pointer-events-none select-none">
-                {locationAbbr}
-              </span>
-            )}
+            <LogoIcon
+              size={16}
+              className="transition-colors duration-200 text-tea-text-sec group-hover:text-tea-text pointer-events-none"
+            />
           </button>
 
         </div>
       </nav>
-    </LayoutGroup>
   );
 };

@@ -11,6 +11,8 @@ import { TEA_TYPES, createEmptyEntry, compassEntryToProductDraft, generateTeaKey
 import { useTeaCompassStore } from '../lib/teaCompassStore';
 import { useNotesStore } from '../lib/notesStore';
 import { AutocompleteInput } from '../components/TeaCompass/AutocompleteInput';
+import { VendorStrip } from '../components/TeaCompass/VendorStrip';
+import type { VendorDetails } from '../components/TeaCompass/types';
 import { buildVarietyDataMap, getTeaVarietyNames, getTeaVarietySuggestions } from '../data/teaVarieties';
 import { useCustomers, useProducts } from '../admin/hooks/useAdminData';
 import { api } from '../lib/api';
@@ -61,6 +63,24 @@ function QuickAddSheet({ setId, sourceName, sourceId, onClose }: QuickAddSheetPr
   const [region, setRegion] = useState('');
   const [addedFeedback, setAddedFeedback] = useState(false);
 
+  // Per-sample vendor state — initialized from batch source
+  const [localVendorId, setLocalVendorId] = useState<string | undefined>(sourceId);
+  const [localVendorName, setLocalVendorName] = useState<string | undefined>(sourceName);
+  const [localVendorDetails, setLocalVendorDetails] = useState<VendorDetails | undefined>(undefined);
+
+  const handleVendorSelect = useCallback((vendorId: string | undefined, vendorName: string) => {
+    setLocalVendorId(vendorId);
+    setLocalVendorName(vendorName);
+  }, []);
+  const handleVendorClear = useCallback(() => {
+    setLocalVendorId(undefined);
+    setLocalVendorName(undefined);
+    setLocalVendorDetails(undefined);
+  }, []);
+  const handleVendorDetailsChange = useCallback((details: VendorDetails) => {
+    setLocalVendorDetails(details);
+  }, []);
+
   const teaType = type && type !== 'Teaware' ? type as Exclude<TeaType, 'Teaware'> : undefined;
   const varietySuggestions = useMemo(() => getTeaVarietySuggestions(teaType), [teaType]);
   const varietyNameMap = useMemo(() => buildVarietyDataMap(teaType), [teaType]);
@@ -89,8 +109,8 @@ function QuickAddSheet({ setId, sourceName, sourceId, onClose }: QuickAddSheetPr
     if (!trimmed) return;
 
     const sample = createEmptySample(setId, {
-      sourceName,
-      sourceId,
+      sourceName: localVendorName,
+      sourceId: localVendorId,
       type,
     });
     sample.name = trimmed;
@@ -101,8 +121,8 @@ function QuickAddSheet({ setId, sourceName, sourceId, onClose }: QuickAddSheetPr
     sample.teaKey = generateTeaKey({ name: trimmed, type, year: year ? parseInt(year, 10) : undefined, originRegion: region.trim() || undefined });
 
     const compassEntry = createEmptyEntry('tea', {
-      vendorName: sourceName,
-      vendorId: sourceId,
+      vendorName: localVendorName,
+      vendorId: localVendorId,
     });
     compassEntry.name = trimmed;
     compassEntry.chineseName = chineseName;
@@ -132,7 +152,7 @@ function QuickAddSheet({ setId, sourceName, sourceId, onClose }: QuickAddSheetPr
     setRegion('');
     setAddedFeedback(true);
     setTimeout(() => setAddedFeedback(false), 1200);
-  }, [name, type, year, grams, region, chineseName, setId, sourceName, sourceId, addSample, updateSampleSet, getSampleSet, addCompassEntry]);
+  }, [name, type, year, grams, region, chineseName, setId, localVendorName, localVendorId, addSample, updateSampleSet, getSampleSet, addCompassEntry]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
@@ -184,6 +204,16 @@ function QuickAddSheet({ setId, sourceName, sourceId, onClose }: QuickAddSheetPr
         </div>
 
         <div className="px-4 pt-3 pb-4 space-y-3">
+          {/* Vendor — same row style as CaptureCard */}
+          <VendorStrip
+            vendorName={localVendorName}
+            vendorId={localVendorId}
+            vendorDetails={localVendorDetails}
+            onVendorSelect={handleVendorSelect}
+            onClear={handleVendorClear}
+            onDetailsChange={handleVendorDetailsChange}
+          />
+
           {/* Name — outside any overflow container so autocomplete dropdown isn't clipped */}
           <div>
             <label className="text-[10px] uppercase tracking-wider text-tea-text-dim block mb-1.5">

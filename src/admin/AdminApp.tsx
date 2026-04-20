@@ -4,6 +4,7 @@ import { RefreshCw, ChevronDown, Menu, ShoppingCart, AlertTriangle, ArrowRight, 
 import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from '../components/shared/PullToRefreshIndicator';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useQuery } from '@tanstack/react-query';
 import {
   isConfigured,
   hasToken,
@@ -16,13 +17,13 @@ import {
   hydrateAccountStateFromToken,
   ensureTokenRefreshed,
   shouldProactivelyRefreshToken,
+  api,
 } from '../lib/api';
 import { Product } from './types';
 import { useProducts, useRates } from './hooks/useAdminData';
 import { useAppStore } from './store';
 
 // Import Components
-import { Sidebar } from './components/Sidebar';
 import { TeaTable } from './components/TeaTable';
 import { TeawareCatalog } from './components/TeawareCatalog';
 import { InventoryView } from './components/InventoryView';
@@ -30,9 +31,7 @@ import { CartPanel } from '../components/shared/CartPanel';
 import { ToastProvider, useToast } from './components/Toast';
 import { CommandPalette } from './components/CommandPalette';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { AdminBottomNav } from './components/AdminBottomNav';
 import { DashboardView } from './components/DashboardView';
-import { AdminHomeView } from './components/AdminHomeView';
 import { NoMembershipGate } from './components/NoMembershipGate';
 import { TeamView } from './views/TeamView';
 import { AccountSettingsView } from './views/AccountSettingsView';
@@ -44,8 +43,14 @@ import { PeopleView } from './components/PeopleView';
 import { ActivityView } from './components/ActivityView';
 import { QuickCapture } from './components/QuickCapture';
 import { CatalogView } from './views/CatalogView';
+import { CatalogSeedView } from './views/CatalogSeedView';
+import { ActivityLogsPage } from './views/ActivityLogsPage';
+import { PurchaseOrdersPage } from './views/PurchaseOrdersPage';
 import { TeaCompass } from '../components/TeaCompass';
 import type { CompassMode } from '../components/TeaCompass';
+import { VendorProfileView } from './views/VendorProfileView';
+import { ProductStoryView } from './views/ProductStoryView';
+import { PlatformAuditLogPage } from './views/PlatformAuditLogPage';
 
 // Import Modals
 import { AuthModal } from './components/AuthModal';
@@ -86,7 +91,13 @@ const ProtectedRoute = ({ hasAccess, isLoggingIn, children }: { hasAccess: boole
   return <>{children}</>;
 };
 
-const AdminContent = () => {
+interface AdminContentProps {
+  onAccountClick?: () => void;
+  onSearchClick?: () => void;
+  onCartClick?: () => void;
+}
+
+const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
   const { showToast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
@@ -110,7 +121,6 @@ const AdminContent = () => {
     }
     return hasToken();
   });
-  const [isMobileOpen, setIsMobileOpen] = useState(false);
   // currencyOpen state removed — currency selector moved to InventoryView options menu
 
   const claims = getTokenClaims();
@@ -226,13 +236,23 @@ const AdminContent = () => {
   const [showSourceSuggestions, setShowSourceSuggestions] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const isOnInventory = location.pathname.includes('/admin/inventory');
-  const isOnHome = location.pathname === '/admin/home' || location.pathname === '/admin/';
+  const isOnHome = location.pathname === '/admin/' || location.pathname === '/admin/compass';
   const isOnCompass = location.pathname.includes('/admin/compass');
 
   // React Query Hooks — only fetch when authenticated to avoid 401 errors on initial load
   const isLoggedIn = isAuthenticated || isDevAdmin;
   const { data: products = [], isLoading: productsLoading, isError: productsError, error: productsErrorObj, refetch: refetchProducts } = useProducts({ enabled: isLoggedIn });
   const { data: rates = [], refetch: refetchRates } = useRates();
+
+  // Incoming compass shares — poll every 60s for badge count
+  const { data: incomingSharesData } = useQuery({
+    queryKey: ['compass-incoming'],
+    queryFn: () => api.compass.getIncoming(),
+    enabled: isLoggedIn && hasToken(),
+    refetchInterval: 60_000,
+    select: (data: { shares?: Array<{ id: string }> }) => (data?.shares || []) as Array<{ id: string }>,
+  });
+  const incomingShareCount = incomingSharesData?.length ?? 0;
 
   // Pull-to-refresh (mobile)
   const { pullDistance, isRefreshing, progress } = usePullToRefresh(() => {
@@ -281,9 +301,9 @@ const AdminContent = () => {
   useEffect(() => {
     const timer = setTimeout(() => {
       if (isLoggedIn && location.pathname === '/admin') {
-        navigate('/admin/home');
+        navigate('/admin/compass');
       } else if (!isLoggedIn && location.pathname.startsWith('/admin')) {
-        setIsLoginOpen(true);
+        navigate('/signin', { state: { from: location.pathname } });
       }
     }, 0);
     return () => clearTimeout(timer);
@@ -369,28 +389,8 @@ const AdminContent = () => {
   };
 
   return (
-    <div className="flex h-[100dvh] overflow-hidden bg-tea-bg text-tea-text font-sans selection:bg-tea-accent/30"
-      style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
-    >
+    <div className="flex flex-col flex-1 min-h-0 h-full bg-tea-bg text-tea-text font-sans selection:bg-tea-accent/30">
       <PullToRefreshIndicator pullDistance={pullDistance} isRefreshing={isRefreshing} progress={progress} />
-      {/* Mobile hamburger — hidden since bottom nav handles navigation */}
-
-      {isMobileOpen && <div className="fixed inset-0 bg-tea-text/80 backdrop-blur-sm z-40 md:hidden" onClick={() => setIsMobileOpen(false)} />}
-
-      <Sidebar
-        isAdmin={isAdmin}
-        isStaff={isStaff}
-        isMember={isMember}
-        isLoggedIn={isLoggedIn}
-        platformRole={platformRole}
-        onLoginClick={() => setIsLoginOpen(true)}
-        onLogoutClick={handleLogout}
-        isMobileOpen={isMobileOpen}
-        setIsMobileOpen={setIsMobileOpen}
-        cartItemCount={cart.length}
-        onOpenCart={() => setIsCartOpen(true)}
-        onOpenPurchase={() => openPurchaseOrder()}
-      />
 
       <main className="flex-1 relative flex flex-col min-w-0 overflow-hidden">
         {!isOnHome && !isOnCompass && <div className="z-modal bg-tea-surface/90 backdrop-blur-xl px-3 md:px-6 py-1.5 flex items-center gap-2 flex-none relative">
@@ -507,23 +507,17 @@ const AdminContent = () => {
            )}
         </div>}
 
-        <div className="flex-1 relative overflow-hidden pb-[calc(40px+env(safe-area-inset-bottom,0px))] md:pb-0">
+        <div className="flex-1 relative min-h-0 overflow-y-auto pb-[calc(56px+env(safe-area-inset-bottom,0px))] lg:pb-0">
           <AnimatePresence mode="wait">
             <Routes location={location} key={location.pathname}>
-              <Route path="/" element={<Navigate to="home" replace />} />
-              <Route path="home" element={
-                <ProtectedRoute hasAccess={isMember} isLoggingIn={isLoginOpen || !isLoggedIn}>
-                  <PageTransition>
-                    <AdminHomeView platformRole={platformRole} isStaff={isStaff} isAdmin={isAdmin} isPlatformAccount={!!activeMembership?.is_platform_account} />
-                  </PageTransition>
-                </ProtectedRoute>
-              } />
+              <Route path="/" element={<Navigate to="compass" replace />} />
+              <Route path="home" element={<Navigate to="../compass" replace />} />
 
               {/* Member tools — all authenticated members */}
               <Route path="compass" element={
                 <ProtectedRoute hasAccess={isMember} isLoggingIn={isLoginOpen || !isLoggedIn}>
                   <PageTransition>
-                    <CompassWithMode onBack={() => navigate('/admin/home')} />
+                    <CompassWithMode onBack={() => navigate(-1)} />
                   </PageTransition>
                 </ProtectedRoute>
               } />
@@ -550,6 +544,7 @@ const AdminContent = () => {
 
               {/* Operations — staff, admin, owner */}
               <Route path="activity" element={<ProtectedRoute hasAccess={isStaff} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><ActivityView products={products} /></PageTransition></ProtectedRoute>} />
+              <Route path="activity-logs" element={<ProtectedRoute hasAccess={isStaff} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><ActivityLogsPage /></PageTransition></ProtectedRoute>} />
               <Route path="people" element={<ProtectedRoute hasAccess={isStaff} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><PeopleView userRole={userRole || 'user'} /></PageTransition></ProtectedRoute>} />
 
               {/* Management — admin, owner */}
@@ -573,9 +568,14 @@ const AdminContent = () => {
                 </ProtectedRoute>
               } />
               <Route path="dashboard" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><DashboardView products={products} isLoading={loading} /></PageTransition></ProtectedRoute>} />
+              <Route path="vendors/:vendorId" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><VendorProfileView /></PageTransition></ProtectedRoute>} />
+              <Route path="products/:id/story" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><ProductStoryView /></PageTransition></ProtectedRoute>} />
+              <Route path="purchase-orders" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><PurchaseOrdersPage /></PageTransition></ProtectedRoute>} />
               <Route path="team" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><TeamView /></PageTransition></ProtectedRoute>} />
               <Route path="account-settings" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><AccountSettingsView /></PageTransition></ProtectedRoute>} />
               <Route path="platform" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><PlatformAdminView /></PageTransition></ProtectedRoute>} />
+              <Route path="platform/audit-log" element={<ProtectedRoute hasAccess={isAdmin && !!platformRole} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><PlatformAuditLogPage /></PageTransition></ProtectedRoute>} />
+              <Route path="catalog-seed" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><CatalogSeedView products={products} isLoading={loading} /></PageTransition></ProtectedRoute>} />
 
               {/* Legacy routes — redirect to new unified views */}
               <Route path="catalog" element={
@@ -596,21 +596,6 @@ const AdminContent = () => {
           </AnimatePresence>
         </div>
 
-        {/* --- PERSISTENT CART BAR (When Drawer Closed) --- */}
-        {cart.length > 0 && !isCartOpen && (
-            <div className="fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-40 animate-in slide-in-from-bottom-10 fade-in duration-300">
-                <button
-                    onClick={() => setIsCartOpen(true)}
-                    className="bg-tea-accent text-tea-bg px-6 py-3 rounded-full shadow-2xl hover:scale-105 transition-transform flex items-center gap-4 border border-tea-accent-sub"
-                >
-                    <div className="flex items-center gap-2 font-bold text-sm">
-                        <span className="bg-tea-bg text-tea-accent w-5 h-5 rounded-full flex items-center justify-center text-[10px]">{cart.length}</span>
-                        <span className="uppercase tracking-[0.2em] text-xs">{cartDirection === 'purchase' ? 'View Order' : 'View Registry'}</span>
-                    </div>
-                    <ArrowRight size={16} />
-                </button>
-            </div>
-        )}
 
         {/* --- REGISTRY MANIFEST DRAWER --- */}
         <CartPanel
@@ -647,26 +632,21 @@ const AdminContent = () => {
 
         <CommandPalette onAddProduct={() => setIsCreateModalOpen(true)} externalOpen={isCommandPaletteOpen} onOpenChange={setIsCommandPaletteOpen} />
 
-        <AdminBottomNav
-          onSearchClick={() => navigate('/', { state: { openSearch: true } })}
-          onAccountClick={() => window.dispatchEvent(new Event('open-account-panel'))}
-          onCartClick={() => setIsCartOpen(true)}
-          cartItemCount={cart.length}
-          isMember={isMember}
-          isStaff={isStaff}
-          isAdmin={isAdmin}
-          onAddProduct={() => setIsCreateModalOpen(true)}
-        />
-
       </main>
     </div>
   );
 };
 
-const AdminApp = () => (
+interface AdminAppProps {
+  onAccountClick?: () => void;
+  onSearchClick?: () => void;
+  onCartClick?: () => void;
+}
+
+const AdminApp = ({ onAccountClick, onSearchClick, onCartClick }: AdminAppProps) => (
   <ErrorBoundary>
     <ToastProvider>
-      <AdminContent />
+      <AdminContent onAccountClick={onAccountClick} onSearchClick={onSearchClick} onCartClick={onCartClick} />
     </ToastProvider>
   </ErrorBoundary>
 );

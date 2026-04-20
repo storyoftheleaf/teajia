@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Shield, ShieldCheck, Store, Users, Check, Loader2,
   ChevronDown, ChevronUp, Plus, Copy, ExternalLink,
@@ -11,14 +12,16 @@ import type { PlatformRole } from '../../types';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const KNOWN_FEATURES: { id: string; label: string; description: string }[] = [
-  { id: 'ai_wisdom_generation', label: 'AI Wisdom Generation', description: 'Generate lore, terroir & experience copy via Claude' },
+const KNOWN_FEATURES: { id: string; label: string; description: string; planDefault: string[] }[] = [
+  { id: 'compass',             label: 'Tea Compass',          description: 'Tea sourcing, tasting & tracking tool',          planDefault: ['verified', 'partner', 'platform'] },
+  { id: 'catalog_sharing',     label: 'Catalog Access',       description: 'Source teas from the Teajia catalog',            planDefault: ['partner', 'platform'] },
+  { id: 'ai_wisdom_generation',label: 'AI Wisdom Generation', description: 'Generate lore, terroir & experience copy via Claude', planDefault: ['platform'] },
 ];
 
 const TRUST_TIERS: { value: 'basic' | 'verified' | 'partner'; label: string; description: string }[] = [
   { value: 'basic',    label: 'Basic',    description: 'New account, default access' },
-  { value: 'verified', label: 'Verified', description: 'Identity confirmed, expanded trust' },
-  { value: 'partner',  label: 'Partner',  description: 'Full partner, all features available' },
+  { value: 'verified', label: 'Verified', description: 'Identity confirmed — Tea Compass enabled' },
+  { value: 'partner',  label: 'Partner',  description: 'Full partner — all features available' },
 ];
 
 const CURRENCIES = ['USD', 'AUD', 'NT', 'Yuan', 'MYR', 'IDR', 'JPY', 'HKD'];
@@ -399,10 +402,19 @@ const AccountsPanel: React.FC = () => {
                   <p className="text-[10px] uppercase tracking-[0.12em] text-tea-text-dim">Features</p>
                   {KNOWN_FEATURES.map(feat => {
                     const enabled = account.features[feat.id] ?? false;
+                    const tier = account.trust_tier ?? 'basic';
+                    const isPlanDefault = account.is_platform_owner
+                      ? feat.planDefault.includes('platform')
+                      : feat.planDefault.includes(tier);
                     return (
                       <div key={feat.id} className="flex items-center gap-3">
                         <div className="flex-1 min-w-0">
-                          <p className="text-tea-text text-[13px] font-medium">{feat.label}</p>
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-tea-text text-[13px] font-medium">{feat.label}</p>
+                            {isPlanDefault && (
+                              <span className="text-[9px] uppercase tracking-[0.1em] text-tea-gold/60">plan</span>
+                            )}
+                          </div>
                           <p className="text-tea-text-dim text-[11px]">{feat.description}</p>
                         </div>
                         <Toggle enabled={enabled} busy={busyFeature === `${account.id}:${feat.id}`}
@@ -454,6 +466,7 @@ const ACTION_LABELS: Record<string, string> = {
 };
 
 const AuditPanel: React.FC = () => {
+  const navigate = useNavigate();
   const [entries, setEntries] = useState<AuditLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [offset, setOffset] = useState(0);
@@ -483,6 +496,15 @@ const AuditPanel: React.FC = () => {
 
   return (
     <div className="space-y-1.5">
+      <div className="flex items-center justify-end mb-2">
+        <button
+          type="button"
+          onClick={() => navigate('/admin/platform/audit-log')}
+          className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim hover:text-tea-gold transition-colors"
+        >
+          View full log with filters
+        </button>
+      </div>
       {entries.map(entry => {
         let details: Record<string, any> = {};
         try { details = JSON.parse(entry.details); } catch {}

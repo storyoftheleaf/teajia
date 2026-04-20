@@ -366,6 +366,14 @@ export const TeaTable: React.FC<TeaTableProps> = ({
                                                 {product.inTransit && <Package size={10} className="text-tea-gold" />}
                                                 {Math.round(product.stockGrams)}g
                                             </span>
+                                            {product.inTransit && (product as any).inTransitGrams > 0 && (
+                                                <span className="block text-[10px] text-tea-gold/70 tabular-nums text-right">
+                                                    +{(product as any).inTransitGrams}g
+                                                    {(product as any).inTransitEta && (
+                                                        <span className="text-tea-text-dim"> {new Date((product as any).inTransitEta).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                                                    )}
+                                                </span>
+                                            )}
                                         </td>
                                     )}
 

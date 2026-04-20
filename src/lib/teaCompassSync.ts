@@ -14,6 +14,7 @@ const CAMEL_TO_SNAKE: Record<string, string> = {
   capacityMl: 'capacity_ml',
   vendorId: 'vendor_id',
   vendorName: 'vendor_name',
+  linkedCustomerId: 'linked_customer_id',
   audioClips: 'audio_clips',
   buyQuantityGrams: 'buy_quantity_grams',
   buyQuantityUnits: 'buy_quantity_units',

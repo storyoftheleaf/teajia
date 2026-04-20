@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { ArrowLeft, Trash2, ExternalLink, BookOpen, Calendar, Filter, Search, X, Mic } from 'lucide-react';
+import { Trash2, ExternalLink, BookOpen, Calendar, Filter, Search, X, Mic, PenLine, Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Fuse from 'fuse.js';
 import { useNavigate } from 'react-router-dom';
@@ -11,6 +11,78 @@ import { formatRelativeDate, getDateGroup } from '../TeaCompass/BrowseCard';
 import type { CustomerTasting } from '../../types';
 import { flattenTastingNotes, resolveTermLabel, resolveTermIcon, LIQUOR_COLORS } from '../../data/tastingTaxonomy';
 
+// ── Feature 6: Quick Note entry bar ─────────────────────────────────────────
+
+interface QuickNoteBarProps {
+  onSave: (text: string) => void;
+}
+
+const QuickNoteBar: React.FC<QuickNoteBarProps> = ({ onSave }) => {
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState('');
+
+  const handleSave = () => {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    onSave(trimmed);
+    setText('');
+    setOpen(false);
+  };
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="flex items-center gap-2 w-full text-left px-4 py-3 text-xs text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-surface/40 rounded-lg transition-colors"
+      >
+        <PenLine size={13} className="text-tea-text-dim" />
+        Quick note…
+      </button>
+    );
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -4 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="px-4 py-3 bg-tea-surface/60 rounded-lg space-y-2"
+    >
+      <textarea
+        autoFocus
+        value={text}
+        onChange={e => setText(e.target.value)}
+        onKeyDown={e => {
+          if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSave(); }
+          if (e.key === 'Escape') { setOpen(false); setText(''); }
+        }}
+        placeholder="Write a quick tea note…"
+        rows={3}
+        className="w-full bg-transparent text-sm text-tea-text placeholder:text-tea-text-dim outline-none resize-none"
+      />
+      <div className="flex items-center gap-2 justify-end">
+        <button
+          type="button"
+          onClick={() => { setOpen(false); setText(''); }}
+          className="text-xs text-tea-text-dim hover:text-tea-text transition-colors"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={!text.trim()}
+          className="flex items-center gap-1.5 text-xs bg-tea-gold text-tea-bg px-3 py-1.5 rounded-md hover:bg-tea-gold-lt transition-colors disabled:opacity-40"
+        >
+          <Plus size={11} /> Save note
+        </button>
+      </div>
+    </motion.div>
+  );
+};
+
+// ── End Feature 6 ────────────────────────────────────────────────────────────
+
 interface TastingJournalProps {
   onBack: () => void;
   onOrderTea?: (teaId: string) => void;
@@ -20,8 +92,23 @@ type EventFilter = 'all' | 'event-only' | 'no-events';
 type SortMode = 'recent' | 'rating' | 'type';
 
 export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderTea }) => {
-  const { tastingJournal, removeTasting } = useAppStore();
+  const { tastingJournal, removeTasting, addTasting } = useAppStore();
   const navigate = useNavigate();
+
+  // Feature 6: Create a quick-note journal entry
+  const handleQuickNote = (text: string) => {
+    const entry: CustomerTasting = {
+      id: crypto.randomUUID(),
+      teaId: 'quick-note',
+      teaName: 'Quick note',
+      teaType: '',
+      tasting: { notes: [text] },
+      sourceType: 'product',
+      synced: false,
+      createdAt: new Date().toISOString(),
+    };
+    addTasting(entry);
+  };
   const isPlatformPrivileged = usePlatformPrivilege();
 
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -170,21 +257,24 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
   return (
     <div className="flex flex-col h-full surface-warm">
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 pt-3 pb-2 border-b border-tea-border">
-        <button onClick={onBack} className="p-2 -ml-1 text-tea-text-dim hover:text-tea-text transition-colors" aria-label="Back">
-          <ArrowLeft size={18} strokeWidth={1.5} />
-        </button>
-        <div className="flex items-center gap-2.5 flex-1 min-w-0">
-          <BookOpen className="w-5 h-5 text-tea-gold shrink-0" />
-          <h2 className="text-tea-text font-serif text-[15px] tracking-wide truncate">Tasting Journal</h2>
+      <header className="px-4 pt-4 pb-3 border-b border-tea-border">
+        <div className="flex items-center gap-2.5 mb-1">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="text-tea-gold shrink-0">
+            <path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2zm20 0h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/>
+          </svg>
+          <h2 className="font-serif text-base font-normal text-tea-text flex-1">Tasting Journal</h2>
+          <span className="text-[10px] text-tea-text-dim tabular-nums">
+            {tastingJournal.length} {tastingJournal.length === 1 ? 'entry' : 'entries'}
+          </span>
         </div>
-        <span className="text-[10px] text-tea-text-dim shrink-0">
-          {tastingJournal.length} {tastingJournal.length === 1 ? 'entry' : 'entries'}
-        </span>
-      </div>
+        {/* Quick note entry */}
+        <div className="mt-2">
+          <QuickNoteBar onSave={handleQuickNote} />
+        </div>
+      </header>
 
       {tastingJournal.length > 0 && (
-        <div className="px-4 pt-2 space-y-2">
+        <div className="px-4 pt-3 space-y-2">
           {/* Search bar */}
           <div className="relative">
             <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-text-dim pointer-events-none" />
@@ -192,7 +282,7 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search teas, types, notes…"
+              placeholder="Search teas, notes…"
               className="w-full bg-tea-surface/60 text-tea-text text-[13px] rounded-lg pl-8 pr-8 py-2 outline-none placeholder:text-tea-text-dim focus:ring-1 focus:ring-tea-gold/40"
             />
             {searchQuery && (
@@ -230,10 +320,10 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
         </div>
       )}
 
-      <div className="flex-1 overflow-auto px-4 py-4 space-y-2">
+      <div className="flex-1 overflow-auto px-4 py-3 space-y-2">
         {/* Stats row */}
         {stats && (
-          <div className="text-[11px] text-tea-text-dim tabular-nums mb-1 px-0.5">
+          <div className="text-[11px] text-tea-text-dim tabular-nums mb-2 px-0.5">
             {stats.count} teas
             {stats.avgRating && <> · Avg {stats.avgRating}/10</>}
             {stats.topType && <> · Top: {stats.topType}</>}

@@ -53,6 +53,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
   const [activeFeeling, setActiveFeeling] = useState<string | null>(null); // feeling term ID from taxonomy
   const [specialFilter, setSpecialFilter] = useState<'None' | 'Curated' | 'Sale' | 'Liked'>('None');
   const [openFilter, setOpenFilter] = useState<'type' | 'feeling' | null>(null);
+  const [searchText, setSearchText] = useState<string>('');
 
   // Derive tea types from actual inventory (ordered by TYPE_ORDER, then alphabetically)
   const teaTypes = useMemo(() => {
@@ -131,11 +132,15 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
 
   // Filter Logic
   const filteredInventory = useMemo(() => {
+    const searchLower = searchText.trim().toLowerCase();
     return inventory.filter(item => {
+      // 0. Search filter (case-insensitive substring on name)
+      const matchSearch = !searchLower || item.name.toLowerCase().includes(searchLower);
+
       // 1. Basic Filter (Type/Feeling)
       const matchType = activeType === 'All' || item.type === activeType;
       const matchFeeling = !activeFeeling || (item.tasting?.feeling?.includes(activeFeeling) ?? false);
-      
+
       // 2. Special Filter (Curated/Sale/Liked)
       let matchSpecial = true;
       if (specialFilter === 'Curated') matchSpecial = !!item.isFeatured;
@@ -161,9 +166,9 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
         }
       }
 
-      return matchType && matchFeeling && matchSpecial && matchTasting;
+      return matchSearch && matchType && matchFeeling && matchSpecial && matchTasting;
     });
-  }, [inventory, activeType, activeFeeling, specialFilter, userFavorites, tastingFilter]);
+  }, [inventory, searchText, activeType, activeFeeling, specialFilter, userFavorites, tastingFilter]);
 
   // Grouping & Sorting Logic
   const groupedInventory = useMemo(() => {
@@ -214,6 +219,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
     setActiveFeeling(null);
     setSpecialFilter('None');
     setTastingFilter(null);
+    setSearchText('');
   };
 
   return (
@@ -265,6 +271,18 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
 
       {/* --- Inline Filter Bar + Content (full width) --- */}
       <div className="max-w-full mx-auto px-1 md:px-2 lg:px-4 pt-4">
+
+         {/* Search input */}
+         <div className="mb-2">
+           <input
+             type="search"
+             value={searchText}
+             onChange={e => setSearchText(e.target.value)}
+             placeholder="Search teas…"
+             className="w-full bg-transparent border-b border-tea-border text-tea-text text-sm placeholder:text-tea-text-dim py-1.5 pr-2 outline-none focus:border-tea-gold transition-colors"
+             style={{ fontFamily: 'var(--font-body)' }}
+           />
+         </div>
 
          {/* Filter bar — two dropdown buttons */}
          <div ref={filterRef} className="mb-3 relative z-drawer">
@@ -454,6 +472,17 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                 <div className="flex items-center py-2 lg:py-2.5 px-1 gap-3">
                                     {/* Name + metadata */}
                                     <div className="flex-1 min-w-0">
+                                        {/* Featured / Curated badges */}
+                                        {(item.isFeatured || item.isCurated) && (
+                                          <div className="flex flex-col mb-0.5">
+                                            {item.isFeatured && (
+                                              <span className="text-xs tracking-widest uppercase text-tea-gold leading-none">Featured</span>
+                                            )}
+                                            {item.isCurated && (
+                                              <span className="text-xs tracking-widest uppercase text-tea-text-sec leading-none">Curated</span>
+                                            )}
+                                          </div>
+                                        )}
                                         <div className="flex items-center gap-2">
                                             <h3 className="font-serif text-[15px] leading-snug text-tea-text font-medium truncate">
                                                 {item.name}

@@ -112,9 +112,7 @@ input[type="number"]::-webkit-outer-spin-button {
   .card-grid-item {
     padding: 1rem;
   }
-  .card-grid-title {
-    font-size: 1.0625rem;
-  }
+  /* clamp() handles fluid sizing — no fixed override needed at 1024px */
 }
 
 .card-grid-image-container {
@@ -148,7 +146,7 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 
 .card-grid-title {
-  font-size: 1rem;
+  font-size: clamp(16px, 1.4vw, 20px);
   font-family: var(--font-display);
   color: var(--tea-text);
   line-height: 1.35;
@@ -389,6 +387,14 @@ input[type="number"]::-webkit-outer-spin-button {
   background: linear-gradient(90deg, transparent, rgba(184, 146, 78, 0.2) 20%, rgba(184, 146, 78, 0.3) 50%, rgba(184, 146, 78, 0.2) 80%, transparent);
 }
 
+/* Section divider — standard spacing utility.
+   Ensures intentional vertical breathing room above and below any divider.
+   Use on the wrapper element that contains the divider line. */
+.section-divider {
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+}
+
 /* ============================================
    Light Mode Support
    ============================================ */
@@ -480,20 +486,25 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 
 /* ============================================
-   Shimmer Loading Animation
+   Skeleton Loader — Editorial Fade Pulse
+   Replaced left-to-right shimmer sweep with a
+   gentle opacity pulse. Reads as "considered" rather
+   than "tech product" loading.
    ============================================ */
 
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 0.3; }
+}
+
+/* Legacy alias kept for backward compat — also uses pulse now */
 @keyframes shimmer {
-  0% {
-    transform: translateX(-100%);
-  }
-  100% {
-    transform: translateX(200%);
-  }
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 0.3; }
 }
 
 .animate-shimmer {
-  animation: shimmer 1.5s infinite;
+  animation: skeleton-pulse 1.8s ease-in-out infinite;
 }
 
 /* ============================================
@@ -1284,6 +1295,31 @@ input[type="number"]::-webkit-outer-spin-button {
   color: var(--tea-text-dim);
 }
 
+/* Product/content section heading label.
+   Use on small-caps section headings (Terroir, Processing, etc.).
+   Gold is reserved for interactive/active states — static headings use text-sec.
+   Example: <h3 class="product-section-label">Terroir</h3> */
+.product-section-label {
+  font-size: 0.6875rem; /* 11px */
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--tea-text-sec);
+  line-height: 1.4;
+  margin-bottom: 0.375rem;
+}
+
+/* Alias for broader use */
+.section-subhead {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--tea-text-sec);
+  line-height: 1.4;
+  margin-bottom: 0.375rem;
+}
+
 /* ============================================
    Truncation Gradient Fade Utilities (#38)
    NOTE: .line-clamp-fade only works correctly when the
@@ -1903,9 +1939,10 @@ input[type="number"]::-webkit-outer-spin-button {
     opacity: 1 !important;
   }
 
-  /* Shimmer loading */
+  /* Skeleton / shimmer loading */
   .animate-shimmer {
     animation: none !important;
+    opacity: 1 !important;
   }
 }
 
@@ -2808,4 +2845,98 @@ input[type="number"]::-webkit-outer-spin-button {
     0 12px 32px rgba(0, 0, 0, 0.35),
     0 24px 64px rgba(0, 0, 0, 0.25),
     0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+/* ============================================
+   Page Header Tabs — Navigation Tab System
+   Used by PageHeaderTabs component (Shop, Magazine,
+   TeaInventory, ResourcesPage, ForYourPractice).
+   Inactive tabs are dimmed to maximize contrast
+   with the active gold-underlined tab.
+   ============================================ */
+
+/* Inactive tab — intentionally dim to contrast with active */
+.page-header-tab {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.25em;
+  color: var(--tea-text-dim);
+  background: transparent;
+  border: none;
+  padding: 1rem 0;
+  cursor: pointer;
+  position: relative;
+  transition: color 300ms ease;
+}
+
+.page-header-tab:hover {
+  color: var(--tea-text-sec);
+}
+
+/* Active tab — gold underline bar, full text color */
+.page-header-tab-active {
+  color: var(--tea-text);
+  font-weight: 500;
+}
+
+.page-header-tab-active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 1.5px;
+  background: var(--tea-gold);
+  border-radius: 1px;
+}
+
+/* ============================================
+   Quantity Preset Buttons
+   Used on ProductPage gram selector row.
+   Selected state uses accent background + gold text
+   rather than a solid gold fill (gold = CTA, not selection).
+   ============================================ */
+
+.quantity-preset {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  padding: 0.375rem 0;
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums lining-nums;
+  border-radius: 2px;
+  border: 1px solid var(--tea-border);
+  background: var(--tea-accent-sub);
+  color: var(--tea-text-sec);
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.quantity-preset:hover:not(.active):not([aria-pressed="true"]) {
+  border-color: rgb(var(--tea-gold-rgb) / 0.3);
+  color: var(--tea-text);
+}
+
+.quantity-preset.active,
+.quantity-preset[aria-pressed="true"] {
+  background: var(--tea-accent-sub);
+  color: var(--tea-gold);
+  border-color: var(--tea-gold);
+  font-weight: 600;
+}
+
+.light .quantity-preset.active,
+.light .quantity-preset[aria-pressed="true"] {
+  background: rgb(var(--tea-gold-rgb) / 0.08);
+}
+
+/* ── Magazine Page Reader ───────────────────────────────── */
+@keyframes breath {
+  0%, 100% { opacity: 0.65; }
+  50%       { opacity: 1; }
+}
+.mpg-breath {
+  animation: breath 3.8s ease-in-out infinite;
 }

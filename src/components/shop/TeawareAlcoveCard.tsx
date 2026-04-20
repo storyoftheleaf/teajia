@@ -31,16 +31,52 @@ function ShareIcon({ color }: { color: string }) {
 }
 
 export const TeawareAlcoveCard: React.FC<TeawareAlcoveCardProps> = ({ item, onAddToCart, onClose }) => {
-  const { favoriteTeas, toggleFavoriteTea } = useAppStore();
+  const { favoriteTeas, toggleFavoriteTea, activeAccount } = useAppStore();
   const favorited = favoriteTeas.includes(item.id);
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
   const [hovered, setHovered] = useState<string | null>(null);
   const [imageExpanded, setImageExpanded] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [shareCopied, setShareCopied] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showFade, setShowFade] = useState(false);
   const galleryTouchStart = useRef<number | null>(null);
+
+  // Share handler — builds ?product=<id> URL, uses Web Share API with clipboard fallback
+  const handleShare = async () => {
+    const shareText = `${item.name} — ${item.type} from Teajia`;
+    const url = new URL(window.location.href);
+    url.searchParams.set('product', item.id);
+    if (!url.pathname.includes('/shop') && !url.pathname.includes('/store')) {
+      url.pathname = '/shop';
+    }
+    const shareUrl = url.toString();
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: item.name, text: shareText, url: shareUrl });
+      } catch {
+        // User cancelled — silent
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(`${shareText}\n${shareUrl}`);
+        setShareCopied(true);
+        setTimeout(() => setShareCopied(false), 2000);
+      } catch {
+        // Clipboard API unavailable
+      }
+    }
+  };
+
+  const whatsappNumber = activeAccount?.whatsapp_number;
+  const handleSampleRequest = () => {
+    if (!whatsappNumber) return;
+    const msg = `Hi, I'd like to request a sample of ${item.name} (${item.type}). Is that possible?`;
+    const phone = whatsappNumber.replace(/\D/g, '').replace(/^0+/, '');
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+  };
 
   // Build gallery: primary image + additional images
   const allImages = [item.image, ...(item.additionalImages || [])].filter(Boolean);
@@ -449,6 +485,30 @@ export const TeawareAlcoveCard: React.FC<TeawareAlcoveCardProps> = ({ item, onAd
           </div>
         </div>
 
+        {/* Sample request link */}
+        {whatsappNumber && (
+          <div style={{ marginBottom: "8px" }}>
+            <button
+              onClick={handleSampleRequest}
+              style={{
+                background: "none", border: "none", padding: 0,
+                cursor: "pointer",
+                fontFamily: "var(--font-sans)",
+                fontSize: "12px",
+                color: "var(--tea-text-sec)",
+                textDecoration: "underline",
+                textDecorationColor: "var(--tea-border)",
+                textUnderlineOffset: "2px",
+                transition: "color 0.2s",
+              }}
+              onMouseEnter={e => { e.currentTarget.style.color = "var(--tea-text)"; }}
+              onMouseLeave={e => { e.currentTarget.style.color = "var(--tea-text-sec)"; }}
+            >
+              Request a sample →
+            </button>
+          </div>
+        )}
+
         {/* Action row */}
         <div style={{ display: "flex", gap: "4px" }}>
           <div style={{
@@ -481,6 +541,7 @@ export const TeawareAlcoveCard: React.FC<TeawareAlcoveCardProps> = ({ item, onAd
             </button>
             <div style={{ width: "1px", height: "10px", background: "var(--tea-border)" }} />
             <button
+              onClick={handleShare}
               onMouseEnter={() => setHovered("share")}
               onMouseLeave={() => setHovered(null)}
               aria-label="Share"
@@ -491,13 +552,13 @@ export const TeawareAlcoveCard: React.FC<TeawareAlcoveCardProps> = ({ item, onAd
                 opacity: hovered === "share" ? 0.9 : 0.7,
               }}
             >
-              <ShareIcon color={colors.muted} />
+              <ShareIcon color={shareCopied ? colors.success : colors.muted} />
               <span style={{
                 fontFamily: "var(--font-sans)",
                 fontSize: "10px", fontWeight: 400,
                 letterSpacing: "0.08em", textTransform: "uppercase",
-                color: colors.subtitle,
-              }}>Share</span>
+                color: shareCopied ? colors.success : colors.subtitle,
+              }}>{shareCopied ? 'Copied' : 'Share'}</span>
             </button>
           </div>
 

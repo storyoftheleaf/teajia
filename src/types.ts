@@ -267,7 +267,7 @@ export interface LearnPath {
   modules: string[]; // Module IDs
 }
 
-export type ViewState = 'BROWSE' | 'STORY_VIEW' | 'READER' | 'PHOTO_ESSAY';
+export type ViewState = 'BROWSE' | 'STORY_VIEW' | 'READER' | 'PHOTO_ESSAY' | 'PAGE_READER';
 
 export interface CartItem {
   id: string;
@@ -319,6 +319,7 @@ export interface InventoryItem {
   isCurated?: boolean;
   magazineUrl?: string;
   tasting?: TastingData;
+  sessionReserveGrams?: number; // When stock_g <= this, show a soft low-availability warning
 }
 
 // Public-safe product type (no cost/vendor fields)

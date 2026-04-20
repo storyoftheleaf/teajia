@@ -169,7 +169,7 @@ export const LearnCurriculum: React.FC<LearnCurriculumProps> = ({ onStoryClick, 
       {/* Progress Summary */}
       <div className="max-w-4xl mx-auto px-2 md:px-0 mb-8">
         <div className="flex items-center justify-between">
-          <p className="font-serif italic text-sm text-tea-text/60 leading-relaxed max-w-lg">
+          <p className="font-display italic text-sm text-tea-text/60 leading-relaxed max-w-lg">
             {selectedPathData
               ? selectedPathData.description
               : viewMode === 'courses'
@@ -193,7 +193,7 @@ export const LearnCurriculum: React.FC<LearnCurriculumProps> = ({ onStoryClick, 
       {/* Path Selection - only in paths view when no path selected */}
       {viewMode === 'paths' && !selectedPath && (
         <div className="max-w-4xl mx-auto px-2 md:px-0 mb-12">
-          <h2 className="text-lg font-serif text-tea-text mb-6">Choose Your Path</h2>
+          <h2 className="text-lg font-display text-tea-text mb-6">Choose Your Path</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             {LEARN_PATHS.map(path => (
               <CardContainer
@@ -203,7 +203,7 @@ export const LearnCurriculum: React.FC<LearnCurriculumProps> = ({ onStoryClick, 
               >
                 <div className="p-6 flex flex-col items-center text-center gap-3">
                   <div className="text-tea-text-sec">{getPathIcon(path.icon)}</div>
-                  <h3 className="font-serif text-base text-tea-text">{path.title}</h3>
+                  <h3 className="font-display text-base text-tea-text">{path.title}</h3>
                   <p className="text-xs text-tea-text/50 leading-relaxed">{path.description}</p>
                   <div className="text-[11px] uppercase tracking-wider text-tea-text/40 mt-2">
                     {path.modules.length} modules
@@ -229,7 +229,7 @@ export const LearnCurriculum: React.FC<LearnCurriculumProps> = ({ onStoryClick, 
             <div className="mt-4 flex items-center gap-3">
               <div className="text-tea-text-sec">{getPathIcon(selectedPathData.icon)}</div>
               <div>
-                <h2 className="font-serif text-2xl text-tea-text">{selectedPathData.title}</h2>
+                <h2 className="font-display text-2xl text-tea-text">{selectedPathData.title}</h2>
                 <p className="text-sm text-tea-text/60 mt-1">{selectedPathData.description}</p>
               </div>
             </div>
@@ -237,8 +237,8 @@ export const LearnCurriculum: React.FC<LearnCurriculumProps> = ({ onStoryClick, 
         </div>
       )}
 
-      {/* Modules List */}
-      <div className="flex flex-col gap-8 max-w-4xl mx-auto px-2 md:px-0">
+      {/* Modules Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl mx-auto px-2 md:px-0">
          {filteredModules.map((module, moduleIndex) => {
              const isExpanded = expandedModules[module.id];
              const completedCount = module.lessons.filter(l => watchedStories[l.id]).length;
@@ -246,48 +246,53 @@ export const LearnCurriculum: React.FC<LearnCurriculumProps> = ({ onStoryClick, 
              const progress = (completedCount / totalCount) * 100;
 
              return (
-                 <div key={module.id} className="group">
-                     {/* Module Header Card */}
-                     <CardContainer
-                        className={`relative cursor-pointer overflow-hidden transition-all duration-500 ease-out ${isExpanded ? 'shadow-2xl' : 'shadow-sm hover:shadow-lg'}`}
+                 <div key={module.id} className={`group ${isExpanded ? 'col-span-1 md:col-span-2' : 'col-span-1'}`}>
+                     {/* Module Header Card — editorial card style */}
+                     <article
+                        className={`relative cursor-pointer overflow-hidden rounded-xl bg-tea-surface transition-colors duration-150
+                          ${isExpanded ? 'bg-tea-elevated' : 'hover:bg-tea-elevated'}`}
                         onClick={() => toggleModule(module.id)}
                      >
                         {/* Progress Bar (Top) */}
-                        <div className="absolute top-0 left-0 w-full h-1 bg-tea-gold/5">
+                        <div className="absolute top-0 left-0 w-full h-[2px] bg-tea-border">
                             <div
                               className="h-full bg-tea-gold transition-all duration-1000 ease-out"
                               style={{ width: `${progress}%` }}
-                            ></div>
+                            />
                         </div>
 
-                        <div className="p-5 md:p-7 flex items-start gap-5 md:gap-8">
-                            {/* Big Number */}
-                            <div className="font-serif text-6xl md:text-7xl text-white/5 leading-none shrink-0 select-none">
-                                0{moduleIndex + 1}
+                        <div className="p-5">
+                            {/* Level badge */}
+                            <span className="font-sans text-[10px] uppercase tracking-widest text-tea-text-dim block mb-3">
+                                Module {moduleIndex + 1} &middot; {module.subtitle || (moduleIndex === 0 ? 'Foundation' : moduleIndex === 1 ? 'Intermediate' : 'Advanced')}
+                            </span>
+
+                            <div className="flex justify-between items-start mb-2">
+                                <h3 className="font-display text-xl text-tea-text leading-tight group-hover:text-tea-gold transition-colors duration-150 flex-1 pr-3">
+                                    {module.title}
+                                </h3>
+                                <div className="text-tea-text-dim transition-transform duration-300 shrink-0 mt-1" style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+                                    <Icons.ChevronDown className="w-4 h-4" />
+                                </div>
                             </div>
 
-                            <div className="flex-1 pt-2">
-                                <div className="flex justify-between items-start mb-2">
-                                    <h3 className="font-serif text-2xl md:text-3xl text-tea-text leading-tight group-hover:text-tea-gold transition-colors">
-                                        {module.title}
-                                    </h3>
-                                    <div className="text-tea-text/30 transition-transform duration-500" style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>
-                                        <Icons.ChevronDown className="w-6 h-6" />
-                                    </div>
-                                </div>
-                                <p className="text-xs uppercase tracking-[0.15em] text-tea-text/50 mb-3 font-medium">
-                                    {module.lessons.length} Lessons • {module.subtitle}
-                                </p>
-                                <div className={`grid transition-all duration-500 ease-in-out ${isExpanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
-                                    <div className="overflow-hidden">
-                                        <p className="font-serif italic text-tea-text/60 /70 leading-relaxed max-w-lg">
-                                            {module.description}
-                                        </p>
-                                    </div>
-                                </div>
+                            <p className="font-body text-sm text-tea-text-sec leading-relaxed mb-4">
+                                {module.description}
+                            </p>
+
+                            {/* Meta row */}
+                            <div className="flex items-center gap-3">
+                                <span className="font-mono text-xs text-tea-text-dim">
+                                    {module.lessons.length} lessons
+                                </span>
+                                {completedCount > 0 && (
+                                    <span className="font-sans text-[10px] uppercase tracking-widest bg-tea-accent-sub text-tea-gold px-2 py-0.5 rounded-full">
+                                        {completedCount}/{totalCount} done
+                                    </span>
+                                )}
                             </div>
                         </div>
-                     </CardContainer>
+                     </article>
 
                      {/* Lessons List (Accordion Body) */}
                      <div className={`transition-all duration-700 ease-in-out overflow-hidden ${isExpanded ? 'max-h-[2000px] opacity-100 mt-4' : 'max-h-0 opacity-0 mt-0'}`}>
@@ -319,7 +324,7 @@ export const LearnCurriculum: React.FC<LearnCurriculumProps> = ({ onStoryClick, 
 
                                                  <div className="flex flex-col gap-1.5">
                                                      {/* Primary: Title */}
-                                                     <h4 className={`font-serif text-lg leading-tight transition-colors ${isWatched ? 'text-tea-text/60' : 'text-tea-text group-hover/lesson:text-tea-gold'}`}>
+                                                     <h4 className={`font-display text-lg leading-tight transition-colors ${isWatched ? 'text-tea-text/60' : 'text-tea-text group-hover/lesson:text-tea-gold'}`}>
                                                          {lesson.title}
                                                      </h4>
                                                      {/* Secondary: Subtitle + Duration */}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { X, Save, Layers, Edit, Loader2, UserCheck, RefreshCw, Calculator, Tag, Globe, FileText, Image as ImageIcon, Upload, Trash2, Star, Sparkles, ChevronDown } from 'lucide-react';
+import { X, Save, Layers, Edit, Loader2, UserCheck, RefreshCw, Calculator, Tag, Globe, FileText, Image as ImageIcon, Upload, Trash2, Star, Sparkles, ChevronDown, Compass, ExternalLink } from 'lucide-react';
 import { api } from '../../lib/api';
 import { Currency, Product, ExchangeRate, ProductType } from '../types';
 import type { TastingData } from '../../types';
@@ -12,6 +12,7 @@ import { useToast } from './Toast';
 import { useCustomers } from '../hooks/useAdminData';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { TeaReviewsPanel } from './TeaReviewsPanel';
+import { StockLedgerPanel } from './StockLedgerPanel';
 
 interface AddProductModalProps {
   isOpen: boolean;
@@ -195,6 +196,16 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
   const [tastingData, setTastingData] = useState<TastingData>({});
   const [tastingOpen, setTastingOpen] = useState(false);
 
+  // Feature 26: Compass sourcing lineage
+  const [compassSource, setCompassSource] = useState<{
+    vendorName?: string;
+    origin?: string;
+    qualityRating?: number;
+    notes?: string;
+    id?: string;
+  } | null>(null);
+  const [compassSourceLoading, setCompassSourceLoading] = useState(false);
+
   const [formData, setFormData] = useState({
     type: 'Dark',
     form: '',
@@ -222,6 +233,10 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
     isCurated: false,
     recheckStock: false,
     inTransit: false,
+    inTransitGrams: '',
+    inTransitEta: '',
+    lowStockThreshold: '',
+    sessionReserveGrams: '',
     lore: '',
     tastingNotes: '', // We'll store as comma separated string in form
     isCustomWisdom: false,
@@ -236,6 +251,37 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
   });
 
   const isEditMode = !!initialData;
+
+  // Feature 26: fetch compass entry data when product has a sourceCompassEntryId
+  useEffect(() => {
+    if (!isOpen || !initialData?.sourceCompassEntryId) {
+      setCompassSource(null);
+      return;
+    }
+    let cancelled = false;
+    setCompassSourceLoading(true);
+    api.compass.list()
+      .then((data: { entries?: Array<Record<string, unknown>> } | Array<Record<string, unknown>>) => {
+        if (cancelled) return;
+        const entries: Array<Record<string, unknown>> = Array.isArray(data) ? data : (data?.entries ?? []);
+        const entry = entries.find((e: Record<string, unknown>) => e.id === initialData.sourceCompassEntryId);
+        if (entry) {
+          const tasting = entry.tasting as Record<string, unknown> | null | undefined;
+          setCompassSource({
+            id: entry.id as string,
+            vendorName: (entry.vendor_name as string) || (entry.vendorName as string) || undefined,
+            origin: (entry.origin_region as string) || (entry.originRegion as string) || undefined,
+            qualityRating: tasting ? (tasting.qualityRating as number | undefined) : undefined,
+            notes: (entry.notes as string) || undefined,
+          });
+        } else {
+          setCompassSource(null);
+        }
+      })
+      .catch(() => { if (!cancelled) setCompassSource(null); })
+      .finally(() => { if (!cancelled) setCompassSourceLoading(false); });
+    return () => { cancelled = true; };
+  }, [isOpen, initialData?.sourceCompassEntryId]);
 
   // #42 — Wrap onClose to clear draft on deliberate close
   const handleClose = () => {
@@ -281,6 +327,10 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
         isCurated: initialData.isCurated || false,
         recheckStock: initialData.recheckStock || false,
         inTransit: initialData.inTransit || false,
+        inTransitGrams: (initialData as any).inTransitGrams ? String((initialData as any).inTransitGrams) : '',
+        inTransitEta: (initialData as any).inTransitEta || '',
+        lowStockThreshold: initialData.lowStockThreshold ? String(initialData.lowStockThreshold) : '',
+        sessionReserveGrams: initialData.sessionReserveGrams ? String(initialData.sessionReserveGrams) : '',
         lore: initialData.lore || '',
         tastingNotes: initialData.tastingNotes ? initialData.tastingNotes.join(', ') : '',
         isCustomWisdom: initialData.isCustomWisdom || false,
@@ -323,6 +373,10 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
         isCurated: false,
         recheckStock: false,
         inTransit: false,
+        inTransitGrams: '',
+        inTransitEta: '',
+        lowStockThreshold: '',
+        sessionReserveGrams: '',
         lore: '',
         tastingNotes: '',
         isCustomWisdom: false,
@@ -394,6 +448,8 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
   const [generatingWisdom, setGeneratingWisdom] = useState(false);
   const [wisdomOpen, setWisdomOpen] = useState(false);
   const [showDraftBanner, setShowDraftBanner] = useState(false);
+  const [pendingWisdom, setPendingWisdom] = useState<null | { lore: string; tastingNotes: string; chineseName: string; originRegion: string; processingNotes: string; terroir: string; mood: string; experience: string }>(null);
+  const [showWisdomSaveHint, setShowWisdomSaveHint] = useState(false);
 
   // #42 — Show restore banner when opening a new product form and a draft exists
   useEffect(() => {
@@ -415,6 +471,25 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData, isOpen]);
 
+  const applyGeneratedWisdom = (data: typeof pendingWisdom) => {
+    if (!data) return;
+    setFormData(prev => ({
+        ...prev,
+        lore: data.lore || prev.lore,
+        tastingNotes: data.tastingNotes || prev.tastingNotes,
+        chineseName: prev.chineseName || data.chineseName,
+        originRegion: prev.originRegion || data.originRegion,
+        processingNotes: prev.processingNotes || data.processingNotes,
+        terroir: prev.terroir || data.terroir,
+        mood: prev.mood || data.mood,
+        experience: prev.experience || data.experience,
+        isCustomWisdom: false,
+        showWisdom: true,
+    }));
+    setPendingWisdom(null);
+    setShowWisdomSaveHint(true);
+  };
+
   const handleGenerateWisdom = async () => {
     if (!formData.productName) {
         showToast("Please enter a product name first.", 'error');
@@ -428,19 +503,23 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
             .replace('{{type}}', formData.type);
 
         const data = await api.generateWisdom(prompt);
-        setFormData(prev => ({
-            ...prev,
-            lore: data.lore || prev.lore,
-            tastingNotes: data.tastingNotes ? data.tastingNotes.join(', ') : prev.tastingNotes,
-            chineseName: prev.chineseName || data.chineseName || '',
-            originRegion: prev.originRegion || data.originRegion || '',
-            processingNotes: prev.processingNotes || data.processingNotes || '',
-            terroir: prev.terroir || data.terroir || '',
-            mood: prev.mood || data.mood || '',
-            experience: prev.experience || data.experience || '',
-            isCustomWisdom: false,
-            showWisdom: true,
-        }));
+        const generated = {
+            lore: data.lore || '',
+            tastingNotes: data.tastingNotes ? data.tastingNotes.join(', ') : '',
+            chineseName: data.chineseName || '',
+            originRegion: data.originRegion || '',
+            processingNotes: data.processingNotes || '',
+            terroir: data.terroir || '',
+            mood: data.mood || '',
+            experience: data.experience || '',
+        };
+
+        // If there's existing lore, confirm before overwriting
+        if (formData.lore && formData.lore.trim()) {
+            setPendingWisdom(generated);
+        } else {
+            applyGeneratedWisdom(generated);
+        }
     } catch (error: any) {
         console.error("Failed to generate wisdom:", error);
         showToast("Failed to generate wisdom. Please try again.", 'error');
@@ -515,6 +594,10 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
             tea_key: formData.teaKey || null,
             recheck_stock: formData.recheckStock ? 1 : 0,
             in_transit: formData.inTransit ? 1 : 0,
+            in_transit_grams: formData.inTransit && formData.inTransitGrams ? parseInt(formData.inTransitGrams) : null,
+            in_transit_eta: formData.inTransit && formData.inTransitEta ? formData.inTransitEta : null,
+            low_stock_threshold: formData.lowStockThreshold ? parseInt(formData.lowStockThreshold) : null,
+            session_reserve_grams: (formData.type !== 'Teaware' && formData.sessionReserveGrams) ? parseInt(formData.sessionReserveGrams) : null,
             ...(isPlatformAccount ? {
               wholesale_price: formData.wholesalePrice ? parseFloat(formData.wholesalePrice) : null,
               catalog_visible: formData.catalogVisible ? 1 : 0,
@@ -867,6 +950,29 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                               inputMode="numeric"
                           />
                       </div>
+
+                      {/* Low-stock alert threshold */}
+                      <div className="flex justify-between items-center mt-2">
+                          <label className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim">Alert below (g)</label>
+                          <input
+                              name="lowStockThreshold" type="number" value={formData.lowStockThreshold} onChange={handleChange}
+                              className="w-24 bg-transparent text-right text-tea-text-sec border-b border-tea-border hover:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg placeholder-tea-text-sec/40 transition-colors tabular-nums text-sm" placeholder="0"
+                              inputMode="numeric"
+                          />
+                      </div>
+
+                      {/* Session reserve threshold — tea only */}
+                      {formData.type !== 'Teaware' && (
+                        <div className="flex justify-between items-center mt-2">
+                            <label className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim" title="Stock below this amount shows a low-availability warning on the shop.">Session reserve (g)</label>
+                            <input
+                                name="sessionReserveGrams" type="number" value={formData.sessionReserveGrams} onChange={handleChange}
+                                className="w-24 bg-transparent text-right text-tea-text-sec border-b border-tea-border hover:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg placeholder-tea-text-sec/40 transition-colors tabular-nums text-sm" placeholder="0"
+                                inputMode="numeric"
+                            />
+                        </div>
+                      )}
+
                       <label className="flex items-center gap-2 mt-1.5 cursor-pointer group">
                           <div className="relative">
                               <input type="checkbox" name="recheckStock" checked={formData.recheckStock} onChange={handleChange} className="sr-only" />
@@ -876,6 +982,8 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                           </div>
                           <span className="text-xs text-tea-text-sec group-hover:text-tea-accent transition-colors uppercase tracking-[0.15em]">Flag for stock recheck</span>
                       </label>
+
+                      {/* In-transit toggle + expanded fields */}
                       <label className="flex items-center gap-2 mt-1.5 cursor-pointer group">
                           <div className="relative">
                               <input type="checkbox" name="inTransit" checked={formData.inTransit} onChange={handleChange} className="sr-only" />
@@ -883,8 +991,27 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                                   {formData.inTransit && <svg className="w-3.5 h-3.5 text-tea-bg" viewBox="0 0 14 14" fill="none"><path d="M3.5 7L6 9.5L10.5 4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                               </div>
                           </div>
-                          <span className="text-xs text-tea-text-sec group-hover:text-tea-gold transition-colors uppercase tracking-[0.15em]">In transit (awaiting shipment)</span>
+                          <span className="text-xs text-tea-text-sec group-hover:text-tea-gold transition-colors uppercase tracking-[0.15em]">In transit</span>
                       </label>
+                      {formData.inTransit && (
+                        <div className="mt-2 pl-5 space-y-1.5 border-l border-tea-border">
+                          <div className="flex justify-between items-center">
+                            <label className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim">Qty in transit (g)</label>
+                            <input
+                              name="inTransitGrams" type="number" value={formData.inTransitGrams} onChange={handleChange}
+                              className="w-20 bg-transparent text-right text-tea-gold border-b border-tea-border hover:border-tea-gold/40 outline-none text-sm tabular-nums placeholder-tea-text-sec/40"
+                              placeholder="0" inputMode="numeric"
+                            />
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <label className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim">Expected arrival</label>
+                            <input
+                              name="inTransitEta" type="date" value={formData.inTransitEta} onChange={handleChange}
+                              className="bg-transparent text-right text-tea-text-sec border-b border-tea-border hover:border-tea-gold/40 outline-none text-xs"
+                            />
+                          </div>
+                        </div>
+                      )}
                  </div>
               </div>
             </div>
@@ -1015,6 +1142,37 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                         </div>
                     )}
                 </div>
+
+                {/* Overwrite confirmation banner */}
+                {pendingWisdom && (
+                    <div className="mx-1 mb-3 px-3 py-2.5 bg-tea-gold/10 border border-tea-border rounded-lg flex items-center justify-between gap-3">
+                        <span className="text-xs text-tea-text-sec">AI wisdom ready. Replace existing lore?</span>
+                        <div className="flex items-center gap-2 shrink-0">
+                            <button
+                                type="button"
+                                onClick={() => applyGeneratedWisdom(pendingWisdom)}
+                                className="text-xs font-bold text-tea-gold hover:text-tea-gold/80 uppercase tracking-wider transition-colors"
+                            >
+                                Replace
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setPendingWisdom(null)}
+                                className="text-xs text-tea-text-dim hover:text-tea-text-sec uppercase tracking-wider transition-colors"
+                            >
+                                Discard
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                {/* Save hint after generation */}
+                {showWisdomSaveHint && !pendingWisdom && (
+                    <div className="mx-1 mb-3 px-3 py-2 bg-tea-accent-sub/30 border border-tea-border rounded-lg flex items-center justify-between gap-2">
+                        <span className="text-xs text-tea-text-sec">Wisdom populated — save the product to persist it.</span>
+                        <button type="button" onClick={() => setShowWisdomSaveHint(false)} className="text-[10px] text-tea-text-dim hover:text-tea-text-sec">✕</button>
+                    </div>
+                )}
 
                 {wisdomOpen && (
                     <div className="space-y-4">
@@ -1172,6 +1330,78 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
             </div>
           </div>
         </form>
+
+        {/* Feature 26: Sourcing lineage — edit mode only when sourceCompassEntryId is set */}
+        {isEditMode && initialData?.sourceCompassEntryId && (
+          <div className="px-6 py-4 border-t border-tea-border">
+            <div className="flex items-center gap-2 mb-3">
+              <Compass size={13} className="text-tea-gold shrink-0" />
+              <h3 className="text-xs uppercase tracking-wider text-tea-gold/70 font-bold">Field Origin</h3>
+            </div>
+            {compassSourceLoading ? (
+              <div className="flex items-center gap-2 text-tea-text-dim text-xs">
+                <Loader2 size={13} className="animate-spin" />
+                <span>Loading sourcing data…</span>
+              </div>
+            ) : compassSource ? (
+              <div className="bg-tea-bg/50 border border-tea-border rounded-lg p-3 space-y-2 text-[12px]">
+                {compassSource.vendorName && (
+                  <div className="flex gap-2">
+                    <span className="text-tea-text-dim w-20 shrink-0">Vendor</span>
+                    <span className="text-tea-text-sec">{compassSource.vendorName}</span>
+                  </div>
+                )}
+                {compassSource.origin && (
+                  <div className="flex gap-2">
+                    <span className="text-tea-text-dim w-20 shrink-0">Origin</span>
+                    <span className="text-tea-text-sec">{compassSource.origin}</span>
+                  </div>
+                )}
+                {compassSource.qualityRating != null && (
+                  <div className="flex gap-2">
+                    <span className="text-tea-text-dim w-20 shrink-0">Field rating</span>
+                    <span className="text-tea-text-sec">{compassSource.qualityRating}/10</span>
+                  </div>
+                )}
+                {compassSource.notes && (
+                  <div className="flex gap-2">
+                    <span className="text-tea-text-dim w-20 shrink-0">Notes</span>
+                    <span className="text-tea-text-sec leading-relaxed line-clamp-3">{compassSource.notes}</span>
+                  </div>
+                )}
+                <div className="pt-1">
+                  <a
+                    href={`/admin/compass?entry=${initialData.sourceCompassEntryId}`}
+                    className="inline-flex items-center gap-1 text-tea-gold text-[11px] hover:underline"
+                  >
+                    <ExternalLink size={10} />
+                    View full compass entry
+                  </a>
+                </div>
+              </div>
+            ) : (
+              <div className="text-xs text-tea-text-dim">
+                Compass entry not found.{' '}
+                <a
+                  href={`/admin/compass?entry=${initialData.sourceCompassEntryId}`}
+                  className="text-tea-gold hover:underline"
+                >
+                  Open compass
+                </a>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Stock History — edit mode only */}
+        {isEditMode && initialData?.id && (
+          <div className="px-6 py-4 border-t border-tea-border">
+            <StockLedgerPanel
+              productId={initialData.id}
+              productName={formData.givenName || formData.productName || ''}
+            />
+          </div>
+        )}
 
         {/* Network Reviews — edit mode only when tea_key is set */}
         {isEditMode && formData.teaKey && (

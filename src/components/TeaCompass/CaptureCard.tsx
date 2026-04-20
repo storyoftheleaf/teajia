@@ -740,6 +740,11 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
     update({ vendorDetails: details });
   };
 
+  // Feature 28: linked customer change handler
+  const handleLinkedCustomerChange = (customerId: string | undefined) => {
+    update({ linkedCustomerId: customerId });
+  };
+
   const handleNameAutocompleteSelect = (product: any) => {
     if (!entry) return;
     const updates: Record<string, unknown> = {};
@@ -803,6 +808,8 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
               onVendorSelect={handleVendorSelect}
               onClear={handleVendorClear}
               onDetailsChange={handleVendorDetailsChange}
+              linkedCustomerId={entry.linkedCustomerId}
+              onLinkedCustomerChange={handleLinkedCustomerChange}
             />
           </div>
           <PhotoCapture
@@ -1103,6 +1110,8 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
               onVendorSelect={handleVendorSelect}
               onClear={handleVendorClear}
               onDetailsChange={handleVendorDetailsChange}
+              linkedCustomerId={entry.linkedCustomerId}
+              onLinkedCustomerChange={handleLinkedCustomerChange}
             />
           </div>
           <PhotoCapture

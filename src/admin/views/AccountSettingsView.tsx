@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Loader2, Save } from 'lucide-react';
+import { Loader2, Save, AlertTriangle, ArrowRight } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useAppStore } from '../store';
-import type { Account, AccountRole } from '../../types';
+import type { Account, AccountMember, AccountRole } from '../../types';
 
 function useCurrentRole(): AccountRole | null {
   const { memberships, activeAccountId } = useAppStore();
@@ -108,6 +108,7 @@ export const AccountSettingsView: React.FC = () => {
   const disabled = !canEdit || saving;
 
   return (
+    <div className="h-full overflow-y-auto">
     <div className="p-6 md:p-10 max-w-3xl mx-auto">
       <div className="mb-6">
         <h1 className="text-2xl text-tea-text mb-1" style={{ fontFamily: 'var(--font-display)' }}>
@@ -239,9 +240,242 @@ export const AccountSettingsView: React.FC = () => {
           </div>
         )}
       </form>
+
+      {/* Danger Zone */}
+      {canEdit && (
+        <div className="mt-10">
+          <h2 className="text-[10px] uppercase tracking-[0.2em] text-tea-text-dim mb-3">
+            Danger Zone
+          </h2>
+          <TransferOwnershipSection account={account} accountId={activeAccountId!} />
+        </div>
+      )}
+    </div>
     </div>
   );
 };
+
+// ─── Transfer Ownership ──────────────────────────────────────────────────────
+
+type TransferStep = 'idle' | 'select-member' | 'confirm-name' | 'verify-password';
+
+const TransferOwnershipSection: React.FC<{
+  account: Account;
+  accountId: string;
+}> = ({ account, accountId }) => {
+  const [step, setStep] = useState<TransferStep>('idle');
+  const [members, setMembers] = useState<AccountMember[]>([]);
+  const [loadingMembers, setLoadingMembers] = useState(false);
+  const [selectedMemberId, setSelectedMemberId] = useState('');
+  const [confirmName, setConfirmName] = useState('');
+  const [passwordInput, setPasswordInput] = useState('');
+  const [transferring, setTransferring] = useState(false);
+  const [transferError, setTransferError] = useState<string | null>(null);
+
+  const selectedMember = members.find((m) => m.user_id === selectedMemberId) ?? null;
+  const nameMatches = confirmName.trim() === account.name.trim();
+
+  const openFlow = async () => {
+    setStep('select-member');
+    setSelectedMemberId('');
+    setConfirmName('');
+    setPasswordInput('');
+    setTransferError(null);
+    setLoadingMembers(true);
+    try {
+      const data = await api.accounts.listMembers(accountId);
+      setMembers(data.filter((m) => m.role !== 'owner'));
+    } catch {
+      setMembers([]);
+    } finally {
+      setLoadingMembers(false);
+    }
+  };
+
+  const handleTransfer = async () => {
+    if (!selectedMember) return;
+    setTransferring(true);
+    setTransferError(null);
+    try {
+      const result = await api.auth.verifyPassword(passwordInput);
+      if (!result?.verified) {
+        setTransferError('Incorrect password. Transfer cancelled.');
+        setTransferring(false);
+        return;
+      }
+      await api.accounts.transferOwnership(accountId, selectedMember.user_id);
+      window.location.reload();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Transfer failed. Please try again.';
+      setTransferError(msg.includes('401') || msg.toLowerCase().includes('incorrect') ? 'Incorrect password. Transfer cancelled.' : msg);
+      setTransferring(false);
+    }
+  };
+
+  return (
+    <div className="bg-tea-surface rounded-lg border border-tea-border overflow-hidden">
+      <div className="px-5 py-4 flex items-start gap-4">
+        <AlertTriangle size={16} className="text-tea-text-dim mt-0.5 shrink-0" />
+        <div className="flex-1 min-w-0">
+          <p className="text-sm text-tea-text font-medium">Transfer Ownership</p>
+          <p className="text-xs text-tea-text-dim mt-0.5">
+            Transfer this account to another team member. You will lose owner access.
+          </p>
+        </div>
+        {step === 'idle' && (
+          <button
+            type="button"
+            onClick={openFlow}
+            className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold uppercase tracking-[0.12em] border border-tea-border text-tea-text-sec hover:text-tea-text hover:border-tea-text-dim transition-colors"
+          >
+            Transfer <ArrowRight size={11} />
+          </button>
+        )}
+      </div>
+
+      {/* Gate 1: Select target member */}
+      {step === 'select-member' && (
+        <div className="border-t border-tea-border px-5 py-4 space-y-3">
+          <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-dim">Step 1 of 3 — Select new owner</p>
+          {loadingMembers ? (
+            <div className="flex items-center gap-2 text-xs text-tea-text-dim py-2">
+              <Loader2 size={12} className="animate-spin" /> Loading team members…
+            </div>
+          ) : members.length === 0 ? (
+            <p className="text-xs text-tea-text-sec py-2">No other team members. Add a member first.</p>
+          ) : (
+            <>
+              <div>
+                <label className="block text-[10px] uppercase tracking-[0.2em] text-tea-text-sec mb-1.5">
+                  New Owner
+                </label>
+                <select
+                  value={selectedMemberId}
+                  onChange={(e) => setSelectedMemberId(e.target.value)}
+                  className="w-full bg-tea-bg border border-tea-border rounded-md px-3 py-2 text-sm text-tea-text outline-none focus:ring-2 focus:ring-tea-gold/40"
+                >
+                  <option value="">— select a team member —</option>
+                  {members.map((m) => (
+                    <option key={m.user_id} value={m.user_id}>
+                      {m.name || m.email} ({m.role})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex gap-2 justify-end">
+                <button
+                  type="button"
+                  onClick={() => setStep('idle')}
+                  className="px-3 py-1.5 text-xs text-tea-text-dim hover:text-tea-text transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={!selectedMemberId}
+                  onClick={() => { setConfirmName(''); setStep('confirm-name'); }}
+                  className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-md bg-tea-elevated text-tea-text text-xs font-semibold uppercase tracking-[0.12em] hover:opacity-80 transition-opacity disabled:opacity-40"
+                >
+                  Next <ArrowRight size={11} />
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Gate 2: Type exact account name */}
+      {step === 'confirm-name' && selectedMember && (
+        <div className="border-t border-tea-border px-5 py-4 space-y-4">
+          <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-dim">Step 2 of 3 — Confirm account name</p>
+          <div className="bg-tea-bg rounded-md px-4 py-3 text-sm text-tea-text-sec space-y-1">
+            <p>
+              Transfer <span className="text-tea-text font-medium">{account.name}</span> to{' '}
+              <span className="text-tea-text font-medium">{selectedMember.name || selectedMember.email}</span>?
+            </p>
+            <p className="text-xs text-tea-text-dim">{selectedMember.email} · current role: {selectedMember.role}</p>
+          </div>
+          <div>
+            <label className="block text-[10px] uppercase tracking-[0.2em] text-tea-text-sec mb-1.5">
+              Type the account name to confirm
+            </label>
+            <input
+              type="text"
+              value={confirmName}
+              onChange={(e) => setConfirmName(e.target.value)}
+              placeholder={account.name}
+              autoFocus
+              className="w-full bg-tea-bg border border-tea-border rounded-md px-3 py-2 text-sm text-tea-text outline-none focus:ring-2 focus:ring-tea-gold/40 placeholder-tea-text-dim"
+            />
+            <p className="mt-1 text-[11px] text-tea-text-dim">
+              Must match exactly: <span className="text-tea-text-sec font-mono">{account.name}</span>
+            </p>
+          </div>
+          <div className="flex gap-2 justify-end">
+            <button
+              type="button"
+              onClick={() => setStep('select-member')}
+              className="px-3 py-1.5 text-xs text-tea-text-dim hover:text-tea-text transition-colors"
+            >
+              Back
+            </button>
+            <button
+              type="button"
+              disabled={!nameMatches}
+              onClick={() => { setPasswordInput(''); setTransferError(null); setStep('verify-password'); }}
+              className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-md bg-tea-elevated text-tea-text text-xs font-semibold uppercase tracking-[0.12em] hover:opacity-80 transition-opacity disabled:opacity-40"
+            >
+              Next <ArrowRight size={11} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Gate 3: Re-enter password */}
+      {step === 'verify-password' && selectedMember && (
+        <div className="border-t border-tea-border px-5 py-4 space-y-4">
+          <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-dim">Step 3 of 3 — Authorise</p>
+          <div>
+            <label className="block text-[10px] uppercase tracking-[0.2em] text-tea-text-sec mb-1.5">
+              Re-enter your password to authorise
+            </label>
+            <input
+              type="password"
+              value={passwordInput}
+              onChange={(e) => { setPasswordInput(e.target.value); setTransferError(null); }}
+              autoFocus
+              className="w-full bg-tea-bg border border-tea-border rounded-md px-3 py-2 text-sm text-tea-text outline-none focus:ring-2 focus:ring-tea-gold/40"
+            />
+          </div>
+          {transferError && (
+            <p className="text-xs text-tea-text-sec">{transferError}</p>
+          )}
+          <div className="flex gap-2 justify-end">
+            <button
+              type="button"
+              onClick={() => setStep('confirm-name')}
+              disabled={transferring}
+              className="px-3 py-1.5 text-xs text-tea-text-dim hover:text-tea-text transition-colors disabled:opacity-50"
+            >
+              Back
+            </button>
+            <button
+              type="button"
+              onClick={handleTransfer}
+              disabled={!passwordInput || transferring}
+              className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-md bg-tea-elevated text-tea-text text-xs font-semibold uppercase tracking-[0.12em] hover:opacity-80 transition-opacity disabled:opacity-40"
+            >
+              {transferring ? <Loader2 size={11} className="animate-spin" /> : <AlertTriangle size={11} />}
+              Transfer Ownership
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─── Field helpers ────────────────────────────────────────────────────────────
 
 const Field: React.FC<{
   label: string;

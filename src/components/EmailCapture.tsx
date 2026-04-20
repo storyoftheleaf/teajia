@@ -8,8 +8,6 @@ interface EmailCaptureProps {
   className?: string;
 }
 
-const STORAGE_KEY = 'teajia_email_signups';
-
 export const EmailCapture: React.FC<EmailCaptureProps> = ({
   heading = 'Stay Connected',
   subtitle = 'Join the community for new stories, courses, and releases',
@@ -28,22 +26,12 @@ export const EmailCapture: React.FC<EmailCaptureProps> = ({
     setError(null);
 
     try {
-      await api.newsletter.subscribe(email);
-
-      // Cache in localStorage as fallback
-      const existing = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-      existing.push({ email, date: new Date().toISOString() });
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(existing));
-
+      await api.newsletter.subscribe(email, 'website');
       setEmail('');
       setSubmitted(true);
-    } catch (err: any) {
-      // If API fails, still save locally so the email isn't lost
-      const existing = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-      existing.push({ email, date: new Date().toISOString(), pending: true });
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(existing));
-
-      setError(err.message || 'Something went wrong. Please try again.');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Something went wrong. Please try again.';
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -91,7 +79,7 @@ export const EmailCapture: React.FC<EmailCaptureProps> = ({
                 animation: 'email-text-in 0.4s ease-out 0.3s both',
               }}
             >
-              You're in!
+              You're on the list
             </p>
             <p
               className="text-tea-text-sec font-sans text-sm"

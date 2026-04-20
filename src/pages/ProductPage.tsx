@@ -1,6 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
+import { Thermometer, Droplets, Clock, RefreshCw, MessageCircle } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { useInventory } from '../context/InventoryContext';
 import { useAppStore } from '../lib/store';
 import { Icons } from '../components/Icons';
@@ -8,8 +10,124 @@ import { TeaPlaceholder } from '../components/shop/TeaPlaceholder';
 import { HapticSlider } from '../components/shared/HapticSlider';
 import { fmtPrice, fmtPricePerGram, fmtNum } from '../utils/formatNumber';
 import { CardImage } from '../components/shared/CardImage';
-import type { InventoryItem } from '../types';
+import type { InventoryItem, TastingData } from '../types';
 import { getBrewingProfile } from '../data/brewing-profiles';
+import { buildWhatsAppUrl, buildOrderMessage } from '../lib/whatsapp';
+import { api } from '../lib/api';
+import { resolveTermLabel, flattenTastingNotes } from '../data/tastingTaxonomy';
+
+// ── Feature 4: Public tea reviews section ────────────────────────────────────
+
+interface PublicTeaReview {
+  id: string;
+  tea_key: string;
+  author_name?: string;
+  author_account_name?: string;
+  rating?: number;
+  notes?: string;
+  voice_notes?: string[];
+  tasting?: TastingData;
+  verdict?: string;
+  session_date?: string;
+  created_at: string;
+  visibility: string;
+}
+
+const PublicReviewsSection: React.FC<{ productId: string; teaKey?: string }> = ({ productId, teaKey }) => {
+  const { data: reviews = [], isLoading } = useQuery<PublicTeaReview[]>({
+    queryKey: ['public-tea-reviews', productId, teaKey],
+    queryFn: () => api.teaReviews.list({
+      product_id: productId,
+      ...(teaKey ? { tea_key: teaKey } : {}),
+      visibility: 'network',
+    }),
+    staleTime: 60_000,
+  });
+
+  const networkReviews = reviews.filter(r => r.visibility === 'network');
+
+  if (isLoading) return null;
+
+  if (networkReviews.length === 0) {
+    return (
+      <div className="mt-10 pt-6 border-t border-tea-border">
+        <h3 className="text-[11px] uppercase tracking-[0.15em] text-tea-text-sec mb-3">Reviews</h3>
+        <p className="text-xs text-tea-text-dim italic">No reviews yet.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-10 pt-6 border-t border-tea-border">
+      <h3 className="text-[11px] uppercase tracking-[0.15em] text-tea-text-sec mb-4">
+        Reviews <span className="text-tea-text-dim font-sans normal-case tracking-normal">({networkReviews.length})</span>
+      </h3>
+      <div className="space-y-4">
+        {networkReviews.map(r => {
+          const flavorTerms = r.tasting ? flattenTastingNotes(r.tasting) : [];
+          return (
+            <div key={r.id} className="border border-tea-border rounded-md p-4 space-y-2 bg-tea-surface">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs font-medium text-tea-text">
+                  {r.author_name ? r.author_name.charAt(0) + '.' : 'Anonymous'}
+                </span>
+                {r.author_account_name && (
+                  <span className="text-[10px] text-tea-text-dim">· {r.author_account_name}</span>
+                )}
+                {r.rating != null && (
+                  <span className="font-mono text-[11px] text-tea-gold">{r.rating}/10</span>
+                )}
+                {r.verdict && (
+                  <span className="text-[10px] text-tea-text-dim capitalize">{r.verdict}</span>
+                )}
+                <span className="ml-auto text-[10px] text-tea-text-dim">
+                  {(r.session_date || r.created_at).slice(0, 10)}
+                </span>
+              </div>
+
+              {flavorTerms.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {flavorTerms.slice(0, 6).map(termId => (
+                    <span
+                      key={termId}
+                      className="text-[10px] px-2 py-0.5 rounded-full bg-tea-accent-sub text-tea-text-sec"
+                    >
+                      {resolveTermLabel(termId)}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {r.notes && (
+                <p className="text-xs text-tea-text-sec italic leading-relaxed">{r.notes}</p>
+              )}
+
+              {r.voice_notes && r.voice_notes.length > 0 && (
+                <div className="space-y-1">
+                  {r.voice_notes.map((n, i) => (
+                    <p key={i} className="text-xs text-tea-text-sec italic leading-relaxed">"{n}"</p>
+                  ))}
+                </div>
+              )}
+
+              {r.tasting?.brewingTemp && (
+                <p className="text-[10px] text-tea-text-dim">
+                  Brewed at {r.tasting.brewingTemp}°C
+                  {r.tasting.brewingTime ? ` · ${r.tasting.brewingTime}` : ''}
+                  {r.tasting.brewingVessel ? ` · ${r.tasting.brewingVessel}` : ''}
+                </p>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+// ── End Feature 4 ────────────────────────────────────────────────────────────
+
+const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER || '';
 
 /**
  * Full product detail page at /shop/product/:id
@@ -22,11 +140,12 @@ function toTitleCase(str: string): string {
 }
 
 function getStockStatus(stockG: number, isOneOfAKind?: boolean, isCurated?: boolean) {
-  if (stockG <= 0) return { label: 'Sold Out', color: '#a65d4e', level: 'out' as const };
-  if (isCurated) return { label: 'Curated Selection', color: '#c87533', level: 'limited' as const };
-  if (isOneOfAKind) return { label: 'Curated Selection', color: '#c87533', level: 'limited' as const };
-  if (stockG < 100) return { label: 'Low Stock', color: '#c09a51', level: 'low' as const };
-  return { label: 'In Stock', color: '#5A6E5A', level: 'ok' as const };
+  if (stockG <= 0) return { label: 'Sold Out', colorClass: 'text-tea-text-dim', dotClass: 'bg-tea-text-dim', level: 'out' as const };
+  if (isCurated) return { label: 'Curated Selection', colorClass: 'text-tea-gold', dotClass: 'bg-tea-gold', level: 'limited' as const };
+  if (isOneOfAKind) return { label: 'Curated Selection', colorClass: 'text-tea-gold', dotClass: 'bg-tea-gold', level: 'limited' as const };
+  if (stockG < 100) return { label: 'Low Stock', colorClass: 'text-tea-gold', dotClass: 'bg-tea-gold', level: 'low' as const };
+  if (stockG < 300) return { label: 'Available', colorClass: 'text-tea-gold-lt', dotClass: 'bg-tea-gold-lt', level: 'medium' as const };
+  return { label: 'In Stock', colorClass: 'text-tea-text-sec', dotClass: 'bg-tea-text-sec', level: 'ok' as const };
 }
 
 interface ProductPageProps {
@@ -45,6 +164,16 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
   const [added, setAdded] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [expandedImageUrl, setExpandedImageUrl] = useState<string | null>(null);
+  const [stickyVisible, setStickyVisible] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollY = window.scrollY;
+      setStickyVisible(scrollY > 200);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Related teas: same type, exclude current, max 4
   const relatedTeas = useMemo(() => {
@@ -196,41 +325,33 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
             </p>
           )}
 
-          {/* Tea type · origin · year */}
-          <div className="flex items-center gap-3 mb-4">
-            <span className="text-[11px] uppercase tracking-[0.15em] text-tea-text-sec bg-tea-accent-sub px-2.5 py-1 rounded-sm border border-tea-border">
+          {/* Tea type · origin · year — filterable metadata pills */}
+          <div className="flex flex-wrap items-center gap-2 mb-4">
+            <span className="font-sans text-[10px] uppercase tracking-widest text-tea-text-sec bg-tea-accent-sub px-2.5 py-1 rounded-sm">
               {item.type}
             </span>
             {item.origin && (
-              <span className="text-[12px] italic text-tea-text-sec">
+              <span className="font-sans text-[10px] uppercase tracking-widest text-tea-text-sec bg-tea-accent-sub px-2.5 py-1 rounded-sm">
                 {item.origin}
               </span>
             )}
             {item.year && (
-              <>
-                <span className="text-tea-text-sec/40">·</span>
-                <span className="text-[12px] font-mono text-tea-text-sec">{item.year}</span>
-              </>
+              <span className="font-sans text-[10px] uppercase tracking-widest text-tea-text-sec bg-tea-accent-sub px-2.5 py-1 rounded-sm">
+                {item.year}
+              </span>
             )}
           </div>
 
 
-          {/* Tasting notes */}
+          {/* Tasting notes — prose, not pills */}
           {item.tags && item.tags.length > 0 && (
             <div className="mb-4">
-              <span className="text-[11px] uppercase tracking-[0.15em] text-tea-text-sec mb-2 block">
+              <span className="font-sans text-[10px] uppercase tracking-widest text-tea-text-dim mb-1.5 block">
                 Tasting Notes
               </span>
-              <div className="flex flex-wrap gap-2">
-                {item.tags.map(tag => (
-                  <span
-                    key={tag}
-                    className="text-xs px-3 py-1.5 rounded-sm bg-tea-accent-sub text-tea-text-sec border border-tea-border"
-                  >
-                    {toTitleCase(tag)}
-                  </span>
-                ))}
-              </div>
+              <span className="font-body italic text-tea-text-sec text-sm leading-relaxed">
+                {item.tags.map(t => toTitleCase(t)).join(', ')}
+              </span>
             </div>
           )}
 
@@ -289,14 +410,8 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
           {/* Pricing and stock */}
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <div
-                className="w-2 h-2 rounded-full"
-                style={{ background: stockStatus.color }}
-              />
-              <span
-                className="text-[11px] uppercase tracking-[0.08em]"
-                style={{ color: stockStatus.color }}
-              >
+              <div className={`w-2 h-2 rounded-full ${stockStatus.dotClass}`} />
+              <span className={`text-[11px] uppercase tracking-[0.08em] ${stockStatus.colorClass}`}>
                 {stockStatus.label}
               </span>
             </div>
@@ -317,10 +432,11 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
                 <button
                   key={p}
                   onClick={() => setGrams(p)}
-                  className={`flex-1 py-1.5 text-xs font-mono rounded-sm border transition-all ${
+                  aria-pressed={grams === p}
+                  className={`flex-1 py-1.5 text-xs font-mono rounded-sm border transition-all duration-150 ${
                     grams === p
-                      ? 'bg-tea-gold text-white border-tea-gold'
-                      : 'bg-tea-accent-sub text-tea-text-sec border-tea-border hover:border-tea-gold/30'
+                      ? 'bg-tea-accent-sub text-tea-gold border-tea-gold'
+                      : 'bg-transparent text-tea-text-sec border-tea-border hover:border-tea-gold/30'
                   }`}
                 >
                   {p}g
@@ -332,11 +448,12 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
           {/* Slider */}
           {!isSoldOut && (
             <div className="mb-4">
-              <div className="flex items-baseline justify-between mb-1 px-0.5">
+              <div className="flex items-end justify-between mb-1 px-0.5">
                 <span className="font-mono text-sm text-tea-text">{fmtPrice(total)}</span>
-                <span className="font-mono text-xs text-tea-text-sec">
-                  {grams}<span className="text-[11px] text-tea-text-sec ml-0.5">g</span>
-                </span>
+                <div className="flex items-baseline gap-0.5">
+                  <span className="font-mono text-2xl text-tea-text leading-none">{grams}</span>
+                  <span className="font-sans text-xs text-tea-text-dim">g</span>
+                </div>
               </div>
               <HapticSlider
                 min={25}
@@ -387,47 +504,67 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
             </button>
           </div>
 
+          {/* WhatsApp checkout handoff */}
+          {!isSoldOut && (
+            <div className="border-t border-tea-border pt-4 mt-4">
+              <p className="font-body italic text-tea-text-sec text-sm leading-relaxed mb-4">
+                Every order is a personal conversation. Adrian will confirm your selection and arrange delivery within 24 hours.
+              </p>
+              <button
+                onClick={() => {
+                  const message = buildOrderMessage({
+                    type: 'inquiry',
+                    items: [{
+                      name: item.variant || item.name,
+                      quantity: grams,
+                      unit: 'g',
+                      price: fmtPricePerGram(pricePerGram),
+                      total: fmtPrice(total),
+                    }],
+                    subtotal: fmtPrice(total),
+                    total: fmtPrice(total),
+                  });
+                  window.open(buildWhatsAppUrl(WHATSAPP_NUMBER, message), '_blank');
+                }}
+                className="w-full flex items-center justify-center gap-2.5 py-3 px-4 bg-tea-gold text-tea-bg font-sans font-medium tracking-wide text-sm rounded-sm hover:bg-tea-gold-lt transition-colors duration-150 active:scale-[0.98]"
+              >
+                <MessageCircle className="w-4 h-4" strokeWidth={2} />
+                Order via WhatsApp
+              </button>
+            </div>
+          )}
+
           {/* Brewing profile — tea products only */}
           {item.category === 'tea' && (() => {
             const profile = getBrewingProfile(item.type);
             if (!profile) return null;
             return (
               <div className="mt-4 pt-4 border-t border-tea-border">
-                <h3 className="text-[11px] uppercase tracking-[0.15em] text-tea-gold mb-3">
+                <h3 className="font-sans text-[11px] uppercase tracking-[0.15em] text-tea-gold mb-3">
                   How to Brew
                 </h3>
-                <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
-                  <div>
-                    <dt className="text-[10px] uppercase tracking-[0.12em] text-tea-text-dim mb-0.5">
-                      Water
-                    </dt>
-                    <dd className="text-xs text-tea-text-sec">{profile.waterTemp}</dd>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  <div className="bg-tea-surface rounded-lg p-3 flex flex-col items-center text-center gap-1">
+                    <Thermometer className="w-4 h-4 text-tea-text-dim mb-0.5" strokeWidth={1.5} />
+                    <span className="font-mono text-sm text-tea-text leading-tight">{profile.waterTemp}</span>
+                    <span className="font-sans text-[10px] uppercase tracking-widest text-tea-text-dim">Temp</span>
                   </div>
-                  <div>
-                    <dt className="text-[10px] uppercase tracking-[0.12em] text-tea-text-dim mb-0.5">
-                      Steep
-                    </dt>
-                    <dd className="text-xs text-tea-text-sec">{profile.steepTime}</dd>
+                  <div className="bg-tea-surface rounded-lg p-3 flex flex-col items-center text-center gap-1">
+                    <Droplets className="w-4 h-4 text-tea-text-dim mb-0.5" strokeWidth={1.5} />
+                    <span className="font-mono text-sm text-tea-text leading-tight">{profile.leafRatio}</span>
+                    <span className="font-sans text-[10px] uppercase tracking-widest text-tea-text-dim">Ratio</span>
                   </div>
-                  <div>
-                    <dt className="text-[10px] uppercase tracking-[0.12em] text-tea-text-dim mb-0.5">
-                      Leaf ratio
-                    </dt>
-                    <dd className="text-xs text-tea-text-sec">{profile.leafRatio}</dd>
+                  <div className="bg-tea-surface rounded-lg p-3 flex flex-col items-center text-center gap-1">
+                    <Clock className="w-4 h-4 text-tea-text-dim mb-0.5" strokeWidth={1.5} />
+                    <span className="font-mono text-sm text-tea-text leading-tight">{profile.steepTime}</span>
+                    <span className="font-sans text-[10px] uppercase tracking-widest text-tea-text-dim">Time</span>
                   </div>
-                  <div>
-                    <dt className="text-[10px] uppercase tracking-[0.12em] text-tea-text-dim mb-0.5">
-                      Vessel
-                    </dt>
-                    <dd className="text-xs text-tea-text-sec">{profile.vessel}</dd>
+                  <div className="bg-tea-surface rounded-lg p-3 flex flex-col items-center text-center gap-1">
+                    <RefreshCw className="w-4 h-4 text-tea-text-dim mb-0.5" strokeWidth={1.5} />
+                    <span className="font-mono text-sm text-tea-text leading-tight">{profile.infusions}</span>
+                    <span className="font-sans text-[10px] uppercase tracking-widest text-tea-text-dim">Steeps</span>
                   </div>
-                  <div className="col-span-2">
-                    <dt className="text-[10px] uppercase tracking-[0.12em] text-tea-text-dim mb-0.5">
-                      Infusions
-                    </dt>
-                    <dd className="text-xs text-tea-text-sec">{profile.infusions}</dd>
-                  </div>
-                </dl>
+                </div>
                 {profile.notes && (
                   <p className="mt-3 text-[11px] text-tea-text-dim leading-relaxed italic border-l border-tea-border pl-3">
                     {profile.notes}
@@ -439,44 +576,45 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
         </div>
       </div>
 
-      {/* Related Teas */}
+      {/* Feature 4: Public tea reviews */}
+      {item.category === 'tea' && (
+        <PublicReviewsSection productId={item.id} teaKey={(item as InventoryItem & { tea_key?: string }).tea_key} />
+      )}
+
+      {/* Related Teas — horizontal scroll strip */}
       {relatedTeas.length > 0 && (
         <div className="mt-16 mb-8">
-          <div className="border-t border-tea-border pt-8 mb-6">
-            <span className="text-[11px] uppercase tracking-[0.15em] text-tea-text-sec">
-              More {item.type} Teas
-            </span>
+          <div className="border-t border-tea-border pt-8 mb-4">
+            <p className="font-sans text-[10px] uppercase tracking-widest text-tea-text-dim mb-3">
+              You might also like
+            </p>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
             {relatedTeas.map(related => (
               <Link
                 key={related.id}
                 to={`/shop/product/${related.id}`}
-                className="group block"
+                className="group block w-36 flex-shrink-0"
               >
-                <div className="bg-tea-surface border border-tea-border rounded-md overflow-hidden transition-all group-hover:border-tea-gold/30">
-                  <div className="aspect-square overflow-hidden">
-                    {related.image ? (
-                      <img
-                        src={related.image}
-                        alt={related.name}
-                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-tea-accent-sub">
-                        <TeaPlaceholder type={related.type} style={{ width: '40%', height: '40%' }} />
-                      </div>
-                    )}
-                  </div>
-                  <div className="p-3">
-                    <h4 className="font-serif text-sm text-tea-text leading-snug group-hover:text-tea-gold transition-colors truncate">
-                      {related.name}
-                    </h4>
-                    <p className="font-mono text-[11px] text-tea-text-sec mt-1">
-                      {fmtPricePerGram(parseFloat(related.price_per_gram || '0'))}
-                    </p>
-                  </div>
+                <div className="aspect-square w-full rounded overflow-hidden bg-tea-surface">
+                  {related.image ? (
+                    <img
+                      src={related.image}
+                      alt={related.name}
+                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-tea-accent-sub">
+                      <TeaPlaceholder type={related.type} style={{ width: '40%', height: '40%' }} />
+                    </div>
+                  )}
                 </div>
+                <h4 className="font-display text-sm text-tea-text leading-snug line-clamp-2 mt-2 group-hover:text-tea-gold transition-colors duration-150">
+                  {related.name}
+                </h4>
+                <p className="font-mono text-xs text-tea-text-sec mt-0.5">
+                  {fmtPricePerGram(parseFloat(related.price_per_gram || '0'))}
+                </p>
               </Link>
             ))}
           </div>
@@ -517,7 +655,13 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
 
       {/* Sticky mobile add-to-cart bar */}
       {!isSoldOut && (
-        <div className="fixed left-0 right-0 md:hidden z-sticky px-4 pb-2 pointer-events-none" style={{ bottom: 'calc(44px + env(safe-area-inset-bottom, 0px))' }}>
+        <div
+          className="fixed left-0 right-0 md:hidden z-sticky px-4 pb-2 pointer-events-none transition-transform duration-300 ease-in-out"
+          style={{
+            bottom: 'calc(44px + env(safe-area-inset-bottom, 0px))',
+            transform: stickyVisible ? 'translateY(0)' : 'translateY(calc(100% + 16px))',
+          }}
+        >
           <div className="pointer-events-auto bg-tea-bg/95 backdrop-blur-sm border border-tea-border rounded-lg p-3 flex items-center gap-3 shadow-lg">
             <div className="flex-1 min-w-0">
               <p className="font-serif text-sm text-tea-text truncate">{item.name}</p>

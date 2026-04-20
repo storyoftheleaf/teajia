@@ -58,6 +58,8 @@ export interface TeaCompassEntry {
   vendorId?: string;
   vendorName?: string;
   vendorDetails?: VendorDetails;
+  /** Customer record ID for the vendor — links compass entry to a customer profile */
+  linkedCustomerId?: string;
 
   // Content
   notes: string;

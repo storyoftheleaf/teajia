@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Check, Lock, Edit3, Loader2, Users, Clock, MapPin, Share2, Bell, BookOpen, AlarmClock } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { ArrowLeft, Check, Lock, Edit3, Loader2, Users, Clock, MapPin, Share2, Bell, BookOpen, AlarmClock, Star, Upload } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { useEvent, useAttendees } from '../hooks/useEventData';
 import { useToast } from './Toast';
@@ -14,9 +15,195 @@ import { ApprovalCard } from './ApprovalCard';
 import { BriefingCardsEditor } from './BriefingCardsEditor';
 import { ReminderTimeline } from './ReminderTimeline';
 import { ShareSheet } from './ShareSheet';
-import { EventStatus, BriefingCard } from '../../types/events';
+import { EventStatus, BriefingCard, TastingNote } from '../../types/events';
 
-type TabKey = 'requests' | 'attendees' | 'briefing' | 'reminders' | 'tea-menu' | 'notifications' | 'post-session';
+type TabKey = 'requests' | 'attendees' | 'briefing' | 'reminders' | 'tea-menu' | 'notifications' | 'post-session' | 'tasting-notes';
+
+// ── Feature 1: Promote event tasting note to tea review ──────────────────────
+
+type VisibilityOption = 'private' | 'account' | 'network';
+
+interface TastingNotesTabProps {
+  notes: TastingNote[];
+  eventId: string;
+}
+
+const TastingNotesTab: React.FC<TastingNotesTabProps> = ({ notes }) => {
+  const { showToast } = useToast();
+  const [promoting, setPromoting] = useState<string | null>(null);
+  const [promoted, setPromoted] = useState<Set<string>>(new Set());
+  const [confirmNote, setConfirmNote] = useState<TastingNote | null>(null);
+  const [selectedVisibility, setSelectedVisibility] = useState<VisibilityOption>('network');
+
+  if (notes.length === 0) {
+    return (
+      <div className="text-center py-12 text-tea-text-sec text-sm">
+        <Star className="mx-auto mb-3 text-tea-text-dim" size={24} />
+        <p>No tasting notes yet</p>
+        <p className="text-xs text-tea-text-dim mt-1">Notes from guests appear here after they submit post-session feedback.</p>
+      </div>
+    );
+  }
+
+  const handlePromote = async (note: TastingNote, visibility: VisibilityOption) => {
+    if (!note.teaName) {
+      showToast('This note has no associated tea — cannot promote', 'error');
+      return;
+    }
+    setPromoting(note.id);
+    try {
+      const teaKey = note.teaName
+        .toLowerCase()
+        .replace(/\s+/g, '-')
+        .replace(/[^a-z0-9-]/g, '')
+        .replace(/-+/g, '-');
+      await api.teaReviews.create({
+        tea_key: teaKey,
+        visibility,
+        rating: note.rating,
+        notes: note.impression,
+        status: 'submitted',
+      });
+      setPromoted(prev => new Set(prev).add(note.id));
+      showToast('Published as tea review', 'success');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to publish';
+      showToast(msg, 'error');
+    } finally {
+      setPromoting(null);
+      setConfirmNote(null);
+    }
+  };
+
+  return (
+    <div className="space-y-3 max-w-2xl">
+      {notes.map(note => {
+        const isDone = promoted.has(note.id);
+        return (
+          <div
+            key={note.id}
+            className="bg-tea-surface border border-tea-border rounded-md p-4 flex items-start gap-3"
+          >
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap mb-1">
+                <span className="text-xs font-medium text-tea-text">{note.attendeeName || 'Guest'}</span>
+                {note.teaName && (
+                  <span className="text-[10px] text-tea-text-dim">· {note.teaName}</span>
+                )}
+                {note.rating != null && (
+                  <div className="flex items-center gap-0.5">
+                    {Array.from({ length: 5 }, (_, i) => (
+                      <Star
+                        key={i}
+                        size={9}
+                        className={i < note.rating! ? 'text-tea-gold' : 'text-tea-text-dim/30'}
+                        fill={i < note.rating! ? 'currentColor' : 'none'}
+                      />
+                    ))}
+                  </div>
+                )}
+                {note.isFavorite && (
+                  <span className="text-[9px] text-tea-gold/70 uppercase tracking-[0.1em]">Favorite</span>
+                )}
+              </div>
+              {note.impression && (
+                <p className="text-xs text-tea-text-sec italic leading-relaxed">{note.impression}</p>
+              )}
+            </div>
+
+            {/* Promote action */}
+            <div className="shrink-0">
+              {isDone ? (
+                <span className="flex items-center gap-1 text-[10px] text-emerald-400">
+                  <Check size={10} /> Published
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setConfirmNote(note)}
+                  disabled={promoting === note.id || !note.teaName}
+                  title={!note.teaName ? 'No tea linked — cannot publish' : 'Publish as tea review'}
+                  className="flex items-center gap-1 text-[10px] text-tea-text-sec hover:text-tea-gold border border-tea-border hover:border-tea-gold/30 px-2 py-1 rounded-md transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {promoting === note.id
+                    ? <Loader2 size={10} className="animate-spin" />
+                    : <Upload size={10} />
+                  }
+                  Publish as review
+                </button>
+              )}
+            </div>
+          </div>
+        );
+      })}
+
+      {/* Visibility confirmation modal */}
+      <AnimatePresence>
+        {confirmNote && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-modal flex items-center justify-center bg-tea-text/80 backdrop-blur-sm p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 8 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 8 }}
+              className="bg-tea-bg border border-tea-border rounded-xl p-6 w-full max-w-sm shadow-2xl"
+            >
+              <h3 className="text-sm font-medium text-tea-text mb-1">Publish as tea review</h3>
+              <p className="text-xs text-tea-text-sec mb-4">
+                This will create a tea review from {confirmNote.attendeeName || 'Guest'}'s note
+                {confirmNote.teaName ? ` for ${confirmNote.teaName}` : ''}.
+              </p>
+
+              <div className="space-y-2 mb-5">
+                {(['private', 'account', 'network'] as VisibilityOption[]).map(v => (
+                  <label key={v} className="flex items-center gap-3 cursor-pointer group">
+                    <input
+                      type="radio"
+                      name="visibility"
+                      value={v}
+                      checked={selectedVisibility === v}
+                      onChange={() => setSelectedVisibility(v)}
+                      className="accent-tea-gold"
+                    />
+                    <span className="text-xs text-tea-text capitalize">{v}</span>
+                    <span className="text-[10px] text-tea-text-dim">
+                      {v === 'private' ? '— only you' : v === 'account' ? '— your store only' : '— visible across network'}
+                    </span>
+                  </label>
+                ))}
+              </div>
+
+              <div className="flex gap-2 justify-end">
+                <button
+                  type="button"
+                  onClick={() => setConfirmNote(null)}
+                  className="text-xs text-tea-text-sec hover:text-tea-text px-3 py-1.5 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handlePromote(confirmNote, selectedVisibility)}
+                  disabled={!!promoting}
+                  className="flex items-center gap-1.5 text-xs bg-tea-gold text-tea-bg px-4 py-1.5 rounded-md hover:bg-tea-gold-lt transition-colors disabled:opacity-50"
+                >
+                  {promoting ? <Loader2 size={11} className="animate-spin" /> : <Upload size={11} />}
+                  Publish
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+// ── End Feature 1 ────────────────────────────────────────────────────────────
 
 const STATUS_STYLES: Record<EventStatus, string> = {
   draft: 'bg-tea-text-sec/10 text-tea-text-sec',
@@ -97,12 +284,19 @@ export const EventDetail: React.FC = () => {
     }
   };
 
+  const { data: tastingNotes = [] } = useQuery<TastingNote[]>({
+    queryKey: ['event-tasting-notes', id],
+    queryFn: () => api.events.getTastingNotes(id!),
+    enabled: !!id,
+  });
+
   const TABS: { key: TabKey; label: string; badge?: number }[] = [
     { key: 'requests', label: 'Requests', badge: requestedCount },
     { key: 'attendees', label: 'Attendees' },
     { key: 'briefing', label: 'Briefing' },
     { key: 'reminders', label: 'Reminders' },
     { key: 'tea-menu', label: 'Tea Menu' },
+    { key: 'tasting-notes', label: 'Tasting Notes', badge: tastingNotes.length || undefined },
     { key: 'notifications', label: 'Notifications' },
     { key: 'post-session', label: 'Post-Session' },
   ];
@@ -356,6 +550,11 @@ export const EventDetail: React.FC = () => {
         {/* ── Notifications tab ── */}
         {activeTab === 'notifications' && (
           <NotificationPanel eventId={event.id} event={event} />
+        )}
+
+        {/* ── Tasting Notes tab ── */}
+        {activeTab === 'tasting-notes' && (
+          <TastingNotesTab notes={tastingNotes} eventId={event.id} />
         )}
 
         {/* ── Post-Session tab ── */}

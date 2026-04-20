@@ -1,7 +1,9 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Sun, Moon } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Sun, Moon, Calendar } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { Icons, SealIcon } from '../Icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useScrollLock } from '../../hooks/useScrollLock';
@@ -9,11 +11,11 @@ import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { useAuth } from '../../hooks/useAuth';
 import { useAppStore } from '../../lib/store';
 import { api, setToken, hydrateAccountStateFromToken } from '../../lib/api';
-import { MyCollection } from './MyCollection';
-import { TastingJournal } from './TastingJournal';
-import { TeaCompass } from '../TeaCompass';
+import { fetchStoreEvents } from '../../lib/storefrontApi';
+import { hydrateTastingJournal } from '../../lib/tastingJournalSync';
 import type { Currency } from '../../admin/types';
 import type { AccountMembership } from '../../types';
+import type { TeaEvent } from '../../types/events';
 
 import type { PanelView } from './types';
 
@@ -70,15 +72,58 @@ const Separator: React.FC = () => (
   <div className="h-px bg-tea-gold/10" />
 );
 
-// Consistent zone label
+// Consistent zone label (used in location switcher)
 const ZoneLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <span className="text-[9px] uppercase tracking-[0.2em] text-tea-text-sec/50 block mb-3">
+  <span className="text-[9px] uppercase tracking-[0.25em] text-tea-text-dim font-medium block mb-2.5 px-0.5">
     {children}
   </span>
 );
 
+// Tile card — used in main launchpad grid
+const Tile: React.FC<{
+  icon: React.ReactNode;
+  label: string;
+  sub: string;
+  onClick: () => void;
+  gold?: boolean;
+}> = ({ icon, label, sub, onClick, gold }) => (
+  <button
+    onClick={onClick}
+    className="flex items-center gap-3 p-3.5 rounded-xl bg-tea-surface border border-tea-border text-left transition-colors duration-100 hover:bg-tea-elevated/60 active:scale-[0.98]"
+    style={{ WebkitTapHighlightColor: 'transparent' }}
+  >
+    <div className={`shrink-0 ${gold ? 'text-tea-gold' : 'text-tea-gold/60'}`}>{icon}</div>
+    <div className="min-w-0">
+      <div className="text-[13px] font-medium text-tea-text leading-tight truncate">{label}</div>
+      <div className="text-[11px] text-tea-text-dim mt-0.5 leading-tight truncate">{sub}</div>
+    </div>
+  </button>
+);
+
+// Hero tile — full-width featured card
+const HeroTile: React.FC<{
+  icon: React.ReactNode;
+  label: string;
+  sub: string;
+  onClick: () => void;
+}> = ({ icon, label, sub, onClick }) => (
+  <button
+    onClick={onClick}
+    className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl bg-tea-surface border border-tea-border text-left transition-colors duration-100 hover:bg-tea-elevated/60 active:scale-[0.99]"
+    style={{ WebkitTapHighlightColor: 'transparent' }}
+  >
+    <div className="text-tea-gold shrink-0">{icon}</div>
+    <div className="flex-1 min-w-0">
+      <div className="text-[15px] font-semibold text-tea-text leading-tight">{label}</div>
+      <div className="text-[12px] text-tea-text-sec mt-0.5">{sub}</div>
+    </div>
+    <svg viewBox="0 0 24 24" className="w-4 h-4 text-tea-text-dim shrink-0" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
+  </button>
+);
+
 export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateToStory, initialView }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { theme, toggleTheme } = useTheme();
   const auth = useAuth();
   const {
@@ -101,7 +146,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
   const triggerRef = useRef<HTMLElement | null>(null);
 
   const [isVisible, setIsVisible] = useState(false);
-  const PERSISTABLE_VIEWS: PanelView[] = ['main', 'tea-compass', 'collection', 'tasting-journal', 'saved-stories', 'reading-history'];
+  const PERSISTABLE_VIEWS: PanelView[] = ['main'];
   const STORAGE_KEY = 'teajia-account-view';
 
   const [panelView, setPanelViewRaw] = useState<PanelView>(() => {
@@ -204,6 +249,14 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
     requestAnimationFrame(() => requestAnimationFrame(() => setIsVisible(true)));
     return () => { triggerRef.current?.focus(); };
   }, []);
+
+  // Close panel whenever the route changes
+  const initialPathRef = useRef(location.pathname);
+  useEffect(() => {
+    if (location.pathname !== initialPathRef.current) {
+      onClose();
+    }
+  }, [location.pathname, onClose]);
 
   // Escape key
   useEffect(() => {
@@ -358,23 +411,35 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
   const getInitials = (nameStr: string) =>
     nameStr.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 
-  // Header state
-  const isSubView = !['main', 'signin', 'signup'].includes(panelView);
-  const headerTitle = (() => {
-    switch (panelView) {
-      case 'signin': return 'Sign In';
-      case 'signup': return 'Create Account';
-      case 'collection': return 'My Collection';
-      case 'tasting-journal': return 'Tasting Journal';
-      case 'tea-compass': return 'Tea Compass';
-      case 'saved-stories': return 'Saved Stories';
-      case 'reading-history': return 'Reading History';
-      case 'change-password': return 'Change Password';
-      case 'edit-profile': return 'Edit Profile';
-      case 'location-switcher': return 'Switch Location';
-      default: return 'Account';
+  // Hydrate tasting journal from server when authenticated and panel opens
+  useEffect(() => {
+    if (auth.isAuthenticated) {
+      hydrateTastingJournal().catch(() => {});
     }
-  })();
+  }, [auth.isAuthenticated]);
+
+  // Events for current store (only fetch when events view is active)
+  const activeSlug = activeMembership?.slug ?? '';
+  const { data: storeEvents = [], isLoading: eventsLoading } = useQuery<TeaEvent[]>({
+    queryKey: ['panel-events', activeSlug],
+    queryFn: () => fetchStoreEvents(activeSlug),
+    enabled: !!activeSlug,
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const upcomingEvents = useMemo(() => {
+    const now = new Date();
+    return storeEvents
+      .filter(ev => new Date(ev.eventDate) >= now && ev.status !== 'archived')
+      .sort((a, b) => new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime());
+  }, [storeEvents]);
+
+  // Header state
+  const isSubView = panelView !== 'main';
+  const headerTitle =
+    panelView === 'location-switcher' ? 'Switch Location' :
+    panelView === 'events' ? 'Sessions' :
+    'Account';
 
   // Filtered memberships for location switcher search
   const filteredMemberships = useMemo(() => {
@@ -520,7 +585,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
     <button
       type="submit"
       disabled={formLoading}
-      className="w-full py-3.5 bg-tea-gold text-tea-text font-bold text-xs uppercase tracking-[0.2em] hover:bg-tea-gold/90 transition-colors disabled:opacity-50 flex justify-center items-center gap-2 mt-2"
+      className="w-full py-2.5 bg-tea-gold text-tea-bg font-sans font-medium rounded hover:bg-tea-gold-lt transition-colors duration-150 disabled:opacity-50 flex justify-center items-center gap-2 mt-2"
     >
       {formLoading
         ? <div className="w-4 h-4 border-2 border-tea-border border-t-tea-text-sec rounded-full animate-spin" />
@@ -528,7 +593,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
     </button>
   );
 
-  const inputClass = "w-full bg-tea-surface border border-tea-border p-3.5 text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold transition-colors placeholder-tea-text-sec/50 font-sans text-sm";
+  const inputClass = "w-full bg-tea-surface border border-tea-border p-3.5 text-tea-text rounded outline-none focus:border-tea-gold focus:ring-0 focus:outline-none transition-colors duration-150 placeholder-tea-text-dim font-sans text-sm";
   const inputStyle = { boxShadow: 'inset 0 1px 0 var(--tea-accent-sub), inset 0 -1px 0 var(--tea-accent-sub)' };
   const labelClass = "block text-[10px] font-bold uppercase tracking-[0.2em] text-tea-text-sec mb-2";
 
@@ -536,7 +601,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
     <>
       {/* Backdrop */}
       <div
-        className={`fixed inset-0 z-drawer bg-tea-text/80 backdrop-blur-sm transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+        className={`fixed inset-0 z-drawer bg-tea-text/80 backdrop-blur-sm transition-opacity duration-[120ms] ${isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
         onClick={onClose}
       />
 
@@ -545,8 +610,9 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
         ref={focusTrapRef}
         className="fixed top-0 right-0 h-full w-full md:w-[400px] bg-tea-bg z-modal shadow-2xl flex flex-col"
         style={{
-          transform: isVisible ? 'translateX(0)' : 'translateX(100%)',
-          transition: 'transform 300ms ease-out, opacity 300ms ease-out',
+          opacity: isVisible ? 1 : 0,
+          pointerEvents: isVisible ? undefined : 'none',
+          transition: 'opacity 120ms ease-out',
         }}
       >
         {/* Header */}
@@ -584,245 +650,96 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
           {/* Grain texture */}
           <div className="absolute inset-0 pointer-events-none" style={{ opacity: 0.06, backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`, backgroundSize: '120px' }} />
 
-          <div className="space-y-6 relative z-10">
+          <AnimatePresence mode="wait">
+          <motion.div
+            key={panelView}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.12, ease: 'easeOut' }}
+            className="space-y-6 relative z-10"
+          >
 
             {/* ══════════════════════════════════════════════════════════════
-                SIGN IN
+                EVENTS VIEW — inline sessions listing
             ══════════════════════════════════════════════════════════════ */}
-            {panelView === 'signin' && (
-              <div className="animate-[fadeIn_0.3s_ease-out]">
-                <div className="flex flex-col items-center pt-2 pb-6">
-                  <div className="w-16 h-16 rounded-full bg-tea-gold/10 flex items-center justify-center mb-4">
-                    <Icons.LogIn className="w-7 h-7 text-tea-gold" />
-                  </div>
-                  <h3 className="font-serif text-xl text-tea-text">Welcome Back</h3>
-                  <p className="text-sm text-tea-text-sec mt-1 font-serif italic">Sign in to your Teajia account</p>
-                </div>
-                <form onSubmit={handleSignIn} className="space-y-4">
-                  <div>
-                    <label className={labelClass}>Email or Username</label>
-                    <input type="text" value={signinIdentifier} onChange={e => setSigninIdentifier(e.target.value)} autoComplete="username" className={inputClass} style={inputStyle} placeholder="you@example.com or username" required autoFocus />
-                  </div>
-                  <div>
-                    <label className={labelClass}>Password</label>
-                    <div className="relative">
-                      <input type={showPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} className={`${inputClass} pr-12`} style={inputStyle} required />
-                      <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-tea-text/30 hover:text-tea-text transition-colors">
-                        {showPassword ? <Icons.EyeSlash className="w-4 h-4" /> : <Icons.Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                  </div>
-                  <FormError />
-                  <SubmitButton label="Sign In" />
-                </form>
-                <div className="mt-8 text-center">
-                  <p className="text-sm text-tea-text-sec">
-                    Don't have an account?{' '}
-                    <button onClick={() => { resetForm(); setPanelView('signup'); }} className="text-tea-gold hover:text-tea-gold/80 font-medium transition-colors">Create one</button>
+            {panelView === 'events' && (
+              <div className="animate-[fadeIn_0.25s_ease-out] space-y-1">
+                {/* Header */}
+                <div className="mb-4">
+                  <p className="text-[10px] uppercase tracking-[0.3em] text-tea-text-dim mb-2">
+                    {activeAccount?.name || 'Sessions'} · {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                   </p>
+                  <h2 className="font-serif text-3xl font-normal text-tea-text leading-[1.05] tracking-[-0.5px]">
+                    Gather <em className="text-tea-gold italic">around tea.</em>
+                  </h2>
                 </div>
-              </div>
-            )}
 
-            {/* ══════════════════════════════════════════════════════════════
-                SIGN UP
-            ══════════════════════════════════════════════════════════════ */}
-            {panelView === 'signup' && (
-              <div className="animate-[fadeIn_0.3s_ease-out]">
-                <div className="flex flex-col items-center pt-2 pb-6">
-                  <div className="w-16 h-16 rounded-full bg-tea-gold/10 flex items-center justify-center mb-4">
-                    <SealIcon className="w-7 h-7 text-tea-gold" />
-                  </div>
-                  <h3 className="font-serif text-xl text-tea-text">Join Teajia</h3>
-                  <p className="text-sm text-tea-text-sec mt-1 font-serif italic">Create your account to get started</p>
-                </div>
-                <form onSubmit={handleSignUp} className="space-y-4">
-                  <div>
-                    <label className={labelClass}>Name</label>
-                    <input type="text" value={name} onChange={e => setName(e.target.value)} className={inputClass} style={inputStyle} placeholder="Your name" required autoFocus />
-                  </div>
-                  <div>
-                    <label className={labelClass}>Username <span className="normal-case tracking-normal font-normal text-tea-text-dim">(optional)</span></label>
-                    <input type="text" value={username} onChange={e => setUsername(e.target.value)} autoComplete="username" pattern="[a-zA-Z0-9_.\-]{3,32}" className={inputClass} style={inputStyle} placeholder="Letters, numbers, . _ -" />
-                    <p className="text-[11px] text-tea-text/40 mt-1.5">Sign in with either your email or username.</p>
-                  </div>
-                  <div>
-                    <label className={labelClass}>Email</label>
-                    <input type="email" value={email} onChange={e => setEmail(e.target.value)} className={inputClass} style={inputStyle} placeholder="you@example.com" required />
-                  </div>
-                  <div>
-                    <label className={labelClass}>Password</label>
-                    <div className="relative">
-                      <input type={showPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} className={`${inputClass} pr-12`} style={inputStyle} placeholder="Min 6 characters" required />
-                      <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-tea-text/30 hover:text-tea-text transition-colors">
-                        {showPassword ? <Icons.EyeSlash className="w-4 h-4" /> : <Icons.Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                    <p className="text-[11px] text-tea-text/40 mt-1.5">Must be at least 6 characters</p>
-                  </div>
-                  <FormError />
-                  <SubmitButton label="Create Account" />
-                </form>
-                <div className="mt-8 text-center">
-                  <p className="text-sm text-tea-text-sec">
-                    Already have an account?{' '}
-                    <button onClick={() => { resetForm(); setPanelView('signin'); }} className="text-tea-gold hover:text-tea-gold/80 font-medium transition-colors">Sign in</button>
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* ══════════════════════════════════════════════════════════════
-                CHANGE PASSWORD
-            ══════════════════════════════════════════════════════════════ */}
-            {panelView === 'change-password' && (
-              <div className="animate-[fadeIn_0.3s_ease-out]">
-                <div className="flex flex-col items-center pt-2 pb-6">
-                  <div className="w-16 h-16 rounded-full bg-tea-gold/10 flex items-center justify-center mb-4">
-                    <Icons.Lock className="w-7 h-7 text-tea-gold" />
-                  </div>
-                  <h3 className="font-serif text-xl text-tea-text">Change Password</h3>
-                  <p className="text-sm text-tea-text-sec mt-1 font-serif italic">Update your account password</p>
-                </div>
-                <form onSubmit={handleChangePassword} className="space-y-4">
-                  <div>
-                    <label className={labelClass}>Current Password</label>
-                    <input type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} className={inputClass} style={inputStyle} required autoFocus />
-                  </div>
-                  <div>
-                    <label className={labelClass}>New Password</label>
-                    <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className={inputClass} style={inputStyle} placeholder="Min 6 characters" required />
-                  </div>
-                  <div>
-                    <label className={labelClass}>Confirm New Password</label>
-                    <input type="password" value={confirmNewPassword} onChange={e => setConfirmNewPassword(e.target.value)} className={inputClass} style={inputStyle} required />
-                  </div>
-                  <FormError />
-                  <SubmitButton label="Update Password" />
-                </form>
-              </div>
-            )}
-
-            {/* ══════════════════════════════════════════════════════════════
-                EDIT PROFILE
-            ══════════════════════════════════════════════════════════════ */}
-            {panelView === 'edit-profile' && (
-              <div className="animate-[fadeIn_0.3s_ease-out]">
-                <div className="flex flex-col items-center pt-2 pb-6">
-                  <div className="w-16 h-16 rounded-full bg-tea-gold/10 flex items-center justify-center mb-4">
-                    <Icons.User className="w-7 h-7 text-tea-gold" />
-                  </div>
-                  <h3 className="font-serif text-xl text-tea-text">Edit Profile</h3>
-                  <p className="text-sm text-tea-text-sec mt-1 font-serif italic">Update your name, username, or email</p>
-                </div>
-                <form onSubmit={handleEditProfile} className="space-y-4">
-                  <div>
-                    <label className={labelClass}>Name</label>
-                    <input type="text" value={editName} onChange={e => setEditName(e.target.value)} className={inputClass} style={inputStyle} placeholder={auth.user?.name || 'Your name'} autoFocus />
-                  </div>
-                  <div>
-                    <label className={labelClass}>Username <span className="normal-case tracking-normal font-normal text-tea-text-dim">(optional)</span></label>
-                    <input type="text" value={editUsername} onChange={e => setEditUsername(e.target.value)} autoComplete="username" pattern="[a-zA-Z0-9_.\-]{3,32}" className={inputClass} style={inputStyle} placeholder={auth.user?.username || 'Pick a username'} />
-                    <p className="text-[11px] text-tea-text/40 mt-1.5">Leave blank to remove. Sign in with email or username.</p>
-                  </div>
-                  <div>
-                    <label className={labelClass}>Email</label>
-                    <input type="email" value={editEmail} onChange={e => setEditEmail(e.target.value)} className={inputClass} style={inputStyle} placeholder={auth.user?.email || 'you@example.com'} />
-                  </div>
-                  <FormError />
-                  <SubmitButton label="Save Changes" />
-                </form>
-              </div>
-            )}
-
-            {/* ══════════════════════════════════════════════════════════════
-                MY COLLECTION
-            ══════════════════════════════════════════════════════════════ */}
-            {panelView === 'collection' && (
-              <MyCollection onBack={() => setPanelView('main')} />
-            )}
-
-            {/* ══════════════════════════════════════════════════════════════
-                TASTING JOURNAL
-            ══════════════════════════════════════════════════════════════ */}
-            {panelView === 'tasting-journal' && (
-              <TastingJournal
-                onBack={() => setPanelView('main')}
-                onOrderTea={(teaId) => { onClose(); navigate(`/shop/product/${teaId}`); }}
-              />
-            )}
-
-            {/* ══════════════════════════════════════════════════════════════
-                TEA COMPASS
-            ══════════════════════════════════════════════════════════════ */}
-            {panelView === 'tea-compass' && (
-              <TeaCompass onBack={() => setPanelView('main')} />
-            )}
-
-            {/* ══════════════════════════════════════════════════════════════
-                SAVED STORIES
-            ══════════════════════════════════════════════════════════════ */}
-            {panelView === 'saved-stories' && (
-              <div className="animate-[fadeIn_0.3s_ease-out]">
-                {savedStoryEntries.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16">
-                    <div className="w-16 h-16 rounded-full bg-tea-gold/10 flex items-center justify-center mb-4">
-                      <Icons.Leaf className="w-7 h-7 text-tea-gold/40" />
-                    </div>
-                    <h3 className="font-serif text-lg text-tea-text mb-2">No Saved Stories</h3>
-                    <p className="text-sm text-tea-text-sec text-center max-w-[260px] leading-relaxed">
-                      Tap the leaf icon while reading to save stories for later.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="border border-tea-border overflow-hidden rounded-md">
-                    {savedStoryEntries.map((storyId, i) => (
-                      <button
-                        key={storyId}
-                        onClick={() => { onNavigateToStory?.(storyId); onClose(); }}
-                        className={`w-full flex items-center gap-3 px-4 py-3.5 hover:bg-tea-surface/50 transition-colors group text-left ${i < savedStoryEntries.length - 1 ? 'border-b border-tea-border' : ''}`}
-                      >
-                        <Icons.Leaf className="w-4 h-4 text-tea-gold shrink-0" />
-                        <span className="font-serif text-sm text-tea-text group-hover:text-tea-gold transition-colors truncate">Story #{storyId}</span>
-                        <Icons.ChevronRight className="w-3.5 h-3.5 text-tea-text/20 ml-auto shrink-0" />
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* ══════════════════════════════════════════════════════════════
-                READING HISTORY
-            ══════════════════════════════════════════════════════════════ */}
-            {panelView === 'reading-history' && (
-              <div className="animate-[fadeIn_0.3s_ease-out]">
-                {readingHistory.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16">
-                    <div className="w-16 h-16 rounded-full bg-tea-gold/10 flex items-center justify-center mb-4">
-                      <Icons.BookOpen className="w-7 h-7 text-tea-gold/40" />
-                    </div>
-                    <h3 className="font-serif text-lg text-tea-text mb-2">No Reading History</h3>
-                    <p className="text-sm text-tea-text-sec text-center max-w-[260px] leading-relaxed">
-                      Your reading progress will appear here as you explore articles.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="border border-tea-border overflow-hidden rounded-md">
-                    {readingHistory.map((entry, i) => (
-                      <button
-                        key={entry.storyId}
-                        onClick={() => { onNavigateToStory?.(entry.storyId); onClose(); }}
-                        className={`w-full flex items-center gap-3 px-4 py-3.5 hover:bg-tea-surface/50 transition-colors group text-left ${i < readingHistory.length - 1 ? 'border-b border-tea-border' : ''}`}
-                      >
-                        <Icons.BookOpen className="w-4 h-4 text-tea-text-sec shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <span className="font-serif text-sm text-tea-text group-hover:text-tea-gold transition-colors truncate block">Story #{entry.storyId}</span>
-                          <span className="text-[10px] text-tea-text-sec">Page {entry.page + 1}</span>
+                {eventsLoading ? (
+                  <div className="space-y-3 pt-2">
+                    {[1, 2, 3].map(i => (
+                      <div key={i} className="flex gap-3.5 animate-pulse">
+                        <div className="w-12 shrink-0 space-y-1 pt-1">
+                          <div className="h-2 bg-tea-surface rounded w-8 mx-auto" />
+                          <div className="h-7 bg-tea-surface rounded w-10 mx-auto" />
+                          <div className="h-2 bg-tea-surface rounded w-8 mx-auto" />
                         </div>
-                        <Icons.ChevronRight className="w-3.5 h-3.5 text-tea-text/20 shrink-0" />
-                      </button>
+                        <div className="flex-1 space-y-1.5 pt-1">
+                          <div className="h-3.5 bg-tea-surface rounded w-3/4" />
+                          <div className="h-2.5 bg-tea-surface rounded w-1/2" />
+                          <div className="h-2 bg-tea-surface rounded w-2/3" />
+                        </div>
+                      </div>
                     ))}
+                  </div>
+                ) : upcomingEvents.length === 0 ? (
+                  <p className="font-serif italic text-sm text-tea-text-sec py-10 text-center">
+                    No upcoming gatherings at this table.
+                  </p>
+                ) : (
+                  <div>
+                    {upcomingEvents.map((ev, i) => {
+                      const d = new Date(ev.eventDate);
+                      const day = d.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
+                      const dateNum = String(d.getDate()).padStart(2, '0');
+                      const month = d.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
+                      const time = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+                      const seats = ev.seatsRemaining;
+                      const isFull = seats === 0;
+                      return (
+                        <button
+                          key={ev.id}
+                          onClick={() => { onClose(); navigate(`/event/${ev.slug}`); }}
+                          className={`w-full flex gap-3.5 py-4 text-left hover:opacity-75 transition-opacity${i < upcomingEvents.length - 1 ? ' border-b border-tea-border' : ''}`}
+                        >
+                          <div className="w-12 shrink-0 text-center pt-0.5">
+                            <div className="text-[9px] tracking-[0.25em] text-tea-text-dim uppercase">{day}</div>
+                            <div className="font-serif text-[28px] font-normal text-tea-text leading-none mt-0.5">{dateNum}</div>
+                            <div className="text-[9px] tracking-[0.2em] text-tea-text-dim mt-0.5">{month}</div>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-serif text-sm font-medium text-tea-text leading-snug">{ev.title}</h3>
+                            {ev.subtitle && (
+                              <p className="font-serif italic text-[12px] text-tea-text-sec mt-0.5">{ev.subtitle}</p>
+                            )}
+                            <div className="flex items-center gap-2 mt-1.5 text-[10px] text-tea-text-dim flex-wrap">
+                              <span>{time}</span>
+                              {(ev.areaHint || ev.locationName) && (
+                                <>
+                                  <span className="w-0.5 h-0.5 rounded-full bg-tea-text-dim shrink-0" />
+                                  <span>{ev.areaHint ?? ev.locationName}</span>
+                                </>
+                              )}
+                              {seats != null && (
+                                <span className={`ml-auto font-medium tabular-nums${isFull ? ' text-red-400' : ' text-tea-gold'}`}>
+                                  {isFull ? 'Full' : `${seats}/${ev.totalCapacity}`}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -960,14 +877,14 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                   <>
                     <div className="space-y-3">
                       <button
-                        onClick={() => setPanelView('signin')}
+                        onClick={() => { onClose(); navigate('/signin'); }}
                         className="w-full py-3.5 bg-tea-gold text-tea-text font-bold text-xs uppercase tracking-[0.2em] hover:bg-tea-gold/90 transition-colors flex justify-center items-center gap-2"
                       >
                         <Icons.LogIn className="w-4 h-4" />
                         Sign In
                       </button>
                       <button
-                        onClick={() => setPanelView('signup')}
+                        onClick={() => { onClose(); navigate('/signup'); }}
                         className="w-full py-3.5 bg-transparent text-tea-text border border-tea-border font-bold text-xs uppercase tracking-[0.2em] hover:bg-tea-elevated/50 transition-colors flex justify-center items-center gap-2"
                       >
                         Create Account
@@ -977,154 +894,114 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                   </>
                 )}
 
-                {/* ── Zone: Operations (staff+) ─────────────────────────── */}
+                {/* ── Admin hero tile (staff+) ──────────────────────────── */}
                 {auth.isAuthenticated && isStaff && (
-                  <>
-                    <div>
-                      <ZoneLabel>Operations</ZoneLabel>
-                      <div className="border border-tea-border overflow-hidden rounded-md">
-                        <NavRow
-                          icon={<Icons.Settings className="w-4 h-4" />}
-                          label="Inventory"
-                          onClick={() => handleGoToAdmin('/admin/inventory')}
-                          gold
-                        />
-                        <NavRow
-                          icon={<Icons.Clock className="w-4 h-4" />}
-                          label="Orders"
-                          onClick={() => handleGoToAdmin('/admin/orders')}
-                          gold
-                        />
-                        {auth.isAdmin && (
-                          <NavRow
-                            icon={<Icons.BookOpen className="w-4 h-4" />}
-                            label="Records"
-                            onClick={() => handleGoToAdmin('/admin/records')}
-                            gold
-                          />
-                        )}
-                        {auth.isAdmin && (
-                          <NavRow
-                            icon={<Icons.User className="w-4 h-4" />}
-                            label="Team"
-                            onClick={() => handleGoToAdmin('/admin/team')}
-                            gold
-                          />
-                        )}
-                        {membershipRole === 'owner' && (
-                          <NavRow
-                            icon={<Icons.Shield className="w-4 h-4" />}
-                            label="Account Settings"
-                            onClick={() => handleGoToAdmin('/admin/account-settings')}
-                            gold
-                            last
-                          />
-                        )}
-                        {membershipRole !== 'owner' && (
-                          /* last item for non-owners is Team or Records */
-                          <></>
-                        )}
-                      </div>
-                    </div>
-                    <Separator />
-                  </>
+                  <HeroTile
+                    icon={<Icons.Settings className="w-5 h-5" />}
+                    label="Admin Dashboard"
+                    sub="Inventory, orders & team"
+                    onClick={() => handleGoToAdmin('/admin/inventory')}
+                  />
                 )}
 
-                {/* ── Zone: Your Tea (authenticated) ───────────────────── */}
+                {/* ── Your Tea (authenticated) — 2-col grid ────────────── */}
                 {auth.isAuthenticated && (
-                  <>
-                    <div>
-                      <ZoneLabel>Your Tea</ZoneLabel>
-                      <div className="border border-tea-border overflow-hidden rounded-md">
-                        <NavRow
-                          icon={<Icons.MapPin className="w-4 h-4" />}
-                          label="Tea Compass"
-                          onClick={() => setPanelView('tea-compass')}
-                        />
-                        <NavRow
-                          icon={<Icons.Sparkles className={`w-4 h-4 ${tastingJournal.length > 0 ? 'text-tea-gold' : ''}`} />}
-                          label="Tasting Journal"
-                          onClick={() => setPanelView('tasting-journal')}
-                          count={tastingJournal.length}
-                        />
-                        <NavRow
-                          icon={<Icons.Heart className={`w-4 h-4 ${favoriteTeas.length > 0 ? 'text-tea-gold' : ''}`} />}
-                          label="My Collection"
-                          onClick={() => setPanelView('collection')}
-                          count={favoriteTeas.length}
-                        />
-                        <NavRow
-                          icon={<Icons.Bag className="w-4 h-4" />}
-                          label="Cart"
-                          onClick={handleOpenCart}
-                          count={cartCount}
-                          last
-                        />
-                      </div>
+                  <div>
+                    <ZoneLabel>Your Tea</ZoneLabel>
+                    <div className="grid grid-cols-2 gap-2.5">
+                      <Tile
+                        icon={<Icons.MapPin className="w-4 h-4" />}
+                        label="Tea Compass"
+                        sub="Navigate flavour"
+                        onClick={() => { onClose(); navigate(isStaff ? '/admin/compass' : '/compass'); }}
+                      />
+                      <Tile
+                        icon={<Icons.Sparkles className="w-4 h-4" />}
+                        label="Tasting Journal"
+                        sub={tastingJournal.length > 0 ? `${tastingJournal.length} sessions` : 'Your sessions'}
+                        onClick={() => { onClose(); navigate('/account/journal'); }}
+                        gold={tastingJournal.length > 0}
+                      />
+                      <Tile
+                        icon={<Calendar className="w-4 h-4" />}
+                        label="Sessions"
+                        sub={upcomingEvents.length > 0 ? `${upcomingEvents.length} upcoming` : 'Gatherings'}
+                        onClick={() => setPanelView('events')}
+                        gold={upcomingEvents.length > 0}
+                      />
+                      <Tile
+                        icon={<Icons.Heart className="w-4 h-4" />}
+                        label="My Collection"
+                        sub={favoriteTeas.length > 0 ? `${favoriteTeas.length} teas` : 'Saved teas'}
+                        onClick={() => { onClose(); navigate('/account/collection'); }}
+                        gold={favoriteTeas.length > 0}
+                      />
+                      <Tile
+                        icon={<Icons.Bag className="w-4 h-4" />}
+                        label="Cart"
+                        sub={cartCount > 0 ? `${cartCount} items` : 'Your order'}
+                        onClick={handleOpenCart}
+                        gold={cartCount > 0}
+                      />
                     </div>
-                    <Separator />
-                  </>
+                  </div>
                 )}
 
-                {/* ── Zone: Library (all users — localStorage backed) ───── */}
+                {/* ── Library (conditional) — 2-col grid ───────────────── */}
                 {(savedStoryCount > 0 || progressCount > 0) && (
-                  <>
-                    <div>
-                      <ZoneLabel>Library</ZoneLabel>
-                      <div className="border border-tea-border overflow-hidden rounded-md">
-                        {savedStoryCount > 0 && (
-                          <NavRow
-                            icon={<Icons.Leaf className="w-4 h-4 text-tea-gold" />}
-                            label="Saved Stories"
-                            onClick={() => setPanelView('saved-stories')}
-                            count={savedStoryCount}
-                            last={progressCount === 0}
-                          />
-                        )}
-                        {progressCount > 0 && (
-                          <NavRow
-                            icon={<Icons.BookOpen className="w-4 h-4" />}
-                            label="Reading History"
-                            onClick={() => setPanelView('reading-history')}
-                            count={progressCount}
-                            last
-                          />
-                        )}
-                      </div>
+                  <div>
+                    <ZoneLabel>Library</ZoneLabel>
+                    <div className="grid grid-cols-2 gap-2.5">
+                      {savedStoryCount > 0 && (
+                        <Tile
+                          icon={<Icons.Leaf className="w-4 h-4" />}
+                          label="Saved Stories"
+                          sub={`${savedStoryCount} saved`}
+                          onClick={() => { onClose(); navigate('/account/saved'); }}
+                          gold
+                        />
+                      )}
+                      {progressCount > 0 && (
+                        <Tile
+                          icon={<Icons.BookOpen className="w-4 h-4" />}
+                          label="Reading History"
+                          sub={`${progressCount} articles`}
+                          onClick={() => { onClose(); navigate('/account/history'); }}
+                        />
+                      )}
                     </div>
-                    <Separator />
-                  </>
+                  </div>
                 )}
 
-                {/* ── Zone: Explore (all users) ─────────────────────────── */}
+                {/* ── Explore — 2-col grid ──────────────────────────────── */}
                 <div>
                   <ZoneLabel>Explore</ZoneLabel>
-                  <div className="border border-tea-border overflow-hidden rounded-md">
-                    <NavRow
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <Tile
                       icon={<Icons.MapPin className="w-4 h-4" />}
                       label="Find a Teahouse"
+                      sub="Locations"
                       onClick={() => { onClose(); navigate('/find-a-table'); }}
                     />
-                    <NavRow
+                    <Tile
                       icon={<Icons.Clock className="w-4 h-4" />}
-                      label="Upcoming Events"
+                      label="Events"
+                      sub="Upcoming"
                       onClick={() => { onClose(); navigate(activeMembership?.slug ? `/store/${activeMembership.slug}` : '/find-a-table'); }}
                     />
-                    <NavRow
+                    <Tile
                       icon={<Icons.Sparkles className="w-4 h-4" />}
-                      label="Book a Consult"
+                      label="Consult"
+                      sub="Book a session"
                       onClick={() => { onClose(); navigate('/consult'); }}
-                      last
                     />
                   </div>
                 </div>
 
-                <Separator />
-
-                {/* ── Zone: Preferences ─────────────────────────────────── */}
+                {/* ── Account + Currency ────────────────────────────────── */}
                 <div>
                   <ZoneLabel>Preferences</ZoneLabel>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 px-0.5 mb-3">
                     <span className="text-[9px] uppercase tracking-[0.15em] text-tea-text-sec/50 shrink-0">Currency</span>
                     <div className="flex flex-wrap gap-1">
                       {CURRENCY_OPTIONS.map(opt => (
@@ -1142,54 +1019,26 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                       ))}
                     </div>
                   </div>
-                </div>
-
-                {/* ── Zone: Account Settings (authenticated) ───────────── */}
-                {auth.isAuthenticated && (
-                  <>
-                    <Separator />
-                    <div>
-                      <ZoneLabel>Account</ZoneLabel>
-                      <div className="border border-tea-border overflow-hidden rounded-md">
-                        <NavRow
-                          icon={<Icons.User className="w-4 h-4" />}
-                          label="Edit Profile"
-                          onClick={() => {
-                            setEditName(auth.user?.name || '');
-                            setEditEmail(auth.user?.email || '');
-                            setEditUsername(auth.user?.username || '');
-                            setPanelView('edit-profile');
-                          }}
-                        />
-                        <NavRow
-                          icon={<Icons.Lock className="w-4 h-4" />}
-                          label="Change Password"
-                          onClick={() => { resetForm(); setPanelView('change-password'); }}
-                          last
-                        />
-                      </div>
-                    </div>
-                  </>
-                )}
-
-                {/* ── Zone: Platform (platform role only) ──────────────── */}
-                {platformRole && (
-                  <>
-                    <Separator />
-                    <div>
-                      <ZoneLabel>Platform</ZoneLabel>
-                      <div className="border border-tea-border overflow-hidden rounded-md">
-                        <NavRow
+                  {auth.isAuthenticated && (
+                    <div className="grid grid-cols-2 gap-2.5">
+                      <Tile
+                        icon={<Icons.User className="w-4 h-4" />}
+                        label="Settings"
+                        sub="Profile & password"
+                        onClick={() => { onClose(); navigate('/account/settings'); }}
+                      />
+                      {platformRole && (
+                        <Tile
                           icon={<Icons.Shield className="w-4 h-4" />}
-                          label="Platform Admin"
+                          label="Platform"
+                          sub="Super admin"
                           onClick={() => handleGoToAdmin('/admin/platform')}
                           gold
-                          last
                         />
-                      </div>
+                      )}
                     </div>
-                  </>
-                )}
+                  )}
+                </div>
 
                 {/* ── Sign Out ──────────────────────────────────────────── */}
                 {auth.isAuthenticated && (
@@ -1205,7 +1054,8 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
               </div>
             )}
 
-          </div>
+          </motion.div>
+          </AnimatePresence>
         </div>
       </div>
     </>

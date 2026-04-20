@@ -784,6 +784,27 @@ const handleChangePassword: Handler = async (request, env) => {
   return json({ ok: true, message: 'Password changed successfully' });
 };
 
+// ── Verify Password (used by Transfer Ownership gate 3) ──
+const handleVerifyPassword: Handler = async (request, env) => {
+  const authErr = await requireAuth(request, env);
+  if (authErr) return authErr;
+
+  const token = isAuthed(request)!;
+  const claims = parseToken(token);
+  if (!claims) return json({ error: 'Invalid token' }, 401);
+
+  const { password } = await request.json() as { password?: string };
+  if (!password) return json({ error: 'Password required' }, 400);
+
+  const user = await env.DB.prepare('SELECT id, password_hash FROM users WHERE id = ?').bind(claims.sub).first();
+  if (!user) return json({ error: 'User not found' }, 404);
+
+  const hash = await hashPassword(password);
+  if (hash !== user.password_hash) return json({ error: 'Incorrect password' }, 401);
+
+  return json({ verified: true });
+};
+
 // ── Update Profile (name/email) ──
 const handleUpdateProfile: Handler = async (request, env) => {
   const authErr = await requireAuth(request, env);
@@ -1359,16 +1380,25 @@ const handleUpdateProduct: Handler = async (request, env, params) => {
   const extraStmts: D1PreparedStatement[] = [];
   if (body.stock_grams !== undefined) {
     const current = await env.DB.prepare(
-      'SELECT stock_grams, given_name, product_name, source_compass_entry_id FROM products WHERE id = ? AND account_id = ?'
+      'SELECT stock_grams, low_stock_threshold, given_name, product_name, source_compass_entry_id FROM products WHERE id = ? AND account_id = ?'
     ).bind(params.id, accountId).first();
     if (current) {
       const oldStock = Number(current.stock_grams) || 0;
       const newStock = Number(body.stock_grams);
       const delta = newStock - oldStock;
+      const threshold = Number(current.low_stock_threshold) || 0;
       if (delta !== 0) {
-        const name = current.given_name || current.product_name || params.id;
+        const name = (current.given_name || current.product_name || params.id) as string;
         extraStmts.push(buildStockLedgerEntry(env, params.id, delta, newStock, 'MANUAL_ADJUST', userEmail, null, null, `Manual: ${oldStock}→${newStock}`, accountId));
         extraStmts.push(buildActivityLog(env, 'STOCK_ADJUSTED', `${name}: ${oldStock}g → ${newStock}g (${delta > 0 ? '+' : ''}${delta}g)`, userEmail, 'product', params.id, accountId));
+        // Low-stock alert when stock transitions below the threshold
+        if (threshold > 0 && newStock < threshold && oldStock >= threshold) {
+          extraStmts.push(buildActivityLog(
+            env, 'low_stock_alert',
+            JSON.stringify({ productName: name, stockGrams: newStock, threshold }),
+            userEmail, 'product', params.id, accountId
+          ));
+        }
         // Sync compass entry status on stock transitions
         if (current.source_compass_entry_id) {
           if (newStock <= 0 && oldStock > 0) {
@@ -1402,9 +1432,11 @@ const handleUpdateProduct: Handler = async (request, env, params) => {
     'lore', 'is_custom_wisdom', 'show_wisdom', 'processing_notes', 'terroir',
     'mood', 'experience', 'material', 'capacity_ml', 'teaware_category',
     'additional_images', 'quantity_units', 'vendor_id', 'is_sample', 'in_transit',
+    'in_transit_grams', 'in_transit_eta',
     'tasting', 'sold_out_at', 'stock_verified_at', 'source_compass_entry_id',
     'updated_at', 'last_synced_at', 'tea_key', 'vendor_url',
     'wholesale_price', 'catalog_visible', 'price_per_gram_usd',
+    'session_reserve_grams',
   ]);
   const cols = Object.keys(body).filter(k => ALLOWED_UPDATE_COLUMNS.has(k));
   if (cols.length === 0) return json({ success: true });
@@ -1717,7 +1749,7 @@ const handleFulfillInvoice: Handler = async (request, env) => {
   const products = new Map<string, any>();
   for (const pid of productIds) {
     const p = await env.DB.prepare(
-      'SELECT id, stock_grams, given_name, product_name, status, source_compass_entry_id FROM products WHERE id = ? AND account_id = ?'
+      'SELECT id, stock_grams, low_stock_threshold, given_name, product_name, status, source_compass_entry_id FROM products WHERE id = ? AND account_id = ?'
     ).bind(pid, accountId).first();
     if (p) products.set(pid as string, p);
   }
@@ -1729,6 +1761,7 @@ const handleFulfillInvoice: Handler = async (request, env) => {
     const currentStock = product ? Number(product.stock_grams) || 0 : 0;
     const qty = Number(item.quantity) || 0;
     const newBalance = currentStock - qty;
+    const threshold = product ? Number(product.low_stock_threshold) || 0 : 0;
 
     stmts.push(
       env.DB.prepare('UPDATE products SET stock_grams = stock_grams - ? WHERE id = ? AND account_id = ?')
@@ -1756,6 +1789,14 @@ const handleFulfillInvoice: Handler = async (request, env) => {
             .bind(product.source_compass_entry_id)
         );
       }
+    } else if (threshold > 0 && newBalance < threshold && currentStock >= threshold && product) {
+      // Low-stock alert when fulfillment drops stock below the configured threshold
+      const name = (product.given_name || product.product_name || item.product_id) as string;
+      stmts.push(buildActivityLog(
+        env, 'low_stock_alert',
+        JSON.stringify({ productName: name, stockGrams: newBalance, threshold }),
+        userEmail, 'product', item.product_id as string, accountId
+      ));
     }
   }
 
@@ -3569,9 +3610,16 @@ const handleDeleteEvent: Handler = async (request, env, params) => {
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
-  await env.DB.prepare(
-    `UPDATE events SET status = 'archived', updated_at = datetime('now') WHERE id = ? AND account_id = ?`
-  ).bind(params.id, accountId).run();
+  // F8: Release all stock holds for this event before archiving
+  const eventHoldKey = `event:${params.id}`;
+  await env.DB.batch([
+    env.DB.prepare(
+      'DELETE FROM stock_holds WHERE invoice_id = ? AND account_id = ?'
+    ).bind(eventHoldKey, accountId),
+    env.DB.prepare(
+      `UPDATE events SET status = 'archived', updated_at = datetime('now') WHERE id = ? AND account_id = ?`
+    ).bind(params.id, accountId),
+  ]);
 
   return json({ success: true });
 };
@@ -3800,15 +3848,20 @@ const handleDuplicateEvent: Handler = async (request, env, params) => {
     source.event_format || 'private_tasting'
   ).run();
 
+  // F38: Clone tea menu entries (including all brewing fields)
   const menu = await env.DB.prepare(
     'SELECT * FROM event_tea_menu WHERE event_id = ? AND account_id = ?'
   ).bind(params.id, accountId).all();
   if (menu.results.length > 0) {
     const menuStmts = (menu.results as any[]).map(m =>
       env.DB.prepare(
-        `INSERT INTO event_tea_menu (id, account_id, event_id, product_id, custom_name, custom_description, reveal_date, brew_order)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-      ).bind(crypto.randomUUID(), accountId, newId, m.product_id, m.custom_name, m.custom_description, m.reveal_date, m.brew_order)
+        `INSERT INTO event_tea_menu (id, account_id, event_id, product_id, custom_name, custom_description, reveal_date, brew_order, brewing_temp, brewing_time, vessel_type)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).bind(
+        crypto.randomUUID(), accountId, newId,
+        m.product_id, m.custom_name, m.custom_description, m.reveal_date, m.brew_order,
+        m.brewing_temp ?? null, m.brewing_time ?? null, m.vessel_type ?? null
+      )
     );
     await env.DB.batch(menuStmts);
   }
@@ -3906,6 +3959,45 @@ const handleUpsertTeaMenu: Handler = async (request, env, params) => {
 
   if (stmts.length > 0) {
     await env.DB.batch(stmts);
+  }
+
+  // F8: Refresh stock holds for this event's tea menu based on seat count
+  // We use invoice_id = 'event:{event_id}' as a stable sentinel to track event holds
+  try {
+    const eventRow = await env.DB.prepare(
+      'SELECT total_capacity FROM events WHERE id = ? AND account_id = ?'
+    ).bind(params.id, accountId).first() as any;
+
+    const seatCount = Number(eventRow?.total_capacity) || 0;
+    if (seatCount > 0) {
+      const menuRows = await env.DB.prepare(
+        `SELECT etm.product_id, p.serving_grams FROM event_tea_menu etm
+         LEFT JOIN products p ON p.id = etm.product_id
+         WHERE etm.event_id = ? AND etm.product_id IS NOT NULL`
+      ).bind(params.id).all();
+
+      const eventHoldKey = `event:${params.id}`;
+      // Clear existing event holds then re-create from current menu
+      const holdStmts: D1PreparedStatement[] = [
+        env.DB.prepare(
+          'DELETE FROM stock_holds WHERE invoice_id = ? AND account_id = ?'
+        ).bind(eventHoldKey, accountId),
+      ];
+
+      for (const row of menuRows.results as any[]) {
+        const servingGrams = Number(row.serving_grams) || 5;
+        const heldGrams = seatCount * servingGrams;
+        holdStmts.push(
+          env.DB.prepare(
+            'INSERT INTO stock_holds (id, account_id, invoice_id, product_id, held_grams) VALUES (?, ?, ?, ?, ?)'
+          ).bind(crypto.randomUUID(), accountId, eventHoldKey, row.product_id, heldGrams)
+        );
+      }
+
+      await env.DB.batch(holdStmts);
+    }
+  } catch {
+    // Stock reservation is non-critical — don't fail the menu upsert if it errors
   }
 
   return json({ success: true, count: stmts.length });
@@ -4504,7 +4596,7 @@ const handleCreateCompassEntry: Handler = async (request, env) => {
     'name', 'chinese_name', 'type', 'form', 'year', 'season', 'storage',
     'origin_region', 'price_amount', 'price_currency', 'price_per_unit_grams',
     'category', 'teaware_category', 'material', 'capacity_ml', 'quantity', 'era',
-    'vendor_id', 'vendor_name', 'notes', 'tasting', 'photos', 'audio_clips',
+    'vendor_id', 'vendor_name', 'linked_customer_id', 'notes', 'tasting', 'photos', 'audio_clips',
     'status', 'buy_quantity_grams', 'buy_quantity_units', 'buy_total',
     'draft_product_id', 'tea_key', 'created_at', 'updated_at',
   ];
@@ -4543,7 +4635,24 @@ const handleUpdateCompassEntry: Handler = async (request, env, params) => {
 
   const updated = await env.DB.prepare(
     'SELECT * FROM tea_compass_entries WHERE id = ? AND account_id = ?'
-  ).bind(params.id, accountId).first();
+  ).bind(params.id, accountId).first() as Record<string, any> | null;
+
+  // Feature 2: Propagate tasting data to the linked draft product when tasting is updated.
+  // If this compass entry has a promoted product (draft_product_id) and the update includes
+  // tasting data, keep the product's tasting field in sync so compass notes are never lost.
+  if (updated && updated.draft_product_id && body.tasting !== undefined) {
+    try {
+      const tastingJson = typeof body.tasting === 'string' ? body.tasting : JSON.stringify(body.tasting);
+      await env.DB.prepare(
+        `UPDATE products SET tasting = ?, updated_at = datetime('now')
+         WHERE id = ? AND account_id = ?`
+      ).bind(tastingJson, updated.draft_product_id, accountId).run();
+    } catch {
+      // Non-critical — product tasting sync failure must not break the compass update
+    }
+  }
+  // End Feature 2
+
   return json(updated);
 };
 
@@ -4657,7 +4766,7 @@ const handleSyncCompassEntries: Handler = async (request, env) => {
     'id', 'user_id', 'account_id', 'name', 'chinese_name', 'type', 'form', 'year', 'season', 'storage',
     'origin_region', 'price_amount', 'price_currency', 'price_per_unit_grams',
     'category', 'teaware_category', 'material', 'capacity_ml', 'quantity', 'era',
-    'vendor_id', 'vendor_name', 'notes', 'tasting', 'photos', 'audio_clips',
+    'vendor_id', 'vendor_name', 'linked_customer_id', 'notes', 'tasting', 'photos', 'audio_clips',
     'status', 'buy_quantity_grams', 'buy_quantity_units', 'buy_total',
     'draft_product_id', 'created_at', 'updated_at',
   ];
@@ -4740,6 +4849,55 @@ const handleApproveAttendee: Handler = async (request, env, params) => {
 
   await env.DB.batch(stmts);
 
+  // F9: Auto-link attendee to a customer record
+  try {
+    const att = attendee as any;
+    const phone = att.phone_number as string | null;
+    const email = att.email as string | null;
+
+    let linkedCustomerId: string | null = att.customer_id as string | null;
+
+    if (!linkedCustomerId && (phone || email)) {
+      // Try to find existing customer by phone or email
+      let existing: any = null;
+      if (phone) {
+        existing = await env.DB.prepare(
+          `SELECT id FROM customers WHERE account_id = ? AND (phone = ? OR whatsapp = ?)`
+        ).bind(accountId, phone, phone).first();
+      }
+      if (!existing && email) {
+        existing = await env.DB.prepare(
+          `SELECT id FROM customers WHERE account_id = ? AND email = ?`
+        ).bind(accountId, email).first();
+      }
+
+      if (existing) {
+        linkedCustomerId = existing.id as string;
+      } else {
+        // Create a new customer record from attendee data
+        linkedCustomerId = crypto.randomUUID();
+        await env.DB.prepare(
+          `INSERT INTO customers (id, account_id, name, phone, email, whatsapp, source)
+           VALUES (?, ?, ?, ?, ?, ?, 'event')`
+        ).bind(
+          linkedCustomerId,
+          accountId,
+          att.full_name || null,
+          phone || null,
+          email || null,
+          phone || null
+        ).run();
+      }
+
+      // Update the attendee with the linked customer id
+      await env.DB.prepare(
+        'UPDATE event_attendees SET customer_id = ? WHERE id = ?'
+      ).bind(linkedCustomerId, params.id).run();
+    }
+  } catch {
+    // Auto-link is non-critical — don't fail the approval if it errors
+  }
+
   return json({ success: true, status: 'confirmed', approved_guests: approvedGuests });
 };
 
@@ -4750,10 +4908,10 @@ const handleDenyAttendee: Handler = async (request, env, params) => {
   const { accountId } = ctx;
 
   const attendee = await env.DB.prepare(
-    `SELECT ea.id, ea.full_name FROM event_attendees ea
+    `SELECT ea.id, ea.full_name, ea.event_id, e.claim_window_minutes FROM event_attendees ea
      JOIN events e ON e.id = ea.event_id
      WHERE ea.id = ? AND e.account_id = ?`
-  ).bind(params.id, accountId).first();
+  ).bind(params.id, accountId).first() as any;
 
   if (!attendee) return json({ error: 'Attendee not found' }, 404);
 
@@ -4771,6 +4929,9 @@ const handleDenyAttendee: Handler = async (request, env, params) => {
       userEmail, 'event_attendee', params.id, accountId
     ),
   ]);
+
+  // F39: Auto-promote first waitlisted attendee when a spot is freed by denial
+  await cascadeWaitlist(env, attendee.event_id as string, (attendee.claim_window_minutes as number) || 60);
 
   return json({ success: true, status: 'denied' });
 };
@@ -4810,6 +4971,235 @@ const handleWaitlistAttendee: Handler = async (request, env, params) => {
   ]);
 
   return json({ success: true, status: 'waitlist', waitlist_position: waitlistPosition });
+};
+
+// POST /api/admin/events/:id/complete (F7: Auto-draft invoice from event completion)
+const handleCompleteEvent: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+  const guard = await assertEventInAccount(env, params.id, accountId);
+  if (guard) return guard;
+
+  // Mark event as completed
+  await env.DB.prepare(
+    `UPDATE events SET status = 'completed', updated_at = datetime('now') WHERE id = ? AND account_id = ?`
+  ).bind(params.id, accountId).run();
+
+  // Get tea menu — if empty, skip invoice creation
+  const menuRows = await env.DB.prepare(
+    `SELECT etm.product_id, etm.brew_order FROM event_tea_menu etm
+     WHERE etm.event_id = ? AND etm.product_id IS NOT NULL`
+  ).bind(params.id).all();
+
+  if (menuRows.results.length === 0) {
+    return json({ success: true, status: 'completed', invoices_created: 0 });
+  }
+
+  // Get all attended attendees
+  const attendeesRows = await env.DB.prepare(
+    `SELECT ea.id, ea.full_name, ea.phone_number, ea.email, ea.customer_id
+     FROM event_attendees ea
+     WHERE ea.event_id = ? AND ea.attended = 1`
+  ).bind(params.id).all();
+
+  const attendees = attendeesRows.results as any[];
+  if (attendees.length === 0) {
+    return json({ success: true, status: 'completed', invoices_created: 0 });
+  }
+
+  // Check which attendees already have a draft invoice for this event
+  const existingInvoiceRows = await env.DB.prepare(
+    `SELECT customer_name FROM invoices WHERE source_event_id = ? AND account_id = ?`
+  ).bind(params.id, accountId).all();
+  const existingNames = new Set((existingInvoiceRows.results as any[]).map((r: any) => r.customer_name));
+
+  const stmts: D1PreparedStatement[] = [];
+  let invoicesCreated = 0;
+
+  for (const att of attendees) {
+    if (existingNames.has(att.full_name)) continue;
+
+    const invoiceId = crypto.randomUUID();
+    const invoiceNumber = `EVT-${params.id.slice(0, 6).toUpperCase()}-${att.id.slice(0, 4).toUpperCase()}`;
+
+    stmts.push(
+      env.DB.prepare(
+        `INSERT INTO invoices (id, account_id, invoice_number, customer_name, customer_whatsapp, customer_id, display_currency, shipping_cost_usd, status, inventory_deducted, payment_status, source_event_id)
+         VALUES (?, ?, ?, ?, ?, ?, 'TWD', 0, 'Draft', 0, 'unpaid', ?)`
+      ).bind(
+        invoiceId,
+        accountId,
+        invoiceNumber,
+        att.full_name,
+        att.phone_number || null,
+        att.customer_id || null,
+        params.id
+      )
+    );
+
+    // Add one line item per tea menu entry
+    for (const menuItem of menuRows.results as any[]) {
+      stmts.push(
+        env.DB.prepare(
+          'INSERT INTO invoice_line_items (id, account_id, invoice_id, product_id, quantity, price_at_sale) VALUES (?, ?, ?, ?, ?, ?)'
+        ).bind(crypto.randomUUID(), accountId, invoiceId, menuItem.product_id, 1, 0)
+      );
+    }
+
+    invoicesCreated++;
+  }
+
+  if (stmts.length > 0) {
+    await env.DB.batch(stmts);
+  }
+
+  return json({ success: true, status: 'completed', invoices_created: invoicesCreated });
+};
+
+// POST /api/admin/events/:id/convert-interest (F12: Interest signup to RSVP conversion)
+const handleConvertInterest: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+  const guard = await assertEventInAccount(env, params.id, accountId);
+  if (guard) return guard;
+
+  // Get all interest signups for this event
+  const signupRows = await env.DB.prepare(
+    `SELECT id, name, phone, email FROM interest_signups
+     WHERE event_id = ? AND account_id = ?`
+  ).bind(params.id, accountId).all();
+
+  const signups = signupRows.results as any[];
+  if (signups.length === 0) {
+    return json({ success: true, converted: 0 });
+  }
+
+  // Get existing attendee emails to avoid duplicate RSVPs
+  const existingRows = await env.DB.prepare(
+    `SELECT email, phone_number FROM event_attendees WHERE event_id = ?`
+  ).bind(params.id).all();
+  const existingEmails = new Set((existingRows.results as any[]).map((r: any) => r.email).filter(Boolean));
+  const existingPhones = new Set((existingRows.results as any[]).map((r: any) => r.phone_number).filter(Boolean));
+
+  const stmts: D1PreparedStatement[] = [];
+  let converted = 0;
+
+  for (const signup of signups) {
+    // Skip if already has an RSVP (by email or phone)
+    if ((signup.email && existingEmails.has(signup.email)) ||
+        (signup.phone && existingPhones.has(signup.phone))) {
+      continue;
+    }
+
+    const attendeeId = crypto.randomUUID();
+    const rsvpToken = crypto.randomUUID();
+
+    stmts.push(
+      env.DB.prepare(
+        `INSERT INTO event_attendees
+           (id, account_id, event_id, full_name, phone_number, email, status, magic_token, source)
+         VALUES (?, ?, ?, ?, ?, ?, 'registered', ?, 'interest_conversion')`
+      ).bind(
+        attendeeId,
+        accountId,
+        params.id,
+        signup.name || null,
+        signup.phone || null,
+        signup.email || null,
+        rsvpToken
+      )
+    );
+
+    // Mark the interest signup as converted
+    stmts.push(
+      env.DB.prepare(
+        `UPDATE interest_signups SET converted_at = datetime('now') WHERE id = ?`
+      ).bind(signup.id)
+    );
+
+    if (signup.email) existingEmails.add(signup.email);
+    if (signup.phone) existingPhones.add(signup.phone);
+    converted++;
+  }
+
+  if (stmts.length > 0) {
+    await env.DB.batch(stmts);
+  }
+
+  return json({ success: true, converted });
+};
+
+// POST /api/admin/events/:id/create-next (F40: Recurring event pattern)
+const handleCreateNextEvent: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+
+  const body = await request.json() as { next_date: string; slug: string };
+  if (!body.next_date || !body.slug) {
+    return json({ error: 'next_date and slug are required' }, 400);
+  }
+
+  const existingSlug = await env.DB.prepare('SELECT id FROM events WHERE slug = ?').bind(body.slug).first();
+  if (existingSlug) return json({ error: 'An event with this slug already exists' }, 409);
+
+  const source = await env.DB.prepare('SELECT * FROM events WHERE id = ? AND account_id = ?')
+    .bind(params.id, accountId).first() as any;
+  if (!source) return json({ error: 'Source event not found' }, 404);
+
+  const newId = crypto.randomUUID();
+
+  await env.DB.prepare(
+    `INSERT INTO events (id, account_id, slug, title, subtitle, description, flyer_image_url, event_date, event_end_date,
+       location_name, address_text, map_link, guidelines_text, venue_guide, total_capacity, claim_window_minutes,
+       timezone, status, session_flow, playlist_url, event_format, location_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?, ?)`
+  ).bind(
+    newId,
+    accountId,
+    body.slug,
+    source.title,
+    source.subtitle,
+    source.description,
+    source.flyer_image_url,
+    body.next_date,
+    null, // event_end_date — to be set manually
+    source.location_name,
+    source.address_text,
+    source.map_link,
+    source.guidelines_text,
+    source.venue_guide,
+    source.total_capacity,
+    source.claim_window_minutes,
+    source.timezone,
+    source.session_flow,
+    source.playlist_url,
+    source.event_format || 'private_tasting',
+    source.location_id || null
+  ).run();
+
+  // Clone tea menu (same as F38/duplicate pattern)
+  const menu = await env.DB.prepare(
+    'SELECT * FROM event_tea_menu WHERE event_id = ? AND account_id = ?'
+  ).bind(params.id, accountId).all();
+
+  if (menu.results.length > 0) {
+    const menuStmts = (menu.results as any[]).map(m =>
+      env.DB.prepare(
+        `INSERT INTO event_tea_menu (id, account_id, event_id, product_id, custom_name, custom_description, reveal_date, brew_order, brewing_temp, brewing_time, vessel_type)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).bind(
+        crypto.randomUUID(), accountId, newId,
+        m.product_id, m.custom_name, m.custom_description, null, m.brew_order,
+        m.brewing_temp ?? null, m.brewing_time ?? null, m.vessel_type ?? null
+      )
+    );
+    await env.DB.batch(menuStmts);
+  }
+
+  return json({ id: newId, slug: body.slug }, 201);
 };
 
 // POST /api/admin/events/:id/approve-batch
@@ -5445,6 +5835,70 @@ const handleAddSampleTasting: Handler = async (request, env, params) => {
     }
   }
 
+  // ── Feature 3: Auto-tag customer from sample verdict ─────────────────────
+  const verdict = body.verdict || 'neutral';
+  // tasterId is email if the user is authenticated (set above), otherwise it's a guest UUID
+  const tasterEmailForTag: string | null =
+    tasterId.includes('@') ? tasterId
+    : (typeof body.email === 'string' && body.email ? body.email : null);
+
+  if (tasterEmailForTag && (verdict === 'love' || verdict === 'like' || verdict === 'pass')) {
+    try {
+      const sampleMeta = await env.DB.prepare(
+        'SELECT type FROM tea_samples WHERE id = ?'
+      ).bind(params.id).first() as Record<string, any> | null;
+
+      const customer = await env.DB.prepare(
+        `SELECT id, tags FROM customers WHERE account_id = ? AND email = ? LIMIT 1`
+      ).bind(accountId, tasterEmailForTag).first() as Record<string, any> | null;
+
+      if (customer) {
+        const rawTags = customer.tags as string | null;
+        const currentTags: string[] = (() => {
+          try { return JSON.parse(rawTags || '[]'); }
+          catch { return rawTags ? rawTags.split(',').map((t: string) => t.trim()).filter(Boolean) : []; }
+        })();
+        const tagSet = new Set<string>(currentTags);
+
+        if (verdict === 'love' || verdict === 'like') {
+          const teaType = ((sampleMeta?.type as string | undefined) || '').toLowerCase();
+          const typeTagMap: Record<string, string> = {
+            sheng: 'sheng-lover', oolong: 'oolong-lover',
+            shou: 'puerh-lover', dark: 'puerh-lover',
+            white: 'white-tea-lover', green: 'green-lover',
+            red: 'red-tea-lover', yellow: 'yellow-tea-lover',
+          };
+          for (const [key, tag] of Object.entries(typeTagMap)) {
+            if (teaType.includes(key)) { tagSet.add(tag); break; }
+          }
+        }
+
+        if (verdict === 'pass') {
+          const passResult = await env.DB.prepare(
+            `SELECT COUNT(*) as cnt FROM tea_sample_tastings tst
+             JOIN tea_samples s ON s.id = tst.sample_id
+             WHERE s.account_id = ? AND tst.taster_id = ? AND tst.verdict = 'pass'`
+          ).bind(accountId, tasterId).first() as Record<string, any> | null;
+          if (((passResult?.cnt as number) || 0) >= 3) {
+            tagSet.add('selective');
+          }
+        }
+
+        const updatedTags = Array.from(tagSet);
+        const changed = updatedTags.length !== currentTags.length
+          || updatedTags.some(t => !currentTags.includes(t));
+        if (changed) {
+          await env.DB.prepare(
+            `UPDATE customers SET tags = ?, updated_at = datetime('now') WHERE id = ?`
+          ).bind(JSON.stringify(updatedTags), customer.id).run();
+        }
+      }
+    } catch {
+      // Non-critical — auto-tagging failure must not break the tasting submission
+    }
+  }
+  // ── End Feature 3 ──────────────────────────────────────────────────────────
+
   const created = await env.DB.prepare('SELECT * FROM tea_sample_tastings WHERE id = ?').bind(id).first();
   return json(parseTastingRow(created as Record<string, any>), 201);
 };
@@ -5930,6 +6384,52 @@ const handleSyncTastingJournal: Handler = async (request, env) => {
   return json({ synced: stmts.length });
 };
 
+// Public (auth required): POST /api/samples/request
+// Customer-facing sample request — inserts into tea_samples with status 'requested'
+// and stores request metadata (quantity_grams, user_id, note) in the notes field as JSON.
+const handleRequestSample: Handler = async (request, env) => {
+  const authErr = await requireAuth(request, env);
+  if (authErr) return authErr;
+
+  const token = isAuthed(request)!;
+  const claims = parseToken(token);
+  if (!claims) return json({ error: 'Invalid token' }, 401);
+
+  const body = await request.json() as {
+    product_id?: string;
+    quantity_grams?: number;
+    note?: string;
+    account_id?: string;
+  };
+
+  const { product_id, quantity_grams, note } = body;
+  if (!product_id) return json({ error: 'product_id required' }, 400);
+  if (!quantity_grams || quantity_grams <= 0) return json({ error: 'quantity_grams must be positive' }, 400);
+
+  // Resolve account_id from JWT (active_account_id) or the body fallback
+  const accountId = (claims.active_account_id as string | null | undefined) || body.account_id;
+  if (!accountId) return json({ error: 'No active account' }, 400);
+
+  // Look up the product name for the sample record
+  const product = await env.DB.prepare(
+    'SELECT given_name, product_name, type FROM products WHERE id = ? AND account_id = ?'
+  ).bind(product_id, accountId).first() as { given_name?: string; product_name?: string; type?: string } | null;
+
+  if (!product) return json({ error: 'Product not found' }, 404);
+  if (product.type === 'Teaware') return json({ error: 'Samples are only available for tea products' }, 400);
+
+  const sampleName = `${product.given_name || product.product_name || 'Tea'} sample`;
+  const metaNotes = JSON.stringify({ quantity_grams, note: note || '', requested_by_user_id: claims.sub });
+
+  const id = crypto.randomUUID();
+  await env.DB.prepare(
+    `INSERT INTO tea_samples (id, account_id, name, product_id, status, grams, notes, user_id, created_by)
+     VALUES (?, ?, ?, ?, 'requested', ?, ?, ?, ?)`
+  ).bind(id, accountId, sampleName, product_id, quantity_grams, metaNotes, claims.sub, claims.email || 'customer').run();
+
+  return json({ id, status: 'requested' }, 201);
+};
+
 // Admin: GET /api/admin/samples
 const handleListSamples: Handler = async (request, env) => {
   const ctx = await requireAccount(request, env);
@@ -6209,10 +6709,13 @@ const handleReserveStock: Handler = async (request, env) => {
   await env.DB.prepare('DELETE FROM stock_holds WHERE invoice_id = ? AND account_id = ?')
     .bind(invoice_id, accountId).run();
 
+  // Holds expire in 48 hours — abandoned drafts won't lock stock forever
+  const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
+
   const stmts = (items as any[]).map((item: any) =>
     env.DB.prepare(
-      'INSERT INTO stock_holds (id, account_id, invoice_id, product_id, held_grams) VALUES (?, ?, ?, ?, ?)'
-    ).bind(crypto.randomUUID(), accountId, invoice_id, item.product_id, item.quantity)
+      'INSERT INTO stock_holds (id, account_id, invoice_id, product_id, held_grams, expires_at) VALUES (?, ?, ?, ?, ?, ?)'
+    ).bind(crypto.randomUUID(), accountId, invoice_id, item.product_id, item.quantity, expiresAt)
   );
 
   if (stmts.length > 0) await env.DB.batch(stmts);
@@ -6229,8 +6732,13 @@ const handleReleaseStock: Handler = async (request, env) => {
 
   if (!invoice_id) return json({ error: 'invoice_id required' }, 400);
 
-  await env.DB.prepare('DELETE FROM stock_holds WHERE invoice_id = ? AND account_id = ?')
-    .bind(invoice_id, accountId).run();
+  // Release the specific invoice's holds and opportunistically clean expired holds
+  await env.DB.batch([
+    env.DB.prepare('DELETE FROM stock_holds WHERE invoice_id = ? AND account_id = ?')
+      .bind(invoice_id, accountId),
+    env.DB.prepare("DELETE FROM stock_holds WHERE account_id = ? AND expires_at IS NOT NULL AND expires_at <= datetime('now')")
+      .bind(accountId),
+  ]);
 
   return json({ released: true });
 };
@@ -6252,7 +6760,7 @@ const handleGetAvailableStock: Handler = async (request, env) => {
   if (!product) return json({ error: 'Product not found' }, 404);
 
   const held = await env.DB.prepare(
-    'SELECT COALESCE(SUM(held_grams), 0) as total_held FROM stock_holds WHERE product_id = ? AND account_id = ?'
+    "SELECT COALESCE(SUM(held_grams), 0) as total_held FROM stock_holds WHERE product_id = ? AND account_id = ? AND (expires_at IS NULL OR expires_at > datetime('now'))"
   ).bind(productId, accountId).first() as any;
 
   const totalStock = Number(product.stock_grams) || 0;
@@ -6346,6 +6854,26 @@ const handleUpdateAccount: Handler = async (request, env, params) => {
 
   const acc = await env.DB.prepare('SELECT * FROM accounts WHERE id = ?').bind(params.id).first();
   return json(acc);
+};
+
+// GET /api/accounts/:id/features
+const handleGetAccountFeatures: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  if (params.id !== ctx.accountId) return json({ error: 'Account access denied' }, 403);
+
+  const account = await env.DB.prepare(
+    'SELECT trust_tier, is_platform_owner FROM accounts WHERE id = ?'
+  ).bind(params.id).first() as { trust_tier: string | null; is_platform_owner: number } | null;
+  if (!account) return json({ error: 'Account not found' }, 404);
+
+  const { results: overrides } = await env.DB.prepare(
+    'SELECT feature, enabled FROM account_features WHERE account_id = ?'
+  ).bind(params.id).all();
+
+  const plan = planFeaturesForAccount(account.trust_tier, account.is_platform_owner === 1);
+  const features = effectiveFeatures(plan, overrides as { feature: string; enabled: number }[]);
+  return json({ features });
 };
 
 // GET /api/accounts/:id/members
@@ -6525,6 +7053,36 @@ function inviteEmailHtml(inviteUrl: string, accountName: string): string {
 
 // ── Platform Admin Endpoints ─────────────────────────────────────────────────
 
+// ── Plan-based feature defaults ─────────────────────────────────────────────
+// Features listed here are ON by default for the given trust_tier.
+// Platform accounts (is_platform_owner) get everything.
+// The account_features table stores overrides: explicit 0 disables a plan feature,
+// explicit 1 enables a feature not in the plan.
+
+const ALL_KNOWN_FEATURES = ['compass', 'catalog_sharing', 'ai_wisdom_generation'] as const;
+
+const PLAN_FEATURES: Record<string, readonly string[]> = {
+  basic:    [],
+  verified: ['compass'],
+  partner:  ['compass', 'catalog_sharing'],
+  platform: ['compass', 'catalog_sharing', 'ai_wisdom_generation'],
+};
+
+function planFeaturesForAccount(trustTier: string | null, isPlatformOwner: boolean): Set<string> {
+  const tier = isPlatformOwner ? 'platform' : (trustTier ?? 'basic');
+  return new Set(PLAN_FEATURES[tier] ?? []);
+}
+
+function effectiveFeatures(
+  planFeatures: Set<string>,
+  overrides: { feature: string; enabled: number }[],
+): Record<string, boolean> {
+  const result: Record<string, boolean> = {};
+  for (const f of ALL_KNOWN_FEATURES) result[f] = planFeatures.has(f);
+  for (const o of overrides) result[o.feature] = o.enabled === 1;
+  return result;
+}
+
 // GET /api/platform/users — all users with platform_role + account memberships summary
 const handlePlatformListUsers: Handler = async (request, env) => {
   const authErr = await requirePlatformAdmin(request, env);
@@ -6611,19 +7169,23 @@ const handlePlatformListAccounts: Handler = async (request, env) => {
     'SELECT account_id, feature, enabled FROM account_features'
   ).all();
 
-  const featuresByAccount = (features as any[]).reduce((acc, f) => {
-    if (!acc[f.account_id]) acc[f.account_id] = {};
-    acc[f.account_id][f.feature] = f.enabled === 1;
+  const overridesByAccount = (features as any[]).reduce((acc, f) => {
+    if (!acc[f.account_id]) acc[f.account_id] = [];
+    acc[f.account_id].push({ feature: f.feature, enabled: f.enabled });
     return acc;
-  }, {} as Record<string, Record<string, boolean>>);
+  }, {} as Record<string, { feature: string; enabled: number }[]>);
 
-  const result = (accounts as any[]).map(a => ({
-    ...a,
-    is_platform_owner: a.is_platform_owner === 1,
-    public_enabled: a.public_enabled === 1,
-    member_count: a.member_count ?? 0,
-    features: featuresByAccount[a.id] ?? {},
-  }));
+  const result = (accounts as any[]).map(a => {
+    const isPlatform = a.is_platform_owner === 1;
+    const plan = planFeaturesForAccount(a.trust_tier, isPlatform);
+    return {
+      ...a,
+      is_platform_owner: isPlatform,
+      public_enabled: a.public_enabled === 1,
+      member_count: a.member_count ?? 0,
+      features: effectiveFeatures(plan, overridesByAccount[a.id] ?? []),
+    };
+  });
 
   return json({ accounts: result });
 };
@@ -7006,6 +7568,68 @@ const handleGetPublicAccountEvents: Handler = async (_request, env, params) => {
   return cachedJson(results, 60);
 };
 
+// ── Purchase Orders ──
+
+const handleListPurchaseOrders: Handler = async (request, env) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+
+  const { results } = await env.DB.prepare(
+    'SELECT * FROM purchase_orders WHERE account_id = ? ORDER BY created_at DESC'
+  ).bind(accountId).all();
+
+  return json(results);
+};
+
+const handleCreatePurchaseOrder: Handler = async (request, env) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+
+  const body = await request.json() as Record<string, any>;
+  if (!body.vendor_name?.trim()) return json({ error: 'vendor_name is required' }, 400);
+
+  const id = crypto.randomUUID();
+  const cols = ['id', 'account_id', 'vendor_name', 'vendor_id', 'vendor_contact', 'items_json', 'total_usd', 'display_currency', 'status', 'message_text', 'notes', 'created_at', 'updated_at'];
+  await env.DB.prepare(
+    `INSERT INTO purchase_orders (${cols.join(', ')}) VALUES (${cols.map(() => '?').join(', ')})`
+  ).bind(
+    id, accountId,
+    body.vendor_name?.trim() || null,
+    body.vendor_id || null,
+    body.vendor_contact || null,
+    body.items_json || '[]',
+    body.total_usd || 0,
+    body.display_currency || 'USD',
+    body.status || 'pending',
+    body.message_text || null,
+    body.notes || null,
+    new Date().toISOString(),
+    new Date().toISOString(),
+  ).run();
+
+  return json({ id }, 201);
+};
+
+const handleUpdatePurchaseOrder: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+
+  const body = await request.json() as { status?: string; notes?: string; message_text?: string };
+  const allowed = ['status', 'notes', 'message_text'];
+  const cols = Object.keys(body).filter(k => allowed.includes(k));
+  if (cols.length === 0) return json({ success: true });
+
+  const sets = cols.map(c => `${c} = ?`).join(', ');
+  await env.DB.prepare(
+    `UPDATE purchase_orders SET ${sets}, updated_at = ? WHERE id = ? AND account_id = ?`
+  ).bind(...cols.map(c => (body as Record<string, any>)[c]), new Date().toISOString(), params.id, accountId).run();
+
+  return json({ success: true });
+};
+
 // ── Routes ──
 const routes: [string, string, Handler][] = [
   // Auth
@@ -7014,6 +7638,7 @@ const routes: [string, string, Handler][] = [
   ['POST', '/api/auth/refresh', handleRefreshToken],
   ['GET', '/api/auth/me', handleGetMe],
   ['PUT', '/api/auth/change-password', handleChangePassword],
+  ['POST', '/api/auth/verify-password', handleVerifyPassword],
   ['PUT', '/api/auth/profile', handleUpdateProfile],
   ['POST', '/api/auth/request-admin', handleRequestAdmin],
   ['POST', '/api/auth/forgot-password', handleForgotPassword],
@@ -7026,6 +7651,7 @@ const routes: [string, string, Handler][] = [
   ['POST', '/api/accounts/switch', handleSwitchAccount],
   ['GET', '/api/accounts/:id', handleGetAccount],
   ['PUT', '/api/accounts/:id', handleUpdateAccount],
+  ['GET', '/api/accounts/:id/features', handleGetAccountFeatures],
   ['GET', '/api/accounts/:id/members', handleGetAccountMembers],
   ['POST', '/api/accounts/:id/members', handleInviteAccountMember],
   ['PUT', '/api/accounts/:id/members/:userId', handleUpdateAccountMember],
@@ -7116,6 +7742,11 @@ const routes: [string, string, Handler][] = [
   ['POST', '/api/rpc/release-stock', handleReleaseStock],
   ['GET', '/api/stock/available', handleGetAvailableStock],
 
+  // Purchase Orders
+  ['GET', '/api/purchase-orders', handleListPurchaseOrders],
+  ['POST', '/api/purchase-orders', handleCreatePurchaseOrder],
+  ['PUT', '/api/purchase-orders/:id', handleUpdatePurchaseOrder],
+
   // Activity Logs & Stock Ledger
   ['GET', '/api/activity-logs', handleGetActivityLogs],
   ['GET', '/api/stock-ledger', handleGetStockLedger],
@@ -7197,6 +7828,11 @@ const routes: [string, string, Handler][] = [
   ['POST', '/api/admin/events/:id/approve-batch', handleApproveBatch],
   ['GET', '/api/admin/events/:id/share', handleGetEventShareMessages],
 
+  // Admin — Event V3: complete, convert interest, recurring (F7, F12, F40)
+  ['POST', '/api/admin/events/:id/complete', handleCompleteEvent],
+  ['POST', '/api/admin/events/:id/convert-interest', handleConvertInterest],
+  ['POST', '/api/admin/events/:id/create-next', handleCreateNextEvent],
+
   // Media Upload
   ['POST', '/api/upload-flyer', handleUploadFlyer],
 
@@ -7242,6 +7878,7 @@ const routes: [string, string, Handler][] = [
   ['POST', '/api/compass/invite/:token/claim', handleCompassClaimInvite],
 
   // Samples — Public
+  ['POST', '/api/samples/request', handleRequestSample],
   ['GET', '/api/samples/set/:setId', handleGetSamplesBySet],
   ['GET', '/api/samples/:id', handleGetSample],
   ['POST', '/api/samples/:id/tastings', handleAddSampleTasting],

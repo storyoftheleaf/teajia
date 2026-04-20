@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { LogoEmblem } from '../../components/Logos/LogoEmblem';
 import type { PlatformRole } from '../../types';
+import { useAccountFeatures } from '../../hooks/useAccountFeatures';
 
 type TileData = {
   id: string;
@@ -82,6 +83,9 @@ export const AdminHomeView: React.FC<{
   isPlatformAccount?: boolean;
 }> = ({ platformRole, isStaff = false, isAdmin = false, isPlatformAccount = false }) => {
   const navigate = useNavigate();
+  const { hasFeature } = useAccountFeatures();
+  const compassEnabled = hasFeature('compass');
+  const catalogEnabled = hasFeature('catalog_sharing');
 
   const catalogTile: TileData = {
     id: 'catalog', label: 'Catalog', sub: 'Source from Teajia', icon: Package, path: '/admin/catalog',
@@ -89,7 +93,7 @@ export const AdminHomeView: React.FC<{
 
   const mgmtTiles = isAdmin
     ? [
-        ...(!isPlatformAccount ? [catalogTile] : []),
+        ...(!isPlatformAccount && catalogEnabled ? [catalogTile] : []),
         ...managementTiles,
         ...(platformRole ? [platformTile] : []),
       ]
@@ -138,9 +142,10 @@ export const AdminHomeView: React.FC<{
         <div className="relative">
           <SectionLabel>Your tools</SectionLabel>
           <div className="grid grid-cols-2 gap-2.5">
-            {memberTiles.map(tile => (
-              <SmallTile key={tile.id} tile={tile} onClick={() => navigate(tile.path)} />
-            ))}
+            {memberTiles.map(tile => {
+              if ((tile.id === 'compass' || tile.id === 'samples') && !compassEnabled) return null;
+              return <SmallTile key={tile.id} tile={tile} onClick={() => navigate(tile.path)} />;
+            })}
           </div>
         </div>
 

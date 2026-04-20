@@ -196,11 +196,17 @@ export const Shop: React.FC<ShopProps> = ({
     const showComparison = retailTotal > 0 && retailTotal > setPrice;
 
     return (
-      <div key={set.id} className="set-card group">
+      <article
+        key={set.id}
+        className="group bg-tea-surface rounded-[6px] overflow-hidden transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(0,0,0,0.3),0_2px_8px_rgba(0,0,0,0.15),inset_0_1px_0_rgba(184,146,78,0.08)] shadow-[0_1px_4px_rgba(0,0,0,0.25),0_2px_8px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(184,146,78,0.06)]"
+      >
         <div className="flex flex-col md:flex-row">
           {/* Image side */}
           <div className="relative md:w-[40%] lg:w-[35%] flex-shrink-0">
-            <span className="set-badge">Set</span>
+            {/* SET badge — inline Tailwind, no .set-badge class */}
+            <span className="absolute top-3 left-3 z-10 font-sans text-[0.5625rem] font-bold uppercase tracking-[0.15em] px-2.5 py-1 rounded-sm bg-tea-gold/85 text-tea-bg">
+              Set
+            </span>
             <CardImage src={set.image} alt={set.name} aspect="video" className="md:!aspect-auto md:h-full" />
           </div>
 
@@ -216,33 +222,39 @@ export const Shop: React.FC<ShopProps> = ({
             )}
 
             {/* Title */}
-            <h3 className="text-lg md:text-xl text-tea-text leading-tight mb-1" style={{ fontFamily: 'var(--font-display)' }}>
+            <h3 className="font-display text-lg md:text-xl text-tea-text leading-tight mb-1 group-hover:text-tea-gold transition-colors duration-150">
               {set.name}
             </h3>
 
             {/* Ideal for */}
             {set.idealFor && (
-              <p className="text-xs text-tea-gold/80 italic mb-3">
+              <p className="font-body text-xs text-tea-gold/80 italic mb-3">
                 {set.idealFor}
               </p>
             )}
 
             {/* Full description */}
-            <p className="text-sm text-tea-text-sec leading-relaxed mb-4">
+            <p className="font-body text-sm text-tea-text-sec leading-relaxed mb-4">
               {set.description}
             </p>
 
             {/* What's inside */}
             <div className="mb-4">
-              <p className="text-[0.625rem] uppercase tracking-[0.12em] text-tea-text-dim mb-2">
+              <p className="font-sans text-[0.625rem] uppercase tracking-[0.12em] text-tea-text-dim mb-2">
                 What's inside
               </p>
-              <div className="space-y-0">
+              <div className="divide-y divide-tea-gold/[0.08]">
                 {resolvedItems.map((item) => (
-                  <div key={item.itemId} className="set-item-row">
-                    <span className="set-item-dot" />
-                    <span>{item.name}{item.type === 'tea' ? ` · ${item.quantity}${item.unit}` : ''}</span>
-                    <span className="set-item-type">{item.type === 'tea' ? 'Tea' : 'Teaware'}</span>
+                  <div
+                    key={item.itemId}
+                    className="flex items-center gap-2 py-1.5 text-[0.8125rem] text-tea-text leading-snug"
+                  >
+                    {/* dot */}
+                    <span className="w-1 h-1 rounded-full bg-tea-gold/50 flex-shrink-0" />
+                    <span className="flex-1">{item.name}{item.type === 'tea' ? ` · ${item.quantity}${item.unit}` : ''}</span>
+                    <span className="font-sans text-[0.625rem] uppercase tracking-[0.06em] text-tea-text-dim flex-shrink-0 ml-auto">
+                      {item.type === 'tea' ? 'Tea' : 'Teaware'}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -252,19 +264,28 @@ export const Shop: React.FC<ShopProps> = ({
             <div className="mt-auto flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
               <div>
                 <div className="flex items-baseline gap-2">
+                  {/* original/retail price — inline, no .set-price-original */}
                   {showComparison && (
-                    <span className="set-price-original">${retailTotal}</span>
+                    <span className="font-mono text-[0.8125rem] text-tea-text-dim line-through opacity-60">
+                      ${retailTotal}
+                    </span>
                   )}
-                  <span className="set-price-current">{set.price}</span>
+                  {/* current price — inline, no .set-price-current */}
+                  <span className="font-mono text-lg text-tea-gold font-semibold">
+                    {set.price}
+                  </span>
                 </div>
+                {/* discount label — inline, no .set-discount */}
                 {set.discount && (
-                  <p className="set-discount mt-0.5">{set.discount}</p>
+                  <p className="font-body text-[0.6875rem] text-tea-gold italic opacity-85 mt-0.5">
+                    {set.discount}
+                  </p>
                 )}
               </div>
               <button
                 onClick={(e) => { e.stopPropagation(); handleAddStarterSet(set); }}
                 disabled={isAddingToCart[set.id]}
-                className="bg-tea-gold hover:bg-tea-gold/90 text-tea-bg text-xs uppercase tracking-[0.15em] font-medium py-2.5 px-6 rounded-lg transition-all active:scale-95 flex items-center justify-center gap-3 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+                className="bg-tea-gold hover:bg-tea-gold-lt text-tea-bg text-xs uppercase tracking-[0.15em] font-medium py-2.5 px-6 rounded-lg transition-all active:scale-95 flex items-center justify-center gap-3 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isAddingToCart[set.id] && <Loader2 className="w-4 h-4 animate-spin" />}
                 <span>{isAddingToCart[set.id] ? 'Adding...' : 'Add Set to Cart'}</span>
@@ -272,18 +293,18 @@ export const Shop: React.FC<ShopProps> = ({
             </div>
           </div>
         </div>
-      </div>
+      </article>
     );
   };
 
   const renderSets = () => (
     <div className="max-w-full mx-auto px-3 md:px-4 lg:px-6 pt-4 animate-[fadeIn_0.5s_ease-out]">
       {STARTER_TEA_SETS.length === 0 && STARTER_TEAWARE_SETS.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-32 opacity-40">
-          <div className="w-16 h-16 border border-tea-border rounded-full flex items-center justify-center mb-4">
-            <Icons.Box className="w-6 h-6 text-tea-text/50" />
-          </div>
-          <p className="italic text-base text-tea-text/60" style={{ fontFamily: 'var(--font-body)' }}>No sets available.</p>
+        <div className="py-16 text-center">
+          <p className="font-display text-2xl text-tea-text-dim mb-2">Nothing here yet.</p>
+          <p className="font-body italic text-sm text-tea-text-dim">
+            Try a different filter, or explore the full catalog.
+          </p>
         </div>
       ) : (
         <>
@@ -363,7 +384,27 @@ export const Shop: React.FC<ShopProps> = ({
       </PageHeader>
 
       {/* Content */}
+      {/*
+        CartToast positioning note (#cart-toast-overlap):
+        CartToast lives at src/components/shared/CartToast.tsx and is already
+        positioned at bottom-[calc(44px+env(safe-area-inset-bottom,0px)+1rem)] on
+        mobile and lg:bottom-8 lg:right-8 on desktop. The bottom tab bar is 56px
+        (h-14) + safe area. If the tab bar height ever changes, update CartToast to:
+          mobile: bottom-[calc(56px+env(safe-area-inset-bottom,0px)+12px)]
+          desktop: bottom-4 right-4
+      */}
       <div className="flex-1 overflow-y-auto max-w-[1400px] mx-auto w-full">
+        {/* Shop page header subtitle — shown only on tea/teaware/sets tabs */}
+        {(activeTab === 'tea' || activeTab === 'teaware' || activeTab === 'sets') && (
+          <div className="px-4 md:px-6 lg:px-10 pt-5 pb-1">
+            <p className="font-body italic text-sm text-tea-text-sec">
+              {activeTab === 'tea' && 'Sourced with intention.'}
+              {activeTab === 'teaware' && 'Tools for the ritual.'}
+              {activeTab === 'sets' && 'Curated for the complete experience.'}
+            </p>
+          </div>
+        )}
+
         {isLoading && !isError && (
           (activeTab === 'tea' && teaInventory.length === 0) ||
           (activeTab === 'teaware' && teawareInventory.length === 0)

@@ -15,12 +15,12 @@
 
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mic, Square, Loader2, X, Plus, Leaf, Sparkles } from 'lucide-react';
+import { Mic, Square, Loader2, X, Plus, Leaf, Sparkles, BookOpen } from 'lucide-react';
 import { useNotesStore } from '../../lib/notesStore';
 import { syncNotes } from '../../lib/notesSync';
 import { useAppStore } from '../../lib/store';
 import type { Note, NoteVisibility } from '../../lib/notesStore';
-import type { TastingData } from '../../types';
+import type { TastingData, CustomerTasting } from '../../types';
 
 // ── Audio recording helpers ──────────────────────────────────────────────────
 
@@ -82,11 +82,31 @@ const NoteCard: React.FC<{
   currentAuthorId: string;
 }> = ({ note, showAuthor, currentAuthorId }) => {
   const { updateNote, removeNote } = useNotesStore();
+  const { addTasting } = useAppStore();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(note.text);
+  const [converted, setConverted] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const isOwn = note.authorId === currentAuthorId;
   const isTasting = note.sourceType === 'tasting';
+  // Feature 6: show convert button when note is anchored to a tea or compass entry
+  const canConvertToJournal = !isTasting && (!!note.teaKey || !!note.compassEntryId) && !converted;
+
+  const handleConvertToJournal = () => {
+    const entry: CustomerTasting = {
+      id: crypto.randomUUID(),
+      teaId: note.teaKey || note.compassEntryId || 'note',
+      teaName: note.teaKey || 'Tea note',
+      teaType: '',
+      tasting: { notes: [note.text] },
+      sourceType: note.compassEntryId ? 'compass' : 'product',
+      compassEntryId: note.compassEntryId,
+      synced: false,
+      createdAt: note.createdAt,
+    };
+    addTasting(entry);
+    setConverted(true);
+  };
 
   const commitEdit = useCallback(() => {
     const trimmed = draft.trim();
@@ -181,17 +201,35 @@ const NoteCard: React.FC<{
         )}
       </div>
 
-      {/* Remove — own non-tasting notes only */}
-      {isOwn && !isTasting && (
-        <button
-          type="button"
-          onClick={handleRemove}
-          className="shrink-0 mt-0.5 p-1 text-tea-text-dim opacity-0 group-hover:opacity-60 hover:!opacity-100 hover:text-tea-text transition-all rounded"
-          aria-label="Remove note"
-        >
-          <X size={11} />
-        </button>
-      )}
+      {/* Actions column */}
+      <div className="shrink-0 flex flex-col gap-1 mt-0.5">
+        {/* Feature 6: Convert to journal entry */}
+        {canConvertToJournal && (
+          <button
+            type="button"
+            onClick={handleConvertToJournal}
+            title="Save to tasting journal"
+            className="p-1 text-tea-text-dim opacity-0 group-hover:opacity-60 hover:!opacity-100 hover:text-tea-gold transition-all rounded"
+            aria-label="Convert to journal entry"
+          >
+            <BookOpen size={11} />
+          </button>
+        )}
+        {converted && (
+          <span className="text-[9px] text-tea-gold/60 px-1">saved</span>
+        )}
+        {/* Remove — own non-tasting notes only */}
+        {isOwn && !isTasting && (
+          <button
+            type="button"
+            onClick={handleRemove}
+            className="p-1 text-tea-text-dim opacity-0 group-hover:opacity-60 hover:!opacity-100 hover:text-tea-text transition-all rounded"
+            aria-label="Remove note"
+          >
+            <X size={11} />
+          </button>
+        )}
+      </div>
     </motion.div>
   );
 };

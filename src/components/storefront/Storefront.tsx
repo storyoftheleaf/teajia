@@ -9,6 +9,7 @@ import { TeaInventory } from '../TeaInventory';
 import { TeawareCatalog } from '../TeawareCatalog';
 import { SectionSkeleton } from '../shared/SectionSkeleton';
 import { Icons } from '../Icons';
+import { api } from '../../lib/api';
 
 interface StorefrontProps {
   onAddToCart: (item: InventoryItem, qty: number, total: number) => void;
@@ -324,10 +325,29 @@ function formatEventDate(iso: string): string {
 }
 
 const StorefrontEventsSection: React.FC<{ events: TeaEvent[] }> = ({ events }) => {
+  const [filter, setFilter] = useState<'upcoming' | 'open-seats' | 'past'>('upcoming');
+  const now = new Date();
+
+  const sorted = [...events].sort(
+    (a, b) => new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime()
+  );
+  const upcoming = sorted.filter(
+    ev => new Date(ev.eventDate) >= now && ev.status !== 'archived'
+  );
+  const past = sorted.filter(
+    ev => new Date(ev.eventDate) < now || ev.status === 'closed' || ev.status === 'archived'
+  );
+  const openSeats = upcoming.filter(ev => (ev.seatsRemaining ?? 1) > 0);
+
+  const displayed = filter === 'past' ? past : filter === 'open-seats' ? openSeats : upcoming;
+
+  const labelDate = upcoming[0] ? new Date(upcoming[0].eventDate) : now;
+  const monthLabel = labelDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
   if (events.length === 0) {
     return (
       <div className="py-16 text-center px-6">
-        <p className="text-sm text-tea-text-sec italic">
+        <p className="text-sm text-tea-text-sec font-serif italic">
           No upcoming gatherings at this table.
         </p>
       </div>
@@ -335,34 +355,164 @@ const StorefrontEventsSection: React.FC<{ events: TeaEvent[] }> = ({ events }) =
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-4">
-      <ul className="space-y-4">
-        {events.map(ev => (
-          <li
-            key={ev.id}
-            className="inset-panel p-5 md:p-6 hover:border-tea-gold transition-colors"
-          >
-            <Link to={`/event/${ev.slug}`} className="block">
-              {ev.eventDate && (
-                <p className="text-[11px] uppercase tracking-[0.25em] text-tea-gold mb-2">
-                  {formatEventDate(ev.eventDate)}
-                </p>
-              )}
-              <h3
-                className="text-xl md:text-2xl text-tea-text mb-2"
-                style={{ fontFamily: 'var(--font-display)' }}
+    <div className="max-w-xl mx-auto px-6 pt-4 pb-10">
+      {/* Header */}
+      <div className="mb-6">
+        <p className="text-[10px] uppercase tracking-[0.3em] text-tea-text-dim mb-2">
+          Sessions · {monthLabel}
+        </p>
+        <h2 className="font-serif text-4xl font-normal text-tea-text leading-[1.05] tracking-[-0.5px]">
+          Gather <em className="text-tea-gold italic">around tea.</em>
+        </h2>
+        <div className="flex gap-1.5 mt-4 flex-wrap">
+          {([
+            { id: 'upcoming', label: 'Upcoming' },
+            ...(openSeats.length > 0 ? [{ id: 'open-seats', label: 'Open seats' }] : []),
+            ...(past.length > 0 ? [{ id: 'past', label: 'Past' }] : []),
+          ] as { id: string; label: string }[]).map(({ id, label }) => (
+            <button
+              key={id}
+              onClick={() => setFilter(id as typeof filter)}
+              className={filter === id ? 'pill-active' : 'pill'}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Event list */}
+      {displayed.length === 0 ? (
+        <p className="text-sm text-tea-text-sec font-serif italic py-8">
+          {filter === 'open-seats' ? 'All sessions are currently full.' : 'Nothing to show yet.'}
+        </p>
+      ) : (
+        <div>
+          {displayed.map((ev, i) => {
+            const d = new Date(ev.eventDate);
+            const day = d.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
+            const dateNum = String(d.getDate()).padStart(2, '0');
+            const month = d.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
+            const time = d.toLocaleTimeString('en-US', {
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: false,
+            });
+            const seats = ev.seatsRemaining;
+            const isFull = seats === 0;
+
+            return (
+              <Link
+                key={ev.id}
+                to={`/event/${ev.slug}`}
+                className={`flex gap-3.5 py-4${i < displayed.length - 1 ? ' border-b border-tea-border' : ''} hover:opacity-80 transition-opacity`}
               >
-                {ev.title}
-              </h3>
-              {ev.subtitle && (
-                <p className="text-sm text-tea-text-sec italic mb-2">{ev.subtitle}</p>
-              )}
-              {ev.locationName && (
-                <p className="text-xs text-tea-text-dim">{ev.locationName}</p>
-              )}
-            </Link>
-          </li>
-        ))}
+                {/* Date column */}
+                <div className="w-12 shrink-0 text-center pt-0.5">
+                  <div className="text-[9px] tracking-[0.25em] text-tea-text-dim uppercase">{day}</div>
+                  <div className="font-serif text-[32px] font-normal text-tea-text leading-none mt-0.5">{dateNum}</div>
+                  <div className="text-[9px] tracking-[0.2em] text-tea-text-dim mt-0.5">{month}</div>
+                </div>
+                {/* Content */}
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-serif text-base font-medium text-tea-text leading-snug">{ev.title}</h3>
+                  {ev.subtitle && (
+                    <p className="font-serif italic text-[13px] text-tea-text-sec mt-0.5">{ev.subtitle}</p>
+                  )}
+                  <div className="flex items-center gap-2.5 mt-2 text-[11px] text-tea-text-dim flex-wrap">
+                    <span>{time}</span>
+                    {(ev.areaHint || ev.locationName) && (
+                      <>
+                        <span className="w-1 h-1 rounded-full bg-tea-text-dim shrink-0" />
+                        <span>{ev.areaHint ?? ev.locationName}</span>
+                      </>
+                    )}
+                    {seats != null && (
+                      <span className={`ml-auto font-medium tabular-nums${isFull ? ' text-red-400' : ' text-tea-gold'}`}>
+                        {isFull ? 'Full' : `${seats}/${ev.totalCapacity} seats`}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─── Network reviews section ───────────────────────────────────────────────
+
+interface NetworkReview {
+  id: string;
+  tea_key?: string;
+  product_id?: string;
+  product_account_id?: string;
+  rating?: number;
+  notes?: string;
+  session_date?: string;
+  verdict?: string;
+  tasting?: Record<string, unknown>;
+}
+
+const StoreNetworkReviews: React.FC<{ storeId: string }> = ({ storeId }) => {
+  const { data, isLoading } = useQuery<{ reviews?: NetworkReview[] }>({
+    queryKey: ['tea-reviews', 'network', storeId],
+    queryFn: () => api.teaReviews.list({ visibility: 'network' }),
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const storeReviews = useMemo(() => {
+    if (!data?.reviews) return [];
+    return (data.reviews as NetworkReview[]).filter(
+      r => r.product_account_id === storeId
+    );
+  }, [data, storeId]);
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center py-6">
+        <div className="w-5 h-5 border-2 border-tea-gold border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (storeReviews.length === 0) return null;
+
+  // Group by tea_key or product_id
+  const grouped = storeReviews.reduce<Record<string, NetworkReview[]>>((acc, r) => {
+    const key = r.tea_key ?? r.product_id ?? r.id;
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(r);
+    return acc;
+  }, {});
+
+  return (
+    <div className="max-w-2xl mx-auto px-6 py-6">
+      <h3 className="text-[10px] uppercase tracking-[0.25em] text-tea-text-dim mb-4">
+        Network Reviews
+      </h3>
+      <ul className="space-y-3">
+        {Object.entries(grouped).map(([key, reviews]) => {
+          const avg = reviews.reduce((s, r) => s + (r.rating ?? 0), 0) / reviews.filter(r => r.rating).length;
+          return (
+            <li key={key} className="inset-panel p-4">
+              <div className="flex items-center justify-between gap-2 mb-1">
+                <p className="text-sm text-tea-text font-medium font-mono truncate">{key}</p>
+                {!Number.isNaN(avg) && avg > 0 && (
+                  <span className="text-xs text-tea-gold shrink-0">
+                    {'★'.repeat(Math.round(avg))}{'☆'.repeat(5 - Math.round(avg))} {avg.toFixed(1)}
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] text-tea-text-dim">
+                {reviews.length} {reviews.length === 1 ? 'review' : 'reviews'}
+              </p>
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
@@ -385,6 +535,7 @@ const StorefrontAboutSection: React.FC<{ store: Account }> = ({ store }) => {
           This table is still finding its voice.
         </p>
       )}
+      {store.id && <StoreNetworkReviews storeId={store.id} />}
     </div>
   );
 };

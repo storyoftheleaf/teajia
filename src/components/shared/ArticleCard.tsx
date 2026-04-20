@@ -11,6 +11,8 @@ interface ArticleCardProps {
   cardIndex?: number;
   contentType?: string;
   isSaved?: boolean;
+  authorName?: string;
+  onAuthorClick?: (e: React.MouseEvent) => void;
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -34,6 +36,8 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
   className = '',
   contentType,
   isSaved,
+  authorName,
+  onAuthorClick,
 }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
@@ -67,6 +71,18 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
           <p className="text-[11px] text-tea-text-sec font-sans leading-[1.4] line-clamp-1">
             {description}
           </p>
+        )}
+        {authorName && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onAuthorClick?.(e);
+            }}
+            className="mt-1 text-[10px] uppercase tracking-[0.15em] text-tea-text-dim hover:text-tea-gold transition-colors font-sans text-left"
+          >
+            {authorName}
+          </button>
         )}
       </div>
 

@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import {
   Loader2, FileSpreadsheet, Plus, Search, QrCode, Download,
-  Trash2, AlertTriangle, Archive, Pencil, AlertOctagon, ArrowUpDown, ArrowUp, ArrowDown, Copy, Layers, Settings, MoreHorizontal, Check, X as XIcon, Eye, EyeOff, Star, Sparkles, FlaskConical, RefreshCw, ChevronDown, ChevronRight, ChevronUp, ChevronLeft, MapPin, Save, Columns, PanelRightOpen, Square, CheckSquare, Leaf, Coffee, Image as ImageIcon, Globe, Tag, FileText, User, Receipt
+  Trash2, AlertTriangle, Archive, Pencil, AlertOctagon, ArrowUpDown, ArrowUp, ArrowDown, Copy, Layers, Settings, MoreHorizontal, Check, X as XIcon, Eye, EyeOff, Star, Sparkles, FlaskConical, RefreshCw, ChevronDown, ChevronRight, ChevronUp, ChevronLeft, MapPin, Save, Columns, PanelRightOpen, Square, CheckSquare, Leaf, Coffee, Image as ImageIcon, Globe, Tag, FileText, User, Receipt, BookOpen
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Papa from 'papaparse';
@@ -3550,6 +3550,18 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         >
                           <Receipt size={10} />
                           View order history
+                        </button>
+                      </div>
+
+                      {/* Full story — editorial product history view */}
+                      <div className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
+                        <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.06em] shrink-0 w-20 md:w-24">Story</span>
+                        <button
+                          onClick={() => navigate(`/admin/products/${panelProduct.id}/story`)}
+                          className="text-xs text-tea-accent hover:text-tea-text transition-colors text-right flex items-center gap-1.5"
+                        >
+                          <BookOpen size={10} />
+                          View full story
                         </button>
                       </div>
                     </div>

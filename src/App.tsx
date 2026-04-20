@@ -21,6 +21,7 @@ function lazyWithReload<T extends { default: React.ComponentType<unknown> }>(
 const AdminApp = lazyWithReload(() => import('./admin/AdminApp'));
 const MediaViewer = lazy(() => import('./components/MediaViewer').then(m => ({ default: m.MediaViewer })));
 const Reader = lazy(() => import('./components/Reader').then(m => ({ default: m.Reader })));
+const MagazinePageReader = lazy(() => import('./components/MagazinePageReader').then(m => ({ default: m.MagazinePageReader })));
 const VisualFeatureViewer = lazy(() => import('./components/PhotoEssay/VisualFeatureViewer').then(m => ({ default: m.VisualFeatureViewer })));
 const Shop = lazyWithReload(() => import('./components/Shop').then(m => ({ default: m.Shop })));
 const SharedCollection = lazy(() => import('./components/SharedCollection').then(m => ({ default: m.SharedCollection })));
@@ -30,11 +31,21 @@ const ProductPage = lazy(() => import('./pages/ProductPage'));
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
 const OrderStatusPage = lazy(() => import('./pages/OrderStatusPage'));
 const JourneyPage = lazy(() => import('./pages/JourneyPage'));
+const PassportPage = lazy(() => import('./pages/PassportPage'));
 const GuestInviteClaimPage = lazy(() => import('./pages/GuestInviteClaimPage'));
 const SamplePage = lazy(() => import('./pages/SamplePage'));
 const ShareCardPage = lazy(() => import('./pages/ShareCardPage'));
 const Storefront = lazy(() => import('./components/storefront/Storefront').then(m => ({ default: m.Storefront })));
 const FindATable = lazy(() => import('./components/storefront/FindATable').then(m => ({ default: m.FindATable })));
+const TabStyleDemo = lazy(() => import('./pages/TabStyleDemo'));
+const JournalPage = lazy(() => import('./pages/JournalPage'));
+const CollectionPage = lazy(() => import('./pages/CollectionPage'));
+const CompassPage = lazy(() => import('./pages/CompassPage'));
+const SignInPage = lazy(() => import('./pages/SignInPage'));
+const SignUpPage = lazy(() => import('./pages/SignUpPage'));
+const AccountSettingsPage = lazy(() => import('./pages/AccountSettingsPage'));
+const SavedStoriesPage = lazy(() => import('./pages/SavedStoriesPage'));
+const ReadingHistoryPage = lazy(() => import('./pages/ReadingHistoryPage'));
 
 import { useQuery } from '@tanstack/react-query';
 import { fetchStore } from './lib/storefrontApi';
@@ -53,7 +64,6 @@ import { ContributorProfile } from './components/ContributorProfile';
 import { ShareModal } from './components/ShareModal';
 import { Icons } from './components/Icons';
 import { CartPanel } from './components/shared/CartPanel';
-import { CartIndicator } from './components/shared/CartIndicator';
 import { LearnHub } from './components/LearnHub';
 import { HomePage } from './components/HomePage';
 import { StoryProvider, useStories } from './context/StoryContext';
@@ -61,7 +71,6 @@ import { InventoryProvider, useInventory } from './context/InventoryContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { ImagePreloaderProvider } from './context/ImagePreloaderContext';
 import { AccountPanel } from './components/AccountPanel';
-import { LaunchPad } from './components/LaunchPad';
 import type { PanelView } from './components/AccountPanel/types';
 import { GlobalSearch } from './components/shared/GlobalSearch';
 import { LeftSidebar } from './components/LeftSidebar';
@@ -79,7 +88,6 @@ import { PreloadIndicator } from './components/shared/PreloadIndicator';
 import { CartFlyAnimation } from './components/shared/CartFlyAnimation';
 import { CartToast } from './components/shared/CartToast';
 import { ScrollProgressBar } from './components/shared/ScrollProgressBar';
-import { BackToTop } from './components/shared/BackToTop';
 import { AnimatedRoutes } from './components/shared/AnimatedRoutes';
 import { usePullToRefresh } from './hooks/usePullToRefresh';
 import { COMMUNITY_MEMBERS } from './data/communityMembers';
@@ -229,7 +237,6 @@ const AppContent = () => {
   const [showContact, setShowContact] = useState(false);
   const [showAccountModal, setShowAccountModal] = useState(false);
   const [accountInitialView, setAccountInitialView] = useState<PanelView | undefined>(undefined);
-  const [showLaunchPad, setShowLaunchPad] = useState(false);
   const [showGlobalSearch, setShowGlobalSearch] = useState(false);
 
   // UI Feedback State
@@ -264,7 +271,7 @@ const AppContent = () => {
       setSelectedStory(story);
       setWatchedStoryIds(prev => ({ ...prev, [story.id]: true }));
       if (story.type === ContentType.Article) {
-        setViewState('READER');
+        setViewState('PAGE_READER');
       } else if (story.type === ContentType.PhotoEssay) {
         setViewState('PHOTO_ESSAY');
       } else {
@@ -393,7 +400,7 @@ const AppContent = () => {
 
     let newViewState: ViewState;
     if (story.type === ContentType.Article) {
-      newViewState = 'READER';
+      newViewState = 'PAGE_READER';
     } else if (story.type === ContentType.PhotoEssay) {
       newViewState = 'PHOTO_ESSAY';
     } else {
@@ -475,7 +482,6 @@ const AppContent = () => {
     setActiveSection(section);
   };
 
-  const handleOpenLaunchPad = () => setShowLaunchPad(true);
 
   // Allow any component to open the account panel via a custom event
   useEffect(() => {
@@ -506,22 +512,7 @@ const AppContent = () => {
     }
   };
 
-  // Admin gets its own full-screen layout — bypass the Grid shell entirely
-  if (location.pathname.startsWith('/admin')) {
-    return (
-      <ErrorBoundary>
-        <Suspense fallback={
-          <div className="flex items-center justify-center min-h-screen bg-tea-bg">
-            <div className="w-8 h-8 border-2 border-tea-gold border-t-transparent rounded-full animate-spin" />
-          </div>
-        }>
-          <Routes>
-            <Route path="/admin/*" element={<AdminApp />} />
-          </Routes>
-        </Suspense>
-      </ErrorBoundary>
-    );
-  }
+  const isAdminRoute = location.pathname.startsWith('/admin');
 
   return (
     <div className="min-h-screen bg-tea-bg text-tea-text relative selection:bg-tea-gold selection:text-white overflow-x-hidden font-serif flex flex-col lg:flex-row transition-colors duration-300 pt-[env(safe-area-inset-top)]">
@@ -556,8 +547,22 @@ const AppContent = () => {
       <LeftSidebar activeSection={activeSection} onNavigate={setActiveSection} onAccountClick={handleOpenAccount} onCartClick={handleOpenCart} onSearchClick={() => { setShowAccountModal(false); setAccountInitialView(undefined); setShowGlobalSearch(true); }} cartItemCount={cart.length} topOffset={showAdminBar} />
 
       {/* Main Content Area */}
-      <div className={`flex-1 flex flex-col relative ${sidebarCollapsed ? 'lg:ml-14' : 'lg:ml-56'} transition-[margin] duration-300 ${showAdminBar ? 'pt-9' : ''}`}>
+      <div className={`flex-1 flex flex-col relative ${sidebarCollapsed ? 'lg:ml-14' : 'lg:ml-56'} transition-[margin] duration-300`}>
 
+      {isAdminRoute ? (
+        <Suspense fallback={<div className="flex items-center justify-center min-h-screen bg-tea-bg"><div className="w-8 h-8 border-2 border-tea-gold border-t-transparent rounded-full animate-spin" /></div>}>
+          <Routes>
+            <Route path="/admin/*" element={
+              <AdminApp
+                onAccountClick={handleOpenAccount}
+                onSearchClick={() => { setShowAccountModal(false); setAccountInitialView(undefined); setShowGlobalSearch(prev => !prev); }}
+                onCartClick={handleOpenCart}
+              />
+            } />
+          </Routes>
+        </Suspense>
+      ) : (
+      <>
       <main id="main-content" className="px-4 md:px-6 lg:px-10 pt-0 lg:pt-0 pb-[calc(44px+env(safe-area-inset-bottom,0px)+2rem)] lg:pb-8 min-h-screen w-full max-w-7xl mx-auto flex-1 transition-opacity duration-300">
           <AnimatePresence mode="wait">
           {isSectionTransitioning ? (
@@ -636,11 +641,21 @@ const AppContent = () => {
                   </ErrorBoundary>
                 } />
                 <Route path="/about" element={<ErrorBoundary><AboutPage /></ErrorBoundary>} />
+                <Route path="/compass" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="grid" />}><CompassPage /></Suspense></ErrorBoundary>} />
+                <Route path="/account/journal" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="list" />}><JournalPage /></Suspense></ErrorBoundary>} />
+                <Route path="/account/collection" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="list" />}><CollectionPage /></Suspense></ErrorBoundary>} />
+                <Route path="/signin" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><SignInPage /></Suspense></ErrorBoundary>} />
+                <Route path="/signup" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><SignUpPage /></Suspense></ErrorBoundary>} />
+                <Route path="/account/settings" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><AccountSettingsPage /></Suspense></ErrorBoundary>} />
+                <Route path="/account/saved" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="list" />}><SavedStoriesPage /></Suspense></ErrorBoundary>} />
+                <Route path="/account/history" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="list" />}><ReadingHistoryPage /></Suspense></ErrorBoundary>} />
+                <Route path="/design/tabs" element={<ErrorBoundary><Suspense fallback={null}><TabStyleDemo /></Suspense></ErrorBoundary>} />
                 <Route path="/event/:slug" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><EventLanding /></Suspense></ErrorBoundary>} />
                 <Route path="/m/:magicToken" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><GuestManagement /></Suspense></ErrorBoundary>} />
                 <Route path="/order/:ref" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><OrderStatusPage /></Suspense></ErrorBoundary>} />
                 <Route path="/reset-password" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><ResetPasswordPage /></Suspense></ErrorBoundary>} />
                 <Route path="/journey" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><JourneyPage /></Suspense></ErrorBoundary>} />
+                <Route path="/passport/:token" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><PassportPage /></Suspense></ErrorBoundary>} />
                 <Route path="/invite/:token" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><GuestInviteClaimPage /></Suspense></ErrorBoundary>} />
                 <Route path="/s/:sampleId" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><SamplePage /></Suspense></ErrorBoundary>} />
                 <Route path="/share/:token" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><ShareCardPage /></Suspense></ErrorBoundary>} />
@@ -685,8 +700,19 @@ const AppContent = () => {
           <Footer />
         </div>
       )}
+      </>
+      )}
 
       {/* --- Full Screen Views --- */}
+
+      {viewState === 'PAGE_READER' && selectedStory && (
+        <Suspense fallback={<SectionSkeleton variant="grid" />}>
+          <MagazinePageReader
+            story={selectedStory}
+            onBack={handleBackToBrowse}
+          />
+        </Suspense>
+      )}
 
       {viewState === 'READER' && selectedStory && (
          <ImagePreloaderProvider>
@@ -748,14 +774,6 @@ const AppContent = () => {
         <AccountPanel onClose={handleCloseAccount} initialView={accountInitialView} />
       )}
 
-      {/* --- LAUNCHPAD --- */}
-      <LaunchPad
-        isOpen={showLaunchPad}
-        onClose={() => setShowLaunchPad(false)}
-        onNavigateHome={() => setActiveSection('HOME')}
-        onOpenAccount={handleOpenAccount}
-      />
-
       {/* --- CONTACT MODAL --- */}
       {showContact && (
         <div className="fixed inset-0 z-modal bg-tea-text/90 backdrop-blur-sm flex items-center justify-center p-6 animate-[fadeIn_0.3s_ease-out]" role="dialog" aria-modal="true" aria-label="Contact Us" onClick={() => setShowContact(false)} onKeyDown={(e) => { if (e.key === 'Escape') setShowContact(false); }}>
@@ -810,12 +828,10 @@ const AppContent = () => {
 
 
       {/* Bottom Tab Bar for Mobile */}
-      <BottomTabBar activeSection={activeSection} onNavigate={handleNavSection} hidden={false} onAccountClick={handleToggleAccount} onSearchClick={() => { setShowAccountModal(false); setAccountInitialView(undefined); setShowGlobalSearch(prev => !prev); }} onLaunchPadClick={handleOpenLaunchPad} />
+      <BottomTabBar activeSection={activeSection} onNavigate={handleNavSection} hidden={false} onAccountClick={handleToggleAccount} onSearchClick={() => { setShowAccountModal(false); setAccountInitialView(undefined); setShowGlobalSearch(prev => !prev); }} isAdminRoute={isAdminRoute} />
 
       </div>
 
-      {/* Cart — rendered outside content wrapper so fixed positioning is viewport-relative */}
-      <CartIndicator itemCount={cart.length} onOpen={handleOpenCart} />
       <CartPanel
          mode="public"
          isOpen={isCartOpen}

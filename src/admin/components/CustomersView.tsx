@@ -11,13 +11,42 @@ import { SAMPLE_STATUS_CONFIG } from '../../samples/types';
 const TAG_OPTIONS: CustomerTag[] = ['wholesale', 'retail', 'friend', 'vendor', 'vip', 'inactive'];
 
 const TAG_COLORS: Record<CustomerTag, string> = {
-  wholesale: 'bg-blue-500/10 text-blue-400',
-  retail: 'bg-green-500/10 text-green-400',
-  friend: 'bg-purple-500/10 text-purple-400',
-  vendor: 'bg-orange-500/10 text-orange-400',
-  vip: 'bg-yellow-500/10 text-yellow-400',
-  inactive: 'bg-tea-text-sec/10 text-tea-text-sec',
+  wholesale: 'bg-tea-elevated text-tea-text',
+  retail: 'bg-tea-elevated text-tea-text-sec',
+  friend: 'bg-tea-gold-lt text-tea-text',
+  vendor: 'bg-tea-elevated text-tea-gold',
+  vip: 'bg-tea-gold-lt text-tea-text',
+  inactive: 'bg-tea-elevated/60 text-tea-text-dim',
 };
+
+// Active (selected) tag chip style — used in the edit modal
+const TAG_ACTIVE_COLORS: Record<CustomerTag, string> = {
+  wholesale: 'bg-tea-elevated text-tea-text',
+  retail: 'bg-tea-elevated text-tea-text',
+  friend: 'bg-tea-gold-lt text-tea-text',
+  vendor: 'bg-tea-elevated text-tea-gold',
+  vip: 'bg-tea-gold-lt text-tea-text',
+  inactive: 'bg-tea-elevated/60 text-tea-text-dim',
+};
+
+/** Format a USD amount as "$1,234.50" */
+function formatUSD(value: number | undefined | null): string {
+  const n = Number(value) || 0;
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+}
+
+/** Return a relative time string like "2 days ago", "just now" */
+function relativeTime(dateStr: string | undefined | null): string {
+  if (!dateStr) return '—';
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const days = Math.floor(diff / 86_400_000);
+  if (days === 0) return 'today';
+  if (days === 1) return 'yesterday';
+  if (days < 30) return `${days}d ago`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `${months}mo ago`;
+  return `${Math.floor(months / 12)}yr ago`;
+}
 
 interface CustomerFormData {
   name: string;
@@ -29,7 +58,7 @@ interface CustomerFormData {
   city: string;
   country: string;
   preferred_currency: string;
-  tags: CustomerTag[];
+  tags: string[];
   notes: string;
   source: string;
 }
@@ -52,9 +81,11 @@ const CustomerModal = ({
 }) => {
   const [form, setForm] = useState<CustomerFormData>(initialData || emptyForm);
   const [saving, setSaving] = useState(false);
+  const [customTagInput, setCustomTagInput] = useState('');
 
   React.useEffect(() => {
     setForm(initialData || emptyForm);
+    setCustomTagInput('');
   }, [initialData, isOpen]);
 
   if (!isOpen) return null;
@@ -70,14 +101,27 @@ const CustomerModal = ({
     }
   };
 
-  const toggleTag = (tag: CustomerTag) => {
+  const toggleTag = (tag: string) => {
     setForm(prev => ({
       ...prev,
-      tags: prev.tags.includes(tag)
+      tags: prev.tags.includes(tag as CustomerTag)
         ? prev.tags.filter(t => t !== tag)
-        : [...prev.tags, tag],
+        : [...prev.tags, tag as CustomerTag],
     }));
   };
+
+  const addCustomTag = () => {
+    const tag = customTagInput.trim().toLowerCase().replace(/\s+/g, '-');
+    if (!tag || form.tags.includes(tag as CustomerTag)) {
+      setCustomTagInput('');
+      return;
+    }
+    setForm(prev => ({ ...prev, tags: [...prev.tags, tag as CustomerTag] }));
+    setCustomTagInput('');
+  };
+
+  // Tags not in the standard set (custom tags from data)
+  const customTags = form.tags.filter(t => !TAG_OPTIONS.includes(t as CustomerTag));
 
   const Field = ({ label, name, type = 'text', placeholder }: { label: string; name: keyof CustomerFormData; type?: string; placeholder?: string }) => (
     <div>
@@ -131,21 +175,54 @@ const CustomerModal = ({
 
           <div>
             <label className="block text-xs text-tea-text-sec mb-2 uppercase tracking-wider">Tags</label>
-            <div className="flex flex-wrap gap-2">
-              {TAG_OPTIONS.map(tag => (
+            <div className="flex flex-wrap gap-2 mb-2">
+              {TAG_OPTIONS.map(tag => {
+                const isActive = form.tags.includes(tag);
+                return (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => toggleTag(tag)}
+                    className={`text-xs px-3 py-1.5 rounded-full transition-all ${
+                      isActive
+                        ? TAG_ACTIVE_COLORS[tag]
+                        : 'bg-tea-elevated/60 text-tea-text-dim hover:bg-tea-elevated hover:text-tea-text-sec'
+                    }`}
+                  >
+                    {isActive && <span className="mr-1 opacity-60">✓</span>}{tag}
+                  </button>
+                );
+              })}
+              {/* Custom tags already on the customer */}
+              {customTags.map(tag => (
                 <button
                   key={tag}
                   type="button"
                   onClick={() => toggleTag(tag)}
-                  className={`text-xs px-3 py-1.5 rounded-full border transition-all ${
-                    form.tags.includes(tag)
-                      ? TAG_COLORS[tag]
-                      : 'border-tea-border text-tea-text-sec hover:border-tea-text-sec'
-                  }`}
+                  className="text-xs px-3 py-1.5 rounded-full bg-tea-elevated text-tea-text transition-all"
                 >
-                  {tag}
+                  <span className="mr-1 opacity-60">✓</span>{tag}
                 </button>
               ))}
+            </div>
+            {/* Custom tag input */}
+            <div className="flex items-center gap-2 mt-1">
+              <input
+                type="text"
+                value={customTagInput}
+                onChange={e => setCustomTagInput(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addCustomTag(); } }}
+                placeholder="Add custom tag…"
+                className="flex-1 bg-tea-bg border border-tea-border rounded-lg px-3 py-1.5 text-xs text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-text-sec transition-colors placeholder-tea-text-dim"
+              />
+              <button
+                type="button"
+                onClick={addCustomTag}
+                disabled={!customTagInput.trim()}
+                className="px-3 py-1.5 text-xs bg-tea-elevated text-tea-text-sec rounded-lg hover:text-tea-text transition-colors disabled:opacity-40"
+              >
+                Add
+              </button>
             </div>
           </div>
 
@@ -319,8 +396,8 @@ const CustomerDetail = ({
             </div>
           )}
 
-          {/* Stats */}
-          <div className={`grid gap-4 ${(customer.eventCount || 0) > 0 ? 'grid-cols-4' : 'grid-cols-3'}`}>
+          {/* Stats summary card */}
+          <div className={`grid gap-3 ${(customer.eventCount || 0) > 0 ? 'grid-cols-4' : 'grid-cols-3'}`}>
             <button
               onClick={() => { onClose(); navigate(`/admin/activity?search=${encodeURIComponent(customer.name || '')}`); }}
               className="bg-tea-surface border border-tea-border rounded-xl p-4 text-center hover:bg-tea-elevated transition-colors group"
@@ -330,7 +407,7 @@ const CustomerDetail = ({
               <div className="text-[10px] text-tea-text-sec uppercase tracking-wider mt-1">Orders</div>
             </button>
             <div className="bg-tea-surface border border-tea-border rounded-xl p-4 text-center">
-              <div className="text-2xl font-serif text-tea-accent">${(customer.totalSpentUSD || 0).toFixed(0)}</div>
+              <div className="text-lg font-serif text-tea-accent leading-tight">{formatUSD(customer.totalSpentUSD)}</div>
               <div className="text-[10px] text-tea-text-sec uppercase tracking-wider mt-1">Total Spent</div>
             </div>
             {(customer.eventCount || 0) > 0 && (
@@ -340,14 +417,17 @@ const CustomerDetail = ({
               </div>
             )}
             <div className="bg-tea-surface border border-tea-border rounded-xl p-4 text-center">
-              <div className="text-sm font-serif text-tea-text">
-                {customer.lastOrderDate ? new Date(customer.lastOrderDate).toLocaleDateString() : '—'}
+              <div className="text-sm font-serif text-tea-text leading-tight">
+                {relativeTime(customer.lastOrderDate)}
               </div>
+              {customer.lastOrderDate && (
+                <div className="text-[9px] text-tea-text-dim mt-0.5">{new Date(customer.lastOrderDate).toLocaleDateString()}</div>
+              )}
               <div className="text-[10px] text-tea-text-sec uppercase tracking-wider mt-1">Last Order</div>
             </div>
           </div>
 
-          {/* Teas Supplied (for vendor contacts) */}
+          {/* Vendor section (for vendor-tagged contacts) */}
           {isVendor && (
             <div className="bg-tea-surface border border-tea-border rounded-xl p-5">
               <button
@@ -355,8 +435,8 @@ const CustomerDetail = ({
                 className="w-full flex justify-between items-center"
               >
                 <h4 className="text-xs uppercase tracking-[0.2em] text-tea-text-sec flex items-center gap-2">
-                  <Leaf size={12} /> Teas Supplied
-                  {!loadingSupplied && <span className="text-tea-accent">({suppliedProducts.length})</span>}
+                  <Leaf size={12} /> Vendor — Products Sourced
+                  {!loadingSupplied && suppliedProducts.length > 0 && <span className="text-tea-accent">({suppliedProducts.length})</span>}
                 </h4>
                 {showSupplied ? <ChevronUp size={14} className="text-tea-text-sec" /> : <ChevronDown size={14} className="text-tea-text-sec" />}
               </button>
@@ -367,6 +447,29 @@ const CustomerDetail = ({
                     <div className="flex justify-center py-4"><Loader2 className="animate-spin text-tea-text-sec" size={16} /></div>
                   ) : (
                     <>
+                      {/* Vendor summary stats */}
+                      {suppliedProducts.length > 0 && (() => {
+                        const totalValue = suppliedProducts.reduce((sum: number, p: any) => sum + (Number(p.cost_amount) || 0), 0);
+                        const costsPerGram = suppliedProducts.map((p: any) => Number(p.cost_per_gram)).filter(Boolean);
+                        const avgCostPerGram = costsPerGram.length > 0 ? costsPerGram.reduce((a, b) => a + b, 0) / costsPerGram.length : null;
+                        return (
+                          <div className="grid grid-cols-3 gap-3 mb-4">
+                            <div className="bg-tea-bg rounded-lg p-3 text-center">
+                              <div className="text-lg font-serif text-tea-accent">{suppliedProducts.length}</div>
+                              <div className="text-[9px] uppercase tracking-[0.15em] text-tea-text-sec mt-0.5">Products</div>
+                            </div>
+                            <div className="bg-tea-bg rounded-lg p-3 text-center">
+                              <div className="text-sm font-serif text-tea-accent">{formatUSD(totalValue)}</div>
+                              <div className="text-[9px] uppercase tracking-[0.15em] text-tea-text-sec mt-0.5">Total Value</div>
+                            </div>
+                            <div className="bg-tea-bg rounded-lg p-3 text-center">
+                              <div className="text-sm font-serif text-tea-text">{avgCostPerGram != null ? `$${avgCostPerGram.toFixed(3)}/g` : '—'}</div>
+                              <div className="text-[9px] uppercase tracking-[0.15em] text-tea-text-sec mt-0.5">Avg Cost/g</div>
+                            </div>
+                          </div>
+                        );
+                      })()}
+
                       {suppliedProducts.length > 0 && (
                         <div className="space-y-2 mb-4">
                           {suppliedProducts.map((p: any) => (
@@ -385,12 +488,19 @@ const CustomerDetail = ({
                               >
                                 <div className="text-sm text-tea-text font-medium truncate hover:text-tea-accent transition-colors">
                                   {p.given_name || p.product_name}
+                                  {p.year && <span className="text-tea-text-dim ml-1 font-normal">{p.year}</span>}
                                 </div>
                                 <div className="text-xs text-tea-text-sec flex items-center gap-2">
                                   <span className="uppercase">{p.type}</span>
                                   {p.origin_region && <span>· {p.origin_region}</span>}
-                                  {p.stock_grams != null && <span>· {p.stock_grams}g in stock</span>}
+                                  {p.stock_grams != null && <span>· {p.stock_grams}g stock</span>}
+                                  {p.cost_per_gram != null && <span className="text-tea-text-dim">· ${Number(p.cost_per_gram).toFixed(3)}/g</span>}
                                 </div>
+                                {p.last_ordered_date && (
+                                  <div className="text-[10px] text-tea-text-dim mt-0.5">
+                                    Last ordered {relativeTime(p.last_ordered_date)}
+                                  </div>
+                                )}
                               </button>
                               <button
                                 onClick={async () => {
@@ -398,7 +508,7 @@ const CustomerDetail = ({
                                   refreshSupplied();
                                   showToast('Product unlinked', 'info');
                                 }}
-                                className="text-tea-text-sec hover:text-red-400 transition-colors p-1"
+                                className="text-tea-text-sec hover:text-tea-text transition-colors p-1"
                                 title="Unlink from this vendor"
                               >
                                 <X size={14} />
@@ -653,55 +763,91 @@ const CustomerDetail = ({
             )}
           </div>
 
-          {/* Teas Purchased */}
+          {/* Tea History — purchased teas + event tastings merged */}
           <div className="bg-tea-surface border border-tea-border rounded-xl p-5">
             <button
               onClick={() => setShowTeas(!showTeas)}
               className="w-full flex justify-between items-center"
             >
               <h4 className="text-xs uppercase tracking-[0.2em] text-tea-text-sec flex items-center gap-2">
-                <Leaf size={12} /> Teas Purchased
+                <Leaf size={12} /> Tea History
+                {!loadingTeas && (teas.length + events.filter((e: any) => e.attended === 1).length) > 0 && (
+                  <span className="text-tea-gold">({teas.length + events.filter((e: any) => e.attended === 1).length})</span>
+                )}
               </h4>
               {showTeas ? <ChevronUp size={14} className="text-tea-text-sec" /> : <ChevronDown size={14} className="text-tea-text-sec" />}
             </button>
 
             {showTeas && (
               <div className="mt-4 space-y-3">
-                {loadingTeas ? (
+                {(loadingTeas || loadingEvents) ? (
                   <div className="flex justify-center py-4"><Loader2 className="animate-spin text-tea-text-sec" size={16} /></div>
-                ) : teas.length === 0 ? (
-                  <p className="text-tea-text-sec text-sm italic">No tea purchases yet.</p>
+                ) : (teas.length === 0 && events.filter((e: any) => e.attended === 1).length === 0) ? (
+                  <p className="text-tea-text-sec text-sm italic">No tea history yet.</p>
                 ) : (
-                  teas.map((tea: any) => (
-                    <div key={tea.id} className="flex items-center gap-3 py-2 border-b border-tea-border last:border-0">
-                      {tea.image_url ? (
-                        <img src={tea.image_url} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
-                      ) : (
-                        <div className="w-10 h-10 rounded-lg bg-tea-bg flex items-center justify-center flex-shrink-0">
-                          <Leaf size={14} className="text-tea-text-sec" />
-                        </div>
-                      )}
-                      <button
-                        onClick={() => { onClose(); navigate(`/admin/inventory?search=${encodeURIComponent(tea.given_name || tea.product_name || '')}`); }}
-                        className="flex-1 min-w-0 text-left hover:opacity-80 transition-opacity"
-                        title="View in Inventory"
-                      >
-                        <div className="text-sm text-tea-text font-medium truncate hover:text-tea-accent transition-colors">
-                          {tea.given_name || tea.product_name}
-                        </div>
-                        <div className="text-xs text-tea-text-sec flex items-center gap-2">
-                          <span className="uppercase">{tea.type}</span>
-                          {tea.origin_region && <span>· {tea.origin_region}</span>}
-                        </div>
-                      </button>
-                      <div className="text-right flex-shrink-0">
-                        <div className="text-sm text-tea-text">{tea.total_quantity}g</div>
-                        <div className="text-[10px] text-tea-text-sec">
-                          {tea.order_count} order{tea.order_count !== 1 ? 's' : ''}
-                        </div>
-                      </div>
-                    </div>
-                  ))
+                  <>
+                    {teas.length > 0 && (
+                      <>
+                        {events.filter((e: any) => e.attended === 1).length > 0 && (
+                          <p className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim">Purchased</p>
+                        )}
+                        {teas.map((tea: any) => (
+                          <div key={tea.id} className="flex items-center gap-3 py-2 border-b border-tea-border last:border-0">
+                            {tea.image_url ? (
+                              <img src={tea.image_url} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+                            ) : (
+                              <div className="w-10 h-10 rounded-lg bg-tea-bg flex items-center justify-center flex-shrink-0">
+                                <Leaf size={14} className="text-tea-text-sec" />
+                              </div>
+                            )}
+                            <button
+                              onClick={() => { onClose(); navigate(`/admin/inventory?search=${encodeURIComponent(tea.given_name || tea.product_name || '')}`); }}
+                              className="flex-1 min-w-0 text-left hover:opacity-80 transition-opacity"
+                              title="View in Inventory"
+                            >
+                              <div className="text-sm text-tea-text font-medium truncate hover:text-tea-accent transition-colors">
+                                {tea.given_name || tea.product_name}
+                              </div>
+                              <div className="text-xs text-tea-text-sec flex items-center gap-2">
+                                <span className="uppercase">{tea.type}</span>
+                                {tea.origin_region && <span>· {tea.origin_region}</span>}
+                              </div>
+                            </button>
+                            <div className="text-right flex-shrink-0">
+                              <div className="text-sm text-tea-text">{tea.total_quantity}g</div>
+                              <div className="text-[10px] text-tea-text-sec">
+                                {tea.order_count} order{tea.order_count !== 1 ? 's' : ''}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </>
+                    )}
+                    {events.filter((e: any) => e.attended === 1).length > 0 && (
+                      <>
+                        <p className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim mt-2">Tasted at Events</p>
+                        {events.filter((e: any) => e.attended === 1).map((evt: any) => (
+                          <div key={evt.id + '-tasting'} className="flex items-center gap-3 py-2 border-b border-tea-border last:border-0">
+                            <div className="w-10 h-10 rounded-lg bg-tea-gold-lt flex items-center justify-center flex-shrink-0">
+                              <Calendar size={14} className="text-tea-gold" />
+                            </div>
+                            <button
+                              onClick={() => { onClose(); navigate(`/admin/events/${evt.slug || evt.id}`); }}
+                              className="flex-1 min-w-0 text-left hover:opacity-80 transition-opacity"
+                              title="View Event"
+                            >
+                              <div className="text-sm text-tea-text font-medium truncate hover:text-tea-accent transition-colors">
+                                {evt.title}
+                              </div>
+                              <div className="text-xs text-tea-text-dim">
+                                {evt.event_date ? new Date(evt.event_date).toLocaleDateString() : ''} · Tasting details in event record
+                              </div>
+                            </button>
+                          </div>
+                        ))}
+                      </>
+                    )}
+                  </>
                 )}
               </div>
             )}
@@ -740,7 +886,7 @@ const CustomerDetail = ({
                       <div className="text-right flex-shrink-0">
                         <div className={`text-[11px] font-medium capitalize ${
                           t.verdict === 'love' ? 'text-tea-gold' :
-                          t.verdict === 'like' ? 'text-emerald-400' :
+                          t.verdict === 'like' ? 'text-tea-text' :
                           t.verdict === 'pass' ? 'text-tea-text-dim' :
                           'text-tea-text-sec'
                         }`}>{t.verdict}</div>
@@ -818,7 +964,7 @@ export const CustomersView = () => {
   const { data: allProducts = [] } = useProducts();
 
   const [search, setSearch] = useState(searchParams.get('search') || '');
-  const [filterTag, setFilterTag] = useState<CustomerTag | ''>('');
+  const [filterTags, setFilterTags] = useState<CustomerTag[]>([]);
   const [filterAttendedEvents, setFilterAttendedEvents] = useState(false);
   const [sortBy, setSortBy] = useState<'name' | 'recent' | 'spent' | 'orders'>('name');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -847,8 +993,9 @@ export const CustomersView = () => {
         c.country?.toLowerCase().includes(q)
       );
     }
-    if (filterTag) {
-      list = list.filter(c => c.tags.includes(filterTag));
+    if (filterTags.length > 0) {
+      // AND logic: customer must have ALL selected tags
+      list = list.filter(c => filterTags.every(ft => c.tags.includes(ft)));
     }
     if (filterAttendedEvents) {
       list = list.filter(c => (c.eventCount || 0) > 0);
@@ -867,7 +1014,7 @@ export const CustomersView = () => {
       }
     });
     return list;
-  }, [nonVendorCustomers, search, filterTag, filterAttendedEvents, sortBy]);
+  }, [nonVendorCustomers, search, filterTags, filterAttendedEvents, sortBy]);
 
   const handleSave = async (data: CustomerFormData) => {
     try {
@@ -939,11 +1086,11 @@ export const CustomersView = () => {
             </span>
           </div>
 
-          {/* Tag filter pills — scrollable on mobile */}
+          {/* Tag filter pills — multi-select, scrollable on mobile */}
           <div className="flex items-center gap-1 overflow-x-auto hide-scrollbar md:ml-2">
             <button
-              onClick={() => setFilterTag('')}
-              className={filterTag === '' ? 'pill-active' : 'pill'}
+              onClick={() => setFilterTags([])}
+              className={filterTags.length === 0 && !filterAttendedEvents ? 'pill-active' : 'pill'}
             >
               All
               <span className="text-[9px] opacity-70 ml-0.5">{nonVendorCustomers.length}</span>
@@ -951,11 +1098,14 @@ export const CustomersView = () => {
             {TAG_OPTIONS.map(tag => {
               const count = nonVendorCustomers.filter(c => c.tags.includes(tag)).length;
               if (count === 0) return null;
+              const isActive = filterTags.includes(tag);
               return (
                 <button
                   key={tag}
-                  onClick={() => setFilterTag(tag === filterTag ? '' : tag)}
-                  className={filterTag === tag ? 'pill-active' : 'pill'}
+                  onClick={() => setFilterTags(prev =>
+                    isActive ? prev.filter(t => t !== tag) : [...prev, tag]
+                  )}
+                  className={isActive ? 'pill-active' : 'pill'}
                 >
                   {tag}
                   <span className="text-[9px] opacity-70 ml-0.5">{count}</span>
@@ -1066,13 +1216,13 @@ export const CustomersView = () => {
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center gap-3 py-16 text-tea-text-sec">
             <Users size={32} strokeWidth={1} className="opacity-40" />
-            <span className="font-serif italic">{search || filterTag || filterAttendedEvents ? 'No matching customers' : 'No customers yet'}</span>
-            {(search || filterTag || filterAttendedEvents) && (
-              <button onClick={() => { setSearch(''); setFilterTag(''); setFilterAttendedEvents(false); }} className="text-xs text-tea-gold hover:text-tea-gold/80 transition-colors">
+            <span className="font-serif italic">{search || filterTags.length > 0 || filterAttendedEvents ? 'No matching customers' : 'No customers yet'}</span>
+            {(search || filterTags.length > 0 || filterAttendedEvents) && (
+              <button onClick={() => { setSearch(''); setFilterTags([]); setFilterAttendedEvents(false); }} className="text-xs text-tea-gold hover:text-tea-gold/80 transition-colors">
                 Clear filters
               </button>
             )}
-            {search && !filterTag && !filterAttendedEvents && (
+            {search && filterTags.length === 0 && !filterAttendedEvents && (
               <button
                 onClick={() => { setEditingCustomer(null); setIsModalOpen(true); }}
                 className="text-xs text-tea-gold hover:text-tea-gold/80 transition-colors mt-1"
@@ -1111,7 +1261,7 @@ export const CustomersView = () => {
 
                   {/* Stats */}
                   <div className="flex-shrink-0 text-right">
-                    <div className="text-xs text-tea-text tabular-nums">${(customer.totalSpentUSD || 0).toFixed(0)}</div>
+                    <div className="text-xs text-tea-text tabular-nums">{formatUSD(customer.totalSpentUSD)}</div>
                     <div className="text-[10px] text-tea-text-sec/60 tabular-nums flex items-center justify-end gap-1.5">
                       <span>{customer.orderCount || 0} order{(customer.orderCount || 0) !== 1 ? 's' : ''}</span>
                       {(customer.eventCount || 0) > 0 && (
@@ -1188,7 +1338,7 @@ export const CustomersView = () => {
                           </span>
                         )}
                       </div>
-                      <span className="font-medium text-tea-text">${(customer.totalSpentUSD || 0).toFixed(0)} spent</span>
+                      <span className="font-medium text-tea-text">{formatUSD(customer.totalSpentUSD)}</span>
                     </div>
                   </div>
                 ))}

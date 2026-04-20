@@ -446,7 +446,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
 
       {/* ── Content ── */}
       <div
-        className={`flex-1 min-h-0 overflow-y-auto overscroll-contain pb-[calc(60px+44px+env(safe-area-inset-bottom,0px))] lg:pb-[60px] ${mode === 'sourcing' && captureOption === 'samples' ? '' : 'px-4 py-3'}`}
+        className={`flex-1 min-h-0 overflow-y-auto overscroll-contain ${mode === 'sourcing' && captureOption === 'samples' ? '' : 'px-4 py-3'}`}
         role="tabpanel"
         style={{ WebkitOverflowScrolling: 'touch', scrollbarGutter: 'stable' }}
       >
@@ -731,7 +731,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.9 }}
           onClick={() => handleNewCapture()}
-          className="fixed bottom-[calc(44px+env(safe-area-inset-bottom,0px)+16px)] right-5 z-20 flex items-center gap-1.5 px-4 py-2.5 rounded-full border border-tea-gold text-tea-gold bg-tea-bg/90 text-[12px] font-semibold tracking-[0.06em] shadow-[0_4px_20px_rgba(0,0,0,0.25)] hover:bg-tea-gold/10 transition-colors backdrop-blur-sm"
+          className="absolute bottom-4 right-5 z-20 flex items-center gap-1.5 px-4 py-2.5 rounded-full border border-tea-gold text-tea-gold bg-tea-bg/90 text-[12px] font-semibold tracking-[0.06em] shadow-[0_4px_20px_rgba(0,0,0,0.25)] hover:bg-tea-gold/10 transition-colors backdrop-blur-sm"
           aria-label="New compass entry"
           style={{ fontFamily: 'var(--font-display)' }}
         >
@@ -741,7 +741,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
       )}
 
       {/* ── Capture action bar ── */}
-      {mode === 'sourcing' && captureOption !== 'samples' && (
+      {mode === 'sourcing' && (
         <>
           <AnimatePresence>
             {voiceError && (

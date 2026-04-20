@@ -1,12 +1,13 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Story, ContentType } from '../types';
-import { ArticleCard } from './shared/ArticleCard';
-import { PageHeader } from './shared/PageHeader';
-import { PageHeaderTabs } from './shared/PageHeaderTabs';
-import { LoadingSpinner } from './shared/LoadingSpinner';
+import { Story, ContentType, Person } from '../types';
+import { LogoEmblem } from './Logos';
 import { Icons } from './Icons';
+import { ContributorDrawer } from './ContributorDrawer';
+
+// ── Types ──────────────────────────────────────────────────────
+type CardStyle = 'split' | 'hero' | 'mixed' | 'covers' | 'offset' | 'zigzag';
+type MagazineTab = 'articles' | 'visual';
 
 interface MagazineTabbedProps {
   stories: Story[];
@@ -19,269 +20,759 @@ interface MagazineTabbedProps {
   onCartClick?: () => void;
   onAccountClick?: () => void;
   cartItemCount?: number;
-  /** Pass true while stories are being fetched to show a loading skeleton */
   isContentLoading?: boolean;
 }
 
-type MagazineTab = 'articles' | 'visual';
+// ── Helpers ────────────────────────────────────────────────────
+function getStoryMark(story: Story): string {
+  if (story.type === ContentType.PhotoEssay) return '光';
+  if (story.type === ContentType.Reel) return '音';
+  if (story.type === ContentType.Audio) return '聲';
+  switch (story.category) {
+    case 'interview':   return '器';
+    case 'tea-feature': return '山';
+    case 'science':     return '水';
+    case 'curated':     return '時';
+    case 'pairing':     return '岩';
+    default:            return '文';
+  }
+}
 
+function getDisplayType(story: Story): string {
+  if (story.type === ContentType.PhotoEssay) return 'Visual';
+  if (story.type === ContentType.Reel) return 'Film';
+  if (story.type === ContentType.Audio) return 'Audio';
+  switch (story.category) {
+    case 'interview':   return 'Interview';
+    case 'tea-feature': return 'Feature';
+    case 'science':     return 'Science';
+    case 'curated':     return 'Guide';
+    case 'pairing':     return 'Pairing';
+    default:            return 'Article';
+  }
+}
+
+const PH_GRADIENT =
+  'repeating-linear-gradient(-42deg,rgba(184,146,78,0.08) 0 1px,transparent 1px 14px),' +
+  'radial-gradient(ellipse 80% 60% at 30% 30%,rgba(184,146,78,0.15),transparent 60%),' +
+  'radial-gradient(ellipse 60% 70% at 75% 70%,rgba(90,60,30,0.4),transparent 60%),' +
+  'linear-gradient(160deg,#3a2c1e,#1f1813 70%)';
+
+const LABEL_STYLE: React.CSSProperties = {
+  fontFamily: 'var(--font-ui)',
+  fontSize: 10.5,
+  fontWeight: 400,
+  letterSpacing: '0.22em',
+  textTransform: 'uppercase',
+  color: 'var(--tea-gold)',
+};
+
+const MONO_STYLE: React.CSSProperties = {
+  fontFamily: 'var(--font-mono)',
+  fontSize: 9.5,
+  letterSpacing: '0.04em',
+  color: 'var(--tea-text-dim)',
+};
+
+// ── StoryImage ─────────────────────────────────────────────────
+interface StoryImageProps {
+  src?: string;
+  aspectRatio?: string;
+  className?: string;
+  style?: React.CSSProperties;
+}
+
+function StoryImage({ src, aspectRatio = '3/4', className = '', style }: StoryImageProps) {
+  const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState(false);
+  const hasImg = src && !error;
+
+  return (
+    <div className={`relative overflow-hidden ${className}`} style={{ aspectRatio, ...style }}>
+      {hasImg ? (
+        <>
+          {!loaded && <div className="absolute inset-0" style={{ background: PH_GRADIENT }} />}
+          <img
+            src={src}
+            alt=""
+            loading="lazy"
+            className="w-full h-full object-cover"
+            style={{ filter: loaded ? 'brightness(1.02)' : 'saturate(0)', transition: 'filter 0.4s ease' }}
+            onLoad={() => setLoaded(true)}
+            onError={() => { setLoaded(true); setError(true); }}
+          />
+        </>
+      ) : (
+        <div className="absolute inset-0" style={{ background: PH_GRADIENT }} />
+      )}
+    </div>
+  );
+}
+
+// ── MiniBarcode (decorative) ───────────────────────────────────
+function MiniBarcode() {
+  const bars: number[] = [];
+  let seed = 13;
+  for (let i = 0; i < 22; i++) { seed = (seed * 9301 + 49297) % 233280; bars.push(1 + (seed % 3)); }
+  return (
+    <div className="flex items-end" style={{ height: 20, gap: 2, opacity: 0.6 }}>
+      {bars.map((w, i) => (
+        <div key={i} style={{ width: w, height: i % 5 === 0 ? 20 : 16, background: 'var(--tea-text-dim)' }} />
+      ))}
+    </div>
+  );
+}
+
+// ── LAYOUT: Editorial Split ────────────────────────────────────
+// Default. Horizontal rows: portrait image left (38%), text right.
+function EditorialSplit({ stories, onCardClick }: { stories: Story[]; onCardClick: (s: Story) => void }) {
+  return (
+    <div className="max-w-2xl mx-auto px-5">
+      {stories.map((story, i) => (
+        <button
+          key={story.id}
+          onClick={() => onCardClick(story)}
+          className="w-full text-left grid items-center py-5 border-b border-tea-border active:bg-tea-elevated/20 transition-colors duration-150"
+          style={{ gridTemplateColumns: '38% 1fr', gap: 18, animation: `revealUp 0.45s ease-out ${i * 0.06}s both` }}
+        >
+          {/* Image with mark stamp */}
+          <div className="relative">
+            <StoryImage src={story.thumbnailUrl} aspectRatio="3/4" className="rounded-sm" />
+            <div
+              className="absolute pointer-events-none"
+              style={{ bottom: 8, right: 8, fontFamily: "'Ma Shan Zheng','Noto Serif SC',cursive", fontSize: 42, color: 'var(--tea-gold)', opacity: 0.18, lineHeight: 0.8 }}
+            >
+              {getStoryMark(story)}
+            </div>
+          </div>
+
+          {/* Text */}
+          <div className="flex flex-col justify-center min-w-0">
+            <div className="flex items-center gap-2 mb-2">
+              <span style={LABEL_STYLE}>{getDisplayType(story)}</span>
+              {story.durationOrTime && <span style={MONO_STYLE}>{story.durationOrTime}</span>}
+            </div>
+            <h3 style={{
+              fontFamily: 'var(--font-display)', fontStyle: 'italic', fontWeight: 400,
+              fontSize: 'clamp(20px,5.5vw,26px)', lineHeight: 1.1,
+              margin: '0 0 8px', letterSpacing: '-0.005em', color: 'var(--tea-text)',
+            }}>
+              {story.title}
+            </h3>
+            {story.subtitle && (
+              <p style={{
+                fontSize: 14, lineHeight: 1.45, color: 'var(--tea-text-sec)', margin: 0,
+                display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+              }}>
+                {story.subtitle}
+              </p>
+            )}
+            {story.author?.name && (
+              <div style={{ ...MONO_STYLE, marginTop: 10 }}>{story.author.name}</div>
+            )}
+          </div>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// ── LAYOUT: Hero Cards ─────────────────────────────────────────
+// Full-bleed portrait cards, title overlaid at bottom.
+function HeroCards({ stories, onCardClick }: { stories: Story[]; onCardClick: (s: Story) => void }) {
+  return (
+    <div className="flex flex-col gap-5 px-5 max-w-2xl mx-auto">
+      {stories.map((story, i) => (
+        <button
+          key={story.id}
+          onClick={() => onCardClick(story)}
+          className="w-full text-left relative overflow-hidden rounded-sm border border-tea-border active:opacity-90 transition-opacity"
+          style={{ animation: `revealUp 0.5s ease-out ${i * 0.08}s both` }}
+        >
+          <StoryImage src={story.thumbnailUrl} aspectRatio="4/5" />
+          <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg,transparent 35%,rgba(18,13,9,0.85))' }} />
+          {/* Large mark watermark top-right */}
+          <div
+            className="absolute top-4 right-4 pointer-events-none"
+            style={{ fontFamily: "'Ma Shan Zheng','Noto Serif SC',cursive", fontSize: 80, color: 'var(--tea-gold)', opacity: 0.2, lineHeight: 0.8 }}
+          >
+            {getStoryMark(story)}
+          </div>
+          {/* Overlay content */}
+          <div className="absolute left-0 right-0 bottom-0" style={{ padding: '18px 20px 22px' }}>
+            <div className="flex items-center gap-2 mb-2">
+              <span style={LABEL_STYLE}>{getDisplayType(story)}</span>
+              {story.durationOrTime && <span style={{ ...MONO_STYLE, fontSize: 10 }}>{story.durationOrTime}</span>}
+            </div>
+            <h2 style={{
+              fontFamily: 'var(--font-display)', fontStyle: 'italic', fontWeight: 400,
+              fontSize: 'clamp(28px,8vw,40px)', lineHeight: 1.05,
+              margin: '0 0 8px', letterSpacing: '-0.005em', color: 'var(--tea-text)',
+            }}>
+              {story.title}
+            </h2>
+            {story.subtitle && (
+              <p style={{ fontSize: 15, lineHeight: 1.45, color: 'var(--tea-text-sec)', margin: 0, maxWidth: '34ch' }}>
+                {story.subtitle}
+              </p>
+            )}
+            {story.author?.name && (
+              <div style={{ ...MONO_STYLE, fontSize: 10, marginTop: 12 }}>{story.author.name}</div>
+            )}
+          </div>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// ── LAYOUT: Mixed Grid ─────────────────────────────────────────
+// First article is a hero, rest are a 2-col grid.
+function MixedGrid({ stories, onCardClick }: { stories: Story[]; onCardClick: (s: Story) => void }) {
+  const [hero, ...rest] = stories;
+  return (
+    <div className="max-w-2xl mx-auto px-5">
+      {hero && (
+        <button
+          onClick={() => onCardClick(hero)}
+          className="w-full text-left relative overflow-hidden rounded-sm border border-tea-border mb-4 active:opacity-90 transition-opacity"
+          style={{ animation: 'revealUp 0.5s ease-out both' }}
+        >
+          <StoryImage src={hero.thumbnailUrl} aspectRatio="3/4" />
+          <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg,transparent 40%,rgba(18,13,9,0.9))' }} />
+          <div className="absolute left-0 right-0 bottom-0" style={{ padding: '18px 20px 22px' }}>
+            <span style={{ ...LABEL_STYLE, marginBottom: 8, display: 'inline-block' }}>
+              {getDisplayType(hero)}{hero.durationOrTime ? ` · ${hero.durationOrTime}` : ''}
+            </span>
+            <h2 style={{
+              fontFamily: 'var(--font-display)', fontStyle: 'italic', fontWeight: 400,
+              fontSize: 'clamp(28px,8vw,40px)', lineHeight: 1.05,
+              margin: '0 0 6px', color: 'var(--tea-text)',
+            }}>
+              {hero.title}
+            </h2>
+            <p style={{ fontSize: 14.5, lineHeight: 1.4, color: 'var(--tea-text-sec)', margin: 0 }}>{hero.subtitle}</p>
+          </div>
+        </button>
+      )}
+      <div className="grid grid-cols-2 gap-3.5">
+        {rest.map((story, i) => (
+          <button
+            key={story.id}
+            onClick={() => onCardClick(story)}
+            className="flex flex-col text-left rounded-sm overflow-hidden border border-tea-border active:opacity-90 transition-opacity"
+            style={{ animation: `revealUp 0.45s ease-out ${(i + 1) * 0.06}s both` }}
+          >
+            <StoryImage src={story.thumbnailUrl} aspectRatio="1/1" />
+            <div style={{ padding: '12px 14px 16px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+              <span style={{ ...LABEL_STYLE, marginBottom: 8, display: 'inline-block' }}>{getDisplayType(story)}</span>
+              <h3 style={{
+                fontFamily: 'var(--font-display)', fontStyle: 'italic', fontWeight: 400,
+                fontSize: 20, lineHeight: 1.12, margin: '0 0 6px', flex: 1, color: 'var(--tea-text)',
+              }}>
+                {story.title}
+              </h3>
+              <span style={MONO_STYLE}>
+                {story.durationOrTime}{story.author?.name ? ` · ${story.author.name}` : ''}
+              </span>
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── LAYOUT: Stacked Covers ─────────────────────────────────────
+// Each card looks like a mini magazine cover with masthead, mark, and barcode.
+function StackedCovers({ stories, onCardClick }: { stories: Story[]; onCardClick: (s: Story) => void }) {
+  return (
+    <div className="flex flex-col gap-6 px-5 max-w-2xl mx-auto">
+      {stories.map((story, i) => (
+        <button
+          key={story.id}
+          onClick={() => onCardClick(story)}
+          className="w-full text-left relative overflow-hidden active:opacity-90 transition-opacity"
+          style={{
+            borderRadius: 2,
+            border: '1px solid rgba(184,146,78,0.18)',
+            animation: `revealUp 0.5s ease-out ${i * 0.07}s both`,
+          }}
+        >
+          <StoryImage src={story.thumbnailUrl} aspectRatio="5/7" />
+          <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg,transparent 30%,rgba(18,13,9,0.5) 60%,rgba(18,13,9,0.95))' }} />
+          {/* Masthead bar */}
+          <div
+            className="absolute top-0 left-0 right-0 flex justify-between items-center"
+            style={{ padding: '14px 16px 10px', borderBottom: '1px solid rgba(184,146,78,0.2)' }}
+          >
+            <span style={{ ...MONO_STYLE, fontSize: 9.5, color: 'var(--tea-gold)', letterSpacing: '0.2em' }}>TEAJIA</span>
+            <span style={MONO_STYLE}>The Journal</span>
+          </div>
+          {/* Centered mark */}
+          <div
+            className="absolute pointer-events-none"
+            style={{
+              top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
+              fontFamily: "'Ma Shan Zheng','Noto Serif SC',cursive",
+              fontSize: 160, color: 'var(--tea-gold)', opacity: 0.14, lineHeight: 0.8,
+            }}
+          >
+            {getStoryMark(story)}
+          </div>
+          {/* Bottom content */}
+          <div className="absolute left-0 right-0 bottom-0" style={{ padding: '16px 18px 20px' }}>
+            <div className="flex items-center gap-2 mb-2">
+              <div style={{ width: 18, height: 1, background: 'var(--tea-gold)' }} />
+              <span style={LABEL_STYLE}>{getDisplayType(story)}</span>
+            </div>
+            <h2 style={{
+              fontFamily: 'var(--font-display)', fontStyle: 'italic', fontWeight: 400,
+              fontSize: 'clamp(26px,7.5vw,38px)', lineHeight: 1.05,
+              margin: '0 0 8px', color: 'var(--tea-text)',
+            }}>
+              {story.title}
+            </h2>
+            <p style={{ fontSize: 14, lineHeight: 1.4, color: 'var(--tea-text-sec)', margin: '0 0 12px', maxWidth: '32ch' }}>
+              {story.subtitle}
+            </p>
+            <div className="flex justify-between items-end">
+              <span style={MONO_STYLE}>{story.author?.name}{story.durationOrTime ? ` · ${story.durationOrTime}` : ''}</span>
+              <MiniBarcode />
+            </div>
+          </div>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// ── LAYOUT: Offset Inset ───────────────────────────────────────
+// Small image floated right, text wraps naturally. Asymmetric warmth.
+function OffsetInset({ stories, onCardClick }: { stories: Story[]; onCardClick: (s: Story) => void }) {
+  return (
+    <div className="max-w-2xl mx-auto px-5">
+      {stories.map((story, i) => (
+        <button
+          key={story.id}
+          onClick={() => onCardClick(story)}
+          className="w-full text-left block py-6 border-b border-tea-border active:bg-tea-elevated/20 transition-colors duration-150"
+          style={{ animation: `revealUp 0.45s ease-out ${i * 0.06}s both` }}
+        >
+          {/* Floated image inset */}
+          <div style={{ float: 'right', width: 100, height: 130, marginLeft: 18, marginBottom: 8, position: 'relative' }}>
+            <div className="w-full h-full relative overflow-hidden rounded-sm" style={{ background: PH_GRADIENT }}>
+              {story.thumbnailUrl && (
+                <img src={story.thumbnailUrl} alt="" loading="lazy" className="w-full h-full object-cover" />
+              )}
+            </div>
+            <div
+              className="absolute pointer-events-none"
+              style={{ top: -8, left: -8, fontFamily: "'Ma Shan Zheng','Noto Serif SC',cursive", fontSize: 36, color: 'var(--tea-gold)', opacity: 0.2, lineHeight: 0.8 }}
+            >
+              {getStoryMark(story)}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 mb-2">
+            <div style={{ width: 16, height: 1, background: 'var(--tea-gold)', flexShrink: 0 }} />
+            <span style={LABEL_STYLE}>{getDisplayType(story)}</span>
+            {story.durationOrTime && <span style={MONO_STYLE}>{story.durationOrTime}</span>}
+          </div>
+          <h3 style={{
+            fontFamily: 'var(--font-display)', fontStyle: 'italic', fontWeight: 400,
+            fontSize: 'clamp(22px,6vw,30px)', lineHeight: 1.08,
+            margin: '0 0 10px', letterSpacing: '-0.005em', color: 'var(--tea-text)',
+          }}>
+            {story.title}
+          </h3>
+          <p style={{ fontSize: 15, lineHeight: 1.5, color: 'var(--tea-text-sec)', margin: 0 }}>{story.subtitle}</p>
+          {story.author?.name && (
+            <div style={{ ...MONO_STYLE, marginTop: 12, clear: 'both' }}>{story.author.name}</div>
+          )}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// ── LAYOUT: Alternating Margin ─────────────────────────────────
+// Zig-zag: even rows image-left/text-right, odd rows text-left/image-right.
+function AlternatingMargin({ stories, onCardClick }: { stories: Story[]; onCardClick: (s: Story) => void }) {
+  return (
+    <div className="max-w-2xl mx-auto px-5">
+      {stories.map((story, i) => {
+        const imgLeft = i % 2 === 0;
+        return (
+          <button
+            key={story.id}
+            onClick={() => onCardClick(story)}
+            className="w-full text-left grid items-center py-5 border-b border-tea-border active:bg-tea-elevated/20 transition-colors duration-150"
+            style={{
+              gridTemplateColumns: imgLeft ? '40% 1fr' : '1fr 40%',
+              gap: 18,
+              animation: `revealUp 0.45s ease-out ${i * 0.06}s both`,
+            }}
+          >
+            {imgLeft && (
+              <div className="relative">
+                <StoryImage src={story.thumbnailUrl} aspectRatio="3/4" className="rounded-sm" />
+                <div
+                  className="absolute pointer-events-none"
+                  style={{ bottom: 8, right: 8, fontFamily: "'Ma Shan Zheng','Noto Serif SC',cursive", fontSize: 48, color: 'var(--tea-gold)', opacity: 0.16, lineHeight: 0.8 }}
+                >
+                  {getStoryMark(story)}
+                </div>
+              </div>
+            )}
+            <div className="flex flex-col justify-center min-w-0">
+              <div className="flex items-center gap-2 mb-2">
+                <span style={LABEL_STYLE}>{getDisplayType(story)}</span>
+                {story.durationOrTime && <span style={MONO_STYLE}>{story.durationOrTime}</span>}
+              </div>
+              <h3 style={{
+                fontFamily: 'var(--font-display)', fontStyle: 'italic', fontWeight: 400,
+                fontSize: 'clamp(20px,5.8vw,28px)', lineHeight: 1.08,
+                margin: '0 0 8px', letterSpacing: '-0.005em', color: 'var(--tea-text)',
+              }}>
+                {story.title}
+              </h3>
+              <p style={{
+                fontSize: 14.5, lineHeight: 1.45, color: 'var(--tea-text-sec)', margin: 0,
+                display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+              }}>
+                {story.subtitle}
+              </p>
+              {story.author?.name && (
+                <div style={{ ...MONO_STYLE, marginTop: 10 }}>{story.author.name}</div>
+              )}
+            </div>
+            {!imgLeft && (
+              <div className="relative">
+                <StoryImage src={story.thumbnailUrl} aspectRatio="3/4" className="rounded-sm" />
+                <div
+                  className="absolute pointer-events-none"
+                  style={{ bottom: 8, right: 8, fontFamily: "'Ma Shan Zheng','Noto Serif SC',cursive", fontSize: 48, color: 'var(--tea-gold)', opacity: 0.16, lineHeight: 0.8 }}
+                >
+                  {getStoryMark(story)}
+                </div>
+              </div>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Tweaks Panel ───────────────────────────────────────────────
+function TweaksPanel({
+  cardStyle,
+  onSetStyle,
+  onClose,
+}: {
+  cardStyle: CardStyle;
+  onSetStyle: (s: CardStyle) => void;
+  onClose: () => void;
+}) {
+  const options: { k: CardStyle; n: string; d: string }[] = [
+    { k: 'split',  n: 'Editorial split',  d: 'Image left, text right — clean rows' },
+    { k: 'hero',   n: 'Hero cards',        d: 'Full-bleed image, one per scroll' },
+    { k: 'mixed',  n: 'Mixed grid',        d: 'Hero + 2-col grid below' },
+    { k: 'covers', n: 'Stacked covers',    d: 'Mini magazine-cover cards' },
+    { k: 'offset', n: 'Offset inset',      d: 'Floated image, text wraps around' },
+    { k: 'zigzag', n: 'Alternating',       d: 'Image zig-zags left/right' },
+  ];
+
+  return (
+    <div
+      className="fixed right-3.5 bottom-3.5 z-50 overflow-y-auto"
+      style={{
+        width: 280,
+        maxHeight: 'calc(100vh - 100px)',
+        background: 'rgba(28,22,18,0.96)',
+        border: '1px solid var(--tea-border)',
+        borderRadius: 4,
+        backdropFilter: 'blur(14px)',
+        WebkitBackdropFilter: 'blur(14px)',
+        boxShadow: '0 20px 50px rgba(0,0,0,0.6)',
+        padding: 18,
+        animation: 'panelReveal 0.3s ease-out',
+      }}
+    >
+      <div className="flex justify-between items-center mb-3.5">
+        <div className="flex items-center gap-2">
+          <LogoEmblem size={14} className="text-tea-gold opacity-80" />
+          <span style={{ ...LABEL_STYLE, color: 'var(--tea-gold)' }}>Layout</span>
+        </div>
+        <button onClick={onClose} className="text-tea-text-dim hover:text-tea-text transition-colors text-sm">✕</button>
+      </div>
+      {options.map(o => (
+        <button
+          key={o.k}
+          onClick={() => onSetStyle(o.k)}
+          className="block w-full text-left mb-1.5 transition-colors duration-150"
+          style={{
+            padding: '10px 12px',
+            background: cardStyle === o.k ? 'rgba(184,146,78,0.14)' : 'transparent',
+            border: `1px solid ${cardStyle === o.k ? 'var(--tea-gold)' : 'var(--tea-border)'}`,
+            borderRadius: 2,
+          }}
+        >
+          <div style={{
+            fontFamily: 'var(--font-display)', fontStyle: 'italic', fontSize: 17,
+            color: cardStyle === o.k ? 'var(--tea-gold)' : 'var(--tea-text)',
+          }}>
+            {o.n}
+          </div>
+          <div style={MONO_STYLE}>{o.d}</div>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// ── Loading Skeleton ───────────────────────────────────────────
+function LoadingSkeleton() {
+  return (
+    <div className="max-w-2xl mx-auto px-5 mt-4">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div
+          key={i}
+          className="grid items-center py-5 border-b border-tea-border animate-pulse"
+          style={{ gridTemplateColumns: '38% 1fr', gap: 18 }}
+        >
+          <div className="rounded-sm bg-tea-surface" style={{ aspectRatio: '3/4' }} />
+          <div className="flex flex-col gap-2">
+            <div className="h-2 w-14 bg-tea-surface rounded-sm" />
+            <div className="h-5 w-4/5 bg-tea-surface rounded-sm" />
+            <div className="h-3 w-full bg-tea-elevated rounded-sm" />
+            <div className="h-3 w-3/4 bg-tea-elevated rounded-sm" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Main Component ─────────────────────────────────────────────
 export const MagazineTabbed: React.FC<MagazineTabbedProps> = ({
   stories,
-  savedStoryIds,
-  watchedStoryIds,
+  savedStoryIds: _savedStoryIds,
+  watchedStoryIds: _watchedStoryIds,
   onCardClick,
-  onToggleSave,
-  onShare,
-  defaultTab = 'articles',
+  onToggleSave: _onToggleSave,
+  onShare: _onShare,
   onCartClick,
   onAccountClick,
   cartItemCount = 0,
   isContentLoading = false,
 }) => {
-  // Read initial tab from URL hash or use defaultTab
-  const [activeTab, setActiveTab] = useState<MagazineTab>(() => {
-    if (typeof window === 'undefined') return defaultTab;
-    const hash = window.location.hash.replace('#', '') as MagazineTab;
-    return ['articles', 'visual'].includes(hash) ? hash : defaultTab;
-  });
-
-  // Handle tab change with URL persistence
-  const handleTabChange = (tab: MagazineTab) => {
-    setActiveTab(tab);
-    window.history.replaceState(null, '', `#${tab}`);
-  };
-
-  // Infinite scroll state
-  const [displayCount, setDisplayCount] = useState(12);
-  const [isLoading, setIsLoading] = useState(false);
-
-  // Sync activeTab with defaultTab prop changes (when navigating from other sections)
-  useEffect(() => {
-    // Only sync if URL hash is not set (meaning user navigated here fresh)
-    const hash = window.location.hash.replace('#', '') as MagazineTab;
-    if (!['articles', 'visual'].includes(hash)) {
-      setActiveTab(defaultTab);
-    }
-  }, [defaultTab]);
-
-  // Reset display count when tab changes
-  useEffect(() => {
-    setDisplayCount(12);
-  }, [activeTab]);
-
-  // Filter and sort stories by type
-  const articles = useMemo(() => {
-    const filtered = stories.filter(s => s.type === ContentType.Article && s.status === 'published');
-    // Sort by publishedDate (newest first), fall back to array order if no date
-    return filtered.sort((a, b) => {
-      if (a.publishedDate && b.publishedDate) {
-        return new Date(b.publishedDate).getTime() - new Date(a.publishedDate).getTime();
-      }
-      if (a.publishedDate) return -1;
-      if (b.publishedDate) return 1;
-      return 0; // Keep original order if neither has date
-    });
-  }, [stories]);
-
-  const photoEssays = useMemo(() => {
-    const filtered = stories.filter(s => s.type === ContentType.PhotoEssay && s.status === 'published');
-    return filtered.sort((a, b) => {
-      if (a.publishedDate && b.publishedDate) {
-        return new Date(b.publishedDate).getTime() - new Date(a.publishedDate).getTime();
-      }
-      if (a.publishedDate) return -1;
-      if (b.publishedDate) return 1;
-      return 0;
-    });
-  }, [stories]);
-
-  // Get displayed items based on current count
-  const displayedArticles = articles.slice(0, displayCount);
-  const displayedPhotoEssays = photoEssays.slice(0, displayCount);
-  const hasMoreArticles = displayCount < articles.length;
-  const hasMorePhotoEssays = displayCount < photoEssays.length;
-
-  // Infinite scroll handler
-  useEffect(() => {
-    const handleScroll = () => {
-      // Don't trigger if already loading or no more items
-      const hasMore = activeTab === 'articles' ? hasMoreArticles : hasMorePhotoEssays;
-      if (isLoading || !hasMore) return;
-
-      // Check if scrolled near bottom (200px threshold)
-      const scrolledToBottom = window.innerHeight + window.scrollY >=
-        document.documentElement.scrollHeight - 200;
-
-      if (scrolledToBottom) {
-        setIsLoading(true);
-        setDisplayCount(prev => prev + 12);
-        setIsLoading(false);
-      }
-    };
-
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [isLoading, hasMoreArticles, hasMorePhotoEssays, activeTab]);
-
-  const tabs = [
-    { id: 'articles' as MagazineTab, label: 'Articles' },
-    { id: 'visual' as MagazineTab, label: 'Visual' },
-  ];
-
-  const renderCards = (storiesList: Story[]) => {
-    return (
-      <div className="flex flex-col border-t border-tea-text/15">
-        {storiesList.map((story, index) => (
-          <ArticleCard
-            key={story.id}
-            title={story.title}
-            description={story.subtitle}
-            imageUrl={story.thumbnailUrl}
-            onClick={() => onCardClick(story)}
-            contentType={story.category ?? story.type}
-            cardIndex={index}
-            isSaved={savedStoryIds[story.id]}
-          />
-        ))}
-      </div>
-    );
-  };
-
-  const renderContent = () => {
-    if (activeTab === 'articles') {
-      return (
-        <>
-          {renderCards(displayedArticles)}
-          {isLoading && (
-            <div className="flex flex-col border-t border-tea-text/15">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="flex items-stretch border-b border-tea-text/15 animate-pulse">
-                  <div className="flex-1 py-4 pl-5 pr-4 flex flex-col gap-2">
-                    <div className="h-2 w-16 bg-tea-text/10 rounded-sm" />
-                    <div className="h-4 w-4/5 bg-tea-text/10 rounded-sm" />
-                    <div className="h-3 w-3/5 bg-tea-text/5 rounded-sm" />
-                  </div>
-                  <div className="w-[88px] bg-tea-text/5 shrink-0" />
-                </div>
-              ))}
-            </div>
-          )}
-        </>
-      );
-    }
-
-    if (activeTab === 'visual') {
-      return (
-        <>
-          {renderCards(displayedPhotoEssays)}
-          {isLoading && (
-            <div className="flex flex-col border-t border-tea-text/15">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="flex items-stretch border-b border-tea-text/15 animate-pulse">
-                  <div className="flex-1 py-4 pl-5 pr-4 flex flex-col gap-2">
-                    <div className="h-2 w-16 bg-tea-text/10 rounded-sm" />
-                    <div className="h-4 w-4/5 bg-tea-text/10 rounded-sm" />
-                    <div className="h-3 w-3/5 bg-tea-text/5 rounded-sm" />
-                  </div>
-                  <div className="w-[88px] bg-tea-text/5 shrink-0" />
-                </div>
-              ))}
-            </div>
-          )}
-        </>
-      );
-    }
-  };
-
-  const renderLoadingSkeleton = () => (
-    <div className="flex flex-col border-t border-tea-border">
-      {Array.from({ length: 6 }).map((_, i) => (
-        <div key={i} className="flex items-stretch border-b border-tea-border animate-pulse">
-          <div className="flex-1 py-4 pl-5 pr-4 flex flex-col gap-2">
-            <div className="h-2 w-16 bg-tea-surface rounded-sm" />
-            <div className="h-4 w-4/5 bg-tea-surface rounded-sm" />
-            <div className="h-3 w-3/5 bg-tea-elevated rounded-sm" />
-          </div>
-          <div className="w-[88px] bg-tea-elevated shrink-0" />
-        </div>
-      ))}
-    </div>
+  const [cardStyle, setCardStyle] = useState<CardStyle>(
+    () => (localStorage.getItem('teajia.browse.style') as CardStyle | null) ?? 'split',
   );
+  const [filter, setFilter] = useState('All');
+  const [transitioning, setTransitioning] = useState(false);
+  const [tweaksOpen, setTweaksOpen] = useState(false);
+  const [selectedAuthor, setSelectedAuthor] = useState<Person | null>(null);
 
-  const renderEmptyState = (type: string) => {
-    const emptyStateContent = {
-      articles: {
-        icon: <Icons.Book className="w-8 h-8 text-tea-text-dim" />,
-        title: 'Stories coming soon',
-        message: 'Long-form stories about tea culture, origins, and brewing traditions are on their way.',
-        suggestion: 'Explore Visual',
-        switchTab: 'visual' as MagazineTab,
-      },
-      'visual': {
-        icon: <Icons.Grid className="w-8 h-8 text-tea-text-dim" />,
-        title: 'Stories coming soon',
-        message: 'Visual essays celebrating the artistry and beauty of tea are in the works.',
-        suggestion: 'Browse Articles',
-        switchTab: 'articles' as MagazineTab,
-      }
-    };
-
-    const content = emptyStateContent[type as keyof typeof emptyStateContent];
-
-    return (
-      <div className="flex flex-col items-center justify-center py-32 px-4">
-        <div className="w-20 h-20 bg-tea-elevated border border-tea-border rounded-full flex items-center justify-center mb-6">
-          {content.icon}
-        </div>
-        <p className="text-xl text-tea-text mb-2" style={{ fontFamily: 'var(--font-display)' }}>
-          {content.title}
-        </p>
-        <p className="text-tea-text-sec text-sm max-w-md text-center mb-6">
-          {content.message}
-        </p>
-        <button
-          onClick={() => handleTabChange(content.switchTab)}
-          className="text-tea-gold text-xs uppercase tracking-wider hover:text-tea-gold/70 transition-colors duration-300 min-h-[44px] px-4 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50"
-        >
-          {content.suggestion} <span className="ml-1">&rarr;</span>
-        </button>
-      </div>
-    );
+  const setStyle = (s: CardStyle) => {
+    setCardStyle(s);
+    localStorage.setItem('teajia.browse.style', s);
   };
+
+  // All published stories sorted newest-first
+  const allPublished = useMemo(() => {
+    return stories
+      .filter(s => s.status === 'published')
+      .sort((a, b) => {
+        if (a.publishedDate && b.publishedDate)
+          return new Date(b.publishedDate).getTime() - new Date(a.publishedDate).getTime();
+        if (a.publishedDate) return -1;
+        if (b.publishedDate) return 1;
+        return 0;
+      });
+  }, [stories]);
+
+  // Unique filter pill labels derived from content
+  const filterTypes = useMemo(() => {
+    const seen = new Set<string>();
+    allPublished.forEach(s => seen.add(getDisplayType(s)));
+    return ['All', ...Array.from(seen)];
+  }, [allPublished]);
+
+  const filtered = useMemo(() => {
+    if (filter === 'All') return allPublished;
+    return allPublished.filter(s => getDisplayType(s) === filter);
+  }, [allPublished, filter]);
+
+  const handleCardClick = (story: Story) => {
+    setTransitioning(true);
+    setTimeout(() => {
+      setTransitioning(false);
+      onCardClick(story);
+    }, 350);
+  };
+
+  const FEEDS: Record<CardStyle, React.FC<{ stories: Story[]; onCardClick: (s: Story) => void }>> = {
+    split:  EditorialSplit,
+    hero:   HeroCards,
+    mixed:  MixedGrid,
+    covers: StackedCovers,
+    offset: OffsetInset,
+    zigzag: AlternatingMargin,
+  };
+  const Feed = FEEDS[cardStyle];
 
   return (
-    <div className="w-full animate-[fadeIn_0.6s_ease-out]">
+    <div className="w-full min-h-screen flex flex-col">
       <Helmet>
-        <title>Magazine — Teajia</title>
+        <title>Journal — Teajia</title>
         <meta name="description" content="Long-form stories, photo essays, and deep dives into tea culture, craft, and the people behind the leaf." />
       </Helmet>
-      <PageHeader
-        title="Magazine"
-        onCartClick={onCartClick}
-        onAccountClick={onAccountClick}
-        cartItemCount={cartItemCount}
-      >
-        <PageHeaderTabs tabs={tabs} activeTab={activeTab} onChange={handleTabChange} />
-      </PageHeader>
 
-      {/* Tab Content */}
-      <div className="mt-2 pb-[calc(44px+env(safe-area-inset-bottom,0px))] lg:pb-0">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activeTab}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.25, ease: 'easeOut' }}
+      {/* ── Top bar ── */}
+      <div
+        className="sticky top-0 z-40 flex items-center justify-between"
+        style={{
+          padding: '14px 18px 12px',
+          background: 'linear-gradient(180deg,rgba(24,19,14,0.95),rgba(24,19,14,0.7) 80%,transparent)',
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
+        }}
+      >
+        <div className="flex items-center gap-2">
+          <LogoEmblem size={20} className="text-tea-gold" />
+          <span style={{
+            fontFamily: 'var(--font-display)', fontWeight: 500,
+            letterSpacing: '0.18em', fontSize: 12, textTransform: 'uppercase', color: 'var(--tea-text)',
+          }}>
+            Journal
+          </span>
+        </div>
+
+        <div className="flex items-center">
+          {onCartClick && (
+            <button
+              onClick={onCartClick}
+              className="relative p-2.5 text-tea-text-sec hover:text-tea-text transition-colors"
+              aria-label="Cart"
+            >
+              <Icons.Bag className="w-4 h-4" />
+              {cartItemCount > 0 && (
+                <span className="absolute top-1.5 right-1.5 w-3.5 h-3.5 bg-tea-gold rounded-full text-[8px] font-sans font-semibold text-tea-bg flex items-center justify-center leading-none">
+                  {cartItemCount}
+                </span>
+              )}
+            </button>
+          )}
+          {onAccountClick && (
+            <button
+              onClick={onAccountClick}
+              className="p-2.5 text-tea-text-sec hover:text-tea-text transition-colors"
+              aria-label="Account"
+            >
+              <Icons.User className="w-4 h-4" />
+            </button>
+          )}
+          <button
+            onClick={() => setTweaksOpen(v => !v)}
+            className={`p-2.5 transition-colors ${tweaksOpen ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'}`}
+            aria-label="Change layout"
           >
-            {isContentLoading ? renderLoadingSkeleton() : activeTab === 'articles' ? (
-              displayedArticles.length > 0 ? renderContent() : renderEmptyState('articles')
-            ) : activeTab === 'visual' ? (
-              displayedPhotoEssays.length > 0 ? renderContent() : renderEmptyState('visual')
-            ) : null}
-          </motion.div>
-        </AnimatePresence>
+            <Icons.Filter className="w-4 h-4" />
+          </button>
+        </div>
       </div>
+
+      {/* ── Masthead ── */}
+      <div className="px-5 pt-5 max-w-2xl mx-auto w-full">
+        <div className="flex items-center gap-2.5 mb-3.5">
+          <div style={{ width: 24, height: 1, background: 'var(--tea-gold)', flexShrink: 0 }} />
+          <span style={{ ...LABEL_STYLE, color: 'var(--tea-gold)' }}>The Journal · Spring 2026</span>
+        </div>
+        <h1 style={{
+          fontFamily: 'var(--font-display)', fontStyle: 'italic', fontWeight: 400,
+          fontSize: 'clamp(38px,10vw,56px)', lineHeight: 0.95,
+          margin: '0 0 10px', letterSpacing: '-0.01em', color: 'var(--tea-text)',
+        }}>
+          Voices in Tea
+        </h1>
+        <p style={{ fontSize: 16.5, lineHeight: 1.55, color: 'var(--tea-text-sec)', margin: '0 0 24px', maxWidth: '36ch' }}>
+          Stories of the people, places, and practices behind the cup.
+        </p>
+      </div>
+
+      {/* ── Filter pills ── */}
+      <div
+        className="flex gap-2 max-w-2xl mx-auto w-full"
+        style={{ padding: '0 20px 20px', overflowX: 'auto', scrollbarWidth: 'none' }}
+      >
+        {filterTypes.map(t => (
+          <button
+            key={t}
+            onClick={() => setFilter(t)}
+            className="flex-none transition-all duration-200"
+            style={{
+              padding: '7px 16px',
+              borderRadius: 99,
+              border: `1px solid ${filter === t ? 'var(--tea-gold)' : 'var(--tea-border)'}`,
+              background: filter === t ? 'rgba(184,146,78,0.14)' : 'transparent',
+              fontFamily: 'var(--font-ui)',
+              fontSize: 11,
+              letterSpacing: '0.14em',
+              textTransform: 'uppercase',
+              fontWeight: filter === t ? 500 : 400,
+              color: filter === t ? 'var(--tea-gold)' : 'var(--tea-text-sec)',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {t}
+          </button>
+        ))}
+      </div>
+
+      {/* ── Article feed ── */}
+      <div className="flex-1 pb-[calc(44px+env(safe-area-inset-bottom,0px))] lg:pb-12">
+        {isContentLoading ? (
+          <LoadingSkeleton />
+        ) : filtered.length > 0 ? (
+          <Feed stories={filtered} onCardClick={handleCardClick} />
+        ) : (
+          <div className="flex flex-col items-center justify-center py-24 px-4">
+            <p className="font-display text-xl italic text-tea-text mb-2">Nothing here yet</p>
+            <p className="font-body text-tea-text-sec text-sm text-center max-w-xs leading-relaxed">
+              Stories are being prepared. Check back soon.
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* ── Transition overlay ── */}
+      <div
+        className="fixed inset-0 z-50"
+        style={{
+          background: 'var(--tea-bg)',
+          opacity: transitioning ? 1 : 0,
+          transition: 'opacity 0.35s ease',
+          pointerEvents: transitioning ? 'all' : 'none',
+        }}
+      />
+
+      {/* ── Tweaks panel ── */}
+      {tweaksOpen && (
+        <TweaksPanel cardStyle={cardStyle} onSetStyle={setStyle} onClose={() => setTweaksOpen(false)} />
+      )}
+
+      {/* ── Contributor drawer ── */}
+      {selectedAuthor && (
+        <ContributorDrawer
+          person={selectedAuthor}
+          stories={stories}
+          onClose={() => setSelectedAuthor(null)}
+          onStoryClick={onCardClick}
+        />
+      )}
     </div>
   );
 };

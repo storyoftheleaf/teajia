@@ -227,6 +227,30 @@ export function useClaimSeat(token: string) {
   });
 }
 
+/** Update dietary requirements / guest notes on an RSVP. */
+export function useUpdateRSVPNotes(token: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (notes: string) =>
+      api.rsvp.update(token, { notes }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['guest-management', token] });
+    },
+  });
+}
+
+/** Update plus-one count (legacy single guest toggle). */
+export function useUpdateApprovedGuests(token: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ plusOne, plusOneName }: { plusOne: boolean; plusOneName?: string }) =>
+      api.rsvp.update(token, { plus_one: plusOne ? 1 : 0, plus_one_name: plusOneName }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['guest-management', token] });
+    },
+  });
+}
+
 /** Submit tasting notes after session. */
 export function useSubmitTastingNotes(token: string) {
   const queryClient = useQueryClient();

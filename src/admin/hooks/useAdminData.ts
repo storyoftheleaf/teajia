@@ -93,7 +93,7 @@ export const useRates = () => {
 
       return Array.from(rateMap.values()) as ExchangeRate[];
     },
-    staleTime: 1000 * 60 * 60,
+    staleTime: 1000 * 60 * 60 * 6, // 6-hour TTL — rates don't change frequently
     initialData: INITIAL_RATES
   });
 };

@@ -34,6 +34,30 @@ export interface PlatformAccount {
   member_count: number;
   features: Record<string, boolean>;
 }
+
+export interface PurchaseOrder {
+  id: string;
+  account_id: string;
+  vendor_name: string;
+  vendor_id?: string | null;
+  vendor_contact?: string | null;
+  items_json: string; // JSON string of line items
+  total_usd: number;
+  display_currency: string;
+  status: string;
+  notes?: string | null;
+  message_text?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PurchaseOrderItem {
+  product_id: string;
+  product_name: string;
+  quantity_grams: number;
+  unit_price_usd?: number;
+}
+
 import { useAppStore } from './store';
 
 const API_URL = import.meta.env.VITE_API_URL || '';
@@ -383,6 +407,14 @@ export const api = {
       });
       return handleResponse(res);
     },
+    verifyPassword: async (password: string): Promise<{ verified: boolean }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/auth/verify-password`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ password }),
+      });
+      return handleResponse(res);
+    },
   },
 
   users: {
@@ -595,6 +627,18 @@ export const api = {
       });
       return handleResponse(res);
     },
+    /** Fetch customers tagged as 'vendor' — used for compass vendor auto-suggest */
+    fetchVendors: async (): Promise<Array<{ id: string; name: string; country?: string; tags?: string }>> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/customers`, {
+        headers: authHeaders(),
+      });
+      const data = await handleResponse(res);
+      const list = Array.isArray(data) ? data : (data?.customers ?? []);
+      return list.filter((c: { tags?: string | string[] }) => {
+        const tags = Array.isArray(c.tags) ? c.tags : (typeof c.tags === 'string' ? JSON.parse(c.tags || '[]') : []);
+        return tags.includes('vendor') || tags.includes('Vendor');
+      });
+    },
   },
 
   rpc: {
@@ -689,35 +733,34 @@ export const api = {
   },
 
   purchaseOrders: {
+    list: async (): Promise<PurchaseOrder[]> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/purchase-orders`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+
     create: async (data: {
-      po_number: string;
       vendor_name: string;
-      vendor_contact?: string;
       vendor_id?: string;
+      vendor_contact?: string;
+      po_number?: string;
       items_json: string;
-      total_usd: number;
-      display_currency: string;
-      status: 'draft' | 'sent' | 'confirmed' | 'received';
+      total_usd?: number;
+      display_currency?: string;
+      status?: string;
+      notes?: string;
       message_text?: string;
-    }) => {
+    }): Promise<{ id: string }> => {
       const res = await fetchWithTimeout(`${API_URL}/api/purchase-orders`, {
         method: 'POST',
         headers: authHeaders(),
         body: JSON.stringify(data),
       });
-      if (!res.ok) return null;
-      return res.json();
+      return handleResponse(res);
     },
 
-    list: async () => {
-      const res = await fetchWithTimeout(`${API_URL}/api/purchase-orders`, {
-        headers: authHeaders(),
-      });
-      if (!res.ok) return [];
-      return res.json();
-    },
-
-    updateStatus: async (id: string, status: string) => {
+    updateStatus: async (id: string, status: string): Promise<{ success: boolean }> => {
       const res = await fetchWithTimeout(`${API_URL}/api/purchase-orders/${id}`, {
         method: 'PUT',
         headers: authHeaders(),
@@ -966,6 +1009,30 @@ export const api = {
       });
       return handleResponse(res);
     },
+    /** Send WhatsApp/email invites to approved attendees for an event. */
+    sendInvites: async (eventId: string): Promise<{ sent: number; failed: number }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/events/${eventId}/send-emails`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ type: 'invite' }),
+      });
+      return handleResponse(res);
+    },
+    /** Fetch the public tea menu for an event (no auth required). */
+    getPublicTeaMenu: async (slug: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/events/${slug}/tea-menu`);
+      if (!res.ok) return [];
+      return res.json();
+    },
+    /** Standalone helper — send invites to all approved attendees. */
+    sendEventInvites: async (eventId: string): Promise<{ sent: number; failed: number }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/events/${eventId}/send-emails`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ type: 'invite' }),
+      });
+      return handleResponse(res);
+    },
     getCustomerJourney: async (customerId: string) => {
       const res = await fetchWithTimeout(`${API_URL}/api/admin/customers/${customerId}/journey`, {
         headers: authHeaders(),
@@ -978,6 +1045,31 @@ export const api = {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
+    // F12: Convert interest signups to RSVPs
+    convertInterestToRsvp: async (eventId: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/events/${eventId}/convert-interest`, {
+        method: 'POST',
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    // F40: Create next recurring event occurrence
+    createNextEventOccurrence: async (eventId: string, nextDate: string, slug: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/events/${eventId}/create-next`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ next_date: nextDate, slug }),
+      });
+      return handleResponse(res);
+    },
+    // F7: Mark event as complete and auto-draft invoices
+    completeEvent: async (eventId: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/events/${eventId}/complete`, {
+        method: 'POST',
+        headers: authHeaders(),
       });
       return handleResponse(res);
     },
@@ -1409,6 +1501,15 @@ export const api = {
       });
       return handleResponse(res);
     },
+    // Customer: request a sample
+    request: async (data: { product_id: string; quantity_grams: number; note?: string; account_id?: string }): Promise<{ id: string; status: string }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/samples/request`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
     // Admin: list all samples
     list: async (params?: { setId?: string; status?: string }) => {
       const qp = new URLSearchParams();
@@ -1627,6 +1728,13 @@ export const api = {
       });
       await handleResponse(res);
     },
+    getFeatures: async (accountId: string): Promise<Record<string, boolean>> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/accounts/${accountId}/features`, {
+        headers: authHeaders(),
+      });
+      const data = await handleResponse(res);
+      return (data?.features ?? data) as Record<string, boolean>;
+    },
   },
 
   catalog: {
@@ -1639,6 +1747,16 @@ export const api = {
         method: 'POST',
         headers: authHeaders(),
         body: JSON.stringify({ target_account_id: targetAccountId, product_ids: productIds }),
+      });
+      return handleResponse(res);
+    },
+  },
+
+  network: {
+    /** Public list of accounts with public_enabled = true */
+    getStores: async (): Promise<Array<{ id: string; slug: string; name: string; tagline?: string; logo_url?: string; location_city?: string; location_country?: string }>> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/network/stores`, {
+        headers: authHeaders(),
       });
       return handleResponse(res);
     },

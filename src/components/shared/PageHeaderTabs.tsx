@@ -31,8 +31,8 @@ export const PageHeaderTabs: React.FC<PageHeaderTabsProps> = ({
             onClick={() => onChange(tab.id)}
             className={`text-xs uppercase tracking-[0.25em] transition-all duration-300 relative group py-4 ${
               activeTab === tab.id
-                ? 'text-tea-text opacity-100 font-medium'
-                : 'text-tea-text/60 hover:text-tea-text/90'
+                ? 'text-tea-gold font-medium'
+                : 'text-tea-text-dim hover:text-tea-text-sec'
             }`}
           >
             <div className="flex items-center gap-2">
