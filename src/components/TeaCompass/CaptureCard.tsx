@@ -39,6 +39,11 @@ const CURRENCIES: { value: Currency; label: string }[] = [
   { value: 'HKD', label: 'HKD' },
 ];
 
+export interface CaptureCardActions {
+  openTasting: () => void;
+  toggleBuy: () => void;
+}
+
 interface CaptureCardProps {
   entryId: string;
   /** Called when user adds an item to the ledger, to switch to ledger tab */
@@ -49,6 +54,8 @@ interface CaptureCardProps {
   onReturnToLibrary?: () => void;
   /** Start in collapsed (thin) mode */
   initialCollapsed?: boolean;
+  /** Ref populated with action callbacks — used by parent to render pinned action bar */
+  actionRef?: React.MutableRefObject<CaptureCardActions | null>;
 }
 
 const EMPTY_TASTING: TastingData = {};
@@ -140,7 +147,7 @@ function getTypeChipStyle(type: TeaType): { bg: string; text: string } {
   return { bg: `${color}20`, text: color };
 }
 
-export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLedger, onCommit, onReturnToLibrary, initialCollapsed = false }) => {
+export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLedger, onCommit, onReturnToLibrary, initialCollapsed = false, actionRef }) => {
   const entry = useTeaCompassStore((s) => s.getEntry(entryId));
   const updateEntry = useTeaCompassStore((s) => s.updateEntry);
   const commitEntry = useTeaCompassStore((s) => s.commitEntry);
@@ -624,6 +631,25 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
 
   if (!entry) return null;
 
+  // ── Tasting overlay opener — hoisted so actionRef can reference it ──────
+  const openTastingOverlay = () => {
+    setLocalTasting(entry.tasting || EMPTY_TASTING);
+    setTastingOverlayOpen(true);
+  };
+
+  // ── Populate actionRef for parent-rendered action bar ───────────────────
+  const unitBasedForRef = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as string[]).includes(entry.form || '');
+  if (actionRef) {
+    actionRef.current = {
+      openTasting: openTastingOverlay,
+      toggleBuy: () => {
+        const defaultQty = unitBasedForRef ? 1 : (entry.form ? (DEFAULT_GRAMS[entry.form] ?? 100) : 100);
+        if (!showBuyPicker) setBuyingQty(defaultQty);
+        setShowBuyPicker((v) => !v);
+      },
+    };
+  }
+
   // ── Thin / collapsed mode ─────────────────────────────────────────────────
   if (collapsed) {
     const chipStyle = entry.type ? getTypeChipStyle(entry.type) : null;
@@ -771,11 +797,6 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   };
 
   /* ─── Tasting overlay handlers ─── */
-
-  const openTastingOverlay = () => {
-    setLocalTasting(entry.tasting || EMPTY_TASTING);
-    setTastingOverlayOpen(true);
-  };
 
   const closeTastingOverlay = () => {
     setTastingOverlayOpen(false);
@@ -1383,50 +1404,8 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
         </>
       )}
 
-      {/* ─── Actions: Re-Taste · Want · Buy — sticky bottom bar ─── */}
-      <div className="sticky bottom-0 -mx-4 px-4 pt-2 pb-3 bg-tea-surface border-t border-tea-border space-y-2 z-10">
-        <div className="grid grid-cols-3 gap-2">
-          {/* Re-Taste / Tasting — always tappable */}
-          <button
-            type="button"
-            onClick={openTastingOverlay}
-            className={`flex items-center justify-center gap-1.5 py-2 rounded-lg text-[12px] font-medium transition-colors ${
-              hasTasting ? 'bg-tea-gold/10 text-tea-gold' : 'bg-tea-elevated text-tea-text-dim hover:text-tea-text'
-            }`}
-          >
-            <Droplets size={13} strokeWidth={1.5} />
-            {hasTasting ? 'Re-Taste' : 'Tasting'}
-          </button>
-
-          {/* Want */}
-          <button
-            type="button"
-            onClick={() => update({ status: isWant ? 'noted' : 'want' })}
-            className={`flex items-center justify-center gap-1.5 py-2 rounded-lg text-[12px] font-medium transition-colors ${
-              isWant ? 'bg-tea-gold/10 text-tea-gold' : 'bg-tea-elevated text-tea-text-dim hover:text-tea-text'
-            }`}
-          >
-            {isWant ? <BookmarkCheck size={13} /> : <BookmarkPlus size={13} />}
-            {isWant ? 'Wanted' : 'Want'}
-          </button>
-
-          {/* Buy */}
-          <button
-            type="button"
-            onClick={() => {
-              const defaultQty = unitBased ? 1 : (entry.form ? (DEFAULT_GRAMS[entry.form] ?? 100) : 100);
-              if (!showBuyPicker) setBuyingQty(defaultQty);
-              setShowBuyPicker((v) => !v);
-            }}
-            className={`flex items-center justify-center gap-1.5 py-2 rounded-lg text-[12px] font-medium transition-colors ${
-              showBuyPicker ? 'bg-tea-gold/10 text-tea-gold' : 'bg-tea-elevated text-tea-text-dim hover:text-tea-text'
-            }`}
-          >
-            <ShoppingCart size={13} />
-            Buy
-          </button>
-        </div>
-
+      {/* ─── Buy picker / ledger — shown below content when Buy is tapped ─── */}
+      <div className="space-y-2">
         {/* Ledger link */}
         {isInLedger && (
           <button

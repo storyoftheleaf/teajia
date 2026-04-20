@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, FlaskConical, Library, BookOpen, Check, Mic, Square, Loader2, Share2, Layers, Plus, Search, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, FlaskConical, Library, BookOpen, BookmarkCheck, BookmarkPlus, Check, Droplets, Mic, Square, Loader2, Share2, ShoppingCart, Layers, Plus, Search, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { hydrateCompassEntries } from '../../lib/teaCompassSync';
@@ -15,7 +15,7 @@ import type { CompassCategory } from './types';
 import { CompassIcon } from './CompassIcon';
 import { SyncIndicator } from './SyncIndicator';
 import { SessionStack } from './SessionStack';
-import { CaptureCard } from './CaptureCard';
+import { CaptureCard, type CaptureCardActions } from './CaptureCard';
 import { BrowseView } from './BrowseView';
 import { LedgerView } from './LedgerView';
 import { useVoiceRecorder } from './useVoiceRecorder';
@@ -164,6 +164,13 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
 
   const sessionEntries = getSessionEntries();
   const activeEntry = activeEntryId ? getEntry(activeEntryId) : null;
+
+  // ── Capture action bar state (Re-Taste / Want / Buy) ───────────────────
+  const captureCardActionsRef = useRef<CaptureCardActions | null>(null);
+  const hasTasting = !!(activeEntry?.tasting && Object.values(activeEntry.tasting).some(
+    (v: unknown) => Array.isArray(v) ? v.length > 0 : v != null
+  ));
+  const isWantEntry = activeEntry?.status === 'want';
 
   const handleNewCapture = useCallback((category?: CompassCategory) => {
     startNewCapture(category || activeCategory);
@@ -324,6 +331,9 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   const pendingIncomingCount = visibleShares.length;
 
   const [captureOption, setCaptureOption] = useState<'tea' | 'teaware' | 'samples'>('tea');
+
+  const showCaptureActionBar = mode === 'sourcing' && captureOption !== 'samples'
+    && !!activeEntryId && activeEntry?.category !== 'teaware';
 
   // Tab-level search — shared across all tabs; cleared on tab switch
   const [tabSearchQuery, setTabSearchQuery] = useState('');
@@ -528,6 +538,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                     onSwitchToLedger={() => handleSwitchMode('buying')}
                     onCommit={handleCommitEntry}
                     onReturnToLibrary={fromLibrary ? () => { setFromLibrary(false); setMode('tasting'); } : undefined}
+                    actionRef={captureCardActionsRef}
                   />
                 </>
               )}
@@ -766,6 +777,40 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
       {/* ── Capture action bar ── */}
       {mode === 'sourcing' && (
         <>
+          {/* Re-Taste / Want / Buy — pinned above the Mic/Done toolbar */}
+          {showCaptureActionBar && (
+            <div className="shrink-0 grid grid-cols-3 gap-2 px-4 pt-2 pb-2 border-t border-tea-border bg-tea-surface">
+              <button
+                type="button"
+                onClick={() => captureCardActionsRef.current?.openTasting()}
+                className={`flex items-center justify-center gap-1.5 py-2 rounded-lg text-[12px] font-medium transition-colors ${
+                  hasTasting ? 'bg-tea-gold/10 text-tea-gold' : 'bg-tea-elevated text-tea-text-dim hover:text-tea-text'
+                }`}
+              >
+                <Droplets size={13} strokeWidth={1.5} />
+                {hasTasting ? 'Re-Taste' : 'Tasting'}
+              </button>
+              <button
+                type="button"
+                onClick={() => activeEntryId && updateEntry(activeEntryId, { status: isWantEntry ? 'noted' : 'want' })}
+                className={`flex items-center justify-center gap-1.5 py-2 rounded-lg text-[12px] font-medium transition-colors ${
+                  isWantEntry ? 'bg-tea-gold/10 text-tea-gold' : 'bg-tea-elevated text-tea-text-dim hover:text-tea-text'
+                }`}
+              >
+                {isWantEntry ? <BookmarkCheck size={13} /> : <BookmarkPlus size={13} />}
+                {isWantEntry ? 'Wanted' : 'Want'}
+              </button>
+              <button
+                type="button"
+                onClick={() => captureCardActionsRef.current?.toggleBuy()}
+                className="flex items-center justify-center gap-1.5 py-2 rounded-lg text-[12px] font-medium transition-colors bg-tea-elevated text-tea-text-dim hover:text-tea-text"
+              >
+                <ShoppingCart size={13} />
+                Buy
+              </button>
+            </div>
+          )}
+
           <AnimatePresence>
             {voiceError && (
               <motion.p
