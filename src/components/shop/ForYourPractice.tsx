@@ -283,18 +283,18 @@ export const ForYourPractice: React.FC<ForYourPracticeProps> = ({
 
       {/* Shared PopupModal for At the Table items */}
       <PopupModal
-        item={viewItem}
-        items={allTableItems}
+        item={viewItem as any}
+        items={allTableItems as any}
         onClose={() => setViewItem(null)}
-        onItemChange={(item) => setViewItem(item as InventoryItem)}
+        onItemChange={(item) => setViewItem(item as unknown as InventoryItem)}
         onAddToCart={(item, quantity, total) => {
-          onAddToCart(item as InventoryItem, quantity, parseFloat(total));
+          onAddToCart(item as unknown as InventoryItem, quantity, typeof total === 'string' ? parseFloat(total) : total);
           setViewItem(null);
         }}
         showQuantityControls={true}
         quantityStep={1}
         defaultQuantity={1}
-        maxQuantity={parseInt(viewItem?.stock_g || '100')}
+        maxQuantity={viewItem?.stock_g ?? 100}
         itemType="teaware"
       />
     </div>

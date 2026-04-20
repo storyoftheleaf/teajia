@@ -696,6 +696,29 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                 </div>
               )}
 
+              {/* Co-tasting session quick-start */}
+              {hasToken() && (
+                <div className="mb-4 rounded-lg bg-tea-surface/40 border border-tea-border px-3 py-2.5 flex items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[11px] text-tea-text-sec font-medium">Co-Tasting</p>
+                    <p className="text-[11px] text-tea-text-dim mt-0.5">Taste with others and compare notes</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        const result = await api.sessions.create({ title: 'Tasting Session' });
+                        if (result?.session?.id) navigate(`/session/${result.session.id}`);
+                      } catch { /* ignore */ }
+                    }}
+                    className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold/10 text-tea-gold text-[11px] font-semibold hover:bg-tea-gold/15 transition-colors"
+                  >
+                    <Plus size={11} strokeWidth={2.5} />
+                    Start
+                  </button>
+                </div>
+              )}
+
               <BrowseView
                 onEditEntry={handleEditEntry}
                 onNewCapture={handleNewCapture}

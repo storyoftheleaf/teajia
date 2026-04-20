@@ -51,6 +51,8 @@ export interface CustomerTasting {
   createdAt: string;
   /** When this tasting originated from an event session */
   eventId?: string;
+  /** URL slug for the event (e.g. "winter-2024") — used for navigation */
+  eventSlug?: string;
   /** Human-readable event title for display in the journal */
   eventTitle?: string;
   /** Origin context */
@@ -319,6 +321,7 @@ export interface InventoryItem {
   isCurated?: boolean;
   magazineUrl?: string;
   tasting?: TastingData;
+  quantityUnits?: number;
   sessionReserveGrams?: number; // When stock_g <= this, show a soft low-availability warning
 }
 
@@ -437,7 +440,7 @@ export interface Resource {
 }
 
 // Navigation Types
-export type Section = 'HOME' | 'MAGAZINE' | 'LEARN' | 'SHOP' | 'OFFERINGS' | 'ACCOUNT' | 'ABOUT';
+export type Section = 'HOME' | 'MAGAZINE' | 'LEARN' | 'SHOP' | 'OFFERINGS' | 'EVENTS' | 'ACCOUNT' | 'ABOUT';
 export type MainNavSection = Exclude<Section, 'HOME' | 'ACCOUNT'>;
 export type UtilitySection = Extract<Section, 'ACCOUNT'>;
 

@@ -53,7 +53,7 @@ export const ContributorBioPage: React.FC<ContributorBioPageProps> = ({
               <div className="flex items-center gap-4">
                 <span className="text-sm text-tea-text/60">Share</span>
                 <button className="p-2 hover:bg-tea-text/10 rounded-lg transition-colors" title="Share on X">
-                  <Icons.Share2 className="w-4 h-4 text-tea-text/60" />
+                  <Icons.Share className="w-4 h-4 text-tea-text/60" />
                 </button>
               </div>
             </div>

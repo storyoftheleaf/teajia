@@ -109,6 +109,27 @@ async function verifyToken(token: string, secret: string): Promise<boolean> {
   }
 }
 
+// Distinguishes between a missing token, an expired-but-valid-signature token,
+// and a genuinely invalid (tampered / malformed) token. The 'reason' is included
+// in every 401 response so the frontend can tell the difference between
+// "session expired — try refreshing" vs "no token sent — don't trigger a logout".
+type TokenClassification = 'valid' | 'expired' | 'invalid';
+
+async function classifyToken(token: string, secret: string): Promise<TokenClassification> {
+  try {
+    const [header, payload, sig] = token.split('.');
+    if (!header || !payload || !sig) return 'invalid';
+    const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['verify']);
+    const sigBytes = Uint8Array.from(atob(sig), c => c.charCodeAt(0));
+    const valid = await crypto.subtle.verify('HMAC', key, sigBytes, new TextEncoder().encode(`${header}.${payload}`));
+    if (!valid) return 'invalid';
+    const claims = JSON.parse(b64decodeUtf8(payload));
+    return claims.exp > Math.floor(Date.now() / 1000) ? 'valid' : 'expired';
+  } catch {
+    return 'invalid';
+  }
+}
+
 // Like verifyToken but also returns tokens that have expired within the grace
 // window — used by the refresh endpoint so a user can reopen the tab a few
 // days after expiry and silently get a new session.
@@ -263,11 +284,17 @@ async function getActiveAccount(
   env: Env
 ): Promise<AccountCtx | { error: Response }> {
   const token = isAuthed(request);
-  if (!token || !(await verifyToken(token, env.JWT_SECRET))) {
-    return { error: json({ error: 'Unauthorized' }, 401) };
+  if (!token) {
+    return { error: json({ error: 'Unauthorized', reason: 'no_token' }, 401) };
+  }
+  const status = await classifyToken(token, env.JWT_SECRET);
+  if (status !== 'valid') {
+    // 'expired' → client should attempt a silent refresh
+    // 'invalid' → malformed or tampered; client should clear the session
+    return { error: json({ error: 'Unauthorized', reason: status }, 401) };
   }
   const claims = parseToken(token);
-  if (!claims) return { error: json({ error: 'Invalid token' }, 401) };
+  if (!claims) return { error: json({ error: 'Unauthorized', reason: 'invalid' }, 401) };
 
   // Platform owner and platform admin bypass account membership checks —
   // they have access to every account.
@@ -351,9 +378,9 @@ async function requireAccountRole(
 // Require the caller to be the platform owner (only one user).
 async function requirePlatformOwner(request: Request, env: Env): Promise<Response | null> {
   const token = isAuthed(request);
-  if (!token || !(await verifyToken(token, env.JWT_SECRET))) {
-    return json({ error: 'Unauthorized' }, 401);
-  }
+  if (!token) return json({ error: 'Unauthorized', reason: 'no_token' }, 401);
+  const status = await classifyToken(token, env.JWT_SECRET);
+  if (status !== 'valid') return json({ error: 'Unauthorized', reason: status }, 401);
   const claims = parseToken(token);
   if (!claims || claims.platform_role !== 'platform_owner') {
     return json({ error: 'Platform owner access required' }, 403);
@@ -364,9 +391,9 @@ async function requirePlatformOwner(request: Request, env: Env): Promise<Respons
 // Require the caller to be platform owner or platform admin.
 async function requirePlatformAdmin(request: Request, env: Env): Promise<Response | null> {
   const token = isAuthed(request);
-  if (!token || !(await verifyToken(token, env.JWT_SECRET))) {
-    return json({ error: 'Unauthorized' }, 401);
-  }
+  if (!token) return json({ error: 'Unauthorized', reason: 'no_token' }, 401);
+  const status = await classifyToken(token, env.JWT_SECRET);
+  if (status !== 'valid') return json({ error: 'Unauthorized', reason: status }, 401);
   const claims = parseToken(token);
   if (!claims || (claims.platform_role !== 'platform_owner' && claims.platform_role !== 'platform_admin')) {
     return json({ error: 'Platform admin access required' }, 403);
@@ -404,17 +431,17 @@ function buildStockLedgerEntry(
 
 async function requireAuth(request: Request, env: Env): Promise<Response | null> {
   const token = isAuthed(request);
-  if (!token || !(await verifyToken(token, env.JWT_SECRET))) {
-    return json({ error: 'Unauthorized' }, 401);
-  }
+  if (!token) return json({ error: 'Unauthorized', reason: 'no_token' }, 401);
+  const status = await classifyToken(token, env.JWT_SECRET);
+  if (status !== 'valid') return json({ error: 'Unauthorized', reason: status }, 401);
   return null;
 }
 
 async function requireAdmin(request: Request, env: Env): Promise<Response | null> {
   const token = isAuthed(request);
-  if (!token || !(await verifyToken(token, env.JWT_SECRET))) {
-    return json({ error: 'Unauthorized' }, 401);
-  }
+  if (!token) return json({ error: 'Unauthorized', reason: 'no_token' }, 401);
+  const status = await classifyToken(token, env.JWT_SECRET);
+  if (status !== 'valid') return json({ error: 'Unauthorized', reason: status }, 401);
   const claims = parseToken(token);
   if (!claims || (claims.role !== 'admin' && claims.role !== 'owner')) {
     return json({ error: 'Admin access required' }, 403);
@@ -424,9 +451,9 @@ async function requireAdmin(request: Request, env: Env): Promise<Response | null
 
 async function requireOwner(request: Request, env: Env): Promise<Response | null> {
   const token = isAuthed(request);
-  if (!token || !(await verifyToken(token, env.JWT_SECRET))) {
-    return json({ error: 'Unauthorized' }, 401);
-  }
+  if (!token) return json({ error: 'Unauthorized', reason: 'no_token' }, 401);
+  const status = await classifyToken(token, env.JWT_SECRET);
+  if (status !== 'valid') return json({ error: 'Unauthorized', reason: status }, 401);
   const claims = parseToken(token);
   if (!claims || claims.role !== 'owner') {
     return json({ error: 'Owner access required' }, 403);
@@ -1563,10 +1590,11 @@ const handleSeedCatalog: Handler = async (request, env) => {
 };
 
 // ── Product Events (cross-link: which events featured this product) ──
+// Public endpoint: auth is optional. Authenticated users see their account's
+// events; unauthenticated users (public shop) fall back to the Bali account.
 const handleGetProductEvents: Handler = async (request, env, params) => {
   const ctx = await requireAccount(request, env);
-  if ('error' in ctx) return ctx.error;
-  const { accountId } = ctx;
+  const accountId = 'error' in ctx ? BALI_ACCOUNT_ID : ctx.accountId;
 
   const result = await env.DB.prepare(
     `SELECT e.id, e.slug, e.title, e.subtitle, e.event_date, e.event_end_date,
@@ -1821,6 +1849,62 @@ const handleFulfillInvoice: Handler = async (request, env) => {
   } catch (err: any) {
     console.error('handleFulfillInvoice batch failed:', err);
     return json({ error: 'Fulfillment failed — no changes were committed' }, 500);
+  }
+
+  // Post-fulfillment: populate customer's compass tasting queue (non-blocking)
+  const customerUserId = (invoice as any).customer_user_id as string | null;
+  if (customerUserId) {
+    try {
+      const now = new Date().toISOString();
+      const recipientMembership = await env.DB.prepare(
+        'SELECT account_id FROM account_members WHERE user_id = ? LIMIT 1'
+      ).bind(customerUserId).first() as any;
+      const targetAccountId = recipientMembership?.account_id;
+
+      if (targetAccountId) {
+        for (const item of items.results as any[]) {
+          const product = products.get(item.product_id as string);
+          if (!product?.source_compass_entry_id) continue;
+
+          const sourceEntry = await env.DB.prepare(
+            'SELECT * FROM tea_compass_entries WHERE id = ?'
+          ).bind(product.source_compass_entry_id).first() as Record<string, any> | null;
+          if (!sourceEntry) continue;
+
+          // Check if recipient already has this tea in their queue
+          const alreadyQueued = await env.DB.prepare(
+            "SELECT id FROM tea_compass_entries WHERE user_id = ? AND account_id = ? AND source_entry_id = ? AND status IN ('available_to_taste', 'in_stock')"
+          ).bind(customerUserId, targetAccountId, sourceEntry.id).first();
+          if (alreadyQueued) continue;
+
+          await env.DB.prepare(
+            `INSERT INTO tea_compass_entries
+               (id, user_id, account_id, name, chinese_name, type, form, year, season, origin_region,
+                category, photos, tea_key, status, notes, quantity, price_currency,
+                source_entry_id, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'available_to_taste', '', 1, 'NT', ?, ?, ?)`
+          ).bind(
+            crypto.randomUUID(), customerUserId, targetAccountId,
+            sourceEntry.name, sourceEntry.chinese_name, sourceEntry.type, sourceEntry.form,
+            sourceEntry.year, sourceEntry.season, sourceEntry.origin_region,
+            sourceEntry.category || 'tea', sourceEntry.photos || '[]', sourceEntry.tea_key,
+            sourceEntry.id, now, now
+          ).run();
+        }
+
+        // Auto-create member connection (sale source)
+        const fulfiller = await env.DB.prepare('SELECT id FROM users WHERE email = ? LIMIT 1').bind(userEmail).first() as any;
+        if (fulfiller) {
+          const [ua, ub] = [fulfiller.id as string, customerUserId].sort();
+          await env.DB.prepare(
+            `INSERT OR IGNORE INTO member_connections (id, user_id_a, user_id_b, source, source_ref, created_at)
+             VALUES (?, ?, ?, 'sale', ?, ?)`
+          ).bind(crypto.randomUUID(), ua, ub, invoice_id, now).run();
+        }
+      }
+    } catch (e) {
+      console.error('Queue population after fulfillment failed (non-fatal):', e);
+    }
   }
 
   return json({ success: true });
@@ -3032,6 +3116,35 @@ const handleGetEventBySlug: Handler = async (_request, env, params) => {
     confirmed_count: confirmedCount,
     seats_remaining: (event.total_capacity as number) - confirmedCount,
   }, 30);
+};
+
+// GET /api/events — public upcoming events list
+const handleListPublicEvents: Handler = async (_request, env, _params) => {
+  const rows = await env.DB.prepare(
+    `SELECT id, slug, title, subtitle, description, flyer_image_url, event_date,
+            location_name, area_hint, mood_hints, total_capacity, timezone, status
+     FROM events
+     WHERE status = 'active' AND event_date >= datetime('now')
+     ORDER BY event_date ASC
+     LIMIT 20`
+  ).all();
+
+  const events = await Promise.all(
+    (rows.results ?? []).map(async (ev) => {
+      const count = await env.DB.prepare(
+        `SELECT COALESCE(SUM(1 + plus_one), 0) as total
+         FROM event_attendees WHERE event_id = ? AND status = 'confirmed'`
+      ).bind(ev.id).first();
+      const confirmedCount = (count?.total as number) || 0;
+      return {
+        ...ev,
+        confirmed_count: confirmedCount,
+        seats_remaining: (ev.total_capacity as number) - confirmedCount,
+      };
+    })
+  );
+
+  return cachedJson(events, 30);
 };
 
 const handleRSVP: Handler = async (request, env, params) => {
@@ -7559,11 +7672,19 @@ const handleGetPublicAccountEvents: Handler = async (_request, env, params) => {
   if (!accountId) return json({ error: 'Store not found' }, 404);
 
   const { results } = await env.DB.prepare(
-    `SELECT id, slug, title, subtitle, description, flyer_image_url, event_date, event_end_date,
-            location_name, area_hint, total_capacity, timezone, status
-     FROM events
-     WHERE status = 'active' AND account_id = ?
-     ORDER BY event_date ASC`
+    `SELECT e.id, e.slug, e.title, e.subtitle, e.description, e.flyer_image_url,
+            e.event_date, e.event_end_date, e.location_name, e.area_hint,
+            e.total_capacity, e.timezone, e.status,
+            COALESCE(a.confirmed_count, 0) as confirmed_count,
+            e.total_capacity - COALESCE(a.confirmed_count, 0) as seats_remaining
+     FROM events e
+     LEFT JOIN (
+       SELECT event_id, SUM(1 + plus_one) as confirmed_count
+       FROM event_attendees WHERE status = 'confirmed'
+       GROUP BY event_id
+     ) a ON a.event_id = e.id
+     WHERE e.status = 'active' AND e.account_id = ?
+     ORDER BY e.event_date ASC`
   ).bind(accountId).all();
   return cachedJson(results, 60);
 };
@@ -7629,6 +7750,631 @@ const handleUpdatePurchaseOrder: Handler = async (request, env, params) => {
 
   return json({ success: true });
 };
+
+// ── Me / Profile ──
+
+const handleGetMyProfile: Handler = async (request, env) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId, userId } = ctx;
+
+  const [profile, queueCount, wishlistCount, connectionCount] = await Promise.all([
+    env.DB.prepare('SELECT * FROM user_taste_profile WHERE user_id = ? AND account_id = ?')
+      .bind(userId, accountId).first() as Promise<Record<string, any> | null>,
+    env.DB.prepare(
+      "SELECT COUNT(*) as c FROM tea_compass_entries WHERE user_id = ? AND account_id = ? AND status = 'available_to_taste' AND deleted_at IS NULL"
+    ).bind(userId, accountId).first<{ c: number }>(),
+    env.DB.prepare(
+      "SELECT COUNT(*) as c FROM tea_compass_entries WHERE user_id = ? AND account_id = ? AND status = 'want' AND deleted_at IS NULL"
+    ).bind(userId, accountId).first<{ c: number }>(),
+    env.DB.prepare(
+      'SELECT COUNT(*) as c FROM member_connections WHERE user_id_a = ? OR user_id_b = ?'
+    ).bind(userId, userId).first<{ c: number }>(),
+  ]);
+
+  return json({
+    profile: profile ? {
+      preferred_types: JSON.parse(profile.preferred_types || '{}'),
+      preferred_notes: JSON.parse(profile.preferred_notes || '{}'),
+      preferred_regions: JSON.parse(profile.preferred_regions || '{}'),
+      verdict_counts: JSON.parse(profile.verdict_counts || '{}'),
+      total_tastings: profile.total_tastings,
+      last_updated: profile.last_updated,
+    } : null,
+    queue_count: queueCount?.c || 0,
+    wishlist_count: wishlistCount?.c || 0,
+    connection_count: connectionCount?.c || 0,
+  });
+};
+
+const handleGetMyQueue: Handler = async (request, env) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId, userId } = ctx;
+
+  const result = await env.DB.prepare(
+    "SELECT * FROM tea_compass_entries WHERE user_id = ? AND account_id = ? AND status = 'available_to_taste' AND deleted_at IS NULL ORDER BY taste_order DESC, updated_at DESC"
+  ).bind(userId, accountId).all();
+
+  return json({ entries: result.results });
+};
+
+const handleGetMyWishlist: Handler = async (request, env) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId, userId } = ctx;
+
+  const result = await env.DB.prepare(
+    "SELECT * FROM tea_compass_entries WHERE user_id = ? AND account_id = ? AND status = 'want' AND deleted_at IS NULL ORDER BY updated_at DESC"
+  ).bind(userId, accountId).all();
+
+  return json({ entries: result.results });
+};
+
+const handleMemberSearch: Handler = async (request, env) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId, userId } = ctx;
+
+  const url = new URL(request.url);
+  const q = (url.searchParams.get('q') || '').trim();
+  if (q.length < 2) return json({ members: [] });
+
+  const result = await env.DB.prepare(
+    `SELECT u.id, u.name, u.username, u.email, am.role
+     FROM users u
+     JOIN account_members am ON am.user_id = u.id AND am.account_id = ?
+     WHERE u.id != ? AND (u.name LIKE ? OR u.username LIKE ? OR u.email LIKE ?)
+     LIMIT 20`
+  ).bind(accountId, userId, `%${q}%`, `%${q}%`, `%${q}%`).all();
+
+  return json({ members: result.results });
+};
+
+// ── Co-Tasting Sessions ──
+
+const handleCreateSession: Handler = async (request, env) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId, userId } = ctx;
+
+  const body = await request.json() as {
+    title?: string;
+    entry_ids?: string[];
+    member_ids?: string[];
+  };
+
+  const sessionId = crypto.randomUUID();
+  const inviteToken = crypto.randomUUID().replace(/-/g, '');
+  const now = new Date().toISOString();
+
+  await env.DB.prepare(
+    `INSERT INTO tasting_sessions (id, account_id, created_by_user_id, title, status, invite_token, max_participants, created_at)
+     VALUES (?, ?, ?, ?, 'active', ?, 4, ?)`
+  ).bind(sessionId, accountId, userId, body.title || null, inviteToken, now).run();
+
+  // Add creator as first member
+  await env.DB.prepare(
+    `INSERT INTO tasting_session_members (id, session_id, user_id, joined_at) VALUES (?, ?, ?, ?)`
+  ).bind(crypto.randomUUID(), sessionId, userId, now).run();
+
+  // Add teas from entry_ids
+  const entryIds: string[] = body.entry_ids || [];
+  for (let i = 0; i < entryIds.length; i++) {
+    const entry = await env.DB.prepare(
+      'SELECT id, name, tea_key, type, form, year, origin_region, photos FROM tea_compass_entries WHERE id = ? AND account_id = ?'
+    ).bind(entryIds[i], accountId).first() as Record<string, any> | null;
+    if (!entry) continue;
+
+    const metadata = JSON.stringify({
+      name: entry.name, type: entry.type, form: entry.form,
+      year: entry.year, originRegion: entry.origin_region,
+      photo: entry.photos ? JSON.parse(entry.photos)?.[0] : null,
+    });
+
+    await env.DB.prepare(
+      `INSERT INTO tasting_session_teas (id, session_id, compass_entry_id, tea_name, tea_key, tea_metadata, position)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
+    ).bind(crypto.randomUUID(), sessionId, entry.id, entry.name, entry.tea_key || null, metadata, i).run();
+  }
+
+  // Pre-add invited members
+  const memberIds: string[] = body.member_ids || [];
+  for (const mid of memberIds) {
+    if (mid === userId) continue;
+    await env.DB.prepare(
+      `INSERT OR IGNORE INTO tasting_session_members (id, session_id, user_id, joined_at) VALUES (?, ?, ?, ?)`
+    ).bind(crypto.randomUUID(), sessionId, mid, now).run();
+  }
+
+  const session = await env.DB.prepare('SELECT * FROM tasting_sessions WHERE id = ?').bind(sessionId).first();
+  return json({ session, invite_token: inviteToken }, 201);
+};
+
+const handleGetSession: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId, userId } = ctx;
+
+  const session = await env.DB.prepare(
+    'SELECT * FROM tasting_sessions WHERE id = ? AND account_id = ?'
+  ).bind(params.id, accountId).first() as Record<string, any> | null;
+  if (!session) return json({ error: 'Session not found' }, 404);
+
+  const [teas, members] = await Promise.all([
+    env.DB.prepare('SELECT * FROM tasting_session_teas WHERE session_id = ? ORDER BY position').bind(params.id).all(),
+    env.DB.prepare(
+      `SELECT tsm.*, u.name, u.username FROM tasting_session_members tsm
+       LEFT JOIN users u ON u.id = tsm.user_id
+       WHERE tsm.session_id = ?`
+    ).bind(params.id).all(),
+  ]);
+
+  // Only return verdicts for teas the caller has already submitted
+  const myVerdicts = await env.DB.prepare(
+    'SELECT * FROM tasting_session_verdicts WHERE session_id = ? AND user_id = ?'
+  ).bind(params.id, userId).all();
+
+  return json({
+    session,
+    teas: teas.results.map((t: any) => ({
+      ...t,
+      tea_metadata: t.tea_metadata ? JSON.parse(t.tea_metadata) : {},
+    })),
+    members: members.results,
+    my_verdicts: myVerdicts.results,
+  });
+};
+
+const handleGetSessionByToken: Handler = async (request, env, params) => {
+  const session = await env.DB.prepare(
+    "SELECT * FROM tasting_sessions WHERE invite_token = ? AND status = 'active'"
+  ).bind(params.token).first() as Record<string, any> | null;
+  if (!session) return json({ error: 'Session not found or no longer active' }, 404);
+
+  const teas = await env.DB.prepare(
+    'SELECT * FROM tasting_session_teas WHERE session_id = ? ORDER BY position'
+  ).bind(session.id).all();
+
+  return json({
+    session: { id: session.id, title: session.title, invite_token: session.invite_token, max_participants: session.max_participants },
+    teas: teas.results.map((t: any) => ({
+      id: t.id, tea_name: t.tea_name, position: t.position,
+      tea_metadata: t.tea_metadata ? JSON.parse(t.tea_metadata) : {},
+    })),
+  });
+};
+
+const handleJoinSession: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { userId } = ctx;
+
+  const session = await env.DB.prepare(
+    "SELECT * FROM tasting_sessions WHERE id = ? AND status = 'active'"
+  ).bind(params.id).first() as Record<string, any> | null;
+  if (!session) return json({ error: 'Session not found or not active' }, 404);
+
+  const memberCount = await env.DB.prepare(
+    'SELECT COUNT(*) as c FROM tasting_session_members WHERE session_id = ?'
+  ).bind(params.id).first<{ c: number }>();
+  if ((memberCount?.c || 0) >= (session.max_participants || 4)) {
+    return json({ error: 'Session is full' }, 400);
+  }
+
+  const now = new Date().toISOString();
+  const user = await env.DB.prepare('SELECT name, username FROM users WHERE id = ?').bind(userId).first() as any;
+
+  await env.DB.prepare(
+    `INSERT OR IGNORE INTO tasting_session_members (id, session_id, user_id, user_name, joined_at) VALUES (?, ?, ?, ?, ?)`
+  ).bind(crypto.randomUUID(), params.id, userId, user?.name || user?.username || null, now).run();
+
+  return json({ success: true, session_id: params.id });
+};
+
+const handleSubmitSessionVerdict: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { userId } = ctx;
+
+  const body = await request.json() as {
+    verdict?: string;
+    tasting_data?: Record<string, any>;
+    notes?: string;
+  };
+
+  const sessionTea = await env.DB.prepare(
+    'SELECT * FROM tasting_session_teas WHERE id = ? AND session_id = ?'
+  ).bind(params.teaId, params.id).first();
+  if (!sessionTea) return json({ error: 'Session tea not found' }, 404);
+
+  const now = new Date().toISOString();
+  await env.DB.prepare(
+    `INSERT INTO tasting_session_verdicts (id, session_id, session_tea_id, user_id, verdict, tasting_data, notes, submitted_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(session_tea_id, user_id) DO UPDATE SET
+       verdict = excluded.verdict, tasting_data = excluded.tasting_data,
+       notes = excluded.notes, submitted_at = excluded.submitted_at`
+  ).bind(
+    crypto.randomUUID(), params.id, params.teaId, userId,
+    body.verdict || null,
+    body.tasting_data ? JSON.stringify(body.tasting_data) : null,
+    body.notes || null, now
+  ).run();
+
+  // Update taste profile silently
+  if (body.verdict) {
+    const session = await env.DB.prepare('SELECT account_id FROM tasting_sessions WHERE id = ?').bind(params.id).first() as any;
+    if (session) {
+      await _upsertTasteProfile(env, userId, session.account_id, body.verdict, body.tasting_data);
+    }
+  }
+
+  return json({ success: true });
+};
+
+const handleGetSessionVerdicts: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+
+  const session = await env.DB.prepare(
+    'SELECT * FROM tasting_sessions WHERE id = ? AND account_id = ?'
+  ).bind(params.id, accountId).first() as Record<string, any> | null;
+  if (!session) return json({ error: 'Session not found' }, 404);
+
+  // Verdicts are visible to all authenticated members of the session's account
+  const verdicts = await env.DB.prepare(
+    `SELECT tsv.*, u.name as user_name, sst.tea_name, sst.position
+     FROM tasting_session_verdicts tsv
+     JOIN tasting_session_teas sst ON sst.id = tsv.session_tea_id
+     LEFT JOIN users u ON u.id = tsv.user_id
+     WHERE tsv.session_id = ?
+     ORDER BY sst.position, tsv.submitted_at`
+  ).bind(params.id).all();
+
+  return json({
+    verdicts: (verdicts.results as any[]).map(v => ({
+      ...v,
+      tasting_data: v.tasting_data ? JSON.parse(v.tasting_data) : null,
+    })),
+  });
+};
+
+const handleCompleteSession: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId, userId } = ctx;
+
+  const session = await env.DB.prepare(
+    'SELECT * FROM tasting_sessions WHERE id = ? AND account_id = ?'
+  ).bind(params.id, accountId).first() as Record<string, any> | null;
+  if (!session) return json({ error: 'Session not found' }, 404);
+  if (session.created_by_user_id !== userId) return json({ error: 'Only the session host can complete it' }, 403);
+
+  await env.DB.prepare(
+    "UPDATE tasting_sessions SET status = 'completed', completed_at = ? WHERE id = ?"
+  ).bind(new Date().toISOString(), params.id).run();
+
+  return json({ success: true });
+};
+
+// ── Member Connections ──
+
+const handleGetConnections: Handler = async (request, env) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { userId } = ctx;
+
+  const result = await env.DB.prepare(
+    `SELECT mc.*,
+       u.name as other_name, u.username as other_username
+     FROM member_connections mc
+     JOIN users u ON u.id = CASE WHEN mc.user_id_a = ? THEN mc.user_id_b ELSE mc.user_id_a END
+     WHERE mc.user_id_a = ? OR mc.user_id_b = ?
+     ORDER BY mc.created_at DESC`
+  ).bind(userId, userId, userId).all();
+
+  return json({ connections: result.results });
+};
+
+const handleInviteConnection: Handler = async (request, env) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId, userId } = ctx;
+
+  const body = await request.json() as { to_user_id: string; pending_share_id?: string };
+  if (!body.to_user_id) return json({ error: 'to_user_id required' }, 400);
+  if (body.to_user_id === userId) return json({ error: 'Cannot connect with yourself' }, 400);
+
+  // Check if connection already exists
+  const [ua, ub] = [userId, body.to_user_id].sort();
+  const existing = await env.DB.prepare(
+    'SELECT id FROM member_connections WHERE user_id_a = ? AND user_id_b = ?'
+  ).bind(ua, ub).first();
+  if (existing) return json({ error: 'Already connected' }, 409);
+
+  const now = new Date().toISOString();
+  const inviteId = crypto.randomUUID();
+  await env.DB.prepare(
+    `INSERT INTO connection_invites (id, from_user_id, to_user_id, pending_share_id, status, created_at)
+     VALUES (?, ?, ?, ?, 'pending', ?)`
+  ).bind(inviteId, userId, body.to_user_id, body.pending_share_id || null, now).run();
+
+  return json({ invite_id: inviteId }, 201);
+};
+
+const handleAcceptConnectionInvite: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { userId } = ctx;
+
+  const invite = await env.DB.prepare(
+    "SELECT * FROM connection_invites WHERE id = ? AND to_user_id = ? AND status = 'pending'"
+  ).bind(params.id, userId).first() as Record<string, any> | null;
+  if (!invite) return json({ error: 'Invite not found or already handled' }, 404);
+
+  const [ua, ub] = [invite.from_user_id as string, userId].sort();
+  const now = new Date().toISOString();
+
+  await env.DB.batch([
+    env.DB.prepare(
+      `INSERT OR IGNORE INTO member_connections (id, user_id_a, user_id_b, source, source_ref, created_at)
+       VALUES (?, ?, ?, 'share', ?, ?)`
+    ).bind(crypto.randomUUID(), ua, ub, invite.pending_share_id || null, now),
+    env.DB.prepare(
+      "UPDATE connection_invites SET status = 'accepted', resolved_at = ? WHERE id = ?"
+    ).bind(now, params.id),
+  ]);
+
+  return json({ success: true });
+};
+
+// ── Entry Feedback (aggregate verdicts from sessions) ──
+
+const handleGetEntryFeedback: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+
+  const entry = await env.DB.prepare(
+    'SELECT tea_key FROM tea_compass_entries WHERE id = ? AND account_id = ?'
+  ).bind(params.id, accountId).first() as Record<string, any> | null;
+  if (!entry) return json({ error: 'Entry not found' }, 404);
+
+  // Aggregate verdicts from tasting sessions where this entry was used
+  const sessionVerdicts = await env.DB.prepare(
+    `SELECT tsv.verdict, tsv.notes, tsv.tasting_data, u.name as user_name, tsv.submitted_at
+     FROM tasting_session_verdicts tsv
+     JOIN tasting_session_teas sst ON sst.id = tsv.session_tea_id
+     LEFT JOIN users u ON u.id = tsv.user_id
+     WHERE sst.compass_entry_id = ?
+     ORDER BY tsv.submitted_at DESC
+     LIMIT 50`
+  ).bind(params.id).all();
+
+  // Aggregate anonymous table verdicts by tea_key
+  const tableVerdicts = entry.tea_key ? await env.DB.prepare(
+    `SELECT av.verdict, av.notes, av.tasting_data, av.created_at
+     FROM anonymous_verdicts av
+     JOIN table_share_tokens tst ON tst.token = av.table_token
+     WHERE tst.source_entry_id = ?
+     ORDER BY av.created_at DESC
+     LIMIT 50`
+  ).bind(params.id).all() : { results: [] };
+
+  const counts: Record<string, number> = { love: 0, like: 0, neutral: 0, pass: 0 };
+  const all = [...(sessionVerdicts.results as any[]), ...(tableVerdicts.results as any[])];
+  for (const v of all) {
+    if (v.verdict && counts[v.verdict] !== undefined) counts[v.verdict]++;
+  }
+
+  return json({
+    counts,
+    total: all.length,
+    session_verdicts: (sessionVerdicts.results as any[]).map(v => ({
+      ...v, tasting_data: v.tasting_data ? JSON.parse(v.tasting_data) : null,
+    })),
+    table_verdicts: (tableVerdicts.results as any[]).map(v => ({
+      ...v, tasting_data: v.tasting_data ? JSON.parse(v.tasting_data) : null,
+    })),
+  });
+};
+
+// ── Table Share (QR at-table tasting) ──
+
+const handleCreateTableShare: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId, userId } = ctx;
+
+  const entry = await env.DB.prepare(
+    'SELECT id FROM tea_compass_entries WHERE id = ? AND account_id = ?'
+  ).bind(params.id, accountId).first();
+  if (!entry) return json({ error: 'Entry not found' }, 404);
+
+  const token = crypto.randomUUID().replace(/-/g, '');
+  const now = new Date().toISOString();
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+
+  await env.DB.prepare(
+    `INSERT INTO table_share_tokens (id, token, source_entry_id, account_id, created_by_user_id, expires_at, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`
+  ).bind(crypto.randomUUID(), token, params.id, accountId, userId, expiresAt, now).run();
+
+  return json({ token, url: `/t/${token}` }, 201);
+};
+
+const handleGetTableCard: Handler = async (request, env, params) => {
+  const tokenRow = await env.DB.prepare(
+    'SELECT * FROM table_share_tokens WHERE token = ? AND expires_at > ?'
+  ).bind(params.token, new Date().toISOString()).first() as Record<string, any> | null;
+  if (!tokenRow) return json({ error: 'Card not found or expired' }, 404);
+
+  const entry = await env.DB.prepare(
+    `SELECT name, chinese_name, type, form, year, season, origin_region, photos, tea_key, notes
+     FROM tea_compass_entries WHERE id = ?`
+  ).bind(tokenRow.source_entry_id).first() as Record<string, any> | null;
+  if (!entry) return json({ error: 'Entry not found' }, 404);
+
+  // Aggregate latest verdict per browser token (handles re-votes correctly)
+  const counts = await env.DB.prepare(
+    `SELECT verdict, COUNT(*) as c FROM (
+       SELECT browser_token, verdict FROM anonymous_verdicts
+       WHERE table_token = ?
+       GROUP BY browser_token HAVING created_at = MAX(created_at)
+     ) GROUP BY verdict`
+  ).bind(params.token).all();
+
+  const verdictCounts: Record<string, number> = { love: 0, like: 0, neutral: 0, pass: 0 };
+  for (const row of counts.results as any[]) {
+    if (row.verdict && verdictCounts[row.verdict] !== undefined) {
+      verdictCounts[row.verdict] = row.c;
+    }
+  }
+
+  return json({
+    entry: {
+      name: entry.name,
+      chineseName: entry.chinese_name,
+      type: entry.type,
+      form: entry.form,
+      year: entry.year,
+      season: entry.season,
+      originRegion: entry.origin_region,
+      photo: entry.photos ? JSON.parse(entry.photos)?.[0] : null,
+      teaKey: entry.tea_key,
+    },
+    verdictCounts,
+    token: params.token,
+  });
+};
+
+const handleSubmitTableVerdict: Handler = async (request, env, params) => {
+  const tokenRow = await env.DB.prepare(
+    'SELECT * FROM table_share_tokens WHERE token = ? AND expires_at > ?'
+  ).bind(params.token, new Date().toISOString()).first() as Record<string, any> | null;
+  if (!tokenRow) return json({ error: 'Card not found or expired' }, 404);
+
+  const body = await request.json() as {
+    browser_token: string;
+    verdict: string;
+    notes?: string;
+    tasting_data?: Record<string, any>;
+  };
+  if (!body.browser_token || !body.verdict) return json({ error: 'browser_token and verdict required' }, 400);
+
+  const validVerdicts = ['love', 'like', 'neutral', 'pass'];
+  if (!validVerdicts.includes(body.verdict)) return json({ error: 'Invalid verdict' }, 400);
+
+  const now = new Date().toISOString();
+  // Delete any previous verdict from this browser token for this card, then insert fresh
+  await env.DB.batch([
+    env.DB.prepare('DELETE FROM anonymous_verdicts WHERE browser_token = ? AND table_token = ?')
+      .bind(body.browser_token, params.token),
+    env.DB.prepare(
+      `INSERT INTO anonymous_verdicts (id, browser_token, table_token, source_entry_id, verdict, notes, tasting_data, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    ).bind(
+      crypto.randomUUID(), body.browser_token, params.token, tokenRow.source_entry_id,
+      body.verdict, body.notes || null,
+      body.tasting_data ? JSON.stringify(body.tasting_data) : null, now
+    ),
+  ]);
+
+  return json({ success: true });
+};
+
+// ── Gift Sample (admin creates $0 gift order → populates recipient's queue) ──
+
+const handleGiftSample: Handler = async (request, env) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId, userId } = ctx;
+
+  const body = await request.json() as {
+    customer_user_id: string;
+    entry_ids: string[];
+    note?: string;
+  };
+  if (!body.customer_user_id || !body.entry_ids?.length) {
+    return json({ error: 'customer_user_id and entry_ids required' }, 400);
+  }
+
+  const now = new Date().toISOString();
+
+  // Create compass entries in recipient's account with status = available_to_taste
+  const created: string[] = [];
+  for (const entryId of body.entry_ids) {
+    const entry = await env.DB.prepare(
+      'SELECT * FROM tea_compass_entries WHERE id = ? AND account_id = ?'
+    ).bind(entryId, accountId).first() as Record<string, any> | null;
+    if (!entry) continue;
+
+    const newId = crypto.randomUUID();
+    // Find recipient's account membership
+    const recipientMembership = await env.DB.prepare(
+      'SELECT account_id FROM account_members WHERE user_id = ? LIMIT 1'
+    ).bind(body.customer_user_id).first() as any;
+    const targetAccountId = recipientMembership?.account_id || accountId;
+
+    await env.DB.prepare(
+      `INSERT INTO tea_compass_entries
+         (id, user_id, account_id, name, chinese_name, type, form, year, season, origin_region,
+          category, photos, tea_key, status, notes, quantity, price_currency,
+          source_entry_id, is_sample, sample_grams, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'available_to_taste', ?, 1, 'NT', ?, 1, ?, ?, ?)`
+    ).bind(
+      newId, body.customer_user_id, targetAccountId,
+      entry.name, entry.chinese_name, entry.type, entry.form,
+      entry.year, entry.season, entry.origin_region, entry.category || 'tea',
+      entry.photos || '[]', entry.tea_key,
+      body.note || `Gifted sample from Teajia`, entry.id,
+      entry.sample_grams || null, now, now
+    ).run();
+    created.push(newId);
+
+    // Auto-create member connection (gift source)
+    const [ua, ub] = [userId, body.customer_user_id].sort();
+    await env.DB.prepare(
+      `INSERT OR IGNORE INTO member_connections (id, user_id_a, user_id_b, source, source_ref, created_at)
+       VALUES (?, ?, ?, 'gift', ?, ?)`
+    ).bind(crypto.randomUUID(), ua, ub, entryId, now).run();
+  }
+
+  return json({ created_entry_ids: created }, 201);
+};
+
+// ── Helper: upsert taste profile silently ──
+async function _upsertTasteProfile(
+  env: Env, userId: string, accountId: string,
+  verdict: string, tastingData?: Record<string, any>
+) {
+  try {
+    const existing = await env.DB.prepare(
+      'SELECT * FROM user_taste_profile WHERE user_id = ? AND account_id = ?'
+    ).bind(userId, accountId).first() as Record<string, any> | null;
+
+    const now = new Date().toISOString();
+    if (!existing) {
+      const verdictCounts: Record<string, number> = { love: 0, like: 0, neutral: 0, pass: 0 };
+      if (verdict && verdictCounts[verdict] !== undefined) verdictCounts[verdict] = 1;
+      await env.DB.prepare(
+        `INSERT INTO user_taste_profile (id, user_id, account_id, verdict_counts, total_tastings, last_updated)
+         VALUES (?, ?, ?, ?, 1, ?)`
+      ).bind(crypto.randomUUID(), userId, accountId, JSON.stringify(verdictCounts), now).run();
+    } else {
+      const verdictCounts = JSON.parse(existing.verdict_counts || '{}');
+      if (verdict && verdictCounts[verdict] !== undefined) {
+        verdictCounts[verdict] = (verdictCounts[verdict] || 0) + 1;
+      }
+      await env.DB.prepare(
+        `UPDATE user_taste_profile SET verdict_counts = ?, total_tastings = total_tastings + 1, last_updated = ?
+         WHERE user_id = ? AND account_id = ?`
+      ).bind(JSON.stringify(verdictCounts), now, userId, accountId).run();
+    }
+  } catch { /* silent — profile is non-critical */ }
+}
 
 // ── Routes ──
 const routes: [string, string, Handler][] = [
@@ -7761,6 +8507,7 @@ const routes: [string, string, Handler][] = [
   ['POST', '/api/admin/migrate-tasting', handleMigrateTasting],
 
   // Events — Public
+  ['GET', '/api/events', handleListPublicEvents],
   ['GET', '/api/events/:slug/public', handleGetEventBySlug],
   ['POST', '/api/events/:slug/rsvp', handleRSVP],
   ['GET', '/api/events/:slug/availability', handleGetEventAvailability],
@@ -7924,6 +8671,37 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/products/:id/articles', articleProductXref.listByProduct],
   ['GET', '/api/products/:id/modules', moduleProductXref.listByProduct],
   ['GET', '/api/products/:id/projects', projectProductXref.listByProduct],
+
+  // Me / Profile
+  ['GET', '/api/me/profile', handleGetMyProfile],
+  ['GET', '/api/me/queue', handleGetMyQueue],
+  ['GET', '/api/me/wishlist', handleGetMyWishlist],
+  ['GET', '/api/members/search', handleMemberSearch],
+
+  // Co-Tasting Sessions
+  ['POST', '/api/sessions', handleCreateSession],
+  ['GET', '/api/sessions/:id', handleGetSession],
+  ['GET', '/api/sessions/join/:token', handleGetSessionByToken],
+  ['POST', '/api/sessions/:id/join', handleJoinSession],
+  ['POST', '/api/sessions/:id/teas/:teaId/verdict', handleSubmitSessionVerdict],
+  ['GET', '/api/sessions/:id/verdicts', handleGetSessionVerdicts],
+  ['POST', '/api/sessions/:id/complete', handleCompleteSession],
+
+  // Member Connections
+  ['GET', '/api/connections', handleGetConnections],
+  ['POST', '/api/connections/invite', handleInviteConnection],
+  ['POST', '/api/connections/invites/:id/accept', handleAcceptConnectionInvite],
+
+  // Compass Entry Feedback
+  ['GET', '/api/compass/entries/:id/feedback', handleGetEntryFeedback],
+
+  // Table Share (QR)
+  ['POST', '/api/compass/entries/:id/table-share', handleCreateTableShare],
+  ['GET', '/api/t/:token', handleGetTableCard],
+  ['POST', '/api/t/:token/verdict', handleSubmitTableVerdict],
+
+  // Gift Sample RPC
+  ['POST', '/api/rpc/gift-sample', handleGiftSample],
 ];
 
 const ALLOWED_ORIGINS = [

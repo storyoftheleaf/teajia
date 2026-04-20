@@ -22,6 +22,7 @@ const CURRENCY_LABELS: Record<Currency, string> = {
   IDR: 'Rp',
   JPY: '¥',
   HKD: 'HK$',
+  AUD: 'A$',
   UNK: '?',
 };
 

@@ -472,7 +472,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                     <Check size={15} />
                     {saveState === 'idle' && 'Save'}
                     {saveState === 'saving' && 'Saving…'}
-                    {saveState === 'saved' && 'Saved ✓'}
+                    {saveState === 'saved' && 'Saved'}
                   </motion.span>
                 </button>
               </div>

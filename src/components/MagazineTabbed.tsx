@@ -7,7 +7,7 @@ import { ContributorDrawer } from './ContributorDrawer';
 
 // ── Types ──────────────────────────────────────────────────────
 type CardStyle = 'split' | 'hero' | 'mixed' | 'covers' | 'offset' | 'zigzag';
-type MagazineTab = 'articles' | 'visual';
+type MagazineTab = 'articles' | 'visual' | 'tea-inspire';
 
 interface MagazineTabbedProps {
   stories: Story[];

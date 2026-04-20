@@ -50,7 +50,7 @@ export const Button: React.FC<ButtonProps> = ({
       whileHover={!disabled ? { y: -1 } : undefined}
       whileTap={!disabled ? { scale: 0.97 } : undefined}
       transition={{ duration: 0.15 }}
-      {...props}
+      {...(props as any)}
     >
       {loading ? (
         <LoadingSpinner size="sm" className={variant === 'primary' ? 'border-t-tea-bg' : 'border-t-tea-gold'} />

@@ -27,7 +27,7 @@ export const TeawareAlcoveModal: React.FC<TeawareAlcoveModalProps> = ({
   const [touchStartTime, setTouchStartTime] = useState<number | null>(null);
   const [swipeOffset, setSwipeOffset] = useState(0);
 
-  const slideTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const slideTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const cardRef = useRef<HTMLDivElement>(null);
   const justNavigatedRef = useRef(false);
 

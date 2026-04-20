@@ -22,6 +22,7 @@ const CURRENCY_SYMBOLS: Record<Currency, string> = {
   JPY: '¥',
   MYR: 'RM',
   HKD: 'HK$',
+  AUD: 'A$',
   UNK: '',
 };
 

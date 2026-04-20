@@ -34,41 +34,60 @@ function getSupportedMimeType(): string {
 
 // ── Tasting artifact renderer ────────────────────────────────────────────────
 
+const ARTIFACT_DOT: Record<string, string> = {
+  body: '#a08060',
+  flavor: '#9a7a6a',
+  finish: '#8a8a72',
+  feeling: '#7a9a80',
+};
+
 const TastingArtifact: React.FC<{ snapshot: TastingData }> = ({ snapshot }) => {
-  const tags: string[] = [
-    ...(snapshot.body ?? []),
-    ...(snapshot.flavor ?? []),
-    ...(snapshot.finish ?? []),
-    ...(snapshot.feeling ?? []),
-  ].slice(0, 6);
+  const groups = [
+    { cat: 'body',    color: ARTIFACT_DOT.body,    terms: snapshot.body ?? [] },
+    { cat: 'flavor',  color: ARTIFACT_DOT.flavor,  terms: snapshot.flavor ?? [] },
+    { cat: 'finish',  color: ARTIFACT_DOT.finish,  terms: snapshot.finish ?? [] },
+    { cat: 'feeling', color: ARTIFACT_DOT.feeling, terms: snapshot.feeling ?? [] },
+  ];
+  const allTerms = groups.flatMap(g => g.terms.map(t => ({ t, color: g.color })));
+  const visible = allTerms.slice(0, 7);
+  const overflow = allTerms.length - visible.length;
 
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-2">
       {snapshot.quality != null && (
-        <div className="flex items-baseline gap-1">
-          <span className="text-tea-gold font-semibold text-[15px]" style={{ fontFamily: 'var(--font-mono)' }}>
-            {snapshot.quality}
+        <div className="flex items-center gap-2">
+          <div className="flex-1 h-[2px] rounded-full overflow-hidden bg-tea-elevated">
+            <div
+              className="h-full rounded-full"
+              style={{ width: `${snapshot.quality * 10}%`, background: 'linear-gradient(90deg, #d4ac6666, #b8924e)' }}
+            />
+          </div>
+          <span className="text-[12px] font-semibold tabular-nums text-tea-gold shrink-0" style={{ fontFamily: 'var(--font-mono)' }}>
+            {snapshot.quality}<span className="text-tea-text-dim font-normal text-[10px]">/10</span>
           </span>
-          <span className="text-tea-text-dim text-[11px]">/10</span>
         </div>
       )}
-      {tags.length > 0 && (
-        <div className="flex flex-wrap gap-1">
-          {tags.map(t => (
-            <span key={t} className="text-[11px] text-tea-text-sec bg-tea-bg px-2 py-0.5 rounded-full">
+      {visible.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {visible.map(({ t, color }) => (
+            <span key={t} className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] text-tea-text-sec bg-tea-bg border border-tea-border">
+              <span className="shrink-0 rounded-full" style={{ width: 5, height: 5, background: color, display: 'inline-block', opacity: 0.85 }} />
               {t}
             </span>
           ))}
+          {overflow > 0 && (
+            <span className="self-center text-[10px] text-tea-text-dim">+{overflow}</span>
+          )}
         </div>
       )}
       {snapshot.huiGan && (
-        <div className="flex items-center gap-1 text-[11px] text-tea-gold/70">
-          <Sparkles size={10} />
-          Hui gan
-        </div>
+        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-tea-gold/80">
+          <Sparkles size={9} />
+          回甘
+        </span>
       )}
       {snapshot.cleanliness && (
-        <span className="text-[11px] text-tea-text-dim capitalize">{snapshot.cleanliness}</span>
+        <span className="text-[10px] text-tea-text-dim capitalize">{snapshot.cleanliness}</span>
       )}
     </div>
   );
@@ -246,6 +265,8 @@ interface NoteThreadProps {
   compact?: boolean;
   /** Hide the mic button — when recording is handled externally (e.g. bottom bar) */
   hideMic?: boolean;
+  /** Suppress tasting artifact cards — use when TastingProfileStrip already shows the same data */
+  hideTastingArtifacts?: boolean;
 }
 
 type RecState = 'idle' | 'recording' | 'transcribing';
@@ -256,6 +277,7 @@ export const NoteThread: React.FC<NoteThreadProps> = ({
   defaultVisibility = 'private',
   compact = false,
   hideMic = false,
+  hideTastingArtifacts = false,
 }) => {
   const { addNote, notes: allNotes } = useNotesStore();
   const { activeAccountId, activeAccount } = useAppStore();
@@ -287,12 +309,13 @@ export const NoteThread: React.FC<NoteThreadProps> = ({
     const seen = new Set<string>();
     return allNotes.filter(n => {
       if (n.deleted) return false;
+      if (hideTastingArtifacts && n.sourceType === 'tasting') return false;
       const match = (teaKey && n.teaKey === teaKey) || (compassEntryId && n.compassEntryId === compassEntryId);
       if (!match || seen.has(n.id)) return false;
       seen.add(n.id);
       return true;
     });
-  }, [allNotes, teaKey, compassEntryId]);
+  }, [allNotes, teaKey, compassEntryId, hideTastingArtifacts]);
 
   // Show attribution only when multiple unique authors exist
   const multipleAuthors = useMemo(() => {

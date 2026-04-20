@@ -98,7 +98,7 @@ export const Icons = {
   Magazine: MagazineIcon,
   Shop: ShopIcon,
   Camera: Camera,
-  Heart,
+  Heart: ({ filled, ...props }: { filled?: boolean } & React.ComponentProps<typeof Heart>) => <Heart fill={filled ? 'currentColor' : 'none'} {...props} />,
   Bookmark,
   Eye,
   EyeSlash: EyeOff,

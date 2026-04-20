@@ -17,6 +17,7 @@ import {
 } from '../../data/tastingTaxonomy';
 import { useProductEvents } from '../../hooks/useProductEvents';
 import { useStories } from '../../context/StoryContext';
+import { useAuth } from '../../hooks/useAuth';
 
 interface AlcoveCardProps {
   item: InventoryItem;
@@ -92,8 +93,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   const [sampleDone, setSampleDone] = useState(false);
   const [sampleError, setSampleError] = useState<string | null>(null);
 
-  // Check if user is authenticated by looking for a stored token
-  const isLoggedIn = typeof localStorage !== 'undefined' && !!localStorage.getItem('teajia_token');
+  const { isAuthenticated: isLoggedIn } = useAuth();
 
   const handleSampleClick = () => {
     setSampleModalOpen(true);
@@ -815,7 +815,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                 return (
                   <button
                     key={evt.id}
-                    onClick={() => navigate(`/events/${evt.slug}`)}
+                    onClick={() => navigate(`/event/${evt.slug}`)}
                     style={{
                       display: "flex", alignItems: "center", gap: "10px",
                       background: "var(--tea-accent-sub)",
@@ -930,9 +930,9 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                     e.currentTarget.style.borderColor = "var(--tea-border)";
                   }}
                 >
-                  {article.image ? (
+                  {article.thumbnailUrl ? (
                     <img
-                      src={article.image}
+                      src={article.thumbnailUrl}
                       alt=""
                       style={{
                         width: "36px", height: "36px",

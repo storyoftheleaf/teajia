@@ -34,7 +34,7 @@ export const AlcoveModal: React.FC<AlcoveModalProps> = ({
 
   // Slide transition direction
   const [slideDirection, setSlideDirection] = useState<'left' | 'right' | null>(null);
-  const slideTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const slideTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const cardRef = useRef<HTMLDivElement>(null);
   const justNavigatedRef = useRef(false);
 

@@ -210,6 +210,7 @@ const STATUS_STYLES: Record<EventStatus, string> = {
   active: 'bg-tea-gold/15 text-tea-gold',
   closed: 'bg-tea-text-sec/10 text-tea-text-sec',
   archived: 'bg-tea-text-sec/10 text-tea-text-sec line-through',
+  completed: 'bg-tea-text-sec/10 text-tea-text-sec',
 };
 
 function formatEventDate(dateStr: string): string {
@@ -235,6 +236,12 @@ export const EventDetail: React.FC = () => {
   const [closingRsvp, setClosingRsvp] = useState(false);
   const [savingBriefing, setSavingBriefing] = useState(false);
   const [briefingCards, setBriefingCards] = useState<BriefingCard[] | null>(null);
+
+  const { data: tastingNotes = [] } = useQuery<TastingNote[]>({
+    queryKey: ['event-tasting-notes', id],
+    queryFn: () => api.events.getTastingNotes(id!),
+    enabled: !!id,
+  });
 
   if (isLoading || !event) {
     return (
@@ -283,12 +290,6 @@ export const EventDetail: React.FC = () => {
       setSavingBriefing(false);
     }
   };
-
-  const { data: tastingNotes = [] } = useQuery<TastingNote[]>({
-    queryKey: ['event-tasting-notes', id],
-    queryFn: () => api.events.getTastingNotes(id!),
-    enabled: !!id,
-  });
 
   const TABS: { key: TabKey; label: string; badge?: number }[] = [
     { key: 'requests', label: 'Requests', badge: requestedCount },

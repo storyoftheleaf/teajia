@@ -208,21 +208,21 @@ const EventLanding: React.FC = () => {
   const showWaitlist = !isCompleted && !isCancelled && isFull;
   const showInterestOnly = isCompleted || isCancelled;
 
+  const teaGradients: Record<string, string[]> = {
+    'aged-liu-bao-may-2026': ['#3d2817', '#1a0e08', '#5a3a20'],
+    'yancha-workshop-may-2026': ['#4a2818', '#1f0d05', '#6b3a1e'],
+    'quiet-sitting-may-2026': ['#1f1a14', '#0c0a08', '#2e2820'],
+    'wild-puerh-may-2026': ['#3a2a15', '#1a1108', '#544020'],
+  };
+  const gradientColors = (slug && teaGradients[slug]) || ['#3d2817', '#1a0e08', '#5a3a20'];
+
   return (
     <div className="min-h-screen bg-tea-bg animate-[fadeIn_0.5s_ease-out]">
-      {/* Hero / Flyer Image */}
-      {event.flyerImageUrl && (
-        <div ref={heroRef} className="relative w-full pb-6">
-          <div
-            className="w-full overflow-hidden"
-            style={{ maxHeight: '70vh' }}
-          >
-            <div
-              style={{
-                transform: `translateY(${parallaxOffset}px)`,
-                transition: 'transform 0.1s linear',
-              }}
-            >
+      {/* Hero — flyer image or gradient fallback */}
+      <div ref={heroRef} className="relative w-full pb-6">
+        {event.flyerImageUrl ? (
+          <div className="w-full overflow-hidden" style={{ maxHeight: '70vh' }}>
+            <div style={{ transform: `translateY(${parallaxOffset}px)`, transition: 'transform 0.1s linear' }}>
               <img
                 src={event.flyerImageUrl}
                 alt={event.title}
@@ -232,12 +232,42 @@ const EventLanding: React.FC = () => {
             </div>
             <div className="absolute inset-x-0 top-0 bottom-6 bg-gradient-to-t from-tea-bg via-tea-bg/20 to-transparent pointer-events-none" />
           </div>
-          {/* Availability badge hanging below hero */}
-          <div className="absolute bottom-0 left-1/2 -translate-x-1/2">
-            <AvailabilityBadge slug={slug!} />
+        ) : (
+          <div
+            className="w-full relative overflow-hidden"
+            style={{
+              height: '280px',
+              background: `radial-gradient(ellipse at 30% 40%, ${gradientColors[2]} 0%, ${gradientColors[0]} 50%, ${gradientColors[1]} 100%)`,
+            }}
+          >
+            <div
+              className="absolute inset-0"
+              style={{ background: `radial-gradient(circle at 70% 30%, rgba(184,146,78,0.13) 0%, transparent 40%)` }}
+            />
+            <div
+              className="absolute bottom-0 left-0 right-0"
+              style={{ height: '50%', background: `linear-gradient(to top, var(--color-tea-bg, #18130e), transparent)` }}
+            />
           </div>
+        )}
+
+        {/* Back button */}
+        <button
+          onClick={() => navigate(-1)}
+          className="absolute top-3 left-4 z-10 flex items-center justify-center w-9 h-9 rounded-full"
+          style={{ background: 'rgba(24,19,14,0.6)', backdropFilter: 'blur(8px)', border: 'none' }}
+          aria-label="Back"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+            <path d="M19 12H5m7-7l-7 7 7 7"/>
+          </svg>
+        </button>
+
+        {/* Availability badge hanging below hero */}
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2">
+          <AvailabilityBadge slug={slug!} />
         </div>
-      )}
+      </div>
 
       {/* Content */}
       <div className="max-w-xl mx-auto px-6 py-10">
@@ -274,9 +304,6 @@ const EventLanding: React.FC = () => {
               <span className="text-xs">{event.areaHint ?? event.locationName}</span>
             </div>
           )}
-
-          {/* No flyer — badge here */}
-          {!event.flyerImageUrl && <AvailabilityBadge slug={slug!} className="mb-6" />}
 
           {/* Social proof */}
           {(event.confirmedCount ?? 0) > 0 && !isCompleted && (

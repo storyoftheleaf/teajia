@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Loader2, Calendar, Copy, Users, Clock, Bell, Search, X } from 'lucide-react';
+import { Plus, Loader2, Calendar, Copy, Bell, Search, X } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useEvents } from '../hooks/useEventData';
 import { useToast } from './Toast';
@@ -13,6 +13,7 @@ const STATUS_STYLES: Record<EventStatus, string> = {
   active: 'bg-tea-gold/15 text-tea-gold',
   closed: 'bg-tea-text-sec/10 text-tea-text-sec',
   archived: 'bg-tea-text-sec/10 text-tea-text-sec line-through',
+  completed: 'bg-tea-text-sec/10 text-tea-text-sec',
 };
 
 function formatEventDate(dateStr: string): string {
@@ -109,19 +110,19 @@ export const EventsManager: React.FC = () => {
 
       {/* Search */}
       {events.length > 0 && (
-        <div className="relative mb-5">
-          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-text-sec pointer-events-none" />
+        <div className="relative mb-6">
+          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-text-dim pointer-events-none" />
           <input
             type="text"
             value={searchRaw}
             onChange={e => setSearchRaw(e.target.value)}
             placeholder="Search by title, date, location, or status…"
-            className="w-full pl-9 pr-8 py-2 text-sm bg-tea-surface border border-tea-border rounded-md text-tea-text placeholder:text-tea-text-sec/50 focus:outline-none focus:border-tea-gold focus-visible:ring-2 focus-visible:ring-tea-gold/40"
+            className="w-full pl-9 pr-8 py-2.5 text-sm bg-tea-surface/60 border border-tea-border text-tea-text placeholder:text-tea-text-dim/50 focus:outline-none focus:border-tea-gold/50 transition-colors rounded-sm"
           />
           {searchRaw && (
             <button
               onClick={() => setSearchRaw('')}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-tea-text-sec hover:text-tea-text transition-colors"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-tea-text-dim hover:text-tea-text transition-colors"
               aria-label="Clear search"
             >
               <X size={13} />
@@ -132,106 +133,96 @@ export const EventsManager: React.FC = () => {
 
       {/* Event List */}
       {events.length === 0 ? (
-        <div className="bg-tea-surface border border-tea-border rounded-md p-12 text-center">
-          <Calendar className="mx-auto mb-4 text-tea-text-sec" size={32} />
-          <p className="text-tea-text-sec text-sm mb-4">No events yet</p>
+        <div className="py-20 text-center">
+          <Calendar className="mx-auto mb-4 text-tea-text-dim/30" size={28} />
+          <p className="font-serif italic text-sm text-tea-text-sec mb-6">No gatherings yet.</p>
           <button
             onClick={() => setIsFormOpen(true)}
-            className="inline-flex items-center gap-2 bg-tea-gold text-tea-bg px-4 py-2 rounded-md text-sm font-medium hover:bg-tea-gold-lt transition-colors"
+            className="inline-flex items-center gap-2 bg-tea-gold text-tea-bg px-5 py-2.5 text-xs font-semibold uppercase tracking-[0.2em] hover:bg-tea-gold-lt transition-colors rounded-sm"
           >
-            <Plus size={14} />
+            <Plus size={13} />
             Create your first event
           </button>
         </div>
       ) : filteredEvents.length === 0 ? (
-        <div className="bg-tea-surface border border-tea-border rounded-md p-8 text-center">
-          <p className="text-tea-text-sec text-sm">No events match "{searchQuery}"</p>
+        <div className="py-12 text-center">
+          <p className="text-sm text-tea-text-sec">No events match &ldquo;{searchQuery}&rdquo;</p>
           <button onClick={() => setSearchRaw('')} className="mt-2 text-xs text-tea-gold hover:text-tea-gold-lt transition-colors">Clear search</button>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="border-t border-tea-border">
           {filteredEvents.map((event, index) => {
             const confirmed = (event as any).confirmedCount || 0;
             const waitlist = (event as any).waitlistCount || 0;
             const requested = (event as any).requestedCount || 0;
-            const capacityPct = event.totalCapacity > 0 ? Math.min((confirmed / event.totalCapacity) * 100, 100) : 0;
+            const seatsRemaining = event.totalCapacity - confirmed;
+            const isFull = seatsRemaining <= 0;
+
+            const d = new Date(event.eventDate);
+            const dayName = d.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
+            const dateNum = String(d.getDate()).padStart(2, '0');
+            const monthName = d.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
+            const timeStr = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
 
             return (
               <motion.div
                 key={event.id}
-                initial={{ opacity: 0, y: 8 }}
+                initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.04 }}
                 onClick={() => navigate(`/admin/events/${event.id}`)}
-                className="bg-tea-surface border border-tea-border rounded-md p-4 cursor-pointer hover:border-tea-gold/30 transition-all group"
+                className="flex gap-5 py-5 border-b border-tea-border cursor-pointer hover:opacity-75 transition-opacity group"
               >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <h3 className="text-sm font-medium text-tea-text truncate">{event.title}</h3>
-                      <span className={`text-[10px] uppercase tracking-[0.15em] px-2 py-0.5 rounded-full font-medium ${STATUS_STYLES[event.status]}`}>
-                        {event.status}
-                      </span>
-                      {event.format && event.format !== 'private_tasting' && (
-                        <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-tea-text-sec/10 text-tea-text-sec capitalize">
-                          {event.format.replace(/_/g, ' ')}
-                        </span>
-                      )}
-                      {/* Request count badge */}
-                      {requested > 0 && (
-                        <span className="flex items-center gap-1 text-[10px] bg-amber-500/15 text-amber-400 px-2 py-0.5 rounded-full font-medium">
-                          <Bell size={9} className="shrink-0" />
-                          {requested} request{requested !== 1 ? 's' : ''}
-                        </span>
-                      )}
-                    </div>
+                {/* Date column */}
+                <div className="w-14 shrink-0 text-center pt-0.5">
+                  <div className="text-[9px] tracking-[0.25em] text-tea-text-dim uppercase">{dayName}</div>
+                  <div className="font-serif text-[30px] font-normal text-tea-text leading-none mt-0.5">{dateNum}</div>
+                  <div className="text-[9px] tracking-[0.2em] text-tea-text-dim mt-0.5">{monthName}</div>
+                </div>
 
-                    {event.subtitle && (
-                      <p className="text-xs text-tea-text-sec truncate mb-1">{event.subtitle}</p>
-                    )}
-
-                    <div className="flex items-center gap-4 text-[11px] text-tea-text-sec mt-2 flex-wrap">
-                      <span className="flex items-center gap-1">
-                        <Clock size={11} />
-                        {formatEventDate(event.eventDate)}
-                      </span>
-                      {event.areaHint ? (
-                        <span className="truncate">{event.areaHint}</span>
-                      ) : event.locationName ? (
-                        <span className="truncate">{event.locationName}</span>
-                      ) : null}
-                    </div>
-
-                    {/* Capacity bar */}
-                    <div className="mt-3 flex items-center gap-3">
-                      <div className="flex-1 max-w-[200px]">
-                        <div className="h-1.5 bg-tea-bg rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-tea-gold rounded-full transition-all duration-500"
-                            style={{ width: `${capacityPct}%` }}
-                          />
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3 text-[10px] text-tea-text-sec flex-wrap">
-                        <span className="flex items-center gap-1">
-                          <Users size={10} />
-                          {confirmed}/{event.totalCapacity}
+                {/* Content */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                        <h3 className="font-serif text-base font-medium text-tea-text leading-snug">{event.title}</h3>
+                        <span className={`text-[9px] uppercase tracking-[0.2em] px-1.5 py-0.5 font-semibold ${STATUS_STYLES[event.status]}`}>
+                          {event.status}
                         </span>
-                        {waitlist > 0 && (
-                          <span className="text-tea-gold">+{waitlist} waitlist</span>
+                        {requested > 0 && (
+                          <span className="flex items-center gap-1 text-[9px] bg-amber-500/15 text-amber-400 px-1.5 py-0.5 font-semibold uppercase tracking-[0.15em]">
+                            <Bell size={8} className="shrink-0" />
+                            {requested}
+                          </span>
                         )}
                       </div>
+                      {event.subtitle && (
+                        <p className="font-serif italic text-[13px] text-tea-text-sec leading-snug">{event.subtitle}</p>
+                      )}
+                      <div className="flex items-center gap-2 mt-2 text-[11px] text-tea-text-dim flex-wrap">
+                        <span>{timeStr}</span>
+                        {(event.areaHint || event.locationName) && (
+                          <>
+                            <span className="w-[3px] h-[3px] rounded-full bg-tea-text-dim shrink-0" />
+                            <span>{event.areaHint ?? event.locationName}</span>
+                          </>
+                        )}
+                        <span className={`ml-auto font-medium tabular-nums ${isFull ? 'text-red-400' : 'text-tea-gold'}`}>
+                          {isFull ? 'Full' : `${seatsRemaining}/${event.totalCapacity} seats`}
+                          {waitlist > 0 && <span className="text-tea-text-dim ml-1">+{waitlist}</span>}
+                        </span>
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Duplicate button */}
-                  <button
-                    onClick={(e) => handleDuplicate(e, event)}
-                    className="p-2 text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated rounded transition-colors opacity-0 group-hover:opacity-100"
-                    title="Duplicate event"
-                  >
-                    <Copy size={14} />
-                  </button>
+                    {/* Duplicate button */}
+                    <button
+                      onClick={(e) => handleDuplicate(e, event)}
+                      className="p-2 text-tea-text-dim hover:text-tea-text-sec transition-colors opacity-0 group-hover:opacity-100 shrink-0 mt-0.5"
+                      title="Duplicate event"
+                    >
+                      <Copy size={13} />
+                    </button>
+                  </div>
                 </div>
               </motion.div>
             );

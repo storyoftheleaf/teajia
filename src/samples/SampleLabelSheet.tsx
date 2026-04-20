@@ -35,7 +35,7 @@ function LabelCell({ sample, size, qrBaseUrl }: { sample: LabelItem; size: 'smal
           value={qrValue}
           size={qrPx}
           level="M"
-          marginSize={0}
+          {...({ marginSize: 0 } as any)}
           bgColor="transparent"
           fgColor="#000000"
         />

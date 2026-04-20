@@ -11,6 +11,7 @@ interface TeaPlaceholderProps {
   type: string;
   style?: React.CSSProperties;
   className?: string;
+  size?: number;
 }
 
 const teaColors: Record<string, string> = {

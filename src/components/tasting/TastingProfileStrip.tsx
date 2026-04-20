@@ -12,9 +12,19 @@ import type { TastingData } from '../../types';
 import type { TastingCategoryId } from '../../data/tastingTaxonomy';
 
 interface TastingProfileStripProps {
-  value: TastingData;
-  onRemove: (categoryId: TastingCategoryId, termId: string) => void;
+  value?: TastingData;
+  tasting?: TastingData;
+  onRemove?: (categoryId: TastingCategoryId, termId: string) => void;
+  variant?: string | 'cloud';
 }
+
+const CATEGORY_DOT_COLORS: Record<string, string> = {
+  body: '#a08060',
+  feeling: '#7a9a80',
+  flavor: '#9a7a6a',
+  finish: '#8a8a72',
+  'liquor-color': '#8a7a6a',
+};
 
 /** Category display labels - small uppercase */
 const CATEGORY_LABELS: Record<string, string> = {
@@ -56,8 +66,9 @@ const CATEGORY_TINT_CLASSES: Record<string, string> = {
 const MAX_VISIBLE = 8;
 const COLLAPSED_SHOW = 6;
 
-const TastingProfileStripInner: React.FC<TastingProfileStripProps> = ({ value, onRemove }) => {
+const TastingProfileStripInner: React.FC<TastingProfileStripProps> = ({ value, tasting, onRemove, variant }) => {
   const [expanded, setExpanded] = useState(false);
+  const data = tasting ?? value ?? {};
 
   // Group terms by category following the canonical order
   const groupedTerms = TASTING_CATEGORY_ORDER
@@ -65,7 +76,7 @@ const TastingProfileStripInner: React.FC<TastingProfileStripProps> = ({ value, o
       categoryId: catId,
       label: CATEGORY_LABELS[catId] || catId.toUpperCase(),
       tintClass: CATEGORY_TINT_CLASSES[catId] || 'bg-tea-surface',
-      terms: value[catId] || [],
+      terms: (data as any)[catId] || [],
     }))
     .filter(g => g.terms.length > 0);
 
@@ -73,6 +84,72 @@ const TastingProfileStripInner: React.FC<TastingProfileStripProps> = ({ value, o
   const totalTerms = groupedTerms.reduce((sum, g) => sum + g.terms.length, 0);
 
   if (totalTerms === 0) return null;
+
+  // ── Cloud variant: unified note cloud with dot-coded categories ──────────
+  if (variant === 'cloud') {
+    const nonColorGroups = groupedTerms.filter(g => g.categoryId !== 'liquor-color');
+    const colorGroup = groupedTerms.find(g => g.categoryId === 'liquor-color');
+    const activeCats = groupedTerms.filter(g => g.terms.length > 0 && g.categoryId !== 'liquor-color');
+
+    return (
+      <div className="space-y-2">
+        {/* Legend row — non-color categories only */}
+        {activeCats.length > 1 && (
+          <div className="flex flex-wrap gap-x-3 gap-y-1">
+            {activeCats.map(group => (
+              <span key={group.categoryId} className="inline-flex items-center gap-1 text-[9px] text-tea-text-dim tracking-wide uppercase">
+                <span className="shrink-0 rounded-full" style={{ width: 5, height: 5, background: CATEGORY_DOT_COLORS[group.categoryId] ?? '#8a8a80', display: 'inline-block', opacity: 0.9 }} />
+                {CATEGORY_LABELS[group.categoryId] ?? group.categoryId}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* Tag cloud — all non-color terms */}
+        <div className="flex flex-wrap gap-1.5">
+          {nonColorGroups.map(group =>
+            group.terms.map(termId => {
+              const dotColor = CATEGORY_DOT_COLORS[group.categoryId] ?? '#8a8a80';
+              const label = resolveTermLabel(termId);
+              return (
+                <button
+                  key={`${group.categoryId}-${termId}`}
+                  type="button"
+                  onClick={() => onRemove?.(group.categoryId as TastingCategoryId, termId)}
+                  className="tag group"
+                  style={{ gap: '6px' }}
+                >
+                  <span className="shrink-0 rounded-full" style={{ width: 6, height: 6, background: dotColor, display: 'inline-block', opacity: 0.7 }} />
+                  {label}
+                  {onRemove && <X size={8} className="shrink-0 opacity-0 group-hover:opacity-50 transition-opacity" />}
+                </button>
+              );
+            })
+          )}
+
+          {/* Liquor-color swatches — rendered as color circles, not text pills */}
+          {colorGroup?.terms.map(termId => {
+            const hex = LIQUOR_COLORS[termId] ?? '#888';
+            const label = resolveTermLabel(termId);
+            return (
+              <button
+                key={`liquor-${termId}`}
+                type="button"
+                title={label}
+                onClick={() => onRemove?.('liquor-color', termId)}
+                className="group inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] text-tea-text-dim hover:text-tea-text transition-colors"
+                style={{ background: `${hex}22`, border: `1px solid ${hex}55` }}
+              >
+                <span className="shrink-0 rounded-full" style={{ width: 10, height: 10, background: hex, display: 'inline-block', boxShadow: `0 0 0 1px ${hex}80` }} />
+                {label}
+                {onRemove && <X size={8} className="shrink-0 opacity-0 group-hover:opacity-50 transition-opacity" />}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
 
   // Determine if we need compact mode
   const needsCompact = totalTerms > MAX_VISIBLE && !expanded;
@@ -159,7 +236,7 @@ const TastingProfileStripInner: React.FC<TastingProfileStripProps> = ({ value, o
                 </span>
                 <button
                   type="button"
-                  onClick={() => onRemove(group.categoryId, termId)}
+                  onClick={() => onRemove?.(group.categoryId, termId)}
                   className="group flex items-center gap-1 ml-1"
                 >
                   {hex ? (
@@ -217,7 +294,7 @@ const TastingProfileStripInner: React.FC<TastingProfileStripProps> = ({ value, o
                         exit={{ opacity: 0, scale: 0.6 }}
                         transition={{ duration: 0.18 }}
                         whileTap={{ scale: 0.9 }}
-                        onClick={() => onRemove(group.categoryId, termId)}
+                        onClick={() => onRemove?.(group.categoryId, termId)}
                         className={`tag group shrink-0 cursor-pointer hover:bg-tea-gold/20 transition-colors ${group.tintClass}`}
                       >
                         {hex ? (

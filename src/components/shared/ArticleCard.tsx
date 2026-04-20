@@ -13,6 +13,7 @@ interface ArticleCardProps {
   isSaved?: boolean;
   authorName?: string;
   onAuthorClick?: (e: React.MouseEvent) => void;
+  aspectRatio?: string;
 }
 
 const CATEGORY_LABELS: Record<string, string> = {

@@ -68,7 +68,7 @@ function getClassNames(direction: 'up' | 'left' | 'right' | 'fade', visible: boo
  *  @param direction - reveal direction: 'up' (default), 'left', 'right', or 'fade'
  */
 export function useSectionReveal(direction: 'up' | 'left' | 'right' | 'fade' = 'up') {
-  const ref = useRef<HTMLElement>(null);
+  const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {

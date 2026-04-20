@@ -295,7 +295,7 @@ const FormatToolbar = ({ position, onFormat }: { position: { top: number; left: 
   );
 };
 
-const EditableText = ({ value, onChange, className = "", placeholder = "Type here...", tag = "p", readOnly = false, delay = 0 }: { value: string; onChange?: (val: string) => void; className?: string; placeholder?: string; tag?: any; readOnly?: boolean; delay?: number; }) => {
+const EditableText = ({ value, onChange, className = "", placeholder = "Type here...", tag = "p", readOnly = false, delay = 0 }: { value: string; onChange?: (val: string) => void; className?: string; placeholder?: string; tag?: any; readOnly?: boolean; delay?: number; style?: React.CSSProperties; }) => {
   const contentRef = useRef<HTMLElement>(null);
   const [toolbarPos, setToolbarPos] = useState<{top: number, left: number} | null>(null);
   const [isFocused, setIsFocused] = useState(false);

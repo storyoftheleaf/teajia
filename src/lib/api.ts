@@ -243,14 +243,22 @@ async function handleResponse(res: Response) {
     // token and succeed. Only if the refresh itself fails do we give up
     // and fire SESSION_EXPIRED so the UI can prompt a re-login.
     if (res.status === 401 && hasToken()) {
-      const refreshResult = await ensureTokenRefreshed();
-      if (refreshResult === 'rejected') {
-        clearToken();
-        window.dispatchEvent(new CustomEvent(SESSION_EXPIRED_EVENT));
+      const reason = data?.reason as string | undefined;
+
+      // 'no_token' means the server received no Authorization header — the
+      // frontend forgot to send auth headers for that call. This is a client-side
+      // bug, not an expired session: the user's token is still valid. Attempting
+      // a refresh would be pointless and could falsely fire SESSION_EXPIRED.
+      if (reason !== 'no_token') {
+        const refreshResult = await ensureTokenRefreshed();
+        if (refreshResult === 'rejected') {
+          clearToken();
+          window.dispatchEvent(new CustomEvent(SESSION_EXPIRED_EVENT));
+        }
+        // 'network_error': keep the token — transient issue, next call may succeed.
+        // 'refreshed': new token stored; the *original* request already failed but
+        //              the caller's next attempt will use the new token.
       }
-      // 'network_error': keep the token — transient issue, next call may succeed.
-      // 'refreshed': new token stored; the *original* request already failed but
-      //              the caller's next attempt will use the new token.
     }
     // Detect account access denial — clear active account and prompt UI reload
     if (res.status === 403 && data?.error === 'Account access denied') {
@@ -492,7 +500,9 @@ export const api = {
       return handleResponse(res);
     },
     getEvents: async (id: string) => {
-      const res = await fetchWithTimeout(`${API_URL}/api/products/${id}/events`);
+      const res = await fetchWithTimeout(`${API_URL}/api/products/${id}/events`, {
+        headers: authHeaders(),
+      });
       return handleResponse(res);
     },
   },
@@ -721,6 +731,14 @@ export const api = {
       });
       return handleResponse(res);
     },
+    giftSample: async (data: { customer_user_id: string; entry_ids: string[]; note?: string }) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/rpc/gift-sample`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
   },
 
   stockHolds: {
@@ -836,7 +854,7 @@ export const api = {
     return handleResponse(res);
   },
 
-  uploadImage: async (file: File) => {
+  uploadImage: async (file: File | Blob) => {
     const formData = new FormData();
     formData.append('file', file);
     const res = await fetchWithTimeout(`${API_URL}/api/upload-image`, {
@@ -1074,6 +1092,10 @@ export const api = {
       return handleResponse(res);
     },
     // Public endpoints
+    listPublic: async () => {
+      const res = await fetchWithTimeout(`${API_URL}/api/events`);
+      return handleResponse(res);
+    },
     getPublic: async (slug: string) => {
       const res = await fetchWithTimeout(`${API_URL}/api/events/${slug}/public`);
       return handleResponse(res);
@@ -1082,7 +1104,7 @@ export const api = {
       const res = await fetchWithTimeout(`${API_URL}/api/events/${slug}/availability`);
       return handleResponse(res);
     },
-    uploadFlyer: async (file: File) => {
+    uploadFlyer: async (file: File | Blob) => {
       const formData = new FormData();
       formData.append('file', file);
       const token = localStorage.getItem('teajia_token');
@@ -1414,6 +1436,20 @@ export const api = {
       const res = await fetchWithTimeout(`${API_URL}/api/compass/invite/${token}/claim`, {
         method: 'POST',
         headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    entryFeedback: async (entryId: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/compass/entries/${entryId}/feedback`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    createTableShare: async (entryId: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/compass/entries/${entryId}/table-share`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({}),
       });
       return handleResponse(res);
     },
@@ -1992,4 +2028,123 @@ export const api = {
       return handleResponse(res);
     },
   },
+
+  me: {
+    profile: async () => {
+      const res = await fetchWithTimeout(`${API_URL}/api/me/profile`, { headers: authHeaders() });
+      return handleResponse(res);
+    },
+    queue: async () => {
+      const res = await fetchWithTimeout(`${API_URL}/api/me/queue`, { headers: authHeaders() });
+      return handleResponse(res);
+    },
+    wishlist: async () => {
+      const res = await fetchWithTimeout(`${API_URL}/api/me/wishlist`, { headers: authHeaders() });
+      return handleResponse(res);
+    },
+  },
+
+  members: {
+    search: async (q: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/members/search?q=${encodeURIComponent(q)}`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+  },
+
+  sessions: {
+    create: async (data: { title?: string; entry_ids?: string[]; member_ids?: string[] }) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/sessions`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
+    get: async (id: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/sessions/${id}`, { headers: authHeaders() });
+      return handleResponse(res);
+    },
+    getByToken: async (token: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/sessions/join/${token}`);
+      return handleResponse(res);
+    },
+    join: async (id: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/sessions/${id}/join`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({}),
+      });
+      return handleResponse(res);
+    },
+    submitVerdict: async (sessionId: string, teaId: string, data: {
+      verdict?: string;
+      tasting_data?: Record<string, any>;
+      notes?: string;
+    }) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/sessions/${sessionId}/teas/${teaId}/verdict`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
+    verdicts: async (id: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/sessions/${id}/verdicts`, { headers: authHeaders() });
+      return handleResponse(res);
+    },
+    complete: async (id: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/sessions/${id}/complete`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({}),
+      });
+      return handleResponse(res);
+    },
+  },
+
+  connections: {
+    list: async () => {
+      const res = await fetchWithTimeout(`${API_URL}/api/connections`, { headers: authHeaders() });
+      return handleResponse(res);
+    },
+    invite: async (data: { to_user_id: string; pending_share_id?: string }) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/connections/invite`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
+    acceptInvite: async (id: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/connections/invites/${id}/accept`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({}),
+      });
+      return handleResponse(res);
+    },
+  },
+
+  tableCard: {
+    get: async (token: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/t/${token}`);
+      return handleResponse(res);
+    },
+    submitVerdict: async (token: string, data: {
+      browser_token: string;
+      verdict: string;
+      notes?: string;
+      tasting_data?: Record<string, any>;
+    }) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/t/${token}/verdict`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
+  },
+
 };

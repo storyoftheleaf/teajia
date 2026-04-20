@@ -671,6 +671,166 @@ function trunc(s: string | undefined, n: number): string {
   return s.length > n ? s.slice(0, n - 1).trim() + '…' : s;
 }
 
+// Wraps text to fit maxWidth using the current canvas font context
+function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
+  if (!text) return [];
+  const words = text.split(/\s+/);
+  const lines: string[] = [];
+  let current = '';
+  for (const word of words) {
+    const test = current ? `${current} ${word}` : word;
+    if (current && ctx.measureText(test).width > maxWidth) {
+      lines.push(current);
+      current = word;
+    } else {
+      current = test;
+    }
+  }
+  if (current) lines.push(current);
+  return lines;
+}
+
+// Renders the share poster to an 800×1000 canvas using the page's loaded fonts
+async function renderPosterToCanvas(comp: ShareComposition, story: Story): Promise<HTMLCanvasElement> {
+  await document.fonts.ready;
+  const W = 800, H = 1000, PAD = 52;
+  const canvas = document.createElement('canvas');
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext('2d')!;
+  const root = getComputedStyle(document.documentElement);
+  const C = {
+    bg:      root.getPropertyValue('--tea-bg').trim()       || '#18130e',
+    text:    root.getPropertyValue('--tea-text').trim()     || '#ede4d6',
+    textSec: root.getPropertyValue('--tea-text-sec').trim() || '#b5a79a',
+    textDim: root.getPropertyValue('--tea-text-dim').trim() || '#7a6e66',
+    gold:    root.getPropertyValue('--tea-gold').trim()     || '#b8924e',
+  };
+  const displayFam = root.getPropertyValue('--font-display').trim() || "'Cormorant Garamond', Georgia, serif";
+  const bodyFam    = root.getPropertyValue('--font-body').trim()    || "'Lora', serif";
+  const monoFam    = root.getPropertyValue('--font-mono').trim()    || "'IBM Plex Mono', monospace";
+
+  const setDisplay = (size: number, style = 'normal') => { ctx.font = `${style} 400 ${size}px ${displayFam}`; };
+  const setBody    = (size: number, style = 'normal') => { ctx.font = `${style} 400 ${size}px ${bodyFam}`; };
+  const setMono    = (size: number)                   => { ctx.font = `400 ${size}px ${monoFam}`; };
+
+  // Background
+  ctx.fillStyle = C.bg;
+  ctx.fillRect(0, 0, W, H);
+
+  // Top mast
+  setMono(10);
+  ctx.fillStyle = C.gold;
+  ctx.textAlign = 'left';
+  ctx.fillText('TEAJIA · JOURNAL', PAD, PAD + 12);
+  ctx.fillStyle = C.textDim;
+  ctx.textAlign = 'right';
+  ctx.fillText('ISSUE 04', W - PAD, PAD + 12);
+  ctx.textAlign = 'left';
+
+  const bodyTop = PAD + 60;
+  const bodyW   = W - PAD * 2;
+
+  if (comp.type === 'cover') {
+    // Watermark
+    ctx.font = `400 280px "Ma Shan Zheng", serif`;
+    ctx.fillStyle = C.gold;
+    ctx.globalAlpha = 0.12;
+    ctx.textAlign = 'right';
+    ctx.fillText('器', W - PAD + 24, bodyTop + 210);
+    ctx.textAlign = 'left';
+    ctx.globalAlpha = 1;
+    // Label
+    setMono(10);
+    ctx.fillStyle = C.gold;
+    ctx.fillText('COVER STORY · ISSUE 04', PAD, bodyTop + 30);
+    // Title
+    setDisplay(68, 'italic');
+    ctx.fillStyle = C.text;
+    const titleLines = wrapText(ctx, trunc(comp.title, 36), bodyW);
+    let y = bodyTop + 96;
+    for (const line of titleLines) { ctx.fillText(line, PAD, y); y += 76; }
+    // Subtitle
+    if (comp.subtitle) {
+      setBody(17);
+      ctx.fillStyle = C.textSec;
+      const subLines = wrapText(ctx, trunc(comp.subtitle, 140), bodyW * 0.8);
+      y += 8;
+      for (const line of subLines.slice(0, 5)) { ctx.fillText(line, PAD, y); y += 27; }
+    }
+
+  } else if (comp.type === 'quote') {
+    // Decorative opening mark
+    setDisplay(180, 'italic');
+    ctx.fillStyle = C.gold;
+    ctx.globalAlpha = 0.38;
+    ctx.fillText('\u201c', PAD - 10, bodyTop + 80);
+    ctx.globalAlpha = 1;
+    // Vertically centred quote
+    setDisplay(26, 'italic');
+    ctx.fillStyle = C.text;
+    const qLines = wrapText(ctx, trunc(comp.content, 160), bodyW);
+    const lineH = 38;
+    const midY = bodyTop + (H - PAD - 120 - bodyTop) / 2;
+    let y = midY - (qLines.length * lineH) / 2;
+    for (const line of qLines) { ctx.fillText(line, PAD, y); y += lineH; }
+    // Rule
+    ctx.fillStyle = C.gold;
+    ctx.fillRect(PAD, y + 20, 40, 1);
+    // Attribution
+    setBody(15, 'italic');
+    ctx.fillStyle = C.textSec;
+    ctx.fillText(`\u2014 ${story.title}`, PAD, y + 46);
+
+  } else if (comp.type === 'passage') {
+    setDisplay(32, 'italic');
+    ctx.fillStyle = C.text;
+    const headLines = wrapText(ctx, trunc(comp.head, 60), bodyW);
+    let y = bodyTop + 50;
+    for (const line of headLines) { ctx.fillText(line, PAD, y); y += 42; }
+    y += 14;
+    if (comp.text) {
+      setBody(17);
+      ctx.fillStyle = C.textSec;
+      const bodyLines = wrapText(ctx, trunc(comp.text, 210), bodyW);
+      for (const line of bodyLines.slice(0, 9)) { ctx.fillText(line, PAD, y); y += 27; }
+    }
+
+  } else if (comp.type === 'qa') {
+    setDisplay(26, 'italic');
+    ctx.fillStyle = C.text;
+    const headLines = wrapText(ctx, trunc(comp.head, 48), bodyW);
+    let y = bodyTop + 50;
+    for (const line of headLines) { ctx.fillText(line, PAD, y); y += 34; }
+    y += 20;
+    if (comp.qa) {
+      setBody(16, 'italic');
+      ctx.fillStyle = C.gold;
+      const qLines = wrapText(ctx, `Q. ${trunc(comp.qa.q, 100)}`, bodyW);
+      for (const line of qLines.slice(0, 4)) { ctx.fillText(line, PAD, y); y += 25; }
+      y += 14;
+      setBody(16);
+      ctx.fillStyle = C.textSec;
+      const aLines = wrapText(ctx, `A. ${trunc(comp.qa.a, 180)}`, bodyW);
+      for (const line of aLines.slice(0, 7)) { ctx.fillText(line, PAD, y); y += 25; }
+    }
+  }
+
+  // Bottom mast
+  const btmY = H - PAD - 72;
+  ctx.strokeStyle = 'rgba(184,146,78,0.25)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(PAD, btmY); ctx.lineTo(W - PAD, btmY); ctx.stroke();
+  setDisplay(18, 'italic');
+  ctx.fillStyle = C.text;
+  ctx.fillText(story.title, PAD, btmY + 28);
+  setMono(9);
+  ctx.fillStyle = C.textDim;
+  ctx.fillText('teajia · journal', PAD, btmY + 50);
+
+  return canvas;
+}
+
 function SharePoster({ comp, story }: { comp: ShareComposition; story: Story }) {
   return (
     <div style={{
@@ -747,15 +907,20 @@ function ShareTab({ active, disabled, onClick, label, sub }: { active: boolean; 
   );
 }
 
-function ShareDest({ icon, label }: { icon: React.ReactNode; label: string }) {
+function ShareDest({ icon, label, onClick, active }: { icon: React.ReactNode; label: string; onClick?: () => void; active?: boolean }) {
   return (
-    <button style={{
-      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
-      padding: '12px 4px', border: `1px solid ${T.border}`, borderRadius: 3,
-      background: 'transparent', cursor: 'pointer', font: 'inherit',
-    }}>
-      <span style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.text }}>{icon}</span>
-      <span style={{ ...labelStyle, fontSize: 9, letterSpacing: '0.16em', color: T.textSec, whiteSpace: 'nowrap' }}>{label}</span>
+    <button
+      onClick={onClick}
+      style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+        padding: '12px 4px', border: `1px solid ${active ? T.gold : T.border}`, borderRadius: 3,
+        background: active ? 'rgba(184,146,78,0.08)' : 'transparent',
+        cursor: onClick ? 'pointer' : 'default', font: 'inherit',
+        transition: 'border-color 0.15s, background 0.15s',
+      }}
+    >
+      <span style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', color: active ? T.gold : T.text }}>{icon}</span>
+      <span style={{ ...labelStyle, fontSize: 9, letterSpacing: '0.16em', color: active ? T.gold : T.textSec, whiteSpace: 'nowrap' }}>{label}</span>
     </button>
   );
 }
@@ -770,22 +935,171 @@ const IcX    = () => <svg width="18" height="18" viewBox="0 0 16 16" fill="none"
 const IcMail = () => <svg width="18" height="18" viewBox="0 0 16 16" fill="none"><rect x="2" y="3.5" width="12" height="9" rx="1" stroke="currentColor" strokeWidth="1.1"/><path d="M2.5 4.5l5.5 4 5.5-4" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round"/></svg>;
 const IcFolio = () => <svg width="18" height="18" viewBox="0 0 16 16" fill="none"><path d="M2 3.5A1.5 1.5 0 013.5 2H7l1.5 1.5h4A1.5 1.5 0 0114 5v7a1.5 1.5 0 01-1.5 1.5h-9A1.5 1.5 0 012 12V3.5z" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round"/></svg>;
 
-function SharePanel({ page, story, onClose }: { page: ArticlePage | null; story: Story; onClose: () => void }) {
+function SharePanel({ page, story, onClose, isSaved, onToggleSave }: {
+  page: ArticlePage | null;
+  story: Story;
+  onClose: () => void;
+  isSaved?: boolean;
+  onToggleSave?: () => void;
+}) {
   const [scope, setScope] = useState<'page' | 'article'>(page ? 'page' : 'article');
   const effectiveScope = (!page && scope === 'page') ? 'article' : scope;
+  const [status, setStatus] = useState<string | null>(null);
+
+  // Poster blob is pre-generated as soon as the panel opens (or scope changes).
+  // All share actions pull from this cached blob — zero per-click render cost.
+  const [posterBlob, setPosterBlob] = useState<Blob | null>(null);
 
   const comp = useMemo<ShareComposition>(() => {
     if (effectiveScope === 'article') return { type: 'cover', title: story.title, subtitle: story.subtitle };
     return compositionForPage(page, story);
   }, [effectiveScope, page, story]);
 
-  const handleNativeShare = async () => {
-    if (navigator.share) {
-      try { await navigator.share({ title: story.title, url: window.location.href }); } catch { /* cancelled */ }
-    } else {
-      await navigator.clipboard?.writeText(window.location.href);
+  useEffect(() => {
+    setPosterBlob(null);
+    let cancelled = false;
+    renderPosterToCanvas(comp, story)
+      .then(canvas => new Promise<Blob | null>(res => canvas.toBlob(res, 'image/png')))
+      .then(blob => { if (!cancelled && blob) setPosterBlob(blob); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [comp, story]);
+
+  const shareUrl = window.location.href;
+  const shareText = `${story.title}${story.subtitle ? ` — ${story.subtitle}` : ''} · Teajia Journal`;
+
+  const flash = (msg: string) => {
+    setStatus(msg);
+    setTimeout(() => setStatus(null), 2800);
+  };
+
+  // ── Shared primitives ────────────────────────────────────────────────────────
+
+  // Tries Web Share Level 2 (with poster image) then Level 1 (text + URL only).
+  // Returns 'success' | 'cancelled' | 'unavailable' so callers know whether to
+  // fall through to a platform-specific desktop fallback.
+  const nativeShare = async (blob: Blob | null): Promise<'success' | 'cancelled' | 'unavailable'> => {
+    if (!navigator.share) return 'unavailable';
+    const data: ShareData = { title: story.title, text: shareText, url: shareUrl };
+    if (blob) {
+      const file = new File([blob], `teajia-${story.id}.png`, { type: 'image/png' });
+      if (typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] })) {
+        data.files = [file];
+      }
+    }
+    try {
+      await navigator.share(data);
+      return 'success';
+    } catch (e) {
+      return (e as Error).name === 'AbortError' ? 'cancelled' : 'unavailable';
     }
   };
+
+  // Writes the poster image to the system clipboard (Chrome 76+ / Safari 13.1+).
+  const copyImageToClipboard = async (blob: Blob): Promise<boolean> => {
+    if (typeof ClipboardItem === 'undefined' || !navigator.clipboard?.write) return false;
+    try {
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  // ── Button handlers ──────────────────────────────────────────────────────────
+
+  // Copy link — URL only (image goes via Save Image or native share)
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      flash('Link copied');
+    } catch {
+      flash('Could not copy — select the URL bar manually');
+    }
+  };
+
+  // Save image — instant blob download, no re-render
+  const handleSaveImage = async () => {
+    if (!posterBlob) { flash('Still preparing image…'); return; }
+    const url = URL.createObjectURL(posterBlob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `teajia-${story.id || 'journal'}.png`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    flash('Image saved');
+  };
+
+  // Messages — native share (poster + link) → SMS text fallback
+  const handleMessages = async () => {
+    const result = await nativeShare(posterBlob);
+    if (result === 'success' || result === 'cancelled') return;
+    window.open(`sms:?&body=${encodeURIComponent(`${shareText} ${shareUrl}`)}`);
+  };
+
+  // More… — native share sheet (poster + link) → copy link fallback
+  const handleMore = async () => {
+    const result = await nativeShare(posterBlob);
+    if (result === 'success' || result === 'cancelled') return;
+    try { await navigator.clipboard.writeText(shareUrl); flash('Link copied'); }
+    catch { flash('Use the Copy link button'); }
+  };
+
+  // Instagram — native share with image (Instagram appears in sheet on iOS/Android).
+  // Desktop: copy poster to clipboard → open Instagram (paste into Stories).
+  const handleInstagram = async () => {
+    const result = await nativeShare(posterBlob);
+    if (result === 'success' || result === 'cancelled') return;
+    if (posterBlob) {
+      const copied = await copyImageToClipboard(posterBlob);
+      window.open('https://www.instagram.com', '_blank', 'noopener');
+      flash(copied
+        ? 'Poster copied — paste into your Instagram story'
+        : 'Save the image first, then share on Instagram');
+      return;
+    }
+    window.open('https://www.instagram.com', '_blank', 'noopener');
+  };
+
+  // X — native share with image on mobile.
+  // Desktop: copy poster to clipboard so user can paste into the tweet, then open composer.
+  const handleX = async () => {
+    const result = await nativeShare(posterBlob);
+    if (result === 'success' || result === 'cancelled') return;
+    const t = encodeURIComponent(shareText);
+    const u = encodeURIComponent(shareUrl);
+    if (posterBlob) {
+      const copied = await copyImageToClipboard(posterBlob);
+      window.open(`https://x.com/intent/tweet?text=${t}&url=${u}`, '_blank', 'noopener');
+      flash(copied ? 'Poster copied — paste it into your post on X' : 'Link opened in X');
+    } else {
+      window.open(`https://x.com/intent/tweet?text=${t}&url=${u}`, '_blank', 'noopener');
+    }
+  };
+
+  // Email — native share with image on mobile.
+  // Desktop: copy poster to clipboard, open mailto pre-filled so user can paste.
+  const handleEmail = async () => {
+    const result = await nativeShare(posterBlob);
+    if (result === 'success' || result === 'cancelled') return;
+    const subject = encodeURIComponent(story.title);
+    const body = encodeURIComponent(`${shareText}\n\n${shareUrl}`);
+    if (posterBlob) {
+      const copied = await copyImageToClipboard(posterBlob);
+      window.location.href = `mailto:?subject=${subject}&body=${body}`;
+      if (copied) flash('Poster copied — paste it into your email');
+    } else {
+      window.location.href = `mailto:?subject=${subject}&body=${body}`;
+    }
+  };
+
+  // My Folio — save/unsave to reading collection
+  const handleFolio = () => {
+    onToggleSave?.();
+    flash(isSaved ? 'Removed from your folio' : 'Saved to your folio');
+  };
+
+  const posterReady = posterBlob !== null;
 
   return (
     <div
@@ -801,7 +1115,7 @@ function SharePanel({ page, story, onClose }: { page: ArticlePage | null; story:
           boxShadow: '0 -20px 60px rgba(0,0,0,0.6)',
         }}
       >
-        {/* Handle + close */}
+        {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 18px 4px' }}>
           <span style={labelStyle}>Share</span>
           <button onClick={onClose} aria-label="Close" style={{ color: T.textDim, fontSize: 18, lineHeight: 1, padding: 4, background: 'none', border: 0, cursor: 'pointer', font: 'inherit' }}>✕</button>
@@ -809,51 +1123,50 @@ function SharePanel({ page, story, onClose }: { page: ArticlePage | null; story:
 
         {/* Tabs */}
         <div style={{ display: 'flex', padding: '0 18px', borderBottom: `1px solid ${T.border}` }}>
-          <ShareTab
-            active={effectiveScope === 'page'}
-            disabled={!page}
-            onClick={() => setScope('page')}
-            label="This page"
-            sub={shortPageLabel(page)}
-          />
-          <ShareTab
-            active={effectiveScope === 'article'}
-            onClick={() => setScope('article')}
-            label="The article"
-            sub={story.title}
-          />
+          <ShareTab active={effectiveScope === 'page'} disabled={!page} onClick={() => setScope('page')} label="This page" sub={shortPageLabel(page)} />
+          <ShareTab active={effectiveScope === 'article'} onClick={() => setScope('article')} label="The article" sub={story.title} />
         </div>
 
-        {/* Poster preview */}
+        {/* Poster preview — dims + shows label while blob is being prepared */}
         <div style={{ flex: '0 1 auto', padding: '18px 18px 8px', display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 0, overflow: 'hidden' }}>
           <div style={{
             aspectRatio: '4/5', maxHeight: '46vh', width: 'auto', maxWidth: '100%',
-            background: T.bg, border: `1px solid ${T.border}`,
+            background: T.bg, border: `1px solid ${posterReady ? T.border : 'rgba(184,146,78,0.2)'}`,
             position: 'relative', overflow: 'hidden',
             boxShadow: '0 10px 30px rgba(0,0,0,0.4)',
+            transition: 'border-color 0.4s',
           }}>
-            <SharePoster comp={comp} story={story} />
+            <div style={{ opacity: posterReady ? 1 : 0.55, transition: 'opacity 0.4s' }}>
+              <SharePoster comp={comp} story={story} />
+            </div>
+            {!posterReady && (
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'flex-end', justifyContent: 'flex-end', padding: 10, pointerEvents: 'none' }}>
+                <span style={{ fontFamily: T.mono, fontSize: 8, color: T.gold, letterSpacing: '0.12em', opacity: 0.7 }}>Preparing…</span>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Destination grid */}
         <div style={{ padding: '10px 14px 8px', display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 6 }}>
-          <ShareDest icon={<IcCopy />}  label="Copy link"  />
-          <ShareDest icon={<IcSave />}  label="Save image" />
-          <ShareDest icon={<IcMsg  />}  label="Messages"   />
-          <ShareDest icon={<IcMore />}  label="More…"      />
-          <ShareDest icon={<IcIG   />}  label="Instagram"  />
-          <ShareDest icon={<IcX    />}  label="X"          />
-          <ShareDest icon={<IcMail />}  label="Email"      />
-          <ShareDest icon={<IcFolio />} label="My Folio"   />
+          <ShareDest icon={<IcCopy />}  label="Copy link"                         onClick={handleCopyLink} />
+          <ShareDest icon={<IcSave />}  label={posterReady ? 'Save image' : '…'}  onClick={posterReady ? handleSaveImage : undefined} />
+          <ShareDest icon={<IcMsg  />}  label="Messages"                           onClick={handleMessages} />
+          <ShareDest icon={<IcMore />}  label="More…"                              onClick={handleMore} />
+          <ShareDest icon={<IcIG   />}  label="Instagram"                          onClick={handleInstagram} />
+          <ShareDest icon={<IcX    />}  label="X"                                  onClick={handleX} />
+          <ShareDest icon={<IcMail />}  label="Email"                              onClick={handleEmail} />
+          <ShareDest icon={<IcFolio />} label={isSaved ? 'Saved' : 'My Folio'}    onClick={handleFolio} active={isSaved} />
         </div>
 
-        {/* Native share fallback */}
-        <div style={{ padding: '8px 18px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, borderTop: `1px solid ${T.border}`, marginTop: 6, paddingBottom: 'calc(18px + env(safe-area-inset-bottom, 0px))' }}>
-          <div style={{ fontFamily: T.mono, fontSize: 9.5, color: T.textDim }}>TEAJIA · {story.title.toUpperCase()}</div>
+        {/* Status line / footer */}
+        <div style={{ padding: '8px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, borderTop: `1px solid ${T.border}`, marginTop: 6, paddingBottom: 'calc(18px + env(safe-area-inset-bottom, 0px))' }}>
+          <div style={{ fontFamily: T.mono, fontSize: 9.5, color: status ? T.gold : T.textDim, transition: 'color 0.2s', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {status ?? `TEAJIA · ${story.title.toUpperCase()}`}
+          </div>
           <button
-            onClick={handleNativeShare}
-            style={{ fontFamily: T.mono, fontSize: 9.5, color: T.gold, background: 'none', border: 0, cursor: 'pointer', letterSpacing: '0.1em', textTransform: 'uppercase' as const }}
+            onClick={handleMore}
+            style={{ fontFamily: T.mono, fontSize: 9.5, color: T.gold, background: 'none', border: 0, cursor: 'pointer', letterSpacing: '0.1em', textTransform: 'uppercase' as const, flexShrink: 0 }}
           >
             Share ↗
           </button>
@@ -884,9 +1197,11 @@ function PageView({ entry, story }: { entry: PlanEntry; story: Story }) {
 export interface MagazinePageReaderProps {
   story: Story;
   onBack: () => void;
+  isSaved?: boolean;
+  onToggleSave?: () => void;
 }
 
-export function MagazinePageReader({ story, onBack }: MagazinePageReaderProps) {
+export function MagazinePageReader({ story, onBack, isSaved, onToggleSave }: MagazinePageReaderProps) {
   const articlePages = useMemo(() => parseStoryToPages(story), [story]);
   const plan = useMemo(() => buildPlan(articlePages), [articlePages]);
   const total = plan.length;
@@ -994,6 +1309,8 @@ export function MagazinePageReader({ story, onBack }: MagazinePageReaderProps) {
           page={currentPage}
           story={story}
           onClose={() => setShowShare(false)}
+          isSaved={isSaved}
+          onToggleSave={onToggleSave}
         />
       )}
 

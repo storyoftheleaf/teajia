@@ -251,6 +251,7 @@ const GuestManagement: React.FC = () => {
                 teaMenu={data.teaMenu}
                 token={magicToken}
                 eventId={event.id}
+                eventSlug={event.slug}
                 eventTitle={event.title}
                 onClose={() => setShowTasting(false)}
               />

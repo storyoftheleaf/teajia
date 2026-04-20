@@ -32,8 +32,10 @@ export const CompassShareModal: React.FC<CompassShareModalProps> = ({
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
   const [directSent, setDirectSent] = useState(false);
-  const [tab, setTab] = useState<'direct' | 'link'>('direct');
+  const [tab, setTab] = useState<'direct' | 'link' | 'table'>('direct');
   const [showQr, setShowQr] = useState(false);
+  const [tableUrl, setTableUrl] = useState<string | null>(null);
+  const [copiedTable, setCopiedTable] = useState(false);
 
   const lookupAccountId = async (slug: string): Promise<string | null> => {
     try {
@@ -126,7 +128,7 @@ export const CompassShareModal: React.FC<CompassShareModalProps> = ({
               tab === 'direct' ? 'bg-tea-surface text-tea-text shadow-sm' : 'text-tea-text-dim'
             }`}
           >
-            Send to account
+            Send
           </button>
           <button
             type="button"
@@ -135,7 +137,16 @@ export const CompassShareModal: React.FC<CompassShareModalProps> = ({
               tab === 'link' ? 'bg-tea-surface text-tea-text shadow-sm' : 'text-tea-text-dim'
             }`}
           >
-            Invite link
+            Link
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab('table')}
+            className={`flex-1 py-1.5 rounded-[5px] text-[11px] font-medium transition-colors ${
+              tab === 'table' ? 'bg-tea-surface text-tea-text shadow-sm' : 'text-tea-text-dim'
+            }`}
+          >
+            Table
           </button>
         </div>
 
@@ -168,7 +179,6 @@ export const CompassShareModal: React.FC<CompassShareModalProps> = ({
                       value={accountSlug}
                       onChange={(e) => {
                         setAccountSlug(e.target.value);
-                        // Reset error when user edits
                         if (directMutation.isError) directMutation.reset();
                       }}
                       onKeyDown={(e) => {
@@ -201,7 +211,7 @@ export const CompassShareModal: React.FC<CompassShareModalProps> = ({
                 </>
               )}
             </motion.div>
-          ) : (
+          ) : tab === 'link' ? (
             <motion.div
               key="link"
               initial={{ opacity: 0, x: 10 }}
@@ -283,6 +293,57 @@ export const CompassShareModal: React.FC<CompassShareModalProps> = ({
                 <p className="text-xs text-red-400">
                   {(linkMutation.error as Error)?.message || 'Could not generate link. Try again.'}
                 </p>
+              )}
+            </motion.div>
+          ) : (
+            <motion.div
+              key="table"
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -10 }}
+              transition={{ duration: 0.15 }}
+              className="space-y-3"
+            >
+              <p className="text-xs text-tea-text-sec">
+                Generate a 24-hour QR code for at-table tasting. Guests scan and leave a verdict — no account required.
+              </p>
+              {tableUrl ? (
+                <div className="space-y-3">
+                  <div className="flex justify-center">
+                    <div className="p-3 bg-white rounded-xl shadow-sm">
+                      <QRCodeSVG value={tableUrl} size={180} />
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await navigator.clipboard.writeText(tableUrl);
+                      setCopiedTable(true);
+                      setTimeout(() => setCopiedTable(false), 2000);
+                    }}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-md bg-tea-surface border border-tea-border text-tea-text-sec text-xs font-medium hover:text-tea-text transition-colors"
+                  >
+                    {copiedTable ? <Check size={13} className="text-tea-gold" /> : <Copy size={13} />}
+                    {copiedTable ? 'Copied' : 'Copy link'}
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  disabled={!synced}
+                  onClick={async () => {
+                    try {
+                      const result = await api.compass.createTableShare(entryId);
+                      if (result?.url) {
+                        setTableUrl(`${window.location.origin}${result.url}`);
+                      }
+                    } catch { /* ignore */ }
+                  }}
+                  className="w-full py-3 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold uppercase tracking-[0.08em] disabled:opacity-40 transition-opacity flex items-center justify-center gap-2"
+                >
+                  <QrCode size={13} />
+                  {synced ? 'Generate Table Card' : 'Sync first to generate'}
+                </button>
               )}
             </motion.div>
           )}

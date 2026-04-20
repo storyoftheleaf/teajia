@@ -12,6 +12,8 @@ interface TastingNotesFormProps {
   className?: string;
   /** Event ID to cross-link tastings into the personal journal */
   eventId?: string;
+  /** URL slug for the event — used for journal navigation */
+  eventSlug?: string;
   /** Event title shown as context in the journal */
   eventTitle?: string;
   /** Called when the user dismisses the thank-you screen */
@@ -24,7 +26,7 @@ interface NoteState {
   isFavorite: boolean;
 }
 
-const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, className = '', eventId, eventTitle, onClose }) => {
+const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, className = '', eventId, eventSlug, eventTitle, onClose }) => {
   const sortedMenu = [...teaMenu].sort((a, b) => (a.brewOrder ?? 0) - (b.brewOrder ?? 0));
   const { addTasting } = useAppStore();
 
@@ -89,6 +91,7 @@ const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, cla
                 rating: note.rating,
                 createdAt: new Date().toISOString(),
                 eventId,
+                eventSlug,
                 eventTitle,
               };
               addTasting(journalEntry);

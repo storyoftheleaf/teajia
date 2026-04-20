@@ -846,7 +846,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         if (!cancelled) {
           setProductEvents(events);
           if (events.length > 0) {
-            loadProductTastings(events, panelProduct.givenName || panelProduct.name || '');
+            loadProductTastings(events, panelProduct.givenName || panelProduct.productName || '');
           }
         }
       } catch {

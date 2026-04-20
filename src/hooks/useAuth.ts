@@ -7,6 +7,7 @@ import {
   getTokenClaims,
   SESSION_EXPIRED_EVENT,
   shouldProactivelyRefreshToken,
+  isTokenExpired,
   ensureTokenRefreshed,
 } from '../lib/api';
 
@@ -22,6 +23,10 @@ interface UseAuthReturn {
   isAuthenticated: boolean;
   isAdmin: boolean;
   isLoading: boolean;
+  /** True once the on-mount session check (api.auth.me) has completed — or immediately
+   *  if there was no token to check. Use this to gate sync hooks so they don't fire
+   *  authenticated API calls before the server has validated the stored token. */
+  isSessionReady: boolean;
   login: (identifier: string, password: string) => Promise<void>;
   signup: (email: string, password: string, name: string, username?: string | null) => Promise<void>;
   logout: () => void;
@@ -30,7 +35,7 @@ interface UseAuthReturn {
 
 export function useAuth(): UseAuthReturn {
   const [user, setUser] = useState<AuthUser | null>(() => {
-    // Initialize from token claims if available
+    // Initialize from token claims if available (local decode, no server round-trip)
     const claims = getTokenClaims();
     if (claims) {
       return { email: claims.email, username: claims.username ?? null, name: claims.name, role: claims.role };
@@ -38,10 +43,15 @@ export function useAuth(): UseAuthReturn {
     return null;
   });
   const [isLoading, setIsLoading] = useState(false);
+  // Ready immediately when there is no token — nothing to verify with the server.
+  // Stays false until checkSession() completes so sync hooks don't fire
+  // authenticated API calls before the stored token has been validated.
+  const [isSessionReady, setIsSessionReady] = useState(!hasToken());
 
   const checkSession = useCallback(async () => {
     if (!hasToken()) {
       setUser(null);
+      setIsSessionReady(true);
       return;
     }
     try {
@@ -64,6 +74,9 @@ export function useAuth(): UseAuthReturn {
       // another sync/api call may succeed once the network recovers.
     } finally {
       setIsLoading(false);
+      // Always mark session as ready once the check completes, regardless of
+      // outcome. Sync hooks can now safely fire.
+      setIsSessionReady(true);
     }
   }, []);
 
@@ -87,11 +100,14 @@ export function useAuth(): UseAuthReturn {
   // When the tab returns from background, check the session. Mobile browsers
   // pause JS for long periods — this catches tokens that rolled through the
   // refresh window while the tab was asleep so the user never sees a 401.
+  // Also handles the edge case where the token crossed its exp boundary while
+  // the tab was hidden (shouldProactivelyRefreshToken returns false once exp
+  // has passed because secondsLeft <= 0, so we explicitly check isTokenExpired too).
   useEffect(() => {
     const onVisibility = () => {
       if (document.visibilityState !== 'visible') return;
       if (!hasToken()) return;
-      if (shouldProactivelyRefreshToken()) {
+      if (isTokenExpired() || shouldProactivelyRefreshToken()) {
         void ensureTokenRefreshed();
       }
     };
@@ -136,6 +152,7 @@ export function useAuth(): UseAuthReturn {
     isAuthenticated: !!user,
     isAdmin: user?.role === 'admin' || user?.role === 'owner',
     isLoading,
+    isSessionReady,
     login,
     signup,
     logout,

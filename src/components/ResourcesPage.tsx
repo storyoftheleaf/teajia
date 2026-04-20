@@ -162,7 +162,7 @@ export const ResourcesPage: React.FC<ResourcesPageProps> = ({ resources }) => {
   return (
     <div className="w-full animate-[fadeIn_0.6s_ease-out]">
       <PageHeader title="Curated Resources">
-        <PageHeaderTabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
+        <PageHeaderTabs tabs={tabs} activeTab={activeTab} onChange={(id) => setActiveTab(id as ResourceTab)} />
       </PageHeader>
 
       {/* Community Directory - Search Bar */}

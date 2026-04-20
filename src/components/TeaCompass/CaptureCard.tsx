@@ -790,6 +790,12 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
     update({ tasting: newTasting });
   };
 
+  const handleQualityChange = (q: number) => {
+    const newTasting: TastingData = { ...(entry.tasting ?? {}), quality: entry.tasting?.quality === q ? undefined : q };
+    setLocalTasting(newTasting);
+    update({ tasting: newTasting });
+  };
+
   // ── Teaware card layout ──────────────────────────────────────────────
   if (isTeaware) {
     const materials = TEAWARE_MATERIALS[entry.teawareCategory || ''] || TEAWARE_MATERIALS.default;
@@ -1193,18 +1199,6 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
           </div>
         </div>
 
-        {/* Rating badge — shown when a quality score exists */}
-        {entry.tasting?.quality != null && (
-          <div className="flex items-center gap-1.5">
-            <span
-              className="text-[12px] font-semibold tabular-nums"
-              style={entry.type ? { color: getTypeChipStyle(entry.type).text } : undefined}
-            >
-              {entry.tasting.quality}/10
-            </span>
-            <span className="text-[11px] text-tea-text-dim">quality</span>
-          </div>
-        )}
 
         {/* Year + Region */}
         <div className="flex items-center gap-2">
@@ -1292,36 +1286,131 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
         )}
       </AnimatePresence>
 
-      <div className="border-t border-tea-border my-1" />
 
-      {/* ─── Actions row: Tasting · Want · Buy ─── */}
-      <div className="space-y-2">
+      {/* ─── Profile zone: quality bar + brewing + tag cloud ─── */}
+      {hasTasting && entry.tasting && (
+        <>
+          <div className="flex items-center gap-2">
+            <div className="flex-1 h-px bg-tea-border" />
+            <span className="text-[9px] text-tea-text-dim tracking-[0.2em] uppercase shrink-0">Profile</span>
+            <div className="flex-1 h-px bg-tea-border" />
+          </div>
+          <div className="space-y-2.5">
+            {/* Quality 1–10 — same segment toggle as TastingSession */}
+            <div>
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="text-[11px] text-tea-text-sec" style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.04em' }}>Quality</span>
+                <span className="text-[11px] text-tea-gold tabular-nums" style={{ fontFamily: 'var(--font-mono)' }}>
+                  {entry.tasting.quality != null ? `${entry.tasting.quality}/10` : '/10'}
+                </span>
+              </div>
+              <div className="tasting-segment-toggle" role="radiogroup" aria-label="Quality rating">
+                {[1,2,3,4,5,6,7,8,9,10].map((v, i) => {
+                  const isSelected = entry.tasting!.quality === v;
+                  return (
+                    <button
+                      key={v}
+                      type="button"
+                      onClick={() => handleQualityChange(v)}
+                      role="radio"
+                      aria-checked={isSelected}
+                      className={`flex-1 py-2.5 text-[12px] font-medium transition-all duration-150 min-h-[44px] relative z-[1] ${
+                        isSelected ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
+                      }${i < 9 ? ' weight-seg-div' : ''}`}
+                      style={{
+                        fontFamily: 'var(--font-mono)',
+                        background: isSelected
+                          ? 'radial-gradient(ellipse 120% 120% at 50% 50%, rgb(var(--tea-gold-rgb) / 0.14) 0%, rgb(var(--tea-gold-rgb) / 0.04) 70%)'
+                          : 'transparent',
+                      }}
+                    >
+                      {v}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            {/* Brewing metadata */}
+            {(entry.tasting.brewingVessel || entry.tasting.brewingTemp || entry.tasting.brewingTime) && (
+              <div className="flex items-center gap-2 flex-wrap text-[11px] text-tea-text-dim">
+                {entry.tasting.brewingVessel && <span>{entry.tasting.brewingVessel}</span>}
+                {entry.tasting.brewingTemp && <><span className="text-tea-border">·</span><span>{entry.tasting.brewingTemp}°C</span></>}
+                {entry.tasting.brewingTime && <><span className="text-tea-border">·</span><span>{entry.tasting.brewingTime}</span></>}
+              </div>
+            )}
+            {/* Tag cloud */}
+            <TastingProfileStrip
+              value={entry.tasting}
+              onRemove={handleTastingStripRemove}
+              variant="cloud"
+            />
+          </div>
+        </>
+      )}
+
+      {/* ─── Notes zone ─── */}
+      <div className="flex items-center gap-2">
+        <div className="flex-1 h-px bg-tea-border" />
+        <span className="text-[9px] text-tea-text-dim tracking-[0.2em] uppercase shrink-0">Notes</span>
+        <div className="flex-1 h-px bg-tea-border" />
+      </div>
+      <NoteThread
+        compassEntryId={entry.id}
+        teaKey={entry.teaKey ?? undefined}
+        compact
+        hideMic
+        hideTastingArtifacts
+      />
+
+      <IntentBar entry={entry} onApply={(updates) => update(updates as Record<string, unknown>)} />
+
+      {/* Storage (only for Sheng/Shou/Dark) */}
+      {(entry.type === 'Sheng' || entry.type === 'Shou' || entry.type === 'Dark') && (
+        <>
+          <div className="border-t border-tea-border" />
+          <div className="flex gap-1.5 flex-wrap">
+            {STORAGE_OPTIONS.map((st) => (
+              <button
+                key={st}
+                type="button"
+                onClick={() => { userTapped.current.add('storage'); update({ storage: entry.storage === st ? undefined : st }); }}
+                className={entry.storage === st ? 'tag-selectable-active' : 'tag-selectable'}
+              >
+                {st}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* ─── Actions: Re-Taste · Want · Buy — sticky bottom bar ─── */}
+      <div className="sticky bottom-0 -mx-4 px-4 pt-2 pb-3 bg-tea-surface border-t border-tea-border space-y-2 z-10">
         <div className="grid grid-cols-3 gap-2">
-          {/* Tasting */}
+          {/* Re-Taste / Tasting — always tappable */}
           <button
             type="button"
             onClick={openTastingOverlay}
-            className={`flex flex-col items-center gap-1.5 py-3 rounded-xl text-[11px] whitespace-nowrap transition-colors ${
+            className={`flex items-center justify-center gap-1.5 py-2 rounded-lg text-[12px] font-medium transition-colors ${
               hasTasting ? 'bg-tea-gold/10 text-tea-gold' : 'bg-tea-elevated text-tea-text-dim hover:text-tea-text'
             }`}
           >
-            <Droplets size={14} strokeWidth={1.5} />
-            Tasting
+            <Droplets size={13} strokeWidth={1.5} />
+            {hasTasting ? 'Re-Taste' : 'Tasting'}
           </button>
 
           {/* Want */}
           <button
             type="button"
             onClick={() => update({ status: isWant ? 'noted' : 'want' })}
-            className={`flex flex-col items-center gap-1.5 py-3 rounded-xl text-[11px] whitespace-nowrap transition-colors ${
+            className={`flex items-center justify-center gap-1.5 py-2 rounded-lg text-[12px] font-medium transition-colors ${
               isWant ? 'bg-tea-gold/10 text-tea-gold' : 'bg-tea-elevated text-tea-text-dim hover:text-tea-text'
             }`}
           >
-            {isWant ? <BookmarkCheck size={14} /> : <BookmarkPlus size={14} />}
+            {isWant ? <BookmarkCheck size={13} /> : <BookmarkPlus size={13} />}
             {isWant ? 'Wanted' : 'Want'}
           </button>
 
-          {/* Buy — always available, opens picker */}
+          {/* Buy */}
           <button
             type="button"
             onClick={() => {
@@ -1329,16 +1418,16 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
               if (!showBuyPicker) setBuyingQty(defaultQty);
               setShowBuyPicker((v) => !v);
             }}
-            className={`flex flex-col items-center gap-1.5 py-3 rounded-xl text-[11px] whitespace-nowrap transition-colors ${
+            className={`flex items-center justify-center gap-1.5 py-2 rounded-lg text-[12px] font-medium transition-colors ${
               showBuyPicker ? 'bg-tea-gold/10 text-tea-gold' : 'bg-tea-elevated text-tea-text-dim hover:text-tea-text'
             }`}
           >
-            <ShoppingCart size={14} />
+            <ShoppingCart size={13} />
             Buy
           </button>
         </div>
 
-        {/* Ledger link — shown when purchases have been logged */}
+        {/* Ledger link */}
         {isInLedger && (
           <button
             type="button"
@@ -1350,7 +1439,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
           </button>
         )}
 
-        {/* Buy quantity picker */}
+        {/* Buy quantity picker — expands upward from the sticky bar */}
         <AnimatePresence>
           {showBuyPicker && !justAddedToLedger && (
             <motion.div
@@ -1441,51 +1530,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
             </motion.div>
           )}
         </AnimatePresence>
-
       </div>
-
-      {hasTasting && entry.tasting && (entry.tasting.brewingVessel || entry.tasting.brewingTemp || entry.tasting.brewingTime) && (
-        <div className="flex items-center gap-2 flex-wrap text-[11px] text-tea-text-dim px-0.5">
-          {entry.tasting.brewingVessel && <span>{entry.tasting.brewingVessel}</span>}
-          {entry.tasting.brewingTemp && <span>{entry.tasting.brewingTemp}°C</span>}
-          {entry.tasting.brewingTime && <span>{entry.tasting.brewingTime}</span>}
-        </div>
-      )}
-
-      {hasTasting && entry.tasting && (
-        <TastingProfileStrip
-          value={entry.tasting}
-          onRemove={handleTastingStripRemove}
-        />
-      )}
-
-      <NoteThread
-        compassEntryId={entry.id}
-        teaKey={entry.teaKey ?? undefined}
-        compact
-        hideMic
-      />
-
-      <IntentBar entry={entry} onApply={(updates) => update(updates as Record<string, unknown>)} />
-
-      {/* Storage (only for Sheng/Shou/Dark) */}
-      {(entry.type === 'Sheng' || entry.type === 'Shou' || entry.type === 'Dark') && (
-        <>
-          <div className="border-t border-tea-border" />
-          <div className="flex gap-1.5 flex-wrap">
-            {STORAGE_OPTIONS.map((st) => (
-              <button
-                key={st}
-                type="button"
-                onClick={() => { userTapped.current.add('storage'); update({ storage: entry.storage === st ? undefined : st }); }}
-                className={entry.storage === st ? 'tag-selectable-active' : 'tag-selectable'}
-              >
-                {st}
-              </button>
-            ))}
-          </div>
-        </>
-      )}
 
       {/* ─── Tasting overlay ─── */}
       <AnimatePresence>

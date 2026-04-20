@@ -13,6 +13,8 @@ interface ReaderProps {
   story: Story;
   onBack: () => void;
   onNavigate: (story: Story) => void;
+  onPersonClick?: (person: any) => void;
+  onShare?: (story: Story) => void;
   isSaved?: boolean;
   onToggleSave?: () => void;
   enableKeyboard?: boolean;
@@ -196,9 +198,9 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, isSav
 
   const scrubberRef = useRef<HTMLDivElement>(null);
   const lastVibratedPage = useRef<number>(-1);
-  const keyboardHintsTimerRef = useRef<ReturnType<typeof setTimeout>>();
-  const controlsTimerRef = useRef<ReturnType<typeof setTimeout>>();
-  const marginTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const keyboardHintsTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const controlsTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const marginTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   // W30: Time-of-Day Theming — strengthened
   const hour = new Date().getHours();

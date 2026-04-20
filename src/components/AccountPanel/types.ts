@@ -1,4 +1,6 @@
 export type PanelView =
   | 'main'
   | 'location-switcher'
-  | 'events';
+  | 'events'
+  | 'signin'
+  | 'signup';

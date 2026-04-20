@@ -539,7 +539,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose, bypassAuth = fa
           variant: 'Variant',
           year: new Date().getFullYear().toString(),
           origin: 'Origin',
-          stock_g: '0',
+          stock_g: 0,
           cost_price: '0',
           cost_currency: 'USD',
           multiplier: 3,

@@ -8,11 +8,14 @@ import type { LibrarySearchResult, LibrarySubView } from '../types/library';
 const SECTION_LABELS: Record<LibrarySubView, string> = {
   overview: 'Overview',
   glossary: 'Glossary',
+  'tea-map': 'Tea Map',
   playlists: 'Playlists',
   videos: 'Videos',
   'visual-guides': 'Visual Guides',
   reading: 'Reading',
 };
+
+export type SearchResult = LibrarySearchResult & { type: LibrarySubView; snippet: string };
 
 function matches(text: string | undefined, query: string): boolean {
   return !!text && text.toLowerCase().includes(query);

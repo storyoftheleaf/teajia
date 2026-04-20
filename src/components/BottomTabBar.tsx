@@ -31,7 +31,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
   const location = useLocation();
   const isOnAdmin = location.pathname.startsWith('/admin');
 
-  const { activeAccount } = useAppStore();
+  const { activeAccount, upcomingEventsCount } = useAppStore();
   const auth = useAuth();
   const isAdmin = auth.isAdmin;
   const isStaff = auth.user?.role === 'staff' || auth.user?.role === 'admin' || auth.user?.role === 'owner';
@@ -268,18 +268,25 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
             ))
           )}
 
-          {/* Far right — Account/Admin icon (fixed narrow slot) */}
+          {/* Far right — Center (navigates to /me) */}
           <button
-            onClick={onAccountClick}
-            className="w-8 flex-shrink-0 h-full flex flex-col items-center justify-center gap-px group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none"
+            onClick={() => {
+              if ('vibrate' in navigator) { navigator.vibrate?.(10); }
+              navigate('/me');
+            }}
+            className="w-8 flex-shrink-0 h-full flex flex-col items-center justify-center gap-px group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none relative"
             style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', touchAction: 'manipulation' }}
-            title="Account"
-            aria-label="Account"
+            title="Center"
+            aria-label="Center"
           >
             <LogoIcon
               size={16}
+              filled={location.pathname === '/me'}
               className="transition-colors duration-200 text-tea-text-sec group-hover:text-tea-text pointer-events-none"
             />
+            {upcomingEventsCount > 0 && (
+              <span className="absolute top-1.5 right-1 w-1.5 h-1.5 rounded-full bg-tea-gold pointer-events-none" />
+            )}
           </button>
 
         </div>

@@ -130,6 +130,11 @@ interface AppState {
   setActiveAccount: (a: Account | null) => void;
   setPlatformRole: (role: PlatformRole) => void;
   clearAccountState: () => void;
+
+  // Notification state (for bottom nav dot + cart badge)
+  upcomingEventsCount: number;
+  setUpcomingEventsCount: (count: number) => void;
+  cartLastAddedAt: number | null;
 }
 
 export const useAppStore = create<AppState>()(
@@ -208,7 +213,7 @@ export const useAppStore = create<AppState>()(
               ),
             };
           }
-          return { publicCart: [...state.publicCart, { ...item, totalPrice: item.pricePerGram * item.quantityGrams }] };
+          return { publicCart: [...state.publicCart, { ...item, totalPrice: item.pricePerGram * item.quantityGrams }], cartLastAddedAt: Date.now() };
         }),
 
       removeFromPublicCart: (id) =>
@@ -363,6 +368,11 @@ export const useAppStore = create<AppState>()(
       setPlatformRole: (platformRole) => set({ platformRole }),
       clearAccountState: () =>
         set({ memberships: [], activeAccountId: null, activeAccount: null, platformRole: null }),
+
+      // Notifications
+      upcomingEventsCount: 0,
+      setUpcomingEventsCount: (count) => set({ upcomingEventsCount: count }),
+      cartLastAddedAt: null,
     }),
     {
       name: 'teajia-storage',
@@ -390,6 +400,8 @@ export const useAppStore = create<AppState>()(
         activeAccountId: state.activeAccountId,
         // isDevAdmin intentionally excluded — never persisted to localStorage (security fix)
         sidebarCollapsed: state.sidebarCollapsed,
+        upcomingEventsCount: state.upcomingEventsCount,
+        cartLastAddedAt: state.cartLastAddedAt,
       }),
     }
   )

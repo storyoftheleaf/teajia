@@ -376,7 +376,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
           vendorContact: customerPhone || undefined,
           cart, rates, currency: displayCurrency, shipping: shippingCostUSD,
         });
-        const blob = await pdf(doc).toBlob();
+        const blob = await pdf(doc as any).toBlob();
         const fileName = `teajia-po-${lastInvoice.customer_name}-${lastInvoice.invoice_number}.pdf`.replace(/\s+/g, '-');
         if (navigator.share && navigator.canShare?.({ files: [new File([blob], fileName, { type: 'application/pdf' })] })) {
           await navigator.share({ files: [new File([blob], fileName, { type: 'application/pdf' })], title: `Teajia Purchase Order` });
@@ -393,7 +393,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
           customerName: lastInvoice.customer_name,
           cart, rates, currency: displayCurrency, shipping: shippingCostUSD,
         });
-        const blob = await pdf(doc).toBlob();
+        const blob = await pdf(doc as any).toBlob();
         const fileName = `teajia-invoice-${lastInvoice.invoice_number}.pdf`.replace(/\s+/g, '-');
         if (navigator.share && navigator.canShare?.({ files: [new File([blob], fileName, { type: 'application/pdf' })] })) {
           await navigator.share({ files: [new File([blob], fileName, { type: 'application/pdf' })], title: `Teajia Invoice` });

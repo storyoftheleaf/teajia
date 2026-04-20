@@ -668,7 +668,6 @@ export default function SampleSetCreator() {
 
   const navigate = useNavigate();
   const { data: allCustomers = [] } = useCustomers();
-  const vendors = allCustomers.filter(c => c.tags?.includes('vendor'));
   const compassEntries = useTeaCompassStore((s) => s.entries);
   const updateCompassEntry = useTeaCompassStore((s) => s.updateEntry);
 
@@ -694,8 +693,6 @@ export default function SampleSetCreator() {
   const [showCompassImport, setShowCompassImport] = useState(false);
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [batchDetailsOpen, setBatchDetailsOpen] = useState(false);
-  const [vendorSearchOpen, setVendorSearchOpen] = useState(false);
-  const [vendorQuery, setVendorQuery] = useState('');
   const [customerSearchOpen, setCustomerSearchOpen] = useState(false);
   const [customerQuery, setCustomerQuery] = useState('');
   const [ledgerPromptName, setLedgerPromptName] = useState<string | null>(null);
@@ -829,6 +826,16 @@ export default function SampleSetCreator() {
       if (s) setLedgerPromptName(s.name);
     }
   }, [updateSampleStatus, samples, updateCompassEntry]);
+
+  const handleBatchVendorSelect = useCallback((vendorId: string | undefined, vendorName: string) => {
+    if (!activeSetId) return;
+    updateSampleSet(activeSetId, { sourceName: vendorName, sourceId: vendorId });
+  }, [activeSetId, updateSampleSet]);
+
+  const handleBatchVendorClear = useCallback(() => {
+    if (!activeSetId) return;
+    updateSampleSet(activeSetId, { sourceName: undefined, sourceId: undefined });
+  }, [activeSetId, updateSampleSet]);
 
   useEffect(() => {
     if (sampleSets.length === 0) {
@@ -1058,85 +1065,15 @@ export default function SampleSetCreator() {
                     ))}
                   </div>
 
-                  {/* Source with vendor autocomplete */}
-                  <div className="flex items-center gap-2 relative">
-                    <span className="text-[10px] uppercase tracking-wider text-tea-text-dim shrink-0">Source</span>
-                    <div className="flex-1 relative">
-                      <input
-                        type="text"
-                        value={activeSet.sourceName || ''}
-                        onChange={(e) => {
-                          updateSampleSet(activeSet.id, { sourceName: e.target.value, sourceId: undefined });
-                          setVendorQuery(e.target.value);
-                          setVendorSearchOpen(true);
-                        }}
-                        onFocus={() => setVendorSearchOpen(true)}
-                        onBlur={() => setTimeout(() => setVendorSearchOpen(false), 150)}
-                        placeholder="Vendor / origin..."
-                        className="w-full bg-tea-surface text-tea-text rounded px-2 py-1.5 text-sm
-                                   placeholder:text-tea-text-dim focus:outline-none focus:ring-1 focus:ring-tea-gold/30"
-                      />
-                      {activeSet.sourceId && (
-                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-tea-gold">✓ linked</span>
-                      )}
-                      {vendorSearchOpen && (
-                        <div className="absolute top-full left-0 right-0 z-50 bg-tea-elevated rounded shadow-lg mt-0.5 max-h-40 overflow-y-auto"
-                             style={{ border: '1px solid var(--tea-border)' }}>
-                          {vendors
-                            .filter(v => !vendorQuery.trim() || v.name.toLowerCase().includes(vendorQuery.toLowerCase()))
-                            .slice(0, 8)
-                            .map(v => (
-                              <button
-                                key={v.id}
-                                className="w-full text-left px-3 py-2 text-sm text-tea-text hover:bg-tea-surface transition-colors"
-                                onMouseDown={(e) => {
-                                  e.preventDefault();
-                                  updateSampleSet(activeSet.id, { sourceName: v.name, sourceId: v.id });
-                                  setVendorSearchOpen(false);
-                                  setVendorQuery('');
-                                }}
-                              >
-                                <div>{v.name}</div>
-                                {v.company && <div className="text-[10px] text-tea-text-dim">{v.company}</div>}
-                              </button>
-                            ))
-                          }
-                          {vendorQuery && !vendors.find(v => v.name.toLowerCase() === vendorQuery.toLowerCase()) && (
-                            <div className="px-3 py-2 text-[11px] text-tea-text-dim italic">Type to search or enter a new source</div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Vendor contact links */}
-                  {(() => {
-                    const linkedVendor = vendors.find((v: any) => v.id === activeSet.sourceId);
-                    if (!linkedVendor || (!linkedVendor.whatsapp && !linkedVendor.phone && !linkedVendor.email)) return null;
-                    return (
-                      <div className="flex flex-wrap gap-3">
-                        {linkedVendor.whatsapp && (
-                          <a
-                            href={`https://wa.me/${String(linkedVendor.whatsapp).replace(/\D/g, '')}`}
-                            target="_blank" rel="noopener noreferrer"
-                            className="text-[10px] text-tea-gold hover:opacity-80 transition-opacity"
-                          >
-                            WhatsApp
-                          </a>
-                        )}
-                        {linkedVendor.phone && (
-                          <a href={`tel:${linkedVendor.phone}`} className="text-[10px] text-tea-text-sec hover:text-tea-text transition-colors">
-                            {linkedVendor.phone}
-                          </a>
-                        )}
-                        {linkedVendor.email && (
-                          <a href={`mailto:${linkedVendor.email}`} className="text-[10px] text-tea-text-sec hover:text-tea-text transition-colors">
-                            {linkedVendor.email}
-                          </a>
-                        )}
-                      </div>
-                    );
-                  })()}
+                  {/* Source vendor — same VendorStrip as Tea capture card */}
+                  <VendorStrip
+                    vendorName={activeSet.sourceName}
+                    vendorId={activeSet.sourceId}
+                    vendorDetails={undefined}
+                    onVendorSelect={handleBatchVendorSelect}
+                    onClear={handleBatchVendorClear}
+                    onDetailsChange={() => {}}
+                  />
 
                   {/* Customer picker — customer-gifted only */}
                   {activeSet.purpose === 'customer-gifted' && (

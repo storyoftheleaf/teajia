@@ -2,7 +2,6 @@ import React, { useState, useMemo } from 'react';
 import { useSubViewNavigation } from '../hooks/useSubViewNavigation';
 import { LibrarySubView } from '../types/library';
 import { Icons } from './Icons';
-import Footer from './Footer';
 import { PageHeader } from './shared/PageHeader';
 import { PageHeaderSubtitle } from './shared/PageHeaderSubtitle';
 import { CardContainer } from './shared/CardContainer';
@@ -13,7 +12,8 @@ import { Playlists } from './library/Playlists';
 import { Videos } from './library/Videos';
 import { VisualGuides } from './library/VisualGuides';
 import { ReadingList } from './library/ReadingList';
-import { searchLibrary, SearchResult } from '../utils/librarySearch';
+import { searchLibrary } from '../utils/librarySearch';
+import type { LibrarySearchResult } from '../types/library';
 
 interface LibraryPageProps {
   onCartClick?: () => void;
@@ -79,22 +79,13 @@ const SECTION_CARDS: {
   },
 ];
 
-const RESULT_TYPE_LABELS: Record<SearchResult['type'], string> = {
+const RESULT_SECTION_LABELS: Record<string, string> = {
   glossary: 'Glossary',
   'tea-map': 'Tea Map',
-  playlist: 'Playlists',
-  video: 'Videos',
-  'visual-guide': 'Visual Guides',
+  playlists: 'Playlists',
+  videos: 'Videos',
+  'visual-guides': 'Visual Guides',
   reading: 'Reading',
-};
-
-const RESULT_TYPE_TO_VIEW: Record<SearchResult['type'], LibrarySubView> = {
-  glossary: 'glossary',
-  'tea-map': 'tea-map',
-  playlist: 'playlists',
-  video: 'videos',
-  'visual-guide': 'visual-guides',
-  reading: 'reading',
 };
 
 export const LibraryPage: React.FC<LibraryPageProps> = ({
@@ -152,10 +143,10 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({
                   </p>
                 ) : (
                   <div className="flex flex-col divide-y divide-tea-gold/[0.06]">
-                    {searchResults.map(result => (
+                    {(searchResults as LibrarySearchResult[]).map(result => (
                       <button
-                        key={`${result.type}-${result.id}`}
-                        onClick={() => navigateTo(RESULT_TYPE_TO_VIEW[result.type])}
+                        key={`${result.section}-${result.id}`}
+                        onClick={() => navigateTo(result.section)}
                         className="flex items-start gap-3 py-3 px-1 text-left hover:bg-tea-elevated/50 transition-colors group"
                       >
                         <div className="flex-1">
@@ -164,11 +155,11 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({
                               {result.title}
                             </span>
                             <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-tea-text/5 text-tea-text/40">
-                              {RESULT_TYPE_LABELS[result.type]}
+                              {RESULT_SECTION_LABELS[result.section] || result.sectionLabel}
                             </span>
                           </div>
                           <p className="text-xs text-tea-text/50">
-                            {result.snippet}
+                            {result.description}
                           </p>
                         </div>
                         <Icons.Next className="w-4 h-4 text-tea-text/20 group-hover:text-tea-gold transition-colors shrink-0 mt-1" />
@@ -217,7 +208,6 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({
         {subView === 'reading' && <ReadingList onBack={goToOverview} />}
       </div>
 
-      <Footer />
     </div>
   );
 };

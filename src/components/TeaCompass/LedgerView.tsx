@@ -29,7 +29,7 @@ import { compressImage } from '../../lib/imageCompressor';
 // ─── Currency helpers ────────────────────────────────────────────────────────
 
 const CURRENCY_SYMBOLS: Record<Currency, string> = {
-  USD: '$', NT: 'NT$', Yuan: '¥', IDR: 'Rp', JPY: '¥', MYR: 'RM', HKD: 'HK$', UNK: '',
+  USD: '$', NT: 'NT$', Yuan: '¥', IDR: 'Rp', JPY: '¥', MYR: 'RM', HKD: 'HK$', AUD: 'A$', UNK: '',
 };
 
 function fmtPrice(amount: number, currency: Currency): string {
@@ -329,7 +329,7 @@ const TransactionCard: React.FC<{
       const { pdf } = await import('@react-pdf/renderer');
       const { LedgerPdf } = await import('./LedgerPdf');
       const doc = React.createElement(LedgerPdf, { transaction: tx });
-      const blob = await pdf(doc).toBlob();
+      const blob = await pdf(doc as any).toBlob();
       const fileName = `teajia-${tx.direction}-${tx.counterpartyName || 'order'}-${tx.id.slice(0, 6)}.pdf`.replace(/\s+/g, '-');
 
       // Use Web Share API if available (mobile), otherwise download

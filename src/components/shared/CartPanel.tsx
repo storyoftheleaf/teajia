@@ -48,14 +48,7 @@ export const CartPanel: React.FC<CartPanelProps> = (props) => {
 
   useEffect(() => {
     if (isOpen) {
-      panelControls.start({ x: 0 });
-      if (!localStorage.getItem('cart-swipe-hint-shown')) {
-        const timer = setTimeout(() => {
-          panelControls.start({ x: [0, 20, 0], transition: { duration: 0.4, ease: 'easeInOut' } });
-          localStorage.setItem('cart-swipe-hint-shown', '1');
-        }, 500);
-        return () => clearTimeout(timer);
-      }
+      panelControls.start({ opacity: 1, x: 0 });
     }
   }, [isOpen, panelControls]);
 
@@ -116,7 +109,7 @@ export const CartPanel: React.FC<CartPanelProps> = (props) => {
         transition={{ duration: 0.3 }}
       />
 
-      {/* Panel — slide in from right, z-toast above bottom nav */}
+      {/* Panel — fade in */}
       <motion.div
         ref={focusTrapRef}
         className={`fixed top-0 right-0 h-full w-full z-toast shadow-2xl flex flex-col pb-[env(safe-area-inset-bottom,0px)] glass-grain ${
@@ -124,10 +117,10 @@ export const CartPanel: React.FC<CartPanelProps> = (props) => {
             ? 'md:w-[480px] bg-tea-bg/95 backdrop-blur-2xl border-l border-tea-border'
             : 'md:w-[450px] bg-tea-surface border-l border-tea-border backdrop-blur-xl'
         }`}
-        initial={{ x: '100%' }}
+        initial={{ opacity: 0 }}
         animate={isDragging ? { x: touchOffset, opacity: swipeOpacity } : panelControls}
-        exit={{ x: '100%' }}
-        transition={isDragging ? { duration: 0 } : { type: 'spring', damping: 30, stiffness: 300 }}
+        exit={{ opacity: 0 }}
+        transition={isDragging ? { duration: 0 } : { duration: 0.12, ease: 'easeOut' }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}

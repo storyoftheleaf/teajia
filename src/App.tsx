@@ -46,6 +46,13 @@ const SignUpPage = lazy(() => import('./pages/SignUpPage'));
 const AccountSettingsPage = lazy(() => import('./pages/AccountSettingsPage'));
 const SavedStoriesPage = lazy(() => import('./pages/SavedStoriesPage'));
 const ReadingHistoryPage = lazy(() => import('./pages/ReadingHistoryPage'));
+const CenterPage = lazy(() => import('./pages/CenterPage'));
+const OrderHistoryPage = lazy(() => import('./pages/OrderHistoryPage'));
+const SampleHistoryPage = lazy(() => import('./pages/SampleHistoryPage'));
+const CommunityPage = lazy(() => import('./pages/CommunityPage'));
+const SessionPage = lazy(() => import('./pages/SessionPage'));
+const TableCardPage = lazy(() => import('./pages/TableCardPage'));
+const EventsPage = lazy(() => import('./pages/EventsPage'));
 
 import { useQuery } from '@tanstack/react-query';
 import { fetchStore } from './lib/storefrontApi';
@@ -121,12 +128,13 @@ const AppContent = () => {
     setIsPublicCartOpen: setIsCartOpen,
     sidebarCollapsed,
   } = useAppStore();
-  const { isAdmin, isAuthenticated } = useAuth();
-  useFavoritesSync(isAuthenticated);
-  useOfflineSync(isAuthenticated);
-  useTastingJournalSync(isAuthenticated);
-  useCompassSync(isAuthenticated);
-  useNotesSync(isAuthenticated);
+  const { isAdmin, isAuthenticated, isSessionReady } = useAuth();
+  const syncEnabled = isAuthenticated && isSessionReady;
+  useFavoritesSync(syncEnabled);
+  useOfflineSync(syncEnabled);
+  useTastingJournalSync(syncEnabled);
+  useCompassSync(syncEnabled);
+  useNotesSync(syncEnabled);
   const showAdminBar = false;
 
   const { pullDistance, isRefreshing, progress } = usePullToRefresh();
@@ -154,7 +162,7 @@ const AppContent = () => {
 
   // Scroll position memory for each section
   const scrollPositions = useRef<Record<Section, number>>({
-    HOME: 0, MAGAZINE: 0, LEARN: 0, SHOP: 0, OFFERINGS: 0, ACCOUNT: 0, ABOUT: 0
+    HOME: 0, MAGAZINE: 0, LEARN: 0, SHOP: 0, OFFERINGS: 0, EVENTS: 0, ACCOUNT: 0, ABOUT: 0
   });
   const prevSection = useRef<Section>(activeSection);
   // Track whether the navigation was a deliberate link click (scroll to top)
@@ -186,6 +194,7 @@ const AppContent = () => {
       LEARN: 'Learn — Teajia',
       SHOP: 'Shop — Teajia',
       OFFERINGS: 'Consult — Teajia',
+      EVENTS: 'Sessions — Teajia',
       ACCOUNT: 'Account — Teajia',
       ABOUT: 'About — Teajia',
     };
@@ -507,6 +516,7 @@ const AppContent = () => {
         case 'SHOP': return <Icons.Bag className={className} />;
         case 'LEARN': return <Icons.School className={className} />;
         case 'OFFERINGS': return <Icons.Sparkles className={className} />;
+        case 'EVENTS': return <Icons.Sparkles className={className} />;
         case 'ACCOUNT': return <Icons.User className={className} />;
         default: return null;
     }
@@ -649,7 +659,11 @@ const AppContent = () => {
                 <Route path="/account/settings" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><AccountSettingsPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/saved" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="list" />}><SavedStoriesPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/history" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="list" />}><ReadingHistoryPage /></Suspense></ErrorBoundary>} />
+                <Route path="/account/orders" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="list" />}><OrderHistoryPage /></Suspense></ErrorBoundary>} />
+                <Route path="/account/samples" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="list" />}><SampleHistoryPage /></Suspense></ErrorBoundary>} />
+                <Route path="/community" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="grid" />}><CommunityPage /></Suspense></ErrorBoundary>} />
                 <Route path="/design/tabs" element={<ErrorBoundary><Suspense fallback={null}><TabStyleDemo /></Suspense></ErrorBoundary>} />
+                <Route path="/events" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="list" />}><EventsPage /></Suspense></ErrorBoundary>} />
                 <Route path="/event/:slug" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><EventLanding /></Suspense></ErrorBoundary>} />
                 <Route path="/m/:magicToken" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><GuestManagement /></Suspense></ErrorBoundary>} />
                 <Route path="/order/:ref" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><OrderStatusPage /></Suspense></ErrorBoundary>} />
@@ -659,6 +673,9 @@ const AppContent = () => {
                 <Route path="/invite/:token" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><GuestInviteClaimPage /></Suspense></ErrorBoundary>} />
                 <Route path="/s/:sampleId" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><SamplePage /></Suspense></ErrorBoundary>} />
                 <Route path="/share/:token" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><ShareCardPage /></Suspense></ErrorBoundary>} />
+                <Route path="/me" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="list" />}><CenterPage /></Suspense></ErrorBoundary>} />
+                <Route path="/session/:id" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><SessionPage /></Suspense></ErrorBoundary>} />
+                <Route path="/t/:token" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><TableCardPage /></Suspense></ErrorBoundary>} />
                 <Route path="/find-a-table" element={
                   <ErrorBoundary>
                     <Suspense fallback={<SectionSkeleton variant="grid" />}>
@@ -710,6 +727,8 @@ const AppContent = () => {
           <MagazinePageReader
             story={selectedStory}
             onBack={handleBackToBrowse}
+            isSaved={savedStoryIds[selectedStory.id]}
+            onToggleSave={() => toggleSave(selectedStory.id)}
           />
         </Suspense>
       )}

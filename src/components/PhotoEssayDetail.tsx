@@ -63,7 +63,7 @@ export const PhotoEssayDetail: React.FC<PhotoEssayDetailProps> = ({
                 className="p-2 hover:bg-tea-text/5 rounded transition-colors"
                 aria-label="Share"
               >
-                <Icons.Share2 className="w-6 h-6 text-tea-text" />
+                <Icons.Share className="w-6 h-6 text-tea-text" />
               </button>
             )}
           </div>

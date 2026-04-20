@@ -1,11 +1,11 @@
 import React, { useState, useMemo } from 'react';
-import { Trash2, ExternalLink, BookOpen, Calendar, Filter, Search, X, Mic, PenLine, Plus } from 'lucide-react';
+import { Trash2, ExternalLink, BookOpen, Calendar, Filter, Search, X, Mic, PenLine, Plus, Share2, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Fuse from 'fuse.js';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '../../lib/store';
-import { getTeaColor } from '../../designTokens';
-import { TastingProfileStrip } from '../tasting/TastingProfileStrip';
+import { getTeaColor, getTeaVividColor } from '../../designTokens';
+import { TastingProfileStrip } from './TastingProfileStrip';
 import { usePlatformPrivilege } from '../../lib/permissions';
 import { formatRelativeDate, getDateGroup } from '../TeaCompass/BrowseCard';
 import type { CustomerTasting } from '../../types';
@@ -113,10 +113,33 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
 
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [sharedId, setSharedId] = useState<string | null>(null);
   const [eventFilter, setEventFilter] = useState<EventFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortMode, setSortMode] = useState<SortMode>('recent');
   const [typeFilter, setTypeFilter] = useState<string | null>(null);
+
+  const handleShare = async (entry: CustomerTasting) => {
+    const lines: string[] = [`Tea Journal — ${entry.teaName}`];
+    if (entry.teaType) lines.push(entry.teaType);
+    const rating = entry.tasting.rating ?? entry.rating;
+    if (rating) lines.push(`Rating: ${rating}/10`);
+    if (entry.tasting.overallImpression) lines.push(`\n"${entry.tasting.overallImpression}"`);
+    const allNotes = flattenTastingNotes(entry.tasting);
+    if (allNotes.length > 0) lines.push(allNotes.slice(0, 6).map(t => resolveTermLabel(t)).join(' · '));
+    if (entry.eventTitle) lines.push(`\nEvent: ${entry.eventTitle}`);
+    if (entry.personalNote) lines.push(`\n"${entry.personalNote}"`);
+    const text = lines.join('\n');
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: `Tea Journal — ${entry.teaName}`, text });
+      } else {
+        await navigator.clipboard.writeText(text);
+        setSharedId(entry.id);
+        setTimeout(() => setSharedId(null), 2000);
+      }
+    } catch {}
+  };
 
   const hasEventTastings = useMemo(() => tastingJournal.some(e => !!e.eventId), [tastingJournal]);
 
@@ -211,6 +234,7 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
   const groupedEntries = useMemo(() => {
     const groups: {
       eventId: string | null;
+      eventSlug: string | null;
       eventTitle: string | null;
       date: string | null;
       dateGroup: string | null;
@@ -224,7 +248,7 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
         if (existing) {
           existing.entries.push(entry);
         } else {
-          const group = { eventId: entry.eventId, eventTitle: entry.eventTitle || 'Event', date: entry.createdAt, dateGroup: null, entries: [entry] };
+          const group = { eventId: entry.eventId, eventSlug: entry.eventSlug || null, eventTitle: entry.eventTitle || 'Event', date: entry.createdAt, dateGroup: null, entries: [entry] };
           eventMap.set(entry.eventId, group);
           groups.push(group);
         }
@@ -234,10 +258,10 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
         if (lastGroup && !lastGroup.eventId && lastGroup.dateGroup === dg) {
           lastGroup.entries.push(entry);
         } else {
-          groups.push({ eventId: null, eventTitle: null, date: entry.createdAt, dateGroup: dg, entries: [entry] });
+          groups.push({ eventId: null, eventSlug: null, eventTitle: null, date: entry.createdAt, dateGroup: dg, entries: [entry] });
         }
       } else {
-        groups.push({ eventId: null, eventTitle: null, date: null, dateGroup: null, entries: [entry] });
+        groups.push({ eventId: null, eventSlug: null, eventTitle: null, date: null, dateGroup: null, entries: [entry] });
       }
     }
     return groups;
@@ -323,10 +347,8 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
       <div className="flex-1 overflow-auto px-4 py-3 space-y-2">
         {/* Stats row */}
         {stats && (
-          <div className="text-[11px] text-tea-text-dim tabular-nums mb-2 px-0.5">
-            {stats.count} teas
-            {stats.avgRating && <> · Avg {stats.avgRating}/10</>}
-            {stats.topType && <> · Top: {stats.topType}</>}
+          <div className="text-[11px] text-tea-text-dim tabular-nums mb-1 px-0.5 font-feature-settings-tnum">
+            {stats.count} teas{stats.avgRating && <> · Avg {stats.avgRating}/10</>}{stats.topType && <> · Top: {stats.topType}</>}
           </div>
         )}
 
@@ -352,7 +374,7 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
             <div key={group.eventId || `solo-${gi}`}>
               {/* Event group header */}
               {group.eventId && group.entries.length > 0 && (
-                <button onClick={() => navigate(`/events/${group.eventId}`)} className="flex items-center gap-2 mb-1.5 mt-3 first:mt-0 px-1 group w-full text-left">
+                <button onClick={() => navigate(`/event/${group.eventSlug || group.eventId}`)} className="flex items-center gap-2 mb-1.5 mt-3 first:mt-0 px-1 group w-full text-left">
                   <Calendar size={12} className="text-tea-gold shrink-0" />
                   <span className="text-[11px] font-medium text-tea-gold font-serif group-hover:text-tea-gold-lt transition-colors truncate">
                     {group.eventTitle}
@@ -378,6 +400,7 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
                   const allNotes = flattenTastingNotes(entry.tasting);
                   const previewNotes = allNotes.slice(0, 3);
                   const typeColor = entry.teaType ? getTeaColor(entry.teaType) : null;
+                  const typeVividColor = entry.teaType ? getTeaVividColor(entry.teaType) : null;
                   const rating = entry.tasting.rating ?? entry.rating ?? 0;
                   const liquorColorTerms = entry.tasting['liquor-color'];
                   const firstColorHex = liquorColorTerms?.[0] ? LIQUOR_COLORS[liquorColorTerms[0]] : null;
@@ -388,16 +411,20 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
                   return (
                     <div
                       key={entry.id}
-                      className="bg-tea-surface/40 rounded-lg overflow-hidden"
-                      style={typeColor ? { borderLeft: `2.5px solid color-mix(in srgb, ${typeColor} 25%, transparent)` } : undefined}
+                      className="bg-tea-surface/60 rounded-xl overflow-hidden"
                     >
+                      {typeColor && (
+                        <div style={{ height: 2, background: `linear-gradient(90deg, ${typeColor}cc, ${typeColor}20)` }} />
+                      )}
                       {/* Card header */}
                       <button onClick={() => setExpandedId(isExpanded ? null : entry.id)} className="w-full text-left p-3.5 hover:bg-tea-elevated transition-colors">
                         <div className="flex items-start gap-3">
-                          {/* Thumbnail: product image → liquor color swatch → BookOpen fallback */}
+                          {/* Thumbnail: product image → type color swatch → liquor color swatch → BookOpen fallback */}
                           {(() => {
                             const swatch = entry.teaImage ? (
                               <img src={entry.teaImage} alt="" className="w-11 h-11 rounded-lg object-cover" />
+                            ) : typeVividColor ? (
+                              <div className="w-11 h-11 rounded-lg" style={{ backgroundColor: typeVividColor, opacity: 0.75 }} />
                             ) : firstColorHex ? (
                               <div className="w-11 h-11 rounded-lg shadow-inner" style={{ backgroundColor: firstColorHex }} />
                             ) : (
@@ -426,10 +453,10 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
                               {entry.tasting.mood && <span className="text-[9px] text-tea-text-dim/60 italic shrink-0">{entry.tasting.mood}</span>}
                             </div>
 
-                            {/* Impression — the "one-word" felt signature */}
+                            {/* Impression */}
                             {entry.tasting.overallImpression && (
-                              <div className="text-[13px] text-tea-text-sec font-serif italic leading-snug mb-1">
-                                {entry.tasting.overallImpression}
+                              <div className="text-[13px] text-tea-text-sec font-serif italic leading-snug mb-1.5">
+                                &ldquo;{entry.tasting.overallImpression}&rdquo;
                               </div>
                             )}
 
@@ -448,7 +475,7 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
                                 <span className="text-[10px] text-tea-gold font-medium" title="Returning sweetness (回甘)">回甘</span>
                               )}
                               {entry.eventId && (
-                                <button onClick={(e) => { e.stopPropagation(); navigate(`/events/${entry.eventId}`); }} className="badge-status badge-status-gold hover:opacity-80 transition-opacity cursor-pointer">
+                                <button onClick={(e) => { e.stopPropagation(); navigate(`/event/${entry.eventSlug || entry.eventId}`); }} className="badge-status badge-status-gold hover:opacity-80 transition-opacity cursor-pointer">
                                   <Calendar size={9} />
                                   {entry.eventTitle || 'Event'}
                                 </button>
@@ -489,13 +516,22 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
                           >
                             <div className="px-3.5 pb-3.5 border-t border-tea-border pt-3 space-y-2">
                               {/* Tasting profile */}
-                              <TastingProfileStrip value={entry.tasting} onRemove={() => {}} />
+                              <TastingProfileStrip value={entry.tasting} onRemove={() => {}} variant="cloud" />
 
-                              {/* Capture scores: quality / cleanliness / patience */}
-                              {(entry.tasting.quality != null || entry.tasting.cleanliness != null || entry.tasting.patience != null) && (
-                                <div className="flex items-center gap-2 text-[11px] text-tea-text-dim tabular-nums px-1">
-                                  {entry.tasting.quality != null && <span>Quality {entry.tasting.quality}</span>}
-                                  {entry.tasting.quality != null && (entry.tasting.cleanliness != null || entry.tasting.patience != null) && <span>·</span>}
+                              {/* Quality bar + secondary scores */}
+                              {entry.tasting.quality != null && (
+                                <div className="flex items-center gap-2 pt-0.5">
+                                  <div className="flex-1 h-[3px] rounded-full overflow-hidden bg-tea-elevated">
+                                    <div
+                                      className="h-full rounded-full"
+                                      style={{ width: `${entry.tasting.quality * 10}%`, background: 'linear-gradient(90deg, var(--color-tea-gold-lt,#d4ac66)80, var(--color-tea-gold,#b8924e))' }}
+                                    />
+                                  </div>
+                                  <span className="text-[10px] text-tea-text-dim tabular-nums shrink-0">Quality {entry.tasting.quality}</span>
+                                </div>
+                              )}
+                              {(entry.tasting.cleanliness != null || entry.tasting.patience != null) && (
+                                <div className="flex items-center gap-2 text-[10px] text-tea-text-dim tabular-nums px-0.5">
                                   {entry.tasting.cleanliness != null && <span>Cleanliness {entry.tasting.cleanliness}</span>}
                                   {entry.tasting.cleanliness != null && entry.tasting.patience != null && <span>·</span>}
                                   {entry.tasting.patience != null && <span>Patience {entry.tasting.patience}</span>}
@@ -520,18 +556,28 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
                               )}
 
                               {/* Actions */}
-                              <div className="flex items-center gap-2 pt-1">
-                                {onOrderTea && (
-                                  <button onClick={() => onOrderTea(entry.teaId)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-tea-gold/10 text-tea-gold hover:bg-tea-gold/20 transition-colors">
-                                    <ExternalLink size={12} />
-                                    Find this tea
+                              <div className="flex border-t border-tea-border mt-1 pt-2">
+                                {onOrderTea && entry.teaId !== 'quick-note' && (
+                                  <button
+                                    onClick={() => onOrderTea(entry.teaId)}
+                                    className="flex flex-1 items-center justify-center gap-1.5 py-1.5 text-[11px] font-medium text-tea-gold hover:text-tea-gold/80 border-r border-tea-border transition-colors"
+                                  >
+                                    <ExternalLink size={11} />
+                                    Find tea
                                   </button>
                                 )}
                                 <button
-                                  onClick={() => handleDelete(entry.id)}
-                                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${confirmDelete === entry.id ? 'bg-red-500/15 text-red-400' : 'text-tea-text-dim hover:text-tea-text hover:bg-tea-elevated'}`}
+                                  onClick={() => handleShare(entry)}
+                                  className={`flex flex-1 items-center justify-center gap-1.5 py-1.5 text-[11px] font-medium text-tea-text-dim hover:text-tea-text transition-colors ${onOrderTea && entry.teaId !== 'quick-note' ? 'border-r border-tea-border' : ''}`}
                                 >
-                                  <Trash2 size={12} />
+                                  {sharedId === entry.id ? <Check size={11} className="text-tea-gold" /> : <Share2 size={11} />}
+                                  {sharedId === entry.id ? 'Copied' : 'Share'}
+                                </button>
+                                <button
+                                  onClick={() => handleDelete(entry.id)}
+                                  className={`flex flex-1 items-center justify-center gap-1.5 py-1.5 text-[11px] font-medium transition-colors ${confirmDelete === entry.id ? 'text-red-400' : 'text-tea-text-dim hover:text-tea-text'}`}
+                                >
+                                  <Trash2 size={11} />
                                   {confirmDelete === entry.id ? 'Confirm' : 'Delete'}
                                 </button>
                               </div>

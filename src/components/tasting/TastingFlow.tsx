@@ -2,14 +2,14 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Circle, Leaf, Moon, Palette,
-  Undo2,
+  Undo2, X,
 } from 'lucide-react';
 import type { TastingData } from '../../types';
 import { useTastingFlow } from './useTastingFlow';
 import { BodyZone } from './BodyZone';
 import { ThroatZone } from './ThroatZone';
 import { StateZone } from './StateZone';
-import { FlavorSection } from './FlavorSection';
+import { FlavorSplit } from './FlavorSplit';
 import { AppearanceZone } from './AppearanceZone';
 
 /* ─── Section definition (exported so TastingSession can render the tab bar) ─── */
@@ -194,8 +194,29 @@ export const TastingFlow: React.FC<TastingFlowProps> = ({
         );
       case 'state':
         return <StateZone flow={flow} value={value} onChange={onChange} />;
-      case 'flavor':
-        return <FlavorSection flow={flow} value={value} onChange={onChange} />;
+      case 'flavor': {
+        const flavorCount = flow.getCategoryCount('flavor');
+        return (
+          <div role="group" aria-label="Flavor and taste">
+            <div className="flex justify-end mb-1 -mt-1">
+              <button
+                type="button"
+                onClick={() => flow.clearCategory('flavor')}
+                className={`text-[11px] text-tea-text-dim hover:text-tea-text-sec transition-colors flex items-center gap-1 px-2 py-1 ${flavorCount > 0 ? 'visible' : 'invisible'}`}
+                aria-label="Clear flavor selections"
+                tabIndex={flavorCount > 0 ? 0 : -1}
+              >
+                <X size={10} />
+                Clear
+              </button>
+            </div>
+            <FlavorSplit
+              selected={value.flavor || []}
+              onToggle={(termId) => flow.toggleTerm('flavor', termId)}
+            />
+          </div>
+        );
+      }
       case 'appearance':
         return <AppearanceZone flow={flow} value={value} onChange={onChange} />;
       default:

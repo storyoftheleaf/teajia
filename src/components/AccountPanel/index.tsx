@@ -35,8 +35,6 @@ const CURRENCY_OPTIONS: { code: Currency; label: string; symbol: string }[] = [
   { code: 'AUD', label: 'Australian Dollar', symbol: 'A$' },
 ];
 
-// Derive a readable location string from a membership slug (best-effort for inactive cards
-// where we don't have the full Account object)
 function getLocationFromSlug(slug: string): string {
   if (slug.includes('bali') || slug.includes('indonesia') || slug.includes('ubud')) return 'Ubud, Bali';
   if (slug.includes('australia') || slug.includes('melbourne') || slug.includes('sydney')) return 'Australia';
@@ -45,7 +43,6 @@ function getLocationFromSlug(slug: string): string {
   if (slug.includes('hong-kong') || slug.includes('hongkong')) return 'Hong Kong';
   if (slug.includes('singapore')) return 'Singapore';
   if (slug.includes('malaysia') || slug.includes('kl') || slug.includes('kuala')) return 'Malaysia';
-  // Fallback: capitalise slug words
   return slug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 }
 
@@ -58,7 +55,6 @@ function getCurrencyFromSlug(slug: string): Currency {
   return 'USD';
 }
 
-// Role badge label — returns null for plain members (no badge needed)
 function getRoleBadgeLabel(role: string | undefined, platformRole: string | null): string | null {
   if (platformRole === 'platform_owner') return 'Platform Owner';
   if (platformRole === 'platform_admin') return 'Platform Admin';
@@ -67,59 +63,71 @@ function getRoleBadgeLabel(role: string | undefined, platformRole: string | null
   return null;
 }
 
-// Thin zone separator
+function formatRelativeDate(iso: string): string {
+  const d = new Date(iso);
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+  const diffDays = Math.floor(diffMs / 86400000);
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 7) return `${diffDays} days ago`;
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+const AVATAR_KEY = 'teajia_avatar_data_url';
+
 const Separator: React.FC = () => (
   <div className="h-px bg-tea-gold/10" />
 );
 
-// Consistent zone label (used in location switcher)
 const ZoneLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <span className="text-[9px] uppercase tracking-[0.25em] text-tea-text-dim font-medium block mb-2.5 px-0.5">
     {children}
   </span>
 );
 
-// Tile card — used in main launchpad grid
-const Tile: React.FC<{
+const CardSectionLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <div className="px-4 py-2.5 border-b border-tea-border bg-tea-surface/30">
+    <span className="text-[9px] uppercase tracking-[0.25em] text-tea-text-dim font-medium">{children}</span>
+  </div>
+);
+
+const Item: React.FC<{
   icon: React.ReactNode;
   label: string;
-  sub: string;
+  description: string;
   onClick: () => void;
   gold?: boolean;
-}> = ({ icon, label, sub, onClick, gold }) => (
+  pulse?: boolean;
+  locked?: boolean;
+}> = ({ icon, label, description, onClick, gold, pulse, locked }) => (
   <button
     onClick={onClick}
-    className="flex items-center gap-3 p-3.5 rounded-xl bg-tea-surface border border-tea-border text-left transition-colors duration-100 hover:bg-tea-elevated/60 active:scale-[0.98]"
+    className={`w-full flex items-center gap-3.5 px-4 py-3.5 text-left transition-colors group border-b border-tea-border last:border-0 ${
+      locked ? 'opacity-55' : 'hover:bg-tea-surface/50'
+    }`}
     style={{ WebkitTapHighlightColor: 'transparent' }}
   >
-    <div className={`shrink-0 ${gold ? 'text-tea-gold' : 'text-tea-gold/60'}`}>{icon}</div>
-    <div className="min-w-0">
-      <div className="text-[13px] font-medium text-tea-text leading-tight truncate">{label}</div>
-      <div className="text-[11px] text-tea-text-dim mt-0.5 leading-tight truncate">{sub}</div>
+    <div className={`shrink-0 ${gold ? 'text-tea-gold' : 'text-tea-gold/50 group-hover:text-tea-gold/70 transition-colors'}`}>
+      {icon}
     </div>
+    <div className="flex-1 min-w-0">
+      <div className="text-[13px] font-medium text-tea-text leading-tight">{label}</div>
+      <div className="text-[11px] text-tea-text-dim mt-0.5 leading-tight">{description}</div>
+    </div>
+    {pulse ? (
+      <span className="relative flex shrink-0">
+        <span className="absolute inline-flex h-2 w-2 rounded-full bg-tea-gold opacity-75 animate-ping" />
+        <span className="relative inline-flex h-2 w-2 rounded-full bg-tea-gold" />
+      </span>
+    ) : locked ? (
+      <Icons.Lock className="w-3.5 h-3.5 text-tea-text-dim shrink-0" />
+    ) : (
+      <Icons.ChevronRight className="w-3.5 h-3.5 text-tea-text/15 group-hover:text-tea-text/30 transition-colors shrink-0" />
+    )}
   </button>
 );
 
-// Hero tile — full-width featured card
-const HeroTile: React.FC<{
-  icon: React.ReactNode;
-  label: string;
-  sub: string;
-  onClick: () => void;
-}> = ({ icon, label, sub, onClick }) => (
-  <button
-    onClick={onClick}
-    className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl bg-tea-surface border border-tea-border text-left transition-colors duration-100 hover:bg-tea-elevated/60 active:scale-[0.99]"
-    style={{ WebkitTapHighlightColor: 'transparent' }}
-  >
-    <div className="text-tea-gold shrink-0">{icon}</div>
-    <div className="flex-1 min-w-0">
-      <div className="text-[15px] font-semibold text-tea-text leading-tight">{label}</div>
-      <div className="text-[12px] text-tea-text-sec mt-0.5">{sub}</div>
-    </div>
-    <svg viewBox="0 0 24 24" className="w-4 h-4 text-tea-text-dim shrink-0" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
-  </button>
-);
 
 export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateToStory, initialView }) => {
   const navigate = useNavigate();
@@ -136,14 +144,19 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
     activeAccountId,
     activeAccount,
     platformRole,
+    shopStoreSlug,
+    recentlyViewed,
     setShopStoreSlug,
     setActiveAccountId,
     setActiveAccount,
+    cartLastAddedAt,
+    setUpcomingEventsCount,
   } = useAppStore();
 
   useScrollLock(true);
   const focusTrapRef = useFocusTrap<HTMLDivElement>(true);
   const triggerRef = useRef<HTMLElement | null>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   const [isVisible, setIsVisible] = useState(false);
   const PERSISTABLE_VIEWS: PanelView[] = ['main'];
@@ -191,6 +204,11 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
   const [switchingTo, setSwitchingTo] = useState<string | null>(null);
   const [locationSearch, setLocationSearch] = useState('');
 
+  // Avatar state
+  const [avatarDataUrl, setAvatarDataUrl] = useState<string | null>(() => {
+    try { return localStorage.getItem(AVATAR_KEY); } catch { return null; }
+  });
+
   // Derived
   const activeMembership = memberships.find(m => m.account_id === activeAccountId);
   const inactiveMemberships = memberships.filter(m => m.account_id !== activeAccountId);
@@ -221,27 +239,33 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
     } catch { return 0; }
   }, []);
 
-  const savedStoryEntries = useMemo(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem('teajia_saved_stories') || '{}');
-      return Object.entries(saved).filter(([, v]) => v).map(([id]) => id);
-    } catch { return []; }
-  }, []);
-
-  const readingHistory = useMemo(() => {
-    const entries: { storyId: string; page: number }[] = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key?.startsWith('teajia_progress_')) {
-        const storyId = key.replace('teajia_progress_', '');
-        const page = parseInt(localStorage.getItem(key) || '0');
-        entries.push({ storyId, page });
-      }
-    }
-    return entries;
-  }, []);
-
   const cartCount = publicCart.length;
+
+  // Cart "new" indicator: added within last 30 min
+  const cartIsNew = cartLastAddedAt != null && (Date.now() - cartLastAddedAt) < 30 * 60 * 1000;
+
+  // Compass last result from localStorage
+  const compassProfile = useMemo(() => {
+    try {
+      const raw = localStorage.getItem('teajia_compass_profile') || localStorage.getItem('compass-profile');
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      // Accept { tags: string[] } or { result: string } or array
+      if (parsed?.tags?.length) return parsed.tags.slice(0, 2).join(' · ');
+      if (parsed?.result) return String(parsed.result).slice(0, 30);
+      if (Array.isArray(parsed) && parsed.length) return parsed.slice(0, 2).join(' · ');
+    } catch {}
+    return null;
+  }, []);
+
+  // Taste profile completion (0–100)
+  const tasteProfilePct = useMemo(() => {
+    let score = 0;
+    if (tastingJournal.length > 0) score += 40;
+    if (favoriteTeas.length > 0) score += 20;
+    if (compassProfile) score += 40;
+    return score;
+  }, [tastingJournal.length, favoriteTeas.length, compassProfile]);
 
   // Animate in
   useEffect(() => {
@@ -282,6 +306,26 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
     setConfirmNewPassword(''); setEditName(''); setEditEmail(''); setEditUsername('');
   };
 
+  const scrollToSection = (ref: React.RefObject<HTMLDivElement>) => {
+    ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const handlePanelScroll = () => {
+    const container = scrollRef.current;
+    if (!container) return;
+    const scrollTop = container.scrollTop;
+    const meTop = (meRef.current?.offsetTop ?? 0);
+    const navTop = (navigateRef.current?.offsetTop ?? 0);
+    const opsTop = (opsRef.current?.offsetTop ?? 0);
+    if (isStaff && opsTop > 0 && scrollTop >= opsTop - 120) {
+      setActiveSection('ops');
+    } else if (navTop > 0 && scrollTop >= navTop - 120) {
+      setActiveSection('navigate');
+    } else {
+      setActiveSection('me');
+    }
+  };
+
   const handleOpenCart = () => {
     onClose();
     setTimeout(() => window.dispatchEvent(new Event('openCart')), 50);
@@ -295,7 +339,6 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
 
     setSwitchingTo(membership.account_id);
 
-    // Optimistic update — apply immediately so the UI feels instant
     setShopStoreSlug(membership.slug);
     setActiveAccountId(membership.account_id);
 
@@ -303,21 +346,18 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
       if (auth.isAuthenticated) {
         await api.accounts.switch(membership.account_id);
         hydrateAccountStateFromToken();
-        // Fetch full account to get real location + currency
         try {
           const account = await api.accounts.get(membership.account_id);
           setActiveAccount(account);
           if (account.currency_default) {
             setCurrency(account.currency_default as Currency);
           }
-        } catch { /* non-critical — best-effort currency from slug */ }
+        } catch { /* non-critical */ }
       }
-      // Best-effort currency from slug when full account fetch isn't available
       if (!activeAccount?.currency_default) {
         setCurrency(getCurrencyFromSlug(membership.slug));
       }
     } catch {
-      // Revert on failure
       setShopStoreSlug(prevSlug);
       setActiveAccountId(prevAccountId);
     } finally {
@@ -411,21 +451,48 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
   const getInitials = (nameStr: string) =>
     nameStr.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 
-  // Hydrate tasting journal from server when authenticated and panel opens
+  // Avatar upload
+  const handleAvatarClick = () => {
+    if (auth.isAuthenticated) avatarInputRef.current?.click();
+  };
+
+  const handleAvatarFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const url = ev.target?.result as string;
+      setAvatarDataUrl(url);
+      try { localStorage.setItem(AVATAR_KEY, url); } catch {}
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  // Hydrate tasting journal from server when authenticated
   useEffect(() => {
     if (auth.isAuthenticated) {
       hydrateTastingJournal().catch(() => {});
     }
   }, [auth.isAuthenticated]);
 
-  // Events for current store (only fetch when events view is active)
-  const activeSlug = activeMembership?.slug ?? '';
+  // Events for current store
+  const activeSlug = activeMembership?.slug || shopStoreSlug || 'teajia-bali';
   const { data: storeEvents = [], isLoading: eventsLoading } = useQuery<TeaEvent[]>({
     queryKey: ['panel-events', activeSlug],
     queryFn: () => fetchStoreEvents(activeSlug),
     enabled: !!activeSlug,
     staleTime: 1000 * 60 * 5,
   });
+
+  const [eventListFilter, setEventListFilter] = useState<'upcoming' | 'open' | 'past'>('upcoming');
+
+  // Scroll-tracked jump nav
+  const [activeSection, setActiveSection] = useState<'me' | 'navigate' | 'ops'>('me');
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const meRef = useRef<HTMLDivElement>(null);
+  const navigateRef = useRef<HTMLDivElement>(null);
+  const opsRef = useRef<HTMLDivElement>(null);
 
   const upcomingEvents = useMemo(() => {
     const now = new Date();
@@ -434,14 +501,58 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
       .sort((a, b) => new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime());
   }, [storeEvents]);
 
+  const openSeatEvents = useMemo(() => {
+    const now = new Date();
+    return storeEvents
+      .filter(ev => new Date(ev.eventDate) >= now && ev.status !== 'archived' && (ev.seatsRemaining ?? 1) > 0)
+      .sort((a, b) => new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime());
+  }, [storeEvents]);
+
+  const pastEvents = useMemo(() => {
+    const now = new Date();
+    return storeEvents
+      .filter(ev => new Date(ev.eventDate) < now || ev.status === 'closed' || ev.status === 'archived')
+      .sort((a, b) => new Date(b.eventDate).getTime() - new Date(a.eventDate).getTime());
+  }, [storeEvents]);
+
+  const displayedEvents = eventListFilter === 'open' ? openSeatEvents : eventListFilter === 'past' ? pastEvents : upcomingEvents;
+
+  // Sync upcoming events count to store for notification dot
+  useEffect(() => {
+    setUpcomingEventsCount(upcomingEvents.length);
+  }, [upcomingEvents.length, setUpcomingEventsCount]);
+
+  // Next upcoming event (for location card)
+  const nextEvent = upcomingEvents[0];
+
+  // 24h alert: is the next event within 24 hours?
+  const nextEventWithin24h = useMemo(() => {
+    if (!nextEvent) return false;
+    const diff = new Date(nextEvent.eventDate).getTime() - Date.now();
+    return diff > 0 && diff < 86400000;
+  }, [nextEvent]);
+
+  // WhatsApp RSVP link for an event
+  const buildRsvpLink = (ev: TeaEvent) => {
+    const phone = activeAccount?.whatsapp_number?.replace(/\D/g, '') || '';
+    const text = encodeURIComponent(`Hi, I'd like to reserve a seat for "${ev.title}" on ${new Date(ev.eventDate).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}.`);
+    return phone ? `https://wa.me/${phone}?text=${text}` : `https://wa.me/?text=${text}`;
+  };
+
+  // WhatsApp general contact
+  const waContact = activeAccount?.whatsapp_number?.replace(/\D/g, '') || '';
+  const waLink = waContact ? `https://wa.me/${waContact}` : 'https://wa.me/';
+
   // Header state
   const isSubView = panelView !== 'main';
   const headerTitle =
     panelView === 'location-switcher' ? 'Switch Location' :
     panelView === 'events' ? 'Sessions' :
+    panelView === 'signin' ? 'Sign In' :
+    panelView === 'signup' ? 'Create Account' :
     'Account';
 
-  // Filtered memberships for location switcher search
+  // Filtered memberships for location switcher
   const filteredMemberships = useMemo(() => {
     if (!locationSearch.trim()) return memberships;
     const q = locationSearch.toLowerCase();
@@ -452,36 +563,9 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
     );
   }, [memberships, locationSearch]);
 
-  // ── Nav row helper ──────────────────────────────────────────────────────────
-  const NavRow: React.FC<{
-    icon: React.ReactNode;
-    label: string;
-    onClick: () => void;
-    count?: number;
-    gold?: boolean;
-    last?: boolean;
-  }> = ({ icon, label, onClick, count, gold, last }) => (
-    <button
-      onClick={onClick}
-      className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-tea-surface/50 transition-colors group ${
-        !last ? 'border-b border-tea-border' : ''
-      }`}
-    >
-      <div className={gold ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-gold transition-colors'}>
-        {icon}
-      </div>
-      <span className="text-sm text-tea-text flex-1 text-left">{label}</span>
-      {count !== undefined && count > 0 && (
-        <span className="text-[11px] font-mono text-tea-text-sec mr-1">{count}</span>
-      )}
-      <Icons.ChevronRight className="w-3.5 h-3.5 text-tea-text/15 group-hover:text-tea-text/30 transition-colors" />
-    </button>
-  );
-
   // ── Location card ───────────────────────────────────────────────────────────
   const ActiveLocationCard: React.FC<{ showSwitchButton?: boolean }> = ({ showSwitchButton }) => (
     <div className="rounded-md overflow-hidden border border-tea-border">
-      {/* Card header */}
       <div className="flex items-start justify-between px-4 py-3 bg-tea-surface/40 border-l-2 border-tea-gold">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
@@ -502,6 +586,12 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
               {activeDisplayCurrency && ` · ${activeDisplayCurrency}`}
             </span>
           )}
+          {/* Next event line */}
+          {nextEvent && (
+            <span className="text-[10px] text-tea-gold/70 mt-0.5 block ml-3.5">
+              Next: {new Date(nextEvent.eventDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+            </span>
+          )}
         </div>
         {showSwitchButton && (
           <button
@@ -512,7 +602,6 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
           </button>
         )}
       </div>
-      {/* Quick links */}
       <div className="flex border-t border-tea-border divide-x divide-tea-border">
         <button
           onClick={() => { onClose(); navigate('/shop'); }}
@@ -521,10 +610,10 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
           Shop
         </button>
         <button
-          onClick={() => { onClose(); navigate(activeMembership?.slug ? `/store/${activeMembership.slug}` : '/find-a-table'); }}
+          onClick={() => setPanelView('events')}
           className="flex-1 py-2.5 text-[9px] uppercase tracking-[0.15em] text-tea-text-sec hover:text-tea-gold hover:bg-tea-surface/50 transition-colors"
         >
-          Events
+          Sessions
         </button>
         {isStaff && (
           <button
@@ -571,7 +660,6 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
     );
   };
 
-  // ── Error block ─────────────────────────────────────────────────────────────
   const FormError: React.FC = () =>
     formError ? (
       <div className="flex items-start gap-2 p-3 bg-red-500/5 border border-red-500/20 text-red-600 text-sm">
@@ -580,7 +668,6 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
       </div>
     ) : null;
 
-  // ── Submit button ───────────────────────────────────────────────────────────
   const SubmitButton: React.FC<{ label: string }> = ({ label }) => (
     <button
       type="submit"
@@ -615,9 +702,18 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
           transition: 'opacity 120ms ease-out',
         }}
       >
+        {/* Hidden avatar file input */}
+        <input
+          ref={avatarInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleAvatarFile}
+        />
+
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-2.5 border-b border-tea-border bg-tea-surface/50">
-          {panelView !== 'main' ? (
+          {isSubView ? (
             <button
               onClick={() => { setPanelView('main'); resetForm(); setLocationSearch(''); }}
               className="min-w-[36px] min-h-[36px] flex items-center justify-center p-1.5"
@@ -645,8 +741,33 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
           </button>
         </div>
 
+        {/* Jump Nav — only in main view */}
+        {panelView === 'main' && (
+          <div className="flex items-center gap-1.5 px-4 py-2.5 border-b border-tea-border bg-tea-bg flex-shrink-0">
+            {(
+              [
+                ['me', 'Me'],
+                ['navigate', 'Navigate'],
+                ...(isStaff ? [['ops', 'Ops']] : []),
+              ] as ['me' | 'navigate' | 'ops', string][]
+            ).map(([id, label]) => (
+              <button
+                key={id}
+                onClick={() => scrollToSection(id === 'me' ? meRef : id === 'navigate' ? navigateRef : opsRef)}
+                className={`px-3.5 py-1.5 rounded-full text-[11px] font-medium tracking-[0.02em] transition-colors border ${
+                  activeSection === id
+                    ? 'bg-tea-gold/10 border-tea-gold/30 text-tea-gold'
+                    : 'border-tea-border text-tea-text-sec hover:text-tea-text'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Content */}
-        <div className="flex-1 min-h-0 overflow-y-auto p-6 pb-[calc(44px+env(safe-area-inset-bottom,0px))] lg:pb-6 relative">
+        <div ref={scrollRef} onScroll={panelView === 'main' ? handlePanelScroll : undefined} className="flex-1 min-h-0 overflow-y-auto p-6 pb-[calc(44px+env(safe-area-inset-bottom,0px))] lg:pb-6 relative">
           {/* Grain texture */}
           <div className="absolute inset-0 pointer-events-none" style={{ opacity: 0.06, backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`, backgroundSize: '120px' }} />
 
@@ -661,11 +782,122 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
           >
 
             {/* ══════════════════════════════════════════════════════════════
+                SIGN IN VIEW (inline, no navigation away)
+            ══════════════════════════════════════════════════════════════ */}
+            {panelView === 'signin' && (
+              <div className="space-y-5">
+                <div>
+                  <h2 className="font-serif text-2xl text-tea-text">Welcome back.</h2>
+                  <p className="text-[12px] text-tea-text-sec mt-1">Sign in to your Teajia account.</p>
+                </div>
+                <form onSubmit={handleSignIn} className="space-y-4">
+                  <FormError />
+                  <div>
+                    <label className={labelClass}>Email or username</label>
+                    <input
+                      type="text"
+                      value={signinIdentifier}
+                      onChange={e => setSigninIdentifier(e.target.value)}
+                      autoFocus
+                      required
+                      placeholder="you@example.com"
+                      className={inputClass}
+                      style={inputStyle}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Password</label>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        value={password}
+                        onChange={e => setPassword(e.target.value)}
+                        required
+                        placeholder="••••••••"
+                        className={inputClass + ' pr-11'}
+                        style={inputStyle}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(v => !v)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-tea-text-dim hover:text-tea-text-sec transition-colors"
+                        tabIndex={-1}
+                      >
+                        {showPassword ? <Icons.EyeSlash className="w-4 h-4" /> : <Icons.Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+                  <SubmitButton label="Sign In" />
+                </form>
+                <div className="text-center">
+                  <button
+                    onClick={() => { resetForm(); setPanelView('signup'); }}
+                    className="text-[11px] text-tea-text-sec hover:text-tea-gold transition-colors"
+                  >
+                    No account? <span className="underline underline-offset-2">Create one</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* ══════════════════════════════════════════════════════════════
+                SIGN UP VIEW (inline)
+            ══════════════════════════════════════════════════════════════ */}
+            {panelView === 'signup' && (
+              <div className="space-y-5">
+                <div>
+                  <h2 className="font-serif text-2xl text-tea-text">Join Teajia.</h2>
+                  <p className="text-[12px] text-tea-text-sec mt-1">Create your account to track teas, journal sessions, and more.</p>
+                </div>
+                <form onSubmit={handleSignUp} className="space-y-4">
+                  <FormError />
+                  <div>
+                    <label className={labelClass}>Name</label>
+                    <input type="text" value={name} onChange={e => setName(e.target.value)} required autoFocus placeholder="Your name" className={inputClass} style={inputStyle} />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Email</label>
+                    <input type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="you@example.com" className={inputClass} style={inputStyle} />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Username <span className="text-tea-text-dim normal-case tracking-normal">(optional)</span></label>
+                    <input type="text" value={username} onChange={e => setUsername(e.target.value)} placeholder="teaenthusiast" className={inputClass} style={inputStyle} />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Password</label>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        value={password}
+                        onChange={e => setPassword(e.target.value)}
+                        required
+                        placeholder="Min. 6 characters"
+                        className={inputClass + ' pr-11'}
+                        style={inputStyle}
+                      />
+                      <button type="button" onClick={() => setShowPassword(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-tea-text-dim hover:text-tea-text-sec transition-colors" tabIndex={-1}>
+                        {showPassword ? <Icons.EyeSlash className="w-4 h-4" /> : <Icons.Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+                  <SubmitButton label="Create Account" />
+                </form>
+                <div className="text-center">
+                  <button
+                    onClick={() => { resetForm(); setPanelView('signin'); }}
+                    className="text-[11px] text-tea-text-sec hover:text-tea-gold transition-colors"
+                  >
+                    Already have an account? <span className="underline underline-offset-2">Sign in</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* ══════════════════════════════════════════════════════════════
                 EVENTS VIEW — inline sessions listing
             ══════════════════════════════════════════════════════════════ */}
             {panelView === 'events' && (
               <div className="animate-[fadeIn_0.25s_ease-out] space-y-1">
-                {/* Header */}
                 <div className="mb-4">
                   <p className="text-[10px] uppercase tracking-[0.3em] text-tea-text-dim mb-2">
                     {activeAccount?.name || 'Sessions'} · {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
@@ -673,6 +905,19 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                   <h2 className="font-serif text-3xl font-normal text-tea-text leading-[1.05] tracking-[-0.5px]">
                     Gather <em className="text-tea-gold italic">around tea.</em>
                   </h2>
+                  <div className="flex gap-1.5 mt-4">
+                    {([['upcoming', 'Upcoming'], ['open', 'Open seats'], ['past', 'Past']] as const).map(([key, label]) => (
+                      <button
+                        key={key}
+                        onClick={() => setEventListFilter(key)}
+                        className={`px-3 py-1.5 rounded-full text-[11px] font-medium tracking-[0.02em] transition-colors border ${
+                          eventListFilter === key
+                            ? 'bg-tea-gold/10 border-tea-gold/40 text-tea-gold'
+                            : 'bg-transparent border-tea-border text-tea-text-sec hover:text-tea-text'
+                        }`}
+                      >{label}</button>
+                    ))}
+                  </div>
                 </div>
 
                 {eventsLoading ? (
@@ -692,13 +937,13 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                       </div>
                     ))}
                   </div>
-                ) : upcomingEvents.length === 0 ? (
+                ) : displayedEvents.length === 0 ? (
                   <p className="font-serif italic text-sm text-tea-text-sec py-10 text-center">
-                    No upcoming gatherings at this table.
+                    {eventListFilter === 'past' ? 'No past sessions yet.' : eventListFilter === 'open' ? 'No open seats right now.' : 'No upcoming gatherings at this table.'}
                   </p>
                 ) : (
                   <div>
-                    {upcomingEvents.map((ev, i) => {
+                    {displayedEvents.map((ev, i) => {
                       const d = new Date(ev.eventDate);
                       const day = d.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
                       const dateNum = String(d.getDate()).padStart(2, '0');
@@ -706,38 +951,58 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                       const time = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
                       const seats = ev.seatsRemaining;
                       const isFull = seats === 0;
+                      const isPast = eventListFilter === 'past';
                       return (
-                        <button
+                        <div
                           key={ev.id}
-                          onClick={() => { onClose(); navigate(`/event/${ev.slug}`); }}
-                          className={`w-full flex gap-3.5 py-4 text-left hover:opacity-75 transition-opacity${i < upcomingEvents.length - 1 ? ' border-b border-tea-border' : ''}`}
+                          className={`py-4 ${i < displayedEvents.length - 1 ? 'border-b border-tea-border' : ''}`}
                         >
-                          <div className="w-12 shrink-0 text-center pt-0.5">
-                            <div className="text-[9px] tracking-[0.25em] text-tea-text-dim uppercase">{day}</div>
-                            <div className="font-serif text-[28px] font-normal text-tea-text leading-none mt-0.5">{dateNum}</div>
-                            <div className="text-[9px] tracking-[0.2em] text-tea-text-dim mt-0.5">{month}</div>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-serif text-sm font-medium text-tea-text leading-snug">{ev.title}</h3>
-                            {ev.subtitle && (
-                              <p className="font-serif italic text-[12px] text-tea-text-sec mt-0.5">{ev.subtitle}</p>
-                            )}
-                            <div className="flex items-center gap-2 mt-1.5 text-[10px] text-tea-text-dim flex-wrap">
-                              <span>{time}</span>
-                              {(ev.areaHint || ev.locationName) && (
-                                <>
-                                  <span className="w-0.5 h-0.5 rounded-full bg-tea-text-dim shrink-0" />
-                                  <span>{ev.areaHint ?? ev.locationName}</span>
-                                </>
-                              )}
-                              {seats != null && (
-                                <span className={`ml-auto font-medium tabular-nums${isFull ? ' text-red-400' : ' text-tea-gold'}`}>
-                                  {isFull ? 'Full' : `${seats}/${ev.totalCapacity}`}
-                                </span>
-                              )}
+                          <button
+                            onClick={() => { onClose(); navigate(`/event/${ev.slug}`); }}
+                            className="w-full flex gap-3.5 text-left hover:opacity-75 transition-opacity"
+                          >
+                            <div className="w-12 shrink-0 text-center pt-0.5">
+                              <div className="text-[9px] tracking-[0.25em] text-tea-text-dim uppercase">{day}</div>
+                              <div className="font-serif text-[28px] font-normal text-tea-text leading-none mt-0.5">{dateNum}</div>
+                              <div className="text-[9px] tracking-[0.2em] text-tea-text-dim mt-0.5">{month}</div>
                             </div>
-                          </div>
-                        </button>
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-serif text-sm font-medium text-tea-text leading-snug">{ev.title}</h3>
+                              {ev.subtitle && (
+                                <p className="font-serif italic text-[12px] text-tea-text-sec mt-0.5">{ev.subtitle}</p>
+                              )}
+                              <div className="flex items-center gap-2 mt-1.5 text-[10px] text-tea-text-dim flex-wrap">
+                                <span>{time}</span>
+                                {(ev.areaHint || ev.locationName) && (
+                                  <>
+                                    <span className="w-0.5 h-0.5 rounded-full bg-tea-text-dim shrink-0" />
+                                    <span>{ev.areaHint ?? ev.locationName}</span>
+                                  </>
+                                )}
+                                {seats != null && !isPast && (
+                                  <span className={`ml-auto font-medium tabular-nums${isFull ? ' text-red-400' : ' text-tea-gold'}`}>
+                                    {isFull ? 'Full' : `${seats}/${ev.totalCapacity}`}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </button>
+                          {/* RSVP button — only for upcoming events with seats available */}
+                          {!isPast && !isFull && (
+                            <div className="mt-2.5 ml-[calc(3rem+0.875rem)]">
+                              <a
+                                href={buildRsvpLink(ev)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] uppercase tracking-[0.15em] font-medium bg-tea-gold/10 text-tea-gold border border-tea-gold/30 rounded hover:bg-tea-gold/20 transition-colors"
+                                onClick={e => e.stopPropagation()}
+                              >
+                                <svg viewBox="0 0 24 24" className="w-3 h-3 fill-current" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                                Reserve seat
+                              </a>
+                            </div>
+                          )}
+                        </div>
                       );
                     })}
                   </div>
@@ -750,7 +1015,6 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
             ══════════════════════════════════════════════════════════════ */}
             {panelView === 'location-switcher' && (
               <div className="animate-[fadeIn_0.3s_ease-out] space-y-4">
-                {/* Search */}
                 <div className="relative">
                   <Icons.Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-tea-text-sec/50 pointer-events-none" />
                   <input
@@ -763,7 +1027,6 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                   />
                 </div>
 
-                {/* Current */}
                 {!locationSearch && (
                   <>
                     <div>
@@ -777,7 +1040,6 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                   </>
                 )}
 
-                {/* All / filtered list */}
                 <div className="space-y-2">
                   {filteredMemberships
                     .filter(m => locationSearch ? true : m.account_id !== activeAccountId)
@@ -798,14 +1060,40 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
             {panelView === 'main' && (
               <div className="space-y-6 animate-[fadeIn_0.3s_ease-out]">
 
+                {/* ── 24h event alert ───────────────────────────────────── */}
+                {nextEventWithin24h && nextEvent && (
+                  <button
+                    onClick={() => setPanelView('events')}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-tea-gold/10 border border-tea-gold/40 text-left hover:bg-tea-gold/15 transition-colors"
+                  >
+                    <div className="w-2 h-2 rounded-full bg-tea-gold shrink-0 animate-pulse" />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[11px] uppercase tracking-[0.15em] text-tea-gold font-medium">Session today</div>
+                      <div className="text-[12px] text-tea-text font-serif truncate mt-0.5">{nextEvent.title}</div>
+                    </div>
+                    <Icons.ChevronRight className="w-3.5 h-3.5 text-tea-gold/60 shrink-0" />
+                  </button>
+                )}
+
                 {/* ── Zone: Identity ────────────────────────────────────── */}
                 {auth.isAuthenticated && auth.user ? (
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-tea-gold/10 flex items-center justify-center border border-tea-border shrink-0">
-                      <span className="text-base font-serif text-tea-gold font-medium">
-                        {getInitials(auth.user.name || auth.user.email)}
-                      </span>
-                    </div>
+                    <button
+                      onClick={handleAvatarClick}
+                      className="w-12 h-12 rounded-full bg-tea-gold/10 flex items-center justify-center border border-tea-border shrink-0 overflow-hidden relative group"
+                      title="Tap to change photo"
+                    >
+                      {avatarDataUrl ? (
+                        <img src={avatarDataUrl} alt="Avatar" className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-base font-serif text-tea-gold font-medium">
+                          {getInitials(auth.user.name || auth.user.email)}
+                        </span>
+                      )}
+                      <div className="absolute inset-0 bg-tea-text/0 group-hover:bg-tea-text/20 transition-colors flex items-center justify-center">
+                        <Icons.Camera className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </div>
+                    </button>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
                         <h3 className="font-serif text-sm text-tea-text truncate">
@@ -819,6 +1107,23 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                         )}
                       </div>
                       <span className="text-[11px] text-tea-text-sec truncate block">{auth.user.email}</span>
+                      {/* Taste profile bar */}
+                      {tasteProfilePct < 100 && (
+                        <div className="mt-1.5 flex items-center gap-2">
+                          <div className="flex-1 h-0.5 bg-tea-border rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-tea-gold/60 rounded-full transition-all duration-500"
+                              style={{ width: `${tasteProfilePct}%` }}
+                            />
+                          </div>
+                          <button
+                            onClick={() => { onClose(); navigate('/compass'); }}
+                            className="text-[9px] uppercase tracking-[0.15em] text-tea-text-dim hover:text-tea-gold transition-colors whitespace-nowrap"
+                          >
+                            Complete profile
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ) : (
@@ -839,20 +1144,15 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                 <div>
                   <ZoneLabel>Your Location</ZoneLabel>
 
-                  {/* Authenticated — passport / single card / switcher */}
                   {auth.isAuthenticated && memberships.length > 0 && (
                     <div className="space-y-2">
-                      {/* Active card — always shown */}
                       <ActiveLocationCard showSwitchButton={memberships.length >= 4} />
-
-                      {/* Passport: 2–3 memberships — show inactive cards inline */}
                       {memberships.length >= 2 && memberships.length <= 3 && inactiveMemberships.map(m => (
                         <InactiveLocationCard key={m.account_id} membership={m} />
                       ))}
                     </div>
                   )}
 
-                  {/* Guest — static location strip */}
                   {!auth.isAuthenticated && (
                     <div className="flex items-center justify-between px-4 py-2.5 rounded-md bg-tea-surface/30 border border-tea-border">
                       <div className="flex items-center gap-2">
@@ -872,19 +1172,19 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
 
                 <Separator />
 
-                {/* ── Zone: Guest CTAs ──────────────────────────────────── */}
+                {/* ── Zone: Guest CTAs (inline sign-in/up) ─────────────── */}
                 {!auth.isAuthenticated && (
                   <>
                     <div className="space-y-3">
                       <button
-                        onClick={() => { onClose(); navigate('/signin'); }}
+                        onClick={() => setPanelView('signin')}
                         className="w-full py-3.5 bg-tea-gold text-tea-text font-bold text-xs uppercase tracking-[0.2em] hover:bg-tea-gold/90 transition-colors flex justify-center items-center gap-2"
                       >
                         <Icons.LogIn className="w-4 h-4" />
                         Sign In
                       </button>
                       <button
-                        onClick={() => { onClose(); navigate('/signup'); }}
+                        onClick={() => setPanelView('signup')}
                         className="w-full py-3.5 bg-transparent text-tea-text border border-tea-border font-bold text-xs uppercase tracking-[0.2em] hover:bg-tea-elevated/50 transition-colors flex justify-center items-center gap-2"
                       >
                         Create Account
@@ -894,86 +1194,141 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                   </>
                 )}
 
-                {/* ── Admin hero tile (staff+) ──────────────────────────── */}
+                {/* ── Admin tiles (staff+) ─────────────────────────────── */}
                 {auth.isAuthenticated && isStaff && (
-                  <HeroTile
-                    icon={<Icons.Settings className="w-5 h-5" />}
-                    label="Admin Dashboard"
-                    sub="Inventory, orders & team"
-                    onClick={() => handleGoToAdmin('/admin/inventory')}
-                  />
+                  <div className="space-y-2.5">
+                    <HeroTile
+                      icon={<Icons.Settings className="w-5 h-5" />}
+                      label="Admin Dashboard"
+                      sub="Inventory, orders & team"
+                      onClick={() => handleGoToAdmin('/admin/inventory')}
+                    />
+                    <Tile
+                      icon={<Icons.MapPin className="w-4 h-4" />}
+                      label="Tea Compass"
+                      sub={compassProfile ?? 'Navigate flavour'}
+                      onClick={() => { onClose(); navigate('/admin/compass'); }}
+                      gold={!!compassProfile}
+                    />
+                  </div>
                 )}
 
-                {/* ── Your Tea (authenticated) — 2-col grid ────────────── */}
-                {auth.isAuthenticated && (
-                  <div>
-                    <ZoneLabel>Your Tea</ZoneLabel>
-                    <div className="grid grid-cols-2 gap-2.5">
+                {/* ── Sessions — visible to all ────────────────────────── */}
+                <Tile
+                  icon={<Calendar className="w-4 h-4" />}
+                  label="Sessions"
+                  sub={upcomingEvents.length > 0 ? `${upcomingEvents.length} upcoming` : 'Gatherings'}
+                  onClick={() => setPanelView('events')}
+                  gold={upcomingEvents.length > 0}
+                  pulse={nextEventWithin24h}
+                />
+
+                {/* ── Your Tea ─────────────────────────────────────────── */}
+                <div>
+                  <ZoneLabel>Your Tea</ZoneLabel>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    {!isStaff && (
                       <Tile
                         icon={<Icons.MapPin className="w-4 h-4" />}
                         label="Tea Compass"
-                        sub="Navigate flavour"
-                        onClick={() => { onClose(); navigate(isStaff ? '/admin/compass' : '/compass'); }}
+                        sub={compassProfile ?? 'Navigate flavour'}
+                        onClick={() => { onClose(); navigate('/compass'); }}
+                        gold={!!compassProfile}
                       />
-                      <Tile
-                        icon={<Icons.Sparkles className="w-4 h-4" />}
-                        label="Tasting Journal"
-                        sub={tastingJournal.length > 0 ? `${tastingJournal.length} sessions` : 'Your sessions'}
-                        onClick={() => { onClose(); navigate('/account/journal'); }}
-                        gold={tastingJournal.length > 0}
-                      />
-                      <Tile
-                        icon={<Calendar className="w-4 h-4" />}
-                        label="Sessions"
-                        sub={upcomingEvents.length > 0 ? `${upcomingEvents.length} upcoming` : 'Gatherings'}
-                        onClick={() => setPanelView('events')}
-                        gold={upcomingEvents.length > 0}
-                      />
-                      <Tile
-                        icon={<Icons.Heart className="w-4 h-4" />}
-                        label="My Collection"
-                        sub={favoriteTeas.length > 0 ? `${favoriteTeas.length} teas` : 'Saved teas'}
-                        onClick={() => { onClose(); navigate('/account/collection'); }}
-                        gold={favoriteTeas.length > 0}
-                      />
-                      <Tile
-                        icon={<Icons.Bag className="w-4 h-4" />}
-                        label="Cart"
-                        sub={cartCount > 0 ? `${cartCount} items` : 'Your order'}
-                        onClick={handleOpenCart}
-                        gold={cartCount > 0}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {/* ── Library (conditional) — 2-col grid ───────────────── */}
-                {(savedStoryCount > 0 || progressCount > 0) && (
-                  <div>
-                    <ZoneLabel>Library</ZoneLabel>
-                    <div className="grid grid-cols-2 gap-2.5">
-                      {savedStoryCount > 0 && (
+                    )}
+                    <Tile
+                      icon={<Icons.Sparkles className="w-4 h-4" />}
+                      label="Tasting Journal"
+                      sub={
+                        tastingJournal.length > 0
+                          ? `Last: ${formatRelativeDate(tastingJournal[0].createdAt)}`
+                          : 'Your sessions'
+                      }
+                      onClick={auth.isAuthenticated
+                        ? () => { onClose(); navigate('/account/journal'); }
+                        : () => setPanelView('signin')
+                      }
+                      gold={tastingJournal.length > 0}
+                      locked={!auth.isAuthenticated}
+                    />
+                    <Tile
+                      icon={<Icons.Heart className="w-4 h-4" />}
+                      label="My Collection"
+                      sub={favoriteTeas.length > 0 ? `${favoriteTeas.length} teas` : 'Saved teas'}
+                      onClick={auth.isAuthenticated
+                        ? () => { onClose(); navigate('/account/collection'); }
+                        : () => setPanelView('signin')
+                      }
+                      gold={favoriteTeas.length > 0}
+                      locked={!auth.isAuthenticated}
+                    />
+                    <Tile
+                      icon={<Icons.Bag className="w-4 h-4" />}
+                      label="Cart"
+                      sub={cartCount > 0 ? `${cartCount} items` : 'Your order'}
+                      onClick={handleOpenCart}
+                      gold={cartCount > 0}
+                      pulse={cartIsNew && cartCount > 0}
+                    />
+                    {auth.isAuthenticated && (
+                      <>
+                        <Tile
+                          icon={<Icons.Clock className="w-4 h-4" />}
+                          label="Order History"
+                          sub="Past purchases"
+                          onClick={() => { onClose(); navigate('/account/orders'); }}
+                        />
                         <Tile
                           icon={<Icons.Leaf className="w-4 h-4" />}
-                          label="Saved Stories"
-                          sub={`${savedStoryCount} saved`}
-                          onClick={() => { onClose(); navigate('/account/saved'); }}
-                          gold
+                          label="Samples"
+                          sub="Track your samples"
+                          onClick={() => { onClose(); navigate('/account/samples'); }}
                         />
-                      )}
-                      {progressCount > 0 && (
-                        <Tile
-                          icon={<Icons.BookOpen className="w-4 h-4" />}
-                          label="Reading History"
-                          sub={`${progressCount} articles`}
-                          onClick={() => { onClose(); navigate('/account/history'); }}
-                        />
-                      )}
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* ── Recently Viewed ───────────────────────────────────── */}
+                {recentlyViewed.length > 0 && (
+                  <div>
+                    <ZoneLabel>Recently Viewed</ZoneLabel>
+                    <div className="flex gap-2 overflow-x-auto pb-1 -mx-0.5 px-0.5" style={{ scrollbarWidth: 'none' }}>
+                      {recentlyViewed.slice(0, 6).map(id => (
+                        <button
+                          key={id}
+                          onClick={() => { onClose(); navigate(`/shop/product/${id}`); }}
+                          className="shrink-0 h-8 px-3 rounded-full bg-tea-surface border border-tea-border text-[11px] text-tea-text-sec hover:text-tea-gold hover:border-tea-gold/40 transition-colors whitespace-nowrap"
+                        >
+                          {id}
+                        </button>
+                      ))}
                     </div>
                   </div>
                 )}
 
-                {/* ── Explore — 2-col grid ──────────────────────────────── */}
+                {/* ── Library — always visible ──────────────────────────── */}
+                <div>
+                  <ZoneLabel>Library</ZoneLabel>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <Tile
+                      icon={<Icons.Leaf className="w-4 h-4" />}
+                      label="Saved Stories"
+                      sub={savedStoryCount > 0 ? `${savedStoryCount} saved` : 'Start collecting'}
+                      onClick={() => { onClose(); navigate('/account/saved'); }}
+                      gold={savedStoryCount > 0}
+                    />
+                    <Tile
+                      icon={<Icons.BookOpen className="w-4 h-4" />}
+                      label="Reading History"
+                      sub={progressCount > 0 ? `${progressCount} articles` : 'Start reading'}
+                      onClick={() => { onClose(); navigate('/account/history'); }}
+                      gold={progressCount > 0}
+                    />
+                  </div>
+                </div>
+
+                {/* ── Explore ───────────────────────────────────────────── */}
                 <div>
                   <ZoneLabel>Explore</ZoneLabel>
                   <div className="grid grid-cols-2 gap-2.5">
@@ -984,17 +1339,33 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                       onClick={() => { onClose(); navigate('/find-a-table'); }}
                     />
                     <Tile
-                      icon={<Icons.Clock className="w-4 h-4" />}
-                      label="Events"
-                      sub="Upcoming"
-                      onClick={() => { onClose(); navigate(activeMembership?.slug ? `/store/${activeMembership.slug}` : '/find-a-table'); }}
-                    />
-                    <Tile
                       icon={<Icons.Sparkles className="w-4 h-4" />}
                       label="Consult"
                       sub="Book a session"
                       onClick={() => { onClose(); navigate('/consult'); }}
                     />
+                    <Tile
+                      icon={<Icons.User className="w-4 h-4" />}
+                      label="Community"
+                      sub="Members & connections"
+                      onClick={() => { onClose(); navigate('/community'); }}
+                    />
+                    <a
+                      href={waLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-3 p-3.5 rounded-xl bg-tea-surface border border-tea-border text-left transition-colors duration-100 hover:bg-tea-elevated/60 active:scale-[0.98]"
+                      style={{ WebkitTapHighlightColor: 'transparent' }}
+                      onClick={onClose}
+                    >
+                      <div className="shrink-0 text-tea-gold/60">
+                        <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-[13px] font-medium text-tea-text leading-tight">Message Us</div>
+                        <div className="text-[11px] text-tea-text-dim mt-0.5 leading-tight">WhatsApp</div>
+                      </div>
+                    </a>
                   </div>
                 </div>
 

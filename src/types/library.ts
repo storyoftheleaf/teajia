@@ -1,4 +1,4 @@
-export type LibrarySubView = 'overview' | 'glossary' | 'playlists' | 'videos' | 'visual-guides' | 'reading';
+export type LibrarySubView = 'overview' | 'glossary' | 'tea-map' | 'playlists' | 'videos' | 'visual-guides' | 'reading';
 
 export interface PlaylistItem {
   id: string;
@@ -45,4 +45,27 @@ export interface LibrarySearchResult {
   description: string;
   section: LibrarySubView;
   sectionLabel: string;
+  type?: string;
+  snippet?: string;
+}
+
+export interface GlossaryTerm {
+  id: string;
+  term: string;
+  pronunciation?: string;
+  chinese?: string;
+  definition: string;
+  deepDive?: string;
+  relatedArticleIds: string[];
+  relatedProductIds: string[];
+}
+
+export interface TeaMapPin {
+  id: string;
+  name: string;
+  lat: number;
+  lng: number;
+  location: string;
+  note?: string;
+  type: 'space' | 'tea-house' | 'farm' | 'shop' | 'market' | 'other';
 }

@@ -7,7 +7,7 @@ interface LongPressOptions {
 }
 
 export const useLongPress = ({ delay = 500, onLongPress, onClick }: LongPressOptions) => {
-  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+  const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const isLongPress = useRef(false);
   const isMoved = useRef(false);
   const startPos = useRef({ x: 0, y: 0 });

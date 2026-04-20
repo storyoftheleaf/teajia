@@ -5,7 +5,7 @@ stack: [Vite 6, React 19, TypeScript, Tailwind v3, Zustand, React Query, Framer 
 deploy: https://teajia.pages.dev
 family: tea
 supersedes: [tea-dev-inital, teajia-grid]
-last_reviewed: 2026-04-19
+last_reviewed: 2026-04-20
 ---
 
 # Teajia — flagship e-commerce + content platform

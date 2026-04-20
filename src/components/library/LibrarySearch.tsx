@@ -4,11 +4,19 @@ import { searchLibrary } from '../../utils/librarySearch';
 import type { LibrarySubView, LibrarySearchResult } from '../../types/library';
 
 interface LibrarySearchProps {
-  onNavigateToSection: (section: LibrarySubView) => void;
+  onNavigateToSection?: (section: LibrarySubView) => void;
+  onSearch?: (q: string) => void;
+  value?: string;
 }
 
-export const LibrarySearch: React.FC<LibrarySearchProps> = ({ onNavigateToSection }) => {
-  const [query, setQuery] = useState('');
+export const LibrarySearch: React.FC<LibrarySearchProps> = ({ onNavigateToSection, onSearch, value }) => {
+  const [internalQuery, setInternalQuery] = useState('');
+  const query = value !== undefined ? value : internalQuery;
+
+  const setQuery = (q: string) => {
+    setInternalQuery(q);
+    onSearch?.(q);
+  };
 
   const results = useMemo(() => searchLibrary(query), [query]);
 

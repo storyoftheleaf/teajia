@@ -1,4 +1,4 @@
-export type EventStatus = 'draft' | 'active' | 'closed' | 'archived';
+export type EventStatus = 'draft' | 'active' | 'closed' | 'archived' | 'completed';
 export type EventFormat = 'private_tasting' | 'public_tasting' | 'workshop' | 'pop_up' | 'wholesale_showing' | 'other';
 export type GatheringType = 'private' | 'semi-private' | 'open' | 'bespoke';
 export type AttendeeStatus = 'requested' | 'confirmed' | 'waitlist' | 'cancelled' | 'denied';
