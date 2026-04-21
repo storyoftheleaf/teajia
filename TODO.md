@@ -96,3 +96,11 @@ Once brewing profiles are written (see #11 above), build the `/learn/brew/:teaTy
 ### Spaces Page — Replace Hardcoded Locations
 `src/pages/SpacesPage.tsx` has 3 Bali locations hardcoded with TODO comments.
 Replace with real data or wire to DB when multi-account infrastructure ships.
+
+---
+
+## Magazine / Journal Reader
+
+### Verify page overflow on short phones (iPhone SE / 667px)
+- Fixed: `MAX_CHARS_PER_PAGE` lowered 600 → 480 (math confirmed 438px needed vs 290px available on SE).
+- **Still needed:** open a real article on the shortest phone you have and visually confirm pages feel right — the math fix is solid but the reading rhythm may want a tweak.

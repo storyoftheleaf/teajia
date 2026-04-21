@@ -61,7 +61,7 @@ const T = {
 // ─── Content parser ───────────────────────────────────────────────────────────
 // Converts story.content: string[] to structured ArticlePage[]
 
-const MAX_CHARS_PER_PAGE = 600;
+const MAX_CHARS_PER_PAGE = 480;
 
 function parseStoryToPages(story: Story): ArticlePage[] {
   const content = story.content ?? [];
