@@ -14,6 +14,7 @@ import { JourneysView } from './learn/JourneysView';
 import { CommunityWisdomView } from './learn/CommunityWisdomView';
 import { TeaSpacesView } from './learn/TeaSpacesView';
 import { useSubViewNavigation } from '../hooks/useSubViewNavigation';
+import { useScrollRestoration } from '../hooks/useScrollRestoration';
 import { Breadcrumb } from './shared/Breadcrumb';
 
 type LearnView = 'overview' | 'course' | 'glossary' | 'playlists' | 'videos' | 'visual-guides' | 'reading' | 'journeys' | 'wisdom' | 'spaces';
@@ -50,6 +51,9 @@ export const LearnHub: React.FC<LearnHubProps> = ({
 }) => {
   // URL-synced sub-view navigation — browser back works properly
   const { currentView, navigateTo, navigateBack, isSubView } = useSubViewNavigation<LearnView>('v', 'overview');
+
+  // Restore scroll position when returning to the overview
+  useScrollRestoration('scroll-learn', { useWindow: true });
 
   // Transition animation state (visual only, doesn't affect navigation)
   const [isTransitioning, setIsTransitioning] = useState(false);

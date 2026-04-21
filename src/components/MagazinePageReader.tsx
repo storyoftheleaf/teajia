@@ -403,7 +403,8 @@ function CoverPage({ story }: { story: Story }) {
         }}>
           {story.title}
         </h1>
-        <p style={{ fontFamily: T.body, fontSize: 16.5, lineHeight: 1.5, color: T.textSec, margin: '0 0 22px', maxWidth: '34ch' }}>
+        {/* subtitle: font-body text-[17px] font-normal italic leading-[1.4] */}
+        <p className="font-body text-[17px] font-normal italic leading-[1.4]" style={{ color: T.textSec, margin: '0 0 22px', maxWidth: '34ch' }}>
           {story.subtitle}
         </p>
       </div>
@@ -437,11 +438,14 @@ function MastheadPage({ page, story }: { page: ArticlePage; story: Story }) {
           <Flourish />
         </div>
         <div style={{ height: 1, background: `linear-gradient(90deg,transparent,${T.border} 20%,${T.border} 80%,transparent)`, marginBottom: 28 }} />
-        <div style={{ ...labelStyle, textAlign: 'center', marginBottom: 10 }}>A letter before you begin</div>
-        <h2 style={{ fontFamily: T.display, fontStyle: 'italic', fontWeight: 400, fontSize: 30, lineHeight: 1.2, textAlign: 'center', margin: '0 0 28px', color: T.text }}>
+        {/* label: font-sans text-[11px] uppercase tracking-[1.2px] */}
+        <div className="font-sans text-[11px] font-normal uppercase tracking-[1.2px] leading-[1.4]" style={{ textAlign: 'center', marginBottom: 10, color: T.textSec }}>A letter before you begin</div>
+        {/* h2: font-display text-[clamp(24px,3.5vw,32px)] font-medium leading-[1.2] */}
+        <h2 className="font-display text-[clamp(24px,3.5vw,32px)] font-medium leading-[1.2] tracking-[0.01em]" style={{ fontStyle: 'italic', textAlign: 'center', margin: '0 0 28px', color: T.text }}>
           For the guest who stayed
         </h2>
-        <p style={{ fontFamily: T.body, fontSize: 17, lineHeight: 1.75, color: T.text }}>
+        {/* body: font-body text-[17px] leading-[1.7] — responsive on mobile */}
+        <p className="font-body text-[15px] md:text-[17px] font-normal leading-[1.7]" style={{ color: T.text }}>
           {page.body?.[0] ?? story.description}
         </p>
         {story.author && (
@@ -516,7 +520,8 @@ function PullQuotePage({ page }: { page: ArticlePage }) {
         {page.footer && (
           <>
             <div style={{ width: 24, height: 1, background: T.gold, marginTop: 32, marginBottom: 16 }} />
-            <p style={{ fontFamily: T.body, fontSize: 15, lineHeight: 1.6, color: T.textDim, maxWidth: '44ch', margin: 0 }}>
+            {/* label: attribution uses uppercase label style */}
+            <p className="font-sans text-[11px] font-normal uppercase tracking-[1.2px] leading-[1.4]" style={{ color: T.textDim, maxWidth: '44ch', margin: 0 }}>
               {page.footer}
             </p>
           </>
@@ -555,11 +560,13 @@ function QAPage({ entry }: { entry: PlanEntry }) {
             <div key={n} style={{ marginBottom: 28 }}>
               <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
                 <span style={{ fontFamily: T.display, fontStyle: 'italic', fontSize: 22, color: T.gold, flexShrink: 0, lineHeight: 1.3 }}>Q.</span>
-                <p style={{ margin: 0, fontFamily: T.body, fontSize: 16, lineHeight: 1.55, color: T.textSec, fontStyle: 'italic' }}>{qa.q}</p>
+                {/* Q: subtitle — italic body */}
+                <p className="font-body text-[17px] font-normal italic leading-[1.4]" style={{ margin: 0, color: T.textSec }}>{qa.q}</p>
               </div>
               <div style={{ display: 'flex', gap: 12 }}>
                 <span style={{ fontFamily: T.display, fontStyle: 'italic', fontSize: 22, color: T.text, flexShrink: 0, lineHeight: 1.3 }}>A.</span>
-                <p style={{ margin: 0, fontFamily: T.body, fontSize: 17, lineHeight: 1.78, color: T.text }}>{qa.a}</p>
+                {/* A: body — responsive size */}
+                <p className="font-body text-[15px] md:text-[17px] font-normal leading-[1.7]" style={{ margin: 0, color: T.text }}>{qa.a}</p>
               </div>
             </div>
           ))}
@@ -604,8 +611,9 @@ function BodyPage({ entry, story }: { entry: PlanEntry; story: Story }) {
         {/* Text zone */}
         <div style={{ flex: 1, overflow: 'hidden', padding: '16px 22px 20px' }}>
           {blocks.map((text, n) => (
-            <p key={n} className={n === 0 ? 'drop-cap' : undefined}
-               style={{ fontFamily: T.body, fontSize: 17, lineHeight: 1.72, margin: '0 0 14px', color: T.text }}>
+            <p key={n}
+               className={`font-body text-[15px] md:text-[17px] font-normal leading-[1.7]${n === 0 ? ' drop-cap' : ''}`}
+               style={{ margin: '0 0 14px', color: T.text }}>
               {text}
             </p>
           ))}
@@ -633,7 +641,9 @@ function BodyPage({ entry, story }: { entry: PlanEntry; story: Story }) {
         <span style={{ fontFamily: T.mono, fontSize: 10, color: T.textDim }}>{subIndex + 1}/{subTotal}</span>
       </div>
       {blocks.map((text, n) => (
-        <p key={n} style={{ fontFamily: T.body, fontSize: 17, lineHeight: 1.72, margin: '0 0 14px', color: T.text, position: 'relative', zIndex: 1 }}>
+        <p key={n}
+           className="font-body text-[15px] md:text-[17px] font-normal leading-[1.7]"
+           style={{ margin: '0 0 14px', color: T.text, position: 'relative', zIndex: 1 }}>
           {text}
         </p>
       ))}
@@ -683,7 +693,7 @@ function EpiloguePage({ page }: { page: ArticlePage }) {
       )}
       {page.head && <h2 style={{ ...headStyle, textAlign: 'center' }}>{page.head}</h2>}
       {(page.body ?? []).map((t, n) => (
-        <p key={n} style={{ fontFamily: T.body, fontSize: 17, lineHeight: 1.78, margin: '0 0 16px', textAlign: 'center', color: T.text }}>{t}</p>
+        <p key={n} className="font-body text-[15px] md:text-[17px] font-normal italic leading-[1.4]" style={{ margin: '0 0 16px', textAlign: 'center', color: T.text }}>{t}</p>
       ))}
     </div>
   );

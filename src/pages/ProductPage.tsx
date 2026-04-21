@@ -320,7 +320,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
             {item.variant && item.variant !== item.name ? item.name : '\u00A0'}
           </p>
           {item.chineseName && (
-            <p className="text-2xl text-tea-text-sec/30 mb-2" style={{ fontFamily: "'Ma Shan Zheng', cursive" }}>
+            <p className="mb-2 text-tea-text-sec/30" style={{ fontFamily: "'Ma Shan Zheng', cursive", fontSize: '1.65rem' /* ~1px bump over text-2xl=1.5rem for Noto Serif SC optical correction */ }}>
               {item.chineseName}
             </p>
           )}

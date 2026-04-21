@@ -3,15 +3,14 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { openWhatsAppStatus } from '../../lib/whatsapp';
-import { Loader2, Search, XCircle, Trash2, Eye, X, PackageCheck, Users, Scissors, Pencil, Package, MoreHorizontal, Clock, MessageCircle, Plus, Link2 } from 'lucide-react';
+import { Loader2, Search, XCircle, Trash2, Eye, X, PackageCheck, Users, Scissors, Pencil, Package, MoreHorizontal, MessageCircle, Plus, Link2 } from 'lucide-react';
 import Fuse from 'fuse.js';
-import { useRates, useProducts } from '../hooks/useAdminData';
+import { useProducts } from '../hooks/useAdminData';
 import { useToast } from './Toast';
 import { ConfirmModal } from './ConfirmModal';
 import { SplitOrderModal } from './SplitOrderModal';
 import { EditOrderModal } from './EditOrderModal';
 import { QuickInvoiceModal } from './QuickInvoiceModal';
-import { formatCurrency } from '../utils';
 
 const ROW_HEIGHT = 36;
 
@@ -25,7 +24,6 @@ export const OrdersView = () => {
   const [search, setSearch] = useState(searchParams.get('search') || '');
   const [viewingInvoice, setViewingInvoice] = useState<any | null>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
-  const { data: rates = [] } = useRates();
   const { data: products = [] } = useProducts();
 
   // Confirm modal state
@@ -128,9 +126,9 @@ export const OrdersView = () => {
         showToast('Order fulfilled. Stock deducted.', 'success');
         queryClient.invalidateQueries({ queryKey: ['products'] });
         // Offer WhatsApp status notification
-        const inv = confirmState.invoice;
+        const inv = confirmState.invoice as InvoiceWithItems;
         if (inv.customer_phone) {
-          const items = (inv.items || []).map((it: any) => ({
+          const items = (inv.items || []).map((it) => ({
             name: it.product?.givenName || it.product_name || 'Item',
             quantity: it.quantity,
             unit: it.product?.type === 'Teaware' ? 'u' : 'g',
@@ -159,17 +157,17 @@ export const OrdersView = () => {
     setConfirmState(null);
   };
 
-  const handleLinkProduct = async (product: any) => {
+  const handleLinkProduct = async (product: { id: string; givenName?: string; productName?: string }) => {
     if (!viewingInvoice || !linkState) return;
     const targetItem = (viewingInvoice.items || [])[linkState.itemIndex];
     if (!targetItem) return;
     try {
       const result = await api.rpc.linkLineItem(viewingInvoice.id, targetItem.id, product.id);
-      const updatedItems = (viewingInvoice.items || []).map((item: any, idx: number) => {
+      const updatedItems = (viewingInvoice.items || []).map((item, idx) => {
         if (idx !== linkState.itemIndex) return item;
         return { ...item, product_id: product.id, given_name: product.givenName, product_name: product.productName, custom_name: null };
       });
-      setViewingInvoice((prev: any) => ({ ...prev, items: updatedItems }));
+      setViewingInvoice((prev) => prev ? { ...prev, items: updatedItems } : null);
       setLinkState(null);
       const msg = result?.inventory_deducted ? 'Item linked & stock deducted.' : 'Item linked to inventory.';
       showToast(msg, 'success');
@@ -179,7 +177,7 @@ export const OrdersView = () => {
     }
   };
 
-  const filteredOrders = orders.filter((o: any) => {
+  const filteredOrders = orders.filter((o) => {
     if (statusFilter !== 'all' && o.status !== statusFilter) return false;
     if (!search) return true;
     const q = search.toLowerCase();
@@ -315,7 +313,7 @@ export const OrdersView = () => {
                   </div>
                 </td></tr>
               ) : (
-                filteredOrders.map((order: any) => {
+                filteredOrders.map((order) => {
                   const isPending = order.status === 'Pending';
                   const isVoid = order.status === 'Void';
                   const isFilled = order.status === 'Filled';
@@ -423,7 +421,7 @@ export const OrdersView = () => {
               <span className="font-serif italic">{search || statusFilter !== 'all' ? 'No matching orders' : 'No orders yet'}</span>
             </div>
           ) : (
-            filteredOrders.map((order: any, idx: number) => {
+            filteredOrders.map((order, idx) => {
               const isPending = order.status === 'Pending';
               const isVoid = order.status === 'Void';
               const total = (Number(order.computed_total) || 0) + (Number(order.shipping_cost_usd) || 0);
@@ -558,7 +556,7 @@ export const OrdersView = () => {
                 <div className="bg-tea-surface border border-tea-border rounded-xl p-6 mb-8">
                     <h4 className="text-xs uppercase tracking-[0.2em] text-tea-text-sec mb-4">Items</h4>
                     <div className="space-y-3 max-h-56 overflow-y-auto custom-scrollbar pr-2">
-                        {viewingInvoice.items?.map((item: any, i: number) => (
+                        {viewingInvoice.items?.map((item, i) => (
                             <div key={i} className="text-sm">
                               <div className="flex justify-between items-start">
                                 <div className="flex-1 min-w-0">
@@ -587,7 +585,7 @@ export const OrdersView = () => {
                                             />
                                             {linkSuggestions.length > 0 && (
                                               <div className="absolute top-full left-0 right-0 mt-0.5 bg-tea-elevated border border-tea-border rounded-xl shadow-lg z-10 max-h-32 overflow-y-auto custom-scrollbar">
-                                                {linkSuggestions.map((p: any) => (
+                                                {linkSuggestions.map((p) => (
                                                   <button
                                                     key={p.id}
                                                     onMouseDown={() => handleLinkProduct(p)}
@@ -627,7 +625,7 @@ export const OrdersView = () => {
                 <div className="flex justify-between items-end text-lg font-bold text-tea-text border-t border-tea-border pt-6">
                     <span className="text-sm font-normal text-tea-text-sec">Total (Shipping included)</span>
                     <span className="font-serif text-2xl text-tea-accent">
-                      ${((viewingInvoice.items || []).reduce((sum: number, item: any) => sum + (item.quantity * item.price_at_sale), 0) + (Number(viewingInvoice.shipping_cost_usd) || 0)).toFixed(2)} USD
+                      ${((viewingInvoice.items || []).reduce((sum, item) => sum + (item.quantity * item.price_at_sale), 0) + (Number(viewingInvoice.shipping_cost_usd) || 0)).toFixed(2)} USD
                     </span>
                 </div>
 
@@ -636,7 +634,7 @@ export const OrdersView = () => {
                   <div className="mt-8 pt-6 border-t border-tea-border">
                     <h4 className="text-xs uppercase tracking-[0.2em] text-tea-text-sec mb-4">Activity</h4>
                     <div className="space-y-3">
-                      {invoiceTimeline.map((log: any, i: number) => (
+                      {invoiceTimeline.map((log, i) => (
                         <div key={log.id || i} className="flex items-start gap-3">
                           <div className="relative flex flex-col items-center">
                             <div className="w-2 h-2 rounded-full bg-tea-gold/60 mt-1.5" />
@@ -672,13 +670,13 @@ export const OrdersView = () => {
                   <div className="mt-4">
                     <button
                       onClick={() => {
-                        const items = (viewingInvoice.items || []).map((it: any) => ({
+                        const items = (viewingInvoice.items || []).map((it) => ({
                           name: it.product?.givenName || it.product_name || 'Item',
                           quantity: it.quantity,
                           unit: it.product?.type === 'Teaware' ? 'u' : 'g',
                           price: '', total: '',
                         }));
-                        const total = ((viewingInvoice.items || []).reduce((sum: number, it: any) => sum + (it.quantity * it.price_at_sale), 0) + (Number(viewingInvoice.shipping_cost_usd) || 0)).toFixed(2);
+                        const total = ((viewingInvoice.items || []).reduce((sum, it) => sum + (it.quantity * it.price_at_sale), 0) + (Number(viewingInvoice.shipping_cost_usd) || 0)).toFixed(2);
                         openWhatsAppStatus(viewingInvoice.customer_phone, {
                           status: viewingInvoice.status === 'Filled' ? 'filled' : 'confirmed',
                           ref: viewingInvoice.invoice_number,

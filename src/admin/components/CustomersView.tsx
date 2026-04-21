@@ -4,9 +4,59 @@ import { Search, Plus, X, Trash2, Edit3, Phone, Mail, MessageCircle, MapPin, Loa
 import { useCustomers, useProducts } from '../hooks/useAdminData';
 import { useToast } from './Toast';
 import { api } from '../../lib/api';
-import { Customer, CustomerTag, ContactType, ContactChannel, ContactEntry } from '../types';
+import { Customer, CustomerTag, ContactType, ContactChannel, ContactEntry, Product, Invoice } from '../types';
 import { useSampleStore } from '../../samples/sampleStore';
 import { SAMPLE_STATUS_CONFIG } from '../../samples/types';
+
+/** Vendor-supplied product row from api.customers.getSuppliedProducts() */
+interface SuppliedProduct {
+  id: string;
+  given_name?: string;
+  product_name?: string;
+  type?: string;
+  origin_region?: string;
+  stock_grams?: number;
+  cost_per_gram?: number;
+  cost_amount?: number;
+  image_url?: string;
+  year?: number;
+  last_ordered_date?: string;
+}
+
+/** Tea history row from api.customers.getTeas() */
+interface CustomerTea {
+  id: string;
+  given_name?: string;
+  product_name?: string;
+  type?: string;
+  origin_region?: string;
+  image_url?: string;
+  total_quantity: number;
+  order_count: number;
+}
+
+/** Event row from api.customers.getEvents() */
+interface CustomerEvent {
+  id: string;
+  slug?: string;
+  title: string;
+  event_date?: string;
+  location_name?: string;
+  attendee_status?: string;
+  attended?: 0 | 1 | null;
+  rsvp_date?: string;
+}
+
+/** Tea journey data from api.events.getCustomerJourney() */
+interface CustomerJourney {
+  sessionsAttended?: number;
+  totalTeas?: number;
+  milestones?: string[];
+  teaTypeMap?: Record<string, number>;
+  favorites?: string[];
+  impressions?: Array<{ impression: string; teaName: string; eventTitle: string }>;
+  memberSince?: string;
+}
 
 const TAG_OPTIONS: CustomerTag[] = ['wholesale', 'retail', 'friend', 'vendor', 'vip', 'inactive'];
 
@@ -364,15 +414,15 @@ const CustomerDetail = ({
   onClose: () => void;
   onEdit: () => void;
   onDelete: () => void;
-  allProducts?: any[];
+  allProducts?: Product[];
   filterAttendedEvents?: boolean;
 }) => {
   const navigate = useNavigate();
   const { showToast } = useToast();
-  const [orders, setOrders] = useState<any[]>([]);
-  const [teas, setTeas] = useState<any[]>([]);
-  const [events, setEvents] = useState<any[]>([]);
-  const [suppliedProducts, setSuppliedProducts] = useState<any[]>([]);
+  const [orders, setOrders] = useState<Invoice[]>([]);
+  const [teas, setTeas] = useState<CustomerTea[]>([]);
+  const [events, setEvents] = useState<CustomerEvent[]>([]);
+  const [suppliedProducts, setSuppliedProducts] = useState<SuppliedProduct[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(true);
   const [loadingTeas, setLoadingTeas] = useState(true);
   const [loadingEvents, setLoadingEvents] = useState(true);
@@ -386,7 +436,7 @@ const CustomerDetail = ({
   const [linkAccountInput, setLinkAccountInput] = useState('');
   const [showLinkAccount, setShowLinkAccount] = useState(false);
   const [linkingAccount, setLinkingAccount] = useState(false);
-  const [journey, setJourney] = useState<any>(null);
+  const [journey, setJourney] = useState<CustomerJourney | null>(null);
   const [loadingJourney, setLoadingJourney] = useState(false);
   const [showJourney, setShowJourney] = useState(false);
   const [showSampleTastings, setShowSampleTastings] = useState(false);
@@ -545,8 +595,8 @@ const CustomerDetail = ({
                     <>
                       {/* Vendor summary stats */}
                       {suppliedProducts.length > 0 && (() => {
-                        const totalValue = suppliedProducts.reduce((sum: number, p: any) => sum + (Number(p.cost_amount) || 0), 0);
-                        const costsPerGram = suppliedProducts.map((p: any) => Number(p.cost_per_gram)).filter(Boolean);
+                        const totalValue = suppliedProducts.reduce((sum, p) => sum + (Number(p.cost_amount) || 0), 0);
+                        const costsPerGram = suppliedProducts.map((p) => Number(p.cost_per_gram)).filter(Boolean);
                         const avgCostPerGram = costsPerGram.length > 0 ? costsPerGram.reduce((a, b) => a + b, 0) / costsPerGram.length : null;
                         return (
                           <div className="grid grid-cols-3 gap-3 mb-4">
@@ -568,7 +618,7 @@ const CustomerDetail = ({
 
                       {suppliedProducts.length > 0 && (
                         <div className="space-y-2 mb-4">
-                          {suppliedProducts.map((p: any) => (
+                          {suppliedProducts.map((p) => (
                             <div key={p.id} className="flex items-center gap-3 py-2 border-b border-tea-border last:border-0">
                               {p.image_url ? (
                                 <img src={p.image_url} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />

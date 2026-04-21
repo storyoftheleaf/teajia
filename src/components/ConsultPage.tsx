@@ -10,6 +10,7 @@ import { InquiryForm } from './consult/InquiryForm';
 import { Projects } from './consult/Projects';
 import { ProjectDetail } from './consult/ProjectDetail';
 import { useScrollDirection } from '../hooks/useScrollDirection';
+import { useSectionReveal } from '../hooks/useSectionReveal';
 
 /* =====================================================
    Data
@@ -67,6 +68,10 @@ export const ConsultPage: React.FC<ConsultPageProps> = ({ onCartClick, onAccount
 
   const scrollPositions = useRef<Record<string, number>>({});
   const prevView = useRef<ConsultView>(currentView);
+
+  const heroReveal = useSectionReveal('up');
+  const bioReveal = useSectionReveal('up');
+  const servicesReveal = useSectionReveal('up');
 
   useEffect(() => {
     if (prevView.current !== currentView) {
@@ -133,14 +138,22 @@ export const ConsultPage: React.FC<ConsultPageProps> = ({ onCartClick, onAccount
         {/* ════════════════════════════════════════════
             1. HERO — heading hangs in space, then bio
             ════════════════════════════════════════════ */}
-        <div className="pt-14 md:pt-20 lg:pt-24 pb-10 md:pb-14">
+        <div
+          ref={heroReveal.ref}
+          className={`pt-14 md:pt-20 lg:pt-24 pb-10 md:pb-14 ${heroReveal.className}`}
+          style={heroReveal.style}
+        >
           <h2 className="text-[2rem] md:text-[2.8rem] lg:text-[3.5rem] font-light text-tea-text leading-[1.1] tracking-[-0.02em]"
               style={{ fontFamily: 'var(--font-display)' }}>
             Tea spaces, sourcing,<br /> guidance.
           </h2>
         </div>
 
-        <div className="flex flex-col md:flex-row gap-10 md:gap-14 pb-24 md:pb-32">
+        <div
+          ref={bioReveal.ref}
+          className={`flex flex-col md:flex-row gap-10 md:gap-14 pb-24 md:pb-32 ${bioReveal.className}`}
+          style={bioReveal.style}
+        >
           <div className="relative shrink-0 w-full md:w-[340px]">
             <img
               src="https://res.cloudinary.com/dobbosnda/image/upload/f_auto,q_auto,w_600/v1773837991/2021-06-27_IMG_7745_Original_ehkz30.jpg"
@@ -175,7 +188,13 @@ export const ConsultPage: React.FC<ConsultPageProps> = ({ onCartClick, onAccount
         </div>
 
         {/* 2. SERVICES */}
-        <Services />
+        <div
+          ref={servicesReveal.ref}
+          className={`${servicesReveal.className}`}
+          style={servicesReveal.style}
+        >
+          <Services />
+        </div>
 
         {/* B2B link — quiet bridge for business/institutional visitors */}
         <div className="mt-10 mb-2 max-w-[560px]">

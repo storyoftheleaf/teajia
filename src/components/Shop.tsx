@@ -16,6 +16,7 @@ import { CardImage } from './shared/CardImage';
 import { SectionDivider } from './shared/SectionDivider';
 import { SectionSkeleton } from './shared/SectionSkeleton';
 import { useAdminOverlay } from '../hooks/useAdminOverlay';
+import { useScrollRestoration } from '../hooks/useScrollRestoration';
 import { useRates } from '../admin/hooks/useAdminData';
 import { ToastProvider } from '../admin/components/Toast';
 import { useAppStore } from '../lib/store';
@@ -65,6 +66,7 @@ export const Shop: React.FC<ShopProps> = ({
   const [addedProductId, setAddedProductId] = useState<string | null>(null);
   const [storePickerOpen, setStorePickerOpen] = useState(false);
   const storePickerRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useScrollRestoration('scroll-shop');
 
   const recentlyViewed = useAppStore(state => state.recentlyViewed);
   const shopStoreSlug = useAppStore(state => state.shopStoreSlug);
@@ -393,7 +395,7 @@ export const Shop: React.FC<ShopProps> = ({
           mobile: bottom-[calc(56px+env(safe-area-inset-bottom,0px)+12px)]
           desktop: bottom-4 right-4
       */}
-      <div className="flex-1 overflow-y-auto max-w-[1400px] mx-auto w-full">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto max-w-[1400px] mx-auto w-full">
         {/* Shop page header subtitle — shown only on tea/teaware/sets tabs */}
         {(activeTab === 'tea' || activeTab === 'teaware' || activeTab === 'sets') && (
           <div className="px-4 md:px-6 lg:px-10 pt-5 pb-1">

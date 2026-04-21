@@ -224,8 +224,8 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) =
         transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
       >
         {/* Search input */}
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-tea-border">
-          <Icons.Search className="w-5 h-5 text-tea-text-sec shrink-0" />
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-tea-gold/30 ring-1 ring-tea-gold/20">
+          <Icons.Search className="w-5 h-5 text-tea-gold/60 shrink-0 transition-colors duration-300" />
           <input
             ref={inputRef}
             type="text"
@@ -233,7 +233,7 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) =
             onChange={e => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Search teas, articles, and more..."
-            className="flex-1 bg-transparent text-tea-text placeholder:text-tea-text-sec text-sm outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg font-sans"
+            className="flex-1 bg-transparent text-tea-text placeholder:text-tea-text-sec text-sm outline-none font-sans transition-all duration-300"
             autoComplete="off"
             spellCheck={false}
           />

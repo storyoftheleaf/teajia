@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useSectionReveal } from '../../hooks/useSectionReveal';
 import { ArrowLeft, FlaskConical, Library, BookOpen, BookmarkCheck, BookmarkPlus, Check, Droplets, Mic, Square, Loader2, Share2, ShoppingCart, Layers, Plus, Search, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
@@ -330,6 +331,8 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
 
   const pendingIncomingCount = visibleShares.length;
 
+  const headerReveal = useSectionReveal('fade');
+
   const [captureOption, setCaptureOption] = useState<'tea' | 'teaware' | 'samples'>('tea');
 
   const showCaptureActionBar = mode === 'sourcing' && captureOption !== 'samples'
@@ -362,7 +365,11 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   return (
     <div className="flex flex-col relative surface-warm">
       {/* ── Header ── */}
-      <div className="flex items-center gap-3 px-4 pt-3 pb-2">
+      <div
+        ref={headerReveal.ref}
+        className={`flex items-center gap-3 px-4 pt-3 pb-2 ${headerReveal.className}`}
+        style={headerReveal.style}
+      >
         <button
           type="button"
           onClick={onBack}

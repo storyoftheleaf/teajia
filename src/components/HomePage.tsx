@@ -79,15 +79,21 @@ const CharacterRevealCapture: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim()) return;
+    const trimmed = email.trim();
+    if (!trimmed) return;
+    // Simple email format validation
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      setError('please enter a valid email.');
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
-      await api.newsletter.subscribe(email);
+      await api.newsletter.subscribe(trimmed);
       setEmail('');
       setSubmitted(true);
     } catch {
-      setError('Something went wrong');
+      setError('something went wrong — try again.');
     } finally {
       setLoading(false);
     }
@@ -166,7 +172,7 @@ const CharacterRevealCapture: React.FC = () => {
             <p className="text-base italic font-light text-tea-text-dim" style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.04em' }}>stay connected</p>
             <p className="text-base italic font-light mt-1 text-tea-text-sec" style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.04em' }}>it's nothing without you</p>
             {submitted ? (
-              <p className="mt-4 text-base font-light text-tea-gold" style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.04em' }}>You're in.</p>
+              <p className="mt-4 text-base font-light text-tea-gold" style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.04em' }}>you're on the list.</p>
             ) : (
               <>
                 <form onSubmit={handleSubmit} className="w-full relative mt-3">

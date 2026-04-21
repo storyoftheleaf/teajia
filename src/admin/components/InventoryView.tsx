@@ -2566,7 +2566,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         {/* GLOSSARY MODE — card grid for browsing */}
         {glossaryMode && filterType !== 'Pending' && (
           <div className="pb-24 px-3 md:px-6 pt-3">
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-3 gap-y-5">
               {processedProducts.map(product => {
                 const dotColor = getThemeColor(product.type);
                 return (

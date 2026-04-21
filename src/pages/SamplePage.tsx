@@ -232,7 +232,7 @@ const SamplePage: React.FC = () => {
             <h1 className="text-2xl font-serif font-bold text-tea-text">{sample.name || 'Unnamed Sample'}</h1>
           )}
           {sample.chineseName && (
-            <p className="text-lg font-serif italic text-tea-text-sec mt-1">{sample.chineseName}</p>
+            <p className="font-serif italic text-tea-text-sec mt-1" style={{ fontSize: '1.2rem' /* text-lg=1.125rem + ~8% for Noto Serif SC optical correction */ }}>{sample.chineseName}</p>
           )}
 
           <div className="flex flex-wrap items-center gap-2 mt-3">

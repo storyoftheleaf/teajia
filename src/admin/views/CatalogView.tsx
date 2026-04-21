@@ -114,7 +114,7 @@ export const CatalogView: React.FC = () => {
               <p className="text-xs text-tea-text-dim">No products in this category.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-3 gap-y-5">
               {filtered.map((product) => {
                 const isAvailable = product.status === 'Active' && product.stockGrams > 0;
                 const displayName = [product.givenName, product.productName].filter(Boolean).join(' ');

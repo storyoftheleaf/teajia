@@ -292,12 +292,8 @@ const EventRecapPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
 
-  // TODO: Wire this to a real public API endpoint once available.
-  // The worker needs a new route: GET /api/events/:slug/recap
-  // that returns { event, post_session, tea_menu } with no auth required.
-  // See worker/src/index.ts — add handler near handleGetEventBySlug.
-  // The post_session.shared_tasting_notes field should contain impressions
-  // the host explicitly chose to make public (a separate flag in the admin editor).
+  // Public recap endpoint: GET /api/events/:slug/recap (no auth required)
+  // Returns { event, post_session, tea_menu } — see worker/src/index.ts handleGetPublicEventRecap.
   const { data, isLoading, isError } = useQuery<PublicEventRecap>({
     queryKey: ['event-recap-public', slug],
     queryFn: () => api.events.getPublicRecap(slug!),

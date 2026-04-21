@@ -128,7 +128,7 @@ const ShareCardPage: React.FC = () => {
                 {meta.name || 'Untitled'}
               </h1>
               {meta.chineseName && (
-                <p className="text-sm text-tea-text-sec mt-0.5">{meta.chineseName}</p>
+                <p className="text-tea-text-sec mt-0.5" style={{ fontSize: '0.94rem' /* text-sm=0.875rem + ~8% for Noto Serif SC */ }}>{meta.chineseName}</p>
               )}
             </div>
 

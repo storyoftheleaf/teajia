@@ -577,7 +577,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
 
         <div className="inset-panel" style={{ padding: 'clamp(28px, 4vw, 48px)' }}>
           <div className="text-center max-w-sm mx-auto">
-            <p className="text-[17px] text-tea-text/70 leading-[1.85] mb-5" style={{ fontFamily: 'var(--font-body)' }}>
+            <p className="text-[15px] md:text-[17px] text-tea-text/70 leading-[1.85] mb-5" style={{ fontFamily: 'var(--font-body)' }}>
               This archive grows with every session, every conversation, every cup.
             </p>
             {onNavigateToConsult ? (
