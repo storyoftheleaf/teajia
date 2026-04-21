@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Sun, Moon, Calendar, Receipt, UserPlus, Package, Clock, CalendarCheck, AlertTriangle, Zap, UserCheck, RotateCcw, Truck, Compass, LogIn, Users, Settings } from 'lucide-react';
+import { Sun, Moon, Calendar, Receipt, UserPlus, Package, Clock, CalendarCheck, AlertTriangle, Zap, UserCheck, Compass, LogIn, Users, Settings } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -262,21 +262,6 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
   const roleBadgeLabel = getRoleBadgeLabel(membershipRole, platformRole);
 
   // Counts from localStorage
-  const progressCount = useMemo(() => {
-    let count = 0;
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key?.startsWith('teajia_progress_')) count++;
-    }
-    return count;
-  }, []);
-
-  const savedStoryCount = useMemo(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem('teajia_saved_stories') || '{}');
-      return Object.values(saved).filter(Boolean).length;
-    } catch { return 0; }
-  }, []);
 
   const cartCount = publicCart.length;
 
@@ -1126,10 +1111,10 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                   {/* Member */}
                   {auth.isAuthenticated && !isStaff && (
                     <div className="grid grid-cols-2 gap-2">
-                      <QuickAction icon={<RotateCcw size={18} />} label="Reorder" onClick={() => { onClose(); navigate('/account/orders'); }} />
-                      <QuickAction icon={<Truck size={18} />} label="Track Order" onClick={() => { onClose(); navigate('/account/orders'); }} />
+                      <QuickAction icon={<Icons.Sparkles className="w-[18px] h-[18px]" />} label="Journal" onClick={() => setPanelView('journal')} />
+                      <QuickAction icon={<Icons.Heart className="w-[18px] h-[18px]" />} label="Collection" onClick={() => { onClose(); navigate('/account/collection'); }} />
                       <QuickAction icon={<Calendar size={18} />} label="Book a Session" onClick={() => setPanelView('events')} />
-                      <QuickAction icon={<Compass size={18} />} label="My Compass" onClick={() => { onClose(); navigate('/compass'); }} />
+                      <QuickAction icon={<Compass size={18} />} label="Compass" onClick={() => { onClose(); navigate('/compass'); }} />
                     </div>
                   )}
 
@@ -1218,9 +1203,9 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                     </div>
                   )}
 
-                  {/* Your Tea + Reading merged */}
+                  {/* Your Practice */}
                   <div className="rounded-xl border border-tea-border overflow-hidden">
-                    <CardSectionLabel>Your Tea</CardSectionLabel>
+                    <CardSectionLabel>Your Practice</CardSectionLabel>
                     <Item
                       icon={<Icons.MapPin className="w-4 h-4" />}
                       label="Tea Compass"
@@ -1261,6 +1246,11 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                         <Icons.ChevronRight className="w-3.5 h-3.5 text-tea-text/15 group-hover:text-tea-text/30 transition-colors shrink-0" />
                       </button>
                     )}
+                  </div>
+
+                  {/* Orders */}
+                  <div className="rounded-xl border border-tea-border overflow-hidden">
+                    <CardSectionLabel>Orders</CardSectionLabel>
                     <Item
                       icon={<Icons.Bag className="w-4 h-4" />}
                       label="Cart"
@@ -1285,20 +1275,6 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                         />
                       </>
                     )}
-                    <Item
-                      icon={<Icons.Leaf className="w-4 h-4" />}
-                      label="Saved Stories"
-                      description={savedStoryCount > 0 ? `${savedStoryCount} stories saved` : "Articles and stories you've bookmarked"}
-                      onClick={() => { onClose(); navigate('/account/saved'); }}
-                      gold={savedStoryCount > 0}
-                    />
-                    <Item
-                      icon={<Icons.BookOpen className="w-4 h-4" />}
-                      label="Reading History"
-                      description={progressCount > 0 ? `${progressCount} articles in progress` : "Pick up where you left off"}
-                      onClick={() => { onClose(); navigate('/account/history'); }}
-                      gold={progressCount > 0}
-                    />
                   </div>
 
                   {/* Currency + Settings */}
@@ -1364,69 +1340,59 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                 {/* ══ ZONE 3 — Explore ════════════════════════════════════ */}
                 <div className="bg-tea-surface/20 px-6 py-5 border-t border-tea-border space-y-3 pb-[calc(44px+env(safe-area-inset-bottom,0px))] lg:pb-8">
 
-                  {/* Primary nav */}
-                  <div className="rounded-xl border border-tea-border overflow-hidden">
-                    <Item
-                      icon={<Icons.Bag className="w-4 h-4" />}
-                      label="Shop"
-                      description="Browse 139 teas curated by Adrian"
-                      onClick={() => { onClose(); navigate('/shop'); }}
-                    />
-                    <Item
-                      icon={<Calendar className="w-4 h-4" />}
-                      label="Sessions"
-                      description={upcomingEvents.length > 0 ? `${upcomingEvents.length} upcoming — reserve your seat` : "Tea gatherings & tasting events"}
-                      onClick={() => setPanelView('events')}
-                      gold={upcomingEvents.length > 0}
-                      pulse={nextEventWithin24h}
-                    />
-                    <Item
-                      icon={<Icons.BookOpen className="w-4 h-4" />}
-                      label="Library"
-                      description="Articles, guides & deep tea knowledge"
-                      onClick={() => { onClose(); navigate('/magazine'); }}
-                    />
-                    <Item
-                      icon={<Icons.Sparkles className="w-4 h-4" />}
-                      label="Consult"
-                      description="Book a personal tea consultation with Adrian"
-                      onClick={() => { onClose(); navigate('/consult'); }}
-                    />
-                  </div>
-
-                  {/* Secondary nav — compact pair + WhatsApp */}
-                  <div className="rounded-xl border border-tea-border overflow-hidden">
-                    <div className="flex divide-x divide-tea-border border-b border-tea-border">
-                      <button
-                        onClick={() => { onClose(); navigate('/find-a-table'); }}
-                        className="flex-1 py-3 text-[11px] text-tea-text-sec hover:text-tea-gold hover:bg-tea-surface/50 transition-colors uppercase tracking-[0.12em]"
-                      >
-                        Find a Teahouse
-                      </button>
-                      <button
-                        onClick={() => { onClose(); navigate('/community'); }}
-                        className="flex-1 py-3 text-[11px] text-tea-text-sec hover:text-tea-gold hover:bg-tea-surface/50 transition-colors uppercase tracking-[0.12em]"
-                      >
-                        Community
-                      </button>
+                  {/* Guest orientation — entry paths for new visitors and B2B */}
+                  {!auth.isAuthenticated && (
+                    <div className="rounded-xl border border-tea-border overflow-hidden">
+                      <Item
+                        icon={<Icons.MapPin className="w-4 h-4" />}
+                        label="New here? Start here"
+                        description="Find your entry point into Teajia"
+                        onClick={() => { onClose(); navigate('/start'); }}
+                      />
+                      <Item
+                        icon={<Icons.Leaf className="w-4 h-4" />}
+                        label="Tea for Your Business"
+                        description="Hotels, studios, retreats — bring tea to your space"
+                        onClick={() => { onClose(); navigate('/for-your-space'); }}
+                      />
                     </div>
-                    <a
-                      href={waLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-3.5 px-4 py-3.5 hover:bg-tea-surface/50 transition-colors group"
-                      onClick={onClose}
-                    >
-                      <div className="shrink-0 text-tea-gold/50 group-hover:text-tea-gold/70 transition-colors">
-                        <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                  )}
+
+                  {/* Contact + discovery — non-staff */}
+                  {!isStaff && (
+                    <div className="rounded-xl border border-tea-border overflow-hidden">
+                      <div className="flex divide-x divide-tea-border border-b border-tea-border">
+                        <button
+                          onClick={() => { onClose(); navigate('/spaces'); }}
+                          className="flex-1 py-3 text-[11px] text-tea-text-sec hover:text-tea-gold hover:bg-tea-surface/50 transition-colors uppercase tracking-[0.12em]"
+                        >
+                          Our Spaces
+                        </button>
+                        <button
+                          onClick={() => { onClose(); navigate('/community'); }}
+                          className="flex-1 py-3 text-[11px] text-tea-text-sec hover:text-tea-gold hover:bg-tea-surface/50 transition-colors uppercase tracking-[0.12em]"
+                        >
+                          Community
+                        </button>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-[13px] font-medium text-tea-text leading-tight">Message Us</div>
-                        <div className="text-[11px] text-tea-text-dim mt-0.5 leading-tight">WhatsApp — direct conversation</div>
-                      </div>
-                      <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 text-tea-text/15 group-hover:text-tea-text/30 transition-colors shrink-0" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg>
-                    </a>
-                  </div>
+                      <a
+                        href={waLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-3.5 px-4 py-3.5 hover:bg-tea-surface/50 transition-colors group"
+                        onClick={onClose}
+                      >
+                        <div className="shrink-0 text-tea-gold/50 group-hover:text-tea-gold/70 transition-colors">
+                          <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[13px] font-medium text-tea-text leading-tight">Message Us</div>
+                          <div className="text-[11px] text-tea-text-dim mt-0.5 leading-tight">WhatsApp — direct conversation</div>
+                        </div>
+                        <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 text-tea-text/15 group-hover:text-tea-text/30 transition-colors shrink-0" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg>
+                      </a>
+                    </div>
+                  )}
 
                   {/* Operations — staff only */}
                   {isStaff && (
