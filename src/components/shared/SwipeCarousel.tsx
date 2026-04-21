@@ -3,8 +3,8 @@ import { Icons } from '../Icons';
 
 interface SwipeCarouselProps {
   children: React.ReactNode[];
-  itemWidth?: number | 'auto';
-  gap?: number;
+  itemWidth?: number | string | 'auto';
+  gap?: number | string;
   showArrows?: boolean;
   showDots?: boolean;
   peek?: number; // Percentage of container width to show next/prev items
@@ -154,14 +154,14 @@ export const SwipeCarousel: React.FC<SwipeCarouselProps> = ({
       >
         <div
           className="inline-flex"
-          style={{ gap: `${gap}px`, padding: `0 ${peek}%` }}
+          style={{ gap: typeof gap === 'string' ? gap : `${gap}px`, padding: `0 ${peek}%` }}
         >
           {children.map((child, index) => (
             <div
               key={index}
               className="shrink-0"
               style={{
-                width: itemWidth === 'auto' ? 'auto' : `${itemWidth}px`,
+                width: itemWidth === 'auto' ? 'auto' : typeof itemWidth === 'string' ? itemWidth : `${itemWidth}px`,
                 scrollSnapAlign: 'start',
               }}
             >

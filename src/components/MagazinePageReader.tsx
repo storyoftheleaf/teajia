@@ -61,7 +61,7 @@ const T = {
 // ─── Content parser ───────────────────────────────────────────────────────────
 // Converts story.content: string[] to structured ArticlePage[]
 
-const MAX_CHARS_PER_PAGE = 1600;
+const MAX_CHARS_PER_PAGE = 600;
 
 function parseStoryToPages(story: Story): ArticlePage[] {
   const content = story.content ?? [];
@@ -219,7 +219,7 @@ function buildPlan(pages: ArticlePage[]): PlanEntry[] {
         });
       });
     } else if (page.kind === 'qa' && page.qas?.length) {
-      const MAX_QA = 2;
+      const MAX_QA = 1;
       for (let i = 0; i < page.qas.length; i += MAX_QA) {
         const chunk = page.qas.slice(i, i + MAX_QA);
         const total = Math.ceil(page.qas.length / MAX_QA);
@@ -277,6 +277,39 @@ function ChineseMark({ char = '器', size = 220, opacity = 0.06 }: { char?: stri
     }}>
       {char}
     </span>
+  );
+}
+
+function TeaLeaf({ size = 180, opacity = 0.1 }: { size?: number; opacity?: number }) {
+  return (
+    <svg width={size} height={size * 1.5} viewBox="0 0 80 120" fill="none"
+         aria-hidden="true" style={{ display: 'block', color: T.gold, opacity }}>
+      <path d="M40 6 C22 20,10 48,16 78 C22 102,34 116,40 118 C46 116,58 102,64 78 C70 48,58 20,40 6Z"
+            stroke="currentColor" strokeWidth="0.7" />
+      <line x1="40" y1="6" x2="40" y2="118" stroke="currentColor" strokeWidth="0.4" />
+      <path d="M40 30 Q28 40 22 46" stroke="currentColor" strokeWidth="0.35" />
+      <path d="M40 30 Q52 40 58 46" stroke="currentColor" strokeWidth="0.35" />
+      <path d="M40 55 Q26 65 20 72" stroke="currentColor" strokeWidth="0.35" />
+      <path d="M40 55 Q54 65 60 72" stroke="currentColor" strokeWidth="0.35" />
+      <path d="M40 80 Q32 88 29 93" stroke="currentColor" strokeWidth="0.35" />
+      <path d="M40 80 Q48 88 51 93" stroke="currentColor" strokeWidth="0.35" />
+      <path d="M40 118 Q39 122 37 126" stroke="currentColor" strokeWidth="0.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function TeaBowl({ size = 180, opacity = 0.1 }: { size?: number; opacity?: number }) {
+  return (
+    <svg width={size} height={size * 0.75} viewBox="0 0 160 120" fill="none"
+         aria-hidden="true" style={{ display: 'block', color: T.gold, opacity }}>
+      <path d="M28 36 Q32 88 80 92 Q128 88 132 36Z" stroke="currentColor" strokeWidth="0.9" />
+      <ellipse cx="80" cy="36" rx="52" ry="10" stroke="currentColor" strokeWidth="0.9" />
+      <ellipse cx="80" cy="94" rx="28" ry="6" stroke="currentColor" strokeWidth="0.7" />
+      <ellipse cx="80" cy="104" rx="60" ry="11" stroke="currentColor" strokeWidth="0.9" />
+      <path d="M62 24 C60 17 64 11 62 5" stroke="currentColor" strokeWidth="0.7" strokeLinecap="round" />
+      <path d="M80 20 C78 13 82 7 80 1"  stroke="currentColor" strokeWidth="0.7" strokeLinecap="round" />
+      <path d="M98 24 C96 17 100 11 98 5" stroke="currentColor" strokeWidth="0.7" strokeLinecap="round" />
+    </svg>
   );
 }
 
@@ -396,7 +429,10 @@ function CoverPage({ story }: { story: Story }) {
 function MastheadPage({ page, story }: { page: ArticlePage; story: Story }) {
   return (
     <div style={wrap}>
-      <div style={{ paddingTop: 40 }}>
+      <div style={{ paddingTop: 24 }}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
+          <TeaBowl size={110} opacity={0.28} />
+        </div>
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 28 }}>
           <Flourish />
         </div>
@@ -493,65 +529,111 @@ function PullQuotePage({ page }: { page: ArticlePage }) {
 function QAPage({ entry }: { entry: PlanEntry }) {
   const { page, isFirstSub } = entry;
   return (
-    <div style={wrap}>
-      {isFirstSub ? (
-        <>
-          <SectionLabel label={page.label ?? 'In Conversation'} />
-          {page.head && <h2 style={headStyle}>{page.head}</h2>}
-        </>
-      ) : (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '28px 0 18px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <GoldRule />
-            <span style={labelStyle}>{page.label} · continued</span>
+    <div style={{ ...wrap, height: '100%', boxSizing: 'border-box', overflow: 'hidden' }}>
+      <div style={{ position: 'absolute', right: -10, bottom: 20, pointerEvents: 'none', zIndex: 0 }}>
+        <ChineseMark char="問" size={220} opacity={0.04} />
+      </div>
+      <div style={{ position: 'relative', zIndex: 1 }}>
+        {isFirstSub ? (
+          <>
+            <SectionLabel label={page.label ?? 'In Conversation'} />
+            {page.head && <h2 style={headStyle}>{page.head}</h2>}
+          </>
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '28px 0 18px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <GoldRule />
+              <span style={labelStyle}>{page.label} · continued</span>
+            </div>
+            <span style={{ fontFamily: T.mono, fontSize: 10, color: T.textDim }}>
+              {(entry.subIndex ?? 0) + 1}/{entry.subTotal}
+            </span>
           </div>
-          <span style={{ fontFamily: T.mono, fontSize: 10, color: T.textDim }}>
-            {(entry.subIndex ?? 0) + 1}/{entry.subTotal}
-          </span>
+        )}
+        <div style={{ marginTop: 18 }}>
+          {(page.qas ?? []).map((qa, n) => (
+            <div key={n} style={{ marginBottom: 28 }}>
+              <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
+                <span style={{ fontFamily: T.display, fontStyle: 'italic', fontSize: 22, color: T.gold, flexShrink: 0, lineHeight: 1.3 }}>Q.</span>
+                <p style={{ margin: 0, fontFamily: T.body, fontSize: 16, lineHeight: 1.55, color: T.textSec, fontStyle: 'italic' }}>{qa.q}</p>
+              </div>
+              <div style={{ display: 'flex', gap: 12 }}>
+                <span style={{ fontFamily: T.display, fontStyle: 'italic', fontSize: 22, color: T.text, flexShrink: 0, lineHeight: 1.3 }}>A.</span>
+                <p style={{ margin: 0, fontFamily: T.body, fontSize: 17, lineHeight: 1.78, color: T.text }}>{qa.a}</p>
+              </div>
+            </div>
+          ))}
         </div>
-      )}
-      <div style={{ marginTop: 18 }}>
-        {(page.qas ?? []).map((qa, n) => (
-          <div key={n} style={{ marginBottom: 28 }}>
-            <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
-              <span style={{ fontFamily: T.display, fontStyle: 'italic', fontSize: 22, color: T.gold, flexShrink: 0, lineHeight: 1.3 }}>Q.</span>
-              <p style={{ margin: 0, fontFamily: T.body, fontSize: 16, lineHeight: 1.55, color: T.textSec, fontStyle: 'italic' }}>{qa.q}</p>
-            </div>
-            <div style={{ display: 'flex', gap: 12 }}>
-              <span style={{ fontFamily: T.display, fontStyle: 'italic', fontSize: 22, color: T.text, flexShrink: 0, lineHeight: 1.3 }}>A.</span>
-              <p style={{ margin: 0, fontFamily: T.body, fontSize: 17, lineHeight: 1.78, color: T.text }}>{qa.a}</p>
-            </div>
-          </div>
-        ))}
       </div>
     </div>
   );
 }
 
-function BodyPage({ entry }: { entry: PlanEntry }) {
+function BodyPage({ entry, story }: { entry: PlanEntry; story: Story }) {
   const { page, blocks = [], isFirstSub, subIndex = 0, subTotal = 1 } = entry;
-  return (
-    <div style={wrap}>
-      {isFirstSub ? (
-        <>
-          <SectionLabel label={page.label ?? 'Reading'} />
-          {page.head && <h2 style={headStyle}>{page.head}</h2>}
-        </>
-      ) : (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '28px 0 18px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <GoldRule />
-            <span style={labelStyle}>{page.label} · continued</span>
+
+  if (isFirstSub) {
+    const hasThumb = !!story.thumbnailUrl;
+    return (
+      <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        {/* Hero zone — image or tea illustration */}
+        <div style={{
+          flex: '0 0 42%', position: 'relative', overflow: 'hidden',
+          background: hasThumb ? undefined : 'linear-gradient(150deg,#2a1e12,#1a1209)',
+        }}>
+          {hasThumb ? (
+            <img src={story.thumbnailUrl!} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          ) : (
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <TeaLeaf size={130} opacity={0.32} />
+            </div>
+          )}
+          {/* Fade to page bg at bottom */}
+          <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(180deg,transparent 30%,${T.bg} 100%)` }} />
+          {/* Article label + title overlaid */}
+          <div style={{ position: 'absolute', bottom: 0, left: 22, right: 22, paddingBottom: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+              <GoldRule />
+              <span style={{ ...labelStyle, color: T.gold }}>{page.label ?? 'Reading'}</span>
+            </div>
+            {page.head && (
+              <h2 style={{ ...headStyle, fontSize: 'clamp(22px,5.5vw,32px)', margin: 0 }}>{page.head}</h2>
+            )}
           </div>
-          <span style={{ fontFamily: T.mono, fontSize: 10, color: T.textDim }}>{subIndex + 1}/{subTotal}</span>
         </div>
-      )}
+        {/* Text zone */}
+        <div style={{ flex: 1, overflow: 'hidden', padding: '16px 22px 20px' }}>
+          {blocks.map((text, n) => (
+            <p key={n} className={n === 0 ? 'drop-cap' : undefined}
+               style={{ fontFamily: T.body, fontSize: 17, lineHeight: 1.72, margin: '0 0 14px', color: T.text }}>
+              {text}
+            </p>
+          ))}
+          {subTotal > 1 && (
+            <div style={{ position: 'absolute', bottom: 14, right: 22 }}>
+              <span style={{ fontFamily: T.mono, fontSize: 10, color: T.textDim }}>1/{subTotal}</span>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Subsequent sub-pages — watermark for visual depth
+  return (
+    <div style={{ ...wrap, height: '100%', boxSizing: 'border-box', overflow: 'hidden' }}>
+      <div style={{ position: 'absolute', right: -10, bottom: 30, pointerEvents: 'none', zIndex: 0 }}>
+        <ChineseMark char="茶" size={240} opacity={0.05} />
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '28px 0 18px', position: 'relative', zIndex: 1 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <GoldRule />
+          <span style={labelStyle}>{page.label} · continued</span>
+        </div>
+        <span style={{ fontFamily: T.mono, fontSize: 10, color: T.textDim }}>{subIndex + 1}/{subTotal}</span>
+      </div>
       {blocks.map((text, n) => (
-        <p
-          key={n}
-          className={n === 0 && isFirstSub ? 'drop-cap' : undefined}
-          style={{ fontFamily: T.body, fontSize: 17, lineHeight: 1.72, margin: '0 0 14px', color: T.text }}
-        >
+        <p key={n} style={{ fontFamily: T.body, fontSize: 17, lineHeight: 1.72, margin: '0 0 14px', color: T.text, position: 'relative', zIndex: 1 }}>
           {text}
         </p>
       ))}
@@ -587,8 +669,13 @@ function SidebarPage({ page }: { page: ArticlePage }) {
 
 function EpiloguePage({ page }: { page: ArticlePage }) {
   return (
-    <div style={{ ...wrap, paddingTop: 60 }}>
-      <div style={{ textAlign: 'center', marginBottom: 40 }}>
+    <div style={{ ...wrap, paddingTop: 40 }}>
+      <div style={{ textAlign: 'center', marginBottom: 12 }}>
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <TeaLeaf size={80} opacity={0.3} />
+        </div>
+      </div>
+      <div style={{ textAlign: 'center', marginBottom: 32 }}>
         <Flourish />
       </div>
       {page.label && (
@@ -605,6 +692,11 @@ function EpiloguePage({ page }: { page: ArticlePage }) {
 function EndPage({ story }: { story: Story }) {
   return (
     <div style={{ maxWidth: 680, margin: '0 auto', padding: '40px 22px 60px' }}>
+      <div style={{ textAlign: 'center', marginBottom: 16 }}>
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <TeaBowl size={100} opacity={0.3} />
+        </div>
+      </div>
       <div style={{ textAlign: 'center', marginBottom: 28 }}>
         <Flourish />
       </div>
@@ -1188,7 +1280,7 @@ function PageView({ entry, story }: { entry: PlanEntry; story: Story }) {
   if (kind === 'end') return <EndPage story={story} />;
   if (kind === 'sidebar') return <SidebarPage page={entry.page} />;
   if (kind === 'qa') return <QAPage entry={entry} />;
-  if (kind === 'body') return <BodyPage entry={entry} />;
+  if (kind === 'body') return <BodyPage entry={entry} story={story} />;
   return null;
 }
 
@@ -1333,7 +1425,7 @@ export function MagazinePageReader({ story, onBack, isSaved, onToggleSave }: Mag
             style={{
               flex: '0 0 100%', scrollSnapAlign: 'start',
               height: '100%', alignSelf: 'stretch',
-              overflowY: 'auto', overflowX: 'hidden',
+              overflowY: 'hidden', overflowX: 'hidden',
               scrollbarWidth: 'none',
               position: 'relative',
             } as React.CSSProperties}

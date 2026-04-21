@@ -1,6 +1,10 @@
 import React, { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
+import { useQuery } from '@tanstack/react-query';
 import { Story, ContentType, Person } from '../types';
+import type { DbArticle } from '../admin/types';
+import { api } from '../lib/api';
 import { LogoEmblem } from './Logos';
 import { Icons } from './Icons';
 import { ContributorDrawer } from './ContributorDrawer';
@@ -8,6 +12,42 @@ import { ContributorDrawer } from './ContributorDrawer';
 // ── Types ──────────────────────────────────────────────────────
 type CardStyle = 'split' | 'hero' | 'mixed' | 'covers' | 'offset' | 'zigzag';
 type MagazineTab = 'articles' | 'visual' | 'tea-inspire';
+
+// A lightweight preview shape shared between code-defined stories and DB articles.
+// DB articles carry `isDbArticle: true` and a `slug` so the click handler can
+// route to /article/:slug instead of opening the overlay viewer.
+export interface FeedItem {
+  id: string;
+  title: string;
+  subtitle: string;
+  thumbnailUrl?: string;
+  durationOrTime: string;
+  category?: Story['category'];
+  type: ContentType;
+  status: 'published';
+  author?: Person;
+  publishedDate?: string;
+  // DB-article extras
+  isDbArticle?: true;
+  slug?: string;
+}
+
+function dbArticleToFeedItem(a: DbArticle): FeedItem {
+  return {
+    id: a.id,
+    title: a.title,
+    subtitle: a.subtitle ?? '',
+    thumbnailUrl: a.cover_image_url,
+    durationOrTime: a.reading_time_mins ? `${a.reading_time_mins} min` : '',
+    category: undefined,
+    type: ContentType.Article,
+    status: 'published',
+    author: a.author_id ? { id: a.author_id, name: a.author_id, role: '', bio: '' } : undefined,
+    publishedDate: a.published_at ?? a.created_at,
+    isDbArticle: true,
+    slug: a.slug,
+  };
+}
 
 interface MagazineTabbedProps {
   stories: Story[];
@@ -24,7 +64,7 @@ interface MagazineTabbedProps {
 }
 
 // ── Helpers ────────────────────────────────────────────────────
-function getStoryMark(story: Story): string {
+function getStoryMark(story: FeedItem): string {
   if (story.type === ContentType.PhotoEssay) return '光';
   if (story.type === ContentType.Reel) return '音';
   if (story.type === ContentType.Audio) return '聲';
@@ -38,7 +78,7 @@ function getStoryMark(story: Story): string {
   }
 }
 
-function getDisplayType(story: Story): string {
+function getDisplayType(story: FeedItem): string {
   if (story.type === ContentType.PhotoEssay) return 'Visual';
   if (story.type === ContentType.Reel) return 'Film';
   if (story.type === ContentType.Audio) return 'Audio';
@@ -125,7 +165,7 @@ function MiniBarcode() {
 
 // ── LAYOUT: Editorial Split ────────────────────────────────────
 // Default. Horizontal rows: portrait image left (38%), text right.
-function EditorialSplit({ stories, onCardClick }: { stories: Story[]; onCardClick: (s: Story) => void }) {
+function EditorialSplit({ stories, onCardClick }: { stories: FeedItem[]; onCardClick: (s: FeedItem) => void }) {
   return (
     <div className="max-w-2xl mx-auto px-5">
       {stories.map((story, i) => (
@@ -179,7 +219,7 @@ function EditorialSplit({ stories, onCardClick }: { stories: Story[]; onCardClic
 
 // ── LAYOUT: Hero Cards ─────────────────────────────────────────
 // Full-bleed portrait cards, title overlaid at bottom.
-function HeroCards({ stories, onCardClick }: { stories: Story[]; onCardClick: (s: Story) => void }) {
+function HeroCards({ stories, onCardClick }: { stories: FeedItem[]; onCardClick: (s: FeedItem) => void }) {
   return (
     <div className="flex flex-col gap-5 px-5 max-w-2xl mx-auto">
       {stories.map((story, i) => (
@@ -228,7 +268,7 @@ function HeroCards({ stories, onCardClick }: { stories: Story[]; onCardClick: (s
 
 // ── LAYOUT: Mixed Grid ─────────────────────────────────────────
 // First article is a hero, rest are a 2-col grid.
-function MixedGrid({ stories, onCardClick }: { stories: Story[]; onCardClick: (s: Story) => void }) {
+function MixedGrid({ stories, onCardClick }: { stories: FeedItem[]; onCardClick: (s: FeedItem) => void }) {
   const [hero, ...rest] = stories;
   return (
     <div className="max-w-2xl mx-auto px-5">
@@ -285,7 +325,7 @@ function MixedGrid({ stories, onCardClick }: { stories: Story[]; onCardClick: (s
 
 // ── LAYOUT: Stacked Covers ─────────────────────────────────────
 // Each card looks like a mini magazine cover with masthead, mark, and barcode.
-function StackedCovers({ stories, onCardClick }: { stories: Story[]; onCardClick: (s: Story) => void }) {
+function StackedCovers({ stories, onCardClick }: { stories: FeedItem[]; onCardClick: (s: FeedItem) => void }) {
   return (
     <div className="flex flex-col gap-6 px-5 max-w-2xl mx-auto">
       {stories.map((story, i) => (
@@ -349,7 +389,7 @@ function StackedCovers({ stories, onCardClick }: { stories: Story[]; onCardClick
 
 // ── LAYOUT: Offset Inset ───────────────────────────────────────
 // Small image floated right, text wraps naturally. Asymmetric warmth.
-function OffsetInset({ stories, onCardClick }: { stories: Story[]; onCardClick: (s: Story) => void }) {
+function OffsetInset({ stories, onCardClick }: { stories: FeedItem[]; onCardClick: (s: FeedItem) => void }) {
   return (
     <div className="max-w-2xl mx-auto px-5">
       {stories.map((story, i) => (
@@ -398,7 +438,7 @@ function OffsetInset({ stories, onCardClick }: { stories: Story[]; onCardClick: 
 
 // ── LAYOUT: Alternating Margin ─────────────────────────────────
 // Zig-zag: even rows image-left/text-right, odd rows text-left/image-right.
-function AlternatingMargin({ stories, onCardClick }: { stories: Story[]; onCardClick: (s: Story) => void }) {
+function AlternatingMargin({ stories, onCardClick }: { stories: FeedItem[]; onCardClick: (s: FeedItem) => void }) {
   return (
     <div className="max-w-2xl mx-auto px-5">
       {stories.map((story, i) => {
@@ -568,6 +608,7 @@ export const MagazineTabbed: React.FC<MagazineTabbedProps> = ({
   cartItemCount = 0,
   isContentLoading = false,
 }) => {
+  const navigate = useNavigate();
   const [cardStyle, setCardStyle] = useState<CardStyle>(
     () => (localStorage.getItem('teajia.browse.style') as CardStyle | null) ?? 'split',
   );
@@ -576,23 +617,60 @@ export const MagazineTabbed: React.FC<MagazineTabbedProps> = ({
   const [tweaksOpen, setTweaksOpen] = useState(false);
   const [selectedAuthor, setSelectedAuthor] = useState<Person | null>(null);
 
+  // Fetch published DB articles
+  const { data: dbArticles = [] } = useQuery<DbArticle[]>({
+    queryKey: ['public-articles'],
+    queryFn: () => api.articles.listPublished(20, 0),
+    staleTime: 5 * 60 * 1000,
+  });
+
   const setStyle = (s: CardStyle) => {
     setCardStyle(s);
     localStorage.setItem('teajia.browse.style', s);
   };
 
-  // All published stories sorted newest-first
+  // Merge DB articles (newest first) + code articles into a unified FeedItem list.
+  // DB articles appear first when present; code articles follow.
   const allPublished = useMemo(() => {
-    return stories
+    const codeItems: FeedItem[] = stories
       .filter(s => s.status === 'published')
-      .sort((a, b) => {
-        if (a.publishedDate && b.publishedDate)
-          return new Date(b.publishedDate).getTime() - new Date(a.publishedDate).getTime();
-        if (a.publishedDate) return -1;
-        if (b.publishedDate) return 1;
-        return 0;
-      });
-  }, [stories]);
+      .map(s => ({
+        id: s.id,
+        title: s.title,
+        subtitle: s.subtitle,
+        thumbnailUrl: s.thumbnailUrl,
+        durationOrTime: s.durationOrTime,
+        category: s.category,
+        type: s.type,
+        status: 'published' as const,
+        author: s.author,
+        publishedDate: s.publishedDate,
+      }));
+
+    const dbItems: FeedItem[] = dbArticles.map(dbArticleToFeedItem);
+
+    // Sort DB articles newest-first, then append code articles (already ordered externally)
+    const sortedDb = [...dbItems].sort((a, b) => {
+      if (a.publishedDate && b.publishedDate)
+        return new Date(b.publishedDate).getTime() - new Date(a.publishedDate).getTime();
+      return 0;
+    });
+
+    // Deduplicate: skip code items whose id clashes with a DB article id
+    const dbIds = new Set(dbItems.map(i => i.id));
+    const filteredCode = codeItems.filter(i => !dbIds.has(i.id));
+
+    // Sort code items newest-first as well
+    const sortedCode = filteredCode.sort((a, b) => {
+      if (a.publishedDate && b.publishedDate)
+        return new Date(b.publishedDate).getTime() - new Date(a.publishedDate).getTime();
+      if (a.publishedDate) return -1;
+      if (b.publishedDate) return 1;
+      return 0;
+    });
+
+    return [...sortedDb, ...sortedCode];
+  }, [stories, dbArticles]);
 
   // Unique filter pill labels derived from content
   const filterTypes = useMemo(() => {
@@ -606,15 +684,22 @@ export const MagazineTabbed: React.FC<MagazineTabbedProps> = ({
     return allPublished.filter(s => getDisplayType(s) === filter);
   }, [allPublished, filter]);
 
-  const handleCardClick = (story: Story) => {
+  const handleCardClick = (item: FeedItem) => {
+    if (item.isDbArticle && item.slug) {
+      // DB articles navigate to a dedicated page — no overlay
+      navigate(`/article/${item.slug}`);
+      return;
+    }
+    // Code-defined stories go through the existing overlay viewer
     setTransitioning(true);
     setTimeout(() => {
       setTransitioning(false);
-      onCardClick(story);
+      // Cast back to Story — code items retain all Story fields
+      onCardClick(item as unknown as Story);
     }, 350);
   };
 
-  const FEEDS: Record<CardStyle, React.FC<{ stories: Story[]; onCardClick: (s: Story) => void }>> = {
+  const FEEDS: Record<CardStyle, React.FC<{ stories: FeedItem[]; onCardClick: (s: FeedItem) => void }>> = {
     split:  EditorialSplit,
     hero:   HeroCards,
     mixed:  MixedGrid,

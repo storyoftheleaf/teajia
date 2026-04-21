@@ -443,7 +443,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
       >
         <SectionLabel subtitle="References, music, and visual guides">Resources & Tools</SectionLabel>
 
-        <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(min(140px, 100%), 1fr))', gap: 'clamp(10px, 1.5vw, 16px)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(clamp(120px, 18vw, 160px), 100%), 1fr))', gap: 'clamp(10px, 1.5vw, 16px)' }}>
           {[
             { id: 'playlists' as LearnView, label: 'Playlists', subtitle: 'Music for tea time', icon: <Icons.Music className="w-5 h-5" /> },
             { id: 'videos' as LearnView, label: 'Videos', subtitle: 'Watch & learn', icon: <Icons.Film className="w-5 h-5" /> },
@@ -489,8 +489,8 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
         <SectionLabel subtitle="Tea locations, farms, and cultural landmarks across Asia">Places</SectionLabel>
 
         <SwipeCarousel
-          itemWidth={Math.max(160, Math.min(220, window.innerWidth * 0.28))}
-          gap={Math.max(8, Math.min(14, window.innerWidth * 0.015))}
+          itemWidth="clamp(160px, 28vw, 220px)"
+          gap="clamp(8px, 1.5vw, 14px)"
           showArrows={true}
           peek={3}
           arrowTheme="light"

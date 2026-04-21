@@ -57,6 +57,7 @@ const EventsPage = lazy(() => import('./pages/EventsPage'));
 const ForYourSpacePage = lazy(() => import('./pages/ForYourSpacePage'));
 const SpacesPage = lazy(() => import('./pages/SpacesPage'));
 const StartHerePage = lazy(() => import('./pages/StartHerePage'));
+const ArticlePage = lazy(() => import('./pages/ArticlePage'));
 
 import { useQuery } from '@tanstack/react-query';
 import { fetchStore } from './lib/storefrontApi';
@@ -602,6 +603,13 @@ const AppContent = () => {
                       onAccountClick={handleOpenAccount}
                       cartItemCount={cart.length}
                     />
+                  </ErrorBoundary>
+                } />
+                <Route path="/article/:slug" element={
+                  <ErrorBoundary>
+                    <Suspense fallback={<SectionSkeleton variant="hero" />}>
+                      <ArticlePage />
+                    </Suspense>
                   </ErrorBoundary>
                 } />
                 <Route path="/learn" element={

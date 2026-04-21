@@ -67,3 +67,32 @@ Find a magazine or editorial site whose quality and visual standard is the targe
 - Get Barry's full name, background/bio, photo, and any content ready to publish
 - First contributor profile template is already built (Phase 3, item 20 in DEVELOPMENT_PRIORITIES.md)
 - Barry's profile will be the first signal that the magazine is a serious editorial home
+
+---
+
+## Magazine Editor (April 2026 Sprint)
+
+### D1 Migration — REQUIRED before magazine editor works
+Run this once after `wrangler login`:
+```bash
+cd worker
+npx wrangler login
+npx wrangler d1 execute teajia-db --remote --file=migrations/031_articles.sql
+```
+Until this runs, `/admin/magazine` will fail silently.
+
+### Gift Set Product IDs — Replace Placeholders
+In `src/constants.ts`, find the `// GIFT SETS` section. Replace all placeholder IDs with real product IDs from the admin inventory panel:
+- set-dark-tea-sampler
+- set-journey-of-flavor
+- set-tea-with-chi
+- set-starters-pack
+- set-entry-set
+
+### Brewing Profiles for QR Cards
+The `BrewingQRCard` component links to `/learn/brew/:teaType` pages — these pages don't exist yet.
+Once brewing profiles are written (see #11 above), build the `/learn/brew/:teaType` route and page.
+
+### Spaces Page — Replace Hardcoded Locations
+`src/pages/SpacesPage.tsx` has 3 Bali locations hardcoded with TODO comments.
+Replace with real data or wire to DB when multi-account infrastructure ships.
