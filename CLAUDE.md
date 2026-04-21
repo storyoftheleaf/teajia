@@ -5,7 +5,7 @@ stack: [Vite 6, React 19, TypeScript, Tailwind v3, Zustand, React Query, Framer 
 deploy: https://teajia.pages.dev
 family: tea
 supersedes: [tea-dev-inital, teajia-grid]
-last_reviewed: 2026-04-20
+last_reviewed: 2026-04-21
 ---
 
 # Teajia — flagship e-commerce + content platform
@@ -61,3 +61,6 @@ See `ROADMAP.md` for build sequence and `MULTI_STORE_PLAN.md` for multi-tenancy 
 
 ## DO NOT build
 Streak trackers, gamification, engagement notifications, live tasting modes, algorithmic recommendations, social feeds/likes/followers, auto-replenish subscriptions.
+
+## NEVER change without explicit confirmation
+- Navigation links, tab labels, or routing in `src/components/BottomTabBar.tsx` or any nav component — ask first, do not assume.
