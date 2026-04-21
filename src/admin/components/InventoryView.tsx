@@ -2006,7 +2006,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       </div>
 
       {/* --- SAVED VIEWS TAB BAR (desktop only) --- */}
-      <div className="hidden md:flex items-center gap-1 px-6 py-1.5 border-b border-tea-border bg-tea-bg overflow-x-auto custom-scrollbar hide-scrollbar">
+      <div className="hidden md:flex items-center gap-1 px-4 md:px-6 lg:px-10 py-1.5 md:h-16 md:py-0 border-b border-tea-border bg-tea-bg/90 backdrop-blur-md overflow-x-auto custom-scrollbar hide-scrollbar sticky top-0 z-dropdown">
+        <h1 className="font-serif font-normal text-2xl lg:text-3xl text-tea-text leading-tight tracking-[0.02em] shrink-0 mr-4" style={{ fontFamily: 'var(--font-display)' }}>Inventory</h1>
         {(() => {
           const views = savedViews.length > 0 ? savedViews.filter(v => inventoryCategory === 'teaware' ? v.id.includes('teaware') : !v.id.includes('teaware')) : activeDefaultViews;
           let didSeparate = false;
@@ -3224,7 +3225,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       
       {/* RESET CONFIRMATION */}
       {showResetConfirm && (
-        <div className="fixed inset-0 z-modal flex items-center justify-center bg-tea-text/95 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 animate-in fade-in duration-200">
             <div className="bg-tea-bg border border-tea-accent-sub rounded-xl max-w-sm w-full p-8 relative shadow-2xl">
                 <div className="flex flex-col items-center text-center space-y-4">
                     <div className="p-4 rounded-full border border-tea-accent-sub text-tea-accent bg-tea-accent/10">
@@ -3261,7 +3262,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
       {/* MAINTENANCE MODAL */}
       {showMaintenanceModal && (
-        <div className="fixed inset-0 z-toast flex items-center justify-center bg-tea-text/95 backdrop-blur-md p-4 animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-toast flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-in fade-in duration-300">
             <div className="bg-tea-bg border border-tea-border w-full max-w-2xl rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
                 <div className="p-6 border-b border-tea-border flex justify-between items-center bg-tea-surface">
                     <div className="flex items-center gap-3">
@@ -4089,7 +4090,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               </div>
             </motion.div>
             {/* Mobile backdrop — stop above bottom nav */}
-            <div className="fixed inset-0 bottom-[calc(44px+env(safe-area-inset-bottom))] z-20 bg-tea-text/50 md:hidden" onClick={() => setPanelProduct(null)} />
+            <div className="fixed inset-0 bottom-[calc(44px+env(safe-area-inset-bottom))] z-20 bg-black/50 md:hidden" onClick={() => setPanelProduct(null)} />
           </>
           );
         })()}

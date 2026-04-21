@@ -1,7 +1,7 @@
 import React, { useState, lazy, Suspense, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { MapPin, ChevronDown, Users, Search } from 'lucide-react';
+import { MapPin, ChevronDown, Users } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useParallax } from '../../hooks/useParallax';
 import type { TeaEvent, TeaMenuItem } from '../../types/events';
@@ -299,8 +299,8 @@ const EventLanding: React.FC = () => {
 
           {/* Area hint (not full address) or location name */}
           {(event.areaHint || event.locationName) && (
-            <div className="flex items-center justify-center gap-1.5 text-tea-text-sec mb-5">
-              <MapPin className="w-[11px] h-[11px] text-tea-gold/60 shrink-0" />
+            <div className="flex items-center justify-center gap-1.5 text-tea-text-sec mt-3.5 mb-5">
+              <MapPin className="w-[11px] h-[11px] shrink-0" />
               <span className="text-xs">{event.areaHint ?? event.locationName}</span>
             </div>
           )}
@@ -322,32 +322,34 @@ const EventLanding: React.FC = () => {
 
           {/* CTA block */}
           {canRSVP && (
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               <button
                 onClick={() => setShowRSVP(true)}
-                className="w-full max-w-xs mx-auto py-4 bg-tea-gold text-white text-xs uppercase tracking-[0.25em] font-semibold rounded-sm hover:bg-tea-gold/90 transition-all duration-300 flex items-center justify-center gap-2 shadow-lg shadow-tea-gold/20"
+                className="w-full py-[15px] bg-tea-gold text-white text-[11px] uppercase tracking-[0.25em] font-semibold rounded-sm hover:bg-tea-gold/90 transition-all duration-300 shadow-[0_6px_20px_rgba(184,146,78,0.3)]"
               >
                 Request Your Seat
               </button>
-              <button
-                onClick={() => setShowFindRSVP(true)}
-                className="flex items-center justify-center gap-2 mx-auto text-xs text-tea-text-sec hover:text-tea-gold transition-colors py-2"
-              >
-                <Search className="w-3.5 h-3.5" />
-                Already registered? Find my RSVP
-              </button>
+              <p className="text-center text-[11px] text-tea-text-dim">
+                Already registered?{' '}
+                <button
+                  onClick={() => setShowFindRSVP(true)}
+                  className="text-tea-gold hover:text-tea-gold-lt transition-colors"
+                >
+                  Find my RSVP
+                </button>
+              </p>
             </div>
           )}
 
           {/* Full / waitlist state */}
           {showWaitlist && (
-            <div className="space-y-4 max-w-xs mx-auto">
+            <div className="space-y-4">
               <p className="font-serif text-base text-tea-text-sec">
                 This session is fully gathered.
               </p>
               <button
                 onClick={() => setShowRSVP(true)}
-                className="w-full py-3.5 bg-tea-surface border border-tea-border text-tea-text text-xs uppercase tracking-[0.2em] rounded-sm hover:border-tea-gold/40 transition-colors"
+                className="w-full py-[15px] bg-tea-surface border border-tea-border text-tea-text text-[11px] uppercase tracking-[0.25em] rounded-sm hover:border-tea-gold/40 transition-colors"
               >
                 Join the Waitlist
               </button>

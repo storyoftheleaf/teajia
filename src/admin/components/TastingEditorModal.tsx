@@ -49,6 +49,20 @@ export const TastingEditorModal: React.FC<TastingEditorModalProps> = ({
     }
   }, [product, queryClient, showToast, onSaved]);
 
+  const handleWriteDescription = useCallback(async (text: string) => {
+    try {
+      await api.products.update(product.id, { description: text });
+      queryClient.setQueryData(['products'], (old: Product[] | undefined) => {
+        if (!old) return old;
+        return old.map(p => p.id === product.id ? { ...p, description: text } : p);
+      });
+      showToast('Description saved', 'success');
+    } catch {
+      showToast('Failed to save description', 'error');
+      throw new Error('save failed');
+    }
+  }, [product.id, queryClient, showToast]);
+
   return (
     <AnimatePresence>
       <TastingSession
@@ -57,11 +71,13 @@ export const TastingEditorModal: React.FC<TastingEditorModalProps> = ({
           name: product.givenName || product.productName,
           type: product.type,
           image: product.imageUrl || undefined,
+          teaKey: product.teaKey,
         }}
         adminMode
         initialData={product.tasting || {}}
         onClose={onClose}
         onSave={handleSave}
+        onWriteDescription={handleWriteDescription}
       />
     </AnimatePresence>
   );

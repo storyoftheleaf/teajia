@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import type { TeaEvent } from '../types/events';
+import { PageHeader } from '../components/shared/PageHeader';
 
 function formatDate(dateStr: string) {
   const d = new Date(dateStr);
@@ -161,17 +162,7 @@ const EventsPage: React.FC = () => {
       className="min-h-screen bg-tea-bg pb-[calc(44px+env(safe-area-inset-bottom,0px)+24px)]"
       style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
     >
-      {/* Header */}
-      <div className="px-6 pt-12 pb-8">
-        <p className="text-[10px] uppercase tracking-[0.35em] text-tea-gold mb-2">Teajia</p>
-        <h1 className="font-serif text-4xl text-tea-text leading-none">Sessions</h1>
-        <p className="text-sm text-tea-text-sec mt-2 leading-relaxed">
-          Intimate tea gatherings. Small groups, curated selections.
-        </p>
-      </div>
-
-      {/* Divider */}
-      <div className="mx-6 border-t border-tea-border mb-8" />
+      <PageHeader title="Sessions" />
 
       {/* Event list */}
       <div className="px-4 space-y-5">

@@ -649,14 +649,14 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, isSav
   // --- NAV OVERLAY ---
   const NavOverlay = () => (
     <div
-      className="fixed inset-0 z-modal bg-tea-text/60 backdrop-blur-sm flex justify-end animate-[fadeIn_0.2s_ease-out]"
+      className="fixed inset-0 z-modal bg-black/60 backdrop-blur-sm flex justify-end animate-[fadeIn_0.2s_ease-out]"
       onClick={() => setShowNav(false)}
     >
       <div className="w-full max-w-sm bg-tea-bg h-full shadow-2xl p-8 overflow-y-auto border-l border-tea-border animate-[slideLeft_0.3s_ease-out]" onClick={e => e.stopPropagation()}>
         <div className="flex justify-between items-center mb-10 border-b border-tea-border pb-4">
           <span className="text-tea-text font-serif italic text-xl">Journal Index</span>
           <button onClick={() => setShowNav(false)} className="p-3 hover:bg-tea-surface/20 rounded-full transition-colors">
-            <Icons.Close className="w-5 h-5 text-tea-text/60" />
+            <Icons.Close className="w-5 h-5 text-tea-text-sec" />
           </button>
         </div>
         <div className="space-y-8">
@@ -690,7 +690,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, isSav
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-priority bg-tea-text/40 backdrop-blur-sm"
+            className="fixed inset-0 z-priority bg-black/40 backdrop-blur-sm"
             onClick={() => setShowChapterDrawer(false)}
           />
           <motion.div
@@ -706,7 +706,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, isSav
             <div className="flex items-center justify-between mb-4">
               <span className="text-tea-text font-serif text-lg">Chapters</span>
               <button onClick={() => setShowChapterDrawer(false)} className="p-3 rounded-full hover:bg-tea-surface/40 transition-colors">
-                <Icons.Close className="w-4 h-4 text-tea-text-dim" />
+                <Icons.Close className="w-4 h-4 text-tea-text-sec" />
               </button>
             </div>
             <div className="space-y-1">
@@ -830,7 +830,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, isSav
   // --- MAIN RENDER ---
   return (
     <div
-      className={`fixed inset-0 bg-tea-bg flex flex-col overflow-hidden ${customZIndex || 'z-modal'}`}
+      className={`fixed inset-0 sidebar-inset bg-tea-bg flex flex-col overflow-hidden ${customZIndex || 'z-modal'}`}
       style={{
         height: '100dvh',
         ...(timeFilter ? { filter: timeFilter } : {}),
@@ -855,13 +855,13 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, isSav
       {isDesktop && <KeyboardHintsOverlay />}
 
       {/* --- TOP BAR --- */}
-      <div className="absolute top-0 left-0 w-full h-16 z-50 flex items-center justify-between px-6 md:px-10 text-tea-text/70 pointer-events-none bg-gradient-to-b from-tea-bg/40 to-transparent">
+      <div className="absolute top-0 left-0 w-full h-16 z-50 flex items-center justify-between px-6 md:px-10 text-tea-text-sec pointer-events-none bg-gradient-to-b from-tea-bg/40 to-transparent">
         <button
           onClick={onBack}
-          className="flex items-center gap-2 text-xs uppercase tracking-[0.15em] hover:text-tea-text pointer-events-auto transition-colors p-3 -ml-3 rounded-full"
+          className="flex items-center gap-2 text-xs uppercase tracking-[0.15em] text-tea-text-sec hover:text-tea-text pointer-events-auto transition-colors p-3 -ml-3 rounded-full"
         >
-          <Icons.Close className="w-5 h-5" />
-          <span className="hidden md:inline">Close</span>
+          <Icons.Back className="w-5 h-5" />
+          <span className="hidden md:inline">Back</span>
         </button>
 
         <div className="flex items-center gap-4 pointer-events-auto">

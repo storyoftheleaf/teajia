@@ -27,9 +27,17 @@ export const ProductInquiry: React.FC<ProductInquiryProps> = ({ isOpen, onClose,
     message: `I'm interested in ${productName}`,
   });
   const [submitted, setSubmitted] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleSubmit = () => {
-    if (!form.name.trim() || !form.email.trim()) return;
+    const newErrors: Record<string, string> = {};
+    if (!form.name.trim()) newErrors.name = 'Name is required';
+    if (!form.email.trim()) newErrors.email = 'Email is required';
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+    setErrors({});
 
     const inquiries = JSON.parse(localStorage.getItem('teajia_inquiries') || '[]');
     inquiries.push({ ...form, productName, timestamp: new Date().toISOString() });
@@ -48,6 +56,7 @@ export const ProductInquiry: React.FC<ProductInquiryProps> = ({ isOpen, onClose,
     setSubmitted(false);
     setChannel('choose');
     setForm({ name: '', email: '', message: `I'm interested in ${productName}` });
+    setErrors({});
     onClose();
   };
 
@@ -57,7 +66,7 @@ export const ProductInquiry: React.FC<ProductInquiryProps> = ({ isOpen, onClose,
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 z-modal bg-tea-text/60 backdrop-blur-sm"
+        className="fixed inset-0 z-modal bg-black/60 backdrop-blur-sm"
         onClick={handleClose}
       />
 
@@ -80,14 +89,14 @@ export const ProductInquiry: React.FC<ProductInquiryProps> = ({ isOpen, onClose,
           {submitted ? (
             <div className="text-center py-8">
               <Icons.Check className="w-12 h-12 text-tea-green mx-auto mb-4" />
-              <p className="text-sm text-tea-text/70">
+              <p className="text-sm text-tea-text-sec">
                 We'll be in touch about <span className="font-medium">{productName}</span>.
               </p>
             </div>
           ) : channel === 'choose' ? (
             /* Channel selection */
             <div className="space-y-3">
-              <p className="text-sm text-tea-text/60 mb-4">
+              <p className="text-sm text-tea-text-sec mb-4">
                 How would you like to reach us?
               </p>
 
@@ -99,7 +108,7 @@ export const ProductInquiry: React.FC<ProductInquiryProps> = ({ isOpen, onClose,
                 <Icons.Message className="w-5 h-5 text-tea-green shrink-0" />
                 <div className="text-left flex-1">
                   <span className="text-sm font-medium text-tea-text block">WhatsApp</span>
-                  <span className="text-xs text-tea-text/50">Quick and direct — chat with us now</span>
+                  <span className="text-xs text-tea-text-sec">Quick and direct — chat with us now</span>
                 </div>
                 <span className="text-tea-text/30 group-hover:text-tea-gold group-hover:translate-x-0.5 transition-all">&rarr;</span>
               </button>
@@ -112,7 +121,7 @@ export const ProductInquiry: React.FC<ProductInquiryProps> = ({ isOpen, onClose,
                 <Icons.Mail className="w-5 h-5 text-tea-gold shrink-0" />
                 <div className="text-left flex-1">
                   <span className="text-sm font-medium text-tea-text block">Send a Message</span>
-                  <span className="text-xs text-tea-text/50">Leave your details and we'll follow up</span>
+                  <span className="text-xs text-tea-text-sec">Leave your details and we'll follow up</span>
                 </div>
                 <span className="text-tea-text/30 group-hover:text-tea-gold group-hover:translate-x-0.5 transition-all">&rarr;</span>
               </button>
@@ -122,12 +131,12 @@ export const ProductInquiry: React.FC<ProductInquiryProps> = ({ isOpen, onClose,
             <div className="space-y-4">
               <button
                 onClick={() => setChannel('choose')}
-                className="text-xs text-tea-text/50 hover:text-tea-gold flex items-center gap-1 mb-2 transition-colors"
+                className="text-xs text-tea-text-sec hover:text-tea-text flex items-center gap-1 mb-2 transition-colors"
               >
                 <Icons.Back className="w-3 h-3" /> Back to options
               </button>
               <div>
-                <label className="block text-xs uppercase tracking-wider text-tea-text/50 mb-1.5">
+                <label className="block text-xs uppercase tracking-wider text-tea-text-sec mb-1.5">
                   Name *
                 </label>
                 <input
@@ -137,9 +146,10 @@ export const ProductInquiry: React.FC<ProductInquiryProps> = ({ isOpen, onClose,
                   value={form.name}
                   onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                 />
+                {errors.name && <p className="text-red-400 text-xs mt-1">{errors.name}</p>}
               </div>
               <div>
-                <label className="block text-xs uppercase tracking-wider text-tea-text/50 mb-1.5">
+                <label className="block text-xs uppercase tracking-wider text-tea-text-sec mb-1.5">
                   Email *
                 </label>
                 <input
@@ -149,9 +159,10 @@ export const ProductInquiry: React.FC<ProductInquiryProps> = ({ isOpen, onClose,
                   value={form.email}
                   onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
                 />
+                {errors.email && <p className="text-red-400 text-xs mt-1">{errors.email}</p>}
               </div>
               <div>
-                <label className="block text-xs uppercase tracking-wider text-tea-text/50 mb-1.5">
+                <label className="block text-xs uppercase tracking-wider text-tea-text-sec mb-1.5">
                   Message
                 </label>
                 <textarea

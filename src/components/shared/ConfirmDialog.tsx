@@ -54,7 +54,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
 
   return createPortal(
     <div
-      className="fixed inset-0 bg-tea-text/60 backdrop-blur-sm flex items-center justify-center p-4 animate-[fadeIn_0.2s_ease-out]"
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-[fadeIn_0.2s_ease-out]"
       style={{ zIndex: ADMIN_Z_INDEX.TEMPLATE_MODAL }}
       onClick={handleCancel}
     >
@@ -73,7 +73,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
             className="p-2 hover:bg-tea-text/10 rounded-lg transition-colors"
             aria-label="Close dialog"
           >
-            <Icons.Close className="w-5 h-5 text-tea-text/60" />
+            <Icons.Close className="w-5 h-5 text-tea-text-sec" />
           </button>
         </div>
 
@@ -108,10 +108,10 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
         </div>
 
         {/* Actions */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4" style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub)' }}>
+        <div className="flex items-center justify-between gap-3 px-6 py-4" style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub)' }}>
           <button
             onClick={handleCancel}
-            className="px-4 py-2 text-tea-text/80 hover:text-tea-text text-sm uppercase tracking-wider font-medium transition-colors"
+            className="px-4 py-2 text-tea-text-sec hover:text-tea-text text-sm uppercase tracking-wider font-medium transition-colors"
           >
             {cancelText}
           </button>

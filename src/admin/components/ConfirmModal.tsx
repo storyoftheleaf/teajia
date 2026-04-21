@@ -24,7 +24,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   const isDestructive = variant === 'destructive';
 
   return (
-    <div className="fixed inset-0 z-modal flex items-center justify-center bg-tea-text/90 backdrop-blur-md p-4 animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
       <div className="bg-tea-bg border border-tea-border rounded-2xl w-full max-w-md p-6 shadow-2xl relative">
         <button onClick={onClose} className="absolute top-4 right-4 text-tea-text-sec hover:text-tea-text transition-colors">
           <X size={20} />
@@ -44,7 +44,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
 
         {children && <div className="mb-6">{children}</div>}
 
-        <div className="flex justify-end gap-3 pt-4 border-t border-tea-border">
+        <div className="flex justify-between gap-3 pt-4 border-t border-tea-border">
           <button
             onClick={onClose}
             disabled={isLoading}

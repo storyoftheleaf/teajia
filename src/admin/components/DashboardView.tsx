@@ -136,13 +136,11 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
   const COLORS_TYPE = ['#C8A97E', '#DBC19D', '#E8E3D9', '#A39B8E', '#5C544E', '#26221D'];
 
   return (
+    <>
+    <div className="sticky top-0 z-dropdown bg-tea-bg/90 backdrop-blur-md border-b border-tea-border flex-shrink-0 flex items-center h-16 px-4 md:px-6 lg:px-10">
+      <h1 className="font-serif font-normal text-2xl lg:text-3xl text-tea-text leading-tight tracking-[0.02em]" style={{ fontFamily: 'var(--font-display)' }}>Dashboard</h1>
+    </div>
     <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-6 md:space-y-8 pb-24">
-      <div className="flex justify-between items-end border-b border-tea-border pb-4 md:pb-6">
-          <div>
-            <h2 className="text-2xl md:text-5xl font-serif text-tea-text tracking-tight">Financial Intelligence</h2>
-            <p className="text-tea-text-sec text-xs md:text-sm mt-1 md:mt-2 font-light tracking-wide">Real-time valuation based on current exchange rates.</p>
-          </div>
-      </div>
 
       {/* KPI Cards — horizontal scroll on mobile, grid on desktop */}
       <div className="flex md:grid md:grid-cols-3 gap-3 md:gap-6 overflow-x-auto pb-2 md:pb-0 snap-x snap-mandatory -mx-4 px-4 md:mx-0 md:px-0">
@@ -351,5 +349,6 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
         </div>
       )}
     </div>
+    </>
   );
 };

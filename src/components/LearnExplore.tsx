@@ -140,10 +140,10 @@ export const LearnExplore: React.FC<LearnExploreProps> = ({ watchedStories, onNa
           onClick={backToGrid}
           className="flex items-center gap-2 w-full px-3 py-3 rounded-none md:rounded-lg bg-tea-text/[0.03]  hover:bg-tea-text/[0.06] transition-colors active:bg-tea-text/[0.08]"
         >
-          <div className="w-8 h-8 rounded-full bg-tea-gold/10 flex items-center justify-center shrink-0">
-            <Icons.Back className="w-4 h-4 text-tea-gold" />
+          <div className="w-8 h-8 rounded-full bg-tea-text/[0.05] flex items-center justify-center shrink-0">
+            <Icons.Back className="w-4 h-4 text-tea-text-sec" />
           </div>
-          <span className="text-sm font-medium text-tea-gold">Explore</span>
+          <span className="text-sm font-medium text-tea-text-sec">Explore</span>
           <span className="text-tea-text/20">/</span>
           <span className="text-sm text-tea-text/50 truncate">{title}</span>
         </button>

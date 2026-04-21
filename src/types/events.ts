@@ -42,6 +42,8 @@ export interface Venue {
   mapLink?: string;
   areaHint?: string;
   arrivalNotes?: string;
+  website?: string;
+  instagram?: string;
   photos: string[];
   spaces: VenueSpace[];
   createdAt: string;

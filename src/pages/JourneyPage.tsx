@@ -486,7 +486,7 @@ const JourneyPage: React.FC = () => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25 }}
-            className="fixed inset-0 z-modal bg-tea-text/80 backdrop-blur-sm flex items-center justify-center p-6"
+            className="fixed inset-0 z-modal bg-black/80 backdrop-blur-sm flex items-center justify-center p-6"
             onClick={() => setExpandedSeal(null)}
           >
             <motion.div

@@ -77,7 +77,7 @@ const PageTransition = ({ children }: { children: React.ReactNode }) => (
     animate={{ opacity: 1, y: 0 }}
     exit={{ opacity: 0, y: -10 }}
     transition={{ duration: 0.3, ease: "easeOut" }}
-    className="h-full flex flex-col overflow-hidden"
+    className="h-full"
   >
     {children}
   </motion.div>
@@ -393,7 +393,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
       <PullToRefreshIndicator pullDistance={pullDistance} isRefreshing={isRefreshing} progress={progress} />
 
       <main className="flex-1 relative flex flex-col min-w-0 overflow-hidden">
-        {!isOnHome && !isOnCompass && <div className="z-modal bg-tea-surface/90 backdrop-blur-xl px-3 md:px-6 py-1.5 flex items-center gap-2 flex-none relative">
+        {isOnInventory && <div className="z-modal bg-tea-surface/90 backdrop-blur-xl px-3 md:px-6 py-1.5 flex items-center gap-2 flex-none relative">
            {/* Inventory: Tea / Teaware toggle + search */}
            {isOnInventory ? (
              <>
@@ -508,8 +508,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
         </div>}
 
         <div className="flex-1 relative min-h-0 overflow-y-auto pb-[calc(56px+env(safe-area-inset-bottom,0px))] lg:pb-0">
-          <AnimatePresence mode="wait">
-            <Routes location={location} key={location.pathname}>
+          <Routes>
               <Route path="/" element={<Navigate to="compass" replace />} />
               <Route path="home" element={<Navigate to="../compass" replace />} />
 
@@ -592,8 +591,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
               <Route path="settings" element={<Navigate to="/admin/people" replace />} />
 
               <Route path="*" element={<Navigate to="home" replace />} />
-            </Routes>
-          </AnimatePresence>
+          </Routes>
         </div>
 
 

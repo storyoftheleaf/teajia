@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import {
   Check, Leaf, Sparkles, Mic,
   Heart, ThumbsUp, Minus, ThumbsDown, ShoppingCart,
+  FlaskConical, Thermometer, Timer,
 } from 'lucide-react';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import type { TastingData, CustomerTasting } from '../../types';
@@ -45,25 +46,35 @@ const VERDICT_OPTIONS: {
   { id: 'pass',    label: 'Pass',     icon: ThumbsDown },
 ];
 
+const VESSEL_OPTIONS = ['Gaiwan', 'Yixing', 'Glass', 'Teapot', 'Other'] as const;
+
 interface TastingSessionProps {
   item: TastingItem;
   onClose: () => void;
   /**
    * ADMIN ONLY: bypasses the journal entirely and writes to the product record.
    * When provided with adminMode=true, the journal is never touched.
+   * Supports async saves — errors are caught and surface in saveState.
    */
-  onSave?: (data: TastingData, verdict?: Verdict, wouldBuy?: boolean) => void;
+  onSave?: (data: TastingData, verdict?: Verdict, wouldBuy?: boolean) => void | Promise<void>;
   /**
    * CUSTOMER: fires after the journal write for domain-specific side effects
    * (e.g. updating the compass store entry, sample store).
+   * Receives verdict + wouldBuy when set (sourcing flows).
    */
-  onAfterSave?: (data: TastingData) => void;
+  onAfterSave?: (data: TastingData, verdict?: Verdict, wouldBuy?: boolean) => void;
   /** When true, onSave is the only write — no journal entry is created */
   adminMode?: boolean;
   /** Pre-populate with existing tasting data (admin edit flows) */
   initialData?: TastingData;
   showVerdict?: boolean;
   onOrderTea?: (item: TastingItem) => void;
+  /** Admin: opens the PO creation modal after a love/like verdict */
+  onCreatePO?: () => void;
+  /** Admin: receives generated description text for saving to product record */
+  onWriteDescription?: (text: string) => void | Promise<void>;
+  /** When true, creates a live draft tea_review even in non-adminMode (for admin co-tasting on SamplePage) */
+  writeDraftReview?: boolean;
 }
 
 const TeaLeafRating: React.FC<{ rating: number }> = ({ rating }) => (
@@ -77,8 +88,19 @@ const TeaLeafRating: React.FC<{ rating: number }> = ({ rating }) => (
   </div>
 );
 
+function generateDescription(data: TastingData): string {
+  const parts: string[] = [];
+  if (data.body?.length) parts.push(data.body.slice(0, 2).map(resolveTermLabel).filter(Boolean).join(', ') + ' body');
+  if (data.flavor?.length) parts.push('notes of ' + data.flavor.slice(0, 3).map(resolveTermLabel).filter(Boolean).join(', '));
+  if (data.cleanliness) parts.push(data.cleanliness + ' finish');
+  if (data.huiGan) parts.push('hui gan');
+  if (data.feeling?.length) parts.push(data.feeling.slice(0, 2).map(resolveTermLabel).filter(Boolean).join(', ') + ' effect');
+  if (data.quality != null) parts.push(`scored ${data.quality}/10`);
+  return parts.length ? parts.join('. ') + '.' : '';
+}
+
 export const TastingSession: React.FC<TastingSessionProps> = ({
-  item, onClose, onSave, onAfterSave, adminMode = false, initialData, showVerdict = false, onOrderTea,
+  item, onClose, onSave, onAfterSave, adminMode = false, initialData, showVerdict = false, onOrderTea, onCreatePO, onWriteDescription, writeDraftReview = false,
 }) => {
   const { addTasting, updateTasting, activeAccountId, activeAccount, tastingJournal } = useAppStore();
   const { addNote } = useNotesStore();
@@ -94,8 +116,13 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
   const [isContinuing, setIsContinuing] = useState(!!lastTasting);
   const [simplified, setSimplified] = useState(false);
   const [phase, setPhase] = useState<'tasting' | 'saved'>('tasting');
-  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [savedEntryId, setSavedEntryId] = useState<string | null>(null);
+
+  // Brewing context (admin mode)
+  const [showBrewing, setShowBrewing] = useState(
+    !!(initialData?.brewingVessel || initialData?.brewingTemp || initialData?.brewingTime)
+  );
 
   // Live draft review (admin + teaKey only) — Mode 3 async collaborative tasting
   const draftReviewIdRef = useRef<string | null>(null);
@@ -109,6 +136,8 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
 
   const [activeSectionId, setActiveSectionId] = useState<SectionId>('body');
   const [showNote, setShowNote] = useState(false);
+  const [descriptionDraft, setDescriptionDraft] = useState('');
+  const [savingDescription, setSavingDescription] = useState(false);
   const [sectionCounts, setSectionCounts] = useState<Record<SectionId, number>>({
     body: 0, state: 0, flavor: 0, appearance: 0,
   });
@@ -126,10 +155,10 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
     };
   }, []);
 
-  // Draft-aware onChange — writes live state to tea_reviews when adminMode + teaKey
+  // Draft-aware onChange — writes live state to tea_reviews when adminMode (or writeDraftReview) + teaKey
   const handleTastingChange = useCallback((data: TastingData) => {
     setTastingData(data);
-    if (!adminMode || !item.teaKey) return;
+    if ((!adminMode && !writeDraftReview) || !item.teaKey) return;
 
     if (!draftReviewIdRef.current && !isCreatingDraftRef.current) {
       isCreatingDraftRef.current = true;
@@ -157,7 +186,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
         }
       }, 2000);
     }
-  }, [adminMode, item.teaKey, item.sourceSampleId]);
+  }, [adminMode, writeDraftReview, item.teaKey, item.sourceSampleId]);
 
   const hasArrayNotes = Object.values(tastingData).some(arr => Array.isArray(arr) && arr.length > 0);
   const hasCaptureData =
@@ -165,11 +194,25 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
     tastingData.cleanliness != null ||
     tastingData.clarity != null ||
     tastingData.huiGan != null ||
+    tastingData.tangGan != null ||
     (tastingData.notes?.length ?? 0) > 0;
   const hasNotes = hasArrayNotes || hasCaptureData;
 
-  const handleSave = useCallback(() => {
-    if (saveState !== 'idle') return;
+  // Completeness: all four sections filled + quality score
+  const isComplete =
+    adminMode &&
+    sectionCounts.body > 0 &&
+    sectionCounts.state > 0 &&
+    sectionCounts.flavor > 0 &&
+    sectionCounts.appearance > 0 &&
+    tastingData.quality != null;
+
+  // In sourcing mode (showVerdict + !adminMode), verdict is required before saving
+  const verdictRequired = showVerdict && !adminMode;
+  const canSave = hasNotes && saveState === 'idle' && (!verdictRequired || verdict !== null);
+
+  const handleSave = useCallback(async () => {
+    if (!canSave) return;
     setSaveState('saving');
 
     try {
@@ -186,7 +229,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
 
       if (adminMode && onSave) {
         // Admin flow: write to product record only, no journal entry
-        onSave(tastingData);
+        await onSave(tastingData);
       } else {
         // Customer flow: always write to journal
         const entryId = crypto.randomUUID();
@@ -205,6 +248,9 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
           eventId: item.eventId,
           eventTitle: item.eventTitle,
           accountId: activeAccountId ?? undefined,
+          // Stamp verdict if already selected (sourcing mode pre-save verdict)
+          verdict: verdict ?? undefined,
+          wouldBuy: wouldBuy || undefined,
         };
         addTasting(entry);
         setSavedEntryId(entryId);
@@ -220,19 +266,30 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
             accountId: activeAccountId ?? 'guest',
           });
         }
-        // Domain side effect (e.g. update compass store entry)
-        onAfterSave?.(tastingData);
+        // Domain side effect (e.g. update compass store entry, sample store)
+        // Pass verdict + wouldBuy so sourcing callers (SamplePage) can persist them
+        onAfterSave?.(tastingData, verdict ?? undefined, wouldBuy || undefined);
         // Fire-and-forget sync to server
         syncTastingJournal().catch(() => {});
       }
     } catch {
-      setSaveState('idle');
+      setSaveState('error');
       return;
     }
 
     setSaveState('saved');
-    saveTimerRef.current = setTimeout(() => onClose(), 600);
-  }, [item, tastingData, addTasting, onSave, onAfterSave, adminMode, activeAccountId, activeAccount, saveState, onClose]);
+    // Show confirmation screen for all modes
+    setPhase('saved');
+    // Pre-populate description draft from tasting data
+    if (onWriteDescription) {
+      setDescriptionDraft(generateDescription(tastingData));
+    }
+    // Admin: auto-close after 2s only when no action buttons need attention
+    if (adminMode && !onCreatePO && !onWriteDescription) {
+      saveTimerRef.current = setTimeout(() => onClose(), 2000);
+    }
+    // Customer: stays open until user taps Done
+  }, [item, tastingData, verdict, wouldBuy, addTasting, onSave, onAfterSave, adminMode, activeAccountId, activeAccount, canSave, onClose, onCreatePO, onWriteDescription]);
 
   const handleVerdictSelect = useCallback((v: Verdict) => {
     setVerdict(v);
@@ -246,8 +303,12 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
   const handleWouldBuyToggle = useCallback(() => {
     const next = !wouldBuy;
     setWouldBuy(next);
+    if (adminMode && onSave) {
+      onSave(tastingData, verdict ?? undefined, next);
+      return;
+    }
     if (savedEntryId) updateTasting(savedEntryId, { wouldBuy: next });
-  }, [wouldBuy, savedEntryId, updateTasting]);
+  }, [wouldBuy, savedEntryId, updateTasting, onSave, adminMode, tastingData, verdict]);
 
   return createPortal(
     <motion.div
@@ -255,7 +316,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 24 }}
       transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
-      className="fixed inset-0 z-priority bg-tea-bg flex flex-col"
+      className="fixed inset-0 sidebar-inset z-priority bg-tea-bg flex flex-col"
       style={{
         paddingLeft: 'env(safe-area-inset-left, 0px)',
         paddingRight: 'env(safe-area-inset-right, 0px)',
@@ -266,7 +327,14 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
         className="flex items-center justify-between px-4 py-3 border-b border-tea-border shrink-0"
         style={{ paddingTop: 'max(12px, env(safe-area-inset-top, 12px))' }}
       >
-        <div className="flex items-center gap-2 min-w-0">
+        <div className="flex items-center gap-3 min-w-0">
+          <button
+            onClick={onClose}
+            className="pill text-xs text-tea-text-sec shrink-0"
+            style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.06em' }}
+          >
+            Cancel
+          </button>
           {item.image && (
             <img src={item.image} alt="" className="w-8 h-8 rounded-md object-cover shrink-0" />
           )}
@@ -283,26 +351,15 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0 ml-3">
-          {!adminMode && (
-            <button
-              type="button"
-              onClick={() => setSimplified(p => !p)}
-              className="text-[11px] text-tea-text-dim hover:text-tea-text-sec transition-colors"
-              style={{ fontFamily: 'var(--font-body)' }}
-              title={simplified ? 'Show all options' : 'Feeling lost? Reduce the options'}
-            >
-              {simplified ? 'full view' : 'simplify'}
-            </button>
-          )}
-          <button
-            onClick={onClose}
-            className="pill text-xs text-tea-text-sec"
-            style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.06em' }}
-          >
-            Cancel
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => setSimplified(p => !p)}
+          className="text-[11px] text-tea-text-sec hover:text-tea-text transition-colors shrink-0 ml-3"
+          style={{ fontFamily: 'var(--font-body)' }}
+          title={simplified ? 'Show all options' : 'Feeling lost? Reduce the options'}
+        >
+          {simplified ? 'full view' : 'simplify'}
+        </button>
       </div>
 
       <AnimatePresence mode="wait">
@@ -325,11 +382,131 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                 <button
                   type="button"
                   onClick={() => { setTastingData({}); setIsContinuing(false); }}
-                  className="text-[10px] text-tea-text-dim hover:text-tea-text transition-colors ml-3 shrink-0"
+                  className="text-[10px] text-tea-text-sec hover:text-tea-text transition-colors ml-3 shrink-0"
                   style={{ fontFamily: 'var(--font-body)' }}
                 >
                   Start fresh
                 </button>
+              </div>
+            )}
+
+            {/* Brewing context strip — admin mode only */}
+            {adminMode && (
+              <div className="shrink-0 border-b border-tea-border">
+                <button
+                  type="button"
+                  onClick={() => setShowBrewing(v => !v)}
+                  className="w-full flex items-center gap-2 px-4 py-2 text-[11px] text-tea-text-sec hover:text-tea-text transition-colors"
+                  style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.06em' }}
+                >
+                  <FlaskConical size={12} className="shrink-0 opacity-50" />
+                  <span className="uppercase tracking-[0.1em]">
+                    {tastingData.brewingVessel || tastingData.brewingTemp || tastingData.brewingTime
+                      ? [tastingData.brewingVessel, tastingData.brewingTemp ? `${tastingData.brewingTemp}°C` : null, tastingData.brewingTime].filter(Boolean).join(' · ')
+                      : 'Add brewing context'}
+                  </span>
+                </button>
+                <AnimatePresence>
+                  {showBrewing && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.18 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="px-4 pb-3 flex flex-wrap gap-3">
+                        {/* Vessel */}
+                        <div className="flex flex-col gap-1">
+                          <span className="text-[10px] uppercase tracking-[0.1em] text-tea-text-dim" style={{ fontFamily: 'var(--font-display)' }}>Vessel</span>
+                          <div className="flex flex-wrap gap-1">
+                            {VESSEL_OPTIONS.map(v => (
+                              <button
+                                key={v}
+                                type="button"
+                                onClick={() => handleTastingChange({ ...tastingData, brewingVessel: tastingData.brewingVessel === v ? undefined : v })}
+                                className={`text-[11px] px-2.5 py-1 rounded-full transition-colors ${
+                                  tastingData.brewingVessel === v
+                                    ? 'bg-tea-gold/15 text-tea-gold'
+                                    : 'bg-tea-surface text-tea-text-sec hover:text-tea-text'
+                                }`}
+                                style={{ fontFamily: 'var(--font-body)' }}
+                              >
+                                {v}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        {/* Temp */}
+                        <div className="flex flex-col gap-1">
+                          <span className="text-[10px] uppercase tracking-[0.1em] text-tea-text-dim" style={{ fontFamily: 'var(--font-display)' }}>
+                            <Thermometer size={10} className="inline mr-0.5" />Temp
+                          </span>
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="number"
+                              min={50}
+                              max={100}
+                              value={tastingData.brewingTemp ?? ''}
+                              onChange={e => handleTastingChange({ ...tastingData, brewingTemp: e.target.value ? Number(e.target.value) : undefined })}
+                              placeholder="95"
+                              className="w-16 px-2 py-1 bg-tea-surface border border-tea-border rounded text-[12px] text-tea-text placeholder:text-tea-text-dim/40 focus:outline-none focus:border-tea-gold/50"
+                              style={{ fontFamily: 'var(--font-mono)' }}
+                            />
+                            <span className="text-[11px] text-tea-text-dim">°C</span>
+                          </div>
+                        </div>
+                        {/* Time */}
+                        <div className="flex flex-col gap-1">
+                          <span className="text-[10px] uppercase tracking-[0.1em] text-tea-text-dim" style={{ fontFamily: 'var(--font-display)' }}>
+                            <Timer size={10} className="inline mr-0.5" />Time
+                          </span>
+                          <input
+                            type="text"
+                            value={tastingData.brewingTime ?? ''}
+                            onChange={e => handleTastingChange({ ...tastingData, brewingTime: e.target.value || undefined })}
+                            placeholder="30s"
+                            className="w-16 px-2 py-1 bg-tea-surface border border-tea-border rounded text-[12px] text-tea-text placeholder:text-tea-text-dim/40 focus:outline-none focus:border-tea-gold/50"
+                            style={{ fontFamily: 'var(--font-mono)' }}
+                          />
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            )}
+
+            {/* Sourcing verdict — shown before save when showVerdict + customer mode */}
+            {showVerdict && !adminMode && (
+              <div className="shrink-0 px-4 py-2.5 border-b border-tea-border bg-tea-surface/40">
+                <div
+                  className="text-[10px] uppercase tracking-[0.16em] text-tea-text-dim mb-2"
+                  style={{ fontFamily: 'var(--font-display)' }}
+                >
+                  Sourcing verdict {!verdict && <span className="text-tea-gold/70 normal-case tracking-normal">— select before saving</span>}
+                </div>
+                <div className="grid grid-cols-4 gap-1.5">
+                  {VERDICT_OPTIONS.map(({ id, label, icon: Icon }) => {
+                    const isActive = verdict === id;
+                    return (
+                      <motion.button
+                        key={id}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => setVerdict(isActive ? null : id)}
+                        aria-pressed={isActive}
+                        className={`flex flex-col items-center gap-1 py-2 rounded-xl border transition-all duration-150 ${
+                          isActive
+                            ? 'text-tea-gold border-tea-gold/40 bg-tea-gold/8'
+                            : 'border-tea-border text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-surface'
+                        }`}
+                      >
+                        <Icon size={15} />
+                        <span className="text-[10px]" style={{ fontFamily: 'var(--font-display)' }}>{label}</span>
+                      </motion.button>
+                    );
+                  })}
+                </div>
               </div>
             )}
 
@@ -340,7 +517,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                 style={{ background: 'linear-gradient(to bottom, transparent, var(--tea-bg))' }}
               />
               <TastingFlow
-                mode="customer"
+                mode={adminMode ? 'admin' : 'customer'}
                 value={tastingData}
                 onChange={handleTastingChange}
                 activeSectionId={activeSectionId}
@@ -454,7 +631,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                     );
                   })}
 
-                  {/* Mic — 5th tab cell */}
+                  {/* Note — 5th tab cell */}
                   <button
                     onClick={() => setShowNote(v => !v)}
                     aria-pressed={showNote}
@@ -485,20 +662,42 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                         {tastingData.notes!.length}
                       </motion.span>
                     )}
-                    <span className="relative z-[1]"><Mic size={14} /></span>
+                    <span className="relative z-[1] flex flex-col items-center gap-0.5">
+                      <Mic size={13} />
+                      <span style={{ fontFamily: 'var(--font-display)', fontSize: '9px', letterSpacing: '0.12em', textTransform: 'uppercase' }}>Note</span>
+                    </span>
                   </button>
                 </div>
               </LayoutGroup>
 
+              {/* Completeness signal — admin only */}
+              {adminMode && isComplete && (
+                <motion.div
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="px-4 pt-1.5 flex items-center gap-1.5"
+                >
+                  <Check size={11} className="text-tea-gold shrink-0" />
+                  <span className="text-[10px] text-tea-text-sec" style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.08em' }}>
+                    Profile complete
+                  </span>
+                </motion.div>
+              )}
+
               {/* Save */}
-              <div className="px-3 pb-3">
+              <div className="px-3 pb-3 pt-1.5">
+                {saveState === 'error' && (
+                  <p className="text-[11px] text-red-400 text-center mb-1.5" style={{ fontFamily: 'var(--font-body)' }}>
+                    Save failed — check your connection and try again
+                  </p>
+                )}
                 <button
                   onClick={handleSave}
-                  disabled={!hasNotes || saveState !== 'idle'}
+                  disabled={!canSave}
                   className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
                     saveState === 'saving' || saveState === 'saved'
                       ? 'bg-tea-gold text-tea-bg scale-[0.98]'
-                      : hasNotes
+                      : canSave
                         ? 'border border-tea-gold/40 text-tea-gold hover:bg-tea-gold/8 active:scale-[0.98]'
                         : 'border border-tea-border text-tea-text-dim cursor-not-allowed'
                   }`}
@@ -511,9 +710,10 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                     className="flex items-center gap-2"
                   >
                     <Check size={15} />
-                    {saveState === 'idle' && 'Save'}
+                    {saveState === 'idle' && (verdictRequired && !verdict ? 'Select a verdict to save' : 'Save')}
                     {saveState === 'saving' && 'Saving…'}
                     {saveState === 'saved' && 'Saved'}
+                    {saveState === 'error' && 'Retry'}
                   </motion.span>
                 </button>
               </div>
@@ -562,9 +762,11 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                 </motion.div>
               </div>
               <div className="text-sm font-medium text-tea-text mb-1" style={{ fontFamily: 'var(--font-display)' }}>
-                Tasting Saved
+                {adminMode ? 'Profile Saved' : 'Tasting Saved'}
               </div>
-              <div className="text-xs text-tea-text-dim">Added to your journal</div>
+              <div className="text-xs text-tea-text-dim">
+                {adminMode ? 'Product tasting profile updated' : 'Added to your journal'}
+              </div>
 
               {tastingData.quality != null && (
                 <div className="mt-2 flex justify-center">
@@ -579,15 +781,24 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                   <TeaLeafRating rating={tastingData.rating} />
                 </div>
               )}
+
+              {/* Brewing context summary */}
+              {(tastingData.brewingVessel || tastingData.brewingTemp || tastingData.brewingTime) && (
+                <div className="mt-2 flex items-center justify-center gap-2 text-[11px] text-tea-text-dim" style={{ fontFamily: 'var(--font-body)' }}>
+                  <FlaskConical size={11} className="opacity-50" />
+                  {[tastingData.brewingVessel, tastingData.brewingTemp ? `${tastingData.brewingTemp}°C` : null, tastingData.brewingTime].filter(Boolean).join(' · ')}
+                </div>
+              )}
             </div>
 
-            {(tastingData.cleanliness || tastingData.clarity || tastingData.body?.length || tastingData.huiGan) && (
+            {(tastingData.cleanliness || tastingData.clarity || tastingData.body?.length || tastingData.huiGan || tastingData.tangGan) && (
               <div className="rounded-xl p-4 mb-3 bg-tea-surface/50">
                 <div className="flex flex-wrap gap-1.5">
                   {tastingData.cleanliness && <span className="tag" style={{ textTransform: 'capitalize' }}>{tastingData.cleanliness}</span>}
                   {tastingData.clarity && <span className="tag" style={{ textTransform: 'capitalize' }}>{tastingData.clarity}</span>}
                   {tastingData.body?.map(b => <span key={b} className="tag" style={{ textTransform: 'capitalize' }}>{b}</span>)}
-                  {tastingData.huiGan && <span className="tag"><Sparkles size={10} className="shrink-0 text-tea-gold" />Hui Gan</span>}
+                  {tastingData.huiGan && <span className="tag"><Sparkles size={10} className="shrink-0 text-tea-gold" />回甘 Hui Gan</span>}
+                  {tastingData.tangGan && <span className="tag"><Sparkles size={10} className="shrink-0 text-tea-gold" />汤感 Tang Gan</span>}
                 </div>
               </div>
             )}
@@ -645,8 +856,8 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
               </motion.div>
             )}
 
-            {/* Verdict — sourcing flows */}
-            {showVerdict && (
+            {/* Verdict — sourcing flows (post-save, only if not yet selected pre-save) */}
+            {showVerdict && !adminMode && verdict === null && (
               <motion.div
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -696,7 +907,61 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
               </motion.div>
             )}
 
+            {/* Admin: write description from tasting data */}
+            {onWriteDescription && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="mt-3 mb-2"
+              >
+                <div
+                  className="text-[10px] uppercase tracking-[0.18em] text-tea-text-dim mb-2"
+                  style={{ fontFamily: 'var(--font-display)' }}
+                >
+                  Product Description
+                </div>
+                <textarea
+                  value={descriptionDraft}
+                  onChange={(e) => setDescriptionDraft(e.target.value)}
+                  rows={3}
+                  className="w-full px-3 py-2 bg-tea-surface border border-tea-border rounded-md text-sm text-tea-text placeholder:text-tea-text-dim/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus:border-tea-gold/50 transition-colors resize-none"
+                  style={{ fontFamily: 'var(--font-body)' }}
+                  placeholder="Describe this tea…"
+                />
+                <button
+                  onClick={async () => {
+                    if (!descriptionDraft.trim()) return;
+                    setSavingDescription(true);
+                    try { await onWriteDescription(descriptionDraft.trim()); } catch { /* noop */ }
+                    setSavingDescription(false);
+                  }}
+                  disabled={!descriptionDraft.trim() || savingDescription}
+                  className="mt-2 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold border border-tea-gold/40 text-tea-gold hover:bg-tea-gold/8 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                >
+                  {savingDescription ? (
+                    <span className="w-4 h-4 border-2 border-tea-gold/30 border-t-tea-gold rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      <Check size={14} />
+                      Save Description
+                    </>
+                  )}
+                </button>
+              </motion.div>
+            )}
+
             <div className="flex flex-col gap-2 mt-2">
+              {/* Admin: create purchase order from verdict */}
+              {onCreatePO && (verdict === 'love' || verdict === 'like') && (
+                <button
+                  onClick={() => { onCreatePO(); onClose(); }}
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold bg-tea-gold text-tea-bg hover:opacity-90 active:scale-[0.98] transition-all"
+                >
+                  <ShoppingCart size={16} />
+                  Create Purchase Order
+                </button>
+              )}
               {onOrderTea && (
                 <button
                   onClick={() => { onOrderTea(item); onClose(); }}
@@ -706,12 +971,14 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                   Order This Tea
                 </button>
               )}
-              <button
-                onClick={onClose}
-                className="w-full py-3 rounded-xl text-sm text-tea-text-sec hover:text-tea-text transition-colors"
-              >
-                Done
-              </button>
+              {(!adminMode || onCreatePO || onWriteDescription) && (
+                <button
+                  onClick={onClose}
+                  className="w-full py-3 rounded-xl text-sm text-tea-text-sec hover:text-tea-text transition-colors"
+                >
+                  Done
+                </button>
+              )}
             </div>
           </motion.div>
         )}

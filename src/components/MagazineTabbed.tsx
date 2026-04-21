@@ -633,23 +633,19 @@ export const MagazineTabbed: React.FC<MagazineTabbedProps> = ({
 
       {/* ── Top bar ── */}
       <div
-        className="sticky top-0 z-40 flex items-center justify-between"
+        className="sticky top-0 z-dropdown flex items-center justify-between pt-[14px] pb-[12px] px-4 md:px-6 -mx-4 md:-mx-6 lg:h-16 lg:py-0 lg:px-10 lg:-mx-10 border-b border-tea-border"
         style={{
-          padding: '14px 18px 12px',
-          background: 'linear-gradient(180deg,rgba(24,19,14,0.95),rgba(24,19,14,0.7) 80%,transparent)',
-          backdropFilter: 'blur(10px)',
-          WebkitBackdropFilter: 'blur(10px)',
+          background: 'rgba(24,19,14,0.9)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
         }}
       >
-        <div className="flex items-center gap-2">
-          <LogoEmblem size={20} className="text-tea-gold" />
-          <span style={{
-            fontFamily: 'var(--font-display)', fontWeight: 500,
-            letterSpacing: '0.18em', fontSize: 12, textTransform: 'uppercase', color: 'var(--tea-text)',
-          }}>
-            Journal
-          </span>
-        </div>
+        <h1
+          className="font-serif font-normal text-2xl lg:text-3xl text-tea-text leading-tight tracking-[0.02em]"
+          style={{ fontFamily: 'var(--font-display)' }}
+        >
+          Journal
+        </h1>
 
         <div className="flex items-center">
           {onCartClick && (

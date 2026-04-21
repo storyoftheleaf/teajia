@@ -13,6 +13,10 @@ export default defineConfig(({ mode }) => {
       strictPort: true,
       host: 'localhost',
       cors: true,
+      watch: {
+        usePolling: true,
+        interval: 500,
+      },
     },
     preview: {
       port: 4173,

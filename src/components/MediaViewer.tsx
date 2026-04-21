@@ -22,7 +22,7 @@ const DesktopSidebar: React.FC<{ story: Story; onBack: () => void; onShare?: () 
       className="mb-8 p-3 rounded-full hover:bg-tea-gold/10 transition-colors group"
       title="Exit View"
     >
-      <Icons.Back className="w-6 h-6 text-tea-text/70 group-hover:text-tea-text" />
+      <Icons.Back className="w-6 h-6 text-tea-text-sec group-hover:text-tea-text" />
     </button>
 
     {/* Vertical Title */}
@@ -124,7 +124,7 @@ const ReelLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => void
 
   if (isMobile) {
     return (
-      <div className="fixed inset-0 bg-black z-modal">
+      <div className="fixed inset-0 sidebar-inset bg-black z-modal">
         {/* Video Background */}
         <div className="absolute inset-0 bg-zinc-900">
            {renderPlayer()}
@@ -164,7 +164,7 @@ const ReelLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => void
 
   // Desktop: Sidebar + Centered Vertical Player
   return (
-    <div className="fixed inset-0 z-modal bg-tea-bg flex">
+    <div className="fixed inset-0 sidebar-inset z-modal bg-tea-bg flex">
       <DesktopSidebar story={story} onBack={onBack} onShare={onShare} isSaved={isSaved} onToggleSave={onToggleSave} />
       
       <main className="flex-1 relative flex items-center justify-center p-12" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E")` }}>
@@ -258,7 +258,7 @@ const FilmLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => void
 
   if (isMobile) {
     return (
-      <div className="fixed inset-0 bg-tea-bg z-modal flex flex-col overflow-y-auto">
+      <div className="fixed inset-0 sidebar-inset bg-tea-bg z-modal flex flex-col overflow-y-auto">
          <MobileHeader title={story.title} onBack={onBack} />
 
          {/* Player */}
@@ -289,7 +289,7 @@ const FilmLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => void
   }
 
   return (
-    <div className="fixed inset-0 z-modal bg-tea-bg flex">
+    <div className="fixed inset-0 sidebar-inset z-modal bg-tea-bg flex">
        <DesktopSidebar story={story} onBack={onBack} onShare={onShare} isSaved={isSaved} onToggleSave={onToggleSave} />
        
        <main className="flex-1 flex flex-col items-center overflow-y-auto">
@@ -328,7 +328,7 @@ const AudioLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => voi
 
   if (isMobile) {
     return (
-      <div className="fixed inset-0 bg-tea-bg z-modal flex flex-col">
+      <div className="fixed inset-0 sidebar-inset bg-tea-bg z-modal flex flex-col">
          <MobileHeader title="Now Playing" onBack={onBack} transparent />
          
          {/* Main Art Area */}
@@ -388,7 +388,7 @@ const AudioLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => voi
 
   // Desktop Audio
   return (
-    <div className="fixed inset-0 z-modal bg-tea-bg flex">
+    <div className="fixed inset-0 sidebar-inset z-modal bg-tea-bg flex">
       <DesktopSidebar story={story} onBack={onBack} onShare={onShare} isSaved={isSaved} onToggleSave={onToggleSave} />
       
       <main className="flex-1 flex flex-col items-center justify-center relative overflow-hidden" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E")` }}>
@@ -399,10 +399,10 @@ const AudioLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => voi
             <div className="absolute bottom-1/4 left-1/4 w-[500px] h-[500px] bg-tea-green rounded-full blur-[120px] opacity-20 animate-pulse duration-[8s]"></div>
          </div>
 
-         <div className="w-full max-w-6xl px-12 flex items-center justify-center gap-20 z-10">
-            
+         <div className="w-full max-w-6xl px-12 flex items-center justify-center gap-[clamp(2rem,5vw,5rem)] z-10">
+
             {/* Art - Left Side */}
-            <div className="w-[400px] h-[400px] shrink-0 shadow-[0_30px_60px_rgba(0,0,0,0.5)] rounded-sm relative group perspective-1000">
+            <div className="w-[clamp(220px,35vw,400px)] aspect-square shrink-0 shadow-[0_30px_60px_rgba(0,0,0,0.5)] rounded-sm relative group perspective-1000">
                <div className="absolute inset-0 bg-tea-elevated/5 transform translate-x-4 translate-y-4 rounded-sm border border-tea-border -z-10"></div>
                <img src={story.thumbnailUrl} className="w-full h-full object-cover rounded-sm border border-tea-border" alt="album art" />
                

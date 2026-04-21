@@ -114,7 +114,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
         /* Slim contextual header: just the action controls for the active tab */
         (activeTab === 'logs' || activeTab === 'archive') ? (
           <div className="sticky top-0 z-30 bg-tea-bg/90 backdrop-blur-md border-b border-tea-border py-2 flex-shrink-0">
-            <div className="px-3 md:px-6 max-w-7xl mx-auto flex items-center gap-2">
+            <div className="px-3 md:px-6 max-w-5xl mx-auto flex items-center gap-2">
               {activeTab === 'logs' && (
                 <>
                   <div className="flex items-center gap-1 overflow-x-auto hide-scrollbar flex-1 min-w-0">
@@ -153,7 +153,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
       ) : (
         /* Standalone mode: full header with tab bar */
         <div className="sticky top-0 z-30 bg-tea-bg/90 backdrop-blur-md border-b border-tea-border py-2.5 flex-shrink-0">
-          <div className="px-3 md:px-6 max-w-7xl mx-auto flex items-center gap-2 md:gap-4">
+          <div className="px-3 md:px-6 max-w-5xl mx-auto flex items-center gap-2 md:gap-4">
             <div className="flex items-center gap-2 shrink-0">
               <Archive size={16} className="text-tea-accent" />
               <h2 className="text-sm font-serif text-tea-text uppercase tracking-[0.15em] hidden md:block">
@@ -192,7 +192,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
           </div>
 
           {activeTab === 'logs' && (
-            <div className="px-3 md:px-6 max-w-7xl mx-auto flex items-center gap-2 mt-2">
+            <div className="px-3 md:px-6 max-w-5xl mx-auto flex items-center gap-2 mt-2">
               <div className="flex items-center gap-1 overflow-x-auto hide-scrollbar flex-1 min-w-0">
                 {ACTION_TYPES.map(at => (
                   <button
@@ -224,7 +224,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
 
         {/* TAB: ARCHIVE */}
         {activeTab === 'archive' && (
-          <div className="w-full max-w-7xl mx-auto bg-tea-surface min-h-full hidden md:block">
+          <div className="w-full max-w-5xl mx-auto bg-tea-surface min-h-full hidden md:block">
             <table className="w-full table-fixed border-collapse">
               <colgroup>
                 <col className="w-[26%]" />
@@ -346,7 +346,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
             {logsLoading ? (
               <div className="p-12 text-center text-tea-text-sec font-serif italic"><Loader2 className="animate-spin inline mr-2" /> Fetching logs...</div>
             ) : (
-              <div className="w-full max-w-7xl mx-auto bg-tea-surface min-h-full hidden md:block">
+              <div className="w-full max-w-5xl mx-auto bg-tea-surface min-h-full hidden md:block">
                 <table className="w-full table-fixed border-collapse">
                   <colgroup>
                     <col className="w-[18%]" />
@@ -470,7 +470,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
             {ledgerLoading ? (
               <div className="p-12 text-center text-tea-text-sec font-serif italic"><Loader2 className="animate-spin inline mr-2" /> Loading ledger...</div>
             ) : (
-              <div className="w-full max-w-7xl mx-auto bg-tea-surface min-h-full hidden md:block">
+              <div className="w-full max-w-5xl mx-auto bg-tea-surface min-h-full hidden md:block">
                 <table className="w-full table-fixed border-collapse">
                   <colgroup>
                     <col className="w-[15%]" />

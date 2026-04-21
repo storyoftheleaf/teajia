@@ -52,7 +52,7 @@ const TouchReveal: React.FC<TouchRevealProps> = ({
               {[40, 28, 16].map((size, i) => (
                 <div
                   key={i}
-                  className="absolute rounded-full border border-tea-gold"
+                  className="absolute rounded-full border border-tea-gold/30"
                   style={{
                     width: size,
                     height: size,

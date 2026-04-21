@@ -116,6 +116,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({ isOpen, onClose, prese
 
   const [optionalOpen, setOptionalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const saveToLocalStorage = (entry: InquiryFormData & { timestamp: string }) => {
     try {
@@ -129,6 +130,16 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({ isOpen, onClose, prese
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (submitting) return;
+
+    const newErrors: Record<string, string> = {};
+    if (!formData.name.trim()) newErrors.name = 'Name is required';
+    if (!formData.email.trim()) newErrors.email = 'Email is required';
+    if (!formData.vision.trim()) newErrors.vision = 'Please enter a message';
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+    setErrors({});
     setSubmitting(true);
 
     const entry = { ...formData, timestamp: new Date().toISOString() };
@@ -164,7 +175,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({ isOpen, onClose, prese
     <div
       ref={overlayRef}
       onClick={handleOverlayClick}
-      className={`fixed inset-0 z-modal flex items-end md:items-center md:justify-center transition-colors ${reducedMotion ? '' : 'duration-300'} ${isVisible ? 'bg-tea-text/40' : 'bg-tea-text/0'}`}
+      className={`fixed inset-0 z-modal flex items-end md:items-center md:justify-center transition-colors ${reducedMotion ? '' : 'duration-300'} ${isVisible ? 'bg-black/40' : 'bg-black/0'}`}
     >
       <div
         ref={focusTrapRef}
@@ -195,7 +206,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({ isOpen, onClose, prese
             className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full hover:bg-tea-text/5 transition-colors"
             aria-label="Close inquiry form"
           >
-            <Icons.Close className="w-5 h-5 text-tea-text/40" />
+            <Icons.Close className="w-5 h-5 text-tea-text-sec" />
           </button>
         </div>
 
@@ -220,6 +231,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({ isOpen, onClose, prese
                 onChange={v => setFormData(p => ({ ...p, name: v }))}
                 required
                 autoComplete="name"
+                error={errors.name}
               />
 
               <FloatingField
@@ -229,6 +241,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({ isOpen, onClose, prese
                 onChange={v => setFormData(p => ({ ...p, email: v }))}
                 required
                 autoComplete="email"
+                error={errors.email}
               />
 
               <FloatingField
@@ -238,6 +251,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({ isOpen, onClose, prese
                 onChange={v => setFormData(p => ({ ...p, vision: v }))}
                 required
                 autoComplete="off"
+                error={errors.vision}
               />
 
               {/* Collapsible optional section */}
@@ -341,9 +355,10 @@ interface FloatingFieldProps {
   onChange: (value: string) => void;
   required?: boolean;
   autoComplete?: string;
+  error?: string;
 }
 
-const FloatingField: React.FC<FloatingFieldProps> = ({ label, type, value, onChange, required, autoComplete }) => {
+const FloatingField: React.FC<FloatingFieldProps> = ({ label, type, value, onChange, required, autoComplete, error }) => {
   const [focused, setFocused] = useState(false);
   const isActive = focused || value.length > 0;
 
@@ -395,6 +410,7 @@ const FloatingField: React.FC<FloatingFieldProps> = ({ label, type, value, onCha
           autoComplete={autoComplete}
         />
       )}
+      {error && <p className="text-red-400 text-xs mt-1">{error}</p>}
     </div>
   );
 };

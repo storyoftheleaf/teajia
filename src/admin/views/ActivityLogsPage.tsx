@@ -51,7 +51,7 @@ export const ActivityLogsPage: React.FC = () => {
     : logs;
 
   return (
-    <div className="h-full flex flex-col overflow-hidden bg-tea-bg">
+    <div className="h-full flex flex-col overflow-hidden bg-tea-bg max-w-5xl mx-auto w-full">
       {/* Header */}
       <div className="flex items-center gap-3 px-4 md:px-6 py-4 border-b border-tea-border bg-tea-bg flex-shrink-0">
         <ScrollText size={17} className="text-tea-text-sec shrink-0" />
@@ -94,7 +94,7 @@ export const ActivityLogsPage: React.FC = () => {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-y-auto">
         {isLoading ? (
           <div className="flex items-center justify-center h-40 text-tea-text-dim text-sm">
             Loading activity…
@@ -107,6 +107,7 @@ export const ActivityLogsPage: React.FC = () => {
             </p>
           </div>
         ) : (
+          <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead className="sticky top-0 bg-tea-surface z-10">
               <tr className="border-b border-tea-border">
@@ -164,6 +165,7 @@ export const ActivityLogsPage: React.FC = () => {
               })}
             </tbody>
           </table>
+          </div>
         )}
       </div>
 

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Send, Leaf } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Send, Leaf, ChevronLeft, ChevronRight } from 'lucide-react';
 import { TeaLeafIcon } from '../Icons';
 import { useSubmitTastingNotes } from '../../hooks/useEventPolling';
 import { useAppStore } from '../../lib/store';
@@ -30,7 +30,14 @@ const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, cla
   const sortedMenu = [...teaMenu].sort((a, b) => (a.brewOrder ?? 0) - (b.brewOrder ?? 0));
   const { addTasting } = useAppStore();
 
+  const DRAFT_KEY = `tasting-draft-${token}-${eventId || 'no-event'}`;
+
   const [notes, setNotes] = useState<Record<string, NoteState>>(() => {
+    // Hydrate from localStorage draft if available
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (raw) return JSON.parse(raw) as Record<string, NoteState>;
+    } catch { /* ignore */ }
     const initial: Record<string, NoteState> = {};
     sortedMenu.forEach((item) => {
       initial[item.id] = { rating: 0, impression: '', isFavorite: false };
@@ -38,8 +45,17 @@ const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, cla
     return initial;
   });
 
+  const [currentStep, setCurrentStep] = useState(0);
   const [submitted, setSubmitted] = useState(false);
   const submitMutation = useSubmitTastingNotes(token);
+
+  // Persist draft to localStorage on every change
+  useEffect(() => {
+    if (submitted) return;
+    try { localStorage.setItem(DRAFT_KEY, JSON.stringify(notes)); } catch { /* ignore */ }
+  }, [notes, submitted, DRAFT_KEY]);
+
+  const currentItem = sortedMenu[currentStep];
 
   const updateNote = (itemId: string, field: keyof NoteState, value: NoteState[keyof NoteState]) => {
     setNotes((prev) => {
@@ -85,7 +101,7 @@ const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, cla
                 teaImage: item.productImageUrl || undefined,
                 tasting: {
                   rating: note.rating,
-                  overallImpression: note.impression || undefined,
+                  notes: note.impression ? [note.impression] : undefined,
                 },
                 personalNote: note.impression || undefined,
                 rating: note.rating,
@@ -97,12 +113,16 @@ const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, cla
               addTasting(journalEntry);
             });
         }
+        // Clear draft after successful submit
+        try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
         setSubmitted(true);
       },
     });
   };
 
+  const isLastStep = currentStep === sortedMenu.length - 1;
   const hasAnyRating = Object.values(notes).some((n) => n.rating > 0);
+  const currentNote = notes[currentItem?.id] ?? { rating: 0, impression: '', isFavorite: false };
 
   if (submitted) {
     return (
@@ -126,6 +146,8 @@ const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, cla
     );
   }
 
+  if (!currentItem) return null;
+
   return (
     <div className={`${className}`}>
       <h3 className="text-xl text-tea-text mb-2" style={{ fontFamily: 'var(--font-display)' }}>Share Your Impressions</h3>
@@ -133,102 +155,142 @@ const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, cla
         Rate the teas you tasted today
       </p>
 
-      <div className="space-y-6">
-        {sortedMenu.map((item) => {
-          const note = notes[item.id];
-
-          return (
-            <div
-              key={item.id}
-              className="p-5 bg-tea-surface border border-tea-border rounded-md"
-            >
-              {/* Tea info */}
-              <div className="mb-4">
-                <div className="flex items-center gap-2 mb-1">
-                  {item.productType && (
-                    <span className="text-[10px] uppercase tracking-[0.2em] text-tea-gold">
-                      {item.productType}
-                    </span>
-                  )}
-                </div>
-                <h4 className="text-base text-tea-text" style={{ fontFamily: 'var(--font-display)' }}>{item.customName || item.productName}</h4>
-                {item.customDescription && (
-                  <p className="text-xs text-tea-text-sec mt-1 line-clamp-2">{item.customDescription}</p>
-                )}
-              </div>
-
-              {/* Rating: tea leaves */}
-              <div className="mb-4">
-                <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec mb-2" style={{ fontFamily: 'var(--font-display)' }}>
-                  Rating
-                </p>
-                <div className="flex gap-1">
-                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((level) => (
-                    <button
-                      key={level}
-                      type="button"
-                      onClick={() => updateNote(item.id, 'rating', note.rating === level ? 0 : level)}
-                      className="min-h-[44px] min-w-[44px] flex items-center justify-center transition-all duration-200 hover:scale-110"
-                      aria-label={`Rate ${level} out of 10`}
-                    >
-                      <Leaf
-                        size={22}
-                        className={`transition-colors duration-200 ${
-                          level <= note.rating
-                            ? 'text-tea-gold fill-tea-gold'
-                            : 'text-tea-text-dim/20'
-                        }`}
-                      />
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Impression */}
-              <div className="mb-3">
-                <input
-                  type="text"
-                  value={note.impression}
-                  onChange={(e) => updateNote(item.id, 'impression', e.target.value)}
-                  placeholder="One-line impression..."
-                  className="w-full px-3 py-2.5 min-h-[44px] bg-tea-bg border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-dim/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold/50 transition-colors"
-                  style={{ fontFamily: 'var(--font-body)' }}
-                />
-              </div>
-
-              {/* Favorite toggle */}
-              <button
-                type="button"
-                onClick={() => updateNote(item.id, 'isFavorite', !note.isFavorite)}
-                className={`inline-flex items-center gap-2 min-h-[44px] px-3 py-1.5 rounded-full text-xs transition-all duration-200 ${
-                  note.isFavorite
-                    ? 'bg-tea-gold/15 text-tea-gold'
-                    : 'bg-tea-elevated/50 text-tea-text-sec hover:bg-tea-elevated'
-                }`}
-              >
-                <Leaf size={14} className={note.isFavorite ? 'fill-tea-gold' : ''} />
-                This was my favorite
-              </button>
-            </div>
-          );
-        })}
+      {/* Step progress */}
+      <div className="flex items-center gap-2 mb-6">
+        <div className="flex gap-1.5">
+          {sortedMenu.map((_, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => setCurrentStep(i)}
+              className={`transition-all duration-200 rounded-full ${
+                i === currentStep
+                  ? 'w-5 h-2 bg-tea-gold'
+                  : notes[sortedMenu[i].id]?.rating > 0
+                    ? 'w-2 h-2 bg-tea-gold/40'
+                    : 'w-2 h-2 bg-tea-border'
+              }`}
+              aria-label={`Go to tea ${i + 1}`}
+            />
+          ))}
+        </div>
+        <span className="text-[11px] text-tea-text-dim ml-1" style={{ fontFamily: 'var(--font-mono)' }}>
+          {currentStep + 1} / {sortedMenu.length}
+        </span>
       </div>
 
-      {/* Submit */}
-      <button
-        onClick={handleSubmit}
-        disabled={!hasAnyRating || submitMutation.isPending}
-        className="w-full mt-6 py-4 bg-tea-gold text-white text-xs uppercase tracking-[0.25em] font-semibold rounded-sm hover:bg-tea-gold/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-2"
-      >
-        {submitMutation.isPending ? (
-          <span className="inline-block w-4 h-4 border-2 border-tea-border border-t-tea-gold rounded-full animate-spin" />
-        ) : (
-          <>
-            <Send className="w-4 h-4" />
-            Share My Impressions
-          </>
+      {/* Current tea card */}
+      <div className="p-5 bg-tea-surface border border-tea-border rounded-md mb-4">
+        {/* Tea info */}
+        <div className="mb-4">
+          <div className="flex items-center gap-2 mb-1">
+            {currentItem.productType && (
+              <span className="text-[10px] uppercase tracking-[0.2em] text-tea-gold">
+                {currentItem.productType}
+              </span>
+            )}
+          </div>
+          <h4 className="text-base text-tea-text" style={{ fontFamily: 'var(--font-display)' }}>
+            {currentItem.customName || currentItem.productName}
+          </h4>
+          {currentItem.customDescription && (
+            <p className="text-xs text-tea-text-sec mt-1 line-clamp-2">{currentItem.customDescription}</p>
+          )}
+        </div>
+
+        {/* Rating: 5 tea leaves */}
+        <div className="mb-4">
+          <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec mb-2" style={{ fontFamily: 'var(--font-display)' }}>
+            Rating
+          </p>
+          <div className="flex gap-2">
+            {[1, 2, 3, 4, 5].map((level) => (
+              <button
+                key={level}
+                type="button"
+                onClick={() => updateNote(currentItem.id, 'rating', currentNote.rating === level ? 0 : level)}
+                className="flex-1 min-h-[44px] flex items-center justify-center transition-all duration-200 hover:scale-110"
+                aria-label={`Rate ${level} out of 5`}
+              >
+                <Leaf
+                  size={26}
+                  className={`transition-colors duration-200 ${
+                    level <= currentNote.rating
+                      ? 'text-tea-gold fill-tea-gold'
+                      : 'text-tea-text-dim/20'
+                  }`}
+                />
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Impression */}
+        <div className="mb-3">
+          <input
+            type="text"
+            value={currentNote.impression}
+            onChange={(e) => updateNote(currentItem.id, 'impression', e.target.value)}
+            placeholder="One-line impression..."
+            className="w-full px-3 py-2.5 min-h-[44px] bg-tea-bg border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-dim/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold/50 transition-colors"
+            style={{ fontFamily: 'var(--font-body)' }}
+          />
+        </div>
+
+        {/* Favorite toggle */}
+        <button
+          type="button"
+          onClick={() => updateNote(currentItem.id, 'isFavorite', !currentNote.isFavorite)}
+          className={`inline-flex items-center gap-2 min-h-[44px] px-3 py-1.5 rounded-full text-xs transition-all duration-200 ${
+            currentNote.isFavorite
+              ? 'bg-tea-gold/15 text-tea-gold'
+              : 'bg-tea-elevated/50 text-tea-text-sec hover:bg-tea-elevated'
+          }`}
+        >
+          <Leaf size={14} className={currentNote.isFavorite ? 'fill-tea-gold' : ''} />
+          This was my favorite
+        </button>
+      </div>
+
+      {/* Navigation */}
+      <div className="flex gap-3">
+        {currentStep > 0 && (
+          <button
+            type="button"
+            onClick={() => setCurrentStep(s => s - 1)}
+            className="flex items-center gap-1.5 px-4 py-3 border border-tea-border rounded-sm text-sm text-tea-text-sec hover:text-tea-text transition-colors"
+          >
+            <ChevronLeft size={16} />
+            Back
+          </button>
         )}
-      </button>
+
+        {!isLastStep ? (
+          <button
+            type="button"
+            onClick={() => setCurrentStep(s => s + 1)}
+            className="flex-1 flex items-center justify-center gap-1.5 py-3 bg-tea-surface border border-tea-border rounded-sm text-sm text-tea-text hover:bg-tea-elevated transition-colors"
+          >
+            Next tea
+            <ChevronRight size={16} />
+          </button>
+        ) : (
+          <button
+            onClick={handleSubmit}
+            disabled={!hasAnyRating || submitMutation.isPending}
+            className="flex-1 py-3 bg-tea-gold text-white text-xs uppercase tracking-[0.25em] font-semibold rounded-sm hover:bg-tea-gold/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-2"
+          >
+            {submitMutation.isPending ? (
+              <span className="inline-block w-4 h-4 border-2 border-tea-border border-t-tea-gold rounded-full animate-spin" />
+            ) : (
+              <>
+                <Send className="w-4 h-4" />
+                Share My Impressions
+              </>
+            )}
+          </button>
+        )}
+      </div>
 
       {submitMutation.isError && (
         <p className="text-sm text-red-400 text-center mt-3">

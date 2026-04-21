@@ -5,12 +5,20 @@ import { api } from '../../lib/api';
 import { compressImage } from '../../lib/imageCompressor';
 import { useToast } from './Toast';
 import { TeaEvent, EventFormData, EventStatus, EventFormat, GatheringType, VenueGuideStep, SessionFlowItem, SavedLocation, Venue, VenueSpace } from '../../types/events';
+import { VenueManager } from './VenueManager';
 
 interface EventFormProps {
   isOpen: boolean;
   onClose: () => void;
   initialData?: TeaEvent;
   onSuccess: (createdEventId?: string) => void;
+}
+
+function computeEndDate(startDate: string, hours: number): string {
+  if (!startDate) return '';
+  const d = new Date(startDate);
+  d.setMinutes(d.getMinutes() + Math.round(hours * 60));
+  return d.toISOString().slice(0, 16);
 }
 
 function slugify(text: string): string {
@@ -78,7 +86,8 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
   const [subtitle, setSubtitle] = useState('');
   const [description, setDescription] = useState('');
   const [eventDate, setEventDate] = useState('');
-  const [eventEndDate, setEventEndDate] = useState('');
+  const [durationHours, setDurationHours] = useState(2);
+  const [repeatDates, setRepeatDates] = useState<string[]>([]);
   const [totalCapacity, setTotalCapacity] = useState(12);
   const [status, setStatus] = useState<EventStatus>('draft');
   const [format, setFormat] = useState<EventFormat>('private_tasting');
@@ -92,9 +101,12 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
   const [venues, setVenues] = useState<Venue[]>([]);
   const [selectedVenueId, setSelectedVenueId] = useState('');
   const [selectedSpaceIds, setSelectedSpaceIds] = useState<string[]>([]);
+  const [isVenueManagerOpen, setIsVenueManagerOpen] = useState(false);
+
+  const loadVenues = () => { api.venues.list().then(setVenues).catch(() => {}); };
 
   useEffect(() => {
-    api.venues.list().then(setVenues).catch(() => {});
+    loadVenues();
   }, []);
 
   const selectedVenue = venues.find(v => v.id === selectedVenueId);
@@ -114,6 +126,15 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      showToast('Image must be under 10 MB', 'error');
+      return;
+    }
+    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (!allowed.includes(file.type)) {
+      showToast('Only JPG, PNG, WebP, or GIF images are supported', 'error');
+      return;
+    }
     setUploading(true);
     try {
       const compressed = await compressImage(file);
@@ -141,7 +162,8 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
         subtitle: subtitle.trim() || undefined,
         description: description.trim() || undefined,
         event_date: eventDate,
-        event_end_date: eventEndDate || undefined,
+        event_end_date: computeEndDate(eventDate, durationHours) || undefined,
+        repeat_dates: repeatDates.filter(Boolean).length > 0 ? JSON.stringify(repeatDates.filter(Boolean)) : undefined,
         total_capacity: totalCapacity,
         claim_window_minutes: 60,
         status,
@@ -165,6 +187,7 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
   };
 
   return (
+    <>
     <form onSubmit={handleCreate} className="flex flex-col h-full min-h-0">
       {/* Scrollable body */}
       <div className="flex-1 overflow-y-auto">
@@ -210,7 +233,7 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
             {/* Scheduling */}
             <section className="space-y-5 py-8">
               <h3 className="text-xs uppercase tracking-widest text-tea-text-sec font-medium">Scheduling</h3>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Field label="Start Date & Time *">
                   <input
                     type="datetime-local"
@@ -220,16 +243,84 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
                     required
                   />
                 </Field>
-                <Field label="End Date & Time">
-                  <input
-                    type="datetime-local"
-                    value={eventEndDate}
-                    onChange={(e) => setEventEndDate(e.target.value)}
-                    className={inputClass}
-                  />
+                <Field label="Duration">
+                  <div className="relative">
+                    <select
+                      value={durationHours}
+                      onChange={(e) => setDurationHours(parseFloat(e.target.value))}
+                      className={selectClass}
+                    >
+                      <option value="1">1 hour</option>
+                      <option value="1.5">1.5 hours</option>
+                      <option value="2">2 hours</option>
+                      <option value="2.5">2.5 hours</option>
+                      <option value="3">3 hours</option>
+                      <option value="4">4 hours</option>
+                    </select>
+                    <ChevronDown size={12} className="absolute right-0 top-1/2 -translate-y-1/2 text-tea-text-sec pointer-events-none" />
+                  </div>
                 </Field>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              {/* Repeat dates */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec">Repeats</span>
+                  <div className="flex rounded-md border border-tea-border overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => setRepeatDates([])}
+                      className={`px-3 py-1.5 text-[11px] font-medium transition-colors border-r border-tea-border ${
+                        repeatDates.length === 0
+                          ? 'bg-tea-gold/15 text-tea-gold'
+                          : 'bg-transparent text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated'
+                      }`}
+                    >
+                      One-time
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { if (repeatDates.length === 0) setRepeatDates(['']); }}
+                      className={`px-3 py-1.5 text-[11px] font-medium transition-colors ${
+                        repeatDates.length > 0
+                          ? 'bg-tea-gold/15 text-tea-gold'
+                          : 'bg-transparent text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated'
+                      }`}
+                    >
+                      Multiple dates
+                    </button>
+                  </div>
+                </div>
+                {repeatDates.length > 0 && (
+                  <div className="space-y-2 pl-1">
+                    <p className="text-[10px] text-tea-text-dim">Additional occurrences — same duration applies to each</p>
+                    {repeatDates.map((d, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <input
+                          type="datetime-local"
+                          value={d}
+                          onChange={(e) => setRepeatDates(prev => { const next = [...prev]; next[i] = e.target.value; return next; })}
+                          className={`${inputClass} flex-1`}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setRepeatDates(prev => prev.filter((_, j) => j !== i))}
+                          className="text-tea-text-sec hover:text-tea-text transition-colors"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => setRepeatDates(prev => [...prev, ''])}
+                      className="flex items-center gap-1 text-xs text-tea-gold hover:text-tea-gold-lt transition-colors"
+                    >
+                      <Plus size={12} /> Add date
+                    </button>
+                  </div>
+                )}
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Field label="Seats">
                   <input
                     type="number"
@@ -302,13 +393,17 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
               <h3 className="text-xs uppercase tracking-widest text-tea-text-sec font-medium">Location</h3>
 
               {venues.length === 0 ? (
-                <p className="text-xs text-tea-text-dim py-1">
-                  No venues configured yet.{' '}
-                  <a href="/admin/venues" className="text-tea-gold underline-offset-2 hover:underline">
-                    Add a venue
-                  </a>{' '}
-                  to enable space selection.
-                </p>
+                <div className="flex items-center justify-between py-1">
+                  <p className="text-xs text-tea-text-dim">No venues configured yet.</p>
+                  <button
+                    type="button"
+                    onClick={() => setIsVenueManagerOpen(true)}
+                    className="flex items-center gap-1.5 text-xs text-tea-text-sec hover:text-tea-text border border-tea-border px-2.5 py-1.5 rounded-md hover:border-tea-gold/40 transition-colors"
+                  >
+                    <MapPin size={11} />
+                    Add venue
+                  </button>
+                </div>
               ) : (
                 <>
                   {/* Venue picker */}
@@ -402,10 +497,17 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
                   )}
 
                   {selectedVenue && selectedVenue.spaces.length === 0 && (
-                    <p className="text-xs text-tea-text-dim">
-                      This venue has no spaces yet.{' '}
-                      <a href="/admin/venues" className="text-tea-gold underline-offset-2 hover:underline" title="Opens venue manager">Add spaces (opens venue manager)</a> to enable selection.
-                    </p>
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs text-tea-text-dim">This venue has no spaces yet.</p>
+                      <button
+                        type="button"
+                        onClick={() => setIsVenueManagerOpen(true)}
+                        className="flex items-center gap-1.5 text-xs text-tea-text-sec hover:text-tea-text border border-tea-border px-2.5 py-1.5 rounded-md hover:border-tea-gold/40 transition-colors"
+                      >
+                        <MapPin size={11} />
+                        Add spaces
+                      </button>
+                    </div>
                   )}
                 </>
               )}
@@ -457,7 +559,7 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
       </div>
 
       {/* Sticky footer */}
-      <div className="flex-shrink-0 flex justify-end gap-3 px-6 py-4 border-t border-tea-border">
+      <div className="flex-shrink-0 flex justify-end gap-3 px-6 py-4 border-t border-tea-border lg:pb-4 pb-[calc(1rem+44px+env(safe-area-inset-bottom,0px))]">
         <button
           type="button"
           onClick={onClose}
@@ -475,6 +577,26 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
         </button>
       </div>
     </form>
+
+    {/* Inline Venue Manager overlay — slides over form without losing state */}
+    {isVenueManagerOpen && (
+      <div className="absolute inset-0 bg-tea-bg z-toast flex flex-col">
+        <div className="flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-tea-border">
+          <h2 className="text-base font-serif text-tea-text">Manage Venues</h2>
+          <button
+            type="button"
+            onClick={() => { setIsVenueManagerOpen(false); loadVenues(); }}
+            className="text-tea-text-sec hover:text-tea-text transition-colors"
+          >
+            <X size={18} />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto">
+          <VenueManager />
+        </div>
+      </div>
+    )}
+    </>
   );
 };
 
@@ -495,6 +617,8 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
   const [uploading, setUploading] = useState(false);
   const [slugManual, setSlugManual] = useState(false);
   const [openSections, setOpenSections] = useState<Set<EditSection>>(new Set(['basic']));
+  const [durationHours, setDurationHours] = useState(2);
+  const [repeatDates, setRepeatDates] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const venueStepFileRefs = useRef<Record<number, HTMLInputElement | null>>({});
   const [venueStepUploading, setVenueStepUploading] = useState<number | null>(null);
@@ -532,6 +656,16 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
     });
     setSlugManual(true);
     setSelectedLocationId('');
+    // Derive duration from existing dates
+    if (initialData.eventDate && initialData.eventEndDate) {
+      const diffHours = (new Date(initialData.eventEndDate).getTime() - new Date(initialData.eventDate).getTime()) / (1000 * 60 * 60);
+      const rounded = Math.round(diffHours * 2) / 2;
+      const valid = [1, 1.5, 2, 2.5, 3, 4];
+      setDurationHours(valid.includes(rounded) ? rounded : 2);
+    } else {
+      setDurationHours(2);
+    }
+    setRepeatDates([]);
   }, [initialData]);
 
   const updateField = (field: keyof EventFormData, value: any) => {
@@ -556,6 +690,15 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      showToast('Image must be under 10 MB', 'error');
+      return;
+    }
+    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (!allowed.includes(file.type)) {
+      showToast('Only JPG, PNG, WebP, or GIF images are supported', 'error');
+      return;
+    }
     setUploading(true);
     try {
       const compressed = await compressImage(file);
@@ -634,6 +777,15 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
   const handleVenueStepImageUpload = async (idx: number, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      showToast('Image must be under 10 MB', 'error');
+      return;
+    }
+    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (!allowed.includes(file.type)) {
+      showToast('Only JPG, PNG, WebP, or GIF images are supported', 'error');
+      return;
+    }
     setVenueStepUploading(idx);
     try {
       const compressed = await compressImage(file);
@@ -685,7 +837,8 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
         subtitle: form.subtitle || null,
         description: form.description || null,
         event_date: form.eventDate,
-        end_date: form.eventEndDate || null,
+        end_date: form.eventDate ? computeEndDate(form.eventDate, durationHours) : null,
+        repeat_dates: repeatDates.filter(Boolean).length > 0 ? JSON.stringify(repeatDates.filter(Boolean)) : null,
         total_capacity: form.totalCapacity,
         claim_window_minutes: form.claimWindowMinutes,
         status: form.status,
@@ -757,7 +910,11 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
                     className={inputClass}
                     placeholder="Spring Tea Tasting"
                     required
+                    maxLength={80}
                   />
+                  <div className={`text-right text-[10px] mt-0.5 ${(form.title || '').length > 70 ? 'text-amber-400' : 'text-tea-text-dim'}`}>
+                    {(form.title || '').length}/80
+                  </div>
                 </Field>
                 <Field label="Subtitle">
                   <input
@@ -766,7 +923,11 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
                     onChange={(e) => updateField('subtitle', e.target.value)}
                     className={inputClass}
                     placeholder="A journey through Wuyi oolongs"
+                    maxLength={120}
                   />
+                  <div className={`text-right text-[10px] mt-0.5 ${(form.subtitle || '').length > 100 ? 'text-amber-400' : 'text-tea-text-dim'}`}>
+                    {(form.subtitle || '').length}/120
+                  </div>
                 </Field>
                 <Field label="Description">
                   <textarea
@@ -775,10 +936,14 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
                     className={textareaClass}
                     placeholder="Describe the event..."
                     rows={3}
+                    maxLength={500}
                   />
+                  <div className={`text-right text-[10px] mt-0.5 ${(form.description || '').length > 450 ? 'text-amber-400' : 'text-tea-text-dim'}`}>
+                    {(form.description || '').length}/500
+                  </div>
                 </Field>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <Field label="Event Date *">
+                  <Field label="Start Date & Time *">
                     <input
                       type="datetime-local"
                       value={form.eventDate}
@@ -787,14 +952,82 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
                       required
                     />
                   </Field>
-                  <Field label="End Date">
-                    <input
-                      type="datetime-local"
-                      value={form.eventEndDate || ''}
-                      onChange={(e) => updateField('eventEndDate', e.target.value)}
-                      className={inputClass}
-                    />
+                  <Field label="Duration">
+                    <div className="relative">
+                      <select
+                        value={durationHours}
+                        onChange={(e) => setDurationHours(parseFloat(e.target.value))}
+                        className={selectClass}
+                      >
+                        <option value="1">1 hour</option>
+                        <option value="1.5">1.5 hours</option>
+                        <option value="2">2 hours</option>
+                        <option value="2.5">2.5 hours</option>
+                        <option value="3">3 hours</option>
+                        <option value="4">4 hours</option>
+                      </select>
+                      <ChevronDown size={12} className="absolute right-0 top-1/2 -translate-y-1/2 text-tea-text-sec pointer-events-none" />
+                    </div>
                   </Field>
+                </div>
+                {/* Repeat dates */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec">Repeats</span>
+                    <div className="flex rounded-md border border-tea-border overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => setRepeatDates([])}
+                        className={`px-3 py-1.5 text-[11px] font-medium transition-colors border-r border-tea-border ${
+                          repeatDates.length === 0
+                            ? 'bg-tea-gold/15 text-tea-gold'
+                            : 'bg-transparent text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated'
+                        }`}
+                      >
+                        One-time
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { if (repeatDates.length === 0) setRepeatDates(['']); }}
+                        className={`px-3 py-1.5 text-[11px] font-medium transition-colors ${
+                          repeatDates.length > 0
+                            ? 'bg-tea-gold/15 text-tea-gold'
+                            : 'bg-transparent text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated'
+                        }`}
+                      >
+                        Multiple dates
+                      </button>
+                    </div>
+                  </div>
+                  {repeatDates.length > 0 && (
+                    <div className="space-y-2 pl-1">
+                      <p className="text-[10px] text-tea-text-dim">Additional occurrences — same duration applies to each</p>
+                      {repeatDates.map((d, i) => (
+                        <div key={i} className="flex items-center gap-2">
+                          <input
+                            type="datetime-local"
+                            value={d}
+                            onChange={(e) => setRepeatDates(prev => { const next = [...prev]; next[i] = e.target.value; return next; })}
+                            className={`${inputClass} flex-1`}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setRepeatDates(prev => prev.filter((_, j) => j !== i))}
+                            className="text-tea-text-sec hover:text-tea-text transition-colors"
+                          >
+                            <X size={12} />
+                          </button>
+                        </div>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => setRepeatDates(prev => [...prev, ''])}
+                        className="flex items-center gap-1 text-xs text-tea-gold hover:text-tea-gold-lt transition-colors"
+                      >
+                        <Plus size={12} /> Add date
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <Field label="Capacity">
@@ -870,8 +1103,8 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
               <div className="space-y-4">
                 <Field label="Flyer Image">
                   {form.flyerImageUrl ? (
-                    <div className="relative w-full rounded-md overflow-hidden border border-tea-border" style={{ maxHeight: 240 }}>
-                      <img src={form.flyerImageUrl} alt="Flyer" className="w-full object-cover" style={{ maxHeight: 240 }} />
+                    <div className="relative w-full rounded-md overflow-hidden border border-tea-border bg-tea-bg">
+                      <img src={form.flyerImageUrl} alt="Flyer" className="w-full max-h-64 object-contain" />
                       <button
                         type="button"
                         onClick={() => updateField('flyerImageUrl', '')}
@@ -1163,7 +1396,7 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
       </div>
 
       {/* Actions */}
-      <div className="flex-shrink-0 flex justify-end gap-3 px-6 py-4 border-t border-tea-border">
+      <div className="flex-shrink-0 flex justify-end gap-3 px-6 py-4 border-t border-tea-border lg:pb-4 pb-[calc(1rem+44px+env(safe-area-inset-bottom,0px))]">
         <button
           type="button"
           onClick={onClose}
@@ -1199,7 +1432,7 @@ export const EventForm: React.FC<EventFormProps> = ({ isOpen, onClose, initialDa
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 16 }}
-          className="fixed inset-0 bg-tea-bg z-50 flex flex-col"
+          className="fixed inset-0 sidebar-inset bg-tea-bg z-modal flex flex-col"
         >
           {/* Header */}
           <div className="flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-tea-border">
@@ -1223,7 +1456,7 @@ export const EventForm: React.FC<EventFormProps> = ({ isOpen, onClose, initialDa
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 16 }}
-        className="fixed inset-0 bg-tea-bg z-50 flex flex-col"
+        className="fixed inset-0 sidebar-inset bg-tea-bg z-modal flex flex-col"
       >
         <div className="flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-tea-border">
           <h2 className="text-lg font-serif text-tea-text">Edit Event</h2>

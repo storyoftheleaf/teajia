@@ -73,7 +73,7 @@ export const ContributorDrawer: React.FC<ContributorDrawerProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 text-tea-text-dim hover:text-tea-text transition-colors shrink-0"
+            className="p-1.5 text-tea-text-sec hover:text-tea-text transition-colors shrink-0"
             aria-label="Close"
           >
             <Icons.Close className="w-5 h-5" />

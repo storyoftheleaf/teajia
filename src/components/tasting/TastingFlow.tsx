@@ -117,7 +117,8 @@ export const TastingFlow: React.FC<TastingFlowProps> = ({
             flow.getCategoryCount('body') +
             flow.getCategoryCount('finish') +
             (value.cleanliness ? 1 : 0) +
-            (value.huiGan ? 1 : 0)
+            (value.huiGan ? 1 : 0) +
+            (value.tangGan ? 1 : 0)
           );
         case 'state':
           return (
@@ -196,7 +197,7 @@ export const TastingFlow: React.FC<TastingFlowProps> = ({
               <button
                 type="button"
                 onClick={() => flow.clearCategory('flavor')}
-                className={`text-[11px] text-tea-text-dim hover:text-tea-text-sec transition-colors flex items-center gap-1 px-2 py-1 ${flavorCount > 0 ? 'visible' : 'invisible'}`}
+                className={`text-[11px] text-tea-text-sec hover:text-tea-text transition-colors flex items-center gap-1 px-2 py-1 ${flavorCount > 0 ? 'visible' : 'invisible'}`}
                 aria-label="Clear flavor selections"
                 tabIndex={flavorCount > 0 ? 0 : -1}
               >

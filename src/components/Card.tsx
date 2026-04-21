@@ -125,7 +125,7 @@ export const Card: React.FC<CardProps> = ({ story, onClick, isSaved, isWatched, 
                />
 
                {imageLoading && (
-                 <div className="absolute inset-0 z-20 overflow-hidden bg-tea-text/40">
+                 <div className="absolute inset-0 z-20 overflow-hidden bg-tea-surface">
                    <div
                      className="absolute inset-0 animate-shimmer"
                      style={{

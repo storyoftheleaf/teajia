@@ -461,10 +461,38 @@ async function requireOwner(request: Request, env: Env): Promise<Response | null
   return null;
 }
 
+// Legacy SHA-256 — only used for env-admin env-var hash comparison
 async function hashPassword(password: string): Promise<string> {
   const encoder = new TextEncoder();
   const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(password));
   return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// PBKDF2 — used for all new/changed user passwords in the DB
+async function hashPasswordPBKDF2(password: string): Promise<string> {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const keyMaterial = await crypto.subtle.importKey('raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveBits']);
+  const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' }, keyMaterial, 256);
+  const saltHex = Array.from(salt).map(b => b.toString(16).padStart(2, '0')).join('');
+  const hashHex = Array.from(new Uint8Array(bits)).map(b => b.toString(16).padStart(2, '0')).join('');
+  return `pbkdf2:100000:${saltHex}:${hashHex}`;
+}
+
+// Verify against either PBKDF2 or legacy SHA-256 hash
+async function verifyPasswordHash(password: string, storedHash: string): Promise<{ verified: boolean; isLegacy: boolean }> {
+  if (storedHash.startsWith('pbkdf2:')) {
+    const parts = storedHash.split(':');
+    if (parts.length !== 4) return { verified: false, isLegacy: false };
+    const iterations = parseInt(parts[1]);
+    const salt = new Uint8Array((parts[2].match(/.{2}/g) ?? []).map((b: string) => parseInt(b, 16)));
+    const expectedHash = parts[3];
+    const keyMaterial = await crypto.subtle.importKey('raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveBits']);
+    const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt, iterations, hash: 'SHA-256' }, keyMaterial, 256);
+    const computedHash = Array.from(new Uint8Array(bits)).map(b => b.toString(16).padStart(2, '0')).join('');
+    return { verified: computedHash === expectedHash, isLegacy: false };
+  }
+  const legacyHash = await hashPassword(password);
+  return { verified: legacyHash === storedHash, isLegacy: true };
 }
 
 function json(data: unknown, status = 200): Response {
@@ -557,6 +585,11 @@ const handleLogin: Handler = async (request, env) => {
   const password = body.password;
   if (!identifier || !password) return json({ error: 'Email/username and password required' }, 400);
 
+  const loginIp = request.headers.get('CF-Connecting-IP') || request.headers.get('X-Forwarded-For') || 'unknown';
+  if (!checkRateLimit(`login:${loginIp}`, 10, 60000)) {
+    return json({ error: 'Too many login attempts. Please try again in a minute.' }, 429);
+  }
+
   const computedHash = await hashPassword(password);
 
   // Try DB-based auth (users table) — match on email OR username (case-insensitive)
@@ -564,7 +597,12 @@ const handleLogin: Handler = async (request, env) => {
     const user = await env.DB.prepare(
       'SELECT * FROM users WHERE lower(email) = lower(?) OR lower(username) = lower(?) LIMIT 1'
     ).bind(identifier, identifier).first();
-    if (user && user.password_hash === computedHash) {
+    const { verified: dbVerified, isLegacy } = await verifyPasswordHash(password, user?.password_hash as string ?? '');
+    if (user && dbVerified) {
+      if (isLegacy) {
+        const upgraded = await hashPasswordPBKDF2(password);
+        await env.DB.prepare('UPDATE users SET password_hash = ? WHERE id = ?').bind(upgraded, user.id).run();
+      }
       const memberships = await loadMemberships(env, user.id as string);
       const activeAccountId = memberships[0]?.account_id || null;
       const platformRole = (user.platform_role as PlatformRole) ?? null;
@@ -640,7 +678,7 @@ const handleLogin: Handler = async (request, env) => {
     });
     return json({
       token,
-      user: { id: 'env-admin', email, name: 'Admin', role: 'admin' },
+      user: { id: 'env-admin', email: identifier, name: 'Admin', role: 'admin' },
       memberships,
       active_account_id: BALI_ACCOUNT_ID,
     });
@@ -664,6 +702,11 @@ const handleSignup: Handler = async (request, env) => {
     return json({ error: 'Username must be 3–32 chars, letters/numbers/._- only' }, 400);
   }
 
+  const signupIp = request.headers.get('CF-Connecting-IP') || request.headers.get('X-Forwarded-For') || 'unknown';
+  if (!checkRateLimit(`signup:${signupIp}`, 5, 3600000)) {
+    return json({ error: 'Too many signup attempts. Please try again later.' }, 429);
+  }
+
   // Check if email already exists
   const existingEmail = await env.DB.prepare('SELECT id FROM users WHERE lower(email) = lower(?)').bind(email).first();
   if (existingEmail) return json({ error: 'An account with this email already exists' }, 409);
@@ -673,7 +716,7 @@ const handleSignup: Handler = async (request, env) => {
     if (existingUsername) return json({ error: 'That username is already taken' }, 409);
   }
 
-  const passwordHash = await hashPassword(password);
+  const passwordHash = await hashPasswordPBKDF2(password);
   const id = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
 
   await env.DB.prepare(
@@ -802,10 +845,10 @@ const handleChangePassword: Handler = async (request, env) => {
   const user = await env.DB.prepare('SELECT id, password_hash FROM users WHERE id = ?').bind(claims.sub).first();
   if (!user) return json({ error: 'User not found' }, 404);
 
-  const currentHash = await hashPassword(currentPassword);
-  if (currentHash !== user.password_hash) return json({ error: 'Current password is incorrect' }, 403);
+  const { verified: currentVerified } = await verifyPasswordHash(currentPassword, user.password_hash as string);
+  if (!currentVerified) return json({ error: 'Current password is incorrect' }, 403);
 
-  const newHash = await hashPassword(newPassword);
+  const newHash = await hashPasswordPBKDF2(newPassword);
   await env.DB.prepare('UPDATE users SET password_hash = ? WHERE id = ?').bind(newHash, claims.sub).run();
 
   return json({ ok: true, message: 'Password changed successfully' });
@@ -826,8 +869,8 @@ const handleVerifyPassword: Handler = async (request, env) => {
   const user = await env.DB.prepare('SELECT id, password_hash FROM users WHERE id = ?').bind(claims.sub).first();
   if (!user) return json({ error: 'User not found' }, 404);
 
-  const hash = await hashPassword(password);
-  if (hash !== user.password_hash) return json({ error: 'Incorrect password' }, 401);
+  const { verified: pwVerified } = await verifyPasswordHash(password, user.password_hash as string);
+  if (!pwVerified) return json({ error: 'Incorrect password' }, 401);
 
   return json({ verified: true });
 };
@@ -1052,7 +1095,7 @@ const handleResetPassword: Handler = async (request, env) => {
 
   if (!resetRecord) return json({ error: 'Invalid or expired reset token' }, 400);
 
-  const newHash = await hashPassword(newPassword);
+  const newHash = await hashPasswordPBKDF2(newPassword);
   await env.DB.batch([
     env.DB.prepare('UPDATE users SET password_hash = ? WHERE id = ?').bind(newHash, resetRecord.user_id),
     env.DB.prepare('UPDATE password_reset_tokens SET used = 1 WHERE id = ?').bind(resetRecord.id),
@@ -1732,7 +1775,8 @@ const handleUpdateInvoice: Handler = async (request, env, params) => {
 
   const body = await request.json() as Record<string, any>;
   delete body.account_id;
-  const cols = Object.keys(body);
+  const INVOICE_ALLOWED_COLS = new Set(['customer_name','customer_id','customer_phone','customer_email','status','notes','display_currency','amount_usd','shipping_cost_usd','message_text','paid_at','due_date','payment_method','currency_rate','source_event_id']);
+  const cols = Object.keys(body).filter(k => INVOICE_ALLOWED_COLS.has(k));
   if (cols.length === 0) return json({ success: true });
   const sets = cols.map(c => `${c} = ?`).join(', ');
   await env.DB.prepare(`UPDATE invoices SET ${sets} WHERE id = ? AND account_id = ?`)
@@ -2079,7 +2123,7 @@ const handleUpdateInvoiceItems: Handler = async (request, env, params) => {
   if (invoice.status !== 'Pending') return json({ error: 'Only Pending invoices can be edited' }, 400);
 
   const body = await request.json() as {
-    lineItems?: { product_id: string; quantity: number; price_at_sale: number }[];
+    lineItems?: { product_id: string; quantity: number; price_at_sale: number; custom_name?: string }[];
     shipping_cost_usd?: number;
     customer_name?: string;
     customer_id?: string;
@@ -2102,8 +2146,10 @@ const handleUpdateInvoiceItems: Handler = async (request, env, params) => {
 
   const updates: string[] = [];
   const vals: any[] = [];
+  const ALLOWED_ITEM_UPDATES = new Set(['shipping_cost_usd','customer_name','customer_id','display_currency','notes','customer_phone','customer_email']);
   for (const [key, val] of Object.entries(body)) {
     if (key === 'lineItems') continue;
+    if (!ALLOWED_ITEM_UPDATES.has(key)) continue;
     updates.push(`${key} = ?`);
     vals.push(val ?? null);
   }
@@ -2199,24 +2245,34 @@ const handleGetStockLedger: Handler = async (request, env) => {
   const offset = parseInt(url.searchParams.get('offset') || '0');
 
   if (productId) {
-    const result = await env.DB.prepare(
+    const [result, countRow] = await Promise.all([
+      env.DB.prepare(
+        `SELECT sl.*, p.given_name, p.product_name
+         FROM stock_ledger sl
+         LEFT JOIN products p ON sl.product_id = p.id
+         WHERE sl.product_id = ? AND sl.account_id = ?
+         ORDER BY sl.created_at DESC LIMIT ? OFFSET ?`
+      ).bind(productId, accountId, limit, offset).all(),
+      env.DB.prepare(
+        `SELECT COUNT(*) as total FROM stock_ledger WHERE product_id = ? AND account_id = ?`
+      ).bind(productId, accountId).first<{ total: number }>(),
+    ]);
+    return json({ entries: result.results, total: countRow?.total ?? 0 });
+  }
+
+  const [result, countRow] = await Promise.all([
+    env.DB.prepare(
       `SELECT sl.*, p.given_name, p.product_name
        FROM stock_ledger sl
        LEFT JOIN products p ON sl.product_id = p.id
-       WHERE sl.product_id = ? AND sl.account_id = ?
+       WHERE sl.account_id = ?
        ORDER BY sl.created_at DESC LIMIT ? OFFSET ?`
-    ).bind(productId, accountId, limit, offset).all();
-    return json(result.results);
-  }
-
-  const result = await env.DB.prepare(
-    `SELECT sl.*, p.given_name, p.product_name
-     FROM stock_ledger sl
-     LEFT JOIN products p ON sl.product_id = p.id
-     WHERE sl.account_id = ?
-     ORDER BY sl.created_at DESC LIMIT ? OFFSET ?`
-  ).bind(accountId, limit, offset).all();
-  return json(result.results);
+    ).bind(accountId, limit, offset).all(),
+    env.DB.prepare(
+      `SELECT COUNT(*) as total FROM stock_ledger WHERE account_id = ?`
+    ).bind(accountId).first<{ total: number }>(),
+  ]);
+  return json({ entries: result.results, total: countRow?.total ?? 0 });
 };
 
 // ── RPC: Reset Stock Verification ──
@@ -2316,10 +2372,11 @@ const handleCreateCustomer: Handler = async (request, env) => {
   const id = crypto.randomUUID();
 
   if (Array.isArray(body.tags)) body.tags = JSON.stringify(body.tags);
+  if (Array.isArray(body.contacts)) body.contacts = JSON.stringify(body.contacts);
 
   await env.DB.prepare(
-    `INSERT INTO customers (id, account_id, type, name, company, email, phone, whatsapp, address, city, country, preferred_currency, tags, notes, source)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO customers (id, account_id, type, name, company, email, phone, whatsapp, address, city, country, preferred_currency, tags, notes, source, contacts)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     id,
     accountId,
@@ -2335,7 +2392,8 @@ const handleCreateCustomer: Handler = async (request, env) => {
     body.preferred_currency || 'USD',
     body.tags || '[]',
     body.notes || null,
-    body.source || null
+    body.source || null,
+    body.contacts || '[]'
   ).run();
 
   return json({ id }, 201);
@@ -2349,8 +2407,10 @@ const handleUpdateCustomer: Handler = async (request, env, params) => {
   const body = await request.json() as Record<string, any>;
   delete body.account_id;
   if (Array.isArray(body.tags)) body.tags = JSON.stringify(body.tags);
+  if (Array.isArray(body.contacts)) body.contacts = JSON.stringify(body.contacts);
 
-  const cols = Object.keys(body);
+  const CUSTOMER_ALLOWED_COLS = new Set(['name','email','phone','notes','tags','address','city','country','source','vip','preferred_currency','instagram','wechat','whatsapp','referred_by','type','company','contacts']);
+  const cols = Object.keys(body).filter(k => CUSTOMER_ALLOWED_COLS.has(k));
   if (cols.length === 0) return json({ success: true });
   const sets = cols.map(c => `${c} = ?`).join(', ');
   await env.DB.prepare(
@@ -3197,13 +3257,17 @@ const handleGetEventBySlug: Handler = async (_request, env, params) => {
 };
 
 // GET /api/events — public upcoming events list
+// Scoped to platform-owner accounts so multi-tenant events don't bleed through.
 const handleListPublicEvents: Handler = async (_request, env, _params) => {
   const rows = await env.DB.prepare(
-    `SELECT id, slug, title, subtitle, description, flyer_image_url, event_date,
-            location_name, area_hint, mood_hints, total_capacity, timezone, status
-     FROM events
-     WHERE status = 'active' AND event_date >= datetime('now')
-     ORDER BY event_date ASC
+    `SELECT e.id, e.slug, e.title, e.subtitle, e.description, e.flyer_image_url, e.event_date,
+            e.location_name, e.area_hint, e.mood_hints, e.total_capacity, e.timezone, e.status
+     FROM events e
+     JOIN accounts a ON a.id = e.account_id
+     WHERE e.status = 'active'
+       AND e.event_date >= datetime('now')
+       AND a.is_platform_owner = 1
+     ORDER BY e.event_date ASC
      LIMIT 20`
   ).all();
 
@@ -3785,7 +3849,8 @@ const handleUpdateEvent: Handler = async (request, env, params) => {
   }
   if (body.event_format === undefined) delete body.event_format;
 
-  const cols = Object.keys(body);
+  const EVENT_ALLOWED_COLS = new Set(['title','subtitle','description','slug','status','event_date','event_end_date','end_date','location','location_name','capacity','total_capacity','price_usd','display_currency','event_format','gathering_type','notes','host_name','event_type','max_guests','booking_cutoff_hours','private','image_url','flyer_url','flyer_image_url','claim_window_minutes','venue_id','venue_space_id','location_id','session_template_id','meta_json','session_flow','address_text','map_link','guidelines_text','area_hint','venue_guide']);
+  const cols = Object.keys(body).filter(k => EVENT_ALLOWED_COLS.has(k));
   if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
 
   const sets = cols.map(c => `${c} = ?`).join(', ');
@@ -3908,7 +3973,8 @@ const handleUpdateAttendee: Handler = async (request, env, params) => {
 
   if (!attendee) return json({ error: 'Attendee not found' }, 404);
 
-  const cols = Object.keys(body);
+  const ATTENDEE_ALLOWED_COLS = new Set(['status','notes','checked_in','attended','paid','payment_method','paid_amount','seat_assignment','guest_count','dietary_notes','rsvp_token']);
+  const cols = Object.keys(body).filter(k => ATTENDEE_ALLOWED_COLS.has(k));
   if (cols.length === 0) return json({ success: true });
   const sets = cols.map(c => `${c} = ?`).join(', ');
   await env.DB.prepare(`UPDATE event_attendees SET ${sets} WHERE id = ?`)
@@ -4291,7 +4357,8 @@ const handleUpdateSavedLocation: Handler = async (request, env, params) => {
   const { accountId } = ctx;
   const body = await request.json() as Record<string, any>;
   delete body.account_id;
-  const cols = Object.keys(body);
+  const LOCATION_ALLOWED_COLS = new Set(['name','address','city','country','notes','type','latitude','longitude','website','phone','map_link','guidelines','venue_guide']);
+  const cols = Object.keys(body).filter(k => LOCATION_ALLOWED_COLS.has(k));
   if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
   const sets = cols.map(c => `${c} = ?`).join(', ');
   await env.DB.prepare(
@@ -4344,11 +4411,12 @@ const handleCreateVenue: Handler = async (request, env) => {
   if (!body.name || !body.address) return json({ error: 'name and address are required' }, 400);
   const id = crypto.randomUUID();
   await env.DB.prepare(
-    `INSERT INTO venues (id, account_id, name, address, map_link, area_hint, arrival_notes, photos)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO venues (id, account_id, name, address, map_link, area_hint, arrival_notes, website, instagram, photos)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     id, accountId, body.name, body.address,
     body.map_link || null, body.area_hint || null, body.arrival_notes || null,
+    body.website || null, body.instagram || null,
     body.photos ? JSON.stringify(body.photos) : null
   ).run();
   return json({ id, name: body.name }, 201);
@@ -4361,7 +4429,8 @@ const handleUpdateVenue: Handler = async (request, env, params) => {
   const body = await request.json() as Record<string, any>;
   delete body.account_id;
   if (body.photos && typeof body.photos !== 'string') body.photos = JSON.stringify(body.photos);
-  const cols = Object.keys(body);
+  const VENUE_ALLOWED_COLS = new Set(['name','address','city','country','phone','email','website','description','notes','capacity','photos','status','instagram','wechat','type','map_link','area_hint','arrival_notes']);
+  const cols = Object.keys(body).filter(k => VENUE_ALLOWED_COLS.has(k));
   if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
   const sets = cols.map(c => `${c} = ?`).join(', ');
   await env.DB.prepare(
@@ -7105,7 +7174,7 @@ const handleInviteAccountMember: Handler = async (request, env, params) => {
   if (!user) {
     const uid = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
     const tempPassword = crypto.randomUUID().replace(/-/g, '');
-    const tempHash = await hashPassword(tempPassword);
+    const tempHash = await hashPasswordPBKDF2(tempPassword);
     await env.DB.prepare(
       "INSERT INTO users (id, email, name, password_hash, role) VALUES (?, ?, '', ?, 'user')"
     ).bind(uid, email, tempHash).run();
@@ -7631,7 +7700,7 @@ const handlePlatformCreateAccount: Handler = async (request, env) => {
 
     if (!user) {
       const uid = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
-      const tempHash = await hashPassword(crypto.randomUUID().replace(/-/g, ''));
+      const tempHash = await hashPasswordPBKDF2(crypto.randomUUID().replace(/-/g, ''));
       await env.DB.prepare(
         "INSERT INTO users (id, email, name, password_hash, role) VALUES (?, ?, '', ?, 'user')"
       ).bind(uid, ownerEmail, tempHash).run();
@@ -8783,11 +8852,24 @@ const routes: [string, string, Handler][] = [
   ['POST', '/api/rpc/gift-sample', handleGiftSample],
 ];
 
+// Simple in-memory rate limiter (per-isolate; resets on cold start — good enough for abuse deterrence)
+const _rlMap = new Map<string, { count: number; resetAt: number }>();
+function checkRateLimit(key: string, limit: number, windowMs: number): boolean {
+  const now = Date.now();
+  const entry = _rlMap.get(key);
+  if (!entry || now > entry.resetAt) {
+    _rlMap.set(key, { count: 1, resetAt: now + windowMs });
+    return true;
+  }
+  entry.count++;
+  return entry.count <= limit;
+}
+
 const ALLOWED_ORIGINS = [
   'https://teajia.com',
+  'https://www.teajia.com',
   'https://teajia.pages.dev',
-  'http://localhost:3000',
-  'http://localhost:4321',
+  'http://localhost:7777',
 ];
 
 export default {

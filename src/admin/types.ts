@@ -106,11 +106,22 @@ export interface CartItem extends InvoiceDisplayItem {
 }
 
 export type CustomerTag = 'wholesale' | 'retail' | 'friend' | 'vendor' | 'vip' | 'inactive';
+export type ContactType = 'customer' | 'supplier';
+
+export type ContactChannel = 'phone' | 'email' | 'whatsapp' | 'wechat' | 'line' | 'instagram' | 'telegram' | 'signal' | 'other';
+
+export interface ContactEntry {
+  channel: ContactChannel;
+  handle: string;
+}
 
 export interface Customer {
   id: string;
+  type: ContactType;
   name: string;
   company?: string;
+  contacts: ContactEntry[];
+  // Legacy flat fields — kept for backwards compat, contacts is the source of truth
   email?: string;
   phone?: string;
   whatsapp?: string;
@@ -123,6 +134,8 @@ export interface Customer {
   source?: string;
   createdAt: string;
   updatedAt: string;
+  userId?: string;
+  userLinkedAt?: string;
   // Computed from joined invoice data
   orderCount?: number;
   totalSpentUSD?: number;

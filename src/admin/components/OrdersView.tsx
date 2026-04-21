@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { openWhatsAppStatus } from '../../lib/whatsapp';
-import { Loader2, Search, XCircle, Trash2, Eye, X, PackageCheck, Users, History, Scissors, Pencil, Package, MoreHorizontal, Clock, MessageCircle, Plus, Link2 } from 'lucide-react';
+import { Loader2, Search, XCircle, Trash2, Eye, X, PackageCheck, Users, Scissors, Pencil, Package, MoreHorizontal, Clock, MessageCircle, Plus, Link2 } from 'lucide-react';
 import Fuse from 'fuse.js';
 import { useRates, useProducts } from '../hooks/useAdminData';
 import { useToast } from './Toast';
@@ -197,13 +197,10 @@ export const OrdersView = () => {
     <div className="h-full flex flex-col overflow-hidden bg-tea-bg">
 
       {/* Header */}
-      <div className="sticky top-0 z-30 bg-tea-bg/90 backdrop-blur-md border-b border-tea-border flex-shrink-0">
+      <div className="sticky top-0 z-dropdown bg-tea-bg/90 backdrop-blur-md border-b border-tea-border flex-shrink-0">
         {/* Row 1: filter + actions */}
-        <div className="px-3 md:px-6 max-w-7xl mx-auto flex items-center gap-2 md:gap-4 py-2.5">
-          <History size={16} className="text-tea-accent shrink-0" />
-          <h2 className="text-sm font-serif text-tea-text uppercase tracking-[0.15em] hidden md:block shrink-0">
-            Orders
-          </h2>
+        <div className="px-3 md:px-6 lg:px-10 max-w-5xl mx-auto flex items-center gap-2 md:gap-4 py-2.5 md:h-16 md:py-0">
+          <h1 className="font-serif font-normal text-2xl lg:text-3xl text-tea-text leading-tight tracking-[0.02em] hidden md:block shrink-0" style={{ fontFamily: 'var(--font-display)' }}>Orders</h1>
 
           {/* Pipeline Summary — segmented filter */}
           <div className="flex items-center bg-tea-surface rounded-lg border border-tea-border p-0.5 overflow-x-auto hide-scrollbar min-w-0">
@@ -265,7 +262,7 @@ export const OrdersView = () => {
 
         {/* Row 2 (desktop): search inline */}
         <div className="hidden md:block px-6 pb-2.5 -mt-1.5">
-          <div className="max-w-7xl mx-auto flex justify-end">
+          <div className="max-w-5xl mx-auto flex justify-end">
             <div className="relative w-48">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-tea-text-sec" size={14} />
               <input
@@ -284,7 +281,7 @@ export const OrdersView = () => {
       <div className="flex-1 overflow-auto custom-scrollbar bg-tea-bg md:px-6">
 
         {/* Desktop table */}
-        <div className="w-full max-w-7xl mx-auto bg-tea-surface min-h-full hidden md:block">
+        <div className="w-full max-w-5xl mx-auto bg-tea-surface min-h-full hidden md:block">
           <table className="w-full table-fixed border-collapse">
             <colgroup>
               <col className="w-[11%]" />
@@ -502,7 +499,7 @@ export const OrdersView = () => {
 
       {/* INVOICE DETAILS MODAL */}
       {viewingInvoice && (
-        <div className="fixed inset-0 z-modal flex items-center justify-center bg-tea-text/90 backdrop-blur-md p-4 animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
             <div className="bg-tea-bg border border-tea-border rounded-2xl w-full max-w-lg p-8 shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scrollbar">
                 <button onClick={() => { setViewingInvoice(null); setInvoiceTimeline([]); }} className="absolute top-6 right-6 text-tea-text-sec hover:text-tea-text transition-colors">
                     <X size={24} />

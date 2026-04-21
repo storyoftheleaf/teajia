@@ -125,7 +125,7 @@ const UsersPanel: React.FC<{ isPlatformOwner: boolean }> = ({ isPlatformOwner })
               {inviteResult.copied ? 'Copied' : 'Copy'}
             </button>
           </div>
-          <button type="button" onClick={() => setInviteResult(null)} className="text-[10px] text-tea-text-dim">Dismiss</button>
+          <button type="button" onClick={() => setInviteResult(null)} className="text-[10px] text-tea-text-sec hover:text-tea-text transition-colors">Dismiss</button>
         </div>
       )}
 
@@ -216,7 +216,7 @@ const SeedPanel: React.FC<{ accountId: string; accountName: string }> = ({ accou
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <p className="text-[10px] uppercase tracking-[0.12em] text-tea-text-dim">Seed to {accountName}</p>
-        <button type="button" onClick={() => setOpen(false)} className="text-[10px] text-tea-text-dim">Close</button>
+        <button type="button" onClick={() => setOpen(false)} className="text-[10px] text-tea-text-sec hover:text-tea-text transition-colors">Close</button>
       </div>
       {done.length > 0 && (
         <p className="text-[11px] text-tea-gold">{done.length} product{done.length !== 1 ? 's' : ''} seeded.</p>
@@ -363,10 +363,10 @@ const AccountsPanel: React.FC = () => {
                       <Field label="Country" value={editDraft.location_country || ''} onChange={v => setEditDraft(d => ({ ...d, location_country: v }))} />
                     </div>
                     <div className="flex gap-2">
+                      <button type="button" onClick={() => setEditing(null)} className="pill">Cancel</button>
                       <button type="button" onClick={() => handleSaveEdit(account.id)} disabled={saveBusy} className="pill-active flex items-center gap-1">
                         {saveBusy ? <Loader2 size={10} className="animate-spin" /> : <Check size={10} />}Save
                       </button>
-                      <button type="button" onClick={() => setEditing(null)} className="pill">Cancel</button>
                     </div>
                   </div>
                 ) : (
@@ -690,7 +690,7 @@ export const PlatformAdminView: React.FC = () => {
   );
 
   return (
-    <div className="space-y-5 pb-10">
+    <div className="px-4 md:px-6 pt-4 pb-10 max-w-5xl mx-auto space-y-5">
       <div className="flex items-center gap-3">
         <ShieldCheck size={18} className="text-tea-gold shrink-0" />
         <div>

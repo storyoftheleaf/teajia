@@ -3,11 +3,10 @@ main = "src/index.ts"
 compatibility_date = "2024-12-01"
 
 [vars]
-ADMIN_PASSWORD_HASH = "ecb6f59fd4ff9ee7f5936d3340b49e81157c42c33c93a3baf8043a4614c9a3fa"
-JWT_SECRET = "a9b83b324004b5ec7fd84341b9e6a72926dfb2f7a7608f160cd9b107c8b111ac"
 # Google OAuth — values set via `wrangler secret put` for production; see worker/.dev.vars for local dev
 GOOGLE_CLIENT_ID = ""
 GOOGLE_CLIENT_SECRET = ""
+# JWT_SECRET and ADMIN_PASSWORD_HASH are set via `wrangler secret put` — never commit them here
 
 [[d1_databases]]
 binding = "DB"

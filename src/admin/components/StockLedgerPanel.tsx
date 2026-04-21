@@ -39,10 +39,11 @@ export const StockLedgerPanel: React.FC<StockLedgerPanelProps> = ({
   return (
     <div className="inset-panel p-4">
       <div className="flex items-center justify-between mb-3">
-        <h4 className="text-[13px] uppercase tracking-[0.1em] text-tea-text-sec font-medium">Stock History</h4>
         {onClose && (
-          <button onClick={onClose} className="text-xs text-tea-text-sec active:text-tea-text transition-colors py-1.5 px-3 -mr-3 rounded-lg">Close</button>
+          <button onClick={onClose} className="text-xs text-tea-text-sec active:text-tea-text transition-colors py-1.5 px-3 -ml-3 rounded-lg">Close</button>
         )}
+        <h4 className="text-[13px] uppercase tracking-[0.1em] text-tea-text-sec font-medium">Stock History</h4>
+        {onClose && <div className="w-12" />}
       </div>
       <p className="text-sm text-tea-text font-serif mb-3">{productName}</p>
 

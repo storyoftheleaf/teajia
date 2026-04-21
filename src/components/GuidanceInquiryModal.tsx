@@ -52,6 +52,7 @@ export const GuidanceInquiryModal: React.FC<GuidanceInquiryModalProps> = ({ onCl
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [optionalOpen, setOptionalOpen] = useState(!!initialServiceType);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -63,6 +64,16 @@ export const GuidanceInquiryModal: React.FC<GuidanceInquiryModalProps> = ({ onCl
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const newErrors: Record<string, string> = {};
+    if (!formData.name.trim()) newErrors.name = 'Name is required';
+    if (!formData.email.trim()) newErrors.email = 'Email is required';
+    if (!formData.vision.trim()) newErrors.vision = 'Please enter a message';
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+    setErrors({});
     setIsSubmitting(true);
 
     // Simulate API call
@@ -79,7 +90,7 @@ export const GuidanceInquiryModal: React.FC<GuidanceInquiryModalProps> = ({ onCl
 
   return (
     <div
-      className="fixed inset-0 z-modal bg-tea-text/90 backdrop-blur-sm flex items-center justify-center p-6 animate-[fadeIn_0.3s_ease-out]"
+      className="fixed inset-0 z-modal bg-black/80 backdrop-blur-sm flex items-center justify-center p-6 animate-[fadeIn_0.3s_ease-out]"
       onClick={onClose}
     >
       <div
@@ -90,7 +101,7 @@ export const GuidanceInquiryModal: React.FC<GuidanceInquiryModalProps> = ({ onCl
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 text-tea-text/40 hover:text-tea-gold transition-colors duration-300"
+          className="absolute top-4 right-4 p-2 text-tea-text-sec hover:text-tea-text transition-colors duration-300"
         >
           <Icons.Close className="w-5 h-5" />
         </button>
@@ -123,6 +134,7 @@ export const GuidanceInquiryModal: React.FC<GuidanceInquiryModalProps> = ({ onCl
                     className="w-full px-4 py-2 input-warm rounded-sm text-tea-text placeholder-tea-text-sec focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors duration-300"
                     placeholder="Your name"
                   />
+                  {errors.name && <p className="text-red-400 text-xs mt-1">{errors.name}</p>}
                 </div>
 
                 <div>
@@ -139,6 +151,7 @@ export const GuidanceInquiryModal: React.FC<GuidanceInquiryModalProps> = ({ onCl
                     className="w-full px-4 py-2 input-warm rounded-sm text-tea-text placeholder-tea-text-sec focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors duration-300"
                     placeholder="your@email.com"
                   />
+                  {errors.email && <p className="text-red-400 text-xs mt-1">{errors.email}</p>}
                 </div>
               </div>
 
@@ -162,6 +175,7 @@ export const GuidanceInquiryModal: React.FC<GuidanceInquiryModalProps> = ({ onCl
                       : "How can we help you on your tea journey?"
                   }
                 />
+                {errors.vision && <p className="text-red-400 text-xs mt-1">{errors.vision}</p>}
               </div>
 
               {/* Collapsible optional section */}

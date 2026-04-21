@@ -278,12 +278,13 @@ export const HomePage: React.FC<HomePageProps> = ({
               }}
             />
             <button onClick={() => onAccountClick?.()} className="bg-transparent border-none cursor-default p-0" aria-label="Home" tabIndex={-1}>
-              <LogoEmblem size={76} color="var(--tea-gold)" className="opacity-70" />
+              <LogoEmblem size={76} color="var(--tea-gold)" className="opacity-70 lg:hidden" />
+              <LogoEmblem size={108} color="var(--tea-gold)" className="opacity-70 hidden lg:block" />
             </button>
           </motion.div>
 
           <motion.h1
-            className="text-tea-text max-w-[380px] text-[28px] md:text-[34px] leading-[1.35] tracking-[0.01em] font-normal mt-8 sm:mt-12"
+            className="text-tea-text max-w-[380px] lg:max-w-[560px] text-[28px] md:text-[34px] lg:text-[48px] leading-[1.35] tracking-[0.01em] font-normal mt-8 sm:mt-12"
             style={{ fontFamily: 'var(--font-display)' }}
             initial={initial({ opacity: 0, y: 10 })}
             animate={{ opacity: 1, y: 0 }}
@@ -307,29 +308,40 @@ export const HomePage: React.FC<HomePageProps> = ({
               <button
                 key={item.section}
                 onClick={() => onNavigateToSection(item.section)}
-                className="text-tea-text-sec/90 hover:text-tea-gold transition-colors duration-300 cursor-pointer bg-transparent border-none text-[15px] md:text-[16px] leading-[1.7] tracking-[0.005em]"
+                className="group text-tea-text-sec/90 hover:text-tea-text transition-colors duration-300 cursor-pointer bg-transparent border-none text-[15px] md:text-[16px] lg:text-[17px] leading-[1.8] tracking-[0.005em] flex items-center gap-1.5"
                 style={{ fontFamily: 'var(--font-body)' }}
               >
-                <span className="font-semibold text-tea-gold">{item.accent}</span>{item.rest}
+                <span className="font-semibold text-tea-gold">{item.accent}</span>
+                <span className="underline decoration-tea-gold/0 group-hover:decoration-tea-gold/30 underline-offset-[3px] transition-all duration-300">{item.rest}</span>
+                <span className="opacity-0 group-hover:opacity-60 -translate-x-1 group-hover:translate-x-0 transition-all duration-300 text-tea-gold text-xs">→</span>
               </button>
             ))}
           </motion.div>
         </div>
 
-        {/* Teaser — pulses to invite scrolling */}
+        {/* Teaser + scroll cue — pulses to invite scrolling */}
         <motion.div
-          className="flex flex-col items-center pb-4 lg:pb-[18px]"
+          className="flex flex-col items-center pb-4 lg:pb-[18px] gap-4"
           style={{ animation: 'teaserBreath 4s ease-in-out infinite' }}
           initial={initial({ opacity: 0 })}
           animate={{ opacity: 1 }}
           transition={shouldAnimate ? { duration: 0.6, delay: 1.2 } : { duration: 0 }}
         >
-          <p className="text-[15px] md:text-[16px] tracking-[0.06em] italic text-tea-text-sec" style={{ fontFamily: 'var(--font-body)' }}>
-            <span className="font-semibold not-italic text-tea-gold">tea</span> &middot; leaf and water
-          </p>
-          <p className="text-[14px] md:text-[15px] tracking-[0.06em] italic mt-[1px] text-tea-text-sec" style={{ fontFamily: 'var(--font-body)' }}>
-            <span className="font-semibold not-italic text-tea-gold">jiā</span> &middot; one sound, three pillars...
-          </p>
+          <div className="flex flex-col items-center">
+            <p className="text-[15px] md:text-[16px] tracking-[0.06em] italic text-tea-text-sec" style={{ fontFamily: 'var(--font-body)' }}>
+              <span className="font-semibold not-italic text-tea-gold">tea</span> &middot; leaf and water
+            </p>
+            <p className="text-[14px] md:text-[15px] tracking-[0.06em] italic mt-[1px] text-tea-text-sec" style={{ fontFamily: 'var(--font-body)' }}>
+              <span className="font-semibold not-italic text-tea-gold">jiā</span> &middot; one sound, three pillars...
+            </p>
+          </div>
+          <svg
+            width="16" height="10" viewBox="0 0 16 10" fill="none"
+            className="text-tea-gold/40"
+            aria-hidden="true"
+          >
+            <path d="M1 1l7 7 7-7" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
         </motion.div>
       </div>
 

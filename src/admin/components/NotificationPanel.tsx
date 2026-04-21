@@ -85,7 +85,7 @@ const SendConfirmModal: React.FC<SendConfirmModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-modal bg-tea-text/80 backdrop-blur-sm flex items-center justify-center p-6 animate-[fadeIn_0.2s_ease-out]"
+      className="fixed inset-0 z-modal bg-black/80 backdrop-blur-sm flex items-center justify-center p-6 animate-[fadeIn_0.2s_ease-out]"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
@@ -97,7 +97,10 @@ const SendConfirmModal: React.FC<SendConfirmModalProps> = ({
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-start gap-3">
             <Mail size={18} className="text-tea-gold mt-0.5 shrink-0" />
-            <div>
+            <button onClick={onClose} className="p-1 text-tea-text-sec hover:text-tea-text transition-colors shrink-0">
+            <X size={16} />
+          </button>
+          <div>
               <h3 className="font-serif text-lg text-tea-text mb-1">Send Event Invites</h3>
               <p className="text-sm text-tea-text-sec">
                 This will send WhatsApp/email invites to{' '}
@@ -106,9 +109,6 @@ const SendConfirmModal: React.FC<SendConfirmModalProps> = ({
               </p>
             </div>
           </div>
-          <button onClick={onClose} className="p-1 text-tea-text-sec hover:text-tea-text transition-colors shrink-0">
-            <X size={16} />
-          </button>
         </div>
 
         {/* Preview toggle */}

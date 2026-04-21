@@ -97,8 +97,8 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, o
     <div className="w-full">
       {/* Back navigation */}
       <button onClick={onBack} className={BACK_BTN}>
-        <Icons.Back className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform text-tea-text/70" />
-        <span className="font-serif text-sm text-tea-text/70">Projects</span>
+        <Icons.Back className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform text-tea-text-sec" />
+        <span className="font-serif text-sm text-tea-text-sec">Projects</span>
       </button>
 
       {/* Parallax Hero */}
@@ -135,7 +135,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, o
         <h2 className="font-serif text-xl font-medium mb-4 text-tea-text">
           The Story
         </h2>
-        <p className="font-sans text-sm leading-relaxed text-tea-text/70">
+        <p className="font-sans text-sm leading-relaxed text-tea-text-sec">
           {project.description}
         </p>
       </div>
@@ -145,7 +145,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, o
         <h2 className="font-serif text-xl font-medium mb-4 text-tea-text">
           The Work
         </h2>
-        <p className="font-sans text-sm leading-relaxed text-tea-text/70">
+        <p className="font-sans text-sm leading-relaxed text-tea-text-sec">
           {project.work}
         </p>
       </div>
@@ -192,7 +192,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, o
         <h2 className="font-serif text-xl font-medium mb-4 text-tea-text">
           The Result
         </h2>
-        <p className="font-sans text-sm leading-relaxed text-tea-text/70">
+        <p className="font-sans text-sm leading-relaxed text-tea-text-sec">
           {project.result}
         </p>
       </div>

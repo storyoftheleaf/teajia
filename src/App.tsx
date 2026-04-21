@@ -158,7 +158,6 @@ const AppContent = () => {
   });
 
   const [magazineDefaultTab, setMagazineDefaultTab] = useState<'articles' | 'visual' | 'tea-inspire'>('articles');
-  const [isSectionTransitioning, setIsSectionTransitioning] = useState(false);
 
   // Scroll position memory for each section
   const scrollPositions = useRef<Record<Section, number>>({
@@ -201,21 +200,16 @@ const AppContent = () => {
     document.title = titles[activeSection] ?? 'Teajia | Tea Journal';
   }, [activeSection]);
 
-  // Navigate to section with skeleton flash
   const setActiveSection = useCallback((section: Section) => {
     if (section === activeSection) {
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
     isNavClick.current = true;
-    setIsSectionTransitioning(true);
     setShowAccountModal(false);
-    setTimeout(() => {
-      navigate(sectionToPath(section));
-      setViewState('BROWSE');
-      setSelectedStory(null);
-      setIsSectionTransitioning(false);
-    }, 75);
+    navigate(sectionToPath(section));
+    setViewState('BROWSE');
+    setSelectedStory(null);
   }, [activeSection, navigate]);
 
   const [viewState, setViewState] = useState<ViewState>('BROWSE');
@@ -479,7 +473,11 @@ const AppContent = () => {
 
   const handleToggleAccount = () => {
     setShowAccountModal(prev => {
-      if (prev) setAccountInitialView(undefined);
+      if (prev) {
+        setAccountInitialView(undefined);
+      } else {
+        setShowGlobalSearch(false);
+      }
       return !prev;
     });
   };
@@ -536,19 +534,6 @@ const AppContent = () => {
       {/* Scroll Progress Bar */}
       <ScrollProgressBar />
 
-      {/* Route-change loading progress bar */}
-      <AnimatePresence>
-        {isSectionTransitioning && (
-          <motion.div
-            className="fixed top-[env(safe-area-inset-top)] left-0 right-0 h-[2px] z-priority origin-left"
-            style={{ background: 'linear-gradient(90deg, var(--tea-gold), var(--tea-gold-lt))' }}
-            initial={{ scaleX: 0, opacity: 1 }}
-            animate={{ scaleX: 0.85, opacity: 1 }}
-            exit={{ scaleX: 1, opacity: 0 }}
-            transition={{ scaleX: { duration: 0.8, ease: [0.4, 0, 0.2, 1] }, opacity: { duration: 0.3, delay: 0.1 } }}
-          />
-        )}
-      </AnimatePresence>
 
       {/* Pull to Refresh Indicator */}
       <PullToRefreshIndicator pullDistance={pullDistance} isRefreshing={isRefreshing} progress={progress} />
@@ -565,7 +550,7 @@ const AppContent = () => {
             <Route path="/admin/*" element={
               <AdminApp
                 onAccountClick={handleOpenAccount}
-                onSearchClick={() => { setShowAccountModal(false); setAccountInitialView(undefined); setShowGlobalSearch(prev => !prev); }}
+                onSearchClick={() => { setShowAccountModal(false); setAccountInitialView(undefined); setShowGlobalSearch(true); }}
                 onCartClick={handleOpenCart}
               />
             } />
@@ -573,14 +558,11 @@ const AppContent = () => {
         </Suspense>
       ) : (
       <>
-      <main id="main-content" className="px-4 md:px-6 lg:px-10 pt-0 lg:pt-0 pb-[calc(44px+env(safe-area-inset-bottom,0px)+2rem)] lg:pb-8 min-h-screen w-full max-w-7xl mx-auto flex-1 transition-opacity duration-300">
+      <main id="main-content" className="px-4 md:px-6 lg:px-10 pt-0 lg:pt-0 pb-[calc(44px+env(safe-area-inset-bottom,0px)+2rem)] lg:pb-8 min-h-screen w-full flex-1 transition-opacity duration-300">
           <AnimatePresence mode="wait">
-          {isSectionTransitioning ? (
-            <SectionSkeleton key="skeleton" variant={activeSection === 'HOME' ? 'hero' : activeSection === 'SHOP' ? 'shop' : activeSection === 'MAGAZINE' ? 'magazine' : 'grid'} />
-          ) : (
-            viewState === 'BROWSE' && (
-              <AnimatedRoutes>
-              <Routes>
+          {viewState === 'BROWSE' && (
+            <AnimatedRoutes>
+            <Routes>
                 <Route path="/" element={
                   <ErrorBoundary>
                     <HomePage
@@ -705,8 +687,7 @@ const AppContent = () => {
                   </div>
                 } />
               </Routes>
-              </AnimatedRoutes>
-            )
+            </AnimatedRoutes>
           )}
           </AnimatePresence>
       </main>
@@ -795,9 +776,9 @@ const AppContent = () => {
 
       {/* --- CONTACT MODAL --- */}
       {showContact && (
-        <div className="fixed inset-0 z-modal bg-tea-text/90 backdrop-blur-sm flex items-center justify-center p-6 animate-[fadeIn_0.3s_ease-out]" role="dialog" aria-modal="true" aria-label="Contact Us" onClick={() => setShowContact(false)} onKeyDown={(e) => { if (e.key === 'Escape') setShowContact(false); }}>
+        <div className="fixed inset-0 z-modal bg-black/80 backdrop-blur-sm flex items-center justify-center p-6 animate-[fadeIn_0.3s_ease-out]" role="dialog" aria-modal="true" aria-label="Contact Us" onClick={() => setShowContact(false)} onKeyDown={(e) => { if (e.key === 'Escape') setShowContact(false); }}>
             <div className="bg-tea-surface max-w-md w-full p-10 text-center relative shadow-2xl animate-[scaleIn_0.3s_ease-out]" onClick={e => e.stopPropagation()}>
-                <button onClick={() => setShowContact(false)} className="absolute top-4 right-4 p-2 text-tea-text-sec hover:text-tea-gold transition-colors duration-300" aria-label="Close contact dialog"><Icons.Close className="w-5 h-5" /></button>
+                <button onClick={() => setShowContact(false)} className="absolute top-4 right-4 p-2 text-tea-text-sec hover:text-tea-text transition-colors duration-300" aria-label="Close contact dialog"><Icons.Close className="w-5 h-5" /></button>
                 <h2 className="text-2xl font-serif text-tea-text mb-8 animate-[fadeIn_0.5s_ease-out]" style={{ animationDelay: '150ms' }}>Contact Us</h2>
 
                 <div className="space-y-6 animate-[fadeIn_0.5s_ease-out]" style={{ animationDelay: '200ms' }}>
@@ -847,7 +828,7 @@ const AppContent = () => {
 
 
       {/* Bottom Tab Bar for Mobile */}
-      <BottomTabBar activeSection={activeSection} onNavigate={handleNavSection} hidden={false} onAccountClick={handleToggleAccount} onSearchClick={() => { setShowAccountModal(false); setAccountInitialView(undefined); setShowGlobalSearch(prev => !prev); }} isAdminRoute={isAdminRoute} />
+      <BottomTabBar activeSection={activeSection} onNavigate={handleNavSection} hidden={isCartOpen} onAccountClick={handleToggleAccount} onSearchClick={() => { setShowAccountModal(false); setAccountInitialView(undefined); setShowGlobalSearch(true); }} onSearchClose={() => setShowGlobalSearch(false)} isAdminRoute={isAdminRoute} />
 
       </div>
 

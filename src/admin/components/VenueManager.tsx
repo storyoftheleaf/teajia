@@ -164,6 +164,8 @@ const VenueCard: React.FC<VenueCardProps> = ({ venue, onRefresh }) => {
   const [mapLink, setMapLink] = useState(venue.mapLink ?? '');
   const [areaHint, setAreaHint] = useState(venue.areaHint ?? '');
   const [arrivalNotes, setArrivalNotes] = useState(venue.arrivalNotes ?? '');
+  const [website, setWebsite] = useState(venue.website ?? '');
+  const [instagram, setInstagram] = useState(venue.instagram ?? '');
   const [photos, setPhotos] = useState<string[]>(venue.photos);
   const [saving, setSaving] = useState(false);
 
@@ -198,6 +200,8 @@ const VenueCard: React.FC<VenueCardProps> = ({ venue, onRefresh }) => {
         map_link: mapLink.trim() || null,
         area_hint: areaHint.trim() || null,
         arrival_notes: arrivalNotes.trim() || null,
+        website: website.trim() || null,
+        instagram: instagram.trim() || null,
         photos,
       });
       showToast('Venue updated', 'success');
@@ -262,6 +266,16 @@ const VenueCard: React.FC<VenueCardProps> = ({ venue, onRefresh }) => {
                   {venue.spaces.length} space{venue.spaces.length !== 1 ? 's' : ''} · {totalCapacity} seats total
                 </p>
               )}
+              <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                {venue.website && (
+                  <a href={venue.website} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="text-[11px] text-tea-gold hover:text-tea-gold-lt transition-colors truncate max-w-[180px]">
+                    {venue.website.replace(/^https?:\/\//, '')}
+                  </a>
+                )}
+                {venue.instagram && (
+                  <span className="text-[11px] text-tea-text-dim">{venue.instagram.startsWith('@') ? venue.instagram : `@${venue.instagram}`}</span>
+                )}
+              </div>
             </div>
             <div className="flex items-center gap-1 flex-shrink-0">
               <button onClick={() => { setEditing(e => !e); setExpanded(true); }} className="text-[11px] text-tea-text-sec hover:text-tea-text px-2 py-1 transition-colors">
@@ -298,9 +312,19 @@ const VenueCard: React.FC<VenueCardProps> = ({ venue, onRefresh }) => {
               <Field label="Arrival Notes">
                 <textarea value={arrivalNotes} onChange={e => setArrivalNotes(e.target.value)} className={textareaClass} placeholder="Ring the bell on the left, take the stairs to floor 3…" rows={2} />
               </Field>
-              <Field label="Venue Photos">
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="Website / Profile Link">
+                  <input type="url" value={website} onChange={e => setWebsite(e.target.value)} className={inputClass} placeholder="https://instagram.com/teajia" />
+                </Field>
+                <Field label="Instagram Handle">
+                  <input type="text" value={instagram} onChange={e => setInstagram(e.target.value)} className={inputClass} placeholder="@teajia" />
+                </Field>
+              </div>
+              <div>
+                <label className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec block mb-1">Venue Photos</label>
+                <p className="text-[10px] text-tea-text-dim mb-2">First photo is the hero. Add more to show the vibe from past events.</p>
                 <PhotoStrip photos={photos} onAdd={handleUpload} onRemove={handleRemovePhoto} uploading={uploading} />
-              </Field>
+              </div>
               <div className="flex items-center justify-between pt-1">
                 <button type="button" onClick={handleDelete} disabled={deleting} className="flex items-center gap-1.5 text-xs text-red-400 hover:text-red-300 transition-colors disabled:opacity-50">
                   {deleting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}

@@ -238,7 +238,7 @@ const GuestManagement: React.FC = () => {
     // Full-screen tasting form — shown first before the post-event summary
     if (showTasting && data.teaMenu && data.teaMenu.length > 0 && magicToken) {
       return (
-        <div className="fixed inset-0 z-50 bg-tea-bg overflow-y-auto animate-[fadeIn_0.4s_ease-out]">
+        <div className="fixed inset-0 sidebar-inset z-50 bg-tea-bg overflow-y-auto animate-[fadeIn_0.4s_ease-out]">
           <div className="max-w-xl mx-auto px-6 py-10 pb-[calc(44px+env(safe-area-inset-bottom,0px)+2.5rem)]">
             <div className="text-center mb-8">
               <p className="text-[10px] uppercase tracking-[0.3em] text-tea-text-sec mb-2">
@@ -904,7 +904,7 @@ const CancelConfirmModal: React.FC<CancelConfirmModalProps> = ({
 }) => {
   return (
     <div
-      className="fixed inset-0 z-modal bg-tea-text/80 backdrop-blur-sm flex items-center justify-center p-6 animate-[fadeIn_0.2s_ease-out]"
+      className="fixed inset-0 z-modal bg-black/80 backdrop-blur-sm flex items-center justify-center p-6 animate-[fadeIn_0.2s_ease-out]"
       onClick={onClose}
       role="dialog"
       aria-modal="true"

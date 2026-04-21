@@ -573,6 +573,42 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
               </div>
             );
           })()}
+
+          {/* Adrian's session brewing guide — shown when product has tasting with brewing params */}
+          {item.category === 'tea' && (() => {
+            const tasting = (item as InventoryItem & { tasting?: TastingData }).tasting;
+            if (!tasting?.brewingVessel && !tasting?.brewingTemp && !tasting?.brewingTime) return null;
+            return (
+              <div className="mt-4 pt-4 border-t border-tea-border">
+                <h3 className="font-sans text-[11px] uppercase tracking-[0.15em] text-tea-gold mb-1">
+                  Adrian's Session
+                </h3>
+                <p className="text-[10px] text-tea-text-dim italic mb-3">
+                  How this tea was brewed during tasting
+                </p>
+                <div className="grid grid-cols-3 gap-2">
+                  {tasting.brewingVessel && (
+                    <div className="bg-tea-surface rounded-lg p-3 flex flex-col items-center text-center gap-1">
+                      <span className="font-mono text-sm text-tea-text leading-tight">{tasting.brewingVessel}</span>
+                      <span className="font-sans text-[10px] uppercase tracking-widest text-tea-text-dim">Vessel</span>
+                    </div>
+                  )}
+                  {tasting.brewingTemp != null && (
+                    <div className="bg-tea-surface rounded-lg p-3 flex flex-col items-center text-center gap-1">
+                      <span className="font-mono text-sm text-tea-text leading-tight">{tasting.brewingTemp}°C</span>
+                      <span className="font-sans text-[10px] uppercase tracking-widest text-tea-text-dim">Temp</span>
+                    </div>
+                  )}
+                  {tasting.brewingTime && (
+                    <div className="bg-tea-surface rounded-lg p-3 flex flex-col items-center text-center gap-1">
+                      <span className="font-mono text-sm text-tea-text leading-tight">{tasting.brewingTime}</span>
+                      <span className="font-sans text-[10px] uppercase tracking-widest text-tea-text-dim">Time</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
         </div>
       </div>
 

@@ -3,17 +3,6 @@ import { persist } from 'zustand/middleware';
 import { CartItem as AdminCartItem, Currency, Product } from '../admin/types';
 import { Account, AccountMembership, CartItem as PublicCartItem, CustomerTasting, PlatformRole } from '../types';
 
-export interface InvoiceTemplate {
-  id: string;
-  name: string;
-  customerId?: string;
-  customerName: string;
-  items: { productId: string; quantity: number }[];
-  shippingCost?: number;
-  currency?: Currency;
-  createdAt: string;
-}
-
 interface InventoryViewConfig {
   id: string;
   name: string;
@@ -67,7 +56,6 @@ interface AppState {
   // Favorite Teas (shareable collection)
   favoriteTeas: string[];
   toggleFavoriteTea: (id: string) => void;
-  isFavoriteTea: (id: string) => boolean;
   clearFavoriteTeas: () => void;
   mergeFavorites: (serverFavorites: string[]) => void;
 
@@ -110,11 +98,6 @@ interface AppState {
   // Draft Product (auto-save for AddProductModal)
   draftProduct: Partial<Product> | null;
   setDraftProduct: (draft: Partial<Product> | null) => void;
-
-  // Invoice Templates — saved customer + item presets for quick invoicing
-  invoiceTemplates: InvoiceTemplate[];
-  saveInvoiceTemplate: (template: InvoiceTemplate) => void;
-  deleteInvoiceTemplate: (id: string) => void;
 
   // Public shop — selected store location (null = default Bali)
   shopStoreSlug: string | null;
@@ -254,7 +237,6 @@ export const useAppStore = create<AppState>()(
             ? state.favoriteTeas.filter((fid) => fid !== id)
             : [...state.favoriteTeas, id],
         })),
-      isFavoriteTea: (id) => false, // computed via selector below
       clearFavoriteTeas: () => set({ favoriteTeas: [] }),
       mergeFavorites: (serverFavorites) =>
         set((state) => ({
@@ -340,18 +322,6 @@ export const useAppStore = create<AppState>()(
       draftProduct: null,
       setDraftProduct: (draft) => set({ draftProduct: draft }),
 
-      // Invoice Templates
-      invoiceTemplates: [],
-      saveInvoiceTemplate: (template) =>
-        set((state) => ({
-          invoiceTemplates: state.invoiceTemplates.some((t) => t.id === template.id)
-            ? state.invoiceTemplates.map((t) => (t.id === template.id ? template : t))
-            : [...state.invoiceTemplates, template],
-        })),
-      deleteInvoiceTemplate: (id) =>
-        set((state) => ({
-          invoiceTemplates: state.invoiceTemplates.filter((t) => t.id !== id),
-        })),
 
       // Public shop location
       shopStoreSlug: null,
@@ -394,7 +364,6 @@ export const useAppStore = create<AppState>()(
         inventorySortConfig: state.inventorySortConfig,
         inventoryPriceMode: state.inventoryPriceMode,
         draftProduct: state.draftProduct,
-        invoiceTemplates: state.invoiceTemplates,
         shopStoreSlug: state.shopStoreSlug,
         memberships: state.memberships,
         activeAccountId: state.activeAccountId,

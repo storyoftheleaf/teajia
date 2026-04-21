@@ -460,7 +460,7 @@ export const VisualFeatureViewer: React.FC<VisualFeatureViewerProps> = ({
       {/* Image Overlay - Premium mobile-first with swipe navigation */}
       {selectedImageIndex !== null && story.gallery[selectedImageIndex] && (
         <div
-          className="fixed inset-0 z-modal bg-tea-text/90 backdrop-blur-xl flex flex-col animate-[fadeIn_0.2s_ease-out]"
+          className="fixed inset-0 sidebar-inset z-modal bg-black/80 backdrop-blur-xl flex flex-col animate-[fadeIn_0.2s_ease-out]"
           onClick={closeImageOverlay}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}

@@ -9,11 +9,11 @@
     "lint:colors": "bash scripts/lint-colors.sh",
     "preview": "vite preview",
     "lint": "tsc --noEmit",
-    "audit": "node scripts/audit.mjs"
+    "audit": "node scripts/audit.mjs",
+    "test:mobile": "npx playwright test tests/account-panel-mobile.spec.ts --project='Mobile Chrome' --reporter=list"
   },
   "dependencies": {
-    "@google/genai": "^1.44.0",
-    "@react-pdf/renderer": "^3.1.14",
+"@react-pdf/renderer": "^3.1.14",
     "@tanstack/react-query": "^5.17.0",
     "cmdk": "^1.1.1",
     "framer-motion": "^12.34.3",

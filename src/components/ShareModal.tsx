@@ -196,7 +196,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ story, onClose }) => {
           {/* Close */}
           <button
             onClick={onClose}
-            className="p-1 text-tea-text/50 hover:text-tea-text transition-colors"
+            className="p-1 text-tea-text-sec hover:text-tea-text transition-colors"
           >
             <Icons.Close className="w-5 h-5" />
           </button>

@@ -378,7 +378,7 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({ open, onClose }) => 
     <AnimatePresence>
       {open && (
         <motion.div
-          className="fixed inset-0 z-50 flex flex-col bg-tea-bg"
+          className="fixed inset-0 sidebar-inset z-50 flex flex-col bg-tea-bg"
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 40 }}

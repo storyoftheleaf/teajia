@@ -142,7 +142,7 @@ export const ContentLinksEditor: React.FC<ContentLinksEditorProps> = ({ products
             <Link2 className="w-4 h-4 text-tea-gold" />
             <h2 className="font-serif text-base text-tea-text">Content Links</h2>
           </div>
-          <button onClick={onClose} className="text-tea-text-dim hover:text-tea-text transition-colors p-1 rounded">
+          <button onClick={onClose} className="text-tea-text-sec hover:text-tea-text transition-colors p-1 rounded">
             <X className="w-4 h-4" />
           </button>
         </div>

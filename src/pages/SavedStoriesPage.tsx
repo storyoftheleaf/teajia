@@ -10,7 +10,13 @@ export default function SavedStoriesPage() {
   const savedIds = useMemo<string[]>(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      return raw ? JSON.parse(raw) : [];
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      // App.tsx stores as Record<string, boolean> — convert to array of saved IDs
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        return Object.entries(parsed as Record<string, boolean>).filter(([, v]) => v).map(([k]) => k);
+      }
+      return Array.isArray(parsed) ? parsed : [];
     } catch {
       return [];
     }

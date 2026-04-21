@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect, lazy, Suspense } from 'react';
-import { motion, AnimatePresence, useAnimationControls } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { CartItem as AdminCartItem, ExchangeRate, Currency } from '../../admin/types';
 import { CartItem as PublicCartItem } from '../../types';
 import { Icons } from '../Icons';
@@ -42,15 +42,6 @@ export const CartPanel: React.FC<CartPanelProps> = (props) => {
 
   useScrollLock(isOpen);
   const focusTrapRef = useFocusTrap<HTMLDivElement>(isOpen);
-
-  // ── Swipe gesture hint (first open only) ───────────────────────────────
-  const panelControls = useAnimationControls();
-
-  useEffect(() => {
-    if (isOpen) {
-      panelControls.start({ opacity: 1, x: 0 });
-    }
-  }, [isOpen, panelControls]);
 
   // ── Focus return on close (#61) ─────────────────────────────────────────
   const triggerRef = useRef<HTMLElement | null>(null);
@@ -101,7 +92,7 @@ export const CartPanel: React.FC<CartPanelProps> = (props) => {
       <>
       {/* Backdrop with blur fade — z-toast to render above bottom nav */}
       <motion.div
-        className="fixed inset-0 z-toast bg-tea-text/80 backdrop-blur-sm"
+        className="fixed inset-0 z-toast bg-black/80 backdrop-blur-sm"
         onClick={onClose}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -118,7 +109,7 @@ export const CartPanel: React.FC<CartPanelProps> = (props) => {
             : 'md:w-[450px] bg-tea-surface border-l border-tea-border backdrop-blur-xl'
         }`}
         initial={{ opacity: 0 }}
-        animate={isDragging ? { x: touchOffset, opacity: swipeOpacity } : panelControls}
+        animate={isDragging ? { x: touchOffset, opacity: swipeOpacity } : { opacity: 1, x: 0 }}
         exit={{ opacity: 0 }}
         transition={isDragging ? { duration: 0 } : { duration: 0.12, ease: 'easeOut' }}
         onTouchStart={handleTouchStart}

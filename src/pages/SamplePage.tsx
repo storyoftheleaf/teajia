@@ -14,6 +14,9 @@ import { VERDICT_CONFIG, SAMPLE_STATUS_CONFIG } from '../samples/types';
 import type { TastingData } from '../types';
 import { TastingSession } from '../components/tasting/TastingSession';
 import { TastingProfileStrip } from '../components/tasting/TastingProfileStrip';
+import { SampleOrderModal } from '../components/samples/SampleOrderModal';
+import { TeaReviewsComparison } from '../components/tasting/TeaReviewsComparison';
+import { QuickInvoiceModal } from '../admin/components/QuickInvoiceModal';
 
 /* ─── Verdict icons ─── */
 const VERDICT_ICONS: Record<TastingVerdict, React.ComponentType<{ size?: number }>> = {
@@ -42,6 +45,12 @@ const SamplePage: React.FC = () => {
 
   // Tasting session state
   const [showTasting, setShowTasting] = useState(false);
+
+  // Customer order modal
+  const [showOrderModal, setShowOrderModal] = useState(false);
+
+  // Admin: purchase order modal
+  const [showPOModal, setShowPOModal] = useState(false);
 
   // Admin edit mode
   const [editing, setEditing] = useState(false);
@@ -154,9 +163,8 @@ const SamplePage: React.FC = () => {
   }, [sample]);
 
   const handleOrderInquiry = useCallback(() => {
-    if (!sample) return;
-    navigate(`/shop?inquiry=${encodeURIComponent(sample.name)}`);
-  }, [sample, navigate]);
+    setShowOrderModal(true);
+  }, []);
 
   if (loading) {
     return (
@@ -456,6 +464,8 @@ const SamplePage: React.FC = () => {
               onClose={() => setShowTasting(false)}
               onAfterSave={handleTastingSave}
               showVerdict
+              writeDraftReview={isAdmin && !!((sample as any).tea_key || (sample as any).teaKey)}
+              onCreatePO={isAdmin ? () => setShowPOModal(true) : undefined}
             />
           )}
         </AnimatePresence>
@@ -477,6 +487,19 @@ const SamplePage: React.FC = () => {
           </motion.div>
         )}
 
+        {/* Cross-account tasting panel */}
+        {(sample as any).teaKey || (sample as any).tea_key ? (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+          >
+            <TeaReviewsComparison
+              teaKey={(sample as any).teaKey || (sample as any).tea_key}
+            />
+          </motion.div>
+        ) : null}
+
         {/* Admin: Promote to Inventory */}
         {isAdmin && sample.status === 'favorite' && !sample.productId && (
           <motion.div
@@ -494,6 +517,30 @@ const SamplePage: React.FC = () => {
           </motion.div>
         )}
       </div>
+
+      {/* Customer: order modal */}
+      <SampleOrderModal
+        isOpen={showOrderModal}
+        onClose={() => setShowOrderModal(false)}
+        sampleName={sample.name}
+        sampleId={sample.id}
+        teaType={sample.type}
+      />
+
+      {/* Admin: purchase order modal — prefilled with sample vendor + item */}
+      {isAdmin && (
+        <QuickInvoiceModal
+          isOpen={showPOModal}
+          onClose={() => setShowPOModal(false)}
+          onSuccess={() => setShowPOModal(false)}
+          products={[]}
+          showToast={() => {}}
+          prefill={{
+            vendorName: (sample as any).sourceName || (sample.sourceContact ? 'Supplier' : undefined),
+            items: [{ name: sample.name, quantity: 50, unit: 'g' }],
+          }}
+        />
+      )}
     </div>
   );
 };

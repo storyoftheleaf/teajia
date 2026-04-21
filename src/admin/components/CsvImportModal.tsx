@@ -385,10 +385,11 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-modal flex items-center justify-center bg-tea-text/80 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
       <div ref={focusTrapRef} role="dialog" aria-modal="true" aria-label="CSV import" className="bg-tea-surface border border-tea-border rounded-lg w-full max-w-7xl h-[85vh] flex flex-col shadow-lg relative">
         <div className="p-6 border-b border-tea-border flex justify-between items-center bg-tea-surface rounded-t-xl">
-          <div>
+          {stage !== 'uploading' && <button onClick={onClose} className="text-tea-text-sec hover:text-tea-text transition-colors shrink-0"><X size={24} /></button>}
+          <div className={stage !== 'uploading' ? 'ml-4' : ''}>
             <h3 className="text-2xl font-serif text-tea-text">Import Inventory</h3>
             <p className="text-tea-text-sec text-sm mt-1">
               {stage === 'upload' && "Select your CSV file."}
@@ -396,7 +397,7 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
               {stage === 'uploading' && `Importing ${uploadProgress} of ${totalRecords} records...`}
             </p>
           </div>
-          {stage !== 'uploading' && <button onClick={onClose} className="text-tea-text-sec hover:text-tea-text transition-colors"><X size={24} /></button>}
+          <div className="w-6 shrink-0" />
         </div>
 
         <div className="flex-1 overflow-hidden p-6 relative">
@@ -630,13 +631,13 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
 
         {stage === 'staging' && (
           <div className="p-6 border-t border-tea-border bg-tea-surface flex justify-between items-center rounded-b-xl">
-            <button onClick={() => setStage('upload')} className="text-tea-text-sec hover:text-tea-text transition-colors text-xs uppercase tracking-[0.2em]">Back</button>
-            <div className="flex gap-3">
-              <button onClick={onClose} className="px-6 py-3 text-tea-text-sec hover:text-tea-text transition-colors text-xs uppercase tracking-[0.2em]">Cancel</button>
-              <button onClick={handleCommit} disabled={stagingData.length === 0} className="px-6 py-3 bg-tea-accent text-tea-bg rounded-lg font-bold text-xs uppercase tracking-[0.2em] hover:bg-tea-accent/90 disabled:opacity-50 transition-colors">
-                  Import All ({stagingData.length})
-              </button>
+            <div className="flex gap-4">
+              <button onClick={() => setStage('upload')} className="text-tea-text-sec hover:text-tea-text transition-colors text-xs uppercase tracking-[0.2em]">Back</button>
+              <button onClick={onClose} className="text-tea-text-sec hover:text-tea-text transition-colors text-xs uppercase tracking-[0.2em]">Cancel</button>
             </div>
+            <button onClick={handleCommit} disabled={stagingData.length === 0} className="px-6 py-3 bg-tea-accent text-tea-bg rounded-lg font-bold text-xs uppercase tracking-[0.2em] hover:bg-tea-accent/90 disabled:opacity-50 transition-colors">
+                Import All ({stagingData.length})
+            </button>
           </div>
         )}
       </div>

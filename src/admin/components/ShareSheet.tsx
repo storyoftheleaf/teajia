@@ -102,7 +102,7 @@ export const ShareSheet: React.FC<ShareSheetProps> = ({ isOpen, onClose, event }
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.2 }}
-        className="fixed inset-0 bg-tea-text/60 backdrop-blur-sm z-50 flex items-end lg:items-center justify-center"
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end lg:items-center justify-center"
         onClick={onClose}
       >
         <motion.div
@@ -116,13 +116,14 @@ export const ShareSheet: React.FC<ShareSheetProps> = ({ isOpen, onClose, event }
         >
           {/* Header */}
           <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-tea-border">
-            <h2 className="text-sm font-serif text-tea-text tracking-wide">Share Event</h2>
             <button
               onClick={onClose}
               className="text-tea-text-sec hover:text-tea-text transition-colors"
             >
               <X size={16} />
             </button>
+            <h2 className="text-sm font-serif text-tea-text tracking-wide">Share Event</h2>
+            <div className="w-4" />
           </div>
 
           <div className="p-5 space-y-5 max-h-[70vh] overflow-y-auto scrollbar-hide">

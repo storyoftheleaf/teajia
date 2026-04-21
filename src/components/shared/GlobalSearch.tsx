@@ -203,27 +203,17 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) =
   let flatIndex = -1;
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-    <motion.div
+    <>
+    {isOpen && (
+    <div
       className="fixed inset-0 z-modal flex items-start justify-center pt-[15vh] px-4"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
       aria-label="Search"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.2 }}
     >
       {/* Backdrop */}
-      <motion.div
-        className="absolute inset-0 bg-tea-bg/80 backdrop-blur-sm"
-        initial={{ backdropFilter: 'blur(0px)' }}
-        animate={{ backdropFilter: 'blur(8px)' }}
-        exit={{ backdropFilter: 'blur(0px)' }}
-        transition={{ duration: 0.25 }}
-      />
+      <div className="absolute inset-0 bg-tea-bg/80 backdrop-blur-sm" />
 
       {/* Modal */}
       <motion.div
@@ -231,8 +221,7 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) =
         onClick={e => e.stopPropagation()}
         initial={{ opacity: 0, y: -24, scale: 0.96 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: -16, scale: 0.97 }}
-        transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+        transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
       >
         {/* Search input */}
         <div className="flex items-center gap-3 px-4 py-3 border-b border-tea-border">
@@ -337,8 +326,8 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) =
           </div>
         )}
       </motion.div>
-    </motion.div>
-      )}
-    </AnimatePresence>
+    </div>
+    )}
+    </>
   );
 };

@@ -360,7 +360,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   ];
 
   return (
-    <div className="flex-1 min-h-0 flex flex-col relative surface-warm overflow-hidden">
+    <div className="flex flex-col relative surface-warm">
       {/* ── Header ── */}
       <div className="flex items-center gap-3 px-4 pt-3 pb-2">
         <button
@@ -458,7 +458,11 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
       <div
         className={`flex-1 min-h-0 overflow-y-auto overscroll-contain ${mode === 'sourcing' && captureOption === 'samples' ? '' : 'px-4 py-3'}`}
         role="tabpanel"
-        style={{ WebkitOverflowScrolling: 'touch', scrollbarGutter: 'stable' }}
+        style={{
+          WebkitOverflowScrolling: 'touch',
+          scrollbarGutter: 'stable',
+          paddingBottom: mode === 'sourcing' ? `calc(${showCaptureActionBar ? '105px' : '53px'} + 44px + env(safe-area-inset-bottom, 0px))` : undefined,
+        }}
       >
         <AnimatePresence mode="wait">
           {mode === 'sourcing' ? (
@@ -776,7 +780,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
 
       {/* ── Capture action bar ── */}
       {mode === 'sourcing' && (
-        <>
+        <div className="fixed left-0 right-0 z-20" style={{ bottom: 'calc(44px + env(safe-area-inset-bottom, 0px))' }}>
           {/* Re-Taste / Want / Buy — pinned above the Mic/Done toolbar */}
           {showCaptureActionBar && (
             <div className="shrink-0 grid grid-cols-3 gap-2 px-4 pt-2 pb-2 border-t border-tea-border bg-tea-surface">
@@ -907,7 +911,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                 commitEntry(activeEntryId);
                 handleCommitEntry();
               }}
-              disabled={!activeEntryId}
+              disabled={!activeEntryId || captureOption === 'samples'}
               className="flex-1 flex items-center justify-center gap-1.5 py-3 text-tea-gold font-semibold text-sm disabled:opacity-30 transition-opacity"
               style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.06em' }}
               aria-label="Done"
@@ -916,22 +920,23 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
             </button>
           </div>
 
-          {/* Share modal */}
-          <AnimatePresence>
-            {shareModalOpen && activeEntryId && (() => {
-              const entry = getEntry(activeEntryId);
-              return entry ? (
-                <CompassShareModal
-                  entryId={activeEntryId}
-                  entryName={entry.name}
-                  synced={entry.synced}
-                  onClose={() => setShareModalOpen(false)}
-                />
-              ) : null;
-            })()}
-          </AnimatePresence>
-        </>
+        </div>
       )}
+
+      {/* Share modal */}
+      <AnimatePresence>
+        {shareModalOpen && activeEntryId && (() => {
+          const entry = getEntry(activeEntryId);
+          return entry ? (
+            <CompassShareModal
+              entryId={activeEntryId}
+              entryName={entry.name}
+              synced={entry.synced}
+              onClose={() => setShareModalOpen(false)}
+            />
+          ) : null;
+        })()}
+      </AnimatePresence>
     </div>
   );
 };

@@ -1,9 +1,23 @@
 /* ============================================
+   Sidebar-aware full-screen panel offset
+   Add to any fixed inset-0 full-screen overlay so it
+   doesn't cover the desktop left sidebar.
+   --teajia-sidebar-w is set by LeftSidebar's useEffect.
+   ============================================ */
+
+@media (min-width: 1024px) {
+  .sidebar-inset {
+    left: var(--teajia-sidebar-w, 0px);
+  }
+}
+
+/* ============================================
    CSS Custom Properties — Theme-adaptive values
    ============================================ */
 
 :root {
   --tea-vignette-color: rgba(24, 19, 14, 0.12);
+  --teajia-sidebar-w: 14rem; /* default expanded — overwritten by LeftSidebar JS */
 }
 
 [data-theme="light"], .light-mode, .light {

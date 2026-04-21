@@ -45,13 +45,13 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
 
   // Static title — no longer collapses on scroll since header flows with page
   const titleSize = 'text-2xl lg:text-3xl';
-  const titlePadding = `${onBack ? 'pt-2' : 'pt-3'} pb-2 px-4 md:px-6 lg:pt-6 lg:pb-4 lg:px-10`;
+  const titlePadding = `${onBack ? 'pt-2' : 'pt-3'} pb-2 px-4 md:px-6 lg:pt-0 lg:pb-0 lg:h-16 lg:px-10`;
 
   const hasUtilityButtons = onCartClick || onAccountClick;
 
   return (
     <div
-      className={`sticky top-[env(safe-area-inset-top)] z-30 -mx-4 md:-mx-6 lg:-mx-10 transition-all duration-500 ease-out bg-tea-bg/90 backdrop-blur-md rounded-none border-b border-tea-border ${className}`}
+      className={`sticky top-[env(safe-area-inset-top)] z-dropdown -mx-4 md:-mx-6 lg:-mx-10 transition-all duration-500 ease-out bg-tea-bg/90 backdrop-blur-md rounded-none border-b border-tea-border ${className}`}
     >
       <div className="w-full">
         {/* Back navigation — inside the glass */}
@@ -61,8 +61,8 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
               onClick={onBack}
               className="flex items-center gap-1.5 group min-h-[36px] rounded-md hover:bg-tea-text/5 px-2 py-1 -ml-2 transition-colors"
             >
-              <Icons.Back className="w-3.5 h-3.5 text-tea-text/50 group-hover:-translate-x-0.5 transition-transform" />
-              <span className="text-xs text-tea-text/50 tracking-wide">
+              <Icons.Back className="w-3.5 h-3.5 text-tea-text-sec group-hover:-translate-x-0.5 transition-transform" />
+              <span className="text-xs text-tea-text-sec tracking-wide">
                 {backLabel || 'Back'}
               </span>
             </button>

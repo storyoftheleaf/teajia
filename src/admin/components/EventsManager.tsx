@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Loader2, Calendar, Copy, Bell, Search, X } from 'lucide-react';
+import { Plus, Loader2, Calendar, Copy, Bell, Search, X, MapPin } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useEvents } from '../hooks/useEventData';
 import { useToast } from './Toast';
 import { api } from '../../lib/api';
+import { useAppStore } from '../store';
 import { EventForm } from './EventForm';
 import { TeaEvent, EventStatus } from '../../types/events';
 
@@ -30,6 +31,8 @@ export const EventsManager: React.FC = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
   const { data: events = [], isLoading, refetch } = useEvents();
+  const { memberships, activeAccountId } = useAppStore();
+  const activeMembership = memberships.find(m => m.account_id === activeAccountId);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [duplicateDialog, setDuplicateDialog] = useState<{ event: TeaEvent; slug: string } | null>(null);
   const [searchRaw, setSearchRaw] = useState('');
@@ -91,23 +94,35 @@ export const EventsManager: React.FC = () => {
   }
 
   return (
-    <div className="p-6 max-w-5xl mx-auto overflow-x-hidden">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-serif text-tea-text tracking-wide">Events</h1>
-          <p className="text-xs text-tea-text-sec mt-1 tracking-wide">
-            {events.length} event{events.length !== 1 ? 's' : ''}
-          </p>
-        </div>
+    <>
+    <div className="sticky top-0 z-dropdown bg-tea-bg/90 backdrop-blur-md border-b border-tea-border flex-shrink-0 flex items-center justify-between h-16 px-4 md:px-6 lg:px-10">
+      <h1 className="font-serif font-normal text-2xl lg:text-3xl text-tea-text leading-tight tracking-[0.02em]" style={{ fontFamily: 'var(--font-display)' }}>Events</h1>
+      <div className="flex items-center gap-2">
+        {activeMembership && (
+          <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-tea-surface border border-tea-border shrink-0">
+            <span className="w-1.5 h-1.5 rounded-full bg-tea-gold/60" />
+            <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec truncate max-w-[120px]">
+              {activeMembership.account_name}
+            </span>
+          </div>
+        )}
+        <button
+          onClick={() => navigate('/admin/venues')}
+          className="flex items-center gap-1.5 text-sm text-tea-text-sec hover:text-tea-text border border-tea-border px-3 py-2 rounded-md hover:border-tea-gold/40 transition-colors"
+        >
+          <MapPin size={13} />
+          Venues
+        </button>
         <button
           onClick={() => setIsFormOpen(true)}
-          className="flex items-center gap-2 bg-tea-gold text-tea-bg px-4 py-2.5 rounded-md text-sm font-medium hover:bg-tea-gold-lt transition-colors"
+          className="flex items-center gap-2 border border-tea-border text-tea-text-sec hover:text-tea-text hover:border-tea-gold/40 px-4 py-2 rounded-md text-sm transition-colors"
         >
           <Plus size={14} />
           Create Event
         </button>
       </div>
+    </div>
+    <div className="p-6 max-w-5xl mx-auto overflow-x-hidden">
 
       {/* Search */}
       {events.length > 0 && (
@@ -243,7 +258,7 @@ export const EventsManager: React.FC = () => {
 
       {/* Duplicate Slug Dialog */}
       {duplicateDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-tea-text/40 backdrop-blur-sm" onClick={() => setDuplicateDialog(null)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setDuplicateDialog(null)}>
           <div className="bg-tea-surface border border-tea-border rounded-lg p-6 w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
             <h3 className="text-sm font-serif text-tea-text mb-1">Duplicate Event</h3>
             <p className="text-xs text-tea-text-sec mb-4">Choose a unique slug for the duplicated event.</p>
@@ -264,5 +279,6 @@ export const EventsManager: React.FC = () => {
         </div>
       )}
     </div>
+    </>
   );
 };

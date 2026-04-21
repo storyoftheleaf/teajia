@@ -102,7 +102,7 @@ const MemberSettingsModal: React.FC<MemberSettingsModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="text-tea-text-dim hover:text-tea-text transition-colors"
+            className="text-tea-text-sec hover:text-tea-text transition-colors"
             aria-label="Close"
           >
             <X size={16} />

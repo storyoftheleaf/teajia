@@ -89,7 +89,7 @@ const VerifySheet: React.FC<VerifySheetProps> = ({ onClose, onVerified, purpose 
       className="fixed inset-0 z-modal animate-[fadeIn_0.2s_ease-out]"
       onClick={onClose}
     >
-      <div className="absolute inset-0 bg-tea-text/80 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
 
       <div
         ref={sheetRef}

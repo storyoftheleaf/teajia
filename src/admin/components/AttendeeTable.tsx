@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowUpDown, Check, X, UserPlus, Phone, Leaf, Star, Loader2, Users } from 'lucide-react';
+import { ArrowUpDown, Check, User, UserPlus, Phone, Leaf, Star, Loader2, Users } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useToast } from './Toast';
 import { EventAttendee, AttendeeStatus } from '../../types/events';
@@ -31,6 +31,69 @@ const FILTER_TABS: { key: FilterTab; label: string }[] = [
   { key: 'denied', label: 'Denied' },
 ];
 
+type EnrichedAttendee = EventAttendee & {
+  isDenied: boolean;
+  totalGuests: number;
+  approvedGuests: number;
+  isReturning: boolean;
+};
+
+const AttendeeActions: React.FC<{
+  attendee: EventAttendee;
+  loadingId: string | null;
+  onUpdate: (attendee: EventAttendee, status: AttendeeStatus) => void;
+  compact?: boolean;
+}> = ({ attendee, loadingId, onUpdate, compact = false }) => {
+  const px = compact ? 'px-2.5' : 'px-2';
+  return (
+    <>
+      {attendee.status === 'waitlist' && (
+        <button onClick={() => onUpdate(attendee, 'confirmed')} disabled={!!loadingId}
+          className={`text-[10px] ${px} py-1 rounded bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-colors disabled:opacity-50`}>
+          Promote
+        </button>
+      )}
+      {(attendee.status === 'confirmed' || attendee.status === 'waitlist') && (
+        <button onClick={() => onUpdate(attendee, 'cancelled')} disabled={!!loadingId}
+          className={`text-[10px] ${px} py-1 rounded bg-tea-text-sec/10 text-tea-text-sec hover:bg-tea-text-sec/20 transition-colors disabled:opacity-50`}>
+          Cancel
+        </button>
+      )}
+      {attendee.status === 'cancelled' && (
+        <button onClick={() => onUpdate(attendee, 'confirmed')} disabled={!!loadingId}
+          className={`text-[10px] ${px} py-1 rounded bg-tea-gold/10 text-tea-gold hover:bg-tea-gold/20 transition-colors disabled:opacity-50`}>
+          Restore
+        </button>
+      )}
+      {attendee.status === 'denied' && (
+        <button onClick={() => onUpdate(attendee, 'waitlist')} disabled={!!loadingId}
+          className={`text-[10px] ${px} py-1 rounded bg-tea-elevated text-tea-text-dim hover:text-tea-text-sec transition-colors disabled:opacity-50`}>
+          Reconsider
+        </button>
+      )}
+    </>
+  );
+};
+
+const CustomerLinkButton: React.FC<{
+  attendee: EventAttendee;
+  onNavigate: () => void;
+  onCreateCustomer: () => void;
+}> = ({ attendee, onNavigate, onCreateCustomer }) => {
+  if (attendee.customerId) {
+    return (
+      <button onClick={onNavigate} className="text-tea-gold hover:text-tea-gold-lt transition-colors" title="View customer profile">
+        <User size={14} />
+      </button>
+    );
+  }
+  return (
+    <button onClick={onCreateCustomer} className="text-tea-text-dim hover:text-tea-gold transition-colors" title="Create customer record">
+      <UserPlus size={14} />
+    </button>
+  );
+};
+
 export const AttendeeTable: React.FC<AttendeeTableProps> = ({ attendees, eventId, onRefresh }) => {
   const { showToast } = useToast();
   const navigate = useNavigate();
@@ -47,7 +110,7 @@ export const AttendeeTable: React.FC<AttendeeTableProps> = ({ attendees, eventId
     requested: attendees.filter(a => a.status === 'requested').length,
   }), [attendees]);
 
-  const filtered = useMemo(() => {
+  const filtered = useMemo((): EnrichedAttendee[] => {
     let list = [...attendees];
     // Filter out 'requested' from the attendees view — they belong in the Requests tab
     if (filter === 'all') {
@@ -62,7 +125,13 @@ export const AttendeeTable: React.FC<AttendeeTableProps> = ({ attendees, eventId
       else cmp = (a.createdAt || '').localeCompare(b.createdAt || '');
       return sortAsc ? cmp : -cmp;
     });
-    return list;
+    return list.map(attendee => ({
+      ...attendee,
+      isDenied: attendee.status === 'denied',
+      totalGuests: attendee.guestRequests?.length ?? (attendee.plusOne ? 1 : 0),
+      approvedGuests: attendee.guestRequests?.filter(g => g.approved === true).length ?? (attendee.plusOne ? 1 : 0),
+      isReturning: (attendee.sessionsAttended ?? 0) > 0,
+    }));
   }, [attendees, filter, sortField, sortAsc]);
 
   const toggleSort = (field: SortField) => {
@@ -173,129 +242,138 @@ export const AttendeeTable: React.FC<AttendeeTableProps> = ({ attendees, eventId
         })}
       </div>
 
-      {/* Table */}
       {filtered.length === 0 ? (
         <div className="text-center py-8 text-tea-text-sec text-sm">No attendees in this category</div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-tea-border">
-                {[
-                  { field: 'name' as SortField, label: 'Name' },
-                  { field: null, label: 'Phone' },
-                  { field: 'status' as SortField, label: 'Status' },
-                  { field: null, label: 'Tier' },
-                  { field: null, label: 'Guests' },
-                  { field: null, label: 'Journey' },
-                  { field: null, label: 'Tea Pref' },
-                  { field: null, label: 'Notes' },
-                  { field: null, label: 'Attended' },
-                  { field: null, label: 'Actions' },
-                ].map((col, i) => (
-                  <th
-                    key={i}
-                    className="text-left text-[10px] uppercase tracking-[0.15em] text-tea-text-sec font-medium py-2 px-2"
-                  >
-                    {col.field ? (
-                      <button
-                        onClick={() => toggleSort(col.field!)}
-                        className="flex items-center gap-1 hover:text-tea-text transition-colors"
-                      >
-                        {col.label}
-                        <ArrowUpDown size={10} className={sortField === col.field ? 'text-tea-gold' : ''} />
-                      </button>
-                    ) : (
-                      col.label
-                    )}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map(attendee => {
-                const isDenied = attendee.status === 'denied';
-                const rowClass = isDenied ? 'opacity-50' : '';
-                const totalGuests = attendee.guestRequests?.length ?? (attendee.plusOne ? 1 : 0);
-                const approvedGuests = attendee.guestRequests?.filter(g => g.approved === true).length ?? (attendee.plusOne ? 1 : 0);
-                const isReturning = (attendee.sessionsAttended ?? 0) > 0;
+        <>
+          {/* Mobile card list */}
+          <div className="md:hidden divide-y divide-tea-border">
+            {filtered.map(attendee => (
+              <div key={attendee.id} className={`py-3 px-1 ${attendee.isDenied ? 'opacity-50' : ''}`}>
+                <div className="flex items-center justify-between gap-2 mb-1.5">
+                  <span className="inline-flex items-center gap-1.5 text-[14px] font-medium text-tea-text leading-snug">
+                    {attendee.fullName}
+                    <CustomerLinkButton
+                      attendee={attendee}
+                      onNavigate={() => navigate(`/admin/people?search=${encodeURIComponent(attendee.fullName)}`)}
+                      onCreateCustomer={() => handleCreateCustomer(attendee)}
+                    />
+                  </span>
+                  <span className={`text-[10px] uppercase tracking-[0.1em] px-2 py-0.5 rounded-full shrink-0 ${STATUS_CHIPS[attendee.status]}`}>
+                    {attendee.status}
+                  </span>
+                </div>
 
-                return (
-                  <tr
-                    key={attendee.id}
-                    className={`border-b border-tea-border hover:bg-tea-elevated/30 transition-colors ${rowClass}`}
+                <div className="flex items-center gap-3 text-[11px] text-tea-text-sec mb-2.5 flex-wrap">
+                  {attendee.phoneNumber && (
+                    <span className="flex items-center gap-1"><Phone size={10} />{attendee.phoneNumber}</span>
+                  )}
+                  {attendee.accessTier === 'golden' && (
+                    <span className="flex items-center gap-1 text-tea-gold"><Star size={10} fill="currentColor" />Golden</span>
+                  )}
+                  {attendee.isReturning && (
+                    <span className="text-tea-text-dim">{attendee.sessionsAttended}× sessions</span>
+                  )}
+                  {attendee.totalGuests > 0 && (
+                    <span className="flex items-center gap-1">
+                      <Users size={10} />
+                      {attendee.guestRequests ? `${attendee.approvedGuests}/${attendee.totalGuests}` : 'Yes'}
+                    </span>
+                  )}
+                  {attendee.teaPreference && (
+                    <span className="flex items-center gap-1"><Leaf size={10} />{attendee.teaPreference}</span>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between gap-2">
+                  <button
+                    onClick={() => toggleAttended(attendee)}
+                    disabled={loadingId === attendee.id || attendee.isDenied}
+                    className={`flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded transition-colors disabled:opacity-30 ${
+                      attendee.attended
+                        ? 'bg-tea-gold/15 text-tea-gold'
+                        : 'bg-tea-elevated text-tea-text-sec hover:text-tea-text'
+                    }`}
                   >
+                    {loadingId === attendee.id ? (
+                      <Loader2 size={10} className="animate-spin" />
+                    ) : (
+                      <Check size={10} className={attendee.attended ? 'opacity-100' : 'opacity-40'} />
+                    )}
+                    {attendee.attended ? 'Attended' : 'Mark attended'}
+                  </button>
+
+                  <div className="flex items-center gap-1.5">
+                    <AttendeeActions attendee={attendee} loadingId={loadingId} onUpdate={updateStatus} compact />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop table */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-tea-border">
+                  {[
+                    { field: 'name' as SortField, label: 'Name' },
+                    { field: null, label: 'Phone' },
+                    { field: 'status' as SortField, label: 'Status' },
+                    { field: null, label: 'Tier' },
+                    { field: null, label: 'Guests' },
+                    { field: null, label: 'Journey' },
+                    { field: null, label: 'Tea Pref' },
+                    { field: null, label: 'Notes' },
+                    { field: null, label: 'Attended' },
+                    { field: null, label: 'Actions' },
+                  ].map((col, i) => (
+                    <th key={i} className="text-left text-[10px] uppercase tracking-[0.15em] text-tea-text-sec font-medium py-2 px-2">
+                      {col.field ? (
+                        <button onClick={() => toggleSort(col.field!)} className="flex items-center gap-1 hover:text-tea-text transition-colors">
+                          {col.label}
+                          <ArrowUpDown size={10} className={sortField === col.field ? 'text-tea-gold' : ''} />
+                        </button>
+                      ) : col.label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map(attendee => (
+                  <tr key={attendee.id} className={`border-b border-tea-border hover:bg-tea-elevated/30 transition-colors ${attendee.isDenied ? 'opacity-50' : ''}`}>
                     <td className="py-2.5 px-2 text-tea-text font-medium">
-                      <span className="inline-flex items-center gap-0.5">
+                      <span className="inline-flex items-center gap-1.5">
                         {attendee.fullName}
-                        {attendee.customerId ? (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigate(`/admin/people?search=${encodeURIComponent(attendee.fullName)}`);
-                            }}
-                            className="ml-1.5 inline-flex items-center text-tea-gold hover:text-tea-gold-lt transition-colors"
-                            title="View customer profile"
-                          >
-                            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                              <circle cx="12" cy="7" r="4"/>
-                            </svg>
-                          </button>
-                        ) : (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleCreateCustomer(attendee);
-                            }}
-                            className="ml-1.5 inline-flex items-center text-tea-text-dim hover:text-tea-gold transition-colors"
-                            title="Create customer record"
-                          >
-                            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                              <circle cx="8.5" cy="7" r="4"/>
-                              <line x1="20" y1="8" x2="20" y2="14"/>
-                              <line x1="23" y1="11" x2="17" y2="11"/>
-                            </svg>
-                          </button>
-                        )}
+                        <CustomerLinkButton
+                          attendee={attendee}
+                          onNavigate={() => navigate(`/admin/people?search=${encodeURIComponent(attendee.fullName)}`)}
+                          onCreateCustomer={() => handleCreateCustomer(attendee)}
+                        />
                       </span>
                     </td>
-
                     <td className="py-2.5 px-2 text-tea-text-sec text-xs">
                       {attendee.phoneNumber ? (
-                        <span className="flex items-center gap-1">
-                          <Phone size={10} /> {attendee.phoneNumber}
-                        </span>
-                      ) : (
-                        <span className="text-tea-text-sec">—</span>
-                      )}
+                        <span className="flex items-center gap-1"><Phone size={10} />{attendee.phoneNumber}</span>
+                      ) : <span className="text-tea-text-sec">—</span>}
                     </td>
-
                     <td className="py-2.5 px-2">
                       <span className={`text-[10px] uppercase tracking-[0.1em] px-2 py-0.5 rounded-full ${STATUS_CHIPS[attendee.status]}`}>
                         {attendee.status}
                       </span>
                     </td>
-
                     <td className="py-2.5 px-2">
                       {attendee.accessTier === 'golden' ? (
-                        <span className="flex items-center gap-1 text-tea-gold text-xs">
-                          <Star size={10} fill="currentColor" /> Golden
-                        </span>
-                      ) : (
-                        <span className="text-tea-text-sec text-xs">—</span>
-                      )}
+                        <span className="flex items-center gap-1 text-tea-gold text-xs"><Star size={10} fill="currentColor" />Golden</span>
+                      ) : <span className="text-tea-text-sec text-xs">—</span>}
                     </td>
-
-                    {/* Guests column — show V2 guest requests or legacy plus one */}
                     <td className="py-2.5 px-2 text-xs">
-                      {totalGuests > 0 ? (
+                      {attendee.totalGuests > 0 ? (
                         <div>
                           <span className="flex items-center gap-1 text-tea-text-sec">
                             <Users size={10} />
                             {attendee.guestRequests ? (
-                              <span>{approvedGuests}/{totalGuests}</span>
+                              <span>{attendee.approvedGuests}/{attendee.totalGuests}</span>
                             ) : (
                               <span><UserPlus size={9} className="inline mr-0.5" />Yes</span>
                             )}
@@ -303,122 +381,61 @@ export const AttendeeTable: React.FC<AttendeeTableProps> = ({ attendees, eventId
                           {attendee.guestRequests && attendee.guestRequests.length > 0 && (
                             <div className="flex flex-wrap gap-1 mt-1">
                               {attendee.guestRequests.map((gr, i) => (
-                                <span
-                                  key={i}
-                                  className={`text-[9px] px-1.5 py-0.5 rounded-sm ${
-                                    gr.approved === true
-                                      ? 'bg-green-500/10 text-green-400'
-                                      : gr.approved === false
-                                      ? 'bg-tea-text-sec/10 text-tea-text-dim'
-                                      : 'bg-amber-500/10 text-amber-400'
-                                  }`}
-                                  title={`${gr.approved === true ? 'Approved' : gr.approved === false ? 'Denied' : 'Pending'}: "${gr.nameHint}"`}
-                                >
+                                <span key={i} className={`text-[9px] px-1.5 py-0.5 rounded-sm ${
+                                  gr.approved === true ? 'bg-green-500/10 text-green-400'
+                                  : gr.approved === false ? 'bg-tea-text-sec/10 text-tea-text-dim'
+                                  : 'bg-amber-500/10 text-amber-400'
+                                }`} title={`${gr.approved === true ? 'Approved' : gr.approved === false ? 'Denied' : 'Pending'}: "${gr.nameHint}"`}>
                                   "{gr.nameHint}"
                                 </span>
                               ))}
                             </div>
                           )}
                         </div>
-                      ) : (
-                        <span className="text-tea-text-sec">—</span>
-                      )}
+                      ) : <span className="text-tea-text-sec">—</span>}
                     </td>
-
-                    {/* Journey column */}
                     <td className="py-2.5 px-2 text-xs text-tea-text-sec">
-                      {isReturning ? (
+                      {attendee.isReturning ? (
                         <div>
                           <span className="text-tea-text-sec">{attendee.sessionsAttended}×</span>
                           {attendee.favoriteTypes && attendee.favoriteTypes.length > 0 && (
-                            <span className="text-tea-text-dim ml-1 text-[10px]">
-                              {attendee.favoriteTypes.slice(0, 2).join(', ')}
-                            </span>
+                            <span className="text-tea-text-dim ml-1 text-[10px]">{attendee.favoriteTypes.slice(0, 2).join(', ')}</span>
                           )}
                         </div>
-                      ) : (
-                        <span className="text-tea-text-dim text-[10px]">new</span>
-                      )}
+                      ) : <span className="text-tea-text-dim text-[10px]">new</span>}
                     </td>
-
                     <td className="py-2.5 px-2">
                       {attendee.teaPreference ? (
                         <span className="inline-flex items-center gap-1 text-[10px] bg-tea-elevated/50 text-tea-text-sec px-1.5 py-0.5 rounded">
-                          <Leaf size={9} /> {attendee.teaPreference}
+                          <Leaf size={9} />{attendee.teaPreference}
                         </span>
-                      ) : (
-                        <span className="text-tea-text-sec text-xs">—</span>
-                      )}
+                      ) : <span className="text-tea-text-sec text-xs">—</span>}
                     </td>
-
                     <td className="py-2.5 px-2 text-tea-text-sec text-xs max-w-[120px] truncate" title={attendee.notes}>
                       {attendee.notes || (attendee.denialMessage ? <span className="text-tea-text-dim">denied: {attendee.denialMessage}</span> : '—')}
                     </td>
-
                     <td className="py-2.5 px-2">
                       <button
                         onClick={() => toggleAttended(attendee)}
-                        disabled={loadingId === attendee.id || isDenied}
+                        disabled={loadingId === attendee.id || attendee.isDenied}
                         className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${
-                          attendee.attended
-                            ? 'bg-tea-gold border-tea-gold text-tea-bg'
-                            : 'border-tea-border text-tea-text-sec hover:border-tea-gold/50'
+                          attendee.attended ? 'bg-tea-gold border-tea-gold text-tea-bg' : 'border-tea-border text-tea-text-sec hover:border-tea-gold/50'
                         } disabled:opacity-30`}
                       >
-                        {loadingId === attendee.id ? (
-                          <Loader2 size={10} className="animate-spin" />
-                        ) : attendee.attended ? (
-                          <Check size={10} />
-                        ) : null}
+                        {loadingId === attendee.id ? <Loader2 size={10} className="animate-spin" /> : attendee.attended ? <Check size={10} /> : null}
                       </button>
                     </td>
-
                     <td className="py-2.5 px-2">
                       <div className="flex items-center gap-1 flex-wrap">
-                        {attendee.status === 'waitlist' && (
-                          <button
-                            onClick={() => updateStatus(attendee, 'confirmed')}
-                            disabled={!!loadingId}
-                            className="text-[10px] px-2 py-1 rounded bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-colors disabled:opacity-50"
-                          >
-                            Promote
-                          </button>
-                        )}
-                        {(attendee.status === 'confirmed' || attendee.status === 'waitlist') && (
-                          <button
-                            onClick={() => updateStatus(attendee, 'cancelled')}
-                            disabled={!!loadingId}
-                            className="text-[10px] px-2 py-1 rounded bg-tea-text-sec/10 text-tea-text-sec hover:bg-tea-text-sec/20 transition-colors disabled:opacity-50"
-                          >
-                            Cancel
-                          </button>
-                        )}
-                        {attendee.status === 'cancelled' && (
-                          <button
-                            onClick={() => updateStatus(attendee, 'confirmed')}
-                            disabled={!!loadingId}
-                            className="text-[10px] px-2 py-1 rounded bg-tea-gold/10 text-tea-gold hover:bg-tea-gold/20 transition-colors disabled:opacity-50"
-                          >
-                            Restore
-                          </button>
-                        )}
-                        {attendee.status === 'denied' && (
-                          <button
-                            onClick={() => updateStatus(attendee, 'waitlist')}
-                            disabled={!!loadingId}
-                            className="text-[10px] px-2 py-1 rounded bg-tea-elevated text-tea-text-dim hover:text-tea-text-sec transition-colors disabled:opacity-50"
-                          >
-                            Reconsider
-                          </button>
-                        )}
+                        <AttendeeActions attendee={attendee} loadingId={loadingId} onUpdate={updateStatus} />
                       </div>
                     </td>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
     </div>
   );

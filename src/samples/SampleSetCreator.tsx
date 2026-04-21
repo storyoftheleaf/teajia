@@ -183,24 +183,24 @@ function QuickAddSheet({ setId, sourceName, sourceId, onClose }: QuickAddSheetPr
         {/* Header */}
         <div className="flex items-center justify-between px-4 pt-4 pb-3"
              style={{ borderBottom: '1px solid var(--tea-accent-sub)' }}>
-          <span className="text-sm font-semibold text-tea-text">Add Sample</span>
           <div className="flex items-center gap-2">
-            <AnimatePresence>
-              {addedFeedback && (
-                <motion.span
-                  initial={{ opacity: 0, x: 4 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0 }}
-                  className="text-[11px] text-tea-gold"
-                >
-                  Added ✓
-                </motion.span>
-              )}
-            </AnimatePresence>
             <button onClick={onClose} className="nav-control nav-control-close">
               <X size={14} />
             </button>
+            <span className="text-sm font-semibold text-tea-text">Add Sample</span>
           </div>
+          <AnimatePresence>
+            {addedFeedback && (
+              <motion.span
+                initial={{ opacity: 0, x: 4 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0 }}
+                className="text-[11px] text-tea-gold"
+              >
+                Added ✓
+              </motion.span>
+            )}
+          </AnimatePresence>
         </div>
 
         <div className="px-4 pt-3 pb-4 space-y-3">
@@ -585,18 +585,18 @@ function CompassImportModal({ setId, onClose, defaultVendorId, defaultVendorName
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold text-tea-text">Import from Compass</h3>
           <div className="flex items-center gap-2">
-            {defaultVendorId && (
-              <button
-                onClick={() => setVendorOnly(!vendorOnly)}
-                className={`pill text-[10px] ${vendorOnly ? 'pill-active' : ''}`}
-              >
-                {vendorOnly ? 'From this vendor' : 'All entries'}
-              </button>
-            )}
             <button onClick={onClose} className="nav-control nav-control-close"><X size={14} /></button>
+            <h3 className="text-sm font-semibold text-tea-text">Import from Compass</h3>
           </div>
+          {defaultVendorId && (
+            <button
+              onClick={() => setVendorOnly(!vendorOnly)}
+              className={`pill text-[10px] ${vendorOnly ? 'pill-active' : ''}`}
+            >
+              {vendorOnly ? 'From this vendor' : 'All entries'}
+            </button>
+          )}
         </div>
         <input
           type="text"
@@ -1031,6 +1031,19 @@ export default function SampleSetCreator() {
           </div>
         )}
 
+        {/* Source vendor — always visible, above collapsible so dropdown isn't clipped */}
+        <div className="px-4 py-2" style={{ borderBottom: '1px solid var(--tea-accent-sub)' }}>
+          <VendorStrip
+            vendorName={activeSet.sourceName}
+            vendorId={activeSet.sourceId}
+            vendorDetails={undefined}
+            onVendorSelect={handleBatchVendorSelect}
+            onClear={handleBatchVendorClear}
+            onDetailsChange={() => {}}
+            showContactMenu={false}
+          />
+        </div>
+
         {/* Batch details collapsible */}
         <div style={{ borderBottom: '1px solid var(--tea-accent-sub)' }}>
           <button
@@ -1064,16 +1077,6 @@ export default function SampleSetCreator() {
                       </button>
                     ))}
                   </div>
-
-                  {/* Source vendor — same VendorStrip as Tea capture card */}
-                  <VendorStrip
-                    vendorName={activeSet.sourceName}
-                    vendorId={activeSet.sourceId}
-                    vendorDetails={undefined}
-                    onVendorSelect={handleBatchVendorSelect}
-                    onClear={handleBatchVendorClear}
-                    onDetailsChange={() => {}}
-                  />
 
                   {/* Customer picker — customer-gifted only */}
                   {activeSet.purpose === 'customer-gifted' && (
@@ -1384,7 +1387,7 @@ export default function SampleSetCreator() {
 
       {/* Label Sheet */}
       {showLabels && activeSet && (
-        <div className="fixed inset-0 z-50 bg-tea-bg overflow-auto">
+        <div className="fixed inset-0 sidebar-inset z-50 bg-tea-bg overflow-auto">
           <div className="sticky top-0 z-10 bg-tea-bg/95 backdrop-blur-sm px-4 py-3 flex items-center gap-2 border-b border-tea-border">
             <button onClick={() => setShowLabels(false)} className="p-1 -ml-1 text-tea-text-sec hover:text-tea-text transition-colors" aria-label="Back to sample set">
               <ArrowLeft size={20} />
@@ -1448,11 +1451,11 @@ function SampleEditModal({ sampleId, onClose }: { sampleId: string; onClose: () 
         style={{ maxHeight: 'calc(100dvh - 44px - env(safe-area-inset-bottom, 0px) - 60px)' }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold text-tea-text">Edit Sample</h3>
+        <div className="flex items-center gap-2 mb-4">
           <button onClick={onClose} className="nav-control nav-control-close">
             <X size={14} />
           </button>
+          <h3 className="text-sm font-semibold text-tea-text">Edit Sample</h3>
         </div>
 
         <div className="space-y-3 overflow-y-auto" style={{ maxHeight: '60vh' }}>

@@ -130,7 +130,7 @@ function StatCard({
   href?: string;
 }) {
   const inner = (
-    <div className="flex-1 bg-tea-surface px-4 py-4 rounded-sm text-center">
+    <div className="flex-1 min-w-[88px] bg-tea-surface px-4 py-4 rounded-sm text-center">
       <p className="text-2xl font-display text-tea-text">{value}</p>
       <p className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec mt-1">{label}</p>
     </div>

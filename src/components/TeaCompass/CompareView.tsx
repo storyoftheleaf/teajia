@@ -88,7 +88,7 @@ export const CompareView: React.FC<CompareViewProps> = ({ entries, onClose, onRe
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 40 }}
         transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
-        className="fixed inset-0 z-[150] bg-tea-bg flex flex-col"
+        className="fixed inset-0 sidebar-inset z-[150] bg-tea-bg flex flex-col"
         style={{
           paddingTop: 'env(safe-area-inset-top, 0px)',
           paddingBottom: 'env(safe-area-inset-bottom, 0px)',
@@ -169,7 +169,7 @@ export const CompareView: React.FC<CompareViewProps> = ({ entries, onClose, onRe
 
             <tbody>
               {/* Price/g row */}
-              <tr className="border-b border-tea-border/30">
+              <tr className="border-b border-tea-border">
                 {entries.map((entry) => (
                   <td key={entry.id} className="px-3 py-2 align-top">
                     <span className="text-[12px] font-medium text-tea-text-sec tabular-nums">{formatPPG(entry)}</span>
@@ -178,7 +178,7 @@ export const CompareView: React.FC<CompareViewProps> = ({ entries, onClose, onRe
               </tr>
 
               {/* Vendor */}
-              <tr className="border-b border-tea-border/30">
+              <tr className="border-b border-tea-border">
                 {entries.map((entry) => (
                   <td key={entry.id} className="px-3 py-2 align-top">
                     <span className="text-[11px] text-tea-text-dim">{entry.vendorName || '—'}</span>
@@ -187,7 +187,7 @@ export const CompareView: React.FC<CompareViewProps> = ({ entries, onClose, onRe
               </tr>
 
               {/* Origin */}
-              <tr className="border-b border-tea-border/30">
+              <tr className="border-b border-tea-border">
                 {entries.map((entry) => (
                   <td key={entry.id} className="px-3 py-2 align-top">
                     <span className="text-[11px] text-tea-text-dim">{entry.originRegion || '—'}</span>
@@ -205,7 +205,7 @@ export const CompareView: React.FC<CompareViewProps> = ({ entries, onClose, onRe
               </tr>
 
               {/* Notes */}
-              <tr className="border-t border-tea-border/30">
+              <tr className="border-t border-tea-border">
                 {entries.map((entry) => (
                   <td key={entry.id} className="px-3 py-2 align-top">
                     {entry.notes.trim() ? (

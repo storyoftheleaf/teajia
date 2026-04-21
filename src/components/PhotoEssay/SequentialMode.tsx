@@ -132,7 +132,7 @@ export const SequentialMode: React.FC<SequentialModeProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-modal bg-tea-text/95 flex flex-col animate-[fadeIn_0.2s_ease-out]"
+      className="fixed inset-0 sidebar-inset z-modal bg-black/85 flex flex-col animate-[fadeIn_0.2s_ease-out]"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}

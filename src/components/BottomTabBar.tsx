@@ -16,6 +16,7 @@ interface BottomTabBarProps {
   hidden?: boolean;
   onAccountClick?: () => void;
   onSearchClick?: () => void;
+  onSearchClose?: () => void;
   isAdminRoute?: boolean;
 }
 
@@ -25,6 +26,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
   hidden = false,
   onAccountClick,
   onSearchClick,
+  onSearchClose,
   isAdminRoute = false,
 }) => {
   const navigate = useNavigate();
@@ -69,6 +71,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
         key={tab.id}
         onClick={() => {
           if ('vibrate' in navigator) { navigator.vibrate?.(10); }
+          onSearchClose?.();
           navigate(tab.path);
         }}
         className="flex-1 w-full min-w-0 h-full flex items-center justify-center relative transition-all duration-200 group animate-[fadeIn_0.5s_ease-out] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none"
@@ -136,6 +139,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
         key={section.id}
         onClick={() => {
           if ('vibrate' in navigator) { navigator.vibrate?.(10); }
+          onSearchClose?.();
           if (section.id === activeSection) {
             window.scrollTo({ top: 0, behavior: 'smooth' });
             return;
@@ -168,7 +172,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
       <nav
         aria-label="Main navigation"
         onContextMenu={(e) => e.preventDefault()}
-        className={`flex lg:hidden fixed bottom-0 left-0 right-0 backdrop-blur-md backdrop-saturate-150 z-modal animate-[slideUp_0.4s_ease-out] transition-transform duration-200 select-none ${
+        className={`flex lg:hidden fixed bottom-0 left-0 right-0 backdrop-blur-md backdrop-saturate-150 z-priority animate-[slideUp_0.4s_ease-out] transition-transform duration-200 select-none ${
           hidden ? 'translate-y-full' : 'translate-y-0'
         }`}
         style={{

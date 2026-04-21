@@ -27,6 +27,8 @@ interface VendorStripProps {
   onDetailsChange: (details: VendorDetails) => void;
   linkedCustomerId?: string;
   onLinkedCustomerChange?: (customerId: string | undefined) => void;
+  /** Hide the contact icon — use when onDetailsChange is a no-op and would silently drop edits */
+  showContactMenu?: boolean;
 }
 
 /* ── Helpers ────────────────────────────────────────────── */
@@ -119,6 +121,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
   onDetailsChange,
   linkedCustomerId,
   onLinkedCustomerChange,
+  showContactMenu = true,
 }) => {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -128,7 +131,11 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
   const [creatingNew, setCreatingNew] = useState(false);
   const [newName, setNewName] = useState('');
   const [geoState, setGeoState] = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
   const newNameRef = useRef<HTMLInputElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const searchDropdownRef = useRef<HTMLDivElement>(null);
   const contactMenuRef = useRef<HTMLDivElement>(null);
   const businessCardRef = useRef<HTMLInputElement>(null);
   const storefrontRef = useRef<HTMLInputElement>(null);
@@ -305,6 +312,21 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
     return () => document.removeEventListener('mousedown', handleClick);
   }, [contactMenuOpen]);
 
+  // Close search dropdown on outside click
+  useEffect(() => {
+    if (!searchOpen) return;
+    const handleClick = (e: MouseEvent) => {
+      if (
+        searchRef.current && !searchRef.current.contains(e.target as Node) &&
+        searchDropdownRef.current && !searchDropdownRef.current.contains(e.target as Node)
+      ) {
+        setSearchOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [searchOpen]);
+
   const handleContactPhoto = async (
     inputRef: React.RefObject<HTMLInputElement | null>,
     key: 'businessCardUrl' | 'storefrontUrl'
@@ -359,8 +381,8 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
     <div className="space-y-0">
       {/* ── Strip row ── */}
       <div className="flex items-center gap-2 text-sm text-tea-text-sec py-1">
-        {/* Contact button — always visible */}
-        <div className="relative flex-shrink-0" ref={contactMenuRef}>
+        {/* Contact button */}
+        {showContactMenu && <div className="relative flex-shrink-0" ref={contactMenuRef}>
           <button
             type="button"
             onClick={() => setContactMenuOpen((o) => !o)}
@@ -415,7 +437,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                     <span className="text-[13px]">{vendorDetails?.lat != null ? 'Update location' : 'Drop pin'}</span>
                     {vendorDetails?.lat != null && <Check size={12} className="ml-auto text-tea-gold" />}
                   </button>
-                  <div className="h-px bg-tea-border/30 my-1" />
+                  <div className="h-px bg-tea-border my-1" />
                   <button
                     type="button"
                     onClick={() => { setDetailsOpen((o) => !o); setContactMenuOpen(false); }}
@@ -430,7 +452,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                 </motion.div>
             )}
           </AnimatePresence>
-        </div>
+        </div>}
         {vendorName ? (
           <>
             <button
@@ -449,48 +471,100 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
             </button>
           </>
         ) : (
-          <select
-            value=""
-            onChange={(e) => {
-              const val = e.target.value;
-              if (val === '__new__') {
-                setCreatingNew(true);
-                setPickerOpen(true);
-                return;
-              }
-              if (!val) return;
-              const apiVendor = vendors.find((v) => v.id === val);
-              if (apiVendor) {
-                handleSelectVendor(apiVendor.id, apiVendor.name);
-                return;
-              }
-              const recent = recentVendors.find((v) => v.name === val);
-              if (recent) {
-                handleSelectVendor(recent.id || undefined, recent.name);
-                return;
-              }
-              handleSelectVendor(undefined, val);
-            }}
-            className="flex-1 bg-transparent text-tea-text-dim text-sm py-1 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg appearance-none cursor-pointer"
-            style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23917a55' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 4px center' }}
-          >
-            <option value="" disabled>Select vendor...</option>
-            {recentVendors.length > 0 && (
-              <optgroup label="Recent">
-                {recentVendors.map((v) => (
-                  <option key={`recent-${v.name}`} value={v.id || v.name}>{v.name}</option>
-                ))}
-              </optgroup>
-            )}
-            {vendors.length > 0 && (
-              <optgroup label="All Vendors">
-                {vendors.map((v) => (
-                  <option key={v.id} value={v.id}>{v.name}</option>
-                ))}
-              </optgroup>
-            )}
-            <option value="__new__">+ New vendor...</option>
-          </select>
+          <div className="flex-1 min-w-0 relative">
+            <input
+              ref={searchRef}
+              type="text"
+              value={searchQuery}
+              onChange={(e) => { setSearchQuery(e.target.value); setSearchOpen(true); }}
+              onFocus={() => setSearchOpen(true)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && searchQuery.trim()) {
+                  handleSelectVendor(undefined, searchQuery.trim());
+                  setSearchQuery('');
+                  setSearchOpen(false);
+                }
+                if (e.key === 'Escape') { setSearchOpen(false); setSearchQuery(''); }
+              }}
+              placeholder="Select vendor..."
+              className="w-full bg-transparent text-tea-text-dim text-sm py-1 outline-none placeholder:text-tea-text-dim/60"
+            />
+            <AnimatePresence>
+              {searchOpen && (
+                <motion.div
+                  ref={searchDropdownRef}
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  transition={{ duration: 0.12 }}
+                  className="absolute top-full left-0 right-0 z-30 mt-1 bg-tea-surface rounded-xl shadow-lg border border-tea-border overflow-hidden"
+                  style={{ minWidth: '200px' }}
+                >
+                  {/* New vendor — always first */}
+                  <button
+                    type="button"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      if (searchQuery.trim()) {
+                        handleSelectVendor(undefined, searchQuery.trim());
+                        setSearchQuery('');
+                      } else {
+                        setCreatingNew(true);
+                        setPickerOpen(true);
+                      }
+                      setSearchOpen(false);
+                    }}
+                    className="flex items-center gap-2 w-full px-3 py-2 text-left text-[13px] text-tea-gold hover:bg-tea-gold/[0.08] transition-colors"
+                  >
+                    <Plus size={12} strokeWidth={2.5} />
+                    {searchQuery.trim() ? `New vendor "${searchQuery.trim()}"` : 'New vendor…'}
+                  </button>
+
+                  {/* Filtered vendor list */}
+                  {(() => {
+                    const q = searchQuery.toLowerCase();
+                    const seen = new Set<string>();
+                    const rows: { id?: string; name: string; isRecent?: boolean }[] = [];
+
+                    for (const v of recentVendors) {
+                      if (!seen.has(v.name) && (!q || v.name.toLowerCase().includes(q))) {
+                        seen.add(v.name);
+                        rows.push({ id: v.id || undefined, name: v.name, isRecent: true });
+                      }
+                    }
+                    for (const v of vendors) {
+                      if (!seen.has(v.name) && (!q || v.name.toLowerCase().includes(q))) {
+                        seen.add(v.name);
+                        rows.push({ id: v.id, name: v.name });
+                      }
+                    }
+
+                    if (rows.length === 0) return null;
+                    return (
+                      <div className="border-t border-tea-border max-h-48 overflow-y-auto">
+                        {rows.map((v) => (
+                          <button
+                            key={v.id ?? v.name}
+                            type="button"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              handleSelectVendor(v.id, v.name);
+                              setSearchQuery('');
+                              setSearchOpen(false);
+                            }}
+                            className="flex items-center justify-between w-full px-3 py-2 text-left text-[13px] text-tea-text-sec hover:bg-tea-gold/[0.06] hover:text-tea-text transition-colors"
+                          >
+                            <span>{v.name}</span>
+                            {v.isRecent && <span className="text-[10px] text-tea-text-dim shrink-0 ml-2">recent</span>}
+                          </button>
+                        ))}
+                      </div>
+                    );
+                  })()}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         )}
       </div>
 

@@ -45,8 +45,8 @@ export const CommunityWisdomView: React.FC<CommunityWisdomViewProps> = ({ onBack
   return (
     <div className="w-full pb-32 animate-[fadeIn_0.3s_ease-out]">
       <button onClick={onBack} className={BACK_BTN}>
-        <Icons.Back className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform text-tea-text/70" />
-        <span className="font-serif text-sm text-tea-text/70">Learn</span>
+        <Icons.Back className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform text-tea-text-sec" />
+        <span className="font-serif text-sm text-tea-text-sec">Learn</span>
       </button>
 
       <div className="mb-6">

@@ -46,7 +46,7 @@ export const LibrarySearch: React.FC<LibrarySearchProps> = ({ onNavigateToSectio
             onClick={() => setQuery('')}
             className="absolute right-3 top-1/2 -translate-y-1/2 min-w-[28px] min-h-[28px] flex items-center justify-center"
           >
-            <Icons.Close className="w-4 h-4 text-tea-text/40" />
+            <Icons.Close className="w-4 h-4 text-tea-text-sec" />
           </button>
         )}
       </div>

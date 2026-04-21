@@ -1,14 +1,26 @@
 import React, { useState, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Search, Plus, X, Trash2, Edit3, Phone, Mail, MessageCircle, MapPin, Loader2, ChevronDown, ChevronUp, Leaf, ExternalLink, Users, ArrowUpDown, Check, Calendar } from 'lucide-react';
+import { Search, Plus, X, Trash2, Edit3, Phone, Mail, MessageCircle, MapPin, Loader2, ChevronDown, ChevronUp, Leaf, ExternalLink, Users, ArrowUpDown, Check, Calendar, Link, AtSign, Send, Lock, Hash, MessagesSquare } from 'lucide-react';
 import { useCustomers, useProducts } from '../hooks/useAdminData';
 import { useToast } from './Toast';
 import { api } from '../../lib/api';
-import { Customer, CustomerTag } from '../types';
+import { Customer, CustomerTag, ContactType, ContactChannel, ContactEntry } from '../types';
 import { useSampleStore } from '../../samples/sampleStore';
 import { SAMPLE_STATUS_CONFIG } from '../../samples/types';
 
 const TAG_OPTIONS: CustomerTag[] = ['wholesale', 'retail', 'friend', 'vendor', 'vip', 'inactive'];
+
+const CHANNEL_CONFIG: Record<ContactChannel, { label: string; Icon: React.ElementType }> = {
+  phone:     { label: 'Phone',     Icon: Phone },
+  email:     { label: 'Email',     Icon: Mail },
+  whatsapp:  { label: 'WhatsApp',  Icon: MessageCircle },
+  wechat:    { label: 'WeChat',    Icon: MessagesSquare },
+  line:      { label: 'Line',      Icon: Hash },
+  instagram: { label: 'Instagram', Icon: AtSign },
+  telegram:  { label: 'Telegram',  Icon: Send },
+  signal:    { label: 'Signal',    Icon: Lock },
+  other:     { label: 'Other',     Icon: Hash },
+};
 
 const TAG_COLORS: Record<CustomerTag, string> = {
   wholesale: 'bg-tea-elevated text-tea-text',
@@ -49,11 +61,10 @@ function relativeTime(dateStr: string | undefined | null): string {
 }
 
 interface CustomerFormData {
+  type: ContactType;
   name: string;
   company: string;
-  email: string;
-  phone: string;
-  whatsapp: string;
+  contacts: ContactEntry[];
   address: string;
   city: string;
   country: string;
@@ -64,7 +75,8 @@ interface CustomerFormData {
 }
 
 const emptyForm: CustomerFormData = {
-  name: '', company: '', email: '', phone: '', whatsapp: '',
+  type: 'customer',
+  name: '', company: '', contacts: [],
   address: '', city: '', country: '', preferred_currency: 'USD',
   tags: [], notes: '', source: '',
 };
@@ -82,10 +94,14 @@ const CustomerModal = ({
   const [form, setForm] = useState<CustomerFormData>(initialData || emptyForm);
   const [saving, setSaving] = useState(false);
   const [customTagInput, setCustomTagInput] = useState('');
+  const [newChannel, setNewChannel] = useState<ContactChannel>('whatsapp');
+  const [newHandle, setNewHandle] = useState('');
 
   React.useEffect(() => {
     setForm(initialData || emptyForm);
     setCustomTagInput('');
+    setNewChannel('whatsapp');
+    setNewHandle('');
   }, [initialData, isOpen]);
 
   if (!isOpen) return null;
@@ -137,17 +153,38 @@ const CustomerModal = ({
   );
 
   return (
-    <div className="fixed inset-0 z-modal flex items-center justify-center bg-tea-text/90 backdrop-blur-md p-4 animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
       <div className="bg-tea-bg border border-tea-border rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl relative">
         <div className="sticky top-0 bg-tea-bg border-b border-tea-border p-6 flex justify-between items-center z-10">
-          <h3 className="text-xl font-serif text-tea-text">{isEditing ? 'Edit Customer' : 'Add Customer'}</h3>
           <button onClick={onClose} className="text-tea-text-sec hover:text-tea-text transition-colors"><X size={20} /></button>
+          <h3 className="text-xl font-serif text-tea-text">
+            {isEditing ? `Edit ${form.type === 'supplier' ? 'Supplier' : 'Customer'}` : `Add ${form.type === 'supplier' ? 'Supplier' : 'Customer'}`}
+          </h3>
+          <div className="w-5" />
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {/* Type toggle */}
+          <div className="flex rounded-lg overflow-hidden border border-tea-border">
+            {(['customer', 'supplier'] as ContactType[]).map(t => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setForm(prev => ({ ...prev, type: t }))}
+                className={`flex-1 py-2 text-xs uppercase tracking-[0.15em] transition-colors ${
+                  form.type === t
+                    ? 'bg-tea-elevated text-tea-text font-medium'
+                    : 'text-tea-text-sec hover:text-tea-text'
+                }`}
+              >
+                {t === 'customer' ? 'Customer' : 'Supplier'}
+              </button>
+            ))}
+          </div>
+
           <Field label="Name *" name="name" placeholder="Full name" />
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="Company" name="company" placeholder="Business name" />
             <Field label="Source" name="source" placeholder="e.g. Referral, Online" />
           </div>
@@ -155,18 +192,74 @@ const CustomerModal = ({
           <div className="h-px bg-tea-border my-2" />
           <h4 className="text-xs text-tea-text-sec uppercase tracking-wider">Contact</h4>
 
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Email" name="email" type="email" placeholder="email@example.com" />
-            <Field label="Phone" name="phone" type="tel" placeholder="+1 234 567 8900" />
-          </div>
+          {/* Existing contacts */}
+          {form.contacts.length > 0 && (
+            <div className="space-y-2">
+              {form.contacts.map((c, i) => {
+                const { label, Icon } = CHANNEL_CONFIG[c.channel] ?? CHANNEL_CONFIG.other;
+                return (
+                  <div key={i} className="flex items-center gap-2 bg-tea-surface border border-tea-border rounded-lg px-3 py-2">
+                    <Icon size={13} className="text-tea-text-sec shrink-0" />
+                    <span className="text-[10px] uppercase tracking-wider text-tea-text-dim w-16 shrink-0">{label}</span>
+                    <span className="text-sm text-tea-text flex-1 min-w-0 truncate">{c.handle}</span>
+                    <button
+                      type="button"
+                      onClick={() => setForm(prev => ({ ...prev, contacts: prev.contacts.filter((_, j) => j !== i) }))}
+                      className="text-tea-text-sec hover:text-tea-text transition-colors shrink-0"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
 
-          <Field label="WhatsApp" name="whatsapp" placeholder="WhatsApp number" />
+          {/* Add contact row */}
+          <div className="flex items-center gap-2">
+            <select
+              value={newChannel}
+              onChange={e => setNewChannel(e.target.value as ContactChannel)}
+              className="bg-tea-bg border border-tea-border rounded-lg px-2 py-2 text-xs text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-text-sec transition-colors shrink-0"
+            >
+              {(Object.keys(CHANNEL_CONFIG) as ContactChannel[]).map(ch => (
+                <option key={ch} value={ch}>{CHANNEL_CONFIG[ch].label}</option>
+              ))}
+            </select>
+            <input
+              type="text"
+              value={newHandle}
+              onChange={e => setNewHandle(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  if (!newHandle.trim()) return;
+                  setForm(prev => ({ ...prev, contacts: [...prev.contacts, { channel: newChannel, handle: newHandle.trim() }] }));
+                  setNewHandle('');
+                }
+              }}
+              placeholder="Handle or number…"
+              className="flex-1 bg-tea-bg border border-tea-border rounded-lg px-3 py-2 text-base md:text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-text-sec transition-colors"
+            />
+            <button
+              type="button"
+              disabled={!newHandle.trim()}
+              onClick={() => {
+                if (!newHandle.trim()) return;
+                setForm(prev => ({ ...prev, contacts: [...prev.contacts, { channel: newChannel, handle: newHandle.trim() }] }));
+                setNewHandle('');
+              }}
+              className="px-3 py-2 text-xs bg-tea-elevated text-tea-text-sec rounded-lg hover:text-tea-text transition-colors disabled:opacity-40 shrink-0"
+            >
+              Add
+            </button>
+          </div>
 
           <div className="h-px bg-tea-border my-2" />
           <h4 className="text-xs text-tea-text-sec uppercase tracking-wider">Location</h4>
 
           <Field label="Address" name="address" placeholder="Street address" />
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="City" name="city" placeholder="City" />
             <Field label="Country" name="country" placeholder="Country" />
           </div>
@@ -290,6 +383,9 @@ const CustomerDetail = ({
   const [showSupplied, setShowSupplied] = useState(true);
   const [showLinkDropdown, setShowLinkDropdown] = useState(false);
   const [linkSearch, setLinkSearch] = useState('');
+  const [linkAccountInput, setLinkAccountInput] = useState('');
+  const [showLinkAccount, setShowLinkAccount] = useState(false);
+  const [linkingAccount, setLinkingAccount] = useState(false);
   const [journey, setJourney] = useState<any>(null);
   const [loadingJourney, setLoadingJourney] = useState(false);
   const [showJourney, setShowJourney] = useState(false);
@@ -364,7 +460,7 @@ const CustomerDetail = ({
   };
 
   return (
-    <div className="fixed inset-0 z-modal flex items-center justify-center bg-tea-text/90 backdrop-blur-md p-4 animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
       <div className="bg-tea-bg border border-tea-border rounded-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto shadow-2xl relative">
         <div className="sticky top-0 bg-tea-bg border-b border-tea-border p-6 flex justify-between items-center z-10">
           <div>
@@ -397,7 +493,7 @@ const CustomerDetail = ({
           )}
 
           {/* Stats summary card */}
-          <div className={`grid gap-3 ${(customer.eventCount || 0) > 0 ? 'grid-cols-4' : 'grid-cols-3'}`}>
+          <div className={`grid gap-3 grid-cols-2 ${(customer.eventCount || 0) > 0 ? 'sm:grid-cols-4' : 'sm:grid-cols-3'}`}>
             <button
               onClick={() => { onClose(); navigate(`/admin/activity?search=${encodeURIComponent(customer.name || '')}`); }}
               className="bg-tea-surface border border-tea-border rounded-xl p-4 text-center hover:bg-tea-elevated transition-colors group"
@@ -583,15 +679,33 @@ const CustomerDetail = ({
           </div>
 
           {/* Contact Info */}
-          <div className="bg-tea-surface border border-tea-border rounded-xl p-5 space-y-4">
-            <h4 className="text-xs uppercase tracking-[0.2em] text-tea-text-sec">Contact Information</h4>
-            <InfoRow icon={<Mail size={14} />} label="Email" value={customer.email} />
-            <InfoRow icon={<Phone size={14} />} label="Phone" value={customer.phone} />
-            <InfoRow icon={<MessageCircle size={14} />} label="WhatsApp" value={customer.whatsapp} />
+          <div className="bg-tea-surface border border-tea-border rounded-xl p-5 space-y-3">
+            <h4 className="text-xs uppercase tracking-[0.2em] text-tea-text-sec">Contact</h4>
+            {(() => {
+              const contacts: ContactEntry[] = customer.contacts?.length > 0
+                ? customer.contacts
+                : [
+                    ...(customer.phone    ? [{ channel: 'phone'    as ContactChannel, handle: customer.phone    }] : []),
+                    ...(customer.whatsapp ? [{ channel: 'whatsapp' as ContactChannel, handle: customer.whatsapp }] : []),
+                    ...(customer.email    ? [{ channel: 'email'    as ContactChannel, handle: customer.email    }] : []),
+                  ];
+              if (contacts.length === 0) {
+                return <p className="text-tea-text-sec text-sm italic">No contact information on file.</p>;
+              }
+              return contacts.map((c, i) => {
+                const { label, Icon } = CHANNEL_CONFIG[c.channel] ?? CHANNEL_CONFIG.other;
+                return (
+                  <div key={i} className="flex items-center gap-3 text-sm">
+                    <Icon size={14} className="text-tea-text-sec shrink-0" />
+                    <div>
+                      <div className="text-tea-text-sec text-xs">{label}</div>
+                      <div className="text-tea-text">{c.handle}</div>
+                    </div>
+                  </div>
+                );
+              });
+            })()}
             <InfoRow icon={<MapPin size={14} />} label="Location" value={[customer.address, customer.city, customer.country].filter(Boolean).join(', ') || undefined} />
-            {!customer.email && !customer.phone && !customer.whatsapp && (
-              <p className="text-tea-text-sec text-sm italic">No contact information on file.</p>
-            )}
           </div>
 
           {/* Notes */}
@@ -944,8 +1058,96 @@ const CustomerDetail = ({
             )}
           </div>
 
+          {/* Account Link */}
+          <div className="bg-tea-surface border border-tea-border rounded-xl p-5">
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs uppercase tracking-[0.2em] text-tea-text-sec flex items-center gap-2">
+                <Link size={12} /> Account Link
+              </h4>
+              {customer.userId ? (
+                <button
+                  onClick={async () => {
+                    if (!confirm('Unlink this account?')) return;
+                    await api.customers.update(customer.id, { user_id: null, user_linked_at: null });
+                    showToast('Account unlinked', 'info');
+                    onClose();
+                  }}
+                  className="text-[10px] text-tea-text-sec hover:text-red-400 transition-colors uppercase tracking-wider"
+                >
+                  Unlink
+                </button>
+              ) : (
+                <button
+                  onClick={() => setShowLinkAccount(!showLinkAccount)}
+                  className="text-[10px] text-tea-text-sec hover:text-tea-text transition-colors uppercase tracking-wider"
+                >
+                  {showLinkAccount ? 'Cancel' : 'Link'}
+                </button>
+              )}
+            </div>
+
+            {customer.userId ? (
+              <div className="mt-2">
+                <p className="text-sm text-tea-text font-mono">{customer.userId}</p>
+                {customer.userLinkedAt && (
+                  <p className="text-[10px] text-tea-text-sec mt-0.5">
+                    Linked {new Date(customer.userLinkedAt).toLocaleDateString()}
+                  </p>
+                )}
+              </div>
+            ) : showLinkAccount ? (
+              <div className="mt-3 flex gap-2">
+                <input
+                  type="text"
+                  value={linkAccountInput}
+                  onChange={e => setLinkAccountInput(e.target.value)}
+                  placeholder="User ID or email…"
+                  className="flex-1 bg-tea-bg border border-tea-border rounded-lg px-3 py-1.5 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-text-sec transition-colors"
+                  onKeyDown={async e => {
+                    if (e.key === 'Enter' && linkAccountInput.trim()) {
+                      setLinkingAccount(true);
+                      try {
+                        await api.customers.update(customer.id, {
+                          user_id: linkAccountInput.trim(),
+                          user_linked_at: new Date().toISOString(),
+                        });
+                        showToast('Account linked', 'success');
+                        setShowLinkAccount(false);
+                        setLinkAccountInput('');
+                        onClose();
+                      } finally { setLinkingAccount(false); }
+                    }
+                  }}
+                  autoFocus
+                />
+                <button
+                  disabled={!linkAccountInput.trim() || linkingAccount}
+                  onClick={async () => {
+                    setLinkingAccount(true);
+                    try {
+                      await api.customers.update(customer.id, {
+                        user_id: linkAccountInput.trim(),
+                        user_linked_at: new Date().toISOString(),
+                      });
+                      showToast('Account linked', 'success');
+                      setShowLinkAccount(false);
+                      setLinkAccountInput('');
+                      onClose();
+                    } finally { setLinkingAccount(false); }
+                  }}
+                  className="px-3 py-1.5 text-xs bg-tea-elevated text-tea-text-sec rounded-lg hover:text-tea-text transition-colors disabled:opacity-40"
+                >
+                  {linkingAccount ? <Loader2 size={12} className="animate-spin" /> : 'Save'}
+                </button>
+              </div>
+            ) : (
+              <p className="text-sm text-tea-text-sec italic mt-2">Not linked to a user account.</p>
+            )}
+          </div>
+
           {/* Meta */}
           <div className="text-xs text-tea-text-sec/50 space-y-1">
+            <p>Type: {customer.type || 'customer'}</p>
             {customer.source && <p>Source: {customer.source}</p>}
             <p>Added: {new Date(customer.createdAt).toLocaleDateString()}</p>
             <p>Currency: {customer.preferredCurrency}</p>
@@ -966,6 +1168,7 @@ export const CustomersView = () => {
   const [search, setSearch] = useState(searchParams.get('search') || '');
   const [filterTags, setFilterTags] = useState<CustomerTag[]>([]);
   const [filterAttendedEvents, setFilterAttendedEvents] = useState(false);
+  const [typeFilter, setTypeFilter] = useState<'all' | 'customer' | 'supplier'>('all');
   const [sortBy, setSortBy] = useState<'name' | 'recent' | 'spent' | 'orders'>('name');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
@@ -974,8 +1177,6 @@ export const CustomersView = () => {
   // Exclude vendor-only customers (they appear in Sources view)
   const nonVendorCustomers = useMemo(() => {
     return customers.filter(c => {
-      // Keep customers that have tags other than just 'vendor', or no vendor tag at all
-      const hasNonVendorTag = c.tags.some((t: string) => t !== 'vendor');
       const isVendorOnly = c.tags.length === 1 && c.tags[0] === 'vendor';
       return !isVendorOnly;
     });
@@ -983,14 +1184,18 @@ export const CustomersView = () => {
 
   const filtered = useMemo(() => {
     let list = nonVendorCustomers;
+    if (typeFilter !== 'all') {
+      list = list.filter(c => (c.type || 'customer') === typeFilter);
+    }
     if (search) {
       const q = search.toLowerCase();
       list = list.filter(c =>
         c.name.toLowerCase().includes(q) ||
         c.company?.toLowerCase().includes(q) ||
+        c.country?.toLowerCase().includes(q) ||
+        c.contacts?.some(ct => ct.handle.toLowerCase().includes(q)) ||
         c.email?.toLowerCase().includes(q) ||
-        c.whatsapp?.includes(q) ||
-        c.country?.toLowerCase().includes(q)
+        c.whatsapp?.includes(q)
       );
     }
     if (filterTags.length > 0) {
@@ -1014,7 +1219,7 @@ export const CustomersView = () => {
       }
     });
     return list;
-  }, [nonVendorCustomers, search, filterTags, filterAttendedEvents, sortBy]);
+  }, [nonVendorCustomers, typeFilter, search, filterTags, filterAttendedEvents, sortBy]);
 
   const handleSave = async (data: CustomerFormData) => {
     try {
@@ -1034,7 +1239,8 @@ export const CustomersView = () => {
   };
 
   const handleDelete = async (customer: Customer) => {
-    if (!confirm(`Delete customer "${customer.name}"?\n\nTheir invoices will be preserved but unlinked.`)) return;
+    const label = customer.type === 'supplier' ? 'supplier' : 'customer';
+    if (!confirm(`Delete ${label} "${customer.name}"?\n\nTheir invoices will be preserved but unlinked.`)) return;
     try {
       await api.customers.delete(customer.id);
       showToast('Customer deleted', 'success');
@@ -1051,20 +1257,29 @@ export const CustomersView = () => {
     setIsModalOpen(true);
   };
 
-  const formDataFromCustomer = (c: Customer): CustomerFormData => ({
-    name: c.name,
-    company: c.company || '',
-    email: c.email || '',
-    phone: c.phone || '',
-    whatsapp: c.whatsapp || '',
-    address: c.address || '',
-    city: c.city || '',
-    country: c.country || '',
-    preferred_currency: c.preferredCurrency,
-    tags: c.tags,
-    notes: c.notes || '',
-    source: c.source || '',
-  });
+  const formDataFromCustomer = (c: Customer): CustomerFormData => {
+    // Prefer contacts array; fall back to synthesizing from legacy flat fields
+    const contacts: ContactEntry[] = c.contacts && c.contacts.length > 0
+      ? c.contacts
+      : [
+          ...(c.phone    ? [{ channel: 'phone'    as ContactChannel, handle: c.phone    }] : []),
+          ...(c.whatsapp ? [{ channel: 'whatsapp' as ContactChannel, handle: c.whatsapp }] : []),
+          ...(c.email    ? [{ channel: 'email'    as ContactChannel, handle: c.email    }] : []),
+        ];
+    return {
+      type: c.type || 'customer',
+      name: c.name,
+      company: c.company || '',
+      contacts,
+      address: c.address || '',
+      city: c.city || '',
+      country: c.country || '',
+      preferred_currency: c.preferredCurrency,
+      tags: c.tags,
+      notes: c.notes || '',
+      source: c.source || '',
+    };
+  };
 
   // Mobile sort/filter menus
   const [showMobileSort, setShowMobileSort] = useState(false);
@@ -1077,7 +1292,7 @@ export const CustomersView = () => {
 
       {/* --- STICKY HEADER --- */}
       <div className="sticky top-0 z-30 bg-tea-bg/90 backdrop-blur-md border-b border-tea-border py-2.5 flex-shrink-0">
-        <div className="px-3 md:px-6 max-w-7xl mx-auto flex items-center gap-3 md:gap-4">
+        <div className="px-3 md:px-6 max-w-5xl mx-auto flex items-center gap-3 md:gap-4">
           <div className="flex items-center gap-2 shrink-0">
             <Users size={16} className="text-tea-accent" />
             <h2 className="text-sm font-serif text-tea-text uppercase tracking-[0.15em] hidden md:block">Customers</h2>
@@ -1088,13 +1303,22 @@ export const CustomersView = () => {
 
           {/* Tag filter pills — multi-select, scrollable on mobile */}
           <div className="flex items-center gap-1 overflow-x-auto hide-scrollbar md:ml-2">
-            <button
-              onClick={() => setFilterTags([])}
-              className={filterTags.length === 0 && !filterAttendedEvents ? 'pill-active' : 'pill'}
-            >
+            {/* Customer / Supplier segment */}
+            <button onClick={() => setTypeFilter('all')} className={typeFilter === 'all' ? 'pill-active' : 'pill'}>
               All
               <span className="text-[9px] opacity-70 ml-0.5">{nonVendorCustomers.length}</span>
             </button>
+            {(['customer', 'supplier'] as const).map(t => {
+              const count = nonVendorCustomers.filter(c => (c.type || 'customer') === t).length;
+              if (count === 0) return null;
+              return (
+                <button key={t} onClick={() => setTypeFilter(t)} className={typeFilter === t ? 'pill-active' : 'pill'}>
+                  {t === 'customer' ? 'Customers' : 'Suppliers'}
+                  <span className="text-[9px] opacity-70 ml-0.5">{count}</span>
+                </button>
+              );
+            })}
+            <span className="w-px h-4 bg-tea-border flex-shrink-0" />
             {TAG_OPTIONS.map(tag => {
               const count = nonVendorCustomers.filter(c => c.tags.includes(tag)).length;
               if (count === 0) return null;
@@ -1273,18 +1497,28 @@ export const CustomersView = () => {
                     </div>
                   </div>
 
-                  {/* Contact icons */}
-                  <div className="flex flex-col items-center gap-0.5 text-tea-text-sec/40 flex-shrink-0">
-                    {customer.email && <Mail size={10} />}
-                    {customer.phone && <Phone size={10} />}
-                    {customer.whatsapp && <MessageCircle size={10} />}
-                  </div>
+                  {/* Contact channel dots */}
+                  {(customer.contacts?.length > 0 || customer.email || customer.phone || customer.whatsapp) && (
+                    <div className="flex flex-col items-center gap-0.5 text-tea-text-sec/40 flex-shrink-0">
+                      {(customer.contacts?.length > 0
+                        ? customer.contacts.slice(0, 3)
+                        : [
+                            ...(customer.phone    ? [{ channel: 'phone'    as ContactChannel }] : []),
+                            ...(customer.whatsapp ? [{ channel: 'whatsapp' as ContactChannel }] : []),
+                            ...(customer.email    ? [{ channel: 'email'    as ContactChannel }] : []),
+                          ]
+                      ).map((c, i) => {
+                        const { Icon } = CHANNEL_CONFIG[c.channel] ?? CHANNEL_CONFIG.other;
+                        return <Icon key={i} size={10} />;
+                      })}
+                    </div>
+                  )}
                 </button>
               ))}
             </div>
 
             {/* DESKTOP CARD GRID */}
-            <div className="hidden md:block py-6 max-w-7xl mx-auto">
+            <div className="hidden md:block py-6 max-w-5xl mx-auto">
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {filtered.map(customer => (
                   <div
@@ -1318,9 +1552,17 @@ export const CustomersView = () => {
                     )}
 
                     <div className="flex items-center gap-3 text-tea-text-sec mb-3">
-                      {customer.email && <Mail size={12} />}
-                      {customer.phone && <Phone size={12} />}
-                      {customer.whatsapp && <MessageCircle size={12} />}
+                      {(customer.contacts?.length > 0
+                        ? customer.contacts.slice(0, 4)
+                        : [
+                            ...(customer.phone    ? [{ channel: 'phone'    as ContactChannel }] : []),
+                            ...(customer.whatsapp ? [{ channel: 'whatsapp' as ContactChannel }] : []),
+                            ...(customer.email    ? [{ channel: 'email'    as ContactChannel }] : []),
+                          ]
+                      ).map((c, i) => {
+                        const { Icon } = CHANNEL_CONFIG[c.channel] ?? CHANNEL_CONFIG.other;
+                        return <Icon key={i} size={12} />;
+                      })}
                       {customer.country && (
                         <span className="text-xs flex items-center gap-1">
                           <MapPin size={10} /> {customer.country}

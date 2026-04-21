@@ -51,7 +51,7 @@ const SourceModal = ({
   const inputStyle = "w-full bg-transparent border-b border-tea-border px-0 py-2 text-base md:text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-accent transition-colors placeholder-tea-text-sec/50";
 
   return (
-    <div className="fixed inset-0 z-modal flex items-center justify-center bg-tea-text/90 backdrop-blur-md p-4 animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
       <form onSubmit={handleSubmit} className="bg-tea-bg border border-tea-border rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl">
         <div className="flex justify-between items-center p-6 border-b border-tea-border">
           <h3 className="text-lg font-serif text-tea-text">{isEditing ? 'Edit Source' : 'New Source'}</h3>
@@ -89,7 +89,7 @@ const SourceModal = ({
             <textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} className={`${inputStyle} min-h-[60px] resize-none`} placeholder="Notes about this source..." />
           </div>
         </div>
-        <div className="flex justify-end gap-3 p-6 border-t border-tea-border">
+        <div className="flex justify-between gap-3 p-6 border-t border-tea-border">
           <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-tea-text-sec hover:text-tea-text transition-colors">Cancel</button>
           <button type="submit" disabled={saving || !form.name.trim()} className="px-5 py-2 bg-tea-gold text-tea-bg text-sm font-medium rounded-lg hover:bg-tea-gold/90 transition-colors disabled:opacity-50">
             {saving ? 'Saving...' : isEditing ? 'Update' : 'Add Source'}
@@ -924,7 +924,7 @@ export const SourcesView = () => {
 
       {/* --- DESKTOP HEADER CONTROLS --- */}
       <div className={`hidden md:block sticky top-0 z-30 border-b border-tea-border py-2.5 transition-colors flex-shrink-0 ${isEditMode ? 'bg-tea-surface/95 border-b-tea-accent/20' : 'bg-tea-bg/90 backdrop-blur-md'}`}>
-        <div className="px-6 max-w-7xl mx-auto flex items-center gap-4">
+        <div className="px-6 max-w-5xl mx-auto flex items-center gap-4">
           <div className="flex items-center gap-2 shrink-0">
             <Users size={16} className={isEditMode ? "text-tea-text-sec" : "text-tea-accent"} />
             <h2 className="text-sm font-serif text-tea-text uppercase tracking-[0.15em]">
@@ -1187,7 +1187,7 @@ export const SourcesView = () => {
         </div>
 
         {/* DESKTOP TABLE */}
-        <div className="w-full max-w-7xl mx-auto bg-tea-surface min-h-full hidden md:block">
+        <div className="w-full max-w-5xl mx-auto bg-tea-surface min-h-full hidden md:block">
 
           {/* --- GROUPED VIEW --- */}
           {groupedSources ? (

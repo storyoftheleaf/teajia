@@ -81,7 +81,7 @@ export const GalleryImage: React.FC<GalleryImageProps> = ({ image }) => {
 
         {/* Hover Overlay */}
         <div
-          className={`absolute inset-0 bg-tea-text/60 backdrop-blur-sm transition-all duration-300 flex items-end p-4 ${
+          className={`absolute inset-0 bg-black/60 backdrop-blur-sm transition-all duration-300 flex items-end p-4 ${
             isHovered ? 'opacity-100' : 'opacity-0'
           }`}
         >
@@ -119,7 +119,7 @@ export const GalleryImage: React.FC<GalleryImageProps> = ({ image }) => {
 
         {/* Attribution */}
         {image.attribution && isHovered && (
-          <div className="absolute bottom-16 left-4 right-4 bg-tea-text/80 backdrop-blur-sm p-3 rounded-sm text-tea-text text-xs">
+          <div className="absolute bottom-16 left-4 right-4 bg-black/80 backdrop-blur-sm p-3 rounded-sm text-tea-text text-xs">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-tea-text/80 uppercase tracking-[0.15em] text-[10px] mb-1">

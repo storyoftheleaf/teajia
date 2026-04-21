@@ -248,7 +248,7 @@ export const PopupModal: React.FC<PopupModalProps> = ({
       role="dialog"
       aria-modal="true"
       aria-label={item.name}
-      className={`fixed inset-0 z-modal transition-all duration-300 ${isVisible ? 'bg-tea-text/95' : 'bg-tea-text/0'}`}
+      className={`fixed inset-0 z-modal transition-all duration-300 ${isVisible ? 'bg-black/85' : 'bg-tea-text/0'}`}
       onClick={onClose}
       onTouchStart={handleZoomTouchStart}
       onTouchMove={handleZoomTouchMove}
@@ -290,7 +290,7 @@ export const PopupModal: React.FC<PopupModalProps> = ({
             {purchaseControls}
           </div>
         </div>
-        <button className="absolute top-6 right-6 text-tea-text/70 hover:text-tea-text transition-colors focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none rounded-lg" onClick={onClose} aria-label="Close">
+        <button className="absolute top-6 right-6 text-tea-text-sec hover:text-tea-text transition-colors focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none rounded-lg" onClick={onClose} aria-label="Close">
           <Icons.Close className="w-8 h-8" />
         </button>
       </div>

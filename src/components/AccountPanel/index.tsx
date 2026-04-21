@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Sun, Moon, Calendar, Receipt, UserPlus, Package, Clock, CalendarCheck, AlertTriangle, Zap, UserCheck, RotateCcw, Truck, Compass, LogIn } from 'lucide-react';
+import { Sun, Moon, Calendar, Receipt, UserPlus, Package, Clock, CalendarCheck, AlertTriangle, Zap, UserCheck, RotateCcw, Truck, Compass, LogIn, Users, Settings } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -10,7 +10,7 @@ import { useScrollLock } from '../../hooks/useScrollLock';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { useAuth } from '../../hooks/useAuth';
 import { useAppStore } from '../../lib/store';
-import { useInventory } from '../../context/InventoryContext';
+
 import { api, setToken, hydrateAccountStateFromToken } from '../../lib/api';
 import { fetchStoreEvents } from '../../lib/storefrontApi';
 import { hydrateTastingJournal } from '../../lib/tastingJournalSync';
@@ -101,33 +101,47 @@ const Item: React.FC<{
   gold?: boolean;
   pulse?: boolean;
   locked?: boolean;
-}> = ({ icon, label, description, onClick, gold, pulse, locked }) => (
-  <button
-    onClick={onClick}
-    className={`w-full flex items-center gap-3.5 px-4 py-3.5 text-left transition-colors group border-b border-tea-border last:border-0 ${
-      locked ? 'opacity-55' : 'hover:bg-tea-surface/50'
-    }`}
-    style={{ WebkitTapHighlightColor: 'transparent' }}
-  >
-    <div className={`shrink-0 ${gold ? 'text-tea-gold' : 'text-tea-gold/50 group-hover:text-tea-gold/70 transition-colors'}`}>
-      {icon}
-    </div>
-    <div className="flex-1 min-w-0">
-      <div className="text-[13px] font-medium text-tea-text leading-tight">{label}</div>
-      <div className="text-[11px] text-tea-text-dim mt-0.5 leading-tight">{description}</div>
-    </div>
-    {pulse ? (
-      <span className="relative flex shrink-0">
-        <span className="absolute inline-flex h-2 w-2 rounded-full bg-tea-gold opacity-75 animate-ping" />
-        <span className="relative inline-flex h-2 w-2 rounded-full bg-tea-gold" />
-      </span>
-    ) : locked ? (
-      <Icons.Lock className="w-3.5 h-3.5 text-tea-text-dim shrink-0" />
-    ) : (
-      <Icons.ChevronRight className="w-3.5 h-3.5 text-tea-text/15 group-hover:text-tea-text/30 transition-colors shrink-0" />
-    )}
-  </button>
-);
+}> = ({ icon, label, description, onClick, gold, pulse, locked }) => {
+  const [tapped, setTapped] = useState(false);
+
+  const handleClick = () => {
+    if (locked) {
+      setTapped(true);
+      setTimeout(() => setTapped(false), 350);
+    }
+    onClick();
+  };
+
+  return (
+    <button
+      onClick={handleClick}
+      className={`w-full flex items-center gap-3.5 px-4 py-3.5 text-left transition-colors group border-b border-tea-border last:border-0 ${
+        locked
+          ? tapped ? 'opacity-80 bg-tea-gold/8' : 'opacity-55'
+          : 'hover:bg-tea-surface/50'
+      }`}
+      style={{ WebkitTapHighlightColor: 'transparent' }}
+    >
+      <div className={`shrink-0 ${gold ? 'text-tea-gold' : 'text-tea-gold/50 group-hover:text-tea-gold/70 transition-colors'}`}>
+        {icon}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="text-[13px] font-medium text-tea-text leading-tight">{label}</div>
+        <div className="text-[11px] text-tea-text-dim mt-0.5 leading-tight">{description}</div>
+      </div>
+      {pulse ? (
+        <span className="relative flex shrink-0">
+          <span className="absolute inline-flex h-2 w-2 rounded-full bg-tea-gold opacity-75 animate-ping" />
+          <span className="relative inline-flex h-2 w-2 rounded-full bg-tea-gold" />
+        </span>
+      ) : locked ? (
+        <Icons.Lock className={`w-3.5 h-3.5 shrink-0 transition-colors ${tapped ? 'text-tea-gold/60' : 'text-tea-text-dim'}`} />
+      ) : (
+        <Icons.ChevronRight className="w-3.5 h-3.5 text-tea-text/15 group-hover:text-tea-text/30 transition-colors shrink-0" />
+      )}
+    </button>
+  );
+};
 
 
 const QuickAction: React.FC<{
@@ -168,7 +182,6 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
     activeAccount,
     platformRole,
     shopStoreSlug,
-    recentlyViewed,
     setShopStoreSlug,
     setActiveAccountId,
     setActiveAccount,
@@ -176,26 +189,18 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
     setUpcomingEventsCount,
   } = useAppStore();
 
-  const { inventory } = useInventory();
-  const recentlyViewedItems = useMemo(() =>
-    recentlyViewed
-      .slice(0, 6)
-      .map(id => inventory.find(i => i.id === id))
-      .filter(Boolean) as typeof inventory,
-    [recentlyViewed, inventory]
-  );
-
-  useScrollLock(true);
   const focusTrapRef = useFocusTrap<HTMLDivElement>(true);
   const triggerRef = useRef<HTMLElement | null>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
   const [isVisible, setIsVisible] = useState(false);
+  useScrollLock(true);
   const PERSISTABLE_VIEWS: PanelView[] = ['main'];
   const STORAGE_KEY = 'teajia-account-view';
 
+  const VALID_VIEWS: PanelView[] = ['main', 'location-switcher', 'events', 'signin', 'signup'];
   const [panelView, setPanelViewRaw] = useState<PanelView>(() => {
-    if (initialView) return initialView;
+    if (initialView && VALID_VIEWS.includes(initialView)) return initialView;
     try {
       const saved = localStorage.getItem(STORAGE_KEY) as PanelView | null;
       if (saved && PERSISTABLE_VIEWS.includes(saved)) return saved;
@@ -204,10 +209,11 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
   });
 
   const setPanelView = (view: PanelView) => {
-    setPanelViewRaw(view);
+    const safeView = VALID_VIEWS.includes(view) ? view : 'main';
+    setPanelViewRaw(safeView);
     try {
-      if (PERSISTABLE_VIEWS.includes(view)) {
-        localStorage.setItem(STORAGE_KEY, view);
+      if (PERSISTABLE_VIEWS.includes(safeView)) {
+        localStorage.setItem(STORAGE_KEY, safeView);
       }
     } catch {}
   };
@@ -338,26 +344,6 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
     setConfirmNewPassword(''); setEditName(''); setEditEmail(''); setEditUsername('');
   };
 
-  const scrollToSection = (ref: React.RefObject<HTMLDivElement>) => {
-    ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
-
-  const handlePanelScroll = () => {
-    const container = scrollRef.current;
-    if (!container) return;
-    const scrollTop = container.scrollTop;
-    const meTop = (meRef.current?.offsetTop ?? 0);
-    const navTop = (navigateRef.current?.offsetTop ?? 0);
-    const opsTop = (opsRef.current?.offsetTop ?? 0);
-    if (isStaff && opsTop > 0 && scrollTop >= opsTop - 120) {
-      setActiveSection('ops');
-    } else if (navTop > 0 && scrollTop >= navTop - 120) {
-      setActiveSection('navigate');
-    } else {
-      setActiveSection('me');
-    }
-  };
-
   const handleOpenCart = () => {
     onClose();
     setTimeout(() => window.dispatchEvent(new Event('openCart')), 50);
@@ -477,7 +463,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
 
   const handleGoToAdmin = (path: string = '/admin/inventory') => {
     onClose();
-    window.location.href = path;
+    navigate(path);
   };
 
   const getInitials = (nameStr: string) =>
@@ -529,12 +515,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
     },
   });
 
-  // Scroll-tracked jump nav
-  const [activeSection, setActiveSection] = useState<'me' | 'navigate' | 'ops'>('me');
   const scrollRef = useRef<HTMLDivElement>(null);
-  const meRef = useRef<HTMLDivElement>(null);
-  const navigateRef = useRef<HTMLDivElement>(null);
-  const opsRef = useRef<HTMLDivElement>(null);
 
   const upcomingEvents = useMemo(() => {
     const now = new Date();
@@ -611,7 +592,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
   }, [memberships, locationSearch]);
 
   // ── Location card ───────────────────────────────────────────────────────────
-  const ActiveLocationCard: React.FC<{ showSwitchButton?: boolean }> = ({ showSwitchButton }) => (
+  const ActiveLocationCard: React.FC<{ showSwitchButton?: boolean; hideActions?: boolean }> = ({ showSwitchButton, hideActions }) => (
     <div className="rounded-md overflow-hidden border border-tea-border">
       <div className="flex items-start justify-between px-4 py-3 bg-tea-surface/40 border-l-2 border-tea-gold">
         <div className="min-w-0 flex-1">
@@ -649,28 +630,30 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
           </button>
         )}
       </div>
-      <div className="flex border-t border-tea-border divide-x divide-tea-border">
-        <button
-          onClick={() => { onClose(); navigate('/shop'); }}
-          className="flex-1 py-2.5 text-[9px] uppercase tracking-[0.15em] text-tea-text-sec hover:text-tea-gold hover:bg-tea-surface/50 transition-colors"
-        >
-          Shop
-        </button>
-        <button
-          onClick={() => setPanelView('events')}
-          className="flex-1 py-2.5 text-[9px] uppercase tracking-[0.15em] text-tea-text-sec hover:text-tea-gold hover:bg-tea-surface/50 transition-colors"
-        >
-          Sessions
-        </button>
-        {isStaff && (
+      {!hideActions && (
+        <div className="flex border-t border-tea-border divide-x divide-tea-border">
           <button
-            onClick={() => handleGoToAdmin('/admin/inventory')}
-            className="flex-1 py-2.5 text-[9px] uppercase tracking-[0.15em] text-tea-gold hover:bg-tea-surface/50 transition-colors"
+            onClick={() => { onClose(); navigate('/shop'); }}
+            className="flex-1 py-2.5 text-[9px] uppercase tracking-[0.15em] text-tea-text-sec hover:text-tea-gold hover:bg-tea-surface/50 transition-colors"
           >
-            Ops
+            Shop
           </button>
-        )}
-      </div>
+          <button
+            onClick={() => setPanelView('events')}
+            className="flex-1 py-2.5 text-[9px] uppercase tracking-[0.15em] text-tea-text-sec hover:text-tea-gold hover:bg-tea-surface/50 transition-colors"
+          >
+            Sessions
+          </button>
+          {isStaff && (
+            <button
+              onClick={() => handleGoToAdmin('/admin/inventory')}
+              className="flex-1 py-2.5 text-[9px] uppercase tracking-[0.15em] text-tea-gold hover:bg-tea-surface/50 transition-colors"
+            >
+              Ops
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 
@@ -735,7 +718,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
     <>
       {/* Backdrop */}
       <div
-        className={`fixed inset-0 z-drawer bg-tea-text/80 backdrop-blur-sm transition-opacity duration-[120ms] ${isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+        className={`fixed inset-0 z-drawer bg-black/80 backdrop-blur-sm transition-opacity duration-[120ms] ${isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
         onClick={onClose}
       />
 
@@ -799,33 +782,8 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
           )}
         </div>
 
-        {/* Jump Nav — only in main view */}
-        {panelView === 'main' && (
-          <div className="flex items-center gap-1.5 px-4 py-2.5 border-b border-tea-border bg-tea-bg flex-shrink-0">
-            {(
-              [
-                ['me', 'Me'],
-                ['navigate', 'Navigate'],
-                ...(isStaff ? [['ops', 'Ops']] : []),
-              ] as ['me' | 'navigate' | 'ops', string][]
-            ).map(([id, label]) => (
-              <button
-                key={id}
-                onClick={() => scrollToSection(id === 'me' ? meRef : id === 'navigate' ? navigateRef : opsRef)}
-                className={`px-3.5 py-1.5 rounded-full text-[11px] font-medium tracking-[0.02em] transition-colors border ${
-                  activeSection === id
-                    ? 'bg-tea-gold/10 border-tea-gold/30 text-tea-gold'
-                    : 'border-tea-border text-tea-text-sec hover:text-tea-text'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        )}
-
         {/* Content */}
-        <div ref={scrollRef} onScroll={panelView === 'main' ? handlePanelScroll : undefined} className="flex-1 min-h-0 overflow-y-auto p-6 pb-[calc(44px+env(safe-area-inset-bottom,0px))] lg:pb-6 relative">
+        <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto relative">
           {/* Grain texture */}
           <div className="absolute inset-0 pointer-events-none" style={{ opacity: 0.06, backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`, backgroundSize: '120px' }} />
 
@@ -836,14 +794,14 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.12, ease: 'easeOut' }}
-            className="space-y-6 relative z-10"
+            className="relative z-10"
           >
 
             {/* ══════════════════════════════════════════════════════════════
                 SIGN IN VIEW (inline, no navigation away)
             ══════════════════════════════════════════════════════════════ */}
             {panelView === 'signin' && (
-              <div className="space-y-5">
+              <div className="px-6 pt-6 pb-[calc(44px+env(safe-area-inset-bottom,0px))] lg:pb-6 space-y-5">
                 <div>
                   <h2 className="font-serif text-2xl text-tea-text">Welcome back.</h2>
                   <p className="text-[12px] text-tea-text-sec mt-1">Sign in to your Teajia account.</p>
@@ -902,7 +860,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                 SIGN UP VIEW (inline)
             ══════════════════════════════════════════════════════════════ */}
             {panelView === 'signup' && (
-              <div className="space-y-5">
+              <div className="px-6 pt-6 pb-[calc(44px+env(safe-area-inset-bottom,0px))] lg:pb-6 space-y-5">
                 <div>
                   <h2 className="font-serif text-2xl text-tea-text">Join Teajia.</h2>
                   <p className="text-[12px] text-tea-text-sec mt-1">Create your account to track teas, journal sessions, and more.</p>
@@ -955,7 +913,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                 EVENTS VIEW — inline sessions listing
             ══════════════════════════════════════════════════════════════ */}
             {panelView === 'events' && (
-              <div className="animate-[fadeIn_0.25s_ease-out] space-y-1">
+              <div className="px-6 pt-6 pb-[calc(44px+env(safe-area-inset-bottom,0px))] lg:pb-6 animate-[fadeIn_0.25s_ease-out] space-y-1">
                 <div className="mb-4">
                   <p className="text-[10px] uppercase tracking-[0.3em] text-tea-text-dim mb-2">
                     {activeAccount?.name || 'Sessions'} · {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
@@ -1072,7 +1030,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                 LOCATION SWITCHER (4+ memberships)
             ══════════════════════════════════════════════════════════════ */}
             {panelView === 'location-switcher' && (
-              <div className="animate-[fadeIn_0.3s_ease-out] space-y-4">
+              <div className="px-6 pt-6 pb-[calc(44px+env(safe-area-inset-bottom,0px))] lg:pb-6 animate-[fadeIn_0.3s_ease-out] space-y-4">
                 <div className="relative">
                   <Icons.Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-tea-text-sec/50 pointer-events-none" />
                   <input
@@ -1113,42 +1071,48 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
             )}
 
             {/* ══════════════════════════════════════════════════════════════
-                MAIN VIEW — jump-nav scroll surface
+                MAIN VIEW — three zones
             ══════════════════════════════════════════════════════════════ */}
             {panelView === 'main' && (
               <div className="animate-[fadeIn_0.3s_ease-out]">
 
-                {/* ── Quick Actions ────────────────────────────────────── */}
-                <div className="space-y-3 mb-8">
-                  <div>
-                    <h3 className="font-serif text-lg font-normal text-tea-text">Quick Actions</h3>
-                    <p className="text-[11px] text-tea-text-dim mt-0.5">Common tasks, one tap.</p>
-                  </div>
+                {/* ══ ZONE 1 — Right Now ══════════════════════════════════ */}
+                <div className="bg-tea-surface/40 px-6 py-5">
+                  {nextEventWithin24h && nextEvent && (
+                    <button
+                      onClick={() => setPanelView('events')}
+                      className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-tea-gold/10 border border-tea-gold/40 text-left hover:bg-tea-gold/15 transition-colors mb-4"
+                    >
+                      <div className="w-2 h-2 rounded-full bg-tea-gold shrink-0 animate-pulse" />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[11px] uppercase tracking-[0.15em] text-tea-gold font-medium">Session today</div>
+                        <div className="text-[12px] text-tea-text font-serif truncate mt-0.5">{nextEvent.title}</div>
+                      </div>
+                      <Icons.ChevronRight className="w-3.5 h-3.5 text-tea-gold/60 shrink-0" />
+                    </button>
+                  )}
 
-                  {/* Owner / Admin */}
+                  {/* Owner/Admin — 4 core items; secondary ops live in Zone 3 */}
                   {(membershipRole === 'owner' || auth.isAdmin) && (
                     <div className="grid grid-cols-2 gap-2">
-                      <QuickAction icon={<Receipt size={18} />} label="+ Invoice" gold onClick={() => { onClose(); window.location.href = '/admin/activity?qi=1'; }} />
-                      <QuickAction icon={<UserPlus size={18} />} label="+ Customer" onClick={() => { onClose(); window.location.href = '/admin/people'; }} />
-                      <QuickAction icon={<Package size={18} />} label="+ Purchase Order" onClick={() => { onClose(); window.location.href = '/admin/purchase-orders'; }} />
-                      <QuickAction icon={<Clock size={18} />} label="Pending" badge={pendingCount} onClick={() => { onClose(); window.location.href = '/admin/activity'; }} />
-                      <QuickAction icon={<CalendarCheck size={18} />} label="Today" badge={todayEventCount || undefined} onClick={() => { onClose(); window.location.href = '/admin/events'; }} />
-                      <QuickAction icon={<AlertTriangle size={18} />} label="Stock Alerts" onClick={() => { onClose(); window.location.href = '/admin/inventory'; }} />
-                      <QuickAction icon={<Zap size={18} />} label="Capture" onClick={() => { onClose(); window.location.href = '/admin/capture'; }} />
+                      <QuickAction icon={<Receipt size={18} />} label="+ Invoice" gold onClick={() => { onClose(); navigate('/admin/activity?qi=1'); }} />
+                      <QuickAction icon={<Clock size={18} />} label="Pending" badge={pendingCount} onClick={() => { onClose(); navigate('/admin/activity'); }} />
+                      <QuickAction icon={<CalendarCheck size={18} />} label="Today" badge={todayEventCount || undefined} onClick={() => { onClose(); navigate('/admin/events'); }} />
+                      <QuickAction icon={<AlertTriangle size={18} />} label="Stock Alerts" onClick={() => { onClose(); navigate('/admin/inventory'); }} />
                     </div>
                   )}
 
-                  {/* Staff only (not owner) */}
+                  {/* Staff */}
                   {membershipRole === 'staff' && (
                     <div className="grid grid-cols-2 gap-2">
-                      <QuickAction icon={<Receipt size={18} />} label="+ Invoice" gold onClick={() => { onClose(); window.location.href = '/admin/activity?qi=1'; }} />
-                      <QuickAction icon={<UserCheck size={18} />} label="Check In" onClick={() => { onClose(); window.location.href = '/admin/events'; }} />
-                      <QuickAction icon={<CalendarCheck size={18} />} label="Today" badge={todayEventCount || undefined} onClick={() => { onClose(); window.location.href = '/admin/events'; }} />
-                      <QuickAction icon={<Zap size={18} />} label="Capture" onClick={() => { onClose(); window.location.href = '/admin/capture'; }} />
+                      <QuickAction icon={<Receipt size={18} />} label="+ Invoice" gold onClick={() => { onClose(); navigate('/admin/activity?qi=1'); }} />
+                      <QuickAction icon={<UserCheck size={18} />} label="Check In" onClick={() => { onClose(); navigate('/admin/events'); }} />
+                      <QuickAction icon={<CalendarCheck size={18} />} label="Today" badge={todayEventCount || undefined} onClick={() => { onClose(); navigate('/admin/events'); }} />
+                      <QuickAction icon={<Zap size={18} />} label="Capture" onClick={() => { onClose(); navigate('/admin/capture'); }} />
                     </div>
                   )}
 
-                  {/* Member (authenticated, no staff role) */}
+                  {/* Member */}
                   {auth.isAuthenticated && !isStaff && (
                     <div className="grid grid-cols-2 gap-2">
                       <QuickAction icon={<RotateCcw size={18} />} label="Reorder" onClick={() => { onClose(); navigate('/account/orders'); }} />
@@ -1168,25 +1132,8 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                   )}
                 </div>
 
-                <div className="h-px bg-tea-gold/10 mb-8" />
-
-                {/* ── Me Section ──────────────────────────────────────── */}
-                <div ref={meRef} className="space-y-4">
-
-                  {/* 24h event alert */}
-                  {nextEventWithin24h && nextEvent && (
-                    <button
-                      onClick={() => setPanelView('events')}
-                      className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-tea-gold/10 border border-tea-gold/40 text-left hover:bg-tea-gold/15 transition-colors"
-                    >
-                      <div className="w-2 h-2 rounded-full bg-tea-gold shrink-0 animate-pulse" />
-                      <div className="flex-1 min-w-0">
-                        <div className="text-[11px] uppercase tracking-[0.15em] text-tea-gold font-medium">Session today</div>
-                        <div className="text-[12px] text-tea-text font-serif truncate mt-0.5">{nextEvent.title}</div>
-                      </div>
-                      <Icons.ChevronRight className="w-3.5 h-3.5 text-tea-gold/60 shrink-0" />
-                    </button>
-                  )}
+                {/* ══ ZONE 2 — You ════════════════════════════════════════ */}
+                <div className="bg-tea-bg px-6 py-5 border-t border-tea-border space-y-4">
 
                   {/* Identity */}
                   {auth.isAuthenticated && auth.user ? (
@@ -1239,63 +1186,28 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                       </div>
                     </div>
                   ) : (
-                    <div>
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="w-12 h-12 rounded-full bg-tea-elevated/50 flex items-center justify-center shrink-0">
-                          <Icons.User className="w-5 h-5 text-tea-text/30" />
-                        </div>
-                        <div className="min-w-0">
-                          <h3 className="font-serif text-sm text-tea-text">Guest</h3>
-                          <p className="text-[11px] text-tea-text-dim mt-0.5 leading-relaxed">Sign in to track teas, journal sessions, and build your collection.</p>
-                        </div>
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-full bg-tea-elevated/50 flex items-center justify-center shrink-0">
+                        <Icons.User className="w-5 h-5 text-tea-text/30" />
                       </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <button
-                          onClick={() => setPanelView('signin')}
-                          className="py-3 bg-tea-gold text-tea-text font-bold text-xs uppercase tracking-[0.2em] hover:bg-tea-gold/90 transition-colors flex justify-center items-center gap-2"
-                        >
-                          <Icons.LogIn className="w-3.5 h-3.5" />
-                          Sign In
-                        </button>
-                        <button
-                          onClick={() => setPanelView('signup')}
-                          className="py-3 bg-transparent text-tea-text border border-tea-border font-bold text-xs uppercase tracking-[0.2em] hover:bg-tea-elevated/50 transition-colors"
-                        >
-                          Create Account
-                        </button>
+                      <div className="min-w-0">
+                        <h3 className="font-serif text-sm text-tea-text">Guest</h3>
+                        <p className="text-[11px] text-tea-text-dim mt-0.5 leading-relaxed">Sign in to track teas, journal sessions, and build your collection.</p>
                       </div>
                     </div>
                   )}
 
-                  {/* Location card (authenticated) */}
+                  {/* Location card — no duplicate action strip */}
                   {auth.isAuthenticated && memberships.length > 0 && (
                     <div className="space-y-2">
-                      <ActiveLocationCard showSwitchButton={memberships.length >= 4} />
+                      <ActiveLocationCard showSwitchButton={memberships.length >= 4} hideActions />
                       {memberships.length >= 2 && memberships.length <= 3 && inactiveMemberships.map(m => (
                         <InactiveLocationCard key={m.account_id} membership={m} />
                       ))}
                     </div>
                   )}
 
-                  {/* Recently Viewed */}
-                  {recentlyViewedItems.length > 0 && (
-                    <div>
-                      <ZoneLabel>Recently Viewed</ZoneLabel>
-                      <div className="flex gap-2 overflow-x-auto pb-1 -mx-0.5 px-0.5" style={{ scrollbarWidth: 'none' }}>
-                        {recentlyViewedItems.map(item => (
-                          <button
-                            key={item.id}
-                            onClick={() => { onClose(); navigate(`/shop/product/${item.id}`); }}
-                            className="shrink-0 h-8 px-3 rounded-full bg-tea-surface border border-tea-border text-[11px] text-tea-text-sec hover:text-tea-gold hover:border-tea-gold/40 transition-colors whitespace-nowrap"
-                          >
-                            {item.name}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Your Tea card */}
+                  {/* Your Tea + Reading merged */}
                   <div className="rounded-xl border border-tea-border overflow-hidden">
                     <CardSectionLabel>Your Tea</CardSectionLabel>
                     <Item
@@ -1305,34 +1217,39 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                       onClick={() => { onClose(); navigate(isStaff ? '/admin/compass' : '/compass'); }}
                       gold={!!compassProfile}
                     />
-                    <Item
-                      icon={<Icons.Sparkles className="w-4 h-4" />}
-                      label="Tasting Journal"
-                      description={
-                        auth.isAuthenticated
-                          ? tastingJournal.length > 0
-                            ? `Last session: ${formatRelativeDate(tastingJournal[0].createdAt)}`
-                            : "Record sessions and track your palate"
-                          : "Record sessions and track your palate — sign in to access"
-                      }
-                      onClick={auth.isAuthenticated ? () => { onClose(); navigate('/account/journal'); } : () => setPanelView('signin')}
-                      gold={tastingJournal.length > 0}
-                      locked={!auth.isAuthenticated}
-                    />
-                    <Item
-                      icon={<Icons.Heart className="w-4 h-4" />}
-                      label="My Collection"
-                      description={
-                        auth.isAuthenticated
-                          ? favoriteTeas.length > 0
-                            ? `${favoriteTeas.length} teas saved`
-                            : "Teas you love and want to revisit"
-                          : "Teas you love and want to revisit — sign in to access"
-                      }
-                      onClick={auth.isAuthenticated ? () => { onClose(); navigate('/account/collection'); } : () => setPanelView('signin')}
-                      gold={favoriteTeas.length > 0}
-                      locked={!auth.isAuthenticated}
-                    />
+                    {auth.isAuthenticated ? (
+                      <>
+                        <Item
+                          icon={<Icons.Sparkles className="w-4 h-4" />}
+                          label="Tasting Journal"
+                          description={tastingJournal.length > 0 ? `Last session: ${formatRelativeDate(tastingJournal[0].createdAt)}` : "Record sessions and track your palate"}
+                          onClick={() => { onClose(); navigate('/account/journal'); }}
+                          gold={tastingJournal.length > 0}
+                        />
+                        <Item
+                          icon={<Icons.Heart className="w-4 h-4" />}
+                          label="My Collection"
+                          description={favoriteTeas.length > 0 ? `${favoriteTeas.length} teas saved` : "Teas you love and want to revisit"}
+                          onClick={() => { onClose(); navigate('/account/collection'); }}
+                          gold={favoriteTeas.length > 0}
+                        />
+                      </>
+                    ) : (
+                      <button
+                        onClick={() => setPanelView('signup')}
+                        className="w-full flex items-center gap-3.5 px-4 py-3.5 text-left hover:bg-tea-surface/50 transition-colors border-b border-tea-border group"
+                        style={{ WebkitTapHighlightColor: 'transparent' }}
+                      >
+                        <div className="shrink-0 text-tea-gold/50 group-hover:text-tea-gold/70 transition-colors">
+                          <Icons.Sparkles className="w-4 h-4" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[13px] font-medium text-tea-text leading-tight">Journal & Collection</div>
+                          <div className="text-[11px] text-tea-text-dim mt-0.5 leading-tight">Track tastings and save teas — create an account</div>
+                        </div>
+                        <Icons.ChevronRight className="w-3.5 h-3.5 text-tea-text/15 group-hover:text-tea-text/30 transition-colors shrink-0" />
+                      </button>
+                    )}
                     <Item
                       icon={<Icons.Bag className="w-4 h-4" />}
                       label="Cart"
@@ -1357,11 +1274,6 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                         />
                       </>
                     )}
-                  </div>
-
-                  {/* Reading card */}
-                  <div className="rounded-xl border border-tea-border overflow-hidden">
-                    <CardSectionLabel>Reading</CardSectionLabel>
                     <Item
                       icon={<Icons.Leaf className="w-4 h-4" />}
                       label="Saved Stories"
@@ -1378,9 +1290,8 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                     />
                   </div>
 
-                  {/* Preferences card */}
+                  {/* Currency + Settings */}
                   <div className="rounded-xl border border-tea-border overflow-hidden">
-                    <CardSectionLabel>Preferences</CardSectionLabel>
                     <div className="px-4 py-3.5 border-b border-tea-border">
                       <div className="flex items-center gap-3 flex-wrap">
                         <span className="text-[11px] text-tea-text-dim font-medium shrink-0">Currency</span>
@@ -1409,6 +1320,22 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                         onClick={() => { onClose(); navigate('/account/settings'); }}
                       />
                     )}
+                    {(membershipRole === 'owner' || auth.isAdmin) && (
+                      <>
+                        <Item
+                          icon={<Users className="w-4 h-4" />}
+                          label="Team"
+                          description="Manage members and roles"
+                          onClick={() => { onClose(); navigate('/admin/team'); }}
+                        />
+                        <Item
+                          icon={<Settings className="w-4 h-4" />}
+                          label="Account Settings"
+                          description="Store details and preferences"
+                          onClick={() => { onClose(); navigate('/admin/account-settings'); }}
+                        />
+                      </>
+                    )}
                   </div>
 
                   {/* Sign Out */}
@@ -1423,14 +1350,10 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                   )}
                 </div>
 
-                <div className="my-8 h-px bg-tea-gold/10" />
+                {/* ══ ZONE 3 — Explore ════════════════════════════════════ */}
+                <div className="bg-tea-surface/20 px-6 py-5 border-t border-tea-border space-y-3 pb-[calc(44px+env(safe-area-inset-bottom,0px))] lg:pb-8">
 
-                {/* ── Navigate Section ────────────────────────────────── */}
-                <div ref={navigateRef} className="space-y-4">
-                  <div>
-                    <h3 className="font-serif text-lg font-normal text-tea-text">Navigate</h3>
-                    <p className="text-[11px] text-tea-text-dim mt-0.5">Everything on the site, one tap away.</p>
-                  </div>
+                  {/* Primary nav */}
                   <div className="rounded-xl border border-tea-border overflow-hidden">
                     <Item
                       icon={<Icons.Bag className="w-4 h-4" />}
@@ -1450,19 +1373,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                       icon={<Icons.BookOpen className="w-4 h-4" />}
                       label="Library"
                       description="Articles, guides & deep tea knowledge"
-                      onClick={() => { onClose(); navigate('/library'); }}
-                    />
-                    <Item
-                      icon={<Icons.MapPin className="w-4 h-4" />}
-                      label="Tea Compass"
-                      description="Find teas matched to your taste profile"
-                      onClick={() => { onClose(); navigate('/compass'); }}
-                    />
-                    <Item
-                      icon={<Icons.Search className="w-4 h-4" />}
-                      label="Find a Teahouse"
-                      description="Teajia locations around the world"
-                      onClick={() => { onClose(); navigate('/find-a-table'); }}
+                      onClick={() => { onClose(); navigate('/magazine'); }}
                     />
                     <Item
                       icon={<Icons.Sparkles className="w-4 h-4" />}
@@ -1470,12 +1381,24 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                       description="Book a personal tea consultation with Adrian"
                       onClick={() => { onClose(); navigate('/consult'); }}
                     />
-                    <Item
-                      icon={<Icons.User className="w-4 h-4" />}
-                      label="Community"
-                      description="Members, makers & connections"
-                      onClick={() => { onClose(); navigate('/community'); }}
-                    />
+                  </div>
+
+                  {/* Secondary nav — compact pair + WhatsApp */}
+                  <div className="rounded-xl border border-tea-border overflow-hidden">
+                    <div className="flex divide-x divide-tea-border border-b border-tea-border">
+                      <button
+                        onClick={() => { onClose(); navigate('/find-a-table'); }}
+                        className="flex-1 py-3 text-[11px] text-tea-text-sec hover:text-tea-gold hover:bg-tea-surface/50 transition-colors uppercase tracking-[0.12em]"
+                      >
+                        Find a Teahouse
+                      </button>
+                      <button
+                        onClick={() => { onClose(); navigate('/community'); }}
+                        className="flex-1 py-3 text-[11px] text-tea-text-sec hover:text-tea-gold hover:bg-tea-surface/50 transition-colors uppercase tracking-[0.12em]"
+                      >
+                        Community
+                      </button>
+                    </div>
                     <a
                       href={waLink}
                       target="_blank"
@@ -1493,18 +1416,14 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                       <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 text-tea-text/15 group-hover:text-tea-text/30 transition-colors shrink-0" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg>
                     </a>
                   </div>
-                </div>
 
-                {/* ── Ops Section (staff+) ─────────────────────────────── */}
-                {isStaff && (
-                  <>
-                    <div className="my-8 h-px bg-tea-gold/10" />
-                    <div ref={opsRef} className="space-y-4">
-                      <div>
-                        <h3 className="font-serif text-lg font-normal text-tea-text">Operations</h3>
-                        <p className="text-[11px] text-tea-text-dim mt-0.5">Manage your store, inventory & events.</p>
+                  {/* Operations — staff only */}
+                  {isStaff && (
+                    <>
+                      <div className="pt-1">
+                        <ZoneLabel>Operations</ZoneLabel>
                       </div>
-                      <div className="rounded-xl border border-tea-border overflow-hidden">
+                      <div className="rounded-xl border border-tea-gold/20 overflow-hidden">
                         <Item
                           icon={<Icons.Settings className="w-4 h-4" />}
                           label="Admin Dashboard"
@@ -1528,6 +1447,16 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                           />
                         )}
                       </div>
+
+                      {/* Secondary owner actions moved from Zone 1 */}
+                      {(membershipRole === 'owner' || auth.isAdmin) && (
+                        <div className="grid grid-cols-3 gap-2">
+                          <QuickAction icon={<UserPlus size={18} />} label="+ Customer" onClick={() => { onClose(); navigate('/admin/people'); }} />
+                          <QuickAction icon={<Package size={18} />} label="+ Purchase Order" onClick={() => { onClose(); navigate('/admin/purchase-orders'); }} />
+                          <QuickAction icon={<Zap size={18} />} label="Capture" onClick={() => { onClose(); navigate('/admin/capture'); }} />
+                        </div>
+                      )}
+
                       {memberships.length >= 2 && (
                         <div className="rounded-xl border border-tea-border overflow-hidden">
                           <Item
@@ -1538,11 +1467,9 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                           />
                         </div>
                       )}
-                    </div>
-                  </>
-                )}
-
-                <div className="h-8" />
+                    </>
+                  )}
+                </div>
               </div>
             )}
 

@@ -12,18 +12,30 @@ interface ColorSwatchesProps {
   compact?: boolean;
 }
 
-const TeaCupSvg = ({ color }: { color: string }) => (
-  <svg width="22" height="19" viewBox="0 0 28 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-    {/* Liquid fill */}
-    <path d="M3 5 L5 20 Q5 22 7 22 L21 22 Q23 22 23 20 L25 5 Z" fill={color} />
-    {/* Cup outline */}
-    <path d="M3 5 L5 20 Q5 22 7 22 L21 22 Q23 22 23 20 L25 5" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" fill="none" />
-    {/* Rim */}
-    <line x1="3" y1="5" x2="25" y2="5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-    {/* Handle */}
-    <path d="M23 9 Q28 9 28 13.5 Q28 18 23 18" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" fill="none" />
-  </svg>
-);
+const DecanterSvg = ({ color }: { color: string }) => {
+  const id = color.replace(/[^a-z0-9]/gi, '');
+  // Round fair cup (公道杯): wide open mouth, bulbous body
+  const bodyD = "M4 8 Q1 8 1 13 Q1 21 11 21 Q21 21 21 13 Q21 8 18 8";
+  return (
+    <svg width="30" height="26" viewBox="0 0 26 22" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+      <defs>
+        <linearGradient id={`dG${id}`} x1="0" y1="21" x2="0" y2="13" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor={color} />
+          <stop offset="100%" stopColor={color} stopOpacity="0.55" />
+        </linearGradient>
+        <clipPath id={`dC${id}`}>
+          <path d={`${bodyD} Z`} />
+        </clipPath>
+      </defs>
+      {/* Liquid ~65% full with gradient */}
+      <rect x="0" y="13" width="26" height="10" fill={`url(#dG${id})`} clipPath={`url(#dC${id})`} />
+      {/* Body outline */}
+      <path d={bodyD} stroke="currentColor" strokeWidth="1.2" fill="none" />
+      {/* Rim */}
+      <line x1="4" y1="8" x2="18" y2="8" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+    </svg>
+  );
+};
 
 const ColorSwatchesInner: React.FC<ColorSwatchesProps> = ({ flow, compact = false }) => {
   const selected = flow.value['liquor-color'] || [];
@@ -63,11 +75,11 @@ const ColorSwatchesInner: React.FC<ColorSwatchesProps> = ({ flow, compact = fals
               transition={{ duration: 0.15 }}
               className="flex items-center gap-2"
             >
-              <span className="text-tea-text-dim">
-                <TeaCupSvg color={selectedHex} />
-              </span>
               <span className="text-[11px] text-tea-text-sec" style={{ fontFamily: 'var(--font-body)' }}>
                 {colorTerms.find(t => t.id === selectedId)?.label}
+              </span>
+              <span className="text-tea-text-dim">
+                <DecanterSvg color={selectedHex} />
               </span>
               <button
                 type="button"

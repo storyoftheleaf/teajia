@@ -125,8 +125,8 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-modal flex items-center justify-center bg-tea-text/90 backdrop-blur-md p-4 animate-in fade-in duration-200">
-      <div className="bg-tea-bg border border-tea-border rounded-2xl w-full max-w-lg p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scrollbar">
+    <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
+      <div className="bg-tea-bg border border-tea-border rounded-2xl w-full max-w-2xl p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scrollbar">
         <button onClick={onClose} className="absolute top-4 right-4 text-tea-text-sec hover:text-tea-text transition-colors">
           <X size={20} />
         </button>
@@ -218,7 +218,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
                 </div>
               )}
 
-              <div className="space-y-2 max-h-48 overflow-y-auto custom-scrollbar">
+              <div className="space-y-2">
                 {items.map((item, index) => (
                   <div key={index} className="bg-tea-surface border border-tea-border rounded-lg p-3">
                     <div className="flex items-center justify-between mb-2">

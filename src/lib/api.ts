@@ -1469,7 +1469,7 @@ export const api = {
       ref_number: string;
       customer_name: string;
       customer_contact: string;
-      customer_location: string;
+      customer_location?: string;
       notes?: string;
       items_json: string;
       total_estimate_usd: number;
