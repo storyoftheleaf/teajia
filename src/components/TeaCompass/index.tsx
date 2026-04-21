@@ -360,7 +360,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   ];
 
   return (
-    <div className="flex flex-col h-full relative surface-warm">
+    <div className="flex-1 min-h-0 flex flex-col relative surface-warm overflow-hidden">
       {/* ── Header ── */}
       <div className="flex items-center gap-3 px-4 pt-3 pb-2">
         <button

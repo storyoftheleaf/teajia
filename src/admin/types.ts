@@ -84,9 +84,16 @@ export interface Invoice {
 }
 
 export interface InvoiceItem {
-  productId: string;
+  productId?: string;
+  customName?: string;
   quantity: number; // Grams or Units
   priceAtSale: number;
+}
+
+export interface InvoiceDisplayItem extends InvoiceItem {
+  id?: string;
+  unit?: 'g' | 'pcs';
+  product?: Product;
 }
 
 export interface ExchangeRate {
@@ -94,7 +101,7 @@ export interface ExchangeRate {
   rateToUSD: number; // 1 USD = X Currency
 }
 
-export interface CartItem extends InvoiceItem {
+export interface CartItem extends InvoiceDisplayItem {
   product: Product;
 }
 

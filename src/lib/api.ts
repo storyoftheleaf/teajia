@@ -545,7 +545,7 @@ export const api = {
       });
       return handleResponse(res);
     },
-    updateItems: async (id: string, data: { lineItems?: { product_id: string; quantity: number; price_at_sale: number }[]; shipping_cost_usd?: number; customer_name?: string; notes?: string }) => {
+    updateItems: async (id: string, data: { lineItems?: { product_id?: string | null; custom_name?: string | null; quantity: number; price_at_sale: number }[]; shipping_cost_usd?: number; customer_name?: string; notes?: string }) => {
       const res = await fetchWithTimeout(`${API_URL}/api/invoices/${id}/items`, {
         method: 'PUT',
         headers: authHeaders(),

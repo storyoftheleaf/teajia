@@ -4,6 +4,7 @@ import { Check } from 'lucide-react';
 import {
   TASTING_TAXONOMY,
   TERM_MAP,
+  TEA_TYPE_SUGGESTIONS,
 } from '../../data/tastingTaxonomy';
 
 /** Short single-line labels for the narrow sidebar column */
@@ -28,6 +29,7 @@ const flavorCategory = TASTING_TAXONOMY.categories.find(c => c.id === 'flavor')!
 interface FlavorSplitProps {
   selected: string[];
   onToggle: (termId: string) => void;
+  teaType?: string;
 }
 
 /**
@@ -38,12 +40,32 @@ interface FlavorSplitProps {
  *
  * No horizontal scroll. No drill-down. Everything one tap away.
  */
-const FlavorSplitInner: React.FC<FlavorSplitProps> = ({ selected, onToggle }) => {
+const FlavorSplitInner: React.FC<FlavorSplitProps> = ({ selected, onToggle, teaType }) => {
   const [activeFamily, setActiveFamily] = useState<string>(
     flavorCategory.groups[0].label
   );
 
   const selectedSet = new Set(selected);
+
+  // Derive suggested family labels for this tea type
+  const suggestedFamilies = React.useMemo((): Set<string> => {
+    if (!teaType) return new Set();
+    const termIds = TEA_TYPE_SUGGESTIONS[teaType] ?? [];
+    const families = new Set<string>();
+    for (const id of termIds) {
+      const groupLabel = TERM_MAP.get(id)?.groupLabel;
+      if (groupLabel) families.add(groupLabel);
+    }
+    return families;
+  }, [teaType]);
+
+  const suggestedFamilyNames = React.useMemo(() => {
+    if (suggestedFamilies.size === 0) return null;
+    const shortNames = [...suggestedFamilies]
+      .slice(0, 3)
+      .map(f => SHORT_FAMILY_LABEL[f] ?? f);
+    return shortNames.join(' · ');
+  }, [suggestedFamilies]);
 
   const getGroupCount = (groupLabel: string): number => {
     const group = flavorCategory.groups.find(g => g.label === groupLabel);
@@ -54,6 +76,12 @@ const FlavorSplitInner: React.FC<FlavorSplitProps> = ({ selected, onToggle }) =>
   const activeGroup = flavorCategory.groups.find(g => g.label === activeFamily)!;
 
   return (
+    <div>
+    {suggestedFamilyNames && (
+      <p className="text-[11px] text-tea-text-dim italic mb-3" style={{ fontFamily: 'var(--font-body)' }}>
+        {teaType} teas often show up in {suggestedFamilyNames}.
+      </p>
+    )}
     <div className="flex flex-row gap-0" style={{ minHeight: 300 }}>
 
       {/* ── Left: vertical family list, always ── */}
@@ -67,6 +95,7 @@ const FlavorSplitInner: React.FC<FlavorSplitProps> = ({ selected, onToggle }) =>
           const isActive = group.label === activeFamily;
           const count = getGroupCount(group.label);
           const shortLabel = SHORT_FAMILY_LABEL[group.label] ?? group.label;
+          const isSuggested = suggestedFamilies.has(group.label);
 
           return (
             <button
@@ -83,7 +112,13 @@ const FlavorSplitInner: React.FC<FlavorSplitProps> = ({ selected, onToggle }) =>
                 transition-colors duration-150
                 ${isActive ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'}
               `}
-              style={{ fontFamily: 'var(--font-display)', fontSize: '16px', letterSpacing: '0.02em' }}
+              style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: '16px',
+                letterSpacing: '0.02em',
+                background: isSuggested && !isActive ? 'rgb(var(--tea-gold-rgb) / 0.06)' : undefined,
+                borderRadius: isSuggested ? 6 : undefined,
+              }}
             >
               {isActive && (
                 <motion.div
@@ -164,6 +199,7 @@ const FlavorSplitInner: React.FC<FlavorSplitProps> = ({ selected, onToggle }) =>
           </motion.div>
         </AnimatePresence>
       </div>
+    </div>
     </div>
   );
 };

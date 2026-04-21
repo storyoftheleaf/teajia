@@ -83,7 +83,16 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
   const { addTasting, updateTasting, activeAccountId, activeAccount, tastingJournal } = useAppStore();
   const { addNote } = useNotesStore();
   const isGuest = !hasToken();
-  const [tastingData, setTastingData] = useState<TastingData>(initialData ?? {});
+
+  // Pre-fill from the most recent tasting of this tea (customer mode only)
+  const lastTasting = React.useMemo(() => {
+    if (adminMode || !item.id || item.id === 'quick-note' || initialData) return null;
+    return tastingJournal.find(e => e.teaId === item.id && !e.archived) ?? null;
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps — intentionally only run once on mount
+
+  const [tastingData, setTastingData] = useState<TastingData>(initialData ?? lastTasting?.tasting ?? {});
+  const [isContinuing, setIsContinuing] = useState(!!lastTasting);
+  const [simplified, setSimplified] = useState(false);
   const [phase, setPhase] = useState<'tasting' | 'saved'>('tasting');
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [savedEntryId, setSavedEntryId] = useState<string | null>(null);
@@ -274,13 +283,26 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
           </div>
         </div>
 
-        <button
-          onClick={onClose}
-          className="pill text-xs text-tea-text-sec shrink-0 ml-3"
-          style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.06em' }}
-        >
-          Cancel
-        </button>
+        <div className="flex items-center gap-2 shrink-0 ml-3">
+          {!adminMode && (
+            <button
+              type="button"
+              onClick={() => setSimplified(p => !p)}
+              className="text-[11px] text-tea-text-dim hover:text-tea-text-sec transition-colors"
+              style={{ fontFamily: 'var(--font-body)' }}
+              title={simplified ? 'Show all options' : 'Feeling lost? Reduce the options'}
+            >
+              {simplified ? 'full view' : 'simplify'}
+            </button>
+          )}
+          <button
+            onClick={onClose}
+            className="pill text-xs text-tea-text-sec"
+            style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.06em' }}
+          >
+            Cancel
+          </button>
+        </div>
       </div>
 
       <AnimatePresence mode="wait">
@@ -294,6 +316,23 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
             exit={{ opacity: 0 }}
             className="flex-1 min-h-0 flex flex-col"
           >
+            {/* Continuing banner */}
+            {isContinuing && (
+              <div className="flex items-center justify-between px-4 py-2 bg-tea-surface/60 border-b border-tea-border shrink-0">
+                <span className="text-[11px] text-tea-text-sec italic" style={{ fontFamily: 'var(--font-body)' }}>
+                  Continuing from your last notes — change anything
+                </span>
+                <button
+                  type="button"
+                  onClick={() => { setTastingData({}); setIsContinuing(false); }}
+                  className="text-[10px] text-tea-text-dim hover:text-tea-text transition-colors ml-3 shrink-0"
+                  style={{ fontFamily: 'var(--font-body)' }}
+                >
+                  Start fresh
+                </button>
+              </div>
+            )}
+
             {/* Structured sections */}
             <div className="flex-1 min-h-0 overflow-hidden relative">
               <div
@@ -307,6 +346,8 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                 activeSectionId={activeSectionId}
                 onSectionChange={setActiveSectionId}
                 onCountsChange={setSectionCounts}
+                simplified={simplified}
+                teaType={item.type}
               />
             </div>
 

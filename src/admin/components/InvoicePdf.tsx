@@ -1,6 +1,6 @@
 import React from 'react';
 import { Page, Text, View, Document, StyleSheet, Font } from '@react-pdf/renderer';
-import { CartItem, ExchangeRate, Currency } from '../types';
+import { InvoiceDisplayItem, ExchangeRate, Currency } from '../types';
 
 // Register a font that supports nice typography
 Font.register({
@@ -110,7 +110,7 @@ const format = (num: number, currency: string) =>
 interface InvoicePdfProps {
   invoiceNumber: string;
   customerName: string;
-  cart: CartItem[];
+  cart: InvoiceDisplayItem[];
   rates: ExchangeRate[];
   currency: Currency;
   shipping: number;
@@ -164,13 +164,13 @@ export const InvoicePdfDocument: React.FC<InvoicePdfProps> = ({
           {cart.map((item, i) => (
             <View key={i} style={rowStyle}>
               <View style={styles.colProduct}>
-                <Text style={{fontWeight: 'bold'}}>{item.product.givenName}</Text>
-                {!isCompact && <Text style={{color: '#666', fontSize: 8}}>{item.product.productName}</Text>}
-                {isDetailed && item.product.description && (
+                <Text style={{fontWeight: 'bold'}}>{item.product?.givenName ?? item.customName ?? 'Custom Item'}</Text>
+                {!isCompact && item.product?.productName && <Text style={{color: '#666', fontSize: 8}}>{item.product.productName}</Text>}
+                {isDetailed && item.product?.description && (
                   <Text style={{color: '#999', fontSize: 7, marginTop: 2}}>{item.product.description.slice(0, 120)}</Text>
                 )}
               </View>
-              <Text style={styles.colQty}>{item.quantity} {item.product.type === 'Teaware' ? 'u' : 'g'}</Text>
+              <Text style={styles.colQty}>{item.quantity} {item.unit ?? (item.product?.type === 'Teaware' ? 'u' : 'g')}</Text>
               <Text style={styles.colRate}>{format(conv(item.priceAtSale), currency)}</Text>
               <Text style={styles.colTotal}>{format(conv(item.quantity * item.priceAtSale), currency)}</Text>
             </View>

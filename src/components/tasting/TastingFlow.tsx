@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Circle, Leaf, Moon, Palette,
-  Undo2, X,
+  X,
 } from 'lucide-react';
 import type { TastingData } from '../../types';
 import { useTastingFlow } from './useTastingFlow';
@@ -19,14 +19,15 @@ export type SectionId = 'body' | 'state' | 'flavor' | 'appearance';
 export interface SectionDef {
   id: SectionId;
   label: string;
+  subtitle: string;
   icon: React.ComponentType<{ size?: number; strokeWidth?: number }>;
 }
 
 export const ALL_SECTIONS: SectionDef[] = [
-  { id: 'body',       label: 'Body',   icon: Circle },
-  { id: 'state',      label: 'Feel',   icon: Moon },
-  { id: 'flavor',     label: 'Flavor', icon: Leaf },
-  { id: 'appearance', label: 'Look',   icon: Palette },
+  { id: 'body',       label: 'Body',   subtitle: 'How does it feel in your mouth?',    icon: Circle },
+  { id: 'state',      label: 'Effect', subtitle: 'What did the tea do to you?',        icon: Moon },
+  { id: 'flavor',     label: 'Flavor', subtitle: 'What do you taste?',                 icon: Leaf },
+  { id: 'appearance', label: 'Look',   subtitle: 'What does the liquor look like?',    icon: Palette },
 ];
 
 /* ─── Transition variants ─── */
@@ -60,6 +61,10 @@ interface TastingFlowProps {
   onSectionChange?: (id: SectionId) => void;
   /** Expose section counts back to parent for badge rendering */
   onCountsChange?: (counts: Record<SectionId, number>) => void;
+  /** Hides advanced terms for first-time users */
+  simplified?: boolean;
+  /** Tea type used to highlight likely flavor families */
+  teaType?: string;
 }
 
 export const TastingFlow: React.FC<TastingFlowProps> = ({
@@ -68,6 +73,8 @@ export const TastingFlow: React.FC<TastingFlowProps> = ({
   activeSectionId: controlledSectionId,
   onSectionChange: onControlledSectionChange,
   onCountsChange,
+  simplified = false,
+  teaType,
 }) => {
   // Uncontrolled fallback — used when admin views don't provide activeSectionId
   const [internalSectionId, setInternalSectionId] = useState<SectionId>('body');
@@ -82,9 +89,6 @@ export const TastingFlow: React.FC<TastingFlowProps> = ({
   // Track direction for slide animation internally
   const prevSectionRef = useRef<SectionId>(activeSectionId);
   const [[direction, animKey], setAnimState] = useState<[number, number]>([0, 0]);
-
-  const [undoToastVisible, setUndoToastVisible] = useState(false);
-  const prevCanUndo = useRef(flow.canUndo);
 
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
@@ -169,16 +173,6 @@ export const TastingFlow: React.FC<TastingFlowProps> = ({
     [goNext, goPrev]
   );
 
-  /* ─── Undo toast ─── */
-
-  useEffect(() => {
-    if (flow.canUndo && !prevCanUndo.current) {
-      setUndoToastVisible(true);
-      const timer = setTimeout(() => setUndoToastVisible(false), 3000);
-      return () => clearTimeout(timer);
-    }
-    prevCanUndo.current = flow.canUndo;
-  }, [flow.canUndo]);
 
   /* ─── Section content renderer ─── */
 
@@ -189,7 +183,7 @@ export const TastingFlow: React.FC<TastingFlowProps> = ({
           <>
             <BodyZone flow={flow} value={value} onChange={onChange} />
             <div className="divider-warm my-3" />
-            <ThroatZone flow={flow} value={value} onChange={onChange} />
+            <ThroatZone flow={flow} value={value} onChange={onChange} simplified={simplified} />
           </>
         );
       case 'state':
@@ -213,6 +207,7 @@ export const TastingFlow: React.FC<TastingFlowProps> = ({
             <FlavorSplit
               selected={value.flavor || []}
               onToggle={(termId) => flow.toggleTerm('flavor', termId)}
+              teaType={teaType}
             />
           </div>
         );
@@ -248,34 +243,18 @@ export const TastingFlow: React.FC<TastingFlowProps> = ({
               transition={sectionTransition}
               className="px-4 pb-4 pt-3"
             >
+              <p
+                className="text-[11px] text-tea-text-dim italic mb-3"
+                style={{ fontFamily: 'var(--font-body)' }}
+              >
+                {activeSection.subtitle}
+              </p>
               {renderSectionContent(activeSection.id)}
             </motion.div>
           </AnimatePresence>
         </div>
       </div>
 
-      {/* Undo toast */}
-      <AnimatePresence>
-        {undoToastVisible && flow.canUndo && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            transition={{ duration: 0.2 }}
-            className="fixed bottom-40 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-tea-surface px-4 py-2.5 rounded-lg shadow-lg"
-            style={{ fontFamily: 'var(--font-body)' }}
-          >
-            <button
-              type="button"
-              onClick={() => { flow.undo(); setUndoToastVisible(false); }}
-              className="flex items-center gap-1.5 text-tea-gold text-[13px] font-medium hover:text-tea-text transition-colors"
-            >
-              <Undo2 size={14} />
-              Undo
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 };

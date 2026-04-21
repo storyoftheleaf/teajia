@@ -3,12 +3,14 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { openWhatsAppStatus } from '../../lib/whatsapp';
-import { Loader2, Search, XCircle, Trash2, Eye, X, PackageCheck, Users, History, Scissors, Pencil, Package, MoreHorizontal, Clock, MessageCircle } from 'lucide-react';
+import { Loader2, Search, XCircle, Trash2, Eye, X, PackageCheck, Users, History, Scissors, Pencil, Package, MoreHorizontal, Clock, MessageCircle, Plus, Link2 } from 'lucide-react';
+import Fuse from 'fuse.js';
 import { useRates, useProducts } from '../hooks/useAdminData';
 import { useToast } from './Toast';
 import { ConfirmModal } from './ConfirmModal';
 import { SplitOrderModal } from './SplitOrderModal';
 import { EditOrderModal } from './EditOrderModal';
+import { QuickInvoiceModal } from './QuickInvoiceModal';
 import { formatCurrency } from '../utils';
 
 const ROW_HEIGHT = 36;
@@ -37,6 +39,21 @@ export const OrdersView = () => {
   // Split & Edit modal state
   const [splitInvoice, setSplitInvoice] = useState<any | null>(null);
   const [editInvoice, setEditInvoice] = useState<any | null>(null);
+
+  // Quick Invoice + link-later state
+  const [showQuickInvoice, setShowQuickInvoice] = useState(false);
+  const [linkState, setLinkState] = useState<{ itemIndex: number; query: string } | null>(null);
+
+  const productFuse = useMemo(() => new Fuse(products, {
+    keys: ['givenName', 'productName'],
+    threshold: 0.35,
+    ignoreLocation: true,
+  }), [products]);
+
+  const linkSuggestions = useMemo(() => {
+    if (!linkState?.query.trim()) return products.filter(p => p.status === 'Active').slice(0, 8);
+    return productFuse.search(linkState.query).map(r => r.item).slice(0, 8);
+  }, [linkState?.query, productFuse, products]);
 
   // Timeline state for invoice detail
   const [invoiceTimeline, setInvoiceTimeline] = useState<any[]>([]);
@@ -135,6 +152,29 @@ export const OrdersView = () => {
     setConfirmState(null);
   };
 
+  const handleLinkProduct = async (product: any) => {
+    if (!viewingInvoice || !linkState) return;
+    const updatedItems = (viewingInvoice.items || []).map((item: any, idx: number) => {
+      if (idx !== linkState.itemIndex) return item;
+      return { ...item, product_id: product.id, given_name: product.givenName, product_name: product.productName };
+    });
+    try {
+      await api.invoices.updateItems(viewingInvoice.id, {
+        lineItems: updatedItems.map((item: any) => ({
+          product_id: item.product_id ?? null,
+          custom_name: item.product_id ? null : (item.custom_name ?? item.given_name ?? null),
+          quantity: item.quantity,
+          price_at_sale: item.price_at_sale,
+        })),
+      });
+      setViewingInvoice((prev: any) => ({ ...prev, items: updatedItems }));
+      setLinkState(null);
+      showToast('Item linked to inventory.', 'success');
+    } catch (err: any) {
+      showToast('Link failed: ' + err.message, 'error');
+    }
+  };
+
   const filteredOrders = orders.filter((o: any) => {
     if (statusFilter !== 'all' && o.status !== statusFilter) return false;
     if (!search) return true;
@@ -198,7 +238,14 @@ export const OrdersView = () => {
             </span>
           )}
 
-          <div className="relative w-28 md:w-48 ml-auto shrink-0">
+          <button
+            onClick={() => setShowQuickInvoice(true)}
+            className="ml-auto shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-[10px] uppercase tracking-[0.15em] text-tea-text border border-tea-border rounded-lg hover:border-tea-gold/50 hover:text-tea-gold transition-colors"
+          >
+            <Plus size={11} /> Invoice
+          </button>
+
+          <div className="relative w-28 md:w-48 shrink-0">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-tea-text-sec" size={14} />
             <input
               type="text"
@@ -491,22 +538,68 @@ export const OrdersView = () => {
 
                 <div className="bg-tea-surface border border-tea-border rounded-xl p-6 mb-8">
                     <h4 className="text-xs uppercase tracking-[0.2em] text-tea-text-sec mb-4">Items</h4>
-                    <div className="space-y-3 max-h-48 overflow-y-auto custom-scrollbar pr-2">
+                    <div className="space-y-3 max-h-56 overflow-y-auto custom-scrollbar pr-2">
                         {viewingInvoice.items?.map((item: any, i: number) => (
-                            <div key={i} className="flex justify-between text-sm items-center">
-                                <div>
-                                    <button
-                                      onClick={() => { setViewingInvoice(null); navigate(item.product_id ? `/admin/inventory?panel=${encodeURIComponent(item.product_id)}` : `/admin/inventory?search=${encodeURIComponent(item.given_name || item.product_name || '')}`); }}
-                                      className="text-tea-text font-medium hover:text-tea-accent transition-colors text-left"
-                                    >
-                                      {item.given_name || 'Unknown Item'}
-                                    </button>
-                                    <div className="text-[10px] text-tea-text-sec">{item.product_name}</div>
+                            <div key={i} className="text-sm">
+                              <div className="flex justify-between items-start">
+                                <div className="flex-1 min-w-0">
+                                    {item.product_id ? (
+                                      <button
+                                        onClick={() => { setViewingInvoice(null); navigate(`/admin/inventory?panel=${encodeURIComponent(item.product_id)}`); }}
+                                        className="text-tea-text font-medium hover:text-tea-accent transition-colors text-left truncate block"
+                                      >
+                                        {item.given_name || item.product_name || 'Unknown'}
+                                      </button>
+                                    ) : (
+                                      <span className="text-tea-text font-medium">{item.custom_name || item.given_name || 'Custom Item'}</span>
+                                    )}
+                                    {item.product_name && item.product_id && <div className="text-[10px] text-tea-text-sec">{item.product_name}</div>}
+                                    {!item.product_id && (
+                                      <div className="mt-1">
+                                        {linkState?.itemIndex === i ? (
+                                          <div className="relative">
+                                            <input
+                                              autoFocus
+                                              type="text"
+                                              value={linkState.query}
+                                              onChange={e => setLinkState(s => s ? { ...s, query: e.target.value } : null)}
+                                              placeholder="Search inventory…"
+                                              className="w-full bg-tea-bg border border-tea-border rounded-lg px-2 py-1 text-xs text-tea-text outline-none focus:border-tea-gold/50 transition-colors"
+                                            />
+                                            {linkSuggestions.length > 0 && (
+                                              <div className="absolute top-full left-0 right-0 mt-0.5 bg-tea-elevated border border-tea-border rounded-xl shadow-lg z-10 max-h-32 overflow-y-auto custom-scrollbar">
+                                                {linkSuggestions.map((p: any) => (
+                                                  <button
+                                                    key={p.id}
+                                                    onMouseDown={() => handleLinkProduct(p)}
+                                                    className="w-full text-left px-3 py-1.5 text-xs hover:bg-tea-surface transition-colors flex justify-between"
+                                                  >
+                                                    <span className="text-tea-text truncate">{p.givenName || p.productName}</span>
+                                                    <span className="text-tea-text-dim shrink-0 ml-2">{p.stockGrams}g</span>
+                                                  </button>
+                                                ))}
+                                              </div>
+                                            )}
+                                            <button onClick={() => setLinkState(null)} className="absolute -top-1 -right-1 text-tea-text-dim hover:text-tea-text">
+                                              <X size={10} />
+                                            </button>
+                                          </div>
+                                        ) : (
+                                          <button
+                                            onClick={() => setLinkState({ itemIndex: i, query: item.custom_name || item.given_name || '' })}
+                                            className="flex items-center gap-1 text-[10px] text-tea-text-dim hover:text-tea-gold transition-colors"
+                                          >
+                                            <Link2 size={9} /> Link to inventory
+                                          </button>
+                                        )}
+                                      </div>
+                                    )}
                                 </div>
-                                <div className="text-right">
+                                <div className="text-right ml-4 shrink-0">
                                     <div className="text-tea-text num">{item.quantity}g/u</div>
                                     <div className="text-tea-text-sec text-xs num">@ {item.price_at_sale} USD</div>
                                 </div>
+                              </div>
                             </div>
                         ))}
                     </div>
@@ -651,6 +744,15 @@ export const OrdersView = () => {
         onClose={() => setEditInvoice(null)}
         onSuccess={() => { refetch(); }}
         invoice={editInvoice}
+        showToast={showToast}
+      />
+
+      {/* QUICK INVOICE MODAL */}
+      <QuickInvoiceModal
+        isOpen={showQuickInvoice}
+        onClose={() => setShowQuickInvoice(false)}
+        onSuccess={() => { refetch(); }}
+        products={products}
         showToast={showToast}
       />
     </div>

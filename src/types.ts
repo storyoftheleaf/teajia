@@ -6,7 +6,10 @@ export interface TastingData {
   // Section 2: Movement (throat, duration, finish character)
   finish?: string[];            // throat sensations + finish character/duration terms
   cleanliness?: string;         // 'clean' | 'some-edge' | 'rough'
-  huiGan?: boolean;             // Returning sweetness
+  huiGan?: boolean;             // 回甘 — Returning sweetness
+  yun?: boolean;                // 韵 — Resonance / lingering character
+  qi?: boolean;                 // 气 — Vitality / body energy
+  tangGan?: boolean;            // 汤感 — Soup feel / liquor presence
 
   // Section 3: Feeling (settling, lifting, body, mind)
   feeling?: string[];           // qi / mood / effect terms
@@ -69,6 +72,8 @@ export interface CustomerTasting {
   synced?: boolean;
   /** Account this tasting belongs to (for multi-account filtering) */
   accountId?: string;
+  /** Archived entries are hidden from the main journal view but never deleted */
+  archived?: boolean;
 }
 
 export enum ContentType {

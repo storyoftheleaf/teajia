@@ -1691,8 +1691,8 @@ const handleCreateInvoice: Handler = async (request, env) => {
 
   const lineItemStmts = body.lineItems.map((item: Record<string, any>) =>
     env.DB.prepare(
-      'INSERT INTO invoice_line_items (id, account_id, invoice_id, product_id, quantity, price_at_sale) VALUES (?, ?, ?, ?, ?, ?)'
-    ).bind(crypto.randomUUID(), accountId, id, item.product_id, item.quantity, item.price_at_sale)
+      'INSERT INTO invoice_line_items (id, account_id, invoice_id, product_id, custom_name, quantity, price_at_sale) VALUES (?, ?, ?, ?, ?, ?, ?)'
+    ).bind(crypto.randomUUID(), accountId, id, item.product_id ?? null, item.custom_name ?? null, item.quantity, item.price_at_sale)
   );
 
   const logStmt = buildActivityLog(
@@ -1772,8 +1772,8 @@ const handleFulfillInvoice: Handler = async (request, env) => {
     'SELECT * FROM invoice_line_items WHERE invoice_id = ? AND account_id = ?'
   ).bind(invoice_id, accountId).all();
 
-  // Fetch current stock for all affected products (account-scoped)
-  const productIds = (items.results as any[]).map(i => i.product_id);
+  // Fetch current stock for all affected products — skip custom items (no product_id)
+  const productIds = (items.results as any[]).filter(i => i.product_id).map(i => i.product_id);
   const products = new Map<string, any>();
   for (const pid of productIds) {
     const p = await env.DB.prepare(
@@ -1785,6 +1785,7 @@ const handleFulfillInvoice: Handler = async (request, env) => {
   const stmts: D1PreparedStatement[] = [];
 
   for (const item of items.results as any[]) {
+    if (!item.product_id) continue; // custom line items have no stock to deduct
     const product = products.get(item.product_id as string);
     const currentStock = product ? Number(product.stock_grams) || 0 : 0;
     const qty = Number(item.quantity) || 0;
@@ -1944,6 +1945,7 @@ const handleVoidInvoice: Handler = async (request, env) => {
     ).bind(invoice_id, accountId).all();
 
     for (const item of items.results as any[]) {
+      if (!item.product_id) continue; // custom line items have no stock to restore
       const product = await env.DB.prepare(
         'SELECT id, stock_grams, given_name, product_name, status, source_compass_entry_id FROM products WHERE id = ? AND account_id = ?'
       ).bind(item.product_id, accountId).first();
@@ -2087,8 +2089,8 @@ const handleUpdateInvoiceItems: Handler = async (request, env, params) => {
     ).bind(params.id, accountId));
     for (const item of body.lineItems) {
       stmts.push(env.DB.prepare(
-        'INSERT INTO invoice_line_items (id, account_id, invoice_id, product_id, quantity, price_at_sale) VALUES (?, ?, ?, ?, ?, ?)'
-      ).bind(crypto.randomUUID(), accountId, params.id, item.product_id, item.quantity, item.price_at_sale));
+        'INSERT INTO invoice_line_items (id, account_id, invoice_id, product_id, custom_name, quantity, price_at_sale) VALUES (?, ?, ?, ?, ?, ?, ?)'
+      ).bind(crypto.randomUUID(), accountId, params.id, item.product_id ?? null, item.custom_name ?? null, item.quantity, item.price_at_sale));
     }
   }
 
@@ -5155,8 +5157,8 @@ const handleCompleteEvent: Handler = async (request, env, params) => {
     for (const menuItem of menuRows.results as any[]) {
       stmts.push(
         env.DB.prepare(
-          'INSERT INTO invoice_line_items (id, account_id, invoice_id, product_id, quantity, price_at_sale) VALUES (?, ?, ?, ?, ?, ?)'
-        ).bind(crypto.randomUUID(), accountId, invoiceId, menuItem.product_id, 1, 0)
+          'INSERT INTO invoice_line_items (id, account_id, invoice_id, product_id, custom_name, quantity, price_at_sale) VALUES (?, ?, ?, ?, ?, ?, ?)'
+        ).bind(crypto.randomUUID(), accountId, invoiceId, menuItem.product_id, null, 1, 0)
       );
     }
 

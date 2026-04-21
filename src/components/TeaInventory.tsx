@@ -51,7 +51,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
   // Filter State
   const [activeType, setActiveType] = useState<string>('All');
   const [activeFeeling, setActiveFeeling] = useState<string | null>(null); // feeling term ID from taxonomy
-  const [specialFilter, setSpecialFilter] = useState<'None' | 'Curated' | 'Sale' | 'Liked'>('None');
+  const [specialFilter, setSpecialFilter] = useState<'None' | 'Curated' | 'Sale' | 'Liked' | 'Tasted'>('None');
   const [openFilter, setOpenFilter] = useState<'type' | 'feeling' | null>(null);
   const [searchText, setSearchText] = useState<string>('');
 
@@ -146,6 +146,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
       if (specialFilter === 'Curated') matchSpecial = !!item.isFeatured;
       if (specialFilter === 'Sale') matchSpecial = SALE_ITEM_IDS.includes(item.id);
       if (specialFilter === 'Liked') matchSpecial = userFavorites.has(item.id);
+      if (specialFilter === 'Tasted') matchSpecial = (tastingCounts.get(item.id) || 0) > 0;
 
       // 3. Tasting term filter (cross-reference)
       let matchTasting = true;
@@ -261,7 +262,8 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
             tabs={[
               { id: 'Curated', label: 'recommended' },
               { id: 'Sale', label: 'On Sale' },
-              { id: 'Liked', label: 'My Likes' }
+              { id: 'Liked', label: 'My Likes' },
+              { id: 'Tasted', label: 'Tasted' },
             ]}
             activeTab={specialFilter}
             onChange={(id) => setSpecialFilter(prev => prev === id ? 'None' : id as any)}

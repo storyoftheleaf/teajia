@@ -12,19 +12,24 @@ interface ColorSwatchesProps {
   compact?: boolean;
 }
 
+const TeaCupSvg = ({ color }: { color: string }) => (
+  <svg width="22" height="19" viewBox="0 0 28 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+    {/* Liquid fill */}
+    <path d="M3 5 L5 20 Q5 22 7 22 L21 22 Q23 22 23 20 L25 5 Z" fill={color} />
+    {/* Cup outline */}
+    <path d="M3 5 L5 20 Q5 22 7 22 L21 22 Q23 22 23 20 L25 5" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" fill="none" />
+    {/* Rim */}
+    <line x1="3" y1="5" x2="25" y2="5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+    {/* Handle */}
+    <path d="M23 9 Q28 9 28 13.5 Q28 18 23 18" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" fill="none" />
+  </svg>
+);
+
 const ColorSwatchesInner: React.FC<ColorSwatchesProps> = ({ flow, compact = false }) => {
   const selected = flow.value['liquor-color'] || [];
   const colorCount = flow.getCategoryCount('liquor-color');
-  const clearCategory = flow.clearCategory;
   const isDragging = useRef(false);
   const lastPickedId = useRef<string | null>(null);
-
-  const handleSelect = (termId: string) => {
-    selected.forEach(id => flow.toggleTerm('liquor-color', id));
-    if (!selected.includes(termId)) {
-      flow.toggleTerm('liquor-color', termId);
-    }
-  };
 
   const pickColorAt = (clientX: number, rect: DOMRect) => {
     const x = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
@@ -32,12 +37,13 @@ const ColorSwatchesInner: React.FC<ColorSwatchesProps> = ({ flow, compact = fals
     const termId = colorTerms[idx].id;
     if (termId !== lastPickedId.current) {
       lastPickedId.current = termId;
-      handleSelect(termId);
+      flow.selectExclusive('liquor-color', termId);
     }
   };
 
   if (compact) {
     const selectedId = selected[0] ?? null;
+    const selectedHex = selectedId ? (LIQUOR_COLORS[selectedId] || '#888') : null;
     const n = colorTerms.length;
 
     return (
@@ -50,23 +56,22 @@ const ColorSwatchesInner: React.FC<ColorSwatchesProps> = ({ flow, compact = fals
           >
             Liquor color
           </span>
-          {selectedId && (
+          {selectedHex && (
             <motion.div
               initial={{ opacity: 0, x: 4 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.15 }}
-              className="flex items-center gap-1.5"
+              className="flex items-center gap-2"
             >
-              <div
-                className="w-3 h-3 rounded-full shrink-0 ring-1 ring-black/20"
-                style={{ background: LIQUOR_COLORS[selectedId] || '#888' }}
-              />
+              <span className="text-tea-text-dim">
+                <TeaCupSvg color={selectedHex} />
+              </span>
               <span className="text-[11px] text-tea-text-sec" style={{ fontFamily: 'var(--font-body)' }}>
                 {colorTerms.find(t => t.id === selectedId)?.label}
               </span>
               <button
                 type="button"
-                onClick={() => clearCategory('liquor-color')}
+                onClick={() => flow.clearCategory('liquor-color')}
                 className="text-tea-text-dim hover:text-tea-text transition-colors p-0.5"
                 aria-label="Clear color"
               >
@@ -76,7 +81,7 @@ const ColorSwatchesInner: React.FC<ColorSwatchesProps> = ({ flow, compact = fals
           )}
         </div>
 
-        {/* Segmented color bar */}
+        {/* Segmented color bar — pointer events for drag + tap */}
         <div
           className="relative flex cursor-pointer select-none outline-none"
           style={{
@@ -84,7 +89,6 @@ const ColorSwatchesInner: React.FC<ColorSwatchesProps> = ({ flow, compact = fals
             borderRadius: 8,
             overflow: 'hidden',
             touchAction: 'none',
-            /* #3: ink fallback so rounding never shows a gap */
             background: '#1a1a1a',
           }}
           onPointerDown={(e) => {
@@ -116,7 +120,6 @@ const ColorSwatchesInner: React.FC<ColorSwatchesProps> = ({ flow, compact = fals
               />
             );
           })}
-
         </div>
       </div>
     );
@@ -135,7 +138,7 @@ const ColorSwatchesInner: React.FC<ColorSwatchesProps> = ({ flow, compact = fals
         {colorCount > 0 && (
           <button
             type="button"
-            onClick={() => clearCategory('liquor-color')}
+            onClick={() => flow.clearCategory('liquor-color')}
             className="text-tea-text-dim hover:text-tea-text transition-colors p-2 -mr-1.5"
             aria-label="Clear liquor color selection"
           >
@@ -165,7 +168,7 @@ const ColorSwatchesInner: React.FC<ColorSwatchesProps> = ({ flow, compact = fals
               aria-checked={isSelected}
               aria-label={term.label}
               whileTap={{ scale: 0.9 }}
-              onClick={() => handleSelect(term.id)}
+              onClick={() => flow.selectExclusive('liquor-color', term.id)}
               className="flex flex-col items-center gap-1.5 p-1 cursor-pointer min-h-[44px] min-w-[44px]"
             >
               <motion.div

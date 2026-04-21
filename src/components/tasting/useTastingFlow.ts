@@ -18,6 +18,8 @@ export interface TastingFlowState {
   expandedGroups: Set<string>;
   toggleTerm: (categoryId: TastingCategoryId, termId: string) => void;
   toggleGroup: (categoryId: TastingCategoryId, groupLabel: string) => void;
+  /** Atomically select one term, deselecting any other in the same category. Tap same term again to deselect. */
+  selectExclusive: (categoryId: TastingCategoryId, termId: string) => void;
   expandGroup: (groupLabel: string) => void;
   collapseGroup: (groupLabel: string) => void;
   collapseAllGroups: () => void;
@@ -70,6 +72,19 @@ export function useTastingFlow(
       ? current.filter(t => t !== termId)
       : [...current, termId];
     onChange({ ...initialValue, [categoryId]: next.length ? next : undefined });
+  }, [initialValue, onChange, pushUndo]);
+
+  const selectExclusive = useCallback((categoryId: TastingCategoryId, termId: string) => {
+    vibrateLight();
+    pushUndo(initialValue);
+    const current = initialValue[categoryId] || [];
+    if (current.includes(termId)) {
+      // Tap same term again → deselect
+      onChange({ ...initialValue, [categoryId]: undefined });
+    } else {
+      // Replace entire category with just this term
+      onChange({ ...initialValue, [categoryId]: [termId] });
+    }
   }, [initialValue, onChange, pushUndo]);
 
   const isGroupSelected = useCallback((categoryId: TastingCategoryId, groupLabel: string): boolean => {
@@ -175,6 +190,7 @@ export function useTastingFlow(
     expandedGroups,
     toggleTerm,
     toggleGroup,
+    selectExclusive,
     expandGroup,
     collapseGroup,
     collapseAllGroups,

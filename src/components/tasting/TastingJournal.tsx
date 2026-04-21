@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { Trash2, ExternalLink, BookOpen, Calendar, Filter, Search, X, Mic, PenLine, Plus, Share2, Check } from 'lucide-react';
+import { Archive, RotateCcw, ExternalLink, BookOpen, Calendar, Filter, Search, X, Mic, PenLine, Plus, Share2 } from 'lucide-react';
+import { TastingCardModal } from './TastingCard';
 import { motion, AnimatePresence } from 'framer-motion';
 import Fuse from 'fuse.js';
 import { useNavigate } from 'react-router-dom';
@@ -92,7 +93,7 @@ type EventFilter = 'all' | 'event-only' | 'no-events';
 type SortMode = 'recent' | 'rating' | 'type';
 
 export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderTea }) => {
-  const { tastingJournal, removeTasting, addTasting } = useAppStore();
+  const { tastingJournal, updateTasting, addTasting } = useAppStore();
   const navigate = useNavigate();
 
   // Feature 6: Create a quick-note journal entry
@@ -112,33 +113,15 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
   const isPlatformPrivileged = usePlatformPrivilege();
 
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
-  const [sharedId, setSharedId] = useState<string | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
+  const [shareCardEntry, setShareCardEntry] = useState<CustomerTasting | null>(null);
   const [eventFilter, setEventFilter] = useState<EventFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortMode, setSortMode] = useState<SortMode>('recent');
   const [typeFilter, setTypeFilter] = useState<string | null>(null);
 
-  const handleShare = async (entry: CustomerTasting) => {
-    const lines: string[] = [`Tea Journal — ${entry.teaName}`];
-    if (entry.teaType) lines.push(entry.teaType);
-    const rating = entry.tasting.rating ?? entry.rating;
-    if (rating) lines.push(`Rating: ${rating}/10`);
-    if (entry.tasting.overallImpression) lines.push(`\n"${entry.tasting.overallImpression}"`);
-    const allNotes = flattenTastingNotes(entry.tasting);
-    if (allNotes.length > 0) lines.push(allNotes.slice(0, 6).map(t => resolveTermLabel(t)).join(' · '));
-    if (entry.eventTitle) lines.push(`\nEvent: ${entry.eventTitle}`);
-    if (entry.personalNote) lines.push(`\n"${entry.personalNote}"`);
-    const text = lines.join('\n');
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: `Tea Journal — ${entry.teaName}`, text });
-      } else {
-        await navigator.clipboard.writeText(text);
-        setSharedId(entry.id);
-        setTimeout(() => setSharedId(null), 2000);
-      }
-    } catch {}
+  const handleShare = (entry: CustomerTasting) => {
+    setShareCardEntry(entry);
   };
 
   const hasEventTastings = useMemo(() => tastingJournal.some(e => !!e.eventId), [tastingJournal]);
@@ -213,7 +196,7 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
   }, [searchQuery, fuseInstance]);
 
   const filteredEntries = useMemo(() => {
-    let result = tastingJournal;
+    let result = tastingJournal.filter(e => showArchived ? !!e.archived : !e.archived);
     if (searchResults !== null) result = result.filter(e => searchResults.has(e.id));
     if (eventFilter === 'event-only') result = result.filter(e => !!e.eventId);
     else if (eventFilter === 'no-events') result = result.filter(e => !e.eventId);
@@ -228,7 +211,7 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
       result = [...result].sort((a, b) => (a.teaType || '').localeCompare(b.teaType || ''));
     }
     return result;
-  }, [tastingJournal, eventFilter, searchResults, typeFilter, sortMode]);
+  }, [tastingJournal, showArchived, eventFilter, searchResults, typeFilter, sortMode]);
 
   // Group type adds dateGroup for session grouping
   const groupedEntries = useMemo(() => {
@@ -267,18 +250,31 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
     return groups;
   }, [filteredEntries, sortMode]);
 
-  const handleDelete = (id: string) => {
-    if (confirmDelete === id) {
-      removeTasting(id);
-      setConfirmDelete(null);
-      if (expandedId === id) setExpandedId(null);
-    } else {
-      setConfirmDelete(id);
-      setTimeout(() => setConfirmDelete(null), 5000);
-    }
+  const handleArchive = (id: string) => {
+    updateTasting(id, { archived: true });
+    if (expandedId === id) setExpandedId(null);
   };
 
+  const handleRestore = (id: string) => {
+    updateTasting(id, { archived: false });
+  };
+
+  const archivedCount = useMemo(
+    () => tastingJournal.filter(e => e.archived).length,
+    [tastingJournal]
+  );
+
   return (
+    <>
+    <AnimatePresence>
+      {shareCardEntry && (
+        <TastingCardModal
+          key="tasting-card-modal"
+          entry={shareCardEntry}
+          onClose={() => setShareCardEntry(null)}
+        />
+      )}
+    </AnimatePresence>
     <div className="flex flex-col h-full surface-warm">
       {/* Header */}
       <header className="px-4 pt-4 pb-3 border-b border-tea-border">
@@ -288,7 +284,7 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
           </svg>
           <h2 className="font-serif text-base font-normal text-tea-text flex-1">Tasting Journal</h2>
           <span className="text-[10px] text-tea-text-dim tabular-nums">
-            {tastingJournal.length} {tastingJournal.length === 1 ? 'entry' : 'entries'}
+            {tastingJournal.filter(e => !e.archived).length} {tastingJournal.filter(e => !e.archived).length === 1 ? 'entry' : 'entries'}
           </span>
         </div>
         {/* Quick note entry */}
@@ -570,16 +566,26 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
                                   onClick={() => handleShare(entry)}
                                   className={`flex flex-1 items-center justify-center gap-1.5 py-1.5 text-[11px] font-medium text-tea-text-dim hover:text-tea-text transition-colors ${onOrderTea && entry.teaId !== 'quick-note' ? 'border-r border-tea-border' : ''}`}
                                 >
-                                  {sharedId === entry.id ? <Check size={11} className="text-tea-gold" /> : <Share2 size={11} />}
-                                  {sharedId === entry.id ? 'Copied' : 'Share'}
+                                  <Share2 size={11} />
+                                  Share card
                                 </button>
-                                <button
-                                  onClick={() => handleDelete(entry.id)}
-                                  className={`flex flex-1 items-center justify-center gap-1.5 py-1.5 text-[11px] font-medium transition-colors ${confirmDelete === entry.id ? 'text-red-400' : 'text-tea-text-dim hover:text-tea-text'}`}
-                                >
-                                  <Trash2 size={11} />
-                                  {confirmDelete === entry.id ? 'Confirm' : 'Delete'}
-                                </button>
+                                {showArchived ? (
+                                  <button
+                                    onClick={() => handleRestore(entry.id)}
+                                    className="flex flex-1 items-center justify-center gap-1.5 py-1.5 text-[11px] font-medium text-tea-text-dim hover:text-tea-text transition-colors"
+                                  >
+                                    <RotateCcw size={11} />
+                                    Restore
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={() => handleArchive(entry.id)}
+                                    className="flex flex-1 items-center justify-center gap-1.5 py-1.5 text-[11px] font-medium text-tea-text-dim hover:text-tea-text transition-colors"
+                                  >
+                                    <Archive size={11} />
+                                    Archive
+                                  </button>
+                                )}
                               </div>
                             </div>
                           </motion.div>
@@ -592,7 +598,25 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
             </div>
           ))
         )}
+
+        {/* Archived entries toggle */}
+        {(archivedCount > 0 || showArchived) && (
+          <div className="px-4 py-5 flex justify-center">
+            <button
+              type="button"
+              onClick={() => setShowArchived(prev => !prev)}
+              className="flex items-center gap-1.5 text-[11px] text-tea-text-dim hover:text-tea-text-sec transition-colors"
+              style={{ fontFamily: 'var(--font-body)' }}
+            >
+              <Archive size={11} />
+              {showArchived
+                ? 'Back to journal'
+                : `${archivedCount} archived ${archivedCount === 1 ? 'entry' : 'entries'}`}
+            </button>
+          </div>
+        )}
       </div>
     </div>
+    </>
   );
 };

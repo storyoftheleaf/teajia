@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { X, Sparkles, Wind, ArrowDown, Droplets } from 'lucide-react';
 import type { TastingFlowState } from './useTastingFlow';
 import type { TastingData } from '../../types';
@@ -33,13 +33,116 @@ const THROAT_TERMS: { id: string; label: string; sub: string; icon: React.Compon
 
 const SELECTED_BG = 'radial-gradient(ellipse 100% 100% at 50% 50%, rgb(var(--tea-gold-rgb) / 0.28) 0%, rgb(var(--tea-gold-rgb) / 0.10) 70%)';
 
+/* ── Chinese concept toggle card ── */
+
+interface ChineseConceptToggleProps {
+  character: string;
+  pinyin: string;
+  english: string;
+  description: string;
+  active: boolean;
+  onToggle: () => void;
+}
+
+const ChineseConceptToggle: React.FC<ChineseConceptToggleProps> = ({
+  character, pinyin, english, description, active, onToggle,
+}) => {
+  const [expanded, setExpanded] = React.useState(false);
+
+  return (
+    <motion.div
+      whileTap={{ scale: 0.99 }}
+      className={`rounded-xl overflow-hidden transition-all duration-200 ${
+        active ? 'bg-tea-gold/10' : 'bg-tea-surface'
+      }`}
+      style={{
+        boxShadow: active ? '0 0 0 1.5px rgb(var(--tea-gold-rgb) / 0.4)' : '0 0 0 1px var(--tea-border)',
+      }}
+    >
+      {/* Main row */}
+      <div className="flex items-start gap-3 px-4 py-3">
+        {/* Chinese character — decorative */}
+        <div
+          className={`shrink-0 text-[28px] leading-none transition-colors duration-200 ${
+            active ? 'text-tea-gold' : 'text-tea-text-dim'
+          }`}
+          style={{ fontFamily: 'serif', opacity: active ? 0.9 : 0.25, marginTop: 2 }}
+          aria-hidden
+        >
+          {character}
+        </div>
+
+        {/* Label + description toggle */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <span
+                className={`text-[13px] font-medium leading-tight transition-colors ${active ? 'text-tea-gold' : 'text-tea-text'}`}
+                style={{ fontFamily: 'var(--font-display)' }}
+              >
+                {pinyin}
+              </span>
+              <span
+                className="text-[11px] text-tea-text-dim ml-1.5"
+                style={{ fontFamily: 'var(--font-body)' }}
+              >
+                {english}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setExpanded(p => !p)}
+              className="shrink-0 text-[10px] text-tea-text-dim hover:text-tea-text-sec transition-colors px-1.5 py-0.5 rounded"
+              style={{ fontFamily: 'var(--font-body)' }}
+              aria-label={expanded ? 'Hide description' : 'What is this?'}
+            >
+              {expanded ? 'less' : '?'}
+            </button>
+          </div>
+
+          <AnimatePresence initial={false}>
+            {expanded && (
+              <motion.p
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.18 }}
+                className="text-[11px] text-tea-text-sec mt-1.5 leading-relaxed overflow-hidden"
+                style={{ fontFamily: 'var(--font-body)' }}
+              >
+                {description}
+              </motion.p>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+
+      {/* Toggle button */}
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-pressed={active}
+        className={`w-full py-2 text-[12px] font-medium border-t transition-all duration-200 ${
+          active
+            ? 'border-tea-gold/20 text-tea-gold bg-tea-gold/5'
+            : 'border-tea-border text-tea-text-dim hover:text-tea-text'
+        }`}
+        style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.04em' }}
+      >
+        {active ? `${character} · Noticed` : `I noticed this`}
+      </button>
+    </motion.div>
+  );
+};
+
 interface ThroatZoneProps {
   flow: TastingFlowState;
   value: TastingData;
   onChange: (data: TastingData) => void;
+  simplified?: boolean;
 }
 
-const ThroatZoneInner: React.FC<ThroatZoneProps> = ({ flow, value, onChange }) => {
+const ThroatZoneInner: React.FC<ThroatZoneProps> = ({ flow, value, onChange, simplified = false }) => {
   const finishSelected = flow.value.finish || [];
   const selectedDuration = FINISH_DURATIONS.find(d => finishSelected.includes(d.id))?.id ?? null;
   const [lastSelectedFinishChar, setLastSelectedFinishChar] = React.useState<string | null>(null);
@@ -300,35 +403,87 @@ const ThroatZoneInner: React.FC<ThroatZoneProps> = ({ flow, value, onChange }) =
 
       <div className="divider-warm my-4" />
 
-      {/* ── Hui Gan ── */}
-      <div className="pb-2">
-        <div className="mb-3">
-          <div
-            className="text-[12px] uppercase tracking-[0.12em] text-tea-text-dim font-medium"
-            style={{ fontFamily: 'var(--font-display)' }}
-          >
-            回甘 Returning sweetness
+      {/* ── Chinese Tea Concepts ── */}
+      {!simplified && (
+        <div className="pb-2">
+          <div className="mb-3">
+            <div
+              className="text-[12px] uppercase tracking-[0.12em] text-tea-text-dim font-medium"
+              style={{ fontFamily: 'var(--font-display)' }}
+            >
+              Traditional markers
+            </div>
+            <p className="text-[11px] text-tea-text-sec mt-0.5" style={{ fontFamily: 'var(--font-body)' }}>
+              These are concepts from Chinese tea culture that describe experiences beyond taste.
+              Like Qi in Qigong, they refer to sensations felt in the body, not just the mouth.
+            </p>
           </div>
-          <p className="text-[11px] text-tea-text-sec mt-0.5" style={{ fontFamily: 'var(--font-body)' }}>
-            A sweetness that rises in the throat minutes after swallowing — a mark of quality in fine teas.
-          </p>
+
+          <div className="flex flex-col gap-2">
+            <ChineseConceptToggle
+              character="回甘"
+              pinyin="Huí Gān"
+              english="Returning sweetness"
+              description="After you swallow, wait. Deep in the throat — lower than you'd expect — a quiet sweetness rises. This is not in your mouth. It surfaces slowly, like an echo of the tea. A mark of quality."
+              active={!!value.huiGan}
+              onToggle={toggleHuiGan}
+            />
+            <ChineseConceptToggle
+              character="韵"
+              pinyin="Yùn"
+              english="Resonance"
+              description="The character of the tea that lingers and deepens after you swallow. Like a note that keeps ringing after the bell has been struck. Some teas fade immediately — those with yùn keep speaking."
+              active={!!value.yun}
+              onToggle={() => onChange({ ...value, yun: !value.yun })}
+            />
+            <ChineseConceptToggle
+              character="气"
+              pinyin="Qì"
+              english="Vitality"
+              description="A warmth or aliveness felt in the chest, back, or shoulders. The same qi from Qigong — the tea's energy moving through the body, not just the mouth. Some teas wake you; others settle you."
+              active={!!value.qi}
+              onToggle={() => onChange({ ...value, qi: !value.qi })}
+            />
+            <ChineseConceptToggle
+              character="汤感"
+              pinyin="Tāng Gǎn"
+              english="Soup feel"
+              description="How substantial the liquid feels — dense and coating, like a broth, or light and clean, like water. A rich tāng gǎn means the tea takes up space in the mouth. Thin liquor offers little."
+              active={!!value.tangGan}
+              onToggle={() => onChange({ ...value, tangGan: !value.tangGan })}
+            />
+          </div>
         </div>
-        <motion.button
-          type="button"
-          whileTap={{ scale: 0.98 }}
-          onClick={toggleHuiGan}
-          aria-pressed={!!value.huiGan}
-          className={`tasting-huigan-toggle w-full justify-center ${value.huiGan ? 'tasting-huigan-toggle-active' : ''}`}
-        >
-          <motion.span
-            animate={{ rotate: value.huiGan ? [0, -12, 12, 0] : 0 }}
-            transition={{ duration: 0.4 }}
+      )}
+
+      {/* Simplified: Hui Gan only */}
+      {simplified && (
+        <div className="pb-2">
+          <div className="mb-3">
+            <div
+              className="text-[12px] uppercase tracking-[0.12em] text-tea-text-dim font-medium"
+              style={{ fontFamily: 'var(--font-display)' }}
+            >
+              回甘 Returning sweetness
+            </div>
+            <p className="text-[11px] text-tea-text-sec mt-0.5" style={{ fontFamily: 'var(--font-body)' }}>
+              A sweetness that rises deep in the throat a minute after swallowing.
+            </p>
+          </div>
+          <motion.button
+            type="button"
+            whileTap={{ scale: 0.98 }}
+            onClick={toggleHuiGan}
+            aria-pressed={!!value.huiGan}
+            className={`tasting-huigan-toggle w-full justify-center ${value.huiGan ? 'tasting-huigan-toggle-active' : ''}`}
           >
-            <Sparkles size={14} className={`shrink-0 transition-opacity ${value.huiGan ? 'opacity-100' : 'opacity-30'}`} />
-          </motion.span>
-          <span>{value.huiGan ? '回甘 · Hui gan present' : '回甘 · Hui gan present?'}</span>
-        </motion.button>
-      </div>
+            <motion.span animate={{ rotate: value.huiGan ? [0, -12, 12, 0] : 0 }} transition={{ duration: 0.4 }}>
+              <Sparkles size={14} className={`shrink-0 transition-opacity ${value.huiGan ? 'opacity-100' : 'opacity-30'}`} />
+            </motion.span>
+            <span>{value.huiGan ? '回甘 · Present' : '回甘 · Did you notice this?'}</span>
+          </motion.button>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { LogoText, LogoIcon } from './Logos';
+import { LogoText } from './Logos';
 import { Section } from '../types';
 
 import { useLongPress } from '../hooks/useLongPress';
@@ -268,22 +268,29 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
             ))
           )}
 
-          {/* Far right — Center (navigates to /me) */}
+          {/* Far right — Account panel */}
           <button
             onClick={() => {
               if ('vibrate' in navigator) { navigator.vibrate?.(10); }
-              navigate('/me');
+              onAccountClick?.();
             }}
             className="w-8 flex-shrink-0 h-full flex flex-col items-center justify-center gap-px group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none relative"
             style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', touchAction: 'manipulation' }}
-            title="Center"
-            aria-label="Center"
+            title="Account"
+            aria-label="Account"
           >
-            <LogoIcon
-              size={16}
-              filled={location.pathname === '/me'}
-              className="transition-colors duration-200 text-tea-text-sec group-hover:text-tea-text pointer-events-none"
-            />
+            <svg
+              viewBox="0 0 24 24"
+              className="w-[13px] h-[13px] transition-colors duration-200 text-tea-text-sec group-hover:text-tea-text pointer-events-none"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="12" cy="8" r="4" />
+              <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+            </svg>
             {upcomingEventsCount > 0 && (
               <span className="absolute top-1.5 right-1 w-1.5 h-1.5 rounded-full bg-tea-gold pointer-events-none" />
             )}
