@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../../lib/api';
@@ -20,7 +20,7 @@ type StatusFilter = 'all' | 'Pending' | 'Filled' | 'Void';
 export const OrdersView = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { showToast } = useToast();
   const [search, setSearch] = useState(searchParams.get('search') || '');
   const [viewingInvoice, setViewingInvoice] = useState<any | null>(null);
@@ -42,6 +42,13 @@ export const OrdersView = () => {
 
   // Quick Invoice + link-later state
   const [showQuickInvoice, setShowQuickInvoice] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get('qi') === '1') {
+      setShowQuickInvoice(true);
+      setSearchParams(prev => { const n = new URLSearchParams(prev); n.delete('qi'); return n; }, { replace: true });
+    }
+  }, [searchParams]);
   const [linkState, setLinkState] = useState<{ itemIndex: number; query: string } | null>(null);
 
   const productFuse = useMemo(() => new Fuse(products, {

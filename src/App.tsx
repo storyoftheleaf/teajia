@@ -847,7 +847,7 @@ const AppContent = () => {
 
 
       {/* Bottom Tab Bar for Mobile */}
-      <BottomTabBar activeSection={activeSection} onNavigate={handleNavSection} hidden={false} onAccountClick={handleToggleAccount} onSearchClick={() => { setShowAccountModal(false); setAccountInitialView(undefined); setShowGlobalSearch(prev => !prev); }} isAdminRoute={isAdminRoute} />
+      <BottomTabBar activeSection={activeSection} onNavigate={handleNavSection} hidden={false} onAccountClick={handleToggleAccount} onSearchClick={() => { setShowAccountModal(false); setAccountInitialView(undefined); setShowGlobalSearch(prev => !prev); }} onQuickInvoice={() => navigate('/admin/activity?qi=1')} isAdminRoute={isAdminRoute} />
 
       </div>
 
