@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Sun, Moon, Calendar } from 'lucide-react';
+import { Sun, Moon, Calendar, Receipt, UserPlus, Package, Clock, CalendarCheck, AlertTriangle, Zap, UserCheck, RotateCcw, Truck, Compass, LogIn } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -10,6 +10,7 @@ import { useScrollLock } from '../../hooks/useScrollLock';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { useAuth } from '../../hooks/useAuth';
 import { useAppStore } from '../../lib/store';
+import { useInventory } from '../../context/InventoryContext';
 import { api, setToken, hydrateAccountStateFromToken } from '../../lib/api';
 import { fetchStoreEvents } from '../../lib/storefrontApi';
 import { hydrateTastingJournal } from '../../lib/tastingJournalSync';
@@ -129,6 +130,28 @@ const Item: React.FC<{
 );
 
 
+const QuickAction: React.FC<{
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+  badge?: number;
+  gold?: boolean;
+}> = ({ icon, label, onClick, badge, gold }) => (
+  <button
+    onClick={onClick}
+    className="relative flex flex-col items-center gap-2 p-3.5 rounded-xl bg-tea-surface border border-tea-border hover:border-tea-gold/30 hover:bg-tea-elevated transition-colors"
+    style={{ WebkitTapHighlightColor: 'transparent' }}
+  >
+    {!!badge && (
+      <span className="absolute top-1.5 right-1.5 min-w-[16px] h-4 px-1 text-[9px] bg-tea-gold text-tea-bg rounded-full flex items-center justify-center font-semibold tabular-nums">
+        {badge > 99 ? '99+' : badge}
+      </span>
+    )}
+    <div className={gold ? 'text-tea-gold' : 'text-tea-text-sec'}>{icon}</div>
+    <span className="text-[11px] text-tea-text font-medium leading-tight text-center">{label}</span>
+  </button>
+);
+
 export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateToStory, initialView }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -152,6 +175,15 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
     cartLastAddedAt,
     setUpcomingEventsCount,
   } = useAppStore();
+
+  const { inventory } = useInventory();
+  const recentlyViewedItems = useMemo(() =>
+    recentlyViewed
+      .slice(0, 6)
+      .map(id => inventory.find(i => i.id === id))
+      .filter(Boolean) as typeof inventory,
+    [recentlyViewed, inventory]
+  );
 
   useScrollLock(true);
   const focusTrapRef = useFocusTrap<HTMLDivElement>(true);
@@ -487,6 +519,16 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
 
   const [eventListFilter, setEventListFilter] = useState<'upcoming' | 'open' | 'past'>('upcoming');
 
+  const { data: pendingCount = 0 } = useQuery({
+    queryKey: ['panel-pending-count'],
+    enabled: isStaff,
+    staleTime: 1000 * 60 * 2,
+    queryFn: async () => {
+      const invoices = await api.invoices.list(200);
+      return (invoices as any[]).filter(i => i.status === 'Pending').length;
+    },
+  });
+
   // Scroll-tracked jump nav
   const [activeSection, setActiveSection] = useState<'me' | 'navigate' | 'ops'>('me');
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -514,6 +556,11 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
       .filter(ev => new Date(ev.eventDate) < now || ev.status === 'closed' || ev.status === 'archived')
       .sort((a, b) => new Date(b.eventDate).getTime() - new Date(a.eventDate).getTime());
   }, [storeEvents]);
+
+  const todayEventCount = useMemo(() => {
+    const today = new Date().toDateString();
+    return upcomingEvents.filter(ev => new Date(ev.eventDate).toDateString() === today).length;
+  }, [upcomingEvents]);
 
   const displayedEvents = eventListFilter === 'open' ? openSeatEvents : eventListFilter === 'past' ? pastEvents : upcomingEvents;
 
@@ -713,12 +760,30 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
 
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-2.5 border-b border-tea-border bg-tea-surface/50">
+          {/* Left slot: X (main) or ← Back (sub-view) */}
           {isSubView ? (
             <button
               onClick={() => { setPanelView('main'); resetForm(); setLocationSearch(''); }}
               className="min-w-[36px] min-h-[36px] flex items-center justify-center p-1.5"
             >
               <Icons.Back className="w-5 h-5 text-tea-text-sec hover:text-tea-text transition-colors" />
+            </button>
+          ) : (
+            <button
+              onClick={onClose}
+              className="min-w-[36px] min-h-[36px] flex items-center justify-center p-1.5"
+            >
+              <Icons.Close className="w-5 h-5 text-tea-text-sec hover:text-tea-text transition-colors" />
+            </button>
+          )}
+          <h2 className="text-sm font-serif text-tea-text tracking-wide">{headerTitle}</h2>
+          {/* Right slot: theme toggle (main) or X (sub-view) */}
+          {isSubView ? (
+            <button
+              onClick={onClose}
+              className="min-w-[36px] min-h-[36px] flex items-center justify-center p-1.5"
+            >
+              <Icons.Close className="w-5 h-5 text-tea-text-sec hover:text-tea-text transition-colors" />
             </button>
           ) : (
             <button
@@ -732,13 +797,6 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                 : <Moon className="w-4.5 h-4.5 text-tea-gold" />}
             </button>
           )}
-          <h2 className="text-sm font-serif text-tea-text tracking-wide">{headerTitle}</h2>
-          <button
-            onClick={onClose}
-            className="min-w-[36px] min-h-[36px] flex items-center justify-center p-1.5"
-          >
-            <Icons.Close className="w-5 h-5 text-tea-text-sec hover:text-tea-text transition-colors" />
-          </button>
         </div>
 
         {/* Jump Nav — only in main view */}
@@ -1060,6 +1118,58 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
             {panelView === 'main' && (
               <div className="animate-[fadeIn_0.3s_ease-out]">
 
+                {/* ── Quick Actions ────────────────────────────────────── */}
+                <div className="space-y-3 mb-8">
+                  <div>
+                    <h3 className="font-serif text-lg font-normal text-tea-text">Quick Actions</h3>
+                    <p className="text-[11px] text-tea-text-dim mt-0.5">Common tasks, one tap.</p>
+                  </div>
+
+                  {/* Owner / Admin */}
+                  {(membershipRole === 'owner' || auth.isAdmin) && (
+                    <div className="grid grid-cols-2 gap-2">
+                      <QuickAction icon={<Receipt size={18} />} label="+ Invoice" gold onClick={() => { onClose(); window.location.href = '/admin/activity?qi=1'; }} />
+                      <QuickAction icon={<UserPlus size={18} />} label="+ Customer" onClick={() => { onClose(); window.location.href = '/admin/people'; }} />
+                      <QuickAction icon={<Package size={18} />} label="+ Purchase Order" onClick={() => { onClose(); window.location.href = '/admin/purchase-orders'; }} />
+                      <QuickAction icon={<Clock size={18} />} label="Pending" badge={pendingCount} onClick={() => { onClose(); window.location.href = '/admin/activity'; }} />
+                      <QuickAction icon={<CalendarCheck size={18} />} label="Today" badge={todayEventCount || undefined} onClick={() => { onClose(); window.location.href = '/admin/events'; }} />
+                      <QuickAction icon={<AlertTriangle size={18} />} label="Stock Alerts" onClick={() => { onClose(); window.location.href = '/admin/inventory'; }} />
+                      <QuickAction icon={<Zap size={18} />} label="Capture" onClick={() => { onClose(); window.location.href = '/admin/capture'; }} />
+                    </div>
+                  )}
+
+                  {/* Staff only (not owner) */}
+                  {membershipRole === 'staff' && (
+                    <div className="grid grid-cols-2 gap-2">
+                      <QuickAction icon={<Receipt size={18} />} label="+ Invoice" gold onClick={() => { onClose(); window.location.href = '/admin/activity?qi=1'; }} />
+                      <QuickAction icon={<UserCheck size={18} />} label="Check In" onClick={() => { onClose(); window.location.href = '/admin/events'; }} />
+                      <QuickAction icon={<CalendarCheck size={18} />} label="Today" badge={todayEventCount || undefined} onClick={() => { onClose(); window.location.href = '/admin/events'; }} />
+                      <QuickAction icon={<Zap size={18} />} label="Capture" onClick={() => { onClose(); window.location.href = '/admin/capture'; }} />
+                    </div>
+                  )}
+
+                  {/* Member (authenticated, no staff role) */}
+                  {auth.isAuthenticated && !isStaff && (
+                    <div className="grid grid-cols-2 gap-2">
+                      <QuickAction icon={<RotateCcw size={18} />} label="Reorder" onClick={() => { onClose(); navigate('/account/orders'); }} />
+                      <QuickAction icon={<Truck size={18} />} label="Track Order" onClick={() => { onClose(); navigate('/account/orders'); }} />
+                      <QuickAction icon={<Calendar size={18} />} label="Book a Session" onClick={() => setPanelView('events')} />
+                      <QuickAction icon={<Compass size={18} />} label="My Compass" onClick={() => { onClose(); navigate('/compass'); }} />
+                    </div>
+                  )}
+
+                  {/* Guest */}
+                  {!auth.isAuthenticated && (
+                    <div className="grid grid-cols-2 gap-2">
+                      <QuickAction icon={<LogIn size={18} />} label="Sign In" gold onClick={() => setPanelView('signin')} />
+                      <QuickAction icon={<Icons.Search className="w-[18px] h-[18px]" />} label="Browse Teas" onClick={() => { onClose(); navigate('/shop'); }} />
+                      <QuickAction icon={<Calendar size={18} />} label="Book a Session" onClick={() => setPanelView('events')} />
+                    </div>
+                  )}
+                </div>
+
+                <div className="h-px bg-tea-gold/10 mb-8" />
+
                 {/* ── Me Section ──────────────────────────────────────── */}
                 <div ref={meRef} className="space-y-4">
 
@@ -1168,17 +1278,17 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                   )}
 
                   {/* Recently Viewed */}
-                  {recentlyViewed.length > 0 && (
+                  {recentlyViewedItems.length > 0 && (
                     <div>
                       <ZoneLabel>Recently Viewed</ZoneLabel>
                       <div className="flex gap-2 overflow-x-auto pb-1 -mx-0.5 px-0.5" style={{ scrollbarWidth: 'none' }}>
-                        {recentlyViewed.slice(0, 6).map(id => (
+                        {recentlyViewedItems.map(item => (
                           <button
-                            key={id}
-                            onClick={() => { onClose(); navigate(`/shop/product/${id}`); }}
+                            key={item.id}
+                            onClick={() => { onClose(); navigate(`/shop/product/${item.id}`); }}
                             className="shrink-0 h-8 px-3 rounded-full bg-tea-surface border border-tea-border text-[11px] text-tea-text-sec hover:text-tea-gold hover:border-tea-gold/40 transition-colors whitespace-nowrap"
                           >
-                            {id}
+                            {item.name}
                           </button>
                         ))}
                       </div>
