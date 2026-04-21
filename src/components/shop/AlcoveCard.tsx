@@ -18,6 +18,7 @@ import {
 import { useProductEvents } from '../../hooks/useProductEvents';
 import { useStories } from '../../context/StoryContext';
 import { useAuth } from '../../hooks/useAuth';
+import { BrewingQRCard, getBrewSlug } from '../shared/BrewingQRCard';
 
 interface AlcoveCardProps {
   item: InventoryItem;
@@ -1129,6 +1130,25 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             </div>
           </div>
         )}
+
+        {/* === BREW GUIDE QR === */}
+        {(() => {
+          if (item.category !== 'tea') return null;
+          const slug = getBrewSlug(teaType);
+          if (!slug) return null;
+          return (
+            <div style={{
+              marginTop: '28px',
+              padding: '0 20px 20px',
+            }}>
+              <BrewingQRCard
+                teaName={productName}
+                teaType={slug}
+                compact
+              />
+            </div>
+          );
+        })()}
 
       </div>
 

@@ -45,3 +45,25 @@ The goal: create a canonical, interconnected set of mood and flavor tags that ev
 - [x] Image lightbox on tap
 - [ ] Split product names into title + subtitle (tea identity vs. tea type)
 - [ ] Decide on naming convention for all teas (title/subtitle/year)
+
+---
+
+## Pending from Development Sprint (April 2026)
+
+### #11 — Brewing Guide Profiles
+Need ~20 brewing profiles written and stored, covering the full catalog:
+- Water temp (°C), steep time (seconds), leaf-to-water ratio (g/ml), vessel type, infusion count
+- One profile per tea type/style: Gongfu Oolong, Grandpa-style Green, White tea, Raw Puerh, Ripe Puerh, Aged Puerh, Sheng, High-mountain Oolong, Roasted Oolong, Black tea (gongfu), Black tea (western), Yellow tea, Liu Bao, etc.
+- These will power the `/learn/brew/:teaType` pages AND the QR sticker cards already built
+- Adrian to provide or approve profiles — can be drafted in a conversation and then loaded
+
+### #21 — Magazine Template Reference
+Find a magazine or editorial site whose quality and visual standard is the target for Teajia's magazine templates.
+- Could be print (Kinfolk, Cereal, Monocle, Hole & Corner) or digital
+- Provide 1–3 references so template overhaul has a clear target
+- The 70-point template overhaul in PLAN.md is ready to execute once reference is confirmed
+
+### #20 — Contributor Profile: Barry
+- Get Barry's full name, background/bio, photo, and any content ready to publish
+- First contributor profile template is already built (Phase 3, item 20 in DEVELOPMENT_PRIORITIES.md)
+- Barry's profile will be the first signal that the magazine is a serious editorial home

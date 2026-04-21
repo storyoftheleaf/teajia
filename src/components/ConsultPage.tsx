@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { PageHeader } from './shared/PageHeader';
 import { ConsultView } from '../types/consult';
@@ -176,6 +176,19 @@ export const ConsultPage: React.FC<ConsultPageProps> = ({ onCartClick, onAccount
 
         {/* 2. SERVICES */}
         <Services />
+
+        {/* B2B link — quiet bridge for business/institutional visitors */}
+        <div className="mt-10 mb-2 max-w-[560px]">
+          <Link
+            to="/for-your-space"
+            className="inline-flex items-center gap-2 text-[12px] text-tea-text-sec hover:text-tea-text
+                       transition-colors duration-200 group min-h-[44px]"
+            style={{ fontFamily: 'var(--font-sans)' }}
+          >
+            <span className="uppercase tracking-[0.1em]">Hotels, studios, and teams</span>
+            <span className="text-tea-gold/60 group-hover:text-tea-gold transition-colors duration-200">&rarr;</span>
+          </Link>
+        </div>
 
         {/* warm divider */}
         <div className="divider-warm my-16 md:my-20" />

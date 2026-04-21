@@ -143,3 +143,31 @@ export interface Customer {
   // Computed from event_attendees join
   eventCount?: number;
 }
+
+export type ArticleBlock =
+  | { type: 'intro'; text: string }
+  | { type: 'paragraph'; text: string }
+  | { type: 'section_heading'; text: string }
+  | { type: 'quote'; text: string; attribution?: string }
+  | { type: 'image'; url?: string; description: string; caption?: string }
+  | { type: 'divider' };
+
+export interface DbArticle {
+  id: string;
+  account_id: string;
+  title: string;
+  subtitle?: string;
+  author_id?: string;
+  slug: string;
+  status: 'draft' | 'published' | 'archived';
+  category?: string;
+  tags: string[]; // parsed from JSON string
+  cover_image_url?: string;
+  blocks: ArticleBlock[]; // parsed from JSON string
+  layout_template?: string;
+  reading_time_mins?: number;
+  published_at?: string;
+  created_at: string;
+  updated_at: string;
+  blocks_preview?: string; // list view only
+}

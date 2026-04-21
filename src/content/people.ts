@@ -35,6 +35,13 @@ export const PEOPLE: Record<string, Person> = {
     role: 'Filmmaker',
     bio: 'An award-winning cinematographer known for his slow-cinema approach to nature documentaries.',
     avatarUrl: 'https://picsum.photos/200/200?random=105'
+  },
+  barry: {
+    id: 'barry',
+    name: 'Barry',
+    role: 'Tea Teacher',
+    bio: 'Twenty-eight years of practice rooted in the Bali East Circuit, where Barry has built a quiet reputation as one of the region\'s most grounded tea teachers. His approach is steeped in traditional gongfu methodology, passed down through direct lineage and refined through years of sourcing and session work across Southeast Asia. Known within the local Bali tea community for bridging cultural depth with accessibility — making serious tea practice feel human.',
+    avatarUrl: undefined,
   }
 };
 

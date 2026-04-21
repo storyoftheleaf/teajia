@@ -5,9 +5,10 @@ import { Icons } from './Icons';
 import { LogoEmblem } from './Logos';
 import { Section } from '../types';
 import { useTheme } from '../context/ThemeContext';
+import { PREVIEW_MODE } from '../constants';
 import { useAuth } from '../hooks/useAuth';
 import { useAppStore } from '../lib/store';
-import { Calendar, LayoutDashboard, Briefcase, Leaf, Coffee, Store, Users, FolderOpen, Settings, ChevronsLeft, ChevronsRight, UserCheck } from 'lucide-react';
+import { Calendar, LayoutDashboard, Briefcase, Leaf, Coffee, Store, Users, FolderOpen, Settings, ChevronsLeft, ChevronsRight, UserCheck, MapPin, BookOpen } from 'lucide-react';
 
 const GRAIN = `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`;
 
@@ -163,6 +164,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
       { id: 'settings',  path: '/admin/settings',  label: 'Settings',      icon: <Settings   className="w-3.5 h-3.5" strokeWidth={1.75} /> },
     ]},
     { id: 'events', label: 'Events', icon: <Calendar size={18} strokeWidth={1.75} />, path: '/admin/events' },
+    { id: 'magazine', label: 'Magazine', icon: <BookOpen size={18} strokeWidth={1.75} />, path: '/admin/magazine' },
   ];
 
   const userName = auth.isAuthenticated ? (auth.user?.name || auth.user?.email?.split('@')[0] || 'Account') : null;
@@ -386,6 +388,34 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
               </span>
             )}
           </button>
+
+          {/* Our spaces — hidden in PREVIEW_MODE (restore in docs/LAUNCH_CHECKLIST.md) */}
+          {!PREVIEW_MODE && (
+          <Link
+            to="/spaces"
+            className={`w-full flex items-center ${collapsed ? 'justify-center px-2' : 'gap-3 px-4'} py-2.5 rounded-md transition-all duration-200 group hover:bg-tea-gold/5 mt-0.5 ${
+              currentPath === '/spaces' ? 'bg-tea-gold/8' : ''
+            }`}
+            title="Our spaces"
+          >
+            <MapPin
+              className={`w-4 h-4 shrink-0 transition-colors ${
+                currentPath === '/spaces' ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
+              }`}
+              strokeWidth={1.75}
+            />
+            {!collapsed && (
+              <span
+                className={`text-sm transition-all duration-300 ${
+                  currentPath === '/spaces' ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
+                }`}
+                style={{ fontFamily: 'var(--font-display)', fontWeight: 300, letterSpacing: '0.03em' }}
+              >
+                Our spaces
+              </span>
+            )}
+          </Link>
+          )}
 
           {/* Collapse toggle — icon only, no label */}
           <button

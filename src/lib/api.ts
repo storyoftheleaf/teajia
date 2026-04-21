@@ -1109,6 +1109,11 @@ export const api = {
       const res = await fetchWithTimeout(`${API_URL}/api/events/${slug}/public`);
       return handleResponse(res);
     },
+    /** Fetch the public post-session recap for a completed event (no auth required). */
+    getPublicRecap: async (slug: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/events/${slug}/recap`);
+      return handleResponse(res);
+    },
     getAvailability: async (slug: string) => {
       const res = await fetchWithTimeout(`${API_URL}/api/events/${slug}/availability`);
       return handleResponse(res);
@@ -2152,6 +2157,71 @@ export const api = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
+      return handleResponse(res);
+    },
+  },
+
+  articles: {
+    // Admin
+    list: async (status?: string) => {
+      const res = await fetchWithTimeout(
+        `${API_URL}/api/admin/articles${status ? `?status=${status}` : ''}`,
+        { headers: authHeaders() }
+      );
+      return handleResponse(res);
+    },
+    get: async (id: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/articles/${id}`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    create: async (data: Record<string, any>) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/articles`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
+    update: async (id: string, data: Record<string, any>) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/articles/${id}`, {
+        method: 'PUT',
+        headers: authHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
+    publish: async (id: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/articles/${id}/publish`, {
+        method: 'POST',
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    unpublish: async (id: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/articles/${id}/unpublish`, {
+        method: 'POST',
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    delete: async (id: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/articles/${id}`, {
+        method: 'DELETE',
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    // Public
+    listPublished: async (limit = 20, offset = 0) => {
+      const res = await fetchWithTimeout(
+        `${API_URL}/api/articles?limit=${limit}&offset=${offset}`
+      );
+      return handleResponse(res);
+    },
+    getBySlug: async (slug: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/articles/${slug}`);
       return handleResponse(res);
     },
   },

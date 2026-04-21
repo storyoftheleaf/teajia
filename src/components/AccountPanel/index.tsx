@@ -19,6 +19,7 @@ import type { AccountMembership } from '../../types';
 import type { TeaEvent } from '../../types/events';
 
 import type { PanelView } from './types';
+import { TastingJournalView } from './TastingJournalView';
 
 interface AccountPanelProps {
   onClose: () => void;
@@ -198,7 +199,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
   const PERSISTABLE_VIEWS: PanelView[] = ['main'];
   const STORAGE_KEY = 'teajia-account-view';
 
-  const VALID_VIEWS: PanelView[] = ['main', 'location-switcher', 'events', 'signin', 'signup'];
+  const VALID_VIEWS: PanelView[] = ['main', 'location-switcher', 'events', 'signin', 'signup', 'journal'];
   const [panelView, setPanelViewRaw] = useState<PanelView>(() => {
     if (initialView && VALID_VIEWS.includes(initialView)) return initialView;
     try {
@@ -578,6 +579,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
     panelView === 'events' ? 'Sessions' :
     panelView === 'signin' ? 'Sign In' :
     panelView === 'signup' ? 'Create Account' :
+    panelView === 'journal' ? 'Tasting Journal' :
     'Account';
 
   // Filtered memberships for location switcher
@@ -1027,6 +1029,15 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
             )}
 
             {/* ══════════════════════════════════════════════════════════════
+                TASTING JOURNAL VIEW
+            ══════════════════════════════════════════════════════════════ */}
+            {panelView === 'journal' && (
+              <div className="px-6 pt-6 pb-[calc(44px+env(safe-area-inset-bottom,0px))] lg:pb-6">
+                <TastingJournalView onBack={() => setPanelView('main')} />
+              </div>
+            )}
+
+            {/* ══════════════════════════════════════════════════════════════
                 LOCATION SWITCHER (4+ memberships)
             ══════════════════════════════════════════════════════════════ */}
             {panelView === 'location-switcher' && (
@@ -1223,7 +1234,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                           icon={<Icons.Sparkles className="w-4 h-4" />}
                           label="Tasting Journal"
                           description={tastingJournal.length > 0 ? `Last session: ${formatRelativeDate(tastingJournal[0].createdAt)}` : "Record sessions and track your palate"}
-                          onClick={() => { onClose(); navigate('/account/journal'); }}
+                          onClick={() => setPanelView('journal')}
                           gold={tastingJournal.length > 0}
                         />
                         <Item

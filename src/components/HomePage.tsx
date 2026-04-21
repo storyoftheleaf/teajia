@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
 import { LogoEmblem } from './Logos/LogoEmblem';
 import { LogoText } from './Logos/LogoText';
 import { api } from '../lib/api';
@@ -316,6 +317,22 @@ export const HomePage: React.FC<HomePageProps> = ({
                 <span className="opacity-0 group-hover:opacity-60 -translate-x-1 group-hover:translate-x-0 transition-all duration-300 text-tea-gold text-xs">→</span>
               </button>
             ))}
+          </motion.div>
+
+          {/* Subtle "Start here" link for new visitors */}
+          <motion.div
+            className="mt-5"
+            initial={initial({ opacity: 0 })}
+            animate={{ opacity: 1 }}
+            transition={shouldAnimate ? { duration: 0.5, delay: 1.0 } : { duration: 0 }}
+          >
+            <Link
+              to="/start"
+              className="text-[12px] tracking-[0.12em] uppercase text-tea-text-dim hover:text-tea-text-sec transition-colors duration-300"
+              style={{ fontFamily: 'var(--font-body)' }}
+            >
+              New here? Start here →
+            </Link>
           </motion.div>
         </div>
 

@@ -2,6 +2,10 @@
 
 import { ContentType, Story, Person, LearnModule, LearnPath, StarterSet } from './types';
 
+// Soft-launch mode — hides unfinished sections from public visitors.
+// Set to false to restore each route. See docs/LAUNCH_CHECKLIST.md for what's hidden and how to restore.
+export const PREVIEW_MODE = true;
+
 // Import stories and people from content directory
 export { STORIES } from './content';
 export { PEOPLE, PEOPLE_DIRECTORY } from './content/people';
@@ -379,6 +383,95 @@ export const STARTER_TEA_SETS: StarterSet[] = [
       { type: 'ware', itemId: 'timer' }
     ],
     tags: ['Beginner', 'Black Tea', 'Social']
+  },
+
+  // GIFT SETS
+  {
+    id: 'set-dark-tea-sampler',
+    name: 'Dark Tea Sampler',
+    shortDescription: 'A journey through aged, earthy, and fermented teas.',
+    description: 'Dark teas — puerh, liu bao, and their kin — are among the most complex teas in the world: fermented, aged, layered with transformations that take years to unfold. This set introduces the full spectrum, from a young raw sheng puerh with its bright, grippy energy to a mellow aged shou whose earthiness settles like a deep exhale. Time is the primary ingredient, and this set shows what it produces.',
+    idealFor: 'Curious drinkers ready to understand why serious collectors obsess over these',
+    image: 'https://picsum.photos/400/500?random=501',
+    price: '$68',
+    discount: 'Save $12 vs. individual items',
+    items: [
+      // TODO: replace with actual product IDs once inventory is confirmed
+      { type: 'tea', itemId: 'placeholder-dark-1' },
+      { type: 'tea', itemId: 'placeholder-dark-2' },
+      { type: 'tea', itemId: 'placeholder-dark-3' }
+    ],
+    tags: ['Puerh', 'Aged', 'Complex', 'Collector']
+  },
+  {
+    id: 'set-journey-of-flavor',
+    name: 'The Journey of Flavor',
+    shortDescription: 'Six teas. Six completely different experiences.',
+    description: 'A full tour across the flavor spectrum — grassy green, floral white, roasted oolong, malty black, earthy puerh, delicate yellow. Each tea was chosen specifically to show how radically different tea can be depending on leaf, processing, and origin. This is the set for the person who wants to understand the full range before going deep into any single category.',
+    idealFor: 'Anyone wanting a complete introduction to the world of tea',
+    image: 'https://picsum.photos/400/500?random=502',
+    price: '$78',
+    discount: 'Save $14 vs. individual items',
+    items: [
+      // TODO: replace with actual product IDs once inventory is confirmed
+      { type: 'tea', itemId: 'placeholder-flavor-green' },
+      { type: 'tea', itemId: 'placeholder-flavor-white' },
+      { type: 'tea', itemId: 'placeholder-flavor-oolong' },
+      { type: 'tea', itemId: 'placeholder-flavor-black' },
+      { type: 'tea', itemId: 'placeholder-flavor-puerh' },
+      { type: 'tea', itemId: 'placeholder-flavor-yellow' }
+    ],
+    tags: ['Sampler', 'Variety', 'Education', 'Gift']
+  },
+  {
+    id: 'set-tea-with-chi',
+    name: 'Tea with Chi',
+    shortDescription: 'Teas chosen for their energy, clarity, and presence.',
+    description: 'Some teas do more than taste good — they change your state. This set brings together three teas chosen for their distinctive qi: a high-mountain oolong whose cooling clarity opens the chest, a shade-grown green that delivers focused calm without the jitter, and an aged puerh with a grounding depth that settles the body into stillness. For practitioners who drink tea as much for the experience as for the flavor.',
+    idealFor: 'Meditators, practitioners, and anyone sensitive to tea\'s energetic effects',
+    image: 'https://picsum.photos/400/500?random=503',
+    price: '$62',
+    discount: 'Save $11 vs. individual items',
+    items: [
+      // TODO: replace with actual product IDs once inventory is confirmed
+      { type: 'tea', itemId: 'placeholder-chi-oolong' },
+      { type: 'tea', itemId: 'placeholder-chi-green' },
+      { type: 'tea', itemId: 'placeholder-chi-puerh' }
+    ],
+    tags: ['Energy', 'Practice', 'Meditation', 'Qi']
+  },
+  {
+    id: 'set-starters-pack',
+    name: "The Starter's Pack",
+    shortDescription: 'The best possible beginning — nothing complicated.',
+    description: 'Three approachable teas chosen specifically for people just starting out — nothing intimidating, nothing bitter, nothing that requires special equipment or prior knowledge. A light oolong that is forgiving to brew, a clean green with a gentle sweetness, a smooth black that is satisfying at any strength. Everything you need to start brewing well at home today.',
+    idealFor: 'Complete beginners buying their first loose-leaf tea',
+    image: 'https://picsum.photos/400/500?random=504',
+    price: '$44',
+    discount: 'Save $8 vs. individual items',
+    items: [
+      // TODO: replace with actual product IDs once inventory is confirmed
+      { type: 'tea', itemId: 'placeholder-starter-oolong' },
+      { type: 'tea', itemId: 'placeholder-starter-green' },
+      { type: 'tea', itemId: 'placeholder-starter-black' }
+    ],
+    tags: ['Beginner', 'Approachable', 'Gift', 'First Tea']
+  },
+  {
+    id: 'set-entry-set',
+    name: 'The Entry Set',
+    shortDescription: 'Tea and a vessel — everything to begin.',
+    description: 'A single quality tea paired with the right vessel to brew it — chosen to feel complete from the very first pour, with no missing pieces and no confusion about what to buy next. The tea is selected to be approachable and expressive; the vessel is designed to make good brewing easy. This is the entry point for someone who wants to do this properly from the start.',
+    idealFor: 'Gift recipients who have never brewed loose-leaf tea before',
+    image: 'https://picsum.photos/400/500?random=505',
+    price: '$48',
+    discount: 'Save $9 vs. individual items',
+    items: [
+      // TODO: replace with actual product IDs once inventory is confirmed
+      { type: 'tea', itemId: 'placeholder-entry-tea' },
+      { type: 'ware', itemId: 'placeholder-entry-vessel' }
+    ],
+    tags: ['Beginner', 'Tea & Vessel', 'Complete', 'Gift']
   }
 ];
 

@@ -1,7 +1,7 @@
 import React, { useState, lazy, Suspense, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { MapPin, ChevronDown, Users } from 'lucide-react';
+import { MapPin, ChevronDown, Users, BookOpen } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useParallax } from '../../hooks/useParallax';
 import type { TeaEvent, TeaMenuItem } from '../../types/events';
@@ -74,6 +74,22 @@ const FindRSVPSheet = lazy(() => import('./FindRSVPSheet'));
 const VenueGuide = lazy(() => import('./VenueGuide'));
 const InterestCapture = lazy(() => import('./InterestCapture'));
 
+const EVENT_FORMAT_LABELS: Record<string, string> = {
+  private_tasting: 'Private Tasting',
+  public_tasting: 'Tasting',
+  workshop: 'Workshop',
+  pop_up: 'Pop-up',
+  wholesale_showing: 'Wholesale Showing',
+  other: 'Session',
+};
+
+const GATHERING_TYPE_LABELS: Record<string, string> = {
+  private: 'Private',
+  'semi-private': 'Semi-private',
+  open: 'Open',
+  bespoke: 'Bespoke',
+};
+
 function formatEventDate(dateStr: string): { date: string; time: string; day: string } {
   const d = new Date(dateStr);
   const day = d.toLocaleDateString('en-US', { weekday: 'long' });
@@ -130,7 +146,9 @@ const EventLanding: React.FC = () => {
   useEffect(() => {
     if (!event) return;
 
-    const { date } = formatEventDate(event.eventDate);
+    const evRaw = event as TeaEvent & Record<string, any>;
+    const evDate: string = evRaw.eventDate ?? evRaw.event_date;
+    const { date } = formatEventDate(evDate);
     document.title = `${event.title} — Teajia`;
 
     const setMeta = (name: string, content: string, prop = false) => {
@@ -200,10 +218,26 @@ const EventLanding: React.FC = () => {
     );
   }
 
-  const { date: formattedDate, time: formattedTime, day: formattedDay } = formatEventDate(event.eventDate);
+  // The public endpoint returns raw snake_case JSON. Access camelCase with snake_case fallback
+  // throughout this component. Fields added to the SELECT in handleGetEventBySlug are returned
+  // as snake_case; fields that have gone through mapEvent() arrive as camelCase.
+  const ev = event as TeaEvent & Record<string, any>;
+  const eventDate: string = ev.eventDate ?? ev.event_date;
+  const flyerImageUrl: string | undefined = ev.flyerImageUrl ?? ev.flyer_image_url;
+  const locationName: string | undefined = ev.locationName ?? ev.location_name;
+  const areaHint: string | undefined = ev.areaHint ?? ev.area_hint;
+  const confirmedCount: number = (ev.confirmedCount ?? ev.confirmed_count) as number ?? 0;
+  const seatsRemaining: number = (ev.seatsRemaining ?? ev.seats_remaining) as number ?? 0;
+  const guidelinesText: string | undefined = ev.guidelinesText ?? ev.guidelines_text;
+  const venueGuide: any = ev.venueGuide ?? (ev.venue_guide ? (typeof ev.venue_guide === 'string' ? JSON.parse(ev.venue_guide) : ev.venue_guide) : undefined);
+  const moodHints: string[] | undefined = ev.moodHints ?? (ev.mood_hints ? (typeof ev.mood_hints === 'string' ? JSON.parse(ev.mood_hints) : ev.mood_hints) : undefined);
+  const eventFormat: import('../../types/events').EventFormat | undefined = ev.format ?? ev.event_format ?? undefined;
+  const gatheringType: import('../../types/events').GatheringType | undefined = ev.gatheringType ?? ev.gathering_type ?? undefined;
+
+  const { date: formattedDate, time: formattedTime, day: formattedDay } = formatEventDate(eventDate);
   const isCompleted = event.status === 'closed';
   const isCancelled = event.status === 'archived';
-  const isFull = event.seatsRemaining === 0;
+  const isFull = seatsRemaining === 0;
   const canRSVP = !isCompleted && !isCancelled && !isFull;
   const showWaitlist = !isCompleted && !isCancelled && isFull;
   const showInterestOnly = isCompleted || isCancelled;
@@ -220,11 +254,11 @@ const EventLanding: React.FC = () => {
     <div className="min-h-screen bg-tea-bg animate-[fadeIn_0.5s_ease-out]">
       {/* Hero — flyer image or gradient fallback */}
       <div ref={heroRef} className="relative w-full pb-6">
-        {event.flyerImageUrl ? (
+        {flyerImageUrl ? (
           <div className="w-full overflow-hidden" style={{ maxHeight: '70vh' }}>
             <div style={{ transform: `translateY(${parallaxOffset}px)`, transition: 'transform 0.1s linear' }}>
               <img
-                src={event.flyerImageUrl}
+                src={flyerImageUrl}
                 alt={event.title}
                 className="w-full h-auto object-cover"
                 style={{ minHeight: '50vh', maxHeight: '75vh', objectFit: 'cover' }}
@@ -290,6 +324,25 @@ const EventLanding: React.FC = () => {
             </p>
           )}
 
+          {/* Gathering type label */}
+          {(eventFormat || gatheringType) && (
+            <div className="flex items-center justify-center gap-2 mb-4">
+              {eventFormat && (
+                <span className="text-[9px] uppercase tracking-[0.3em] text-tea-text-sec">
+                  {EVENT_FORMAT_LABELS[eventFormat] ?? eventFormat}
+                </span>
+              )}
+              {eventFormat && gatheringType && (
+                <span className="text-[9px] text-tea-text-dim">·</span>
+              )}
+              {gatheringType && (
+                <span className="text-[9px] uppercase tracking-[0.3em] text-tea-text-sec">
+                  {GATHERING_TYPE_LABELS[gatheringType] ?? gatheringType}
+                </span>
+              )}
+            </div>
+          )}
+
           {/* Date & Time */}
           <div className="mt-5 mb-4">
             <p className="text-[9px] uppercase tracking-[0.3em] text-tea-text-dim mb-1.5">{formattedDay}</p>
@@ -298,26 +351,30 @@ const EventLanding: React.FC = () => {
           </div>
 
           {/* Area hint (not full address) or location name */}
-          {(event.areaHint || event.locationName) && (
+          {(areaHint || locationName) && (
             <div className="flex items-center justify-center gap-1.5 text-tea-text-sec mt-3.5 mb-5">
               <MapPin className="w-[11px] h-[11px] shrink-0" />
-              <span className="text-xs">{event.areaHint ?? event.locationName}</span>
+              <span className="text-xs">{areaHint ?? locationName}</span>
             </div>
           )}
 
-          {/* Social proof */}
-          {(event.confirmedCount ?? 0) > 0 && !isCompleted && (
+          {/* Social proof — confirmed seat count.
+              TODO: The public endpoint (/api/events/:slug/public) returns only a count (confirmed_count),
+              not individual attendee names. To show first names here, the endpoint would need a JOIN on
+              event_attendees with status='confirmed', returning first-name-only strings (never full names
+              or contact info). Until that is added, we show the count only. */}
+          {confirmedCount > 0 && !isCompleted && (
             <div className="flex items-center justify-center gap-2 text-tea-text-sec mb-6">
               <Users className="w-3.5 h-3.5" />
               <span className="text-xs">
-                {event.confirmedCount} {event.confirmedCount === 1 ? 'seat' : 'seats'} confirmed
+                {confirmedCount} {confirmedCount === 1 ? 'seat' : 'seats'} confirmed
               </span>
             </div>
           )}
 
           {/* Countdown */}
           {!isCompleted && !isCancelled && (
-            <EventCountdown eventDate={event.eventDate} className="mb-8" />
+            <EventCountdown eventDate={eventDate} className="mb-8" />
           )}
 
           {/* CTA block */}
@@ -362,10 +419,20 @@ const EventLanding: React.FC = () => {
             </div>
           )}
 
-          {/* Closed / archived — just interest capture */}
+          {/* Closed / archived — recap link + interest capture */}
           {showInterestOnly && (
-            <div className="max-w-xs mx-auto space-y-3">
-              <p className="text-xs text-tea-text-sec mb-3">Notify me of the next one:</p>
+            <div className="max-w-xs mx-auto space-y-5">
+              {/* Recap link — shown for completed events */}
+              {isCompleted && slug && (
+                <button
+                  onClick={() => navigate(`/event/${slug}/recap`)}
+                  className="w-full flex items-center justify-center gap-2.5 py-[13px] bg-tea-surface border border-tea-border text-tea-text text-[11px] uppercase tracking-[0.2em] rounded-sm hover:border-tea-gold/40 hover:text-tea-gold transition-all duration-300 group"
+                >
+                  <BookOpen className="w-3.5 h-3.5 text-tea-text-sec group-hover:text-tea-gold transition-colors" />
+                  View session recap
+                </button>
+              )}
+              <p className="text-xs text-tea-text-sec">Notify me of the next one:</p>
               <Suspense fallback={null}>
                 <InterestCapture slug={slug!} />
               </Suspense>
@@ -386,9 +453,9 @@ const EventLanding: React.FC = () => {
         )}
 
         {/* Mood hints — serif italic dots */}
-        {event.moodHints && event.moodHints.length > 0 && (
+        {moodHints && moodHints.length > 0 && (
           <div className="mb-10 flex flex-wrap gap-0 justify-center">
-            {event.moodHints.map((hint, i) => (
+            {moodHints.map((hint, i) => (
               <span key={i} className="font-serif italic text-[13px] text-tea-text-sec">
                 {i > 0 && <span className="mx-2 opacity-40">·</span>}
                 {hint}
@@ -398,8 +465,8 @@ const EventLanding: React.FC = () => {
         )}
 
         {/* Venue Photos */}
-        {event.venueGuide && Array.isArray((event.venueGuide as any).photos) && (
-          <VenuePhotosSection photos={(event.venueGuide as any).photos as string[]} />
+        {venueGuide && Array.isArray(venueGuide.photos) && (
+          <VenuePhotosSection photos={venueGuide.photos as string[]} />
         )}
 
         {/* Tea Menu Preview */}
@@ -408,7 +475,7 @@ const EventLanding: React.FC = () => {
         )}
 
         {/* Guidelines (expandable) */}
-        {event.guidelinesText && (
+        {guidelinesText && (
           <div className="mb-10">
             <button
               onClick={() => setGuidelinesExpanded(!guidelinesExpanded)}
@@ -426,7 +493,7 @@ const EventLanding: React.FC = () => {
             {guidelinesExpanded && (
               <div className="animate-[fadeIn_0.3s_ease-out] pt-2">
                 <ul className="space-y-3">
-                  {event.guidelinesText.split('\n').filter(Boolean).map((guideline, idx) => (
+                  {guidelinesText.split('\n').filter(Boolean).map((guideline, idx) => (
                     <li key={idx} className="flex items-start gap-3 text-sm text-tea-text-sec">
                       <span className="w-1.5 h-1.5 rounded-full bg-tea-gold/40 mt-1.5 shrink-0" />
                       {guideline}

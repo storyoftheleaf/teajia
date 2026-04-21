@@ -3235,8 +3235,8 @@ async function cascadeWaitlist(env: Env, eventId: string, claimWindowMinutes: nu
 const handleGetEventBySlug: Handler = async (_request, env, params) => {
   const event = await env.DB.prepare(
     `SELECT id, slug, title, subtitle, description, flyer_image_url, event_date, event_end_date,
-            location_name, address_text, map_link, guidelines_text, total_capacity, timezone, status,
-            session_flow, playlist_url, created_at
+            location_name, address_text, map_link, guidelines_text, venue_guide, total_capacity, timezone, status,
+            session_flow, playlist_url, event_format, gathering_type, area_hint, mood_hints, created_at
      FROM events WHERE slug = ? AND status = 'active'`
   ).bind(params.slug).first();
 
@@ -3254,6 +3254,81 @@ const handleGetEventBySlug: Handler = async (_request, env, params) => {
     confirmed_count: confirmedCount,
     seats_remaining: (event.total_capacity as number) - confirmedCount,
   }, 30);
+};
+
+// GET /api/events/:slug/recap — public post-session recap (no auth required)
+// Only returns data for completed/closed events where the host has published
+// a post-session record. The tea_menu always uses the public menu endpoint data
+// so product IDs are available for shop links.
+const handleGetPublicEventRecap: Handler = async (_request, env, params) => {
+  // Resolve event by slug — only completed or closed events are accessible
+  const event = await env.DB.prepare(
+    `SELECT id, slug, title, subtitle, flyer_image_url, event_date, status
+     FROM events WHERE slug = ? AND status IN ('closed', 'completed', 'archived')`
+  ).bind(params.slug).first();
+
+  if (!event) return json({ error: 'Recap not found or event is still upcoming' }, 404);
+
+  const postSession = await env.DB.prepare(
+    `SELECT id, session_notes, playlist_url, gallery_images, shared_tasting_notes
+     FROM event_post_session WHERE event_id = ?`
+  ).bind(event.id).first();
+
+  if (!postSession) return json({ error: 'Post-session data not yet available' }, 404);
+
+  // Parse JSON fields safely
+  let galleryImages: string[] | null = null;
+  if (postSession.gallery_images) {
+    try { galleryImages = JSON.parse(postSession.gallery_images as string); } catch { galleryImages = null; }
+  }
+  let sharedTastingNotes: string[] | null = null;
+  if (postSession.shared_tasting_notes) {
+    try { sharedTastingNotes = JSON.parse(postSession.shared_tasting_notes as string); } catch { sharedTastingNotes = null; }
+  }
+
+  // Fetch tea menu for the event with product details for shop links
+  const menuRows = await env.DB.prepare(
+    `SELECT etm.id, etm.event_id, etm.product_id, etm.custom_name, etm.custom_description,
+            etm.brew_order, etm.reveal_date,
+            p.product_name, p.product_type, p.image_url as product_image_url
+     FROM event_tea_menu etm
+     LEFT JOIN products p ON p.id = etm.product_id
+     WHERE etm.event_id = ?
+     ORDER BY etm.brew_order ASC NULLS LAST`
+  ).bind(event.id).all();
+
+  const teaMenu = (menuRows.results ?? []).map((m) => ({
+    id: m.id,
+    eventId: m.event_id,
+    productId: m.product_id || undefined,
+    customName: m.custom_name || undefined,
+    customDescription: m.custom_description || undefined,
+    revealDate: m.reveal_date || undefined,
+    brewOrder: m.brew_order != null ? Number(m.brew_order) : undefined,
+    productName: m.product_name || undefined,
+    productType: m.product_type || undefined,
+    productImageUrl: m.product_image_url || undefined,
+  }));
+
+  return json({
+    event: {
+      id: event.id,
+      slug: event.slug,
+      title: event.title,
+      subtitle: event.subtitle,
+      event_date: event.event_date,
+      flyer_image_url: event.flyer_image_url,
+    },
+    post_session: {
+      id: postSession.id,
+      event_id: event.id,
+      session_notes: postSession.session_notes || undefined,
+      playlist_url: postSession.playlist_url || undefined,
+      gallery_images: galleryImages,
+      shared_tasting_notes: sharedTastingNotes,
+    },
+    tea_menu: teaMenu,
+  });
 };
 
 // GET /api/events — public upcoming events list
@@ -8523,6 +8598,244 @@ async function _upsertTasteProfile(
   } catch { /* silent — profile is non-critical */ }
 }
 
+// ── Articles ──
+
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/[\s_]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+const handleListArticles: Handler = async (request, env) => {
+  const ctx = await requireAccountRole(request, env, ['owner', 'admin', 'platform']);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+
+  const url = new URL(request.url);
+  const statusFilter = url.searchParams.get('status') || 'all';
+  const statusClause = statusFilter !== 'all'
+    ? `AND status = '${statusFilter}'`
+    : `AND status != 'archived'`;
+
+  const rows = await env.DB.prepare(
+    `SELECT id, account_id, title, subtitle, author_id, slug, status, category, tags,
+            cover_image_url, layout_template, reading_time_mins, published_at, created_at, updated_at,
+            substr(json_extract(blocks, '$[0].text'), 1, 120) AS blocks_preview
+     FROM articles
+     WHERE account_id = ? ${statusClause}
+     ORDER BY updated_at DESC`
+  ).bind(accountId).all();
+
+  const results = rows.results.map((r: any) => ({
+    ...r,
+    tags: r.tags ? JSON.parse(r.tags) : [],
+  }));
+  return json(results);
+};
+
+const handleGetArticle: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+
+  const row = await env.DB.prepare(
+    'SELECT * FROM articles WHERE id = ? AND account_id = ?'
+  ).bind(params.id, accountId).first() as Record<string, any> | null;
+  if (!row) return json({ error: 'Article not found' }, 404);
+
+  return json({
+    ...row,
+    tags: row.tags ? JSON.parse(row.tags as string) : [],
+    blocks: row.blocks ? JSON.parse(row.blocks as string) : [],
+  });
+};
+
+const handleCreateArticle: Handler = async (request, env) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+
+  const body = await request.json() as Record<string, any>;
+  if (!body.title) return json({ error: 'title is required' }, 400);
+
+  const id = crypto.randomUUID();
+  const slug = body.slug ? body.slug : slugify(body.title);
+  const tags = Array.isArray(body.tags) ? JSON.stringify(body.tags) : (body.tags || '[]');
+  const blocks = Array.isArray(body.blocks) ? JSON.stringify(body.blocks) : (body.blocks || '[]');
+
+  await env.DB.prepare(
+    `INSERT INTO articles (id, account_id, title, subtitle, author_id, slug, status, category, tags, cover_image_url, blocks, layout_template, reading_time_mins)
+     VALUES (?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?, ?)`
+  ).bind(
+    id,
+    accountId,
+    body.title,
+    body.subtitle || null,
+    body.author_id || null,
+    slug,
+    body.category || null,
+    tags,
+    body.cover_image_url || null,
+    blocks,
+    body.layout_template || null,
+    body.reading_time_mins || null,
+  ).run();
+
+  const created = await env.DB.prepare(
+    'SELECT * FROM articles WHERE id = ?'
+  ).bind(id).first() as Record<string, any>;
+
+  return json({
+    ...created,
+    tags: created.tags ? JSON.parse(created.tags as string) : [],
+    blocks: created.blocks ? JSON.parse(created.blocks as string) : [],
+  }, 201);
+};
+
+const handleUpdateArticle: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+
+  const body = await request.json() as Record<string, any>;
+  delete body.id;
+  delete body.account_id;
+  delete body.created_at;
+
+  if (Array.isArray(body.tags)) body.tags = JSON.stringify(body.tags);
+  if (Array.isArray(body.blocks)) body.blocks = JSON.stringify(body.blocks);
+
+  const ARTICLE_ALLOWED_COLS = new Set([
+    'title', 'subtitle', 'author_id', 'slug', 'status', 'category', 'tags',
+    'cover_image_url', 'blocks', 'layout_template', 'reading_time_mins', 'published_at',
+  ]);
+  const cols = Object.keys(body).filter(k => ARTICLE_ALLOWED_COLS.has(k));
+  if (cols.length === 0) return json({ success: true });
+
+  const sets = cols.map(c => `${c} = ?`).join(', ');
+  await env.DB.prepare(
+    `UPDATE articles SET ${sets}, updated_at = datetime('now') WHERE id = ? AND account_id = ?`
+  ).bind(...cols.map(c => body[c] ?? null), params.id, accountId).run();
+
+  const updated = await env.DB.prepare(
+    'SELECT * FROM articles WHERE id = ? AND account_id = ?'
+  ).bind(params.id, accountId).first() as Record<string, any> | null;
+  if (!updated) return json({ error: 'Article not found' }, 404);
+
+  return json({
+    ...updated,
+    tags: updated.tags ? JSON.parse(updated.tags as string) : [],
+    blocks: updated.blocks ? JSON.parse(updated.blocks as string) : [],
+  });
+};
+
+const handlePublishArticle: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+
+  const existing = await env.DB.prepare(
+    'SELECT id, published_at FROM articles WHERE id = ? AND account_id = ?'
+  ).bind(params.id, accountId).first() as Record<string, any> | null;
+  if (!existing) return json({ error: 'Article not found' }, 404);
+
+  const publishedAt = existing.published_at || new Date().toISOString();
+  await env.DB.prepare(
+    `UPDATE articles SET status = 'published', published_at = ?, updated_at = datetime('now')
+     WHERE id = ? AND account_id = ?`
+  ).bind(publishedAt, params.id, accountId).run();
+
+  const updated = await env.DB.prepare(
+    'SELECT * FROM articles WHERE id = ?'
+  ).bind(params.id).first() as Record<string, any>;
+
+  return json({
+    ...updated,
+    tags: updated.tags ? JSON.parse(updated.tags as string) : [],
+    blocks: updated.blocks ? JSON.parse(updated.blocks as string) : [],
+  });
+};
+
+const handleUnpublishArticle: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+
+  const existing = await env.DB.prepare(
+    'SELECT id FROM articles WHERE id = ? AND account_id = ?'
+  ).bind(params.id, accountId).first();
+  if (!existing) return json({ error: 'Article not found' }, 404);
+
+  await env.DB.prepare(
+    `UPDATE articles SET status = 'draft', updated_at = datetime('now')
+     WHERE id = ? AND account_id = ?`
+  ).bind(params.id, accountId).run();
+
+  const updated = await env.DB.prepare(
+    'SELECT * FROM articles WHERE id = ?'
+  ).bind(params.id).first() as Record<string, any>;
+
+  return json({
+    ...updated,
+    tags: updated.tags ? JSON.parse(updated.tags as string) : [],
+    blocks: updated.blocks ? JSON.parse(updated.blocks as string) : [],
+  });
+};
+
+const handleDeleteArticle: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+
+  const existing = await env.DB.prepare(
+    'SELECT id FROM articles WHERE id = ? AND account_id = ?'
+  ).bind(params.id, accountId).first();
+  if (!existing) return json({ error: 'Article not found' }, 404);
+
+  await env.DB.prepare(
+    `UPDATE articles SET status = 'archived', updated_at = datetime('now')
+     WHERE id = ? AND account_id = ?`
+  ).bind(params.id, accountId).run();
+
+  return json({ success: true });
+};
+
+const handleGetPublicArticles: Handler = async (request, env) => {
+  const url = new URL(request.url);
+  const limit = Math.min(parseInt(url.searchParams.get('limit') || '20', 10), 100);
+  const offset = parseInt(url.searchParams.get('offset') || '0', 10);
+
+  const rows = await env.DB.prepare(
+    `SELECT id, account_id, title, subtitle, author_id, slug, status, category, tags,
+            cover_image_url, layout_template, reading_time_mins, published_at, created_at, updated_at
+     FROM articles
+     WHERE status = 'published'
+     ORDER BY published_at DESC
+     LIMIT ? OFFSET ?`
+  ).bind(limit, offset).all();
+
+  const results = rows.results.map((r: any) => ({
+    ...r,
+    tags: r.tags ? JSON.parse(r.tags) : [],
+  }));
+  return json(results);
+};
+
+const handleGetPublicArticle: Handler = async (request, env, params) => {
+  const row = await env.DB.prepare(
+    `SELECT * FROM articles WHERE slug = ? AND status = 'published'`
+  ).bind(params.slug).first() as Record<string, any> | null;
+  if (!row) return json({ error: 'Article not found' }, 404);
+
+  return json({
+    ...row,
+    tags: row.tags ? JSON.parse(row.tags as string) : [],
+    blocks: row.blocks ? JSON.parse(row.blocks as string) : [],
+  });
+};
+
 // ── Routes ──
 const routes: [string, string, Handler][] = [
   // Auth
@@ -8657,6 +8970,7 @@ const routes: [string, string, Handler][] = [
   // Events — Public
   ['GET', '/api/events', handleListPublicEvents],
   ['GET', '/api/events/:slug/public', handleGetEventBySlug],
+  ['GET', '/api/events/:slug/recap', handleGetPublicEventRecap],
   ['POST', '/api/events/:slug/rsvp', handleRSVP],
   ['GET', '/api/events/:slug/availability', handleGetEventAvailability],
   ['POST', '/api/events/:slug/find-rsvp', handleFindRSVP],
@@ -8850,6 +9164,19 @@ const routes: [string, string, Handler][] = [
 
   // Gift Sample RPC
   ['POST', '/api/rpc/gift-sample', handleGiftSample],
+
+  // Articles — Public
+  ['GET', '/api/articles',       handleGetPublicArticles],
+  ['GET', '/api/articles/:slug', handleGetPublicArticle],
+
+  // Articles — Admin
+  ['GET',    '/api/admin/articles',                    handleListArticles],
+  ['POST',   '/api/admin/articles',                    handleCreateArticle],
+  ['GET',    '/api/admin/articles/:id',                handleGetArticle],
+  ['PUT',    '/api/admin/articles/:id',                handleUpdateArticle],
+  ['POST',   '/api/admin/articles/:id/publish',        handlePublishArticle],
+  ['POST',   '/api/admin/articles/:id/unpublish',      handleUnpublishArticle],
+  ['DELETE', '/api/admin/articles/:id',                handleDeleteArticle],
 ];
 
 // Simple in-memory rate limiter (per-isolate; resets on cold start — good enough for abuse deterrence)

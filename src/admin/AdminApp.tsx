@@ -51,6 +51,7 @@ import type { CompassMode } from '../components/TeaCompass';
 import { VendorProfileView } from './views/VendorProfileView';
 import { ProductStoryView } from './views/ProductStoryView';
 import { PlatformAuditLogPage } from './views/PlatformAuditLogPage';
+import { MagazineView } from './views/MagazineView';
 
 // Import Modals
 import { AuthModal } from './components/AuthModal';
@@ -575,6 +576,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
               <Route path="platform" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><PlatformAdminView /></PageTransition></ProtectedRoute>} />
               <Route path="platform/audit-log" element={<ProtectedRoute hasAccess={isAdmin && !!platformRole} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><PlatformAuditLogPage /></PageTransition></ProtectedRoute>} />
               <Route path="catalog-seed" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><CatalogSeedView products={products} isLoading={loading} /></PageTransition></ProtectedRoute>} />
+              <Route path="magazine" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><MagazineView /></PageTransition></ProtectedRoute>} />
 
               {/* Legacy routes — redirect to new unified views */}
               <Route path="catalog" element={
