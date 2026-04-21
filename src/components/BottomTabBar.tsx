@@ -16,14 +16,12 @@ interface BottomTabBarProps {
   hidden?: boolean;
   onAccountClick?: () => void;
   onSearchClick?: () => void;
-  onQuickInvoice?: () => void;
   isAdminRoute?: boolean;
 }
 
 export const BottomTabBar: React.FC<BottomTabBarProps> = ({
   activeSection,
   onNavigate,
-  onQuickInvoice,
   hidden = false,
   onAccountClick,
   onSearchClick,
@@ -270,59 +268,33 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
             ))
           )}
 
-          {/* Far right — Quick Invoice (admin) or Account panel (public) */}
-          {isAdminRoute ? (
-            <button
-              onClick={() => {
-                if ('vibrate' in navigator) { navigator.vibrate?.(10); }
-                onQuickInvoice?.();
-              }}
-              className="w-8 flex-shrink-0 h-full flex flex-col items-center justify-center gap-px group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none relative"
-              style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', touchAction: 'manipulation' }}
-              title="Quick Invoice"
-              aria-label="Quick Invoice"
+          {/* Far right — Account panel */}
+          <button
+            onClick={() => {
+              if ('vibrate' in navigator) { navigator.vibrate?.(10); }
+              onAccountClick?.();
+            }}
+            className="w-8 flex-shrink-0 h-full flex flex-col items-center justify-center gap-px group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none relative"
+            style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', touchAction: 'manipulation' }}
+            title="Account"
+            aria-label="Account"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              className="w-[13px] h-[13px] transition-colors duration-200 text-tea-text-sec group-hover:text-tea-text pointer-events-none"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
             >
-              <svg
-                viewBox="0 0 24 24"
-                className="w-[14px] h-[14px] transition-colors duration-200 text-tea-text-sec group-hover:text-tea-gold pointer-events-none"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={2}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
-            </button>
-          ) : (
-            <button
-              onClick={() => {
-                if ('vibrate' in navigator) { navigator.vibrate?.(10); }
-                onAccountClick?.();
-              }}
-              className="w-8 flex-shrink-0 h-full flex flex-col items-center justify-center gap-px group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none relative"
-              style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', touchAction: 'manipulation' }}
-              title="Account"
-              aria-label="Account"
-            >
-              <svg
-                viewBox="0 0 24 24"
-                className="w-[13px] h-[13px] transition-colors duration-200 text-tea-text-sec group-hover:text-tea-text pointer-events-none"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={2}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <circle cx="12" cy="8" r="4" />
-                <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
-              </svg>
-              {upcomingEventsCount > 0 && (
-                <span className="absolute top-1.5 right-1 w-1.5 h-1.5 rounded-full bg-tea-gold pointer-events-none" />
-              )}
-            </button>
-          )}
+              <circle cx="12" cy="8" r="4" />
+              <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+            </svg>
+            {upcomingEventsCount > 0 && (
+              <span className="absolute top-1.5 right-1 w-1.5 h-1.5 rounded-full bg-tea-gold pointer-events-none" />
+            )}
+          </button>
 
         </div>
       </nav>
