@@ -1667,7 +1667,12 @@ const handleCreateInvoice: Handler = async (request, env) => {
   const body = await request.json() as { invoice: Record<string, any>; lineItems: Record<string, any>[] };
   const id = crypto.randomUUID();
 
-  const invoiceNumber = await prefixInvoiceNumber(env, accountId, body.invoice.invoice_number);
+  const seqRow = await env.DB.prepare(
+    'UPDATE accounts SET invoice_seq = invoice_seq + 1 WHERE id = ? RETURNING invoice_seq, invoice_prefix'
+  ).bind(accountId).first() as { invoice_seq: number; invoice_prefix: string | null } | null;
+  const seq = seqRow?.invoice_seq ?? 1;
+  const pfx = seqRow?.invoice_prefix || '';
+  const invoiceNumber = pfx ? `${pfx}-${String(seq).padStart(5, '0')}` : String(seq).padStart(5, '0');
   const paymentStatus = body.invoice.payment_status || 'unpaid';
 
   const invoiceStmt = env.DB.prepare(
@@ -2024,11 +2029,12 @@ const handleSplitInvoice: Handler = async (request, env) => {
   }
 
   const newId = crypto.randomUUID();
-  const year = new Date().getFullYear();
-  const newNumber = await prefixInvoiceNumber(
-    env, accountId,
-    `INV-${year}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`
-  );
+  const splitSeqRow = await env.DB.prepare(
+    'UPDATE accounts SET invoice_seq = invoice_seq + 1 WHERE id = ? RETURNING invoice_seq, invoice_prefix'
+  ).bind(accountId).first() as { invoice_seq: number; invoice_prefix: string | null } | null;
+  const splitSeq = splitSeqRow?.invoice_seq ?? 1;
+  const splitPfx = splitSeqRow?.invoice_prefix || '';
+  const newNumber = splitPfx ? `${splitPfx}-${String(splitSeq).padStart(5, '0')}` : String(splitSeq).padStart(5, '0');
 
   const stmts: D1PreparedStatement[] = [];
 
@@ -2116,6 +2122,71 @@ const handleUpdateInvoiceItems: Handler = async (request, env, params) => {
   return json({ success: true });
 };
 
+// ── RPC: Link Line Item to Product (with retroactive stock deduction if fulfilled) ──
+const handleLinkLineItem: Handler = async (request, env) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+  const userEmail = getUserEmail(request);
+
+  const { invoice_id, line_item_id, product_id } = await request.json() as {
+    invoice_id: string; line_item_id: string; product_id: string;
+  };
+
+  const invoice = await env.DB.prepare('SELECT * FROM invoices WHERE id = ? AND account_id = ?')
+    .bind(invoice_id, accountId).first();
+  if (!invoice) return json({ error: 'Invoice not found' }, 404);
+
+  const lineItem = await env.DB.prepare(
+    'SELECT * FROM invoice_line_items WHERE id = ? AND invoice_id = ? AND account_id = ?'
+  ).bind(line_item_id, invoice_id, accountId).first();
+  if (!lineItem) return json({ error: 'Line item not found' }, 404);
+
+  const product = await env.DB.prepare(
+    'SELECT id, stock_grams, low_stock_threshold, given_name, product_name, status, source_compass_entry_id FROM products WHERE id = ? AND account_id = ?'
+  ).bind(product_id, accountId).first();
+  if (!product) return json({ error: 'Product not found' }, 404);
+
+  const stmts: D1PreparedStatement[] = [];
+
+  stmts.push(env.DB.prepare(
+    'UPDATE invoice_line_items SET product_id = ?, custom_name = NULL WHERE id = ? AND invoice_id = ? AND account_id = ?'
+  ).bind(product_id, line_item_id, invoice_id, accountId));
+
+  if (invoice.inventory_deducted) {
+    const qty = Number(lineItem.quantity);
+    const newBalance = Number(product.stock_grams) - qty;
+
+    stmts.push(env.DB.prepare(
+      'UPDATE products SET stock_grams = stock_grams - ? WHERE id = ? AND account_id = ?'
+    ).bind(qty, product_id, accountId));
+
+    stmts.push(buildStockLedgerEntry(
+      env, product_id, -qty, newBalance, 'FULFILLMENT',
+      userEmail, invoice_id, invoice.invoice_number as string, 'retroactive link', accountId
+    ));
+
+    if (newBalance <= 0 && product.status !== 'Sold Out') {
+      stmts.push(env.DB.prepare(
+        "UPDATE products SET status = 'Sold Out', sold_out_at = datetime('now') WHERE id = ? AND account_id = ?"
+      ).bind(product_id, accountId));
+      if (product.source_compass_entry_id) {
+        stmts.push(env.DB.prepare(
+          "UPDATE tea_compass_entries SET status = 'depleted', updated_at = datetime('now') WHERE id = ? AND status = 'in_stock'"
+        ).bind(product.source_compass_entry_id));
+      }
+    }
+  }
+
+  const productName = (product.given_name || product.product_name) as string;
+  stmts.push(buildActivityLog(env, 'INVOICE_EDITED',
+    `Invoice ${invoice.invoice_number}: custom item linked to ${productName}.${invoice.inventory_deducted ? ' Stock deducted.' : ''}`,
+    userEmail, 'invoice', invoice_id, accountId));
+
+  await env.DB.batch(stmts);
+  return json({ success: true, inventory_deducted: !!invoice.inventory_deducted });
+};
+
 // ── Stock Ledger ──
 const handleGetStockLedger: Handler = async (request, env) => {
   const ctx = await requireAccount(request, env);
@@ -2180,6 +2251,10 @@ const handleGetCustomers: Handler = async (request, env) => {
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
+  const url = new URL(request.url);
+  const typeFilter = url.searchParams.get('type'); // 'customer' | 'supplier' | null (all)
+  const typeClause = typeFilter ? `AND c.type = '${typeFilter}'` : '';
+
   let result;
   try {
     result = await env.DB.prepare(`
@@ -2194,7 +2269,7 @@ const handleGetCustomers: Handler = async (request, env) => {
         ) as event_count
       FROM customers c
       LEFT JOIN invoices i ON i.customer_id = c.id AND i.status != 'Void' AND i.account_id = ?
-      WHERE c.account_id = ?
+      WHERE c.account_id = ? ${typeClause}
       GROUP BY c.id
       ORDER BY c.created_at DESC
     `).bind(accountId, accountId).all();
@@ -2202,7 +2277,7 @@ const handleGetCustomers: Handler = async (request, env) => {
     result = await env.DB.prepare(`
       SELECT c.*, 0 as order_count, 0 as total_spent_usd, NULL as last_order_date, 0 as event_count
       FROM customers c
-      WHERE c.account_id = ?
+      WHERE c.account_id = ? ${typeClause}
       ORDER BY c.created_at DESC
     `).bind(accountId).all();
   }
@@ -2243,11 +2318,12 @@ const handleCreateCustomer: Handler = async (request, env) => {
   if (Array.isArray(body.tags)) body.tags = JSON.stringify(body.tags);
 
   await env.DB.prepare(
-    `INSERT INTO customers (id, account_id, name, company, email, phone, whatsapp, address, city, country, preferred_currency, tags, notes, source)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO customers (id, account_id, type, name, company, email, phone, whatsapp, address, city, country, preferred_currency, tags, notes, source)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     id,
     accountId,
+    body.type || 'customer',
     body.name,
     body.company || null,
     body.email || null,
@@ -8481,6 +8557,7 @@ const routes: [string, string, Handler][] = [
   ['POST', '/api/rpc/fulfill-invoice', handleFulfillInvoice],
   ['POST', '/api/rpc/void-invoice', handleVoidInvoice],
   ['POST', '/api/rpc/split-invoice', handleSplitInvoice],
+  ['POST', '/api/rpc/link-line-item', handleLinkLineItem],
   ['POST', '/api/rpc/increment-stock', handleIncrementStock],
   ['POST', '/api/rpc/truncate-all', handleTruncateAll],
   ['POST', '/api/rpc/backfill-customer-links', handleBackfillCustomerLinks],

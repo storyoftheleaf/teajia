@@ -563,8 +563,9 @@ export const api = {
   },
 
   customers: {
-    list: async () => {
-      const res = await fetchWithTimeout(`${API_URL}/api/customers`, {
+    list: async (type?: 'customer' | 'supplier') => {
+      const url = type ? `${API_URL}/api/customers?type=${type}` : `${API_URL}/api/customers`;
+      const res = await fetchWithTimeout(url, {
         headers: authHeaders(),
       });
       return handleResponse(res);
@@ -712,6 +713,14 @@ export const api = {
       const res = await fetchWithTimeout(`${API_URL}/api/rpc/reset-stock-verification`, {
         method: 'POST',
         headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    linkLineItem: async (invoiceId: string, lineItemId: string, productId: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/rpc/link-line-item`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ invoice_id: invoiceId, line_item_id: lineItemId, product_id: productId }),
       });
       return handleResponse(res);
     },

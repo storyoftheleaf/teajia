@@ -161,22 +161,19 @@ export const OrdersView = () => {
 
   const handleLinkProduct = async (product: any) => {
     if (!viewingInvoice || !linkState) return;
-    const updatedItems = (viewingInvoice.items || []).map((item: any, idx: number) => {
-      if (idx !== linkState.itemIndex) return item;
-      return { ...item, product_id: product.id, given_name: product.givenName, product_name: product.productName };
-    });
+    const targetItem = (viewingInvoice.items || [])[linkState.itemIndex];
+    if (!targetItem) return;
     try {
-      await api.invoices.updateItems(viewingInvoice.id, {
-        lineItems: updatedItems.map((item: any) => ({
-          product_id: item.product_id ?? null,
-          custom_name: item.product_id ? null : (item.custom_name ?? item.given_name ?? null),
-          quantity: item.quantity,
-          price_at_sale: item.price_at_sale,
-        })),
+      const result = await api.rpc.linkLineItem(viewingInvoice.id, targetItem.id, product.id);
+      const updatedItems = (viewingInvoice.items || []).map((item: any, idx: number) => {
+        if (idx !== linkState.itemIndex) return item;
+        return { ...item, product_id: product.id, given_name: product.givenName, product_name: product.productName, custom_name: null };
       });
       setViewingInvoice((prev: any) => ({ ...prev, items: updatedItems }));
       setLinkState(null);
-      showToast('Item linked to inventory.', 'success');
+      const msg = result?.inventory_deducted ? 'Item linked & stock deducted.' : 'Item linked to inventory.';
+      showToast(msg, 'success');
+      queryClient.invalidateQueries({ queryKey: ['products'] });
     } catch (err: any) {
       showToast('Link failed: ' + err.message, 'error');
     }
@@ -200,17 +197,16 @@ export const OrdersView = () => {
     <div className="h-full flex flex-col overflow-hidden bg-tea-bg">
 
       {/* Header */}
-      <div className="sticky top-0 z-30 bg-tea-bg/90 backdrop-blur-md border-b border-tea-border py-2.5 flex-shrink-0">
-        <div className="px-3 md:px-6 max-w-7xl mx-auto flex items-center gap-2 md:gap-4">
-          <div className="flex items-center gap-2 shrink-0">
-            <History size={16} className="text-tea-accent" />
-            <h2 className="text-sm font-serif text-tea-text uppercase tracking-[0.15em] hidden md:block">
-              Orders
-            </h2>
-          </div>
+      <div className="sticky top-0 z-30 bg-tea-bg/90 backdrop-blur-md border-b border-tea-border flex-shrink-0">
+        {/* Row 1: filter + actions */}
+        <div className="px-3 md:px-6 max-w-7xl mx-auto flex items-center gap-2 md:gap-4 py-2.5">
+          <History size={16} className="text-tea-accent shrink-0" />
+          <h2 className="text-sm font-serif text-tea-text uppercase tracking-[0.15em] hidden md:block shrink-0">
+            Orders
+          </h2>
 
           {/* Pipeline Summary — segmented filter */}
-          <div className="flex items-center bg-tea-surface rounded-lg border border-tea-border p-0.5 overflow-x-auto hide-scrollbar shrink-0">
+          <div className="flex items-center bg-tea-surface rounded-lg border border-tea-border p-0.5 overflow-x-auto hide-scrollbar min-w-0">
             {([
               { id: 'all',     label: 'All',     dot: null },
               { id: 'Pending', label: 'Pending', dot: 'bg-amber-400' },
@@ -225,7 +221,7 @@ export const OrdersView = () => {
                 <button
                   key={id}
                   onClick={() => setStatusFilter(id)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 text-[10px] uppercase tracking-[0.15em] rounded-md whitespace-nowrap transition-colors ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 text-[10px] uppercase tracking-[0.15em] rounded-md whitespace-nowrap transition-colors shrink-0 ${
                     statusFilter === id
                       ? 'bg-tea-bg text-tea-text shadow-sm'
                       : 'text-tea-text-sec hover:text-tea-text'
@@ -240,7 +236,7 @@ export const OrdersView = () => {
           </div>
 
           {summary.filledTotal > 0 && (
-            <span className="text-[10px] text-tea-text-sec num hidden md:inline">
+            <span className="text-[10px] text-tea-text-sec num hidden md:inline shrink-0">
               Revenue: ${summary.filledTotal.toFixed(0)}
             </span>
           )}
@@ -251,16 +247,35 @@ export const OrdersView = () => {
           >
             <Plus size={11} /> Invoice
           </button>
+        </div>
 
-          <div className="relative w-28 md:w-48 shrink-0">
+        {/* Row 2 (mobile only): search — separated so it doesn't crowd the filter row */}
+        <div className="px-3 pb-2 md:hidden">
+          <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-tea-text-sec" size={14} />
             <input
               type="text"
-              placeholder="Search..."
+              placeholder="Search orders..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-transparent border-b border-tea-border rounded-none pl-8 md:pl-9 pr-3 py-1.5 text-xs text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-text-sec font-serif placeholder-tea-text-sec/50 transition-colors"
+              className="w-full bg-transparent border-b border-tea-border rounded-none pl-8 pr-3 py-1.5 text-xs text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-text-sec font-serif placeholder-tea-text-sec/50 transition-colors"
             />
+          </div>
+        </div>
+
+        {/* Row 2 (desktop): search inline */}
+        <div className="hidden md:block px-6 pb-2.5 -mt-1.5">
+          <div className="max-w-7xl mx-auto flex justify-end">
+            <div className="relative w-48">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-tea-text-sec" size={14} />
+              <input
+                type="text"
+                placeholder="Search..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full bg-transparent border-b border-tea-border rounded-none pl-9 pr-3 py-1.5 text-xs text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-text-sec font-serif placeholder-tea-text-sec/50 transition-colors"
+              />
+            </div>
           </div>
         </div>
       </div>

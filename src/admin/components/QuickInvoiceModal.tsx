@@ -88,7 +88,7 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
     setShipping(0);
     setNotes('');
     setActiveItemId(null);
-    api.customers.list().then(setCustomers).catch(() => {});
+    api.customers.list('customer').then(setCustomers).catch(() => {});
   }, [isOpen]);
 
   // Close customer picker on outside click
@@ -142,7 +142,6 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
 
   const buildPayload = () => ({
     invoice: {
-      invoice_number: `QI-${new Date().getFullYear()}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
       customer_name: customerQuery.trim() || 'Unknown',
       customer_id: customerId ?? null,
       display_currency: currency,
