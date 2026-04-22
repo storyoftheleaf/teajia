@@ -1081,6 +1081,13 @@ export const api = {
       });
       return handleResponse(res);
     },
+    // F12: List interest signups for an event
+    getInterestSignups: async (eventId: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/events/${eventId}/interest`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
     // F12: Convert interest signups to RSVPs
     convertInterestToRsvp: async (eventId: string) => {
       const res = await fetchWithTimeout(`${API_URL}/api/admin/events/${eventId}/convert-interest`, {

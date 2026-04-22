@@ -185,7 +185,7 @@ const GuestManagement: React.FC = () => {
     if (!data) return;
     const prev = prevStatusRef.current;
     const next = data.attendee.status;
-    if (prev === 'requested' && next === 'confirmed') {
+    if ((prev === 'requested' || prev === 'waitlist') && next === 'confirmed') {
       setTransitionBanner('confirmed');
     } else if (prev === 'requested' && next === 'denied') {
       setTransitionBanner('denied');

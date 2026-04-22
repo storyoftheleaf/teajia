@@ -18,7 +18,7 @@ import { ShareSheet } from './ShareSheet';
 import { EventStatus, BriefingCard, TastingNote, Venue } from '../../types/events';
 import { VenueManager } from './VenueManager';
 
-type TabKey = 'requests' | 'attendees' | 'briefing' | 'tea-menu' | 'tasting-notes' | 'reminders' | 'notifications' | 'post-session' | 'venue';
+type TabKey = 'requests' | 'attendees' | 'briefing' | 'tea-menu' | 'tasting-notes' | 'reminders' | 'notifications' | 'post-session' | 'venue' | 'interest';
 
 // ── Feature 1: Promote event tasting note to tea review ──────────────────────
 
@@ -271,8 +271,31 @@ export const EventDetail: React.FC = () => {
   const { data: event, isLoading, refetch: refetchEvent } = useEvent(id!);
   const { data: attendees = [], refetch: refetchAttendees } = useAttendees(id!);
 
+  const [convertingInterest, setConvertingInterest] = useState(false);
+  const { data: interestData, refetch: refetchInterest } = useQuery<{ signups: any[] }>({
+    queryKey: ['event-interest', id],
+    queryFn: () => api.events.getInterestSignups(id!),
+    enabled: !!id,
+    staleTime: 30_000,
+  });
+  const interestSignups = interestData?.signups ?? [];
+
+  const handleConvertInterest = async () => {
+    setConvertingInterest(true);
+    try {
+      const result: any = await api.events.convertInterestToRsvp(id!);
+      showToast(`${result.converted ?? 0} signup${result.converted === 1 ? '' : 's'} converted to RSVPs`, 'success');
+      refetchInterest();
+      refetchAttendees();
+    } catch (err: any) {
+      showToast(err.message || 'Failed to convert', 'error');
+    } finally {
+      setConvertingInterest(false);
+    }
+  };
+
   const [searchParams, setSearchParams] = useSearchParams();
-  const VALID_TABS: TabKey[] = ['requests', 'attendees', 'tasting-notes', 'briefing', 'tea-menu', 'reminders', 'notifications', 'post-session', 'venue'];
+  const VALID_TABS: TabKey[] = ['requests', 'attendees', 'tasting-notes', 'briefing', 'tea-menu', 'reminders', 'notifications', 'post-session', 'venue', 'interest'];
   const rawTab = searchParams.get('tab') as TabKey;
   const activeTab: TabKey = VALID_TABS.includes(rawTab) ? rawTab : 'requests';
   const setActiveTab = (key: TabKey) => { setSearchParams(params => { params.set('tab', key); return params; }, { replace: true }); setOverflowOpen(false); };
@@ -385,7 +408,8 @@ export const EventDetail: React.FC = () => {
     { key: 'tasting-notes', label: 'Tasting Notes', badge: tastingNotes.length || undefined },
   ];
 
-  const OVERFLOW_TABS: { key: TabKey; label: string }[] = [
+  const OVERFLOW_TABS: { key: TabKey; label: string; badge?: number }[] = [
+    { key: 'interest', label: 'Interest', badge: interestSignups.filter(s => !s.converted_at).length || undefined },
     { key: 'venue', label: 'Venue' },
     { key: 'tea-menu', label: 'Tea Menu' },
     { key: 'reminders', label: 'Reminders' },
@@ -590,13 +614,18 @@ export const EventDetail: React.FC = () => {
                 <button
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
-                  className={`w-full text-left px-4 py-2 text-xs transition-colors ${
+                  className={`w-full text-left px-4 py-2 text-xs transition-colors flex items-center justify-between gap-3 ${
                     activeTab === tab.key
                       ? 'text-tea-gold bg-tea-gold/10'
                       : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated'
                   }`}
                 >
                   {tab.label}
+                  {(tab as any).badge > 0 && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-400 font-medium leading-none">
+                      {(tab as any).badge}
+                    </span>
+                  )}
                 </button>
               ))}
             </div>
@@ -698,6 +727,62 @@ export const EventDetail: React.FC = () => {
         {/* ── Post-Session tab ── */}
         {activeTab === 'post-session' && (
           <PostSessionEditor eventId={event.id} />
+        )}
+
+        {/* ── Interest tab ── */}
+        {activeTab === 'interest' && (
+          <div className="max-w-xl">
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <p className="text-sm text-tea-text font-medium">
+                  {interestSignups.length} {interestSignups.length === 1 ? 'person' : 'people'} expressed interest
+                </p>
+                <p className="text-xs text-tea-text-sec mt-0.5">
+                  {interestSignups.filter(s => s.converted_at).length} already converted · {interestSignups.filter(s => !s.converted_at).length} pending
+                </p>
+              </div>
+              {interestSignups.filter(s => !s.converted_at).length > 0 && (
+                <button
+                  type="button"
+                  onClick={handleConvertInterest}
+                  disabled={convertingInterest}
+                  className="flex items-center gap-1.5 text-xs bg-tea-gold/15 text-tea-gold hover:bg-tea-gold/25 px-3 py-1.5 rounded transition-colors disabled:opacity-50"
+                >
+                  {convertingInterest ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}
+                  Convert to RSVPs
+                </button>
+              )}
+            </div>
+
+            {interestSignups.length === 0 ? (
+              <div className="text-center py-12 text-tea-text-sec text-sm">
+                <Bell className="mx-auto mb-3 text-tea-text-dim" size={24} />
+                <p>No interest signups yet</p>
+                <p className="text-xs text-tea-text-dim mt-1">People who submit the "notify me" form will appear here.</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {interestSignups.map((s: any) => (
+                  <div
+                    key={s.id}
+                    className={`flex items-center justify-between gap-3 px-4 py-3 rounded-md border ${
+                      s.converted_at ? 'border-tea-border bg-tea-surface/40 opacity-60' : 'border-tea-border bg-tea-surface'
+                    }`}
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm text-tea-text truncate">{s.name || '—'}</p>
+                      <p className="text-xs text-tea-text-sec mt-0.5">{s.phone || s.email || '—'}</p>
+                    </div>
+                    {s.converted_at ? (
+                      <span className="text-[10px] text-tea-text-dim uppercase tracking-[0.15em] shrink-0">Converted</span>
+                    ) : (
+                      <span className="text-[10px] text-amber-400 uppercase tracking-[0.15em] shrink-0">Pending</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         )}
 
         {/* ── Venue tab ── */}

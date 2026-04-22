@@ -2525,19 +2525,21 @@ const handleGetCustomerTeas: Handler = async (request, env, params) => {
         ORDER BY last_purchased DESC
       `).bind(params.id, accountId).all(),
 
-      // Teas tasted at events (via tasting notes → tea menu → product)
+      // Teas tasted at events (via tasting notes → tea menu → product or custom)
       env.DB.prepare(`
         SELECT DISTINCT
-          p.id, p.product_name, p.given_name, p.chinese_name, p.type, p.image_url,
-          p.origin_country, p.origin_region,
+          COALESCE(p.id, 'custom:' || etm.id) as id,
+          COALESCE(p.product_name, etm.custom_name) as product_name,
+          COALESCE(p.given_name, etm.custom_name) as given_name,
+          p.chinese_name, COALESCE(p.type, etm.tea_type) as type, p.image_url,
+          p.origin_country, COALESCE(p.origin_region, etm.origin_region) as origin_region,
           0 as total_quantity, 0 as order_count,
           NULL as first_purchased, NULL as last_purchased
         FROM event_tasting_notes etn
         JOIN event_attendees ea ON ea.id = etn.attendee_id
         JOIN event_tea_menu etm ON etm.id = etn.tea_menu_id
-        JOIN products p ON p.id = etm.product_id
+        LEFT JOIN products p ON p.id = etm.product_id
         WHERE ea.customer_id = ? AND ea.account_id = ?
-          AND p.id IS NOT NULL
       `).bind(params.id, accountId).all(),
     ]);
 
@@ -2612,15 +2614,21 @@ const handleGetCustomerJourney: Handler = async (request, env, params) => {
         ORDER BY total_quantity DESC
       `).bind(params.id, accountId).all(),
 
-      // Types tasted at events — fills portrait even when no invoices exist
+      // Types + impressions tasted at events — fills portrait even when no invoices exist
       env.DB.prepare(`
-        SELECT p.type, p.given_name, p.product_name
+        SELECT
+          COALESCE(p.type, etm.tea_type) as type,
+          COALESCE(p.given_name, etm.custom_name) as given_name,
+          COALESCE(p.product_name, etm.custom_name) as product_name,
+          etn.impression, e.title as event_title, e.event_date
         FROM event_tasting_notes etn
         JOIN event_attendees ea ON ea.id = etn.attendee_id
         JOIN event_tea_menu etm ON etm.id = etn.tea_menu_id
-        JOIN products p ON p.id = etm.product_id
+        LEFT JOIN products p ON p.id = etm.product_id
+        JOIN events e ON e.id = ea.event_id
         WHERE ea.customer_id = ? AND ea.account_id = ?
-          AND p.type IS NOT NULL AND p.type != 'Teaware'
+          AND (COALESCE(p.type, etm.tea_type) IS NULL OR COALESCE(p.type, etm.tea_type) != 'Teaware')
+        ORDER BY e.event_date DESC
       `).bind(params.id, accountId).all(),
 
       env.DB.prepare(
@@ -2634,8 +2642,17 @@ const handleGetCustomerJourney: Handler = async (request, env, params) => {
       if (row.type) teaTypeMap[row.type] = (teaTypeMap[row.type] || 0) + 1;
     }
     // Merge event-tasted types so portrait works for customers who've attended but never ordered
+    const impressions: Array<{ text: string; teaName: string; eventTitle: string; date: string }> = [];
     for (const row of eventNotesResult.results as any[]) {
       if (row.type) teaTypeMap[row.type] = (teaTypeMap[row.type] || 0) + 1;
+      if (row.impression) {
+        impressions.push({
+          text: row.impression,
+          teaName: row.given_name || row.product_name || 'Unknown tea',
+          eventTitle: row.event_title,
+          date: row.event_date,
+        });
+      }
     }
     // Favorites from invoices first, fall back to event notes
     const invoiceFavorites = rows.slice(0, 3).map((r: any) => r.given_name || r.product_name).filter(Boolean);
@@ -2657,9 +2674,9 @@ const handleGetCustomerJourney: Handler = async (request, env, params) => {
     if (sessionsAttended >= 3) portraitParts.push(`${sessionsAttended} sessions attended`);
     const portrait = portraitParts.join(' · ');
 
-    return json({ sessionsAttended, totalTeas: rows.length, teaTypeMap, favorites, milestones, memberSince: customer?.created_at ?? null, portrait });
+    return json({ sessionsAttended, totalTeas: rows.length, teaTypeMap, favorites, milestones, impressions, memberSince: customer?.created_at ?? null, portrait });
   } catch {
-    return json({ sessionsAttended: 0, totalTeas: 0, teaTypeMap: {}, favorites: [], milestones: [], memberSince: null, portrait: '' });
+    return json({ sessionsAttended: 0, totalTeas: 0, teaTypeMap: {}, favorites: [], milestones: [], impressions: [], memberSince: null, portrait: '' });
   }
 };
 
@@ -4629,7 +4646,7 @@ const handleUpsertTeaMenu: Handler = async (request, env, params) => {
     if (item.id) {
       stmts.push(
         env.DB.prepare(
-          `UPDATE event_tea_menu SET product_id = ?, custom_name = ?, custom_description = ?, reveal_date = ?, brew_order = ?
+          `UPDATE event_tea_menu SET product_id = ?, custom_name = ?, custom_description = ?, reveal_date = ?, brew_order = ?, tea_type = ?, origin_region = ?
            WHERE id = ? AND event_id = ?`
         ).bind(
           item.product_id || null,
@@ -4637,6 +4654,8 @@ const handleUpsertTeaMenu: Handler = async (request, env, params) => {
           item.custom_description || null,
           item.reveal_date || null,
           item.brew_order ?? null,
+          item.tea_type || null,
+          item.origin_region || null,
           item.id,
           params.id
         )
@@ -4644,8 +4663,8 @@ const handleUpsertTeaMenu: Handler = async (request, env, params) => {
     } else {
       stmts.push(
         env.DB.prepare(
-          `INSERT INTO event_tea_menu (id, account_id, event_id, product_id, custom_name, custom_description, reveal_date, brew_order)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+          `INSERT INTO event_tea_menu (id, account_id, event_id, product_id, custom_name, custom_description, reveal_date, brew_order, tea_type, origin_region)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
         ).bind(
           crypto.randomUUID(),
           accountId,
@@ -4654,7 +4673,9 @@ const handleUpsertTeaMenu: Handler = async (request, env, params) => {
           item.custom_name || null,
           item.custom_description || null,
           item.reveal_date || null,
-          item.brew_order ?? null
+          item.brew_order ?? null,
+          item.tea_type || null,
+          item.origin_region || null
         )
       );
     }
@@ -5794,6 +5815,24 @@ const handleCompleteEvent: Handler = async (request, env, params) => {
   }
 
   return json({ success: true, status: 'completed', invoices_created: invoicesCreated });
+};
+
+// GET /api/admin/events/:id/interest
+const handleGetInterestSignups: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+  const guard = await assertEventInAccount(env, params.id, accountId);
+  if (guard) return guard;
+
+  const rows = await env.DB.prepare(
+    `SELECT id, name, phone, email, created_at, converted_at, customer_id
+     FROM interest_signups
+     WHERE event_id = ? AND account_id = ?
+     ORDER BY created_at DESC`
+  ).bind(params.id, accountId).all();
+
+  return json({ signups: rows.results ?? [] });
 };
 
 // POST /api/admin/events/:id/convert-interest (F12: Interest signup to RSVP conversion)
@@ -8642,7 +8681,9 @@ const handleGetMyJourney: Handler = async (request, env) => {
 
     const notes = await env.DB.prepare(
       `SELECT etn.impression, etn.is_favorite, etn.tea_menu_id,
-              etm.custom_name, p.given_name, p.product_name, p.type, p.origin_region,
+              COALESCE(etm.custom_name, p.given_name, p.product_name) as tea_name,
+              COALESCE(p.type, etm.tea_type) as type,
+              COALESCE(p.origin_region, etm.origin_region) as origin_region,
               e.title as event_title, e.event_date
        FROM event_tasting_notes etn
        LEFT JOIN event_tea_menu etm ON etm.id = etn.tea_menu_id
@@ -8656,11 +8697,11 @@ const handleGetMyJourney: Handler = async (request, env) => {
     for (const n of notes.results as Record<string, any>[]) {
       if (n.type) teaTypeMap[n.type] = (teaTypeMap[n.type] || 0) + 1;
       if (n.origin_region) regionMap[n.origin_region] = (regionMap[n.origin_region] || 0) + 1;
-      if (n.is_favorite) favorites.push(n.custom_name || n.given_name || n.product_name || 'Unknown tea');
+      if (n.is_favorite) favorites.push(n.tea_name || 'Unknown tea');
       if (n.impression) {
         impressions.push({
           text: n.impression,
-          teaName: n.custom_name || n.given_name || n.product_name || 'Unknown tea',
+          teaName: n.tea_name || 'Unknown tea',
           eventTitle: n.event_title,
           date: n.event_date,
         });
@@ -9705,6 +9746,7 @@ const routes: [string, string, Handler][] = [
 
   // Admin — Event V3: complete, convert interest, recurring (F7, F12, F40)
   ['POST', '/api/admin/events/:id/complete', handleCompleteEvent],
+  ['GET', '/api/admin/events/:id/interest', handleGetInterestSignups],
   ['POST', '/api/admin/events/:id/convert-interest', handleConvertInterest],
   ['POST', '/api/admin/events/:id/create-next', handleCreateNextEvent],
 
