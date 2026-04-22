@@ -68,7 +68,7 @@ const TEA_COLUMN_DEFS = [
   { key: 'type', label: 'Type', defaultWidth: 'w-[12%]' },
   { key: 'year', label: 'Year', defaultWidth: 'w-[6%]' },
   { key: 'originRegion', label: 'Origin', defaultWidth: 'w-[15%]' },
-  { key: 'stockGrams', label: 'Stock (g)', defaultWidth: 'w-[7%]' },
+  { key: 'stockGrams', label: 'Grams', defaultWidth: 'w-[6%]' },
   { key: 'verified', label: 'Verified', defaultWidth: 'w-[7%]' },
   { key: 'costAmount', label: 'Cost', defaultWidth: 'w-[9%]' },
   { key: 'costPerGramUSD', label: 'Cost/g', defaultWidth: 'w-[8%]' },
@@ -226,7 +226,7 @@ interface InventoryViewProps {
 }
 
 // --- GHOST INPUT COMPONENT ---
-// Invisible input that looks like text until focused
+// Subtle dotted underline in resting state signals editability; solid on focus.
 const GhostTextarea = ({
     value,
     onSave,
@@ -328,7 +328,7 @@ const GhostInput = ({
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
             inputMode={inputMode || (type === 'number' ? 'decimal' : undefined) as any}
-            className={`w-full bg-transparent border-b border-transparent [@media(hover:none)]:border-dotted [@media(hover:none)]:border-tea-accent-sub focus:border-tea-accent-sub focus:border-solid focus:bg-tea-gold/[0.06] rounded-none py-0 px-0 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-all text-${align} placeholder-tea-text-dim/70 leading-none ${justSaved ? '!text-tea-gold' : ''} ${className}`}
+            className={`w-full bg-transparent border-b border-dashed border-tea-accent-sub/40 focus:border-solid focus:border-tea-accent-sub focus:bg-tea-gold/[0.06] rounded-none py-0 px-0 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-all text-${align} placeholder-tea-text-dim/70 leading-none ${justSaved ? '!text-tea-gold' : ''} ${className}`}
         />
     );
 };
@@ -489,10 +489,10 @@ const CollapsibleSection = ({ title, defaultOpen = true, mobileDefault, children
         return defaultOpen;
     });
     return (
-        <div className="mx-3 mb-1.5 rounded-lg bg-tea-surface">
-            <button onClick={() => setOpen(!open)} className="w-full flex items-center justify-between px-4 py-3.5 group">
-                <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.08em] font-semibold">{title}</span>
-                <ChevronRight size={14} className={`text-tea-text-dim transition-transform duration-200 ${open ? 'rotate-90' : ''}`} />
+        <div className="mx-3 mb-3 rounded-lg bg-tea-surface">
+            <button onClick={() => setOpen(!open)} className="w-full flex items-center justify-between px-4 py-3 group">
+                <span className="text-[10px] text-tea-text-sec uppercase tracking-[0.12em] font-bold">{title}</span>
+                <ChevronRight size={13} className={`text-tea-text-dim/60 transition-transform duration-200 group-hover:text-tea-text-sec ${open ? 'rotate-90' : ''}`} />
             </button>
             <div
                 className="grid transition-[grid-template-rows] duration-200 ease-out"
@@ -623,19 +623,25 @@ const ImageManager = ({ product, onUpdate }: {
         }
     };
 
+    const slotLabels = ['Primary', '2nd', '3rd'];
     return (
-        <div className="flex gap-2">
+        <div className="flex gap-3">
             {images.map((img, i) => (
-                <div key={i}>
+                <div key={i} className="flex flex-col items-center gap-1.5">
                     {img ? (
-                        <div className="w-16 h-16 rounded-md overflow-hidden relative group">
-                            <img src={img} alt="" className="w-full h-full object-cover" loading="lazy" />
+                        <div className="w-24 h-24 rounded-lg overflow-hidden relative group">
+                            <img src={img} alt={slotLabels[i]} className="w-full h-full object-cover" loading="lazy" />
                             <button
                                 onClick={() => handleRemove(i)}
-                                className="absolute inset-0 bg-tea-bg/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                                className="absolute inset-0 bg-tea-bg/70 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
                             >
-                                <XIcon size={14} className="text-tea-text-sec" />
+                                <XIcon size={16} className="text-tea-text" />
                             </button>
+                            {i === 0 && (
+                                <div className="absolute bottom-0 left-0 right-0 bg-tea-bg/60 text-[8px] text-tea-text-dim text-center py-0.5 uppercase tracking-[0.1em]">
+                                    Primary
+                                </div>
+                            )}
                         </div>
                     ) : (
                         <button
@@ -647,17 +653,25 @@ const ImageManager = ({ product, onUpdate }: {
                                     const file = e.target.files?.[0];
                                     if (file) handleUpload(file, i);
                                 };
+                                document.body.appendChild(input);
                                 input.click();
+                                input.remove();
                             }}
                             disabled={uploadingSlot !== null}
-                            className="w-16 h-16 rounded-md border border-dashed border-tea-accent-sub hover:border-tea-gold/30 transition-colors flex items-center justify-center cursor-pointer"
+                            className="w-24 h-24 rounded-lg bg-tea-surface/50 hover:bg-tea-surface border border-dashed border-tea-accent-sub/50 hover:border-tea-gold/30 transition-colors flex flex-col items-center justify-center gap-1.5 cursor-pointer"
                         >
                             {uploadingSlot === i ? (
-                                <Loader2 size={14} className="text-tea-text-dim animate-spin" />
+                                <Loader2 size={16} className="text-tea-text-dim animate-spin" />
                             ) : (
-                                <Plus size={14} className="text-tea-text-dim" />
+                                <>
+                                    <Plus size={16} className="text-tea-text-dim" />
+                                    {i === 0 && <span className="text-[9px] text-tea-text-dim/60 uppercase tracking-[0.1em]">Primary</span>}
+                                </>
                             )}
                         </button>
+                    )}
+                    {i > 0 && (
+                        <span className="text-[9px] text-tea-text-dim/50 uppercase tracking-[0.1em]">{slotLabels[i]}</span>
                     )}
                 </div>
             ))}
@@ -778,7 +792,7 @@ function InventoryRowBase(props: InventoryRowProps) {
             ) : (
               <button onClick={(e) => { e.stopPropagation(); onStockHistory(product.id, product.givenName || product.productName); }} className={`num text-xs flex items-center gap-1 hover:text-tea-gold transition-colors ${isLow ? 'text-tea-gold font-bold' : 'text-tea-text-sec'}`} title="View stock history">
                 {product.recheckStock && <span title="Stock needs rechecking" className="text-amber-400 text-[10px]">&#9888;</span>}
-                {Math.round(product.stockGrams)}g
+                {Math.round(product.stockGrams)}
               </button>
             )}
           </td>
@@ -920,7 +934,7 @@ function InventoryRowBase(props: InventoryRowProps) {
         visibleCols.map((col, colIdx) => renderCell(col.key, colIdx))
       )}
       <td className="px-1 align-middle text-right">
-        <div className="flex justify-end gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+        <div className={`flex justify-end gap-0.5 transition-opacity ${isDropdownOpen ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`} onClick={(e) => e.stopPropagation()}>
           {!isEditMode && (
             <>
               <button onClick={(e) => { e.stopPropagation(); onSelectionAwareUpdate(product, 'isFeatured', !product.isFeatured); }} className={`${product.isFeatured ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'} p-1 transition-colors`} title={product.isFeatured ? 'Remove star' : 'Star'}><Star size={12} className={product.isFeatured ? 'fill-tea-gold' : ''} /></button>
@@ -2141,7 +2155,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 title="View stock history"
               >
                 {product.recheckStock && <span title="Stock needs rechecking" className="text-amber-400 text-[10px]">&#9888;</span>}
-                {Math.round(product.stockGrams)}g
+                {Math.round(product.stockGrams)}
               </button>
             )}
           </td>
@@ -2893,7 +2907,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       {/* --- SCROLL CONTAINER --- */}
       <div
         ref={scrollContainerRef}
-        className="flex-1 overflow-auto custom-scrollbar bg-tea-bg md:px-6"
+        className="flex-1 overflow-auto custom-scrollbar bg-tea-bg md:px-6 pb-nav-gap"
         onScroll={(e) => {
           if (filterType === 'Pending') return;
           const top = e.currentTarget.scrollTop;
@@ -3247,11 +3261,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                           <div className="text-[11px] font-medium text-tea-text-dim tabular-nums">0g</div>
                                         ) : isLowStock ? (
                                           <div className="text-[13px] font-sans font-medium tabular-nums text-amber-500">
-                                              {Math.round(product.stockGrams)}g
+                                              {Math.round(product.stockGrams)}
                                           </div>
                                         ) : (
                                           <div className="text-[13px] font-sans font-medium tabular-nums text-tea-text">
-                                              {Math.round(product.stockGrams)}g
+                                              {Math.round(product.stockGrams)}
                                           </div>
                                         )}
                                         <div className="text-[12px] text-tea-text-dim tabular-nums">
@@ -3830,56 +3844,75 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           >
             {panelProduct && (<>
               {/* Panel Header — Row 1: Nav */}
-              <div className="flex items-center justify-between px-4 pt-3 pb-1 bg-tea-surface/30">
-                <button onClick={() => setPanelProduct(null)} className="p-2.5 -ml-1 text-tea-text-sec hover:text-tea-text transition-colors rounded-lg active:bg-tea-surface">
-                  <XIcon size={18} />
+              <div className="flex items-center justify-between px-3 pt-2.5 pb-1 bg-tea-surface/30">
+                <button onClick={() => setPanelProduct(null)} className="p-2 -ml-0.5 text-tea-text-sec hover:text-tea-text transition-colors rounded-lg active:bg-tea-surface" title="Close (Esc)">
+                  <XIcon size={17} />
                 </button>
-                <span className="text-[11px] text-tea-text-dim tabular-nums">
-                  {(productIndexMap.get(panelProduct.id) ?? -1) + 1} of {processedProducts.length}
-                </span>
-                <div className="flex items-center gap-0.5">
+                <div className="flex flex-col items-center gap-0">
+                  <span className="text-[10px] text-tea-text-dim tabular-nums leading-none">
+                    {(productIndexMap.get(panelProduct.id) ?? -1) + 1} / {processedProducts.length}
+                  </span>
+                  {filterType !== 'All' && (
+                    <span className="text-[9px] text-tea-text-dim/60 uppercase tracking-[0.1em] leading-none mt-0.5">
+                      {VIEW_FILTER_LABELS[filterType] || filterType}
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-0">
                   <button
                     onClick={() => {
                       const idx = productIndexMap.get(panelProduct.id) ?? -1;
                       if (idx > 0) setPanelProduct(processedProducts[idx - 1]);
                     }}
-                    className="p-2.5 text-tea-text-sec hover:text-tea-text transition-colors rounded-lg active:bg-tea-surface"
-                    title="Previous"
-                  ><ChevronLeft size={18} /></button>
+                    className="p-2 text-tea-text-sec hover:text-tea-text transition-colors rounded-lg active:bg-tea-surface disabled:opacity-30"
+                    title="Previous (←)"
+                    disabled={(productIndexMap.get(panelProduct.id) ?? 0) === 0}
+                  ><ChevronLeft size={17} /></button>
                   <button
                     onClick={() => {
                       const idx = productIndexMap.get(panelProduct.id) ?? -1;
                       if (idx < processedProducts.length - 1) setPanelProduct(processedProducts[idx + 1]);
                     }}
-                    className="p-2.5 text-tea-text-sec hover:text-tea-text transition-colors rounded-lg active:bg-tea-surface"
-                    title="Next"
-                  ><ChevronRight size={18} /></button>
+                    className="p-2 text-tea-text-sec hover:text-tea-text transition-colors rounded-lg active:bg-tea-surface disabled:opacity-30"
+                    title="Next (→)"
+                    disabled={(productIndexMap.get(panelProduct.id) ?? 0) >= processedProducts.length - 1}
+                  ><ChevronRight size={17} /></button>
                 </div>
               </div>
 
               {/* Panel Header — Row 2: Identity */}
-              <div className="flex items-start justify-between gap-3 px-5 pb-3 border-b border-tea-accent-sub bg-tea-surface/30">
+              <div className="flex items-start justify-between gap-3 px-4 pb-3 border-b border-tea-accent-sub bg-tea-surface/30">
                 <div className="flex items-start gap-2.5 min-w-0 flex-1">
-                  <span className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: getThemeColor(panelProduct.type) }} />
+                  <span className="w-2.5 h-2.5 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: getThemeColor(panelProduct.type) }} />
                   <div className="min-w-0">
-                    <h3 className="text-base font-serif text-tea-text truncate leading-tight">{panelProduct.productName}</h3>
-                    <span className="text-[11px] text-tea-text-dim">{panelProduct.type} {panelProduct.year ? `· ${panelProduct.year}` : ''}</span>
+                    <h3 className="text-lg font-serif text-tea-text leading-snug" title={panelProduct.productName}>{panelProduct.productName}</h3>
+                    {panelProduct.givenName && (
+                      <div className="text-xs text-tea-text-sec font-serif italic leading-tight">{panelProduct.givenName}</div>
+                    )}
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <span className="text-xs text-tea-text-sec">{panelProduct.type}</span>
+                      {panelProduct.year && <span className="text-xs text-tea-text-dim">· {panelProduct.year}</span>}
+                      {panelProduct.originRegion && <span className="text-xs text-tea-text-dim">· {panelProduct.originRegion}</span>}
+                    </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 shrink-0 pt-0.5">
-                  <select
-                    value={panelProduct.status}
-                    onChange={e => {
-                      handleProductUpdate(panelProduct.id, 'status', e.target.value);
-                      setPanelProduct(prev => prev ? { ...prev, status: e.target.value as any } : null);
-                    }}
-                    className="text-[11px] uppercase tracking-[0.08em] px-2.5 py-1.5 rounded-md bg-tea-surface text-tea-text-sec appearance-none cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
-                    style={{ borderColor: statusColor, color: statusColor, border: '1px solid' }}
-                  >
-                    {['Active', 'Draft', 'Archived', 'Sold Out'].map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                  <button onClick={() => setQrProduct(panelProduct)} className="p-1.5 text-tea-text-dim hover:text-tea-text-sec transition-colors rounded" title="QR Code">
-                    <QrCode size={14} />
+                <div className="flex flex-col items-end gap-2 shrink-0 pt-0.5">
+                  <div className="relative">
+                    <select
+                      value={panelProduct.status}
+                      onChange={e => {
+                        handleProductUpdate(panelProduct.id, 'status', e.target.value);
+                        setPanelProduct(prev => prev ? { ...prev, status: e.target.value as any } : null);
+                      }}
+                      className="text-[11px] uppercase tracking-[0.08em] pl-2.5 pr-6 py-1.5 rounded-md bg-tea-surface cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg appearance-none"
+                      style={{ borderColor: statusColor, color: statusColor, border: '1px solid' }}
+                    >
+                      {['Active', 'Draft', 'Archived', 'Sold Out'].map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                    <ChevronDown size={10} className="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: statusColor }} />
+                  </div>
+                  <button onClick={() => setQrProduct(panelProduct)} className="flex items-center gap-1 text-[10px] text-tea-text-dim hover:text-tea-text-sec transition-colors rounded px-1 py-0.5" title="Generate QR Code">
+                    <QrCode size={12} /> QR
                   </button>
                 </div>
               </div>
@@ -3890,6 +3923,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 {/* ── 1. Identity & Origin ── */}
                 <CollapsibleSection title="Identity & Origin" defaultOpen={true}>
                   <div className="space-y-0">
+                    {/* Identity fields */}
                     {([
                       { label: 'Name', field: 'productName' as const, value: panelProduct.productName },
                       { label: 'Given Name', field: 'givenName' as const, value: panelProduct.givenName || '' },
@@ -3977,8 +4011,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                       />
                     </div>
 
-                    {/* Origin fields */}
-                    <div className="mt-1 pt-1">
+                    {/* Origin sub-header + fields */}
+                    <div className="mt-3 pt-3 border-t border-tea-accent-sub/40">
+                      <div className="text-[9px] text-tea-text-dim/60 uppercase tracking-[0.18em] mb-2">Origin</div>
                       {[
                         { label: 'Country', field: 'originCountry' as const, value: panelProduct.originCountry || '' },
                         { label: 'Region', field: 'originRegion' as const, value: panelProduct.originRegion || '' },
@@ -3997,20 +4032,18 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         </div>
                       ))}
                       <div className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
-                        <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.06em] shrink-0 w-20 md:w-24 flex items-center gap-1">
-                          Vendor
+                        <div className="flex items-center gap-1.5 shrink-0 w-20 md:w-24">
+                          <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.06em]">Vendor</span>
                           {panelProduct.vendor && (
                             <button
                               onClick={() => navigate(`/admin/people?tab=sources&search=${encodeURIComponent(panelProduct.vendor || '')}`)}
-                              className="ml-1 text-tea-gold hover:text-tea-gold-lt transition-colors"
-                              title="View vendor"
+                              className="text-tea-gold hover:text-tea-gold-lt transition-colors"
+                              title="View vendor profile"
                             >
-                              <svg className="w-3 h-3 inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
-                              </svg>
+                              <ChevronRight size={12} />
                             </button>
                           )}
-                        </span>
+                        </div>
                         <VendorPicker
                           value={panelProduct.vendor || ''}
                           productId={panelProduct.id}
@@ -4018,8 +4051,13 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                             handleProductUpdate(panelProduct.id, 'vendor', val);
                             setPanelProduct(prev => prev ? { ...prev, vendor: val } : null);
                           }}
-                          className="w-full bg-transparent border-b border-transparent focus:border-tea-accent-sub focus:bg-tea-gold/[0.06] rounded-none py-0 px-0 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-all text-right text-xs text-tea-text placeholder-tea-text-dim/70 leading-none"
+                          className="w-full bg-transparent border-b border-dashed border-tea-accent-sub/40 focus:border-solid focus:border-tea-accent-sub focus:bg-tea-gold/[0.06] rounded-none py-0 px-0 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-all text-right text-xs text-tea-text placeholder-tea-text-dim/70 leading-none"
                         />
+                      </div>
+
+                      {/* Links sub-header */}
+                      <div className="mt-3 pt-3 border-t border-tea-accent-sub/40">
+                        <div className="text-[9px] text-tea-text-dim/60 uppercase tracking-[0.18em] mb-1">Links</div>
                       </div>
 
                       {/* Compass Origin — if this product came from a Tea Compass entry */}
@@ -4074,34 +4112,50 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                       </div>
                     </div>
 
-                    {/* All toggles: visibility + source + ownership */}
-                    <div className="flex items-center gap-2 flex-wrap pt-2.5 mt-1.5 border-t border-tea-accent-sub">
-                      {([
-                        { field: 'isPublic' as const, label: 'In Shop', icon: panelProduct.isPublic ? <Eye size={10} /> : <EyeOff size={10} />, active: panelProduct.isPublic },
-                        { field: 'isFeatured' as const, label: 'Starred', icon: <Star size={10} className={panelProduct.isFeatured ? "fill-tea-gold" : ""} />, active: panelProduct.isFeatured },
-                        { field: 'isCurated' as const, label: 'Top Pick', icon: <Sparkles size={10} />, active: panelProduct.isCurated },
-                        { field: 'isSample' as const, label: 'Sample', icon: <FlaskConical size={10} />, active: panelProduct.isSample },
-                        { field: 'canReorder' as const, label: 'Restockable', icon: <RefreshCw size={10} />, active: panelProduct.canReorder },
-                        { field: 'isPersonal' as const, label: 'Mine', icon: <User size={10} />, active: panelProduct.isPersonal },
-                      ] as const).map(toggle => (
-                        <button
-                          key={toggle.field}
-                          onClick={() => {
-                            const newVal = !toggle.active;
-                            handleProductUpdate(panelProduct.id, toggle.field, newVal);
-                            setPanelProduct(prev => prev ? { ...prev, [toggle.field]: newVal } : null);
-                          }}
-                          className={`pill ${toggle.active ? 'pill-active' : ''}`}
-                        >
-                          {toggle.icon} {toggle.label}
-                        </button>
-                      ))}
+                    {/* Toggles — grouped: Visibility / Promotion / Classification */}
+                    <div className="mt-3 pt-3 border-t border-tea-accent-sub/40 space-y-2.5">
+                      {/* Visibility */}
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-[9px] text-tea-text-dim/50 uppercase tracking-[0.15em] w-14 shrink-0">Visibility</span>
+                        {([
+                          { field: 'isPublic' as const, label: 'In Shop', icon: panelProduct.isPublic ? <Eye size={10} /> : <EyeOff size={10} />, active: panelProduct.isPublic },
+                        ] as const).map(toggle => (
+                          <button key={toggle.field} onClick={() => { const v = !toggle.active; handleProductUpdate(panelProduct.id, toggle.field, v); setPanelProduct(prev => prev ? { ...prev, [toggle.field]: v } : null); }} className={`pill ${toggle.active ? 'pill-active' : ''}`}>
+                            {toggle.icon} {toggle.label}
+                          </button>
+                        ))}
+                      </div>
+                      {/* Promotion */}
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-[9px] text-tea-text-dim/50 uppercase tracking-[0.15em] w-14 shrink-0">Promote</span>
+                        {([
+                          { field: 'isFeatured' as const, label: 'Starred', icon: <Star size={10} className={panelProduct.isFeatured ? "fill-tea-gold" : ""} />, active: panelProduct.isFeatured },
+                          { field: 'isCurated' as const, label: 'Top Pick', icon: <Sparkles size={10} />, active: panelProduct.isCurated },
+                        ] as const).map(toggle => (
+                          <button key={toggle.field} onClick={() => { const v = !toggle.active; handleProductUpdate(panelProduct.id, toggle.field, v); setPanelProduct(prev => prev ? { ...prev, [toggle.field]: v } : null); }} className={`pill ${toggle.active ? 'pill-active' : ''}`}>
+                            {toggle.icon} {toggle.label}
+                          </button>
+                        ))}
+                      </div>
+                      {/* Classification */}
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-[9px] text-tea-text-dim/50 uppercase tracking-[0.15em] w-14 shrink-0">Classify</span>
+                        {([
+                          { field: 'isSample' as const, label: 'Sample', icon: <FlaskConical size={10} />, active: panelProduct.isSample },
+                          { field: 'canReorder' as const, label: 'Restockable', icon: <RefreshCw size={10} />, active: panelProduct.canReorder },
+                          { field: 'isPersonal' as const, label: 'Mine', icon: <User size={10} />, active: panelProduct.isPersonal },
+                        ] as const).map(toggle => (
+                          <button key={toggle.field} onClick={() => { const v = !toggle.active; handleProductUpdate(panelProduct.id, toggle.field, v); setPanelProduct(prev => prev ? { ...prev, [toggle.field]: v } : null); }} className={`pill ${toggle.active ? 'pill-active' : ''}`}>
+                            {toggle.icon} {toggle.label}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </CollapsibleSection>
 
                 {/* ── 2. Images ── */}
-                <CollapsibleSection title="Images" defaultOpen={true}>
+                <CollapsibleSection title="Images" defaultOpen={false}>
                   <ImageManager
                     product={panelProduct}
                     onUpdate={(field, value) => {
@@ -4112,7 +4166,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 </CollapsibleSection>
 
                 {/* ── 3. Tasting Profile ── */}
-                <CollapsibleSection title="Tasting Profile" defaultOpen={true}>
+                <CollapsibleSection title="Tasting Profile" defaultOpen={false}>
                   {(() => {
                     const tasting = panelProduct.tasting;
                     const hasTasting = tasting && flattenTastingNotes(tasting).length > 0;
@@ -4141,11 +4195,14 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
                     return (
                       <div className="space-y-0">
-                        {moodText && (
-                          <div className="pb-2.5 mb-1">
-                            <span className="text-[13px] text-tea-gold italic font-serif">{moodText}</span>
-                          </div>
-                        )}
+                        {/* Mood line with label */}
+                        <div className={`flex items-baseline gap-2 pb-3 mb-1 border-b border-tea-accent-sub/30 ${!moodText ? 'opacity-40' : ''}`}>
+                          <span className="text-[9px] text-tea-text-dim/60 uppercase tracking-[0.15em] shrink-0 w-10">Mood</span>
+                          <span className="text-[13px] text-tea-gold italic font-serif leading-snug">{moodText || '—'}</span>
+                        </div>
+
+                        {/* Tasting rows — tap any row to edit */}
+                        <div className="text-[9px] text-tea-text-dim/50 uppercase tracking-[0.15em] pt-1 pb-1.5">Tap any row to edit</div>
                         {TASTING_CATEGORY_ORDER.map(catId => {
                           const raw = tasting?.[catId];
                           const terms: string[] = Array.isArray(raw) ? raw as string[] : [];
@@ -4157,12 +4214,12 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                             <button
                               key={catId}
                               onClick={() => setTastingEditorProduct(panelProduct)}
-                              className={`w-full flex items-center gap-2.5 py-2.5 transition-colors hover:bg-tea-gold/5 active:bg-tea-gold/10 rounded ${
-                                terms.length === 0 ? 'opacity-30' : ''
+                              className={`w-full flex items-center gap-2.5 py-2 transition-colors hover:bg-tea-gold/5 active:bg-tea-gold/10 rounded ${
+                                terms.length === 0 ? 'opacity-25' : ''
                               }`}
                             >
-                              {SectionIcon && <SectionIcon size={13} className="text-tea-text-dim shrink-0" />}
-                              <span className="text-[10px] text-tea-text-sec uppercase tracking-[0.06em] w-12 shrink-0 text-left">{label}</span>
+                              {SectionIcon && <SectionIcon size={12} className="text-tea-text-dim shrink-0" />}
+                              <span className="text-[10px] text-tea-text-sec uppercase tracking-[0.06em] w-14 shrink-0 text-left">{label}</span>
                               <div className="flex-1 flex items-center gap-1 overflow-hidden min-w-0">
                                 {terms.length === 0 ? (
                                   <span className="text-[10px] text-tea-text-dim">—</span>
@@ -4179,7 +4236,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                     })}
                                   </div>
                                 ) : (
-                                  <span className="text-[11px] text-tea-text truncate">
+                                  <span className="text-xs text-tea-text truncate">
                                     {terms.map(id => resolveTermLabel(id)).join(', ')}
                                   </span>
                                 )}
@@ -4190,13 +4247,21 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                             </button>
                           );
                         })}
+
+                        {/* Edit button */}
+                        <button
+                          onClick={() => setTastingEditorProduct(panelProduct)}
+                          className="w-full mt-2 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[10px] text-tea-text-dim hover:text-tea-gold hover:bg-tea-gold/5 transition-colors uppercase tracking-[0.1em]"
+                        >
+                          <Pencil size={11} /> Edit Tasting Profile
+                        </button>
                       </div>
                     );
                   })()}
                 </CollapsibleSection>
 
                 {/* ── 4. Pricing ── */}
-                <CollapsibleSection title="Pricing" defaultOpen={true}>
+                <CollapsibleSection title="Pricing" defaultOpen={false}>
                   {inventoryCategory === 'teaware' ? (
                     <div className="space-y-0">
                       {[
@@ -4233,23 +4298,26 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         <div className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
                           <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.06em] shrink-0 w-20 md:w-24">Batch Cost</span>
                           <div className="flex items-center gap-1.5 flex-1 justify-end">
-                            <select
-                              value={panelProduct.costCurrency || 'USD'}
-                              onChange={(e) => {
-                                const newCurrency = e.target.value;
-                                handleProductUpdate(panelProduct.id, 'costCurrency', newCurrency);
-                                setPanelProduct(prev => prev ? { ...prev, costCurrency: newCurrency as any } : null);
-                              }}
-                              className="bg-transparent text-[10px] text-tea-text-sec font-medium uppercase outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg cursor-pointer appearance-none border-none"
-                            >
-                              <option value="USD" className="bg-tea-surface text-tea-text">USD</option>
-                              <option value="NT" className="bg-tea-surface text-tea-text">NT</option>
-                              <option value="Yuan" className="bg-tea-surface text-tea-text">CNY</option>
-                              <option value="IDR" className="bg-tea-surface text-tea-text">IDR</option>
-                              <option value="JPY" className="bg-tea-surface text-tea-text">JPY</option>
-                              <option value="MYR" className="bg-tea-surface text-tea-text">MYR</option>
-                              <option value="HKD" className="bg-tea-surface text-tea-text">HKD</option>
-                            </select>
+                            <div className="relative flex items-center">
+                              <select
+                                value={panelProduct.costCurrency || 'USD'}
+                                onChange={(e) => {
+                                  const newCurrency = e.target.value;
+                                  handleProductUpdate(panelProduct.id, 'costCurrency', newCurrency);
+                                  setPanelProduct(prev => prev ? { ...prev, costCurrency: newCurrency as any } : null);
+                                }}
+                                className="bg-transparent text-[10px] text-tea-text-sec font-medium uppercase outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg cursor-pointer appearance-none border-none pr-3"
+                              >
+                                <option value="USD" className="bg-tea-surface text-tea-text">USD</option>
+                                <option value="NT" className="bg-tea-surface text-tea-text">NT</option>
+                                <option value="Yuan" className="bg-tea-surface text-tea-text">CNY</option>
+                                <option value="IDR" className="bg-tea-surface text-tea-text">IDR</option>
+                                <option value="JPY" className="bg-tea-surface text-tea-text">JPY</option>
+                                <option value="MYR" className="bg-tea-surface text-tea-text">MYR</option>
+                                <option value="HKD" className="bg-tea-surface text-tea-text">HKD</option>
+                              </select>
+                              <ChevronDown size={9} className="absolute right-0 top-1/2 -translate-y-1/2 text-tea-text-dim pointer-events-none" />
+                            </div>
                             <GhostInput
                               value={panelProduct.costAmount}
                               onSave={(val) => {
@@ -4264,7 +4332,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         </div>
 
                         <div className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
-                          <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.06em] shrink-0 w-20 md:w-24">Batch Wt (g)</span>
+                          <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.06em] shrink-0 w-20 md:w-24">Batch Weight</span>
                           <GhostInput
                             value={panelProduct.quantityPurchased || 0}
                             onSave={(val) => {
@@ -4278,7 +4346,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         </div>
 
                         <div className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
-                          <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.06em] shrink-0 w-20 md:w-24">Ship (USD/kg)</span>
+                          <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.06em] shrink-0 w-20 md:w-24">Shipping/kg</span>
                           <GhostInput
                             value={panelProduct.shippingRatePerKg || 13}
                             onSave={(val) => {
@@ -4291,13 +4359,23 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                           />
                         </div>
 
-                        <div className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
-                          <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.06em] shrink-0 w-20 md:w-24">Retail USD/g</span>
-                          <span className="text-xs text-tea-text tabular-nums flex-1 text-right font-medium">${calc.suggestedRetailUSD.toFixed(2)}</span>
+                        {/* Calculated retail — read-only, visually distinguished */}
+                        <div className="flex items-center justify-between gap-3 py-2 mt-2 rounded-md bg-tea-bg px-2 -mx-2">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] text-tea-text-dim uppercase tracking-[0.06em] shrink-0">Calculated Retail</span>
+                            <span className="text-[9px] text-tea-text-dim/50 uppercase tracking-[0.08em]">(3× markup)</span>
+                          </div>
+                          <span className="text-xs text-tea-text-sec tabular-nums font-medium">${calc.suggestedRetailUSD.toFixed(2)}/g</span>
                         </div>
 
+                        {/* Override field */}
                         <div className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
-                          <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.06em] shrink-0 w-20 md:w-24">Fixed USD</span>
+                          <div className="flex items-center gap-1.5 shrink-0 w-20 md:w-24">
+                            <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.06em]">Override</span>
+                            {panelProduct.fixedRetailPriceUSD && panelProduct.fixedRetailPriceUSD < calc.trueCostUSD && (
+                              <span className="text-[9px] text-red-400 uppercase tracking-[0.08em]" title="Below true cost">Below cost</span>
+                            )}
+                          </div>
                           <GhostInput
                             value={panelProduct.fixedRetailPriceUSD ?? ''}
                             placeholder={calc.suggestedRetailUSD > 0 ? calc.suggestedRetailUSD.toFixed(2) : '—'}
@@ -4309,8 +4387,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                             type="number"
                             align="right"
                             className={`text-xs tabular-nums flex-1 ${
-                              panelProduct.fixedRetailPriceUSD && panelProduct.fixedRetailPriceUSD < calc.trueCostUSD
-                                ? 'text-red-400 font-bold' : 'text-tea-text'
+                              panelProduct.fixedRetailPriceUSD != null ? 'text-tea-gold font-medium' : 'text-tea-text'
                             }`}
                           />
                         </div>
@@ -4329,22 +4406,22 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                             style={{ gridTemplateRows: panelBreakdownOpen ? '1fr' : '0fr' }}
                           >
                             <div className="overflow-hidden">
-                              <div className="bg-tea-surface/30 rounded-md px-3 py-2 mt-1 space-y-1.5">
-                                <div className="flex justify-between text-[11px]">
-                                  <span className="text-tea-text-dim">Source Cost/g</span>
-                                  <span className="text-tea-text-sec tabular-nums">{calc.costPerGramSource.toFixed(3)} {panelProduct.costCurrency || 'USD'}</span>
+                              <div className="bg-tea-bg rounded-md px-3 py-2.5 mt-1 space-y-2">
+                                <div className="flex justify-between text-xs">
+                                  <span className="text-tea-text-sec">Source Cost/g</span>
+                                  <span className="text-tea-text tabular-nums">{calc.costPerGramSource.toFixed(3)} {panelProduct.costCurrency || 'USD'}</span>
                                 </div>
-                                <div className="flex justify-between text-[11px]">
-                                  <span className="text-tea-text-dim">Exchange Rate</span>
-                                  <span className="text-tea-text-sec tabular-nums">{calc.rateUsed}</span>
+                                <div className="flex justify-between text-xs">
+                                  <span className="text-tea-text-sec">Exchange Rate</span>
+                                  <span className="text-tea-text tabular-nums">{calc.rateUsed}</span>
                                 </div>
-                                <div className="flex justify-between text-[11px]">
-                                  <span className="text-tea-text-dim">True Cost (USD)</span>
-                                  <span className="text-tea-text tabular-nums font-medium">${calc.trueCostUSD.toFixed(3)}/g</span>
+                                <div className="flex justify-between text-xs">
+                                  <span className="text-tea-text-sec">True Cost (USD)</span>
+                                  <span className="text-tea-text tabular-nums font-semibold">${calc.trueCostUSD.toFixed(3)}/g</span>
                                 </div>
-                                <div className="flex justify-between text-[11px]">
-                                  <span className="text-tea-text-dim">3x Markup</span>
-                                  <span className="text-tea-text-sec tabular-nums">${calc.suggestedRetailUSD.toFixed(2)}/g</span>
+                                <div className="flex justify-between text-xs border-t border-tea-accent-sub/30 pt-2">
+                                  <span className="text-tea-text-sec">3× Markup</span>
+                                  <span className="text-tea-gold tabular-nums font-medium">${calc.suggestedRetailUSD.toFixed(2)}/g</span>
                                 </div>
                               </div>
                             </div>
@@ -4387,38 +4464,63 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                           />
                         </div>
                       </>
-                    ) : (
-                      <>
-                        <div className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
-                          <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.06em] shrink-0 w-20 md:w-24">Current (g)</span>
-                          <GhostInput
-                            value={panelProduct.stockGrams}
-                            onSave={(val) => {
-                              handleProductUpdate(panelProduct.id, 'stockGrams', val);
-                              setPanelProduct(prev => prev ? { ...prev, stockGrams: Number(val) } : null);
-                            }}
-                            type="number"
-                            align="right"
-                            className="text-xs text-tea-text tabular-nums flex-1"
-                          />
-                        </div>
-                        <div className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
-                          <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.06em] shrink-0 w-20 md:w-24">Low Alert</span>
-                          <GhostInput
-                            value={panelProduct.lowStockThreshold || 0}
-                            onSave={(val) => {
-                              handleProductUpdate(panelProduct.id, 'lowStockThreshold', val);
-                              setPanelProduct(prev => prev ? { ...prev, lowStockThreshold: Number(val) } : null);
-                            }}
-                            type="number"
-                            align="right"
-                            className="text-xs text-tea-text tabular-nums flex-1"
-                          />
-                        </div>
-                      </>
-                    )}
+                    ) : (() => {
+                        const stock = panelProduct.stockGrams;
+                        const threshold = panelProduct.lowStockThreshold || 0;
+                        const isLow = threshold > 0 && stock <= threshold;
+                        const isOut = stock === 0;
+                        const pct = threshold > 0 ? Math.min(1, stock / (threshold * 4)) : null;
+                        const barColor = isOut ? 'bg-red-400/60' : isLow ? 'bg-amber-400/70' : 'bg-emerald-500/60';
+                        return (
+                          <>
+                            <div className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
+                              <div className="flex items-center gap-1.5 shrink-0 w-20 md:w-24">
+                                <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.06em]">Current</span>
+                                <span className="text-[9px] text-tea-text-dim/60 uppercase tracking-[0.08em]">(g)</span>
+                              </div>
+                              <div className="flex items-center gap-2 flex-1 justify-end">
+                                {isLow && !isOut && <span className="text-[9px] text-amber-400 uppercase tracking-[0.1em]">Low</span>}
+                                {isOut && <span className="text-[9px] text-red-400 uppercase tracking-[0.1em]">Empty</span>}
+                                <GhostInput
+                                  value={stock}
+                                  onSave={(val) => {
+                                    handleProductUpdate(panelProduct.id, 'stockGrams', val);
+                                    setPanelProduct(prev => prev ? { ...prev, stockGrams: Number(val) } : null);
+                                  }}
+                                  type="number"
+                                  align="right"
+                                  className={`text-xs tabular-nums w-20 ${isLow ? 'text-amber-400 font-medium' : isOut ? 'text-red-400 font-medium' : 'text-tea-text'}`}
+                                />
+                              </div>
+                            </div>
+                            {pct !== null && (
+                              <div className="flex items-center gap-2 pb-1">
+                                <div className="flex-1 h-1 bg-tea-bg rounded-full overflow-hidden">
+                                  <div className={`h-full rounded-full transition-all duration-500 ${barColor}`} style={{ width: `${pct * 100}%` }} />
+                                </div>
+                                <span className="text-[9px] text-tea-text-dim/60 tabular-nums w-10 text-right">
+                                  {threshold > 0 ? `${Math.round((stock / threshold) * 10) / 10}× min` : ''}
+                                </span>
+                              </div>
+                            )}
+                            <div className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
+                              <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.06em] shrink-0 w-20 md:w-24">Low Alert</span>
+                              <GhostInput
+                                value={threshold}
+                                onSave={(val) => {
+                                  handleProductUpdate(panelProduct.id, 'lowStockThreshold', val);
+                                  setPanelProduct(prev => prev ? { ...prev, lowStockThreshold: Number(val) } : null);
+                                }}
+                                type="number"
+                                align="right"
+                                className="text-xs text-tea-text tabular-nums flex-1"
+                              />
+                            </div>
+                          </>
+                        );
+                      })()}
                     {/* Recount toggle */}
-                    <div className="flex items-center gap-2 flex-wrap pt-2.5 mt-1.5 border-t border-tea-accent-sub">
+                    <div className="flex items-center gap-2 pt-2.5 mt-1.5 border-t border-tea-accent-sub/40">
                       <button
                         onClick={() => {
                           const newVal = !panelProduct.recheckStock;
@@ -4427,8 +4529,13 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         }}
                         className={`pill ${panelProduct.recheckStock ? 'pill-active-amber' : ''}`}
                       >
-                        <RefreshCw size={10} /> Recount
+                        <RefreshCw size={10} /> Flag for Recount
                       </button>
+                      {panelProduct.stockVerifiedAt && (
+                        <span className="text-[10px] text-tea-text-dim ml-auto">
+                          Verified {new Date(panelProduct.stockVerifiedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                        </span>
+                      )}
                     </div>
 
                     {/* Stock History — nested expandable */}
@@ -4458,7 +4565,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 </CollapsibleSection>
 
                 {/* ── 6. Experience ── */}
-                <CollapsibleSection title="Experience" defaultOpen={true}>
+                <CollapsibleSection title="Experience" defaultOpen={false}>
                   <GhostTextarea
                     value={panelProduct.experience || ''}
                     placeholder="The experience of this tea..."
@@ -4473,9 +4580,12 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
                 {/* ── 7. Story & Background ── */}
                 <CollapsibleSection title="Story & Background" defaultOpen={false}>
-                  <div className="space-y-4">
+                  <div className="space-y-5">
                     <div>
-                      <div className="text-[11px] text-tea-text-sec uppercase tracking-[0.06em] mb-1.5">Introduction</div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-medium text-tea-text-sec">Introduction</span>
+                        <span className="text-[10px] text-tea-text-dim/50 italic">Personal voice</span>
+                      </div>
                       <GhostTextarea
                         value={panelProduct.description || ''}
                         placeholder="Your personal introduction to this tea..."
@@ -4487,11 +4597,14 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         className="text-tea-text font-serif"
                       />
                     </div>
-                    <div>
-                      <div className="text-[11px] text-tea-text-sec uppercase tracking-[0.06em] mb-1.5">Terroir</div>
+                    <div className="pt-1 border-t border-tea-accent-sub/30">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-medium text-tea-text-sec">Terroir</span>
+                        <span className="text-[10px] text-tea-text-dim/50 italic">Soil, altitude, climate</span>
+                      </div>
                       <GhostTextarea
                         value={panelProduct.terroir || ''}
-                        placeholder="Soil, altitude, climate..."
+                        placeholder="Where this tea grew and why it matters..."
                         rows={3}
                         onSave={(val) => {
                           handleProductUpdate(panelProduct.id, 'terroir', val);
@@ -4500,11 +4613,14 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         className="text-tea-text font-serif"
                       />
                     </div>
-                    <div>
-                      <div className="text-[11px] text-tea-text-sec uppercase tracking-[0.06em] mb-1.5">Processing</div>
+                    <div className="pt-1 border-t border-tea-accent-sub/30">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-medium text-tea-text-sec">Processing</span>
+                        <span className="text-[10px] text-tea-text-dim/50 italic">Craft & method</span>
+                      </div>
                       <GhostTextarea
                         value={panelProduct.processingNotes || ''}
-                        placeholder="Craft, processing method..."
+                        placeholder="How this tea was made..."
                         rows={3}
                         onSave={(val) => {
                           handleProductUpdate(panelProduct.id, 'processingNotes', val);
@@ -4513,13 +4629,15 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         className="text-tea-text font-serif"
                       />
                     </div>
-                    <div>
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <div className="text-[11px] text-tea-text-sec uppercase tracking-[0.06em]">Lore & History</div>
-                        {panelProduct.isCustomWisdom && (
-                          <span className="flex items-center gap-0.5 text-[9px] text-tea-text-dim italic">
-                            <Pencil size={8} /> edited
+                    <div className="pt-1 border-t border-tea-accent-sub/30">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-medium text-tea-text-sec">Lore & History</span>
+                        {panelProduct.isCustomWisdom ? (
+                          <span className="flex items-center gap-1 text-[10px] text-tea-gold/70 italic">
+                            <Pencil size={10} /> hand-edited
                           </span>
+                        ) : (
+                          <span className="text-[10px] text-tea-text-dim/50 italic">AI generated</span>
                         )}
                       </div>
                       <GhostTextarea
@@ -4551,24 +4669,30 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                   ) : (
                     <>
                       {productTastingAgg && productTastingAgg.totalNotes > 0 && (
-                        <div className="mb-3 p-2.5 rounded bg-tea-accent-sub/30">
-                          <div className="flex items-center gap-3 text-xs font-sans">
-                            <span className="text-tea-gold font-medium">
-                              {productTastingAgg.avgRating.toFixed(1)}/5
-                            </span>
-                            <span className="text-tea-text-dim">
-                              from {productTastingAgg.totalNotes} tasting {productTastingAgg.totalNotes === 1 ? 'note' : 'notes'}
-                            </span>
-                            {productTastingAgg.favoriteCount > 0 && (
-                              <span className="text-tea-text-dim">
-                                · {productTastingAgg.favoriteCount} {productTastingAgg.favoriteCount === 1 ? 'favorite' : 'favorites'}
+                        <div className="mb-4 rounded-lg bg-tea-surface border border-tea-accent-sub/40 overflow-hidden">
+                          {/* Aggregate stats bar */}
+                          <div className="flex items-center gap-4 px-4 py-3 border-b border-tea-accent-sub/30">
+                            <div className="flex items-baseline gap-1">
+                              <span className="text-2xl font-serif text-tea-gold leading-none">{productTastingAgg.avgRating.toFixed(1)}</span>
+                              <span className="text-[10px] text-tea-text-dim/60">/5</span>
+                            </div>
+                            <div className="flex flex-col gap-0.5">
+                              <span className="text-xs text-tea-text-sec">
+                                {productTastingAgg.totalNotes} tasting {productTastingAgg.totalNotes === 1 ? 'note' : 'notes'}
                               </span>
-                            )}
+                              {productTastingAgg.favoriteCount > 0 && (
+                                <span className="text-xs text-tea-text-dim">
+                                  {productTastingAgg.favoriteCount} {productTastingAgg.favoriteCount === 1 ? 'guest favorited' : 'guests favorited'}
+                                </span>
+                              )}
+                            </div>
                           </div>
+                          {/* Guest impressions */}
                           {productTastingAgg.impressions.length > 0 && (
-                            <div className="mt-2 space-y-1">
+                            <div className="px-4 py-3 space-y-2.5">
+                              <div className="text-[9px] text-tea-text-dim/50 uppercase tracking-[0.15em]">Guest Impressions</div>
                               {productTastingAgg.impressions.map((imp, i) => (
-                                <p key={i} className="text-xs font-serif italic text-tea-text-sec leading-relaxed">
+                                <p key={i} className="text-xs font-serif italic text-tea-text leading-relaxed">
                                   "{imp}"
                                 </p>
                               ))}
@@ -4576,12 +4700,15 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                           )}
                         </div>
                       )}
-                      <div className="space-y-1.5">
+
+                      {/* Event list */}
+                      <div className="text-[9px] text-tea-text-dim/50 uppercase tracking-[0.15em] mb-2">Appeared at</div>
+                      <div className="space-y-2">
                         {productEvents.map((event: any) => (
-                          <div key={event.id} className="flex items-center justify-between text-xs">
-                            <span className="text-tea-text">{event.name || event.title || 'Event'}</span>
+                          <div key={event.id} className="flex items-center justify-between gap-3 py-1">
+                            <span className="text-xs text-tea-text font-medium truncate">{event.name || event.title || 'Event'}</span>
                             {(event.date || event.event_date) && (
-                              <span className="text-tea-text-dim">
+                              <span className="text-[11px] text-tea-text-dim shrink-0">
                                 {new Date(event.date || event.event_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                               </span>
                             )}
@@ -4593,7 +4720,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 </CollapsibleSection>
 
                 {/* Bottom breathing room */}
-                <div className="pb-6" />
+                <div className="pb-16" />
               </div>
             </>)}
           </div>

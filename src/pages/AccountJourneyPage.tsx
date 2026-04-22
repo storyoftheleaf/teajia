@@ -358,13 +358,17 @@ const SampleRequestPrompt: React.FC<{ waNumber: string }> = ({ waNumber }) => {
         rows={2}
         className="w-full bg-tea-bg border border-tea-border rounded-xl px-3 py-2.5 text-sm text-tea-text placeholder:text-tea-text-dim resize-none focus:outline-none focus:border-tea-gold/40 transition-colors"
       />
-      <button
-        onClick={handleSend}
-        className="mt-3 flex items-center gap-2 px-4 py-2 rounded-xl bg-tea-gold/10 text-tea-gold hover:bg-tea-gold/15 text-sm transition-colors"
-      >
-        <Send size={13} />
-        {sent ? 'Sent via WhatsApp' : 'Request via WhatsApp'}
-      </button>
+      {waNumber ? (
+        <button
+          onClick={handleSend}
+          className="mt-3 flex items-center gap-2 px-4 py-2 rounded-xl bg-tea-gold/10 text-tea-gold hover:bg-tea-gold/15 text-sm transition-colors"
+        >
+          <Send size={13} />
+          {sent ? 'Sent via WhatsApp' : 'Request via WhatsApp'}
+        </button>
+      ) : (
+        <p className="mt-3 text-xs text-tea-text-dim">WhatsApp not configured for this account.</p>
+      )}
     </div>
   );
 };

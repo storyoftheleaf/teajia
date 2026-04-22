@@ -19,6 +19,8 @@ export const TeaMenuEditor: React.FC<TeaMenuEditorProps> = ({ eventId }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [customName, setCustomName] = useState('');
   const [customDescription, setCustomDescription] = useState('');
+  const [customTeaType, setCustomTeaType] = useState('');
+  const [customOriginRegion, setCustomOriginRegion] = useState('');
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
 
   const sortedItems = [...menuItems].sort((a, b) => a.brewOrder - b.brewOrder);
@@ -49,12 +51,16 @@ export const TeaMenuEditor: React.FC<TeaMenuEditorProps> = ({ eventId }) => {
       await api.events.upsertTeaMenu(eventId, [{
         custom_name: customName,
         custom_description: customDescription || null,
+        tea_type: customTeaType || null,
+        origin_region: customOriginRegion || null,
         brew_order: menuItems.length,
       }]);
       refetch();
       setShowCustom(false);
       setCustomName('');
       setCustomDescription('');
+      setCustomTeaType('');
+      setCustomOriginRegion('');
       showToast('Custom tea added to menu', 'success');
     } catch (err: any) {
       showToast(err.message || 'Failed to add', 'error');
@@ -87,6 +93,8 @@ export const TeaMenuEditor: React.FC<TeaMenuEditorProps> = ({ eventId }) => {
       product_id: item.productId || undefined,
       custom_name: item.customName || item.productName || '',
       custom_description: item.customDescription || '',
+      tea_type: item.teaType || undefined,
+      origin_region: item.originRegion || undefined,
       brew_order: i,
     }));
     try {
@@ -104,6 +112,8 @@ export const TeaMenuEditor: React.FC<TeaMenuEditorProps> = ({ eventId }) => {
         product_id: item.productId || undefined,
         custom_name: item.customName || item.productName || '',
         custom_description: item.customDescription || '',
+        tea_type: item.teaType || undefined,
+        origin_region: item.originRegion || undefined,
         brew_order: item.brewOrder,
         reveal_date: date || null,
       }]);
@@ -120,6 +130,8 @@ export const TeaMenuEditor: React.FC<TeaMenuEditorProps> = ({ eventId }) => {
         product_id: item.productId || undefined,
         custom_name: item.customName || item.productName || '',
         custom_description: description || null,
+        tea_type: item.teaType || undefined,
+        origin_region: item.originRegion || undefined,
         brew_order: item.brewOrder,
       }]);
       refetch();
@@ -301,6 +313,28 @@ export const TeaMenuEditor: React.FC<TeaMenuEditorProps> = ({ eventId }) => {
             className="w-full border-b border-tea-border bg-transparent focus:border-tea-gold outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg text-sm text-tea-text py-2 placeholder:text-tea-text-sec/50"
             placeholder="Description (optional)"
           />
+          <div className="flex gap-2">
+            <select
+              value={customTeaType}
+              onChange={(e) => setCustomTeaType(e.target.value)}
+              className="flex-1 border-b border-tea-border bg-transparent focus:border-tea-gold outline-none text-sm text-tea-text py-2 text-tea-text-sec"
+            >
+              <option value="">Type (optional)</option>
+              <option value="Oolong">Oolong</option>
+              <option value="Puerh">Puerh</option>
+              <option value="White">White</option>
+              <option value="Green">Green</option>
+              <option value="Black">Black</option>
+              <option value="Yellow">Yellow</option>
+            </select>
+            <input
+              type="text"
+              value={customOriginRegion}
+              onChange={(e) => setCustomOriginRegion(e.target.value)}
+              className="flex-1 border-b border-tea-border bg-transparent focus:border-tea-gold outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg text-sm text-tea-text py-2 placeholder:text-tea-text-sec/50"
+              placeholder="Region (optional)"
+            />
+          </div>
           <button
             onClick={handleAddCustom}
             disabled={!customName.trim() || loadingAction === 'add'}

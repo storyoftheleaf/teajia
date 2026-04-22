@@ -39,6 +39,7 @@ interface CustomerJourney {
   milestones?: string[];
   teaTypeMap?: Record<string, number>;
   favorites?: string[];
+  impressions?: Array<{ text: string; teaName: string; eventTitle: string; eventSlug?: string; date: string }>;
   memberSince?: string;
   portrait?: string;
 }
@@ -448,6 +449,36 @@ export const CustomerProfilePage: React.FC = () => {
                       </div>
                     </div>
                   ))}
+              </div>
+            </div>
+          )}
+
+          {/* Impressions */}
+          {journey?.impressions && journey.impressions.length > 0 && (
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec mb-3">
+                Tasting notes <span className="ml-1 normal-case text-tea-text-dim">({journey.impressions.length})</span>
+              </p>
+              <div className="space-y-2">
+                {journey.impressions.slice(0, 8).map((imp, i) => (
+                  <div key={i} className="bg-tea-surface border border-tea-border rounded-lg px-4 py-3">
+                    <p className="text-sm text-tea-text italic leading-relaxed">"{imp.text}"</p>
+                    <div className="flex items-center justify-between mt-1.5">
+                      <p className="text-[10px] text-tea-text-sec">
+                        {imp.teaName} · {imp.eventTitle} ·{' '}
+                        {new Date(imp.date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                      </p>
+                      {imp.eventSlug && (
+                        <button
+                          onClick={() => navigate(`/admin/events/${imp.eventSlug}`)}
+                          className="text-tea-text-dim hover:text-tea-gold text-xs transition-colors shrink-0 ml-3"
+                        >
+                          →
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           )}

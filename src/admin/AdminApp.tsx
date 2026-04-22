@@ -509,7 +509,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
            )}
         </div>}
 
-        <div className="flex-1 relative min-h-0 overflow-y-auto pb-[calc(56px+env(safe-area-inset-bottom,0px))] lg:pb-0">
+        <div className={`flex-1 relative min-h-0 ${isOnInventory ? 'overflow-hidden' : 'overflow-y-auto pb-[calc(56px+env(safe-area-inset-bottom,0px))] lg:pb-0'}`}>
           <Routes>
               <Route path="/" element={<Navigate to="compass" replace />} />
               <Route path="home" element={<Navigate to="../compass" replace />} />
