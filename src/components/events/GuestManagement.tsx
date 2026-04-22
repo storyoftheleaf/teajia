@@ -63,11 +63,13 @@ function isPast(dateStr: string): boolean {
 // ----------------------------------------------------------------
 // Copy-invite-link button
 // ----------------------------------------------------------------
-const CopyInviteLink: React.FC<{ inviteToken: string; nameHint?: string; claimedByName?: string }> = ({
-  inviteToken,
-  nameHint,
-  claimedByName,
-}) => {
+const CopyInviteLink: React.FC<{
+  inviteToken: string;
+  nameHint?: string;
+  contact?: string;
+  eventTitle?: string;
+  claimedByName?: string;
+}> = ({ inviteToken, nameHint, contact, eventTitle, claimedByName }) => {
   const [copied, setCopied] = useState(false);
 
   const inviteUrl = `${window.location.origin}/invite/${inviteToken}`;
@@ -78,6 +80,15 @@ const CopyInviteLink: React.FC<{ inviteToken: string; nameHint?: string; claimed
       setTimeout(() => setCopied(false), 2000);
     });
   };
+
+  const isPhone = contact && !contact.includes('@');
+  const whatsappUrl = isPhone
+    ? (() => {
+        const digits = contact!.replace(/\D/g, '');
+        const msg = `Hey! I've saved you a seat at ${eventTitle || 'our tea session'}. Claim it here: ${inviteUrl}`;
+        return `https://wa.me/${digits}?text=${encodeURIComponent(msg)}`;
+      })()
+    : null;
 
   if (claimedByName) {
     return (
@@ -90,27 +101,42 @@ const CopyInviteLink: React.FC<{ inviteToken: string; nameHint?: string; claimed
   }
 
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex flex-wrap items-center gap-2">
       {nameHint && (
         <span className="text-sm text-tea-text-sec italic">{nameHint}</span>
       )}
-      <button
-        onClick={handleCopy}
-        className="flex items-center gap-1.5 text-xs text-tea-gold hover:text-tea-gold/80 transition-colors"
-      >
-        {copied ? (
-          <>
-            <Check className="w-3.5 h-3.5" />
-            Copied
-          </>
-        ) : (
-          <>
-            <Copy className="w-3.5 h-3.5" />
-            Copy invite link
-          </>
-        )}
-      </button>
-      <span className="text-xs text-tea-text-sec/50">unclaimed</span>
+      {whatsappUrl ? (
+        <a
+          href={whatsappUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-colors"
+        >
+          Send via WhatsApp
+        </a>
+      ) : (
+        <button
+          onClick={handleCopy}
+          className="flex items-center gap-1.5 text-xs text-tea-gold hover:text-tea-gold/80 transition-colors"
+        >
+          {copied ? (
+            <><Check className="w-3.5 h-3.5" />Copied</>
+          ) : (
+            <><Copy className="w-3.5 h-3.5" />Copy invite link</>
+          )}
+        </button>
+      )}
+      {!whatsappUrl && (
+        <span className="text-xs text-tea-text-sec/50">unclaimed</span>
+      )}
+      {whatsappUrl && (
+        <button
+          onClick={handleCopy}
+          className="flex items-center gap-1.5 text-xs text-tea-text-dim hover:text-tea-text-sec transition-colors"
+        >
+          {copied ? <><Check className="w-3 h-3" />Copied</> : <><Copy className="w-3 h-3" />Copy link</>}
+        </button>
+      )}
     </div>
   );
 };
@@ -693,6 +719,8 @@ const GuestManagement: React.FC = () => {
                   <CopyInviteLink
                     inviteToken={invite.inviteToken}
                     nameHint={invite.nameHint}
+                    contact={invite.contact}
+                    eventTitle={event.title}
                     claimedByName={invite.claimedByName}
                   />
                 </div>
@@ -730,6 +758,25 @@ const GuestManagement: React.FC = () => {
               className="mb-10"
             />
           </Suspense>
+        )}
+
+        {/* Venue photos — only shown to confirmed attendees */}
+        {event.venuePhotos && event.venuePhotos.length > 0 && (
+          <div className="mb-10">
+            <p className="text-[10px] uppercase tracking-[0.3em] text-tea-text-sec mb-4">The Space</p>
+            <div className={`grid gap-2 ${event.venuePhotos.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+              {event.venuePhotos.slice(0, 2).map((url, idx) => (
+                <div key={idx} className="rounded-sm overflow-hidden border border-tea-border aspect-[4/3]">
+                  <img
+                    src={url}
+                    alt={`Venue photo ${idx + 1}`}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
         )}
 
         {/* Tea menu preview */}

@@ -2,6 +2,11 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { TeaEvent, EventAttendee, EventNotification, TeaMenuItem, TastingNote, GuestInvite, JourneyData } from '../../types/events';
 
+export interface PendingAttendee extends EventAttendee {
+  eventTitle: string;
+  eventDate: string;
+}
+
 const STALE_TIME = 1000 * 60 * 5; // 5 minutes
 
 // Fetch all events (admin)
@@ -118,6 +123,46 @@ export const useAttendees = (eventId: string) => {
           : undefined,
         createdAt: a.created_at,
       })) as EventAttendee[];
+    },
+  });
+};
+
+// Fetch all pending RSVPs across every event (admin activity view)
+export const usePendingAttendees = () => {
+  return useQuery({
+    queryKey: ['pending-attendees'],
+    staleTime: 30_000,
+    refetchOnWindowFocus: true,
+    queryFn: async () => {
+      const data = await api.events.getPendingAttendees();
+      return (data || []).map((a: any) => ({
+        id: a.id,
+        eventId: a.event_id,
+        customerId: a.customer_id || undefined,
+        fullName: a.full_name,
+        phoneNumber: a.phone_number,
+        email: a.email || undefined,
+        contactMethod: a.contact_method || 'whatsapp',
+        guestRequests: a.guest_requests
+          ? (typeof a.guest_requests === 'string' ? JSON.parse(a.guest_requests) : a.guest_requests)
+          : undefined,
+        plusOne: !!a.plus_one,
+        plusOneName: a.plus_one_name || undefined,
+        accessTier: a.access_tier || 'standard',
+        status: a.status || 'requested',
+        magicToken: a.magic_token || '',
+        photoConsent: !!a.photo_consent,
+        notes: a.notes || undefined,
+        teaPreference: a.tea_preference || undefined,
+        sessionsAttended: a.sessions_attended != null ? Number(a.sessions_attended) : undefined,
+        lastAttended: a.last_attended || undefined,
+        favoriteTypes: a.favorite_types
+          ? (typeof a.favorite_types === 'string' ? JSON.parse(a.favorite_types) : a.favorite_types)
+          : undefined,
+        createdAt: a.created_at,
+        eventTitle: a.event_title,
+        eventDate: a.event_date,
+      })) as PendingAttendee[];
     },
   });
 };

@@ -1238,6 +1238,46 @@ const handleGetPublicProducts: Handler = async (_request, env) => {
   return cachedJson(products, 60);
 };
 
+// GET /api/venues/public — publicly readable tea spaces for SpacesPage
+const handleGetPublicVenues: Handler = async (_request, env) => {
+  try {
+    const [venuesResult, spacesResult] = await Promise.all([
+      env.DB.prepare(
+        'SELECT id, name, area_hint FROM venues WHERE account_id = ? ORDER BY name ASC'
+      ).bind(BALI_ACCOUNT_ID).all(),
+      env.DB.prepare(
+        'SELECT id, venue_id, name, description FROM venue_spaces WHERE account_id = ? ORDER BY sort_order ASC, name ASC'
+      ).bind(BALI_ACCOUNT_ID).all(),
+    ]);
+
+    const spacesByVenue = new Map<string, any[]>();
+    for (const s of spacesResult.results as any[]) {
+      if (!spacesByVenue.has(s.venue_id)) spacesByVenue.set(s.venue_id, []);
+      spacesByVenue.get(s.venue_id)!.push(s);
+    }
+
+    const result = (venuesResult.results as any[]).flatMap(v => {
+      const vspaces = spacesByVenue.get(v.id) || [];
+      if (vspaces.length === 0) {
+        return [{ id: v.id, name: v.name, description: null, location: v.area_hint, type: 'Tea Space', status: 'active', isPrivate: true }];
+      }
+      return vspaces.map((s: any) => ({
+        id: s.id,
+        name: s.name,
+        description: s.description || null,
+        location: v.area_hint,
+        type: 'Private Tea Room',
+        status: 'active',
+        isPrivate: true,
+      }));
+    });
+
+    return cachedJson(result, 300);
+  } catch {
+    return json([]);
+  }
+};
+
 // ── Auto-resolve vendor name → vendor_id (find-or-create customer, account-scoped) ──
 async function resolveVendorId(
   env: Env,
@@ -2339,7 +2379,12 @@ const handleGetCustomers: Handler = async (request, env) => {
     `).bind(accountId).all();
   }
 
-  return json(result.results);
+  const customers = (result.results as any[]).map(c => ({
+    ...c,
+    contacts: typeof c.contacts === 'string' ? JSON.parse(c.contacts || '[]') : (c.contacts ?? []),
+    tags: typeof c.tags === 'string' ? JSON.parse(c.tags || '[]') : (c.tags ?? []),
+  }));
+  return json(customers);
 };
 
 const handleGetCustomer: Handler = async (request, env, params) => {
@@ -2360,7 +2405,13 @@ const handleGetCustomer: Handler = async (request, env, params) => {
     orders = result.results as any[];
   } catch { /* customer_id column may not exist yet */ }
 
-  return json({ ...customer, orders });
+  const parsed = {
+    ...customer,
+    contacts: typeof customer.contacts === 'string' ? JSON.parse(customer.contacts || '[]') : (customer.contacts ?? []),
+    tags: typeof customer.tags === 'string' ? JSON.parse(customer.tags || '[]') : (customer.tags ?? []),
+    orders,
+  };
+  return json(parsed);
 };
 
 const handleCreateCustomer: Handler = async (request, env) => {
@@ -2457,22 +2508,55 @@ const handleGetCustomerTeas: Handler = async (request, env, params) => {
   const { accountId } = ctx;
 
   try {
-    const result = await env.DB.prepare(`
-      SELECT
-        p.id, p.product_name, p.given_name, p.chinese_name, p.type, p.image_url,
-        p.origin_country, p.origin_region,
-        SUM(ili.quantity) as total_quantity,
-        COUNT(DISTINCT i.id) as order_count,
-        MIN(i.created_at) as first_purchased,
-        MAX(i.created_at) as last_purchased
-      FROM invoice_line_items ili
-      JOIN invoices i ON i.id = ili.invoice_id
-      JOIN products p ON p.id = ili.product_id
-      WHERE i.customer_id = ? AND i.status != 'Void' AND i.account_id = ?
-      GROUP BY p.id
-      ORDER BY last_purchased DESC
-    `).bind(params.id, accountId).all();
-    return json(result.results);
+    const [purchasedResult, eventResult] = await Promise.all([
+      env.DB.prepare(`
+        SELECT
+          p.id, p.product_name, p.given_name, p.chinese_name, p.type, p.image_url,
+          p.origin_country, p.origin_region,
+          SUM(ili.quantity) as total_quantity,
+          COUNT(DISTINCT i.id) as order_count,
+          MIN(i.created_at) as first_purchased,
+          MAX(i.created_at) as last_purchased
+        FROM invoice_line_items ili
+        JOIN invoices i ON i.id = ili.invoice_id
+        JOIN products p ON p.id = ili.product_id
+        WHERE i.customer_id = ? AND i.status != 'Void' AND i.account_id = ?
+        GROUP BY p.id
+        ORDER BY last_purchased DESC
+      `).bind(params.id, accountId).all(),
+
+      // Teas tasted at events (via tasting notes → tea menu → product)
+      env.DB.prepare(`
+        SELECT DISTINCT
+          p.id, p.product_name, p.given_name, p.chinese_name, p.type, p.image_url,
+          p.origin_country, p.origin_region,
+          0 as total_quantity, 0 as order_count,
+          NULL as first_purchased, NULL as last_purchased
+        FROM event_tasting_notes etn
+        JOIN event_attendees ea ON ea.id = etn.attendee_id
+        JOIN event_tea_menu etm ON etm.id = etn.tea_menu_id
+        JOIN products p ON p.id = etm.product_id
+        WHERE ea.customer_id = ? AND ea.account_id = ?
+          AND p.id IS NOT NULL
+      `).bind(params.id, accountId).all(),
+    ]);
+
+    // Merge: purchased rows first, then event-tasted rows not already in the set
+    const seenIds = new Set<string>();
+    const merged: any[] = [];
+    for (const row of purchasedResult.results) {
+      seenIds.add((row as any).id);
+      merged.push({ ...(row as any), source: 'purchased' });
+    }
+    for (const row of eventResult.results) {
+      const id = (row as any).id;
+      if (!seenIds.has(id)) {
+        seenIds.add(id);
+        merged.push({ ...(row as any), source: 'tasted_at_event' });
+      }
+    }
+
+    return json(merged);
   } catch {
     return json([]);
   }
@@ -2498,6 +2582,84 @@ const handleGetCustomerEvents: Handler = async (request, env, params) => {
     return json(result.results);
   } catch {
     return json([]);
+  }
+};
+
+// GET /api/admin/customers/:id/journey — aggregated journey stats for CustomerProfilePage
+const handleGetCustomerJourney: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+
+  try {
+    const [eventsResult, teasResult, eventNotesResult, customer] = await Promise.all([
+      env.DB.prepare(`
+        SELECT COUNT(*) as attended
+        FROM event_attendees ea
+        JOIN events e ON e.id = ea.event_id
+        WHERE ea.customer_id = ? AND ea.attended = 1 AND ea.account_id = ?
+      `).bind(params.id, accountId).first<{ attended: number }>(),
+
+      env.DB.prepare(`
+        SELECT p.type, p.given_name, p.product_name,
+          SUM(ili.quantity) as total_quantity
+        FROM invoice_line_items ili
+        JOIN invoices i ON i.id = ili.invoice_id
+        JOIN products p ON p.id = ili.product_id
+        WHERE i.customer_id = ? AND i.status != 'Void' AND i.account_id = ?
+          AND p.type IS NOT NULL AND p.type != 'Teaware'
+        GROUP BY p.id
+        ORDER BY total_quantity DESC
+      `).bind(params.id, accountId).all(),
+
+      // Types tasted at events — fills portrait even when no invoices exist
+      env.DB.prepare(`
+        SELECT p.type, p.given_name, p.product_name
+        FROM event_tasting_notes etn
+        JOIN event_attendees ea ON ea.id = etn.attendee_id
+        JOIN event_tea_menu etm ON etm.id = etn.tea_menu_id
+        JOIN products p ON p.id = etm.product_id
+        WHERE ea.customer_id = ? AND ea.account_id = ?
+          AND p.type IS NOT NULL AND p.type != 'Teaware'
+      `).bind(params.id, accountId).all(),
+
+      env.DB.prepare(
+        'SELECT created_at FROM customers WHERE id = ? AND account_id = ?'
+      ).bind(params.id, accountId).first<{ created_at: string }>(),
+    ]);
+
+    const rows = teasResult.results as any[];
+    const teaTypeMap: Record<string, number> = {};
+    for (const row of rows) {
+      if (row.type) teaTypeMap[row.type] = (teaTypeMap[row.type] || 0) + 1;
+    }
+    // Merge event-tasted types so portrait works for customers who've attended but never ordered
+    for (const row of eventNotesResult.results as any[]) {
+      if (row.type) teaTypeMap[row.type] = (teaTypeMap[row.type] || 0) + 1;
+    }
+    // Favorites from invoices first, fall back to event notes
+    const invoiceFavorites = rows.slice(0, 3).map((r: any) => r.given_name || r.product_name).filter(Boolean);
+    const eventFavorites = (eventNotesResult.results as any[]).slice(0, 3).map((r: any) => r.given_name || r.product_name).filter(Boolean);
+    const favorites = invoiceFavorites.length > 0 ? invoiceFavorites : eventFavorites;
+    const sessionsAttended = eventsResult?.attended ?? 0;
+    const milestones: string[] = [];
+    if (sessionsAttended >= 1) milestones.push('First session');
+    if (sessionsAttended >= 5) milestones.push('5 sessions');
+    if (sessionsAttended >= 10) milestones.push('10 sessions');
+    if (rows.length >= 10) milestones.push('10 teas explored');
+    if (rows.length >= 25) milestones.push('25 teas explored');
+
+    // Portrait — concise palate summary for admin briefing
+    const topTypes = Object.entries(teaTypeMap).sort(([, a], [, b]) => b - a).slice(0, 2).map(([t]) => t.toLowerCase());
+    const portraitParts: string[] = [];
+    if (topTypes.length > 0) portraitParts.push(`Gravitates toward ${topTypes.join(' and ')}`);
+    if (favorites.length > 0) portraitParts.push(`top teas: ${favorites.slice(0, 2).join(', ')}`);
+    if (sessionsAttended >= 3) portraitParts.push(`${sessionsAttended} sessions attended`);
+    const portrait = portraitParts.join(' · ');
+
+    return json({ sessionsAttended, totalTeas: rows.length, teaTypeMap, favorites, milestones, memberSince: customer?.created_at ?? null, portrait });
+  } catch {
+    return json({ sessionsAttended: 0, totalTeas: 0, teaTypeMap: {}, favorites: [], milestones: [], memberSince: null, portrait: '' });
   }
 };
 
@@ -3238,9 +3400,12 @@ const handleGetEventBySlug: Handler = async (_request, env, params) => {
     `SELECT e.id, e.slug, e.title, e.subtitle, e.description, e.flyer_image_url, e.event_date, e.event_end_date,
             e.location_name, e.address_text, e.map_link, e.guidelines_text, e.venue_guide, e.total_capacity, e.timezone, e.status,
             e.session_flow, e.playlist_url, e.event_format, e.gathering_type, e.area_hint, e.mood_hints, e.created_at,
+            e.venue_id,
+            v.photos AS venue_photos,
             a.location_country AS account_location_country
      FROM events e
      JOIN accounts a ON a.id = e.account_id
+     LEFT JOIN venues v ON v.id = e.venue_id
      WHERE e.slug = ? AND e.status = 'active'`
   ).bind(params.slug).first();
 
@@ -3253,8 +3418,14 @@ const handleGetEventBySlug: Handler = async (_request, env, params) => {
 
   const confirmedCount = (count?.total as number) || 0;
 
+  let venuePhotos: string[] = [];
+  if (event.venue_photos) {
+    try { venuePhotos = JSON.parse(event.venue_photos as string); } catch { venuePhotos = []; }
+  }
+
   return cachedJson({
     ...event,
+    venue_photos: venuePhotos,
     confirmed_count: confirmedCount,
     seats_remaining: (event.total_capacity as number) - confirmedCount,
   }, 30);
@@ -3391,9 +3562,15 @@ const handleRSVP: Handler = async (request, env, params) => {
 
   const contactField = phone_number ? 'phone_number' : 'email';
   const contactValue = phone_number || email;
-  const existing = await env.DB.prepare(
-    `SELECT magic_token, status FROM event_attendees WHERE event_id = ? AND ${contactField} = ?`
-  ).bind(event.id, contactValue).first();
+  const phoneSuffix = phone_number ? phone_number.replace(/\D/g, '').slice(-9) : null;
+  const existing = phoneSuffix
+    ? await env.DB.prepare(
+        `SELECT magic_token, status FROM event_attendees
+         WHERE event_id = ? AND (phone_number = ? OR (length(?) = 9 AND phone_number LIKE ?))`
+      ).bind(event.id, phone_number, phoneSuffix, `%${phoneSuffix}`).first()
+    : await env.DB.prepare(
+        `SELECT magic_token, status FROM event_attendees WHERE event_id = ? AND ${contactField} = ?`
+      ).bind(event.id, contactValue).first();
 
   if (existing) {
     return json({
@@ -3408,15 +3585,21 @@ const handleRSVP: Handler = async (request, env, params) => {
   let accessTier = 'standard';
   let customerId: string | null = null;
 
-  const customer = phone_number
-    ? await env.DB.prepare(
-        `SELECT id, tags FROM customers WHERE (phone = ? OR whatsapp = ?) AND account_id = ?`
-      ).bind(phone_number, phone_number, accountId).first()
-    : email
-    ? await env.DB.prepare(
-        `SELECT id, tags FROM customers WHERE email = ? AND account_id = ?`
-      ).bind(email, accountId).first()
-    : null;
+  let customer: Record<string, unknown> | null = null;
+  if (phone_number) {
+    const suffix = phone_number.replace(/\D/g, '').slice(-9);
+    customer = await env.DB.prepare(
+      `SELECT id, tags FROM customers
+       WHERE account_id = ?
+       AND (phone = ? OR whatsapp = ?
+            OR (length(?) = 9 AND (phone LIKE ? OR whatsapp LIKE ?)))`
+    ).bind(accountId, phone_number, phone_number, suffix, `%${suffix}`, `%${suffix}`).first() as Record<string, unknown> | null;
+  }
+  if (!customer && email) {
+    customer = await env.DB.prepare(
+      `SELECT id, tags FROM customers WHERE email = ? AND account_id = ?`
+    ).bind(email, accountId).first() as Record<string, unknown> | null;
+  }
 
   if (customer) {
     customerId = customer.id as string;
@@ -3460,7 +3643,7 @@ const handleRSVP: Handler = async (request, env, params) => {
 
   const attendeeId = crypto.randomUUID();
 
-  await env.DB.batch([
+  const batchOps: ReturnType<typeof env.DB.prepare>[] = [
     env.DB.prepare(
       `INSERT INTO event_attendees
          (id, account_id, event_id, customer_id, full_name, phone_number, email, plus_one, plus_one_name,
@@ -3489,7 +3672,32 @@ const handleRSVP: Handler = async (request, env, params) => {
       'direct'
     ),
     buildActivityLog(env, 'rsvp_requested', `${full_name} requested a seat`, null, 'event_attendee', attendeeId, accountId),
-  ]);
+  ];
+
+  // If the user is authenticated and submitted a phone number they don't have
+  // saved yet, persist it to their profile so future RSVPs pre-fill correctly.
+  if (phone_number) {
+    const rawToken = isAuthed(request);
+    if (rawToken) {
+      const valid = await verifyToken(rawToken, env.JWT_SECRET);
+      if (valid) {
+        const claims = parseToken(rawToken);
+        if (claims?.sub) {
+          const userRow = await env.DB.prepare(
+            'SELECT phone FROM users WHERE id = ?'
+          ).bind(claims.sub).first();
+          if (userRow && !userRow.phone) {
+            batchOps.push(
+              env.DB.prepare('UPDATE users SET phone = ? WHERE id = ?')
+                .bind(phone_number, claims.sub)
+            );
+          }
+        }
+      }
+    }
+  }
+
+  await env.DB.batch(batchOps);
 
   return json({
     magic_token: magicToken,
@@ -3526,9 +3734,11 @@ const handleGetRSVP: Handler = async (_request, env, params) => {
     `SELECT ea.*, e.title, e.subtitle, e.description, e.flyer_image_url, e.event_date, e.event_end_date,
             e.location_name, e.address_text, e.map_link, e.guidelines_text, e.venue_guide,
             e.timezone, e.status as event_status, e.session_flow, e.playlist_url, e.slug,
-            e.briefing_cards, e.area_hint, e.mood_hints
+            e.briefing_cards, e.area_hint, e.mood_hints,
+            v.photos AS venue_photos
      FROM event_attendees ea
      JOIN events e ON e.id = ea.event_id
+     LEFT JOIN venues v ON v.id = e.venue_id
      WHERE ea.magic_token = ?`
   ).bind(params.token).first();
 
@@ -3551,6 +3761,10 @@ const handleGetRSVP: Handler = async (_request, env, params) => {
   if (attendee.guest_requests) {
     try { guestRequests = JSON.parse(attendee.guest_requests as string); } catch {}
   }
+  let venuePhotos: string[] = [];
+  if (attendee.venue_photos) {
+    try { venuePhotos = JSON.parse(attendee.venue_photos as string); } catch {}
+  }
 
   // Address gating: only reveal full address + map to confirmed attendees
   const isConfirmed = attendee.status === 'confirmed';
@@ -3566,7 +3780,7 @@ const handleGetRSVP: Handler = async (_request, env, params) => {
 
   // Get guest invites for this attendee
   const guestInvites = await env.DB.prepare(
-    `SELECT id, invite_token, name_hint, claimed_by_name, status, created_at, claimed_at
+    `SELECT id, invite_token, name_hint, contact, claimed_by_name, status, created_at, claimed_at
      FROM guest_invites WHERE parent_attendee_id = ?`
   ).bind(attendee.id).all();
 
@@ -3609,6 +3823,7 @@ const handleGetRSVP: Handler = async (_request, env, params) => {
       area_hint: attendee.area_hint,
       guidelines_text: attendee.guidelines_text,
       venue_guide: isConfirmed ? attendee.venue_guide : null,
+      venue_photos: isConfirmed ? venuePhotos : [],
       timezone: attendee.timezone,
       status: attendee.event_status,
       session_flow: sessionFlow,
@@ -3911,8 +4126,9 @@ const handleCreateEvent: Handler = async (request, env) => {
   await env.DB.prepare(
     `INSERT INTO events (id, account_id, slug, title, subtitle, description, flyer_image_url, event_date, event_end_date,
        location_name, address_text, map_link, guidelines_text, venue_guide, total_capacity, claim_window_minutes,
-       timezone, status, session_flow, playlist_url, location_id, event_format)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+       timezone, status, session_flow, playlist_url, location_id, event_format,
+       venue_id, active_space_ids, gathering_type, area_hint, mood_hints, briefing_cards)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     id,
     accountId,
@@ -3935,7 +4151,13 @@ const handleCreateEvent: Handler = async (request, env) => {
     body.session_flow ? (typeof body.session_flow === 'string' ? body.session_flow : JSON.stringify(body.session_flow)) : null,
     body.playlist_url || null,
     body.location_id || null,
-    body.event_format || 'private_tasting'
+    body.event_format || 'private_tasting',
+    body.venue_id || null,
+    body.active_space_ids ? (typeof body.active_space_ids === 'string' ? body.active_space_ids : JSON.stringify(body.active_space_ids)) : null,
+    body.gathering_type || null,
+    body.area_hint || null,
+    body.mood_hints ? (typeof body.mood_hints === 'string' ? body.mood_hints : JSON.stringify(body.mood_hints)) : null,
+    body.briefing_cards ? (typeof body.briefing_cards === 'string' ? body.briefing_cards : JSON.stringify(body.briefing_cards)) : null
   ).run();
 
   return json({ id, slug: body.slug }, 201);
@@ -3952,9 +4174,18 @@ const handleUpdateEvent: Handler = async (request, env, params) => {
   if (body.session_flow && typeof body.session_flow !== 'string') {
     body.session_flow = JSON.stringify(body.session_flow);
   }
+  if (body.active_space_ids && typeof body.active_space_ids !== 'string') {
+    body.active_space_ids = JSON.stringify(body.active_space_ids);
+  }
+  if (body.mood_hints && typeof body.mood_hints !== 'string') {
+    body.mood_hints = JSON.stringify(body.mood_hints);
+  }
+  if (body.briefing_cards && typeof body.briefing_cards !== 'string') {
+    body.briefing_cards = JSON.stringify(body.briefing_cards);
+  }
   if (body.event_format === undefined) delete body.event_format;
 
-  const EVENT_ALLOWED_COLS = new Set(['title','subtitle','description','slug','status','event_date','event_end_date','end_date','location','location_name','capacity','total_capacity','price_usd','display_currency','event_format','gathering_type','notes','host_name','event_type','max_guests','booking_cutoff_hours','private','image_url','flyer_url','flyer_image_url','claim_window_minutes','venue_id','venue_space_id','location_id','session_template_id','meta_json','session_flow','address_text','map_link','guidelines_text','area_hint','venue_guide']);
+  const EVENT_ALLOWED_COLS = new Set(['title','subtitle','description','slug','status','event_date','event_end_date','end_date','location','location_name','capacity','total_capacity','price_usd','display_currency','event_format','gathering_type','notes','host_name','event_type','max_guests','booking_cutoff_hours','private','image_url','flyer_url','flyer_image_url','claim_window_minutes','venue_id','venue_space_id','active_space_ids','location_id','session_template_id','meta_json','session_flow','address_text','map_link','guidelines_text','area_hint','venue_guide','mood_hints','briefing_cards','timezone','playlist_url']);
   const cols = Object.keys(body).filter(k => EVENT_ALLOWED_COLS.has(k));
   if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
 
@@ -4043,11 +4274,114 @@ const handleGetAttendees: Handler = async (request, env, params) => {
         : null;
     return {
       ...attendee,
+      customer_tags: typeof attendee.customer_tags === 'string'
+        ? JSON.parse(attendee.customer_tags || '[]')
+        : (attendee.customer_tags ?? []),
       journey_preview: journey || { sessions_attended: 0, last_attended: null },
     };
   });
 
   return json(attendeesWithJourney);
+};
+
+// GET /api/admin/pending-attendees — cross-event pending RSVPs
+const handleGetPendingAttendees: Handler = async (request, env) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+
+  // Step 1: fetch base pending attendees (no N+1 subquery)
+  const result = await env.DB.prepare(
+    `SELECT ea.id, ea.full_name, ea.phone_number, ea.email, ea.status,
+            ea.created_at, ea.guest_requests, ea.notes, ea.access_tier,
+            ea.customer_id, ea.contact_method, ea.magic_token, ea.photo_consent,
+            ea.plus_one, ea.plus_one_name, ea.tea_preference,
+            e.id as event_id, e.title as event_title, e.event_date
+     FROM event_attendees ea
+     JOIN events e ON e.id = ea.event_id
+     WHERE e.account_id = ? AND ea.status = 'requested'
+     ORDER BY e.event_date ASC, ea.created_at ASC`
+  ).bind(accountId).all();
+
+  const attendees = result.results as Record<string, any>[];
+
+  // Step 2: collect unique phones and emails for batch journey lookup
+  const phones = Array.from(new Set(attendees.map(a => a.phone_number).filter(Boolean))) as string[];
+  const emails = Array.from(new Set(attendees.filter(a => !a.phone_number).map(a => a.email).filter(Boolean))) as string[];
+
+  const journeyByPhone: Record<string, { sessions_attended: number; last_attended: string | null }> = {};
+  const journeyByEmail: Record<string, { sessions_attended: number; last_attended: string | null }> = {};
+
+  // Step 3: batch journey queries (same pattern as handleGetAttendees)
+  if (phones.length > 0) {
+    const placeholders = phones.map(() => '?').join(',');
+    const phoneRows = await env.DB.prepare(
+      `SELECT ea2.phone_number, COUNT(*) as sessions_attended, MAX(e.event_date) as last_attended
+       FROM event_attendees ea2
+       JOIN events e ON e.id = ea2.event_id
+       WHERE ea2.phone_number IN (${placeholders}) AND ea2.status = 'confirmed' AND ea2.attended = 1
+       GROUP BY ea2.phone_number`
+    ).bind(...phones).all();
+    for (const row of phoneRows.results as Record<string, any>[]) {
+      journeyByPhone[row.phone_number] = { sessions_attended: row.sessions_attended || 0, last_attended: row.last_attended || null };
+    }
+  }
+
+  if (emails.length > 0) {
+    const placeholders = emails.map(() => '?').join(',');
+    const emailRows = await env.DB.prepare(
+      `SELECT ea2.email, COUNT(*) as sessions_attended, MAX(e.event_date) as last_attended
+       FROM event_attendees ea2
+       JOIN events e ON e.id = ea2.event_id
+       WHERE ea2.email IN (${placeholders}) AND ea2.status = 'confirmed' AND ea2.attended = 1
+       GROUP BY ea2.email`
+    ).bind(...emails).all();
+    for (const row of emailRows.results as Record<string, any>[]) {
+      journeyByEmail[row.email] = { sessions_attended: row.sessions_attended || 0, last_attended: row.last_attended || null };
+    }
+  }
+
+  // Step 4: favorite_types via customer_id (top 2 tea types by order frequency)
+  const customerIds = Array.from(new Set(attendees.map(a => a.customer_id).filter(Boolean))) as string[];
+  const favoriteTypesMap: Record<string, string[]> = {};
+
+  if (customerIds.length > 0) {
+    const placeholders = customerIds.map(() => '?').join(',');
+    const typeRows = await env.DB.prepare(
+      `SELECT i.customer_id, p.type, COUNT(*) as cnt
+       FROM invoice_line_items ili
+       JOIN invoices i ON i.id = ili.invoice_id
+       JOIN products p ON p.id = ili.product_id
+       WHERE i.customer_id IN (${placeholders}) AND p.type IS NOT NULL
+       GROUP BY i.customer_id, p.type
+       ORDER BY cnt DESC`
+    ).bind(...customerIds).all();
+    for (const row of typeRows.results as Record<string, any>[]) {
+      if (!favoriteTypesMap[row.customer_id]) {
+        favoriteTypesMap[row.customer_id] = [];
+      }
+      if (favoriteTypesMap[row.customer_id].length < 2) {
+        favoriteTypesMap[row.customer_id].push(row.type);
+      }
+    }
+  }
+
+  // Step 5: merge journey data into each attendee
+  const enriched = attendees.map((attendee) => {
+    const journey = attendee.phone_number
+      ? journeyByPhone[attendee.phone_number]
+      : attendee.email
+        ? journeyByEmail[attendee.email]
+        : null;
+    return {
+      ...attendee,
+      sessions_attended: journey?.sessions_attended ?? 0,
+      last_attended: journey?.last_attended ?? null,
+      favorite_types: favoriteTypesMap[attendee.customer_id] ?? [],
+    };
+  });
+
+  return json(enriched);
 };
 
 // Helper: verify event belongs to the caller's account. Returns a 404-style
@@ -4078,7 +4412,7 @@ const handleUpdateAttendee: Handler = async (request, env, params) => {
 
   if (!attendee) return json({ error: 'Attendee not found' }, 404);
 
-  const ATTENDEE_ALLOWED_COLS = new Set(['status','notes','checked_in','attended','paid','payment_method','paid_amount','seat_assignment','guest_count','dietary_notes','rsvp_token']);
+  const ATTENDEE_ALLOWED_COLS = new Set(['status','notes','checked_in','attended','paid','payment_method','paid_amount','seat_assignment','guest_count','dietary_notes','rsvp_token','customer_id']);
   const cols = Object.keys(body).filter(k => ATTENDEE_ALLOWED_COLS.has(k));
   if (cols.length === 0) return json({ success: true });
   const sets = cols.map(c => `${c} = ?`).join(', ');
@@ -4185,8 +4519,9 @@ const handleDuplicateEvent: Handler = async (request, env, params) => {
   await env.DB.prepare(
     `INSERT INTO events (id, account_id, slug, title, subtitle, description, flyer_image_url, event_date, event_end_date,
        location_name, address_text, map_link, guidelines_text, venue_guide, total_capacity, claim_window_minutes,
-       timezone, status, session_flow, playlist_url, event_format)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?)`
+       timezone, status, session_flow, playlist_url, event_format,
+       venue_id, active_space_ids, gathering_type, area_hint, mood_hints, briefing_cards)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     newId,
     accountId,
@@ -4207,7 +4542,13 @@ const handleDuplicateEvent: Handler = async (request, env, params) => {
     source.timezone,
     source.session_flow,
     source.playlist_url,
-    source.event_format || 'private_tasting'
+    source.event_format || 'private_tasting',
+    source.venue_id || null,
+    source.active_space_ids || null,
+    source.gathering_type || null,
+    source.area_hint || null,
+    source.mood_hints || null,
+    source.briefing_cards || null
   ).run();
 
   // F38: Clone tea menu entries (including all brewing fields)
@@ -4498,7 +4839,7 @@ const handleGetVenues: Handler = async (request, env) => {
   for (const s of spaces.results) {
     const vid = s.venue_id as string;
     if (!spacesByVenue[vid]) spacesByVenue[vid] = [];
-    spacesByVenue[vid].push({ ...s, photos: s.photos ? JSON.parse(s.photos as string) : [] });
+    spacesByVenue[vid].push({ ...s, photos: s.photos ? JSON.parse(s.photos as string) : [], teaStyles: s.tea_styles ? JSON.parse(s.tea_styles as string) : [] });
   }
   const result = venues.results.map(v => ({
     ...v,
@@ -4565,12 +4906,13 @@ const handleCreateVenueSpace: Handler = async (request, env, params) => {
   if (!venue) return json({ error: 'Venue not found' }, 404);
   const id = crypto.randomUUID();
   await env.DB.prepare(
-    `INSERT INTO venue_spaces (id, account_id, venue_id, name, capacity, description, photos, sort_order)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO venue_spaces (id, account_id, venue_id, name, capacity, description, photos, tea_styles, sort_order)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     id, accountId, params.id, body.name, body.capacity,
     body.description || null,
     body.photos ? JSON.stringify(body.photos) : null,
+    body.tea_styles ? JSON.stringify(body.tea_styles) : null,
     body.sort_order ?? 0
   ).run();
   return json({ id, name: body.name }, 201);
@@ -4584,6 +4926,7 @@ const handleUpdateVenueSpace: Handler = async (request, env, params) => {
   delete body.account_id;
   delete body.venue_id;
   if (body.photos && typeof body.photos !== 'string') body.photos = JSON.stringify(body.photos);
+  if (body.tea_styles && typeof body.tea_styles !== 'string') body.tea_styles = JSON.stringify(body.tea_styles);
   const cols = Object.keys(body);
   if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
   const sets = cols.map(c => `${c} = ?`).join(', ');
@@ -4614,6 +4957,24 @@ const handleUploadVenuePhoto: Handler = async (request, env, params) => {
   await (env as any).FLYER_BUCKET.put(key, file.stream(), { httpMetadata: { contentType: file.type } });
   const url = `https://flyers.teajia.com/${key}`;
   return json({ url }, 201);
+};
+
+const handleGetVenueEvents: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+  const result = await env.DB.prepare(`
+    SELECT e.id, e.slug, e.title, e.event_date,
+      e.total_capacity,
+      COUNT(CASE WHEN a.status = 'confirmed' THEN 1 END) as confirmed_count
+    FROM events e
+    LEFT JOIN event_attendees a ON a.event_id = e.id
+    WHERE e.account_id = ? AND e.venue_id = ?
+    GROUP BY e.id
+    ORDER BY e.event_date DESC
+    LIMIT 20
+  `).bind(accountId, params.id).all();
+  return json(result.results);
 };
 
 // ── Newsletter ──
@@ -5165,7 +5526,7 @@ const handleApproveAttendee: Handler = async (request, env, params) => {
   const { accountId } = ctx;
 
   const attendee = await env.DB.prepare(
-    `SELECT ea.*, e.id as event_id FROM event_attendees ea
+    `SELECT ea.*, e.id as event_id, e.title as event_title, e.slug as event_slug FROM event_attendees ea
      JOIN events e ON e.id = ea.event_id
      WHERE ea.id = ? AND e.account_id = ?`
   ).bind(params.id, accountId).first();
@@ -5195,7 +5556,7 @@ const handleApproveAttendee: Handler = async (request, env, params) => {
   ];
 
   if (approvedGuests > 0) {
-    let guestRequests: Array<{ nameHint: string; approved: boolean | null }> = [];
+    let guestRequests: Array<{ nameHint: string; contact?: string | null; approved: boolean | null }> = [];
     if (attendee.guest_requests) {
       try { guestRequests = JSON.parse(attendee.guest_requests as string); } catch {}
     }
@@ -5203,11 +5564,12 @@ const handleApproveAttendee: Handler = async (request, env, params) => {
     for (let i = 0; i < approvedGuests; i++) {
       const inviteToken = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
       const nameHint = guestRequests[i]?.nameHint || null;
+      const contact = guestRequests[i]?.contact || null;
       stmts.push(
         env.DB.prepare(
-          `INSERT INTO guest_invites (id, account_id, event_id, parent_attendee_id, invite_token, name_hint)
-           VALUES (lower(hex(randomblob(8))), ?, ?, ?, ?, ?)`
-        ).bind(accountId, attendee.event_id, params.id, inviteToken, nameHint)
+          `INSERT INTO guest_invites (id, account_id, event_id, parent_attendee_id, invite_token, name_hint, contact)
+           VALUES (lower(hex(randomblob(8))), ?, ?, ?, ?, ?, ?)`
+        ).bind(accountId, attendee.event_id, params.id, inviteToken, nameHint, contact)
       );
     }
   }
@@ -5226,9 +5588,10 @@ const handleApproveAttendee: Handler = async (request, env, params) => {
       // Try to find existing customer by phone or email
       let existing: any = null;
       if (phone) {
+        const s = phone.replace(/\D/g, '').slice(-9);
         existing = await env.DB.prepare(
-          `SELECT id FROM customers WHERE account_id = ? AND (phone = ? OR whatsapp = ?)`
-        ).bind(accountId, phone, phone).first();
+          `SELECT id FROM customers WHERE account_id = ? AND (phone = ? OR whatsapp = ? OR (length(?) = 9 AND (phone LIKE ? OR whatsapp LIKE ?)))`
+        ).bind(accountId, phone, phone, s, `%${s}`, `%${s}`).first();
       }
       if (!existing && email) {
         existing = await env.DB.prepare(
@@ -5263,7 +5626,18 @@ const handleApproveAttendee: Handler = async (request, env, params) => {
     // Auto-link is non-critical — don't fail the approval if it errors
   }
 
-  return json({ success: true, status: 'confirmed', approved_guests: approvedGuests });
+  const att = attendee as any;
+  const ticketUrl = `${att.magic_token ? `/m/${att.magic_token}` : ''}`;
+  const phone = att.phone_number as string | null;
+  const whatsappNotifyUrl = phone
+    ? (() => {
+        const digits = phone.replace(/\D/g, '');
+        const msg = `Your seat at ${att.event_title} is confirmed! View your ticket: ${ticketUrl}`;
+        return `https://wa.me/${digits}?text=${encodeURIComponent(msg)}`;
+      })()
+    : null;
+
+  return json({ success: true, status: 'confirmed', approved_guests: approvedGuests, whatsapp_notify_url: whatsappNotifyUrl });
 };
 
 // PUT /api/admin/attendees/:id/deny
@@ -5519,8 +5893,9 @@ const handleCreateNextEvent: Handler = async (request, env, params) => {
   await env.DB.prepare(
     `INSERT INTO events (id, account_id, slug, title, subtitle, description, flyer_image_url, event_date, event_end_date,
        location_name, address_text, map_link, guidelines_text, venue_guide, total_capacity, claim_window_minutes,
-       timezone, status, session_flow, playlist_url, event_format, location_id)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?, ?)`
+       timezone, status, session_flow, playlist_url, event_format, location_id,
+       venue_id, active_space_ids, gathering_type, area_hint, mood_hints, briefing_cards)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     newId,
     accountId,
@@ -5542,7 +5917,13 @@ const handleCreateNextEvent: Handler = async (request, env, params) => {
     source.session_flow,
     source.playlist_url,
     source.event_format || 'private_tasting',
-    source.location_id || null
+    source.location_id || null,
+    source.venue_id || null,
+    source.active_space_ids || null,
+    source.gathering_type || null,
+    source.area_hint || null,
+    source.mood_hints || null,
+    source.briefing_cards || null
   ).run();
 
   // Clone tea menu (same as F38/duplicate pattern)
@@ -5587,13 +5968,16 @@ const handleApproveBatch: Handler = async (request, env, params) => {
   const approvedGuestsMap = body.approved_guests_map || {};
   const userEmail = getUserEmail(request);
   const stmts: D1PreparedStatement[] = [];
+  type AttendeeRow = { id: string; phone_number: string | null; email: string | null; customer_id: string | null };
+  const rows: AttendeeRow[] = [];
 
   for (const attendeeId of body.attendee_ids) {
     const attendee = await env.DB.prepare(
-      `SELECT id, full_name, guest_requests FROM event_attendees WHERE id = ? AND event_id = ?`
+      `SELECT id, full_name, guest_requests, phone_number, email, customer_id FROM event_attendees WHERE id = ? AND event_id = ?`
     ).bind(attendeeId, params.id).first();
 
     if (!attendee) continue;
+    rows.push({ id: attendeeId, phone_number: (attendee as any).phone_number, email: (attendee as any).email, customer_id: (attendee as any).customer_id });
 
     stmts.push(
       env.DB.prepare(
@@ -5612,18 +5996,19 @@ const handleApproveBatch: Handler = async (request, env, params) => {
 
     const approvedGuests = approvedGuestsMap[attendeeId] ?? 0;
     if (approvedGuests > 0) {
-      let guestRequests: Array<{ nameHint: string; approved: boolean | null }> = [];
+      let guestRequests: Array<{ nameHint: string; contact?: string | null; approved: boolean | null }> = [];
       if (attendee.guest_requests) {
         try { guestRequests = JSON.parse(attendee.guest_requests as string); } catch {}
       }
       for (let i = 0; i < approvedGuests; i++) {
         const inviteToken = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
         const nameHint = guestRequests[i]?.nameHint || null;
+        const contact = guestRequests[i]?.contact || null;
         stmts.push(
           env.DB.prepare(
-            `INSERT INTO guest_invites (id, account_id, event_id, parent_attendee_id, invite_token, name_hint)
-             VALUES (lower(hex(randomblob(8))), ?, ?, ?, ?, ?)`
-          ).bind(accountId, params.id, attendeeId, inviteToken, nameHint)
+            `INSERT INTO guest_invites (id, account_id, event_id, parent_attendee_id, invite_token, name_hint, contact)
+             VALUES (lower(hex(randomblob(8))), ?, ?, ?, ?, ?, ?)`
+          ).bind(accountId, params.id, attendeeId, inviteToken, nameHint, contact)
         );
       }
     }
@@ -5631,6 +6016,37 @@ const handleApproveBatch: Handler = async (request, env, params) => {
 
   if (stmts.length > 0) {
     await env.DB.batch(stmts);
+  }
+
+  // Auto-link customer records (non-critical, same logic as single approval)
+  for (const row of rows) {
+    if (row.customer_id || (!row.phone_number && !row.email)) continue;
+    try {
+      let linkedId: string | null = null;
+      if (row.phone_number) {
+        const s = row.phone_number.replace(/\D/g, '').slice(-9);
+        const found = await env.DB.prepare(
+          `SELECT id FROM customers WHERE account_id = ? AND (phone = ? OR whatsapp = ? OR (length(?) = 9 AND (phone LIKE ? OR whatsapp LIKE ?)))`
+        ).bind(accountId, row.phone_number, row.phone_number, s, `%${s}`, `%${s}`).first();
+        if (found) linkedId = found.id as string;
+      }
+      if (!linkedId && row.email) {
+        const found = await env.DB.prepare(
+          `SELECT id FROM customers WHERE account_id = ? AND email = ?`
+        ).bind(accountId, row.email).first();
+        if (found) linkedId = found.id as string;
+      }
+      if (!linkedId) {
+        linkedId = crypto.randomUUID();
+        await env.DB.prepare(
+          `INSERT INTO customers (id, account_id, name, phone, email, whatsapp, source)
+           SELECT ?, ?, full_name, phone_number, email, phone_number, 'event'
+           FROM event_attendees WHERE id = ?`
+        ).bind(linkedId, accountId, row.id).run();
+      }
+      await env.DB.prepare('UPDATE event_attendees SET customer_id = ? WHERE id = ?')
+        .bind(linkedId, row.id).run();
+    } catch {}
   }
 
   return json({ success: true, approved_count: body.attendee_ids.length });
@@ -5698,7 +6114,7 @@ const handleGetEventShareMessages: Handler = async (request, env, params) => {
 // POST /api/guest-invite/:token/claim
 const handleClaimGuestInvite: Handler = async (request, env, params) => {
   const invite = await env.DB.prepare(
-    `SELECT gi.*, e.id as event_id, e.account_id as account_id, e.title as event_title
+    `SELECT gi.*, e.id as event_id, e.account_id as account_id, e.title as event_title, e.event_date
      FROM guest_invites gi
      JOIN events e ON e.id = gi.event_id
      WHERE gi.invite_token = ?`
@@ -5707,6 +6123,11 @@ const handleClaimGuestInvite: Handler = async (request, env, params) => {
   if (!invite) return json({ error: 'Invite not found' }, 404);
   if (invite.status !== 'pending') {
     return json({ error: `Invite already ${invite.status}` }, 409);
+  }
+  if (invite.event_date && new Date(invite.event_date as string) < new Date()) {
+    await env.DB.prepare(`UPDATE guest_invites SET status = 'expired' WHERE invite_token = ?`)
+      .bind(params.token).run();
+    return json({ error: 'This invite has expired' }, 410);
   }
   const accountId = invite.account_id as string;
 
@@ -5752,6 +6173,33 @@ const handleClaimGuestInvite: Handler = async (request, env, params) => {
       null, 'event_attendee', newAttendeeId, accountId
     ),
   ]);
+
+  // Auto-link customer record for claimed guest (non-critical)
+  try {
+    let linkedId: string | null = null;
+    if (body.phone) {
+      const s = body.phone.replace(/\D/g, '').slice(-9);
+      const found = await env.DB.prepare(
+        `SELECT id FROM customers WHERE account_id = ? AND (phone = ? OR whatsapp = ? OR (length(?) = 9 AND (phone LIKE ? OR whatsapp LIKE ?)))`
+      ).bind(accountId, body.phone, body.phone, s, `%${s}`, `%${s}`).first();
+      if (found) linkedId = found.id as string;
+    }
+    if (!linkedId && body.email) {
+      const found = await env.DB.prepare(
+        `SELECT id FROM customers WHERE account_id = ? AND email = ?`
+      ).bind(accountId, body.email).first();
+      if (found) linkedId = found.id as string;
+    }
+    if (!linkedId) {
+      linkedId = crypto.randomUUID();
+      await env.DB.prepare(
+        `INSERT INTO customers (id, account_id, name, phone, email, whatsapp, source)
+         VALUES (?, ?, ?, ?, ?, ?, 'event')`
+      ).bind(linkedId, accountId, body.name, body.phone || null, body.email || null, body.phone || null).run();
+    }
+    await env.DB.prepare('UPDATE event_attendees SET customer_id = ? WHERE id = ?')
+      .bind(linkedId, newAttendeeId).run();
+  } catch {}
 
   return json({ magic_token: magicToken, redirect_url: `/m/${magicToken}` }, 201);
 };
@@ -8083,6 +8531,186 @@ const handleMemberSearch: Handler = async (request, env) => {
   return json({ members: result.results });
 };
 
+// GET /api/me/journey — auth-based personal journey (no phone/magic-token required)
+const handleGetMyJourney: Handler = async (request, env) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId, userId } = ctx;
+
+  // Fetch user email (used as taster_id in sample tastings)
+  const userRow = await env.DB.prepare(
+    `SELECT email FROM users WHERE id = ? LIMIT 1`
+  ).bind(userId).first() as Record<string, any> | null;
+  const userEmail = userRow?.email || '';
+
+  // Find the customer record linked to this user account
+  const customer = await env.DB.prepare(
+    `SELECT id, name, created_at FROM customers WHERE user_id = ? AND account_id = ? LIMIT 1`
+  ).bind(userId, accountId).first() as Record<string, any> | null;
+
+  const emptyBase = {
+    hasLinkedCustomer: false,
+    sessionsAttended: 0,
+    totalTeas: 0,
+    memberSince: null,
+    teaTypeMap: {} as Record<string, number>,
+    regionMap: {} as Record<string, number>,
+    favorites: [] as string[],
+    impressions: [] as Array<{ text: string; teaName: string; eventTitle: string; date: string }>,
+    milestones: [] as string[],
+    seals: [] as Array<{ eventId: string; title: string; date: string; flyerUrl: string | null }>,
+    samples: [] as Array<Record<string, any>>,
+    compass: [] as Array<Record<string, any>>,
+    portrait: '',
+  };
+
+  // Compass and sample queries run regardless of customer linkage
+  const [compassResult, samplesResult] = await Promise.all([
+    env.DB.prepare(
+      `SELECT id, name, chinese_name, type, form, year, origin_region, status, notes, created_at
+       FROM tea_compass_entries
+       WHERE user_id = ? AND account_id = ? AND status NOT IN ('incoming')
+       ORDER BY created_at DESC LIMIT 50`
+    ).bind(userId, accountId).all(),
+    env.DB.prepare(
+      `SELECT tst.id, tst.verdict, tst.would_buy, tst.personal_note, tst.created_at as tasting_date,
+              ts.name, ts.chinese_name, ts.type, ts.origin_region, ts.id as sample_id
+       FROM tea_sample_tastings tst
+       JOIN tea_samples ts ON ts.id = tst.sample_id
+       WHERE tst.taster_id = ? OR tst.taster_id = ?
+       ORDER BY tst.created_at DESC LIMIT 30`
+    ).bind(userId, userEmail).all(),
+  ]);
+
+  const compass = (compassResult.results as Record<string, any>[]).map(c => ({
+    id: c.id,
+    name: c.name,
+    chineseName: c.chinese_name || null,
+    type: c.type || null,
+    region: c.origin_region || null,
+    form: c.form || null,
+    year: c.year ? String(c.year) : null,
+    status: c.status,
+    notes: c.notes || null,
+    createdAt: c.created_at,
+  }));
+
+  const samples = (samplesResult.results as Record<string, any>[]).map(s => ({
+    id: s.id,
+    sampleId: s.sample_id,
+    name: s.name,
+    chineseName: s.chinese_name || null,
+    type: s.type || null,
+    region: s.origin_region || null,
+    verdict: s.verdict,
+    wouldBuy: Boolean(s.would_buy),
+    note: s.personal_note || null,
+    tastingDate: s.tasting_date,
+  }));
+
+  if (!customer) {
+    return json({ ...emptyBase, compass, samples });
+  }
+
+  // Sessions attended
+  const sessions = await env.DB.prepare(
+    `SELECT ea.id as attendee_id, ea.event_id, e.title, e.slug, e.event_date, e.flyer_image_url
+     FROM event_attendees ea
+     JOIN events e ON e.id = ea.event_id
+     WHERE ea.customer_id = ? AND ea.status = 'confirmed' AND ea.attended = 1
+     ORDER BY e.event_date ASC`
+  ).bind(customer.id).all();
+
+  const sessionsAttended = sessions.results.length;
+  const seals = (sessions.results as Record<string, any>[]).map(s => ({
+    eventId: s.event_id,
+    title: s.title,
+    slug: s.slug || null,
+    date: s.event_date,
+    flyerUrl: s.flyer_image_url || null,
+  }));
+
+  let teaTypeMap: Record<string, number> = {};
+  let regionMap: Record<string, number> = {};
+  let favorites: string[] = [];
+  let impressions: Array<{ text: string; teaName: string; eventTitle: string; date: string }> = [];
+  let totalTeas = 0;
+
+  if (sessions.results.length > 0) {
+    const attendeeIds = (sessions.results as Record<string, any>[]).map(s => s.attendee_id);
+    const placeholders = attendeeIds.map(() => '?').join(', ');
+
+    const notes = await env.DB.prepare(
+      `SELECT etn.impression, etn.is_favorite, etn.tea_menu_id,
+              etm.custom_name, p.given_name, p.product_name, p.type, p.origin_region,
+              e.title as event_title, e.event_date
+       FROM event_tasting_notes etn
+       LEFT JOIN event_tea_menu etm ON etm.id = etn.tea_menu_id
+       LEFT JOIN products p ON p.id = etm.product_id
+       JOIN event_attendees ea ON ea.id = etn.attendee_id
+       JOIN events e ON e.id = ea.event_id
+       WHERE etn.attendee_id IN (${placeholders})`
+    ).bind(...attendeeIds).all();
+
+    totalTeas = notes.results.length;
+    for (const n of notes.results as Record<string, any>[]) {
+      if (n.type) teaTypeMap[n.type] = (teaTypeMap[n.type] || 0) + 1;
+      if (n.origin_region) regionMap[n.origin_region] = (regionMap[n.origin_region] || 0) + 1;
+      if (n.is_favorite) favorites.push(n.custom_name || n.given_name || n.product_name || 'Unknown tea');
+      if (n.impression) {
+        impressions.push({
+          text: n.impression,
+          teaName: n.custom_name || n.given_name || n.product_name || 'Unknown tea',
+          eventTitle: n.event_title,
+          date: n.event_date,
+        });
+      }
+    }
+  }
+
+  // Also fold compass regions into regionMap for the portrait
+  for (const c of compass) {
+    if (c.region) regionMap[c.region] = (regionMap[c.region] || 0) + 1;
+  }
+  for (const s of samples) {
+    if (s.region) regionMap[s.region] = (regionMap[s.region] || 0) + 1;
+    if (s.type) teaTypeMap[s.type] = (teaTypeMap[s.type] || 0) + 1;
+  }
+
+  const milestoneMarks: Record<number, string> = { 1: '初', 3: '三', 5: '五', 7: '七', 10: '十', 20: '廿', 50: '半百' };
+  const milestones = Object.entries(milestoneMarks)
+    .filter(([count]) => sessionsAttended >= parseInt(count))
+    .map(([, mark]) => mark);
+
+  // Portrait — deterministic summary sentence
+  const topTypes = Object.entries(teaTypeMap).sort(([, a], [, b]) => b - a).slice(0, 2).map(([t]) => t.toLowerCase());
+  const topRegions = Object.entries(regionMap).sort(([, a], [, b]) => b - a).slice(0, 2).map(([r]) => r);
+  const lovedSamples = samples.filter(s => s.verdict === 'love').length;
+  const portraitParts: string[] = [];
+  if (topTypes.length > 0) portraitParts.push(`Your palate leans toward ${topTypes.join(' and ')}${topRegions.length > 0 ? `, from ${topRegions.join(' and ')}` : ''}`);
+  if (favorites.length > 0) portraitParts.push(`${favorites.length} tea${favorites.length !== 1 ? 's' : ''} from the table stood out enough to mark`);
+  if (lovedSamples > 0) portraitParts.push(`${lovedSamples} sample${lovedSamples !== 1 ? 's' : ''} earned a love`);
+  if (compass.length > 0) portraitParts.push(`${compass.length} ${compass.length === 1 ? 'tea has' : 'teas have'} made it into your collection`);
+  const portrait = portraitParts.length >= 2 ? portraitParts.join('. ') + '.' : '';
+
+  return json({
+    hasLinkedCustomer: true,
+    customerName: customer.name,
+    sessionsAttended,
+    totalTeas,
+    memberSince: customer.created_at,
+    teaTypeMap,
+    regionMap,
+    favorites,
+    impressions,
+    milestones,
+    seals,
+    samples,
+    compass,
+    portrait,
+  });
+};
+
 // ── Co-Tasting Sessions ──
 
 const handleCreateSession: Handler = async (request, env) => {
@@ -8926,6 +9554,9 @@ const routes: [string, string, Handler][] = [
   ['DELETE', '/api/admin/users/:id', handleDeleteUser],
   ['POST', '/api/admin/reset-token', handleCreateResetToken],
 
+  // Public — venues/spaces
+  ['GET', '/api/venues/public', handleGetPublicVenues],
+
   // Products
   ['GET', '/api/products/public', handleGetPublicProducts],
   ['GET', '/api/products', handleGetProducts],
@@ -9035,6 +9666,7 @@ const routes: [string, string, Handler][] = [
   ['POST',   '/api/admin/venues',                      handleCreateVenue],
   ['PUT',    '/api/admin/venues/:id',                  handleUpdateVenue],
   ['DELETE', '/api/admin/venues/:id',                  handleDeleteVenue],
+  ['GET',    '/api/admin/venues/:id/events',           handleGetVenueEvents],
   ['POST',   '/api/admin/venues/:id/photos',           handleUploadVenuePhoto],
   ['POST',   '/api/admin/venues/:id/spaces',           handleCreateVenueSpace],
   ['PUT',    '/api/admin/venues/:id/spaces/:spaceId',  handleUpdateVenueSpace],
@@ -9057,7 +9689,11 @@ const routes: [string, string, Handler][] = [
   ['DELETE', '/api/admin/events/:id/tea-menu/:itemId', handleDeleteTeaMenuItem],
   ['GET', '/api/admin/events/:id/tasting-notes', handleGetTastingNotes],
 
+  // Admin — Customer journey
+  ['GET', '/api/admin/customers/:id/journey', handleGetCustomerJourney],
+
   // Admin — Attendees (direct by ID)
+  ['GET', '/api/admin/pending-attendees', handleGetPendingAttendees],
   ['PUT', '/api/admin/attendees/:id', handleUpdateAttendee],
   ['PUT', '/api/admin/attendees/:id/approve', handleApproveAttendee],
   ['PUT', '/api/admin/attendees/:id/deny', handleDenyAttendee],
@@ -9168,6 +9804,7 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/me/profile', handleGetMyProfile],
   ['GET', '/api/me/queue', handleGetMyQueue],
   ['GET', '/api/me/wishlist', handleGetMyWishlist],
+  ['GET', '/api/me/journey', handleGetMyJourney],
   ['GET', '/api/members/search', handleMemberSearch],
 
   // Co-Tasting Sessions

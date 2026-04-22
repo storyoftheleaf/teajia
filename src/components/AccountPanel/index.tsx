@@ -145,6 +145,83 @@ const Item: React.FC<{
 };
 
 
+const JourneyCard: React.FC<{
+  journey?: { hasLinkedCustomer: boolean; sessionsAttended: number; totalTeas: number; seals: { eventId: string; title: string; date: string; flyerUrl?: string | null }[]; milestones: string[]; teaTypeMap: Record<string, number>; samples?: unknown[]; compass?: unknown[] } | null;
+  onClick: () => void;
+}> = ({ journey, onClick }) => {
+  const topTypes = journey?.teaTypeMap
+    ? Object.entries(journey.teaTypeMap).sort(([, a], [, b]) => b - a).slice(0, 2).map(([t]) => t)
+    : [];
+
+  return (
+    <button
+      onClick={onClick}
+      className="w-full text-left group px-4 py-4 hover:bg-tea-surface/50 transition-colors border-b border-tea-border last:border-0"
+      style={{ WebkitTapHighlightColor: 'transparent' }}
+    >
+      <div className="flex items-start gap-3.5">
+        {/* Circular emblem — mirrors the avatar */}
+        <div className="w-10 h-10 rounded-full bg-tea-gold/8 border border-tea-border flex items-center justify-center shrink-0 group-hover:border-tea-gold/30 transition-colors">
+          <span className="font-serif text-[17px] text-tea-gold/50 group-hover:text-tea-gold/70 transition-colors leading-none">茶</span>
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-2 mb-0.5">
+            <span className="text-[13px] font-medium text-tea-text leading-tight">My Journey</span>
+            <Icons.ChevronRight className="w-3.5 h-3.5 text-tea-text/15 group-hover:text-tea-text/30 transition-colors shrink-0" />
+          </div>
+
+          {journey?.hasLinkedCustomer ? (
+            <>
+              {/* Stat line */}
+              <div className="text-[11px] text-tea-text-sec leading-tight">
+                <span className="font-serif text-tea-text">{journey.sessionsAttended}</span>
+                {' '}gathering{journey.sessionsAttended !== 1 ? 's' : ''}
+                {journey.totalTeas > 0 && (
+                  <span className="text-tea-text-dim"> · {journey.totalTeas} teas</span>
+                )}
+                {(journey.samples?.length ?? 0) > 0 && (
+                  <span className="text-tea-text-dim"> · {journey.samples!.length} sampled</span>
+                )}
+                {(journey.compass?.length ?? 0) > 0 && (
+                  <span className="text-tea-text-dim"> · {journey.compass!.length} in collection</span>
+                )}
+                {topTypes.length > 0 && (
+                  <span className="text-tea-text-dim"> · {topTypes.join(', ')}</span>
+                )}
+              </div>
+
+              {/* Mini seals + milestones */}
+              {(journey.seals.length > 0 || journey.milestones.length > 0) && (
+                <div className="flex items-center gap-1.5 mt-2">
+                  {journey.seals.slice(-5).map(s => (
+                    <div key={s.eventId} className="w-5 h-5 rounded-full border border-tea-border overflow-hidden bg-tea-surface shrink-0">
+                      {s.flyerUrl
+                        ? <img src={s.flyerUrl} alt="" className="w-full h-full object-cover opacity-70" />
+                        : <span className="flex items-center justify-center w-full h-full text-[7px] font-serif text-tea-gold/40">茶</span>}
+                    </div>
+                  ))}
+                  {journey.milestones.length > 0 && (
+                    <div className="flex items-center gap-1 ml-0.5">
+                      {journey.milestones.slice(-3).map(m => (
+                        <span key={m} className="text-[11px] font-serif text-tea-gold/60 leading-none">{m}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="text-[11px] text-tea-text-dim leading-tight">
+              Sessions attended, teas experienced, your marks
+            </div>
+          )}
+        </div>
+      </div>
+    </button>
+  );
+};
+
 const QuickAction: React.FC<{
   icon: React.ReactNode;
   label: string;
@@ -490,6 +567,13 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
   });
 
   const [eventListFilter, setEventListFilter] = useState<'upcoming' | 'open' | 'past'>('upcoming');
+
+  const { data: myJourney } = useQuery({
+    queryKey: ['me-journey'],
+    enabled: auth.isAuthenticated,
+    staleTime: 1000 * 60 * 10,
+    queryFn: () => api.me.journey(),
+  });
 
   const { data: pendingCount = 0 } = useQuery({
     queryKey: ['panel-pending-count'],
@@ -1229,6 +1313,10 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                           description={favoriteTeas.length > 0 ? `${favoriteTeas.length} teas saved` : "Teas you love and want to revisit"}
                           onClick={() => { onClose(); navigate('/account/collection'); }}
                           gold={favoriteTeas.length > 0}
+                        />
+                        <JourneyCard
+                          journey={myJourney}
+                          onClick={() => { onClose(); navigate('/account/journey'); }}
                         />
                       </>
                     ) : (

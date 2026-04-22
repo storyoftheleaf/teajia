@@ -40,6 +40,7 @@ import { EventsManager } from './components/EventsManager';
 import { EventDetail } from './components/EventDetail';
 import { VenueManager } from './components/VenueManager';
 import { PeopleView } from './components/PeopleView';
+import { CustomerProfilePage } from './components/CustomerProfilePage';
 import { ActivityView } from './components/ActivityView';
 import { QuickCapture } from './components/QuickCapture';
 import { CatalogView } from './views/CatalogView';
@@ -546,6 +547,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
               <Route path="activity" element={<ProtectedRoute hasAccess={isStaff} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><ActivityView products={products} /></PageTransition></ProtectedRoute>} />
               <Route path="activity-logs" element={<ProtectedRoute hasAccess={isStaff} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><ActivityLogsPage /></PageTransition></ProtectedRoute>} />
               <Route path="people" element={<ProtectedRoute hasAccess={isStaff} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><PeopleView userRole={userRole || 'user'} /></PageTransition></ProtectedRoute>} />
+              <Route path="people/:customerId" element={<ProtectedRoute hasAccess={isStaff} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><CustomerProfilePage /></PageTransition></ProtectedRoute>} />
 
               {/* Management — admin, owner */}
               <Route path="inventory" element={

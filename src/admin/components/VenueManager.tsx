@@ -1,5 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, X, Save, Loader2, Trash2, MapPin, Upload, ChevronDown, ChevronUp, Image, Users } from 'lucide-react';
+import { Plus, X, Save, Loader2, Trash2, MapPin, Upload, ChevronDown, ChevronUp, Image, Users, Calendar, ExternalLink } from 'lucide-react';
+
+const TEA_STYLE_OPTIONS = [
+  'Gongfu', 'Grandpa Style', 'Western', 'Gaiwan', 'Yixing Pot',
+  'Charcoal Fire', 'Aged Puerh', 'Raw Puerh', 'Roasted Oolong',
+  'Light Oolong', 'White Tea', 'Green Tea', 'Cold Brew',
+];
 import { api } from '../../lib/api';
 import { compressImage } from '../../lib/imageCompressor';
 import { useToast } from './Toast';
@@ -77,6 +83,7 @@ const SpaceForm: React.FC<SpaceFormProps> = ({ venueId, space, onSaved, onCancel
   const [capacity, setCapacity] = useState(space?.capacity ?? 10);
   const [description, setDescription] = useState(space?.description ?? '');
   const [photos, setPhotos] = useState<string[]>(space?.photos ?? []);
+  const [teaStyles, setTeaStyles] = useState<string[]>(space?.teaStyles ?? []);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
 
@@ -98,7 +105,7 @@ const SpaceForm: React.FC<SpaceFormProps> = ({ venueId, space, onSaved, onCancel
     if (!name.trim()) { showToast('Name is required', 'error'); return; }
     setSaving(true);
     try {
-      const data = { name: name.trim(), capacity, description: description.trim() || undefined, photos };
+      const data = { name: name.trim(), capacity, description: description.trim() || undefined, photos, tea_styles: teaStyles };
       if (space) {
         await api.venues.updateSpace(venueId, space.id, data);
       } else {
@@ -129,6 +136,25 @@ const SpaceForm: React.FC<SpaceFormProps> = ({ venueId, space, onSaved, onCancel
       <Field label="Photos">
         <PhotoStrip photos={photos} onAdd={handleUpload} onRemove={url => setPhotos(p => p.filter(u => u !== url))} uploading={uploading} />
       </Field>
+      <Field label="Tea Styles">
+        <div className="flex flex-wrap gap-1.5 mt-1">
+          {TEA_STYLE_OPTIONS.map(style => {
+            const active = teaStyles.includes(style);
+            return (
+              <button
+                key={style}
+                type="button"
+                onClick={() => setTeaStyles(prev => active ? prev.filter(s => s !== style) : [...prev, style])}
+                className={`px-2.5 py-1 rounded-full text-[11px] transition-colors ${
+                  active ? 'bg-tea-gold/15 text-tea-gold' : 'bg-tea-elevated text-tea-text-sec hover:text-tea-text'
+                }`}
+              >
+                {style}
+              </button>
+            );
+          })}
+        </div>
+      </Field>
       <div className="flex justify-between gap-2 pt-1">
         <button type="button" onClick={onCancel} className="px-3 py-1.5 text-sm text-tea-text-sec hover:text-tea-text transition-colors">
           Cancel
@@ -157,6 +183,26 @@ const VenueCard: React.FC<VenueCardProps> = ({ venue, onRefresh }) => {
   const [editingSpaceId, setEditingSpaceId] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [venueEvents, setVenueEvents] = useState<any[]>([]);
+  const [loadingEvents, setLoadingEvents] = useState(false);
+  const eventsLoadedRef = useRef(false);
+
+  const handleToggleExpand = async () => {
+    const next = !expanded;
+    setExpanded(next);
+    if (next && !eventsLoadedRef.current) {
+      eventsLoadedRef.current = true;
+      setLoadingEvents(true);
+      try {
+        const data = await api.venues.getEvents(venue.id);
+        setVenueEvents(Array.isArray(data) ? data : []);
+      } catch {
+        // silently fail
+      } finally {
+        setLoadingEvents(false);
+      }
+    }
+  };
 
   // Editable venue fields
   const [name, setName] = useState(venue.name);
@@ -278,10 +324,10 @@ const VenueCard: React.FC<VenueCardProps> = ({ venue, onRefresh }) => {
               </div>
             </div>
             <div className="flex items-center gap-1 flex-shrink-0">
-              <button onClick={() => { setEditing(e => !e); setExpanded(true); }} className="text-[11px] text-tea-text-sec hover:text-tea-text px-2 py-1 transition-colors">
+              <button onClick={() => { setEditing(e => !e); if (!expanded) handleToggleExpand(); }} className="text-[11px] text-tea-text-sec hover:text-tea-text px-2 py-1 transition-colors">
                 Edit
               </button>
-              <button onClick={() => setExpanded(e => !e)} className="text-tea-text-sec hover:text-tea-text p-1 transition-colors">
+              <button onClick={handleToggleExpand} className="text-tea-text-sec hover:text-tea-text p-1 transition-colors">
                 {expanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
               </button>
             </div>
@@ -387,6 +433,13 @@ const VenueCard: React.FC<VenueCardProps> = ({ venue, onRefresh }) => {
                           {space.description && (
                             <p className="text-xs text-tea-text-dim mt-1 line-clamp-2">{space.description}</p>
                           )}
+                          {space.teaStyles && space.teaStyles.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-1.5">
+                              {space.teaStyles.map(s => (
+                                <span key={s} className="px-2 py-0.5 rounded-full text-[10px] bg-tea-elevated text-tea-text-sec">{s}</span>
+                              ))}
+                            </div>
+                          )}
                         </div>
                         <div className="flex items-center gap-1 flex-shrink-0">
                           <button onClick={() => setEditingSpaceId(space.id)} className="text-[11px] text-tea-text-sec hover:text-tea-text px-2 py-0.5 transition-colors">
@@ -420,6 +473,38 @@ const VenueCard: React.FC<VenueCardProps> = ({ venue, onRefresh }) => {
                 <Plus size={13} />
                 Add space
               </button>
+            )}
+          </div>
+
+          {/* Events hosted here */}
+          <div className="p-4 border-t border-tea-border space-y-2">
+            <div className="flex items-center gap-2">
+              <Calendar size={12} className="text-tea-text-dim" />
+              <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-dim">Events Hosted Here</p>
+            </div>
+            {loadingEvents ? (
+              <Loader2 size={14} className="animate-spin text-tea-text-dim" />
+            ) : venueEvents.length === 0 ? (
+              <p className="text-xs text-tea-text-dim">No events yet.</p>
+            ) : (
+              <div className="space-y-1.5">
+                {venueEvents.map((ev: any) => (
+                  <a
+                    key={ev.id}
+                    href={`/admin/events/${ev.id}`}
+                    className="flex items-center justify-between gap-3 py-1.5 group"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-xs text-tea-text group-hover:text-tea-gold transition-colors truncate">{ev.title}</p>
+                      <p className="text-[10px] text-tea-text-dim mt-0.5">
+                        {new Date(ev.event_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        {' · '}{ev.confirmed_count ?? 0}/{ev.total_capacity} confirmed
+                      </p>
+                    </div>
+                    <ExternalLink size={11} className="text-tea-text-dim group-hover:text-tea-gold transition-colors flex-shrink-0" />
+                  </a>
+                ))}
+              </div>
             )}
           </div>
         </div>

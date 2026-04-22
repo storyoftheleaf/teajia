@@ -7,6 +7,7 @@ import {
   Mic, BookmarkPlus, BookmarkCheck, ChevronDown, ChevronUp,
   ShoppingBag, Droplets, AlertTriangle, Star, ChevronLeft, ChevronRight, X, RefreshCw,
 } from 'lucide-react';
+import { AddToSampleButton } from '../samples/AddToSampleButton';
 import { getTeaColor } from '../../designTokens';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { useLedgerStore } from '../../lib/ledgerStore';
@@ -26,6 +27,10 @@ export interface BrowseCardProps {
   /** Compare mode: whether this card is selected for comparison */
   isCompareSelected?: boolean;
   onToggleCompare?: (id: string) => void;
+  /** Desktop: fires instead of expand-in-place when provided */
+  onSelect?: (id: string) => void;
+  /** Desktop: shows selection highlight on the card */
+  isSelected?: boolean;
 }
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
@@ -78,7 +83,7 @@ function getTypeLabel(entry: TeaCompassEntry): string {
 }
 
 
-export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueueActive, isCompareSelected, onToggleCompare }) => {
+export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueueActive, isCompareSelected, onToggleCompare, onSelect, isSelected }) => {
   const navigate = useNavigate();
   const removeEntry = useTeaCompassStore((s) => s.removeEntry);
   const updateEntry = useTeaCompassStore((s) => s.updateEntry);
@@ -188,7 +193,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
   return (
     <>
       <div
-        className="relative bg-tea-surface rounded-lg overflow-hidden"
+        className={`relative bg-tea-surface rounded-lg overflow-hidden${isSelected ? ' ring-1 ring-tea-gold/40 bg-tea-gold/5' : ''}`}
         style={{
           ...(typeColor ? { borderLeft: `3px solid color-mix(in srgb, ${typeColor} 50%, transparent)` } : { borderLeft: '3px solid transparent' }),
           ...(isCompareSelected ? { outline: '2px solid var(--tea-gold)', outlineOffset: '-2px' } : {}),
@@ -212,13 +217,19 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
         {/* ── Tappable content area ── */}
         <button
           type="button"
-          onClick={() => setExpanded((v) => !v)}
+          onClick={() => {
+            if (onSelect) {
+              onSelect(entry.id);
+            } else {
+              setExpanded((v) => !v);
+            }
+          }}
           className="w-full text-left"
-          aria-expanded={expanded}
+          aria-expanded={onSelect ? undefined : expanded}
         >
           <div className="flex gap-3 px-3 pt-2.5 pb-2">
-            {/* Photo thumbnail — clickable, opens lightbox */}
-            {validPhotos.length > 0 && (
+            {/* Photo or type swatch */}
+            {validPhotos.length > 0 ? (
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); setLightboxIndex(0); }}
@@ -228,7 +239,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
                 <img
                   src={validPhotos[0]}
                   alt=""
-                  className="w-11 h-11 rounded-md object-cover"
+                  className="w-14 h-14 rounded-md object-cover"
                 />
                 {validPhotos.length > 1 && (
                   <span className="absolute bottom-0.5 right-0.5 text-[9px] font-semibold text-white bg-black/50 rounded px-0.5 leading-tight">
@@ -236,7 +247,15 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
                   </span>
                 )}
               </button>
-            )}
+            ) : typeColor ? (
+              <div
+                className="shrink-0 mt-0.5 w-14 h-14 rounded-md flex items-center justify-center text-[9px] font-semibold tracking-[0.1em] uppercase"
+                style={{ background: `${typeColor}18`, color: typeColor }}
+                aria-hidden="true"
+              >
+                {(entry.type || entry.category || 'TEA').slice(0, 3)}
+              </div>
+            ) : null}
 
             {/* Text content */}
             <div className="flex-1 min-w-0 space-y-0.5">
@@ -343,7 +362,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
                       className="shrink-0"
                       aria-label={`View photo ${i + 1}`}
                     >
-                      <img src={url} alt="" className="w-20 h-20 rounded-md object-cover" loading="lazy" />
+                      <img src={url} alt="" className="w-24 h-24 rounded-md object-cover" loading="lazy" />
                     </button>
                   ))}
                   <button
@@ -383,7 +402,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
 
                 {/* Tasting profile (read view) */}
                 {hasTasting && (
-                  <TastingProfileStrip value={entry.tasting!} onRemove={() => {}} />
+                  <TastingProfileStrip value={entry.tasting!} />
                 )}
 
                 {/* Tasting history timeline */}
@@ -530,6 +549,21 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
               <Star size={12} fill={entry.tasteOrder ? 'currentColor' : 'none'} />
               {entry.tasteOrder ? 'Next' : 'Queue'}
             </button>
+          )}
+
+          {/* Add to sample list */}
+          {entry.category !== 'teaware' && (
+            <AddToSampleButton
+              item={{
+                id: entry.id,
+                name: entry.name,
+                chineseName: entry.chineseName,
+                type: entry.type,
+                vendorName: entry.vendorName,
+                compassEntryId: entry.id,
+              }}
+              size={12}
+            />
           )}
 
           {/* Spacer */}

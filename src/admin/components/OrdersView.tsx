@@ -358,7 +358,9 @@ export const OrdersView = () => {
                       </td>
                       <td className="px-4 align-middle overflow-hidden">
                         <button
-                          onClick={() => navigate(`/admin/people?search=${encodeURIComponent(order.customer_name || '')}`)}
+                          onClick={() => order.customer_id
+                            ? navigate(`/admin/people/${order.customer_id}`)
+                            : navigate(`/admin/people?search=${encodeURIComponent(order.customer_name || '')}`)}
                           className="text-xs text-tea-text hover:text-tea-gold transition-colors flex items-center gap-1.5 group/cust truncate"
                           title="View customer profile"
                         >

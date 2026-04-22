@@ -1,8 +1,9 @@
 import React, { useState, lazy, Suspense, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { MapPin, ChevronDown, Users, BookOpen } from 'lucide-react';
-import { api } from '../../lib/api';
+import { MapPin, ChevronDown, Users, BookOpen, Edit3, UserCheck } from 'lucide-react';
+import { api, hasToken } from '../../lib/api';
+import { useAppStore } from '../../lib/store';
 import { useParallax } from '../../hooks/useParallax';
 import type { TeaEvent, TeaMenuItem } from '../../types/events';
 import AvailabilityBadge from './AvailabilityBadge';
@@ -135,9 +136,16 @@ const EventLanding: React.FC = () => {
     staleTime: 60_000,
   });
 
+  const platformRole = useAppStore(s => s.platformRole);
+  const isAdmin = !!platformRole;
+
   const [showRSVP, setShowRSVP] = useState(false);
   const [showFindRSVP, setShowFindRSVP] = useState(false);
   const [guidelinesExpanded, setGuidelinesExpanded] = useState(false);
+  const [myAttendee, setMyAttendee] = useState<any>(null);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelFeedback, setCancelFeedback] = useState('');
 
   // Parallax for flyer image
   const { ref: heroRef, offset: parallaxOffset } = useParallax(0.3);
@@ -187,6 +195,17 @@ const EventLanding: React.FC = () => {
       document.title = 'Teajia | Tea Journal';
     };
   }, [event]);
+
+  useEffect(() => {
+    if (!slug || !event || !hasToken()) return;
+    api.rsvp.findByAccount(slug).then((data: any) => {
+      const token = data?.magic_token || data?.magicToken;
+      const status = data?.status;
+      if (token && status && status !== 'cancelled' && status !== 'denied') {
+        setMyAttendee(data);
+      }
+    }).catch(() => {});
+  }, [slug, event]);
 
   if (isLoading) {
     return (
@@ -287,7 +306,7 @@ const EventLanding: React.FC = () => {
 
         {/* Back button */}
         <button
-          onClick={() => navigate(-1)}
+          onClick={() => navigate('/events')}
           className="absolute top-3 left-4 z-10 flex items-center justify-center w-9 h-9 rounded-full"
           style={{ background: 'rgba(24,19,14,0.6)', backdropFilter: 'blur(8px)', border: 'none' }}
           aria-label="Back"
@@ -296,6 +315,17 @@ const EventLanding: React.FC = () => {
             <path d="M19 12H5m7-7l-7 7 7 7"/>
           </svg>
         </button>
+
+        {/* Admin edit shortcut */}
+        {isAdmin && (
+          <button
+            onClick={() => navigate(`/admin/events/${event.id}`)}
+            className="absolute top-3 right-4 z-10 flex items-center gap-1.5 px-3 h-9 rounded-full text-[11px] font-medium text-white"
+            style={{ background: 'rgba(24,19,14,0.6)', backdropFilter: 'blur(8px)' }}
+          >
+            <Edit3 size={12} /> Edit
+          </button>
+        )}
 
         {/* Availability badge hanging below hero */}
         <div className="absolute bottom-0 left-1/2 -translate-x-1/2">
@@ -379,23 +409,87 @@ const EventLanding: React.FC = () => {
 
           {/* CTA block */}
           {canRSVP && (
-            <div className="space-y-2.5">
-              <button
-                onClick={() => setShowRSVP(true)}
-                className="w-full py-[15px] bg-tea-gold text-white text-[11px] uppercase tracking-[0.25em] font-semibold rounded-sm hover:bg-tea-gold/90 transition-all duration-300 shadow-[0_6px_20px_rgba(184,146,78,0.3)]"
-              >
-                Request Your Seat
-              </button>
-              <p className="text-center text-[11px] text-tea-text-dim">
-                Already registered?{' '}
+            myAttendee ? (
+              // Already registered — show attendee actions
+              <div className="space-y-3">
+                <div className="flex items-center justify-center gap-2 mb-1">
+                  <UserCheck size={14} className="text-tea-gold" />
+                  <p className="text-xs text-tea-text-sec">
+                    You're {myAttendee.status === 'confirmed' ? 'confirmed' : myAttendee.status === 'waitlist' ? 'on the waitlist' : 'registered'} for this session
+                  </p>
+                </div>
+                <div className={`grid gap-2 ${myAttendee.status === 'confirmed' ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                  {myAttendee.status === 'confirmed' && (
+                    <button
+                      onClick={() => navigate(`/m/${myAttendee.magic_token || myAttendee.magicToken}`)}
+                      className="py-[13px] bg-tea-surface border border-tea-border text-tea-text text-[11px] uppercase tracking-[0.2em] rounded-sm hover:border-tea-gold/40 transition-colors"
+                    >
+                      Invite a Friend
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setShowCancelConfirm(true)}
+                    className="py-[13px] bg-tea-surface border border-tea-border text-tea-text-sec text-[11px] uppercase tracking-[0.2em] rounded-sm hover:border-red-400/30 hover:text-red-400 transition-colors"
+                  >
+                    Cancel {myAttendee.status === 'confirmed' ? 'My Seat' : 'Registration'}
+                  </button>
+                </div>
+                {showCancelConfirm && (
+                  <div className="bg-tea-surface border border-tea-border rounded-sm p-4 space-y-3">
+                    <p className="text-sm font-serif text-tea-text text-center">Cancel your spot?</p>
+                    <p className="text-[11px] text-tea-text-sec text-center">This can't be undone. We'll let the host know.</p>
+                    {cancelFeedback && <p className="text-[11px] text-red-400 text-center">{cancelFeedback}</p>}
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => { setShowCancelConfirm(false); setCancelFeedback(''); }}
+                        disabled={cancelling}
+                        className="flex-1 py-2.5 text-[11px] text-tea-text-sec hover:text-tea-text transition-colors"
+                      >
+                        Keep my seat
+                      </button>
+                      <button
+                        onClick={async () => {
+                          const token = myAttendee.magic_token || myAttendee.magicToken;
+                          setCancelling(true);
+                          try {
+                            await api.rsvp.cancel(token);
+                            setMyAttendee(null);
+                            setShowCancelConfirm(false);
+                          } catch {
+                            setCancelFeedback('Could not cancel — please contact us directly.');
+                          } finally {
+                            setCancelling(false);
+                          }
+                        }}
+                        disabled={cancelling}
+                        className="flex-1 py-2.5 text-[11px] uppercase tracking-[0.15em] text-red-400 hover:text-red-300 border border-red-400/30 rounded-sm hover:border-red-400/50 transition-colors disabled:opacity-50"
+                      >
+                        {cancelling ? 'Cancelling…' : 'Yes, cancel'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              // Default CTA
+              <div className="space-y-2.5">
                 <button
-                  onClick={() => setShowFindRSVP(true)}
-                  className="text-tea-gold hover:text-tea-gold-lt transition-colors"
+                  onClick={() => setShowRSVP(true)}
+                  className="w-full py-[15px] bg-tea-gold text-white text-[11px] uppercase tracking-[0.25em] font-semibold rounded-sm hover:bg-tea-gold/90 transition-all duration-300 shadow-[0_6px_20px_rgba(184,146,78,0.3)]"
                 >
-                  Find my RSVP
+                  Request Your Seat
                 </button>
-              </p>
-            </div>
+                <p className="text-center text-[11px] text-tea-text-dim">
+                  Already registered?{' '}
+                  <button
+                    onClick={() => setShowFindRSVP(true)}
+                    className="text-tea-gold hover:text-tea-gold-lt transition-colors"
+                  >
+                    Find my RSVP
+                  </button>
+                </p>
+              </div>
+            )
           )}
 
           {/* Full / waitlist state */}
@@ -464,10 +558,12 @@ const EventLanding: React.FC = () => {
           </div>
         )}
 
-        {/* Venue Photos */}
-        {venueGuide && Array.isArray(venueGuide.photos) && (
-          <VenuePhotosSection photos={venueGuide.photos as string[]} />
-        )}
+        {/* Venue Photos — from the linked venue record */}
+        {(() => {
+          const raw = ev.venue_photos ?? (ev as any).venuePhotos;
+          const photos: string[] = Array.isArray(raw) ? raw : [];
+          return photos.length > 0 ? <VenuePhotosSection photos={photos} /> : null;
+        })()}
 
         {/* Tea Menu Preview */}
         {publicTeaMenu.length > 0 && (

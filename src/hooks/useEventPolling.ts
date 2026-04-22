@@ -50,6 +50,7 @@ function mapEvent(e: any): TeaEvent {
     moodHints: e.mood_hints
       ? (typeof e.mood_hints === 'string' ? JSON.parse(e.mood_hints) : e.mood_hints)
       : undefined,
+    venuePhotos: Array.isArray(e.venue_photos) ? e.venue_photos : undefined,
     createdAt: e.created_at,
     updatedAt: e.updated_at,
     confirmedCount: e.confirmed_count != null ? Number(e.confirmed_count) : undefined,
@@ -151,6 +152,7 @@ export const useGuestManagement = (token: string) => {
             parentAttendeeId: t.parent_attendee_id,
             inviteToken: t.invite_token,
             nameHint: t.name_hint || undefined,
+            contact: t.contact || undefined,
             claimedByName: t.claimed_by_name || undefined,
             claimedByPhone: t.claimed_by_phone || undefined,
             claimedByEmail: t.claimed_by_email || undefined,

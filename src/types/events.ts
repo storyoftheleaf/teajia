@@ -30,6 +30,7 @@ export interface VenueSpace {
   capacity: number;
   description?: string;
   photos: string[];
+  teaStyles?: string[];
   sortOrder: number;
   createdAt: string;
   updatedAt: string;
@@ -107,6 +108,7 @@ export interface TeaEvent {
   activeSpaceIds?: string[];
   areaHint?: string;           // General area shown before approval (e.g., "Da'an District, Taipei")
   moodHints?: string[];        // Pre-session mood hints (optional)
+  venuePhotos?: string[];      // Photos from the linked venue record (confirmed-only via RSVP endpoint)
   interestedList?: InterestSignup[];
   createdAt: string;
   updatedAt: string;
@@ -180,6 +182,7 @@ export interface GuestInvite {
   parentAttendeeId: string;
   inviteToken: string;
   nameHint?: string;
+  contact?: string;
   claimedByName?: string;
   claimedByPhone?: string;
   claimedByEmail?: string;
@@ -267,6 +270,7 @@ export interface EventNotification {
 export interface JourneySeal {
   eventId: string;
   title: string;
+  slug?: string | null;
   date: string;
   flyerUrl?: string;
 }

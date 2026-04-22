@@ -32,6 +32,7 @@ const ProductPage = lazy(() => import('./pages/ProductPage'));
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
 const OrderStatusPage = lazy(() => import('./pages/OrderStatusPage'));
 const JourneyPage = lazy(() => import('./pages/JourneyPage'));
+const AccountJourneyPage = lazy(() => import('./pages/AccountJourneyPage'));
 const PassportPage = lazy(() => import('./pages/PassportPage'));
 const GuestInviteClaimPage = lazy(() => import('./pages/GuestInviteClaimPage'));
 const SamplePage = lazy(() => import('./pages/SamplePage'));
@@ -308,6 +309,7 @@ const AppContent = () => {
     const handleSearchShortcut = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
+        if (!showGlobalSearch) window.dispatchEvent(new CustomEvent('dismiss-tasting-overlay'));
         setShowGlobalSearch(prev => !prev);
       }
     };
@@ -472,6 +474,7 @@ const AppContent = () => {
   }, []);
 
   const handleOpenAccount = (view?: PanelView) => {
+    window.dispatchEvent(new CustomEvent('dismiss-tasting-overlay'));
     setShowGlobalSearch(false);
     setAccountInitialView(view);
     setShowAccountModal(true);
@@ -479,16 +482,18 @@ const AppContent = () => {
 
   const handleToggleAccount = () => {
     setShowAccountModal(prev => {
-      if (prev) {
-        setAccountInitialView(undefined);
-      } else {
+      if (!prev) {
+        window.dispatchEvent(new CustomEvent('dismiss-tasting-overlay'));
         setShowGlobalSearch(false);
+      } else {
+        setAccountInitialView(undefined);
       }
       return !prev;
     });
   };
 
   const handleNavSection = (section: Section) => {
+    window.dispatchEvent(new CustomEvent('dismiss-tasting-overlay'));
     setShowGlobalSearch(false);
     setShowAccountModal(false);
     setAccountInitialView(undefined);
@@ -498,7 +503,10 @@ const AppContent = () => {
 
   // Allow any component to open the account panel via a custom event
   useEffect(() => {
-    const handler = () => setShowAccountModal(true);
+    const handler = () => {
+      window.dispatchEvent(new CustomEvent('dismiss-tasting-overlay'));
+      setShowAccountModal(true);
+    };
     window.addEventListener('open-account-panel', handler);
     return () => window.removeEventListener('open-account-panel', handler);
   }, []);
@@ -545,7 +553,7 @@ const AppContent = () => {
       <PullToRefreshIndicator pullDistance={pullDistance} isRefreshing={isRefreshing} progress={progress} />
 
       {/* Left Sidebar for Desktop */}
-      <LeftSidebar activeSection={activeSection} onNavigate={setActiveSection} onAccountClick={handleOpenAccount} onCartClick={handleOpenCart} onSearchClick={() => { setShowAccountModal(false); setAccountInitialView(undefined); setShowGlobalSearch(true); }} cartItemCount={cart.length} topOffset={showAdminBar} />
+      <LeftSidebar activeSection={activeSection} onNavigate={setActiveSection} onAccountClick={handleOpenAccount} onCartClick={handleOpenCart} onSearchClick={() => { window.dispatchEvent(new CustomEvent('dismiss-tasting-overlay')); setShowAccountModal(false); setAccountInitialView(undefined); setShowGlobalSearch(true); }} cartItemCount={cart.length} topOffset={showAdminBar} />
 
       {/* Main Content Area */}
       <div className={`flex-1 min-w-0 flex flex-col relative ${sidebarCollapsed ? 'lg:ml-14 lg:max-w-[calc(100vw-3.5rem)]' : 'lg:ml-56 lg:max-w-[calc(100vw-14rem)]'} transition-[margin,max-width] duration-300`}>
@@ -671,6 +679,7 @@ const AppContent = () => {
                 <Route path="/compass" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="grid" />}><CompassPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/journal" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="list" />}><JournalPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/collection" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="list" />}><CollectionPage /></Suspense></ErrorBoundary>} />
+                <Route path="/account/journey" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><AccountJourneyPage /></Suspense></ErrorBoundary>} />
                 <Route path="/signin" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><SignInPage /></Suspense></ErrorBoundary>} />
                 <Route path="/signup" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><SignUpPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/settings" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><AccountSettingsPage /></Suspense></ErrorBoundary>} />
@@ -864,7 +873,7 @@ const AppContent = () => {
 
 
       {/* Bottom Tab Bar for Mobile */}
-      <BottomTabBar activeSection={activeSection} onNavigate={handleNavSection} hidden={isCartOpen} onAccountClick={handleToggleAccount} onSearchClick={() => { setShowAccountModal(false); setAccountInitialView(undefined); setShowGlobalSearch(true); }} onSearchClose={() => setShowGlobalSearch(false)} isAdminRoute={isAdminRoute} />
+      <BottomTabBar activeSection={activeSection} onNavigate={handleNavSection} hidden={isCartOpen} onAccountClick={handleToggleAccount} onSearchClick={() => { window.dispatchEvent(new CustomEvent('dismiss-tasting-overlay')); setShowAccountModal(false); setAccountInitialView(undefined); setShowGlobalSearch(true); }} onSearchClose={() => setShowGlobalSearch(false)} isAdminRoute={isAdminRoute} />
 
       </div>
 

@@ -168,7 +168,7 @@ function QuickAddSheet({ setId, sourceName, sourceId, onClose }: QuickAddSheetPr
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/60"
+      className="fixed inset-0 z-modal flex items-end lg:items-center justify-center bg-black/60"
       onClick={onClose}
     >
       <motion.div
@@ -176,8 +176,8 @@ function QuickAddSheet({ setId, sourceName, sourceId, onClose }: QuickAddSheetPr
         animate={{ y: 0 }}
         exit={{ y: '100%' }}
         transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-        className="w-full max-w-lg bg-tea-surface rounded-t-xl"
-        style={{ maxHeight: 'calc(100dvh - 60px)' }}
+        className="w-full max-w-lg bg-tea-surface rounded-t-xl lg:rounded-xl"
+        style={{ maxHeight: 'min(calc(100dvh - 60px), 90vh)' }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -478,12 +478,12 @@ interface BatchCardProps {
   onClick: () => void;
 }
 
-function BatchCard({ sampleSet, tastedCount, totalCount, favoriteCount, graduatedCount, passedCount, onClick }: BatchCardProps) {
+function BatchCard({ sampleSet, tastedCount, totalCount, favoriteCount, graduatedCount, passedCount, onClick, isActive }: BatchCardProps & { isActive?: boolean }) {
   const purposeLabel = PURPOSE_LABEL[sampleSet.purpose] ?? sampleSet.purpose;
   return (
     <button
       onClick={onClick}
-      className="w-full text-left bg-tea-surface rounded-lg px-4 py-3 hover:bg-tea-elevated active:scale-[0.99] transition-all"
+      className={`w-full text-left rounded-lg px-4 py-3 hover:bg-tea-elevated active:scale-[0.99] transition-all ${isActive ? 'bg-tea-elevated ring-1 ring-inset ring-tea-gold/25' : 'bg-tea-surface'}`}
     >
       <div className="flex items-start justify-between gap-2 mb-1">
         <div className="flex-1 min-w-0">
@@ -573,7 +573,7 @@ function CompassImportModal({ setId, onClose, defaultVendorId, defaultVendorName
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/60"
+      className="fixed inset-0 z-modal flex items-end lg:items-center justify-center bg-black/60"
       onClick={onClose}
     >
       <motion.div
@@ -581,8 +581,8 @@ function CompassImportModal({ setId, onClose, defaultVendorId, defaultVendorName
         animate={{ y: 0 }}
         exit={{ y: '100%' }}
         transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-        className="w-full max-w-lg bg-tea-surface rounded-t-xl p-4"
-        style={{ maxHeight: 'calc(100dvh - 60px)' }}
+        className="w-full max-w-lg bg-tea-surface rounded-t-xl lg:rounded-xl p-4"
+        style={{ maxHeight: 'min(calc(100dvh - 60px), 90vh)' }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-3">
@@ -651,7 +651,7 @@ function CompassImportModal({ setId, onClose, defaultVendorId, defaultVendorName
 
 // ── Main Component ─────────────────────────────────────────────────────
 
-export default function SampleSetCreator() {
+export default function SampleSetCreator({ embeddedMode }: { embeddedMode?: 'list' | 'detail' } = {}) {
   const {
     sampleSets,
     samples,
@@ -666,6 +666,9 @@ export default function SampleSetCreator() {
     updateSample,
     importFromCompass,
   } = useSampleStore();
+
+  const storeActiveSetId = useSampleStore((s) => s.activeSetId);
+  const setStoreActiveSet = useSampleStore((s) => s.setActiveSet);
 
   const navigate = useNavigate();
   const { data: allCustomers = [] } = useCustomers();
@@ -713,6 +716,27 @@ export default function SampleSetCreator() {
     }
   }, [visibleSets.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    if (!showLabels) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setShowLabels(false); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [showLabels]);
+
+  // List mode: seed the store so the detail panel has an initial selection
+  useEffect(() => {
+    if (embeddedMode === 'list' && !storeActiveSetId && visibleSets.length > 0) {
+      setStoreActiveSet(visibleSets[0].id);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Detail mode: follow the store's active set when it changes
+  useEffect(() => {
+    if (embeddedMode === 'detail' && storeActiveSetId !== activeSetId) {
+      setActiveSetId(storeActiveSetId);
+    }
+  }, [storeActiveSetId, embeddedMode]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const filteredSamples = (statusFilter === 'all' ? activeSamples : activeSamples.filter(s => s.status === statusFilter))
     .filter(s => !searchQuery.trim() || s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       s.originRegion?.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -740,18 +764,24 @@ export default function SampleSetCreator() {
     const newSet = createEmptySampleSet({ purpose: 'sourcing' });
     addSampleSet(newSet);
     setActiveSetId(newSet.id);
-    setView('batch');
+    if (embeddedMode) {
+      setStoreActiveSet(newSet.id);
+    } else {
+      setView('batch');
+    }
     setBatchDetailsOpen(true);
-  }, [addSampleSet]);
+  }, [addSampleSet, embeddedMode, setStoreActiveSet]);
 
   const handleDeleteSet = useCallback(
     (id: string) => {
       removeSampleSet(id);
       if (activeSetId === id) {
-        setActiveSetId(visibleSets.length > 1 ? visibleSets.find((s) => s.id !== id)?.id ?? null : null);
+        const next = visibleSets.length > 1 ? visibleSets.find((s) => s.id !== id)?.id ?? null : null;
+        setActiveSetId(next);
+        if (embeddedMode) setStoreActiveSet(next);
       }
     },
-    [activeSetId, visibleSets, removeSampleSet]
+    [activeSetId, visibleSets, removeSampleSet, embeddedMode, setStoreActiveSet]
   );
 
   const handleDeleteSample = useCallback(
@@ -839,7 +869,7 @@ export default function SampleSetCreator() {
   }, [activeSetId, updateSampleSet]);
 
   useEffect(() => {
-    if (sampleSets.length === 0) {
+    if (embeddedMode !== 'detail' && sampleSets.length === 0) {
       handleNewSet();
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -855,19 +885,21 @@ export default function SampleSetCreator() {
   // ── Screen 1: Batch List ─────────────────────────────────────────────
 
   const renderBatchList = () => (
-    <div className="min-h-screen bg-tea-bg text-tea-text">
-      <div className="flex items-center justify-between px-4 pt-4 pb-3"
-        style={{ borderBottom: '1px solid var(--tea-accent-sub)' }}>
+    <div className={embeddedMode === 'list' ? '' : 'min-h-screen bg-tea-bg text-tea-text'}>
+      <div className={`flex items-center justify-between pb-3 ${embeddedMode === 'list' ? 'pt-1' : 'px-4 pt-4'}`}
+        style={embeddedMode === 'list' ? undefined : { borderBottom: '1px solid var(--tea-accent-sub)' }}>
         <div className="flex items-center gap-2">
           <Package size={20} className="text-tea-gold" />
           <h1 className="text-lg font-semibold text-tea-text">Samples</h1>
           <span className="text-[11px] text-tea-text-dim num ml-1">{visibleSets.length} batch{visibleSets.length !== 1 ? 'es' : ''}</span>
-          <button
-            onClick={() => { setView('all'); setStatusFilter('all'); setSearchQuery(''); }}
-            className="text-[11px] text-tea-gold hover:opacity-80 transition-opacity ml-0.5"
-          >
-            · All →
-          </button>
+          {!embeddedMode && (
+            <button
+              onClick={() => { setView('all'); setStatusFilter('all'); setSearchQuery(''); }}
+              className="text-[11px] text-tea-gold hover:opacity-80 transition-opacity ml-0.5"
+            >
+              · All →
+            </button>
+          )}
         </div>
         <button onClick={handleNewSet} className="pill pill-active flex items-center gap-1">
           <Plus size={12} />
@@ -875,7 +907,7 @@ export default function SampleSetCreator() {
         </button>
       </div>
 
-      {ledgerPromptName && (
+      {ledgerPromptName && !embeddedMode && (
         <div className="flex items-center gap-3 px-4 py-2.5 text-sm"
              style={{ background: 'color-mix(in srgb, var(--tea-gold) 6%, var(--tea-bg))', borderBottom: '1px solid var(--tea-accent-sub)' }}>
           <span className="flex-1 text-[12px] text-tea-text-sec truncate">
@@ -893,14 +925,14 @@ export default function SampleSetCreator() {
         </div>
       )}
 
-      <div className="px-4 pt-4 pb-24">
+      <div className={embeddedMode === 'list' ? 'pt-1 pb-4' : 'px-4 pt-4 pb-24'}>
         {visibleSets.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-tea-text-dim">
             <Leaf size={32} className="mb-3 opacity-30" />
             <p className="text-sm">No batches yet. Tap + New Batch to start sourcing.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+          <div className={`grid gap-3 ${embeddedMode === 'list' ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-2'}`}>
             {visibleSets.map((ss) => {
               const setsamples = getSamplesForSet(ss.id);
               const total = setsamples.length;
@@ -917,7 +949,15 @@ export default function SampleSetCreator() {
                   favoriteCount={fav}
                   graduatedCount={graduated}
                   passedCount={passed}
-                  onClick={() => { setActiveSetId(ss.id); setView('batch'); }}
+                  isActive={embeddedMode === 'list' && ss.id === storeActiveSetId}
+                  onClick={() => {
+                    setActiveSetId(ss.id);
+                    if (embeddedMode === 'list') {
+                      setStoreActiveSet(ss.id);
+                    } else {
+                      setView('batch');
+                    }
+                  }}
                 />
               );
             })}
@@ -932,25 +972,27 @@ export default function SampleSetCreator() {
   const renderBatchDetail = () => {
     if (!activeSet) {
       return (
-        <div className="min-h-screen bg-tea-bg text-tea-text flex flex-col items-center justify-center text-tea-text-dim">
+        <div className="flex flex-col items-center justify-center py-16 text-tea-text-dim">
           <Leaf size={32} className="mb-3 opacity-30" />
-          <p className="text-sm">Select or create a batch</p>
+          <p className="text-sm">{embeddedMode === 'detail' ? 'Select a batch from the list' : 'Select or create a batch'}</p>
         </div>
       );
     }
 
     return (
-      <div className="min-h-screen bg-tea-bg text-tea-text">
+      <div className={embeddedMode === 'detail' ? '' : 'min-h-screen bg-tea-bg text-tea-text'}>
         {/* Top bar */}
         <div className="flex items-center gap-2 px-3 pt-3 pb-2 shrink-0"
           style={{ borderBottom: '1px solid var(--tea-accent-sub)' }}>
-          <button
-            onClick={() => setView('batches')}
-            className="p-1 -ml-1 text-tea-text-sec hover:text-tea-text transition-colors"
-            aria-label="Back to batches"
-          >
-            <ArrowLeft size={20} />
-          </button>
+          {embeddedMode !== 'detail' && (
+            <button
+              onClick={() => setView('batches')}
+              className="p-1 -ml-1 text-tea-text-sec hover:text-tea-text transition-colors"
+              aria-label="Back to batches"
+            >
+              <ArrowLeft size={20} />
+            </button>
+          )}
 
           {/* Inline-editable batch name */}
           <input
@@ -963,53 +1005,28 @@ export default function SampleSetCreator() {
           />
 
           {/* Action buttons */}
-          <div className="flex items-center gap-1 shrink-0">
+          <div className="flex items-center gap-1.5 shrink-0">
             <button
-              onClick={() => setShowLabels(true)}
-              className="nav-control nav-control-sm"
-              title="Print labels"
+              onClick={() => activeSamples.length > 0 && setShowLabels(true)}
+              disabled={activeSamples.length === 0}
+              className={`nav-control nav-control-sm ${activeSamples.length === 0 ? 'opacity-30 cursor-not-allowed' : ''}`}
+              title={activeSamples.length === 0 ? 'Add samples to print labels' : 'Print labels'}
             >
               <Printer size={15} />
             </button>
-            <button
-              onClick={() => setShowCompassImport(true)}
-              className="nav-control nav-control-sm"
-              title="Import from Compass"
-            >
+            <button onClick={() => setShowCompassImport(true)} className="nav-control nav-control-sm" title="Import from Compass">
               <Download size={15} />
             </button>
+            <div className="w-px h-4 bg-tea-border mx-0.5" />
             <button
               onClick={() => { setBulkMode(!bulkMode); setSelectedIds(new Set()); }}
               className={`pill text-[10px] ${bulkMode ? 'pill-active' : ''}`}
             >
               {bulkMode ? 'Cancel' : 'Select'}
             </button>
-            <button
-              onClick={() => {
-                if (window.confirm('Archive this batch? It will be hidden from the active list.')) {
-                  archiveSampleSet(activeSet.id);
-                  const next = visibleSets.find(s => s.id !== activeSet.id && !s.archived);
-                  setActiveSetId(next?.id ?? null);
-                  setView('batches');
-                }
-              }}
-              className="nav-control nav-control-sm"
-              title="Archive batch"
-            >
-              <Archive size={15} />
-            </button>
-            <button
-              onClick={() => {
-                if (window.confirm(`Delete "${activeSet.name || 'this batch'}"? This will permanently delete all ${activeSamples.length} sample${activeSamples.length !== 1 ? 's' : ''} and their tasting records.`)) {
-                  handleDeleteSet(activeSet.id);
-                  setView('batches');
-                }
-              }}
-              className="nav-control nav-control-sm"
-              title="Delete batch"
-              style={{ color: 'var(--tea-text-dim)' }}
-            >
-              <Trash2 size={15} />
+            <button onClick={() => setShowQuickAdd(true)} className="pill pill-active flex items-center gap-1 text-[10px]">
+              <Plus size={11} />
+              Add
             </button>
           </div>
         </div>
@@ -1142,6 +1159,36 @@ export default function SampleSetCreator() {
                     className="w-full bg-tea-surface text-tea-text rounded px-2 py-1.5 text-sm
                                placeholder:text-tea-text-dim focus:outline-none focus:ring-1 focus:ring-tea-gold/30 resize-none"
                   />
+
+                  {/* Batch actions */}
+                  <div className="flex items-center gap-4 pt-1 border-t border-tea-border">
+                    <button
+                      onClick={() => {
+                        if (window.confirm('Archive this batch? It will be hidden from the active list.')) {
+                          archiveSampleSet(activeSet.id);
+                          const next = visibleSets.find(s => s.id !== activeSet.id && !s.archived);
+                          setActiveSetId(next?.id ?? null);
+                          if (embeddedMode) { setStoreActiveSet(next?.id ?? null); } else { setView('batches'); }
+                        }
+                      }}
+                      className="flex items-center gap-1.5 text-[11px] text-tea-text-dim hover:text-tea-text-sec transition-colors"
+                    >
+                      <Archive size={12} />
+                      Archive batch
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (window.confirm(`Delete "${activeSet.name || 'this batch'}"? This will permanently delete all ${activeSamples.length} sample${activeSamples.length !== 1 ? 's' : ''} and their tasting records.`)) {
+                          handleDeleteSet(activeSet.id);
+                          if (!embeddedMode) setView('batches');
+                        }
+                      }}
+                      className="flex items-center gap-1.5 text-[11px] text-tea-text-dim hover:text-red-400 transition-colors"
+                    >
+                      <Trash2 size={12} />
+                      Delete batch
+                    </button>
+                  </div>
                 </div>
               </motion.div>
             )}
@@ -1176,7 +1223,7 @@ export default function SampleSetCreator() {
         )}
 
         {/* Scrollable content */}
-        <div className="px-4 pt-3 pb-[100px]">
+        <div className="px-4 pt-3 pb-nav-gap">
           {/* Search */}
           <div className="mb-2">
             <input
@@ -1208,7 +1255,7 @@ export default function SampleSetCreator() {
               <div className="flex flex-col items-center justify-center py-8 text-tea-text-dim">
                 <Leaf size={24} className="mb-2 opacity-40" />
                 <p className="text-sm">{activeSamples.length === 0 ? 'No samples on record.' : 'Nothing matched — try different words.'}</p>
-                {activeSamples.length === 0 && <p className="text-xs mt-1">Tap + to add your first sample</p>}
+                {activeSamples.length === 0 && <p className="text-xs mt-1">Use Add above to log your first sample.</p>}
               </div>
             ) : (
               <AnimatePresence mode="popLayout">
@@ -1231,20 +1278,6 @@ export default function SampleSetCreator() {
             )}
           </div>
         </div>
-
-        {/* FAB */}
-        <button
-          onClick={() => setShowQuickAdd(true)}
-          className="fixed right-4 z-40 w-12 h-12 rounded-full flex items-center justify-center
-                     bg-tea-gold/20 text-tea-gold active:scale-95 transition-transform shadow-lg
-                     lg:bottom-5"
-          style={{
-            bottom: 'calc(44px + env(safe-area-inset-bottom, 0px) + 12px)',
-          }}
-          aria-label="Add sample"
-        >
-          <Plus size={22} />
-        </button>
       </div>
     );
   };
@@ -1327,13 +1360,22 @@ export default function SampleSetCreator() {
 
   return (
     <>
-      {view === 'batches' && renderBatchList()}
-      {view === 'batch' && renderBatchDetail()}
-      {view === 'all' && renderAllSamples()}
+      {embeddedMode === 'list'
+        ? renderBatchList()
+        : embeddedMode === 'detail'
+          ? renderBatchDetail()
+          : (
+            <>
+              {view === 'batches' && renderBatchList()}
+              {view === 'batch' && renderBatchDetail()}
+              {view === 'all' && renderAllSamples()}
+            </>
+          )
+      }
 
-      {/* Bulk action bar */}
-      {bulkMode && selectedIds.size > 0 && (
-        <div className="fixed bottom-[44px] lg:bottom-0 left-0 right-0 z-50 bg-tea-elevated px-4 py-3 flex items-center gap-3"
+      {/* Bulk action bar — hidden in embedded split layout (fixed bar bleeds across columns) */}
+      {!embeddedMode && bulkMode && selectedIds.size > 0 && (
+        <div className="fixed bottom-nav left-0 right-0 z-modal bg-tea-elevated px-4 py-3 flex items-center gap-3"
           style={{ borderTop: '1px solid var(--tea-accent-sub)' }}>
           <span className="text-sm text-tea-text flex-1">{selectedIds.size} selected</span>
           {(['tasted', 'favorite', 'ordering', 'passed'] as SampleStatus[]).map(s => (
@@ -1388,14 +1430,21 @@ export default function SampleSetCreator() {
 
       {/* Label Sheet */}
       {showLabels && activeSet && (
-        <div className="fixed inset-0 sidebar-inset z-50 bg-tea-bg overflow-auto">
-          <div className="sticky top-0 z-10 bg-tea-bg/95 backdrop-blur-sm px-4 py-3 flex items-center gap-2 border-b border-tea-border">
-            <button onClick={() => setShowLabels(false)} className="p-1 -ml-1 text-tea-text-sec hover:text-tea-text transition-colors" aria-label="Back to sample set">
-              <ArrowLeft size={20} />
+        <div className="fixed inset-0 z-modal bg-tea-bg flex flex-col">
+          <div className="flex-shrink-0 bg-tea-bg/95 backdrop-blur-sm px-4 py-3 flex items-center gap-3 border-b border-tea-border">
+            <button
+              onClick={() => setShowLabels(false)}
+              className="flex items-center gap-1.5 text-tea-text-sec hover:text-tea-text transition-colors"
+              aria-label="Back to sample set"
+            >
+              <ArrowLeft size={18} />
+              <span className="text-sm">Back</span>
             </button>
-            <span className="text-sm font-medium text-tea-text">Print Labels</span>
+            <span className="text-sm font-medium text-tea-text ml-1">Print Labels</span>
           </div>
-          <SampleLabelSheet samples={activeSamples} showSetName={activeSet.name} />
+          <div className="flex-1 overflow-auto pb-nav-gap">
+            <SampleLabelSheet samples={activeSamples} showSetName={activeSet.name} />
+          </div>
         </div>
       )}
     </>
@@ -1440,7 +1489,7 @@ function SampleEditModal({ sampleId, onClose }: { sampleId: string; onClose: () 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/60"
+      className="fixed inset-0 z-modal flex items-end lg:items-center justify-center bg-black/60"
       onClick={onClose}
     >
       <motion.div
@@ -1448,8 +1497,8 @@ function SampleEditModal({ sampleId, onClose }: { sampleId: string; onClose: () 
         animate={{ y: 0 }}
         exit={{ y: '100%' }}
         transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-        className="w-full max-w-lg bg-tea-surface rounded-t-xl p-4"
-        style={{ maxHeight: 'calc(100dvh - 44px - env(safe-area-inset-bottom, 0px) - 60px)' }}
+        className="w-full max-w-lg bg-tea-surface rounded-t-xl lg:rounded-xl p-4"
+        style={{ maxHeight: 'min(calc(100dvh - 44px - env(safe-area-inset-bottom, 0px) - 60px), 90vh)' }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-2 mb-4">

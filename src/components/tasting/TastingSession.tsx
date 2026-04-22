@@ -145,6 +145,19 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
   const saveTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
   useEffect(() => () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); }, []);
 
+  // Auto-save + close when Account or Search is opened
+  const dismissHandlerRef = useRef<() => void>(null!);
+  dismissHandlerRef.current = () => {
+    if (phase === 'saved') { onClose(); return; }
+    if (hasNotes && saveState === 'idle') { onAfterSave?.(tastingData); }
+    onClose();
+  };
+  useEffect(() => {
+    const handler = () => dismissHandlerRef.current();
+    window.addEventListener('dismiss-tasting-overlay', handler);
+    return () => window.removeEventListener('dismiss-tasting-overlay', handler);
+  }, []);
+
   // Cleanup draft on unmount if session was abandoned (not saved)
   useEffect(() => {
     return () => {

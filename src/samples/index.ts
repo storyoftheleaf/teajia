@@ -1,4 +1,6 @@
 export { useSampleStore } from './sampleStore';
+export { useSampleCartStore } from './sampleCartStore';
+export type { SampleCartItem } from './sampleCartStore';
 export { SampleLabelSheet } from './SampleLabelSheet';
 export { default as SampleSetCreator } from './SampleSetCreator';
 export type {

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingBag, Plus, ChevronDown, Loader2, X, Trash2 } from 'lucide-react';
 import { api, PurchaseOrder, PurchaseOrderItem } from '../../lib/api';
 import { useProducts, useCustomers } from '../hooks/useAdminData';
@@ -82,127 +83,122 @@ const NewPoForm: React.FC<{ onClose: () => void; onSubmit: (data: Parameters<typ
     });
   };
 
-  const inputCls = 'w-full bg-transparent border-b border-tea-border py-1.5 text-sm text-tea-text outline-none focus:border-tea-gold transition-colors placeholder-tea-text-sec/50';
-  const labelCls = 'block text-[10px] uppercase tracking-[0.15em] text-tea-text-dim mb-1';
+  const inputCls = 'w-full bg-tea-gold/[0.06] text-tea-text text-sm rounded-xl px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none transition-colors placeholder:text-tea-text-dim';
+  const sectionLabel = (label: string) => (
+    <div className="flex items-center gap-2">
+      <div className="flex-1 h-px bg-tea-border" />
+      <span className="text-[9px] uppercase tracking-[0.2em] text-tea-text-dim shrink-0">{label}</span>
+      <div className="flex-1 h-px bg-tea-border" />
+    </div>
+  );
 
   return (
-    <div className="fixed inset-0 z-priority flex items-end sm:items-center justify-center bg-tea-bg/80 backdrop-blur-md" onClick={onClose}>
-      <div className="bg-tea-surface border border-tea-border rounded-t-2xl sm:rounded-xl w-full max-w-lg max-h-[90dvh] flex flex-col overflow-hidden shadow-xl" onClick={e => e.stopPropagation()}>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      className="fixed inset-0 z-priority flex items-end sm:items-center justify-center bg-tea-bg/80 backdrop-blur-md"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ opacity: 0, y: 40 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 20 }}
+        transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+        className="bg-tea-surface rounded-t-2xl sm:rounded-2xl w-full max-w-lg max-h-[90dvh] flex flex-col overflow-hidden shadow-2xl"
+        onClick={e => e.stopPropagation()}
+      >
         <div className="flex items-center justify-between px-5 py-4 border-b border-tea-border flex-shrink-0">
-          <h2 className="text-sm font-semibold text-tea-text tracking-wide uppercase">New Purchase Order</h2>
+          <span className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec">New Purchase Order</span>
           <button onClick={onClose} className="p-1.5 text-tea-text-sec hover:text-tea-text transition-colors rounded-md" aria-label="Close">
-            <X size={16} />
+            <X size={15} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="overflow-y-auto flex-1 p-5 space-y-4">
-          {/* Vendor */}
+        <form onSubmit={handleSubmit} className="overflow-y-auto flex-1 px-5 py-4 space-y-3">
+          {sectionLabel('Vendor')}
           <div>
-            <label className={labelCls}>Vendor / Source</label>
             {vendors.length > 0 ? (
-              <select
-                value={vendorId}
-                onChange={e => handleVendorChange(e.target.value)}
-                className={inputCls}
-              >
+              <select value={vendorId} onChange={e => handleVendorChange(e.target.value)} className={inputCls}>
                 <option value="">Select vendor…</option>
                 {vendors.map(v => (
                   <option key={v.id} value={v.id}>{v.name}</option>
                 ))}
               </select>
             ) : (
-              <input
-                type="text"
-                value={vendorName}
-                onChange={e => setVendorName(e.target.value)}
-                placeholder="Vendor name"
-                className={inputCls}
-                required
-              />
+              <input type="text" value={vendorName} onChange={e => setVendorName(e.target.value)} placeholder="Vendor name" className={inputCls} required />
             )}
             {vendorId && !vendorName && (
-              <input
-                type="text"
-                value={vendorName}
-                onChange={e => setVendorName(e.target.value)}
-                placeholder="Vendor name override"
-                className={`${inputCls} mt-1`}
-              />
+              <input type="text" value={vendorName} onChange={e => setVendorName(e.target.value)} placeholder="Vendor name override" className={`${inputCls} mt-2`} />
             )}
           </div>
 
-          {/* Line items */}
-          <div>
-            <label className={labelCls}>Line Items</label>
-            <div className="space-y-2">
-              {items.map((item, idx) => (
-                <div key={idx} className="flex items-center gap-2">
-                  <select
-                    value={item.product_id}
-                    onChange={e => updateItem(idx, 'product_id', e.target.value)}
-                    className="flex-1 bg-transparent border-b border-tea-border py-1.5 text-sm text-tea-text outline-none focus:border-tea-gold"
-                  >
-                    <option value="">Select product…</option>
-                    {products
-                      .filter((p: any) => p.type !== 'Teaware')
-                      .map((p: any) => (
-                        <option key={p.id} value={p.id}>{p.givenName || p.productName}</option>
-                      ))}
-                  </select>
+          {sectionLabel('Line Items')}
+          <div className="space-y-2">
+            {items.map((item, idx) => (
+              <div key={idx} className="flex items-center gap-2">
+                <select
+                  value={item.product_id}
+                  onChange={e => updateItem(idx, 'product_id', e.target.value)}
+                  className="flex-1 bg-tea-gold/[0.06] border border-tea-border rounded-xl px-3 py-2 text-sm text-tea-text outline-none focus:border-tea-gold/40 transition-colors"
+                >
+                  <option value="">Select product…</option>
+                  {products
+                    .filter((p: any) => p.type !== 'Teaware')
+                    .map((p: any) => (
+                      <option key={p.id} value={p.id}>{p.givenName || p.productName}</option>
+                    ))}
+                </select>
+                <div className="flex items-center gap-1 bg-tea-gold/[0.06] border border-tea-border rounded-xl px-3 py-2 shrink-0">
                   <input
                     type="number"
                     value={item.quantity_grams || ''}
                     onChange={e => updateItem(idx, 'quantity_grams', parseInt(e.target.value) || 0)}
-                    placeholder="g"
+                    placeholder="0"
                     inputMode="numeric"
-                    className="w-16 bg-transparent border-b border-tea-border py-1.5 text-sm text-right text-tea-text outline-none focus:border-tea-gold tabular-nums"
+                    className="w-12 bg-transparent text-sm text-right text-tea-text outline-none tabular-nums placeholder:text-tea-text-dim [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                    style={{ MozAppearance: 'textfield' } as React.CSSProperties}
                   />
-                  <span className="text-xs text-tea-text-dim shrink-0">g</span>
-                  {items.length > 1 && (
-                    <button type="button" onClick={() => removeItem(idx)} className="p-1 text-tea-text-sec hover:text-tea-text transition-colors shrink-0">
-                      <Trash2 size={13} />
-                    </button>
-                  )}
+                  <span className="text-[11px] text-tea-text-dim">g</span>
                 </div>
-              ))}
-            </div>
-            <button
-              type="button"
-              onClick={addItem}
-              className="mt-2 flex items-center gap-1.5 text-xs text-tea-text-sec hover:text-tea-gold transition-colors"
-            >
+                {items.length > 1 && (
+                  <button type="button" onClick={() => removeItem(idx)} className="p-1.5 text-tea-text-sec hover:text-tea-text transition-colors shrink-0">
+                    <Trash2 size={13} />
+                  </button>
+                )}
+              </div>
+            ))}
+            <button type="button" onClick={addItem} className="flex items-center gap-1.5 text-xs text-tea-text-sec hover:text-tea-gold transition-colors mt-1">
               <Plus size={12} /> Add line item
             </button>
           </div>
 
-          {/* Notes */}
-          <div>
-            <label className={labelCls}>Notes</label>
-            <textarea
-              value={notes}
-              onChange={e => setNotes(e.target.value)}
-              rows={2}
-              placeholder="Optional notes…"
-              className="w-full bg-transparent border border-tea-border rounded-lg px-3 py-2 text-sm text-tea-text outline-none focus:border-tea-gold resize-none placeholder-tea-text-sec/50 transition-colors"
-            />
-          </div>
+          {sectionLabel('Notes')}
+          <textarea
+            value={notes}
+            onChange={e => setNotes(e.target.value)}
+            rows={2}
+            placeholder="Optional notes…"
+            className="w-full bg-tea-gold/[0.06] border border-tea-border rounded-xl px-3 py-2 text-sm text-tea-text outline-none focus:border-tea-gold/40 resize-none placeholder:text-tea-text-dim transition-colors"
+          />
 
-          <div className="flex justify-between gap-3 pt-2">
-            <button type="button" onClick={onClose} className="px-4 py-2 text-xs text-tea-text-sec hover:text-tea-text transition-colors uppercase tracking-[0.15em]">
+          <div className="flex justify-between items-center gap-3 pt-1">
+            <button type="button" onClick={onClose} className="px-2 py-2 text-xs text-tea-text-sec hover:text-tea-text transition-colors uppercase tracking-[0.15em]">
               Cancel
             </button>
             <button
               type="submit"
               disabled={submitting || !vendorName.trim()}
-              className="px-6 py-2 bg-tea-gold text-tea-bg text-xs font-bold uppercase tracking-[0.15em] rounded-lg hover:bg-tea-gold/90 transition-colors disabled:opacity-50 flex items-center gap-2"
+              className="flex items-center gap-2 px-5 py-2.5 bg-tea-gold text-tea-bg text-xs font-semibold uppercase tracking-[0.12em] rounded-xl hover:bg-tea-gold/90 transition-colors disabled:opacity-50"
             >
               {submitting ? <Loader2 size={13} className="animate-spin" /> : <ShoppingBag size={13} />}
               Create PO
             </button>
           </div>
         </form>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 };
 
@@ -220,32 +216,64 @@ const ReceiveStockPrompt: React.FC<{
 
   if (!items.length) {
     return (
-      <div className="fixed inset-0 z-priority flex items-center justify-center bg-tea-bg/80 backdrop-blur-md" onClick={onClose}>
-        <div className="bg-tea-surface border border-tea-border rounded-xl p-6 max-w-sm w-full mx-4 shadow-xl" onClick={e => e.stopPropagation()}>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-priority flex items-center justify-center bg-tea-bg/80 backdrop-blur-md"
+        onClick={onClose}
+      >
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.95 }}
+          transition={{ duration: 0.2 }}
+          className="bg-tea-surface rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl"
+          onClick={e => e.stopPropagation()}
+        >
           <p className="text-sm text-tea-text-sec text-center">No line items to receive.</p>
-          <button onClick={onClose} className="mt-4 w-full text-xs text-tea-text-sec hover:text-tea-text">Close</button>
-        </div>
-      </div>
+          <button onClick={onClose} className="mt-4 w-full text-xs text-tea-text-sec hover:text-tea-text transition-colors">Close</button>
+        </motion.div>
+      </motion.div>
     );
   }
 
   return (
-    <div className="fixed inset-0 z-priority flex items-end sm:items-center justify-center bg-tea-bg/80 backdrop-blur-md" onClick={onClose}>
-      <div className="bg-tea-surface border border-tea-border rounded-t-2xl sm:rounded-xl w-full max-w-md overflow-hidden shadow-xl" onClick={e => e.stopPropagation()}>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      className="fixed inset-0 z-priority flex items-end sm:items-center justify-center bg-tea-bg/80 backdrop-blur-md"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ opacity: 0, y: 40 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 20 }}
+        transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+        className="bg-tea-surface rounded-t-2xl sm:rounded-2xl w-full max-w-md overflow-hidden shadow-2xl"
+        onClick={e => e.stopPropagation()}
+      >
         <div className="px-5 py-4 border-b border-tea-border flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-tea-text">Add stock to inventory?</h3>
-          <button onClick={onClose} className="p-1.5 text-tea-text-sec hover:text-tea-text" aria-label="Close"><X size={15} /></button>
+          <span className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec">Receive Stock</span>
+          <button onClick={onClose} className="p-1.5 text-tea-text-sec hover:text-tea-text transition-colors" aria-label="Close"><X size={15} /></button>
         </div>
-        <div className="p-5 space-y-2">
+        <div className="px-5 py-4 space-y-1">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="flex-1 h-px bg-tea-border" />
+            <span className="text-[9px] uppercase tracking-[0.2em] text-tea-text-dim shrink-0">Add to inventory?</span>
+            <div className="flex-1 h-px bg-tea-border" />
+          </div>
           {items.map((item, idx) => (
-            <div key={idx} className="flex items-center justify-between text-sm">
-              <span className="text-tea-text-sec">{item.product_name}</span>
-              <span className="text-tea-gold tabular-nums font-medium">+{item.quantity_grams}g</span>
+            <div key={idx} className="flex items-center justify-between py-1.5">
+              <span className="text-sm text-tea-text-sec">{item.product_name}</span>
+              <span className="text-sm text-tea-gold tabular-nums font-medium">+{item.quantity_grams}g</span>
             </div>
           ))}
         </div>
-        <div className="px-5 pb-5 flex justify-between gap-3">
-          <button onClick={onClose} className="px-4 py-2 text-xs text-tea-text-sec hover:text-tea-text uppercase tracking-[0.15em]">Skip</button>
+        <div className="px-5 pb-5 flex justify-between items-center gap-3">
+          <button onClick={onClose} className="px-2 py-2 text-xs text-tea-text-sec hover:text-tea-text transition-colors uppercase tracking-[0.15em]">Skip</button>
           <button
             disabled={confirming}
             onClick={async () => {
@@ -261,14 +289,14 @@ const ReceiveStockPrompt: React.FC<{
                 setConfirming(false);
               }
             }}
-            className="px-6 py-2 bg-tea-gold text-tea-bg text-xs font-bold uppercase tracking-[0.15em] rounded-lg hover:bg-tea-gold/90 disabled:opacity-50 flex items-center gap-2"
+            className="flex items-center gap-2 px-5 py-2.5 bg-tea-gold text-tea-bg text-xs font-semibold uppercase tracking-[0.12em] rounded-xl hover:bg-tea-gold/90 transition-colors disabled:opacity-50"
           >
             {confirming ? <Loader2 size={12} className="animate-spin" /> : null}
             Add to stock
           </button>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 };
 
@@ -402,24 +430,28 @@ export const PurchaseOrdersPage: React.FC = () => {
       </div>
 
       {/* New PO form modal */}
-      {isNewFormOpen && (
-        <NewPoForm
-          onClose={() => setIsNewFormOpen(false)}
-          onSubmit={async data => { await createMutation.mutateAsync(data); }}
-          submitting={createMutation.isPending}
-        />
-      )}
+      <AnimatePresence>
+        {isNewFormOpen && (
+          <NewPoForm
+            onClose={() => setIsNewFormOpen(false)}
+            onSubmit={async data => { await createMutation.mutateAsync(data); }}
+            submitting={createMutation.isPending}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Receive stock prompt */}
-      {receivePo && (
-        <ReceiveStockPrompt
-          po={receivePo}
-          onConfirm={async (productId, grams) => {
-            await incrementMutation.mutateAsync({ productId, amount: grams });
-          }}
-          onClose={() => setReceivePo(null)}
-        />
-      )}
+      <AnimatePresence>
+        {receivePo && (
+          <ReceiveStockPrompt
+            po={receivePo}
+            onConfirm={async (productId, grams) => {
+              await incrementMutation.mutateAsync({ productId, amount: grams });
+            }}
+            onClose={() => setReceivePo(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };

@@ -1,8 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useSectionReveal } from '../../hooks/useSectionReveal';
-import { ArrowLeft, FlaskConical, Library, BookOpen, BookmarkCheck, BookmarkPlus, Check, Droplets, Mic, Square, Loader2, Share2, ShoppingCart, Layers, Plus, Search, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, BookmarkCheck, BookmarkPlus, Check, Droplets, FlaskConical, Mic, Square, Loader2, Share2, ShoppingCart, Layers, Plus, Search, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { hydrateCompassEntries } from '../../lib/teaCompassSync';
@@ -23,7 +22,10 @@ import { useVoiceRecorder } from './useVoiceRecorder';
 import { usePlatformPrivilege } from '../../lib/permissions';
 import { CompassShareModal } from './CompassShareModal';
 import { BatchCaptureRow } from './BatchCaptureRow';
-import SampleSetCreator from '../../samples/SampleSetCreator';
+import { CompassEntryDetailPanel } from './CompassEntryDetailPanel';
+import { LedgerOverviewPanel } from './LedgerOverviewPanel';
+import { SampleCartPanel } from '../samples/SampleCartPanel';
+import { useSampleCartStore } from '../../samples/sampleCartStore';
 
 export type CompassMode = 'sourcing' | 'tasting' | 'buying';
 
@@ -34,6 +36,37 @@ interface TeaCompassProps {
   /** Open a specific entry by ID */
   initialEntryId?: string;
 }
+
+// ─── Desktop-only right column placeholder ───────────────────────────────────
+
+const CompassRightEmptyState: React.FC<{
+  mode: CompassMode;
+  onNewCapture: () => void;
+}> = ({ mode, onNewCapture }) => {
+  const content = {
+    sourcing: { title: 'Ready to capture', body: 'Select a session entry on the left, or start a new one.' },
+    tasting: { title: 'Select an entry', body: 'Choose a tea from your library to view or edit its notes.' },
+    buying:  { title: 'Transactions expand inline', body: 'Open a transaction on the left to see its line items.' },
+  }[mode];
+  return (
+    <div className="flex flex-col items-center justify-center h-full min-h-[300px] py-20 text-center">
+      <CompassIcon className="w-8 h-8 text-tea-gold/20 mb-4" />
+      <p className="font-serif text-[15px] text-tea-text/50 mb-1.5 tracking-wide">{content.title}</p>
+      <p className="text-[12px] text-tea-text-dim max-w-[220px] leading-relaxed mb-6">{content.body}</p>
+      {mode !== 'sourcing' && (
+        <button
+          type="button"
+          onClick={onNewCapture}
+          className="flex items-center gap-1.5 px-4 py-2 rounded-full border border-tea-gold/40 text-tea-gold text-[12px] font-semibold hover:bg-tea-gold/10 transition-colors"
+          style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.06em' }}
+        >
+          <Plus size={12} strokeWidth={2} />
+          New Entry
+        </button>
+      )}
+    </div>
+  );
+};
 
 // ─── Main Tea Compass ────────────────────────────────────────────────────
 
@@ -146,6 +179,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
     if (initialEntryId && getEntry(initialEntryId)) {
       setActiveEntry(initialEntryId);
       setMode('sourcing');
+      setCaptureOption('tea');
     }
   }, [initialEntryId]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -291,8 +325,18 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   }, [activeEntryId, getEntry, getSessionEntries, discardEntry, setActiveEntry, startNewCapture, activeCategory]);
 
   const handleDiscardSessionEntry = useCallback((id: string) => {
-    discardEntry(id);
-  }, [discardEntry]);
+    if (id === activeEntryId) {
+      const remaining = getSessionEntries().filter((e) => e.id !== id);
+      discardEntry(id);
+      if (remaining.length > 0) {
+        setActiveEntry(remaining[0].id);
+      } else {
+        startNewCapture(activeCategory);
+      }
+    } else {
+      discardEntry(id);
+    }
+  }, [activeEntryId, getSessionEntries, discardEntry, setActiveEntry, startNewCapture, activeCategory]);
 
   const handleSwitchMode = useCallback((newMode: CompassMode) => {
     if (newMode === 'sourcing' && !activeEntryId) {
@@ -331,9 +375,11 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
 
   const pendingIncomingCount = visibleShares.length;
 
-  const headerReveal = useSectionReveal('fade');
-
   const [captureOption, setCaptureOption] = useState<'tea' | 'teaware' | 'samples'>('tea');
+  const sampleCartCount = useSampleCartStore((s) => s.items.length);
+  const captureEntryInCart = useSampleCartStore((s) => !!activeEntryId && s.items.some((i) => i.id === activeEntryId));
+  const addSampleCartItem = useSampleCartStore((s) => s.addItem);
+  const removeSampleCartItem = useSampleCartStore((s) => s.removeItem);
 
   const showCaptureActionBar = mode === 'sourcing' && captureOption !== 'samples'
     && !!activeEntryId && activeEntry?.category !== 'teaware';
@@ -345,9 +391,13 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   // Per-share preview expand state
   const [expandedShareIds, setExpandedShareIds] = useState<Set<string>>(new Set());
 
-  // Reset search when switching tabs
+  // Desktop tasting: which entry is shown in the right detail panel
+  const [tastingSelectedEntryId, setTastingSelectedEntryId] = useState<string | null>(null);
+
+  // Reset search + tasting selection when switching tabs
   useEffect(() => {
     setTabSearchQuery('');
+    setTastingSelectedEntryId(null);
   }, [mode]);
 
   const handleCaptureOption = useCallback((opt: 'tea' | 'teaware' | 'samples') => {
@@ -356,588 +406,1240 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   }, [handleCategorySwitch]);
 
   // Tab config
-  const tabs: { id: CompassMode; label: string; icon: React.ComponentType<any>; badge?: number }[] = [
-    { id: 'sourcing', label: 'Sourcing', icon: FlaskConical },
-    { id: 'tasting', label: 'Tasting', icon: Library, badge: pendingIncomingCount > 0 ? pendingIncomingCount : undefined },
-    { id: 'buying', label: 'Buying', icon: BookOpen },
+  const tabs: { id: CompassMode; label: string; badge?: number }[] = [
+    { id: 'sourcing', label: 'Source' },
+    { id: 'tasting', label: 'Library', badge: pendingIncomingCount > 0 ? pendingIncomingCount : undefined },
+    { id: 'buying', label: 'Ledger' },
   ];
 
   return (
-    <div className="flex flex-col relative surface-warm">
-      {/* ── Header ── */}
-      <div
-        ref={headerReveal.ref}
-        className={`flex items-center gap-3 px-4 pt-3 pb-2 ${headerReveal.className}`}
-        style={headerReveal.style}
-      >
+    <div className="flex flex-col relative lg:h-full">
+
+      {/* ── COMPACT HEADER: back + inline tabs + sync dot ── */}
+      <div className="flex items-stretch border-b border-tea-border shrink-0 h-10" role="tablist">
         <button
           type="button"
           onClick={onBack}
-          className="p-2 -ml-1 text-tea-text-dim hover:text-tea-text transition-colors"
+          className="flex items-center pl-3 pr-2 text-tea-text-dim hover:text-tea-text transition-colors shrink-0"
           aria-label="Back"
         >
-          <ArrowLeft size={18} strokeWidth={1.5} />
+          <ArrowLeft size={16} strokeWidth={1.5} />
         </button>
-
-        <div className="flex items-center gap-2.5 flex-1 min-w-0">
-          <CompassIcon className="w-5 h-5 text-tea-gold shrink-0" filled={mode === 'sourcing'} />
-          <h2 className="text-tea-text font-serif text-[15px] tracking-wide truncate">Tea Compass</h2>
-        </div>
-        <SyncIndicator />
-      </div>
-
-      {/* ── Mode tabs ── */}
-      <div className="relative border-b border-tea-border">
-        <div className="flex overflow-x-auto scrollbar-hide px-4" role="tablist">
-          {tabs.map((tab) => {
-            const active = mode === tab.id;
-            const Icon = tab.icon;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => handleSwitchMode(tab.id)}
-                role="tab"
-                aria-selected={active}
-                className={`flex-shrink-0 flex items-center gap-1.5 px-4 py-2.5 text-[11px] uppercase tracking-[0.1em] font-semibold transition-colors relative ${
-                  active
-                    ? 'text-tea-gold'
-                    : 'text-tea-text-dim hover:text-tea-text-sec'
-                }`}
-              >
-                <Icon size={13} strokeWidth={active ? 2 : 1.5} />
-                {tab.label}
-                {tab.badge != null && (
-                  <span className="badge-status badge-status-gold ml-1">
-                    {tab.badge}
-                  </span>
-                )}
-                {active && (
-                  <motion.div
-                    layoutId="compass-tab-indicator"
-                    className="absolute bottom-0 left-2 right-2 h-[2px] bg-tea-gold rounded-full shadow-[0_0_8px_rgba(184,146,78,0.3)]"
-                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                  />
-                )}
-              </button>
-            );
-          })}
-        </div>
-        {/* Right-fade gradient — indicates scrollable overflow */}
-        <div
-          className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-tea-bg to-transparent"
-          aria-hidden="true"
-        />
-      </div>
-
-      {/* ── Tab-level search bar ── */}
-      <div className="shrink-0 px-4 pt-2.5 pb-1">
-        <div className="relative">
-          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-text-dim pointer-events-none" />
-          <input
-            ref={searchInputRef}
-            type="text"
-            value={tabSearchQuery}
-            onChange={(e) => setTabSearchQuery(e.target.value)}
-            placeholder={
-              mode === 'sourcing'
-                ? 'Search entries…'
-                : mode === 'tasting'
-                  ? 'Search by name, region, vendor…'
-                  : 'Search transactions…'
-            }
-            className="w-full bg-tea-surface border border-tea-border text-tea-text text-[13px] rounded-lg pl-8 pr-8 py-2 outline-none placeholder:text-tea-text-dim focus:ring-1 focus:ring-tea-gold/40 transition-colors"
-          />
-          {tabSearchQuery && (
+        {tabs.map((tab) => {
+          const active = mode === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => handleSwitchMode(tab.id)}
+              role="tab"
+              aria-selected={active}
+              className={`relative shrink-0 px-2.5 text-[11px] font-semibold tracking-[0.08em] uppercase transition-colors ${
+                active ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'
+              }`}
+            >
+              {tab.label}
+              {tab.badge != null && (
+                <span className="ml-1 text-[9px] px-[5px] py-px rounded-full bg-tea-gold/20 text-tea-gold">{tab.badge}</span>
+              )}
+              {active && (
+                <motion.div
+                  layoutId="compass-tab-indicator"
+                  className="absolute bottom-0 left-1 right-1 h-[2px] bg-tea-gold"
+                  transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                />
+              )}
+            </button>
+          );
+        })}
+        <div className="flex-1" />
+        {mode !== 'sourcing' && (
+          <div className="flex items-center pr-2">
             <button
               type="button"
-              onClick={() => { setTabSearchQuery(''); searchInputRef.current?.focus(); }}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-tea-text-dim hover:text-tea-text-sec transition-colors"
-              aria-label="Clear search"
+              onClick={() => handleNewCapture()}
+              className="pill pill-active flex items-center gap-1 text-[10px]"
+              style={{ fontFamily: 'var(--font-display)' }}
             >
-              <X size={13} />
+              <Plus size={11} strokeWidth={2} />
+              New
             </button>
-          )}
+          </div>
+        )}
+        <div className="flex items-center pr-3">
+          <SyncIndicator />
         </div>
       </div>
 
-      {/* ── Content ── */}
-      <div
-        className={`flex-1 min-h-0 overflow-y-auto overscroll-contain ${
-          mode === 'sourcing' && captureOption === 'samples' ? '' : 'px-4 pt-3'
-        } ${
-          mode === 'sourcing'
-            ? showCaptureActionBar
-              ? 'pb-[calc(105px+44px+env(safe-area-inset-bottom,0px))] lg:pb-4'
-              : 'pb-[calc(53px+44px+env(safe-area-inset-bottom,0px))] lg:pb-4'
-            : 'pb-3'
-        }`}
-        role="tabpanel"
-        style={{
-          WebkitOverflowScrolling: 'touch',
-          scrollbarGutter: 'stable',
-        }}
-      >
-        <AnimatePresence mode="wait">
-          {mode === 'sourcing' ? (
-            <motion.div
-              key="sourcing"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.2 }}
-            >
-              {/* Tea / Teaware / Samples 3-way toggle */}
-              <div className="flex gap-0 mb-3 rounded-md bg-tea-surface/30 p-0.5 relative">
-                <motion.div
-                  className="absolute top-0.5 bottom-0.5 rounded-[5px] bg-tea-surface shadow-sm"
-                  animate={{
-                    left: captureOption === 'tea' ? '2px' : captureOption === 'teaware' ? '33.33%' : '66.66%',
-                    right: captureOption === 'samples' ? '2px' : captureOption === 'teaware' ? '33.33%' : '66.66%',
-                  }}
-                  transition={{ duration: 0.1, ease: 'easeOut' }}
+      {/* ── BODY ── */}
+      <div className="flex-1 min-h-0 flex flex-col">
+
+        {/* ══════════════════════════════════════════════
+            MOBILE PATH — hidden on lg+, original layout
+            ══════════════════════════════════════════════ */}
+        <div className="flex flex-col flex-1 min-h-0 lg:hidden">
+
+          {/* Search bar — hidden on sourcing (chips strip takes that role) */}
+          {mode !== 'sourcing' && (
+            <div className="shrink-0 px-4 pt-2.5 pb-1">
+              <div className="relative">
+                <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-text-dim pointer-events-none" />
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={tabSearchQuery}
+                  onChange={(e) => setTabSearchQuery(e.target.value)}
+                  placeholder={
+                    mode === 'tasting'
+                      ? 'Search by name, region, vendor…'
+                      : 'Search transactions…'
+                  }
+                  className="w-full bg-tea-surface border border-tea-border text-tea-text text-[13px] rounded-lg pl-8 pr-8 py-2 outline-none placeholder:text-tea-text-dim focus:ring-1 focus:ring-tea-gold/40 transition-colors"
                 />
-                <button type="button" onClick={() => handleCaptureOption('tea')}
-                  className={`flex-1 text-center py-1.5 text-[12px] font-medium rounded-[5px] transition-colors relative z-[1] ${captureOption === 'tea' ? 'text-tea-text' : 'text-tea-text-dim hover:text-tea-text-sec'}`}>
-                  Tea
-                </button>
-                <button type="button" onClick={() => handleCaptureOption('teaware')}
-                  className={`flex-1 text-center py-1.5 text-[12px] font-medium rounded-[5px] transition-colors relative z-[1] ${captureOption === 'teaware' ? 'text-tea-text' : 'text-tea-text-dim hover:text-tea-text-sec'}`}>
-                  Teaware
-                </button>
-                <button type="button" onClick={() => handleCaptureOption('samples')}
-                  className={`flex-1 text-center py-1.5 text-[12px] font-medium rounded-[5px] transition-colors relative z-[1] ${captureOption === 'samples' ? 'text-tea-text' : 'text-tea-text-dim hover:text-tea-text-sec'}`}>
-                  Samples
-                </button>
-              </div>
-
-              {captureOption === 'samples' ? (
-                <SampleSetCreator />
-              ) : (
-                <>
-                  <SessionStack
-                    sessionEntries={sessionEntries}
-                    activeEntryId={activeEntryId}
-                    onSelectEntry={handleSelectEntry}
-                    onDiscardEntry={handleDiscardSessionEntry}
-                  />
-
-                  {/* Batch mode row — rapid-fire entry for vendor tables */}
-                  {batchMode && (
-                    <BatchCaptureRow />
-                  )}
-
-                  {/* Just-committed banner */}
-                  <AnimatePresence>
-                    {justCommitted && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="overflow-hidden mb-3"
-                      >
-                        <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-tea-gold/10 text-tea-gold text-xs font-medium">
-                          <Check size={14} strokeWidth={2.5} />
-                          <span className="flex-1 truncate">{justCommitted.name} saved</span>
-                          <button
-                            type="button"
-                            onClick={() => { setJustCommitted(null); setMode('tasting'); }}
-                            className="flex items-center gap-1 text-tea-text-sec hover:text-tea-text transition-colors shrink-0"
-                          >
-                            Sessions
-                          </button>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-
-                  <CaptureCard
-                    entryId={activeEntryId}
-                    onSwitchToLedger={() => handleSwitchMode('buying')}
-                    onCommit={handleCommitEntry}
-                    onReturnToLibrary={fromLibrary ? () => { setFromLibrary(false); setMode('tasting'); } : undefined}
-                    actionRef={captureCardActionsRef}
-                  />
-                </>
-              )}
-            </motion.div>
-          ) : mode === 'tasting' ? (
-            <motion.div
-              key="tasting"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              transition={{ duration: 0.2 }}
-            >
-              {/* Pending incoming shares — require explicit accept/decline */}
-              {visibleShares.length > 0 && (
-                <div className="mb-4 space-y-2">
-                  {/* Header row: count + bulk actions */}
-                  <div className="flex items-center gap-2 px-0.5">
-                    <p className="text-[10px] uppercase tracking-[0.12em] text-tea-text-dim font-medium flex-1">
-                      {visibleShares.length} pending {visibleShares.length === 1 ? 'share' : 'shares'}
-                    </p>
-                    {visibleShares.length > 1 && (
-                      <div className="flex items-center gap-3">
-                        <button
-                          type="button"
-                          onClick={() => visibleShares.forEach((s) => acceptShareMutation.mutate(s.id))}
-                          disabled={acceptShareMutation.isPending || declineShareMutation.isPending}
-                          className="text-[11px] text-tea-gold font-semibold hover:text-tea-gold/80 disabled:opacity-40 transition-colors"
-                        >
-                          Accept all
-                        </button>
-                        <span className="text-tea-border text-[10px]">·</span>
-                        <button
-                          type="button"
-                          onClick={() => visibleShares.forEach((s) => declineShareMutation.mutate(s.id))}
-                          disabled={acceptShareMutation.isPending || declineShareMutation.isPending}
-                          className="text-[11px] text-tea-text-dim font-medium hover:text-tea-text-sec disabled:opacity-40 transition-colors"
-                        >
-                          Decline all
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                  {visibleShares.map((share) => {
-                    const meta = share.shared_metadata || {};
-                    const from = share.source_user_name || share.source_account_name || 'A taster';
-                    const isActing = actingShareId === share.id;
-                    const isExpanded = expandedShareIds.has(share.id);
-                    const toggleExpanded = () => setExpandedShareIds((prev) => {
-                      const next = new Set(prev);
-                      if (next.has(share.id)) next.delete(share.id); else next.add(share.id);
-                      return next;
-                    });
-                    return (
-                      <div
-                        key={share.id}
-                        className="rounded-lg bg-tea-surface border border-tea-border px-3 py-2.5 space-y-2"
-                      >
-                        {/* Card header — always visible */}
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0 flex-1">
-                            <p className="text-[11px] text-tea-text-sec mb-0.5">From {from}</p>
-                            <p className="text-sm font-medium text-tea-text truncate">
-                              {meta.name || 'Unnamed card'}
-                            </p>
-                            {(meta.type || meta.year) && (
-                              <p className="text-[11px] text-tea-text-dim">
-                                {[meta.type, meta.year].filter(Boolean).join(' · ')}
-                              </p>
-                            )}
-                          </div>
-                          <div className="flex items-start gap-2 shrink-0">
-                            {meta.photo && (
-                              <img
-                                src={meta.photo}
-                                alt={meta.name}
-                                className="w-12 h-12 rounded-md object-cover border border-tea-border"
-                              />
-                            )}
-                            {/* Preview toggle */}
-                            <button
-                              type="button"
-                              onClick={toggleExpanded}
-                              className="mt-0.5 p-1 text-tea-text-dim hover:text-tea-text-sec transition-colors"
-                              aria-label={isExpanded ? 'Collapse preview' : 'Expand preview'}
-                            >
-                              {isExpanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Inline preview — expanded accordion */}
-                        <AnimatePresence initial={false}>
-                          {isExpanded && (
-                            <motion.div
-                              initial={{ opacity: 0, height: 0 }}
-                              animate={{ opacity: 1, height: 'auto' }}
-                              exit={{ opacity: 0, height: 0 }}
-                              transition={{ duration: 0.18 }}
-                              className="overflow-hidden"
-                            >
-                              <div className="pt-1 pb-0.5 border-t border-tea-border space-y-1.5 text-[12px]">
-                                {meta.originRegion && (
-                                  <div className="flex gap-2">
-                                    <span className="text-tea-text-dim w-14 shrink-0">Origin</span>
-                                    <span className="text-tea-text-sec">{meta.originRegion}</span>
-                                  </div>
-                                )}
-                                {meta.season && (
-                                  <div className="flex gap-2">
-                                    <span className="text-tea-text-dim w-14 shrink-0">Season</span>
-                                    <span className="text-tea-text-sec">{meta.season}</span>
-                                  </div>
-                                )}
-                                {meta.form && (
-                                  <div className="flex gap-2">
-                                    <span className="text-tea-text-dim w-14 shrink-0">Form</span>
-                                    <span className="text-tea-text-sec">{meta.form}</span>
-                                  </div>
-                                )}
-                                {meta.teawareCategory && (
-                                  <div className="flex gap-2">
-                                    <span className="text-tea-text-dim w-14 shrink-0">Category</span>
-                                    <span className="text-tea-text-sec">{meta.teawareCategory}</span>
-                                  </div>
-                                )}
-                                {meta.material && (
-                                  <div className="flex gap-2">
-                                    <span className="text-tea-text-dim w-14 shrink-0">Material</span>
-                                    <span className="text-tea-text-sec">{meta.material}</span>
-                                  </div>
-                                )}
-                                {meta.capacityMl && (
-                                  <div className="flex gap-2">
-                                    <span className="text-tea-text-dim w-14 shrink-0">Capacity</span>
-                                    <span className="text-tea-text-sec">{meta.capacityMl} ml</span>
-                                  </div>
-                                )}
-                              </div>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-
-                        {/* Accept / Decline — always visible */}
-                        <div className="flex gap-2">
-                          <button
-                            type="button"
-                            disabled={isActing}
-                            onClick={() => acceptShareMutation.mutate(share.id)}
-                            className="flex-1 py-1.5 rounded-md bg-tea-gold/10 text-tea-gold text-[11px] font-semibold uppercase tracking-[0.08em] hover:bg-tea-gold/15 disabled:opacity-50 transition-colors"
-                          >
-                            {isActing ? '…' : 'Accept'}
-                          </button>
-                          <button
-                            type="button"
-                            disabled={isActing}
-                            onClick={() => declineShareMutation.mutate(share.id)}
-                            className="flex-1 py-1.5 rounded-md bg-tea-surface text-tea-text-dim text-[11px] font-medium hover:text-tea-text-sec disabled:opacity-50 transition-colors border border-tea-border"
-                          >
-                            Decline
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
-              {/* Co-tasting session quick-start */}
-              {hasToken() && (
-                <div className="mb-4 rounded-lg bg-tea-surface/40 border border-tea-border px-3 py-2.5 flex items-center gap-3">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[11px] text-tea-text-sec font-medium">Co-Tasting</p>
-                    <p className="text-[11px] text-tea-text-dim mt-0.5">Taste with others and compare notes</p>
-                  </div>
+                {tabSearchQuery && (
                   <button
                     type="button"
-                    onClick={async () => {
-                      try {
-                        const result = await api.sessions.create({ title: 'Tasting Session' });
-                        if (result?.session?.id) navigate(`/session/${result.session.id}`);
-                      } catch { /* ignore */ }
-                    }}
-                    className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold/10 text-tea-gold text-[11px] font-semibold hover:bg-tea-gold/15 transition-colors"
+                    onClick={() => { setTabSearchQuery(''); searchInputRef.current?.focus(); }}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-tea-text-dim hover:text-tea-text-sec transition-colors"
+                    aria-label="Clear search"
                   >
-                    <Plus size={11} strokeWidth={2.5} />
-                    Start
+                    <X size={13} />
                   </button>
-                </div>
-              )}
-
-              <BrowseView
-                onEditEntry={handleEditEntry}
-                onNewCapture={handleNewCapture}
-                externalSearchQuery={tabSearchQuery}
-              />
-            </motion.div>
-          ) : (
-            <motion.div
-              key="buying"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.2 }}
-            >
-              <LedgerView
-                embedded
-                onOpenEntry={(entryId) => {
-                  setActiveEntry(entryId);
-                  setMode('sourcing');
-                }}
-                searchQuery={tabSearchQuery}
-              />
-            </motion.div>
+                )}
+              </div>
+            </div>
           )}
-        </AnimatePresence>
-      </div>
 
-      {/* ── Floating "+ New Entry" button — visible on Tasting and Buying tabs ── */}
-      {mode !== 'sourcing' && (
-        <motion.button
-          type="button"
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.9 }}
-          onClick={() => handleNewCapture()}
-          className="absolute bottom-4 right-5 z-20 flex items-center gap-1.5 px-4 py-2.5 rounded-full border border-tea-gold text-tea-gold bg-tea-bg/90 text-[12px] font-semibold tracking-[0.06em] shadow-[0_4px_20px_rgba(0,0,0,0.25)] hover:bg-tea-gold/10 transition-colors backdrop-blur-sm"
-          aria-label="New compass entry"
-          style={{ fontFamily: 'var(--font-display)' }}
-        >
-          <Plus size={13} strokeWidth={2} />
-          New Entry
-        </motion.button>
-      )}
-
-      {/* ── Capture action bar ── */}
-      {mode === 'sourcing' && (
-        <div className="fixed left-0 right-0 z-20 bottom-[calc(44px+env(safe-area-inset-bottom,0px))] lg:sticky lg:bottom-0 lg:left-auto lg:right-auto">
-          {/* Re-Taste / Want / Buy — pinned above the Mic/Done toolbar */}
-          {showCaptureActionBar && (
-            <div className="shrink-0 grid grid-cols-3 gap-2 px-4 pt-2 pb-2 border-t border-tea-border bg-tea-surface">
+          {/* Session chips strip — pinned below header in sourcing mode */}
+          {mode === 'sourcing' && captureOption !== 'samples' && (
+            <div className="shrink-0 flex items-center gap-1.5 px-4 py-2 border-b border-tea-border overflow-x-auto scrollbar-hide">
+              {sessionEntries.map((entry) => (
+                <button
+                  key={entry.id}
+                  type="button"
+                  onClick={() => handleSelectEntry(entry.id)}
+                  className={`group relative flex items-center gap-1.5 whitespace-nowrap px-3 py-1 rounded-full text-[11px] border transition-colors shrink-0 ${
+                    entry.id === activeEntryId
+                      ? 'bg-tea-gold/15 text-tea-gold border-tea-gold/40 font-semibold'
+                      : 'bg-transparent text-tea-text-dim border-tea-border hover:text-tea-text-sec'
+                  }`}
+                >
+                  {entry.name || 'New entry'}
+                  <span
+                    role="button"
+                    aria-label="Remove"
+                    onClick={(e) => { e.stopPropagation(); handleDiscardSessionEntry(entry.id); }}
+                    className="opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity"
+                  >
+                    <X size={9} />
+                  </span>
+                </button>
+              ))}
               <button
                 type="button"
-                onClick={() => captureCardActionsRef.current?.openTasting()}
-                className={`flex items-center justify-center gap-1.5 py-2 rounded-lg text-[12px] font-medium transition-colors ${
-                  hasTasting ? 'bg-tea-gold/10 text-tea-gold' : 'bg-tea-elevated text-tea-text-dim hover:text-tea-text'
-                }`}
+                onClick={() => handleNewCapture()}
+                className="whitespace-nowrap px-2.5 py-1 rounded-full text-[11px] text-tea-text-dim border border-tea-border hover:text-tea-text-sec hover:border-tea-gold/40 transition-colors shrink-0"
               >
-                <Droplets size={13} strokeWidth={1.5} />
-                {hasTasting ? 'Re-Taste' : 'Tasting'}
-              </button>
-              <button
-                type="button"
-                onClick={() => activeEntryId && updateEntry(activeEntryId, { status: isWantEntry ? 'noted' : 'want' })}
-                className={`flex items-center justify-center gap-1.5 py-2 rounded-lg text-[12px] font-medium transition-colors ${
-                  isWantEntry ? 'bg-tea-gold/10 text-tea-gold' : 'bg-tea-elevated text-tea-text-dim hover:text-tea-text'
-                }`}
-              >
-                {isWantEntry ? <BookmarkCheck size={13} /> : <BookmarkPlus size={13} />}
-                {isWantEntry ? 'Wanted' : 'Want'}
-              </button>
-              <button
-                type="button"
-                onClick={() => captureCardActionsRef.current?.toggleBuy()}
-                className="flex items-center justify-center gap-1.5 py-2 rounded-lg text-[12px] font-medium transition-colors bg-tea-elevated text-tea-text-dim hover:text-tea-text"
-              >
-                <ShoppingCart size={13} />
-                Buy
+                +
               </button>
             </div>
           )}
 
-          <AnimatePresence>
-            {voiceError && (
-              <motion.p
-                initial={{ opacity: 0, y: 4 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 4 }}
-                className="shrink-0 text-[11px] text-red-400 text-center px-4 py-1.5 border-t border-tea-border bg-tea-bg"
-              >
-                {voiceError}
-              </motion.p>
-            )}
-          </AnimatePresence>
-
+          {/* Content area */}
           <div
-            className="shrink-0 border-t border-tea-border bg-tea-bg flex"
-            style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+            className={`flex-1 min-h-0 overflow-y-auto overscroll-contain ${
+              mode === 'sourcing' && captureOption === 'samples' ? '' : 'px-4 pt-3'
+            } ${
+              mode === 'sourcing'
+                ? showCaptureActionBar
+                  ? 'pb-[calc(105px+44px+env(safe-area-inset-bottom,0px))] lg:pb-4'
+                  : 'pb-[calc(53px+44px+env(safe-area-inset-bottom,0px))] lg:pb-4'
+                : 'pb-3'
+            }`}
+            role="tabpanel"
+            style={{ WebkitOverflowScrolling: 'touch' }}
           >
-            {/* Record */}
-            {isPlatformPrivileged && (
-              <>
-                <motion.button
-                  type="button"
-                  onClick={handleVoicePress}
-                  disabled={voiceState === 'transcribing'}
-                  className={`relative flex-1 flex items-center justify-center py-3 transition-colors ${
-                    voiceState === 'recording'
-                      ? 'text-tea-gold'
-                      : voiceState === 'transcribing'
-                        ? 'text-tea-text-dim cursor-wait'
-                        : 'text-tea-text/40 hover:text-tea-text/70'
-                  }`}
-                  aria-label={voiceState === 'recording' ? 'Stop recording' : 'Record note'}
+            <AnimatePresence mode="wait">
+              {mode === 'sourcing' ? (
+                <motion.div
+                  key="sourcing"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.2 }}
                 >
-                  {voiceState === 'recording' && (
-                    <motion.span
-                      className="absolute inset-0"
-                      animate={{ opacity: [0.06, 0.12, 0.06] }}
-                      transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
-                      style={{ background: 'var(--tea-gold)' }}
+                  {/* Tea / Teaware / Samples 3-way toggle */}
+                  <div className="flex gap-0 mb-3 rounded-md bg-tea-surface/30 p-0.5 relative">
+                    <motion.div
+                      className="absolute top-0.5 bottom-0.5 rounded-[5px] bg-tea-surface shadow-sm"
+                      animate={{
+                        left: captureOption === 'tea' ? '2px' : captureOption === 'teaware' ? '33.33%' : '66.66%',
+                        right: captureOption === 'samples' ? '2px' : captureOption === 'teaware' ? '33.33%' : '66.66%',
+                      }}
+                      transition={{ duration: 0.1, ease: 'easeOut' }}
                     />
+                    <button type="button" onClick={() => handleCaptureOption('tea')}
+                      className={`flex-1 text-center py-1.5 text-[12px] font-medium rounded-[5px] transition-colors relative z-[1] ${captureOption === 'tea' ? 'text-tea-text' : 'text-tea-text-dim hover:text-tea-text-sec'}`}>
+                      Tea
+                    </button>
+                    <button type="button" onClick={() => handleCaptureOption('teaware')}
+                      className={`flex-1 text-center py-1.5 text-[12px] font-medium rounded-[5px] transition-colors relative z-[1] ${captureOption === 'teaware' ? 'text-tea-text' : 'text-tea-text-dim hover:text-tea-text-sec'}`}>
+                      Teaware
+                    </button>
+                    <button type="button" onClick={() => handleCaptureOption('samples')}
+                      className={`flex-1 text-center py-1.5 text-[12px] font-medium rounded-[5px] transition-colors relative z-[1] ${captureOption === 'samples' ? 'text-tea-text' : 'text-tea-text-dim hover:text-tea-text-sec'}`}>
+                      Samples{sampleCartCount > 0 && <span className="ml-1 text-[10px] text-tea-gold tabular-nums">({sampleCartCount})</span>}
+                    </button>
+                  </div>
+
+                  {captureOption === 'samples' ? (
+                    <SampleCartPanel />
+                  ) : (
+                    <>
+                      {/* Batch mode row — rapid-fire entry for vendor tables */}
+                      {batchMode && (
+                        <BatchCaptureRow />
+                      )}
+
+                      {/* Just-committed banner */}
+                      <AnimatePresence>
+                        {justCommitted && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="overflow-hidden mb-3"
+                          >
+                            <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-tea-gold/10 text-tea-gold text-xs font-medium">
+                              <Check size={14} strokeWidth={2.5} />
+                              <span className="flex-1 truncate">{justCommitted.name} saved</span>
+                              <button
+                                type="button"
+                                onClick={() => { setJustCommitted(null); setMode('tasting'); }}
+                                className="flex items-center gap-1 text-tea-text-sec hover:text-tea-text transition-colors shrink-0"
+                              >
+                                Sessions
+                              </button>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+
+                      <CaptureCard
+                        entryId={activeEntryId}
+                        onSwitchToLedger={() => handleSwitchMode('buying')}
+                        onCommit={handleCommitEntry}
+                        onReturnToLibrary={fromLibrary ? () => { setFromLibrary(false); setMode('tasting'); } : undefined}
+                        actionRef={captureCardActionsRef}
+                      />
+                    </>
                   )}
-                  <span className="relative">
-                    {voiceState === 'recording' ? (
-                      <Square size={20} fill="currentColor" />
-                    ) : voiceState === 'transcribing' ? (
-                      <motion.span animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }} className="block">
-                        <Loader2 size={20} />
-                      </motion.span>
-                    ) : (
-                      <Mic size={20} />
-                    )}
-                  </span>
-                </motion.button>
-                <div className="w-px self-stretch my-2 bg-tea-border" />
-              </>
-            )}
-
-            {/* Batch mode toggle */}
-            <>
-              <button
-                type="button"
-                onClick={() => setBatchMode((v) => !v)}
-                className={`flex-1 flex items-center justify-center py-3 transition-colors ${
-                  batchMode ? 'text-tea-gold' : 'text-tea-text/40 hover:text-tea-text/70'
-                }`}
-                title="Batch entry mode — rapidly add multiple teas"
-                aria-label="Batch entry"
-              >
-                <Layers size={14} strokeWidth={1.5} />
-              </button>
-              <div className="w-px self-stretch my-2 bg-tea-border" />
-            </>
-
-            {/* Share */}
-            {hasToken() && activeEntryId && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => setShareModalOpen(true)}
-                  className="flex-1 flex items-center justify-center py-3 text-tea-text/40 hover:text-tea-text/70 transition-colors"
-                  aria-label="Share"
+                </motion.div>
+              ) : mode === 'tasting' ? (
+                <motion.div
+                  key="tasting"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  transition={{ duration: 0.2 }}
                 >
-                  <Share2 size={14} strokeWidth={1.5} />
-                </button>
-                <div className="w-px self-stretch my-2 bg-tea-border" />
-              </>
-            )}
+                  {/* Pending incoming shares — require explicit accept/decline */}
+                  {visibleShares.length > 0 && (
+                    <div className="mb-4 space-y-2">
+                      {/* Header row: count + bulk actions */}
+                      <div className="flex items-center gap-2 px-0.5">
+                        <p className="text-[10px] uppercase tracking-[0.12em] text-tea-text-dim font-medium flex-1">
+                          {visibleShares.length} pending {visibleShares.length === 1 ? 'share' : 'shares'}
+                        </p>
+                        {visibleShares.length > 1 && (
+                          <div className="flex items-center gap-3">
+                            <button
+                              type="button"
+                              onClick={() => visibleShares.forEach((s) => acceptShareMutation.mutate(s.id))}
+                              disabled={acceptShareMutation.isPending || declineShareMutation.isPending}
+                              className="text-[11px] text-tea-gold font-semibold hover:text-tea-gold/80 disabled:opacity-40 transition-colors"
+                            >
+                              Accept all
+                            </button>
+                            <span className="text-tea-border text-[10px]">·</span>
+                            <button
+                              type="button"
+                              onClick={() => visibleShares.forEach((s) => declineShareMutation.mutate(s.id))}
+                              disabled={acceptShareMutation.isPending || declineShareMutation.isPending}
+                              className="text-[11px] text-tea-text-dim font-medium hover:text-tea-text-sec disabled:opacity-40 transition-colors"
+                            >
+                              Decline all
+                            </button>
+                          </div>
+                        )}
+                      </div>
 
-            {/* Done */}
-            <button
-              type="button"
-              onClick={() => {
-                if (!activeEntryId) return;
-                commitEntry(activeEntryId);
-                handleCommitEntry();
-              }}
-              disabled={!activeEntryId || captureOption === 'samples'}
-              className="flex-1 flex items-center justify-center gap-1.5 py-3 text-tea-gold font-semibold text-sm disabled:opacity-30 transition-opacity"
-              style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.06em' }}
-              aria-label="Done"
-            >
-              Done
-            </button>
+                      {visibleShares.map((share) => {
+                        const meta = share.shared_metadata || {};
+                        const from = share.source_user_name || share.source_account_name || 'A taster';
+                        const isActing = actingShareId === share.id;
+                        const isExpanded = expandedShareIds.has(share.id);
+                        const toggleExpanded = () => setExpandedShareIds((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(share.id)) next.delete(share.id); else next.add(share.id);
+                          return next;
+                        });
+                        return (
+                          <div
+                            key={share.id}
+                            className="rounded-lg bg-tea-surface border border-tea-border px-3 py-2.5 space-y-2"
+                          >
+                            {/* Card header — always visible */}
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0 flex-1">
+                                <p className="text-[11px] text-tea-text-sec mb-0.5">From {from}</p>
+                                <p className="text-sm font-medium text-tea-text truncate">
+                                  {meta.name || 'Unnamed card'}
+                                </p>
+                                {(meta.type || meta.year) && (
+                                  <p className="text-[11px] text-tea-text-dim">
+                                    {[meta.type, meta.year].filter(Boolean).join(' · ')}
+                                  </p>
+                                )}
+                              </div>
+                              <div className="flex items-start gap-2 shrink-0">
+                                {meta.photo && (
+                                  <img
+                                    src={meta.photo}
+                                    alt={meta.name}
+                                    className="w-12 h-12 rounded-md object-cover border border-tea-border"
+                                  />
+                                )}
+                                {/* Preview toggle */}
+                                <button
+                                  type="button"
+                                  onClick={toggleExpanded}
+                                  className="mt-0.5 p-1 text-tea-text-dim hover:text-tea-text-sec transition-colors"
+                                  aria-label={isExpanded ? 'Collapse preview' : 'Expand preview'}
+                                >
+                                  {isExpanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Inline preview — expanded accordion */}
+                            <AnimatePresence initial={false}>
+                              {isExpanded && (
+                                <motion.div
+                                  initial={{ opacity: 0, height: 0 }}
+                                  animate={{ opacity: 1, height: 'auto' }}
+                                  exit={{ opacity: 0, height: 0 }}
+                                  transition={{ duration: 0.18 }}
+                                  className="overflow-hidden"
+                                >
+                                  <div className="pt-1 pb-0.5 border-t border-tea-border space-y-1.5 text-[12px]">
+                                    {meta.originRegion && (
+                                      <div className="flex gap-2">
+                                        <span className="text-tea-text-dim w-14 shrink-0">Origin</span>
+                                        <span className="text-tea-text-sec">{meta.originRegion}</span>
+                                      </div>
+                                    )}
+                                    {meta.season && (
+                                      <div className="flex gap-2">
+                                        <span className="text-tea-text-dim w-14 shrink-0">Season</span>
+                                        <span className="text-tea-text-sec">{meta.season}</span>
+                                      </div>
+                                    )}
+                                    {meta.form && (
+                                      <div className="flex gap-2">
+                                        <span className="text-tea-text-dim w-14 shrink-0">Form</span>
+                                        <span className="text-tea-text-sec">{meta.form}</span>
+                                      </div>
+                                    )}
+                                    {meta.teawareCategory && (
+                                      <div className="flex gap-2">
+                                        <span className="text-tea-text-dim w-14 shrink-0">Category</span>
+                                        <span className="text-tea-text-sec">{meta.teawareCategory}</span>
+                                      </div>
+                                    )}
+                                    {meta.material && (
+                                      <div className="flex gap-2">
+                                        <span className="text-tea-text-dim w-14 shrink-0">Material</span>
+                                        <span className="text-tea-text-sec">{meta.material}</span>
+                                      </div>
+                                    )}
+                                    {meta.capacityMl && (
+                                      <div className="flex gap-2">
+                                        <span className="text-tea-text-dim w-14 shrink-0">Capacity</span>
+                                        <span className="text-tea-text-sec">{meta.capacityMl} ml</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+
+                            {/* Accept / Decline — always visible */}
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                disabled={isActing}
+                                onClick={() => acceptShareMutation.mutate(share.id)}
+                                className="flex-1 py-1.5 rounded-md bg-tea-gold/10 text-tea-gold text-[11px] font-semibold uppercase tracking-[0.08em] hover:bg-tea-gold/15 disabled:opacity-50 transition-colors"
+                              >
+                                {isActing ? '…' : 'Accept'}
+                              </button>
+                              <button
+                                type="button"
+                                disabled={isActing}
+                                onClick={() => declineShareMutation.mutate(share.id)}
+                                className="flex-1 py-1.5 rounded-md bg-tea-surface text-tea-text-dim text-[11px] font-medium hover:text-tea-text-sec disabled:opacity-50 transition-colors border border-tea-border"
+                              >
+                                Decline
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Co-tasting session quick-start */}
+                  {hasToken() && (
+                    <div className="mb-4 rounded-lg bg-tea-surface/40 border border-tea-border px-3 py-2.5 flex items-center gap-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[11px] text-tea-text-sec font-medium">Co-Tasting</p>
+                        <p className="text-[11px] text-tea-text-dim mt-0.5">Taste with others and compare notes</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            const result = await api.sessions.create({ title: 'Tasting Session' });
+                            if (result?.session?.id) navigate(`/session/${result.session.id}`);
+                          } catch { /* ignore */ }
+                        }}
+                        className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold/10 text-tea-gold text-[11px] font-semibold hover:bg-tea-gold/15 transition-colors"
+                      >
+                        <Plus size={11} strokeWidth={2.5} />
+                        Start
+                      </button>
+                    </div>
+                  )}
+
+                  <BrowseView
+                    onEditEntry={handleEditEntry}
+                    onNewCapture={handleNewCapture}
+                    externalSearchQuery={tabSearchQuery}
+                  />
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="buying"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <LedgerView
+                    embedded
+                    onOpenEntry={(entryId) => {
+                      setActiveEntry(entryId);
+                      setMode('sourcing');
+                    }}
+                    searchQuery={tabSearchQuery}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
-        </div>
-      )}
 
-      {/* Share modal */}
+          {/* Mobile action bar — fixed, single compact row */}
+          {mode === 'sourcing' && (
+            <div className="fixed left-0 right-0 z-20 bottom-[calc(44px+env(safe-area-inset-bottom,0px))]">
+              <AnimatePresence>
+                {voiceError && (
+                  <motion.p
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 4 }}
+                    className="text-[11px] text-red-400 text-center px-4 py-1.5 border-t border-tea-border bg-tea-bg"
+                  >
+                    {voiceError}
+                  </motion.p>
+                )}
+              </AnimatePresence>
+
+              <div
+                className="border-t border-tea-border bg-tea-surface flex items-stretch"
+                style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+              >
+                {/* Taste */}
+                {showCaptureActionBar && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => captureCardActionsRef.current?.openTasting()}
+                      className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-[10px] font-medium transition-colors ${
+                        hasTasting ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'
+                      }`}
+                    >
+                      <Droplets size={14} strokeWidth={1.5} />
+                      {hasTasting ? 'Re-Taste' : 'Taste'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => activeEntryId && updateEntry(activeEntryId, { status: isWantEntry ? 'noted' : 'want' })}
+                      className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-[10px] font-medium transition-colors ${
+                        isWantEntry ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'
+                      }`}
+                    >
+                      {isWantEntry ? <BookmarkCheck size={14} /> : <BookmarkPlus size={14} />}
+                      {isWantEntry ? 'Wanted' : 'Want'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => captureCardActionsRef.current?.toggleBuy()}
+                      className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-[10px] font-medium text-tea-text-dim hover:text-tea-text-sec transition-colors"
+                    >
+                      <ShoppingCart size={14} />
+                      Buy
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!activeEntryId || !activeEntry) return;
+                        if (captureEntryInCart) {
+                          removeSampleCartItem(activeEntryId);
+                        } else {
+                          addSampleCartItem({
+                            id: activeEntryId,
+                            name: activeEntry.name,
+                            chineseName: activeEntry.chineseName,
+                            type: activeEntry.type,
+                            vendorName: activeEntry.vendorName,
+                            compassEntryId: activeEntryId,
+                          });
+                        }
+                      }}
+                      className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-[10px] font-medium transition-colors ${
+                        captureEntryInCart ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'
+                      }`}
+                    >
+                      <FlaskConical size={14} strokeWidth={1.5} />
+                      {captureEntryInCart ? 'Listed' : 'Sample'}
+                    </button>
+                    <div className="w-px self-stretch my-1.5 bg-tea-border" />
+                  </>
+                )}
+
+                {/* Mic */}
+                {isPlatformPrivileged && (
+                  <>
+                    <motion.button
+                      type="button"
+                      onClick={handleVoicePress}
+                      disabled={voiceState === 'transcribing'}
+                      className={`relative flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-[10px] font-medium transition-colors ${
+                        voiceState === 'recording'
+                          ? 'text-tea-gold'
+                          : voiceState === 'transcribing'
+                            ? 'text-tea-text-dim cursor-wait'
+                            : 'text-tea-text-dim hover:text-tea-text-sec'
+                      }`}
+                      aria-label={voiceState === 'recording' ? 'Stop recording' : 'Record note'}
+                    >
+                      {voiceState === 'recording' && (
+                        <motion.span
+                          className="absolute inset-0"
+                          animate={{ opacity: [0.06, 0.12, 0.06] }}
+                          transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+                          style={{ background: 'var(--tea-gold)' }}
+                        />
+                      )}
+                      <span className="relative flex flex-col items-center gap-0.5">
+                        {voiceState === 'recording' ? (
+                          <Square size={14} fill="currentColor" />
+                        ) : voiceState === 'transcribing' ? (
+                          <motion.span animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }} className="block">
+                            <Loader2 size={14} />
+                          </motion.span>
+                        ) : (
+                          <Mic size={14} />
+                        )}
+                        Mic
+                      </span>
+                    </motion.button>
+                  </>
+                )}
+
+                {/* Batch */}
+                <button
+                  type="button"
+                  onClick={() => setBatchMode((v) => !v)}
+                  className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-[10px] font-medium transition-colors ${
+                    batchMode ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'
+                  }`}
+                  aria-label="Batch entry"
+                >
+                  <Layers size={14} strokeWidth={1.5} />
+                  Batch
+                </button>
+
+                {/* Share */}
+                {hasToken() && activeEntryId && (
+                  <button
+                    type="button"
+                    onClick={() => setShareModalOpen(true)}
+                    className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-[10px] font-medium text-tea-text-dim hover:text-tea-text-sec transition-colors"
+                    aria-label="Share"
+                  >
+                    <Share2 size={14} strokeWidth={1.5} />
+                    Share
+                  </button>
+                )}
+
+                <div className="w-px self-stretch my-1.5 bg-tea-border" />
+
+                {/* Done */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!activeEntryId) return;
+                    commitEntry(activeEntryId);
+                    handleCommitEntry();
+                  }}
+                  disabled={!activeEntryId || captureOption === 'samples'}
+                  className="flex-[1.4] flex items-center justify-center py-2.5 text-tea-gold font-bold text-[13px] disabled:opacity-30 transition-opacity"
+                  style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.1em' }}
+                  aria-label="Done"
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+          )}
+
+        </div>
+        {/* END MOBILE */}
+
+        {/* ══════════════════════════════════════════════════
+            DESKTOP PATH — hidden on mobile, two-column split
+            ══════════════════════════════════════════════════ */}
+        <div className="hidden lg:flex flex-row flex-1 min-h-0 overflow-hidden">
+
+          {/* ── LEFT COLUMN (300px) ── */}
+          <div className="flex flex-col w-[300px] shrink-0 border-r border-tea-border overflow-hidden">
+
+            {/* Search bar (desktop) */}
+            <div className="shrink-0 px-4 pt-2.5 pb-1">
+              <div className="relative">
+                <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-text-dim pointer-events-none" />
+                <input
+                  type="text"
+                  value={tabSearchQuery}
+                  onChange={(e) => setTabSearchQuery(e.target.value)}
+                  placeholder={
+                    mode === 'sourcing' ? 'Search entries…'
+                    : mode === 'tasting' ? 'Search by name, region, vendor…'
+                    : 'Search transactions…'
+                  }
+                  className="w-full bg-tea-surface border border-tea-border text-tea-text text-[13px] rounded-lg pl-8 pr-8 py-2 outline-none placeholder:text-tea-text-dim focus:ring-1 focus:ring-tea-gold/40 transition-colors"
+                />
+                {tabSearchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => { setTabSearchQuery(''); }}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-tea-text-dim hover:text-tea-text-sec transition-colors"
+                    aria-label="Clear search"
+                  >
+                    <X size={13} />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Scrollable left content */}
+            <div
+              className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 pt-3 pb-4"
+              style={{ WebkitOverflowScrolling: 'touch', scrollbarGutter: 'stable' }}
+            >
+              <AnimatePresence mode="wait">
+
+                {/* SOURCING LEFT: toggle + SessionStack + banner + new-entry hint */}
+                {mode === 'sourcing' && (
+                  <motion.div
+                    key="left-sourcing"
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    transition={{ duration: 0.2 }}
+                    className="flex flex-col gap-3"
+                  >
+                    {/* 3-way toggle: Tea / Teaware / Samples */}
+                    <div className="flex gap-0 rounded-md bg-tea-surface/30 p-0.5 relative">
+                      <motion.div
+                        className="absolute top-0.5 bottom-0.5 rounded-[5px] bg-tea-surface shadow-sm"
+                        animate={{
+                          left: captureOption === 'tea' ? '2px' : captureOption === 'teaware' ? '33.33%' : '66.66%',
+                          right: captureOption === 'samples' ? '2px' : captureOption === 'teaware' ? '33.33%' : '66.66%',
+                        }}
+                        transition={{ duration: 0.1, ease: 'easeOut' }}
+                      />
+                      <button type="button" onClick={() => handleCaptureOption('tea')}
+                        className={`flex-1 text-center py-1.5 text-[12px] font-medium rounded-[5px] transition-colors relative z-[1] ${captureOption === 'tea' ? 'text-tea-text' : 'text-tea-text-dim hover:text-tea-text-sec'}`}>
+                        Tea
+                      </button>
+                      <button type="button" onClick={() => handleCaptureOption('teaware')}
+                        className={`flex-1 text-center py-1.5 text-[12px] font-medium rounded-[5px] transition-colors relative z-[1] ${captureOption === 'teaware' ? 'text-tea-text' : 'text-tea-text-dim hover:text-tea-text-sec'}`}>
+                        Teaware
+                      </button>
+                      <button type="button" onClick={() => handleCaptureOption('samples')}
+                        className={`flex-1 text-center py-1.5 text-[12px] font-medium rounded-[5px] transition-colors relative z-[1] ${captureOption === 'samples' ? 'text-tea-text' : 'text-tea-text-dim hover:text-tea-text-sec'}`}>
+                        Samples
+                      </button>
+                    </div>
+
+                    {/* Sample cart — left panel when samples tab is active */}
+                    {captureOption === 'samples' && (
+                      <SampleCartPanel />
+                    )}
+
+                    {/* SessionStack */}
+                    {captureOption !== 'samples' && (
+                      <SessionStack
+                        sessionEntries={sessionEntries}
+                        activeEntryId={activeEntryId}
+                        onSelectEntry={handleSelectEntry}
+                        onDiscardEntry={handleDiscardSessionEntry}
+                      />
+                    )}
+
+                    {/* Just-committed banner */}
+                    <AnimatePresence>
+                      {justCommitted && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-tea-gold/10 text-tea-gold text-xs font-medium">
+                            <Check size={14} strokeWidth={2.5} />
+                            <span className="flex-1 truncate">{justCommitted.name} saved</span>
+                            <button
+                              type="button"
+                              onClick={() => { setJustCommitted(null); setMode('tasting'); }}
+                              className="flex items-center gap-1 text-tea-text-sec hover:text-tea-text transition-colors shrink-0"
+                            >
+                              Sessions
+                            </button>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    {/* New entry hint button */}
+                    {captureOption !== 'samples' && (
+                      <button
+                        type="button"
+                        onClick={() => handleNewCapture()}
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-md border border-dashed border-tea-border text-tea-text-dim hover:text-tea-text-sec hover:border-tea-gold/40 text-[12px] transition-colors"
+                      >
+                        <Plus size={12} />
+                        New Entry
+                      </button>
+                    )}
+                  </motion.div>
+                )}
+
+                {/* TASTING LEFT: shares + co-tasting + BrowseView */}
+                {mode === 'tasting' && (
+                  <motion.div
+                    key="left-tasting"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 20 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    {/* Pending incoming shares */}
+                    {visibleShares.length > 0 && (
+                      <div className="mb-4 space-y-2">
+                        {/* Header row: count + bulk actions */}
+                        <div className="flex items-center gap-2 px-0.5">
+                          <p className="text-[10px] uppercase tracking-[0.12em] text-tea-text-dim font-medium flex-1">
+                            {visibleShares.length} pending {visibleShares.length === 1 ? 'share' : 'shares'}
+                          </p>
+                          {visibleShares.length > 1 && (
+                            <div className="flex items-center gap-3">
+                              <button
+                                type="button"
+                                onClick={() => visibleShares.forEach((s) => acceptShareMutation.mutate(s.id))}
+                                disabled={acceptShareMutation.isPending || declineShareMutation.isPending}
+                                className="text-[11px] text-tea-gold font-semibold hover:text-tea-gold/80 disabled:opacity-40 transition-colors"
+                              >
+                                Accept all
+                              </button>
+                              <span className="text-tea-border text-[10px]">·</span>
+                              <button
+                                type="button"
+                                onClick={() => visibleShares.forEach((s) => declineShareMutation.mutate(s.id))}
+                                disabled={acceptShareMutation.isPending || declineShareMutation.isPending}
+                                className="text-[11px] text-tea-text-dim font-medium hover:text-tea-text-sec disabled:opacity-40 transition-colors"
+                              >
+                                Decline all
+                              </button>
+                            </div>
+                          )}
+                        </div>
+
+                        {visibleShares.map((share) => {
+                          const meta = share.shared_metadata || {};
+                          const from = share.source_user_name || share.source_account_name || 'A taster';
+                          const isActing = actingShareId === share.id;
+                          const isExpanded = expandedShareIds.has(share.id);
+                          const toggleExpanded = () => setExpandedShareIds((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(share.id)) next.delete(share.id); else next.add(share.id);
+                            return next;
+                          });
+                          return (
+                            <div
+                              key={share.id}
+                              className="rounded-lg bg-tea-surface border border-tea-border px-3 py-2.5 space-y-2"
+                            >
+                              {/* Card header — always visible */}
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-[11px] text-tea-text-sec mb-0.5">From {from}</p>
+                                  <p className="text-sm font-medium text-tea-text truncate">
+                                    {meta.name || 'Unnamed card'}
+                                  </p>
+                                  {(meta.type || meta.year) && (
+                                    <p className="text-[11px] text-tea-text-dim">
+                                      {[meta.type, meta.year].filter(Boolean).join(' · ')}
+                                    </p>
+                                  )}
+                                </div>
+                                <div className="flex items-start gap-2 shrink-0">
+                                  {meta.photo && (
+                                    <img
+                                      src={meta.photo}
+                                      alt={meta.name}
+                                      className="w-12 h-12 rounded-md object-cover border border-tea-border"
+                                    />
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={toggleExpanded}
+                                    className="mt-0.5 p-1 text-tea-text-dim hover:text-tea-text-sec transition-colors"
+                                    aria-label={isExpanded ? 'Collapse preview' : 'Expand preview'}
+                                  >
+                                    {isExpanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* Inline preview — expanded accordion */}
+                              <AnimatePresence initial={false}>
+                                {isExpanded && (
+                                  <motion.div
+                                    initial={{ opacity: 0, height: 0 }}
+                                    animate={{ opacity: 1, height: 'auto' }}
+                                    exit={{ opacity: 0, height: 0 }}
+                                    transition={{ duration: 0.18 }}
+                                    className="overflow-hidden"
+                                  >
+                                    <div className="pt-1 pb-0.5 border-t border-tea-border space-y-1.5 text-[12px]">
+                                      {meta.originRegion && (
+                                        <div className="flex gap-2">
+                                          <span className="text-tea-text-dim w-14 shrink-0">Origin</span>
+                                          <span className="text-tea-text-sec">{meta.originRegion}</span>
+                                        </div>
+                                      )}
+                                      {meta.season && (
+                                        <div className="flex gap-2">
+                                          <span className="text-tea-text-dim w-14 shrink-0">Season</span>
+                                          <span className="text-tea-text-sec">{meta.season}</span>
+                                        </div>
+                                      )}
+                                      {meta.form && (
+                                        <div className="flex gap-2">
+                                          <span className="text-tea-text-dim w-14 shrink-0">Form</span>
+                                          <span className="text-tea-text-sec">{meta.form}</span>
+                                        </div>
+                                      )}
+                                      {meta.teawareCategory && (
+                                        <div className="flex gap-2">
+                                          <span className="text-tea-text-dim w-14 shrink-0">Category</span>
+                                          <span className="text-tea-text-sec">{meta.teawareCategory}</span>
+                                        </div>
+                                      )}
+                                      {meta.material && (
+                                        <div className="flex gap-2">
+                                          <span className="text-tea-text-dim w-14 shrink-0">Material</span>
+                                          <span className="text-tea-text-sec">{meta.material}</span>
+                                        </div>
+                                      )}
+                                      {meta.capacityMl && (
+                                        <div className="flex gap-2">
+                                          <span className="text-tea-text-dim w-14 shrink-0">Capacity</span>
+                                          <span className="text-tea-text-sec">{meta.capacityMl} ml</span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+
+                              {/* Accept / Decline — always visible */}
+                              <div className="flex gap-2">
+                                <button
+                                  type="button"
+                                  disabled={isActing}
+                                  onClick={() => acceptShareMutation.mutate(share.id)}
+                                  className="flex-1 py-1.5 rounded-md bg-tea-gold/10 text-tea-gold text-[11px] font-semibold uppercase tracking-[0.08em] hover:bg-tea-gold/15 disabled:opacity-50 transition-colors"
+                                >
+                                  {isActing ? '…' : 'Accept'}
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={isActing}
+                                  onClick={() => declineShareMutation.mutate(share.id)}
+                                  className="flex-1 py-1.5 rounded-md bg-tea-surface text-tea-text-dim text-[11px] font-medium hover:text-tea-text-sec disabled:opacity-50 transition-colors border border-tea-border"
+                                >
+                                  Decline
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Co-tasting strip */}
+                    {hasToken() && (
+                      <div className="mb-4 rounded-lg bg-tea-surface/40 border border-tea-border px-3 py-2.5 flex items-center gap-3">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[11px] text-tea-text-sec font-medium">Co-Tasting</p>
+                          <p className="text-[11px] text-tea-text-dim mt-0.5">Taste with others and compare notes</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            try {
+                              const result = await api.sessions.create({ title: 'Tasting Session' });
+                              if (result?.session?.id) navigate(`/session/${result.session.id}`);
+                            } catch { /* ignore */ }
+                          }}
+                          className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold/10 text-tea-gold text-[11px] font-semibold hover:bg-tea-gold/15 transition-colors"
+                        >
+                          <Plus size={11} strokeWidth={2.5} />
+                          Start
+                        </button>
+                      </div>
+                    )}
+
+                    <BrowseView
+                      onEditEntry={handleEditEntry}
+                      onNewCapture={handleNewCapture}
+                      externalSearchQuery={tabSearchQuery}
+                      onSelectEntry={(id) => setTastingSelectedEntryId(id)}
+                      selectedEntryId={tastingSelectedEntryId}
+                    />
+                  </motion.div>
+                )}
+
+                {/* BUYING LEFT: LedgerView */}
+                {mode === 'buying' && (
+                  <motion.div
+                    key="left-buying"
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <LedgerView
+                      embedded
+                      onOpenEntry={(entryId) => {
+                        setActiveEntry(entryId);
+                        setMode('sourcing');
+                      }}
+                      searchQuery={tabSearchQuery}
+                    />
+                  </motion.div>
+                )}
+
+              </AnimatePresence>
+            </div>
+
+            {/* Left column desktop FAB footer — Tasting + Buying only */}
+            {mode !== 'sourcing' && (
+              <div className="shrink-0 px-4 pb-4 pt-2 border-t border-tea-border">
+                <button
+                  type="button"
+                  onClick={() => handleNewCapture()}
+                  className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-lg border border-tea-gold/40 text-tea-gold bg-tea-gold/5 hover:bg-tea-gold/10 text-[12px] font-semibold tracking-[0.06em] transition-colors"
+                  style={{ fontFamily: 'var(--font-display)' }}
+                >
+                  <Plus size={13} strokeWidth={2} />
+                  New Entry
+                </button>
+              </div>
+            )}
+          </div>
+          {/* END LEFT COLUMN */}
+
+          {/* ── RIGHT COLUMN (flex-1) ── */}
+          <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+
+            {/* Right column scrollable content */}
+            <div
+              className={`flex-1 min-h-0 overscroll-contain ${
+                mode === 'tasting' || mode === 'buying'
+                  ? 'overflow-hidden'
+                  : `overflow-y-auto ${mode === 'sourcing' && captureOption === 'samples' ? '' : 'px-4 pt-3'} pb-4`
+              }`}
+              style={{ WebkitOverflowScrolling: 'touch', scrollbarGutter: 'stable' }}
+            >
+              <AnimatePresence mode="wait">
+
+                {/* SOURCING RIGHT: CaptureCard (samples cart lives in left column only) */}
+                {mode === 'sourcing' && (
+                  <motion.div
+                    key="right-sourcing"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.15 }}
+                  >
+                    {captureOption === 'samples' ? (
+                      <div className="flex flex-col items-center justify-center h-full min-h-[300px] py-20 text-center">
+                        <FlaskConical size={28} className="text-tea-gold/20 mb-4" />
+                        <p className="font-serif text-[15px] text-tea-text/50 mb-1.5 tracking-wide">Build your sample list</p>
+                        <p className="text-[12px] text-tea-text-dim max-w-[220px] leading-relaxed">
+                          Use the flask icon on any tea card or the Sample button while capturing to add to your list.
+                        </p>
+                      </div>
+                    ) : activeEntryId ? (
+                      <>
+                        {batchMode && <BatchCaptureRow />}
+                        <CaptureCard
+                          entryId={activeEntryId}
+                          onSwitchToLedger={() => handleSwitchMode('buying')}
+                          onCommit={handleCommitEntry}
+                          onReturnToLibrary={fromLibrary ? () => { setFromLibrary(false); setMode('tasting'); } : undefined}
+                          actionRef={captureCardActionsRef}
+                        />
+                      </>
+                    ) : (
+                      <CompassRightEmptyState mode="sourcing" onNewCapture={() => handleNewCapture()} />
+                    )}
+                  </motion.div>
+                )}
+
+                {/* TASTING RIGHT: entry detail panel or empty state */}
+                {mode === 'tasting' && (
+                  <motion.div
+                    key="right-tasting"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.15 }}
+                    className="h-full"
+                  >
+                    {tastingSelectedEntryId ? (
+                      <CompassEntryDetailPanel
+                        entryId={tastingSelectedEntryId}
+                        onEdit={(id) => { handleEditEntry(id); setTastingSelectedEntryId(null); }}
+                        onClose={() => setTastingSelectedEntryId(null)}
+                      />
+                    ) : (
+                      <CompassRightEmptyState mode="tasting" onNewCapture={() => handleNewCapture()} />
+                    )}
+                  </motion.div>
+                )}
+
+                {/* BUYING RIGHT: spending overview panel */}
+                {mode === 'buying' && (
+                  <motion.div
+                    key="right-buying"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.15 }}
+                    className="h-full"
+                  >
+                    <LedgerOverviewPanel />
+                  </motion.div>
+                )}
+
+              </AnimatePresence>
+            </div>
+
+            {/* Right column sticky action bar — Sourcing only, single compact row */}
+            {mode === 'sourcing' && (
+              <div className="shrink-0 border-t border-tea-border">
+                <AnimatePresence>
+                  {voiceError && (
+                    <motion.p
+                      initial={{ opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 4 }}
+                      className="text-[11px] text-red-400 text-center px-4 py-1.5 border-b border-tea-border bg-tea-bg"
+                    >
+                      {voiceError}
+                    </motion.p>
+                  )}
+                </AnimatePresence>
+
+                <div className="flex items-stretch bg-tea-surface">
+                  {/* Taste / Want / Buy */}
+                  {showCaptureActionBar && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => captureCardActionsRef.current?.openTasting()}
+                        className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-[10px] font-medium transition-colors ${
+                          hasTasting ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'
+                        }`}
+                      >
+                        <Droplets size={14} strokeWidth={1.5} />
+                        {hasTasting ? 'Re-Taste' : 'Taste'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => activeEntryId && updateEntry(activeEntryId, { status: isWantEntry ? 'noted' : 'want' })}
+                        className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-[10px] font-medium transition-colors ${
+                          isWantEntry ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'
+                        }`}
+                      >
+                        {isWantEntry ? <BookmarkCheck size={14} /> : <BookmarkPlus size={14} />}
+                        {isWantEntry ? 'Wanted' : 'Want'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => captureCardActionsRef.current?.toggleBuy()}
+                        className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-[10px] font-medium text-tea-text-dim hover:text-tea-text-sec transition-colors"
+                      >
+                        <ShoppingCart size={14} />
+                        Buy
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!activeEntryId || !activeEntry) return;
+                          if (captureEntryInCart) {
+                            removeSampleCartItem(activeEntryId);
+                          } else {
+                            addSampleCartItem({
+                              id: activeEntryId,
+                              name: activeEntry.name,
+                              chineseName: activeEntry.chineseName,
+                              type: activeEntry.type,
+                              vendorName: activeEntry.vendorName,
+                              compassEntryId: activeEntryId,
+                            });
+                          }
+                        }}
+                        className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-[10px] font-medium transition-colors ${
+                          captureEntryInCart ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'
+                        }`}
+                      >
+                        <FlaskConical size={14} strokeWidth={1.5} />
+                        {captureEntryInCart ? 'Listed' : 'Sample'}
+                      </button>
+                      <div className="w-px self-stretch my-1.5 bg-tea-border" />
+                    </>
+                  )}
+
+                  {/* Mic */}
+                  {isPlatformPrivileged && (
+                    <motion.button
+                      type="button"
+                      onClick={handleVoicePress}
+                      disabled={voiceState === 'transcribing'}
+                      className={`relative flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-[10px] font-medium transition-colors ${
+                        voiceState === 'recording' ? 'text-tea-gold'
+                        : voiceState === 'transcribing' ? 'text-tea-text-dim cursor-wait'
+                        : 'text-tea-text-dim hover:text-tea-text-sec'
+                      }`}
+                      aria-label={voiceState === 'recording' ? 'Stop recording' : 'Record note'}
+                    >
+                      {voiceState === 'recording' && (
+                        <motion.span
+                          className="absolute inset-0"
+                          animate={{ opacity: [0.06, 0.12, 0.06] }}
+                          transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+                          style={{ background: 'var(--tea-gold)' }}
+                        />
+                      )}
+                      <span className="relative flex flex-col items-center gap-0.5">
+                        {voiceState === 'recording' ? <Square size={14} fill="currentColor" />
+                        : voiceState === 'transcribing' ? (
+                          <motion.span animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }} className="block">
+                            <Loader2 size={14} />
+                          </motion.span>
+                        ) : <Mic size={14} />}
+                        Mic
+                      </span>
+                    </motion.button>
+                  )}
+
+                  {/* Batch */}
+                  <button
+                    type="button"
+                    onClick={() => setBatchMode((v) => !v)}
+                    className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-[10px] font-medium transition-colors ${
+                      batchMode ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'
+                    }`}
+                    aria-label="Batch entry"
+                  >
+                    <Layers size={14} strokeWidth={1.5} />
+                    Batch
+                  </button>
+
+                  {/* Share */}
+                  {hasToken() && activeEntryId && (
+                    <button
+                      type="button"
+                      onClick={() => setShareModalOpen(true)}
+                      className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-[10px] font-medium text-tea-text-dim hover:text-tea-text-sec transition-colors"
+                      aria-label="Share"
+                    >
+                      <Share2 size={14} strokeWidth={1.5} />
+                      Share
+                    </button>
+                  )}
+
+                  <div className="w-px self-stretch my-1.5 bg-tea-border" />
+
+                  {/* Done */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!activeEntryId) return;
+                      commitEntry(activeEntryId);
+                      handleCommitEntry();
+                    }}
+                    disabled={!activeEntryId || captureOption === 'samples'}
+                    className="flex-[1.4] flex items-center justify-center py-2.5 text-tea-gold font-bold text-[13px] disabled:opacity-30 transition-opacity"
+                    style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.1em' }}
+                    aria-label="Done"
+                  >
+                    Done
+                  </button>
+                </div>
+              </div>
+            )}
+            {/* END right action bar */}
+
+          </div>
+          {/* END RIGHT COLUMN */}
+
+        </div>
+        {/* END DESKTOP */}
+
+      </div>
+      {/* END BODY */}
+
+      {/* Share modal — global, unchanged */}
       <AnimatePresence>
         {shareModalOpen && activeEntryId && (() => {
           const entry = getEntry(activeEntryId);

@@ -153,7 +153,7 @@ const EventsPage: React.FC = () => {
         eventDate:      ev.eventDate      ?? (raw['event_date']       as string),
         locationName:   ev.locationName   ?? (raw['location_name']    as string | undefined),
         areaHint:       ev.areaHint       ?? (raw['area_hint']        as string | undefined),
-        moodHints:      ev.moodHints      ?? (raw['mood_hints']       as string[] | undefined),
+        moodHints:      Array.isArray(ev.moodHints) ? ev.moodHints : (raw['mood_hints'] ? (typeof raw['mood_hints'] === 'string' ? JSON.parse(raw['mood_hints']) : raw['mood_hints'] as string[]) : undefined),
         totalCapacity:  ev.totalCapacity  ?? (raw['total_capacity']   as number),
         seatsRemaining: ev.seatsRemaining ?? (raw['seats_remaining']  as number | undefined),
         confirmedCount: ev.confirmedCount ?? (raw['confirmed_count']  as number | undefined),

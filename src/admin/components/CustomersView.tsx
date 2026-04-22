@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Search, Plus, X, Trash2, Edit3, Phone, Mail, MessageCircle, MapPin, Loader2, ChevronDown, ChevronUp, Leaf, ExternalLink, Users, ArrowUpDown, Check, Calendar, Link, AtSign, Send, Lock, Hash, MessagesSquare } from 'lucide-react';
+import { Search, Plus, X, Trash2, Edit3, Phone, Mail, MessageCircle, MapPin, Loader2, ChevronDown, ChevronUp, Leaf, ExternalLink, Users, ArrowUpDown, ArrowUp, ArrowDown, Check, Calendar, Link, AtSign, Send, Lock, Hash, MessagesSquare, Columns, Download, MoreHorizontal } from 'lucide-react';
+import Papa from 'papaparse';
 import { useCustomers, useProducts } from '../hooks/useAdminData';
 import { useToast } from './Toast';
 import { api } from '../../lib/api';
@@ -90,6 +91,20 @@ const TAG_ACTIVE_COLORS: Record<CustomerTag, string> = {
   vip: 'bg-tea-gold-lt text-tea-text',
   inactive: 'bg-tea-elevated/60 text-tea-text-dim',
 };
+
+// ── Table column definitions ──
+const CUSTOMER_COLUMN_DEFS = [
+  { key: 'name',    label: 'Customer', defaultWidth: 'w-[22%]', alwaysVisible: true },
+  { key: 'company', label: 'Company',  defaultWidth: 'w-[16%]' },
+  { key: 'country', label: 'Country',  defaultWidth: 'w-[11%]' },
+  { key: 'tags',    label: 'Tags',     defaultWidth: 'w-[15%]' },
+  { key: 'contact', label: 'Contact',  defaultWidth: 'w-[12%]' },
+  { key: 'spent',   label: 'Spent',    defaultWidth: 'w-[10%]' },
+  { key: 'orders',  label: 'Orders',   defaultWidth: 'w-[8%]' },
+  { key: 'added',   label: 'Added',    defaultWidth: 'w-[11%]' },
+] as const;
+
+type CustomerSortKey = 'name' | 'company' | 'country' | 'spent' | 'orders' | 'added';
 
 /** Format a USD amount as "$1,234.50" */
 function formatUSD(value: number | undefined | null): string {
@@ -518,6 +533,13 @@ export const CustomerDetail = ({
             {customer.company && <p className="text-tea-text-sec text-sm">{customer.company}</p>}
           </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => { onClose(); navigate(`/admin/people/${customer.id}`); }}
+              className="p-2 text-tea-text-sec hover:text-tea-text transition-colors"
+              title="View full profile"
+            >
+              <ExternalLink size={16} />
+            </button>
             <button onClick={onEdit} className="p-2 text-tea-text-sec hover:text-tea-text transition-colors" title="Edit">
               <Edit3 size={16} />
             </button>
@@ -545,7 +567,7 @@ export const CustomerDetail = ({
           {/* Stats summary card */}
           <div className={`grid gap-3 grid-cols-2 ${(customer.eventCount || 0) > 0 ? 'sm:grid-cols-4' : 'sm:grid-cols-3'}`}>
             <button
-              onClick={() => { onClose(); navigate(`/admin/activity?search=${encodeURIComponent(customer.name || '')}`); }}
+              onClick={() => { onClose(); navigate(`/admin/activity?tab=orders&search=${encodeURIComponent(customer.name || '')}`); }}
               className="bg-tea-surface border border-tea-border rounded-xl p-4 text-center hover:bg-tea-elevated transition-colors group"
               title="View orders for this customer"
             >
@@ -1083,7 +1105,7 @@ export const CustomerDetail = ({
                   orders.map((order) => (
                     <button
                       key={order.id}
-                      onClick={() => { onClose(); navigate(`/admin/activity?search=${encodeURIComponent(customer.name || '')}`); }}
+                      onClick={() => { onClose(); navigate(`/admin/activity?tab=orders&search=${encodeURIComponent(customer.name || '')}`); }}
                       className="w-full flex justify-between items-center text-sm py-2 border-b border-tea-border last:border-0 hover:bg-tea-accent-sub/50 rounded px-2 -mx-2 transition-colors group"
                       title="View orders in Activity"
                     >
@@ -1219,7 +1241,9 @@ export const CustomersView = () => {
   const [filterTags, setFilterTags] = useState<CustomerTag[]>([]);
   const [filterAttendedEvents, setFilterAttendedEvents] = useState(false);
   const [typeFilter, setTypeFilter] = useState<'all' | 'customer' | 'supplier'>('all');
-  const [sortBy, setSortBy] = useState<'name' | 'recent' | 'spent' | 'orders'>('name');
+  const [sortConfig, setSortConfig] = useState<{ key: CustomerSortKey; direction: 'asc' | 'desc' }[]>([{ key: 'name', direction: 'asc' }]);
+  const [visibleColumns, setVisibleColumns] = useState<string[]>(['name', 'company', 'country', 'tags', 'contact', 'spent', 'orders', 'added']);
+  const [showColumnsPopover, setShowColumnsPopover] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [viewingCustomer, setViewingCustomer] = useState<Customer | null>(null);
@@ -1265,19 +1289,23 @@ export const CustomersView = () => {
     }
     // Sort
     list = [...list].sort((a, b) => {
-      switch (sortBy) {
-        case 'recent':
-          return (b.lastOrderDate || '').localeCompare(a.lastOrderDate || '');
-        case 'spent':
-          return (b.totalSpentUSD || 0) - (a.totalSpentUSD || 0);
-        case 'orders':
-          return (b.orderCount || 0) - (a.orderCount || 0);
-        default:
-          return a.name.localeCompare(b.name);
+      for (const sort of sortConfig) {
+        let cmp = 0;
+        switch (sort.key) {
+          case 'name':    cmp = a.name.localeCompare(b.name); break;
+          case 'company': cmp = (a.company || '').localeCompare(b.company || ''); break;
+          case 'country': cmp = (a.country || '').localeCompare(b.country || ''); break;
+          case 'spent':   cmp = (a.totalSpentUSD || 0) - (b.totalSpentUSD || 0); break;
+          case 'orders':  cmp = (a.orderCount || 0) - (b.orderCount || 0); break;
+          case 'added':   cmp = (a.createdAt || '').localeCompare(b.createdAt || ''); break;
+        }
+        const result = sort.direction === 'asc' ? cmp : -cmp;
+        if (result !== 0) return result;
       }
+      return 0;
     });
     return list;
-  }, [nonVendorCustomers, typeFilter, search, filterTags, filterAttendedEvents, sortBy]);
+  }, [nonVendorCustomers, typeFilter, search, filterTags, filterAttendedEvents, sortConfig]);
 
   const handleSave = async (data: CustomerFormData) => {
     try {
@@ -1315,6 +1343,51 @@ export const CustomersView = () => {
     setIsModalOpen(true);
   };
 
+  const handleSort = (key: CustomerSortKey) => {
+    const existing = sortConfig.find(s => s.key === key);
+    if (existing) {
+      if (existing.direction === 'asc') {
+        setSortConfig(sortConfig.map(s => s.key === key ? { ...s, direction: 'desc' as const } : s));
+      } else {
+        setSortConfig(sortConfig.filter(s => s.key !== key));
+      }
+    } else {
+      setSortConfig([...sortConfig, { key, direction: 'asc' }]);
+    }
+  };
+
+  const toggleColumn = (key: string) => {
+    setVisibleColumns(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
+  };
+
+  const [showOptions, setShowOptions] = useState(false);
+
+  const handleExport = () => {
+    const csv = Papa.unparse(filtered.map(c => ({
+      Name: c.name,
+      Type: c.type || 'customer',
+      Company: c.company || '',
+      Country: c.country || '',
+      Tags: c.tags.join(', '),
+      Contact: (c.contacts?.length > 0 ? c.contacts.map(ct => `${ct.channel}: ${ct.handle}`).join(' | ') : [
+        ...(c.phone    ? [`phone: ${c.phone}`]    : []),
+        ...(c.whatsapp ? [`whatsapp: ${c.whatsapp}`] : []),
+        ...(c.email    ? [`email: ${c.email}`]    : []),
+      ].join(' | ')),
+      Orders: c.orderCount || 0,
+      Spent_USD: c.totalSpentUSD ? Number(c.totalSpentUSD).toFixed(2) : '0.00',
+      Events: c.eventCount || 0,
+      Added: c.createdAt ? new Date(c.createdAt).toLocaleDateString() : '',
+      Notes: c.notes || '',
+    })));
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.setAttribute('href', URL.createObjectURL(blob));
+    link.setAttribute('download', 'customers_export.csv');
+    link.click();
+    showToast('Export generated', 'success');
+  };
+
   const formDataFromCustomer = (c: Customer): CustomerFormData => {
     // Prefer contacts array; fall back to synthesizing from legacy flat fields
     const contacts: ContactEntry[] = c.contacts && c.contacts.length > 0
@@ -1339,9 +1412,147 @@ export const CustomersView = () => {
     };
   };
 
-  // Mobile sort/filter menus
+  // Mobile sort menu
   const [showMobileSort, setShowMobileSort] = useState(false);
-  const [showMobileFilter, setShowMobileFilter] = useState(false);
+
+  // ── Derived table state ──
+  const visibleCols = CUSTOMER_COLUMN_DEFS.filter(col => visibleColumns.includes(col.key));
+
+  const SortHeader = ({ colKey, label, align = 'left' }: { colKey: CustomerSortKey; label: string; align?: 'left' | 'right' | 'center' }) => {
+    const sortIndex = sortConfig.findIndex(s => s.key === colKey);
+    const sortEntry = sortIndex >= 0 ? sortConfig[sortIndex] : null;
+    const showBadge = sortConfig.length > 1 && sortEntry;
+    return (
+      <th
+        className={`px-4 py-2 cursor-pointer hover:text-tea-text transition-colors select-none border-b border-tea-border group text-[10px] uppercase tracking-wider font-serif text-tea-text-sec text-${align} truncate`}
+        onClick={() => handleSort(colKey)}
+      >
+        <div className={`flex items-center gap-1 ${align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : ''}`}>
+          {label}
+          <div className="flex-shrink-0 flex items-center">
+            {sortEntry ? (
+              <span className="flex items-center">
+                {sortEntry.direction === 'asc' ? <ArrowUp size={10} className="ml-1 text-tea-text-sec" /> : <ArrowDown size={10} className="ml-1 text-tea-text-sec" />}
+                {showBadge && <span className="ml-0.5 text-[8px] text-tea-gold font-bold">{sortIndex + 1}</span>}
+              </span>
+            ) : <ArrowUpDown size={10} className="opacity-0 group-hover:opacity-100 text-tea-text-sec/50 ml-1 transition-opacity" />}
+          </div>
+        </div>
+      </th>
+    );
+  };
+
+  const renderCell = (customer: Customer, colKey: string) => {
+    switch (colKey) {
+      case 'name':
+        return (
+          <td key="name" className="px-4 align-middle overflow-hidden">
+            <span className="text-sm font-serif text-tea-text tracking-wide group-hover:text-tea-gold transition-colors truncate block">
+              {customer.name}
+            </span>
+          </td>
+        );
+      case 'company':
+        return (
+          <td key="company" className="px-4 align-middle overflow-hidden">
+            <span className="text-xs text-tea-text-sec font-sans truncate block">{customer.company || '—'}</span>
+          </td>
+        );
+      case 'country':
+        return (
+          <td key="country" className="px-4 align-middle overflow-hidden">
+            {customer.country
+              ? <span className="text-xs text-tea-text-sec flex items-center gap-1 truncate"><MapPin size={10} className="flex-shrink-0" /> {customer.country}</span>
+              : <span className="text-xs text-tea-text-dim">—</span>}
+          </td>
+        );
+      case 'tags':
+        return (
+          <td key="tags" className="px-4 align-middle overflow-hidden">
+            <div className="flex items-center gap-1 flex-wrap">
+              {customer.tags.slice(0, 2).map(tag => (
+                <span key={tag} className={`text-[9px] px-1.5 py-0.5 rounded-full ${TAG_COLORS[tag as CustomerTag] || 'bg-tea-elevated text-tea-text-sec'}`}>{tag}</span>
+              ))}
+              {customer.tags.length > 2 && <span className="text-[9px] text-tea-text-dim">+{customer.tags.length - 2}</span>}
+              {customer.tags.length === 0 && <span className="text-xs text-tea-text-dim">—</span>}
+            </div>
+          </td>
+        );
+      case 'contact':
+        return (
+          <td key="contact" className="px-4 align-middle overflow-hidden">
+            <div className="flex items-center gap-1.5 text-tea-text-sec/60">
+              {(customer.contacts?.length > 0
+                ? customer.contacts.slice(0, 4)
+                : [
+                    ...(customer.phone    ? [{ channel: 'phone'    as ContactChannel }] : []),
+                    ...(customer.whatsapp ? [{ channel: 'whatsapp' as ContactChannel }] : []),
+                    ...(customer.email    ? [{ channel: 'email'    as ContactChannel }] : []),
+                  ]
+              ).map((c, i) => {
+                const { Icon } = CHANNEL_CONFIG[c.channel] ?? CHANNEL_CONFIG.other;
+                return <Icon key={i} size={11} />;
+              })}
+              {(customer.contacts?.length === 0 && !customer.phone && !customer.whatsapp && !customer.email) && (
+                <span className="text-[10px] text-tea-text-dim">—</span>
+              )}
+            </div>
+          </td>
+        );
+      case 'spent':
+        return (
+          <td key="spent" className="px-4 align-middle overflow-hidden text-right">
+            <span className="text-xs text-tea-text tabular-nums font-medium">{formatUSD(customer.totalSpentUSD)}</span>
+          </td>
+        );
+      case 'orders':
+        return (
+          <td key="orders" className="px-4 align-middle overflow-hidden text-center">
+            <span className={`text-xs tabular-nums ${(customer.orderCount || 0) > 0 ? 'text-tea-text' : 'text-tea-text-dim'}`}>
+              {customer.orderCount || 0}
+              {(customer.eventCount || 0) > 0 && (
+                <span className="ml-1 text-tea-gold text-[9px]">+{customer.eventCount}e</span>
+              )}
+            </span>
+          </td>
+        );
+      case 'added':
+        return (
+          <td key="added" className="px-4 align-middle overflow-hidden">
+            <span className="text-xs text-tea-text-sec font-sans tabular-nums">
+              {customer.createdAt ? new Date(customer.createdAt).toLocaleDateString() : '—'}
+            </span>
+          </td>
+        );
+      default:
+        return <td key={colKey} className="px-4 align-middle text-xs text-tea-text-sec">—</td>;
+    }
+  };
+
+  const renderRow = (customer: Customer) => (
+    <tr
+      key={customer.id}
+      className={`transition-colors border-b border-tea-border group hover:bg-tea-bg/50 cursor-pointer ${viewingCustomer?.id === customer.id ? 'bg-tea-gold/5' : ''}`}
+      style={{ height: 36 }}
+      onClick={() => setViewingCustomer(customer)}
+    >
+      {visibleCols.map(col => renderCell(customer, col.key))}
+      <td className="px-2 align-middle text-right">
+        <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
+          <button
+            onClick={() => openEdit(customer)}
+            className="text-tea-text-sec hover:text-tea-text p-1 transition-colors"
+            title="Edit"
+          ><Edit3 size={13} /></button>
+          <button
+            onClick={() => handleDelete(customer)}
+            className="text-tea-text-sec hover:text-red-400 p-1 transition-colors"
+            title="Delete"
+          ><Trash2 size={13} /></button>
+        </div>
+      </td>
+    </tr>
+  );
 
   if (isLoading) return <div className="p-12 text-center text-tea-text-sec flex justify-center"><Loader2 className="animate-spin" /></div>;
 
@@ -1417,45 +1628,40 @@ export const CustomersView = () => {
 
           {/* Right controls */}
           <div className="flex items-center gap-1 ml-auto shrink-0">
-            {/* Sort (mobile dropdown, desktop inline) */}
-            <div className="relative">
+            {/* Mobile sort */}
+            <div className="relative md:hidden">
               <button
-                onClick={() => { setShowMobileSort(!showMobileSort); setShowMobileFilter(false); }}
-                className={`w-9 h-9 flex items-center justify-center transition-colors rounded-md md:hidden ${showMobileSort ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
+                onClick={() => setShowMobileSort(!showMobileSort)}
+                className={`w-9 h-9 flex items-center justify-center transition-colors rounded-md ${showMobileSort ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
               >
                 <ArrowUpDown size={15} />
               </button>
-              {/* Desktop sort dropdown */}
-              <select
-                value={sortBy}
-                onChange={e => setSortBy(e.target.value as 'name' | 'recent' | 'spent' | 'orders')}
-                className="hidden md:block bg-transparent border-b border-tea-border text-xs text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-text-sec transition-colors py-1 pr-6 cursor-pointer"
-              >
-                <option value="name">Name</option>
-                <option value="recent">Recent</option>
-                <option value="spent">Top Spent</option>
-                <option value="orders">Most Orders</option>
-              </select>
-              {/* Mobile sort dropdown */}
               {showMobileSort && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setShowMobileSort(false)} />
                   <div className="absolute right-0 top-9 w-40 bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-50 py-1" role="menu">
                     {([
-                      { key: 'name', label: 'Name' },
-                      { key: 'recent', label: 'Recent' },
-                      { key: 'spent', label: 'Top Spent' },
-                      { key: 'orders', label: 'Most Orders' },
-                    ] as const).map(opt => (
-                      <button
-                        key={opt.key}
-                        onClick={() => { setSortBy(opt.key); setShowMobileSort(false); }}
-                        className={`w-full px-3 py-2 text-left text-[11px] flex items-center gap-2 hover:bg-tea-bg transition-colors ${sortBy === opt.key ? 'text-tea-gold' : 'text-tea-text-sec'}`}
-                      >
-                        {opt.label}
-                        {sortBy === opt.key && <Check size={12} className="ml-auto" />}
-                      </button>
-                    ))}
+                      { key: 'name'    as CustomerSortKey, label: 'Name' },
+                      { key: 'added'   as CustomerSortKey, label: 'Recent' },
+                      { key: 'spent'   as CustomerSortKey, label: 'Top Spent' },
+                      { key: 'orders'  as CustomerSortKey, label: 'Most Orders' },
+                    ]).map(opt => {
+                      const current = sortConfig[0];
+                      const isActive = current?.key === opt.key;
+                      return (
+                        <button
+                          key={opt.key}
+                          onClick={() => {
+                            setSortConfig([{ key: opt.key, direction: isActive && current.direction === 'asc' ? 'desc' : 'asc' }]);
+                            setShowMobileSort(false);
+                          }}
+                          className={`w-full px-3 py-2 text-left text-[11px] flex items-center gap-2 hover:bg-tea-bg transition-colors ${isActive ? 'text-tea-gold' : 'text-tea-text-sec'}`}
+                        >
+                          {opt.label}
+                          {isActive && (current.direction === 'asc' ? <ArrowUp size={12} className="ml-auto" /> : <ArrowDown size={12} className="ml-auto" />)}
+                        </button>
+                      );
+                    })}
                   </div>
                 </>
               )}
@@ -1471,6 +1677,64 @@ export const CustomersView = () => {
                 onChange={e => setSearch(e.target.value)}
                 className="w-full bg-transparent border-b border-tea-border rounded-none pl-8 pr-3 py-1.5 text-base md:text-xs text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-text-sec font-serif placeholder-tea-text-sec/50 transition-colors"
               />
+            </div>
+
+            {/* Desktop: Columns toggle */}
+            <div className="relative hidden md:block">
+              <button
+                onClick={() => setShowColumnsPopover(!showColumnsPopover)}
+                className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs transition-colors ${showColumnsPopover ? 'text-tea-gold bg-tea-surface' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'}`}
+                title="Show/Hide Columns"
+              >
+                <Columns size={14} />
+                <span className="hidden xl:inline tracking-wide">Cols</span>
+              </button>
+              {showColumnsPopover && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowColumnsPopover(false)} />
+                  <div className="absolute right-0 top-full mt-2 w-44 bg-tea-surface border border-tea-border shadow-xl rounded-xl z-50 py-2">
+                    <div className="px-3 pb-1.5 text-[9px] text-tea-text-sec/60 uppercase tracking-[0.2em]">Visible Columns</div>
+                    {CUSTOMER_COLUMN_DEFS.map(col => (
+                      <label
+                        key={col.key}
+                        className={`flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-tea-bg transition-colors cursor-pointer ${'alwaysVisible' in col && col.alwaysVisible ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={visibleColumns.includes(col.key)}
+                          onChange={() => !('alwaysVisible' in col && col.alwaysVisible) && toggleColumn(col.key)}
+                          disabled={'alwaysVisible' in col && col.alwaysVisible}
+                          className="accent-tea-gold"
+                        />
+                        <span className="text-tea-text">{col.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Desktop: options (export) */}
+            <div className="relative hidden md:block">
+              <button
+                onClick={() => setShowOptions(!showOptions)}
+                className="p-1.5 text-tea-text-sec hover:text-tea-text transition-colors rounded-lg hover:bg-tea-surface"
+              >
+                <MoreHorizontal size={16} />
+              </button>
+              {showOptions && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowOptions(false)} />
+                  <div className="absolute right-0 top-full mt-2 w-48 bg-tea-surface border border-tea-border shadow-xl rounded-xl z-50 py-1 flex flex-col">
+                    <button
+                      onClick={() => { handleExport(); setShowOptions(false); }}
+                      className="px-4 py-2 text-left text-xs text-tea-text-sec hover:text-tea-text hover:bg-tea-bg flex items-center gap-2 transition-colors"
+                    >
+                      <Download size={14} /> Export CSV
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Add button */}
@@ -1575,74 +1839,40 @@ export const CustomersView = () => {
               ))}
             </div>
 
-            {/* DESKTOP CARD GRID */}
-            <div className="hidden md:block py-6 max-w-5xl mx-auto">
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {filtered.map(customer => (
-                  <div
-                    key={customer.id}
-                    onClick={() => setViewingCustomer(customer)}
-                    className="bg-tea-surface border border-tea-border rounded-xl p-5 cursor-pointer hover:border-tea-text-sec/50 hover:bg-tea-surface/80 transition-all group"
-                  >
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <h3 className="text-tea-text font-medium group-hover:text-tea-gold transition-colors">{customer.name}</h3>
-                        {customer.company && <p className="text-tea-text-sec text-xs">{customer.company}</p>}
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          onClick={e => { e.stopPropagation(); openEdit(customer); }}
-                          className="p-1.5 text-tea-text-sec hover:text-tea-text transition-colors opacity-0 group-hover:opacity-100"
-                        >
-                          <Edit3 size={14} />
-                        </button>
-                      </div>
-                    </div>
-
-                    {customer.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 mb-3">
-                        {customer.tags.map(tag => (
-                          <span key={tag} className={`text-[10px] px-2 py-0.5 rounded-full ${TAG_COLORS[tag]}`}>
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-
-                    <div className="flex items-center gap-3 text-tea-text-sec mb-3">
-                      {(customer.contacts?.length > 0
-                        ? customer.contacts.slice(0, 4)
-                        : [
-                            ...(customer.phone    ? [{ channel: 'phone'    as ContactChannel }] : []),
-                            ...(customer.whatsapp ? [{ channel: 'whatsapp' as ContactChannel }] : []),
-                            ...(customer.email    ? [{ channel: 'email'    as ContactChannel }] : []),
-                          ]
-                      ).map((c, i) => {
-                        const { Icon } = CHANNEL_CONFIG[c.channel] ?? CHANNEL_CONFIG.other;
-                        return <Icon key={i} size={12} />;
-                      })}
-                      {customer.country && (
-                        <span className="text-xs flex items-center gap-1">
-                          <MapPin size={10} /> {customer.country}
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="flex justify-between items-center text-xs text-tea-text-sec border-t border-tea-border pt-3 mt-auto">
-                      <div className="flex items-center gap-2">
-                        <span>{customer.orderCount || 0} order{(customer.orderCount || 0) !== 1 ? 's' : ''}</span>
-                        {(customer.eventCount || 0) > 0 && (
-                          <span className="flex items-center gap-0.5 text-tea-gold">
-                            <Calendar size={10} />
-                            {customer.eventCount} event{customer.eventCount !== 1 ? 's' : ''}
-                          </span>
-                        )}
-                      </div>
-                      <span className="font-medium text-tea-text">{formatUSD(customer.totalSpentUSD)}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
+            {/* DESKTOP TABLE */}
+            <div className="w-full max-w-5xl mx-auto bg-tea-surface min-h-full hidden md:block">
+              <table className="w-full table-fixed border-collapse">
+                <colgroup>
+                  {visibleCols.map(col => <col key={col.key} className={col.defaultWidth} />)}
+                  <col className="w-[6%]" />
+                </colgroup>
+                <thead className="sticky top-0 z-20 bg-tea-bg shadow-sm">
+                  <tr>
+                    {visibleCols.map(col => {
+                      const SORTABLE = new Set<string>(['name', 'company', 'country', 'spent', 'orders', 'added']);
+                      if (!SORTABLE.has(col.key)) {
+                        return (
+                          <th key={col.key} className="px-4 py-2 border-b border-tea-border text-[10px] uppercase tracking-wider font-serif text-tea-text-sec text-left truncate">
+                            {col.label}
+                          </th>
+                        );
+                      }
+                      return (
+                        <SortHeader
+                          key={col.key}
+                          colKey={col.key as CustomerSortKey}
+                          label={col.label}
+                          align={col.key === 'orders' ? 'center' : col.key === 'spent' ? 'right' : 'left'}
+                        />
+                      );
+                    })}
+                    <th className="px-2 py-2 border-b border-tea-border" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map(customer => renderRow(customer))}
+                </tbody>
+              </table>
             </div>
           </>
         )}

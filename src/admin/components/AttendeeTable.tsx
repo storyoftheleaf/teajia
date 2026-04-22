@@ -1,11 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowUpDown, Check, UserPlus, Phone, Leaf, Star, Loader2, Users } from 'lucide-react';
+import { ArrowUpDown, Check, UserPlus, Phone, Leaf, Star, Loader2, Users, Link2, X, Search } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useToast } from './Toast';
 import { EventAttendee, AttendeeStatus } from '../../types/events';
-import { Customer } from '../types';
-import { CustomerDetail } from './CustomersView';
+import type { Customer } from '../types';
 
 interface AttendeeTableProps {
   attendees: EventAttendee[];
@@ -15,6 +14,14 @@ interface AttendeeTableProps {
 
 type SortField = 'name' | 'status' | 'createdAt';
 type FilterTab = 'all' | 'confirmed' | 'waitlist' | 'cancelled' | 'denied';
+
+const STATUS_LABELS: Record<AttendeeStatus, string> = {
+  confirmed: '✓',
+  requested: 'req',
+  waitlist: 'wait',
+  cancelled: 'cancel',
+  denied: 'denied',
+};
 
 // Status chip styles — NO borders on chips per CLAUDE.md
 const STATUS_CHIPS: Record<AttendeeStatus, string> = {
@@ -125,6 +132,163 @@ const AttendeeHoverCard: React.FC<{
   </div>
 );
 
+// ─── Link Existing Customer Modal ────────────────────────────────────────────
+
+interface LinkCustomerModalProps {
+  attendee: EventAttendee;
+  onClose: () => void;
+  onLinked: () => void;
+}
+
+const LinkCustomerModal: React.FC<LinkCustomerModalProps> = ({ attendee, onClose, onLinked }) => {
+  const { showToast } = useToast();
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [linking, setLinking] = useState(false);
+  const [query, setQuery] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    api.customers.list().then((data: any) => {
+      if (cancelled) return;
+      const list: Customer[] = (data || []).map((c: any) => ({
+        id: c.id,
+        name: c.name,
+        email: c.email || undefined,
+        phone: c.phone || undefined,
+        whatsapp: c.whatsapp || undefined,
+        tags: typeof c.tags === 'string' ? JSON.parse(c.tags || '[]') : (c.tags || []),
+        contacts: typeof c.contacts === 'string' ? JSON.parse(c.contacts || '[]') : (c.contacts || []),
+        type: c.type || 'customer',
+        preferredCurrency: c.preferred_currency || 'USD',
+        createdAt: c.created_at,
+        updatedAt: c.updated_at,
+      }));
+      setCustomers(list);
+      setLoading(false);
+    }).catch(() => {
+      if (!cancelled) setLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    // Focus the search input once customers have loaded
+    if (!loading) inputRef.current?.focus();
+  }, [loading]);
+
+  const filtered = useMemo(() => {
+    if (!query.trim()) return customers.slice(0, 20);
+    const q = query.toLowerCase();
+    return customers.filter(c =>
+      c.name.toLowerCase().includes(q) ||
+      (c.phone && c.phone.includes(q)) ||
+      (c.whatsapp && c.whatsapp.includes(q)) ||
+      (c.email && c.email.toLowerCase().includes(q))
+    ).slice(0, 20);
+  }, [customers, query]);
+
+  const handleLink = async (customer: Customer) => {
+    if (linking) return;
+    setLinking(true);
+    try {
+      await api.events.updateAttendee(attendee.id, { customer_id: customer.id });
+      showToast(`Linked ${attendee.fullName} to ${customer.name}`, 'success');
+      onLinked();
+      onClose();
+    } catch (e: any) {
+      showToast(e.message || 'Failed to link customer', 'error');
+      setLinking(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-modal flex items-center justify-center p-4">
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-tea-bg/80 backdrop-blur-sm" onClick={onClose} />
+
+      {/* Modal panel */}
+      <div className="relative z-10 bg-tea-surface border border-tea-border rounded-2xl shadow-2xl w-full max-w-sm flex flex-col max-h-[80vh]">
+        {/* Header */}
+        <div className="flex items-center justify-between gap-3 px-4 pt-4 pb-3 border-b border-tea-border shrink-0">
+          <div>
+            <p className="text-sm font-medium text-tea-text">Link existing customer</p>
+            <p className="text-xs text-tea-text-sec mt-0.5">{attendee.fullName}</p>
+          </div>
+          <button onClick={onClose} className="text-tea-text-sec hover:text-tea-text transition-colors" aria-label="Close">
+            <X size={16} />
+          </button>
+        </div>
+
+        {/* Search */}
+        <div className="px-4 py-3 shrink-0">
+          <div className="flex items-center gap-2 bg-tea-elevated rounded-lg px-3 py-2">
+            <Search size={13} className="text-tea-text-sec shrink-0" />
+            <input
+              ref={inputRef}
+              type="text"
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder="Name, phone, or email…"
+              className="flex-1 bg-transparent text-sm text-tea-text placeholder:text-tea-text-dim outline-none"
+            />
+          </div>
+        </div>
+
+        {/* Results */}
+        <div className="flex-1 overflow-y-auto min-h-0 px-2 pb-2">
+          {loading ? (
+            <div className="flex items-center justify-center py-8 text-tea-text-sec">
+              <Loader2 size={16} className="animate-spin mr-2" />
+              <span className="text-sm">Loading customers…</span>
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="py-6 text-center">
+              <p className="text-sm text-tea-text-sec">No match found</p>
+              <p className="text-xs text-tea-text-dim mt-1">Try a different name or use "Create new" instead</p>
+            </div>
+          ) : (
+            <ul className="space-y-0.5">
+              {filtered.map(customer => (
+                <li key={customer.id}>
+                  <button
+                    onClick={() => handleLink(customer)}
+                    disabled={linking}
+                    className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-tea-elevated transition-colors disabled:opacity-50 group"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-sm text-tea-text font-medium group-hover:text-tea-gold transition-colors">{customer.name}</span>
+                      {linking && <Loader2 size={11} className="animate-spin text-tea-text-dim shrink-0" />}
+                    </div>
+                    {(customer.phone || customer.email) && (
+                      <p className="text-xs text-tea-text-sec mt-0.5">
+                        {customer.phone || customer.email}
+                      </p>
+                    )}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex justify-between items-center px-4 py-3 border-t border-tea-border shrink-0">
+          <button onClick={onClose} className="text-sm text-tea-text-sec hover:text-tea-text transition-colors">
+            Cancel
+          </button>
+          <span className="text-xs text-tea-text-dim">
+            {loading ? '' : `${customers.length} customers`}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── Main Table ───────────────────────────────────────────────────────────────
+
 export const AttendeeTable: React.FC<AttendeeTableProps> = ({ attendees, eventId, onRefresh }) => {
   const { showToast } = useToast();
   const navigate = useNavigate();
@@ -132,10 +296,9 @@ export const AttendeeTable: React.FC<AttendeeTableProps> = ({ attendees, eventId
   const [sortField, setSortField] = useState<SortField>('createdAt');
   const [sortAsc, setSortAsc] = useState(true);
   const [loadingId, setLoadingId] = useState<string | null>(null);
-  const [viewingCustomer, setViewingCustomer] = useState<Customer | null>(null);
-  const [loadingCustomerId, setLoadingCustomerId] = useState<string | null>(null);
   const [hoveredAttendee, setHoveredAttendee] = useState<EnrichedAttendee | null>(null);
   const [hoverPos, setHoverPos] = useState<{ x: number; y: number } | null>(null);
+  const [linkModalAttendee, setLinkModalAttendee] = useState<EventAttendee | null>(null);
 
   const counts = useMemo(() => ({
     confirmed: attendees.filter(a => a.status === 'confirmed').length,
@@ -228,29 +391,22 @@ export const AttendeeTable: React.FC<AttendeeTableProps> = ({ attendees, eventId
         preferredCurrency: 'USD',
       });
 
-      await api.events.updateAttendee(attendee.id, { customerId: customer.id });
+      await api.events.updateAttendee(attendee.id, { customer_id: customer.id });
 
       showToast(`Customer record created for ${attendee.fullName}`, 'success');
       onRefresh();
+      navigate(`/admin/people/${customer.id}`);
     } catch (e: any) {
       console.error('Failed to create customer:', e);
       showToast(e.message || 'Failed to create customer record', 'error');
     }
   };
 
-  const openCustomerProfile = async (attendee: EventAttendee) => {
+  const openCustomerProfile = (attendee: EventAttendee) => {
     if (!attendee.customerId) return;
-    setLoadingCustomerId(attendee.id);
     setHoveredAttendee(null);
     setHoverPos(null);
-    try {
-      const customer = await api.customers.get(attendee.customerId);
-      setViewingCustomer(customer);
-    } catch (e: any) {
-      showToast(e.message || 'Failed to load profile', 'error');
-    } finally {
-      setLoadingCustomerId(null);
-    }
+    navigate(`/admin/people/${attendee.customerId}`);
   };
 
   const handleNameMouseEnter = (e: React.MouseEvent, attendee: EnrichedAttendee) => {
@@ -266,19 +422,16 @@ export const AttendeeTable: React.FC<AttendeeTableProps> = ({ attendees, eventId
 
   // Name cell — linked customer: clickable with profile open; unlinked: name + create prompt
   const AttendeeName: React.FC<{ attendee: EnrichedAttendee; compact?: boolean }> = ({ attendee, compact }) => {
-    const isLoading = loadingCustomerId === attendee.id;
     if (attendee.customerId) {
       return (
         <button
           onClick={() => openCustomerProfile(attendee)}
           onMouseEnter={(e) => handleNameMouseEnter(e, attendee)}
           onMouseLeave={handleNameMouseLeave}
-          disabled={isLoading}
-          className={`inline-flex items-center gap-1.5 text-left transition-colors disabled:opacity-60 ${
+          className={`inline-flex items-center gap-1.5 text-left transition-colors ${
             compact ? 'text-[14px] font-medium' : 'text-sm font-medium'
           } text-tea-text hover:text-tea-gold group`}
         >
-          {isLoading ? <Loader2 size={12} className="animate-spin text-tea-gold shrink-0" /> : null}
           <span className="group-hover:underline underline-offset-2 decoration-tea-gold/50">{attendee.fullName}</span>
         </button>
       );
@@ -287,9 +440,16 @@ export const AttendeeTable: React.FC<AttendeeTableProps> = ({ attendees, eventId
       <span className={`inline-flex items-center gap-1.5 ${compact ? 'text-[14px] font-medium' : 'text-sm font-medium'} text-tea-text`}>
         {attendee.fullName}
         <button
+          onClick={() => setLinkModalAttendee(attendee)}
+          className="text-tea-text-dim hover:text-tea-gold transition-colors"
+          title="Link to existing customer"
+        >
+          <Link2 size={12} />
+        </button>
+        <button
           onClick={() => handleCreateCustomer(attendee)}
           className="text-tea-text-dim hover:text-tea-gold transition-colors"
-          title="Create customer record"
+          title="Create new customer record"
         >
           <UserPlus size={12} />
         </button>
@@ -347,7 +507,7 @@ export const AttendeeTable: React.FC<AttendeeTableProps> = ({ attendees, eventId
                 <div className="flex items-center justify-between gap-2 mb-1.5">
                   <AttendeeName attendee={attendee} compact />
                   <span className={`text-[10px] uppercase tracking-[0.1em] px-2 py-0.5 rounded-full shrink-0 ${STATUS_CHIPS[attendee.status]}`}>
-                    {attendee.status}
+                    {STATUS_LABELS[attendee.status]}
                   </span>
                 </div>
 
@@ -439,7 +599,7 @@ export const AttendeeTable: React.FC<AttendeeTableProps> = ({ attendees, eventId
                     </td>
                     <td className="py-2.5 px-2">
                       <span className={`text-[10px] uppercase tracking-[0.1em] px-2 py-0.5 rounded-full ${STATUS_CHIPS[attendee.status]}`}>
-                        {attendee.status}
+                        {STATUS_LABELS[attendee.status]}
                       </span>
                     </td>
                     <td className="py-2.5 px-2">
@@ -523,18 +683,15 @@ export const AttendeeTable: React.FC<AttendeeTableProps> = ({ attendees, eventId
         <AttendeeHoverCard attendee={hoveredAttendee} pos={hoverPos} />
       )}
 
-      {/* Customer profile modal — opens on top of event detail, no navigation */}
-      {viewingCustomer && (
-        <CustomerDetail
-          customer={viewingCustomer}
-          onClose={() => setViewingCustomer(null)}
-          onEdit={() => {
-            setViewingCustomer(null);
-            navigate(`/admin/people?customerId=${viewingCustomer.id}`);
-          }}
-          onDelete={() => setViewingCustomer(null)}
+      {/* Link existing customer modal */}
+      {linkModalAttendee && (
+        <LinkCustomerModal
+          attendee={linkModalAttendee}
+          onClose={() => setLinkModalAttendee(null)}
+          onLinked={onRefresh}
         />
       )}
+
     </div>
   );
 };

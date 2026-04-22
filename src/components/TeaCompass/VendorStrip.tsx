@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   MapPin, X, Plus, Camera, Check, Phone,
   MessageCircle, ExternalLink,
-  Contact, Image, Link, UserCheck,
+  Contact, Image, Link,
 } from 'lucide-react';
 import { api, hasToken } from '../../lib/api';
 import { compressImage } from '../../lib/imageCompressor';
@@ -327,13 +327,6 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
     return () => document.removeEventListener('mousedown', handleClick);
   }, [searchOpen]);
 
-  const handleContactPhoto = async (
-    inputRef: React.RefObject<HTMLInputElement | null>,
-    key: 'businessCardUrl' | 'storefrontUrl'
-  ) => {
-    inputRef.current?.click();
-  };
-
   const handleContactFileChange = async (
     e: React.ChangeEvent<HTMLInputElement>,
     key: 'businessCardUrl' | 'storefrontUrl'
@@ -610,54 +603,20 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
         )}
       </AnimatePresence>
 
-      {/* ── Auto-suggest: link this vendor name to a customer record ── */}
-      <AnimatePresence>
-        {suggestedCustomer && !linkedCustomerId && onLinkedCustomerChange && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.18 }}
-            className="overflow-hidden"
-          >
-            <div className="flex items-center gap-2 mt-1 px-2 py-2 rounded-lg bg-tea-gold-lt border border-tea-border text-[12px]">
-              <UserCheck size={13} className="text-tea-gold shrink-0" />
-              <span className="flex-1 text-tea-text-sec min-w-0 truncate">
-                This looks like <span className="font-medium text-tea-text">{suggestedCustomer.name}</span> — link them?
-              </span>
-              <button
-                type="button"
-                onClick={() => {
-                  onLinkedCustomerChange(suggestedCustomer.id);
-                  setSuggestDismissed(true);
-                  setSuggestedCustomer(null);
-                }}
-                className="text-tea-gold font-semibold text-[11px] uppercase tracking-[0.06em] hover:text-tea-gold/80 transition-colors shrink-0"
-              >
-                Link
-              </button>
-              <button
-                type="button"
-                onClick={() => { setSuggestDismissed(true); setSuggestedCustomer(null); }}
-                className="text-tea-text-dim hover:text-tea-text-sec transition-colors shrink-0 p-0.5"
-                aria-label="Dismiss suggestion"
-              >
-                <X size={12} />
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* ── Linked customer record ── */}
+      {/* ── Supplier link — single row, three mutually exclusive states ── */}
       {onLinkedCustomerChange && (
-        <div className="mt-1">
+        <AnimatePresence mode="wait">
           {linkedCustomerId ? (
-            <div className="flex items-center gap-2 text-[12px] text-tea-text-sec py-1">
-              <Link size={12} className="text-tea-gold shrink-0" />
+            <motion.div
+              key="linked"
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              className="flex items-center gap-1.5 mt-1 text-[11px] text-tea-text-dim"
+            >
+              <Link size={10} className="shrink-0" />
               <a
                 href={`/admin/people?customer=${linkedCustomerId}`}
-                className="hover:text-tea-gold transition-colors truncate flex-1"
+                className="flex-1 truncate hover:text-tea-text-sec transition-colors"
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -666,26 +625,52 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
               <button
                 type="button"
                 onClick={() => { onLinkedCustomerChange(undefined); setSuggestDismissed(false); }}
-                className="text-tea-text-dim hover:text-tea-text-sec transition-colors shrink-0 p-0.5"
-                aria-label="Unlink customer"
+                className="hover:text-tea-text-sec transition-colors shrink-0"
+                aria-label="Unlink supplier"
               >
-                <X size={12} />
+                <X size={10} />
               </button>
-            </div>
-          ) : vendorId && (
-            <button
-              type="button"
-              onClick={() => {
-                // vendorId is the customer ID when selected from the dropdown
-                onLinkedCustomerChange(vendorId);
-              }}
-              className="flex items-center gap-1.5 text-[11px] text-tea-text-dim hover:text-tea-text-sec transition-colors py-0.5"
+            </motion.div>
+          ) : suggestedCustomer && !suggestDismissed ? (
+            <motion.div
+              key="suggest"
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              className="flex items-center gap-2 mt-1 text-[11px]"
             >
-              <Link size={11} />
-              Link to customer profile
-            </button>
-          )}
-        </div>
+              <span className="flex-1 text-tea-text-dim truncate">
+                Matches <span className="text-tea-text-sec">{suggestedCustomer.name}</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => { onLinkedCustomerChange(suggestedCustomer.id); setSuggestDismissed(true); setSuggestedCustomer(null); }}
+                className="text-tea-gold font-medium hover:text-tea-gold/70 transition-colors shrink-0"
+              >
+                Link
+              </button>
+              <button
+                type="button"
+                onClick={() => { setSuggestDismissed(true); setSuggestedCustomer(null); }}
+                className="text-tea-text-dim hover:text-tea-text-sec transition-colors shrink-0"
+                aria-label="Dismiss"
+              >
+                <X size={10} />
+              </button>
+            </motion.div>
+          ) : vendorId ? (
+            <motion.button
+              key="manual"
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              type="button"
+              onClick={() => onLinkedCustomerChange(vendorId)}
+              className="mt-1 flex items-center gap-1 text-[11px] text-tea-text-dim/50 hover:text-tea-text-dim transition-colors"
+            >
+              <Link size={10} />
+              Link supplier profile
+            </motion.button>
+          ) : null}
+        </AnimatePresence>
       )}
 
       {/* ── Vendor details expandable (triggered by contact icon) ── */}

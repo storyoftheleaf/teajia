@@ -15,6 +15,10 @@ interface BrowseViewProps {
   onNewCapture: () => void;
   /** External search query — when provided, overrides and hides the internal search input */
   externalSearchQuery?: string;
+  /** Desktop: fires when a card is tapped, shows detail panel in right column */
+  onSelectEntry?: (id: string) => void;
+  /** Desktop: which entry is currently shown in the right detail panel */
+  selectedEntryId?: string | null;
 }
 
 function getDateGroup(dateStr: string): string {
@@ -49,7 +53,7 @@ const SectionHeader: React.FC<{ label: React.ReactNode; count: number; right?: R
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCapture, externalSearchQuery }) => {
+export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCapture, externalSearchQuery, onSelectEntry, selectedEntryId }) => {
   const navigate = useNavigate();
   const { entries, browseFilter, setBrowseFilter, removeEntry, updateEntry } = useTeaCompassStore();
   const [cleanupDismissed, setCleanupDismissed] = useState(false);
@@ -169,6 +173,8 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
                   });
                 }
                 }
+                onSelect={onSelectEntry}
+                isSelected={selectedEntryId === entry.id}
               />
             </motion.div>
           );
@@ -469,19 +475,19 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
       )}
 
       {/* Filter pills + New */}
-      <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide -mx-4 px-4">
+      <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide -mx-4 px-4">
         {filterOptions.map((opt) => (
           <button
             key={opt.value}
             type="button"
             onClick={() => setBrowseFilter(opt.value)}
-            className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors whitespace-nowrap shrink-0 ${
+            className={`px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-colors whitespace-nowrap shrink-0 ${
               browseFilter === opt.value
                 ? 'bg-tea-gold/15 text-tea-gold font-semibold'
                 : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-surface/60'
             }`}
           >
-            {opt.label} {opt.count}
+            {opt.label} <span className="tabular-nums">{opt.count}</span>
           </button>
         ))}
         <div className="w-px h-3 bg-tea-border mx-0.5 shrink-0" />

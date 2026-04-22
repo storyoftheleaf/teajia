@@ -209,10 +209,13 @@ export const EventsManager: React.FC = () => {
                           {event.status}
                         </span>
                         {requested > 0 && (
-                          <span className="flex items-center gap-1 text-[9px] bg-amber-500/15 text-amber-400 px-1.5 py-0.5 font-semibold uppercase tracking-[0.15em]">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); navigate(`/admin/events/${event.id}?tab=requests`); }}
+                            className="flex items-center gap-1 text-[9px] bg-amber-500/15 text-amber-400 px-1.5 py-0.5 font-semibold uppercase tracking-[0.15em] hover:bg-amber-500/30 transition-colors"
+                          >
                             <Bell size={8} className="shrink-0" />
                             {requested}
-                          </span>
+                          </button>
                         )}
                       </div>
                       {event.subtitle && (

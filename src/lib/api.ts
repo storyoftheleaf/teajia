@@ -1007,6 +1007,12 @@ export const api = {
       });
       return handleResponse(res);
     },
+    getPendingAttendees: async () => {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/pending-attendees`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
     waitlistAttendee: async (id: string) => {
       const res = await fetchWithTimeout(`${API_URL}/api/admin/attendees/${id}/waitlist`, {
         method: 'PUT',
@@ -1185,6 +1191,16 @@ export const api = {
       });
       return handleResponse(res);
     },
+    getEvents: async (venueId: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/venues/${venueId}/events`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    listPublic: async () => {
+      const res = await fetchWithTimeout(`${API_URL}/api/venues/public`);
+      return handleResponse(res);
+    },
   },
 
   savedLocations: {
@@ -1251,7 +1267,7 @@ export const api = {
       };
       const res = await fetchWithTimeout(`${API_URL}/api/events/${slug}/rsvp`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...authHeaders() },
         body: JSON.stringify(body),
       });
       return handleResponse(res);
@@ -2084,6 +2100,10 @@ export const api = {
     },
     wishlist: async () => {
       const res = await fetchWithTimeout(`${API_URL}/api/me/wishlist`, { headers: authHeaders() });
+      return handleResponse(res);
+    },
+    journey: async () => {
+      const res = await fetchWithTimeout(`${API_URL}/api/me/journey`, { headers: authHeaders() });
       return handleResponse(res);
     },
   },

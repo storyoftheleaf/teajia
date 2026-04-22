@@ -207,10 +207,10 @@ export const CommandPalette = ({ onAddProduct, externalOpen, onOpenChange }: { o
                 <Command.Item onSelect={() => runCommand(() => navigate('/admin/inventory'))} className="flex items-center gap-3 px-3 py-3.5 rounded-lg hover:bg-tea-surface cursor-pointer text-tea-text aria-selected:bg-tea-surface aria-selected:text-tea-gold transition-colors font-serif">
                   <UserCheck size={16} className="text-tea-text-sec" /> Collection
                 </Command.Item>
-                <Command.Item onSelect={() => runCommand(() => navigate('/admin/activity'))} className="flex items-center gap-3 px-3 py-3.5 rounded-lg hover:bg-tea-surface cursor-pointer text-tea-text aria-selected:bg-tea-surface aria-selected:text-tea-gold transition-colors font-serif">
+                <Command.Item onSelect={() => runCommand(() => navigate('/admin/activity?tab=orders'))} className="flex items-center gap-3 px-3 py-3.5 rounded-lg hover:bg-tea-surface cursor-pointer text-tea-text aria-selected:bg-tea-surface aria-selected:text-tea-gold transition-colors font-serif">
                   <History size={16} className="text-tea-text-sec" /> Orders
                 </Command.Item>
-                <Command.Item onSelect={() => runCommand(() => navigate('/admin/activity'))} className="flex items-center gap-3 px-3 py-3.5 rounded-lg hover:bg-tea-surface cursor-pointer text-tea-text aria-selected:bg-tea-surface aria-selected:text-tea-gold transition-colors font-serif">
+                <Command.Item onSelect={() => runCommand(() => navigate('/admin/activity?tab=archive'))} className="flex items-center gap-3 px-3 py-3.5 rounded-lg hover:bg-tea-surface cursor-pointer text-tea-text aria-selected:bg-tea-surface aria-selected:text-tea-gold transition-colors font-serif">
                   <FolderOpen size={16} className="text-tea-text-sec" /> Records & Logs
                 </Command.Item>
               </Command.Group>

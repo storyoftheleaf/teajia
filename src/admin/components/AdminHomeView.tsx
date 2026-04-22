@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import {
   Package,
   ClipboardList,
@@ -17,6 +18,8 @@ import {
 import { LogoEmblem } from '../../components/Logos/LogoEmblem';
 import type { PlatformRole } from '../../types';
 import { useAccountFeatures } from '../../hooks/useAccountFeatures';
+import { usePendingAttendees } from '../hooks/useEventData';
+import { api } from '../../lib/api';
 
 type TileData = {
   id: string;
@@ -51,12 +54,12 @@ const platformTile: TileData = {
 
 // ─── Tile components ────────────────────────────────────────────────────────
 
-const SmallTile: React.FC<{ tile: TileData; onClick: () => void }> = ({ tile, onClick }) => {
+const SmallTile: React.FC<{ tile: TileData; onClick: () => void; badge?: number }> = ({ tile, onClick, badge }) => {
   const Icon = tile.icon;
   return (
     <button
       onClick={onClick}
-      className="flex items-center gap-3 p-3.5 rounded-xl bg-tea-surface border border-tea-border text-left transition-colors duration-100 active:bg-tea-elevated/70"
+      className="relative flex items-center gap-3 p-3.5 rounded-xl bg-tea-surface border border-tea-border text-left transition-colors duration-100 active:bg-tea-elevated/70"
       style={{ WebkitTapHighlightColor: 'transparent' }}
     >
       <Icon size={16} strokeWidth={1.7} className="text-tea-gold shrink-0" />
@@ -64,6 +67,11 @@ const SmallTile: React.FC<{ tile: TileData; onClick: () => void }> = ({ tile, on
         <div className="text-[13px] font-medium text-tea-text leading-tight truncate">{tile.label}</div>
         <div className="text-[11px] text-tea-text-dim mt-0.5 leading-tight truncate">{tile.sub}</div>
       </div>
+      {badge != null && badge > 0 && (
+        <span className="absolute top-2 right-2 min-w-[16px] h-4 px-1 flex items-center justify-center text-[9px] font-semibold bg-amber-400/20 text-amber-600 dark:text-amber-400 rounded-full num">
+          {badge}
+        </span>
+      )}
     </button>
   );
 };
@@ -86,6 +94,18 @@ export const AdminHomeView: React.FC<{
   const { hasFeature } = useAccountFeatures();
   const compassEnabled = hasFeature('compass');
   const catalogEnabled = hasFeature('catalog_sharing');
+
+  const { data: pendingOrders = [] } = useQuery({
+    queryKey: ['invoices-pending-summary'],
+    staleTime: 30_000,
+    enabled: isStaff,
+    queryFn: async () => {
+      const data = (await api.invoices.list(200)) as any[];
+      return data.filter((o: any) => o.status === 'Pending');
+    },
+  });
+  const { data: pendingRSVPs = [] } = usePendingAttendees();
+  const pendingCount = isStaff ? pendingOrders.length + pendingRSVPs.length : 0;
 
   const catalogTile: TileData = {
     id: 'catalog', label: 'Catalog', sub: 'Source from Teajia', icon: Package, path: '/admin/catalog',
@@ -155,7 +175,12 @@ export const AdminHomeView: React.FC<{
             <SectionLabel>Operations</SectionLabel>
             <div className="grid grid-cols-2 gap-2.5">
               {operationsTiles.map(tile => (
-                <SmallTile key={tile.id} tile={tile} onClick={() => navigate(tile.path)} />
+                <SmallTile
+                  key={tile.id}
+                  tile={tile}
+                  onClick={() => navigate(tile.path)}
+                  badge={tile.id === 'activity' ? pendingCount : undefined}
+                />
               ))}
             </div>
           </div>

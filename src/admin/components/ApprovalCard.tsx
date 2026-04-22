@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { Check, Clock, Star, ChevronDown, ChevronUp, Loader2, Minus, Plus } from 'lucide-react';
+import { Check, Clock, Star, ChevronDown, ChevronUp, Loader2, Minus, Plus, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { useToast } from './Toast';
 import { EventAttendee } from '../../types/events';
-import { buildWhatsAppUrl } from '../../lib/whatsapp';
 
 interface ApprovalCardProps {
   attendee: EventAttendee;
@@ -26,12 +26,12 @@ function timeAgo(dateStr: string): string {
 }
 
 export const ApprovalCard: React.FC<ApprovalCardProps> = ({ attendee, onRefresh }) => {
+  const navigate = useNavigate();
   const { showToast } = useToast();
   const [loading, setLoading] = useState<'approve' | 'deny' | 'waitlist' | null>(null);
   const [denyExpanded, setDenyExpanded] = useState(false);
   const [denyMessage, setDenyMessage] = useState('');
-  const [approvedMagicToken, setApprovedMagicToken] = useState<string | null>(null);
-  const [approvedEventTitle, setApprovedEventTitle] = useState<string | null>(null);
+  const [whatsappNotifyUrl, setWhatsappNotifyUrl] = useState<string | null>(null);
 
   const requestedGuests = attendee.guestRequests?.length ?? 0;
   const maxGuests = requestedGuests;
@@ -48,10 +48,7 @@ export const ApprovalCard: React.FC<ApprovalCardProps> = ({ attendee, onRefresh 
       const result: any = await api.events.approveAttendee(attendee.id, {
         approved_guests: approvedGuestCount,
       });
-      // Store magic token + event title for WhatsApp follow-up
-      if (result?.magic_token) setApprovedMagicToken(result.magic_token);
-      if (result?.magicToken) setApprovedMagicToken(result.magicToken);
-      if (result?.event_title) setApprovedEventTitle(result.event_title);
+      if (result?.whatsapp_notify_url) setWhatsappNotifyUrl(result.whatsapp_notify_url);
       showToast(`${attendee.fullName} approved`, 'success');
       onRefresh();
     } catch (err: any) {
@@ -61,14 +58,6 @@ export const ApprovalCard: React.FC<ApprovalCardProps> = ({ attendee, onRefresh 
     }
   };
 
-  const handleSendWhatsApp = () => {
-    const phone = attendee.phoneNumber || '';
-    const token = approvedMagicToken || attendee.magicToken;
-    const title = approvedEventTitle || 'the session';
-    const ticketUrl = token ? `${window.location.origin}/m/${token}` : window.location.origin;
-    const message = `Your seat is confirmed for ${title}! View your ticket: ${ticketUrl}`;
-    window.open(buildWhatsAppUrl(phone, message), '_blank');
-  };
 
   const handleWaitlist = async () => {
     setLoading('waitlist');
@@ -111,7 +100,16 @@ export const ApprovalCard: React.FC<ApprovalCardProps> = ({ attendee, onRefresh 
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-medium text-tea-text">{attendee.fullName}</span>
+            {attendee.customerId ? (
+              <button
+                onClick={() => navigate(`/admin/people/${attendee.customerId}`)}
+                className="text-sm font-medium text-tea-text hover:text-tea-gold transition-colors"
+              >
+                {attendee.fullName}
+              </button>
+            ) : (
+              <span className="text-sm font-medium text-tea-text">{attendee.fullName}</span>
+            )}
             {isGolden && (
               <span className="flex items-center gap-0.5 text-[10px] text-tea-gold uppercase tracking-[0.12em]">
                 <Star size={9} fill="currentColor" /> Golden
@@ -179,38 +177,53 @@ export const ApprovalCard: React.FC<ApprovalCardProps> = ({ attendee, onRefresh 
         </div>
       )}
 
-      {/* Row 5: Actions */}
-      <div className="flex items-center gap-2 flex-wrap pt-1">
-        <button
-          type="button"
-          onClick={handleApprove}
-          disabled={!!loading}
-          className="flex items-center gap-1.5 text-xs bg-tea-gold/15 text-tea-gold hover:bg-tea-gold/25 px-3 py-1.5 rounded transition-colors disabled:opacity-50"
-        >
-          {loading === 'approve' ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}
-          Approve
-        </button>
+      {/* Row 5: Actions — collapses to notify button post-approval */}
+      {whatsappNotifyUrl ? (
+        <div className="flex items-center gap-2 pt-1">
+          <a
+            href={whatsappNotifyUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 text-xs bg-green-500/10 text-green-400 hover:bg-green-500/20 px-3 py-1.5 rounded transition-colors"
+          >
+            <Check size={11} />
+            Notify via WhatsApp
+          </a>
+          <span className="text-[10px] text-tea-text-dim">Approved</span>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2 flex-wrap pt-1">
+          <button
+            type="button"
+            onClick={handleApprove}
+            disabled={!!loading}
+            className="flex items-center gap-1.5 text-xs bg-tea-gold/15 text-tea-gold hover:bg-tea-gold/25 px-3 py-1.5 rounded transition-colors disabled:opacity-50"
+          >
+            {loading === 'approve' ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}
+            Approve
+          </button>
 
-        <button
-          type="button"
-          onClick={handleWaitlist}
-          disabled={!!loading}
-          className="flex items-center gap-1.5 text-xs bg-tea-elevated/50 text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated px-3 py-1.5 rounded transition-colors disabled:opacity-50"
-        >
-          {loading === 'waitlist' ? <Loader2 size={11} className="animate-spin" /> : <Clock size={11} />}
-          Waitlist
-        </button>
+          <button
+            type="button"
+            onClick={handleWaitlist}
+            disabled={!!loading}
+            className="flex items-center gap-1.5 text-xs bg-tea-elevated/50 text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated px-3 py-1.5 rounded transition-colors disabled:opacity-50"
+          >
+            {loading === 'waitlist' ? <Loader2 size={11} className="animate-spin" /> : <Clock size={11} />}
+            Waitlist
+          </button>
 
-        <button
-          type="button"
-          onClick={() => setDenyExpanded(!denyExpanded)}
-          disabled={!!loading}
-          className="flex items-center gap-1.5 text-xs text-tea-text-dim hover:text-tea-text-sec px-3 py-1.5 rounded transition-colors disabled:opacity-50"
-        >
-          {denyExpanded ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
-          Deny
-        </button>
-      </div>
+          <button
+            type="button"
+            onClick={() => setDenyExpanded(!denyExpanded)}
+            disabled={!!loading}
+            className="flex items-center gap-1.5 text-xs text-tea-text-dim hover:text-tea-text-sec px-3 py-1.5 rounded transition-colors disabled:opacity-50"
+          >
+            {denyExpanded ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+            Deny
+          </button>
+        </div>
+      )}
 
       {/* Deny message expansion */}
       <AnimatePresence>

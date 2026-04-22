@@ -2,15 +2,27 @@ import React from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useQuery } from '@tanstack/react-query';
 import { Icons } from '../components/Icons';
 import { buildWhatsAppUrl } from '../lib/whatsapp';
+import { api } from '../lib/api';
 
 const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER || '';
 
-// TODO: Replace with API call — e.g. fetchNetworkSpaces() from storefrontApi.ts
-// when the `spaces` table is live in D1 and the Worker route is wired up.
-// Each space will have the same shape as the objects below.
-const SPACES = [
+type SpaceStatus = 'active' | 'by-appointment' | 'coming-soon';
+
+interface Space {
+  id: string;
+  name: string;
+  description: string | null;
+  type: string;
+  location: string | null;
+  host?: string | null;
+  status: SpaceStatus;
+  isPrivate: boolean;
+}
+
+const FALLBACK_SPACES: Space[] = [
   {
     id: 'teajia-home-1',
     name: 'The Tea Room',
@@ -18,7 +30,7 @@ const SPACES = [
     type: 'Private Tea Room',
     location: 'Ubud, Bali',
     host: 'Adrian',
-    status: 'active' as const,
+    status: 'active',
     isPrivate: true,
   },
   {
@@ -28,7 +40,7 @@ const SPACES = [
     type: 'Private Tea Room',
     location: 'Ubud, Bali',
     host: 'Adrian',
-    status: 'by-appointment' as const,
+    status: 'by-appointment',
     isPrivate: true,
   },
   {
@@ -38,12 +50,10 @@ const SPACES = [
     type: 'Studio',
     location: 'Ubud, Bali',
     host: 'Adrian',
-    status: 'by-appointment' as const,
+    status: 'by-appointment',
     isPrivate: false,
   },
 ];
-
-type SpaceStatus = 'active' | 'by-appointment' | 'coming-soon';
 
 const STATUS_LABEL: Record<SpaceStatus, string> = {
   'active': 'Active',
@@ -81,13 +91,21 @@ const StatusBadge: React.FC<{ status: SpaceStatus }> = ({ status }) => {
 export const SpacesPage: React.FC = () => {
   const navigate = useNavigate();
 
+  const { data: apiSpaces } = useQuery<Space[]>({
+    queryKey: ['venues-public'],
+    queryFn: () => api.venues.listPublic(),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const spaces = apiSpaces && apiSpaces.length > 0 ? apiSpaces : FALLBACK_SPACES;
+
   const buildInquiryUrl = (spaceName: string) => {
     const message = `Hi Adrian, I'd like to learn more about ${spaceName} and how to book a session.`;
     return buildWhatsAppUrl(WHATSAPP_NUMBER, message);
   };
 
   return (
-    <div className="w-full animate-[fadeIn_0.5s_ease-out]">
+    <div className="w-full animate-[fadeIn_0.5s_ease-out] pb-nav-gap">
       <Helmet>
         <title>Our Spaces — Teajia</title>
         <meta
@@ -143,7 +161,7 @@ export const SpacesPage: React.FC = () => {
       {/* Space cards */}
       <section className="max-w-[720px] pb-16">
         <ul className="flex flex-col gap-0">
-          {SPACES.map((space, i) => (
+          {spaces.map((space, i) => (
             <motion.li
               key={space.id}
               initial={{ opacity: 0, y: 12 }}
@@ -242,8 +260,6 @@ export const SpacesPage: React.FC = () => {
         </Link>
       </div>
 
-      {/* Mobile bottom nav clearance */}
-      <div className="h-[calc(1rem+44px+env(safe-area-inset-bottom,0px))] lg:h-8" />
     </div>
   );
 };

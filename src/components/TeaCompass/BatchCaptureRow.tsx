@@ -13,6 +13,7 @@ export const BatchCaptureRow: React.FC<BatchCaptureRowProps> = ({ onAdded }) => 
   const updateEntry = useTeaCompassStore((s) => s.updateEntry);
   const commitEntry = useTeaCompassStore((s) => s.commitEntry);
   const setActiveEntry = useTeaCompassStore((s) => s.setActiveEntry);
+  const activeEntryId = useTeaCompassStore((s) => s.activeEntryId);
 
   const [name, setName] = useState('');
   const [type, setType] = useState<TeaType | ''>('');
@@ -26,11 +27,13 @@ export const BatchCaptureRow: React.FC<BatchCaptureRowProps> = ({ onAdded }) => 
       return;
     }
 
+    const prevId = activeEntryId;
     const id = startNewCapture('tea');
     const updates: Record<string, unknown> = { name: name.trim() };
     if (type) updates.type = type;
     updateEntry(id, updates);
     commitEntry(id); // immediately commit as a minimal entry
+    if (prevId) setActiveEntry(prevId); // restore the entry being worked on
 
     setFeedback(name.trim());
     setName('');

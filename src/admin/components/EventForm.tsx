@@ -628,8 +628,28 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
   const [showSaveLocation, setShowSaveLocation] = useState(false);
   const [savingLocation, setSavingLocation] = useState(false);
 
+  // Venue state
+  const [venues, setVenues] = useState<Venue[]>([]);
+  const [editVenueId, setEditVenueId] = useState('');
+  const [editSpaceIds, setEditSpaceIds] = useState<string[]>([]);
+  const [isVenueManagerOpen, setIsVenueManagerOpen] = useState(false);
+  const loadVenues = () => { api.venues.list().then(setVenues).catch(() => {}); };
+  const editVenueObj = venues.find(v => v.id === editVenueId);
+
+  const toggleEditSpace = (spaceId: string, capacity: number) => {
+    setEditSpaceIds(prev => {
+      if (prev.includes(spaceId)) return prev.filter(id => id !== spaceId);
+      return [...prev, spaceId];
+    });
+    setForm(prev => {
+      const wasSelected = editSpaceIds.includes(spaceId);
+      return { ...prev, totalCapacity: wasSelected ? Math.max(1, prev.totalCapacity - capacity) : prev.totalCapacity + capacity };
+    });
+  };
+
   useEffect(() => {
     api.savedLocations.list().then(setSavedLocations).catch(() => {});
+    loadVenues();
   }, []);
 
   useEffect(() => {
@@ -666,6 +686,8 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
       setDurationHours(2);
     }
     setRepeatDates([]);
+    setEditVenueId(initialData.venueId ?? '');
+    setEditSpaceIds(initialData.activeSpaceIds ?? []);
   }, [initialData]);
 
   const updateField = (field: keyof EventFormData, value: any) => {
@@ -853,6 +875,8 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
         venue_guide: form.venueGuide ? JSON.stringify(form.venueGuide) : null,
         session_flow: form.sessionFlow && form.sessionFlow.length > 0 ? JSON.stringify(form.sessionFlow) : null,
         location_id: selectedLocationId || null,
+        venue_id: editVenueId || null,
+        active_space_ids: editSpaceIds.length > 0 ? JSON.stringify(editSpaceIds) : null,
       };
       await api.events.update(initialData.id, payload);
       showToast('Event updated', 'success');
@@ -881,6 +905,7 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
   );
 
   return (
+    <>
     <form onSubmit={handleSubmit} className="flex flex-col h-full min-h-0">
       <div className="flex-1 overflow-y-auto px-6 py-6 space-y-4">
 
@@ -1148,8 +1173,127 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
               />
             </Field>
 
+            {/* ── Venue picker ── */}
+            <div className="pt-1 space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec">Venue</label>
+                <button
+                  type="button"
+                  onClick={() => setIsVenueManagerOpen(true)}
+                  className="flex items-center gap-1 text-[10px] text-tea-gold hover:text-tea-gold-lt transition-colors uppercase tracking-[0.15em]"
+                >
+                  <MapPin size={10} /> Manage venues
+                </button>
+              </div>
+
+              {venues.length === 0 ? (
+                <div className="flex items-center justify-between py-1">
+                  <p className="text-xs text-tea-text-dim">No venues configured yet.</p>
+                  <button
+                    type="button"
+                    onClick={() => setIsVenueManagerOpen(true)}
+                    className="flex items-center gap-1.5 text-xs text-tea-text-sec hover:text-tea-text border border-tea-border px-2.5 py-1.5 rounded-md hover:border-tea-gold/40 transition-colors"
+                  >
+                    <MapPin size={11} /> Add venue
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="relative">
+                    <MapPin size={12} className="absolute left-0 top-1/2 -translate-y-1/2 text-tea-text-sec" />
+                    <select
+                      value={editVenueId}
+                      onChange={(e) => { setEditVenueId(e.target.value); setEditSpaceIds([]); }}
+                      className={`${selectClass} pl-5`}
+                    >
+                      <option value="">No venue assigned…</option>
+                      {venues.map(v => (
+                        <option key={v.id} value={v.id}>{v.name}</option>
+                      ))}
+                    </select>
+                    <ChevronDown size={12} className="absolute right-0 top-1/2 -translate-y-1/2 text-tea-text-sec pointer-events-none" />
+                  </div>
+
+                  {editVenueObj && editVenueObj.spaces.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec">Spaces</p>
+                        {editSpaceIds.length === 0 && (
+                          <p className="text-[11px] text-amber-400">No spaces selected</p>
+                        )}
+                      </div>
+                      {editSpaceIds.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5">
+                          {editVenueObj.spaces.filter(s => editSpaceIds.includes(s.id)).map(s => (
+                            <span key={s.id} className="inline-flex items-center gap-1 text-[11px] bg-tea-gold/10 text-tea-gold px-2 py-0.5 rounded-full">
+                              {s.name} · {s.capacity}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      <div className="space-y-2">
+                        {editVenueObj.spaces.map(space => {
+                          const active = editSpaceIds.includes(space.id);
+                          return (
+                            <button
+                              key={space.id}
+                              type="button"
+                              onClick={() => toggleEditSpace(space.id, space.capacity)}
+                              className={`w-full flex items-start gap-3 p-3 rounded-md border text-left transition-colors ${
+                                active ? 'border-tea-gold/50 bg-tea-gold/5 text-tea-text' : 'border-tea-border hover:border-tea-border text-tea-text-sec'
+                              }`}
+                            >
+                              {space.photos[0] ? (
+                                <div className="w-14 h-14 rounded overflow-hidden border border-tea-border flex-shrink-0">
+                                  <img src={space.photos[0]} alt={space.name} className="w-full h-full object-cover" loading="lazy" />
+                                </div>
+                              ) : (
+                                <div className="w-14 h-14 rounded border border-dashed border-tea-border flex items-center justify-center flex-shrink-0">
+                                  <MapPin size={14} className="text-tea-text-dim" />
+                                </div>
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <p className={`text-sm font-medium ${active ? 'text-tea-text' : 'text-tea-text-sec'}`}>{space.name}</p>
+                                <p className="text-[11px] text-tea-text-dim mt-0.5">{space.capacity} seats</p>
+                                {space.description && (
+                                  <p className="text-[11px] text-tea-text-dim mt-1 line-clamp-1">{space.description}</p>
+                                )}
+                              </div>
+                              <div className={`w-4 h-4 rounded-sm border flex-shrink-0 mt-0.5 flex items-center justify-center transition-colors ${
+                                active ? 'bg-tea-gold border-tea-gold' : 'border-tea-border'
+                              }`}>
+                                {active && <span className="text-tea-bg text-[10px] font-bold leading-none">✓</span>}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {editSpaceIds.length > 1 && (
+                        <p className="text-[11px] text-tea-text-sec">
+                          Combined capacity: {editVenueObj.spaces.filter(s => editSpaceIds.includes(s.id)).reduce((sum, s) => sum + s.capacity, 0)} seats
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {editVenueObj && editVenueObj.spaces.length === 0 && (
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs text-tea-text-dim">This venue has no spaces yet.</p>
+                      <button
+                        type="button"
+                        onClick={() => setIsVenueManagerOpen(true)}
+                        className="flex items-center gap-1.5 text-xs text-tea-text-sec hover:text-tea-text border border-tea-border px-2.5 py-1.5 rounded-md hover:border-tea-gold/40 transition-colors"
+                      >
+                        <MapPin size={11} /> Add spaces
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
             <div className="flex items-center justify-between pt-1">
-              <label className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec">Venue</label>
+              <label className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec">Manual Location</label>
               {form.locationName?.trim() && form.addressText?.trim() && !selectedLocationId && (
                 <button
                   type="button"
@@ -1414,6 +1558,26 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
         </button>
       </div>
     </form>
+
+    {/* Inline Venue Manager overlay */}
+    {isVenueManagerOpen && (
+      <div className="fixed inset-0 bg-tea-bg z-toast flex flex-col">
+        <div className="flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-tea-border">
+          <h2 className="text-base font-serif text-tea-text">Manage Venues</h2>
+          <button
+            type="button"
+            onClick={() => { setIsVenueManagerOpen(false); loadVenues(); }}
+            className="text-tea-text-sec hover:text-tea-text transition-colors"
+          >
+            <X size={18} />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto">
+          <VenueManager />
+        </div>
+      </div>
+    )}
+    </>
   );
 };
 

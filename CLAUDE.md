@@ -42,8 +42,16 @@ Read `docs/COLOR_RULES.md` before writing any component styles.
 - Banned: `tea-ink`, `tea-paper`, `tea-seal`, `tea-charcoal` (legacy tokens)
 - `border-tea-border` — NEVER add opacity modifiers. `border-tea-gold` — ONLY for focus/hover/active.
 - NO horizontal scroll anywhere — use `flex-wrap` instead
-- Bottom nav clearance: `h-[44px] + env(safe-area-inset-bottom)` on mobile only
-- **Sticky footer clearance**: Any `fixed inset-0` form/panel that has a sticky bottom action bar MUST add `lg:pb-4 pb-[calc(1rem+44px+env(safe-area-inset-bottom,0px))]` to the footer div — the bottom nav bar overlaps it otherwise on mobile.
+- **Bottom nav clearance — MANDATORY**: The mobile bottom nav (`flex lg:hidden`, `44px + safe-area-inset-bottom`) overlaps page content at every breakpoint below `lg`. Every layout MUST account for it. Use the utility classes from `src/styles/card-utilities.css` — never write the `calc()` inline:
+  | Class | When to use |
+  |---|---|
+  | `pb-nav` | Scrollable page content — flush clearance |
+  | `pb-nav-gap` | Scrollable page content — 1rem gap above nav |
+  | `pb-nav-gap-lg` | Scrollable page content — 2rem gap above nav |
+  | `bottom-nav` | Fixed/absolute elements positioned just above the nav |
+  | `bottom-nav-gap` | Fixed/absolute elements positioned 1rem above the nav |
+  - On `lg`+, all of these automatically reset to 0/standard values — no extra `lg:` class needed.
+  - For sticky footer bars inside `fixed inset-0` panels: use `pb-nav-gap` on the footer div (resets to `pb-4` on desktop).
 - **Full-screen admin overlays use `z-modal` (40)**, not `z-50`. AccountPanel (`z-modal`) and its backdrop (`z-drawer`) are rendered later in App.tsx's DOM, so they correctly appear on top at equal z-index. Using `z-50` blocks AccountPanel from opening.
 - All reusable UI styles → `src/styles/card-utilities.css`
 - **Typography**: use `TYPOGRAPHY_CLASSES` from `src/designTokens.ts` for new headings/body text (`h1`–`h3`, `body`, `label`, `nav`, etc.) — do not hardcode raw font/size/leading combos

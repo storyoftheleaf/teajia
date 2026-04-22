@@ -826,7 +826,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
       <div className="bg-tea-surface rounded-2xl px-4 py-3 space-y-2">
 
         {/* Row 1: Vendor + Camera */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-start gap-3">
           <div className="flex-1 min-w-0">
             <VendorStrip
               vendorName={entry.vendorName}
@@ -1128,7 +1128,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
 
       {/* ─── IDENTITY ─── */}
       <div className="space-y-2">
-        <div className="flex items-center gap-3">
+        <div className="flex items-start gap-3">
           <div className="flex-1 min-w-0">
             <VendorStrip
               vendorName={entry.vendorName}

@@ -423,11 +423,6 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
          {/* LIST VIEW — tap opens AlcoveCard */}
          {filteredInventory.length > 0 && (
             <div className="flex flex-col px-0 animate-[fadeIn_0.5s_ease-out]">
-               {/* Price basis note — centered */}
-               <div className="text-center pb-2">
-                  <span className="text-[10px] uppercase tracking-[0.2em] text-tea-text-dim">All prices per 50g</span>
-               </div>
-
                {groupedInventory.map((group) => (
                 <React.Fragment key={group.type}>
 
@@ -450,7 +445,6 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                         const isFavorite = userFavorites.has(item.id);
                         const pricePerGram = parseFloat(item.price_per_gram || '0') || 0;
                         const price50g = Math.round(pricePerGram * 50 * 100) / 100;
-                        const price100g = Math.round(pricePerGram * 100 * 100) / 100;
                         const showType = activeType !== 'All' || specialFilter !== 'None';
 
                         // Stock badge logic (tea items only, stock_g is in grams)
@@ -551,11 +545,10 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                                 <Icons.Edit className="w-3.5 h-3.5" />
                                             </button>
                                         )}
-                                        {/* Price column: main price + per-100g hint */}
                                         <div className="text-right">
                                             <span className="num text-sm text-tea-gold font-medium">{fmtPrice(price50g)}</span>
-                                            {item.category === 'tea' && price100g > 0 && (
-                                                <div className="text-[10px] text-tea-text-dim num leading-none mt-0.5">${price100g.toFixed(2)}/100g</div>
+                                            {item.category === 'tea' && price50g > 0 && (
+                                                <div className="text-[10px] text-tea-text-dim leading-none mt-0.5">per 50g</div>
                                             )}
                                         </div>
                                     </div>
