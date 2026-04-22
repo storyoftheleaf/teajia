@@ -519,7 +519,7 @@ const EventLanding: React.FC = () => {
       {/* RSVP Form Sheet */}
       {showRSVP && slug && (
         <Suspense fallback={null}>
-          <RSVPFormSheet slug={slug} onClose={() => setShowRSVP(false)} />
+          <RSVPFormSheet slug={slug} onClose={() => setShowRSVP(false)} accountLocationCountry={(event as any).account_location_country} />
         </Suspense>
       )}
 

@@ -115,6 +115,8 @@ export interface TeaEvent {
   waitlistCount?: number;
   requestedCount?: number;
   seatsRemaining?: number;
+  // Account context
+  accountLocationCountry?: string;
 }
 
 export interface EventAvailability {

@@ -1,28 +1,79 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { X, Plus, Trash2 } from 'lucide-react';
+import { X, Plus, Trash2, LogIn } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { useScrollLock } from '../../hooks/useScrollLock';
+import { useAuth } from '../../hooks/useAuth';
 import type { RSVPFormData, ContactMethod, RSVPResponse } from '../../types/events';
 
 interface RSVPFormSheetProps {
   slug: string;
   onClose: () => void;
+  accountLocationCountry?: string;
 }
 
-const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose }) => {
+const COUNTRY_CODES = [
+  { code: '+886', label: 'TW +886' },
+  { code: '+62',  label: 'ID +62' },
+  { code: '+1',   label: 'US +1' },
+  { code: '+60',  label: 'MY +60' },
+  { code: '+65',  label: 'SG +65' },
+  { code: '+852', label: 'HK +852' },
+  { code: '+44',  label: 'UK +44' },
+  { code: '+61',  label: 'AU +61' },
+  { code: '+81',  label: 'JP +81' },
+  { code: '+86',  label: 'CN +86' },
+];
+
+
+const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLocationCountry }) => {
   const navigate = useNavigate();
+  const { user, isAuthenticated, login } = useAuth();
   useScrollLock(true);
 
-  const [formData, setFormData] = useState<RSVPFormData>({
-    fullName: '',
+  // Parse saved phone into dial code + local number
+  const parseSavedPhone = (phone?: string | null) => {
+    if (!phone) return { dialCode: '+1', local: '' };
+    for (const { code } of COUNTRY_CODES) {
+      if (phone.startsWith(code)) return { dialCode: code, local: phone.slice(code.length).trim() };
+    }
+    return { dialCode: '+1', local: phone };
+  };
+
+  const savedPhone = parseSavedPhone(user?.phone);
+  const defaultContact = (user?.phone) ? 'whatsapp' : user ? 'email' : 'whatsapp';
+
+  const [countryCode, setCountryCode] = useState(savedPhone.dialCode);
+  const [localPhone, setLocalPhone] = useState(savedPhone.local);
+
+  const [formData, setFormData] = useState<RSVPFormData>(() => ({
+    fullName: user?.name ?? '',
     phoneNumber: '',
-    email: '',
-    contactMethod: 'whatsapp',
+    email: user?.email ?? '',
+    contactMethod: defaultContact,
     guests: [],
     notes: '',
-  });
+  }));
+
+  // Pre-fill when auth resolves after mount
+  useEffect(() => {
+    if (user) {
+      setFormData(prev => ({
+        ...prev,
+        fullName: prev.fullName || user.name,
+        email: prev.email || user.email,
+        contactMethod: prev.contactMethod === 'whatsapp' && !prev.phoneNumber ? 'email' : prev.contactMethod,
+      }));
+    }
+  }, [user?.email]);
+
+  // Sync combined phone number whenever parts change
+  useEffect(() => {
+    if (formData.contactMethod === 'whatsapp') {
+      setFormData(prev => ({ ...prev, phoneNumber: localPhone ? `${countryCode}${localPhone}` : '' }));
+    }
+  }, [countryCode, localPhone, formData.contactMethod]);
 
   const [submitted, setSubmitted] = useState(false);
   const [dragY, setDragY] = useState(0);
@@ -30,7 +81,13 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose }) => {
   const dragStartY = useRef(0);
   const sheetRef = useRef<HTMLDivElement>(null);
 
-  // Escape key handler
+  // Inline sign-in state
+  const [showLoginForm, setShowLoginForm] = useState(false);
+  const [loginIdentifier, setLoginIdentifier] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
+  const [loginPending, setLoginPending] = useState(false);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -39,7 +96,6 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose }) => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [onClose]);
 
-  // Drag-to-dismiss handlers
   const handleDragStart = useCallback((clientY: number) => {
     setIsDragging(true);
     dragStartY.current = clientY;
@@ -66,9 +122,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose }) => {
 
   const submitMutation = useMutation<RSVPResponse, Error, RSVPFormData>({
     mutationFn: (data) => api.rsvp.submit(slug, data),
-    onSuccess: () => {
-      setSubmitted(true);
-    },
+    onSuccess: () => setSubmitted(true),
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -108,6 +162,20 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose }) => {
     updateField('guests', guests);
   };
 
+  const handleInlineLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError('');
+    setLoginPending(true);
+    try {
+      await login(loginIdentifier, loginPassword);
+      setShowLoginForm(false);
+    } catch {
+      setLoginError('Incorrect email or password.');
+    } finally {
+      setLoginPending(false);
+    }
+  };
+
   const contactValue =
     formData.contactMethod === 'whatsapp'
       ? formData.phoneNumber ?? ''
@@ -124,17 +192,15 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose }) => {
       aria-modal="true"
       aria-label="Request your seat"
     >
-      {/* Backdrop */}
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
 
-      {/* Sheet */}
       <div
         ref={sheetRef}
         className="absolute bottom-0 left-0 right-0 md:bottom-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:max-w-lg bg-tea-bg border-t border-tea-border md:border rounded-t-2xl md:rounded-2xl shadow-2xl max-h-[calc(100dvh-44px-env(safe-area-inset-bottom,0px))] md:max-h-[85vh] overflow-hidden animate-[slideUp_0.3s_ease-out] flex flex-col"
         style={{ transform: `translateY(${dragY}px)` }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Drag handle (mobile) */}
+        {/* Drag handle */}
         <div
           className="flex justify-center pt-3 pb-2 cursor-grab md:hidden"
           onTouchStart={handleTouchStart}
@@ -158,7 +224,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose }) => {
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto px-6 py-5">
+        <div className="flex-1 overflow-y-auto px-6 py-5 pb-[calc(1.25rem+44px+env(safe-area-inset-bottom,0px))] lg:pb-6">
           {submitted ? (
             <div className="flex flex-col items-center justify-center py-16 animate-[fadeIn_0.5s_ease-out]">
               <div className="w-14 h-14 rounded-full bg-tea-gold/10 flex items-center justify-center mb-6">
@@ -171,6 +237,66 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose }) => {
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-6" noValidate>
+
+              {/* Member banner / sign-in prompt */}
+              {isAuthenticated && user ? (
+                <div className="flex items-center gap-2.5 px-3 py-2.5 bg-tea-gold/8 border border-tea-gold/20 rounded-sm">
+                  <div className="w-1.5 h-1.5 rounded-full bg-tea-gold shrink-0" />
+                  <p className="text-xs text-tea-text-sec">
+                    Signed in as <span className="text-tea-text">{user.name}</span>
+                  </p>
+                </div>
+              ) : showLoginForm ? (
+                <div className="border border-tea-border rounded-sm p-4 space-y-3 animate-[fadeIn_0.2s_ease-out]">
+                  <p className="text-[10px] uppercase tracking-[0.25em] text-tea-text-sec">Sign in to your account</p>
+                  <input
+                    type="text"
+                    value={loginIdentifier}
+                    onChange={(e) => setLoginIdentifier(e.target.value)}
+                    placeholder="Email or username"
+                    autoComplete="username"
+                    className="w-full px-3 py-2.5 bg-tea-surface border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-sec/50 focus:outline-none focus:border-tea-gold/50 transition-colors"
+                  />
+                  <input
+                    type="password"
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                    placeholder="Password"
+                    autoComplete="current-password"
+                    className="w-full px-3 py-2.5 bg-tea-surface border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-sec/50 focus:outline-none focus:border-tea-gold/50 transition-colors"
+                  />
+                  {loginError && (
+                    <p className="text-xs text-red-400">{loginError}</p>
+                  )}
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={handleInlineLogin}
+                      disabled={loginPending || !loginIdentifier || !loginPassword}
+                      className="flex-1 py-2 bg-tea-gold text-white text-xs uppercase tracking-[0.2em] rounded-sm disabled:opacity-50 transition-colors hover:bg-tea-gold/90"
+                    >
+                      {loginPending ? 'Signing in…' : 'Sign in'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowLoginForm(false)}
+                      className="text-xs text-tea-text-sec hover:text-tea-text transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowLoginForm(true)}
+                  className="flex items-center gap-2 text-xs text-tea-text-sec hover:text-tea-gold transition-colors"
+                >
+                  <LogIn className="w-3.5 h-3.5" />
+                  Already a member? Sign in to pre-fill
+                </button>
+              )}
+
               {/* Full Name */}
               <div>
                 <label
@@ -223,16 +349,28 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose }) => {
 
                 {formData.contactMethod === 'whatsapp' ? (
                   <div>
-                    <input
-                      id="rsvp-phone"
-                      type="tel"
-                      value={formData.phoneNumber ?? ''}
-                      onChange={(e) => updateField('phoneNumber', e.target.value)}
-                      placeholder="0912-345-678"
-                      autoComplete="tel"
-                      required
-                      className="w-full px-4 py-3 bg-tea-surface border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-sec/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold/50 transition-colors"
-                    />
+                    <div className="flex gap-0 border border-tea-border rounded-sm overflow-hidden focus-within:border-tea-gold/50 transition-colors">
+                      <select
+                        value={countryCode}
+                        onChange={(e) => setCountryCode(e.target.value)}
+                        className="bg-tea-surface text-tea-text text-sm px-3 py-3 border-r border-tea-border focus:outline-none shrink-0"
+                        aria-label="Country code"
+                      >
+                        {COUNTRY_CODES.map(({ code, label }) => (
+                          <option key={code} value={code}>{label}</option>
+                        ))}
+                      </select>
+                      <input
+                        id="rsvp-phone"
+                        type="tel"
+                        value={localPhone}
+                        onChange={(e) => setLocalPhone(e.target.value.replace(/\D/g, ''))}
+                        placeholder="912 345 678"
+                        autoComplete="tel-national"
+                        required
+                        className="flex-1 min-w-0 px-4 py-3 bg-tea-surface text-tea-text text-sm placeholder:text-tea-text-sec/50 focus:outline-none"
+                      />
+                    </div>
                     <button
                       type="button"
                       onClick={() => setContactMethod('email')}
@@ -321,7 +459,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose }) => {
                 />
               </div>
 
-              {/* Error message */}
+              {/* Error */}
               {submitMutation.isError && (
                 <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-sm">
                   <p className="text-sm text-red-400">

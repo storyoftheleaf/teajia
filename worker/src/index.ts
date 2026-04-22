@@ -761,7 +761,7 @@ const handleGetMe: Handler = async (request, env) => {
 
   // Try to fetch fresh user data from DB
   try {
-    const user = await env.DB.prepare('SELECT id, email, username, name, role, admin_request_status, created_at FROM users WHERE id = ?').bind(claims.sub).first();
+    const user = await env.DB.prepare('SELECT id, email, username, name, role, phone, admin_request_status, created_at FROM users WHERE id = ?').bind(claims.sub).first();
     if (user) {
       return json({ ...user, ...(refreshedToken ? { refreshed_token: refreshedToken } : {}) });
     }
@@ -884,7 +884,7 @@ const handleUpdateProfile: Handler = async (request, env) => {
   const claims = parseToken(token);
   if (!claims) return json({ error: 'Invalid token' }, 401);
 
-  const { name, email, username } = await request.json() as { name?: string; email?: string; username?: string | null };
+  const { name, email, username, phone } = await request.json() as { name?: string; email?: string; username?: string | null; phone?: string };
 
   if (email && email !== claims.email) {
     const existing = await env.DB.prepare('SELECT id FROM users WHERE lower(email) = lower(?) AND id != ?').bind(email, claims.sub).first();
@@ -912,13 +912,14 @@ const handleUpdateProfile: Handler = async (request, env) => {
   if (name !== undefined) { updates.push('name = ?'); binds.push(name); }
   if (email !== undefined) { updates.push('email = ?'); binds.push(email); }
   if (normalizedUsername !== undefined) { updates.push('username = ?'); binds.push(normalizedUsername); }
+  if (phone !== undefined) { updates.push('phone = ?'); binds.push(phone || null); }
 
   if (updates.length === 0) return json({ error: 'No fields to update' }, 400);
 
   binds.push(claims.sub);
   await env.DB.prepare(`UPDATE users SET ${updates.join(', ')} WHERE id = ?`).bind(...binds).run();
 
-  const updatedUser = await env.DB.prepare('SELECT id, email, username, name, role, admin_request_status, created_at FROM users WHERE id = ?').bind(claims.sub).first();
+  const updatedUser = await env.DB.prepare('SELECT id, email, username, name, role, phone, admin_request_status, created_at FROM users WHERE id = ?').bind(claims.sub).first();
 
   // Issue fresh token with updated claims, preserving account context.
   const memberships = await loadMemberships(env, updatedUser!.id as string);
@@ -3234,10 +3235,13 @@ async function cascadeWaitlist(env: Env, eventId: string, claimWindowMinutes: nu
 
 const handleGetEventBySlug: Handler = async (_request, env, params) => {
   const event = await env.DB.prepare(
-    `SELECT id, slug, title, subtitle, description, flyer_image_url, event_date, event_end_date,
-            location_name, address_text, map_link, guidelines_text, venue_guide, total_capacity, timezone, status,
-            session_flow, playlist_url, event_format, gathering_type, area_hint, mood_hints, created_at
-     FROM events WHERE slug = ? AND status = 'active'`
+    `SELECT e.id, e.slug, e.title, e.subtitle, e.description, e.flyer_image_url, e.event_date, e.event_end_date,
+            e.location_name, e.address_text, e.map_link, e.guidelines_text, e.venue_guide, e.total_capacity, e.timezone, e.status,
+            e.session_flow, e.playlist_url, e.event_format, e.gathering_type, e.area_hint, e.mood_hints, e.created_at,
+            a.location_country AS account_location_country
+     FROM events e
+     JOIN accounts a ON a.id = e.account_id
+     WHERE e.slug = ? AND e.status = 'active'`
   ).bind(params.slug).first();
 
   if (!event) return json({ error: 'Event not found' }, 404);
