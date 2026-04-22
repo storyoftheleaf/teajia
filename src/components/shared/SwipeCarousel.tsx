@@ -117,7 +117,7 @@ export const SwipeCarousel: React.FC<SwipeCarouselProps> = ({
   const dotInactive = arrowTheme === 'light' ? 'bg-tea-text/15' : 'bg-tea-text-sec/30';
 
   return (
-    <div className={`relative ${className}`} onKeyDown={handleKeyDown} tabIndex={0} role="region" aria-label="Carousel">
+    <div className={`relative focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 ${className}`} onKeyDown={handleKeyDown} tabIndex={0} role="region" aria-label="Carousel">
       {/* Arrow buttons */}
       {showArrows && (
         <>

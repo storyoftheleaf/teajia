@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   MapPin, Camera, Check, Phone, MessageCircle,
-  ExternalLink, Loader2, Image, ChevronDown, Store,
+  ExternalLink, Loader2, Image, Store,
   Pencil,
 } from 'lucide-react';
 import { api, hasToken } from '../../lib/api';
@@ -272,7 +272,7 @@ export const VendorInfoPanel: React.FC<VendorInfoPanelProps> = ({
         >
           {storefrontState === 'loading' ? <Loader2 size={14} className="animate-spin" /> :
            storefrontState === 'done' ? <Check size={14} className="text-tea-gold" /> :
-           d.storefrontUrl ? <img src={d.storefrontUrl} alt="" className="w-8 h-8 rounded object-cover" /> :
+           d.storefrontUrl ? <img src={d.storefrontUrl} alt="" className="w-8 h-8 rounded object-cover" loading="lazy" /> :
            <Camera size={14} />}
           <span>{d.storefrontUrl ? 'Update storefront' : 'Storefront photo'}</span>
         </button>
@@ -285,7 +285,7 @@ export const VendorInfoPanel: React.FC<VendorInfoPanelProps> = ({
         >
           {cardState === 'loading' ? <Loader2 size={14} className="animate-spin" /> :
            cardState === 'done' ? <Check size={14} className="text-tea-gold" /> :
-           d.businessCardUrl ? <img src={d.businessCardUrl} alt="" className="w-8 h-8 rounded object-cover" /> :
+           d.businessCardUrl ? <img src={d.businessCardUrl} alt="" className="w-8 h-8 rounded object-cover" loading="lazy" /> :
            <Image size={14} />}
           <span>{d.businessCardUrl ? 'Update card' : 'Business card'}</span>
         </button>

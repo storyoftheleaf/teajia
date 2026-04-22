@@ -275,7 +275,7 @@ const SamplePage: React.FC = () => {
             className="flex gap-2 overflow-x-auto scrollbar-hide"
           >
             {sample.photos.map((url, i) => (
-              <img key={i} src={url} alt="" className="h-32 w-32 rounded-lg object-cover flex-shrink-0" />
+              <img key={i} src={url} alt="" className="h-32 w-32 rounded-lg object-cover flex-shrink-0" loading="lazy" />
             ))}
           </motion.div>
         )}

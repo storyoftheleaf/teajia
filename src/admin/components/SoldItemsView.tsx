@@ -155,7 +155,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
         <div className="sticky top-0 z-30 bg-tea-bg/90 backdrop-blur-md border-b border-tea-border py-2.5 flex-shrink-0">
           <div className="px-3 md:px-6 max-w-5xl mx-auto flex items-center gap-2 md:gap-4">
             <div className="flex items-center gap-2 shrink-0">
-              <Archive size={16} className="text-tea-accent" />
+              <Archive size={16} className="text-tea-gold" />
               <h2 className="text-sm font-serif text-tea-text uppercase tracking-[0.15em] hidden md:block">
                 System Records
               </h2>
@@ -261,7 +261,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
                         <div className="flex flex-col justify-center h-full">
                           <button
                             onClick={() => navigate(`/admin/catalog?search=${encodeURIComponent(product.givenName || product.productName)}`)}
-                            className="text-sm font-serif text-tea-text tracking-wide truncate hover:text-tea-accent transition-colors text-left"
+                            className="text-sm font-serif text-tea-text tracking-wide truncate hover:text-tea-gold transition-colors text-left"
                           >
                             {product.givenName || product.productName}
                           </button>
@@ -511,7 +511,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
                             <td className="px-4 align-middle overflow-hidden">
                               <button
                                 onClick={() => navigate(`/admin/catalog?search=${encodeURIComponent(entry.product_name || '')}`)}
-                                className="text-xs text-tea-text hover:text-tea-accent transition-colors truncate block text-left"
+                                className="text-xs text-tea-text hover:text-tea-gold transition-colors truncate block text-left"
                               >
                                 {entry.product_name || entry.product_id}
                               </button>
@@ -534,7 +534,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
                               {entry.source_invoice_number ? (
                                 <button
                                   onClick={() => navigate(`/admin/orders?search=${encodeURIComponent(entry.source_invoice_number)}`)}
-                                  className="text-xs text-tea-text-sec hover:text-tea-accent num transition-colors truncate block text-left"
+                                  className="text-xs text-tea-text-sec hover:text-tea-gold num transition-colors truncate block text-left"
                                 >
                                   {entry.source_invoice_number}
                                 </button>

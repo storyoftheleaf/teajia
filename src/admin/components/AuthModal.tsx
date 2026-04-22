@@ -182,16 +182,16 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: { isOpen: boolean;
                 type="checkbox"
                 checked={rememberMe}
                 onChange={(e) => setRememberMe(e.target.checked)}
-                className="w-4.5 h-4.5 rounded border-tea-border bg-tea-surface text-tea-accent accent-tea-accent cursor-pointer"
+                className="w-4.5 h-4.5 rounded border-tea-border bg-tea-surface text-tea-gold accent-tea-gold cursor-pointer"
               />
               <span className="text-sm text-tea-text-sec">Keep me logged in</span>
             </label>
           )}
 
           {info && <div className="p-3 bg-tea-gold-lt/10 border border-tea-border text-tea-text-sec text-sm rounded-lg">{info}</div>}
-          {error && <div className="p-3 bg-tea-gold/10 border border-tea-accent-sub text-tea-accent text-sm rounded-lg">{error}</div>}
+          {error && <div className="p-3 bg-tea-gold/10 border border-tea-accent-sub text-tea-gold text-sm rounded-lg">{error}</div>}
 
-          <button type="submit" disabled={loading} className="w-full py-3 bg-tea-accent text-tea-bg font-bold text-xs uppercase tracking-[0.2em] rounded-lg hover:bg-tea-gold/90 transition-colors disabled:opacity-50 flex justify-center mt-6 shadow-lg shadow-tea-gold/10">
+          <button type="submit" disabled={loading} className="w-full py-3 bg-tea-gold text-tea-bg font-bold text-xs uppercase tracking-[0.2em] rounded-lg hover:bg-tea-gold/90 transition-colors disabled:opacity-50 flex justify-center mt-6 shadow-lg shadow-tea-gold/10">
             {loading ? <Loader2 className="animate-spin" /> : submitLabel}
           </button>
         </form>
@@ -236,7 +236,7 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: { isOpen: boolean;
           {(mode === 'login' || mode === 'signup') && (
             <button type="button" onClick={toggleMode} className="text-tea-text-sec text-sm hover:text-tea-text transition-colors">
               {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
-              <span className="text-tea-accent font-medium">{mode === 'login' ? 'Sign up' : 'Sign in'}</span>
+              <span className="text-tea-gold font-medium">{mode === 'login' ? 'Sign up' : 'Sign in'}</span>
             </button>
           )}
         </div>

@@ -340,7 +340,7 @@ export const QuickCapture: React.FC<QuickCaptureProps> = ({
                         className="w-full flex items-center gap-3 p-2.5 text-left hover:bg-tea-elevated/30 transition-colors"
                       >
                         <div className="w-11 h-11 rounded-md overflow-hidden bg-tea-bg flex-shrink-0">
-                          <img src={item.preview} alt="" className="w-full h-full object-cover" />
+                          <img src={item.preview} alt="" className="w-full h-full object-cover" loading="lazy" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
@@ -428,7 +428,7 @@ export const QuickCapture: React.FC<QuickCaptureProps> = ({
             onClick={() => setActiveQueue('review')}
             className={`flex items-center gap-1.5 px-3 py-1.5 text-[10px] uppercase tracking-[0.15em] rounded-md whitespace-nowrap transition-colors ${
               activeQueue === 'review'
-                ? 'bg-tea-gold/15 text-tea-accent'
+                ? 'bg-tea-gold/15 text-tea-gold'
                 : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'
             }`}
           >
@@ -444,7 +444,7 @@ export const QuickCapture: React.FC<QuickCaptureProps> = ({
             onClick={() => setActiveQueue('approve')}
             className={`flex items-center gap-1.5 px-3 py-1.5 text-[10px] uppercase tracking-[0.15em] rounded-md whitespace-nowrap transition-colors ${
               activeQueue === 'approve'
-                ? 'bg-tea-gold/15 text-tea-accent'
+                ? 'bg-tea-gold/15 text-tea-gold'
                 : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'
             }`}
           >

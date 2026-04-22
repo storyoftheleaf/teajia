@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Shield, ShieldCheck, Store, Users, Check, Loader2,
-  ChevronDown, ChevronUp, Plus, Copy, ExternalLink,
+  ChevronDown, ChevronUp, Plus, Copy,
   AlertTriangle, RefreshCw, ClipboardList, Download,
 } from 'lucide-react';
 import { api } from '../../lib/api';

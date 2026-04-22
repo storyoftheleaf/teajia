@@ -554,7 +554,7 @@ const VideoPosterFrame: React.FC<{
       {/* Poster frame */}
       <div className={`relative cursor-pointer group ${className}`} onClick={() => setShowPlayer(true)}>
         {thumbnailUrl ? (
-          <img src={thumbnailUrl} alt={caption || 'Video'} className="w-full h-full object-cover" />
+          <img src={thumbnailUrl} alt={caption || 'Video'} className="w-full h-full object-cover" loading="lazy" />
         ) : instagramId ? (
           <div className="w-full h-full bg-tea-elevated flex items-center justify-center">
             <span className="text-tea-text-dim text-xs">Instagram Reel</span>
@@ -2078,7 +2078,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                     <div className={`${paperBase} flex flex-col`} data-page-type="image">
                         <div className="flex-1 relative bg-black overflow-hidden">
                             {imageUrl ? (
-                                <img src={imageUrl} className="w-full h-full object-cover reader-image-reveal" alt="annotated" />
+                                <img src={imageUrl} className="w-full h-full object-cover reader-image-reveal" alt="annotated" loading="lazy" />
                             ) : (
                                 <SafeImage index={0} className="w-full h-full" />
                             )}
@@ -2185,14 +2185,14 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                 return (
                     <div className={`${paperBase} flex`} data-page-type="image">
                         <div className="w-1/2 relative overflow-hidden bg-black">
-                            {csImg1 ? <img src={csImg1} className="w-full h-full object-cover reader-image-reveal" alt={csLabel1} /> : <SafeImage index={0} className="w-full h-full" />}
+                            {csImg1 ? <img src={csImg1} className="w-full h-full object-cover reader-image-reveal" alt={csLabel1} loading="lazy" /> : <SafeImage index={0} className="w-full h-full" />}
                             <div className="absolute bottom-4 left-4 z-10">
                                 <span className={`${CAPTION_CLASS} bg-black/60 px-3 py-1 backdrop-blur-sm text-tea-text/80`}>{csLabel1}</span>
                             </div>
                         </div>
                         <div className="w-[1px] bg-tea-gold/40 z-20 shrink-0"></div>
                         <div className="w-1/2 relative overflow-hidden bg-black">
-                            {csImg2 ? <img src={csImg2} className="w-full h-full object-cover reader-image-reveal" alt={csLabel2} /> : <SafeImage index={1} className="w-full h-full" />}
+                            {csImg2 ? <img src={csImg2} className="w-full h-full object-cover reader-image-reveal" alt={csLabel2} loading="lazy" /> : <SafeImage index={1} className="w-full h-full" />}
                             <div className="absolute bottom-4 right-4 z-10">
                                 <span className={`${CAPTION_CLASS} bg-black/60 px-3 py-1 backdrop-blur-sm text-tea-text/80`}>{csLabel2}</span>
                             </div>
@@ -2237,7 +2237,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                 return (
                     <div className={`${paperBase} bg-black relative flex flex-col ${posClass} px-16`} data-page-type="image">
                         <div className="absolute inset-0 z-0 reader-image-reveal">
-                            {displayImg ? <img src={displayImg} className="w-full h-full object-cover" alt="full bleed" /> : <SafeImage index={0} className="w-full h-full" />}
+                            {displayImg ? <img src={displayImg} className="w-full h-full object-cover" alt="full bleed" loading="lazy" /> : <SafeImage index={0} className="w-full h-full" />}
                         </div>
                         <div className="relative z-20 max-w-[80%]">
                             <EditableText

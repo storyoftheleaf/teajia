@@ -948,12 +948,13 @@ input[type="number"]::-webkit-outer-spin-button {
   font-weight: 700;
   cursor: pointer;
   transition: all 150ms ease;
-  background: rgb(var(--tea-gold-rgb) / 0.10);
-  color: var(--tea-gold);
+  background: var(--tea-surface);
+  color: var(--tea-text-sec);
 }
 
 .pill-action:hover {
-  background: rgb(var(--tea-gold-rgb) / 0.20);
+  background: var(--tea-elevated);
+  color: var(--tea-text);
 }
 
 /* Light mode adjustments */

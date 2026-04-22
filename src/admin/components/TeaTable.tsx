@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Search, Loader2, AlertCircle, Plus, ArrowUpDown, ArrowUp, ArrowDown, EyeOff, Star, Sparkles, Pencil, Leaf, Package } from 'lucide-react';
+import { Search, Loader2, AlertCircle, Plus, ArrowUpDown, ArrowUp, ArrowDown, EyeOff, Star, Leaf, Package } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Fuse from 'fuse.js';
 import { Product, Currency, ExchangeRate, ProductType } from '../types';
@@ -161,7 +161,7 @@ export const TeaTable: React.FC<TeaTableProps> = ({
         <div className="px-6 max-w-7xl mx-auto flex items-center gap-4">
           {headerSlot || (
             <div className="flex items-center gap-2 shrink-0">
-              <Leaf size={16} className="text-tea-accent" />
+              <Leaf size={16} className="text-tea-gold" />
               <h2 className="text-sm font-serif text-tea-text uppercase tracking-[0.15em]">
                 {title || 'Tea Glossary'}
               </h2>
@@ -250,7 +250,7 @@ export const TeaTable: React.FC<TeaTableProps> = ({
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
                         <span className="text-tea-text text-sm font-serif truncate">{product.productName}</span>
-                        {product.isFeatured && <Star size={10} className="flex-shrink-0 text-tea-accent fill-tea-accent" />}
+                        {product.isFeatured && <Star size={10} className="flex-shrink-0 text-tea-gold fill-tea-gold" />}
                         {!product.isPublic && <EyeOff size={10} className="flex-shrink-0 text-tea-text-sec/40" />}
                       </div>
                       <div className="flex items-center gap-1.5 text-[10px] text-tea-text-sec/70 mt-0.5">

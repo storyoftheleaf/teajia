@@ -17,9 +17,10 @@ interface MediaViewerProps {
 const DesktopSidebar: React.FC<{ story: Story; onBack: () => void; onShare?: () => void; isSaved?: boolean; onToggleSave?: () => void }> = ({ story, onBack, onShare, isSaved, onToggleSave }) => (
   <aside className="w-24 xl:w-32 h-full bg-tea-moss text-tea-text flex flex-col items-center py-10 relative shadow-[4px_0_15px_rgba(0,0,0,0.5)] z-30 shrink-0">
     {/* Back Button - Moved to Top */}
-    <button 
+    <button
       onClick={onBack}
       className="mb-8 p-3 rounded-full hover:bg-tea-gold/10 transition-colors group"
+      aria-label="Go back"
       title="Exit View"
     >
       <Icons.Back className="w-6 h-6 text-tea-text-sec group-hover:text-tea-text" />
@@ -35,11 +36,11 @@ const DesktopSidebar: React.FC<{ story: Story; onBack: () => void; onShare?: () 
     {/* Interaction Column - Bottom */}
     <div className="mt-8 mb-0 flex flex-col space-y-6 items-center pt-4 border-t border-tea-border w-12">
          {onToggleSave && (
-             <button onClick={onToggleSave} className={`p-2 rounded-full transition-colors ${isSaved ? 'text-tea-gold' : 'text-tea-text/40 hover:text-white'}`} title="Collect">
+             <button onClick={onToggleSave} className={`p-2 rounded-full transition-colors ${isSaved ? 'text-tea-gold' : 'text-tea-text/40 hover:text-white'}`} aria-label="Save to collection" title="Collect">
                <Icons.Leaf filled={isSaved} className="w-5 h-5" />
              </button>
          )}
-         <button onClick={onShare} className="p-2 rounded-full text-tea-text/40 hover:text-tea-text transition-colors" title="Share">
+         <button onClick={onShare} className="p-2 rounded-full text-tea-text/40 hover:text-tea-text transition-colors" aria-label="Share" title="Share">
            <Icons.Share className="w-5 h-5" />
          </button>
     </div>
@@ -48,7 +49,7 @@ const DesktopSidebar: React.FC<{ story: Story; onBack: () => void; onShare?: () 
 
 const MobileHeader: React.FC<{ title: string; onBack: () => void; transparent?: boolean }> = ({ title, onBack, transparent }) => (
   <header className={`absolute top-0 left-0 w-full z-50 flex items-center justify-between px-4 h-16 transition-all duration-300 ${transparent ? 'bg-gradient-to-b from-tea-bg/80 to-transparent' : 'bg-tea-moss shadow-lg'}`}>
-    <button onClick={onBack} className="p-2 opacity-90 hover:opacity-100 text-tea-text">
+    <button onClick={onBack} className="p-2 opacity-90 hover:opacity-100 text-tea-text" aria-label="Go back">
       <Icons.Back className="w-6 h-6" />
     </button>
     {!transparent && (
@@ -109,11 +110,12 @@ const ReelLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => void
     // Default / Thumbnail State
     return (
         <>
-            <img src={story.thumbnailUrl} className="w-full h-full object-cover opacity-60" alt="bg" />
+            <img src={story.thumbnailUrl} className="w-full h-full object-cover opacity-60" alt="bg" loading="lazy" />
             <div className="absolute inset-0 flex items-center justify-center">
-                <button 
+                <button
                     onClick={() => setIsPlaying(true)}
                     className="w-20 h-20 bg-tea-gold/10 backdrop-blur-sm rounded-full flex items-center justify-center hover:scale-110 transition-transform cursor-pointer group"
+                    aria-label="Play"
                 >
                     <Icons.Play className="w-8 h-8 text-tea-text ml-1 group-hover:text-tea-text" />
                 </button>
@@ -137,10 +139,10 @@ const ReelLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => void
         
         {/* Mobile Side Actions - Hide during play if it's immersive */}
         <div className={`absolute right-4 bottom-[calc(44px+env(safe-area-inset-bottom,0px)+128px)] flex flex-col space-y-6 items-center text-tea-text/90 z-20 transition-opacity ${isPlaying ? 'opacity-0 hover:opacity-100' : 'opacity-100'}`}>
-            <button onClick={onToggleSave} className={`flex flex-col items-center space-y-1 ${isSaved ? 'text-tea-gold' : ''}`}>
+            <button onClick={onToggleSave} className={`flex flex-col items-center space-y-1 ${isSaved ? 'text-tea-gold' : ''}`} aria-label="Save to collection">
                <Icons.Leaf filled={isSaved} className="w-7 h-7" />
             </button>
-            <button onClick={onShare} className="flex flex-col items-center space-y-1">
+            <button onClick={onShare} className="flex flex-col items-center space-y-1" aria-label="Share">
                <Icons.Share className="w-7 h-7" />
             </button>
         </div>
@@ -243,11 +245,12 @@ const FilmLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => void
 
       return (
         <>
-            <img src={story.thumbnailUrl} className="w-full h-full object-cover opacity-40 mask-image-b-gradient transition-opacity duration-500" alt="film"/>
+            <img src={story.thumbnailUrl} className="w-full h-full object-cover opacity-40 mask-image-b-gradient transition-opacity duration-500" alt="film" loading="lazy" />
             <div className="absolute inset-0 flex items-center justify-center">
-                <button 
+                <button
                     onClick={() => setIsPlaying(true)}
                     className="w-24 h-24 border border-tea-border rounded-full flex items-center justify-center hover:bg-tea-gold/5 transition-all cursor-pointer group"
+                    aria-label="Play"
                 >
                     <Icons.Play className="w-10 h-10 text-tea-text ml-1 group-hover:scale-110 transition-transform" />
                 </button>
@@ -271,10 +274,10 @@ const FilmLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => void
             <div className="flex justify-between items-start mb-2">
                 <span className="text-[10px] tracking-[0.15em] uppercase opacity-70 block">{story.type} • {story.durationOrTime}</span>
                 <div className="flex gap-4">
-                    <button onClick={onToggleSave} className={isSaved ? 'text-tea-gold' : ''}>
+                    <button onClick={onToggleSave} className={`p-2 ${isSaved ? 'text-tea-gold' : ''}`} aria-label="Save to collection">
                        <Icons.Leaf filled={isSaved} className="w-5 h-5" />
                     </button>
-                    <button onClick={onShare}>
+                    <button onClick={onShare} className="p-2" aria-label="Share">
                        <Icons.Share className="w-5 h-5 opacity-70" />
                     </button>
                 </div>
@@ -306,10 +309,10 @@ const FilmLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => void
                    <p className="text-xl font-serif italic text-tea-text/60">{story.subtitle}</p>
                 </div>
                 <div className="flex items-center space-x-6 text-tea-text/70">
-                   <button onClick={onToggleSave} className={`hover:text-tea-text transition-colors ${isSaved ? 'text-tea-gold' : ''}`}>
+                   <button onClick={onToggleSave} className={`p-2 hover:text-tea-text transition-colors ${isSaved ? 'text-tea-gold' : ''}`} aria-label="Save to collection">
                       <Icons.Leaf filled={isSaved} className="w-5 h-5" />
                    </button>
-                   <button onClick={onShare} className="hover:text-tea-text transition-colors">
+                   <button onClick={onShare} className="p-2 hover:text-tea-text transition-colors" aria-label="Share">
                       <Icons.Share className="w-5 h-5" />
                    </button>
                 </div>
@@ -334,12 +337,12 @@ const AudioLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => voi
          {/* Main Art Area */}
          <div className="flex-1 relative flex flex-col items-center justify-center">
             <div className="absolute inset-0 bg-tea-moss">
-               <img src={story.thumbnailUrl} className="w-full h-full object-cover opacity-30 blur-3xl scale-110" alt="bg" />
+               <img src={story.thumbnailUrl} className="w-full h-full object-cover opacity-30 blur-3xl scale-110" alt="bg" loading="lazy" />
             </div>
             
             {/* Vinyl / Cover Art */}
             <div className="relative z-10 w-[70vw] max-w-[300px] aspect-square shadow-2xl rounded-sm overflow-hidden border border-tea-border mt-[-10vh]">
-               <img src={story.thumbnailUrl} className="w-full h-full object-cover" alt="cover" />
+               <img src={story.thumbnailUrl} className="w-full h-full object-cover" alt="cover" loading="lazy" />
             </div>
          </div>
 
@@ -365,19 +368,19 @@ const AudioLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => voi
 
              {/* Buttons */}
              <div className="flex items-center justify-between px-4">
-                <button onClick={onToggleSave} className={`text-tea-text/40 hover:text-tea-text transition-colors ${isSaved ? 'text-tea-gold' : ''}`}>
+                <button onClick={onToggleSave} className={`text-tea-text/40 hover:text-tea-text transition-colors ${isSaved ? 'text-tea-gold' : ''}`} aria-label="Save to collection">
                      <Icons.Leaf filled={isSaved} className="w-6 h-6" />
                 </button>
 
                 <div className="flex items-center space-x-8">
-                   <Icons.Back className="w-8 h-8 text-tea-text/50 rotate-180 hover:text-tea-text transition-colors cursor-pointer" /> {/* Prev */}
-                   <button className="w-20 h-20 bg-tea-bg rounded-full flex items-center justify-center text-tea-text shadow-[0_0_30px_var(--tea-accent-sub)] active:scale-95 transition-transform hover:bg-tea-surface">
+                   <button className="p-2 text-tea-text/50 hover:text-tea-text transition-colors" aria-label="Previous"><Icons.Back className="w-8 h-8 rotate-180" /></button>
+                   <button className="w-20 h-20 bg-tea-bg rounded-full flex items-center justify-center text-tea-text shadow-[0_0_30px_var(--tea-accent-sub)] active:scale-95 transition-transform hover:bg-tea-surface" aria-label="Play">
                       <Icons.Play className="w-8 h-8 fill-current ml-1" />
                    </button>
-                   <Icons.Next className="w-8 h-8 text-tea-text/50 hover:text-tea-text transition-colors cursor-pointer" />
+                   <button className="p-2 text-tea-text/50 hover:text-tea-text transition-colors" aria-label="Next"><Icons.Next className="w-8 h-8" /></button>
                 </div>
 
-                <button onClick={onShare} className="text-tea-text/40 hover:text-tea-text transition-colors">
+                <button onClick={onShare} className="text-tea-text/40 hover:text-tea-text transition-colors" aria-label="Share">
                      <Icons.Share className="w-6 h-6" />
                 </button>
              </div>
@@ -404,7 +407,7 @@ const AudioLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => voi
             {/* Art - Left Side */}
             <div className="w-[clamp(220px,35vw,400px)] aspect-square shrink-0 shadow-[0_30px_60px_rgba(0,0,0,0.5)] rounded-sm relative group perspective-1000">
                <div className="absolute inset-0 bg-tea-elevated/5 transform translate-x-4 translate-y-4 rounded-sm border border-tea-border -z-10"></div>
-               <img src={story.thumbnailUrl} className="w-full h-full object-cover rounded-sm border border-tea-border" alt="album art" />
+               <img src={story.thumbnailUrl} className="w-full h-full object-cover rounded-sm border border-tea-border" alt="album art" loading="lazy" />
                
                {/* Vinyl shine effect overlay */}
                <div className="absolute inset-0 bg-gradient-to-tr from-tea-gold/5 to-transparent pointer-events-none"></div>
@@ -451,18 +454,18 @@ const AudioLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => voi
                {/* Main Controls */}
                <div className="flex items-center justify-between mt-4">
                   <div className="flex items-center space-x-8">
-                      <button className="text-tea-text/50 hover:text-tea-text transition-colors"><Icons.Back className="w-6 h-6 rotate-180" /></button>
-                      <button className="w-16 h-16 bg-tea-bg rounded-full flex items-center justify-center hover:scale-105 hover:bg-tea-surface transition-all shadow-[0_0_20px_var(--tea-accent-sub)]">
+                      <button className="text-tea-text/50 hover:text-tea-text transition-colors" aria-label="Previous"><Icons.Back className="w-6 h-6 rotate-180" /></button>
+                      <button className="w-16 h-16 bg-tea-bg rounded-full flex items-center justify-center hover:scale-105 hover:bg-tea-surface transition-all shadow-[0_0_20px_var(--tea-accent-sub)]" aria-label="Play">
                          <Icons.Play className="w-6 h-6 text-tea-text ml-1 fill-current" />
                       </button>
-                      <button className="text-tea-text/50 hover:text-tea-text transition-colors"><Icons.Next className="w-6 h-6" /></button>
+                      <button className="text-tea-text/50 hover:text-tea-text transition-colors" aria-label="Next"><Icons.Next className="w-6 h-6" /></button>
                   </div>
 
                   <div className="flex items-center space-x-6 border-l border-tea-border pl-8">
-                      <button onClick={onToggleSave} className={`text-tea-text/40 hover:text-tea-text transition-colors ${isSaved ? 'text-tea-gold' : ''}`}>
+                      <button onClick={onToggleSave} className={`text-tea-text/40 hover:text-tea-text transition-colors ${isSaved ? 'text-tea-gold' : ''}`} aria-label="Save to collection">
                           <Icons.Leaf filled={isSaved} className="w-5 h-5" />
                       </button>
-                      <button onClick={onShare} className="text-tea-text/40 hover:text-tea-text transition-colors">
+                      <button onClick={onShare} className="text-tea-text/40 hover:text-tea-text transition-colors" aria-label="Share">
                           <Icons.Share className="w-5 h-5" />
                       </button>
                   </div>

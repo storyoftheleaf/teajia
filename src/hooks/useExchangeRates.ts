@@ -25,7 +25,7 @@ export const useExchangeRates = (autoFetch = true) => {
   const fetchRates = useCallback(async (force = false) => {
     // Don't fetch if not stale unless forced
     if (!force && !isStale()) {
-      console.log('Exchange rates are still fresh, skipping fetch');
+      if (import.meta.env.DEV) { console.log('Exchange rates are still fresh, skipping fetch'); }
       return;
     }
 
@@ -44,12 +44,12 @@ export const useExchangeRates = (autoFetch = true) => {
       // Save timestamp
       safeLocalStorageSet(STORAGE_KEYS.EXCHANGE_RATES_TIMESTAMP, now.getTime());
 
-      console.log('Exchange rates updated successfully');
+      if (import.meta.env.DEV) { console.log('Exchange rates updated successfully'); }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch exchange rates';
       setError(errorMessage);
       setStatus('error');
-      console.error('Failed to fetch exchange rates:', err);
+      if (import.meta.env.DEV) { console.error('Failed to fetch exchange rates:', err); }
     }
   }, [isStale]);
 

@@ -11,17 +11,15 @@ const AvailabilityBadge: React.FC<AvailabilityBadgeProps> = ({ slug, className =
 
   if (!data) {
     return (
-      <span className={`inline-flex items-center gap-2 px-4 py-2 text-xs uppercase tracking-[0.2em] text-tea-text-sec ${className}`}>
-        <span className="w-2 h-2 rounded-full bg-tea-text-sec/30 animate-pulse" />
-        Checking availability...
-      </span>
+      <span className={`inline-block w-36 h-[30px] rounded-full border border-tea-border bg-tea-bg animate-pulse ${className}`} />
     );
   }
 
+  const base = `inline-flex items-center px-4 py-2 text-[10px] uppercase tracking-[0.25em] rounded-full border ${className}`;
+
   if (data.isFull) {
     return (
-      <span className={`inline-flex items-center gap-2 px-4 py-2 text-xs uppercase tracking-[0.2em] text-tea-text-sec bg-tea-surface border border-tea-border rounded-sm ${className}`}>
-        <span className="w-2 h-2 rounded-full bg-tea-text-sec/40" />
+      <span className={`${base} bg-tea-bg border-tea-border text-tea-text-sec`}>
         Registration closed
       </span>
     );
@@ -29,23 +27,17 @@ const AvailabilityBadge: React.FC<AvailabilityBadgeProps> = ({ slug, className =
 
   if (data.seatsRemaining <= 0) {
     return (
-      <span className={`inline-flex items-center gap-2 px-4 py-2 text-xs uppercase tracking-[0.2em] text-tea-text-sec bg-tea-surface border border-tea-border rounded-sm ${className}`}>
-        <span className="w-2 h-2 rounded-full bg-tea-gold/60 animate-pulse" />
+      <span className={`${base} bg-tea-bg border-tea-gold/40 text-tea-gold`}>
         Waitlist open
       </span>
     );
   }
 
-  const isLow = data.seatsRemaining <= 3;
+  const total = data.totalCapacity > 0 ? ` of ${data.totalCapacity}` : '';
 
   return (
-    <span className={`inline-flex items-center gap-2 px-4 py-2 text-xs uppercase tracking-[0.2em] rounded-sm ${
-      isLow
-        ? 'text-tea-gold bg-tea-gold/10 border border-tea-border'
-        : 'text-tea-gold bg-tea-surface border border-tea-border'
-    } ${className}`}>
-      <span className={`w-2 h-2 rounded-full bg-tea-gold ${isLow ? 'animate-pulse' : ''}`} />
-      {data.seatsRemaining} {data.seatsRemaining === 1 ? 'seat' : 'seats'} remaining
+    <span className={`${base} bg-tea-bg border-tea-gold/40 text-tea-gold`}>
+      {data.seatsRemaining}{total} seats open
     </span>
   );
 };

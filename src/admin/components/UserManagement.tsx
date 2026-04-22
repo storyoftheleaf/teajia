@@ -138,9 +138,9 @@ export const UserManagement: React.FC<{ currentUserRole: string }> = ({ currentU
   if (error) {
     return (
       <div className="p-6 text-center">
-        <AlertTriangle className="w-8 h-8 text-tea-accent mx-auto mb-3" />
+        <AlertTriangle className="w-8 h-8 text-tea-gold mx-auto mb-3" />
         <p className="text-tea-text-sec text-sm">{error}</p>
-        <button onClick={fetchUsers} className="mt-3 text-tea-accent text-xs uppercase tracking-wider hover:text-tea-gold/80 transition-colors">
+        <button onClick={fetchUsers} className="mt-3 text-tea-gold text-xs uppercase tracking-wider hover:text-tea-gold/80 transition-colors">
           Retry
         </button>
       </div>
@@ -236,7 +236,7 @@ export const UserManagement: React.FC<{ currentUserRole: string }> = ({ currentU
         <div className="flex items-center justify-between border-b border-tea-border pb-4">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-tea-gold/10 rounded-lg">
-              <Users className="w-5 h-5 text-tea-accent" />
+              <Users className="w-5 h-5 text-tea-gold" />
             </div>
             <div>
               <h3 className="text-lg font-serif text-tea-text">All Users</h3>
@@ -273,7 +273,7 @@ export const UserManagement: React.FC<{ currentUserRole: string }> = ({ currentU
                       onClick={() => handleRevokeAdmin(user.id)}
                       disabled={actionLoading === user.id}
                       title="Revoke admin"
-                      className="p-2 text-tea-text-sec hover:text-tea-accent hover:bg-tea-gold/10 rounded-lg transition-colors disabled:opacity-50"
+                      className="p-2 text-tea-text-sec hover:text-tea-gold hover:bg-tea-gold/10 rounded-lg transition-colors disabled:opacity-50"
                     >
                       <Shield className="w-4 h-4" />
                     </button>

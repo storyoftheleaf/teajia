@@ -23,9 +23,9 @@ export const TagFilter: React.FC<TagFilterProps> = ({
         onClick={() => setIsOpen(!isOpen)}
         className={`flex items-center gap-2 px-3 py-1.5 text-xs uppercase tracking-[0.15em] font-sans border transition-colors duration-300 ${
           hasSelection
-            ? 'border-tea-gold text-tea-gold dark:border-tea-gold'
+            ? 'border-tea-gold text-tea-gold'
             : 'border-tea-border text-tea-text-sec'
-        } hover:border-tea-gold hover:text-tea-gold dark:hover:border-tea-gold dark:hover:text-tea-gold`}
+        } hover:border-tea-gold hover:text-tea-gold`}
       >
         <svg
           className="w-3.5 h-3.5"

@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../hooks/useAuth';
 import { api } from '../lib/api';
 import type { TeaCompassEntry } from '../components/TeaCompass/types';
-import { ChevronLeft, ChevronRight, LogOut, Settings, BookOpen, Archive, Calendar } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Settings } from 'lucide-react';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -57,7 +57,7 @@ function QueueCard({ entry }: { entry: TeaCompassEntry }) {
   return (
     <div className="shrink-0 w-40 bg-tea-surface rounded-sm overflow-hidden">
       {photo ? (
-        <img src={photo} alt={entry.name} className="w-full h-24 object-cover" />
+        <img src={photo} alt={entry.name} className="w-full h-24 object-cover" loading="lazy" />
       ) : (
         <div className="w-full h-24 bg-tea-elevated flex items-center justify-center">
           <span className="text-[10px] uppercase tracking-[0.12em] text-tea-text-dim">No photo</span>

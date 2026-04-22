@@ -155,7 +155,7 @@ export const MyCollection: React.FC<MyCollectionProps> = ({ onBack, onViewItem }
                 className="w-10 h-10 rounded-sm bg-tea-bg/5 overflow-hidden shrink-0 cursor-pointer"
                 onClick={() => onViewItem?.(item)}
               >
-                <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                <img src={item.image} alt={item.name} className="w-full h-full object-cover" loading="lazy" />
               </div>
             )}
 

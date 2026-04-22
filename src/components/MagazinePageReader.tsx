@@ -589,7 +589,7 @@ function BodyPage({ entry, story }: { entry: PlanEntry; story: Story }) {
           background: hasThumb ? undefined : 'linear-gradient(150deg,#2a1e12,#1a1209)',
         }}>
           {hasThumb ? (
-            <img src={story.thumbnailUrl!} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            <img src={story.thumbnailUrl!} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
           ) : (
             <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <TeaLeaf size={130} opacity={0.32} />

@@ -343,7 +343,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
                       className="shrink-0"
                       aria-label={`View photo ${i + 1}`}
                     >
-                      <img src={url} alt="" className="w-20 h-20 rounded-md object-cover" />
+                      <img src={url} alt="" className="w-20 h-20 rounded-md object-cover" loading="lazy" />
                     </button>
                   ))}
                   <button

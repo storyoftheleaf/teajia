@@ -58,7 +58,7 @@ const PostSessionArchive: React.FC<PostSessionArchiveProps> = ({
                       </span>
                     )}
                     {item.productId ? (
-                      <a href={`/shop?product=${encodeURIComponent(item.productId)}`} className="font-serif text-base text-tea-text hover:text-tea-accent mt-0.5 block transition-colors">
+                      <a href={`/shop?product=${encodeURIComponent(item.productId)}`} className="font-serif text-base text-tea-text hover:text-tea-gold mt-0.5 block transition-colors">
                         {item.customName || item.productName}
                       </a>
                     ) : (

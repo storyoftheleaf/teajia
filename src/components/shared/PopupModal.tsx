@@ -262,7 +262,7 @@ export const PopupModal: React.FC<PopupModalProps> = ({
             style={{ transform: `translateX(${swipeOffset * 0.5}px)` }}
           >
             {item.image ? (
-              <img src={item.image} className="w-full h-full object-contain max-h-[65vh]" alt={item.name} />
+              <img src={item.image} className="w-full h-full object-contain max-h-[65vh]" alt={item.name} loading="lazy" />
             ) : (
               <div className="w-full flex items-center justify-center" style={{ height: '40vh' }}>
                 <TeaPlaceholder type={item.type || ''} style={{ width: '100%', height: '100%' }} />
@@ -308,7 +308,7 @@ export const PopupModal: React.FC<PopupModalProps> = ({
           style={{ transform: `translateX(${swipeOffset * 0.5}px)`, maxHeight: '40vh' }}
         >
           {item.image ? (
-            <img src={item.image} className="w-full h-full object-contain max-h-[40vh]" alt={item.name} />
+            <img src={item.image} className="w-full h-full object-contain max-h-[40vh]" alt={item.name} loading="lazy" />
           ) : (
             <div className="w-full flex items-center justify-center" style={{ height: '30vh' }}>
               <TeaPlaceholder type={item.type || ''} style={{ width: '100%', height: '100%' }} />

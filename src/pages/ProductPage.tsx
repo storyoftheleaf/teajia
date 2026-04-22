@@ -300,7 +300,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
             <div className="flex gap-2 mt-3">
               {item.additionalImages.slice(0, 4).map((img, i) => (
                 <div key={i} className="w-16 h-16 rounded-sm overflow-hidden bg-tea-surface border border-tea-border flex-shrink-0">
-                  <img src={img} alt="" className="w-full h-full object-cover" />
+                  <img src={img} alt="" className="w-full h-full object-cover" loading="lazy" />
                 </div>
               ))}
             </div>

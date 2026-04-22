@@ -187,7 +187,7 @@ const BlockEditor: React.FC<BlockEditorProps> = ({ block, index, total, onChange
             />
             {block.url && (
               <div className="mt-2">
-                <img src={block.url} alt={block.description} className="max-h-32 rounded-md border border-tea-border object-cover" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                <img src={block.url} alt={block.description} className="max-h-32 rounded-md border border-tea-border object-cover" loading="lazy" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
               </div>
             )}
           </div>

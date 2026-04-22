@@ -123,7 +123,7 @@ export const ShopSearch: React.FC<ShopSearchProps> = ({
                 }`}
               >
                 {item.image ? (
-                  <img src={item.image} alt="" className="w-8 h-8 rounded object-cover shrink-0 border border-tea-border" />
+                  <img src={item.image} alt="" className="w-8 h-8 rounded object-cover shrink-0 border border-tea-border" loading="lazy" />
                 ) : (
                   <div className="w-8 h-8 rounded bg-tea-surface border border-tea-border flex items-center justify-center shrink-0">
                     <TeaPlaceholder type={item.type} size={16} />

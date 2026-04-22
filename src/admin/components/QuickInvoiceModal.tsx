@@ -185,7 +185,12 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
   const pickCustomer = (customer: any) => {
     setCustomerQuery(customer.name);
     setCustomerId(customer.id);
-    setCustomerInfo(customer);
+    setCustomerInfo({
+      ...customer,
+      contacts: typeof customer.contacts === 'string'
+        ? (() => { try { return JSON.parse(customer.contacts || '[]'); } catch { return []; } })()
+        : (customer.contacts || []),
+    });
     if (customer.preferredCurrency && customer.preferredCurrency !== 'UNK') {
       setCurrency(customer.preferredCurrency as Currency);
     }

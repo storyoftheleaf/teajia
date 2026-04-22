@@ -25,13 +25,13 @@ const TeawareCard: React.FC<{
   >
     <div className="aspect-[4/3] overflow-hidden relative bg-tea-bg/50 flex items-center justify-center">
       {product.imageUrl ? (
-          <img src={product.imageUrl} alt={product.givenName} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 opacity-80 group-hover:opacity-100" />
+          <img src={product.imageUrl} alt={product.givenName} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 opacity-80 group-hover:opacity-100" loading="lazy" />
       ) : (
           <div className="w-1/2 h-1/2 opacity-30 group-hover:opacity-50 group-hover:scale-110 transition-all duration-700">
               <TeaIllustration type={product.type} />
           </div>
       )}
-      <button onClick={() => onAdd(product)} className="absolute bottom-4 right-4 bg-tea-accent text-tea-bg p-3 rounded-full shadow-2xl opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 hover:scale-110" title="Add to Invoice">
+      <button onClick={() => onAdd(product)} className="absolute bottom-4 right-4 bg-tea-gold text-tea-bg p-3 rounded-full shadow-2xl opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 hover:scale-110" title="Add to Invoice">
         <Plus size={20} />
       </button>
     </div>
@@ -133,7 +133,7 @@ export const TeawareCatalog = ({ products, currency, rates, onAdd, loading, isAd
       <div className="sticky top-0 z-30 bg-tea-bg/90 backdrop-blur-md border-b border-tea-border py-2.5">
         <div className="px-6 max-w-7xl mx-auto flex items-center gap-4">
           <div className="flex items-center gap-2 shrink-0">
-            <Coffee size={16} className="text-tea-accent" />
+            <Coffee size={16} className="text-tea-gold" />
             <h2 className="text-sm font-serif text-tea-text uppercase tracking-[0.15em]">
               Equipment
             </h2>
@@ -280,11 +280,11 @@ export const TeawareCatalog = ({ products, currency, rates, onAdd, loading, isAd
                       {/* Product Name */}
                       <td className="px-4 align-middle overflow-hidden">
                         <div className="flex flex-col justify-center h-full">
-                          <span className="text-sm font-serif text-tea-text tracking-wide group-hover:text-tea-accent transition-colors truncate flex items-center gap-2">
+                          <span className="text-sm font-serif text-tea-text tracking-wide group-hover:text-tea-gold transition-colors truncate flex items-center gap-2">
                             {product.productName}
                             {product.lore && (
                               <span title={product.isCustomWisdom ? "Handcrafted Wisdom" : "AI Generated Wisdom"}>
-                                {product.isCustomWisdom ? <Pencil size={10} className="text-tea-accent" /> : <Sparkles size={10} className="text-tea-text-sec" />}
+                                {product.isCustomWisdom ? <Pencil size={10} className="text-tea-gold" /> : <Sparkles size={10} className="text-tea-text-sec" />}
                               </span>
                             )}
                           </span>

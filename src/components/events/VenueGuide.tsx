@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MapPin, ChevronLeft, ChevronRight, Navigation, Car, Train, DoorOpen } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Navigation, Car, Train, DoorOpen } from 'lucide-react';
 import type { VenueGuide as VenueGuideType } from '../../types/events';
 
 interface VenueGuideProps {

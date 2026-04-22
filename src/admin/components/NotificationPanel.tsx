@@ -97,7 +97,7 @@ const SendConfirmModal: React.FC<SendConfirmModalProps> = ({
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-start gap-3">
             <Mail size={18} className="text-tea-gold mt-0.5 shrink-0" />
-            <button onClick={onClose} className="p-1 text-tea-text-sec hover:text-tea-text transition-colors shrink-0">
+            <button onClick={onClose} className="p-1 text-tea-text-sec hover:text-tea-text transition-colors shrink-0" aria-label="Close">
             <X size={16} />
           </button>
           <div>

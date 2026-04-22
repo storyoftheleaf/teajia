@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Check, Clock, Star, ChevronDown, ChevronUp, Loader2, Minus, Plus, MessageCircle } from 'lucide-react';
+import { Check, Clock, Star, ChevronDown, ChevronUp, Loader2, Minus, Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../../lib/api';
 import { useToast } from './Toast';

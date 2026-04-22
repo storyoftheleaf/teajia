@@ -336,7 +336,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
             Cancel
           </button>
           {item.image && (
-            <img src={item.image} alt="" className="w-8 h-8 rounded-md object-cover shrink-0" />
+            <img src={item.image} alt="" className="w-8 h-8 rounded-md object-cover shrink-0" loading="lazy" />
           )}
           <div className="min-w-0">
             <div

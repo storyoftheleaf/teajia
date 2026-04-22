@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, BookmarkCheck, BookmarkPlus, BookOpen, Camera, Check, ChevronDown, Droplets, FlaskConical, Minus, Plus, ShoppingCart, X } from 'lucide-react';
+import { ArrowLeft, BookOpen, Camera, Check, ChevronDown, Droplets, Minus, Plus, X } from 'lucide-react';
 import Fuse from 'fuse.js';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { TEA_TYPE_COLORS } from '../../designTokens';

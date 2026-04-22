@@ -38,7 +38,7 @@ const PhotoStrip: React.FC<PhotoStripProps> = ({ photos, onAdd, onRemove, upload
     <div className="flex gap-2 flex-wrap">
       {photos.map((url) => (
         <div key={url} className="relative w-24 h-24 rounded-md overflow-hidden border border-tea-border flex-shrink-0">
-          <img src={url} alt="" className="w-full h-full object-cover" />
+          <img src={url} alt="" className="w-full h-full object-cover" loading="lazy" />
           <button
             type="button"
             onClick={() => onRemove(url)}
@@ -248,7 +248,7 @@ const VenueCard: React.FC<VenueCardProps> = ({ venue, onRefresh }) => {
         {/* Venue photo thumbnail */}
         {photos[0] ? (
           <div className="w-16 h-16 rounded-md overflow-hidden border border-tea-border flex-shrink-0">
-            <img src={photos[0]} alt={venue.name} className="w-full h-full object-cover" />
+            <img src={photos[0]} alt={venue.name} className="w-full h-full object-cover" loading="lazy" />
           </div>
         ) : (
           <div className="w-16 h-16 rounded-md border border-dashed border-tea-border flex items-center justify-center flex-shrink-0">
@@ -367,7 +367,7 @@ const VenueCard: React.FC<VenueCardProps> = ({ venue, onRefresh }) => {
                       <div className="flex gap-1.5 flex-shrink-0">
                         {space.photos.slice(0, 3).map(url => (
                           <div key={url} className="w-14 h-14 rounded overflow-hidden border border-tea-border">
-                            <img src={url} alt="" className="w-full h-full object-cover" />
+                            <img src={url} alt="" className="w-full h-full object-cover" loading="lazy" />
                           </div>
                         ))}
                       </div>

@@ -142,20 +142,24 @@ const EventsPage: React.FC = () => {
     staleTime: 60_000,
   });
 
-  const events: TeaEvent[] = useMemo(() =>
-    rawEvents.map((ev) => ({
-      ...ev,
-      // snake_case → camelCase shim (worker returns snake_case)
-      flyerImageUrl: ev.flyerImageUrl ?? (ev as any).flyer_image_url,
-      eventDate:     ev.eventDate     ?? (ev as any).event_date,
-      locationName:  ev.locationName  ?? (ev as any).location_name,
-      areaHint:      ev.areaHint      ?? (ev as any).area_hint,
-      moodHints:     ev.moodHints     ?? (ev as any).mood_hints,
-      totalCapacity: ev.totalCapacity ?? (ev as any).total_capacity,
-      seatsRemaining: ev.seatsRemaining ?? (ev as any).seats_remaining,
-      confirmedCount: ev.confirmedCount ?? (ev as any).confirmed_count,
-    } as TeaEvent)
-  ), [rawEvents]);
+  const events: TeaEvent[] = useMemo(() => {
+    return rawEvents.map((ev) => {
+      // Worker may return snake_case keys — cast to index signature for the shim
+      const raw = ev as unknown as Record<string, unknown>;
+      return {
+        ...ev,
+        // snake_case → camelCase shim (worker returns snake_case)
+        flyerImageUrl:  ev.flyerImageUrl  ?? (raw['flyer_image_url']  as string | undefined),
+        eventDate:      ev.eventDate      ?? (raw['event_date']       as string),
+        locationName:   ev.locationName   ?? (raw['location_name']    as string | undefined),
+        areaHint:       ev.areaHint       ?? (raw['area_hint']        as string | undefined),
+        moodHints:      ev.moodHints      ?? (raw['mood_hints']       as string[] | undefined),
+        totalCapacity:  ev.totalCapacity  ?? (raw['total_capacity']   as number),
+        seatsRemaining: ev.seatsRemaining ?? (raw['seats_remaining']  as number | undefined),
+        confirmedCount: ev.confirmedCount ?? (raw['confirmed_count']  as number | undefined),
+      } as TeaEvent;
+    });
+  }, [rawEvents]);
 
   return (
     <div

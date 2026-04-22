@@ -55,7 +55,7 @@ export const ActivityLogView = () => {
                     >
                       <td className="py-3 px-4 text-tea-text-sec font-mono text-xs">{new Date(log.created_at).toLocaleString()}</td>
                       <td className="py-3 px-4 text-tea-text">{log.user_email || 'System'}</td>
-                      <td className="py-3 px-4 text-tea-accent">{log.action}</td>
+                      <td className="py-3 px-4 text-tea-gold">{log.action}</td>
                       <td className="py-3 px-4 text-tea-text-sec">
                         {log.details}
                         {route && <span className="ml-2 text-tea-gold/40 text-[10px]">→</span>}

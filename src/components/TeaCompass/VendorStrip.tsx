@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   MapPin, X, Plus, Camera, Check, Phone,
-  MessageCircle, ExternalLink, Loader2,
+  MessageCircle, ExternalLink,
   Contact, Image, Link, UserCheck,
 } from 'lucide-react';
 import { api, hasToken } from '../../lib/api';
@@ -704,10 +704,10 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                 {(vendorDetails?.businessCardUrl || vendorDetails?.storefrontUrl || vendorDetails?.lat != null) && (
                   <div className="flex items-center gap-2 flex-wrap">
                     {vendorDetails?.businessCardUrl && (
-                      <img src={vendorDetails.businessCardUrl} alt="Business card" className="w-10 h-10 rounded object-cover" />
+                      <img src={vendorDetails.businessCardUrl} alt="Business card" className="w-10 h-10 rounded object-cover" loading="lazy" />
                     )}
                     {vendorDetails?.storefrontUrl && (
-                      <img src={vendorDetails.storefrontUrl} alt="Storefront" className="w-10 h-10 rounded object-cover" />
+                      <img src={vendorDetails.storefrontUrl} alt="Storefront" className="w-10 h-10 rounded object-cover" loading="lazy" />
                     )}
                     {vendorDetails?.lat != null && vendorDetails?.lng != null && (
                       <a

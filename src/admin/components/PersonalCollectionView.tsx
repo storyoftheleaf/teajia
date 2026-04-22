@@ -84,7 +84,7 @@ export const PersonalCollectionView = ({ products, isLoading, onRefresh }: { pro
       <div className="sticky top-0 z-30 bg-tea-bg/90 backdrop-blur-md border-b border-tea-border py-2.5">
         <div className="px-6 max-w-7xl mx-auto flex items-center gap-4">
             <div className="flex items-center gap-2 shrink-0">
-                <UserCheck size={16} className="text-tea-accent" />
+                <UserCheck size={16} className="text-tea-gold" />
                 <h2 className="text-sm font-serif text-tea-text uppercase tracking-[0.15em]">
                     Private Collection
                 </h2>
@@ -135,7 +135,7 @@ export const PersonalCollectionView = ({ products, isLoading, onRefresh }: { pro
                         {product.vendor && (
                           <>
                             <span className="opacity-40">·</span>
-                            <button onClick={(e) => { e.stopPropagation(); navigate(`/admin/people?tab=sources&search=${encodeURIComponent(product.vendor!)}`); }} className="truncate hover:text-tea-accent transition-colors">{product.vendor}</button>
+                            <button onClick={(e) => { e.stopPropagation(); navigate(`/admin/people?tab=sources&search=${encodeURIComponent(product.vendor!)}`); }} className="truncate hover:text-tea-gold transition-colors">{product.vendor}</button>
                           </>
                         )}
                       </div>
@@ -188,12 +188,12 @@ export const PersonalCollectionView = ({ products, isLoading, onRefresh }: { pro
                                 >
                                     <td className="px-4 align-middle overflow-hidden">
                                         <div className="flex flex-col justify-center h-full">
-                                            <span className="text-sm font-serif text-tea-text tracking-wide group-hover:text-tea-accent transition-colors truncate flex items-center gap-2">
+                                            <span className="text-sm font-serif text-tea-text tracking-wide group-hover:text-tea-gold transition-colors truncate flex items-center gap-2">
                                                 {product.productName || '—'}
                                                 {product.lore && (
                                                     <span title={product.isCustomWisdom ? "Edited lore" : "AI generated lore"}>
                                                         {product.isCustomWisdom ? (
-                                                            <Pencil size={10} className="text-tea-accent" />
+                                                            <Pencil size={10} className="text-tea-gold" />
                                                         ) : (
                                                             <Sparkles size={10} className="text-tea-text-sec" />
                                                         )}
@@ -217,7 +217,7 @@ export const PersonalCollectionView = ({ products, isLoading, onRefresh }: { pro
                                     </td>
                                     <td className="px-4 align-middle overflow-hidden">
                                         {product.vendor ? (
-                                          <button onClick={(e) => { e.stopPropagation(); navigate(`/admin/people?tab=sources&search=${encodeURIComponent(product.vendor!)}`); }} className="text-xs text-tea-text-sec hover:text-tea-accent truncate block text-left transition-colors">{product.vendor}</button>
+                                          <button onClick={(e) => { e.stopPropagation(); navigate(`/admin/people?tab=sources&search=${encodeURIComponent(product.vendor!)}`); }} className="text-xs text-tea-text-sec hover:text-tea-gold truncate block text-left transition-colors">{product.vendor}</button>
                                         ) : <span className="text-xs text-tea-text-dim">Unknown</span>}
                                     </td>
                                     <td className="px-4 align-middle overflow-hidden text-right">

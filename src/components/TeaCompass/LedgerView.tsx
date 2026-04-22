@@ -80,14 +80,14 @@ const LineItemRow: React.FC<{
           {item.compassEntryId && onOpenEntry ? (
             <button
               onClick={() => onOpenEntry(item.compassEntryId!)}
-              className="text-tea-text hover:text-tea-accent font-serif text-[13px] text-left transition-colors truncate block w-full"
+              className="text-tea-text hover:text-tea-gold font-serif text-[13px] text-left transition-colors truncate block w-full"
             >
               {item.name || 'Unnamed'}
             </button>
           ) : item.productId ? (
             <button
               onClick={() => navigate(`/admin/inventory?panel=${encodeURIComponent(item.productId!)}`)}
-              className="text-tea-text hover:text-tea-accent font-serif text-[13px] text-left transition-colors truncate block w-full"
+              className="text-tea-text hover:text-tea-gold font-serif text-[13px] text-left transition-colors truncate block w-full"
             >
               {item.name || 'Unnamed'}
             </button>

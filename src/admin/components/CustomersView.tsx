@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Search, Plus, X, Trash2, Edit3, Phone, Mail, MessageCircle, MapPin, Loader2, ChevronDown, ChevronUp, Leaf, ExternalLink, Users, ArrowUpDown, Check, Calendar, Link, AtSign, Send, Lock, Hash, MessagesSquare } from 'lucide-react';
 import { useCustomers, useProducts } from '../hooks/useAdminData';
@@ -206,7 +206,7 @@ const CustomerModal = ({
     <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
       <div className="bg-tea-bg border border-tea-border rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto overscroll-contain shadow-2xl relative">
         <div className="sticky top-0 bg-tea-bg border-b border-tea-border p-6 flex justify-between items-center z-10">
-          <button onClick={onClose} className="text-tea-text-sec hover:text-tea-text transition-colors"><X size={20} /></button>
+          <button onClick={onClose} className="text-tea-text-sec hover:text-tea-text transition-colors" aria-label="Close"><X size={20} /></button>
           <h3 className="text-xl font-serif text-tea-text">
             {isEditing ? `Edit ${form.type === 'supplier' ? 'Supplier' : 'Customer'}` : `Add ${form.type === 'supplier' ? 'Supplier' : 'Customer'}`}
           </h3>
@@ -396,7 +396,7 @@ const CustomerModal = ({
           <button
             type="submit"
             disabled={saving || !form.name.trim()}
-            className="w-full py-3 bg-tea-accent hover:bg-tea-gold/90 text-tea-bg font-bold uppercase tracking-[0.2em] text-xs rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-3 bg-tea-gold hover:bg-tea-gold/90 text-tea-bg font-bold uppercase tracking-[0.2em] text-xs rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {saving ? 'Saving...' : isEditing ? 'Update Customer' : 'Add Customer'}
           </button>
@@ -407,7 +407,7 @@ const CustomerModal = ({
 };
 
 // ── Customer Detail Panel ──
-const CustomerDetail = ({
+export const CustomerDetail = ({
   customer, onClose, onEdit, onDelete, allProducts, filterAttendedEvents,
 }: {
   customer: Customer;
@@ -524,7 +524,7 @@ const CustomerDetail = ({
             <button onClick={onDelete} className="p-2 text-tea-text-sec hover:text-red-400 transition-colors" title="Delete">
               <Trash2 size={16} />
             </button>
-            <button onClick={onClose} className="p-2 text-tea-text-sec hover:text-tea-text transition-colors">
+            <button onClick={onClose} className="p-2 text-tea-text-sec hover:text-tea-text transition-colors" aria-label="Close">
               <X size={20} />
             </button>
           </div>
@@ -549,11 +549,11 @@ const CustomerDetail = ({
               className="bg-tea-surface border border-tea-border rounded-xl p-4 text-center hover:bg-tea-elevated transition-colors group"
               title="View orders for this customer"
             >
-              <div className="text-2xl font-serif text-tea-accent group-hover:text-tea-gold transition-colors">{customer.orderCount || 0}</div>
+              <div className="text-2xl font-serif text-tea-gold group-hover:text-tea-gold transition-colors">{customer.orderCount || 0}</div>
               <div className="text-[10px] text-tea-text-sec uppercase tracking-wider mt-1">Orders</div>
             </button>
             <div className="bg-tea-surface border border-tea-border rounded-xl p-4 text-center">
-              <div className="text-lg font-serif text-tea-accent leading-tight">{formatUSD(customer.totalSpentUSD)}</div>
+              <div className="text-lg font-serif text-tea-gold leading-tight">{formatUSD(customer.totalSpentUSD)}</div>
               <div className="text-[10px] text-tea-text-sec uppercase tracking-wider mt-1">Total Spent</div>
             </div>
             {(customer.eventCount || 0) > 0 && (
@@ -582,7 +582,7 @@ const CustomerDetail = ({
               >
                 <h4 className="text-xs uppercase tracking-[0.2em] text-tea-text-sec flex items-center gap-2">
                   <Leaf size={12} /> Vendor — Products Sourced
-                  {!loadingSupplied && suppliedProducts.length > 0 && <span className="text-tea-accent">({suppliedProducts.length})</span>}
+                  {!loadingSupplied && suppliedProducts.length > 0 && <span className="text-tea-gold">({suppliedProducts.length})</span>}
                 </h4>
                 {showSupplied ? <ChevronUp size={14} className="text-tea-text-sec" /> : <ChevronDown size={14} className="text-tea-text-sec" />}
               </button>
@@ -601,11 +601,11 @@ const CustomerDetail = ({
                         return (
                           <div className="grid grid-cols-3 gap-3 mb-4">
                             <div className="bg-tea-bg rounded-lg p-3 text-center">
-                              <div className="text-lg font-serif text-tea-accent">{suppliedProducts.length}</div>
+                              <div className="text-lg font-serif text-tea-gold">{suppliedProducts.length}</div>
                               <div className="text-[9px] uppercase tracking-[0.15em] text-tea-text-sec mt-0.5">Products</div>
                             </div>
                             <div className="bg-tea-bg rounded-lg p-3 text-center">
-                              <div className="text-sm font-serif text-tea-accent">{formatUSD(totalValue)}</div>
+                              <div className="text-sm font-serif text-tea-gold">{formatUSD(totalValue)}</div>
                               <div className="text-[9px] uppercase tracking-[0.15em] text-tea-text-sec mt-0.5">Total Value</div>
                             </div>
                             <div className="bg-tea-bg rounded-lg p-3 text-center">
@@ -621,7 +621,7 @@ const CustomerDetail = ({
                           {suppliedProducts.map((p) => (
                             <div key={p.id} className="flex items-center gap-3 py-2 border-b border-tea-border last:border-0">
                               {p.image_url ? (
-                                <img src={p.image_url} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+                                <img src={p.image_url} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" loading="lazy" />
                               ) : (
                                 <div className="w-10 h-10 rounded-lg bg-tea-bg flex items-center justify-center flex-shrink-0">
                                   <Leaf size={14} className="text-tea-text-sec" />
@@ -632,7 +632,7 @@ const CustomerDetail = ({
                                 className="flex-1 min-w-0 text-left hover:opacity-80 transition-opacity"
                                 title="View in Inventory"
                               >
-                                <div className="text-sm text-tea-text font-medium truncate hover:text-tea-accent transition-colors">
+                                <div className="text-sm text-tea-text font-medium truncate hover:text-tea-gold transition-colors">
                                   {p.given_name || p.product_name}
                                   {p.year && <span className="text-tea-text-dim ml-1 font-normal">{p.year}</span>}
                                 </div>
@@ -668,7 +668,7 @@ const CustomerDetail = ({
                       <div className="relative">
                         <button
                           onClick={() => setShowLinkDropdown(!showLinkDropdown)}
-                          className="flex items-center gap-2 text-xs text-tea-text-sec hover:text-tea-accent transition-colors"
+                          className="flex items-center gap-2 text-xs text-tea-text-sec hover:text-tea-gold transition-colors"
                         >
                           <Plus size={12} /> Link a tea to this vendor
                         </button>
@@ -688,7 +688,7 @@ const CustomerDetail = ({
                             {allProducts
                               .filter(p => {
                                 const q = linkSearch.toLowerCase();
-                                const alreadyLinked = suppliedProducts.some((sp: any) => sp.id === p.id);
+                                const alreadyLinked = suppliedProducts.some((sp) => sp.id === p.id);
                                 if (alreadyLinked) return false;
                                 if (!q) return true;
                                 return (p.givenName || '').toLowerCase().includes(q)
@@ -792,7 +792,7 @@ const CustomerDetail = ({
                 ) : events.length === 0 ? (
                   <p className="text-tea-text-sec text-sm italic">No events attended yet.</p>
                 ) : (
-                  events.map((evt: any) => (
+                  events.map((evt) => (
                     <div key={evt.id + '-' + evt.rsvp_date} className="flex justify-between items-center text-sm py-2 border-b border-tea-border last:border-0">
                       <div className="min-w-0 flex-1">
                         <button
@@ -875,8 +875,8 @@ const CustomerDetail = ({
                         <p className="text-[10px] font-sans text-tea-text-dim uppercase tracking-wider mb-1.5">Preferences</p>
                         <div className="flex flex-wrap gap-1.5">
                           {Object.entries(journey.teaTypeMap)
-                            .sort(([, a]: any, [, b]: any) => b - a)
-                            .map(([type, count]: [string, any]) => (
+                            .sort(([, a], [, b]) => b - a)
+                            .map(([type, count]) => (
                               <span key={type} className="text-xs font-sans text-tea-text-sec bg-tea-surface px-2 py-0.5 rounded">
                                 {type} <span className="text-tea-text-dim">({count})</span>
                               </span>
@@ -935,8 +935,8 @@ const CustomerDetail = ({
             >
               <h4 className="text-xs uppercase tracking-[0.2em] text-tea-text-sec flex items-center gap-2">
                 <Leaf size={12} /> Tea History
-                {!loadingTeas && (teas.length + events.filter((e: any) => e.attended === 1).length) > 0 && (
-                  <span className="text-tea-gold">({teas.length + events.filter((e: any) => e.attended === 1).length})</span>
+                {!loadingTeas && (teas.length + events.filter((e) => e.attended === 1).length) > 0 && (
+                  <span className="text-tea-gold">({teas.length + events.filter((e) => e.attended === 1).length})</span>
                 )}
               </h4>
               {showTeas ? <ChevronUp size={14} className="text-tea-text-sec" /> : <ChevronDown size={14} className="text-tea-text-sec" />}
@@ -946,19 +946,19 @@ const CustomerDetail = ({
               <div className="mt-4 space-y-3">
                 {(loadingTeas || loadingEvents) ? (
                   <div className="flex justify-center py-4"><Loader2 className="animate-spin text-tea-text-sec" size={16} /></div>
-                ) : (teas.length === 0 && events.filter((e: any) => e.attended === 1).length === 0) ? (
+                ) : (teas.length === 0 && events.filter((e) => e.attended === 1).length === 0) ? (
                   <p className="text-tea-text-sec text-sm italic">No tea history yet.</p>
                 ) : (
                   <>
                     {teas.length > 0 && (
                       <>
-                        {events.filter((e: any) => e.attended === 1).length > 0 && (
+                        {events.filter((e) => e.attended === 1).length > 0 && (
                           <p className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim">Purchased</p>
                         )}
-                        {teas.map((tea: any) => (
+                        {teas.map((tea) => (
                           <div key={tea.id} className="flex items-center gap-3 py-2 border-b border-tea-border last:border-0">
                             {tea.image_url ? (
-                              <img src={tea.image_url} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+                              <img src={tea.image_url} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" loading="lazy" />
                             ) : (
                               <div className="w-10 h-10 rounded-lg bg-tea-bg flex items-center justify-center flex-shrink-0">
                                 <Leaf size={14} className="text-tea-text-sec" />
@@ -969,7 +969,7 @@ const CustomerDetail = ({
                               className="flex-1 min-w-0 text-left hover:opacity-80 transition-opacity"
                               title="View in Inventory"
                             >
-                              <div className="text-sm text-tea-text font-medium truncate hover:text-tea-accent transition-colors">
+                              <div className="text-sm text-tea-text font-medium truncate hover:text-tea-gold transition-colors">
                                 {tea.given_name || tea.product_name}
                               </div>
                               <div className="text-xs text-tea-text-sec flex items-center gap-2">
@@ -987,10 +987,10 @@ const CustomerDetail = ({
                         ))}
                       </>
                     )}
-                    {events.filter((e: any) => e.attended === 1).length > 0 && (
+                    {events.filter((e) => e.attended === 1).length > 0 && (
                       <>
                         <p className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim mt-2">Tasted at Events</p>
-                        {events.filter((e: any) => e.attended === 1).map((evt: any) => (
+                        {events.filter((e) => e.attended === 1).map((evt) => (
                           <div key={evt.id + '-tasting'} className="flex items-center gap-3 py-2 border-b border-tea-border last:border-0">
                             <div className="w-10 h-10 rounded-lg bg-tea-gold-lt flex items-center justify-center flex-shrink-0">
                               <Calendar size={14} className="text-tea-gold" />
@@ -1000,7 +1000,7 @@ const CustomerDetail = ({
                               className="flex-1 min-w-0 text-left hover:opacity-80 transition-opacity"
                               title="View Event"
                             >
-                              <div className="text-sm text-tea-text font-medium truncate hover:text-tea-accent transition-colors">
+                              <div className="text-sm text-tea-text font-medium truncate hover:text-tea-gold transition-colors">
                                 {evt.title}
                               </div>
                               <div className="text-xs text-tea-text-dim">
@@ -1080,7 +1080,7 @@ const CustomerDetail = ({
                 ) : orders.length === 0 ? (
                   <p className="text-tea-text-sec text-sm italic">No orders yet.</p>
                 ) : (
-                  orders.map((order: any) => (
+                  orders.map((order) => (
                     <button
                       key={order.id}
                       onClick={() => { onClose(); navigate(`/admin/activity?search=${encodeURIComponent(customer.name || '')}`); }}
@@ -1088,7 +1088,7 @@ const CustomerDetail = ({
                       title="View orders in Activity"
                     >
                       <div>
-                        <span className="text-tea-text font-medium group-hover:text-tea-accent transition-colors inline-flex items-center gap-1">
+                        <span className="text-tea-text font-medium group-hover:text-tea-gold transition-colors inline-flex items-center gap-1">
                           {order.invoice_number}
                           <ExternalLink size={10} className="opacity-0 group-hover:opacity-100 transition-opacity" />
                         </span>
@@ -1224,6 +1224,14 @@ export const CustomersView = () => {
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [viewingCustomer, setViewingCustomer] = useState<Customer | null>(null);
 
+  // Auto-open a specific customer when navigated from another view (e.g. event attendee)
+  useEffect(() => {
+    const id = searchParams.get('customerId');
+    if (!id || customers.length === 0 || viewingCustomer) return;
+    const found = customers.find(c => c.id === id);
+    if (found) setViewingCustomer(found);
+  }, [customers, searchParams]);
+
   // Exclude vendor-only customers (they appear in Sources view)
   const nonVendorCustomers = useMemo(() => {
     return customers.filter(c => {
@@ -1344,7 +1352,7 @@ export const CustomersView = () => {
       <div className="sticky top-0 z-30 bg-tea-bg/90 backdrop-blur-md border-b border-tea-border py-2.5 flex-shrink-0">
         <div className="px-3 md:px-6 max-w-5xl mx-auto flex items-center gap-3 md:gap-4">
           <div className="flex items-center gap-2 shrink-0">
-            <Users size={16} className="text-tea-accent" />
+            <Users size={16} className="text-tea-gold" />
             <h2 className="text-sm font-serif text-tea-text uppercase tracking-[0.15em] hidden md:block">Customers</h2>
             <span className="text-tea-text-sec text-xs tracking-wide hidden md:inline">
               — {filtered.length} contact{filtered.length !== 1 ? 's' : ''}
@@ -1413,14 +1421,14 @@ export const CustomersView = () => {
             <div className="relative">
               <button
                 onClick={() => { setShowMobileSort(!showMobileSort); setShowMobileFilter(false); }}
-                className={`w-9 h-9 flex items-center justify-center transition-colors rounded-md md:hidden ${showMobileSort ? 'text-tea-accent' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
+                className={`w-9 h-9 flex items-center justify-center transition-colors rounded-md md:hidden ${showMobileSort ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
               >
                 <ArrowUpDown size={15} />
               </button>
               {/* Desktop sort dropdown */}
               <select
                 value={sortBy}
-                onChange={e => setSortBy(e.target.value as any)}
+                onChange={e => setSortBy(e.target.value as 'name' | 'recent' | 'spent' | 'orders')}
                 className="hidden md:block bg-transparent border-b border-tea-border text-xs text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-text-sec transition-colors py-1 pr-6 cursor-pointer"
               >
                 <option value="name">Name</option>
@@ -1442,7 +1450,7 @@ export const CustomersView = () => {
                       <button
                         key={opt.key}
                         onClick={() => { setSortBy(opt.key); setShowMobileSort(false); }}
-                        className={`w-full px-3 py-2 text-left text-[11px] flex items-center gap-2 hover:bg-tea-bg transition-colors ${sortBy === opt.key ? 'text-tea-accent' : 'text-tea-text-sec'}`}
+                        className={`w-full px-3 py-2 text-left text-[11px] flex items-center gap-2 hover:bg-tea-bg transition-colors ${sortBy === opt.key ? 'text-tea-gold' : 'text-tea-text-sec'}`}
                       >
                         {opt.label}
                         {sortBy === opt.key && <Check size={12} className="ml-auto" />}
@@ -1468,7 +1476,7 @@ export const CustomersView = () => {
             {/* Add button */}
             <button
               onClick={() => { setEditingCustomer(null); setIsModalOpen(true); }}
-              className="w-9 h-9 flex items-center justify-center text-tea-text-sec hover:text-tea-accent transition-colors rounded-md md:hidden"
+              className="w-9 h-9 flex items-center justify-center text-tea-text-sec hover:text-tea-gold transition-colors rounded-md md:hidden"
               title="Add customer"
             >
               <Plus size={16} />
@@ -1578,7 +1586,7 @@ export const CustomersView = () => {
                   >
                     <div className="flex justify-between items-start mb-3">
                       <div>
-                        <h3 className="text-tea-text font-medium group-hover:text-tea-accent transition-colors">{customer.name}</h3>
+                        <h3 className="text-tea-text font-medium group-hover:text-tea-gold transition-colors">{customer.name}</h3>
                         {customer.company && <p className="text-tea-text-sec text-xs">{customer.company}</p>}
                       </div>
                       <div className="flex items-center gap-1.5">

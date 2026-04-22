@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ShoppingCart, MessageCircle, Check } from 'lucide-react';
+import { X, ShoppingCart, MessageCircle } from 'lucide-react';
 import { buildOrderMessage, buildWhatsAppUrl } from '../../lib/whatsapp';
 
 interface SampleOrderModalProps {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Save, Loader2, Plus, ChevronDown, ChevronUp, Trash2, ArrowUp, ArrowDown, Upload, MapPin, Bookmark, Image, Users } from 'lucide-react';
+import { X, Save, Loader2, Plus, ChevronDown, ChevronUp, Trash2, ArrowUp, ArrowDown, Upload, MapPin, Bookmark, Image } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../../lib/api';
 import { compressImage } from '../../lib/imageCompressor';
@@ -465,7 +465,7 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
                               {/* Space photo */}
                               {space.photos[0] ? (
                                 <div className="w-14 h-14 rounded overflow-hidden border border-tea-border flex-shrink-0">
-                                  <img src={space.photos[0]} alt={space.name} className="w-full h-full object-cover" />
+                                  <img src={space.photos[0]} alt={space.name} className="w-full h-full object-cover" loading="lazy" />
                                 </div>
                               ) : (
                                 <div className="w-14 h-14 rounded border border-dashed border-tea-border flex items-center justify-center flex-shrink-0">
@@ -519,7 +519,7 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
             <h3 className="text-xs uppercase tracking-widest text-tea-text-sec font-medium">Flyer</h3>
             {flyerImageUrl ? (
               <div className="relative w-full rounded-md overflow-hidden border border-tea-border">
-                <img src={flyerImageUrl} alt="Flyer" className="w-full object-cover" />
+                <img src={flyerImageUrl} alt="Flyer" className="w-full object-cover" loading="lazy" />
                 <button
                   type="button"
                   onClick={() => setFlyerImageUrl('')}
@@ -1104,7 +1104,7 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
                 <Field label="Flyer Image">
                   {form.flyerImageUrl ? (
                     <div className="relative w-full rounded-md overflow-hidden border border-tea-border bg-tea-bg">
-                      <img src={form.flyerImageUrl} alt="Flyer" className="w-full max-h-64 object-contain" />
+                      <img src={form.flyerImageUrl} alt="Flyer" className="w-full max-h-64 object-contain" loading="lazy" />
                       <button
                         type="button"
                         onClick={() => updateField('flyerImageUrl', '')}
@@ -1256,7 +1256,7 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
                   />
                   {step.image_url ? (
                     <div className="relative w-full h-24 rounded-md overflow-hidden border border-tea-border">
-                      <img src={step.image_url} alt={`Step ${idx + 1}`} className="w-full h-full object-cover" />
+                      <img src={step.image_url} alt={`Step ${idx + 1}`} className="w-full h-full object-cover" loading="lazy" />
                       <button
                         type="button"
                         onClick={() => updateVenueStep(idx, 'image_url', '')}

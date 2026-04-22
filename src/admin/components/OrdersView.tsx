@@ -2,9 +2,9 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../../lib/api';
-import type { InvoiceWithItems } from '../types';
+import type { InvoiceWithItems, Product } from '../types';
 import { openWhatsAppStatus } from '../../lib/whatsapp';
-import { Loader2, Search, XCircle, Trash2, Eye, X, PackageCheck, Users, Scissors, Pencil, Package, MoreHorizontal, MessageCircle, Plus, Link2 } from 'lucide-react';
+import { Loader2, Search, XCircle, Trash2, Eye, X, PackageCheck, Users, Scissors, Pencil, Package, MoreHorizontal, MessageCircle, Plus, Link2, StickyNote, Leaf } from 'lucide-react';
 import Fuse from 'fuse.js';
 import { useProducts } from '../hooks/useAdminData';
 import { useToast } from './Toast';
@@ -17,27 +17,54 @@ const ROW_HEIGHT = 36;
 
 type StatusFilter = 'all' | 'Pending' | 'Filled' | 'Void';
 
+/** DB row shape returned by GET /api/invoices — extends InvoiceWithItems with computed fields */
+interface DbOrder extends InvoiceWithItems {
+  computed_total?: number;
+  items?: DbOrderItem[];
+}
+
+/** DB row shape for individual invoice line items */
+interface DbOrderItem {
+  id?: string;
+  product_id?: string;
+  given_name?: string;
+  product_name?: string;
+  custom_name?: string | null;
+  quantity: number;
+  price_at_sale: number;
+  product?: Pick<Product, 'givenName' | 'type'>;
+}
+
+/** Activity log entry for the invoice timeline */
+interface ActivityLogEntry {
+  id?: string;
+  action: string;
+  details?: string;
+  user_email?: string;
+  created_at: string;
+}
+
 export const OrdersView = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const { showToast } = useToast();
   const [search, setSearch] = useState(searchParams.get('search') || '');
-  const [viewingInvoice, setViewingInvoice] = useState<any | null>(null);
+  const [viewingInvoice, setViewingInvoice] = useState<DbOrder | null>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const { data: products = [] } = useProducts();
 
   // Confirm modal state
   const [confirmState, setConfirmState] = useState<{
     type: 'fulfill' | 'void' | 'delete';
-    invoice: any;
+    invoice: DbOrder;
     stockImpact?: { name: string; current: number; after: number }[];
   } | null>(null);
   const [confirmLoading, setConfirmLoading] = useState(false);
 
   // Split & Edit modal state
-  const [splitInvoice, setSplitInvoice] = useState<any | null>(null);
-  const [editInvoice, setEditInvoice] = useState<any | null>(null);
+  const [splitInvoice, setSplitInvoice] = useState<DbOrder | null>(null);
+  const [editInvoice, setEditInvoice] = useState<DbOrder | null>(null);
 
   // Quick Invoice + link-later state
   const [showQuickInvoice, setShowQuickInvoice] = useState(false);
@@ -62,30 +89,30 @@ export const OrdersView = () => {
   }, [linkState?.query, productFuse, products]);
 
   // Timeline state for invoice detail
-  const [invoiceTimeline, setInvoiceTimeline] = useState<any[]>([]);
+  const [invoiceTimeline, setInvoiceTimeline] = useState<ActivityLogEntry[]>([]);
 
   const [pageSize, setPageSize] = useState(50);
-  const { data: orders = [], isLoading, refetch } = useQuery({
+  const { data: orders = [], isLoading, refetch } = useQuery<DbOrder[]>({
     queryKey: ['orders', pageSize],
     staleTime: 1000 * 60 * 5,
     refetchOnWindowFocus: false,
     queryFn: async () => {
-      return await api.invoices.list(pageSize);
+      return await api.invoices.list(pageSize) as DbOrder[];
     }
   });
 
   // Pipeline summary
   const summary = useMemo(() => {
-    const pending = orders.filter((o: any) => o.status === 'Pending').length;
-    const filled = orders.filter((o: any) => o.status === 'Filled').length;
-    const voided = orders.filter((o: any) => o.status === 'Void').length;
+    const pending = orders.filter((o) => o.status === 'Pending').length;
+    const filled = orders.filter((o) => o.status === 'Filled').length;
+    const voided = orders.filter((o) => o.status === 'Void').length;
     const filledTotal = orders
-      .filter((o: any) => o.status === 'Filled')
-      .reduce((sum: number, o: any) => sum + (Number(o.computed_total) || 0) + (Number(o.shipping_cost_usd) || 0), 0);
+      .filter((o) => o.status === 'Filled')
+      .reduce((sum: number, o) => sum + (Number(o.computed_total) || 0) + (Number(o.shipping_cost_usd) || 0), 0);
     return { pending, filled, voided, filledTotal };
   }, [orders]);
 
-  const handleView = async (invoice: any) => {
+  const handleView = async (invoice: DbOrder) => {
     try {
       const items = await api.invoices.getItems(invoice.id);
       setViewingInvoice({ ...invoice, items });
@@ -99,11 +126,11 @@ export const OrdersView = () => {
     }
   };
 
-  const openFulfillConfirm = async (invoice: any) => {
+  const openFulfillConfirm = async (invoice: DbOrder) => {
     // Fetch stock impact preview
     try {
-      const items = await api.invoices.getItems(invoice.id);
-      const impact = items.map((item: any) => {
+      const items = await api.invoices.getItems(invoice.id) as DbOrderItem[];
+      const impact = items.map((item) => {
         const product = products.find(p => p.id === item.product_id);
         const current = product?.stockGrams || 0;
         return {
@@ -127,7 +154,7 @@ export const OrdersView = () => {
         showToast('Order fulfilled. Stock deducted.', 'success');
         queryClient.invalidateQueries({ queryKey: ['products'] });
         // Offer WhatsApp status notification
-        const inv = confirmState.invoice as InvoiceWithItems;
+        const inv = confirmState.invoice;
         if (inv.customer_phone) {
           const items = (inv.items || []).map((it) => ({
             name: it.product?.givenName || it.product_name || 'Item',
@@ -327,12 +354,12 @@ export const OrdersView = () => {
                         <span className="text-xs text-tea-text-sec">{new Date(order.created_at).toLocaleDateString()}</span>
                       </td>
                       <td className="px-4 align-middle overflow-hidden">
-                        <span className="num text-xs text-tea-text group-hover:text-tea-accent cursor-pointer transition-colors" onClick={() => handleView(order)}>{order.invoice_number}</span>
+                        <span className="num text-xs text-tea-text group-hover:text-tea-gold cursor-pointer transition-colors" onClick={() => handleView(order)}>{order.invoice_number}</span>
                       </td>
                       <td className="px-4 align-middle overflow-hidden">
                         <button
                           onClick={() => navigate(`/admin/people?search=${encodeURIComponent(order.customer_name || '')}`)}
-                          className="text-xs text-tea-text hover:text-tea-accent transition-colors flex items-center gap-1.5 group/cust truncate"
+                          className="text-xs text-tea-text hover:text-tea-gold transition-colors flex items-center gap-1.5 group/cust truncate"
                           title="View customer profile"
                         >
                           <Users size={12} className="opacity-0 group-hover/cust:opacity-100 transition-opacity text-tea-text-sec flex-shrink-0" />
@@ -361,14 +388,14 @@ export const OrdersView = () => {
                             <span className="text-[9px] text-tea-gold/80 num">{daysAge}d</span>
                           )}
                           {order.notes && (
-                            <span className="text-tea-text-sec/50" title={order.notes}>📝</span>
+                            <span className="text-tea-text-dim" title={order.notes}><StickyNote size={10} /></span>
                           )}
                           {order.source_event_title && (
                             <button
                               onClick={() => navigate(`/admin/events?search=${encodeURIComponent(order.source_event_title)}`)}
-                              className="text-tea-gold/60 text-[9px] hover:text-tea-gold transition-colors cursor-pointer"
+                              className="text-tea-text-dim hover:text-tea-text-sec transition-colors cursor-pointer"
                               title={`Attributed to: ${order.source_event_title}`}
-                            >🎋</button>
+                            ><Leaf size={10} /></button>
                           )}
                         </div>
                       </td>
@@ -435,7 +462,7 @@ export const OrdersView = () => {
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] text-tea-text-sec">{new Date(order.created_at).toLocaleDateString()}</span>
-                    <span className="text-xs text-tea-text num cursor-pointer hover:text-tea-accent transition-colors" onClick={() => handleView(order)}>{order.invoice_number}</span>
+                    <span className="text-xs text-tea-text num cursor-pointer hover:text-tea-gold transition-colors" onClick={() => handleView(order)}>{order.invoice_number}</span>
                   </div>
                   <div className="flex items-center justify-between mt-1">
                     <span className="text-sm text-tea-text font-serif truncate">{order.customer_name}</span>
@@ -453,9 +480,9 @@ export const OrdersView = () => {
                       {order.source_event_title && (
                         <button
                           onClick={() => navigate(`/admin/events?search=${encodeURIComponent(order.source_event_title)}`)}
-                          className="text-tea-gold/60 text-[9px] hover:text-tea-gold transition-colors cursor-pointer"
+                          className="text-tea-text-dim hover:text-tea-text-sec transition-colors cursor-pointer"
                           title={`Attributed to: ${order.source_event_title}`}
-                        >🎋</button>
+                        ><Leaf size={10} /></button>
                       )}
                     </div>
                   </div>
@@ -500,7 +527,7 @@ export const OrdersView = () => {
       {viewingInvoice && (
         <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
             <div className="bg-tea-bg border border-tea-border rounded-2xl w-full max-w-lg p-8 shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scrollbar">
-                <button onClick={() => { setViewingInvoice(null); setInvoiceTimeline([]); }} className="absolute top-6 right-6 text-tea-text-sec hover:text-tea-text transition-colors">
+                <button onClick={() => { setViewingInvoice(null); setInvoiceTimeline([]); }} className="absolute top-6 right-6 text-tea-text-sec hover:text-tea-text transition-colors" aria-label="Close">
                     <X size={24} />
                 </button>
 
@@ -514,7 +541,7 @@ export const OrdersView = () => {
                         <span className="text-tea-text-sec">Customer</span>
                         <button
                           onClick={() => { setViewingInvoice(null); navigate(`/admin/people?search=${encodeURIComponent(viewingInvoice.customer_name || '')}`); }}
-                          className="text-tea-text font-medium hover:text-tea-accent transition-colors"
+                          className="text-tea-text font-medium hover:text-tea-gold transition-colors"
                         >
                           {viewingInvoice.customer_name}
                         </button>
@@ -525,11 +552,11 @@ export const OrdersView = () => {
                     </div>
                     <div className="flex justify-between border-b border-tea-border pb-3">
                         <span className="text-tea-text-sec">Status</span>
-                        <span className={`font-medium ${viewingInvoice.status === 'Void' ? 'text-tea-text-sec' : viewingInvoice.status === 'Pending' ? 'text-tea-accent' : 'text-tea-text'}`}>{viewingInvoice.status}</span>
+                        <span className={`font-medium ${viewingInvoice.status === 'Void' ? 'text-tea-text-sec' : viewingInvoice.status === 'Pending' ? 'text-tea-gold' : 'text-tea-text'}`}>{viewingInvoice.status}</span>
                     </div>
                     <div className="flex justify-between border-b border-tea-border pb-3">
                         <span className="text-tea-text-sec">Inventory Deducted</span>
-                        <span className={`font-medium ${viewingInvoice.inventory_deducted ? 'text-tea-text' : 'text-tea-accent'}`}>{viewingInvoice.inventory_deducted ? 'Yes' : 'No'}</span>
+                        <span className={`font-medium ${viewingInvoice.inventory_deducted ? 'text-tea-text' : 'text-tea-gold'}`}>{viewingInvoice.inventory_deducted ? 'Yes' : 'No'}</span>
                     </div>
                 </div>
 
@@ -539,7 +566,7 @@ export const OrdersView = () => {
                     <h4 className="text-xs uppercase tracking-[0.2em] text-tea-text-sec mb-2">Source Event</h4>
                     <button
                       onClick={() => { setViewingInvoice(null); navigate(`/admin/events?search=${encodeURIComponent(viewingInvoice.source_event_title)}`); }}
-                      className="text-sm text-tea-text hover:text-tea-accent transition-colors"
+                      className="text-sm text-tea-text hover:text-tea-gold transition-colors"
                     >
                       {viewingInvoice.source_event_title}
                     </button>
@@ -564,7 +591,7 @@ export const OrdersView = () => {
                                     {item.product_id ? (
                                       <button
                                         onClick={() => { setViewingInvoice(null); navigate(`/admin/inventory?panel=${encodeURIComponent(item.product_id)}`); }}
-                                        className="text-tea-text font-medium hover:text-tea-accent transition-colors text-left truncate block"
+                                        className="text-tea-text font-medium hover:text-tea-gold transition-colors text-left truncate block"
                                       >
                                         {item.given_name || item.product_name || 'Unknown'}
                                       </button>
@@ -625,7 +652,7 @@ export const OrdersView = () => {
 
                 <div className="flex justify-between items-end text-lg font-bold text-tea-text border-t border-tea-border pt-6">
                     <span className="text-sm font-normal text-tea-text-sec">Total (Shipping included)</span>
-                    <span className="font-serif text-2xl text-tea-accent">
+                    <span className="font-serif text-2xl text-tea-gold">
                       ${((viewingInvoice.items || []).reduce((sum, item) => sum + (item.quantity * item.price_at_sale), 0) + (Number(viewingInvoice.shipping_cost_usd) || 0)).toFixed(2)} USD
                     </span>
                 </div>
@@ -642,7 +669,7 @@ export const OrdersView = () => {
                             {i < invoiceTimeline.length - 1 && <div className="w-px flex-1 bg-tea-border mt-1" />}
                           </div>
                           <div className="pb-3">
-                            <div className="text-xs text-tea-accent font-mono uppercase">{log.action}</div>
+                            <div className="text-xs text-tea-gold font-mono uppercase">{log.action}</div>
                             <div className="text-xs text-tea-text-sec">{log.details}</div>
                             <div className="text-[10px] text-tea-text-sec/50 mt-0.5">
                               {new Date(log.created_at).toLocaleString()}
@@ -659,7 +686,7 @@ export const OrdersView = () => {
                      <div className="mt-8 pt-6 border-t border-tea-border">
                         <button
                             onClick={() => { setViewingInvoice(null); openFulfillConfirm(viewingInvoice); }}
-                            className="w-full py-4 bg-tea-accent hover:bg-tea-gold/90 text-tea-bg font-bold uppercase tracking-[0.2em] text-xs rounded-lg flex items-center justify-center gap-2 transition-all shadow-lg shadow-tea-gold/10"
+                            className="w-full py-4 bg-tea-gold hover:bg-tea-gold/90 text-tea-bg font-bold uppercase tracking-[0.2em] text-xs rounded-lg flex items-center justify-center gap-2 transition-all shadow-lg shadow-tea-gold/10"
                         >
                             <PackageCheck size={18} /> Confirm Order & Deduct Stock
                         </button>

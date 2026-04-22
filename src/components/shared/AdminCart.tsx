@@ -2,7 +2,7 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { Trash2, Share2, Loader2, Printer, RefreshCcw, Clock, Package, X, ExternalLink, ArrowDownLeft, ArrowUpRight, FileDown } from 'lucide-react';
+import { Trash2, Share2, Loader2, RefreshCcw, Clock, Package, X, ExternalLink, ArrowDownLeft, ArrowUpRight, FileDown } from 'lucide-react';
 import { CartItem as AdminCartItem, ExchangeRate, Currency } from '../../admin/types';
 import { api } from '../../lib/api';
 import { formatCurrency } from '../../admin/utils';
@@ -716,7 +716,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
               <div key={item.productId} className="group bg-tea-surface border border-tea-border rounded-xl p-3 hover:border-tea-text-sec/50 transition-colors flex gap-3">
                 <div className="w-12 h-12 bg-tea-bg rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center border border-tea-border">
                   {item.product.imageUrl ? (
-                    <img src={item.product.imageUrl} className="w-full h-full object-cover opacity-70" alt="" />
+                    <img src={item.product.imageUrl} className="w-full h-full object-cover opacity-70" alt="" loading="lazy" />
                   ) : (
                     <div className="p-2">
                       <TeaIllustration type={item.product.type} className="w-full h-full" />

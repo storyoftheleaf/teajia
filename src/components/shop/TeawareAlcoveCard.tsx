@@ -671,7 +671,7 @@ export const TeawareAlcoveCard: React.FC<TeawareAlcoveCardProps> = ({ item, onAd
                     transition: "all 0.2s ease",
                   }}
                 >
-                  <img src={img} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  <img src={img} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} loading="lazy" />
                 </button>
               ))}
             </div>

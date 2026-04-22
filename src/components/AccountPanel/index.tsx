@@ -1141,7 +1141,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                         title="Tap to change photo"
                       >
                         {avatarDataUrl ? (
-                          <img src={avatarDataUrl} alt="Avatar" className="w-full h-full object-cover" />
+                          <img src={avatarDataUrl} alt="Avatar" className="w-full h-full object-cover" loading="lazy" />
                         ) : (
                           <span className="text-base font-serif text-tea-gold font-medium">
                             {getInitials(auth.user.name || auth.user.email)}

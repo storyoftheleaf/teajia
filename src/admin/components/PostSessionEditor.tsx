@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Save, Upload, Trash2, Loader2, Music, FileText, Image as ImageIcon, Leaf, X, GripVertical } from 'lucide-react';
+import { Save, Upload, Trash2, Loader2, Music, FileText, Image as ImageIcon, Leaf, X } from 'lucide-react';
 import { api } from '../../lib/api';
 import { compressImage } from '../../lib/imageCompressor';
 import { useTastingNotes } from '../hooks/useEventData';
@@ -169,7 +169,7 @@ export const PostSessionEditor: React.FC<PostSessionEditorProps> = ({ eventId })
           <div className="grid grid-cols-3 md:grid-cols-4 gap-2 mb-3">
             {gallery.map((url, idx) => (
               <div key={idx} className="relative aspect-square rounded-md overflow-hidden border border-tea-border group">
-                <img src={url} alt={`Gallery ${idx + 1}`} className="w-full h-full object-cover" />
+                <img src={url} alt={`Gallery ${idx + 1}`} className="w-full h-full object-cover" loading="lazy" />
                 <button
                   onClick={() => removeGalleryImage(idx)}
                   className="absolute top-1 right-1 bg-tea-bg/80 text-tea-text p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"

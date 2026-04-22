@@ -58,7 +58,7 @@ export const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
   return (
     <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
       <div className="bg-tea-bg border border-tea-border rounded-2xl w-full max-w-md p-6 shadow-2xl relative">
-        <button onClick={onClose} className="absolute top-4 right-4 text-tea-text-sec hover:text-tea-text transition-colors">
+        <button onClick={onClose} className="absolute top-4 right-4 text-tea-text-sec hover:text-tea-text transition-colors" aria-label="Close">
           <X size={20} />
         </button>
 

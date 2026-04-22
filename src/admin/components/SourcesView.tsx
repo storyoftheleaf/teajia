@@ -4,8 +4,8 @@ import {
   Search, Plus, Trash2, Edit3, Loader2, ChevronDown, ChevronUp,
   ChevronRight, Leaf, MapPin, ArrowUpDown, ArrowUp, ArrowDown,
   ExternalLink, X as XIcon, Pencil, Check, Columns, Layers,
-  MoreHorizontal, Save, Download, Square, CheckSquare, Users,
-  Clock, TrendingUp, ShoppingBag, Eye, Palette, Star
+  MoreHorizontal, Save, Download, Users,
+  Eye, Palette, Star
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Fuse from 'fuse.js';
@@ -48,7 +48,7 @@ const SourceModal = ({
     try { await onSave(form); } finally { setSaving(false); }
   };
 
-  const inputStyle = "w-full bg-transparent border-b border-tea-border px-0 py-2 text-base md:text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-accent transition-colors placeholder-tea-text-sec/50";
+  const inputStyle = "w-full bg-transparent border-b border-tea-border px-0 py-2 text-base md:text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold transition-colors placeholder-tea-text-sec/50";
 
   return (
     <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
@@ -539,7 +539,7 @@ export const SourcesView = () => {
             {sortEntry ? (
               <span className="flex items-center">
                 {sortEntry.direction === 'asc' ? <ArrowUp size={10} className="ml-1 text-tea-text-sec" /> : <ArrowDown size={10} className="ml-1 text-tea-text-sec" />}
-                {showBadge && <span className="ml-0.5 text-[8px] text-tea-accent font-bold">{sortIndex + 1}</span>}
+                {showBadge && <span className="ml-0.5 text-[8px] text-tea-gold font-bold">{sortIndex + 1}</span>}
               </span>
             ) : <ArrowUpDown size={10} className="opacity-0 group-hover:opacity-100 text-tea-text-sec/50 ml-1 transition-opacity" />}
           </div>
@@ -562,7 +562,7 @@ export const SourcesView = () => {
                   className="font-serif text-sm text-tea-text tracking-wide truncate"
                 />
               ) : (
-                <span className="text-sm font-serif text-tea-text tracking-wide group-hover:text-tea-accent transition-colors truncate">
+                <span className="text-sm font-serif text-tea-text tracking-wide group-hover:text-tea-gold transition-colors truncate">
                   {source.name}
                 </span>
               )}
@@ -675,7 +675,7 @@ export const SourcesView = () => {
               inline={true}
               headerSlot={
                 <div className="flex items-center gap-2 shrink-0">
-                  <Leaf size={16} className="text-tea-accent" />
+                  <Leaf size={16} className="text-tea-gold" />
                   <h2 className="text-sm font-serif text-tea-text uppercase tracking-[0.15em]">
                     {source.name}
                   </h2>
@@ -755,7 +755,7 @@ export const SourcesView = () => {
             }}
             className={`flex items-center gap-1.5 px-3 py-1 text-[10px] uppercase tracking-[0.15em] rounded-md whitespace-nowrap transition-colors ${
               activeViewId === view.id
-                ? 'bg-tea-gold/15 text-tea-accent border border-tea-accent-sub'
+                ? 'bg-tea-gold/15 text-tea-gold border border-tea-accent-sub'
                 : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface border border-transparent'
             }`}
           >
@@ -763,7 +763,7 @@ export const SourcesView = () => {
             {!view.id.startsWith('default-') && (
               <span
                 onClick={(e) => { e.stopPropagation(); deleteView(view.id); }}
-                className="ml-1 text-tea-text-sec/40 hover:text-tea-accent transition-colors"
+                className="ml-1 text-tea-text-sec/40 hover:text-tea-gold transition-colors"
               >
                 <XIcon size={10} />
               </span>
@@ -807,7 +807,7 @@ export const SourcesView = () => {
       {/* --- MOBILE CONTROL BAR --- */}
       <div className={`md:hidden sticky top-0 z-30 transition-colors flex-shrink-0 ${isEditMode ? 'bg-tea-surface/95' : 'bg-tea-bg/95 backdrop-blur-md'}`}>
         <div className="flex items-center px-2 py-1.5 gap-1">
-          <Users size={14} className="text-tea-accent shrink-0 ml-1" />
+          <Users size={14} className="text-tea-gold shrink-0 ml-1" />
           <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.08em] shrink-0">
             {processedSources.length}
           </span>
@@ -830,7 +830,7 @@ export const SourcesView = () => {
           <div className="relative">
             <button
               onClick={() => { setShowMobileSort(!showMobileSort); setShowOptions(false); }}
-              className={`w-9 h-9 flex items-center justify-center transition-colors rounded-md ${showMobileSort ? 'text-tea-accent' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
+              className={`w-9 h-9 flex items-center justify-center transition-colors rounded-md ${showMobileSort ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
             >
               <ArrowUpDown size={15} />
             </button>
@@ -858,7 +858,7 @@ export const SourcesView = () => {
                           }
                           setShowMobileSort(false);
                         }}
-                        className={`w-full px-3 py-2 text-left text-[11px] flex items-center gap-2 hover:bg-tea-bg transition-colors ${isActive ? 'text-tea-accent' : 'text-tea-text-sec'}`}
+                        className={`w-full px-3 py-2 text-left text-[11px] flex items-center gap-2 hover:bg-tea-bg transition-colors ${isActive ? 'text-tea-gold' : 'text-tea-text-sec'}`}
                       >
                         {opt.label}
                         {isActive && (
@@ -878,7 +878,7 @@ export const SourcesView = () => {
           <div className="relative">
             <button
               onClick={() => { setShowOptions(!showOptions); setShowMobileSort(false); }}
-              className={`w-9 h-9 flex items-center justify-center transition-colors rounded-md ${showOptions ? 'text-tea-accent' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
+              className={`w-9 h-9 flex items-center justify-center transition-colors rounded-md ${showOptions ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
             >
               <MoreHorizontal size={15} />
             </button>
@@ -898,7 +898,7 @@ export const SourcesView = () => {
                         setGroupBy(view.groupBy);
                         setShowOptions(false);
                       }}
-                      className={`w-full px-3 py-2 text-left text-[11px] flex items-center gap-2 hover:bg-tea-bg transition-colors ${activeViewId === view.id ? 'text-tea-accent' : 'text-tea-text-sec'}`}
+                      className={`w-full px-3 py-2 text-left text-[11px] flex items-center gap-2 hover:bg-tea-bg transition-colors ${activeViewId === view.id ? 'text-tea-gold' : 'text-tea-text-sec'}`}
                     >
                       {view.name}
                       {activeViewId === view.id && <Check size={11} className="ml-auto" />}
@@ -926,7 +926,7 @@ export const SourcesView = () => {
       <div className={`hidden md:block sticky top-0 z-30 border-b border-tea-border py-2.5 transition-colors flex-shrink-0 ${isEditMode ? 'bg-tea-surface/95 border-b-tea-gold/20' : 'bg-tea-bg/90 backdrop-blur-md'}`}>
         <div className="px-6 max-w-5xl mx-auto flex items-center gap-4">
           <div className="flex items-center gap-2 shrink-0">
-            <Users size={16} className={isEditMode ? "text-tea-text-sec" : "text-tea-accent"} />
+            <Users size={16} className={isEditMode ? "text-tea-text-sec" : "text-tea-gold"} />
             <h2 className="text-sm font-serif text-tea-text uppercase tracking-[0.15em]">
               {isEditMode ? 'Editing' : 'Sources'}
             </h2>
@@ -955,7 +955,7 @@ export const SourcesView = () => {
                 onClick={() => setIsEditMode(!isEditMode)}
                 className={`flex items-center gap-2 text-xs uppercase tracking-[0.2em] font-bold transition-all px-3 py-1.5 border rounded-lg ${
                   isEditMode
-                    ? 'bg-tea-accent text-tea-bg border-tea-accent hover:bg-tea-gold/90'
+                    ? 'bg-tea-gold text-tea-bg border-tea-gold hover:bg-tea-gold/90'
                     : 'text-tea-text-sec border-transparent hover:border-tea-border hover:text-tea-text'
                 }`}
               >
@@ -978,7 +978,7 @@ export const SourcesView = () => {
               <div className="relative">
                 <button
                   onClick={() => setShowColumnsPopover(!showColumnsPopover)}
-                  className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs transition-colors ${showColumnsPopover ? 'text-tea-accent bg-tea-surface' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'}`}
+                  className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs transition-colors ${showColumnsPopover ? 'text-tea-gold bg-tea-surface' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'}`}
                   title="Show/Hide Columns"
                 >
                   <Columns size={14} />
@@ -996,7 +996,7 @@ export const SourcesView = () => {
                             checked={visibleColumns.includes(col.key)}
                             onChange={() => !('alwaysVisible' in col && col.alwaysVisible) && toggleColumn(col.key)}
                             disabled={'alwaysVisible' in col && col.alwaysVisible}
-                            className="accent-tea-accent"
+                            className="accent-tea-gold"
                           />
                           <span className="text-tea-text">{col.label}</span>
                         </label>
@@ -1013,7 +1013,7 @@ export const SourcesView = () => {
                     const el = document.getElementById('sources-groupby-dropdown');
                     if (el) el.classList.toggle('hidden');
                   }}
-                  className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs transition-colors ${groupBy ? 'text-tea-accent bg-tea-surface' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'}`}
+                  className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs transition-colors ${groupBy ? 'text-tea-gold bg-tea-surface' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'}`}
                   title="Group By"
                 >
                   <Layers size={14} />
@@ -1027,7 +1027,7 @@ export const SourcesView = () => {
                         setGroupBy(opt.value || null);
                         document.getElementById('sources-groupby-dropdown')?.classList.add('hidden');
                       }}
-                      className={`w-full px-3 py-1.5 text-left text-xs hover:bg-tea-bg transition-colors ${(groupBy || '') === opt.value ? 'text-tea-accent' : 'text-tea-text-sec'}`}
+                      className={`w-full px-3 py-1.5 text-left text-xs hover:bg-tea-bg transition-colors ${(groupBy || '') === opt.value ? 'text-tea-gold' : 'text-tea-text-sec'}`}
                     >
                       {opt.label}
                     </button>
@@ -1414,9 +1414,9 @@ export const SourcesView = () => {
                                 <td className="px-3 py-2">
                                   <button
                                     onClick={() => navigate(`/admin/inventory?panel=${encodeURIComponent(p.id)}`)}
-                                    className="text-tea-text hover:text-tea-accent transition-colors flex items-center gap-1.5"
+                                    className="text-tea-text hover:text-tea-gold transition-colors flex items-center gap-1.5"
                                   >
-                                    {p.image_url && <img src={p.image_url} alt="" className="w-5 h-5 rounded object-cover flex-shrink-0" />}
+                                    {p.image_url && <img src={p.image_url} alt="" className="w-5 h-5 rounded object-cover flex-shrink-0" loading="lazy" />}
                                     <span className="truncate">{p.given_name || p.product_name}</span>
                                     <ExternalLink size={9} className="text-tea-text-sec flex-shrink-0" />
                                   </button>
@@ -1452,7 +1452,7 @@ export const SourcesView = () => {
                       {!showLinkSearch ? (
                         <button
                           onClick={() => setShowLinkSearch(true)}
-                          className="flex items-center gap-1.5 text-xs text-tea-text-sec hover:text-tea-accent transition-colors"
+                          className="flex items-center gap-1.5 text-xs text-tea-text-sec hover:text-tea-gold transition-colors"
                         >
                           <Plus size={12} /> Link a tea
                         </button>
@@ -1591,7 +1591,7 @@ export const SourcesView = () => {
                                 {tx.photos && tx.photos.length > 0 && (
                                   <div className="flex gap-1.5 mt-2">
                                     {tx.photos.slice(0, 4).map((url, i) => (
-                                      <img key={i} src={url} alt="" className="w-10 h-10 rounded object-cover border border-tea-border" />
+                                      <img key={i} src={url} alt="" className="w-10 h-10 rounded object-cover border border-tea-border" loading="lazy" />
                                     ))}
                                     {tx.photos.length > 4 && (
                                       <div className="w-10 h-10 rounded bg-tea-surface flex items-center justify-center text-[10px] text-tea-text-dim border border-tea-border">
@@ -1641,13 +1641,13 @@ export const SourcesView = () => {
                             {vendorDetails.storefrontUrl && (
                               <div className="flex-1">
                                 <div className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider mb-1">Storefront</div>
-                                <img src={vendorDetails.storefrontUrl} alt="Storefront" className="w-full h-24 rounded-lg object-cover border border-tea-border" />
+                                <img src={vendorDetails.storefrontUrl} alt="Storefront" className="w-full h-24 rounded-lg object-cover border border-tea-border" loading="lazy" />
                               </div>
                             )}
                             {vendorDetails.businessCardUrl && (
                               <div className="flex-1">
                                 <div className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider mb-1">Business Card</div>
-                                <img src={vendorDetails.businessCardUrl} alt="Business card" className="w-full h-24 rounded-lg object-cover border border-tea-border" />
+                                <img src={vendorDetails.businessCardUrl} alt="Business card" className="w-full h-24 rounded-lg object-cover border border-tea-border" loading="lazy" />
                               </div>
                             )}
                           </div>
@@ -1677,7 +1677,7 @@ export const SourcesView = () => {
                               href={`https://maps.google.com/?q=${vendorDetails.lat},${vendorDetails.lng}`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="flex items-center gap-1.5 text-xs text-tea-accent hover:text-tea-text transition-colors"
+                              className="flex items-center gap-1.5 text-xs text-tea-gold hover:text-tea-text transition-colors"
                             >
                               <MapPin size={12} />
                               <span className="tabular-nums">{vendorDetails.lat.toFixed(4)}, {vendorDetails.lng.toFixed(4)}</span>
@@ -1700,7 +1700,7 @@ export const SourcesView = () => {
                             className="w-full flex items-center gap-2 py-1.5 text-xs rounded-md hover:bg-tea-surface/50 transition-colors text-left -mx-1 px-1"
                           >
                             {entry.photos?.[0] && (
-                              <img src={entry.photos[0]} alt="" className="w-6 h-6 rounded object-cover flex-shrink-0 border border-tea-border" />
+                              <img src={entry.photos[0]} alt="" className="w-6 h-6 rounded object-cover flex-shrink-0 border border-tea-border" loading="lazy" />
                             )}
                             <div className="flex-1 min-w-0">
                               <div className="text-tea-text truncate font-serif">
@@ -1912,7 +1912,7 @@ export const SourcesView = () => {
                           <div key={p.id} className="flex items-center justify-between text-[11px] py-0.5">
                             <button
                               onClick={() => navigate(`/admin/inventory?panel=${encodeURIComponent(p.id)}`)}
-                              className="text-tea-text hover:text-tea-accent transition-colors truncate flex-1 mr-2 text-left"
+                              className="text-tea-text hover:text-tea-gold transition-colors truncate flex-1 mr-2 text-left"
                             >
                               {p.givenName || p.productName}
                             </button>
@@ -1949,7 +1949,7 @@ export const SourcesView = () => {
                         {wants.map((e) => (
                           <div key={e.id} className="flex items-center gap-2 py-1 text-xs">
                             {e.photos?.[0] && (
-                              <img src={e.photos[0]} alt="" className="w-5 h-5 rounded object-cover flex-shrink-0 border border-tea-border" />
+                              <img src={e.photos[0]} alt="" className="w-5 h-5 rounded object-cover flex-shrink-0 border border-tea-border" loading="lazy" />
                             )}
                             <div className="flex-1 min-w-0">
                               <span className="text-tea-text font-serif truncate block">{e.chineseName || e.name || 'Unnamed'}</span>
@@ -1969,7 +1969,7 @@ export const SourcesView = () => {
                         {logged.map((e) => (
                           <div key={e.id} className="flex items-center gap-2 py-1 text-xs">
                             {e.photos?.[0] && (
-                              <img src={e.photos[0]} alt="" className="w-5 h-5 rounded object-cover flex-shrink-0 border border-tea-border" />
+                              <img src={e.photos[0]} alt="" className="w-5 h-5 rounded object-cover flex-shrink-0 border border-tea-border" loading="lazy" />
                             )}
                             <div className="flex-1 min-w-0">
                               <span className="text-tea-text font-serif truncate block">{e.chineseName || e.name || 'Unnamed'}</span>
@@ -2063,7 +2063,7 @@ export const SourcesView = () => {
                                 {evt.id ? (
                                   <button
                                     onClick={() => navigate(`/admin/inventory?panel=${encodeURIComponent(evt.id!)}`)}
-                                    className="hover:text-tea-accent transition-colors text-left"
+                                    className="hover:text-tea-gold transition-colors text-left"
                                   >
                                     {evt.label}
                                   </button>

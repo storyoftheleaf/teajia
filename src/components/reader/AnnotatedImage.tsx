@@ -35,7 +35,7 @@ const AnnotatedImage: React.FC<AnnotatedImageProps> = ({
     <div className="flex flex-col gap-4 w-full">
       {/* Image with markers */}
       <div className="relative w-full">
-        <img src={src} alt={alt} className="w-full block rounded-lg" />
+        <img src={src} alt={alt} className="w-full block rounded-lg" loading="lazy" />
 
         {annotations.map((ann) => {
           const isActive = activeId === ann.id;

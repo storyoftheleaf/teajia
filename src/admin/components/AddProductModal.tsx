@@ -36,11 +36,12 @@ const ImageThumbnail = ({ src, type }: { src: string, type: string }) => {
     }
 
     return (
-        <img 
-            src={src} 
-            alt="Preview" 
-            className="w-full h-full object-cover" 
-            onError={() => setError(true)} 
+        <img
+            src={src}
+            alt="Preview"
+            className="w-full h-full object-cover"
+            loading="lazy"
+            onError={() => setError(true)}
         />
     );
 };
@@ -155,7 +156,7 @@ const VendorPicker = ({
               type="button"
               onMouseDown={e => e.preventDefault()}
               onClick={() => handleSelectVendor(query.trim())}
-              className="w-full text-left px-3 py-2 text-sm text-tea-accent hover:bg-tea-bg transition-colors border-b border-tea-border"
+              className="w-full text-left px-3 py-2 text-sm text-tea-gold hover:bg-tea-bg transition-colors border-b border-tea-border"
             >
               + Add "{query.trim()}" as new source
             </button>
@@ -170,7 +171,7 @@ const VendorPicker = ({
                 handleSelectVendor(v);
               }}
               className={`w-full text-left px-3 py-2 text-sm hover:bg-tea-bg transition-colors ${
-                v === value ? 'text-tea-accent font-medium' : 'text-tea-text'
+                v === value ? 'text-tea-gold font-medium' : 'text-tea-text'
               }`}
             >
               {v}
@@ -327,8 +328,8 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
         isCurated: initialData.isCurated || false,
         recheckStock: initialData.recheckStock || false,
         inTransit: initialData.inTransit || false,
-        inTransitGrams: (initialData as any).inTransitGrams ? String((initialData as any).inTransitGrams) : '',
-        inTransitEta: (initialData as any).inTransitEta || '',
+        inTransitGrams: initialData.inTransitGrams ? String(initialData.inTransitGrams) : '',
+        inTransitEta: initialData.inTransitEta || '',
         lowStockThreshold: initialData.lowStockThreshold ? String(initialData.lowStockThreshold) : '',
         sessionReserveGrams: initialData.sessionReserveGrams ? String(initialData.sessionReserveGrams) : '',
         lore: initialData.lore || '',
@@ -339,9 +340,9 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
         terroir: initialData.terroir || '',
         mood: initialData.mood || '',
         experience: initialData.experience || '',
-        teaKey: (initialData as any).tea_key || '',
-        wholesalePrice: (initialData as any).wholesalePrice ? (initialData as any).wholesalePrice.toString() : '',
-        catalogVisible: (initialData as any).catalogVisible || false,
+        teaKey: initialData.teaKey || (initialData as unknown as { tea_key?: string }).tea_key || '',
+        wholesalePrice: initialData.wholesalePrice ? initialData.wholesalePrice.toString() : '',
+        catalogVisible: initialData.catalogVisible || false,
       });
       setTastingData(initialData.tasting || {});
       setWisdomOpen(!!(initialData.lore || initialData.mood || initialData.experience || initialData.terroir || initialData.processingNotes || initialData.tasting));
@@ -655,7 +656,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
   const inputStyle = "w-full bg-transparent border-b border-tea-border rounded-none px-0 py-1.5 text-sm font-sans text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-accent-sub transition-colors placeholder-tea-text-sec/50";
   const selectStyle = "w-full bg-transparent border-b border-tea-border rounded-none appearance-none px-0 py-1.5 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-accent-sub transition-colors cursor-pointer font-sans";
   const labelStyle = "block text-xs uppercase tracking-wider text-tea-gold/70 mb-1 flex items-center gap-1 font-bold";
-  const wisdomInputStyle = "w-full bg-transparent border border-tea-border rounded-lg px-3 py-2.5 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-accent placeholder-tea-text-sec/50 transition-colors font-sans";
+  const wisdomInputStyle = "w-full bg-transparent border border-tea-border rounded-lg px-3 py-2.5 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold placeholder-tea-text-sec/50 transition-colors font-sans";
 
   return (
     <div
@@ -675,7 +676,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
         <div className="px-6 py-3.5 border-b border-tea-border flex justify-between items-center bg-tea-bg/50 backdrop-blur-sm shrink-0">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-tea-surface border border-tea-border rounded-full">
-              <Edit className="text-tea-accent" size={16} />
+              <Edit className="text-tea-gold" size={16} />
             </div>
             <div>
               <h2 className="text-lg font-serif text-tea-text tracking-wide">{isEditMode ? 'EDIT ITEM' : 'NEW ITEM'}</h2>
@@ -790,7 +791,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                     className={`w-full border-b appearance-none rounded-none px-0 py-1.5 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg text-sm font-bold bg-transparent cursor-pointer font-sans ${
                         formData.status === 'Draft' ? 'text-tea-text-sec border-tea-text-sec/30' :
                         formData.status === 'Sold Out' ? 'text-tea-text-sec border-tea-text-sec/30' :
-                        'text-tea-accent border-tea-accent-sub'
+                        'text-tea-gold border-tea-accent-sub'
                     }`}
                   >
                     <option value="Active" className="bg-tea-surface text-tea-text">Active</option>
@@ -850,7 +851,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                           <div className="flex items-center gap-2 border-b border-tea-border hover:border-tea-gold/40 transition-colors">
                               <select
                                   name="costCurrency" value={formData.costCurrency} onChange={handleChange}
-                                  className="bg-transparent appearance-none rounded-none text-xs text-tea-accent font-bold outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg cursor-pointer uppercase"
+                                  className="bg-transparent appearance-none rounded-none text-xs text-tea-gold font-bold outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg cursor-pointer uppercase"
                               >
                                   <option value="USD" className="bg-tea-surface text-tea-text">USD</option>
                                   <option value="NT" className="bg-tea-surface text-tea-text">NT</option>
@@ -896,14 +897,14 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                       </div>
                       <div className="flex justify-between text-tea-text text-xs pt-1">
                            <span>True Cost (USD)</span>
-                           <span className="num text-tea-accent font-bold">${calc.trueCostUSD.toFixed(3)}/g</span>
+                           <span className="num text-tea-gold font-bold">${calc.trueCostUSD.toFixed(3)}/g</span>
                       </div>
                  </div>
 
                  {/* RETAIL OUTPUT */}
                  <div className="pt-2.5 border-t border-dashed border-tea-border">
                     <div className="flex justify-between items-center mb-1.5">
-                       <label className="text-xs uppercase tracking-[0.2em] text-tea-accent font-bold">Retail (USD/g)</label>
+                       <label className="text-xs uppercase tracking-[0.2em] text-tea-gold font-bold">Retail (USD/g)</label>
                        <span className="text-[9px] text-tea-text-sec num">3x Markup: ${calc.suggestedRetailUSD.toFixed(2)}</span>
                     </div>
                     <div className="flex items-center gap-2 bg-tea-surface border border-tea-border rounded-lg px-3 py-2">
@@ -918,7 +919,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                           }}
                           className={`flex-1 bg-transparent text-lg num outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg text-right ${
                               formData.fixedRetailPriceUSD && parseFloat(formData.fixedRetailPriceUSD) < calc.trueCostUSD
-                              ? 'text-tea-accent font-bold' : 'text-tea-text'
+                              ? 'text-tea-gold font-bold' : 'text-tea-text'
                           }`}
                           placeholder={calc.suggestedRetailUSD.toFixed(2)}
                        />
@@ -976,11 +977,11 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                       <label className="flex items-center gap-2 mt-1.5 cursor-pointer group">
                           <div className="relative">
                               <input type="checkbox" name="recheckStock" checked={formData.recheckStock} onChange={handleChange} className="sr-only" />
-                              <div className={`w-3.5 h-3.5 rounded-sm border transition-colors ${formData.recheckStock ? 'bg-tea-accent border-tea-accent' : 'border-tea-border group-hover:border-tea-gold/40'}`}>
+                              <div className={`w-3.5 h-3.5 rounded-sm border transition-colors ${formData.recheckStock ? 'bg-tea-gold border-tea-gold' : 'border-tea-border group-hover:border-tea-gold/40'}`}>
                                   {formData.recheckStock && <svg className="w-3.5 h-3.5 text-tea-bg" viewBox="0 0 14 14" fill="none"><path d="M3.5 7L6 9.5L10.5 4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                               </div>
                           </div>
-                          <span className="text-xs text-tea-text-sec group-hover:text-tea-accent transition-colors uppercase tracking-[0.15em]">Flag for stock recheck</span>
+                          <span className="text-xs text-tea-text-sec group-hover:text-tea-gold transition-colors uppercase tracking-[0.15em]">Flag for stock recheck</span>
                       </label>
 
                       {/* In-transit toggle + expanded fields */}
@@ -1030,7 +1031,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                             htmlFor="img-upload"
                             className={`flex items-center justify-center gap-2 w-full border border-dashed border-tea-border rounded-lg p-3 cursor-pointer hover:bg-tea-bg hover:bg-tea-gold/5 transition-all text-sm ${uploading ? 'opacity-50 pointer-events-none' : ''}`}
                         >
-                            {uploading ? <Loader2 className="animate-spin text-tea-accent" size={16} /> : <Upload className="text-tea-text-sec" size={16} />}
+                            {uploading ? <Loader2 className="animate-spin text-tea-gold" size={16} /> : <Upload className="text-tea-text-sec" size={16} />}
                             <span className="text-xs text-tea-text-sec font-mono">{uploading ? 'Uploading...' : 'Click to Upload Image'}</span>
                         </label>
                     </div>
@@ -1042,7 +1043,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                         <div className="flex-1 overflow-hidden">
                             <p className="text-xs text-tea-text-sec font-mono truncate">{formData.imageUrl}</p>
                         </div>
-                        <button type="button" onClick={handleRemoveImage} className="p-1.5 text-tea-text-sec hover:text-tea-accent hover:bg-tea-bg rounded transition-colors" title="Remove Image">
+                        <button type="button" onClick={handleRemoveImage} className="p-1.5 text-tea-text-sec hover:text-tea-gold hover:bg-tea-bg rounded transition-colors" title="Remove Image">
                             <Trash2 size={14} />
                         </button>
                     </div>
@@ -1056,7 +1057,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                 <div className="flex gap-2 flex-wrap mt-1">
                   {formData.additionalImages.map((url, idx) => (
                     <div key={idx} className="relative w-16 h-16 rounded overflow-hidden border border-tea-border group">
-                      <img src={url} alt="" className="w-full h-full object-cover" />
+                      <img src={url} alt="" className="w-full h-full object-cover" loading="lazy" />
                       <button
                         type="button"
                         onClick={() => setFormData(prev => ({
@@ -1114,8 +1115,8 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                         className="flex items-center gap-2 group"
                     >
                         <ChevronDown size={14} className={`text-tea-gold/70 transition-transform duration-200 ${wisdomOpen ? '' : '-rotate-90'}`} />
-                        <Star size={12} className="text-tea-accent" />
-                        <span className="text-sm font-serif italic text-tea-text group-hover:text-tea-accent transition-colors">Wisdom & Lore</span>
+                        <Star size={12} className="text-tea-gold" />
+                        <span className="text-sm font-serif italic text-tea-text group-hover:text-tea-gold transition-colors">Wisdom & Lore</span>
                         {!wisdomOpen && formData.lore && (
                             <span className="text-[9px] text-tea-gold/70 uppercase tracking-wider ml-2">has content</span>
                         )}
@@ -1126,7 +1127,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                                 type="button"
                                 onClick={handleGenerateWisdom}
                                 disabled={generatingWisdom || !formData.productName}
-                                className="flex items-center gap-1.5 px-2.5 py-1 bg-tea-gold/10 text-tea-accent hover:bg-tea-gold/20 rounded text-[10px] uppercase tracking-wider font-bold transition-colors disabled:opacity-50"
+                                className="flex items-center gap-1.5 px-2.5 py-1 bg-tea-gold/10 text-tea-gold hover:bg-tea-gold/20 rounded text-[10px] uppercase tracking-wider font-bold transition-colors disabled:opacity-50"
                             >
                                 {generatingWisdom ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
                                 Generate with AI
@@ -1135,7 +1136,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                                 <div className="relative">
                                     <input type="checkbox" name="showWisdom" checked={formData.showWisdom} onChange={handleChange} className="sr-only" />
                                     <div className={`block w-7 h-3.5 rounded-full transition-colors ${formData.showWisdom ? 'bg-tea-gold/30' : 'bg-tea-border'}`}></div>
-                                    <div className={`absolute left-0.5 top-0.5 bg-tea-text w-2.5 h-2.5 rounded-full transition-transform ${formData.showWisdom ? 'translate-x-3.5 bg-tea-accent' : ''}`}></div>
+                                    <div className={`absolute left-0.5 top-0.5 bg-tea-text w-2.5 h-2.5 rounded-full transition-transform ${formData.showWisdom ? 'translate-x-3.5 bg-tea-gold' : ''}`}></div>
                                 </div>
                                 <span className="text-[10px] uppercase tracking-wider text-tea-text-sec group-hover/toggle:text-tea-text transition-colors">Show Publicly</span>
                             </label>
@@ -1181,7 +1182,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                             <div className="flex justify-between items-center mb-1.5">
                                 <label className={labelStyle}>Lore (History & Terroir)</label>
                                 {formData.isCustomWisdom ? (
-                                    <span className="text-[10px] text-tea-accent uppercase tracking-wider flex items-center gap-1"><Edit size={9} /> Handcrafted</span>
+                                    <span className="text-[10px] text-tea-gold uppercase tracking-wider flex items-center gap-1"><Edit size={9} /> Handcrafted</span>
                                 ) : formData.lore ? (
                                     <span className="text-[10px] text-tea-text-sec uppercase tracking-wider flex items-center gap-1"><Star size={9} /> AI Generated</span>
                                 ) : null}
@@ -1427,7 +1428,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                 type="submit"
                 form="add-product-form"
                 disabled={loading || !formData.productName || uploading}
-                className="px-8 py-2.5 bg-tea-accent text-tea-bg text-xs font-bold uppercase tracking-[0.2em] hover:bg-tea-gold/90 transition-all disabled:opacity-50 flex items-center justify-center gap-2 rounded-lg shadow-lg shadow-tea-gold/10"
+                className="px-8 py-2.5 bg-tea-gold text-tea-bg text-xs font-bold uppercase tracking-[0.2em] hover:bg-tea-gold/90 transition-all disabled:opacity-50 flex items-center justify-center gap-2 rounded-lg shadow-lg shadow-tea-gold/10"
             >
                 {loading || uploading ? <Loader2 className="animate-spin" size={14} /> : <Save size={14} />}
                 <span>Save Item</span>

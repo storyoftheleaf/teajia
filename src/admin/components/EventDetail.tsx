@@ -753,7 +753,7 @@ export const EventDetail: React.FC = () => {
                           >
                             {space.photos[0] ? (
                               <div className="w-14 h-14 rounded overflow-hidden border border-tea-border flex-shrink-0">
-                                <img src={space.photos[0]} alt={space.name} className="w-full h-full object-cover" />
+                                <img src={space.photos[0]} alt={space.name} className="w-full h-full object-cover" loading="lazy" />
                               </div>
                             ) : (
                               <div className="w-14 h-14 rounded border border-dashed border-tea-border flex items-center justify-center flex-shrink-0">
@@ -819,14 +819,14 @@ export const EventDetail: React.FC = () => {
                   <div className="space-y-2">
                     {/* Hero */}
                     <div className="w-full aspect-[16/9] rounded-md overflow-hidden border border-tea-border">
-                      <img src={selectedVenueObj.photos[0]} alt={selectedVenueObj.name} className="w-full h-full object-cover" />
+                      <img src={selectedVenueObj.photos[0]} alt={selectedVenueObj.name} className="w-full h-full object-cover" loading="lazy" />
                     </div>
                     {/* Event vibe thumbnails */}
                     {selectedVenueObj.photos.length > 1 && (
                       <div className="flex gap-2 flex-wrap">
                         {selectedVenueObj.photos.slice(1).map((url, i) => (
                           <div key={i} className="w-20 h-20 rounded overflow-hidden border border-tea-border flex-shrink-0">
-                            <img src={url} alt="" className="w-full h-full object-cover" />
+                            <img src={url} alt="" className="w-full h-full object-cover" loading="lazy" />
                           </div>
                         ))}
                       </div>

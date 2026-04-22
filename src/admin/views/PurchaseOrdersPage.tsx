@@ -90,7 +90,7 @@ const NewPoForm: React.FC<{ onClose: () => void; onSubmit: (data: Parameters<typ
       <div className="bg-tea-surface border border-tea-border rounded-t-2xl sm:rounded-xl w-full max-w-lg max-h-[90dvh] flex flex-col overflow-hidden shadow-xl" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-tea-border flex-shrink-0">
           <h2 className="text-sm font-semibold text-tea-text tracking-wide uppercase">New Purchase Order</h2>
-          <button onClick={onClose} className="p-1.5 text-tea-text-sec hover:text-tea-text transition-colors rounded-md">
+          <button onClick={onClose} className="p-1.5 text-tea-text-sec hover:text-tea-text transition-colors rounded-md" aria-label="Close">
             <X size={16} />
           </button>
         </div>
@@ -194,7 +194,7 @@ const NewPoForm: React.FC<{ onClose: () => void; onSubmit: (data: Parameters<typ
             <button
               type="submit"
               disabled={submitting || !vendorName.trim()}
-              className="px-6 py-2 bg-tea-accent text-tea-bg text-xs font-bold uppercase tracking-[0.15em] rounded-lg hover:bg-tea-gold/90 transition-colors disabled:opacity-50 flex items-center gap-2"
+              className="px-6 py-2 bg-tea-gold text-tea-bg text-xs font-bold uppercase tracking-[0.15em] rounded-lg hover:bg-tea-gold/90 transition-colors disabled:opacity-50 flex items-center gap-2"
             >
               {submitting ? <Loader2 size={13} className="animate-spin" /> : <ShoppingBag size={13} />}
               Create PO
@@ -234,7 +234,7 @@ const ReceiveStockPrompt: React.FC<{
       <div className="bg-tea-surface border border-tea-border rounded-t-2xl sm:rounded-xl w-full max-w-md overflow-hidden shadow-xl" onClick={e => e.stopPropagation()}>
         <div className="px-5 py-4 border-b border-tea-border flex items-center justify-between">
           <h3 className="text-sm font-semibold text-tea-text">Add stock to inventory?</h3>
-          <button onClick={onClose} className="p-1.5 text-tea-text-sec hover:text-tea-text"><X size={15} /></button>
+          <button onClick={onClose} className="p-1.5 text-tea-text-sec hover:text-tea-text" aria-label="Close"><X size={15} /></button>
         </div>
         <div className="p-5 space-y-2">
           {items.map((item, idx) => (
@@ -261,7 +261,7 @@ const ReceiveStockPrompt: React.FC<{
                 setConfirming(false);
               }
             }}
-            className="px-6 py-2 bg-tea-accent text-tea-bg text-xs font-bold uppercase tracking-[0.15em] rounded-lg hover:bg-tea-gold/90 disabled:opacity-50 flex items-center gap-2"
+            className="px-6 py-2 bg-tea-gold text-tea-bg text-xs font-bold uppercase tracking-[0.15em] rounded-lg hover:bg-tea-gold/90 disabled:opacity-50 flex items-center gap-2"
           >
             {confirming ? <Loader2 size={12} className="animate-spin" /> : null}
             Add to stock

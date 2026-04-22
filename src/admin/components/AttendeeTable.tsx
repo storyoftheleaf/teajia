@@ -1,9 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowUpDown, Check, User, UserPlus, Phone, Leaf, Star, Loader2, Users } from 'lucide-react';
+import { ArrowUpDown, Check, UserPlus, Phone, Leaf, Star, Loader2, Users } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useToast } from './Toast';
 import { EventAttendee, AttendeeStatus } from '../../types/events';
+import { Customer } from '../types';
+import { CustomerDetail } from './CustomersView';
 
 interface AttendeeTableProps {
   attendees: EventAttendee[];
@@ -75,24 +77,53 @@ const AttendeeActions: React.FC<{
   );
 };
 
-const CustomerLinkButton: React.FC<{
-  attendee: EventAttendee;
-  onNavigate: () => void;
-  onCreateCustomer: () => void;
-}> = ({ attendee, onNavigate, onCreateCustomer }) => {
-  if (attendee.customerId) {
-    return (
-      <button onClick={onNavigate} className="text-tea-gold hover:text-tea-gold-lt transition-colors" title="View customer profile">
-        <User size={14} />
-      </button>
-    );
-  }
-  return (
-    <button onClick={onCreateCustomer} className="text-tea-text-dim hover:text-tea-gold transition-colors" title="Create customer record">
-      <UserPlus size={14} />
-    </button>
-  );
-};
+// Hover card content — built from EventAttendee data already in scope (no API call)
+const AttendeeHoverCard: React.FC<{
+  attendee: EnrichedAttendee;
+  pos: { x: number; y: number };
+}> = ({ attendee, pos }) => (
+  <div
+    className="fixed z-50 pointer-events-none bg-tea-surface border border-tea-border rounded-xl shadow-2xl p-3 w-56 text-[11px] space-y-2"
+    style={{ top: pos.y + 8, left: pos.x }}
+  >
+    <div className="flex items-center justify-between gap-2">
+      <span className="font-medium text-tea-text leading-snug">{attendee.fullName}</span>
+      {attendee.accessTier === 'golden' && (
+        <span className="flex items-center gap-0.5 text-tea-gold text-[10px]">
+          <Star size={9} fill="currentColor" />Golden
+        </span>
+      )}
+    </div>
+    {attendee.isReturning && (
+      <div className="text-tea-text-sec">
+        {attendee.sessionsAttended} session{attendee.sessionsAttended !== 1 ? 's' : ''} attended
+        {attendee.lastAttended && (
+          <span className="text-tea-text-dim ml-1">
+            · last {new Date(attendee.lastAttended).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+          </span>
+        )}
+      </div>
+    )}
+    {attendee.favoriteTypes && attendee.favoriteTypes.length > 0 && (
+      <div className="flex flex-wrap gap-1">
+        {attendee.favoriteTypes.map(t => (
+          <span key={t} className="bg-tea-elevated text-tea-text-sec px-1.5 py-0.5 rounded text-[10px]">{t}</span>
+        ))}
+      </div>
+    )}
+    {attendee.teaPreference && (
+      <div className="flex items-center gap-1 text-tea-text-sec">
+        <Leaf size={9} />{attendee.teaPreference}
+      </div>
+    )}
+    {attendee.notes && (
+      <p className="text-tea-text-dim leading-snug line-clamp-2">{attendee.notes}</p>
+    )}
+    {attendee.customerId && (
+      <p className="text-tea-gold text-[10px] pt-0.5">Click to view full profile →</p>
+    )}
+  </div>
+);
 
 export const AttendeeTable: React.FC<AttendeeTableProps> = ({ attendees, eventId, onRefresh }) => {
   const { showToast } = useToast();
@@ -101,6 +132,10 @@ export const AttendeeTable: React.FC<AttendeeTableProps> = ({ attendees, eventId
   const [sortField, setSortField] = useState<SortField>('createdAt');
   const [sortAsc, setSortAsc] = useState(true);
   const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [viewingCustomer, setViewingCustomer] = useState<Customer | null>(null);
+  const [loadingCustomerId, setLoadingCustomerId] = useState<string | null>(null);
+  const [hoveredAttendee, setHoveredAttendee] = useState<EnrichedAttendee | null>(null);
+  const [hoverPos, setHoverPos] = useState<{ x: number; y: number } | null>(null);
 
   const counts = useMemo(() => ({
     confirmed: attendees.filter(a => a.status === 'confirmed').length,
@@ -203,6 +238,65 @@ export const AttendeeTable: React.FC<AttendeeTableProps> = ({ attendees, eventId
     }
   };
 
+  const openCustomerProfile = async (attendee: EventAttendee) => {
+    if (!attendee.customerId) return;
+    setLoadingCustomerId(attendee.id);
+    setHoveredAttendee(null);
+    setHoverPos(null);
+    try {
+      const customer = await api.customers.get(attendee.customerId);
+      setViewingCustomer(customer);
+    } catch (e: any) {
+      showToast(e.message || 'Failed to load profile', 'error');
+    } finally {
+      setLoadingCustomerId(null);
+    }
+  };
+
+  const handleNameMouseEnter = (e: React.MouseEvent, attendee: EnrichedAttendee) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setHoverPos({ x: rect.left, y: rect.bottom });
+    setHoveredAttendee(attendee);
+  };
+
+  const handleNameMouseLeave = () => {
+    setHoveredAttendee(null);
+    setHoverPos(null);
+  };
+
+  // Name cell — linked customer: clickable with profile open; unlinked: name + create prompt
+  const AttendeeName: React.FC<{ attendee: EnrichedAttendee; compact?: boolean }> = ({ attendee, compact }) => {
+    const isLoading = loadingCustomerId === attendee.id;
+    if (attendee.customerId) {
+      return (
+        <button
+          onClick={() => openCustomerProfile(attendee)}
+          onMouseEnter={(e) => handleNameMouseEnter(e, attendee)}
+          onMouseLeave={handleNameMouseLeave}
+          disabled={isLoading}
+          className={`inline-flex items-center gap-1.5 text-left transition-colors disabled:opacity-60 ${
+            compact ? 'text-[14px] font-medium' : 'text-sm font-medium'
+          } text-tea-text hover:text-tea-gold group`}
+        >
+          {isLoading ? <Loader2 size={12} className="animate-spin text-tea-gold shrink-0" /> : null}
+          <span className="group-hover:underline underline-offset-2 decoration-tea-gold/50">{attendee.fullName}</span>
+        </button>
+      );
+    }
+    return (
+      <span className={`inline-flex items-center gap-1.5 ${compact ? 'text-[14px] font-medium' : 'text-sm font-medium'} text-tea-text`}>
+        {attendee.fullName}
+        <button
+          onClick={() => handleCreateCustomer(attendee)}
+          className="text-tea-text-dim hover:text-tea-gold transition-colors"
+          title="Create customer record"
+        >
+          <UserPlus size={12} />
+        </button>
+      </span>
+    );
+  };
+
   return (
     <div>
       {/* Count Summary */}
@@ -251,14 +345,7 @@ export const AttendeeTable: React.FC<AttendeeTableProps> = ({ attendees, eventId
             {filtered.map(attendee => (
               <div key={attendee.id} className={`py-3 px-1 ${attendee.isDenied ? 'opacity-50' : ''}`}>
                 <div className="flex items-center justify-between gap-2 mb-1.5">
-                  <span className="inline-flex items-center gap-1.5 text-[14px] font-medium text-tea-text leading-snug">
-                    {attendee.fullName}
-                    <CustomerLinkButton
-                      attendee={attendee}
-                      onNavigate={() => navigate(`/admin/people?search=${encodeURIComponent(attendee.fullName)}`)}
-                      onCreateCustomer={() => handleCreateCustomer(attendee)}
-                    />
-                  </span>
+                  <AttendeeName attendee={attendee} compact />
                   <span className={`text-[10px] uppercase tracking-[0.1em] px-2 py-0.5 rounded-full shrink-0 ${STATUS_CHIPS[attendee.status]}`}>
                     {attendee.status}
                   </span>
@@ -342,15 +429,8 @@ export const AttendeeTable: React.FC<AttendeeTableProps> = ({ attendees, eventId
               <tbody>
                 {filtered.map(attendee => (
                   <tr key={attendee.id} className={`border-b border-tea-border hover:bg-tea-elevated/30 transition-colors ${attendee.isDenied ? 'opacity-50' : ''}`}>
-                    <td className="py-2.5 px-2 text-tea-text font-medium">
-                      <span className="inline-flex items-center gap-1.5">
-                        {attendee.fullName}
-                        <CustomerLinkButton
-                          attendee={attendee}
-                          onNavigate={() => navigate(`/admin/people?search=${encodeURIComponent(attendee.fullName)}`)}
-                          onCreateCustomer={() => handleCreateCustomer(attendee)}
-                        />
-                      </span>
+                    <td className="py-2.5 px-2">
+                      <AttendeeName attendee={attendee} />
                     </td>
                     <td className="py-2.5 px-2 text-tea-text-sec text-xs">
                       {attendee.phoneNumber ? (
@@ -436,6 +516,24 @@ export const AttendeeTable: React.FC<AttendeeTableProps> = ({ attendees, eventId
             </table>
           </div>
         </>
+      )}
+
+      {/* Hover card — fixed-position to escape table overflow clipping */}
+      {hoveredAttendee && hoverPos && (
+        <AttendeeHoverCard attendee={hoveredAttendee} pos={hoverPos} />
+      )}
+
+      {/* Customer profile modal — opens on top of event detail, no navigation */}
+      {viewingCustomer && (
+        <CustomerDetail
+          customer={viewingCustomer}
+          onClose={() => setViewingCustomer(null)}
+          onEdit={() => {
+            setViewingCustomer(null);
+            navigate(`/admin/people?customerId=${viewingCustomer.id}`);
+          }}
+          onDelete={() => setViewingCustomer(null)}
+        />
       )}
     </div>
   );

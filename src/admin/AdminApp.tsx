@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
-import { RefreshCw, ChevronDown, Menu, ShoppingCart, AlertTriangle, ArrowRight, Search, X as XIcon, MoreHorizontal, MapPin } from 'lucide-react';
+import { ChevronDown, AlertTriangle, Search, X as XIcon, MoreHorizontal, MapPin } from 'lucide-react';
 import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from '../components/shared/PullToRefreshIndicator';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -324,10 +324,10 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
     return (
       <div className="flex min-h-[100dvh] bg-tea-bg text-tea-text items-center justify-center p-6">
         <div className="bg-tea-surface border border-tea-border p-8 rounded-lg max-w-md w-full shadow-2xl text-center relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-tea-accent to-tea-gold/50"></div>
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-tea-gold to-tea-gold/50"></div>
             <div className="mb-6 flex justify-center">
               <div className="p-4 bg-tea-gold/10 rounded-full border border-tea-accent-sub">
-                <AlertTriangle className="text-tea-accent" size={32} />
+                <AlertTriangle className="text-tea-gold" size={32} />
               </div>
             </div>
             <h2 className="text-xl font-serif text-tea-text mb-2">Setup Required</h2>
@@ -336,10 +336,10 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
             </p>
             <div className="text-left bg-tea-bg/50 p-4 rounded-xl text-xs font-mono text-tea-text-sec mb-6 border border-tea-border space-y-2">
                 <p>1. Open <span className="text-tea-text bg-tea-surface px-1 rounded">.env</span> file</p>
-                <p>2. Find <span className="text-tea-accent">VITE_API_URL</span></p>
+                <p>2. Find <span className="text-tea-gold">VITE_API_URL</span></p>
                 <p>3. Set it to your Worker API URL</p>
             </div>
-            <button onClick={() => window.location.reload()} className="bg-tea-accent text-tea-bg px-6 py-3 rounded-xl text-sm font-medium hover:bg-tea-gold/90 transition-colors w-full">
+            <button onClick={() => window.location.reload()} className="bg-tea-gold text-tea-bg px-6 py-3 rounded-xl text-sm font-medium hover:bg-tea-gold/90 transition-colors w-full">
                 I've Updated It, Reload App
             </button>
         </div>

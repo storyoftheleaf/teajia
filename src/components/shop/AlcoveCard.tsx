@@ -472,7 +472,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                 willChange: 'transform',
               }}
             >
-              <img src={allImages[0]} alt="" style={{
+              <img src={allImages[0]} alt="" loading="lazy" style={{
                 width: "100%", height: "100%", objectFit: "cover",
                 opacity: 0.9, transition: "opacity 0.3s ease",
               }}
@@ -496,7 +496,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                     flexShrink: 0,
                   }}
                 >
-                  <img src={img} alt="" style={{
+                  <img src={img} alt="" loading="lazy" style={{
                     width: "100%", height: "100%", objectFit: "cover",
                     opacity: 0.9, transition: "opacity 0.3s ease",
                   }}

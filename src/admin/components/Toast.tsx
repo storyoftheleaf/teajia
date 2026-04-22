@@ -43,7 +43,7 @@ export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
               t.type === 'success'
                 ? 'bg-tea-surface border-tea-accent-sub text-tea-text'
                 : t.type === 'error'
-                ? 'bg-tea-surface border-tea-accent-sub text-tea-accent'
+                ? 'bg-tea-surface border-tea-accent-sub text-tea-gold'
                 : 'bg-tea-surface border-tea-accent-sub text-tea-text'
             }`}
           >
@@ -54,7 +54,7 @@ export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
             {t.action && (
               <button
                 onClick={() => { t.action!.onClick(); setToasts((prev) => prev.filter((x) => x.id !== t.id)); }}
-                className="ml-auto text-[10px] font-bold uppercase tracking-[0.15em] text-tea-accent hover:text-tea-text transition-colors px-2 py-0.5"
+                className="ml-auto text-[10px] font-bold uppercase tracking-[0.15em] text-tea-gold hover:text-tea-text transition-colors px-2 py-0.5"
               >
                 {t.action.label}
               </button>

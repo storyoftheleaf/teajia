@@ -88,7 +88,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ story, onClose }) => {
         await navigator.share(shareData);
         onClose();
       } catch (err) {
-        console.log('Error sharing', err);
+        // Share cancelled or failed — silent on production
       }
     } else {
       // Fallback for desktop without native share: Just copy link
@@ -113,7 +113,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ story, onClose }) => {
               });
               return;
           } catch (e) {
-              console.log('Native share cancelled, falling back to download');
+              // Native share cancelled — fall through to download
           }
       }
 

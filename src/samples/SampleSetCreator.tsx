@@ -184,7 +184,7 @@ function QuickAddSheet({ setId, sourceName, sourceId, onClose }: QuickAddSheetPr
         <div className="flex items-center justify-between px-4 pt-4 pb-3"
              style={{ borderBottom: '1px solid var(--tea-accent-sub)' }}>
           <div className="flex items-center gap-2">
-            <button onClick={onClose} className="nav-control nav-control-close">
+            <button onClick={onClose} className="nav-control nav-control-close" aria-label="Close">
               <X size={14} />
             </button>
             <span className="text-sm font-semibold text-tea-text">Add Sample</span>
@@ -449,6 +449,7 @@ function SampleCard({ sample, onEdit, onDelete, onStatusChange, onTaste, onGradu
           <button
             onClick={() => setConfirmDelete(false)}
             className="p-1 text-tea-text-dim hover:text-tea-text transition-colors"
+            aria-label="Close"
           >
             <X size={14} />
           </button>
@@ -586,7 +587,7 @@ function CompassImportModal({ setId, onClose, defaultVendorId, defaultVendorName
       >
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <button onClick={onClose} className="nav-control nav-control-close"><X size={14} /></button>
+            <button onClick={onClose} className="nav-control nav-control-close" aria-label="Close"><X size={14} /></button>
             <h3 className="text-sm font-semibold text-tea-text">Import from Compass</h3>
           </div>
           {defaultVendorId && (
@@ -886,7 +887,7 @@ export default function SampleSetCreator() {
           >
             Open Ledger
           </button>
-          <button onClick={() => setLedgerPromptName(null)} className="text-tea-text-dim hover:text-tea-text">
+          <button onClick={() => setLedgerPromptName(null)} className="text-tea-text-dim hover:text-tea-text" aria-label="Dismiss">
             <X size={14} />
           </button>
         </div>
@@ -1452,7 +1453,7 @@ function SampleEditModal({ sampleId, onClose }: { sampleId: string; onClose: () 
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-2 mb-4">
-          <button onClick={onClose} className="nav-control nav-control-close">
+          <button onClick={onClose} className="nav-control nav-control-close" aria-label="Close">
             <X size={14} />
           </button>
           <h3 className="text-sm font-semibold text-tea-text">Edit Sample</h3>

@@ -418,7 +418,7 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
                           {/* Thumbnail: product image → type color swatch → liquor color swatch → BookOpen fallback */}
                           {(() => {
                             const swatch = entry.teaImage ? (
-                              <img src={entry.teaImage} alt="" className="w-11 h-11 rounded-lg object-cover" />
+                              <img src={entry.teaImage} alt="" className="w-11 h-11 rounded-lg object-cover" loading="lazy" />
                             ) : typeVividColor ? (
                               <div className="w-11 h-11 rounded-lg" style={{ backgroundColor: typeVividColor, opacity: 0.75 }} />
                             ) : firstColorHex ? (
@@ -439,7 +439,7 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
                             {/* Name row */}
                             <div className="flex items-center gap-2 mb-0.5">
                               {onOrderTea ? (
-                                <button onClick={(e) => { e.stopPropagation(); onOrderTea(entry.teaId); }} className="text-sm font-serif text-tea-text hover:text-tea-accent truncate transition-colors text-left">
+                                <button onClick={(e) => { e.stopPropagation(); onOrderTea(entry.teaId); }} className="text-sm font-serif text-tea-text hover:text-tea-gold truncate transition-colors text-left">
                                   {entry.teaName}
                                 </button>
                               ) : (

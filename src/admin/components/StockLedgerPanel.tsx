@@ -71,7 +71,7 @@ export const StockLedgerPanel: React.FC<StockLedgerPanelProps> = ({
                   {entry.source_invoice_number && (
                     <button
                       onClick={() => navigate(`/admin/orders?search=${encodeURIComponent(entry.source_invoice_number)}`)}
-                      className="text-[10px] text-tea-text-sec hover:text-tea-accent num truncate transition-colors"
+                      className="text-[10px] text-tea-text-sec hover:text-tea-gold num truncate transition-colors"
                     >
                       {entry.source_invoice_number}
                     </button>

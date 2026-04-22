@@ -388,7 +388,7 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
     <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
       <div ref={focusTrapRef} role="dialog" aria-modal="true" aria-label="CSV import" className="bg-tea-surface border border-tea-border rounded-lg w-full max-w-7xl h-[85vh] flex flex-col shadow-lg relative">
         <div className="p-6 border-b border-tea-border flex justify-between items-center bg-tea-surface rounded-t-xl">
-          {stage !== 'uploading' && <button onClick={onClose} className="text-tea-text-sec hover:text-tea-text transition-colors shrink-0"><X size={24} /></button>}
+          {stage !== 'uploading' && <button onClick={onClose} className="text-tea-text-sec hover:text-tea-text transition-colors shrink-0" aria-label="Close"><X size={24} /></button>}
           <div className={stage !== 'uploading' ? 'ml-4' : ''}>
             <h3 className="text-2xl font-serif text-tea-text">Import Inventory</h3>
             <p className="text-tea-text-sec text-sm mt-1">
@@ -405,7 +405,7 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
             <div className="h-full flex flex-col items-center justify-center gap-6">
               <div className="w-full max-w-md border-2 border-dashed border-tea-border rounded-xl hover:border-tea-text-sec transition-colors p-10 flex flex-col items-center bg-tea-surface/50">
                 <Upload size={48} className="text-tea-text-sec mb-4" />
-                <label className="cursor-pointer bg-tea-accent text-tea-bg px-6 py-3 rounded-lg font-bold uppercase tracking-[0.2em] text-xs hover:bg-tea-gold/90 transition-colors">
+                <label className="cursor-pointer bg-tea-gold text-tea-bg px-6 py-3 rounded-lg font-bold uppercase tracking-[0.2em] text-xs hover:bg-tea-gold/90 transition-colors">
                   Select CSV File
                   <input type="file" accept=".csv" className="hidden" onChange={handleFileUpload} />
                 </label>
@@ -450,7 +450,7 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
                         {/* Status indicator */}
                         <span className="flex-shrink-0">
                           {hasErrors ? (
-                            <AlertTriangle size={14} className="text-tea-accent" aria-label={row.errors.join(', ')} />
+                            <AlertTriangle size={14} className="text-tea-gold" aria-label={row.errors.join(', ')} />
                           ) : row.status === 'Draft' ? (
                             <span className="text-[9px] font-mono text-tea-text-sec bg-tea-text-sec/10 px-1.5 py-0.5 rounded-sm">DRAFT</span>
                           ) : (
@@ -487,7 +487,7 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
                       {isExpanded && (
                         <div className="bg-tea-surface/40 border-t border-tea-border px-4 py-3">
                           {hasErrors && (
-                            <div className="mb-3 px-3 py-2 bg-tea-gold/10 rounded-lg text-xs text-tea-accent">
+                            <div className="mb-3 px-3 py-2 bg-tea-gold/10 rounded-lg text-xs text-tea-gold">
                               {row.errors.join(' · ')}
                             </div>
                           )}
@@ -540,7 +540,7 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
                           <div className="mt-3 pt-3 border-t border-tea-border flex justify-end">
                             <button
                               onClick={() => deleteRow(row.id)}
-                              className="flex items-center gap-1.5 text-xs text-tea-text-sec hover:text-tea-accent transition-colors"
+                              className="flex items-center gap-1.5 text-xs text-tea-text-sec hover:text-tea-gold transition-colors"
                             >
                               <Trash2 size={13} /> Remove
                             </button>
@@ -578,7 +578,7 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
                         <td className="p-2 text-center">
                             {row.errors.length > 0 ? (
                                 <div title={row.errors.join(', ')} className="flex justify-center cursor-help">
-                                    <AlertTriangle size={14} className="text-tea-accent" />
+                                    <AlertTriangle size={14} className="text-tea-gold" />
                                 </div>
                             ) : row.status === 'Draft' ? (
                                 <span className="px-1.5 py-0.5 rounded-sm bg-tea-text-sec/10 text-tea-text-sec border border-tea-text-sec/20 text-[10px] font-mono">DRAFT</span>
@@ -602,10 +602,10 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
                             {row.canReorder ? <span className="text-tea-text font-serif italic">Yes</span> : <span className="text-tea-text-sec/50">-</span>}
                         </td>
                         <td className="p-2 text-center">
-                             {row.isPersonal ? <span className="text-tea-accent font-serif italic">Yes</span> : <span className="text-tea-text-sec/50">-</span>}
+                             {row.isPersonal ? <span className="text-tea-gold font-serif italic">Yes</span> : <span className="text-tea-text-sec/50">-</span>}
                         </td>
 
-                        <td className="p-2 text-center"><button onClick={() => deleteRow(row.id)} className="text-tea-text-sec hover:text-tea-accent transition-colors"><Trash2 size={14} /></button></td>
+                        <td className="p-2 text-center"><button onClick={() => deleteRow(row.id)} className="text-tea-text-sec hover:text-tea-gold transition-colors"><Trash2 size={14} /></button></td>
                       </tr>
                     ))}
                   </tbody>
@@ -616,11 +616,11 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
 
           {stage === 'uploading' && (
             <div className="h-full flex flex-col items-center justify-center">
-              <Loader2 size={48} className="text-tea-accent animate-spin mb-4" />
+              <Loader2 size={48} className="text-tea-gold animate-spin mb-4" />
               <h3 className="text-xl font-serif text-tea-text">Importing Data...</h3>
               <div className="w-64 h-1 bg-tea-border rounded-full mt-6 overflow-hidden">
                  <div 
-                    className="h-full bg-tea-accent transition-all duration-300"
+                    className="h-full bg-tea-gold transition-all duration-300"
                     style={{ width: `${totalRecords > 0 ? (uploadProgress / totalRecords) * 100 : 0}%` }}
                  ></div>
               </div>
@@ -635,7 +635,7 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
               <button onClick={() => setStage('upload')} className="text-tea-text-sec hover:text-tea-text transition-colors text-xs uppercase tracking-[0.2em]">Back</button>
               <button onClick={onClose} className="text-tea-text-sec hover:text-tea-text transition-colors text-xs uppercase tracking-[0.2em]">Cancel</button>
             </div>
-            <button onClick={handleCommit} disabled={stagingData.length === 0} className="px-6 py-3 bg-tea-accent text-tea-bg rounded-lg font-bold text-xs uppercase tracking-[0.2em] hover:bg-tea-gold/90 disabled:opacity-50 transition-colors">
+            <button onClick={handleCommit} disabled={stagingData.length === 0} className="px-6 py-3 bg-tea-gold text-tea-bg rounded-lg font-bold text-xs uppercase tracking-[0.2em] hover:bg-tea-gold/90 disabled:opacity-50 transition-colors">
                 Import All ({stagingData.length})
             </button>
           </div>

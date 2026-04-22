@@ -1,13 +1,14 @@
 import React, { useMemo, useCallback, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend } from 'recharts';
+import type { TooltipProps } from 'recharts';
 import { Loader2, DollarSign, PieChart as PieIcon, MapPin } from 'lucide-react';
-import { Product } from '../types';
+import { Product, Customer } from '../types';
 import { useRates } from '../hooks/useAdminData';
 import { fmtDollars, fmtPct, fmtNum } from '../../utils/formatNumber';
 import { api } from '../../lib/api';
 
-const TooltipWrapper = (props: any) => (
+const TooltipWrapper = (props: TooltipProps<number, string>) => (
     <RechartsTooltip 
         {...props}
         contentStyle={{ backgroundColor: '#141210', borderColor: '#26221D', color: '#E8E3D9', fontSize: '12px', borderRadius: '8px' }}
@@ -20,11 +21,12 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
   const navigate = useNavigate();
   const { data: rates = [] } = useRates();
 
-  const [customers, setCustomers] = useState<any[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
 
   useEffect(() => {
-    api.customers.list().then((data: any) => {
-      setCustomers(Array.isArray(data) ? data : data.customers || []);
+    api.customers.list().then((data: unknown) => {
+      const list = Array.isArray(data) ? data : (data as { customers?: Customer[] }).customers ?? [];
+      setCustomers(list as Customer[]);
     }).catch(() => {});
   }, []);
 
@@ -97,24 +99,24 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
     if (!customers.length) return null;
 
     const totalCustomers = customers.length;
-    const withOrders = customers.filter((c: any) => (c.orderCount || 0) > 0);
-    const totalRevenue = withOrders.reduce((sum: number, c: any) => sum + (c.totalSpentUSD || 0), 0);
-    const avgOrderValue = withOrders.length > 0 ? totalRevenue / withOrders.reduce((sum: number, c: any) => sum + (c.orderCount || 0), 0) : 0;
+    const withOrders = customers.filter((c) => (c.orderCount || 0) > 0);
+    const totalRevenue = withOrders.reduce((sum: number, c) => sum + (c.totalSpentUSD || 0), 0);
+    const avgOrderValue = withOrders.length > 0 ? totalRevenue / withOrders.reduce((sum: number, c) => sum + (c.orderCount || 0), 0) : 0;
 
     // Tag distribution
     const tagCounts: Record<string, number> = {};
-    customers.forEach((c: any) => {
+    customers.forEach((c) => {
       const tags = Array.isArray(c.tags) ? c.tags : (typeof c.tags === 'string' ? JSON.parse(c.tags || '[]') : []);
       tags.forEach((t: string) => { tagCounts[t] = (tagCounts[t] || 0) + 1; });
     });
 
     // Top customers by spend
     const topCustomers = [...withOrders]
-      .sort((a: any, b: any) => (b.totalSpentUSD || 0) - (a.totalSpentUSD || 0))
+      .sort((a, b) => (b.totalSpentUSD || 0) - (a.totalSpentUSD || 0))
       .slice(0, 5);
 
     // Event attendees (customers who've attended events)
-    const eventAttendees = customers.filter((c: any) => (c.eventCount || 0) > 0).length;
+    const eventAttendees = customers.filter((c) => (c.eventCount || 0) > 0).length;
 
     return {
       totalCustomers,
@@ -323,7 +325,7 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
           <div className="bg-tea-surface rounded-lg p-4">
             <h3 className="text-xs font-sans text-tea-text-dim uppercase tracking-wider mb-3">Top Customers by Revenue</h3>
             <div className="space-y-2">
-              {customerMetrics.topCustomers.map((c: any, i: number) => (
+              {customerMetrics.topCustomers.map((c, i: number) => (
                 <button
                   key={c.id}
                   onClick={() => navigate(`/admin/people?search=${encodeURIComponent(c.name)}`)}
