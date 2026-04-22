@@ -167,7 +167,7 @@ export const UserManagement: React.FC<{ currentUserRole: string }> = ({ currentU
               <div key={user.id} className="flex items-center gap-4 p-4 bg-tea-bg rounded-lg border border-tea-border">
                 <div className="w-10 h-10 rounded-full bg-tea-gold/10 flex items-center justify-center flex-shrink-0">
                   <span className="text-sm font-serif text-tea-gold font-medium">
-                    {(user.name || user.email)[0].toUpperCase()}
+                    {(user.name || user.email || '?')[0].toUpperCase()}
                   </span>
                 </div>
                 <div className="flex-1 min-w-0">
@@ -250,7 +250,7 @@ export const UserManagement: React.FC<{ currentUserRole: string }> = ({ currentU
             <div key={user.id} className="flex items-center gap-4 p-4 bg-tea-bg rounded-lg border border-tea-border hover:border-tea-text-dim/30 transition-colors">
               <div className="w-10 h-10 rounded-full bg-tea-elevated flex items-center justify-center flex-shrink-0">
                 <span className="text-sm font-serif text-tea-text-sec font-medium">
-                  {(user.name || user.email)[0].toUpperCase()}
+                  {(user.name || user.email || '?')[0].toUpperCase()}
                 </span>
               </div>
 

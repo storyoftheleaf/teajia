@@ -175,7 +175,7 @@ export const TeawareCatalog = ({ products, currency, rates, onAdd, loading, isAd
 
             <div className="w-px h-4 bg-tea-border mx-1" />
 
-            <button onClick={() => onAdd(products[0])} className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] font-bold text-tea-text-sec hover:text-tea-text transition-colors px-3 py-1.5 border border-transparent hover:border-tea-border rounded-lg">
+            <button onClick={() => { if (products.length > 0) onAdd(products[0]); }} className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] font-bold text-tea-text-sec hover:text-tea-text transition-colors px-3 py-1.5 border border-transparent hover:border-tea-border rounded-lg">
               <Plus size={14} /> New
             </button>
           </div>

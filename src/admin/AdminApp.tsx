@@ -474,11 +474,11 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
            {activeMembership && (
              <div
                className="hidden sm:flex items-center gap-1.5 ml-2 px-2.5 py-1 rounded-md bg-tea-gold-lt shrink-0"
-               title={`Active account: ${activeMembership.account_name}`}
+               title={`Active account: ${activeMembership?.account_name}`}
              >
                <span className="w-1.5 h-1.5 rounded-full bg-tea-gold" />
                <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text font-semibold truncate max-w-[140px]">
-                 {activeMembership.account_name}
+                 {activeMembership?.account_name}
                </span>
              </div>
            )}

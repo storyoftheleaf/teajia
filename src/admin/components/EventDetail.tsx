@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Check, Lock, Edit3, Loader2, Users, Clock, MapPin, Share2, Bell, Star, Upload, MoreHorizontal, X, ChevronDown, Save } from 'lucide-react';
+import { ArrowLeft, Check, Lock, Edit3, Loader2, Users, Clock, MapPin, Share2, Bell, Star, Upload, MoreHorizontal, X, ChevronDown, Save, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api';
@@ -52,17 +52,21 @@ const TastingNotesTab: React.FC<TastingNotesTabProps> = ({ notes }) => {
     if (unpublished.length === 0) return;
     setBatchPromoting(true);
     let successCount = 0;
+    let failureCount = 0;
     for (const note of unpublished) {
       try {
         const teaKey = note.teaName!.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-');
         await api.teaReviews.create({ tea_key: teaKey, visibility: 'account', rating: note.rating, notes: note.impression, status: 'submitted' });
         setPromoted(prev => new Set(prev).add(note.id));
         successCount++;
-      } catch {}
+      } catch {
+        failureCount++;
+      }
     }
     setBatchPromoting(false);
     if (successCount > 0) showToast(`Published ${successCount} review${successCount > 1 ? 's' : ''}`, 'success');
-    else showToast('Failed to publish reviews', 'error');
+    if (failureCount > 0) showToast(`${failureCount} attendee${failureCount > 1 ? 's' : ''} could not be promoted`, 'error');
+    else if (successCount === 0) showToast('Failed to publish reviews', 'error');
   };
 
   const handlePromote = async (note: TastingNote, visibility: VisibilityOption) => {
@@ -287,7 +291,7 @@ export const EventDetail: React.FC = () => {
   const [selectedSpaceIds, setSelectedSpaceIds] = useState<string[]>([]);
   const [savingVenue, setSavingVenue] = useState(false);
   const [isVenueManagerOpen, setIsVenueManagerOpen] = useState(false);
-  const loadVenues = () => { api.venues.list().then(setVenues).catch(() => {}); };
+  const loadVenues = () => { api.venues.list().then(setVenues).catch(() => { showToast('Could not load venues', 'error'); }); };
 
   const { data: tastingNotes = [] } = useQuery<TastingNote[]>({
     queryKey: ['event-tasting-notes', id],
@@ -440,6 +444,14 @@ export const EventDetail: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2 flex-wrap shrink-0">
+            <a
+              href={`/event/${event.slug}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-xs text-tea-text-sec hover:text-tea-gold px-3 py-1.5 border border-tea-border rounded-md hover:border-tea-gold/30 transition-colors"
+            >
+              <ExternalLink size={12} /> Preview
+            </a>
             <button
               onClick={() => setIsShareOpen(true)}
               className="flex items-center gap-1.5 text-xs text-tea-text-sec hover:text-tea-text px-3 py-1.5 border border-tea-border rounded-md hover:border-tea-gold/30 transition-colors"

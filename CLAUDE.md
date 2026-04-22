@@ -45,7 +45,8 @@ Read `docs/COLOR_RULES.md` before writing any component styles.
 - Bottom nav clearance: `h-[44px] + env(safe-area-inset-bottom)` on mobile only
 - **Sticky footer clearance**: Any `fixed inset-0` form/panel that has a sticky bottom action bar MUST add `lg:pb-4 pb-[calc(1rem+44px+env(safe-area-inset-bottom,0px))]` to the footer div — the bottom nav bar overlaps it otherwise on mobile.
 - **Full-screen admin overlays use `z-modal` (40)**, not `z-50`. AccountPanel (`z-modal`) and its backdrop (`z-drawer`) are rendered later in App.tsx's DOM, so they correctly appear on top at equal z-index. Using `z-50` blocks AccountPanel from opening.
-- All reusable UI styles → `src/styles/card-utilities.css` (2700 lines)
+- All reusable UI styles → `src/styles/card-utilities.css`
+- **Typography**: use `TYPOGRAPHY_CLASSES` from `src/designTokens.ts` for new headings/body text (`h1`–`h3`, `body`, `label`, `nav`, etc.) — do not hardcode raw font/size/leading combos
 - Run `npm run lint:colors` before every commit. No exceptions.
 
 ## Deploy

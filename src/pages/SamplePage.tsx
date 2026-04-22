@@ -9,6 +9,8 @@ import {
 import { useSampleStore } from '../samples/sampleStore';
 import { useAuth } from '../hooks/useAuth';
 import { api } from '../lib/api';
+import { useToast } from '../hooks/useToast';
+import { ToastContainer } from '../components/shared/Toast';
 import type { TeaSample, SampleTasting, TastingVerdict, SampleStatus } from '../samples/types';
 import { VERDICT_CONFIG, SAMPLE_STATUS_CONFIG } from '../samples/types';
 import type { TastingData } from '../types';
@@ -38,6 +40,8 @@ const SamplePage: React.FC = () => {
   const addTastingToStore = useSampleStore((s) => s.addTasting);
   const updateStatus = useSampleStore((s) => s.updateSampleStatus);
   const updateSample = useSampleStore((s) => s.updateSample);
+
+  const { toasts, dismiss, showError } = useToast();
 
   const [sample, setSample] = useState<TeaSample | null>(storeSample || null);
   const [loading, setLoading] = useState(!storeSample);
@@ -140,18 +144,29 @@ const SamplePage: React.FC = () => {
 
   const handleStatusChange = useCallback((newStatus: SampleStatus) => {
     if (!sample) return;
+    const prevStatus = sample.status;
     updateStatus(sample.id, newStatus);
     setSample((prev) => prev ? { ...prev, status: newStatus } : prev);
-    api.samples.update(sample.id, { status: newStatus }).catch(() => { console.warn('Status update failed to sync — saved locally'); });
-  }, [sample, updateStatus]);
+    api.samples.update(sample.id, { status: newStatus }).catch(() => {
+      updateStatus(sample.id, prevStatus);
+      setSample((prev) => prev ? { ...prev, status: prevStatus } : prev);
+      showError('Status update failed — please try again');
+    });
+  }, [sample, updateStatus, showError]);
 
   const handleSaveEdit = useCallback(() => {
     if (!sample) return;
+    const prevName = sample.name;
+    const prevNotes = sample.notes;
     updateSample(sample.id, { name: editName, notes: editNotes });
     setSample((prev) => prev ? { ...prev, name: editName, notes: editNotes } : prev);
-    api.samples.update(sample.id, { name: editName, notes: editNotes }).catch(() => { console.warn('Edit update failed to sync — saved locally'); });
     setEditing(false);
-  }, [sample, editName, editNotes, updateSample]);
+    api.samples.update(sample.id, { name: editName, notes: editNotes }).catch(() => {
+      updateSample(sample.id, { name: prevName, notes: prevNotes });
+      setSample((prev) => prev ? { ...prev, name: prevName, notes: prevNotes } : prev);
+      showError('Edit failed to save — please try again');
+    });
+  }, [sample, editName, editNotes, updateSample, showError]);
 
   const handleWhatsAppAsk = useCallback(() => {
     if (!sample?.sourceContact?.whatsapp) return;
@@ -541,6 +556,8 @@ const SamplePage: React.FC = () => {
           }}
         />
       )}
+
+      <ToastContainer toasts={toasts} onDismiss={dismiss} />
     </div>
   );
 };

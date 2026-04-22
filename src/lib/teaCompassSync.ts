@@ -109,7 +109,7 @@ export async function syncCompassEntries(): Promise<number> {
 
     return result.synced;
   } catch (err) {
-    // Offline or error — entries stay unsynced, will retry next cycle
+    // Offline or error — do NOT mark entries as synced; they will retry next cycle
     console.warn('[TeaCompass] Sync failed:', err);
     return 0;
   }

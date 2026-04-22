@@ -4,6 +4,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ChevronLeft, Check, Copy, Users } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { api, getTokenClaims } from '../lib/api';
+import { useToast } from '../hooks/useToast';
+import { ToastContainer } from '../components/shared/Toast';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -131,6 +133,7 @@ interface TeaCardProps {
 
 function TeaCard({ tea, existingVerdict, sessionId, disabled }: TeaCardProps) {
   const queryClient = useQueryClient();
+  const { toasts, dismiss, showError } = useToast();
   const meta = tea.tea_metadata;
 
   const [selectedVerdict, setSelectedVerdict] = useState<VerdictOption | ''>(
@@ -155,6 +158,9 @@ function TeaCard({ tea, existingVerdict, sessionId, disabled }: TeaCardProps) {
       setSubmitted(true);
       queryClient.invalidateQueries({ queryKey: ['session', sessionId] });
     },
+    onError: () => {
+      showError('Could not submit verdict — please try again');
+    },
   });
 
   const handleSubmit = () => {
@@ -165,6 +171,8 @@ function TeaCard({ tea, existingVerdict, sessionId, disabled }: TeaCardProps) {
   const displayName = meta.name || tea.tea_name;
 
   return (
+    <>
+    <ToastContainer toasts={toasts} onDismiss={dismiss} />
     <div className="mx-4 mb-4 rounded-xl bg-tea-surface border border-tea-border overflow-hidden">
       <div className="p-4">
         <div className="flex gap-3">
@@ -248,6 +256,7 @@ function TeaCard({ tea, existingVerdict, sessionId, disabled }: TeaCardProps) {
         </div>
       </div>
     </div>
+    </>
   );
 }
 
