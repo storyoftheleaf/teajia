@@ -141,7 +141,7 @@ export const TeaMenuEditor: React.FC<TeaMenuEditorProps> = ({ eventId }) => {
       {sortedItems.length === 0 ? (
         <div className="text-center py-8 text-tea-text-sec text-sm">
           <Leaf className="mx-auto mb-2" size={20} />
-          No teas on the menu yet
+          Nothing on the menu yet
         </div>
       ) : (
         <div className="space-y-2 mb-4">

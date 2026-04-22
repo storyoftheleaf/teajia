@@ -719,7 +719,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
         )}
 
         {/* Content — Redesigned: compact data LEFT, content-rich RIGHT */}
-        <form id="add-product-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto grid grid-cols-1 lg:grid-cols-12 custom-scrollbar">
+        <form id="add-product-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto overscroll-contain grid grid-cols-1 lg:grid-cols-12 custom-scrollbar">
 
           {/* --- LEFT COLUMN: IDENTITY + COST (5/12) — compact fields --- */}
           <div className="lg:col-span-5 p-5 lg:p-6 space-y-5 border-b lg:border-b-0 lg:border-r border-tea-border">
@@ -1028,14 +1028,14 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                         <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileUpload} className="hidden" id="img-upload" />
                         <label
                             htmlFor="img-upload"
-                            className={`flex items-center justify-center gap-2 w-full border border-dashed border-tea-border rounded-lg p-3 cursor-pointer hover:bg-tea-bg hover:bg-tea-accent/5 transition-all text-sm ${uploading ? 'opacity-50 pointer-events-none' : ''}`}
+                            className={`flex items-center justify-center gap-2 w-full border border-dashed border-tea-border rounded-lg p-3 cursor-pointer hover:bg-tea-bg hover:bg-tea-gold/5 transition-all text-sm ${uploading ? 'opacity-50 pointer-events-none' : ''}`}
                         >
                             {uploading ? <Loader2 className="animate-spin text-tea-accent" size={16} /> : <Upload className="text-tea-text-sec" size={16} />}
                             <span className="text-xs text-tea-text-sec font-mono">{uploading ? 'Uploading...' : 'Click to Upload Image'}</span>
                         </label>
                     </div>
                 ) : (
-                    <div className="flex items-center gap-3 p-2 bg-tea-bg/50 border border-tea-border rounded-lg hover:bg-tea-accent/5 transition-colors mt-1">
+                    <div className="flex items-center gap-3 p-2 bg-tea-bg/50 border border-tea-border rounded-lg hover:bg-tea-gold/5 transition-colors mt-1">
                         <div className="w-20 h-20 md:w-24 md:h-24 rounded overflow-hidden bg-tea-bg border border-tea-border shrink-0 cursor-pointer">
                             <ImageThumbnail src={formData.imageUrl} type={formData.type} />
                         </div>
@@ -1069,7 +1069,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                       </button>
                     </div>
                   ))}
-                  <label className="w-16 h-16 rounded border border-dashed border-tea-border flex items-center justify-center cursor-pointer hover:bg-tea-accent/5 transition-colors">
+                  <label className="w-16 h-16 rounded border border-dashed border-tea-border flex items-center justify-center cursor-pointer hover:bg-tea-gold/5 transition-colors">
                     <Upload size={14} className="text-tea-text-sec" />
                     <input
                       type="file"
@@ -1117,7 +1117,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                         <Star size={12} className="text-tea-accent" />
                         <span className="text-sm font-serif italic text-tea-text group-hover:text-tea-accent transition-colors">Wisdom & Lore</span>
                         {!wisdomOpen && formData.lore && (
-                            <span className="text-[9px] text-tea-accent/70 uppercase tracking-wider ml-2">has content</span>
+                            <span className="text-[9px] text-tea-gold/70 uppercase tracking-wider ml-2">has content</span>
                         )}
                     </button>
                     {wisdomOpen && (
@@ -1126,7 +1126,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                                 type="button"
                                 onClick={handleGenerateWisdom}
                                 disabled={generatingWisdom || !formData.productName}
-                                className="flex items-center gap-1.5 px-2.5 py-1 bg-tea-accent/10 text-tea-accent hover:bg-tea-accent/20 rounded text-[10px] uppercase tracking-wider font-bold transition-colors disabled:opacity-50"
+                                className="flex items-center gap-1.5 px-2.5 py-1 bg-tea-gold/10 text-tea-accent hover:bg-tea-gold/20 rounded text-[10px] uppercase tracking-wider font-bold transition-colors disabled:opacity-50"
                             >
                                 {generatingWisdom ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
                                 Generate with AI
@@ -1134,7 +1134,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                             <label className="flex items-center gap-2 cursor-pointer group/toggle">
                                 <div className="relative">
                                     <input type="checkbox" name="showWisdom" checked={formData.showWisdom} onChange={handleChange} className="sr-only" />
-                                    <div className={`block w-7 h-3.5 rounded-full transition-colors ${formData.showWisdom ? 'bg-tea-accent/30' : 'bg-tea-border'}`}></div>
+                                    <div className={`block w-7 h-3.5 rounded-full transition-colors ${formData.showWisdom ? 'bg-tea-gold/30' : 'bg-tea-border'}`}></div>
                                     <div className={`absolute left-0.5 top-0.5 bg-tea-text w-2.5 h-2.5 rounded-full transition-transform ${formData.showWisdom ? 'translate-x-3.5 bg-tea-accent' : ''}`}></div>
                                 </div>
                                 <span className="text-[10px] uppercase tracking-wider text-tea-text-sec group-hover/toggle:text-tea-text transition-colors">Show Publicly</span>
@@ -1419,7 +1419,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
         )}
 
         {/* STICKY FOOTER */}
-        <div className="px-6 py-3.5 border-t border-tea-border flex justify-end gap-3 bg-tea-bg/50 backdrop-blur-sm shrink-0">
+        <div className="px-6 py-3.5 border-t border-tea-border flex justify-between gap-3 bg-tea-bg/50 backdrop-blur-sm shrink-0">
             <button type="button" onClick={handleClose} className="px-6 py-2.5 text-xs font-medium text-tea-text-sec hover:text-tea-text transition-colors uppercase tracking-[0.2em] border border-transparent hover:border-tea-border rounded-lg">
                 Cancel
             </button>
@@ -1427,7 +1427,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                 type="submit"
                 form="add-product-form"
                 disabled={loading || !formData.productName || uploading}
-                className="px-8 py-2.5 bg-tea-accent text-tea-bg text-xs font-bold uppercase tracking-[0.2em] hover:bg-tea-accent/90 transition-all disabled:opacity-50 flex items-center justify-center gap-2 rounded-lg shadow-lg shadow-tea-accent/10"
+                className="px-8 py-2.5 bg-tea-accent text-tea-bg text-xs font-bold uppercase tracking-[0.2em] hover:bg-tea-gold/90 transition-all disabled:opacity-50 flex items-center justify-center gap-2 rounded-lg shadow-lg shadow-tea-gold/10"
             >
                 {loading || uploading ? <Loader2 className="animate-spin" size={14} /> : <Save size={14} />}
                 <span>Save Item</span>

@@ -383,7 +383,7 @@ const SamplePage: React.FC = () => {
               />
             ) : (
               <p className="text-sm text-tea-text-sec">
-                {sample.notes || <span className="italic text-tea-text-dim">No notes yet</span>}
+                {sample.notes || <span className="italic text-tea-text-dim">No notes yet. Your first session starts here.</span>}
               </p>
             )}
           </motion.div>

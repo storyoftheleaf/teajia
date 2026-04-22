@@ -26,52 +26,44 @@ export function buildOrderMessage(opts: WhatsAppMessageOptions): string {
   const lines: string[] = [];
 
   if (opts.type === 'inquiry') {
-    lines.push('ORDER INQUIRY [TEAJIA]');
-    if (opts.ref) lines.push(`Ref: ${opts.ref}`);
-    lines.push(`Date: ${date}`, '');
-    if (opts.customerName) {
-      lines.push('CUSTOMER:');
-      lines.push(`Name: ${opts.customerName}`);
-      if (opts.customerContact) lines.push(`Contact: ${opts.customerContact}`);
-      if (opts.customerLocation) lines.push(`Shipping To: ${opts.customerLocation}`);
-      if (opts.notes) lines.push(`Notes: ${opts.notes}`);
-      lines.push('');
-    }
-  } else if (opts.type === 'invoice') {
-    lines.push('*Teajia Order*', '');
-    if (opts.ref) lines.push(`*Invoice:* ${opts.ref}`);
-    if (opts.customerName) lines.push(`*Customer:* ${opts.customerName}`);
-    lines.push(`*Date:* ${date}`, '');
-  } else if (opts.type === 'purchase') {
-    lines.push('PURCHASE ORDER [TEAJIA]');
-    lines.push(`Date: ${date}`);
-    if (opts.customerName) lines.push(`Vendor: ${opts.customerName}`);
-    lines.push('');
-  }
-
-  lines.push(opts.type === 'invoice' ? '*Items:*' : 'ITEMS:');
-  opts.items.forEach(item => {
-    const qty = `${item.quantity}${item.unit}`;
-    if (opts.type === 'invoice') {
-      lines.push(`\u2022 ${item.name} - ${qty} @ ${item.price} = ${item.total}`);
-    } else {
+    lines.push("Hello, I'd like to order:", '');
+    opts.items.forEach(item => {
       const variant = item.variant ? ` (${item.variant})` : '';
-      lines.push(`- ${item.name}${variant}: ${qty} @ ${item.total}`);
-    }
-  });
-
-  lines.push('');
-  if (opts.type === 'invoice') {
-    lines.push(`*Subtotal:* ${opts.subtotal}`);
-    if (opts.shipping) lines.push(`*Shipping:* ${opts.shipping}`);
-    lines.push(`*Total:* ${opts.total}`);
-  } else {
-    lines.push(`TOTAL ESTIMATE: ${opts.total}`);
-    if (opts.type === 'inquiry') {
-      lines.push('', 'Please confirm availability and shipping costs.');
-    } else if (opts.type === 'purchase') {
-      lines.push('', 'Please confirm availability and pricing.');
-    }
+      lines.push(`${item.name}${variant} — ${item.quantity}${item.unit} × ${item.price}`);
+    });
+    lines.push('');
+    lines.push(`Total — ${opts.total}`);
+    lines.push('');
+    if (opts.customerName) lines.push(`Name — ${opts.customerName}`);
+    if (opts.customerContact) lines.push(`Contact — ${opts.customerContact}`);
+    if (opts.customerLocation) lines.push(`Shipping to — ${opts.customerLocation}`);
+    if (opts.notes) lines.push('', opts.notes);
+    if (opts.ref) lines.push('', `Ref: ${opts.ref}`);
+  } else if (opts.type === 'invoice') {
+    lines.push('Teajia Order', '');
+    if (opts.ref) lines.push(`Invoice — ${opts.ref}`);
+    if (opts.customerName) lines.push(`Customer — ${opts.customerName}`);
+    lines.push(`Date — ${date}`, '');
+    opts.items.forEach(item => {
+      const qty = `${item.quantity}${item.unit}`;
+      lines.push(`${item.name} — ${qty} × ${item.price} = ${item.total}`);
+    });
+    lines.push('');
+    lines.push(`Subtotal — ${opts.subtotal}`);
+    if (opts.shipping) lines.push(`Shipping — ${opts.shipping}`);
+    lines.push(`Total — ${opts.total}`);
+  } else if (opts.type === 'purchase') {
+    lines.push('Purchase Order — Teajia');
+    lines.push(`Date — ${date}`);
+    if (opts.customerName) lines.push(`Vendor — ${opts.customerName}`);
+    lines.push('');
+    opts.items.forEach(item => {
+      const variant = item.variant ? ` (${item.variant})` : '';
+      lines.push(`${item.name}${variant} — ${item.quantity}${item.unit} × ${item.total}`);
+    });
+    lines.push('');
+    lines.push(`Total — ${opts.total}`);
+    lines.push('', 'Please confirm availability and pricing.');
   }
 
   return lines.join('\n');
@@ -95,20 +87,20 @@ export function buildStatusMessage(opts: {
     cancelled: 'Your order has been cancelled',
   };
 
-  lines.push(`*Teajia — Order Update*`, '');
+  lines.push('Teajia — Order Update', '');
   if (opts.customerName) lines.push(`Hi ${opts.customerName},`);
   lines.push(statusText[opts.status] + '.');
-  if (opts.ref) lines.push(`*Ref:* ${opts.ref}`);
+  if (opts.ref) lines.push(`Ref — ${opts.ref}`);
 
   if (opts.items && opts.items.length > 0) {
-    lines.push('', '*Items:*');
+    lines.push('');
     opts.items.forEach(item => {
-      lines.push(`\u2022 ${item.name} — ${item.quantity}${item.unit}`);
+      lines.push(`${item.name} — ${item.quantity}${item.unit}`);
     });
   }
-  if (opts.total) lines.push('', `*Total:* ${opts.total}`);
+  if (opts.total) lines.push('', `Total — ${opts.total}`);
   if (opts.note) lines.push('', opts.note);
-  lines.push('', 'Thank you for choosing Teajia \ud83c\udf75');
+  lines.push('', 'Thank you for choosing Teajia.');
 
   return lines.join('\n');
 }

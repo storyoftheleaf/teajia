@@ -99,14 +99,14 @@ export const TeaGlossary: React.FC<TeaGlossaryProps> = ({
         <Icons.Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-tea-text-sec" />
         <input
           type="text"
-          placeholder="Search terms..."
+          placeholder="search"
           value={searchQuery}
           onChange={(e) => {
             setSearchQuery(e.target.value);
             setActiveLetter(null);
           }}
           className="w-full pl-11 pr-4 py-3 bg-tea-surface rounded-[1px] text-tea-text text-sm placeholder-tea-text-sec focus:outline-none focus:ring-1 focus:ring-tea-gold/20 transition-colors"
-          style={{ boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.2), inset 0 1px 0 var(--tea-accent-sub)' }}
+          style={{ boxShadow: 'inset 0 1px 3px rgba(24,19,14,0.2), inset 0 1px 0 var(--tea-accent-sub)' }}
         />
         {searchQuery && (
           <button
@@ -192,8 +192,8 @@ export const TeaGlossary: React.FC<TeaGlossaryProps> = ({
                         : 'bg-tea-text/[0.03] hover:bg-tea-text/[0.06]'
                       }`}
                     style={{ boxShadow: expandedTermId === term.id
-                        ? 'inset 0 1px 0 var(--tea-border), 0 1px 3px rgba(0,0,0,0.2)'
-                        : 'inset 0 1px 0 var(--tea-accent-sub), 0 1px 2px rgba(0,0,0,0.15)'
+                        ? 'inset 0 1px 0 var(--tea-border), 0 1px 3px rgba(24,19,14,0.2)'
+                        : 'inset 0 1px 0 var(--tea-accent-sub), 0 1px 2px rgba(24,19,14,0.15)'
                     }}
                   >
                     <div className="p-4">

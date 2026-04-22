@@ -345,8 +345,8 @@ export const QuickCapture: React.FC<QuickCaptureProps> = ({
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             {item.status === 'extracting' && <Loader2 size={12} className="animate-spin text-tea-gold flex-shrink-0" />}
-                            {item.status === 'saved' && <Check size={12} className="text-green-500 flex-shrink-0" />}
-                            {item.status === 'error' && <X size={12} className="text-red-400 flex-shrink-0" />}
+                            {item.status === 'saved' && <Check size={12} className="text-tea-text-sec flex-shrink-0" />}
+                            {item.status === 'error' && <X size={12} className="text-tea-text-sec flex-shrink-0" />}
                             <span className="text-sm font-medium text-tea-text truncate">
                               {item.extracted.givenName || item.extracted.productName || (item.status === 'extracting' ? 'Analyzing...' : 'Unknown Tea')}
                             </span>
@@ -428,7 +428,7 @@ export const QuickCapture: React.FC<QuickCaptureProps> = ({
             onClick={() => setActiveQueue('review')}
             className={`flex items-center gap-1.5 px-3 py-1.5 text-[10px] uppercase tracking-[0.15em] rounded-md whitespace-nowrap transition-colors ${
               activeQueue === 'review'
-                ? 'bg-tea-accent/15 text-tea-accent'
+                ? 'bg-tea-gold/15 text-tea-accent'
                 : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'
             }`}
           >
@@ -444,7 +444,7 @@ export const QuickCapture: React.FC<QuickCaptureProps> = ({
             onClick={() => setActiveQueue('approve')}
             className={`flex items-center gap-1.5 px-3 py-1.5 text-[10px] uppercase tracking-[0.15em] rounded-md whitespace-nowrap transition-colors ${
               activeQueue === 'approve'
-                ? 'bg-tea-accent/15 text-tea-accent'
+                ? 'bg-tea-gold/15 text-tea-accent'
                 : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'
             }`}
           >

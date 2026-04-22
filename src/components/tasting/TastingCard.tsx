@@ -346,7 +346,7 @@ export const TastingCardModal: React.FC<TastingCardModalProps> = ({ entry, onClo
             className="rounded-xl overflow-hidden"
             style={{
               background: '#171410',
-              boxShadow: '0 4px 32px rgba(0,0,0,0.5)',
+              boxShadow: '0 4px 32px rgba(24,19,14,0.5)',
               transform: 'scale(0.96)',
               transformOrigin: 'top center',
             }}

@@ -629,7 +629,7 @@ export const SourcesView = () => {
     return (
     <React.Fragment key={source.id}>
     <tr
-      className={`transition-colors border-b border-tea-border group ${isEditMode ? '' : 'hover:bg-tea-bg/50 cursor-pointer'} ${isExpanded ? 'bg-tea-accent/5' : ''} ${panelSource?.id === source.id ? 'bg-tea-accent/5' : ''}`}
+      className={`transition-colors border-b border-tea-border group ${isEditMode ? '' : 'hover:bg-tea-bg/50 cursor-pointer'} ${isExpanded ? 'bg-tea-gold/5' : ''} ${panelSource?.id === source.id ? 'bg-tea-gold/5' : ''}`}
       style={{ height: ROW_HEIGHT }}
       onClick={() => !isEditMode && setExpandedSourceId(isExpanded ? null : source.id)}
     >
@@ -755,7 +755,7 @@ export const SourcesView = () => {
             }}
             className={`flex items-center gap-1.5 px-3 py-1 text-[10px] uppercase tracking-[0.15em] rounded-md whitespace-nowrap transition-colors ${
               activeViewId === view.id
-                ? 'bg-tea-accent/15 text-tea-accent border border-tea-accent-sub'
+                ? 'bg-tea-gold/15 text-tea-accent border border-tea-accent-sub'
                 : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface border border-transparent'
             }`}
           >
@@ -923,7 +923,7 @@ export const SourcesView = () => {
       </div>
 
       {/* --- DESKTOP HEADER CONTROLS --- */}
-      <div className={`hidden md:block sticky top-0 z-30 border-b border-tea-border py-2.5 transition-colors flex-shrink-0 ${isEditMode ? 'bg-tea-surface/95 border-b-tea-accent/20' : 'bg-tea-bg/90 backdrop-blur-md'}`}>
+      <div className={`hidden md:block sticky top-0 z-30 border-b border-tea-border py-2.5 transition-colors flex-shrink-0 ${isEditMode ? 'bg-tea-surface/95 border-b-tea-gold/20' : 'bg-tea-bg/90 backdrop-blur-md'}`}>
         <div className="px-6 max-w-5xl mx-auto flex items-center gap-4">
           <div className="flex items-center gap-2 shrink-0">
             <Users size={16} className={isEditMode ? "text-tea-text-sec" : "text-tea-accent"} />
@@ -955,7 +955,7 @@ export const SourcesView = () => {
                 onClick={() => setIsEditMode(!isEditMode)}
                 className={`flex items-center gap-2 text-xs uppercase tracking-[0.2em] font-bold transition-all px-3 py-1.5 border rounded-lg ${
                   isEditMode
-                    ? 'bg-tea-accent text-tea-bg border-tea-accent hover:bg-tea-accent/90'
+                    ? 'bg-tea-accent text-tea-bg border-tea-accent hover:bg-tea-gold/90'
                     : 'text-tea-text-sec border-transparent hover:border-tea-border hover:text-tea-text'
                 }`}
               >
@@ -1282,7 +1282,7 @@ export const SourcesView = () => {
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
             className="fixed inset-0 md:inset-auto md:right-0 md:top-0 md:bottom-0 md:w-[420px] z-50 bg-tea-bg flex flex-col"
-            style={{ boxShadow: '-12px 0 40px -8px rgba(0,0,0,0.35), inset 1px 0 0 var(--tea-accent-sub)' }}
+            style={{ boxShadow: '-12px 0 40px -8px rgba(24,19,14,0.35), inset 1px 0 0 var(--tea-accent-sub)' }}
           >
             {/* Panel Header */}
             <div className="flex items-center gap-3 px-5 py-3 border-b border-tea-accent-sub bg-tea-surface/30">
@@ -1532,13 +1532,13 @@ export const SourcesView = () => {
                         <div className="flex items-center gap-4 mb-3 text-xs text-tea-text-sec">
                           {totalsByDir.purchases > 0 && (
                             <span className="flex items-center gap-1">
-                              <ArrowDown size={10} className="text-amber-400" />
+                              <ArrowDown size={10} className="text-tea-text-sec" />
                               {vendorTxs.filter(t => t.direction === 'purchase').length} purchase{vendorTxs.filter(t => t.direction === 'purchase').length !== 1 ? 's' : ''}
                             </span>
                           )}
                           {totalsByDir.sales > 0 && (
                             <span className="flex items-center gap-1">
-                              <ArrowUp size={10} className="text-emerald-400" />
+                              <ArrowUp size={10} className="text-tea-text-sec" />
                               {vendorTxs.filter(t => t.direction === 'sale').length} sale{vendorTxs.filter(t => t.direction === 'sale').length !== 1 ? 's' : ''}
                             </span>
                           )}
@@ -1553,9 +1553,9 @@ export const SourcesView = () => {
                                 <div className="flex items-center justify-between mb-1.5">
                                   <div className="flex items-center gap-2">
                                     {tx.direction === 'purchase' ? (
-                                      <ArrowDown size={12} className="text-amber-400" />
+                                      <ArrowDown size={12} className="text-tea-text-sec" />
                                     ) : (
-                                      <ArrowUp size={12} className="text-emerald-400" />
+                                      <ArrowUp size={12} className="text-tea-text-sec" />
                                     )}
                                     <span className="text-[10px] text-tea-text-sec uppercase tracking-wider">
                                       {tx.direction} · {tx.items.length} item{tx.items.length !== 1 ? 's' : ''}

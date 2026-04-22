@@ -105,6 +105,15 @@ export interface CartItem extends InvoiceDisplayItem {
   product: Product;
 }
 
+export interface InvoiceWithItems extends Invoice {
+  customer_phone?: string;
+  items?: Array<{
+    product_name?: string;
+    quantity: number;
+    product?: { givenName?: string; type?: string };
+  }>;
+}
+
 export type CustomerTag = 'wholesale' | 'retail' | 'friend' | 'vendor' | 'vip' | 'inactive';
 export type ContactType = 'customer' | 'supplier';
 

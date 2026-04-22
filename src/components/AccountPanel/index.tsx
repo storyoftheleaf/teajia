@@ -79,7 +79,7 @@ function formatRelativeDate(iso: string): string {
 const AVATAR_KEY = 'teajia_avatar_data_url';
 
 const Separator: React.FC = () => (
-  <div className="h-px bg-tea-gold/10" />
+  <div className="h-px bg-tea-border" />
 );
 
 const ZoneLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -603,7 +603,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
           )}
           {/* Next event line */}
           {nextEvent && (
-            <span className="text-[10px] text-tea-gold/70 mt-0.5 block ml-3.5">
+            <span className="text-[10px] text-tea-text-sec mt-0.5 block ml-3.5">
               Next: {new Date(nextEvent.eventDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
             </span>
           )}
@@ -705,7 +705,8 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
     <>
       {/* Backdrop */}
       <div
-        className={`fixed inset-0 z-drawer bg-black/80 backdrop-blur-sm transition-opacity duration-[120ms] ${isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+        className={`fixed inset-0 z-drawer bg-black/80 backdrop-blur-sm ${isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+        style={{ transition: isVisible ? 'opacity 300ms ease' : 'opacity 150ms ease' }}
         onClick={onClose}
       />
 
@@ -716,7 +717,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
         style={{
           opacity: isVisible ? 1 : 0,
           pointerEvents: isVisible ? undefined : 'none',
-          transition: 'opacity 120ms ease-out',
+          transition: isVisible ? 'opacity 300ms ease' : 'opacity 150ms ease',
         }}
       >
         {/* Hidden avatar file input */}
@@ -770,7 +771,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
         </div>
 
         {/* Content */}
-        <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto relative">
+        <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto overscroll-contain relative">
           {/* Grain texture */}
           <div className="absolute inset-0 pointer-events-none" style={{ opacity: 0.06, backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`, backgroundSize: '120px' }} />
 
@@ -803,7 +804,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                       onChange={e => setSigninIdentifier(e.target.value)}
                       autoFocus
                       required
-                      placeholder="you@example.com"
+                      placeholder="email or username"
                       className={inputClass}
                       style={inputStyle}
                     />
@@ -856,11 +857,11 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                   <FormError />
                   <div>
                     <label className={labelClass}>Name</label>
-                    <input type="text" value={name} onChange={e => setName(e.target.value)} required autoFocus placeholder="Your name" className={inputClass} style={inputStyle} />
+                    <input type="text" value={name} onChange={e => setName(e.target.value)} required autoFocus placeholder="your name" className={inputClass} style={inputStyle} />
                   </div>
                   <div>
                     <label className={labelClass}>Email</label>
-                    <input type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="you@example.com" className={inputClass} style={inputStyle} />
+                    <input type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="your email" className={inputClass} style={inputStyle} />
                   </div>
                   <div>
                     <label className={labelClass}>Username <span className="text-tea-text-dim normal-case tracking-normal">(optional)</span></label>

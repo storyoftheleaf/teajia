@@ -196,7 +196,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
           <SearchInput
             value={searchQuery}
             onChange={setSearchQuery}
-            placeholder="Search terms, courses, resources..."
+            placeholder="search terms, courses, resources"
           />
         </div>
 

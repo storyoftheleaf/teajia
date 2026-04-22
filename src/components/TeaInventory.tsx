@@ -280,7 +280,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
              type="search"
              value={searchText}
              onChange={e => setSearchText(e.target.value)}
-             placeholder="Search teas…"
+             placeholder="search teas"
              className="w-full bg-transparent border-b border-tea-border text-tea-text text-sm placeholder:text-tea-text-dim py-1.5 pr-2 outline-none focus:border-tea-gold transition-colors"
              style={{ fontFamily: 'var(--font-body)' }}
            />
@@ -401,7 +401,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                  <path d="M18 22 C24 26 32 28 46 24" />
                  <path d="M16 34 C22 36 30 38 48 32" />
                </svg>
-               <p className="font-serif italic text-tea-text/60 mb-2">No teas match your filters</p>
+               <p className="font-serif italic text-tea-text/60 mb-2">Nothing matched — try different filters</p>
                <button
                   onClick={clearFilters}
                   className="text-sm text-tea-gold hover:text-tea-gold/80 transition-colors underline"

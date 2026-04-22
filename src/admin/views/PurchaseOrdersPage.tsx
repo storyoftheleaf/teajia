@@ -187,14 +187,14 @@ const NewPoForm: React.FC<{ onClose: () => void; onSubmit: (data: Parameters<typ
             />
           </div>
 
-          <div className="flex justify-end gap-3 pt-2">
+          <div className="flex justify-between gap-3 pt-2">
             <button type="button" onClick={onClose} className="px-4 py-2 text-xs text-tea-text-sec hover:text-tea-text transition-colors uppercase tracking-[0.15em]">
               Cancel
             </button>
             <button
               type="submit"
               disabled={submitting || !vendorName.trim()}
-              className="px-6 py-2 bg-tea-accent text-tea-bg text-xs font-bold uppercase tracking-[0.15em] rounded-lg hover:bg-tea-accent/90 transition-colors disabled:opacity-50 flex items-center gap-2"
+              className="px-6 py-2 bg-tea-accent text-tea-bg text-xs font-bold uppercase tracking-[0.15em] rounded-lg hover:bg-tea-gold/90 transition-colors disabled:opacity-50 flex items-center gap-2"
             >
               {submitting ? <Loader2 size={13} className="animate-spin" /> : <ShoppingBag size={13} />}
               Create PO
@@ -244,7 +244,7 @@ const ReceiveStockPrompt: React.FC<{
             </div>
           ))}
         </div>
-        <div className="px-5 pb-5 flex justify-end gap-3">
+        <div className="px-5 pb-5 flex justify-between gap-3">
           <button onClick={onClose} className="px-4 py-2 text-xs text-tea-text-sec hover:text-tea-text uppercase tracking-[0.15em]">Skip</button>
           <button
             disabled={confirming}
@@ -261,7 +261,7 @@ const ReceiveStockPrompt: React.FC<{
                 setConfirming(false);
               }
             }}
-            className="px-6 py-2 bg-tea-accent text-tea-bg text-xs font-bold uppercase tracking-[0.15em] rounded-lg hover:bg-tea-accent/90 disabled:opacity-50 flex items-center gap-2"
+            className="px-6 py-2 bg-tea-accent text-tea-bg text-xs font-bold uppercase tracking-[0.15em] rounded-lg hover:bg-tea-gold/90 disabled:opacity-50 flex items-center gap-2"
           >
             {confirming ? <Loader2 size={12} className="animate-spin" /> : null}
             Add to stock

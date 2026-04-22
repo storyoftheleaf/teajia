@@ -203,7 +203,7 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) =
   let flatIndex = -1;
 
   return (
-    <>
+    <AnimatePresence>
     {isOpen && (
     <div
       className="fixed inset-0 z-modal flex items-start justify-center pt-[15vh] px-4"
@@ -221,7 +221,8 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) =
         onClick={e => e.stopPropagation()}
         initial={{ opacity: 0, y: -24, scale: 0.96 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+        exit={{ opacity: 0, y: -12, scale: 0.98, transition: { duration: 0.15, ease: 'easeOut' } }}
+        transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
       >
         {/* Search input */}
         <div className="flex items-center gap-3 px-4 py-3 border-b border-tea-gold/30 ring-1 ring-tea-gold/20">
@@ -253,7 +254,7 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) =
           {query.trim() !== '' && results.length === 0 && (
             <div className="px-4 py-10 text-center">
               <p className="text-sm text-tea-text-sec">
-                No results found for &lsquo;{query}&rsquo;
+                Nothing matched — try different words.
               </p>
             </div>
           )}
@@ -328,6 +329,6 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) =
       </motion.div>
     </div>
     )}
-    </>
+    </AnimatePresence>
   );
 };

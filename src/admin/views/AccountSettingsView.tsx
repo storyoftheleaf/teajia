@@ -362,11 +362,11 @@ const TransferOwnershipSection: React.FC<{
                   ))}
                 </select>
               </div>
-              <div className="flex gap-2 justify-end">
+              <div className="flex gap-2 justify-between">
                 <button
                   type="button"
                   onClick={() => setStep('idle')}
-                  className="px-3 py-1.5 text-xs text-tea-text-dim hover:text-tea-text transition-colors"
+                  className="px-3 py-1.5 text-xs text-tea-text-sec hover:text-tea-text transition-colors"
                 >
                   Cancel
                 </button>
@@ -411,11 +411,11 @@ const TransferOwnershipSection: React.FC<{
               Must match exactly: <span className="text-tea-text-sec font-mono">{account.name}</span>
             </p>
           </div>
-          <div className="flex gap-2 justify-end">
+          <div className="flex gap-2 justify-between">
             <button
               type="button"
               onClick={() => setStep('select-member')}
-              className="px-3 py-1.5 text-xs text-tea-text-dim hover:text-tea-text transition-colors"
+              className="px-3 py-1.5 text-xs text-tea-text-sec hover:text-tea-text transition-colors"
             >
               Back
             </button>
@@ -450,12 +450,12 @@ const TransferOwnershipSection: React.FC<{
           {transferError && (
             <p className="text-xs text-tea-text-sec">{transferError}</p>
           )}
-          <div className="flex gap-2 justify-end">
+          <div className="flex gap-2 justify-between">
             <button
               type="button"
               onClick={() => setStep('confirm-name')}
               disabled={transferring}
-              className="px-3 py-1.5 text-xs text-tea-text-dim hover:text-tea-text transition-colors disabled:opacity-50"
+              className="px-3 py-1.5 text-xs text-tea-text-sec hover:text-tea-text transition-colors disabled:opacity-50"
             >
               Back
             </button>

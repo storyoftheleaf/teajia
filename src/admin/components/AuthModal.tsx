@@ -140,7 +140,7 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: { isOpen: boolean;
             <>
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-tea-text-sec mb-2">Name</label>
-                <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full input-warm rounded-lg p-3 text-base outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder-tea-text-sec/50" placeholder="Your name" />
+                <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full input-warm rounded-lg p-3 text-base outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder-tea-text-sec/50" placeholder="your name" />
               </div>
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-tea-text-sec mb-2">Username <span className="text-tea-text-dim normal-case tracking-normal font-normal">(optional)</span></label>
@@ -189,9 +189,9 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: { isOpen: boolean;
           )}
 
           {info && <div className="p-3 bg-tea-gold-lt/10 border border-tea-border text-tea-text-sec text-sm rounded-lg">{info}</div>}
-          {error && <div className="p-3 bg-tea-accent/10 border border-tea-accent-sub text-tea-accent text-sm rounded-lg">{error}</div>}
+          {error && <div className="p-3 bg-tea-gold/10 border border-tea-accent-sub text-tea-accent text-sm rounded-lg">{error}</div>}
 
-          <button type="submit" disabled={loading} className="w-full py-3 bg-tea-accent text-tea-bg font-bold text-xs uppercase tracking-[0.2em] rounded-lg hover:bg-tea-accent/90 transition-colors disabled:opacity-50 flex justify-center mt-6 shadow-lg shadow-tea-accent/10">
+          <button type="submit" disabled={loading} className="w-full py-3 bg-tea-accent text-tea-bg font-bold text-xs uppercase tracking-[0.2em] rounded-lg hover:bg-tea-gold/90 transition-colors disabled:opacity-50 flex justify-center mt-6 shadow-lg shadow-tea-gold/10">
             {loading ? <Loader2 className="animate-spin" /> : submitLabel}
           </button>
         </form>

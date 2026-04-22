@@ -69,7 +69,7 @@ export const QuickPeekDrawer: React.FC<QuickPeekDrawerProps> = ({ item, onClose,
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
         className={`
-          fixed z-modal bg-tea-bg shadow-2xl overflow-y-auto
+          fixed z-modal bg-tea-bg shadow-2xl overflow-y-auto overscroll-contain
           transition-transform duration-300 ease-out
           bottom-0 left-0 right-0 max-h-[70vh] rounded-t-xl
           lg:bottom-0 lg:right-0 lg:left-auto lg:top-0 lg:w-[400px] lg:max-h-none lg:h-full lg:rounded-none

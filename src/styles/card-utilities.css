@@ -2252,7 +2252,7 @@ input[type="number"]::-webkit-outer-spin-button {
   font-weight: 500;
   background: var(--tea-elevated);
   color: var(--tea-text);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 16px rgba(24, 19, 14, 0.3);
   cursor: pointer;
   transition: opacity 200ms ease, transform 200ms ease;
 }
@@ -2262,7 +2262,7 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 
 .light .tasting-undo-toast {
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 4px 16px rgba(24, 19, 14, 0.12);
 }
 
 .tasting-drag-handle {

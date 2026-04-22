@@ -39,7 +39,7 @@ export const QrCodeModal: React.FC<QrCodeModalProps> = ({ isOpen, onClose, produ
 
           <button 
             onClick={handlePrint}
-            className="w-full flex items-center justify-center gap-2 py-3 bg-tea-accent text-tea-bg font-bold text-xs uppercase tracking-[0.2em] rounded-lg hover:bg-tea-accent/90 transition-colors print:hidden mt-6"
+            className="w-full flex items-center justify-center gap-2 py-3 bg-tea-accent text-tea-bg font-bold text-xs uppercase tracking-[0.2em] rounded-lg hover:bg-tea-gold/90 transition-colors print:hidden mt-6"
           >
             <Printer size={16} /> Print Label
           </button>

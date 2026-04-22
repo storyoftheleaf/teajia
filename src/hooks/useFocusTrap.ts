@@ -1,49 +1,52 @@
 import { useEffect, useRef } from 'react';
 
-/**
- * Traps focus within a container element when active.
- * Returns a ref to attach to the container element.
- */
-export function useFocusTrap<T extends HTMLElement = HTMLDivElement>(isActive: boolean) {
-  const containerRef = useRef<T>(null);
+const FOCUSABLE_SELECTORS = [
+  'button:not([disabled])',
+  '[href]',
+  'input:not([disabled])',
+  'select:not([disabled])',
+  'textarea:not([disabled])',
+  '[tabindex]:not([tabindex="-1"])',
+].join(', ');
+
+export function useFocusTrap<T extends HTMLElement = HTMLDivElement>(active: boolean) {
+  const ref = useRef<T>(null);
 
   useEffect(() => {
-    if (!isActive || !containerRef.current) return;
+    if (!active || !ref.current) return;
+    const container = ref.current;
+    const focusable = Array.from(
+      container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTORS)
+    ).filter(el => !el.closest('[hidden]'));
 
-    const container = containerRef.current;
-    const focusableSelector = 'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    const previousFocus = document.activeElement as HTMLElement | null;
+
+    first.focus();
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key !== 'Tab') return;
-
-      const focusableElements = container.querySelectorAll<HTMLElement>(focusableSelector);
-      if (focusableElements.length === 0) return;
-
-      const firstElement = focusableElements[0];
-      const lastElement = focusableElements[focusableElements.length - 1];
-
       if (e.shiftKey) {
-        if (document.activeElement === firstElement) {
+        if (document.activeElement === first) {
           e.preventDefault();
-          lastElement.focus();
+          last.focus();
         }
       } else {
-        if (document.activeElement === lastElement) {
+        if (document.activeElement === last) {
           e.preventDefault();
-          firstElement.focus();
+          first.focus();
         }
       }
     };
 
-    // Focus the first focusable element on mount
-    const focusableElements = container.querySelectorAll<HTMLElement>(focusableSelector);
-    if (focusableElements.length > 0) {
-      focusableElements[0].focus();
-    }
+    container.addEventListener('keydown', handleKeyDown);
+    return () => {
+      container.removeEventListener('keydown', handleKeyDown);
+      previousFocus?.focus();
+    };
+  }, [active]);
 
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isActive]);
-
-  return containerRef;
+  return ref;
 }

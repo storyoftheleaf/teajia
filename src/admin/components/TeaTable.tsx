@@ -122,7 +122,7 @@ export const TeaTable: React.FC<TeaTableProps> = ({
     return (
       <div className="flex flex-col items-center justify-center p-16 text-center h-full">
         <div className="p-4 bg-red-500/10 rounded-full border border-red-500/20 mb-6">
-          <AlertCircle className="text-red-400" size={32} />
+          <AlertCircle className="text-tea-text-sec" size={32} />
         </div>
         <h2 className="text-lg font-serif text-tea-text mb-2">Failed to load catalog</h2>
         <p className="text-tea-text-sec text-sm mb-6 max-w-md">

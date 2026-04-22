@@ -204,7 +204,7 @@ const CustomerModal = ({
 
   return (
     <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
-      <div className="bg-tea-bg border border-tea-border rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl relative">
+      <div className="bg-tea-bg border border-tea-border rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto overscroll-contain shadow-2xl relative">
         <div className="sticky top-0 bg-tea-bg border-b border-tea-border p-6 flex justify-between items-center z-10">
           <button onClick={onClose} className="text-tea-text-sec hover:text-tea-text transition-colors"><X size={20} /></button>
           <h3 className="text-xl font-serif text-tea-text">
@@ -396,7 +396,7 @@ const CustomerModal = ({
           <button
             type="submit"
             disabled={saving || !form.name.trim()}
-            className="w-full py-3 bg-tea-accent hover:bg-tea-accent/90 text-tea-bg font-bold uppercase tracking-[0.2em] text-xs rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-3 bg-tea-accent hover:bg-tea-gold/90 text-tea-bg font-bold uppercase tracking-[0.2em] text-xs rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {saving ? 'Saving...' : isEditing ? 'Update Customer' : 'Add Customer'}
           </button>
@@ -511,7 +511,7 @@ const CustomerDetail = ({
 
   return (
     <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
-      <div className="bg-tea-bg border border-tea-border rounded-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto shadow-2xl relative">
+      <div className="bg-tea-bg border border-tea-border rounded-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto overscroll-contain shadow-2xl relative">
         <div className="sticky top-0 bg-tea-bg border-b border-tea-border p-6 flex justify-between items-center z-10">
           <div>
             <h3 className="text-2xl font-serif text-tea-text">{customer.name}</h3>
@@ -1490,7 +1490,7 @@ export const CustomersView = () => {
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center gap-3 py-16 text-tea-text-sec">
             <Users size={32} strokeWidth={1} className="opacity-40" />
-            <span className="font-serif italic">{search || filterTags.length > 0 || filterAttendedEvents ? 'No matching customers' : 'No customers yet'}</span>
+            <span className="font-serif italic">{search || filterTags.length > 0 || filterAttendedEvents ? 'Nothing matched — try different words.' : 'No customers yet.'}</span>
             {(search || filterTags.length > 0 || filterAttendedEvents) && (
               <button onClick={() => { setSearch(''); setFilterTags([]); setFilterAttendedEvents(false); }} className="text-xs text-tea-gold hover:text-tea-gold/80 transition-colors">
                 Clear filters

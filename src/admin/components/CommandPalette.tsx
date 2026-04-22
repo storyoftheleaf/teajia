@@ -121,7 +121,7 @@ export const CommandPalette = ({ onAddProduct, externalOpen, onOpenChange }: { o
           </div>
 
           <Command.List className="max-h-[300px] overflow-y-auto p-2 custom-scrollbar">
-            <Command.Empty className="py-6 text-center text-sm text-tea-text-sec font-serif italic">No results found.</Command.Empty>
+            <Command.Empty className="py-6 text-center text-sm text-tea-text-sec font-serif italic">Nothing matched — try different words.</Command.Empty>
 
             {/* Search Results */}
             {searchQuery.trim() && (

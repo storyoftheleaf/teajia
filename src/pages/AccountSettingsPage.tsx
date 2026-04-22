@@ -138,7 +138,7 @@ export default function AccountSettingsPage() {
               onChange={e => setEditName(e.target.value)}
               className={inputClass}
               style={inputStyle}
-              placeholder={auth.user?.name || 'Your name'}
+              placeholder={auth.user?.name || 'your name'}
             />
           </div>
           <div>
@@ -165,7 +165,7 @@ export default function AccountSettingsPage() {
               onChange={e => setEditEmail(e.target.value)}
               className={inputClass}
               style={inputStyle}
-              placeholder={auth.user?.email || 'you@example.com'}
+              placeholder={auth.user?.email || 'your email'}
             />
           </div>
           <FormError error={profileError} />

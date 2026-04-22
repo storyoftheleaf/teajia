@@ -319,7 +319,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
         showToast('Stock reservation pending — verify before fulfilling', 'info');
       }
       onSuccess();
-      showToast('Order submitted successfully', 'success');
+      showToast('Order submitted.', 'success');
       setLastInvoice({ ...invoiceData, items: cart });
       setTransactionComplete(true);
       setSourceEventId(null);
@@ -422,7 +422,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
   useEffect(() => {
     if (transactionComplete && lastInvoice && isPurchase && lastInvoice._purchaseMessage) {
       navigator.clipboard.writeText(lastInvoice._purchaseMessage).then(() => {
-        showToast('Order text copied to clipboard', 'success');
+        showToast('Copied.', 'success');
       }).catch(() => { /* clipboard not available */ });
     }
   }, [transactionComplete, lastInvoice, isPurchase, showToast]);
@@ -503,7 +503,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
             <div className="space-y-3 print:hidden">
               {isPurchase && lastInvoice._purchaseMessage && (
                 <button
-                  onClick={() => { navigator.clipboard.writeText(lastInvoice._purchaseMessage); showToast('Order copied to clipboard', 'success'); }}
+                  onClick={() => { navigator.clipboard.writeText(lastInvoice._purchaseMessage); showToast('Copied.', 'success'); }}
                   className="flex w-full py-3 rounded-lg font-medium items-center justify-center gap-2 text-sm bg-tea-gold text-tea-bg hover:bg-tea-gold/90 transition-colors"
                 >
                   <Share2 size={16} /> Copy Order Text
@@ -642,7 +642,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
                 {customerSuggestions.length === 0 && customerName.trim() && (
                   <div className="px-3 py-2 text-xs text-tea-text-sec">
                     <span className="italic">New contact — will be saved automatically</span>
-                    <span className="block mt-1 text-tea-accent/70">Tip: Add full details in Customers & Sources after checkout</span>
+                    <span className="block mt-1 text-tea-gold/70">Tip: Add full details in Customers & Sources after checkout</span>
                   </div>
                 )}
               </div>

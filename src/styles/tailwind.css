@@ -3,6 +3,27 @@
 @tailwind utilities;
 
 /* ============================================
+   Fallback fonts with adjusted metrics to prevent layout shift (FOUT)
+   ============================================ */
+@font-face {
+  font-family: 'Cormorant Garamond Fallback';
+  src: local('Georgia'), local('Times New Roman');
+  size-adjust: 94%;
+  ascent-override: 90%;
+  descent-override: 22%;
+  line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: 'Lora Fallback';
+  src: local('Georgia'), local('Times New Roman');
+  size-adjust: 97%;
+  ascent-override: 93%;
+  descent-override: 24%;
+  line-gap-override: 0%;
+}
+
+/* ============================================
    Espresso + Gold — Theme Variables
    Dark mode (default) and Light mode
    ============================================ */
@@ -46,9 +67,9 @@ nav[aria-label="Admin navigation"] * {
   --tea-accent-sub: rgba(168,135,77,0.1);
 
   /* Font Families */
-  --font-display: 'Cormorant Garamond', 'Noto Serif SC', Georgia, serif;
-  --font-serif: 'Lora', 'Noto Serif SC', serif;
-  --font-body: 'Lora', 'Noto Serif SC', serif;
+  --font-display: 'Cormorant Garamond', 'Cormorant Garamond Fallback', 'Noto Serif SC', Georgia, serif;
+  --font-serif: 'Lora', 'Lora Fallback', 'Noto Serif SC', Georgia, serif;
+  --font-body: 'Lora', 'Lora Fallback', 'Noto Serif SC', Georgia, serif;
   --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
   --font-mono: 'IBM Plex Mono', 'Menlo', 'Courier New', monospace;
 
@@ -141,7 +162,12 @@ body {
   font-weight: 300;
   line-height: 1.5;
   letter-spacing: 0.01em;
-  transition: background-color 0.6s ease, color 0.6s ease;
+  transition: background-color 500ms ease, color 500ms ease;
+}
+
+/* Smooth dark/light mode transition */
+.theme-transitioning * {
+  transition: background-color 500ms ease, color 500ms ease, border-color 500ms ease !important;
 }
 
 p {

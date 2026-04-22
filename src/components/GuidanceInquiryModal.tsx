@@ -132,7 +132,7 @@ export const GuidanceInquiryModal: React.FC<GuidanceInquiryModalProps> = ({ onCl
                     onChange={handleInputChange}
                     required
                     className="w-full px-4 py-2 input-warm rounded-sm text-tea-text placeholder-tea-text-sec focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors duration-300"
-                    placeholder="Your name"
+                    placeholder="your name"
                   />
                   {errors.name && <p className="text-red-400 text-xs mt-1">{errors.name}</p>}
                 </div>

@@ -129,7 +129,7 @@ const SpaceForm: React.FC<SpaceFormProps> = ({ venueId, space, onSaved, onCancel
       <Field label="Photos">
         <PhotoStrip photos={photos} onAdd={handleUpload} onRemove={url => setPhotos(p => p.filter(u => u !== url))} uploading={uploading} />
       </Field>
-      <div className="flex justify-end gap-2 pt-1">
+      <div className="flex justify-between gap-2 pt-1">
         <button type="button" onClick={onCancel} className="px-3 py-1.5 text-sm text-tea-text-sec hover:text-tea-text transition-colors">
           Cancel
         </button>
@@ -482,7 +482,7 @@ const NewVenueForm: React.FC<NewVenueFormProps> = ({ onSaved, onCancel }) => {
       <Field label="Map Link">
         <input type="url" value={mapLink} onChange={e => setMapLink(e.target.value)} className={inputClass} placeholder="https://maps.google.com/…" />
       </Field>
-      <div className="flex justify-end gap-2 pt-1">
+      <div className="flex justify-between gap-2 pt-1">
         <button type="button" onClick={onCancel} className="px-3 py-1.5 text-sm text-tea-text-sec hover:text-tea-text transition-colors">
           Cancel
         </button>

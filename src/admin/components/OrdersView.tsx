@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../../lib/api';
+import type { InvoiceWithItems } from '../types';
 import { openWhatsAppStatus } from '../../lib/whatsapp';
 import { Loader2, Search, XCircle, Trash2, Eye, X, PackageCheck, Users, Scissors, Pencil, Package, MoreHorizontal, MessageCircle, Plus, Link2 } from 'lucide-react';
 import Fuse from 'fuse.js';
@@ -304,7 +305,7 @@ export const OrdersView = () => {
                 <tr><td colSpan={6} className="text-center py-16">
                   <div className="flex flex-col items-center gap-3 text-tea-text-sec">
                     <Package size={32} strokeWidth={1} className="opacity-40" />
-                    <span className="font-serif italic">{search || statusFilter !== 'all' ? 'No matching orders' : 'No orders yet'}</span>
+                    <span className="font-serif italic">{search || statusFilter !== 'all' ? 'Nothing matched — try different words.' : 'No orders yet.'}</span>
                     {(search || statusFilter !== 'all') && (
                       <button onClick={() => { setSearch(''); setStatusFilter('all'); }} className="text-xs text-tea-gold hover:text-tea-gold/80 transition-colors">
                         Clear filters
@@ -418,7 +419,7 @@ export const OrdersView = () => {
           {filteredOrders.length === 0 ? (
             <div className="flex flex-col items-center gap-3 py-16 text-tea-text-sec">
               <Package size={32} strokeWidth={1} className="opacity-40" />
-              <span className="font-serif italic">{search || statusFilter !== 'all' ? 'No matching orders' : 'No orders yet'}</span>
+              <span className="font-serif italic">{search || statusFilter !== 'all' ? 'Nothing matched — try different words.' : 'No orders yet.'}</span>
             </div>
           ) : (
             filteredOrders.map((order, idx) => {
@@ -658,7 +659,7 @@ export const OrdersView = () => {
                      <div className="mt-8 pt-6 border-t border-tea-border">
                         <button
                             onClick={() => { setViewingInvoice(null); openFulfillConfirm(viewingInvoice); }}
-                            className="w-full py-4 bg-tea-accent hover:bg-tea-accent/90 text-tea-bg font-bold uppercase tracking-[0.2em] text-xs rounded-lg flex items-center justify-center gap-2 transition-all shadow-lg shadow-tea-accent/10"
+                            className="w-full py-4 bg-tea-accent hover:bg-tea-gold/90 text-tea-bg font-bold uppercase tracking-[0.2em] text-xs rounded-lg flex items-center justify-center gap-2 transition-all shadow-lg shadow-tea-gold/10"
                         >
                             <PackageCheck size={18} /> Confirm Order & Deduct Stock
                         </button>

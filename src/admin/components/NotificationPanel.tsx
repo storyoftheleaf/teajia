@@ -13,9 +13,9 @@ interface NotificationPanelProps {
 }
 
 const STATUS_STYLES: Record<NotificationStatus, { icon: React.ReactNode; className: string }> = {
-  pending: { icon: <Clock size={10} />, className: 'bg-amber-500/10 text-amber-400' },
-  sent: { icon: <CheckCircle size={10} />, className: 'bg-green-500/10 text-green-400' },
-  failed: { icon: <AlertCircle size={10} />, className: 'bg-red-500/10 text-red-400' },
+  pending: { icon: <Clock size={10} />, className: 'bg-tea-surface text-tea-text-sec' },
+  sent: { icon: <CheckCircle size={10} />, className: 'bg-tea-surface text-tea-text-sec' },
+  failed: { icon: <AlertCircle size={10} />, className: 'bg-tea-surface text-tea-text-sec' },
 };
 
 function formatEventTime(dateStr: string): string {
@@ -186,7 +186,7 @@ const InviteStatusBlock: React.FC<InviteStatusBlockProps> = ({
       <div className="mb-6 p-4 bg-tea-surface border border-tea-border rounded-md">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-3">
-            <CheckCircle size={16} className="text-green-400 mt-0.5 shrink-0" />
+            <CheckCircle size={16} className="text-tea-text-sec mt-0.5 shrink-0" />
             <div>
               <p className="text-sm font-medium text-tea-text">Invites sent</p>
               <p className="text-xs text-tea-text-sec mt-0.5">
@@ -289,7 +289,7 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({ eventId, e
       await navigator.clipboard.writeText(notif.messageTemplate ?? '');
       setCopiedId(notif.id);
       setTimeout(() => setCopiedId(null), 2000);
-      showToast('Copied to clipboard', 'info');
+      showToast('Copied.', 'info');
     } catch {
       showToast('Failed to copy', 'error');
     }
@@ -397,7 +397,7 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({ eventId, e
                       onClick={() => copyMessage(notif)}
                       className="flex items-center gap-1 text-[10px] px-2 py-1 rounded border border-tea-border text-tea-text-sec hover:text-tea-text hover:border-tea-gold/30 transition-colors"
                     >
-                      {copiedId === notif.id ? <Check size={10} className="text-green-400" /> : <Copy size={10} />}
+                      {copiedId === notif.id ? <Check size={10} className="text-tea-text-sec" /> : <Copy size={10} />}
                       {copiedId === notif.id ? 'Copied' : 'Copy'}
                     </button>
                   </div>

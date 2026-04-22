@@ -535,7 +535,7 @@ function TweaksPanel({
         borderRadius: 4,
         backdropFilter: 'blur(14px)',
         WebkitBackdropFilter: 'blur(14px)',
-        boxShadow: '0 20px 50px rgba(0,0,0,0.6)',
+        boxShadow: '0 20px 50px rgba(24,19,14,0.6)',
         padding: 18,
         animation: 'panelReveal 0.3s ease-out',
       }}

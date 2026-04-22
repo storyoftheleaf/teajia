@@ -533,7 +533,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
               className="shrink-0 border-t border-tea-border bg-tea-bg"
               style={{
                 paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-                boxShadow: '0 -4px 16px rgba(0,0,0,0.25)',
+                boxShadow: '0 -4px 16px rgba(24,19,14,0.25)',
               }}
             >
               {/* Note panel — slides down when open */}

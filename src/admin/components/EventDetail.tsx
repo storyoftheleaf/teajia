@@ -214,7 +214,7 @@ const TastingNotesTab: React.FC<TastingNotesTabProps> = ({ notes }) => {
                 ))}
               </div>
 
-              <div className="flex gap-2 justify-end">
+              <div className="flex gap-2 justify-between">
                 <button
                   type="button"
                   onClick={() => setConfirmNote(null)}
@@ -895,7 +895,7 @@ export const EventDetail: React.FC = () => {
             >
               <h3 className="text-sm font-medium text-tea-text mb-1">Close RSVPs?</h3>
               <p className="text-xs text-tea-text-sec mb-5">Guests will no longer be able to register. Existing requests are unaffected.</p>
-              <div className="flex gap-2 justify-end">
+              <div className="flex gap-2 justify-between">
                 <button
                   type="button"
                   onClick={() => setConfirmClose(false)}

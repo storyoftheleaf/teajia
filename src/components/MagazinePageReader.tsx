@@ -1214,7 +1214,7 @@ function SharePanel({ page, story, onClose, isSaved, onToggleSave }: {
           width: '100%', maxWidth: 520, maxHeight: '92vh',
           background: T.bg, borderTop: `1px solid ${T.border}`,
           display: 'flex', flexDirection: 'column',
-          boxShadow: '0 -20px 60px rgba(0,0,0,0.6)',
+          boxShadow: '0 -20px 60px rgba(24,19,14,0.6)',
         }}
       >
         {/* Header */}
@@ -1235,7 +1235,7 @@ function SharePanel({ page, story, onClose, isSaved, onToggleSave }: {
             aspectRatio: '4/5', maxHeight: '46vh', width: 'auto', maxWidth: '100%',
             background: T.bg, border: `1px solid ${posterReady ? T.border : 'rgba(184,146,78,0.2)'}`,
             position: 'relative', overflow: 'hidden',
-            boxShadow: '0 10px 30px rgba(0,0,0,0.4)',
+            boxShadow: '0 10px 30px rgba(24,19,14,0.4)',
             transition: 'border-color 0.4s',
           }}>
             <div style={{ opacity: posterReady ? 1 : 0.55, transition: 'opacity 0.4s' }}>

@@ -214,20 +214,20 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
           {isAdminRoute ? (
             adminLeftTabs.map((tab, index) => (
               <React.Fragment key={tab.id}>
-                <div className="w-px h-4 bg-tea-gold/20 self-center flex-shrink-0" />
+                <div className="w-px h-4 bg-tea-border self-center flex-shrink-0" />
                 {renderAdminTabButton(tab, index)}
               </React.Fragment>
             ))
           ) : (
             leftSections.map((section, index) => (
               <React.Fragment key={section.id}>
-                <div className="w-px h-4 bg-tea-gold/20 self-center flex-shrink-0" />
+                <div className="w-px h-4 bg-tea-border self-center flex-shrink-0" />
                 {renderTabButton(section, index)}
               </React.Fragment>
             ))
           )}
 
-          <div className="w-px h-4 bg-tea-gold/20 self-center flex-shrink-0" />
+          <div className="w-px h-4 bg-tea-border self-center flex-shrink-0" />
 
           {/* Center - HOME / ADMIN HOME */}
           <button
@@ -253,21 +253,21 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
             </span>
           </button>
 
-          <div className="w-px h-4 bg-tea-gold/20 self-center flex-shrink-0" />
+          <div className="w-px h-4 bg-tea-border self-center flex-shrink-0" />
 
           {/* Right sections */}
           {isAdminRoute ? (
             adminRightTabs.map((tab, index) => (
               <React.Fragment key={tab.id}>
                 {renderAdminTabButton(tab, index + adminLeftTabs.length + 1)}
-                <div className="w-px h-4 bg-tea-gold/20 self-center flex-shrink-0" />
+                <div className="w-px h-4 bg-tea-border self-center flex-shrink-0" />
               </React.Fragment>
             ))
           ) : (
             rightSections.map((section, index) => (
               <React.Fragment key={section.id}>
                 {renderTabButton(section, index + leftSections.length + 1)}
-                <div className="w-px h-4 bg-tea-gold/20 self-center flex-shrink-0" />
+                <div className="w-px h-4 bg-tea-border self-center flex-shrink-0" />
               </React.Fragment>
             ))
           )}

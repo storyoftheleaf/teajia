@@ -28,7 +28,7 @@ export const CardThumbnail: React.FC<CardThumbnailProps> = ({
   return (
     <div
       className={`${THUMBNAIL_SIZE_CLASS} relative shrink-0 rounded-[1px] overflow-hidden bg-tea-elevated cursor-pointer group/thumb transition-all ${className}`}
-      style={{ boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.25), inset 0 1px 0 var(--tea-accent-sub)' }}
+      style={{ boxShadow: 'inset 0 1px 3px rgba(24,19,14,0.25), inset 0 1px 0 var(--tea-accent-sub)' }}
       onClick={onClick}
     >
       {src && !hasError ? (

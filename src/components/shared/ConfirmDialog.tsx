@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Icons } from '../Icons';
 import { ADMIN_Z_INDEX } from '../../constants/admin';
+import { useFocusTrap } from '../../hooks/useFocusTrap';
 
 interface ConfirmDialogProps {
   isOpen: boolean;
@@ -31,6 +32,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   preview,
 }) => {
   const [typedText, setTypedText] = useState('');
+  const trapRef = useFocusTrap<HTMLDivElement>(isOpen);
 
   if (!isOpen) return null;
 
@@ -59,6 +61,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
       onClick={handleCancel}
     >
       <div
+        ref={trapRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="confirm-dialog-title"

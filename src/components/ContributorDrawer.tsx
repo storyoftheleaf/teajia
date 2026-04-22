@@ -82,7 +82,7 @@ export const ContributorDrawer: React.FC<ContributorDrawerProps> = ({
 
         {/* Articles by author */}
         {authorStories.length > 0 && (
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto overscroll-contain">
             <p className="text-[9px] uppercase tracking-[0.25em] text-tea-text-dim px-6 pt-5 pb-3">
               Articles by {person.name}
             </p>

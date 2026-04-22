@@ -408,7 +408,7 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({ open, onClose }) => 
           </div>
 
           {/* ── Line items ── */}
-          <div className="flex-1 overflow-y-auto px-6">
+          <div className="flex-1 overflow-y-auto overscroll-contain px-6">
             {buyingEntries.length === 0 ? (
               <p className="text-tea-text-dim text-center py-12">No items to buy</p>
             ) : (

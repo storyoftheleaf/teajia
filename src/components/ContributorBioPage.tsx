@@ -17,7 +17,7 @@ export const ContributorBioPage: React.FC<ContributorBioPageProps> = ({
 }) => {
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-[fadeIn_0.3s_ease-out] overflow-y-auto">
-      <div className="bg-tea-surface  rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto my-8 animate-[slideUp_0.4s_ease-out]">
+      <div className="bg-tea-surface  rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto overscroll-contain my-8 animate-[slideUp_0.4s_ease-out]">
         {/* Header with Close Button */}
         <div className="sticky top-0 bg-tea-surface  border-b border-tea-border p-6 flex items-start justify-between">
           <h2 className="text-2xl font-serif text-tea-text pr-4">{contributor.name}</h2>

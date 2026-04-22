@@ -324,9 +324,9 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
     return (
       <div className="flex min-h-[100dvh] bg-tea-bg text-tea-text items-center justify-center p-6">
         <div className="bg-tea-surface border border-tea-border p-8 rounded-lg max-w-md w-full shadow-2xl text-center relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-tea-accent to-tea-accent/50"></div>
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-tea-accent to-tea-gold/50"></div>
             <div className="mb-6 flex justify-center">
-              <div className="p-4 bg-tea-accent/10 rounded-full border border-tea-accent-sub">
+              <div className="p-4 bg-tea-gold/10 rounded-full border border-tea-accent-sub">
                 <AlertTriangle className="text-tea-accent" size={32} />
               </div>
             </div>
@@ -339,7 +339,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
                 <p>2. Find <span className="text-tea-accent">VITE_API_URL</span></p>
                 <p>3. Set it to your Worker API URL</p>
             </div>
-            <button onClick={() => window.location.reload()} className="bg-tea-accent text-tea-bg px-6 py-3 rounded-xl text-sm font-medium hover:bg-tea-accent/90 transition-colors w-full">
+            <button onClick={() => window.location.reload()} className="bg-tea-accent text-tea-bg px-6 py-3 rounded-xl text-sm font-medium hover:bg-tea-gold/90 transition-colors w-full">
                 I've Updated It, Reload App
             </button>
         </div>
@@ -390,7 +390,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
   };
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 h-full bg-tea-bg text-tea-text font-sans selection:bg-tea-accent/30">
+    <div className="flex flex-col flex-1 min-h-0 h-full bg-tea-bg text-tea-text font-sans selection:bg-tea-gold/30">
       <PullToRefreshIndicator pullDistance={pullDistance} isRefreshing={isRefreshing} progress={progress} />
 
       <main className="flex-1 relative flex flex-col min-w-0 overflow-hidden">
@@ -454,7 +454,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
                          }}
                          className="w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-tea-bg/60 transition-colors"
                        >
-                         <MapPin size={12} className="text-tea-gold flex-shrink-0" />
+                         <MapPin size={12} className="text-tea-text-sec flex-shrink-0" />
                          <span className="text-xs text-tea-text font-serif truncate">{v.name}</span>
                          <span className="text-[10px] text-tea-text-dim ml-auto flex-shrink-0">{v.count} tea{v.count !== 1 ? 's' : ''}</span>
                        </button>

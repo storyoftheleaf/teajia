@@ -86,7 +86,7 @@ export const StoryModal: React.FC<StoryModalProps> = ({ story, onClose, onRead }
         </div>
 
         {/* Right Side: Info (Or Bottom on Mobile) */}
-        <div className="w-full md:w-1/2 p-8 md:p-12 flex flex-col bg-tea-bg relative overflow-y-auto">
+        <div className="w-full md:w-1/2 p-8 md:p-12 flex flex-col bg-tea-bg relative overflow-y-auto overscroll-contain">
           
           {/* Header */}
           <div className="mb-8">

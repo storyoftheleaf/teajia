@@ -51,7 +51,7 @@ export default function SignInPage() {
             autoComplete="username"
             className={inputClass}
             style={inputStyle}
-            placeholder="you@example.com or username"
+            placeholder="email or username"
             required
             autoFocus
           />

@@ -206,7 +206,7 @@ export const SampleOrderModal: React.FC<SampleOrderModalProps> = ({
                       type="text"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      placeholder="Your name"
+                      placeholder="your name"
                       className="w-full px-3 py-2 min-h-[44px] bg-tea-surface border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-dim/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus:border-tea-gold/50 transition-colors"
                       style={{ fontFamily: 'var(--font-body)' }}
                     />

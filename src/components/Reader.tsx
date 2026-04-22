@@ -142,7 +142,7 @@ const ScaledPage: React.FC<{ children: React.ReactNode; isActive?: boolean; page
           transform: `scale(${scale})`,
           transformOrigin: 'center center',
           opacity: scale === 0 ? 0 : 1,
-          boxShadow: '0 1px 3px rgba(0,0,0,0.3), 0 15px 40px rgba(0,0,0,0.15), 0 50px 100px rgba(0,0,0,0.1)',
+          boxShadow: '0 1px 3px rgba(24,19,14,0.3), 0 15px 40px rgba(24,19,14,0.15), 0 50px 100px rgba(24,19,14,0.1)',
           contain: 'layout style paint',
           willChange: 'transform',
           backfaceVisibility: 'hidden',
@@ -699,7 +699,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, isSav
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: '100%', opacity: 0 }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 z-priority bg-tea-elevated border-t border-tea-border rounded-t-2xl p-6 pb-[calc(2.5rem+env(safe-area-inset-bottom,0px))] max-h-[60vh] overflow-y-auto"
+            className="fixed bottom-0 left-0 right-0 z-priority bg-tea-elevated border-t border-tea-border rounded-t-2xl p-6 pb-[calc(2.5rem+env(safe-area-inset-bottom,0px))] max-h-[60vh] overflow-y-auto overscroll-contain"
             onClick={e => e.stopPropagation()}
           >
             <div className="w-10 h-1 bg-tea-border rounded-full mx-auto mb-6" />

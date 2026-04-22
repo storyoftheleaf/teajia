@@ -163,7 +163,7 @@ export const EventsManager: React.FC = () => {
         </div>
       ) : filteredEvents.length === 0 ? (
         <div className="py-12 text-center">
-          <p className="text-sm text-tea-text-sec">No events match &ldquo;{searchQuery}&rdquo;</p>
+          <p className="text-sm text-tea-text-sec">Nothing matched — try different words.</p>
           <button onClick={() => setSearchRaw('')} className="mt-2 text-xs text-tea-gold hover:text-tea-gold-lt transition-colors">Clear search</button>
         </div>
       ) : (
@@ -271,7 +271,7 @@ export const EventsManager: React.FC = () => {
               autoFocus
               onKeyDown={e => { if (e.key === 'Enter') handleConfirmDuplicate(); if (e.key === 'Escape') setDuplicateDialog(null); }}
             />
-            <div className="flex gap-2 justify-end">
+            <div className="flex gap-2 justify-between">
               <button onClick={() => setDuplicateDialog(null)} className="px-3 py-1.5 text-xs text-tea-text-sec hover:text-tea-text transition-colors">Cancel</button>
               <button onClick={handleConfirmDuplicate} disabled={!duplicateDialog.slug.trim()} className="px-4 py-1.5 text-xs bg-tea-gold text-tea-bg rounded hover:bg-tea-gold-lt transition-colors disabled:opacity-40">Duplicate</button>
             </div>

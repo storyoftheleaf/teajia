@@ -96,7 +96,7 @@ export const CartPanel: React.FC<CartPanelProps> = (props) => {
         onClick={onClose}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
+        exit={{ opacity: 0, transition: { duration: 0.15, ease: 'easeOut' } }}
         transition={{ duration: 0.3 }}
       />
 
@@ -110,8 +110,8 @@ export const CartPanel: React.FC<CartPanelProps> = (props) => {
         }`}
         initial={{ opacity: 0 }}
         animate={isDragging ? { x: touchOffset, opacity: swipeOpacity } : { opacity: 1, x: 0 }}
-        exit={{ opacity: 0 }}
-        transition={isDragging ? { duration: 0 } : { duration: 0.12, ease: 'easeOut' }}
+        exit={{ opacity: 0, transition: { duration: 0.15, ease: 'easeOut' } }}
+        transition={isDragging ? { duration: 0 } : { duration: 0.3, ease: 'easeOut' }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}

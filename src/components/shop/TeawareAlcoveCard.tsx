@@ -436,7 +436,7 @@ export const TeawareAlcoveCard: React.FC<TeawareAlcoveCardProps> = ({ item, onAd
                 opacity: quantity <= 1 ? 0.3 : 0.7,
                 fontFamily: "var(--font-mono)",
                 fontSize: "14px",
-                transition: "opacity 0.15s ease",
+                transition: "opacity 0.2s ease-out",
               }}
             >-</button>
             <span style={{
@@ -460,7 +460,7 @@ export const TeawareAlcoveCard: React.FC<TeawareAlcoveCardProps> = ({ item, onAd
                 opacity: quantity >= maxStock ? 0.3 : 0.7,
                 fontFamily: "var(--font-mono)",
                 fontSize: "14px",
-                transition: "opacity 0.15s ease",
+                transition: "opacity 0.2s ease-out",
               }}
             >+</button>
           </div>

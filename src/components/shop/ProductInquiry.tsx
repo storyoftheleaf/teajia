@@ -142,7 +142,7 @@ export const ProductInquiry: React.FC<ProductInquiryProps> = ({ isOpen, onClose,
                 <input
                   type="text"
                   className={INPUT_CLASS}
-                  placeholder="Your name"
+                  placeholder="your name"
                   value={form.name}
                   onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                 />

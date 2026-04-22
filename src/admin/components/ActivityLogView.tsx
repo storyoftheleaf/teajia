@@ -58,7 +58,7 @@ export const ActivityLogView = () => {
                       <td className="py-3 px-4 text-tea-accent">{log.action}</td>
                       <td className="py-3 px-4 text-tea-text-sec">
                         {log.details}
-                        {route && <span className="ml-2 text-tea-accent/40 text-[10px]">→</span>}
+                        {route && <span className="ml-2 text-tea-gold/40 text-[10px]">→</span>}
                       </td>
                     </tr>
                   );

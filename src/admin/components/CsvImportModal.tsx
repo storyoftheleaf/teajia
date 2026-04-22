@@ -405,7 +405,7 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
             <div className="h-full flex flex-col items-center justify-center gap-6">
               <div className="w-full max-w-md border-2 border-dashed border-tea-border rounded-xl hover:border-tea-text-sec transition-colors p-10 flex flex-col items-center bg-tea-surface/50">
                 <Upload size={48} className="text-tea-text-sec mb-4" />
-                <label className="cursor-pointer bg-tea-accent text-tea-bg px-6 py-3 rounded-lg font-bold uppercase tracking-[0.2em] text-xs hover:bg-tea-accent/90 transition-colors">
+                <label className="cursor-pointer bg-tea-accent text-tea-bg px-6 py-3 rounded-lg font-bold uppercase tracking-[0.2em] text-xs hover:bg-tea-gold/90 transition-colors">
                   Select CSV File
                   <input type="file" accept=".csv" className="hidden" onChange={handleFileUpload} />
                 </label>
@@ -441,7 +441,7 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
                   const isExpanded = expandedRowId === row.id;
                   const hasErrors = row.errors.length > 0;
                   return (
-                    <div key={row.id} className={`border border-tea-border rounded-xl mb-2 overflow-hidden ${hasErrors ? 'border-tea-accent/40' : ''}`}>
+                    <div key={row.id} className={`border border-tea-border rounded-xl mb-2 overflow-hidden ${hasErrors ? 'border-tea-gold/40' : ''}`}>
                       {/* Collapsed header — tap to expand */}
                       <button
                         className={`w-full text-left px-4 py-2.5 flex items-center gap-3 transition-colors ${isExpanded ? 'bg-tea-surface/60' : idx % 2 === 0 ? 'bg-transparent' : 'bg-tea-surface/20'} active:bg-tea-surface/80`}
@@ -464,7 +464,7 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
                             {row.givenName || row.productName || <span className="text-tea-text-sec/50 italic">Unnamed</span>}
                           </div>
                           <div className="flex items-center gap-1.5 text-[10px] text-tea-text-sec/70 mt-0.5">
-                            <span className={isMissingOrUnknown(row.type) ? 'text-tea-accent/80 italic' : ''}>{row.type || 'No type'}</span>
+                            <span className={isMissingOrUnknown(row.type) ? 'text-tea-gold/80 italic' : ''}>{row.type || 'No type'}</span>
                             {row.costAmount && !isMissingOrUnknown(row.costAmount) && (
                               <>
                                 <span className="opacity-40">·</span>
@@ -487,7 +487,7 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
                       {isExpanded && (
                         <div className="bg-tea-surface/40 border-t border-tea-border px-4 py-3">
                           {hasErrors && (
-                            <div className="mb-3 px-3 py-2 bg-tea-accent/10 rounded-lg text-xs text-tea-accent">
+                            <div className="mb-3 px-3 py-2 bg-tea-gold/10 rounded-lg text-xs text-tea-accent">
                               {row.errors.join(' · ')}
                             </div>
                           )}
@@ -498,7 +498,7 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
                             </div>
                             <div>
                               <dt className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">Type</dt>
-                              <dd className={`mt-0.5 ${isMissingOrUnknown(row.type) ? 'text-tea-accent/80 italic' : 'text-tea-text'}`}>{row.type || '—'}</dd>
+                              <dd className={`mt-0.5 ${isMissingOrUnknown(row.type) ? 'text-tea-gold/80 italic' : 'text-tea-text'}`}>{row.type || '—'}</dd>
                             </div>
                             {row.year && (
                               <div>
@@ -586,7 +586,7 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
                                 <span className="px-1.5 py-0.5 rounded-sm bg-tea-text/10 text-tea-text border border-tea-text/20 text-[10px] font-mono">ACTIVE</span>
                             )}
                         </td>
-                        <td className={`p-2 text-tea-text-sec ${isMissingOrUnknown(row.type) ? 'bg-tea-accent/10' : ''}`}>{row.type}</td>
+                        <td className={`p-2 text-tea-text-sec ${isMissingOrUnknown(row.type) ? 'bg-tea-gold/10' : ''}`}>{row.type}</td>
                         <td className="p-2 text-tea-text">{row.givenName}</td>
                         <td className="p-2 text-tea-text font-serif">{row.productName}</td>
                         <td className="p-2 text-tea-text-sec font-serif italic">{row.year}</td>
@@ -635,7 +635,7 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
               <button onClick={() => setStage('upload')} className="text-tea-text-sec hover:text-tea-text transition-colors text-xs uppercase tracking-[0.2em]">Back</button>
               <button onClick={onClose} className="text-tea-text-sec hover:text-tea-text transition-colors text-xs uppercase tracking-[0.2em]">Cancel</button>
             </div>
-            <button onClick={handleCommit} disabled={stagingData.length === 0} className="px-6 py-3 bg-tea-accent text-tea-bg rounded-lg font-bold text-xs uppercase tracking-[0.2em] hover:bg-tea-accent/90 disabled:opacity-50 transition-colors">
+            <button onClick={handleCommit} disabled={stagingData.length === 0} className="px-6 py-3 bg-tea-accent text-tea-bg rounded-lg font-bold text-xs uppercase tracking-[0.2em] hover:bg-tea-gold/90 disabled:opacity-50 transition-colors">
                 Import All ({stagingData.length})
             </button>
           </div>

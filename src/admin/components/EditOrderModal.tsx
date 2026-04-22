@@ -173,7 +173,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
                 onChange={(e) => setNotes(e.target.value)}
                 rows={2}
                 className="w-full bg-tea-surface border border-tea-border rounded-lg px-3 py-2 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold/50 transition-colors resize-none"
-                placeholder="Optional notes..."
+                placeholder="notes"
               />
             </div>
 
@@ -271,7 +271,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
           </>
         )}
 
-        <div className="flex justify-end gap-3">
+        <div className="flex justify-between gap-3">
           <button onClick={onClose} className="px-4 py-2 text-sm text-tea-text-sec hover:text-tea-text transition-colors">Cancel</button>
           <button
             onClick={handleSave}

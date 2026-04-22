@@ -339,7 +339,7 @@ export const TeawareCatalog = ({ products, currency, rates, onAdd, loading, isAd
 
               {sorted.length === 0 && (
                 <div className="text-center py-16 text-tea-text-sec font-serif italic">
-                  No items found.
+                  Nothing here yet.
                 </div>
               )}
             </div>

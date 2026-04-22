@@ -602,7 +602,7 @@ function CompassImportModal({ setId, onClose, defaultVendorId, defaultVendorName
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search..."
+          placeholder="search"
           className="w-full bg-tea-bg text-tea-text rounded px-3 py-1.5 text-sm mb-3
                      placeholder:text-tea-text-dim focus:outline-none focus:ring-1 focus:ring-tea-gold/30"
         />
@@ -1136,7 +1136,7 @@ export default function SampleSetCreator() {
                   <textarea
                     value={activeSet.notes || ''}
                     onChange={(e) => updateSampleSet(activeSet.id, { notes: e.target.value })}
-                    placeholder="Notes..."
+                    placeholder="notes"
                     rows={2}
                     className="w-full bg-tea-surface text-tea-text rounded px-2 py-1.5 text-sm
                                placeholder:text-tea-text-dim focus:outline-none focus:ring-1 focus:ring-tea-gold/30 resize-none"
@@ -1182,7 +1182,7 @@ export default function SampleSetCreator() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search samples..."
+              placeholder="search samples"
               className="w-full bg-tea-surface text-tea-text rounded px-3 py-1.5 text-sm
                          placeholder:text-tea-text-dim focus:outline-none focus:ring-1 focus:ring-tea-gold/30"
             />
@@ -1206,7 +1206,7 @@ export default function SampleSetCreator() {
             {filteredSamples.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8 text-tea-text-dim">
                 <Leaf size={24} className="mb-2 opacity-40" />
-                <p className="text-sm">{activeSamples.length === 0 ? 'No samples yet' : 'No samples match'}</p>
+                <p className="text-sm">{activeSamples.length === 0 ? 'No samples on record.' : 'Nothing matched — try different words.'}</p>
                 {activeSamples.length === 0 && <p className="text-xs mt-1">Tap + to add your first sample</p>}
               </div>
             ) : (
@@ -1273,7 +1273,7 @@ export default function SampleSetCreator() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search samples..."
+            placeholder="search samples"
             className="w-full bg-tea-surface text-tea-text rounded px-3 py-1.5 text-sm
                        placeholder:text-tea-text-dim focus:outline-none focus:ring-1 focus:ring-tea-gold/30"
           />
@@ -1296,7 +1296,7 @@ export default function SampleSetCreator() {
           {allFilteredSamples.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 text-tea-text-dim">
               <Leaf size={24} className="mb-2 opacity-40" />
-              <p className="text-sm">No samples match</p>
+              <p className="text-sm">Nothing matched — try different words.</p>
             </div>
           ) : (
             <AnimatePresence mode="popLayout">

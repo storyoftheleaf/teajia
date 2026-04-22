@@ -475,7 +475,7 @@ export const TeamView: React.FC = () => {
                   required
                   value={inviteEmail}
                   onChange={(e) => setInviteEmail(e.target.value)}
-                  placeholder="name@example.com"
+                  placeholder="email"
                   className="w-full bg-tea-bg text-tea-text text-sm px-3 py-2 rounded-md outline-none focus:ring-2 focus:ring-tea-gold/40"
                 />
               </div>

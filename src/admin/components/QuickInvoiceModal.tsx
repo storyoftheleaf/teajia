@@ -300,7 +300,7 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
         </div>
 
         {/* Body */}
-        <div className="overflow-y-auto custom-scrollbar flex-1">
+        <div className="overflow-y-auto overscroll-contain custom-scrollbar flex-1">
           <div className="px-6 py-5 space-y-7">
 
             {/* Customer — labeled "For" */}

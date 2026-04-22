@@ -576,7 +576,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
       {/* Search empty state */}
       {searchQuery && filteredForView.length === 0 && (
         <div className="py-10 text-center">
-          <p className="text-[13px] text-tea-text-dim">No teas matching "{searchQuery}"</p>
+          <p className="text-[13px] text-tea-text-dim">Nothing matched — try different words.</p>
         </div>
       )}
 

@@ -75,7 +75,9 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setTimeout(() => setRevealClip(null), 500);
       });
     } else {
+      document.documentElement.classList.add('theme-transitioning');
       setTheme(nextTheme);
+      setTimeout(() => document.documentElement.classList.remove('theme-transitioning'), 500);
     }
   }, [theme]);
 

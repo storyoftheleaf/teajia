@@ -52,7 +52,7 @@ export default function SignUpPage() {
             onChange={e => setName(e.target.value)}
             className={inputClass}
             style={inputStyle}
-            placeholder="Your name"
+            placeholder="your name"
             required
             autoFocus
           />
@@ -81,7 +81,7 @@ export default function SignUpPage() {
             onChange={e => setEmail(e.target.value)}
             className={inputClass}
             style={inputStyle}
-            placeholder="you@example.com"
+            placeholder="your email"
             required
           />
         </div>

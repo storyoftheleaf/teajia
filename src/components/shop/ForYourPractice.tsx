@@ -154,7 +154,7 @@ export const ForYourPractice: React.FC<ForYourPracticeProps> = ({
           <div className="w-16 h-16 border border-tea-text/20  rounded-full flex items-center justify-center mb-4">
             <Icons.Coffee className="w-6 h-6 text-tea-text/50" />
           </div>
-          <p className="font-serif italic text-base text-tea-text/60">No items available.</p>
+          <p className="font-serif italic text-base text-tea-text/60">Nothing here yet.</p>
         </div>
       ) : (
         <>

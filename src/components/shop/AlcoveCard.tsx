@@ -469,6 +469,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                 width: "100%", height: "180px",
                 borderRadius: "4px", overflow: "hidden",
                 cursor: "pointer",
+                willChange: 'transform',
               }}
             >
               <img src={allImages[0]} alt="" style={{
@@ -625,7 +626,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                       color: "var(--tea-text-sec)",
                       cursor: onTermClick ? "pointer" : "default",
                       padding: "5px 4px",
-                      transition: "color 0.15s",
+                      transition: "color 0.2s ease-out",
                       textAlign: "center",
                     }}
                     onMouseEnter={onTermClick ? (e) => { e.currentTarget.style.color = "var(--tea-gold)"; } : undefined}
@@ -666,7 +667,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                       color: "var(--tea-text-sec)",
                       cursor: onTermClick ? "pointer" : "default",
                       padding: "9px 4px",
-                      transition: "color 0.15s",
+                      transition: "color 0.2s ease-out",
                       ...(isOddLast ? { gridColumn: "1 / -1" } : {}),
                       borderRight: (isLeftCol && !isOddLast) ? "1px solid var(--tea-border)" : "none",
                       borderBottom: isLastRow ? "none" : "1px solid var(--tea-border)",
@@ -1208,7 +1209,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                       border: grams === p ? '1px solid var(--tea-gold)' : '1px solid var(--tea-border)',
                       borderRadius: "3px",
                       cursor: "pointer",
-                      transition: "all 0.15s ease",
+                      transition: "all 0.2s ease-out",
                     }}
                   >
                     {p}g

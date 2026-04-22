@@ -132,7 +132,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
                     <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-tea-text-sec" />
                     <input
                       type="text"
-                      placeholder="Search..."
+                      placeholder="search"
                       value={logSearchInput}
                       onChange={(e) => setLogSearchInput(e.target.value)}
                       className="w-full bg-transparent border-b border-tea-border rounded-none pl-8 pr-3 py-1.5 text-xs text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-text-sec font-serif placeholder-tea-text-sec/50 transition-colors"
@@ -208,7 +208,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
                 <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-tea-text-sec" />
                 <input
                   type="text"
-                  placeholder="Search..."
+                  placeholder="search"
                   value={logSearchInput}
                   onChange={(e) => setLogSearchInput(e.target.value)}
                   className="w-full bg-transparent border-b border-tea-border rounded-none pl-8 pr-3 py-1.5 text-xs text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-text-sec font-serif placeholder-tea-text-sec/50 transition-colors"
@@ -517,7 +517,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
                               </button>
                             </td>
                             <td className="px-4 align-middle text-right">
-                              <span className={`text-xs num font-medium flex items-center justify-end gap-0.5 ${isPositive ? 'text-green-500' : 'text-red-400'}`}>
+                              <span className="text-xs num font-medium flex items-center justify-end gap-0.5 text-tea-text-sec">
                                 {isPositive ? <ArrowUpRight size={10} /> : <ArrowDownRight size={10} />}
                                 {isPositive ? '+' : ''}{entry.delta}g
                               </span>

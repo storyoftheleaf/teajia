@@ -559,7 +559,7 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
       </div>
 
       {/* Sticky footer */}
-      <div className="flex-shrink-0 flex justify-end gap-3 px-6 py-4 border-t border-tea-border lg:pb-4 pb-[calc(1rem+44px+env(safe-area-inset-bottom,0px))]">
+      <div className="flex-shrink-0 flex justify-between gap-3 px-6 py-4 border-t border-tea-border lg:pb-4 pb-[calc(1rem+44px+env(safe-area-inset-bottom,0px))]">
         <button
           type="button"
           onClick={onClose}
@@ -1396,7 +1396,7 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
       </div>
 
       {/* Actions */}
-      <div className="flex-shrink-0 flex justify-end gap-3 px-6 py-4 border-t border-tea-border lg:pb-4 pb-[calc(1rem+44px+env(safe-area-inset-bottom,0px))]">
+      <div className="flex-shrink-0 flex justify-between gap-3 px-6 py-4 border-t border-tea-border lg:pb-4 pb-[calc(1rem+44px+env(safe-area-inset-bottom,0px))]">
         <button
           type="button"
           onClick={onClose}

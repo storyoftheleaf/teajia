@@ -515,7 +515,7 @@ const TransactionCard: React.FC<{
             <div className="px-3 pb-3 border-t border-tea-border">
               {/* Line items */}
               {tx.items.length === 0 ? (
-                <p className="text-tea-text-sec text-sm font-serif italic py-6 text-center">No items yet</p>
+                <p className="text-tea-text-sec text-sm font-serif italic py-6 text-center">Nothing here yet.</p>
               ) : (
                 tx.items.map((item) => (
                   <LineItemRow

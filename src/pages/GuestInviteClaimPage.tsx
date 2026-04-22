@@ -179,7 +179,7 @@ const GuestInviteClaimPage: React.FC = () => {
               type="text"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              placeholder="Your full name"
+              placeholder="your full name"
               autoComplete="name"
               className="w-full px-4 py-3 bg-tea-surface border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-sec/50 focus:outline-none focus:border-tea-gold/50 transition-colors"
             />

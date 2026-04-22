@@ -139,7 +139,7 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({
                 </p>
                 {searchResults.length === 0 ? (
                   <p className="text-sm text-tea-text/50 text-center py-8">
-                    No results found. Try a different search term.
+                    Nothing matched — try different words.
                   </p>
                 ) : (
                   <div className="flex flex-col divide-y divide-tea-gold/[0.06]">
