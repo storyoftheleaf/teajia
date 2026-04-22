@@ -77,6 +77,9 @@ const GuestInviteClaimPage: React.FC = () => {
     );
   }
 
+  // Shared context used across multiple status screens
+  const inviterName = (invite as any).parentAttendeeName as string | undefined;
+
   // Already claimed
   if (invite.status === 'claimed') {
     return (
@@ -94,12 +97,37 @@ const GuestInviteClaimPage: React.FC = () => {
 
   // Expired
   if (invite.status === 'expired') {
+    const expiredEvent = (invite as any).event;
     return (
-      <div className="min-h-screen bg-tea-bg flex items-center justify-center px-6">
-        <div className="text-center max-w-sm">
-          <h1 className="font-serif text-2xl text-tea-text mb-3">Invite expired</h1>
-          <p className="text-sm text-tea-text-sec">
-            This invite has expired. Contact the person who invited you.
+      <div className="min-h-screen bg-tea-bg flex flex-col items-center justify-center px-6 py-16 animate-[fadeIn_0.4s_ease-out]">
+        <div className="max-w-sm w-full text-center">
+          <div className="w-12 h-12 rounded-full bg-tea-border/40 flex items-center justify-center mx-auto mb-6">
+            <span className="text-xl font-serif text-tea-text-sec">茶</span>
+          </div>
+          <h1 className="font-serif text-2xl text-tea-text mb-4">
+            This seat has passed.
+          </h1>
+          <p className="text-sm text-tea-text-sec leading-relaxed mb-6">
+            {inviterName ? (
+              <><span className="text-tea-text font-medium">{inviterName}</span> saved a place for you, but the claim window has closed.</>
+            ) : (
+              'A place was saved for you, but the claim window has closed.'
+            )}
+          </p>
+          {expiredEvent?.slug && (
+            <p className="text-sm text-tea-text-sec leading-relaxed mb-8">
+              You can still request a spot directly —{' '}
+              <a
+                href={`/events/${expiredEvent.slug}`}
+                className="text-tea-gold hover:text-tea-gold/80 transition-colors underline underline-offset-2"
+              >
+                check if seats are available
+              </a>
+              .
+            </p>
+          )}
+          <p className="text-xs text-tea-text-dim">
+            If you have questions, reach out to {inviterName || 'the person who invited you'}.
           </p>
         </div>
       </div>
@@ -123,7 +151,6 @@ const GuestInviteClaimPage: React.FC = () => {
 
   // The invite's parent event info is on invite.event (injected by API)
   const event = (invite as any).event;
-  const inviterName = (invite as any).parentAttendeeName;
 
   return (
     <div className="min-h-screen bg-tea-bg animate-[fadeIn_0.4s_ease-out]">

@@ -1,4 +1,4 @@
-import React, { useState, lazy, Suspense } from 'react';
+import React, { useState, useRef, useEffect, lazy, Suspense } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronDown, Clock, AlertCircle, Copy, Check, Bookmark, Save } from 'lucide-react';
@@ -178,6 +178,20 @@ const GuestManagement: React.FC = () => {
   const [notesValue, setNotesValue] = useState<string | null>(null);
   const [notesSaved, setNotesSaved] = useState(false);
   const [plusOneValue, setPlusOneValue] = useState<boolean | null>(null);
+  const [transitionBanner, setTransitionBanner] = useState<string | null>(null);
+  const prevStatusRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!data) return;
+    const prev = prevStatusRef.current;
+    const next = data.attendee.status;
+    if (prev === 'requested' && next === 'confirmed') {
+      setTransitionBanner('confirmed');
+    } else if (prev === 'requested' && next === 'denied') {
+      setTransitionBanner('denied');
+    }
+    prevStatusRef.current = next;
+  }, [data?.attendee.status]);
 
   // ---- Loading ----
   if (isLoading) {
@@ -410,6 +424,19 @@ const GuestManagement: React.FC = () => {
     );
   }
 
+  // ---- STATUS-TRANSITION BANNER (injected at top of any status screen) ----
+  const StatusBanner = transitionBanner ? (
+    <div className={`sticky top-0 z-10 px-4 py-3 text-center text-xs font-medium animate-[fadeIn_0.4s_ease-out] ${
+      transitionBanner === 'confirmed'
+        ? 'bg-tea-gold/15 text-tea-gold border-b border-tea-gold/20'
+        : 'bg-tea-elevated text-tea-text-sec border-b border-tea-border'
+    }`}>
+      {transitionBanner === 'confirmed'
+        ? "You've been approved — your seat is confirmed."
+        : "Your request wasn't approved this time."}
+    </div>
+  ) : null;
+
   // ---- REQUESTED (pending approval) ----
   if (status === 'requested') {
     return (
@@ -496,26 +523,62 @@ const GuestManagement: React.FC = () => {
   // ---- DENIED ----
   if (status === 'denied') {
     return (
-      <div className="min-h-screen bg-tea-bg flex flex-col items-center justify-center px-6 py-16 animate-[fadeIn_0.5s_ease-out]">
-        <div className="max-w-md w-full text-center">
-          <h1 className="font-serif text-2xl text-tea-text mb-4">
-            This session is at capacity.
-          </h1>
-          <p className="text-sm text-tea-text-sec leading-relaxed mb-4">
-            {attendee.denialMessage ||
-              "We weren't able to secure a seat for you this time."}
-          </p>
-          <p className="text-sm text-tea-text-sec leading-relaxed mb-8">
-            We'll reach out when the next session is announced.
-          </p>
+      <div className="min-h-screen bg-tea-bg animate-[fadeIn_0.5s_ease-out]">
+        {StatusBanner}
+        <div className="max-w-md mx-auto px-6 py-16">
+          {/* Event context */}
+          <div className="text-center mb-10">
+            <p className="text-[10px] uppercase tracking-[0.3em] text-tea-text-sec mb-3">
+              {formatEventDate(event.eventDate)}
+            </p>
+            <h1 className="font-serif text-2xl text-tea-text mb-1">{event.title}</h1>
+            {event.areaHint && (
+              <p className="text-sm text-tea-text-sec mt-1">{event.areaHint}</p>
+            )}
+          </div>
 
+          {/* Main message */}
+          <div className="p-7 bg-tea-surface border border-tea-border rounded-md text-center mb-6">
+            <div className="w-10 h-10 rounded-full bg-tea-border/40 flex items-center justify-center mx-auto mb-5">
+              <span className="text-xl font-serif text-tea-text-sec">茶</span>
+            </div>
+            <p className="font-serif text-lg text-tea-text mb-4 leading-snug">
+              We couldn't fit you in this time.
+            </p>
+            {attendee.denialMessage ? (
+              <p className="text-sm text-tea-text-sec leading-relaxed italic border-l-2 border-tea-border pl-4 text-left">
+                "{attendee.denialMessage}"
+              </p>
+            ) : (
+              <p className="text-sm text-tea-text-sec leading-relaxed max-w-xs mx-auto">
+                Our sessions are small by design — we balance first-time guests, returning
+                members, and the tea itself. Sometimes the timing simply doesn't align.
+              </p>
+            )}
+          </div>
+
+          {/* Reassurance */}
+          <div className="space-y-3 mb-10">
+            <p className="text-sm text-tea-text-sec leading-relaxed text-center">
+              This doesn't close the door. Being on the list means you'll be considered
+              first when the next session opens.
+            </p>
+          </div>
+
+          {/* Next session capture */}
           <div className="border-t border-tea-border pt-8">
-            <p className="text-xs text-tea-text-sec mb-4">
-              Want to be notified of the next one?
+            <p className="text-xs text-tea-text-sec text-center mb-5">
+              Stay on the list for the next one
             </p>
             <Suspense fallback={null}>
               <InterestCapture slug={event.slug} />
             </Suspense>
+          </div>
+
+          <div className="text-center pt-10 pb-4">
+            <p className="text-[10px] uppercase tracking-[0.3em] text-tea-text-sec/40">
+              Hosted by Teajia
+            </p>
           </div>
         </div>
       </div>
@@ -667,6 +730,7 @@ const GuestManagement: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-tea-bg animate-[fadeIn_0.5s_ease-out]">
+      {StatusBanner}
       <div className="max-w-xl mx-auto px-6 py-10">
         {/* Ticket card */}
         <div className="border-2 border-tea-border rounded-md overflow-hidden mb-8">
