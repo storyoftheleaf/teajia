@@ -116,6 +116,7 @@ export interface TeaEvent {
   confirmedCount?: number;
   waitlistCount?: number;
   requestedCount?: number;
+  interestCount?: number;
   seatsRemaining?: number;
   // Account context
   accountLocationCountry?: string;
@@ -202,6 +203,8 @@ export interface TeaMenuItem {
   productId?: string;
   customName?: string;
   customDescription?: string;
+  teaType?: string;
+  originRegion?: string;
   revealDate?: string;
   brewOrder?: number;
   // Joined from products table

@@ -172,6 +172,7 @@ export const EventsManager: React.FC = () => {
             const confirmed = (event as any).confirmedCount || 0;
             const waitlist = (event as any).waitlistCount || 0;
             const requested = (event as any).requestedCount || 0;
+            const interest = (event as any).interestCount || 0;
             const seatsRemaining = Math.max(0, event.totalCapacity - confirmed);
             const isFull = seatsRemaining <= 0;
             const isPast = new Date(event.eventDate) < new Date();
@@ -215,6 +216,15 @@ export const EventsManager: React.FC = () => {
                           >
                             <Bell size={8} className="shrink-0" />
                             {requested}
+                          </button>
+                        )}
+                        {interest > 0 && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); navigate(`/admin/events/${event.id}?tab=interest`); }}
+                            className="flex items-center gap-1 text-[9px] bg-tea-text-sec/10 text-tea-text-sec px-1.5 py-0.5 font-semibold uppercase tracking-[0.15em] hover:bg-tea-text-sec/20 transition-colors"
+                            title="Interest signups"
+                          >
+                            {interest} interested
                           </button>
                         )}
                       </div>

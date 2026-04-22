@@ -2620,7 +2620,7 @@ const handleGetCustomerJourney: Handler = async (request, env, params) => {
           COALESCE(p.type, etm.tea_type) as type,
           COALESCE(p.given_name, etm.custom_name) as given_name,
           COALESCE(p.product_name, etm.custom_name) as product_name,
-          etn.impression, e.title as event_title, e.event_date
+          etn.impression, e.title as event_title, e.slug as event_slug, e.event_date
         FROM event_tasting_notes etn
         JOIN event_attendees ea ON ea.id = etn.attendee_id
         JOIN event_tea_menu etm ON etm.id = etn.tea_menu_id
@@ -2642,7 +2642,7 @@ const handleGetCustomerJourney: Handler = async (request, env, params) => {
       if (row.type) teaTypeMap[row.type] = (teaTypeMap[row.type] || 0) + 1;
     }
     // Merge event-tasted types so portrait works for customers who've attended but never ordered
-    const impressions: Array<{ text: string; teaName: string; eventTitle: string; date: string }> = [];
+    const impressions: Array<{ text: string; teaName: string; eventTitle: string; eventSlug?: string; date: string }> = [];
     for (const row of eventNotesResult.results as any[]) {
       if (row.type) teaTypeMap[row.type] = (teaTypeMap[row.type] || 0) + 1;
       if (row.impression) {
@@ -2650,6 +2650,7 @@ const handleGetCustomerJourney: Handler = async (request, env, params) => {
           text: row.impression,
           teaName: row.given_name || row.product_name || 'Unknown tea',
           eventTitle: row.event_title,
+          eventSlug: row.event_slug || undefined,
           date: row.event_date,
         });
       }
@@ -4091,7 +4092,8 @@ const handleGetEvents: Handler = async (request, env) => {
       COALESCE(SUM(CASE WHEN ea.status = 'confirmed' THEN 1 + ea.plus_one ELSE 0 END), 0) as confirmed_count,
       COALESCE(SUM(CASE WHEN ea.status = 'waitlist' THEN 1 ELSE 0 END), 0) as waitlist_count,
       COALESCE(SUM(CASE WHEN ea.status = 'requested' THEN 1 ELSE 0 END), 0) as requested_count,
-      COUNT(ea.id) as total_attendees
+      COUNT(ea.id) as total_attendees,
+      COALESCE((SELECT COUNT(*) FROM interest_signups si WHERE si.event_id = e.id AND si.converted_at IS NULL), 0) as interest_count
     FROM events e
     LEFT JOIN event_attendees ea ON ea.event_id = e.id AND ea.status != 'cancelled'
     WHERE e.account_id = ?
@@ -4112,7 +4114,8 @@ const handleGetEvent: Handler = async (request, env, params) => {
       COALESCE(SUM(CASE WHEN ea.status = 'confirmed' THEN 1 + ea.plus_one ELSE 0 END), 0) as confirmed_count,
       COALESCE(SUM(CASE WHEN ea.status = 'waitlist' THEN 1 ELSE 0 END), 0) as waitlist_count,
       COALESCE(SUM(CASE WHEN ea.status = 'requested' THEN 1 ELSE 0 END), 0) as requested_count,
-      COUNT(ea.id) as total_attendees
+      COUNT(ea.id) as total_attendees,
+      COALESCE((SELECT COUNT(*) FROM interest_signups si WHERE si.event_id = e.id AND si.converted_at IS NULL), 0) as interest_count
     FROM events e
     LEFT JOIN event_attendees ea ON ea.event_id = e.id AND ea.status != 'cancelled'
     WHERE e.id = ? AND e.account_id = ?
@@ -5878,7 +5881,7 @@ const handleConvertInterest: Handler = async (request, env, params) => {
       env.DB.prepare(
         `INSERT INTO event_attendees
            (id, account_id, event_id, full_name, phone_number, email, status, magic_token, source)
-         VALUES (?, ?, ?, ?, ?, ?, 'registered', ?, 'interest_conversion')`
+         VALUES (?, ?, ?, ?, ?, ?, 'requested', ?, 'interest_conversion')`
       ).bind(
         attendeeId,
         accountId,
@@ -6289,6 +6292,20 @@ const handleEventInterest: Handler = async (request, env, params) => {
       `SELECT id FROM customers WHERE email = ? AND account_id = ?`
     ).bind(email, accountId).first();
     if (c) customerId = c.id as string;
+  }
+
+  // Dedup: if same phone or email already signed up for this event, just update name silently
+  if (phone || email) {
+    const existing = await env.DB.prepare(
+      `SELECT id FROM interest_signups WHERE event_id = ? AND (${phone ? 'phone = ?' : 'email = ?'})`
+    ).bind(event.id, phone || email).first();
+    if (existing) {
+      if (name) {
+        await env.DB.prepare(`UPDATE interest_signups SET name = ? WHERE id = ?`)
+          .bind(name, existing.id).run();
+      }
+      return json({ success: true }, 200);
+    }
   }
 
   await env.DB.prepare(
@@ -8616,9 +8633,10 @@ const handleGetMyJourney: Handler = async (request, env) => {
               ts.name, ts.chinese_name, ts.type, ts.origin_region, ts.id as sample_id
        FROM tea_sample_tastings tst
        JOIN tea_samples ts ON ts.id = tst.sample_id
+       JOIN tea_sample_sets tss ON tss.id = ts.sample_set_id AND tss.account_id = ?
        WHERE tst.taster_id = ? OR tst.taster_id = ?
        ORDER BY tst.created_at DESC LIMIT 30`
-    ).bind(userId, userEmail).all(),
+    ).bind(accountId, userId, userEmail).all(),
   ]);
 
   const compass = (compassResult.results as Record<string, any>[]).map(c => ({

@@ -56,6 +56,7 @@ function mapEvent(e: any): TeaEvent {
     confirmedCount: Number(e.confirmed_count) || 0,
     waitlistCount: Number(e.waitlist_count) || 0,
     requestedCount: Number(e.requested_count) || 0,
+    interestCount: Number(e.interest_count) || 0,
     seatsRemaining: e.seats_remaining != null ? Number(e.seats_remaining) : undefined,
   };
 }
@@ -208,6 +209,8 @@ export const useTeaMenu = (eventId: string) => {
         customDescription: m.custom_description || undefined,
         revealDate: m.reveal_date || undefined,
         brewOrder: m.brew_order != null ? Number(m.brew_order) : undefined,
+        teaType: m.tea_type || undefined,
+        originRegion: m.origin_region || undefined,
         productName: m.product_name || undefined,
         productType: m.product_type || undefined,
         productImageUrl: m.product_image_url || undefined,

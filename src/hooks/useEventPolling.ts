@@ -56,6 +56,7 @@ function mapEvent(e: any): TeaEvent {
     confirmedCount: e.confirmed_count != null ? Number(e.confirmed_count) : undefined,
     waitlistCount: e.waitlist_count != null ? Number(e.waitlist_count) : undefined,
     requestedCount: e.requested_count != null ? Number(e.requested_count) : undefined,
+    interestCount: e.interest_count != null ? Number(e.interest_count) : undefined,
     seatsRemaining: e.seats_remaining != null ? Number(e.seats_remaining) : undefined,
   };
 }
