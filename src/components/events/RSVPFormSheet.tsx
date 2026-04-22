@@ -1,7 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { X, Plus, Trash2, LogIn } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { useScrollLock } from '../../hooks/useScrollLock';
 import { useAuth } from '../../hooks/useAuth';
@@ -13,32 +12,16 @@ interface RSVPFormSheetProps {
   accountLocationCountry?: string;
 }
 
-const COUNTRY_CODES = [
-  { code: '+886', label: 'TW +886' },
-  { code: '+62',  label: 'ID +62' },
-  { code: '+1',   label: 'US +1' },
-  { code: '+60',  label: 'MY +60' },
-  { code: '+65',  label: 'SG +65' },
-  { code: '+852', label: 'HK +852' },
-  { code: '+44',  label: 'UK +44' },
-  { code: '+61',  label: 'AU +61' },
-  { code: '+81',  label: 'JP +81' },
-  { code: '+86',  label: 'CN +86' },
-];
-
-
 const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLocationCountry }) => {
-  const navigate = useNavigate();
   const { user, isAuthenticated, login } = useAuth();
   useScrollLock(true);
 
   // Parse saved phone into dial code + local number
   const parseSavedPhone = (phone?: string | null) => {
-    if (!phone) return { dialCode: '+1', local: '' };
-    for (const { code } of COUNTRY_CODES) {
-      if (phone.startsWith(code)) return { dialCode: code, local: phone.slice(code.length).trim() };
-    }
-    return { dialCode: '+1', local: phone };
+    if (!phone) return { dialCode: '', local: '' };
+    const match = phone.match(/^(\+\d{1,4})\s*(.*)$/);
+    if (match) return { dialCode: match[1], local: match[2] };
+    return { dialCode: '', local: phone };
   };
 
   const savedPhone = parseSavedPhone(user?.phone);
@@ -74,6 +57,9 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
       setFormData(prev => ({ ...prev, phoneNumber: localPhone ? `${countryCode}${localPhone}` : '' }));
     }
   }, [countryCode, localPhone, formData.contactMethod]);
+
+  // Whether the signed-in user wants to override their saved contact
+  const [overrideContact, setOverrideContact] = useState(false);
 
   const [submitted, setSubmitted] = useState(false);
   const [dragY, setDragY] = useState(0);
@@ -155,9 +141,9 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
     updateField('guests', guests);
   };
 
-  const updateGuest = (idx: number, nameHint: string) => {
+  const updateGuest = (idx: number, patch: Partial<{ nameHint: string; contact: string }>) => {
     const guests = (formData.guests ?? []).map((g, i) =>
-      i === idx ? { nameHint } : g
+      i === idx ? { ...g, ...patch } : g
     );
     updateField('guests', guests);
   };
@@ -186,7 +172,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
 
   return (
     <div
-      className="fixed inset-0 z-modal animate-[fadeIn_0.2s_ease-out]"
+      className="fixed inset-0 z-modal animate-[fadeIn_0.2s_ease-out] md:flex md:items-center md:justify-center"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
@@ -196,7 +182,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
 
       <div
         ref={sheetRef}
-        className="absolute bottom-0 left-0 right-0 md:bottom-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:max-w-lg bg-tea-bg border-t border-tea-border md:border rounded-t-2xl md:rounded-2xl shadow-2xl max-h-[calc(100dvh-44px-env(safe-area-inset-bottom,0px))] md:max-h-[85vh] overflow-hidden animate-[slideUp_0.3s_ease-out] flex flex-col"
+        className="absolute bottom-0 left-0 right-0 md:relative md:bottom-auto md:left-auto md:right-auto md:w-full md:max-w-lg bg-tea-bg border-t border-tea-border md:border rounded-t-2xl md:rounded-2xl shadow-2xl h-[calc(100dvh-44px-env(safe-area-inset-bottom,0px))] md:h-auto md:max-h-[85vh] overflow-hidden animate-[slideUp_0.3s_ease-out] flex flex-col"
         style={{ transform: `translateY(${dragY}px)` }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -317,111 +303,139 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                 />
               </div>
 
-              {/* Contact Method Toggle + Input */}
-              <div>
-                <label className="block text-[10px] uppercase tracking-[0.25em] text-tea-text-sec mb-2">
-                  How should we reach you?
-                </label>
-                <div className="flex gap-2 mb-3">
+              {/* Contact Method — hidden if signed-in user already has contact saved */}
+              {isAuthenticated && (user?.phone || user?.email) && !overrideContact ? (
+                <div className="flex items-center justify-between gap-2 px-3 py-2.5 bg-tea-surface border border-tea-border rounded-sm">
+                  <span className="text-xs text-tea-text-sec truncate">
+                    {user?.phone
+                      ? <>We'll reach you on <span className="text-tea-text">WhatsApp</span> at <span className="text-tea-text">{user.phone}</span></>
+                      : <>We'll reach you at <span className="text-tea-text">{user?.email}</span></>
+                    }
+                  </span>
                   <button
                     type="button"
-                    onClick={() => setContactMethod('whatsapp')}
-                    className={`flex-1 py-2.5 rounded-sm text-xs uppercase tracking-[0.15em] transition-all duration-200 ${
-                      formData.contactMethod === 'whatsapp'
-                        ? 'bg-tea-gold text-white'
-                        : 'bg-tea-surface text-tea-text-sec border border-tea-border hover:border-tea-gold/30'
-                    }`}
+                    onClick={() => setOverrideContact(true)}
+                    className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec hover:text-tea-gold transition-colors shrink-0"
                   >
-                    WhatsApp / Phone
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setContactMethod('email')}
-                    className={`flex-1 py-2.5 rounded-sm text-xs uppercase tracking-[0.15em] transition-all duration-200 ${
-                      formData.contactMethod === 'email'
-                        ? 'bg-tea-gold text-white'
-                        : 'bg-tea-surface text-tea-text-sec border border-tea-border hover:border-tea-gold/30'
-                    }`}
-                  >
-                    Email
+                    Change
                   </button>
                 </div>
-
-                {formData.contactMethod === 'whatsapp' ? (
-                  <div>
-                    <div className="flex gap-0 border border-tea-border rounded-sm overflow-hidden focus-within:border-tea-gold/50 transition-colors">
-                      <select
-                        value={countryCode}
-                        onChange={(e) => setCountryCode(e.target.value)}
-                        className="bg-tea-surface text-tea-text text-sm px-3 py-3 border-r border-tea-border focus:outline-none shrink-0"
-                        aria-label="Country code"
-                      >
-                        {COUNTRY_CODES.map(({ code, label }) => (
-                          <option key={code} value={code}>{label}</option>
-                        ))}
-                      </select>
-                      <input
-                        id="rsvp-phone"
-                        type="tel"
-                        value={localPhone}
-                        onChange={(e) => setLocalPhone(e.target.value.replace(/\D/g, ''))}
-                        placeholder="912 345 678"
-                        autoComplete="tel-national"
-                        required
-                        className="flex-1 min-w-0 px-4 py-3 bg-tea-surface text-tea-text text-sm placeholder:text-tea-text-sec/50 focus:outline-none"
-                      />
-                    </div>
+              ) : (
+                <div>
+                  <label className="block text-[10px] uppercase tracking-[0.25em] text-tea-text-sec mb-2">
+                    How should we reach you?
+                  </label>
+                  <div className="flex gap-2 mb-3">
+                    <button
+                      type="button"
+                      onClick={() => setContactMethod('whatsapp')}
+                      className={`flex-1 py-2.5 rounded-sm text-xs uppercase tracking-[0.15em] transition-all duration-200 ${
+                        formData.contactMethod === 'whatsapp'
+                          ? 'bg-tea-gold text-white'
+                          : 'bg-tea-surface text-tea-text-sec border border-tea-border hover:border-tea-gold/30'
+                      }`}
+                    >
+                      WhatsApp
+                    </button>
                     <button
                       type="button"
                       onClick={() => setContactMethod('email')}
-                      className="mt-2 text-xs text-tea-text-sec hover:text-tea-gold transition-colors"
+                      className={`flex-1 py-2.5 rounded-sm text-xs uppercase tracking-[0.15em] transition-all duration-200 ${
+                        formData.contactMethod === 'email'
+                          ? 'bg-tea-gold text-white'
+                          : 'bg-tea-surface text-tea-text-sec border border-tea-border hover:border-tea-gold/30'
+                      }`}
                     >
-                      Don't have WhatsApp? Use email instead
+                      Email
                     </button>
                   </div>
-                ) : (
-                  <input
-                    id="rsvp-email"
-                    type="email"
-                    value={formData.email ?? ''}
-                    onChange={(e) => updateField('email', e.target.value)}
-                    placeholder="your@email.com"
-                    autoComplete="email"
-                    required
-                    className="w-full px-4 py-3 bg-tea-surface border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-sec/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold/50 transition-colors"
-                  />
-                )}
-              </div>
+
+                  {formData.contactMethod === 'whatsapp' ? (
+                    <div>
+                      <div className="flex gap-0 border border-tea-border rounded-sm overflow-hidden focus-within:border-tea-gold/50 transition-colors">
+                        <input
+                          type="tel"
+                          value={countryCode}
+                          onChange={(e) => setCountryCode(e.target.value)}
+                          placeholder="+1"
+                          autoComplete="tel-country-code"
+                          aria-label="Country code"
+                          className="bg-tea-surface text-tea-text text-sm px-3 py-3 border-r border-tea-border focus:outline-none shrink-0 w-[72px]"
+                        />
+                        <input
+                          id="rsvp-phone"
+                          type="tel"
+                          value={localPhone}
+                          onChange={(e) => setLocalPhone(e.target.value.replace(/\D/g, ''))}
+                          placeholder="912 345 678"
+                          autoComplete="tel-national"
+                          required
+                          className="flex-1 min-w-0 px-4 py-3 bg-tea-surface text-tea-text text-sm placeholder:text-tea-text-sec/50 focus:outline-none"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setContactMethod('email')}
+                        className="mt-2 text-xs text-tea-text-sec hover:text-tea-gold transition-colors"
+                      >
+                        Don't have WhatsApp? Use email instead
+                      </button>
+                    </div>
+                  ) : (
+                    <input
+                      id="rsvp-email"
+                      type="email"
+                      value={formData.email ?? ''}
+                      onChange={(e) => updateField('email', e.target.value)}
+                      placeholder="your@email.com"
+                      autoComplete="email"
+                      required
+                      className="w-full px-4 py-3 bg-tea-surface border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-sec/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold/50 transition-colors"
+                    />
+                  )}
+                </div>
+              )}
 
               {/* Guest Requests */}
               <div>
                 <label className="block text-[10px] uppercase tracking-[0.25em] text-tea-text-sec mb-3">
                   Bringing anyone?
                 </label>
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {(formData.guests ?? []).map((guest, idx) => (
                     <div
                       key={idx}
-                      className="flex items-center gap-2 animate-[fadeIn_0.25s_ease-out]"
+                      className="border border-tea-border rounded-sm p-3 space-y-2 animate-[fadeIn_0.25s_ease-out]"
                     >
-                      <span className="text-xs text-tea-text-sec shrink-0 w-14">
-                        Guest {idx + 1}
-                      </span>
-                      <input
-                        type="text"
-                        value={guest.nameHint}
-                        onChange={(e) => updateGuest(idx, e.target.value)}
-                        placeholder="e.g. my partner"
-                        className="flex-1 px-3 py-2.5 bg-tea-surface border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-sec/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold/50 transition-colors"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removeGuest(idx)}
-                        className="p-2 text-tea-text-sec hover:text-red-400 transition-colors"
-                        aria-label={`Remove guest ${idx + 1}`}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec shrink-0">
+                          Guest {idx + 1}
+                        </span>
+                        <input
+                          type="text"
+                          value={guest.nameHint}
+                          onChange={(e) => updateGuest(idx, { nameHint: e.target.value })}
+                          placeholder="e.g. my partner"
+                          className="flex-1 px-3 py-2 bg-tea-surface border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-sec/40 focus:outline-none focus:border-tea-gold/50 transition-colors"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeGuest(idx)}
+                          className="p-1.5 text-tea-text-sec hover:text-red-400 transition-colors shrink-0"
+                          aria-label={`Remove guest ${idx + 1}`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <div>
+                        <input
+                          type="text"
+                          value={guest.contact ?? ''}
+                          onChange={(e) => updateGuest(idx, { contact: e.target.value })}
+                          placeholder="Their WhatsApp or email — we'll send them an invite"
+                          className="w-full px-3 py-2 bg-tea-surface border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-sec/40 focus:outline-none focus:border-tea-gold/50 transition-colors"
+                        />
+                      </div>
                     </div>
                   ))}
                 </div>

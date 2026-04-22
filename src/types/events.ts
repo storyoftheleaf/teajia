@@ -360,7 +360,7 @@ export interface RSVPFormData {
   phoneNumber?: string;
   email?: string;
   contactMethod: ContactMethod;
-  guests?: { nameHint: string }[];
+  guests?: { nameHint: string; contact?: string }[];
   notes?: string;
 }
 

@@ -3450,6 +3450,7 @@ const handleRSVP: Handler = async (request, env, params) => {
   if (Array.isArray(guest_requests) && guest_requests.length > 0) {
     const normalised = guest_requests.map((g: any) => ({
       nameHint: g.nameHint || g.name_hint || '',
+      contact: g.contact || null,
       approved: null,
     }));
     guestRequestsJson = JSON.stringify(normalised);
@@ -3805,14 +3806,39 @@ const handleFindRSVP: Handler = async (request, env, params) => {
 
   if (!event) return json({ error: 'Event not found' }, 404);
 
-  const body = await request.json() as { phone_number: string };
-  if (!body.phone_number) return json({ error: 'phone_number is required' }, 400);
+  let lookupField: string;
+  let lookupValue: string;
+
+  // Account-based lookup: authenticated request with no body
+  const token = isAuthed(request);
+  const contentLength = request.headers.get('content-length');
+  const hasBody = contentLength !== null && contentLength !== '0';
+
+  if (token && !hasBody) {
+    const status = await classifyToken(token, env.JWT_SECRET);
+    if (status !== 'valid') return json({ error: 'Unauthorized' }, 401);
+    const claims = parseToken(token);
+    if (!claims?.email) return json({ error: 'Account email not found' }, 400);
+    lookupField = 'email';
+    lookupValue = claims.email;
+  } else {
+    const body = await request.json() as { phone_number?: string; email?: string };
+    if (body.phone_number) {
+      lookupField = 'phone_number';
+      lookupValue = body.phone_number;
+    } else if (body.email) {
+      lookupField = 'email';
+      lookupValue = body.email;
+    } else {
+      return json({ error: 'phone_number or email is required' }, 400);
+    }
+  }
 
   const attendee = await env.DB.prepare(
-    `SELECT magic_token, status FROM event_attendees WHERE event_id = ? AND phone_number = ?`
-  ).bind(event.id, body.phone_number).first();
+    `SELECT magic_token, status FROM event_attendees WHERE event_id = ? AND ${lookupField} = ?`
+  ).bind(event.id, lookupValue).first();
 
-  if (!attendee) return json({ error: 'RSVP not found for this phone number' }, 404);
+  if (!attendee) return json({ error: 'RSVP not found' }, 404);
 
   return json({
     magic_token: attendee.magic_token,
@@ -8613,7 +8639,7 @@ function slugify(text: string): string {
 }
 
 const handleListArticles: Handler = async (request, env) => {
-  const ctx = await requireAccountRole(request, env, ['owner', 'admin', 'platform']);
+  const ctx = await requireAccount(request, env);
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 

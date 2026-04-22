@@ -86,14 +86,14 @@ const VerifySheet: React.FC<VerifySheetProps> = ({ onClose, onVerified, purpose 
 
   return (
     <div
-      className="fixed inset-0 z-modal animate-[fadeIn_0.2s_ease-out]"
+      className="fixed inset-0 z-modal animate-[fadeIn_0.2s_ease-out] md:flex md:items-center md:justify-center"
       onClick={onClose}
     >
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
 
       <div
         ref={sheetRef}
-        className="absolute bottom-0 left-0 right-0 md:bottom-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:max-w-md bg-tea-bg border-t border-tea-border md:border rounded-t-2xl md:rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+        className="absolute bottom-0 left-0 right-0 md:relative md:bottom-auto md:left-auto md:right-auto md:w-full md:max-w-md bg-tea-bg border-t border-tea-border md:border rounded-t-2xl md:rounded-2xl shadow-2xl overflow-hidden flex flex-col"
         style={{ transform: `translateY(${dragY}px)` }}
         onClick={(e) => e.stopPropagation()}
       >

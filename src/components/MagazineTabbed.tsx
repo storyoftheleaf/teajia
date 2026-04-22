@@ -690,12 +690,14 @@ export const MagazineTabbed: React.FC<MagazineTabbedProps> = ({
       navigate(`/article/${item.slug}`);
       return;
     }
-    // Code-defined stories go through the existing overlay viewer
+    // Code-defined stories go through the existing overlay viewer.
+    // Look up the full original Story (with content/gallery) — FeedItem strips those fields.
+    const original = stories.find(s => s.id === item.id);
+    if (!original) return;
     setTransitioning(true);
     setTimeout(() => {
       setTransitioning(false);
-      // Cast back to Story — code items retain all Story fields
-      onCardClick(item as unknown as Story);
+      onCardClick(original);
     }, 350);
   };
 

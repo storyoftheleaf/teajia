@@ -548,7 +548,7 @@ const AppContent = () => {
       <LeftSidebar activeSection={activeSection} onNavigate={setActiveSection} onAccountClick={handleOpenAccount} onCartClick={handleOpenCart} onSearchClick={() => { setShowAccountModal(false); setAccountInitialView(undefined); setShowGlobalSearch(true); }} cartItemCount={cart.length} topOffset={showAdminBar} />
 
       {/* Main Content Area */}
-      <div className={`flex-1 flex flex-col relative ${sidebarCollapsed ? 'lg:ml-14' : 'lg:ml-56'} transition-[margin] duration-300`}>
+      <div className={`flex-1 min-w-0 flex flex-col relative ${sidebarCollapsed ? 'lg:ml-14 lg:max-w-[calc(100vw-3.5rem)]' : 'lg:ml-56 lg:max-w-[calc(100vw-14rem)]'} transition-[margin,max-width] duration-300`}>
 
       {isAdminRoute ? (
         <Suspense fallback={<div className="flex items-center justify-center min-h-screen bg-tea-bg"><div className="w-8 h-8 border-2 border-tea-gold border-t-transparent rounded-full animate-spin" /></div>}>

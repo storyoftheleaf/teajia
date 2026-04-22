@@ -16,6 +16,7 @@ export interface AuthUser {
   username: string | null;
   name: string;
   role: string;
+  phone?: string | null;
 }
 
 interface UseAuthReturn {
@@ -57,7 +58,7 @@ export function useAuth(): UseAuthReturn {
     try {
       setIsLoading(true);
       const data = await api.auth.me();
-      setUser({ email: data.email, username: data.username ?? null, name: data.name, role: data.role });
+      setUser({ email: data.email, username: data.username ?? null, name: data.name, role: data.role, phone: data.phone ?? null });
     } catch (err: any) {
       // Only clear the session when the server explicitly rejected the token.
       // Transient issues (offline, CORS hiccup, timeout, 5xx) used to boot

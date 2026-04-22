@@ -253,20 +253,6 @@ function Flourish() {
   );
 }
 
-function PageDot({ active, onClick }: { active: boolean; onClick: () => void }) {
-  return (
-    <button
-      onClick={onClick}
-      aria-label="Go to page"
-      style={{
-        width: active ? 22 : 6, height: 6, borderRadius: 4,
-        background: active ? T.gold : T.textDim,
-        opacity: active ? 1 : 0.4, transition: 'all .3s',
-        border: 'none', cursor: 'pointer', padding: 0, flexShrink: 0,
-      }}
-    />
-  );
-}
 
 function ChineseMark({ char = '器', size = 220, opacity = 0.06 }: { char?: string; size?: number; opacity?: number }) {
   return (
@@ -418,11 +404,7 @@ function CoverPage({ story }: { story: Story }) {
         </div>
       </div>
 
-      {/* Swipe hint */}
-      <div style={{ position: 'absolute', right: 22, bottom: 66, display: 'flex', alignItems: 'center', gap: 8, color: T.gold }}>
-        <span style={{ fontFamily: T.mono, fontSize: 10 }}>swipe</span>
-        <div className="mpg-breath" style={{ width: 4, height: 4, borderRadius: 4, background: T.gold }} />
-      </div>
+
     </div>
   );
 }
@@ -1354,8 +1336,6 @@ export function MagazinePageReader({ story, onBack, isSaved, onToggleSave }: Mag
     return () => window.removeEventListener('keydown', onKey);
   }, [current, total, scrollTo, onBack, showShare]);
 
-  const showDots = total <= 22;
-
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 100,
@@ -1464,23 +1444,33 @@ export function MagazinePageReader({ story, onBack, isSaved, onToggleSave }: Mag
           </svg>
         </button>
 
-        {showDots ? (
-          <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', maxWidth: '65vw', justifyContent: 'center' }}>
-            {plan.map((_, n) => (
-              <PageDot key={n} active={n === current} onClick={() => scrollTo(n)} />
-            ))}
-          </div>
-        ) : (
-          // Progress rail for long articles
-          <div style={{ flex: 1, minWidth: 60, display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ flex: 1, minWidth: 60, display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div
+            role="slider"
+            aria-label="Reading progress"
+            aria-valuenow={current + 1}
+            aria-valuemin={1}
+            aria-valuemax={total}
+            tabIndex={0}
+            onClick={e => {
+              const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+              const pct = (e.clientX - rect.left) / rect.width;
+              scrollTo(Math.round(pct * (total - 1)));
+            }}
+            onKeyDown={e => {
+              if (e.key === 'ArrowRight') scrollTo(Math.min(total - 1, current + 1));
+              if (e.key === 'ArrowLeft')  scrollTo(Math.max(0, current - 1));
+            }}
+            style={{ flex: 1, height: 20, display: 'flex', alignItems: 'center', cursor: 'pointer' }}
+          >
             <div style={{ flex: 1, height: 2, background: 'rgba(184,146,78,0.18)', borderRadius: 2, overflow: 'hidden', position: 'relative' }}>
               <span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, background: T.gold, width: `${total ? ((current + 1) / total) * 100 : 0}%`, transition: 'width .35s cubic-bezier(.4,0,.2,1)', borderRadius: 2 }} />
             </div>
-            <span style={{ fontFamily: T.mono, fontSize: 11, color: T.textSec, whiteSpace: 'nowrap' }}>
-              {String(current + 1).padStart(2, '0')} / {String(total).padStart(2, '0')}
-            </span>
           </div>
-        )}
+          <span style={{ fontFamily: T.mono, fontSize: 11, color: T.textSec, whiteSpace: 'nowrap' }}>
+            {String(current + 1).padStart(2, '0')} / {String(total).padStart(2, '0')}
+          </span>
+        </div>
 
         <button
           onClick={() => scrollTo(Math.min(total - 1, current + 1))}

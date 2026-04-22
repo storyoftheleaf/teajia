@@ -384,7 +384,7 @@ export const api = {
       });
       return handleResponse(res);
     },
-    updateProfile: async (data: { name?: string; email?: string; username?: string | null }) => {
+    updateProfile: async (data: { name?: string; email?: string; username?: string | null; phone?: string }) => {
       const res = await fetchWithTimeout(`${API_URL}/api/auth/profile`, {
         method: 'PUT',
         headers: authHeaders(),
@@ -1238,10 +1238,21 @@ export const api = {
 
   rsvp: {
     submit: async (slug: string, data: Record<string, any>) => {
+      const body = {
+        full_name: data.fullName,
+        phone_number: data.phoneNumber || undefined,
+        email: data.email || undefined,
+        contact_method: data.contactMethod,
+        guest_requests: data.guests?.map((g: any) => ({
+          nameHint: g.nameHint,
+          contact: g.contact || undefined,
+        })),
+        notes: data.notes || undefined,
+      };
       const res = await fetchWithTimeout(`${API_URL}/api/events/${slug}/rsvp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify(body),
       });
       return handleResponse(res);
     },
@@ -1285,6 +1296,25 @@ export const api = {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone_number: phoneNumber }),
+      });
+      return handleResponse(res);
+    },
+    findByEmail: async (slug: string, email: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/events/${slug}/find-rsvp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      return handleResponse(res);
+    },
+    findByAccount: async (slug: string) => {
+      const token = localStorage.getItem('teajia_token') || sessionStorage.getItem('teajia_token');
+      const res = await fetchWithTimeout(`${API_URL}/api/events/${slug}/find-rsvp`, {
+        method: 'POST',
+        headers: {
+          'Content-Length': '0',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
       });
       return handleResponse(res);
     },

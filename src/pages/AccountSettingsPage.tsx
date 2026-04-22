@@ -37,6 +37,7 @@ export default function AccountSettingsPage() {
   const [editName, setEditName] = useState(auth.user?.name || '');
   const [editEmail, setEditEmail] = useState(auth.user?.email || '');
   const [editUsername, setEditUsername] = useState(auth.user?.username || '');
+  const [editPhone, setEditPhone] = useState(auth.user?.phone || '');
   const [profileError, setProfileError] = useState('');
   const [profileLoading, setProfileLoading] = useState(false);
   const [profileSaved, setProfileSaved] = useState(false);
@@ -54,7 +55,7 @@ export default function AccountSettingsPage() {
     setProfileSaved(false);
     setProfileLoading(true);
     try {
-      const updates: { name?: string; email?: string; username?: string | null } = {};
+      const updates: { name?: string; email?: string; username?: string | null; phone?: string } = {};
       if (editName && editName !== auth.user?.name) updates.name = editName;
       if (editEmail && editEmail !== auth.user?.email) updates.email = editEmail;
       const trimmedUsername = editUsername.trim();
@@ -62,6 +63,8 @@ export default function AccountSettingsPage() {
       if (trimmedUsername !== currentUsername) {
         updates.username = trimmedUsername === '' ? null : trimmedUsername;
       }
+      const trimmedPhone = editPhone.trim();
+      if (trimmedPhone !== (auth.user?.phone ?? '')) updates.phone = trimmedPhone;
       if (Object.keys(updates).length === 0) {
         setProfileError('No changes to save.');
         setProfileLoading(false);
@@ -167,6 +170,21 @@ export default function AccountSettingsPage() {
               style={inputStyle}
               placeholder={auth.user?.email || 'your email'}
             />
+          </div>
+          <div>
+            <label className={labelClass}>
+              WhatsApp / Phone <span className="normal-case tracking-normal font-normal text-tea-text-dim">(optional)</span>
+            </label>
+            <input
+              type="tel"
+              value={editPhone}
+              onChange={e => setEditPhone(e.target.value)}
+              className={inputClass}
+              style={inputStyle}
+              placeholder="+886 912 345 678"
+              autoComplete="tel"
+            />
+            <p className="text-[11px] text-tea-text/40 mt-1.5">Include country code. Used to pre-fill RSVP forms.</p>
           </div>
           <FormError error={profileError} />
           {profileSaved && <p className="text-sm text-green-600">Profile updated.</p>}
