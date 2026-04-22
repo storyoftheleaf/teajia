@@ -129,36 +129,6 @@ input[type="number"]::-webkit-outer-spin-button {
   /* clamp() handles fluid sizing — no fixed override needed at 1024px */
 }
 
-.card-grid-image-container {
-  aspect-ratio: 1 / 1;
-  overflow: hidden;
-  background-color: var(--tea-surface);
-  position: relative;
-  border-radius: 4px;
-  border: none;
-  margin-bottom: 0.75rem;
-}
-
-.card-grid-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  opacity: 1;
-  transition: all 700ms ease-out;
-}
-
-.card-grid-item:hover .card-grid-image {
-  opacity: 1;
-  transform: scale(1.06);
-}
-
-.card-grid-content {
-  padding: 0 0.25rem;
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-}
-
 .card-grid-title {
   font-size: clamp(16px, 1.4vw, 20px);
   font-family: var(--font-display);
@@ -404,10 +374,6 @@ input[type="number"]::-webkit-outer-spin-button {
 /* Section divider — standard spacing utility.
    Ensures intentional vertical breathing room above and below any divider.
    Use on the wrapper element that contains the divider line. */
-.section-divider {
-  margin-top: 2rem;
-  margin-bottom: 2rem;
-}
 
 /* ============================================
    Light Mode Support
@@ -418,11 +384,6 @@ input[type="number"]::-webkit-outer-spin-button {
 
 .light .card-grid-item {
   background-color: var(--tea-surface);
-  border: none;
-}
-
-.light .card-grid-image-container {
-  background-color: var(--tea-elevated);
   border: none;
 }
 
@@ -585,18 +546,6 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 
 /* Large size (desktop arrows) — padding-based for icon flexibility */
-.nav-control-lg {
-  padding: 0.75rem;
-  background: color-mix(in srgb, var(--tea-surface) 50%, transparent);
-}
-
-.nav-control-lg:hover:not(:disabled) {
-  background: var(--tea-surface);
-}
-
-.nav-control-lg:disabled {
-  opacity: 0.2;
-}
 
 /* ── Panel Sidebar ── */
 .panel-sidebar {
@@ -739,21 +688,6 @@ input[type="number"]::-webkit-outer-spin-button {
 .badge-status-default {
   background: rgb(var(--tea-text-rgb) / 0.10);
   color: var(--tea-text);
-}
-
-.badge-status-green {
-  background: rgba(184, 146, 78, 0.12);
-  color: var(--tea-gold-lt, #c9b17a);
-}
-
-.badge-status-red {
-  background: rgba(166, 93, 78, 0.12);
-  color: #a65d4e;
-}
-
-.badge-status-amber {
-  background: rgba(251, 191, 36, 0.10);
-  color: #fbbf24;
 }
 
 /* --- Tag/Chip (selected item display) --- */
@@ -1096,16 +1030,6 @@ input[type="number"]::-webkit-outer-spin-button {
    Image Hover Zoom Enhancement (#13)
    ============================================ */
 
-.card-grid-image-container {
-  overflow: hidden;
-}
-
-.card-grid-item:hover .card-grid-image {
-  opacity: 1;
-  transform: scale(1.08);
-  filter: brightness(1.05);
-}
-
 /* ============================================
    Skeleton-to-Content Morphing (#14)
    ============================================ */
@@ -1134,23 +1058,6 @@ input[type="number"]::-webkit-outer-spin-button {
   }
 }
 
-.skeleton-exit {
-  animation: skeletonFadeOut 0.3s ease-out forwards;
-}
-
-.content-morph-in {
-  animation: contentMorphIn 0.4s ease-out forwards;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .skeleton-exit,
-  .content-morph-in {
-    animation: none;
-    opacity: 1;
-    filter: none;
-    transform: none;
-  }
-}
 
 /* ============================================
    Glassmorphism Utilities (#11)
@@ -1210,33 +1117,6 @@ input[type="number"]::-webkit-outer-spin-button {
   100% { background-position: 200% 0; }
 }
 
-.badge-featured {
-  position: relative;
-  overflow: hidden;
-}
-
-.badge-featured::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(184, 146, 78, 0.15) 50%,
-    transparent 100%
-  );
-  background-size: 200% 100%;
-  animation: badgeShimmer 3s ease-in-out infinite;
-  pointer-events: none;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .badge-featured::after {
-    animation: none;
-    display: none;
-  }
-}
-
 /* ============================================
    Subtle Animated Aurora on Hero Sections (#37)
    ============================================ */
@@ -1244,23 +1124,6 @@ input[type="number"]::-webkit-outer-spin-button {
 @keyframes auroraShift {
   0%, 100% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
-}
-.aurora-bg {
-  position: relative;
-}
-.aurora-bg::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  background: linear-gradient(135deg, rgba(184,146,78,0.04) 0%, transparent 30%, rgba(90,110,90,0.03) 60%, transparent 100%);
-  background-size: 200% 200%;
-  animation: auroraShift 18s ease-in-out infinite;
-  border-radius: inherit;
-}
-@media (prefers-reduced-motion: reduce) {
-  .aurora-bg::before { animation: none; }
 }
 
 /* ============================================
@@ -1273,159 +1136,22 @@ input[type="number"]::-webkit-outer-spin-button {
   50% { transform: rotate(3deg); }
 }
 
-.leaf-accent {
-  display: inline-block;
-  animation: leafSway 4s ease-in-out infinite;
-  color: rgba(184, 146, 78, 0.2);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .leaf-accent { animation: none; }
-}
-
 /* ============================================
    Typography Utilities
    ============================================ */
 
 /* Body text: minimum readable size with comfortable line height */
-.body-text {
-  font-size: 1rem; /* 16px minimum */
-  line-height: 1.7;
-  color: var(--tea-text);
-}
 
 /* Secondary/meta text */
-.meta-text {
-  font-size: 0.875rem; /* 14px */
-  line-height: 1.5;
-  color: var(--tea-text-sec);
-}
-
-/* Label/caption text */
-.label-text {
-  font-size: 0.75rem; /* 12px */
-  line-height: 1.4;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--tea-text-dim);
-}
-
-/* Product/content section heading label.
-   Use on small-caps section headings (Terroir, Processing, etc.).
-   Gold is reserved for interactive/active states — static headings use text-sec.
-   Example: <h3 class="product-section-label">Terroir</h3> */
-.product-section-label {
-  font-size: 0.6875rem; /* 11px */
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--tea-text-sec);
-  line-height: 1.4;
-  margin-bottom: 0.375rem;
-}
-
-/* Alias for broader use */
-.section-subhead {
-  font-size: 0.6875rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--tea-text-sec);
-  line-height: 1.4;
-  margin-bottom: 0.375rem;
-}
 
 /* ============================================
    Truncation Gradient Fade Utilities (#38)
-   NOTE: .line-clamp-fade only works correctly when the
-   parent element has a known, solid background color.
-   The ::after pseudo-element must match that background.
-   Use .line-clamp-fade on --tea-bg surfaces (page background).
-   Use .surface-clamp-fade on --tea-surface surfaces (cards, panels).
+   Surface variant — gradient matches the surface background.
    ============================================ */
-
-/* Truncation with gradient fade — use alongside line-clamp utilities */
-.line-clamp-fade {
-  position: relative;
-  overflow: hidden;
-}
-
-.line-clamp-fade::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 1.5em;
-  background: linear-gradient(to bottom, transparent, var(--tea-bg));
-  pointer-events: none;
-}
 
 /* Surface variant — the gradient matches the surface background */
 .surface-clamp-fade::after {
   background: linear-gradient(to bottom, transparent, var(--tea-surface));
-}
-
-/* ============================================
-   Mobile Inventory — Swipe-to-Edit Row
-   WhatsApp-style swipe gesture revealing actions.
-   ============================================ */
-
-.swipe-row-container {
-  position: relative;
-  overflow: hidden;
-}
-
-/* The action tray behind the row */
-.swipe-row-actions {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  display: flex;
-  align-items: center;
-  gap: 1px;
-  z-index: 0;
-}
-
-.swipe-row-action {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  height: 100%;
-  min-width: 64px;
-  padding: 0 12px;
-  font-size: 9px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  cursor: pointer;
-  transition: opacity 150ms ease;
-}
-
-.swipe-row-action-edit {
-  background: rgba(184, 146, 78, 0.25);
-  color: var(--tea-gold);
-}
-
-.swipe-row-action-view {
-  background: rgba(181, 168, 146, 0.15);
-  color: var(--tea-text-sec);
-}
-
-/* The foreground row that slides */
-.swipe-row-content {
-  position: relative;
-  z-index: 1;
-  background: var(--tea-bg);
-  transition: transform 300ms cubic-bezier(0.2, 0, 0, 1);
-  will-change: transform;
-}
-
-.swipe-row-content.swiping {
-  transition: none;
 }
 
 /* ============================================
@@ -1443,21 +1169,6 @@ input[type="number"]::-webkit-outer-spin-button {
     inset 0 -1px 0 rgba(0, 0, 0, 0.1);
 }
 
-.inv-detail-label {
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--tea-text-dim);
-  margin-bottom: 2px;
-}
-
-.inv-detail-value {
-  font-size: 14px;
-  color: var(--tea-text);
-  font-weight: 500;
-}
-
 /* Light mode adjustments */
 .light .inv-detail-panel {
   background:
@@ -1471,10 +1182,6 @@ input[type="number"]::-webkit-outer-spin-button {
 /* ============================================
    Mobile Inventory — Stock Status Indicators
    ============================================ */
-
-.stock-ok { color: var(--tea-text); }
-.stock-low { color: #d97706; }
-.stock-out { color: var(--tea-text-dim); opacity: 0.4; }
 
 /* ============================================
    Mobile Inventory — Row Type Accent Strip
@@ -1509,76 +1216,14 @@ input[type="number"]::-webkit-outer-spin-button {
    ============================================ */
 
 /* Reading time — bottom-right metadata */
-.article-card-time {
-  position: absolute;
-  bottom: 12px;
-  right: 12px;
-  z-index: 20;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-family: 'JetBrains Mono', 'Menlo', 'Courier New', monospace;
-  font-variant-numeric: tabular-nums lining-nums;
-  font-size: 10px;
-  letter-spacing: 0.04em;
-  color: var(--tea-text-dim);
-  opacity: 0.7;
-  transition: opacity 300ms ease;
-}
-
-.group:hover .article-card-time {
-  opacity: 1;
-  color: var(--tea-text-sec);
-}
 
 /* Gold accent line — grows from center on hover */
-.article-card-accent {
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%) scaleX(0);
-  width: 60%;
-  height: 1px;
-  z-index: 20;
-  background: linear-gradient(90deg, transparent, var(--tea-gold) 30%, var(--tea-gold) 70%, transparent);
-  transition: transform 500ms cubic-bezier(0.4, 0, 0.2, 1);
-  transform-origin: center;
-}
-
-.group:hover .article-card-accent {
-  transform: translateX(-50%) scaleX(1);
-}
 
 /* Vignette overlay — editorial depth */
-.article-card-vignette {
-  position: absolute;
-  inset: 0;
-  z-index: 5;
-  pointer-events: none;
-  background: radial-gradient(ellipse 80% 70% at 50% 40%, transparent 50%, rgba(0, 0, 0, 0.3) 100%);
-  opacity: 0.6;
-  transition: opacity 500ms ease;
-}
-
-.group:hover .article-card-vignette {
-  opacity: 0.4;
-}
 
 /* Featured hero card — spans full width in grid */
-.article-card-hero {
-  grid-column: 1 / -1;
-}
-
-@media (min-width: 768px) {
-  .article-card-hero {
-    grid-column: span 2;
-  }
-}
 
 /* Light mode */
-.light .article-card-vignette {
-  background: radial-gradient(ellipse 80% 70% at 50% 40%, transparent 50%, rgba(0, 0, 0, 0.15) 100%);
-}
 
 /* ============================================
    Reader — Chapter Number & Image Reveal
@@ -1597,11 +1242,6 @@ input[type="number"]::-webkit-outer-spin-button {
     opacity: 0.07;
     filter: blur(0px);
   }
-}
-
-.chapter-bg-number {
-  /* Ensure chapter numbers use the corrected opacity tier */
-  /* Animation applied by Reader.tsx inline style block */
 }
 
 /* ============================================
@@ -1700,26 +1340,10 @@ input[type="number"]::-webkit-outer-spin-button {
    ============================================ */
 
 /* Matte: existing stardust grain texture, unchanged */
-.paper-matte {
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  background-size: 120px;
-  opacity: 0.06;
-  pointer-events: none;
-}
 
 /* Glossy: no texture, clean surface */
-.paper-glossy {
-  background-image: none;
-  background-color: transparent;
-}
 
 /* Rough: heavy grain using denser SVG noise pattern */
-.paper-rough {
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='roughnoise'%3E%3CfeTurbulence type='turbulence' baseFrequency='0.65' numOctaves='6' seed='8' stitchTiles='stitch' result='noise'/%3E%3CfeColorMatrix type='saturate' values='0' in='noise'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23roughnoise)'/%3E%3C/svg%3E");
-  background-size: 200px;
-  opacity: 0.12;
-  pointer-events: none;
-}
 
 /* ============================================
    Text Effect Classes
@@ -1727,17 +1351,6 @@ input[type="number"]::-webkit-outer-spin-button {
    ============================================ */
 
 /* Animated underline for key terms — draws in when page activates */
-.key-term {
-  background-image: linear-gradient(var(--tea-gold, #a8874d), var(--tea-gold, #a8874d));
-  background-repeat: no-repeat;
-  background-position: 0 100%;
-  background-size: 0% 1px;
-  transition: background-size 0.4s ease;
-}
-
-[data-page-active="true"] .key-term {
-  background-size: 100% 1px;
-}
 
 /* Vertical CJK accent strip — decorative, non-interactive */
 .vertical-cjk {
@@ -1826,15 +1439,6 @@ input[type="number"]::-webkit-outer-spin-button {
     transform: none !important;
   }
 
-  /* Chapter number reveal — skip to final state */
-  [data-page-active="true"] .chapter-bg-number,
-  .chapter-bg-number {
-    animation: none !important;
-    opacity: 0.07 !important;
-    transform: scale(1) !important;
-    filter: blur(0px) !important;
-  }
-
   /* Image reveal (clip-path circle expansion) — skip to final state */
   [data-page-active="true"] .reader-image-reveal,
   .reader-image-reveal {
@@ -1907,35 +1511,12 @@ input[type="number"]::-webkit-outer-spin-button {
   }
 
   /* Key term underline — show immediately, no transition */
-  .key-term {
-    transition: none !important;
-    background-size: 100% 1px !important;
-  }
-
-  /* Content morph / skeleton transitions */
-  .content-morph-in,
-  .skeleton-exit {
-    animation: none !important;
-    opacity: 1 !important;
-    filter: none !important;
-    transform: none !important;
-  }
 
   /* Aurora background shift */
-  .aurora-bg::before {
-    animation: none !important;
-  }
 
   /* Leaf sway */
-  .leaf-accent {
-    animation: none !important;
-  }
 
   /* Badge shimmer */
-  .badge-featured::after {
-    animation: none !important;
-    display: none !important;
-  }
 
   /* Focus ring pulse */
   *:focus-visible {
@@ -1985,94 +1566,8 @@ input[type="number"]::-webkit-outer-spin-button {
 
 /* ── Flavor group card ── */
 /* Warm recessed card for each flavor category (Floral, Sweet, etc.) */
-.tasting-flavor-group {
-  background:
-    radial-gradient(ellipse 90% 60% at 60% 0%, rgba(200, 170, 120, 0.04) 0%, transparent 70%),
-    var(--tea-surface);
-  box-shadow:
-    inset 0 1px 0 rgba(200, 170, 120, 0.06),
-    inset 0 -1px 0 rgba(200, 170, 120, 0.02),
-    0 1px 3px rgba(0, 0, 0, 0.2);
-  border-radius: 8px;
-  position: relative;
-  overflow: hidden;
-  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.tasting-flavor-group::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0.04;
-  border-radius: inherit;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  background-size: 120px;
-}
-
-.tasting-flavor-group:hover {
-  box-shadow:
-    inset 0 1px 0 rgba(200, 170, 120, 0.08),
-    inset 0 -1px 0 rgba(200, 170, 120, 0.03),
-    0 2px 6px rgba(0, 0, 0, 0.25);
-}
-
-.tasting-flavor-group-active {
-  background:
-    radial-gradient(ellipse 90% 60% at 60% 0%, rgba(184, 146, 78, 0.08) 0%, transparent 70%),
-    var(--tea-surface);
-  box-shadow:
-    inset 0 1px 0 rgba(184, 146, 78, 0.12),
-    inset 0 -1px 0 rgba(184, 146, 78, 0.04),
-    0 1px 4px rgba(0, 0, 0, 0.2),
-    0 0 12px rgba(184, 146, 78, 0.04);
-}
-
-.light .tasting-flavor-group {
-  background:
-    radial-gradient(ellipse 90% 60% at 60% 0%, rgba(142, 109, 46, 0.03) 0%, transparent 70%),
-    rgba(0, 0, 0, 0.03);
-  box-shadow:
-    inset 0 1px 0 rgba(142, 109, 46, 0.06),
-    inset 0 -1px 0 rgba(142, 109, 46, 0.03),
-    0 1px 3px rgba(0, 0, 0, 0.06);
-}
-
-.light .tasting-flavor-group-active {
-  background:
-    radial-gradient(ellipse 90% 60% at 60% 0%, rgba(142, 109, 46, 0.06) 0%, transparent 70%),
-    rgba(0, 0, 0, 0.03);
-}
 
 /* ── Suggested terms row ── */
-.tasting-suggested-row {
-  background:
-    radial-gradient(ellipse 80% 50% at 50% 0%, rgba(184, 146, 78, 0.06) 0%, transparent 60%),
-    rgba(0, 0, 0, 0.08);
-  box-shadow:
-    inset 0 1px 0 rgba(200, 170, 120, 0.06),
-    inset 0 -1px 0 rgba(200, 170, 120, 0.02);
-  border-radius: 8px;
-  padding: 10px 12px;
-  position: relative;
-}
-
-.tasting-suggested-row::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0.03;
-  border-radius: inherit;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  background-size: 120px;
-}
-
-.light .tasting-suggested-row {
-  background:
-    radial-gradient(ellipse 80% 50% at 50% 0%, rgba(142, 109, 46, 0.04) 0%, transparent 60%),
-    rgba(0, 0, 0, 0.02);
-}
 
 /* Vertical divider between segment toggle items — uses absolute rgba so it persists against any selection background */
 .weight-seg-div {
@@ -2119,83 +1614,12 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 
 /* ── Feeling mood card ── */
-.tasting-mood-card {
-  background:
-    radial-gradient(ellipse 80% 60% at 50% 10%, rgba(200, 170, 120, 0.04) 0%, transparent 70%),
-    var(--tea-surface);
-  box-shadow:
-    inset 0 1px 0 rgba(200, 170, 120, 0.05),
-    0 1px 3px rgba(0, 0, 0, 0.15);
-  border-radius: 8px;
-  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
-  cursor: pointer;
-}
-
-.tasting-mood-card::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0.03;
-  border-radius: inherit;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  background-size: 120px;
-}
-
-.tasting-mood-card-active {
-  background:
-    radial-gradient(ellipse 80% 60% at 50% 10%, rgba(184, 146, 78, 0.1) 0%, transparent 70%),
-    var(--tea-surface);
-  box-shadow:
-    inset 0 1px 0 rgba(184, 146, 78, 0.12),
-    0 1px 4px rgba(0, 0, 0, 0.2),
-    0 0 10px rgba(184, 146, 78, 0.06);
-  color: var(--tea-gold);
-}
-
-.tasting-mood-card:hover:not(.tasting-mood-card-active) {
-  box-shadow:
-    inset 0 1px 0 rgba(200, 170, 120, 0.08),
-    0 2px 6px rgba(0, 0, 0, 0.2);
-}
-
-.light .tasting-mood-card {
-  background:
-    radial-gradient(ellipse 80% 60% at 50% 10%, rgba(142, 109, 46, 0.03) 0%, transparent 70%),
-    rgba(0, 0, 0, 0.03);
-  box-shadow:
-    inset 0 1px 0 rgba(142, 109, 46, 0.06),
-    0 1px 3px rgba(0, 0, 0, 0.06);
-}
 
 /* ── Section label with decorative line ── */
-.tasting-section-label {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.18em;
-  font-weight: 500;
-  color: var(--tea-text-dim);
-  font-family: var(--font-display);
-}
-
-.tasting-section-label::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: linear-gradient(90deg, rgba(184, 146, 78, 0.2), transparent 80%);
-}
 
 @keyframes tastingSelectPulse {
   0% { box-shadow: 0 0 0 0 rgb(var(--tea-gold-rgb) / 0.4); }
   100% { box-shadow: 0 0 0 8px rgb(var(--tea-gold-rgb) / 0); }
-}
-
-.tag-selectable-pulse {
-  animation: tastingSelectPulse 0.3s ease-out;
 }
 
 @media (max-width: 767px) {
@@ -2203,88 +1627,6 @@ input[type="number"]::-webkit-outer-spin-button {
     min-height: 44px;
     padding: 8px 10px;
   }
-}
-
-.tasting-section-bg-brewing {
-  background:
-    radial-gradient(ellipse 80% 50% at 70% 0%, rgba(184, 146, 78, 0.03) 0%, transparent 60%);
-}
-
-.tasting-section-bg-liquor-color {
-  background:
-    radial-gradient(ellipse 80% 50% at 60% 0%, rgba(200, 170, 120, 0.03) 0%, transparent 60%),
-    radial-gradient(ellipse 40% 30% at 90% 5%, rgba(200, 140, 50, 0.02) 0%, transparent 50%);
-}
-
-.tasting-section-bg-flavor {
-  background:
-    radial-gradient(ellipse 80% 50% at 65% 0%, rgba(200, 160, 80, 0.04) 0%, transparent 60%),
-    radial-gradient(ellipse 50% 35% at 85% 5%, rgba(180, 120, 40, 0.025) 0%, transparent 50%);
-}
-
-.tasting-section-bg-body {
-  background:
-    radial-gradient(ellipse 80% 50% at 70% 0%, rgba(160, 160, 160, 0.025) 0%, transparent 60%);
-}
-
-.tasting-section-bg-finish {
-  background:
-    radial-gradient(ellipse 80% 50% at 60% 0%, rgba(184, 146, 78, 0.03) 0%, transparent 60%);
-}
-
-.tasting-section-bg-feeling {
-  background:
-    radial-gradient(ellipse 80% 50% at 65% 0%, rgba(120, 140, 180, 0.03) 0%, transparent 60%),
-    radial-gradient(ellipse 50% 35% at 85% 5%, rgba(160, 130, 80, 0.02) 0%, transparent 50%);
-}
-
-.tasting-undo-toast {
-  position: fixed;
-  bottom: 100px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 110;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  border-radius: 9999px;
-  font-size: 13px;
-  font-weight: 500;
-  background: var(--tea-elevated);
-  color: var(--tea-text);
-  box-shadow: 0 4px 16px rgba(24, 19, 14, 0.3);
-  cursor: pointer;
-  transition: opacity 200ms ease, transform 200ms ease;
-}
-
-.tasting-undo-toast:hover {
-  background: var(--tea-surface);
-}
-
-.light .tasting-undo-toast {
-  box-shadow: 0 4px 16px rgba(24, 19, 14, 0.12);
-}
-
-.tasting-drag-handle {
-  width: 36px;
-  height: 4px;
-  border-radius: 2px;
-  background: var(--tea-border);
-  margin: 8px auto 0;
-}
-
-.tasting-tab-bar {
-  display: flex;
-  gap: 2px;
-  padding: 4px;
-  overflow-x: auto;
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-.tasting-tab-bar::-webkit-scrollbar {
-  display: none;
 }
 
 .tasting-tab {
@@ -2310,119 +1652,12 @@ input[type="number"]::-webkit-outer-spin-button {
   background: rgb(var(--tea-gold-rgb) / 0.04);
 }
 
-.tasting-tab-active {
-  color: var(--tea-gold);
-  background: rgb(var(--tea-gold-rgb) / 0.08);
-}
-
-.tasting-tab-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--tea-gold);
-  opacity: 0;
-  transition: opacity 200ms ease;
-}
-
-.tasting-tab-dot-visible {
-  opacity: 1;
-}
-
-.tasting-tab-count {
-  position: absolute;
-  top: 2px;
-  right: 4px;
-  min-width: 16px;
-  height: 16px;
-  border-radius: 8px;
-  font-size: 11px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--tea-gold);
-  color: var(--tea-bg);
-}
-
 /* Mouthfeel weight toggle — no inline borders */
-.tasting-weight-toggle {
-  display: flex;
-  border-radius: 8px;
-  overflow: hidden;
-  background: var(--tea-surface);
-}
-
-.tasting-weight-option {
-  flex: 1;
-  padding: 10px 8px;
-  text-align: center;
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 150ms ease;
-  background: var(--tea-surface);
-  color: var(--tea-text-sec);
-  border: none;
-  border-right: 1px solid var(--tea-border);
-}
-
-.tasting-weight-option:last-child {
-  border-right: none;
-}
-
-.tasting-weight-option-active {
-  background: rgb(var(--tea-gold-rgb) / 0.15);
-  color: var(--tea-gold);
-}
-
-.tasting-weight-option:hover:not(.tasting-weight-option-active) {
-  color: var(--tea-text);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .tag-selectable-pulse {
-    animation: none;
-  }
-}
 
 /* ============================================
    Set Card — Full-Width Editorial Layout
    Used in Shop > Sets tab for starter sets.
    ============================================ */
-
-.set-card {
-  background:
-    radial-gradient(ellipse 100% 60% at 50% 0%, rgba(184, 146, 78, 0.04) 0%, transparent 60%),
-    var(--tea-surface);
-  border-radius: 6px;
-  overflow: hidden;
-  box-shadow:
-    0 1px 4px rgba(0, 0, 0, 0.25),
-    0 2px 8px rgba(0, 0, 0, 0.1),
-    inset 0 1px 0 rgba(184, 146, 78, 0.06);
-  transition: box-shadow 300ms ease, transform 300ms ease;
-}
-
-@media (min-width: 768px) {
-  .set-card:hover {
-    box-shadow:
-      0 8px 24px rgba(0, 0, 0, 0.3),
-      0 2px 8px rgba(0, 0, 0, 0.15),
-      inset 0 1px 0 rgba(184, 146, 78, 0.08),
-      0 0 30px rgba(184, 146, 78, 0.06);
-    transform: translateY(-2px);
-  }
-}
-
-.light .set-card {
-  background:
-    radial-gradient(ellipse 100% 60% at 50% 0%, rgba(142, 109, 46, 0.03) 0%, transparent 60%),
-    var(--tea-surface);
-  box-shadow:
-    0 1px 3px rgba(0, 0, 0, 0.08),
-    0 2px 6px rgba(0, 0, 0, 0.04),
-    inset 0 1px 0 rgba(142, 109, 46, 0.06);
-}
 
 /* SET ribbon badge */
 .set-badge {
@@ -2446,41 +1681,6 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 
 /* What's inside item row */
-.set-item-row {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.375rem 0;
-  font-size: 0.8125rem;
-  color: var(--tea-text);
-  line-height: 1.3;
-}
-
-.set-item-row + .set-item-row {
-  border-top: 1px solid rgba(184, 146, 78, 0.08);
-}
-
-.light .set-item-row + .set-item-row {
-  border-top-color: rgba(142, 109, 46, 0.08);
-}
-
-.set-item-dot {
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: var(--tea-gold);
-  opacity: 0.5;
-  flex-shrink: 0;
-}
-
-.set-item-type {
-  font-size: 0.625rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--tea-text-dim);
-  margin-left: auto;
-  flex-shrink: 0;
-}
 
 /* Price comparison */
 .set-price-original {
@@ -2510,260 +1710,22 @@ input[type="number"]::-webkit-outer-spin-button {
    ============================================ */
 
 /* ── Step-node quality scale ── */
-.tasting-step-track {
-  position: relative;
-  height: 52px;
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  touch-action: none;
-  user-select: none;
-  -webkit-user-select: none;
-}
 
 /* Base line */
-.tasting-step-line {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 50%;
-  height: 1px;
-  transform: translateY(-50%);
-  background: var(--tea-border);
-}
 
 /* Filled portion of the line */
-.tasting-step-line-fill {
-  position: absolute;
-  left: 0;
-  top: 50%;
-  height: 1px;
-  transform: translateY(-50%);
-  background: rgb(var(--tea-gold-rgb) / 0.5);
-  pointer-events: none;
-  transition: width 80ms ease-out;
-}
 
 /* Each node — number lives inside */
-.tasting-step-node {
-  position: absolute;
-  transform: translateX(-50%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: var(--tea-surface);
-  border: 1px solid var(--tea-border);
-  pointer-events: none;
-  transition: background 120ms ease, border-color 120ms ease, width 120ms ease, height 120ms ease, border-radius 120ms ease, box-shadow 120ms ease;
-}
-
-.tasting-step-node-filled {
-  background: rgb(var(--tea-gold-rgb) / 0.12);
-  border-color: rgb(var(--tea-gold-rgb) / 0.3);
-}
-
-.tasting-step-node-active {
-  width: 30px;
-  height: 30px;
-  border-radius: 15px;
-  background: var(--tea-gold);
-  border-color: var(--tea-gold);
-  box-shadow: 0 2px 8px rgb(var(--tea-gold-rgb) / 0.35);
-}
-
-.tasting-step-number {
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums lining-nums;
-  font-size: 10px;
-  line-height: 1;
-  color: var(--tea-text-dim);
-  opacity: 0.5;
-  transition: opacity 120ms ease, color 120ms ease, font-size 120ms ease, font-weight 120ms ease;
-}
-
-.tasting-step-node-filled .tasting-step-number {
-  opacity: 0.8;
-  color: rgb(var(--tea-gold-rgb) / 0.85);
-}
-
-.tasting-step-node-active .tasting-step-number {
-  font-size: 13px;
-  font-weight: 700;
-  opacity: 1;
-  color: var(--tea-bg);
-}
 
 /* ── Legacy slider (kept for any remaining references) ── */
-.tasting-slider-track {
-  position: relative;
-  height: 4px;
-  border-radius: 2px;
-  background: var(--tea-border);
-  cursor: pointer;
-  touch-action: none;
-}
-
-.tasting-slider-fill {
-  position: absolute;
-  left: 0;
-  top: 0;
-  height: 100%;
-  border-radius: 2px;
-  background: linear-gradient(90deg, rgb(var(--tea-gold-rgb) / 0.4), var(--tea-gold));
-  pointer-events: none;
-  transition: width 60ms ease-out;
-}
-
-.tasting-slider-thumb {
-  position: absolute;
-  top: 50%;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: var(--tea-gold);
-  transform: translate(-50%, -50%);
-  box-shadow:
-    0 1px 4px rgba(0, 0, 0, 0.3),
-    0 0 0 3px rgb(var(--tea-gold-rgb) / 0.12);
-  transition: box-shadow 150ms ease;
-  cursor: grab;
-  touch-action: none;
-}
-
-.tasting-slider-thumb:active {
-  cursor: grabbing;
-  box-shadow:
-    0 1px 6px rgba(0, 0, 0, 0.4),
-    0 0 0 5px rgb(var(--tea-gold-rgb) / 0.18);
-}
-
-.tasting-slider-ticks {
-  display: flex;
-  justify-content: space-between;
-  padding: 0 2px;
-  margin-top: 6px;
-}
-
-.tasting-slider-tick {
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums lining-nums;
-  font-size: 11px;
-  color: var(--tea-text-dim);
-  opacity: 0.5;
-  width: 14px;
-  text-align: center;
-}
-
-.tasting-slider-tick-active {
-  opacity: 1;
-  color: var(--tea-gold);
-}
-
-.light .tasting-slider-track {
-  background: rgb(var(--tea-gold-rgb) / 0.12);
-}
-
-.light .tasting-slider-thumb {
-  box-shadow:
-    0 1px 3px rgba(0, 0, 0, 0.15),
-    0 0 0 3px rgb(var(--tea-gold-rgb) / 0.1);
-}
 
 /* ── Capture section label ── */
-.tasting-capture-label {
-  font-family: var(--font-display);
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.16em;
-  color: var(--tea-text-dim);
-}
 
 /* ── Mood pill (single-select) ── */
-.tasting-mood-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  border-radius: 20px;
-  border: none;
-  font-size: 13px;
-  font-family: var(--font-body);
-  cursor: pointer;
-  transition: all 150ms ease;
-  background: transparent;
-  color: var(--tea-text-sec);
-}
-
-.tasting-mood-pill:hover:not(.tasting-mood-pill-active) {
-  background: rgb(var(--tea-gold-rgb) / 0.04);
-}
-
-.tasting-mood-pill-active {
-  background: rgb(var(--tea-gold-rgb) / 0.12);
-  color: var(--tea-gold);
-}
-
-.light .tasting-mood-pill-active {
-  background: rgb(var(--tea-gold-rgb) / 0.1);
-}
 
 /* ── Hui Gan toggle ── */
-.tasting-huigan-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 14px 20px;
-  border-radius: 12px;
-  border: none;
-  font-size: 14px;
-  font-family: var(--font-body);
-  cursor: pointer;
-  transition: all 200ms ease;
-  background: var(--tea-surface);
-  color: var(--tea-text-sec);
-  letter-spacing: 0.01em;
-}
-
-.tasting-huigan-toggle-active {
-  background: rgb(var(--tea-gold-rgb) / 0.14);
-  color: var(--tea-gold);
-  box-shadow:
-    0 0 0 1px rgb(var(--tea-gold-rgb) / 0.25),
-    0 0 24px rgb(var(--tea-gold-rgb) / 0.12),
-    inset 0 1px 0 rgb(var(--tea-gold-rgb) / 0.2);
-}
 
 /* ── Flavor family card ── */
-.tasting-flavor-family {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
-  border-radius: 8px;
-  border: none;
-  cursor: pointer;
-  transition: all 150ms ease;
-  background: transparent;
-  color: var(--tea-text-sec);
-  font-family: var(--font-body);
-  font-size: 13px;
-}
-
-.tasting-flavor-family:hover:not(.tasting-flavor-family-active) {
-  background: rgb(var(--tea-gold-rgb) / 0.03);
-}
-
-.tasting-flavor-family-active {
-  background: rgb(var(--tea-gold-rgb) / 0.10);
-  color: var(--tea-gold);
-}
-
-.light .tasting-flavor-family-active {
-  background: rgb(var(--tea-gold-rgb) / 0.08);
-}
 
 /* ── Voice note field ── */
 .tasting-voice-field {
@@ -2814,53 +1776,12 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 
 /* ── Sub-terms expansion ── */
-.tasting-subterms {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  padding: 8px 12px 10px;
-  background: rgb(var(--tea-gold-rgb) / 0.03);
-  border-radius: 0 0 8px 8px;
-  margin-top: -4px;
-}
-
-.light .tasting-subterms {
-  background: rgb(var(--tea-gold-rgb) / 0.02);
-}
 
 /* ============================================
    Magazine Card — Elevated Cover Page
    ============================================ */
 
-.magazine-card-shadow {
-  box-shadow:
-    0 2px 8px rgba(0, 0, 0, 0.25),
-    0 8px 24px rgba(0, 0, 0, 0.15),
-    0 1px 2px rgba(0, 0, 0, 0.2);
-  transition: box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.group:hover .magazine-card-shadow {
-  box-shadow:
-    0 8px 24px rgba(0, 0, 0, 0.3),
-    0 16px 48px rgba(0, 0, 0, 0.2),
-    0 2px 4px rgba(0, 0, 0, 0.25);
-}
-
 /* Hero card variant */
-.magazine-card-hero .magazine-card-shadow {
-  box-shadow:
-    0 4px 16px rgba(0, 0, 0, 0.3),
-    0 16px 48px rgba(0, 0, 0, 0.2),
-    0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-.magazine-card-hero:hover .magazine-card-shadow {
-  box-shadow:
-    0 12px 32px rgba(0, 0, 0, 0.35),
-    0 24px 64px rgba(0, 0, 0, 0.25),
-    0 2px 6px rgba(0, 0, 0, 0.3);
-}
 
 /* ============================================
    Page Header Tabs — Navigation Tab System
@@ -2871,81 +1792,8 @@ input[type="number"]::-webkit-outer-spin-button {
    ============================================ */
 
 /* Inactive tab — intentionally dim to contrast with active */
-.page-header-tab {
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.25em;
-  color: var(--tea-text-dim);
-  background: transparent;
-  border: none;
-  padding: 1rem 0;
-  cursor: pointer;
-  position: relative;
-  transition: color 300ms ease;
-}
-
-.page-header-tab:hover {
-  color: var(--tea-text-sec);
-}
 
 /* Active tab — gold underline bar, full text color */
-.page-header-tab-active {
-  color: var(--tea-text);
-  font-weight: 500;
-}
-
-.page-header-tab-active::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  height: 1.5px;
-  background: var(--tea-gold);
-  border-radius: 1px;
-}
-
-/* ============================================
-   Quantity Preset Buttons
-   Used on ProductPage gram selector row.
-   Selected state uses accent background + gold text
-   rather than a solid gold fill (gold = CTA, not selection).
-   ============================================ */
-
-.quantity-preset {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: 1;
-  padding: 0.375rem 0;
-  font-size: 0.75rem;
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums lining-nums;
-  border-radius: 2px;
-  border: 1px solid var(--tea-border);
-  background: var(--tea-accent-sub);
-  color: var(--tea-text-sec);
-  cursor: pointer;
-  transition: all 150ms ease;
-}
-
-.quantity-preset:hover:not(.active):not([aria-pressed="true"]) {
-  border-color: rgb(var(--tea-gold-rgb) / 0.3);
-  color: var(--tea-text);
-}
-
-.quantity-preset.active,
-.quantity-preset[aria-pressed="true"] {
-  background: var(--tea-accent-sub);
-  color: var(--tea-gold);
-  border-color: var(--tea-gold);
-  font-weight: 600;
-}
-
-.light .quantity-preset.active,
-.light .quantity-preset[aria-pressed="true"] {
-  background: rgb(var(--tea-gold-rgb) / 0.08);
-}
 
 /* ── Magazine Page Reader ───────────────────────────────── */
 @keyframes breath {
