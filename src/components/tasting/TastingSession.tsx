@@ -153,11 +153,13 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
     body: 0, state: 0, flavor: 0, appearance: 0,
   });
 
-  // NOTE tab press-and-hold: hold-to-record (silent capture), tap-to-toggle panel.
+  // NOTE tab press-and-hold: hold (>=150ms) starts silent capture; release or
+  // a subsequent tap stops it. Short press (<150ms) toggles the panel.
   const noteTabHoldTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const noteTabPressStartRef = useRef<number | null>(null);
   const noteTabRecordingStartedRef = useRef(false);
-  const HOLD_THRESHOLD_MS = 220;
+  const noteTabHandledInDownRef = useRef(false);
+  const HOLD_THRESHOLD_MS = 150;
 
   const pushSilentNote = useCallback((text: string) => {
     const trimmed = text.trim();
@@ -649,6 +651,14 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                     aria-label="Notes — tap to open, hold to record"
                     onPointerDown={(e) => {
                       e.preventDefault();
+                      // If already recording (e.g. from a previous hold that
+                      // left the finger up), any tap stops it.
+                      if (silentVoice.state === 'recording') {
+                        silentVoice.stop();
+                        noteTabHandledInDownRef.current = true;
+                        return;
+                      }
+                      noteTabHandledInDownRef.current = false;
                       noteTabPressStartRef.current = Date.now();
                       noteTabRecordingStartedRef.current = false;
                       noteTabHoldTimerRef.current = setTimeout(() => {
@@ -657,11 +667,16 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                       }, HOLD_THRESHOLD_MS);
                     }}
                     onPointerUp={() => {
+                      if (noteTabHandledInDownRef.current) {
+                        noteTabHandledInDownRef.current = false;
+                        return;
+                      }
                       if (noteTabHoldTimerRef.current) {
                         clearTimeout(noteTabHoldTimerRef.current);
                         noteTabHoldTimerRef.current = null;
                       }
                       if (noteTabRecordingStartedRef.current) {
+                        // Release-to-stop — the natural hold gesture's end.
                         silentVoice.stop();
                       } else {
                         setShowNote(v => !v);
@@ -677,6 +692,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                       if (noteTabRecordingStartedRef.current) silentVoice.stop();
                       noteTabPressStartRef.current = null;
                       noteTabRecordingStartedRef.current = false;
+                      noteTabHandledInDownRef.current = false;
                     }}
                     onPointerLeave={() => {
                       if (noteTabHoldTimerRef.current) {

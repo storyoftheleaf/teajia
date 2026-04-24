@@ -114,28 +114,40 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ notes, onChange }) => {
                 <motion.div
                   key={note.id}
                   layout
-                  initial={{ opacity: 0, y: 6 }}
+                  initial={{ opacity: 0, y: 4 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, x: 8 }}
-                  transition={{ duration: 0.18 }}
-                  className={`rounded-xl p-3 transition-colors ${starred ? 'bg-tea-gold/10' : 'bg-tea-surface'}`}
+                  transition={{ duration: 0.16 }}
+                  className={`rounded-lg pl-3 pr-1 py-1 flex items-start gap-2 transition-colors ${starred ? 'bg-tea-gold/10' : 'bg-tea-surface'}`}
                 >
                   <textarea
                     value={getText(note)}
                     onChange={e => setLocalText(s => ({ ...s, [note.id]: e.target.value }))}
                     onBlur={() => commitText(note.id)}
-                    rows={Math.max(2, Math.ceil(getText(note).length / 48))}
-                    className="w-full bg-transparent border-none outline-none resize-none text-sm text-tea-text leading-relaxed placeholder-tea-text-dim focus:ring-0"
-                    style={{ fontFamily: 'var(--font-body)' }}
+                    onInput={(e) => {
+                      const el = e.currentTarget;
+                      el.style.height = 'auto';
+                      el.style.height = `${el.scrollHeight}px`;
+                    }}
+                    ref={(el) => {
+                      if (el) {
+                        // Autosize on mount/update
+                        el.style.height = 'auto';
+                        el.style.height = `${el.scrollHeight}px`;
+                      }
+                    }}
+                    rows={1}
+                    className="flex-1 bg-transparent border-none outline-none resize-none text-[14px] text-tea-text leading-[1.45] placeholder-tea-text-dim focus:ring-0 py-1.5"
+                    style={{ fontFamily: 'var(--font-body)', fieldSizing: 'content' as any, minHeight: '24px' }}
                   />
-                  <div className="flex items-center justify-end gap-1 mt-1">
+                  <div className="flex items-center shrink-0 py-1">
                     <button
                       type="button"
                       onClick={() => remove(note.id)}
                       aria-label="Delete note"
                       className="p-1.5 text-tea-text-dim hover:text-red-400 transition-colors"
                     >
-                      <Trash2 size={13} strokeWidth={1.5} />
+                      <Trash2 size={12} strokeWidth={1.5} />
                     </button>
                     <button
                       type="button"
@@ -144,7 +156,7 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ notes, onChange }) => {
                       aria-label={starred ? 'Unstar — retract from product' : 'Star — publish to product'}
                       className={`p-1.5 transition-colors ${starred ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
                     >
-                      <Star size={15} fill={starred ? 'currentColor' : 'none'} strokeWidth={1.5} />
+                      <Star size={13} fill={starred ? 'currentColor' : 'none'} strokeWidth={1.5} />
                     </button>
                   </div>
                 </motion.div>
@@ -154,8 +166,13 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ notes, onChange }) => {
         </AnimatePresence>
       </div>
 
-      {/* Input row — type or record */}
-      <div className="shrink-0 border-t border-tea-border">
+      {/* Input row — permanently anchored at the bottom of the panel */}
+      <div
+        className="shrink-0 border-t border-tea-border bg-tea-bg"
+        style={{
+          boxShadow: '0 -4px 12px rgba(24,19,14,0.2)',
+        }}
+      >
         <div className="tasting-voice-field">
           {recState === 'recording' ? (
             <div className="flex-1 flex items-center px-3 py-2.5">
