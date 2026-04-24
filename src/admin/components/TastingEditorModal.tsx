@@ -47,9 +47,12 @@ export const TastingEditorModal: React.FC<TastingEditorModalProps> = ({
         );
       });
 
-      // Optimistically patch the public storefront cache too, so toggling a
-      // star (on or off) reflects on the card immediately — even while the
-      // 10s edge cache still serves stale JSON to fresh fetches.
+      // Optimistically patch the public storefront cache so toggling a star
+      // (on or off) reflects on the card immediately. We intentionally do NOT
+      // invalidate-and-refetch here: the public endpoint has a ~10s CDN edge
+      // cache, so a refetch right now would just overwrite our patch with
+      // stale JSON. The cache will reconcile naturally on the next natural
+      // refetch (window focus after staleTime, navigation, etc).
       queryClient.setQueriesData<any[]>({ queryKey: ['storefront', 'products'] }, (old) => {
         if (!Array.isArray(old)) return old;
         return old.map((item: any) =>
@@ -62,10 +65,6 @@ export const TastingEditorModal: React.FC<TastingEditorModalProps> = ({
             : item
         );
       });
-
-      // Refetch in the background so eventual reality catches up with the
-      // optimistic patch once the edge cache expires.
-      queryClient.invalidateQueries({ queryKey: ['storefront', 'products'] });
 
       const derivedMood = deriveMoodFromFeeling(tastingData);
       showToast('Tasting profile saved', 'success');
