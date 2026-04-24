@@ -111,13 +111,8 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ notes, onChange }) => {
             notes.map(note => {
               const starred = !!note.starred;
               return (
-                <motion.div
+                <div
                   key={note.id}
-                  layout
-                  initial={{ opacity: 0, y: 4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, x: 8 }}
-                  transition={{ duration: 0.16 }}
                   className={`rounded-lg pl-3 pr-1 py-1 flex items-start gap-2 transition-colors ${starred ? 'bg-tea-gold/10' : 'bg-tea-surface'}`}
                 >
                   <textarea
@@ -129,13 +124,6 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ notes, onChange }) => {
                       el.style.height = 'auto';
                       el.style.height = `${el.scrollHeight}px`;
                     }}
-                    ref={(el) => {
-                      if (el) {
-                        // Autosize on mount/update
-                        el.style.height = 'auto';
-                        el.style.height = `${el.scrollHeight}px`;
-                      }
-                    }}
                     rows={1}
                     className="flex-1 bg-transparent border-none outline-none resize-none text-[14px] text-tea-text leading-[1.45] placeholder-tea-text-dim focus:ring-0 py-1.5"
                     style={{ fontFamily: 'var(--font-body)', fieldSizing: 'content' as any, minHeight: '24px' }}
@@ -143,7 +131,8 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ notes, onChange }) => {
                   <div className="flex items-center shrink-0 py-1">
                     <button
                       type="button"
-                      onClick={() => remove(note.id)}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={(e) => { e.stopPropagation(); remove(note.id); }}
                       aria-label="Delete note"
                       className="p-1.5 text-tea-text-dim hover:text-red-400 transition-colors"
                     >
@@ -151,7 +140,8 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ notes, onChange }) => {
                     </button>
                     <button
                       type="button"
-                      onClick={() => toggleStar(note.id)}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={(e) => { e.stopPropagation(); toggleStar(note.id); }}
                       aria-pressed={starred}
                       aria-label={starred ? 'Unstar — retract from product' : 'Star — publish to product'}
                       className={`p-1.5 transition-colors ${starred ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
@@ -159,7 +149,7 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ notes, onChange }) => {
                       <Star size={13} fill={starred ? 'currentColor' : 'none'} strokeWidth={1.5} />
                     </button>
                   </div>
-                </motion.div>
+                </div>
               );
             })
           )}
