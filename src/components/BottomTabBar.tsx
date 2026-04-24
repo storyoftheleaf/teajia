@@ -15,6 +15,7 @@ interface BottomTabBarProps {
   onNavigate: (section: Section) => void;
   hidden?: boolean;
   onAccountClick?: () => void;
+  onAccountClose?: () => void;
   onSearchClick?: () => void;
   onSearchClose?: () => void;
   isAdminRoute?: boolean;
@@ -25,12 +26,15 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
   onNavigate,
   hidden = false,
   onAccountClick,
+  onAccountClose,
   onSearchClick,
   onSearchClose,
   isAdminRoute = false,
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  // Derive admin route state from location — same value as the `isAdminRoute` prop,
+  // using one authoritative source to avoid split-brain if prop is ever stale.
   const isOnAdmin = location.pathname.startsWith('/admin');
 
   const { activeAccount, upcomingEventsCount } = useAppStore();
@@ -67,15 +71,19 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
   const renderAdminTabButton = (tab: AdminTab, index: number) => {
     const isActive = location.pathname === tab.path || location.pathname.startsWith(tab.path + '/');
     return (
-      <button
+      <motion.button
         key={tab.id}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: index * 0.05, duration: 0.25, ease: 'easeOut' }}
         onClick={() => {
           if ('vibrate' in navigator) { navigator.vibrate?.(10); }
           onSearchClose?.();
+          onAccountClose?.();
           navigate(tab.path);
         }}
-        className="flex-1 w-full min-w-0 h-full flex items-center justify-center relative transition-all duration-200 group animate-[fadeIn_0.5s_ease-out] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none"
-        style={{ animationDelay: `${index * 50}ms`, WebkitTouchCallout: 'none', WebkitUserSelect: 'none', touchAction: 'manipulation' }}
+        className="flex-1 w-full min-w-0 h-full flex items-center justify-center relative transition-all duration-200 group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none"
+        style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', touchAction: 'manipulation' }}
         title={tab.label}
         aria-current={isActive ? 'page' : undefined}
         aria-label={tab.label}
@@ -92,7 +100,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
         >
           {tab.label.toLowerCase()}
         </motion.span>
-      </button>
+      </motion.button>
     );
   };
 
@@ -100,20 +108,15 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
     delay: 500,
     onLongPress: () => {
       if ('vibrate' in navigator) { navigator.vibrate?.(20); }
-      if (isAdminRoute) {
+      if (isOnAdmin) {
         navigate('/');
       } else {
         navigate('/admin');
       }
     },
     onClick: () => {
-      if (isAdminRoute) {
-        onAccountClick?.();
-        return;
-      }
       if (isOnAdmin) {
-        navigate('/');
-        onNavigate('HOME');
+        onAccountClick?.();
         return;
       }
       onNavigate('HOME');
@@ -132,11 +135,14 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
   ];
 
   const renderTabButton = (section: { id: Section; label: string }, index: number) => {
-    const isActive = activeSection === section.id;
+    const isActive = !isOnAdmin && activeSection === section.id;
 
     return (
-      <button
+      <motion.button
         key={section.id}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: index * 0.05, duration: 0.25, ease: 'easeOut' }}
         onClick={() => {
           if ('vibrate' in navigator) { navigator.vibrate?.(10); }
           onSearchClose?.();
@@ -146,8 +152,8 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
           }
           onNavigate(section.id);
         }}
-        className="flex-1 w-full min-w-0 h-full flex items-center justify-center relative transition-all duration-200 group animate-[fadeIn_0.5s_ease-out] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none"
-        style={{ animationDelay: `${index * 50}ms`, WebkitTouchCallout: 'none', WebkitUserSelect: 'none', touchAction: 'manipulation' }}
+        className="flex-1 w-full min-w-0 h-full flex items-center justify-center relative transition-all duration-200 group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none"
+        style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', touchAction: 'manipulation' }}
         title={section.label}
         aria-current={isActive ? 'page' : undefined}
         aria-label={section.label}
@@ -164,7 +170,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
         >
           {section.label.toLowerCase()}
         </motion.span>
-      </button>
+      </motion.button>
     );
   };
 
@@ -230,11 +236,13 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
           <div className="w-px h-4 bg-tea-border self-center flex-shrink-0" />
 
           {/* Center - HOME / ADMIN HOME */}
-          <button
+          <motion.button
             {...centerLongPress}
-            className="flex-1 w-full h-full flex items-center justify-center relative transition-all duration-300 animate-[fadeIn_0.5s_ease-out] select-none"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: leftSections.length * 0.05, duration: 0.25, ease: 'easeOut' }}
+            className="flex-1 w-full h-full flex items-center justify-center relative transition-all duration-300 select-none"
             style={{
-              animationDelay: `${leftSections.length * 50}ms`,
               WebkitTouchCallout: 'none',
               WebkitUserSelect: 'none',
               touchAction: 'manipulation',
@@ -251,7 +259,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
                 className="transition-all duration-300 pointer-events-none"
               />
             </span>
-          </button>
+          </motion.button>
 
           <div className="w-px h-4 bg-tea-border self-center flex-shrink-0" />
 

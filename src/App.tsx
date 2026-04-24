@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
-import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import { Routes, Route, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { AnimatePresence, motion, MotionConfig } from 'framer-motion';
 
 // Reload once on stale chunk hash (happens after a new deployment)
@@ -24,11 +24,28 @@ const Reader = lazy(() => import('./components/Reader').then(m => ({ default: m.
 const MagazinePageReader = lazy(() => import('./components/MagazinePageReader').then(m => ({ default: m.MagazinePageReader })));
 const VisualFeatureViewer = lazy(() => import('./components/PhotoEssay/VisualFeatureViewer').then(m => ({ default: m.VisualFeatureViewer })));
 const Shop = lazyWithReload(() => import('./components/Shop').then(m => ({ default: m.Shop })));
+
+// Reads :id from the URL and passes it to Shop so the AlcoveModal opens for
+// that product. Defined at module level so React treats it as a stable type.
+const ShopProductLoader: React.FC<{
+  teaInventory: InventoryItem[];
+  teawareInventory: InventoryItem[];
+  onAddToCart: (item: InventoryItem, qty: number, total: number) => void;
+  cartItemCount?: number;
+  onCartClick?: () => void;
+  onAccountClick?: () => void;
+  isLoading?: boolean;
+  isError?: boolean;
+  error?: Error | null;
+  onRetry?: () => void;
+}> = (props) => {
+  const { id } = useParams<{ id: string }>();
+  return <Shop {...props} initialProductId={id} />;
+};
 const SharedCollection = lazy(() => import('./components/SharedCollection').then(m => ({ default: m.SharedCollection })));
 const EventLanding = lazy(() => import('./components/events/EventLanding'));
 const EventRecapPage = lazy(() => import('./pages/EventRecapPage'));
 const GuestManagement = lazy(() => import('./components/events/GuestManagement'));
-const ProductPage = lazy(() => import('./pages/ProductPage'));
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
 const OrderStatusPage = lazy(() => import('./pages/OrderStatusPage'));
 const JourneyPage = lazy(() => import('./pages/JourneyPage'));
@@ -97,6 +114,7 @@ import { SectionSkeleton } from './components/shared/SectionSkeleton';
 import { PullToRefreshIndicator } from './components/shared/PullToRefreshIndicator';
 import { NetworkStatus } from './components/shared/NetworkStatus';
 import { SessionExpiredNotice } from './components/shared/SessionExpiredNotice';
+import { NetworkErrorNotice } from './components/shared/NetworkErrorNotice';
 import { PreloadIndicator } from './components/shared/PreloadIndicator';
 import { CartFlyAnimation } from './components/shared/CartFlyAnimation';
 import { CartToast } from './components/shared/CartToast';
@@ -537,7 +555,7 @@ const AppContent = () => {
   const isAdminRoute = location.pathname.startsWith('/admin');
 
   return (
-    <div className="min-h-screen bg-tea-bg text-tea-text relative selection:bg-tea-gold selection:text-white overflow-x-hidden font-serif flex flex-col lg:flex-row transition-colors duration-300 pt-[env(safe-area-inset-top)]">
+    <div className={`${isAdminRoute ? 'h-screen overflow-hidden' : 'min-h-screen'} bg-tea-bg text-tea-text relative selection:bg-tea-gold selection:text-white overflow-x-hidden font-serif flex flex-col lg:flex-row transition-colors duration-300 pt-[env(safe-area-inset-top)]`}>
 
       <div className="texture-overlay"></div>
       <div className="fixed inset-0 grain-texture pointer-events-none opacity-[0.20] z-0"></div>
@@ -636,8 +654,10 @@ const AppContent = () => {
                 } />
                 <Route path="/shop/product/:id" element={
                   <ErrorBoundary>
-                    <Suspense fallback={<SectionSkeleton variant="hero" />}>
-                      <ProductPage onAddToCart={handleAddToCart} />
+                    <Suspense fallback={<SectionSkeleton variant="list" />}>
+                      <div className="w-full animate-[fadeIn_0.5s_ease-out]">
+                        <ShopProductLoader teaInventory={teaInventory} teawareInventory={teawareInventory} onAddToCart={handleAddToCart} cartItemCount={cart.length} onCartClick={handleOpenCart} onAccountClick={handleOpenAccount} isLoading={inventoryLoading} isError={inventoryError} error={inventoryErrorObj} onRetry={refetchInventory} />
+                      </div>
                     </Suspense>
                   </ErrorBoundary>
                 } />
@@ -728,7 +748,7 @@ const AppContent = () => {
                     <h1 className="text-6xl font-serif text-tea-gold mb-4">404</h1>
                     <p className="text-xl font-serif text-tea-text mb-2">Page not found</p>
                     <p className="text-sm text-tea-text-sec mb-8 max-w-md">The page you're looking for doesn't exist or may have been moved.</p>
-                    <button onClick={() => setActiveSection('HOME')} className="px-8 py-3 bg-tea-gold text-white text-xs uppercase tracking-[0.2em] hover:bg-tea-gold/90 transition-colors">Return Home</button>
+                    <button onClick={() => setActiveSection('HOME')} className="px-8 py-3 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.2em] hover:bg-tea-gold/90 transition-colors">Return Home</button>
                   </div>
                 } />
               </Routes>
@@ -873,7 +893,7 @@ const AppContent = () => {
 
 
       {/* Bottom Tab Bar for Mobile */}
-      <BottomTabBar activeSection={activeSection} onNavigate={handleNavSection} hidden={isCartOpen} onAccountClick={handleToggleAccount} onSearchClick={() => { window.dispatchEvent(new CustomEvent('dismiss-tasting-overlay')); setShowAccountModal(false); setAccountInitialView(undefined); setShowGlobalSearch(true); }} onSearchClose={() => setShowGlobalSearch(false)} isAdminRoute={isAdminRoute} />
+      <BottomTabBar activeSection={activeSection} onNavigate={handleNavSection} hidden={isCartOpen} onAccountClick={handleToggleAccount} onAccountClose={handleCloseAccount} onSearchClick={() => { window.dispatchEvent(new CustomEvent('dismiss-tasting-overlay')); setShowAccountModal(false); setAccountInitialView(undefined); setShowGlobalSearch(true); }} onSearchClose={() => setShowGlobalSearch(false)} isAdminRoute={isAdminRoute} />
 
       </div>
 
@@ -900,6 +920,7 @@ export default function App() {
             <InventoryProvider>
                 <NetworkStatus />
                 <SessionExpiredNotice />
+                <NetworkErrorNotice />
                 <AppContent />
             </InventoryProvider>
           </StoryProvider>

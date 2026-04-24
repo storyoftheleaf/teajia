@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { Thermometer, Droplets, Clock, RefreshCw, MessageCircle } from 'lucide-react';
+import { MessageCircle } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useInventory } from '../context/InventoryContext';
 import { useAppStore } from '../lib/store';
@@ -11,10 +11,12 @@ import { HapticSlider } from '../components/shared/HapticSlider';
 import { fmtPrice, fmtPricePerGram, fmtNum } from '../utils/formatNumber';
 import { CardImage } from '../components/shared/CardImage';
 import type { InventoryItem, TastingData } from '../types';
-import { getBrewingProfile } from '../data/brewing-profiles';
 import { buildWhatsAppUrl, buildOrderMessage } from '../lib/whatsapp';
 import { api } from '../lib/api';
 import { resolveTermLabel, flattenTastingNotes } from '../data/tastingTaxonomy';
+import { getTeaColor } from '../designTokens';
+import { ProductTastingEditorial } from '../components/tasting/ProductTastingEditorial';
+import { useProductTasting } from '../hooks/useProductTasting';
 
 // ── Feature 4: Public tea reviews section ────────────────────────────────────
 
@@ -139,10 +141,8 @@ function toTitleCase(str: string): string {
   return str.replace(/\b\w/g, c => c.toUpperCase());
 }
 
-function getStockStatus(stockG: number, isOneOfAKind?: boolean, isCurated?: boolean) {
+function getStockStatus(stockG: number) {
   if (stockG <= 0) return { label: 'Sold Out', colorClass: 'text-tea-text-dim', dotClass: 'bg-tea-text-dim', level: 'out' as const };
-  if (isCurated) return { label: 'Curated Selection', colorClass: 'text-tea-gold', dotClass: 'bg-tea-gold', level: 'limited' as const };
-  if (isOneOfAKind) return { label: 'Curated Selection', colorClass: 'text-tea-gold', dotClass: 'bg-tea-gold', level: 'limited' as const };
   if (stockG < 100) return { label: 'Low Stock', colorClass: 'text-tea-gold', dotClass: 'bg-tea-gold', level: 'low' as const };
   if (stockG < 300) return { label: 'Available', colorClass: 'text-tea-gold-lt', dotClass: 'bg-tea-gold-lt', level: 'medium' as const };
   return { label: 'In Stock', colorClass: 'text-tea-text-sec', dotClass: 'bg-tea-text-sec', level: 'ok' as const };
@@ -192,7 +192,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
         </p>
         <Link
           to="/shop"
-          className="px-8 py-3 bg-tea-gold text-white text-xs uppercase tracking-[0.2em] hover:bg-tea-gold/90 transition-colors"
+          className="px-8 py-3 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.2em] hover:bg-tea-gold/90 transition-colors"
         >
           Back to Shop
         </Link>
@@ -200,10 +200,11 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
     );
   }
 
+  const typeColor = getTeaColor(item.type);
   const pricePerGram = parseFloat(item.price_per_gram || '0');
   const sliderMax = Math.max(25, Math.floor(item.stock_g || 500));
   const total = pricePerGram * grams;
-  const stockStatus = getStockStatus(item.stock_g, item.isOneOfAKind, item.isCurated);
+  const stockStatus = getStockStatus(item.stock_g);
   const isSoldOut = stockStatus.level === 'out';
   const isFavorited = favoriteTeas.includes(item.id);
   const presets = [25, 50, 100, 250].filter(p => p <= sliderMax);
@@ -212,6 +213,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
   const introduction = item.description || '';
   const terroir = item.terroir || '';
   const processing = item.processingNotes || '';
+  const resolvedTasting = useProductTasting(item);
 
   const handleAdd = () => {
     if (isSoldOut) return;
@@ -262,7 +264,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
       <div className="mb-6">
         <Link
           to="/shop"
-          className="inline-flex items-center gap-2 text-tea-text-sec hover:text-tea-gold transition-colors text-sm"
+          className="inline-flex items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors text-sm"
         >
           <Icons.Back className="w-4 h-4" />
           <span className="uppercase tracking-[0.12em] text-xs">Back to Shop</span>
@@ -289,8 +291,28 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
                 />
               </>
             ) : (
-              <div className="w-full h-full flex items-center justify-center">
-                <TeaPlaceholder type={item.type} style={{ width: '50%', height: '50%' }} />
+              <div
+                className="w-full h-full flex flex-col items-center justify-center gap-3"
+                style={{
+                  background: `radial-gradient(ellipse 80% 60% at 50% 40%, ${typeColor}18 0%, transparent 70%)`,
+                }}
+              >
+                {item.chineseName ? (
+                  <p
+                    className="select-none pointer-events-none text-center leading-none"
+                    style={{ fontFamily: "'Ma Shan Zheng', cursive", fontSize: '5rem', color: typeColor, opacity: 0.35 }}
+                  >
+                    {item.chineseName}
+                  </p>
+                ) : (
+                  <TeaPlaceholder type={item.type} style={{ width: '32%', height: '32%', opacity: 0.2 }} />
+                )}
+                <span
+                  className="font-sans text-[10px] uppercase tracking-[0.2em]"
+                  style={{ color: typeColor, opacity: 0.4 }}
+                >
+                  {item.origin || item.type}
+                </span>
               </div>
             )}
           </div>
@@ -320,7 +342,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
             {item.variant && item.variant !== item.name ? item.name : '\u00A0'}
           </p>
           {item.chineseName && (
-            <p className="mb-2 text-tea-text-sec/30" style={{ fontFamily: "'Ma Shan Zheng', cursive", fontSize: '1.65rem' /* ~1px bump over text-2xl=1.5rem for Noto Serif SC optical correction */ }}>
+            <p className="mb-2 text-tea-text-sec/50" style={{ fontFamily: "'Ma Shan Zheng', cursive", fontSize: '1.65rem' /* ~1px bump over text-2xl=1.5rem for Noto Serif SC optical correction */ }}>
               {item.chineseName}
             </p>
           )}
@@ -343,53 +365,58 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
           </div>
 
 
-          {/* Tasting notes — prose, not pills */}
+          {/* Tasting notes — prominent sensory headline with tea type color */}
           {item.tags && item.tags.length > 0 && (
-            <div className="mb-4">
-              <span className="font-sans text-[10px] uppercase tracking-widest text-tea-text-dim mb-1.5 block">
-                Tasting Notes
-              </span>
-              <span className="font-body italic text-tea-text-sec text-sm leading-relaxed">
-                {item.tags.map(t => toTitleCase(t)).join(', ')}
-              </span>
+            <div className="mb-5">
+              <p className="font-body text-base italic leading-relaxed" style={{ color: typeColor }}>
+                {item.tags.map(t => toTitleCase(t)).join(' · ')}
+              </p>
             </div>
           )}
 
-          {/* Mood tags */}
-          {item.mood && (
+          {/* Tasting description — flavor + energy, linked through to /shop filters */}
+          {resolvedTasting ? (
+            <ProductTastingEditorial tasting={resolvedTasting.tasting} source={resolvedTasting.source} />
+          ) : item.mood ? (
             <div className="mb-4">
               <div className="flex flex-wrap gap-1.5 justify-start">
                 {(item.mood.includes(',') ? item.mood.split(',').map(t => t.trim()).filter(Boolean) : [item.mood]).map((tag, i) => (
                   <span
                     key={i}
-                    className="font-serif text-xs italic px-2.5 py-1 rounded-sm bg-tea-accent-sub text-tea-text-sec border border-tea-border tracking-wide"
+                    className="font-serif text-xs italic px-2.5 py-1 rounded-sm bg-tea-accent-sub text-tea-text-sec tracking-wide"
                   >
                     {toTitleCase(tag)}
                   </span>
                 ))}
               </div>
             </div>
+          ) : null}
+
+          {/* About — character and description */}
+          {(item.experience || introduction) && (
+            <div className="mb-5">
+              <span className="font-sans text-[10px] uppercase tracking-[0.15em] text-tea-text-dim block mb-2">About</span>
+              {item.experience && (
+                <p className="text-sm text-tea-text-sec leading-relaxed whitespace-pre-line mb-2">
+                  {item.experience}
+                </p>
+              )}
+              {introduction && (
+                <p className="text-sm text-tea-text-sec leading-relaxed whitespace-pre-line">
+                  {introduction}
+                </p>
+              )}
+            </div>
           )}
 
-          {/* Experience — personal description */}
-          {item.experience && (
-            <p className="text-sm italic text-tea-text-sec mb-4 leading-relaxed whitespace-pre-line">
-              {item.experience}
-            </p>
-          )}
-
-          {/* Introduction — Adrian's personal curator note */}
-          {introduction && (
-            <p className="text-sm italic text-tea-text-sec leading-relaxed mb-5 whitespace-pre-line">
-              {introduction}
-            </p>
-          )}
-
-          {/* Lore — historical/cultural story */}
+          {/* Story — historical/cultural context */}
           {mainStory && (
-            <p className="text-sm text-tea-text-sec leading-relaxed mb-5 whitespace-pre-line">
-              {mainStory}
-            </p>
+            <div className="mb-5">
+              <span className="font-sans text-[10px] uppercase tracking-[0.15em] text-tea-text-dim block mb-2">History</span>
+              <p className="text-sm text-tea-text-sec leading-relaxed whitespace-pre-line">
+                {mainStory}
+              </p>
+            </div>
           )}
           {terroir && (
             <div className="mb-5">
@@ -404,8 +431,8 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
             </div>
           )}
 
-          {/* Divider */}
-          <div className="border-t border-tea-border my-4" />
+          {/* Zone break — story → action */}
+          <div className="my-6" style={{ height: '1px', background: 'linear-gradient(90deg, transparent, rgba(184,146,78,0.25) 20%, rgba(184,146,78,0.35) 50%, rgba(184,146,78,0.25) 80%, transparent)' }} />
 
           {/* Pricing and stock */}
           <div className="flex items-center justify-between mb-3">
@@ -490,8 +517,8 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
                 isSoldOut
                   ? 'bg-tea-accent-sub text-tea-text-sec border border-tea-border cursor-not-allowed opacity-60'
                   : added
-                    ? 'bg-tea-green text-white border border-tea-green'
-                    : 'bg-tea-gold text-white hover:bg-tea-gold-lt border border-tea-gold'
+                    ? 'bg-tea-green text-tea-bg border border-tea-green'
+                    : 'bg-tea-gold text-tea-bg hover:bg-tea-gold-lt border border-tea-gold'
               }`}
             >
               <span>{isSoldOut ? 'Sold Out' : added ? 'Added!' : 'Add to Cart'}</span>
@@ -506,10 +533,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
 
           {/* WhatsApp checkout handoff */}
           {!isSoldOut && (
-            <div className="border-t border-tea-border pt-4 mt-4">
-              <p className="font-body italic text-tea-text-sec text-sm leading-relaxed mb-4">
-                Every order is a personal conversation. Adrian will confirm your selection and arrange delivery within 24 hours.
-              </p>
+            <div className="pt-4 mt-2">
               <button
                 onClick={() => {
                   const message = buildOrderMessage({
@@ -526,89 +550,17 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
                   });
                   window.open(buildWhatsAppUrl(WHATSAPP_NUMBER, message), '_blank');
                 }}
-                className="w-full flex items-center justify-center gap-2.5 py-3 px-4 bg-tea-gold text-tea-bg font-sans font-medium tracking-wide text-sm rounded-sm hover:bg-tea-gold-lt transition-colors duration-150 active:scale-[0.98]"
+                className="w-full flex items-center justify-center gap-2.5 py-3 px-4 border border-tea-border bg-transparent text-tea-text-sec font-sans text-sm tracking-wide rounded-sm hover:border-tea-gold/40 hover:text-tea-text transition-colors duration-150 active:scale-[0.98]"
               >
-                <MessageCircle className="w-4 h-4" strokeWidth={2} />
+                <MessageCircle className="w-4 h-4" strokeWidth={1.5} />
                 Order via WhatsApp
               </button>
+              <p className="font-body text-[11px] text-tea-text-dim text-center leading-relaxed mt-2.5">
+                Personal conversation · Adrian confirms within 24 hours
+              </p>
             </div>
           )}
 
-          {/* Brewing profile — tea products only */}
-          {item.category === 'tea' && (() => {
-            const profile = getBrewingProfile(item.type);
-            if (!profile) return null;
-            return (
-              <div className="mt-4 pt-4 border-t border-tea-border">
-                <h3 className="font-sans text-[11px] uppercase tracking-[0.15em] text-tea-gold mb-3">
-                  How to Brew
-                </h3>
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  <div className="bg-tea-surface rounded-lg p-3 flex flex-col items-center text-center gap-1">
-                    <Thermometer className="w-4 h-4 text-tea-text-dim mb-0.5" strokeWidth={1.5} />
-                    <span className="font-mono text-sm text-tea-text leading-tight">{profile.waterTemp}</span>
-                    <span className="font-sans text-[10px] uppercase tracking-widest text-tea-text-dim">Temp</span>
-                  </div>
-                  <div className="bg-tea-surface rounded-lg p-3 flex flex-col items-center text-center gap-1">
-                    <Droplets className="w-4 h-4 text-tea-text-dim mb-0.5" strokeWidth={1.5} />
-                    <span className="font-mono text-sm text-tea-text leading-tight">{profile.leafRatio}</span>
-                    <span className="font-sans text-[10px] uppercase tracking-widest text-tea-text-dim">Ratio</span>
-                  </div>
-                  <div className="bg-tea-surface rounded-lg p-3 flex flex-col items-center text-center gap-1">
-                    <Clock className="w-4 h-4 text-tea-text-dim mb-0.5" strokeWidth={1.5} />
-                    <span className="font-mono text-sm text-tea-text leading-tight">{profile.steepTime}</span>
-                    <span className="font-sans text-[10px] uppercase tracking-widest text-tea-text-dim">Time</span>
-                  </div>
-                  <div className="bg-tea-surface rounded-lg p-3 flex flex-col items-center text-center gap-1">
-                    <RefreshCw className="w-4 h-4 text-tea-text-dim mb-0.5" strokeWidth={1.5} />
-                    <span className="font-mono text-sm text-tea-text leading-tight">{profile.infusions}</span>
-                    <span className="font-sans text-[10px] uppercase tracking-widest text-tea-text-dim">Steeps</span>
-                  </div>
-                </div>
-                {profile.notes && (
-                  <p className="mt-3 text-[11px] text-tea-text-dim leading-relaxed italic border-l border-tea-border pl-3">
-                    {profile.notes}
-                  </p>
-                )}
-              </div>
-            );
-          })()}
-
-          {/* Adrian's session brewing guide — shown when product has tasting with brewing params */}
-          {item.category === 'tea' && (() => {
-            const tasting = (item as InventoryItem & { tasting?: TastingData }).tasting;
-            if (!tasting?.brewingVessel && !tasting?.brewingTemp && !tasting?.brewingTime) return null;
-            return (
-              <div className="mt-4 pt-4 border-t border-tea-border">
-                <h3 className="font-sans text-[11px] uppercase tracking-[0.15em] text-tea-gold mb-1">
-                  Adrian's Session
-                </h3>
-                <p className="text-[10px] text-tea-text-dim italic mb-3">
-                  How this tea was brewed during tasting
-                </p>
-                <div className="grid grid-cols-3 gap-2">
-                  {tasting.brewingVessel && (
-                    <div className="bg-tea-surface rounded-lg p-3 flex flex-col items-center text-center gap-1">
-                      <span className="font-mono text-sm text-tea-text leading-tight">{tasting.brewingVessel}</span>
-                      <span className="font-sans text-[10px] uppercase tracking-widest text-tea-text-dim">Vessel</span>
-                    </div>
-                  )}
-                  {tasting.brewingTemp != null && (
-                    <div className="bg-tea-surface rounded-lg p-3 flex flex-col items-center text-center gap-1">
-                      <span className="font-mono text-sm text-tea-text leading-tight">{tasting.brewingTemp}°C</span>
-                      <span className="font-sans text-[10px] uppercase tracking-widest text-tea-text-dim">Temp</span>
-                    </div>
-                  )}
-                  {tasting.brewingTime && (
-                    <div className="bg-tea-surface rounded-lg p-3 flex flex-col items-center text-center gap-1">
-                      <span className="font-mono text-sm text-tea-text leading-tight">{tasting.brewingTime}</span>
-                      <span className="font-sans text-[10px] uppercase tracking-widest text-tea-text-dim">Time</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })()}
         </div>
       </div>
 
@@ -692,9 +644,8 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
       {/* Sticky mobile add-to-cart bar */}
       {!isSoldOut && (
         <div
-          className="fixed left-0 right-0 md:hidden z-sticky px-4 pb-2 pointer-events-none transition-transform duration-300 ease-in-out"
+          className="fixed left-0 right-0 bottom-nav md:hidden z-sticky px-4 pb-2 pointer-events-none transition-transform duration-300 ease-in-out"
           style={{
-            bottom: 'calc(44px + env(safe-area-inset-bottom, 0px))',
             transform: stickyVisible ? 'translateY(0)' : 'translateY(calc(100% + 16px))',
           }}
         >
@@ -707,8 +658,8 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
               onClick={handleAdd}
               className={`px-5 py-2.5 rounded-sm text-xs uppercase tracking-[0.1em] font-medium transition-all active:scale-[0.98] flex-shrink-0 ${
                 added
-                  ? 'bg-tea-green text-white'
-                  : 'bg-tea-gold text-white hover:bg-tea-gold-lt'
+                  ? 'bg-tea-green text-tea-bg'
+                  : 'bg-tea-gold text-tea-bg hover:bg-tea-gold-lt'
               }`}
             >
               {added ? 'Added!' : 'Add'}

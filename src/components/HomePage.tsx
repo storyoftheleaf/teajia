@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import { LogoEmblem } from './Logos/LogoEmblem';
 import { LogoText } from './Logos/LogoText';
 import { api } from '../lib/api';
+import { useAppStore } from '../lib/store';
 
 // Track across mounts — animation plays once per session
 let hasAnimated = false;
@@ -21,15 +22,86 @@ interface HomePageProps {
   cartItemCount?: number;
 }
 
-/** Character reveal + email capture — scroll-driven, reversible */
-const CharacterRevealCapture: React.FC = () => {
-  const sectionRef = useRef<HTMLDivElement>(null);
-  const [progress, setProgress] = useState(0);
-  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+/** Email capture form — used in Act 2 */
+const EmailCapture: React.FC = () => {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = email.trim();
+    if (!trimmed) return;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      setError('please enter a valid email.');
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      await api.newsletter.subscribe(trimmed);
+      setEmail('');
+      setSubmitted(true);
+    } catch {
+      setError('something went wrong — try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (submitted) {
+    return (
+      <p className="text-base font-light text-tea-gold" style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.04em' }}>
+        you're on the list.
+      </p>
+    );
+  }
+
+  return (
+    <>
+      <form onSubmit={handleSubmit} className="w-full relative">
+        <input
+          type="email"
+          value={email}
+          onChange={e => setEmail(e.target.value)}
+          placeholder="your email"
+          disabled={loading}
+          className="w-full bg-transparent text-base font-light text-center text-tea-text outline-none pb-2.5 pl-7 pr-10 transition-colors placeholder:italic placeholder:text-tea-text-dim disabled:opacity-50"
+          style={{
+            fontFamily: 'var(--font-display)',
+            border: 'none',
+            borderBottom: '1px solid rgb(var(--tea-gold-rgb) / 0.25)',
+            borderRadius: 0,
+            letterSpacing: '0.04em',
+          }}
+          onFocus={e => { e.currentTarget.style.borderBottomColor = 'rgb(var(--tea-gold-rgb) / 0.5)'; }}
+          onBlur={e => { e.currentTarget.style.borderBottomColor = 'rgb(var(--tea-gold-rgb) / 0.25)'; }}
+        />
+        <button
+          type="submit"
+          disabled={loading}
+          className="absolute right-0 bottom-0 w-11 h-11 flex items-center justify-center bg-transparent border-none cursor-pointer transition-colors duration-300 text-tea-text-dim hover:text-tea-gold disabled:opacity-50"
+          aria-label="Submit email"
+        >
+          <svg width="18" height="18" viewBox="0 0 16 16" fill="none">
+            <path d="M3 8h10M10 4.5L13.5 8 10 11.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+      </form>
+      {error && (
+        <p className="mt-2 text-xs text-tea-text-dim" style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.04em' }}>{error}</p>
+      )}
+    </>
+  );
+};
+
+/** Character reveal + email + doors — fully scroll-driven, all inside fixed overlay */
+const CharacterRevealCapture: React.FC = () => {
+  const sectionRef = useRef<HTMLDivElement>(null);
+  const [progress, setProgress] = useState(0);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const sidebarCollapsed = useAppStore(s => s.sidebarCollapsed);
 
   useEffect(() => {
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -56,60 +128,43 @@ const CharacterRevealCapture: React.FC = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [prefersReducedMotion]);
 
-  // Ease-out curve
   const ease = (t: number) => 1 - Math.pow(1 - t, 2.5);
 
   // 1. Logo drops from top (0% → 40%)
   const logoPosP = ease(Math.max(0, Math.min(1, progress / 0.40)));
   const logoOpacity = 0.15 + 0.85 * logoPosP;
   const logoEntryScale = 1.6 - 0.6 * logoPosP;
-  // Teaser text fades in just before characters (42% → 50%)
+  // 2. Teaser text fades in (42% → 50%)
   const teaserP = Math.max(0, Math.min(1, (progress - 0.42) / 0.08));
   // Logo grows slightly while characters come in (50% → 85%)
   const logoGrowP = Math.max(0, Math.min(1, (progress - 0.50) / 0.35));
   const logoScale = 1 + logoGrowP * 0.2;
-  // 2. 家 center scales in (50% → 60%)
+  // 3. 家 center scales in (50% → 60%)
   const centerP = ease(Math.max(0, Math.min(1, (progress - 0.50) / 0.10)));
-  // 3. 佳 left slides in (60% → 70%)
+  // 4. 佳 left slides in (60% → 70%)
   const leftP = ease(Math.max(0, Math.min(1, (progress - 0.60) / 0.10)));
-  // 4. 嘉 right slides in (70% → 80%)
+  // 5. 嘉 right slides in (70% → 80%)
   const rightP = ease(Math.max(0, Math.min(1, (progress - 0.70) / 0.10)));
-  // 5. Email rises from below (82% → 95%)
+  // 6. Email + account links rise from below (82% → 95%)
   const emailP = ease(Math.max(0, Math.min(1, (progress - 0.82) / 0.13)));
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const trimmed = email.trim();
-    if (!trimmed) return;
-    // Simple email format validation
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
-      setError('please enter a valid email.');
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    try {
-      await api.newsletter.subscribe(trimmed);
-      setEmail('');
-      setSubmitted(true);
-    } catch {
-      setError('something went wrong — try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const isVisible = progress > 0;
 
   return (
     <>
-      {/* Scroll spacer — creates the scroll distance */}
-      <div ref={sectionRef} style={{ height: '160vh' }} />
+      {/* Spacer — scroll distance for the character reveal + email sequence.
+          dvh (not vh) is critical: on iOS Safari, vh uses the large viewport
+          (address bar hidden) while window.innerHeight uses the small viewport
+          (address bar visible). Using vh makes the spacer physically taller than
+          the scroll space actually available, so progress caps at ~70% and the
+          last characters never appear. dvh tracks the actual visual viewport. */}
+      <div ref={sectionRef} id="brand-story" style={{ height: '160dvh' }} />
 
-      {/* Fixed overlay — no background, content floats over Act 1 */}
+      {/* Fixed overlay — pointer-events-none so scroll passes through; interactive children opt back in */}
       {isVisible && (
-        <div className="fixed inset-0 flex flex-col items-center justify-center px-6 z-30 pointer-events-none pt-[env(safe-area-inset-top)] pb-[calc(44px+env(safe-area-inset-bottom,0px))]">
-
+        <div
+          className={`fixed inset-0 flex flex-col items-center justify-center px-6 z-30 pointer-events-none pt-[env(safe-area-inset-top)] pb-[calc(44px+env(safe-area-inset-bottom,0px))] ${sidebarCollapsed ? 'lg:left-14' : 'lg:left-56'} transition-[left] duration-300`}
+        >
           {/* Logo — drops from top */}
           <div
             className="mb-8"
@@ -139,23 +194,18 @@ const CharacterRevealCapture: React.FC = () => {
 
           {/* Characters */}
           <div className="flex items-end justify-center gap-5 md:gap-8">
-            {/* 佳 — slides from left */}
             <div className="flex flex-col items-center" style={{ opacity: leftP, transform: `translateX(${(1 - leftP) * -60}px)` }}>
               <span className="text-[48px] sm:text-[69px] leading-none" style={{ fontFamily: "'Ma Shan Zheng', cursive", color: 'var(--tea-gold)' }}>佳</span>
               <p className="flex flex-col items-center text-[14px] md:text-[15px] tracking-[0.04em] font-light mt-3 leading-[1.4] text-tea-text-sec" style={{ fontFamily: 'var(--font-display)' }}>
                 <span>beauty</span><span>excellence</span>
               </p>
             </div>
-
-            {/* 家 — center, scales in */}
             <div className="flex flex-col items-center" style={{ opacity: centerP, transform: `scale(${centerP})` }}>
               <span className="text-[48px] sm:text-[69px] leading-none" style={{ fontFamily: "'Ma Shan Zheng', cursive", color: 'var(--tea-gold)' }}>家</span>
               <p className="flex flex-col items-center text-[14px] md:text-[15px] tracking-[0.04em] font-light mt-3 leading-[1.4] text-tea-text-sec" style={{ fontFamily: 'var(--font-display)' }}>
                 <span>home</span><span>devotion</span>
               </p>
             </div>
-
-            {/* 嘉 — slides from right */}
             <div className="flex flex-col items-center" style={{ opacity: rightP, transform: `translateX(${(1 - rightP) * 60}px)` }}>
               <span className="text-[48px] sm:text-[69px] leading-none" style={{ fontFamily: "'Ma Shan Zheng', cursive", color: 'var(--tea-gold)' }}>嘉</span>
               <p className="flex flex-col items-center text-[14px] md:text-[15px] tracking-[0.04em] font-light mt-3 leading-[1.4] text-tea-text-sec" style={{ fontFamily: 'var(--font-display)' }}>
@@ -164,40 +214,25 @@ const CharacterRevealCapture: React.FC = () => {
             </div>
           </div>
 
-          {/* Email capture */}
+          {/* Email capture + account links */}
           <div
             className="flex flex-col items-center mt-6 sm:mt-12 pointer-events-auto w-full max-w-[280px]"
             style={{ opacity: emailP, transform: `translateY(${(1 - emailP) * 20}px)` }}
           >
             <p className="text-base italic font-light text-tea-text-dim" style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.04em' }}>stay connected</p>
             <p className="text-base italic font-light mt-1 text-tea-text-sec" style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.04em' }}>it's nothing without you</p>
-            {submitted ? (
-              <p className="mt-4 text-base font-light text-tea-gold" style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.04em' }}>you're on the list.</p>
-            ) : (
-              <>
-                <form onSubmit={handleSubmit} className="w-full relative mt-3">
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={e => setEmail(e.target.value)}
-                    placeholder="your email"
-                    disabled={loading}
-                    className="w-full bg-transparent text-base font-light text-center text-tea-text outline-none pb-2.5 pl-7 pr-10 transition-colors placeholder:italic placeholder:text-tea-text-dim disabled:opacity-50"
-                    style={{ fontFamily: 'var(--font-display)', border: 'none', borderBottom: '1px solid rgb(var(--tea-gold-rgb) / 0.25)', borderRadius: 0, letterSpacing: '0.04em' }}
-                    onFocus={e => { e.currentTarget.style.borderBottomColor = 'rgb(var(--tea-gold-rgb) / 0.5)'; }}
-                    onBlur={e => { e.currentTarget.style.borderBottomColor = 'rgb(var(--tea-gold-rgb) / 0.25)'; }}
-                  />
-                  <button type="submit" disabled={loading} className="absolute right-0 bottom-0 w-11 h-11 flex items-center justify-center bg-transparent border-none cursor-pointer transition-colors duration-300 text-tea-text-dim hover:text-tea-gold disabled:opacity-50" aria-label="Submit email">
-                    <svg width="18" height="18" viewBox="0 0 16 16" fill="none">
-                      <path d="M3 8h10M10 4.5L13.5 8 10 11.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </button>
-                </form>
-                {error && (
-                  <p className="mt-2 text-xs text-tea-text-dim" style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.04em' }}>{error}</p>
-                )}
-              </>
-            )}
+            <div className="mt-3 w-full">
+              <EmailCapture />
+            </div>
+            <p className="mt-5 text-[12px] text-tea-text-dim" style={{ fontFamily: 'var(--font-body)' }}>
+              <Link to="/signup" className="text-tea-gold/80 hover:text-tea-gold transition-colors duration-300">
+                Create an account
+              </Link>
+              {' · '}
+              <Link to="/signin" className="text-tea-gold/80 hover:text-tea-gold transition-colors duration-300">
+                Sign in
+              </Link>
+            </p>
           </div>
         </div>
       )}
@@ -234,6 +269,10 @@ export const HomePage: React.FC<HomePageProps> = ({
     handleScroll();
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  const scrollToBrandStory = () => {
+    document.getElementById('brand-story')?.scrollIntoView({ behavior: 'smooth' });
+  };
 
   return (
     <div className="flex flex-col items-center text-center">
@@ -320,44 +359,36 @@ export const HomePage: React.FC<HomePageProps> = ({
               >
                 <span className="font-semibold text-tea-gold">{item.accent}</span>
                 <span className="underline decoration-tea-gold/0 group-hover:decoration-tea-gold/30 underline-offset-[3px] transition-all duration-300">{item.rest}</span>
-                <span className="opacity-0 group-hover:opacity-60 -translate-x-1 group-hover:translate-x-0 transition-all duration-300 text-tea-gold text-xs">→</span>
+                <span className="opacity-20 group-hover:opacity-60 -translate-x-1 group-hover:translate-x-0 transition-all duration-300 text-tea-gold text-xs">→</span>
               </button>
             ))}
           </motion.div>
 
-          {/* Subtle "Start here" link for new visitors */}
+          {/* Start here — scrolls to the brand story (Act 2) */}
           <motion.div
-            className="mt-5"
+            className="mt-6"
             initial={initial({ opacity: 0 })}
             animate={{ opacity: 1 }}
             transition={shouldAnimate ? { duration: 0.5, delay: 1.0 } : { duration: 0 }}
           >
-            <Link
-              to="/start"
-              className="text-[12px] tracking-[0.12em] uppercase text-tea-text-dim hover:text-tea-text-sec transition-colors duration-300"
+            <button
+              onClick={scrollToBrandStory}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-tea-border text-[13px] tracking-[0.06em] text-tea-text-sec hover:text-tea-text hover:border-tea-gold/30 transition-all duration-300"
               style={{ fontFamily: 'var(--font-body)' }}
             >
               New here? Start here →
-            </Link>
+            </button>
           </motion.div>
         </div>
 
-        {/* Teaser + scroll cue — pulses to invite scrolling */}
+        {/* Scroll cue */}
         <motion.div
-          className="flex flex-col items-center pb-4 lg:pb-[18px] gap-4"
+          className="flex flex-col items-center pb-4 lg:pb-[18px]"
           style={{ animation: 'teaserBreath 4s ease-in-out infinite' }}
           initial={initial({ opacity: 0 })}
           animate={{ opacity: 1 }}
           transition={shouldAnimate ? { duration: 0.6, delay: 1.2 } : { duration: 0 }}
         >
-          <div className="flex flex-col items-center">
-            <p className="text-[15px] md:text-[16px] tracking-[0.06em] italic text-tea-text-sec" style={{ fontFamily: 'var(--font-body)' }}>
-              <span className="font-semibold not-italic text-tea-gold">tea</span> &middot; leaf and water
-            </p>
-            <p className="text-[14px] md:text-[15px] tracking-[0.06em] italic mt-[1px] text-tea-text-sec" style={{ fontFamily: 'var(--font-body)' }}>
-              <span className="font-semibold not-italic text-tea-gold">jiā</span> &middot; one sound, three pillars...
-            </p>
-          </div>
           <svg
             width="16" height="10" viewBox="0 0 16 10" fill="none"
             className="text-tea-gold/40"
@@ -368,7 +399,7 @@ export const HomePage: React.FC<HomePageProps> = ({
         </motion.div>
       </div>
 
-      {/* ── Act 2: Character reveal + email capture ── */}
+      {/* ── Act 2: Character reveal + welcome ── */}
       <CharacterRevealCapture />
     </div>
   );

@@ -68,6 +68,15 @@ export const MagazineIcon = ({ className, filled, style, ...props }: { className
   </svg>
 );
 
+export const SampleIcon = ({ className, style, ...props }: { className?: string, style?: React.CSSProperties } & React.SVGProps<SVGSVGElement>) => (
+  <svg viewBox="0 0 24 24" className={className} style={style} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...props}>
+    <rect x="7" y="10" width="10" height="9" rx="1.5" />
+    <path d="M7 12.5Q12 11 17 12.5" />
+    <line x1="12" y1="10" x2="12" y2="7" />
+    <rect x="10" y="4.5" width="4" height="2.5" rx="1" />
+  </svg>
+);
+
 export const ShopIcon = ({ className, filled, style, ...props }: { className?: string, filled?: boolean, style?: React.CSSProperties } & React.SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 24 24" className={className} style={style} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...props}>
     <g>
@@ -92,6 +101,7 @@ export const Icons = {
   ChevronRight,
   Seal: SealIcon,
   Leaf: TeaLeafIcon,
+  Sample: SampleIcon,
   Teapot: TeapotIcon,
   Offerings: OfferingsIcon,
   Learn: LearnIcon,

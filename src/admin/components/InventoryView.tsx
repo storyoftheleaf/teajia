@@ -35,6 +35,8 @@ import {
   SECTION_ICONS,
   type TastingCategoryId,
 } from '../../data/tastingTaxonomy';
+import { AutocompleteInput } from '../../components/TeaCompass/AutocompleteInput';
+import { buildVarietyDataMap, getTeaVarietySuggestions } from '../../data/teaVarieties';
 
 const MAINTENANCE_SQL = `-- Reset all data via API\n// Use the admin panel's reset function`;
 
@@ -267,7 +269,7 @@ const GhostTextarea = ({
             onBlur={handleBlur}
             placeholder={placeholder}
             rows={rows}
-            className={`w-full bg-transparent border border-transparent focus:border-tea-accent-sub focus:bg-tea-gold/[0.06] rounded-md py-1.5 px-2 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-all resize-none text-xs leading-relaxed whitespace-pre-line placeholder-tea-text-dim/70 min-h-[80px] overflow-hidden ${justSaved ? '!text-tea-gold' : ''} ${className}`}
+            className={`w-full bg-transparent border border-dashed border-tea-accent-sub focus:border-solid focus:border-tea-accent-sub focus:bg-tea-gold/[0.06] rounded-md py-1.5 px-2 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-all resize-none text-xs leading-relaxed whitespace-pre-line placeholder-tea-text-dim/70 min-h-[80px] overflow-hidden ${justSaved ? '!text-tea-gold' : ''} ${className}`}
         />
     );
 };
@@ -328,9 +330,70 @@ const GhostInput = ({
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
             inputMode={inputMode || (type === 'number' ? 'decimal' : undefined) as any}
-            className={`w-full bg-transparent border-b border-dashed border-tea-accent-sub/40 focus:border-solid focus:border-tea-accent-sub focus:bg-tea-gold/[0.06] rounded-none py-0 px-0 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-all text-${align} placeholder-tea-text-dim/70 leading-none ${justSaved ? '!text-tea-gold' : ''} ${className}`}
+            className={`w-full bg-transparent border-b border-dashed border-tea-accent-sub focus:border-solid focus:border-tea-accent-sub focus:bg-tea-gold/[0.06] rounded-none py-0 px-0 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-all text-${align} placeholder-tea-text-dim/70 leading-none ${justSaved ? '!text-tea-gold' : ''} ${className}`}
         />
     );
+};
+
+// Ghost input with autocomplete dropdown — for product name field in panel
+const GhostAutocompleteInput = ({
+  value, onSave, suggestions, itemData, onAutoFill, className = '', placeholder = '',
+}: {
+  value: string;
+  onSave: (val: string) => void;
+  suggestions: string[];
+  itemData?: Record<string, any>;
+  onAutoFill?: (data: any) => void;
+  className?: string;
+  placeholder?: string;
+}) => {
+  const [localValue, setLocalValue] = useState(value);
+  const localValueRef = useRef(value);
+  const [justSaved, setJustSaved] = useState(false);
+
+  useEffect(() => {
+    setLocalValue(value);
+    localValueRef.current = value;
+  }, [value]);
+
+  const save = useCallback((val: string) => {
+    if (val !== value) {
+      onSave(val);
+      setJustSaved(true);
+      setTimeout(() => setJustSaved(false), 600);
+    }
+  }, [value, onSave]);
+
+  const handleChange = (val: string) => {
+    localValueRef.current = val;
+    setLocalValue(val);
+  };
+
+  const handleSelect = (data: any) => {
+    save(localValueRef.current);
+    onAutoFill?.(data);
+  };
+
+  return (
+    <div
+      className="flex-1 min-w-0"
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+          save(localValueRef.current);
+        }
+      }}
+    >
+      <AutocompleteInput
+        value={localValue}
+        onChange={handleChange}
+        suggestions={suggestions}
+        itemData={itemData}
+        onSelect={handleSelect}
+        placeholder={placeholder}
+        className={`w-full bg-transparent border-b border-dashed border-tea-accent-sub focus:border-solid focus:border-tea-accent-sub focus:bg-tea-gold/[0.06] rounded-none py-0 px-0 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-all text-right placeholder-tea-text-dim/70 leading-none ${justSaved ? '!text-tea-gold' : ''} ${className}`}
+      />
+    </div>
+  );
 };
 
 // --- GHOST SELECT ---
@@ -341,7 +404,7 @@ const GhostSelect = ({ value, onSave, options, className = '' }: {
         <select
             value={value}
             onChange={(e) => onSave(e.target.value)}
-            className={`w-full bg-transparent border-b border-transparent focus:border-tea-accent-sub focus:bg-tea-gold/[0.06] rounded-none py-0 px-0 pr-4 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-all text-right appearance-none cursor-pointer leading-none ${className}`}
+            className={`w-full bg-transparent border-b border-dashed border-tea-accent-sub focus:border-solid focus:border-tea-accent-sub focus:bg-tea-gold/[0.06] rounded-none py-0 px-0 pr-4 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-all text-right appearance-none cursor-pointer leading-none ${className}`}
         >
             {options.map(opt => (
                 <option key={opt} value={opt} className="bg-tea-surface text-tea-text">{opt}</option>
@@ -586,6 +649,7 @@ const ImageManager = ({ product, onUpdate }: {
 }) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [uploadingSlot, setUploadingSlot] = useState<number | null>(null);
+    const [justUploadedSlot, setJustUploadedSlot] = useState<number | null>(null);
     const { showToast } = useToast();
 
     const images = [
@@ -606,6 +670,8 @@ const ImageManager = ({ product, onUpdate }: {
                 additional[slotIndex - 1] = url;
                 onUpdate('additionalImages' as keyof Product, additional);
             }
+            setJustUploadedSlot(slotIndex);
+            setTimeout(() => setJustUploadedSlot(null), 1200);
         } catch (err: any) {
             showToast(`Upload failed: ${err.message}`, 'error');
         } finally {
@@ -631,12 +697,18 @@ const ImageManager = ({ product, onUpdate }: {
                     {img ? (
                         <div className="w-24 h-24 rounded-lg overflow-hidden relative group">
                             <img src={img} alt={slotLabels[i]} className="w-full h-full object-cover" loading="lazy" />
-                            <button
-                                onClick={() => handleRemove(i)}
-                                className="absolute inset-0 bg-tea-bg/70 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
-                            >
-                                <XIcon size={16} className="text-tea-text" />
-                            </button>
+                            {justUploadedSlot === i ? (
+                                <div className="absolute inset-0 bg-emerald-900/60 flex items-center justify-center pointer-events-none">
+                                    <Check size={22} className="text-emerald-300" />
+                                </div>
+                            ) : (
+                                <button
+                                    onClick={() => handleRemove(i)}
+                                    className="absolute inset-0 bg-tea-bg/70 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                                >
+                                    <XIcon size={16} className="text-tea-text" />
+                                </button>
+                            )}
                             {i === 0 && (
                                 <div className="absolute bottom-0 left-0 right-0 bg-tea-bg/60 text-[8px] text-tea-text-dim text-center py-0.5 uppercase tracking-[0.1em]">
                                     Primary
@@ -658,7 +730,7 @@ const ImageManager = ({ product, onUpdate }: {
                                 input.remove();
                             }}
                             disabled={uploadingSlot !== null}
-                            className="w-24 h-24 rounded-lg bg-tea-surface/50 hover:bg-tea-surface border border-dashed border-tea-accent-sub/50 hover:border-tea-gold/30 transition-colors flex flex-col items-center justify-center gap-1.5 cursor-pointer"
+                            className="w-24 h-24 rounded-lg bg-tea-surface/50 hover:bg-tea-surface border border-dashed border-tea-accent-sub hover:border-tea-gold/30 transition-colors flex flex-col items-center justify-center gap-1.5 cursor-pointer"
                         >
                             {uploadingSlot === i ? (
                                 <Loader2 size={16} className="text-tea-text-dim animate-spin" />
@@ -1118,7 +1190,20 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     setInventorySortConfig(defaultView.sortConfig);
     setFilterType('All');
     setActiveView(defaultView.id);
+    setScrollTop(0);
+    if (scrollContainerRef.current) scrollContainerRef.current.scrollTop = 0;
   }, [inventoryCategory]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Reset scroll position when filter or search changes so the virtual window starts at the top
+  const prevFilterRef = useRef(filterType);
+  const prevSearchRef = useRef(searchQuery);
+  useEffect(() => {
+    if (prevFilterRef.current === filterType && prevSearchRef.current === searchQuery) return;
+    prevFilterRef.current = filterType;
+    prevSearchRef.current = searchQuery;
+    setScrollTop(0);
+    if (scrollContainerRef.current) scrollContainerRef.current.scrollTop = 0;
+  }, [filterType, searchQuery]);
 
   // Feature 4: Save View prompt
   const [showSaveViewPrompt, setShowSaveViewPrompt] = useState(false);
@@ -1451,6 +1536,25 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const BUFFER_ROWS = 5;
   const splitView = !!panelProduct;
   const effectiveRowHeight = splitView ? SPLIT_ROW_HEIGHT : ROW_HEIGHT;
+
+  // Autocomplete data for the panel's product name field
+  const panelNameSuggestions = useMemo(() => {
+    const varieties = panelProduct ? getTeaVarietySuggestions(panelProduct.type as any) : [];
+    const otherNames = products
+      .filter(p => p.id !== panelProduct?.id && p.productName)
+      .map(p => p.productName);
+    return [...new Set([...varieties, ...otherNames])];
+  }, [panelProduct?.id, panelProduct?.type, products]);
+
+  const panelNameItemData = useMemo(() => {
+    const varietyMap = panelProduct ? buildVarietyDataMap(panelProduct.type as any) : {};
+    const productMap: Record<string, any> = {};
+    for (const p of products) {
+      if (p.productName && !productMap[p.productName]) productMap[p.productName] = p;
+    }
+    // product-specific data (has year) overwrites variety defaults where names overlap
+    return { ...varietyMap, ...productMap };
+  }, [panelProduct?.id, panelProduct?.type, products]);
 
   useEffect(() => {
       const el = scrollContainerRef.current;
@@ -2302,7 +2406,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             <ChevronLeft size={14} />
             <span className="uppercase tracking-[0.15em] text-[10px] font-bold">Sources</span>
           </button>
-          <div className="w-px h-4 bg-tea-border/30" />
+          <div className="w-px h-4 bg-tea-border" />
           <div className="flex items-center gap-2 flex-1 min-w-0">
             <User size={14} className="text-tea-gold flex-shrink-0" />
             <span className="text-sm font-serif text-tea-text truncate">{vendorFilter}</span>
@@ -2564,7 +2668,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             if (needsSep) didSeparate = true;
             return (
               <React.Fragment key={view.id}>
-                {needsSep && <div className="w-px h-4 bg-tea-border/30 mx-0.5 shrink-0" />}
+                {needsSep && <div className="w-px h-4 bg-tea-border mx-0.5 shrink-0" />}
                 <button
                   onClick={() => {
                     setGlossaryMode(false);
@@ -2638,7 +2742,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           )}
           {inventoryCategory === 'tea' && (
             <>
-              <div className="w-px h-4 bg-tea-border/30 shrink-0" />
+              <div className="w-px h-4 bg-tea-border shrink-0" />
               <button
                 onClick={() => setGlossaryMode(prev => !prev)}
                 className={`flex items-center justify-center w-8 h-8 rounded-md transition-colors shrink-0 ${
@@ -2656,7 +2760,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       </div>
 
       {/* --- HEADER CONTROLS --- */}
-      <div className={`sticky top-0 z-30 border-b border-tea-border py-2 transition-colors hidden md:block ${isEditMode ? 'bg-tea-surface/95 border-b-tea-gold/20' : 'bg-tea-bg/90 backdrop-blur-md'}`}>
+      <div className={`sticky top-0 z-30 border-b border-tea-border py-2 transition-colors hidden md:block ${isEditMode ? 'bg-tea-surface/95' : 'bg-tea-bg/90 backdrop-blur-md'}`}>
 
         {/* Desktop header — unchanged */}
         <div className="flex px-6 max-w-7xl mx-auto items-center gap-4">
@@ -2731,7 +2835,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                 <Receipt size={12} /> Cost
                               </button>
                             </div>
-                            <div className="mx-3 mb-2 border-t border-tea-border/40" />
+                            <div className="mx-3 mb-2 border-t border-tea-border" />
                             <div className="px-3 pb-1.5 text-[9px] text-tea-text-sec/60 uppercase tracking-[0.2em]">Visible Columns</div>
                             {activeColumnDefs.map(col => (
                               <label key={col.key} role="menuitem" className={`flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-tea-bg transition-colors cursor-pointer ${'alwaysVisible' in col && col.alwaysVisible ? 'opacity-50 cursor-not-allowed' : ''}`}>
@@ -3205,7 +3309,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         {!groupByVendor && <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: dotColor }} />}
                         {groupByVendor && <MapPin size={12} className="text-tea-text-dim flex-shrink-0" />}
                         <span className="text-[12px] uppercase tracking-[0.12em] font-semibold text-tea-text">{groupValue}</span>
-                        <div className="flex-1 h-px bg-tea-border/40" />
+                        <div className="flex-1 h-px bg-tea-border" />
                       </div>
                     )}
 
@@ -3335,7 +3439,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                             >
                               <div className="inv-detail-panel px-4 pb-3 pt-2">
                                 {/* Context line — given name + vendor */}
-                                <div className="flex items-baseline justify-between gap-3 pb-2 mb-2" style={{ boxShadow: '0 1px 0 rgba(184,146,78,0.08)' }}>
+                                <div className="flex items-baseline justify-between gap-3 pb-2 mb-2" style={{ boxShadow: '0 1px 0 var(--tea-accent-sub)' }}>
                                   <span className="text-[13px] text-tea-text font-serif italic truncate">
                                     {product.givenName || product.chineseName || '—'}
                                   </span>
@@ -3460,7 +3564,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                         <span className="text-[12px]">{product.recheckStock ? '⚠' : '☐'}</span>
                                         <span className="uppercase tracking-[0.06em]">{product.recheckStock ? 'Needs recount' : 'Mark for recount'}</span>
                                       </button>
-                                      <span className="w-px h-3 bg-tea-border/40" />
+                                      <span className="w-px h-3 bg-tea-border" />
                                       <button
                                         onClick={() => setTastingEditorProduct(product)}
                                         className="flex items-center gap-1.5 text-[11px] text-tea-text-dim hover:text-tea-gold transition-colors"
@@ -3478,7 +3582,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                 </div>
 
                                 {/* Tasting — button + notes */}
-                                <div className="mt-2 pt-2" style={{ boxShadow: '0 -1px 0 rgba(184,146,78,0.08)' }}>
+                                <div className="mt-2 pt-2" style={{ boxShadow: '0 -1px 0 var(--tea-accent-sub)' }}>
                                   {product.tastingNotes && product.tastingNotes.length > 0 ? (
                                     <button
                                       onClick={() => setTastingEditorProduct(product)}
@@ -3505,7 +3609,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                 </div>
 
                                 {/* Toggle actions — star, public, archive */}
-                                <div className="flex items-center gap-1 mt-2 pt-2" style={{ boxShadow: '0 -1px 0 rgba(184,146,78,0.08)' }}>
+                                <div className="flex items-center gap-1 mt-2 pt-2" style={{ boxShadow: '0 -1px 0 var(--tea-accent-sub)' }}>
                                     <button
                                         onClick={() => handleProductUpdate(product.id, 'isFeatured', !product.isFeatured)}
                                         className={`w-10 h-10 flex items-center justify-center rounded-lg transition-colors ${product.isFeatured ? 'text-tea-gold bg-tea-gold/10' : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-surface/50'}`}
@@ -3880,6 +3984,13 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 </div>
               </div>
 
+              {/* Keyboard hint bar */}
+              <div className="hidden md:flex items-center justify-center gap-3 px-4 pb-1 bg-tea-surface/30">
+                <span className="text-[9px] text-tea-text-dim/40 uppercase tracking-[0.15em]">Esc close</span>
+                <span className="text-[9px] text-tea-text-dim/20">·</span>
+                <span className="text-[9px] text-tea-text-dim/40 uppercase tracking-[0.15em]">← → navigate</span>
+              </div>
+
               {/* Panel Header — Row 2: Identity */}
               <div className="flex items-start justify-between gap-3 px-4 pb-3 border-b border-tea-accent-sub bg-tea-surface/30">
                 <div className="flex items-start gap-2.5 min-w-0 flex-1">
@@ -3918,14 +4029,44 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               </div>
 
               {/* Panel Content — scrollable */}
-              <div className="flex-1 overflow-y-auto custom-scrollbar pt-3 pb-nav">
+              <div className="flex-1 overflow-y-auto custom-scrollbar pt-3 pb-nav-gap">
 
                 {/* ── 1. Identity & Origin ── */}
                 <CollapsibleSection title="Identity & Origin" defaultOpen={true}>
                   <div className="space-y-0">
                     {/* Identity fields */}
+                    <div className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
+                      <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.06em] shrink-0 w-20 md:w-24">Name</span>
+                      <GhostAutocompleteInput
+                        value={panelProduct.productName}
+                        onSave={(val) => {
+                          handleProductUpdate(panelProduct.id, 'productName', val);
+                          setPanelProduct(prev => prev ? { ...prev, productName: val } : null);
+                        }}
+                        suggestions={panelNameSuggestions}
+                        itemData={panelNameItemData}
+                        onAutoFill={(data) => {
+                          if (!panelProduct) return;
+                          const updates: Partial<Product> = {};
+                          const type = data.type || data.product_type;
+                          const region = data.originRegion || data.origin_region;
+                          const year = data.year;
+                          const chineseName = data.chineseName || data.chinese_name;
+                          if (type && !panelProduct.type) updates.type = type as any;
+                          if (region && !panelProduct.originRegion) updates.originRegion = region;
+                          if (year && !panelProduct.year) updates.year = year;
+                          if (chineseName && !panelProduct.chineseName) updates.chineseName = chineseName;
+                          for (const [field, val] of Object.entries(updates)) {
+                            handleProductUpdate(panelProduct.id, field as keyof Product, val);
+                          }
+                          if (Object.keys(updates).length > 0) {
+                            setPanelProduct(prev => prev ? { ...prev, ...updates } : null);
+                          }
+                        }}
+                        className="text-xs text-tea-text"
+                      />
+                    </div>
                     {([
-                      { label: 'Name', field: 'productName' as const, value: panelProduct.productName },
                       { label: 'Given Name', field: 'givenName' as const, value: panelProduct.givenName || '' },
                       { label: 'Chinese', field: 'chineseName' as const, value: panelProduct.chineseName || '' },
                     ]).map(item => (
@@ -4012,7 +4153,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     </div>
 
                     {/* Origin sub-header + fields */}
-                    <div className="mt-3 pt-3 border-t border-tea-accent-sub/40">
+                    <div className="mt-3 pt-3 border-t border-tea-accent-sub">
                       <div className="text-[9px] text-tea-text-dim/60 uppercase tracking-[0.18em] mb-2">Origin</div>
                       {[
                         { label: 'Country', field: 'originCountry' as const, value: panelProduct.originCountry || '' },
@@ -4051,12 +4192,12 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                             handleProductUpdate(panelProduct.id, 'vendor', val);
                             setPanelProduct(prev => prev ? { ...prev, vendor: val } : null);
                           }}
-                          className="w-full bg-transparent border-b border-dashed border-tea-accent-sub/40 focus:border-solid focus:border-tea-accent-sub focus:bg-tea-gold/[0.06] rounded-none py-0 px-0 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-all text-right text-xs text-tea-text placeholder-tea-text-dim/70 leading-none"
+                          className="w-full bg-transparent border-b border-dashed border-tea-accent-sub focus:border-solid focus:border-tea-accent-sub focus:bg-tea-gold/[0.06] rounded-none py-0 px-0 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-all text-right text-xs text-tea-text placeholder-tea-text-dim/70 leading-none"
                         />
                       </div>
 
                       {/* Links sub-header */}
-                      <div className="mt-3 pt-3 border-t border-tea-accent-sub/40">
+                      <div className="mt-3 pt-3 border-t border-tea-accent-sub">
                         <div className="text-[9px] text-tea-text-dim/60 uppercase tracking-[0.18em] mb-1">Links</div>
                       </div>
 
@@ -4082,6 +4223,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                               {compassEntry && (
                                 <span className="text-tea-text-dim">· {new Date(compassEntry.createdAt).toLocaleDateString()}</span>
                               )}
+                              <ChevronRight size={11} className="text-tea-text-dim/60 shrink-0" />
                             </button>
                           </div>
                         );
@@ -4096,6 +4238,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         >
                           <Receipt size={10} />
                           View order history
+                          <ChevronRight size={11} className="text-tea-text-dim/60 shrink-0" />
                         </button>
                       </div>
 
@@ -4108,12 +4251,13 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         >
                           <BookOpen size={10} />
                           View full story
+                          <ChevronRight size={11} className="text-tea-text-dim/60 shrink-0" />
                         </button>
                       </div>
                     </div>
 
                     {/* Toggles — grouped: Visibility / Promotion / Classification */}
-                    <div className="mt-3 pt-3 border-t border-tea-accent-sub/40 space-y-2.5">
+                    <div className="mt-3 pt-3 border-t border-tea-accent-sub space-y-2.5">
                       {/* Visibility */}
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <span className="text-[9px] text-tea-text-dim/50 uppercase tracking-[0.15em] w-14 shrink-0">Visibility</span>
@@ -4196,7 +4340,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     return (
                       <div className="space-y-0">
                         {/* Mood line with label */}
-                        <div className={`flex items-baseline gap-2 pb-3 mb-1 border-b border-tea-accent-sub/30 ${!moodText ? 'opacity-40' : ''}`}>
+                        <div className={`flex items-baseline gap-2 pb-3 mb-1 border-b border-tea-accent-sub ${!moodText ? 'opacity-40' : ''}`}>
                           <span className="text-[9px] text-tea-text-dim/60 uppercase tracking-[0.15em] shrink-0 w-10">Mood</span>
                           <span className="text-[13px] text-tea-gold italic font-serif leading-snug">{moodText || '—'}</span>
                         </div>
@@ -4396,9 +4540,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         <div className="mt-2">
                           <button
                             onClick={() => setPanelBreakdownOpen(!panelBreakdownOpen)}
-                            className="flex items-center gap-1.5 text-[10px] text-tea-text-dim uppercase tracking-[0.06em] hover:text-tea-text-sec transition-colors py-1"
+                            className="flex items-center gap-1.5 text-xs text-tea-text-dim hover:text-tea-text-sec transition-colors py-2 w-full"
                           >
-                            <ChevronRight size={10} className={`transition-transform duration-150 ${panelBreakdownOpen ? 'rotate-90' : ''}`} />
+                            <ChevronRight size={11} className={`transition-transform duration-150 ${panelBreakdownOpen ? 'rotate-90' : ''}`} />
                             Cost Breakdown
                           </button>
                           <div
@@ -4419,7 +4563,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                   <span className="text-tea-text-sec">True Cost (USD)</span>
                                   <span className="text-tea-text tabular-nums font-semibold">${calc.trueCostUSD.toFixed(3)}/g</span>
                                 </div>
-                                <div className="flex justify-between text-xs border-t border-tea-accent-sub/30 pt-2">
+                                <div className="flex justify-between text-xs border-t border-tea-accent-sub pt-2">
                                   <span className="text-tea-text-sec">3× Markup</span>
                                   <span className="text-tea-gold tabular-nums font-medium">${calc.suggestedRetailUSD.toFixed(2)}/g</span>
                                 </div>
@@ -4520,7 +4664,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         );
                       })()}
                     {/* Recount toggle */}
-                    <div className="flex items-center gap-2 pt-2.5 mt-1.5 border-t border-tea-accent-sub/40">
+                    <div className="flex items-center gap-2 pt-2.5 mt-1.5 border-t border-tea-accent-sub">
                       <button
                         onClick={() => {
                           const newVal = !panelProduct.recheckStock;
@@ -4542,9 +4686,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     <div className="mt-2">
                       <button
                         onClick={() => setPanelHistoryOpen(!panelHistoryOpen)}
-                        className="flex items-center gap-1.5 text-[10px] text-tea-text-dim uppercase tracking-[0.06em] hover:text-tea-text-sec transition-colors py-1"
+                        className="flex items-center gap-1.5 text-xs text-tea-text-dim hover:text-tea-text-sec transition-colors py-2 w-full"
                       >
-                        <ChevronRight size={10} className={`transition-transform duration-150 ${panelHistoryOpen ? 'rotate-90' : ''}`} />
+                        <ChevronRight size={11} className={`transition-transform duration-150 ${panelHistoryOpen ? 'rotate-90' : ''}`} />
                         Stock History
                       </button>
                       <div
@@ -4566,9 +4710,12 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
                 {/* ── 6. Experience ── */}
                 <CollapsibleSection title="Experience" defaultOpen={false}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] text-tea-text-dim/50 italic">How it drinks — body, session, lingering impression</span>
+                  </div>
                   <GhostTextarea
                     value={panelProduct.experience || ''}
-                    placeholder="The experience of this tea..."
+                    placeholder="How this tea feels in the body. The session it creates. What stays with you after the last cup."
                     rows={4}
                     onSave={(val) => {
                       handleProductUpdate(panelProduct.id, 'experience', val);
@@ -4597,7 +4744,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         className="text-tea-text font-serif"
                       />
                     </div>
-                    <div className="pt-1 border-t border-tea-accent-sub/30">
+                    <div className="pt-1 border-t border-tea-accent-sub">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-xs font-medium text-tea-text-sec">Terroir</span>
                         <span className="text-[10px] text-tea-text-dim/50 italic">Soil, altitude, climate</span>
@@ -4613,7 +4760,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         className="text-tea-text font-serif"
                       />
                     </div>
-                    <div className="pt-1 border-t border-tea-accent-sub/30">
+                    <div className="pt-1 border-t border-tea-accent-sub">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-xs font-medium text-tea-text-sec">Processing</span>
                         <span className="text-[10px] text-tea-text-dim/50 italic">Craft & method</span>
@@ -4629,7 +4776,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         className="text-tea-text font-serif"
                       />
                     </div>
-                    <div className="pt-1 border-t border-tea-accent-sub/30">
+                    <div className="pt-1 border-t border-tea-accent-sub">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-xs font-medium text-tea-text-sec">Lore & History</span>
                         {panelProduct.isCustomWisdom ? (
@@ -4669,9 +4816,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                   ) : (
                     <>
                       {productTastingAgg && productTastingAgg.totalNotes > 0 && (
-                        <div className="mb-4 rounded-lg bg-tea-surface border border-tea-accent-sub/40 overflow-hidden">
+                        <div className="mb-4 rounded-lg bg-tea-surface border border-tea-accent-sub overflow-hidden">
                           {/* Aggregate stats bar */}
-                          <div className="flex items-center gap-4 px-4 py-3 border-b border-tea-accent-sub/30">
+                          <div className="flex items-center gap-4 px-4 py-3 border-b border-tea-accent-sub">
                             <div className="flex items-baseline gap-1">
                               <span className="text-2xl font-serif text-tea-gold leading-none">{productTastingAgg.avgRating.toFixed(1)}</span>
                               <span className="text-[10px] text-tea-text-dim/60">/5</span>

@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { CartItem as AdminCartItem, ExchangeRate, Currency } from '../../admin/types';
 import { CartItem as PublicCartItem } from '../../types';
 import { Icons } from '../Icons';
-import { useScrollLock } from '../../hooks/useScrollLock';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { PublicCart } from './PublicCart';
 
@@ -40,7 +39,6 @@ export const CartPanel: React.FC<CartPanelProps> = (props) => {
   const { isOpen, onClose } = props;
   const isAdmin = props.mode === 'admin';
 
-  useScrollLock(isOpen);
   const focusTrapRef = useFocusTrap<HTMLDivElement>(isOpen);
 
   // ── Focus return on close (#61) ─────────────────────────────────────────
@@ -103,11 +101,11 @@ export const CartPanel: React.FC<CartPanelProps> = (props) => {
       {/* Panel — fade in */}
       <motion.div
         ref={focusTrapRef}
-        className={`fixed top-0 right-0 h-full w-full z-toast shadow-2xl flex flex-col pb-[env(safe-area-inset-bottom,0px)] glass-grain ${
+        className={`fixed top-0 right-0 h-dvh w-full z-toast shadow-2xl flex flex-col pb-[env(safe-area-inset-bottom,0px)] glass-grain ${
           isAdmin
-            ? 'md:w-[480px] bg-tea-bg/95 backdrop-blur-2xl border-l border-tea-border'
-            : 'md:w-[450px] bg-tea-surface border-l border-tea-border backdrop-blur-xl'
-        }`}
+            ? 'md:w-[480px] bg-tea-bg/95 backdrop-blur-2xl'
+            : 'md:w-[460px] bg-tea-surface'
+        } border-l border-tea-border`}
         initial={{ opacity: 0 }}
         animate={isDragging ? { x: touchOffset, opacity: swipeOpacity } : { opacity: 1, x: 0 }}
         exit={{ opacity: 0, transition: { duration: 0.15, ease: 'easeOut' } }}
@@ -133,32 +131,31 @@ export const CartPanel: React.FC<CartPanelProps> = (props) => {
             />
           </Suspense>
         ) : props.mode === 'public' ? (
-          <div className="surface-warm flex flex-col h-full">
-            {/* Public header */}
-            <div className="flex flex-col relative z-10">
-              <div data-drag-handle className="md:hidden flex justify-center py-4 bg-tea-surface cursor-grab active:cursor-grabbing touch-pan-x">
-                <div className={`h-1.5 rounded-full transition-all duration-150 ${isDragging ? 'bg-tea-gold w-16' : 'bg-tea-text-sec/30 w-12'}`} />
-              </div>
-              <div className="flex items-center justify-between p-6 border-b border-tea-border bg-tea-surface">
-                <div className="w-[44px]" />
-                <div className="text-center">
-                  <h2 className="text-lg font-serif text-tea-text tracking-wide">Your Selection</h2>
-                </div>
-                <button onClick={onClose} className="min-w-[44px] min-h-[44px] flex items-center justify-center p-2.5" aria-label="Close cart">
-                  <Icons.Close className="w-6 h-6 text-tea-text-sec hover:text-tea-text" />
-                </button>
-              </div>
+          <div className="flex flex-col flex-1 min-h-0">
+            {/* Drag handle — mobile only */}
+            <div data-drag-handle className="md:hidden flex justify-center py-3 cursor-grab active:cursor-grabbing touch-pan-x shrink-0">
+              <div className={`h-1 rounded-full transition-all duration-150 ${isDragging ? 'bg-tea-gold w-16' : 'bg-tea-text-sec/30 w-10'}`} />
             </div>
 
-            <PublicCart
-              cart={props.cart}
-              onRemoveItem={props.onRemoveItem}
-              onUpdateQuantity={props.onUpdateQuantity}
-              onAddItem={props.onAddItem}
-              isOpen={isOpen}
-              whatsappNumber={props.whatsappNumber}
-              onClose={onClose}
-            />
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-3 border-b border-tea-border shrink-0">
+              <button onClick={onClose} className="min-w-[44px] min-h-[44px] flex items-center justify-center -ml-2" aria-label="Close cart">
+                <Icons.Close className="w-5 h-5 text-tea-text-sec hover:text-tea-text transition-colors" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="flex flex-col flex-1 min-h-0">
+              <PublicCart
+                cart={props.cart}
+                onRemoveItem={props.onRemoveItem}
+                onUpdateQuantity={props.onUpdateQuantity}
+                onAddItem={props.onAddItem}
+                isOpen={isOpen}
+                whatsappNumber={props.whatsappNumber}
+                onClose={onClose}
+              />
+            </div>
           </div>
         ) : null}
       </motion.div>

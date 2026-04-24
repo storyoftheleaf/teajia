@@ -1232,7 +1232,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                           </span>
                         )}
                         <div className="absolute inset-0 bg-tea-text/0 group-hover:bg-tea-text/20 transition-colors flex items-center justify-center">
-                          <Icons.Camera className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                          <Icons.Camera className="w-4 h-4 text-tea-bg opacity-0 group-hover:opacity-100 transition-opacity" />
                         </div>
                       </button>
                       <div className="min-w-0 flex-1">

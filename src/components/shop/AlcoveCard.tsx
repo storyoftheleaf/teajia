@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Pencil, Leaf, ChevronRight, X, Loader2 } from 'lucide-react';
+import { SampleIcon } from '../Icons';
+import { useSampleCartStore } from '../../samples/sampleCartStore';
 import type { InventoryItem, Story } from '../../types';
 import { ContentType } from '../../types';
 import { useAppStore } from '../../lib/store';
@@ -18,7 +20,7 @@ import {
 import { useProductEvents } from '../../hooks/useProductEvents';
 import { useStories } from '../../context/StoryContext';
 import { useAuth } from '../../hooks/useAuth';
-import { BrewingQRCard, getBrewSlug } from '../shared/BrewingQRCard';
+import { getTeaColor } from '../../designTokens';
 
 interface AlcoveCardProps {
   item: InventoryItem;
@@ -66,15 +68,9 @@ function ShareIcon({ color }: { color: string }) {
 }
 
 /** Returns stock status info for display */
-function getStockStatus(stockG: number, status?: string, isOneOfAKind?: boolean, isCurated?: boolean) {
+function getStockStatus(stockG: number, status?: string) {
   if (status === 'Sold Out' || stockG <= 0) {
     return { label: 'Sold Out', color: '#a65d4e', level: 'out' as const };
-  }
-  if (isCurated) {
-    return { label: 'Curated Selection', color: '#c87533', level: 'limited' as const };
-  }
-  if (isOneOfAKind) {
-    return { label: 'Curated Selection', color: '#c87533', level: 'limited' as const };
   }
   if (stockG < 100) {
     return { label: 'Low Stock', color: '#c09a51', level: 'low' as const };
@@ -85,6 +81,26 @@ function getStockStatus(stockG: number, status?: string, isOneOfAKind?: boolean,
 export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClose, isAdmin, onEdit, formatPrice, onTermClick, onTaste, items, onItemSelect }) => {
   const navigate = useNavigate();
   const { favoriteTeas, toggleFavoriteTea, activeAccountId } = useAppStore();
+
+  // Local sample cart (flask / sample list)
+  const inSampleCart = useSampleCartStore(s => s.items.some(i => i.id === item.id));
+  const addToSampleCart = useSampleCartStore(s => s.addItem);
+  const removeFromSampleCart = useSampleCartStore(s => s.removeItem);
+  const toggleSampleCart = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (inSampleCart) {
+      removeFromSampleCart(item.id);
+    } else {
+      addToSampleCart({
+        id: item.id,
+        name: item.name,
+        chineseName: item.chineseName,
+        type: item.type,
+        vendorName: item.supplier || undefined,
+        productId: item.id,
+      });
+    }
+  };
 
   // Sample request modal state
   const [sampleModalOpen, setSampleModalOpen] = useState(false);
@@ -98,10 +114,10 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
 
   const handleSampleClick = () => {
     setSampleModalOpen(true);
+    setSampleGrams(10);
     setSampleDone(false);
     setSampleError(null);
     setSampleNote('');
-    setSampleGrams(5);
   };
 
   const handleSampleSubmit = async () => {
@@ -127,7 +143,10 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
 
   const favorited = favoriteTeas.includes(item.id);
   const tastingCount = useTastingCount(item.id);
-  const [grams, setGrams] = useState(25);
+  const [grams, setGrams] = useState(50);
+  const [sampleMode, setSampleMode] = useState(false);
+  const [customMode, setCustomMode] = useState(false);
+  const [customInput, setCustomInput] = useState('');
   const [added, setAdded] = useState(false);
   const [hovered, setHovered] = useState<string | null>(null);
   const [imageExpanded, setImageExpanded] = useState(false);
@@ -156,7 +175,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   const perGramDisplay = formatPrice ? formatPrice(pricePerGram, 1) : fmtNum(pricePerGram);
   const sliderPercentage = sliderMax > sliderMin ? ((grams - sliderMin) / (sliderMax - sliderMin)) * 100 : 0;
 
-  const stockStatus = getStockStatus(item.stock_g, undefined, item.isOneOfAKind, item.isCurated);
+  const stockStatus = getStockStatus(item.stock_g);
   const isSoldOut = stockStatus.level === 'out';
 
   const presets = [25, 50, 100, 250].filter(p => p <= sliderMax);
@@ -210,6 +229,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
     success: '#5A6E5A',
   };
   const accent = alcoveColors.accent;
+  const typeColor = getTeaColor(item.type);
 
   // Derive display values from InventoryItem
   const productName = item.variant || item.name;
@@ -259,6 +279,10 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
 
   const handleAdd = () => {
     if (isSoldOut) return;
+    if (sampleMode) {
+      handleSampleClick();
+      return;
+    }
     setAdded(true);
     setTimeout(() => setAdded(false), 1800);
     if (onAddToCart) {
@@ -267,17 +291,9 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   };
 
   // Share handler — uses Web Share API with clipboard fallback.
-  // Explicitly builds the share URL with ?product=<id> so the link works even
-  // if the useProductUrl pushState hasn't fired yet.
   const handleShare = async () => {
     const shareText = `${item.name} — ${origin} ${teaType} from Teajia`;
-    const url = new URL(window.location.href);
-    url.searchParams.set('product', item.id);
-    // Ensure we share the shop path rather than a deep URL
-    if (!url.pathname.includes('/shop') && !url.pathname.includes('/store')) {
-      url.pathname = '/shop';
-    }
-    const shareUrl = url.toString();
+    const shareUrl = `${window.location.origin}/shop/product/${item.id}`;
 
     if (navigator.share) {
       try {
@@ -456,6 +472,47 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
         </div>
 
         {/* === VISUAL ZONE — compact image strip, click to expand fullscreen === */}
+        {allImages.length === 0 && (
+          <div style={{
+            margin: "12px 12px 0",
+            borderRadius: "4px",
+            overflow: "hidden",
+            height: "140px",
+            position: "relative",
+            background: `radial-gradient(ellipse 80% 60% at 50% 40%, ${typeColor}22 0%, transparent 70%), var(--tea-elevated)`,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "6px",
+          }}>
+            {chineseCharacters && (
+              <div style={{
+                fontFamily: "'Ma Shan Zheng', cursive",
+                fontSize: "52px", fontWeight: 400,
+                color: typeColor,
+                opacity: 0.25,
+                lineHeight: 1,
+                letterSpacing: "0.1em",
+                userSelect: "none",
+              }}>
+                {chineseCharacters}
+              </div>
+            )}
+            {origin && !chineseCharacters && (
+              <span style={{
+                fontFamily: "var(--font-display)",
+                fontSize: "11px", fontWeight: 300,
+                color: "var(--tea-text-dim)",
+                letterSpacing: "0.18em",
+                textTransform: "uppercase",
+                userSelect: "none",
+              }}>
+                {origin}
+              </span>
+            )}
+          </div>
+        )}
         {allImages.length > 0 && (
         <div style={{
           animation: "panelReveal 0.5s ease-out",
@@ -664,7 +721,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                       fontFamily: "var(--font-body)",
                       fontSize: "13px",
                       fontWeight: 300,
-                      color: "var(--tea-text-sec)",
+                      color: typeColor,
                       cursor: onTermClick ? "pointer" : "default",
                       padding: "9px 4px",
                       transition: "color 0.2s ease-out",
@@ -673,7 +730,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                       borderBottom: isLastRow ? "none" : "1px solid var(--tea-border)",
                     }}
                     onMouseEnter={onTermClick ? (e) => { e.currentTarget.style.color = "var(--tea-gold)"; } : undefined}
-                    onMouseLeave={onTermClick ? (e) => { e.currentTarget.style.color = "var(--tea-text-sec)"; } : undefined}
+                    onMouseLeave={onTermClick ? (e) => { e.currentTarget.style.color = typeColor; } : undefined}
                   >
                     {item.swatchColor ? (
                       <span style={{
@@ -1132,24 +1189,6 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
           </div>
         )}
 
-        {/* === BREW GUIDE QR === */}
-        {(() => {
-          if (item.category !== 'tea') return null;
-          const slug = getBrewSlug(teaType);
-          if (!slug) return null;
-          return (
-            <div style={{
-              marginTop: '28px',
-              padding: '0 20px 20px',
-            }}>
-              <BrewingQRCard
-                teaName={productName}
-                teaType={slug}
-                compact
-              />
-            </div>
-          );
-        })()}
 
       </div>
 
@@ -1160,8 +1199,101 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
         borderTop: "1px solid var(--tea-border)",
         background: alcoveColors.bg,
       }}>
-            {/* Row 1: Presets with integrated stock + price */}
-            {!isSoldOut && presets.length > 1 ? (
+            {/* Row 1: Amount selector */}
+            {isSoldOut ? (
+              <div style={{
+                display: "flex", alignItems: "center", gap: "6px",
+                marginBottom: "4px",
+              }}>
+                <div style={{
+                  width: "5px", height: "5px", borderRadius: "50%",
+                  background: stockStatus.color,
+                }} />
+                <span style={{
+                  fontFamily: "var(--font-sans)",
+                  fontSize: "10px", fontWeight: 400,
+                  letterSpacing: "0.08em", textTransform: "uppercase",
+                  color: stockStatus.color,
+                }}>
+                  {stockStatus.label}
+                </span>
+              </div>
+            ) : item.category === 'tea' ? (
+              <>
+                {/* Tea: Sample | 50g | 100g | Custom */}
+                <div style={{ display: "flex", gap: "4px", marginBottom: "4px" }}>
+                  {[
+                    { key: 'sample', label: 'Sample', sub: '10g' },
+                    ...(50 <= sliderMax ? [{ key: '50', label: '50g', sub: '' }] : []),
+                    ...(100 <= sliderMax ? [{ key: '100', label: '100g', sub: '' }] : []),
+                    { key: 'custom', label: 'Custom', sub: '' },
+                  ].map(opt => {
+                    const isActive =
+                      opt.key === 'sample' ? sampleMode :
+                      opt.key === 'custom' ? customMode :
+                      (!sampleMode && !customMode && grams === parseInt(opt.key));
+                    return (
+                      <button
+                        key={opt.key}
+                        onClick={() => {
+                          if (navigator.vibrate) navigator.vibrate(8);
+                          if (opt.key === 'sample') {
+                            setSampleMode(true); setCustomMode(false);
+                          } else if (opt.key === 'custom') {
+                            setCustomMode(true); setSampleMode(false);
+                          } else {
+                            setGrams(parseInt(opt.key)); setSampleMode(false); setCustomMode(false);
+                          }
+                        }}
+                        style={{
+                          flex: 1,
+                          padding: "5px 0",
+                          fontFamily: "var(--font-mono)",
+                          fontSize: "10px", fontWeight: 400,
+                          letterSpacing: "0.05em",
+                          color: isActive ? 'var(--tea-gold)' : 'var(--tea-text-dim)',
+                          background: 'var(--tea-accent-sub)',
+                          border: isActive ? '1px solid var(--tea-gold)' : '1px solid var(--tea-border)',
+                          borderRadius: "3px",
+                          cursor: "pointer",
+                          transition: "border-color 0.15s, color 0.15s",
+                          display: "flex", flexDirection: "column",
+                          alignItems: "center", justifyContent: "center", gap: "1px",
+                        }}
+                      >
+                        <span>{opt.label}</span>
+                        {opt.sub && <span style={{ fontSize: "9px", opacity: 0.6 }}>{opt.sub}</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Stock status */}
+                {stockStatus.level !== 'ok' && (
+                  <div style={{
+                    display: "flex", alignItems: "center", gap: "6px",
+                    marginBottom: "4px",
+                  }}>
+                    <div style={{
+                      width: "5px", height: "5px", borderRadius: "50%",
+                      background: stockStatus.color,
+                      boxShadow: stockStatus.level === 'low' ? `0 0 4px ${stockStatus.color}` : 'none',
+                      flexShrink: 0,
+                    }} />
+                    <span style={{
+                      fontFamily: "var(--font-sans)",
+                      fontSize: "10px",
+                      color: stockStatus.color,
+                      letterSpacing: "0.06em",
+                      textTransform: "uppercase",
+                    }}>
+                      {stockStatus.label}
+                    </span>
+                  </div>
+                )}
+              </>
+            ) : (
+              /* Teaware / non-tea: original preset row */
               <div style={{
                 display: "flex", gap: "4px", alignItems: "center",
                 marginBottom: "4px",
@@ -1172,27 +1304,14 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                     background: stockStatus.color,
                     boxShadow: stockStatus.level === 'low' ? `0 0 4px ${stockStatus.color}` : 'none',
                   }} />
-                  <div>
-                    <span style={{
-                      fontFamily: "var(--font-mono)",
-                      fontSize: "10px", fontWeight: 400,
-                      color: alcoveColors.body,
-                      fontVariantNumeric: "tabular-nums lining-nums",
-                    }}>
-                      {formatPrice ? perGramDisplay : `$${perGramDisplay}`}/g
-                    </span>
-                    {item.category === 'tea' && pricePerGram > 0 && (
-                      <div style={{
-                        fontFamily: "var(--font-mono)",
-                        fontSize: "9px",
-                        color: "var(--tea-text-dim)",
-                        fontVariantNumeric: "tabular-nums lining-nums",
-                        marginTop: "1px",
-                      }}>
-                        ${(pricePerGram * 100).toFixed(2)}/100g
-                      </div>
-                    )}
-                  </div>
+                  <span style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: "10px", fontWeight: 400,
+                    color: alcoveColors.body,
+                    fontVariantNumeric: "tabular-nums lining-nums",
+                  }}>
+                    {formatPrice ? perGramDisplay : `$${perGramDisplay}`}/g
+                  </span>
                 </div>
                 {presets.map(p => (
                   <button
@@ -1216,25 +1335,6 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                   </button>
                 ))}
               </div>
-            ) : (
-              <div style={{
-                display: "flex", alignItems: "center", gap: "6px",
-                marginBottom: "4px",
-              }}>
-                <div style={{
-                  width: "5px", height: "5px", borderRadius: "50%",
-                  background: stockStatus.color,
-                  boxShadow: stockStatus.level === 'low' ? `0 0 4px ${stockStatus.color}` : 'none',
-                }} />
-                <span style={{
-                  fontFamily: "var(--font-sans)",
-                  fontSize: "10px", fontWeight: 400,
-                  letterSpacing: "0.08em", textTransform: "uppercase",
-                  color: stockStatus.color,
-                }}>
-                  {stockStatus.label}
-                </span>
-              </div>
             )}
 
             {/* Session reserve soft warning */}
@@ -1243,30 +1343,6 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                 <span className="text-tea-gold text-xs">
                   Last ~{item.stock_g}g available — we'll confirm quantity before dispatching.
                 </span>
-              </div>
-            )}
-
-            {/* Sample request — in-app flow (tea only) */}
-            {item.category === 'tea' && (
-              <div style={{ marginBottom: "6px" }}>
-                <button
-                  onClick={handleSampleClick}
-                  style={{
-                    background: "none", border: "none", padding: 0,
-                    cursor: "pointer",
-                    fontFamily: "var(--font-sans)",
-                    fontSize: "12px",
-                    color: "var(--tea-text-sec)",
-                    textDecoration: "underline",
-                    textDecorationColor: "var(--tea-border)",
-                    textUnderlineOffset: "2px",
-                    transition: "color 0.2s",
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.color = "var(--tea-text)"; }}
-                  onMouseLeave={e => { e.currentTarget.style.color = "var(--tea-text-sec)"; }}
-                >
-                  Request a sample →
-                </button>
               </div>
             )}
 
@@ -1349,6 +1425,31 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                     </button>
                   </>
                 )}
+                {/* Flask — add to sample list */}
+                <>
+                  <div style={{ width: "1px", height: "10px", background: "var(--tea-border)" }} />
+                  <button
+                    onClick={toggleSampleCart}
+                    onMouseEnter={() => setHovered("flask")}
+                    onMouseLeave={() => setHovered(null)}
+                    aria-label={inSampleCart ? "Remove from sample list" : "Add to sample list"}
+                    title={inSampleCart ? "In sample list" : "Add to sample list"}
+                    style={{
+                      background: "none", border: "none", padding: "0",
+                      cursor: "pointer", transition: "all 0.2s ease",
+                      display: "inline-flex", alignItems: "center", gap: "4px",
+                      opacity: inSampleCart ? 1 : (hovered === "flask" ? 0.9 : 0.7),
+                    }}
+                  >
+                    <SampleIcon style={{ width: 14, height: 14, color: inSampleCart ? "var(--tea-gold)" : alcoveColors.muted }} />
+                    <span style={{
+                      fontFamily: "var(--font-sans)",
+                      fontSize: "10px", fontWeight: 400,
+                      letterSpacing: "0.08em", textTransform: "uppercase",
+                      color: inSampleCart ? "var(--tea-gold)" : alcoveColors.subtitle,
+                    }}>List</span>
+                  </button>
+                </>
                 {isAdmin && onEdit && (
                   <>
                     <div style={{ width: "1px", height: "10px", background: "var(--tea-border)" }} />
@@ -1402,14 +1503,37 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                   opacity: isSoldOut ? 0.6 : 1,
                 }}
               >
-                <span>{isSoldOut ? "Sold Out" : added ? "Added" : "Add"}</span>
-                {!isSoldOut && (
-                  <span style={{
-                    fontFamily: "var(--font-mono)",
-                    fontWeight: 500, fontStyle: "normal", opacity: 0.85, fontSize: "12px",
-                  }}>
-                    {formatPrice ? total : `$${total}`}
-                  </span>
+                {isSoldOut ? (
+                  <span>Sold Out</span>
+                ) : added ? (
+                  <span>Added</span>
+                ) : sampleMode ? (
+                  <>
+                    <span>Sample — 10g</span>
+                    {pricePerGram > 0 && (
+                      <span style={{ fontFamily: "var(--font-mono)", fontWeight: 500, fontSize: "12px" }}>
+                        {formatPrice ? formatPrice(pricePerGram, 10) : `$${fmtNum(pricePerGram * 10)}`}
+                      </span>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <span>Order</span>
+                    <span style={{
+                      fontFamily: "var(--font-mono)",
+                      fontWeight: 500, fontSize: "12px",
+                    }}>
+                      {formatPrice ? total : `$${total}`}
+                    </span>
+                    {pricePerGram > 0 && (
+                      <span style={{
+                        fontFamily: "var(--font-mono)",
+                        fontWeight: 400, fontSize: "10px", opacity: 0.55,
+                      }}>
+                        {formatPrice ? perGramDisplay : `$${perGramDisplay}`}/g
+                      </span>
+                    )}
+                  </>
                 )}
               </button>
             </div>
@@ -1605,6 +1729,101 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                 </button>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Custom amount modal */}
+      {customMode && (
+        <div
+          onClick={() => setCustomMode(false)}
+          style={{
+            position: "fixed", inset: 0, zIndex: 9999,
+            background: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            padding: "16px",
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: "var(--tea-surface)",
+              border: "1px solid var(--tea-border)",
+              borderRadius: "6px",
+              width: "100%", maxWidth: "320px",
+              padding: "24px",
+            }}
+          >
+            <p style={{
+              fontFamily: "var(--font-display)",
+              fontSize: "15px", fontWeight: 400,
+              color: "var(--tea-text)",
+              margin: "0 0 16px 0",
+            }}>
+              Custom amount
+            </p>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "20px" }}>
+              <input
+                type="number"
+                min={5}
+                max={sliderMax}
+                step={5}
+                value={customInput}
+                onChange={e => {
+                  setCustomInput(e.target.value);
+                  const v = parseInt(e.target.value);
+                  if (!isNaN(v) && v >= 5) setGrams(Math.min(v, sliderMax));
+                }}
+                placeholder="e.g. 200"
+                autoFocus
+                style={{
+                  flex: 1, height: "36px",
+                  background: 'var(--tea-bg)',
+                  border: '1px solid var(--tea-gold)',
+                  borderRadius: '4px', padding: '0 10px',
+                  fontFamily: 'var(--font-mono)', fontSize: '14px',
+                  color: 'var(--tea-text)', outline: 'none',
+                }}
+              />
+              <span style={{
+                fontFamily: 'var(--font-mono)', fontSize: '13px',
+                color: 'var(--tea-text-sec)',
+              }}>g</span>
+            </div>
+            <div style={{ display: "flex", gap: "8px" }}>
+              <button
+                onClick={() => setCustomMode(false)}
+                style={{
+                  flex: 1, padding: "9px",
+                  background: "none",
+                  border: "1px solid var(--tea-border)",
+                  borderRadius: "4px", cursor: "pointer",
+                  fontFamily: "var(--font-sans)", fontSize: "12px",
+                  color: "var(--tea-text-sec)",
+                  letterSpacing: "0.08em", textTransform: "uppercase",
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  const v = parseInt(customInput);
+                  if (!isNaN(v) && v >= 5) {
+                    setGrams(Math.min(v, sliderMax));
+                    setCustomMode(false);
+                  }
+                }}
+                style={{
+                  flex: 1, padding: "9px",
+                  background: "var(--tea-gold)", color: "var(--tea-bg)",
+                  border: "none", borderRadius: "4px", cursor: "pointer",
+                  fontFamily: "var(--font-sans)", fontSize: "12px",
+                  fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase",
+                }}
+              >
+                Confirm
+              </button>
+            </div>
           </div>
         </div>
       )}

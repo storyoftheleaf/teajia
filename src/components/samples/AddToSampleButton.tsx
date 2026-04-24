@@ -1,5 +1,5 @@
 import React from 'react';
-import { FlaskConical } from 'lucide-react';
+import { SampleIcon } from '../Icons';
 import { useSampleCartStore } from '../../samples/sampleCartStore';
 import type { SampleCartItem } from '../../samples/sampleCartStore';
 
@@ -42,7 +42,7 @@ export const AddToSampleButton: React.FC<AddToSampleButtonProps> = ({
         } ${className}`}
         title={inCart ? 'Remove from sample list' : 'Add to sample list'}
       >
-        <FlaskConical size={size} />
+        <SampleIcon style={{ width: size, height: size }} />
         {inCart ? 'In Sample List' : 'Add to Sample'}
       </button>
     );
@@ -60,7 +60,7 @@ export const AddToSampleButton: React.FC<AddToSampleButtonProps> = ({
       title={inCart ? 'Remove from sample list' : 'Add to sample list'}
       aria-label={inCart ? 'Remove from sample list' : 'Add to sample list'}
     >
-      <FlaskConical size={size} />
+      <SampleIcon style={{ width: size, height: size }} />
     </button>
   );
 };

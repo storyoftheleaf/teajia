@@ -326,6 +326,15 @@ export interface InventoryItem {
   isCurated?: boolean;
   magazineUrl?: string;
   tasting?: TastingData;
+  /**
+   * Source of the tasting data.
+   * - 'owner': reviewed and saved by the shop owner — speaks as Adrian's voice.
+   * - 'community': aggregated from public reviews.
+   * - 'common' | undefined: default to style-level common profile (see commonTastingByStyle).
+   * Only 'owner' and 'community' are public claims about this specific product;
+   * anything else falls back to the style baseline and is labeled as such.
+   */
+  tastingSource?: 'common' | 'owner' | 'community';
   quantityUnits?: number;
   sessionReserveGrams?: number; // When stock_g <= this, show a soft low-availability warning
 }
@@ -366,6 +375,7 @@ export interface PublicProduct {
   teawareCategory?: 'pot' | 'cup' | 'tray' | 'storage' | 'accessory' | 'decorative';
   quantityUnits?: number;
   tasting?: TastingData;
+  tastingSource?: 'common' | 'owner' | 'community';
 }
 
 export const TEA_TYPES = ['Green', 'White', 'Oolong', 'Black', 'Puerh', 'Yellow'] as const;

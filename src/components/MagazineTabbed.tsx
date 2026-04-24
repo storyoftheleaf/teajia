@@ -712,7 +712,7 @@ export const MagazineTabbed: React.FC<MagazineTabbedProps> = ({
   const Feed = FEEDS[cardStyle];
 
   return (
-    <div className="w-full min-h-screen flex flex-col">
+    <div className="dark w-full min-h-screen flex flex-col">
       <Helmet>
         <title>Journal — Teajia</title>
         <meta name="description" content="Long-form stories, photo essays, and deep dives into tea culture, craft, and the people behind the leaf." />
@@ -808,6 +808,18 @@ export const MagazineTabbed: React.FC<MagazineTabbedProps> = ({
               fontWeight: filter === t ? 500 : 400,
               color: filter === t ? 'var(--tea-gold)' : 'var(--tea-text-sec)',
               whiteSpace: 'nowrap',
+            }}
+            onMouseEnter={e => {
+              if (filter !== t) {
+                (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--tea-gold)';
+                (e.currentTarget as HTMLButtonElement).style.color = 'var(--tea-text)';
+              }
+            }}
+            onMouseLeave={e => {
+              if (filter !== t) {
+                (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--tea-border)';
+                (e.currentTarget as HTMLButtonElement).style.color = 'var(--tea-text-sec)';
+              }
             }}
           >
             {t}

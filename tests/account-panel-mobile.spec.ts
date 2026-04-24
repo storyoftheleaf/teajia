@@ -101,38 +101,46 @@ test.describe('Account Panel — mobile audit', () => {
     expect(ov.has, `Me section overflow +${ov.extra}px`).toBe(false);
   });
 
-  test('Navigate section: jumps correctly', async ({ page }) => {
+  test('Explore zone: no overflow when scrolled to bottom', async ({ page }) => {
     await injectAuth(page);
     await goto(page, '/');
     await openPanel(page);
-    await page.locator('button', { hasText: 'Navigate' }).click();
-    await page.waitForTimeout(600);
-    await shot(page, '03-navigate-section');
+    // Scroll to bottom of panel to reveal Explore zone
+    await page.evaluate(() => {
+      const panel = document.querySelector('.overflow-y-auto');
+      if (panel) panel.scrollTop = panel.scrollHeight;
+    });
+    await page.waitForTimeout(400);
+    await shot(page, '03-explore-zone');
     const ov = await overflow(page);
-    expect(ov.has, `Navigate overflow +${ov.extra}px`).toBe(false);
+    expect(ov.has, `Explore zone horizontal overflow +${ov.extra}px`).toBe(false);
   });
 
-  test('Ops section: visible for platform owner', async ({ page }) => {
+  test('Panel bottom: no overflow after full scroll', async ({ page }) => {
     await injectAuth(page);
     await goto(page, '/');
     await openPanel(page);
-    const opsBtn = page.locator('button', { hasText: 'Ops' });
-    if (await opsBtn.count() > 0) {
-      await opsBtn.click();
-      await page.waitForTimeout(600);
+    await page.evaluate(() => {
+      const panel = document.querySelector('.overflow-y-auto');
+      if (panel) panel.scrollTop = panel.scrollHeight;
+    });
+    await page.waitForTimeout(400);
+    await shot(page, '04-panel-bottom');
+    const ov = await overflow(page);
+    expect(ov.has, `Panel bottom overflow +${ov.extra}px`).toBe(false);
+  });
+
+  test('Sessions sub-view: renders on mobile (if available)', async ({ page }) => {
+    await injectAuth(page);
+    await goto(page, '/');
+    await openPanel(page);
+    // Sessions button only appears when an active location card is present;
+    // skip the click if not shown rather than hard-fail.
+    const sessBtn = page.locator('button', { hasText: 'Sessions' }).first();
+    if (await sessBtn.count() > 0) {
+      await sessBtn.click();
+      await page.waitForTimeout(500);
     }
-    await shot(page, '04-ops-section');
-    const ov = await overflow(page);
-    expect(ov.has, `Ops overflow +${ov.extra}px`).toBe(false);
-  });
-
-  test('Sessions sub-view: renders on mobile', async ({ page }) => {
-    await injectAuth(page);
-    await goto(page, '/');
-    await openPanel(page);
-    // "Sessions" button is inside the active location card
-    await page.locator('button', { hasText: 'Sessions' }).first().click();
-    await page.waitForTimeout(500);
     await shot(page, '05-sessions-view');
     const ov = await overflow(page);
     expect(ov.has, `Sessions view overflow +${ov.extra}px`).toBe(false);

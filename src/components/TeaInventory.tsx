@@ -1,9 +1,12 @@
 
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Icons } from './Icons';
 import { X, Leaf } from 'lucide-react';
+import { AddToSampleButton } from './samples/AddToSampleButton';
 import { AlcoveModal } from './shop/AlcoveModal';
 import { resolveTermLabel, resolveTermIcon, TASTING_TAXONOMY, type TastingCategoryId } from '../data/tastingTaxonomy';
+import { getCommonTastingForType } from '../data/commonTastingByStyle';
 import { TeaPlaceholder } from './shop/TeaPlaceholder';
 import { PageHeader } from './shared/PageHeader';
 import { PageHeaderTabs } from './shared/PageHeaderTabs';
@@ -24,6 +27,7 @@ import type { Product } from '../admin/types';
 export type TeaItem = InventoryItem;
 
 interface TeaInventoryProps {
+  initialProductId?: string;
   inventory: TeaItem[];
   onAddToCart?: (item: TeaItem, qty: number, total: number) => void;
   onCartClick?: () => void;
@@ -47,7 +51,22 @@ const FEELING_TERMS = (() => {
 
 // Sale items imported from data/curatedCollections
 
-export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCart, onCartClick, onAccountClick, cartItemCount = 0, hideHeader = false, isAdmin = false, adminProductMap, onAdminEdit }) => {
+/**
+ * Does the resolved tasting profile for this item include a given term?
+ * Checks owner-saved data first; falls back to the style-level common profile
+ * so filters still match before any tasting has been reviewed.
+ */
+function resolvedIncludes(item: TeaItem, categoryId: TastingCategoryId, termId: string): boolean {
+  const ownerTerms =
+    (item.tastingSource === 'owner' || item.tastingSource === 'community')
+      ? item.tasting?.[categoryId]
+      : undefined;
+  if (ownerTerms?.includes(termId)) return true;
+  const common = getCommonTastingForType(item.type);
+  return Boolean(common?.[categoryId]?.includes(termId));
+}
+
+export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCart, onCartClick, onAccountClick, cartItemCount = 0, hideHeader = false, isAdmin = false, adminProductMap, onAdminEdit, initialProductId }) => {
   // Filter State
   const [activeType, setActiveType] = useState<string>('All');
   const [activeFeeling, setActiveFeeling] = useState<string | null>(null); // feeling term ID from taxonomy
@@ -63,12 +82,22 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
     return [...ordered, ...remaining];
   }, [inventory]);
 
-  // Derive which feeling terms are actually present in the inventory
+  // Derive which feeling terms are actually present in the inventory.
+  // Includes style-level common feelings so filters are meaningful before
+  // the owner has saved any explicit tastings.
   const availableFeelings = useMemo(() => {
     const present = new Set<string>();
     for (const item of inventory) {
-      if (item.tasting?.feeling) {
-        for (const f of item.tasting.feeling) present.add(f);
+      const ownerTerms =
+        (item.tastingSource === 'owner' || item.tastingSource === 'community')
+          ? item.tasting?.feeling
+          : undefined;
+      if (ownerTerms) {
+        for (const f of ownerTerms) present.add(f);
+      }
+      const common = getCommonTastingForType(item.type);
+      if (common?.feeling) {
+        for (const f of common.feeling) present.add(f);
       }
     }
     return FEELING_TERMS.filter(t => present.has(t.id));
@@ -84,6 +113,38 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
 
   // Tasting term filter (cross-reference from AlcoveCard)
   const [tastingFilter, setTastingFilter] = useState<{ termId: string; categoryId: string } | null>(null);
+
+  // URL ↔ filter round-trip. ?flavor=<termId> and ?feel=<termId> are shareable
+  // entry points from product pages; clearing filters in the UI also clears
+  // the URL so history behaves as expected.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const didHydrateFromUrl = useRef(false);
+
+  // One-way hydration: on first render, seed state from the URL.
+  useEffect(() => {
+    if (didHydrateFromUrl.current) return;
+    didHydrateFromUrl.current = true;
+    const flavor = searchParams.get('flavor');
+    const feel = searchParams.get('feel');
+    if (flavor) setTastingFilter({ termId: flavor, categoryId: 'flavor' });
+    if (feel) setActiveFeeling(feel);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Reverse direction: whenever state changes after hydration, update the URL.
+  useEffect(() => {
+    if (!didHydrateFromUrl.current) return;
+    const next = new URLSearchParams(searchParams);
+    const flavorTerm = tastingFilter?.categoryId === 'flavor' ? tastingFilter.termId : null;
+    if (flavorTerm) next.set('flavor', flavorTerm);
+    else next.delete('flavor');
+    if (activeFeeling) next.set('feel', activeFeeling);
+    else next.delete('feel');
+    if (next.toString() !== searchParams.toString()) {
+      setSearchParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeFeeling, tastingFilter]);
 
   const handleTermClick = useCallback((termId: string, categoryId: string) => {
     setTastingFilter({ termId, categoryId });
@@ -112,11 +173,9 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
   // Tasting Session State
   const [tastingItem, setTastingItem] = useState<TeaItem | null>(null);
   const handleTaste = useCallback((item: TeaItem) => {
-    // Clean up ?product= URL param so useProductUrl doesn't re-open the modal
-    const url = new URL(window.location.href);
-    if (url.searchParams.has('product')) {
-      url.searchParams.delete('product');
-      window.history.replaceState(null, '', url.toString());
+    // If we're on a product path, return to /shop so useProductUrl doesn't re-open the modal
+    if (window.location.pathname.startsWith('/shop/product/')) {
+      window.history.replaceState(null, '', '/shop');
     }
     setViewItem(null); // close AlcoveModal
     setTastingItem(item);
@@ -126,8 +185,8 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
     setViewItem(item as TeaItem); // item is always a full TeaItem at runtime
   }, []);
 
-  // Sync modal state with URL (?product=ID) for shareability and back-button support
-  const { closeWithHistory, navigateWithinModal } = useProductUrl(inventory, viewItem, setViewItem);
+  // Sync modal state with URL (/shop/product/<id>) for shareability and back-button support
+  const { closeWithHistory, navigateWithinModal } = useProductUrl(inventory, viewItem, setViewItem, initialProductId);
 
 
   // Filter Logic
@@ -139,7 +198,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
 
       // 1. Basic Filter (Type/Feeling)
       const matchType = activeType === 'All' || item.type === activeType;
-      const matchFeeling = !activeFeeling || (item.tasting?.feeling?.includes(activeFeeling) ?? false);
+      const matchFeeling = !activeFeeling || resolvedIncludes(item, 'feeling', activeFeeling);
 
       // 2. Special Filter (Curated/Sale/Liked)
       let matchSpecial = true;
@@ -157,9 +216,8 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
           matchTasting = itemMoods.includes(tastingFilter.termId);
         } else {
           const catKey = tastingFilter.categoryId as TastingCategoryId;
-          const tasting = item.tasting;
-          if (tasting && tasting[catKey]) {
-            matchTasting = tasting[catKey]!.includes(tastingFilter.termId);
+          if (resolvedIncludes(item, catKey, tastingFilter.termId)) {
+            matchTasting = true;
           } else {
             // Fallback: check legacy tags
             matchTasting = item.tags.some(t => t.toLowerCase() === resolveTermLabel(tastingFilter.termId).toLowerCase());
@@ -524,6 +582,19 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                         >
                                             <Icons.Bookmark className="w-3.5 h-3.5" fill={isFavorite ? 'currentColor' : 'none'} />
                                         </button>
+                                        {/* Sample list toggle */}
+                                        <AddToSampleButton
+                                            item={{
+                                                id: item.id,
+                                                name: item.name,
+                                                chineseName: item.chineseName,
+                                                type: item.type,
+                                                vendorName: item.supplier || undefined,
+                                                productId: item.id,
+                                            }}
+                                            size={13}
+                                            className="-my-1"
+                                        />
                                         {/* Admin: stock indicator */}
                                         {isAdmin && adminProductMap?.has(item.id) && (() => {
                                             const ap = adminProductMap.get(item.id)!;
@@ -548,7 +619,10 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                         <div className="text-right">
                                             <span className="num text-sm text-tea-gold font-medium">{fmtPrice(price50g)}</span>
                                             {item.category === 'tea' && price50g > 0 && (
-                                                <div className="text-[10px] text-tea-text-dim leading-none mt-0.5">per 50g</div>
+                                                <div className="text-[10px] text-tea-text-dim leading-none mt-0.5">
+                                                    <span>per 50g</span>
+                                                    <span className="text-tea-text-dim/50 ml-1">· {fmtPrice(Math.round(pricePerGram * 100) / 100)}/g</span>
+                                                </div>
                                             )}
                                         </div>
                                     </div>

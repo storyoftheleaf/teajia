@@ -6,9 +6,10 @@ interface Env {
   ANTHROPIC_API_KEY: string;
   GEMINI_API_KEY: string;
   GROQ_API_KEY: string;
-  // Optional — set SENDER_EMAIL to enable invite emails via MailChannels
+  // Optional — set SENDER_EMAIL + RESEND_API_KEY to enable transactional emails via Resend
   SENDER_EMAIL?: string;
   SENDER_NAME?: string;
+  RESEND_API_KEY?: string;
   // Optional — set to enable Google OAuth sign-in
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
@@ -737,6 +738,10 @@ const handleSignup: Handler = async (request, env) => {
     active_account_id: null,
   });
 
+  if (env.SENDER_EMAIL) {
+    sendEmail(env, email, 'Welcome to Teajia', welcomeEmailHtml(name || 'there')).catch(() => {});
+  }
+
   return json({
     token,
     user: { id, email, username, name: name || '', role: 'user' },
@@ -852,6 +857,37 @@ const handleChangePassword: Handler = async (request, env) => {
   await env.DB.prepare('UPDATE users SET password_hash = ? WHERE id = ?').bind(newHash, claims.sub).run();
 
   return json({ ok: true, message: 'Password changed successfully' });
+};
+
+// ── Delete Account ──
+const handleDeleteAccount: Handler = async (request, env) => {
+  const authErr = await requireAuth(request, env);
+  if (authErr) return authErr;
+
+  const token = isAuthed(request)!;
+  const claims = parseToken(token);
+  if (!claims) return json({ error: 'Invalid token' }, 401);
+
+  const { password } = await request.json() as { password?: string };
+  if (!password) return json({ error: 'Password required' }, 400);
+
+  const user = await env.DB.prepare('SELECT id, password_hash, platform_role FROM users WHERE id = ?').bind(claims.sub).first();
+  if (!user) return json({ error: 'User not found' }, 404);
+
+  const { verified } = await verifyPasswordHash(password, user.password_hash as string);
+  if (!verified) return json({ error: 'Incorrect password' }, 403);
+
+  if ((user.platform_role as string) === 'owner') {
+    return json({ error: 'Platform owner accounts cannot be deleted.' }, 403);
+  }
+
+  await env.DB.batch([
+    env.DB.prepare('DELETE FROM refresh_tokens WHERE user_id = ?').bind(claims.sub),
+    env.DB.prepare('DELETE FROM account_members WHERE user_id = ?').bind(claims.sub),
+    env.DB.prepare('DELETE FROM users WHERE id = ?').bind(claims.sub),
+  ]);
+
+  return json({ ok: true });
 };
 
 // ── Verify Password (used by Transfer Ownership gate 3) ──
@@ -1228,7 +1264,7 @@ const PUBLIC_FIELDS = [
   'fixed_retail_price_usd', 'stock_grams', 'description', 'tasting_notes',
   'image_url', 'additional_images', 'status', 'is_personal', 'can_reorder', 'is_featured', 'is_curated',
   'lore', 'show_wisdom', 'processing_notes', 'terroir', 'mood', 'experience',
-  'material', 'capacity_ml', 'teaware_category', 'quantity_units', 'tasting',
+  'material', 'capacity_ml', 'teaware_category', 'quantity_units', 'tasting', 'tasting_source',
 ] as const;
 
 // Legacy alias: resolves to Adrian's Bali store. New callers should use
@@ -1996,6 +2032,26 @@ const handleFulfillInvoice: Handler = async (request, env) => {
     } catch (e) {
       console.error('Queue population after fulfillment failed (non-fatal):', e);
     }
+  }
+
+  // Send order confirmation email to customer (non-blocking, best-effort)
+  const customerEmail = (invoice as any).customer_email as string | null;
+  const customerName  = (invoice as any).customer_name  as string | null;
+  if (customerEmail && env.SENDER_EMAIL) {
+    const invoiceNumber = (invoice as any).invoice_number as string;
+    const amountUsd     = (invoice as any).amount_usd     as number | null;
+    const lineItems = (items.results as any[]).map(i => ({
+      name: i.product_name || i.given_name || 'Item',
+      qty:  i.quantity_grams ? `${i.quantity_grams}g` : (i.quantity != null ? `×${i.quantity}` : ''),
+    }));
+    const orderUrl = `https://teajia.app/order/${invoice_id}`;
+    sendEmail(env, customerEmail, `Your Teajia order ${invoiceNumber} is confirmed`, fulfillmentEmailHtml(
+      customerName || 'there',
+      invoiceNumber,
+      lineItems,
+      amountUsd,
+      orderUrl,
+    )).catch(() => { /* non-critical */ });
   }
 
   return json({ success: true });
@@ -2817,7 +2873,7 @@ function makePublicXrefHandler(tableName: string, fkColumn: string): Handler {
                 p.show_wisdom, p.processing_notes, p.terroir, p.mood, p.experience,
                 p.cost_amount, p.cost_currency, p.quantity_purchased,
                 p.shipping_rate_per_kg, p.fixed_retail_price_usd,
-                p.material, p.capacity_ml, p.teaware_category, p.quantity_units, p.tasting
+                p.material, p.capacity_ml, p.teaware_category, p.quantity_units, p.tasting, p.tasting_source
          FROM ${tableName} xr
          JOIN products p ON xr.product_id = p.id
          WHERE xr.${fkColumn} = ?
@@ -3436,6 +3492,16 @@ const handleGetEventBySlug: Handler = async (_request, env, params) => {
 
   const confirmedCount = (count?.total as number) || 0;
 
+  // First names of guests who opted in to the public guest list
+  const guestListRows = await env.DB.prepare(
+    `SELECT full_name FROM event_attendees
+     WHERE event_id = ? AND status = 'confirmed' AND show_in_guest_list = 1
+     ORDER BY updated_at ASC LIMIT 20`
+  ).bind(event.id).all();
+  const confirmedNames = (guestListRows.results ?? []).map(
+    (r) => (r.full_name as string).split(' ')[0]
+  );
+
   let venuePhotos: string[] = [];
   if (event.venue_photos) {
     try { venuePhotos = JSON.parse(event.venue_photos as string); } catch { venuePhotos = []; }
@@ -3445,6 +3511,7 @@ const handleGetEventBySlug: Handler = async (_request, env, params) => {
     ...event,
     venue_photos: venuePhotos,
     confirmed_count: confirmedCount,
+    confirmed_names: confirmedNames,
     seats_remaining: (event.total_capacity as number) - confirmedCount,
   }, 30);
 };
@@ -3573,6 +3640,7 @@ const handleRSVP: Handler = async (request, env, params) => {
     guest_requests, contact_method,
     plus_one, plus_one_name,
     photo_consent, notes, tea_preference, bringing_tea,
+    show_in_guest_list,
   } = body;
 
   if (!full_name) return json({ error: 'full_name is required' }, 400);
@@ -3666,8 +3734,8 @@ const handleRSVP: Handler = async (request, env, params) => {
       `INSERT INTO event_attendees
          (id, account_id, event_id, customer_id, full_name, phone_number, email, plus_one, plus_one_name,
           access_tier, status, magic_token, photo_consent, notes, tea_preference, bringing_tea,
-          guest_requests, contact_method, source)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          guest_requests, contact_method, source, show_in_guest_list)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).bind(
       attendeeId,
       accountId,
@@ -3687,7 +3755,8 @@ const handleRSVP: Handler = async (request, env, params) => {
       bringing_tea || null,
       guestRequestsJson,
       contact_method || 'whatsapp',
-      'direct'
+      'direct',
+      show_in_guest_list ? 1 : 0
     ),
     buildActivityLog(env, 'rsvp_requested', `${full_name} requested a seat`, null, 'event_attendee', attendeeId, accountId),
   ];
@@ -3876,6 +3945,14 @@ const handleUpdateRSVP: Handler = async (request, env, params) => {
     await cascadeWaitlist(env, attendee.eid as string, (attendee.claim_window_minutes as number) || 60);
 
     return json({ success: true, status: 'cancelled' });
+  }
+
+  // Handle guest list visibility toggle
+  if (body.show_in_guest_list !== undefined) {
+    await env.DB.prepare(
+      `UPDATE event_attendees SET show_in_guest_list = ? WHERE id = ?`
+    ).bind(body.show_in_guest_list ? 1 : 0, attendee.id).run();
+    return json({ success: true });
   }
 
   // Handle plus_one change
@@ -5033,6 +5110,72 @@ const handleGetNewsletterSubscribers: Handler = async (request, env) => {
     'SELECT id, email, subscribed_at, source FROM newsletter_subscribers WHERE account_id = ? ORDER BY subscribed_at DESC'
   ).bind(accountId).all();
   return json({ subscribers: results });
+};
+
+// ── Cart Inquiries ──────────────────────────────────────────────────────────
+
+const handleCreateInquiry: Handler = async (request, env) => {
+  const body = await request.json() as Record<string, any>;
+  const name = (body.customer_name || body.name || '').trim();
+  const contact = (body.customer_contact || body.email || '').trim();
+  const itemsRaw = body.items_json || body.items;
+  if (!name || !contact || !itemsRaw) {
+    return json({ error: 'Name, contact and items are required' }, 400);
+  }
+  const itemsStr = typeof itemsRaw === 'string' ? itemsRaw : JSON.stringify(itemsRaw);
+  let accountId: string | null = BALI_ACCOUNT_ID;
+  if (typeof body.store_slug === 'string' && body.store_slug.trim()) {
+    accountId = await getAccountIdBySlug(env, body.store_slug.trim());
+    if (!accountId) return json({ error: 'Store not found' }, 404);
+  }
+  const id = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
+  await env.DB.prepare(
+    'INSERT INTO inquiries (id, account_id, name, email, phone, items, total_usd, currency, message) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+  ).bind(
+    id, accountId, name,
+    contact,
+    body.phone || body.customer_location || null,
+    itemsStr,
+    body.total_estimate_usd ?? body.total_usd ?? null,
+    body.currency || 'USD',
+    body.notes || body.message || null,
+  ).run();
+  return json({ id, ref_number: body.ref_number, success: true }, 201);
+};
+
+const handleGetInquiries: Handler = async (request, env) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+  const url = new URL(request.url);
+  const status = url.searchParams.get('status') || null;
+  const limit = Math.min(parseInt(url.searchParams.get('limit') || '50'), 100);
+  const query = status
+    ? 'SELECT * FROM inquiries WHERE account_id = ? AND status = ? ORDER BY created_at DESC LIMIT ?'
+    : 'SELECT * FROM inquiries WHERE account_id = ? ORDER BY created_at DESC LIMIT ?';
+  const stmt = status
+    ? env.DB.prepare(query).bind(accountId, status, limit)
+    : env.DB.prepare(query).bind(accountId, limit);
+  const { results } = await stmt.all();
+  const parsed = (results || []).map((r: any) => ({ ...r, items: JSON.parse(r.items || '[]') }));
+  return json({ inquiries: parsed });
+};
+
+const handleUpdateInquiryStatus: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+  const body = await request.json() as { status?: string };
+  const status = body.status;
+  const validStatuses = ['new', 'seen', 'replied', 'closed'];
+  if (!status || !validStatuses.includes(status)) {
+    return json({ error: `status must be one of: ${validStatuses.join(', ')}` }, 400);
+  }
+  const res = await env.DB.prepare(
+    'UPDATE inquiries SET status = ? WHERE id = ? AND account_id = ?'
+  ).bind(status, params.id, accountId).run();
+  if (!res.meta.changes) return json({ error: 'Inquiry not found' }, 404);
+  return json({ success: true });
 };
 
 // ── User Favorites (customer-facing; scoped to the currently active
@@ -7882,7 +8025,7 @@ async function logPlatformAction(
   }
 }
 
-// ── Email Helper (MailChannels — optional) ────────────────────────────────────
+// ── Email Helper (Resend — optional) ──────────────────────────────────────────
 
 async function sendEmail(
   env: Env,
@@ -7890,22 +8033,66 @@ async function sendEmail(
   subject: string,
   html: string
 ): Promise<boolean> {
-  if (!env.SENDER_EMAIL) return false;
+  if (!env.SENDER_EMAIL || !env.RESEND_API_KEY) return false;
   try {
-    const res = await fetch('https://api.mailchannels.net/tx/v1/send', {
+    const from = env.SENDER_NAME
+      ? `${env.SENDER_NAME} <${env.SENDER_EMAIL}>`
+      : env.SENDER_EMAIL;
+    const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        personalizations: [{ to: [{ email: to }] }],
-        from: { email: env.SENDER_EMAIL, name: env.SENDER_NAME || 'Teajia' },
-        subject,
-        content: [{ type: 'text/html', value: html }],
-      }),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${env.RESEND_API_KEY}`,
+      },
+      body: JSON.stringify({ from, to, subject, html }),
     });
-    return res.status === 202;
+    return res.ok;
   } catch {
     return false;
   }
+}
+
+function fulfillmentEmailHtml(
+  customerName: string,
+  orderRef: string,
+  lineItems: { name: string; qty: string }[],
+  amountUsd: number | null,
+  orderUrl: string,
+): string {
+  const rows = lineItems.map(i =>
+    `<tr><td style="padding:6px 0;border-bottom:1px solid #e8e0d4;font-size:14px;color:#3a2e24">${i.name}</td>` +
+    `<td style="padding:6px 0;border-bottom:1px solid #e8e0d4;font-size:14px;color:#7a6a56;text-align:right">${i.qty}</td></tr>`
+  ).join('');
+  const totalRow = amountUsd != null
+    ? `<tr><td style="padding:10px 0 0;font-size:14px;font-weight:bold;color:#3a2e24">Total</td>` +
+      `<td style="padding:10px 0 0;font-size:14px;font-weight:bold;color:#3a2e24;text-align:right">$${amountUsd.toFixed(2)}</td></tr>`
+    : '';
+  return `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f5f0eb;font-family:Georgia,serif">
+<table width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;margin:0 auto;padding:40px 24px">
+<tr><td>
+  <p style="font-size:22px;font-weight:bold;color:#3a2e24;margin:0 0 4px">Teajia</p>
+  <p style="font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:#9a8672;margin:0 0 32px">Order Confirmation</p>
+  <p style="font-size:15px;color:#3a2e24;margin:0 0 8px">Hello ${customerName},</p>
+  <p style="font-size:14px;color:#7a6a56;line-height:1.6;margin:0 0 24px">
+    Your order <strong style="color:#3a2e24">${orderRef}</strong> has been confirmed. We'll be in touch shortly to arrange delivery.
+  </p>
+  <table width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #e8e0d4;margin-bottom:24px">
+    ${rows}${totalRow}
+  </table>
+  <a href="${orderUrl}" style="display:inline-block;padding:12px 24px;background:#a8874d;color:#fff;text-decoration:none;font-size:13px;letter-spacing:0.08em">
+    View Order Status
+  </a>
+  <p style="font-size:12px;color:#9a8672;margin-top:32px;line-height:1.6">
+    Questions? Reply to this email or message us on WhatsApp.<br>
+    — The Teajia Team
+  </p>
+</td></tr>
+</table>
+</body>
+</html>`;
 }
 
 function inviteEmailHtml(inviteUrl: string, accountName: string): string {
@@ -7918,6 +8105,31 @@ function inviteEmailHtml(inviteUrl: string, accountName: string): string {
       </a>
       <p style="color:#999;font-size:12px;margin-top:24px">This link expires in 14 days.</p>
     </div>`;
+}
+
+function welcomeEmailHtml(name: string): string {
+  return `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f5f0eb;font-family:Georgia,serif">
+<table width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;margin:0 auto;padding:40px 24px">
+<tr><td>
+  <p style="font-size:22px;font-weight:bold;color:#3a2e24;margin:0 0 4px">Teajia</p>
+  <p style="font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:#9a8672;margin:0 0 32px">Welcome</p>
+  <p style="font-size:15px;color:#3a2e24;margin:0 0 8px">Hello ${name},</p>
+  <p style="font-size:14px;color:#7a6a56;line-height:1.6;margin:0 0 24px">
+    Your Teajia account is ready. Browse the collection, explore the journal, and reach out whenever you'd like to discuss tea.
+  </p>
+  <a href="https://teajia.com" style="display:inline-block;padding:12px 24px;background:#a8874d;color:#fff;text-decoration:none;font-size:13px;letter-spacing:0.08em">
+    Explore Teajia
+  </a>
+  <p style="font-size:12px;color:#9a8672;margin-top:32px;line-height:1.6">
+    — The Teajia Team
+  </p>
+</td></tr>
+</table>
+</body>
+</html>`;
 }
 
 // ── Platform Admin Endpoints ─────────────────────────────────────────────────
@@ -8385,7 +8597,7 @@ async function fetchPublicProductsForAccount(
               processing_notes, terroir, mood, experience,
               cost_amount, cost_currency, quantity_purchased,
               shipping_rate_per_kg, fixed_retail_price_usd,
-              material, capacity_ml, teaware_category, quantity_units, tasting
+              material, capacity_ml, teaware_category, quantity_units, tasting, tasting_source
        FROM products
        WHERE is_public = 1 AND status = 'Active' AND account_id = ?
        ORDER BY created_at DESC`
@@ -9553,6 +9765,100 @@ const handleGetPublicArticle: Handler = async (request, env, params) => {
   });
 };
 
+// ── Analytics ─────────────────────────────────────────────────────────────────
+
+// GET /api/analytics/revenue — weekly revenue from fulfilled invoices (last 26 weeks)
+// Also returns the 10 oldest active products (by last sale date) as inventory age alerts.
+const handleGetRevenueAnalytics: Handler = async (request, env) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+
+  const [revenueRows, ageRows] = await Promise.all([
+    env.DB.prepare(
+      `SELECT strftime('%Y-%W', created_at) as week,
+              SUM(total_usd) as revenue,
+              COUNT(*) as order_count
+       FROM invoices
+       WHERE status = 'fulfilled'
+         AND account_id = ?
+         AND created_at >= datetime('now', '-26 weeks')
+       GROUP BY week
+       ORDER BY week ASC`
+    ).bind(accountId).all(),
+    env.DB.prepare(
+      `SELECT p.id, p.product_name, p.stock_grams,
+              MAX(i.created_at) as last_sold_at
+       FROM products p
+       LEFT JOIN invoice_line_items ili ON ili.product_id = p.id
+       LEFT JOIN invoices i ON i.id = ili.invoice_id AND i.status = 'fulfilled' AND i.account_id = ?
+       WHERE p.status = 'Active' AND p.is_public = 1 AND p.account_id = ?
+       GROUP BY p.id
+       HAVING last_sold_at IS NULL OR last_sold_at < datetime('now', '-90 days')
+       ORDER BY last_sold_at ASC NULLS FIRST
+       LIMIT 10`
+    ).bind(accountId, accountId).all(),
+  ]);
+
+  return json({
+    weekly_revenue: revenueRows.results ?? [],
+    inventory_age_alerts: ageRows.results ?? [],
+  });
+};
+
+// GET /api/customers/rfm — Recency / Frequency / Monetary segmentation
+// Returns top 10 by lifetime spend, lapsed (>90 days), and new (<30 days).
+const handleGetCustomerRFM: Handler = async (request, env) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+
+  const [top10Rows, lapsedRows, newRows] = await Promise.all([
+    env.DB.prepare(
+      `SELECT c.id, c.name, c.email,
+              COUNT(DISTINCT i.id) as order_count,
+              COALESCE(SUM(i.total_usd), 0) as lifetime_usd,
+              MAX(i.created_at) as last_order_at
+       FROM customers c
+       JOIN invoices i ON i.customer_id = c.id AND i.status = 'fulfilled'
+       WHERE c.account_id = ?
+       GROUP BY c.id
+       ORDER BY lifetime_usd DESC
+       LIMIT 10`
+    ).bind(accountId).all(),
+    env.DB.prepare(
+      `SELECT c.id, c.name, c.email,
+              MAX(i.created_at) as last_order_at,
+              COALESCE(SUM(i.total_usd), 0) as lifetime_usd
+       FROM customers c
+       JOIN invoices i ON i.customer_id = c.id AND i.status = 'fulfilled'
+       WHERE c.account_id = ?
+       GROUP BY c.id
+       HAVING last_order_at < datetime('now', '-90 days')
+       ORDER BY last_order_at ASC
+       LIMIT 20`
+    ).bind(accountId).all(),
+    env.DB.prepare(
+      `SELECT c.id, c.name, c.email,
+              MIN(i.created_at) as first_order_at,
+              COALESCE(SUM(i.total_usd), 0) as lifetime_usd
+       FROM customers c
+       JOIN invoices i ON i.customer_id = c.id AND i.status = 'fulfilled'
+       WHERE c.account_id = ?
+       GROUP BY c.id
+       HAVING first_order_at >= datetime('now', '-30 days')
+       ORDER BY first_order_at DESC
+       LIMIT 20`
+    ).bind(accountId).all(),
+  ]);
+
+  return json({
+    top10: top10Rows.results ?? [],
+    lapsed: lapsedRows.results ?? [],
+    new_this_month: newRows.results ?? [],
+  });
+};
+
 // ── Routes ──
 const routes: [string, string, Handler][] = [
   // Auth
@@ -9562,6 +9868,7 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/auth/me', handleGetMe],
   ['PUT', '/api/auth/change-password', handleChangePassword],
   ['POST', '/api/auth/verify-password', handleVerifyPassword],
+  ['DELETE', '/api/auth/account', handleDeleteAccount],
   ['PUT', '/api/auth/profile', handleUpdateProfile],
   ['POST', '/api/auth/request-admin', handleRequestAdmin],
   ['POST', '/api/auth/forgot-password', handleForgotPassword],
@@ -9638,6 +9945,10 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/invoices/:id/items', handleGetInvoiceItems],
   ['PUT', '/api/invoices/:id', handleUpdateInvoice],
   ['DELETE', '/api/invoices/:id', handleDeleteInvoice],
+
+  // Analytics
+  ['GET', '/api/analytics/revenue', handleGetRevenueAnalytics],
+  ['GET', '/api/customers/rfm', handleGetCustomerRFM],
 
   // Customers
   ['GET', '/api/customers', handleGetCustomers],
@@ -9774,6 +10085,11 @@ const routes: [string, string, Handler][] = [
   // Newsletter
   ['POST', '/api/newsletter/subscribe', handleNewsletterSubscribe],
   ['GET', '/api/newsletter/subscribers', handleGetNewsletterSubscribers],
+
+  // Cart Inquiries
+  ['POST', '/api/inquiries', handleCreateInquiry],
+  ['GET', '/api/admin/inquiries', handleGetInquiries],
+  ['PATCH', '/api/admin/inquiries/:id/status', handleUpdateInquiryStatus],
 
   // User Favorites
   ['GET', '/api/user/favorites', handleGetUserFavorites],
