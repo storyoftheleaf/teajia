@@ -1,7 +1,5 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Icons } from '../Icons';
-import { Row, SectionHeader } from './primitives';
 
 interface ReaderViewProps {
   onClose: () => void;
@@ -9,6 +7,31 @@ interface ReaderViewProps {
   onOpenSignUp: () => void;
   onOpenEvents: () => void;
 }
+
+// Small text-link cluster, matches the footer pattern used in
+// MemberView/OperatorView — no chevrons, no row grammar.
+const LinkCluster: React.FC<{
+  hint: string;
+  links: { label: string; onClick: () => void }[];
+}> = ({ hint, links }) => (
+  <div className="px-6 py-4 border-t border-tea-border">
+    <div className="text-[9px] uppercase tracking-[0.28em] text-tea-text-dim mb-2.5">{hint}</div>
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[13px] text-tea-text-sec tracking-[0.02em]">
+      {links.map((link, i) => (
+        <React.Fragment key={link.label}>
+          {i > 0 && <span className="text-tea-text-dim" aria-hidden="true">·</span>}
+          <button
+            onClick={link.onClick}
+            className="hover:text-tea-gold transition-colors"
+            style={{ fontFamily: 'var(--font-display)', WebkitTapHighlightColor: 'transparent' }}
+          >
+            {link.label}
+          </button>
+        </React.Fragment>
+      ))}
+    </div>
+  </div>
+);
 
 export const ReaderView: React.FC<ReaderViewProps> = ({
   onClose,
@@ -21,77 +44,68 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
 
   return (
     <div>
+      {/* ── Hero — the invitation ───────────────────────────────────── */}
       <div className="px-6 pt-8 pb-6">
         <p className="text-[10px] uppercase tracking-[0.3em] text-tea-text-dim mb-3">Teajia</p>
-        <h2 className="font-serif text-[28px] font-normal text-tea-text leading-[1.05] tracking-[-0.5px]">
+        <h2
+          className="text-[28px] font-normal text-tea-text leading-[1.05] tracking-[-0.5px]"
+          style={{ fontFamily: 'var(--font-display)' }}
+        >
           Gather <em className="text-tea-gold italic">around tea.</em>
         </h2>
-        <p className="font-serif italic text-[13px] text-tea-text-sec mt-3 leading-relaxed">
+        <p
+          className="italic text-[13px] text-tea-text-sec mt-3 leading-relaxed"
+          style={{ fontFamily: 'var(--font-display)' }}
+        >
           A home for practitioners, readers, and those just beginning.
         </p>
       </div>
 
-      <div className="px-6 pb-5">
+      {/* ── Primary + secondary CTA ─────────────────────────────────── */}
+      <div className="px-6 pb-6">
         <button
           onClick={onOpenSignIn}
           className="w-full py-3 bg-tea-gold text-tea-bg text-[11px] uppercase tracking-[0.25em] font-semibold rounded-sm hover:bg-tea-gold/90 transition-colors"
+          style={{ WebkitTapHighlightColor: 'transparent' }}
         >
           Sign In
         </button>
         <button
           onClick={onOpenSignUp}
           className="w-full mt-2 py-3 text-[11px] uppercase tracking-[0.2em] text-tea-text-sec hover:text-tea-text transition-colors"
+          style={{ WebkitTapHighlightColor: 'transparent' }}
         >
           Create an account
         </button>
       </div>
 
-      <SectionHeader>What's inside</SectionHeader>
-      <div>
-        <Row
-          label="Journal your sessions"
-          onClick={onOpenSignUp}
-          trailing={<Icons.ChevronRight className="w-3.5 h-3.5 text-tea-text/20 shrink-0" />}
-        />
-        <Row
-          label="Find teas for your taste"
-          onClick={() => go('/compass')}
-          trailing={<Icons.ChevronRight className="w-3.5 h-3.5 text-tea-text/20 shrink-0" />}
-        />
-        <Row
-          label="Attend a session"
-          onClick={onOpenEvents}
-          trailing={<Icons.ChevronRight className="w-3.5 h-3.5 text-tea-text/20 shrink-0" />}
-        />
-      </div>
+      {/* ── What's inside — text-link cluster, not rows ─────────────── */}
+      <LinkCluster
+        hint="What's inside"
+        links={[
+          { label: 'Journal your sessions', onClick: onOpenSignUp },
+          { label: 'Find teas for your taste', onClick: () => go('/compass') },
+          { label: 'Attend a session', onClick: onOpenEvents },
+        ]}
+      />
 
-      <SectionHeader>Explore</SectionHeader>
-      <div>
-        <Row
-          label="The Magazine"
-          onClick={() => go('/magazine')}
-          trailing={<Icons.ChevronRight className="w-3.5 h-3.5 text-tea-text/20 shrink-0" />}
-        />
-        <Row
-          label="Shop"
-          onClick={() => go('/shop')}
-          trailing={<Icons.ChevronRight className="w-3.5 h-3.5 text-tea-text/20 shrink-0" />}
-        />
-        <Row
-          label="Our Spaces"
-          onClick={() => go('/spaces')}
-          trailing={<Icons.ChevronRight className="w-3.5 h-3.5 text-tea-text/20 shrink-0" />}
-        />
-      </div>
+      {/* ── Explore ───────────────────────────────────────────────────── */}
+      <LinkCluster
+        hint="Explore"
+        links={[
+          { label: 'The Magazine', onClick: () => go('/magazine') },
+          { label: 'Shop', onClick: () => go('/shop') },
+          { label: 'Our Spaces', onClick: () => go('/spaces') },
+        ]}
+      />
 
-      <SectionHeader>For your space</SectionHeader>
-      <div>
-        <Row
-          label="Tea for hotels, studios & retreats"
-          onClick={() => go('/for-your-space')}
-          trailing={<Icons.ChevronRight className="w-3.5 h-3.5 text-tea-text/20 shrink-0" />}
-        />
-      </div>
+      {/* ── For your space (B2B outreach) ─────────────────────────────── */}
+      <LinkCluster
+        hint="For your space"
+        links={[
+          { label: 'Tea for hotels, studios & retreats', onClick: () => go('/for-your-space') },
+        ]}
+      />
 
       <div className="pb-[calc(44px+env(safe-area-inset-bottom,0px))] lg:pb-8" />
     </div>

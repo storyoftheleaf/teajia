@@ -63,7 +63,7 @@ export const NeedsAttention: React.FC<{ items: AttentionItem[] }> = ({ items }) 
           style={{ WebkitTapHighlightColor: 'transparent' }}
         >
           <span
-            className={`w-1 h-1 rounded-full shrink-0 ${item.urgent ? 'bg-tea-gold animate-pulse' : 'bg-tea-text-dim'}`}
+            className={`w-1 h-1 rounded-full shrink-0 ${item.urgent ? 'bg-tea-gold' : 'bg-tea-text-dim'}`}
             aria-hidden="true"
           />
           <span className="flex-1 min-w-0 font-serif text-[13px] text-tea-text leading-snug truncate">

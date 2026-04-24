@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SealIcon } from '../Icons';
-import { Icons } from '../Icons';
 import {
   ADMIN_TOOL_GROUPS,
   toolsForRole,
@@ -9,7 +8,8 @@ import {
   isRecentlyAdded,
   type AdminTool,
 } from '../../admin/toolRegistry';
-import { Row, SectionHeader, NeedsAttention } from './primitives';
+import { NeedsAttention } from './primitives';
+import type { TeaEvent } from '../../types/events';
 
 interface OperatorViewProps {
   user: { name?: string; email: string } | null;
@@ -21,9 +21,28 @@ interface OperatorViewProps {
   isPlatform: boolean;
   isOwner: boolean;
 
+  // Operational signals
   pendingInvoiceCount: number;
   todayEventCount: number;
   unsyncedJournalCount: number;
+
+  // Personal practice (unified Bench — Adrian IS the shop)
+  journalLastAt: string | null;
+  journalLastTea: string | null;
+  journalLastExcerpt: string | null;
+  journalCount: number;
+  collectionCount: number;
+  compassProfile: string | null;
+  journey?: {
+    hasLinkedCustomer: boolean;
+    sessionsAttended: number;
+    totalTeas: number;
+    seals: { eventId: string; title: string; date: string; flyerUrl?: string | null }[];
+    milestones: string[];
+    teaTypeMap: Record<string, number>;
+  } | null;
+  nextEvent: TeaEvent | null;
+  nextEventWithin24h: boolean;
 
   onClose: () => void;
   onOpenJournal: () => void;
@@ -33,9 +52,81 @@ interface OperatorViewProps {
   memberCount: number;
 }
 
+// ── Editorial helpers (duplicated across views by design — each view may vary) ──
+
 function getInitials(nameOrEmail: string): string {
   return nameOrEmail.split(/\s+/).map(w => w[0]).join('').toUpperCase().slice(0, 2);
 }
+
+const DAY_WORDS = ['', 'one', 'two', 'three', 'four', 'five', 'six'] as const;
+function daysWord(n: number): string {
+  return DAY_WORDS[n] ?? String(n);
+}
+function capitalize(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+function daysSince(iso: string): number {
+  return Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+}
+function truncate(s: string, max: number): string {
+  const clean = s.replace(/\s+/g, ' ').trim();
+  if (clean.length <= max) return clean;
+  return clean.slice(0, max).replace(/[\s,.;:—-]+$/, '') + '…';
+}
+
+/**
+ * Synthesizes the operator's current state in one editorial line.
+ * Composes a phrase from up to two signals (sessions, invoices, journal,
+ * restock, etc.). Always returns a line of prose, never a count dump.
+ */
+function buildOperatorFrontispiece(args: {
+  todayEventCount: number;
+  pendingInvoiceCount: number;
+  unsyncedJournalCount: number;
+  nextEventWithin24h: boolean;
+  nextEvent: TeaEvent | null;
+}): string {
+  const { todayEventCount, pendingInvoiceCount, unsyncedJournalCount } = args;
+
+  const parts: string[] = [];
+  if (todayEventCount === 1) parts.push('One session today');
+  else if (todayEventCount > 1) parts.push(`${capitalize(daysWord(todayEventCount))} sessions today`);
+
+  if (pendingInvoiceCount === 1) parts.push('one invoice waiting');
+  else if (pendingInvoiceCount > 1) parts.push(`${pendingInvoiceCount} invoices waiting`);
+
+  if (parts.length === 0 && unsyncedJournalCount > 0) {
+    return `${capitalize(daysWord(unsyncedJournalCount))} note${unsyncedJournalCount === 1 ? '' : 's'} still to sync.`;
+  }
+
+  if (parts.length === 0) return 'The bench is clear.';
+  if (parts.length === 1) return `${parts[0]}.`;
+  return `${parts[0]}, ${parts[1]}.`;
+}
+
+function formatTodayLabel(): string {
+  const d = new Date();
+  return d.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long' });
+}
+
+// ── Shared content-preview block ───────────────────────────────────────────
+
+const PreviewBlock: React.FC<{
+  hint: string;
+  onClick: () => void;
+  children: React.ReactNode;
+}> = ({ hint, onClick, children }) => (
+  <button
+    onClick={onClick}
+    className="w-full text-left px-6 py-5 hover:bg-tea-surface/40 transition-colors border-t border-tea-border"
+    style={{ WebkitTapHighlightColor: 'transparent' }}
+  >
+    <div className="text-[9px] uppercase tracking-[0.28em] text-tea-text-dim mb-2.5">{hint}</div>
+    {children}
+  </button>
+);
+
+// ── OperatorView ───────────────────────────────────────────────────────────
 
 export const OperatorView: React.FC<OperatorViewProps> = ({
   user,
@@ -49,6 +140,15 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
   pendingInvoiceCount,
   todayEventCount,
   unsyncedJournalCount,
+  journalLastAt,
+  journalLastTea,
+  journalLastExcerpt,
+  journalCount,
+  collectionCount,
+  compassProfile,
+  journey,
+  nextEvent,
+  nextEventWithin24h,
   onClose,
   onOpenJournal,
   onOpenEvents,
@@ -57,13 +157,12 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
   memberCount,
 }) => {
   const navigate = useNavigate();
-  const [myTeaOpen, setMyTeaOpen] = useState(false);
-
   const tools = toolsForRole({ isOwner, isPlatform });
   const grouped = groupTools(tools);
 
   const go = (route: string) => { onClose(); navigate(route); };
 
+  // ── Attention (urgent items, unchanged semantics) ─────────────────────
   const attention: { id: string; label: string; meta?: string; onClick: () => void; urgent?: boolean }[] = [];
   if (todayEventCount > 0) {
     attention.push({
@@ -90,117 +189,234 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
     });
   }
 
+  const frontispiece = buildOperatorFrontispiece({
+    todayEventCount,
+    pendingInvoiceCount,
+    unsyncedJournalCount,
+    nextEventWithin24h,
+    nextEvent,
+  });
+
+  const todayLabel = formatTodayLabel();
+
   return (
     <div>
-      <div className="px-6 pt-5 pb-3">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onAvatarClick}
-            className="w-11 h-11 rounded-full bg-tea-gold/10 flex items-center justify-center border border-tea-border shrink-0 overflow-hidden relative group"
-            title="Change photo"
-          >
-            {avatarDataUrl ? (
-              <img src={avatarDataUrl} alt="" className="w-full h-full object-cover" loading="lazy" />
-            ) : (
-              <span className="text-sm font-serif text-tea-gold font-medium">
-                {user ? getInitials(user.name || user.email) : '茶'}
-              </span>
-            )}
-          </button>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="font-serif text-[15px] text-tea-text truncate leading-tight">
-                {user?.name || 'Tea Enthusiast'}
-              </h3>
-              {roleBadgeLabel && (
-                <span className="inline-flex items-center gap-0.5 px-1.5 py-px text-[8px] uppercase tracking-[0.1em] text-tea-gold bg-tea-gold/10 rounded shrink-0">
-                  {(isOwner || isPlatform) && <SealIcon className="w-2.5 h-2.5" />}
-                  {roleBadgeLabel}
-                </span>
-              )}
-            </div>
-            {accountName && (
-              <div className="text-[11px] text-tea-text-sec truncate mt-0.5">
-                {accountName}{locationLabel ? ` · ${locationLabel}` : ''}
-              </div>
-            )}
+      {/* ── Identity — small corner mark with role + account/location ── */}
+      <div className="px-6 pt-5 pb-0 flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="text-[9px] uppercase tracking-[0.3em] text-tea-text-dim">
+            {todayLabel}
           </div>
+          {accountName && (
+            <div className="text-[11px] text-tea-text-sec truncate mt-1 tracking-[0.03em]">
+              {accountName}{locationLabel ? ` · ${locationLabel}` : ''}
+            </div>
+          )}
         </div>
+        <button
+          onClick={onAvatarClick}
+          className="w-9 h-9 rounded-full bg-tea-gold/10 flex items-center justify-center border border-tea-border overflow-hidden shrink-0 relative"
+          title={user?.name || user?.email || 'Change photo'}
+          aria-label="Change photo"
+          style={{ WebkitTapHighlightColor: 'transparent' }}
+        >
+          {avatarDataUrl ? (
+            <img src={avatarDataUrl} alt="" className="w-full h-full object-cover" loading="lazy" />
+          ) : (
+            <span className="text-[11px] font-serif text-tea-gold">
+              {user ? getInitials(user.name || user.email) : '茶'}
+            </span>
+          )}
+          {roleBadgeLabel && (isOwner || isPlatform) && (
+            <span
+              className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-tea-bg border border-tea-border flex items-center justify-center"
+              aria-label={roleBadgeLabel}
+            >
+              <SealIcon className="w-2 h-2 text-tea-gold" />
+            </span>
+          )}
+        </button>
       </div>
 
+      {/* ── Frontispiece — one editorial line synthesizing current state ── */}
+      <div className="px-6 pt-3 pb-2">
+        <p
+          className="text-[19px] leading-snug text-tea-text italic"
+          style={{ fontFamily: 'var(--font-display)', fontWeight: 400 }}
+        >
+          {frontispiece}
+        </p>
+      </div>
+
+      {/* ── Attention — urgent items ─────────────────────────────────── */}
       <NeedsAttention items={attention} />
 
+      {/* ── Today's sessions ─────────────────────────────────────────── */}
+      {todayEventCount > 0 && (
+        <PreviewBlock hint="On the bench" onClick={() => go('/admin/events')}>
+          <p className="text-[14px] text-tea-text" style={{ fontFamily: 'var(--font-display)' }}>
+            {todayEventCount} session{todayEventCount === 1 ? '' : 's'} scheduled today.
+          </p>
+        </PreviewBlock>
+      )}
+
+      {/* ── Pending invoices ─────────────────────────────────────────── */}
+      {pendingInvoiceCount > 0 && (
+        <PreviewBlock hint="Waiting" onClick={() => go('/admin/activity')}>
+          <p className="text-[14px] text-tea-text" style={{ fontFamily: 'var(--font-display)' }}>
+            {pendingInvoiceCount} invoice{pendingInvoiceCount === 1 ? '' : 's'} pending review.
+          </p>
+        </PreviewBlock>
+      )}
+
+      {/* ── Last note — Adrian's own notes are operational knowledge ── */}
+      <PreviewBlock hint="Notes" onClick={onOpenJournal}>
+        {journalCount > 0 ? (
+          <>
+            {journalLastExcerpt && (
+              <p
+                className="text-[14px] leading-snug text-tea-text italic mb-1.5"
+                style={{ fontFamily: 'var(--font-display)' }}
+              >
+                “{truncate(journalLastExcerpt, 120)}”
+              </p>
+            )}
+            <div className="text-[11px] text-tea-text-sec tracking-[0.03em]">
+              {journalLastTea && <span className="text-tea-text">{journalLastTea}</span>}
+              {journalLastTea && journalLastAt && <span className="text-tea-text-dim"> · </span>}
+              {journalLastAt && <span>{capitalize(daysWord(daysSince(journalLastAt)))} days past</span>}
+              {!journalLastExcerpt && journalCount > 1 && (
+                <span className="text-tea-text-dim"> · {journalCount} entries kept</span>
+              )}
+            </div>
+          </>
+        ) : (
+          <p className="text-[14px] italic text-tea-text-sec" style={{ fontFamily: 'var(--font-display)' }}>
+            begin a note
+          </p>
+        )}
+      </PreviewBlock>
+
+      {/* ── Sessions seal strip (if linked customer) ─────────────────── */}
+      {journey?.hasLinkedCustomer && journey.seals.length > 0 && (
+        <PreviewBlock hint="Gatherings" onClick={() => go('/account/journey')}>
+          <div className="flex items-center gap-1.5 mb-2">
+            {journey.seals.slice(-5).map(s => (
+              <div
+                key={s.eventId}
+                className="w-7 h-7 rounded-full border border-tea-border overflow-hidden bg-tea-surface shrink-0"
+                title={s.title}
+              >
+                {s.flyerUrl ? (
+                  <img src={s.flyerUrl} alt="" className="w-full h-full object-cover opacity-80" loading="lazy" />
+                ) : (
+                  <span className="flex items-center justify-center w-full h-full text-[8px] font-serif text-tea-gold/40">茶</span>
+                )}
+              </div>
+            ))}
+          </div>
+          <div className="text-[11px] text-tea-text-sec tracking-[0.03em]">
+            <span className="text-tea-text">{journey.sessionsAttended}</span> gathering{journey.sessionsAttended !== 1 ? 's' : ''}
+            {journey.totalTeas > 0 && <span className="text-tea-text-dim"> · {journey.totalTeas} teas past</span>}
+          </div>
+        </PreviewBlock>
+      )}
+
+      {/* ── Compass ──────────────────────────────────────────────────── */}
+      {compassProfile && (
+        <PreviewBlock hint="Compass" onClick={() => go('/compass')}>
+          <p
+            className="text-[15px] leading-snug text-tea-text italic"
+            style={{ fontFamily: 'var(--font-display)' }}
+          >
+            “{compassProfile}”
+          </p>
+        </PreviewBlock>
+      )}
+
+      {/* ── Collection ───────────────────────────────────────────────── */}
+      {collectionCount > 0 && (
+        <PreviewBlock hint="Collection" onClick={() => go('/account/collection')}>
+          <p className="text-[14px] text-tea-text" style={{ fontFamily: 'var(--font-display)' }}>
+            {collectionCount} tea{collectionCount !== 1 ? 's' : ''} kept.
+          </p>
+        </PreviewBlock>
+      )}
+
+      {/* ── Tools — compact grouped grid, below the portal zone ──────── */}
       {ADMIN_TOOL_GROUPS.map(group => {
         const list: AdminTool[] = grouped[group.id];
         if (list.length === 0) return null;
         return (
-          <div key={group.id}>
-            <SectionHeader>{group.label}</SectionHeader>
-            <div>
+          <div key={group.id} className="border-t border-tea-border pt-4 pb-1">
+            <div className="px-6 pb-2">
+              <div className="text-[9px] uppercase tracking-[0.28em] text-tea-text-dim">{group.label}</div>
+            </div>
+            <div className="px-6 pb-3 flex flex-wrap gap-x-3 gap-y-2">
               {list.map(tool => (
-                <Row
+                <button
                   key={tool.id}
-                  label={tool.label}
                   onClick={() => go(tool.route)}
-                  isNew={isRecentlyAdded(tool)}
-                  trailing={<Icons.ChevronRight className="w-3.5 h-3.5 text-tea-text/20 shrink-0" />}
-                  meta={
-                    tool.id === 'activity' && pendingInvoiceCount > 0
-                      ? `${pendingInvoiceCount} pending`
-                      : tool.id === 'events' && todayEventCount > 0
-                      ? `${todayEventCount} today`
-                      : undefined
-                  }
-                />
+                  className="text-[13px] text-tea-text-sec hover:text-tea-gold transition-colors tracking-[0.02em] flex items-center gap-1.5"
+                  style={{ fontFamily: 'var(--font-display)', WebkitTapHighlightColor: 'transparent' }}
+                >
+                  {tool.label}
+                  {isRecentlyAdded(tool) && (
+                    <span className="inline-block w-1 h-1 rounded-full bg-tea-gold/70" aria-label="Recently added" />
+                  )}
+                </button>
               ))}
             </div>
           </div>
         );
       })}
 
-      <SectionHeader>Personal</SectionHeader>
-      <div>
-        <Row
-          label="My tea"
-          onClick={() => setMyTeaOpen(v => !v)}
-          trailing={
-            <Icons.ChevronRight
-              className={`w-3.5 h-3.5 text-tea-text/20 shrink-0 transition-transform ${myTeaOpen ? 'rotate-90' : ''}`}
-            />
-          }
-        />
-        {myTeaOpen && (
-          <div>
-            <Row label="Tasting Journal" onClick={onOpenJournal} subdued />
-            <Row label="Collection" onClick={() => go('/account/collection')} subdued />
-            <Row label="Compass Profile" onClick={() => go('/compass')} subdued />
-            <Row label="Order History" onClick={() => go('/account/orders')} subdued />
-            <Row label="Events Attending" onClick={onOpenEvents} subdued />
-          </div>
-        )}
-      </div>
+      {/* ── Utility footer — quiet text links ────────────────────────── */}
+      <div className="px-6 pt-6 pb-[calc(44px+env(safe-area-inset-bottom,0px))] lg:pb-8 border-t border-tea-border mt-3">
+        <div
+          className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[11px] text-tea-text-sec tracking-[0.04em]"
+        >
+          <button
+            onClick={() => go('/account/orders')}
+            className="hover:text-tea-gold transition-colors"
+            style={{ WebkitTapHighlightColor: 'transparent' }}
+          >
+            Orders
+          </button>
+          <span className="text-tea-text-dim" aria-hidden="true">·</span>
+          <button
+            onClick={onOpenEvents}
+            className="hover:text-tea-gold transition-colors"
+            style={{ WebkitTapHighlightColor: 'transparent' }}
+          >
+            Events attending
+          </button>
+          {memberCount >= 2 && (
+            <>
+              <span className="text-tea-text-dim" aria-hidden="true">·</span>
+              <button
+                onClick={onOpenLocationSwitcher}
+                className="hover:text-tea-gold transition-colors"
+                style={{ WebkitTapHighlightColor: 'transparent' }}
+              >
+                Switch location · {memberCount}
+              </button>
+            </>
+          )}
+          <span className="text-tea-text-dim" aria-hidden="true">·</span>
+          <button
+            onClick={() => go('/account/settings')}
+            className="hover:text-tea-gold transition-colors"
+            style={{ WebkitTapHighlightColor: 'transparent' }}
+          >
+            Settings
+          </button>
+        </div>
 
-      <SectionHeader>Account</SectionHeader>
-      <div>
-        {memberCount >= 2 && (
-          <Row
-            label="Switch Location"
-            onClick={onOpenLocationSwitcher}
-            meta={`${memberCount} locations`}
-            trailing={<Icons.ChevronRight className="w-3.5 h-3.5 text-tea-text/20 shrink-0" />}
-          />
-        )}
-        <Row
-          label="Settings"
-          onClick={() => go('/account/settings')}
-          trailing={<Icons.ChevronRight className="w-3.5 h-3.5 text-tea-text/20 shrink-0" />}
-        />
-      </div>
-
-      <div className="px-6 pt-6 pb-[calc(44px+env(safe-area-inset-bottom,0px))] lg:pb-8">
         <button
           onClick={onSignOut}
-          className="w-full py-2.5 text-tea-text-sec hover:text-tea-gold transition-colors text-[11px] uppercase tracking-[0.2em] font-medium"
+          className="mt-6 text-tea-text-sec hover:text-tea-gold transition-colors text-[11px] uppercase tracking-[0.2em] font-medium"
+          style={{ WebkitTapHighlightColor: 'transparent' }}
         >
           Sign Out
         </button>
