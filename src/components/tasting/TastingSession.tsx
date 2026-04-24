@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  Check, Leaf, Sparkles, Mic,
+  Check, Leaf, Sparkles, Mic, Loader2,
   Heart, ThumbsUp, Minus, ThumbsDown, ShoppingCart,
   Thermometer, Timer,
 } from 'lucide-react';
@@ -15,10 +15,10 @@ import { useNotesStore } from '../../lib/notesStore';
 import { syncNotes } from '../../lib/notesSync';
 import { api, hasToken } from '../../lib/api';
 import { resolveTermLabel, resolveTermIcon } from '../../data/tastingTaxonomy';
-import { VoiceNoteField } from './VoiceNoteField';
-import { NoteReviewPanel } from './NoteReviewPanel';
+import { NotesPanel } from './NotesPanel';
 import { normalizeNotes, notesAsStrings } from '../../lib/noteEntries';
 import { useScrollLock } from '../../hooks/useScrollLock';
+import { useVoiceCapture } from '../../hooks/useVoiceCapture';
 import { SampleIcon } from '../Icons';
 
 export interface TastingItem {
@@ -118,7 +118,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
 
   const [tastingData, setTastingData] = useState<TastingData>(initialData ?? lastTasting?.tasting ?? {});
   const [isContinuing, setIsContinuing] = useState(!!lastTasting);
-  const [phase, setPhase] = useState<'tasting' | 'review' | 'saved'>('tasting');
+  const [phase, setPhase] = useState<'tasting' | 'saved'>('tasting');
 
   useScrollLock(true);
 
@@ -152,6 +152,28 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
   const [sectionCounts, setSectionCounts] = useState<Record<SectionId, number>>({
     body: 0, state: 0, flavor: 0, appearance: 0,
   });
+
+  // NOTE tab press-and-hold: hold-to-record (silent capture), tap-to-toggle panel.
+  const noteTabHoldTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const noteTabPressStartRef = useRef<number | null>(null);
+  const noteTabRecordingStartedRef = useRef(false);
+  const HOLD_THRESHOLD_MS = 220;
+
+  const pushSilentNote = useCallback((text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    const entry = {
+      id: typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `note-${Date.now()}`,
+      text: trimmed,
+      capturedAt: new Date().toISOString(),
+    };
+    setTastingData(prev => ({
+      ...prev,
+      notes: [...normalizeNotes(prev), entry],
+    }));
+  }, []);
+
+  const silentVoice = useVoiceCapture({ onTranscribed: pushSilentNote });
 
   const saveTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
   useEffect(() => () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); }, []);
@@ -237,14 +259,6 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
 
   const handleSave = useCallback(async () => {
     if (!canSave) return;
-
-    // Admin: gate through the review screen when notes exist so Adrian can
-    // edit and star them before the session is committed.
-    if (adminMode && phase === 'tasting' && normalizeNotes(tastingData).length > 0) {
-      setPhase('review');
-      return;
-    }
-
     setSaveState('saving');
 
     try {
@@ -540,22 +554,29 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
               </div>
             )}
 
-            {/* Structured sections */}
+            {/* Structured sections — or the Notes workspace when the NOTE tab is active */}
             <div className="flex-1 min-h-0 overflow-hidden relative">
               <div
                 className="absolute bottom-0 left-0 right-0 h-6 pointer-events-none z-10"
                 style={{ background: 'linear-gradient(to bottom, transparent, var(--tea-bg))' }}
               />
-              <TastingFlow
-                mode={adminMode ? 'admin' : 'customer'}
-                value={tastingData}
-                onChange={handleTastingChange}
-                activeSectionId={activeSectionId}
-                onSectionChange={setActiveSectionId}
-                onCountsChange={setSectionCounts}
-                simplified={false}
-                teaType={item.type}
-              />
+              {showNote ? (
+                <NotesPanel
+                  notes={normalizeNotes(tastingData)}
+                  onChange={(next) => setTastingData(prev => ({ ...prev, notes: next.length ? next : undefined }))}
+                />
+              ) : (
+                <TastingFlow
+                  mode={adminMode ? 'admin' : 'customer'}
+                  value={tastingData}
+                  onChange={handleTastingChange}
+                  activeSectionId={activeSectionId}
+                  onSectionChange={setActiveSectionId}
+                  onCountsChange={setSectionCounts}
+                  simplified={false}
+                  teaType={item.type}
+                />
+              )}
             </div>
 
             {/* Bottom bar */}
@@ -566,54 +587,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                 boxShadow: '0 -4px 16px rgba(24,19,14,0.25)',
               }}
             >
-              {/* Note panel — slides down when open */}
-              <AnimatePresence>
-                {showNote && (
-                  <motion.div
-                    key="note-panel"
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="overflow-hidden border-b border-tea-border"
-                  >
-                    <div className="px-4 py-3">
-                      <VoiceNoteField
-                        values={notesAsStrings(tastingData)}
-                        onChange={(nextTexts) => {
-                          const prev = normalizeNotes(tastingData);
-                          // Write newly added notes into the shared thread
-                          if (nextTexts.length > prev.length && (item.compassEntryId || item.teaKey)) {
-                            nextTexts.slice(prev.length).forEach(text => {
-                              addNote({
-                                accountId: activeAccountId ?? 'guest',
-                                teaKey: item.teaKey,
-                                compassEntryId: item.compassEntryId,
-                                text,
-                                sourceType: 'manual',
-                                authorId: activeAccountId ?? 'guest',
-                                authorName: activeAccount?.name ?? 'You',
-                                visibility: 'private',
-                              });
-                            });
-                            syncNotes().catch(() => {});
-                          }
-                          // Pair each text with its existing NoteEntry metadata by index,
-                          // minting a fresh entry for any newly appended text.
-                          const merged = nextTexts.map((text, i) => {
-                            const existing = prev[i];
-                            if (existing) return { ...existing, text };
-                            return { id: `note-${Date.now()}-${i}`, text, capturedAt: new Date().toISOString() };
-                          });
-                          handleTastingChange({ ...tastingData, notes: merged.length ? merged : undefined });
-                        }}
-                      />
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {/* Section tabs + mic */}
+              {/* Section tabs + mic — NOTE tab supports tap-to-open and hold-to-record */}
               <LayoutGroup>
                 <div className="flex">
                   {ALL_SECTIONS.map((section) => {
@@ -668,16 +642,57 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                     );
                   })}
 
-                  {/* Note — 5th tab cell */}
+                  {/* Note — 5th tab cell. Tap to open panel; press-and-hold to silently capture voice. */}
                   <button
-                    onClick={() => setShowNote(v => !v)}
+                    type="button"
                     aria-pressed={showNote}
-                    className={`relative flex-1 flex items-center justify-center py-3 transition-colors duration-200 ${
-                      showNote
+                    aria-label="Notes — tap to open, hold to record"
+                    onPointerDown={(e) => {
+                      e.preventDefault();
+                      noteTabPressStartRef.current = Date.now();
+                      noteTabRecordingStartedRef.current = false;
+                      noteTabHoldTimerRef.current = setTimeout(() => {
+                        noteTabRecordingStartedRef.current = true;
+                        silentVoice.start();
+                      }, HOLD_THRESHOLD_MS);
+                    }}
+                    onPointerUp={() => {
+                      if (noteTabHoldTimerRef.current) {
+                        clearTimeout(noteTabHoldTimerRef.current);
+                        noteTabHoldTimerRef.current = null;
+                      }
+                      if (noteTabRecordingStartedRef.current) {
+                        silentVoice.stop();
+                      } else {
+                        setShowNote(v => !v);
+                      }
+                      noteTabPressStartRef.current = null;
+                      noteTabRecordingStartedRef.current = false;
+                    }}
+                    onPointerCancel={() => {
+                      if (noteTabHoldTimerRef.current) {
+                        clearTimeout(noteTabHoldTimerRef.current);
+                        noteTabHoldTimerRef.current = null;
+                      }
+                      if (noteTabRecordingStartedRef.current) silentVoice.stop();
+                      noteTabPressStartRef.current = null;
+                      noteTabRecordingStartedRef.current = false;
+                    }}
+                    onPointerLeave={() => {
+                      if (noteTabHoldTimerRef.current) {
+                        clearTimeout(noteTabHoldTimerRef.current);
+                        noteTabHoldTimerRef.current = null;
+                      }
+                      // Keep recording if finger/cursor leaves — user may still be holding.
+                    }}
+                    className={`relative flex-1 flex items-center justify-center py-3 transition-colors duration-200 select-none touch-none ${
+                      silentVoice.state === 'recording'
                         ? 'text-tea-gold'
-                        : (tastingData.notes?.length ?? 0) > 0
-                          ? 'text-tea-gold/60'
-                          : 'text-tea-text/40 hover:text-tea-text/70'
+                        : showNote
+                          ? 'text-tea-gold'
+                          : (tastingData.notes?.length ?? 0) > 0
+                            ? 'text-tea-gold/60'
+                            : 'text-tea-text/40 hover:text-tea-text/70'
                     }`}
                   >
                     {showNote && (
@@ -688,7 +703,16 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                         transition={{ type: 'spring', stiffness: 400, damping: 32 }}
                       />
                     )}
-                    {(tastingData.notes?.length ?? 0) > 0 && !showNote && (
+                    {silentVoice.state === 'recording' && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: [0.4, 1, 0.4] }}
+                        transition={{ duration: 1.2, repeat: Infinity }}
+                        className="absolute inset-x-1 top-1.5 bottom-1.5 rounded-md"
+                        style={{ background: 'rgb(var(--tea-gold-rgb) / 0.18)' }}
+                      />
+                    )}
+                    {(tastingData.notes?.length ?? 0) > 0 && !showNote && silentVoice.state !== 'recording' && (
                       <motion.span
                         initial={{ scale: 0, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
@@ -700,8 +724,16 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                       </motion.span>
                     )}
                     <span className="relative z-[1] flex flex-col items-center gap-0.5">
-                      <Mic size={13} />
-                      <span style={{ fontFamily: 'var(--font-display)', fontSize: '9px', letterSpacing: '0.12em', textTransform: 'uppercase' }}>Note</span>
+                      {silentVoice.state === 'transcribing' ? (
+                        <motion.span animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
+                          <Loader2 size={13} />
+                        </motion.span>
+                      ) : (
+                        <Mic size={13} />
+                      )}
+                      <span style={{ fontFamily: 'var(--font-display)', fontSize: '9px', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+                        {silentVoice.state === 'recording' ? 'Rec…' : 'Note'}
+                      </span>
                     </span>
                   </button>
                 </div>
@@ -754,39 +786,6 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                   </motion.span>
                 </button>
               </div>
-            </div>
-          </motion.div>
-
-        ) : phase === 'review' ? (
-
-          /* ── Review phase: star + edit captured notes before committing ── */
-          <motion.div
-            key="review"
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            className="flex-1 min-h-0 flex flex-col overflow-auto"
-          >
-            <NoteReviewPanel
-              notes={normalizeNotes(tastingData)}
-              onChange={(next) => setTastingData(prev => ({ ...prev, notes: next }))}
-            />
-            <div className="sticky bottom-0 bg-tea-bg border-t border-tea-border px-3 py-3 flex items-center justify-between gap-2">
-              <button
-                type="button"
-                onClick={() => setPhase('tasting')}
-                className="text-[12px] text-tea-text-sec hover:text-tea-text transition-colors"
-                style={{ fontFamily: 'var(--font-body)' }}
-              >
-                ← Back
-              </button>
-              <button
-                type="button"
-                onClick={handleSave}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-tea-gold text-tea-bg hover:bg-tea-gold-lt transition-colors"
-              >
-                {saveState === 'saving' ? 'Saving…' : 'Save'}
-              </button>
             </div>
           </motion.div>
 
