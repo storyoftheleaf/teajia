@@ -90,7 +90,7 @@ const NavButton: React.FC<{
   const baseClass = `relative flex items-center min-h-[44px] ${
     collapsed ? 'justify-center px-2' : 'gap-3 px-4'
   } rounded-md transition-colors duration-200 group ${
-    isActive ? 'bg-tea-gold/10' : 'hover:bg-tea-gold/6'
+    isActive ? '' : 'hover:bg-tea-gold/6'
   }`;
 
   const inner = (
@@ -249,7 +249,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
             <button
               onClick={() => { if (isAdminRoute) { navigate('/'); } else { onNavigate('HOME'); window.scrollTo({ top: 0, behavior: 'smooth' }); } }}
               className={`relative flex items-center ${collapsed ? 'justify-center w-full h-full' : 'gap-3 px-5 h-full flex-1 min-w-0'} transition-colors duration-200 group ${
-                activeSection === 'HOME' && !isAdminRoute ? 'bg-tea-gold/10' : 'hover:bg-tea-gold/6'
+                activeSection === 'HOME' && !isAdminRoute ? '' : 'hover:bg-tea-gold/6'
               }`}
               title="Home"
             >
@@ -311,7 +311,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
             className={`relative w-full flex items-center min-h-[48px] ${
               collapsed ? 'justify-center px-2' : 'gap-3 px-5'
             } py-3 border-b border-tea-border transition-colors duration-200 group ${
-              activeSection === 'YOUR_TABLE' ? 'bg-tea-gold/10' : 'hover:bg-tea-gold/6'
+              activeSection === 'YOUR_TABLE' ? '' : 'hover:bg-tea-gold/6'
             }`}
             title="Your Table"
           >
@@ -348,6 +348,14 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                     ◉ {locationLine}
                   </span>
                 )}
+                {!auth.isAuthenticated && (
+                  <span
+                    className="text-[11px] text-tea-text-sec leading-none block mt-0.5 tracking-[0.04em] italic"
+                    style={{ fontFamily: 'var(--font-display)' }}
+                  >
+                    your practice, kept
+                  </span>
+                )}
               </div>
             )}
           </button>
@@ -358,7 +366,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
               onClick={onSearchClick}
               className={`w-full flex items-center ${
                 collapsed ? 'justify-center px-2 min-h-[40px]' : 'gap-3 px-3 min-h-[36px]'
-              } rounded-md transition-colors duration-200 group bg-tea-accent-sub hover:bg-tea-gold/6 border border-tea-border`}
+              } rounded-md transition-colors duration-200 group hover:bg-tea-gold/6`}
               title="Search (⌘K)"
             >
               <Icons.Search className="w-4 h-4 text-tea-text-sec group-hover:text-tea-text transition-colors shrink-0" strokeWidth={1.75} />
@@ -510,7 +518,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                         className={`relative flex items-center min-h-[44px] ${
                           collapsed ? 'justify-center px-2' : 'gap-3 px-4'
                         } rounded-md transition-colors duration-200 group ${
-                          (showActive || isAnyChildActive) ? 'bg-tea-gold/10' : 'hover:bg-tea-gold/6'
+                          (showActive || isAnyChildActive) ? '' : 'hover:bg-tea-gold/6'
                         }`}
                         title={item.label}
                       >
@@ -596,7 +604,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                 className={`w-full flex items-center min-h-[44px] ${
                   collapsed ? 'justify-center px-2' : 'gap-3 px-4'
                 } rounded-md transition-colors duration-200 group hover:bg-tea-gold/6 ${
-                  currentPath === '/spaces' ? 'bg-tea-gold/10' : ''
+                  currentPath === '/spaces' ? '' : ''
                 }`}
                 title="Our spaces"
               >

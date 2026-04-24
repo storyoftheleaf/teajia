@@ -63,6 +63,14 @@ interface AppState {
   sidebarCollapsed: boolean;
   toggleSidebarCollapsed: () => void;
 
+  // Shop display preferences
+  shopPriceWeight: 25 | 50 | 100;
+  setShopPriceWeight: (grams: 25 | 50 | 100) => void;
+  shopSort: 'featured' | 'price_asc' | 'price_desc' | 'recent' | 'tasted';
+  setShopSort: (sort: 'featured' | 'price_asc' | 'price_desc' | 'recent' | 'tasted') => void;
+  shopSavedOnly: boolean;
+  setShopSavedOnly: (v: boolean) => void;
+
   // Recently Viewed
   recentlyViewed: string[];
   addRecentlyViewed: (id: string) => void;
@@ -247,6 +255,13 @@ export const useAppStore = create<AppState>()(
       sidebarCollapsed: false,
       toggleSidebarCollapsed: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
 
+      shopPriceWeight: 50,
+      setShopPriceWeight: (grams) => set({ shopPriceWeight: grams }),
+      shopSort: 'featured',
+      setShopSort: (sort) => set({ shopSort: sort }),
+      shopSavedOnly: false,
+      setShopSavedOnly: (v) => set({ shopSavedOnly: v }),
+
       // Recently Viewed
       recentlyViewed: [],
       addRecentlyViewed: (id) =>
@@ -369,6 +384,9 @@ export const useAppStore = create<AppState>()(
         activeAccountId: state.activeAccountId,
         // isDevAdmin intentionally excluded — never persisted to localStorage (security fix)
         sidebarCollapsed: state.sidebarCollapsed,
+        shopPriceWeight: state.shopPriceWeight,
+        shopSort: state.shopSort,
+        shopSavedOnly: state.shopSavedOnly,
         upcomingEventsCount: state.upcomingEventsCount,
         cartLastAddedAt: state.cartLastAddedAt,
       }),

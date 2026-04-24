@@ -185,7 +185,7 @@ const AppContent = () => {
 
   // Scroll position memory for each section
   const scrollPositions = useRef<Record<Section, number>>({
-    HOME: 0, MAGAZINE: 0, LEARN: 0, SHOP: 0, OFFERINGS: 0, EVENTS: 0, ACCOUNT: 0, ABOUT: 0
+    HOME: 0, MAGAZINE: 0, LEARN: 0, SHOP: 0, OFFERINGS: 0, EVENTS: 0, YOUR_TABLE: 0, ABOUT: 0
   });
   const prevSection = useRef<Section>(activeSection);
   // Track whether the navigation was a deliberate link click (scroll to top)
@@ -216,9 +216,9 @@ const AppContent = () => {
       MAGAZINE: 'Magazine — Teajia',
       LEARN: 'Learn — Teajia',
       SHOP: 'Shop — Teajia',
-      OFFERINGS: 'Consult — Teajia',
+      OFFERINGS: 'Advise — Teajia',
       EVENTS: 'Sessions — Teajia',
-      ACCOUNT: 'Account — Teajia',
+      YOUR_TABLE: 'Your Table — Teajia',
       ABOUT: 'About — Teajia',
     };
     document.title = titles[activeSection] ?? 'Teajia | Tea Journal';
@@ -546,7 +546,7 @@ const AppContent = () => {
         case 'LEARN': return <Icons.School className={className} />;
         case 'OFFERINGS': return <Icons.Sparkles className={className} />;
         case 'EVENTS': return <Icons.Sparkles className={className} />;
-        case 'ACCOUNT': return <Icons.User className={className} />;
+        case 'YOUR_TABLE': return <Icons.User className={className} />;
         default: return null;
     }
   };
@@ -833,7 +833,7 @@ const AppContent = () => {
       {/* --- GLOBAL SEARCH --- */}
       <GlobalSearch isOpen={showGlobalSearch} onClose={() => setShowGlobalSearch(false)} />
 
-      {/* --- ACCOUNT MODAL --- */}
+      {/* --- YOUR TABLE MODAL --- */}
       {showAccountModal && (
         <AccountPanel onClose={handleCloseAccount} initialView={accountInitialView} />
       )}

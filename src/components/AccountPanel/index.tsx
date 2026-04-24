@@ -644,7 +644,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
     panelView === 'signin' ? 'Sign In' :
     panelView === 'signup' ? 'Create Account' :
     panelView === 'journal' ? 'Tasting Journal' :
-    'Account';
+    'Your Table';
 
   // Filtered memberships for location switcher
   const filteredMemberships = useMemo(() => {

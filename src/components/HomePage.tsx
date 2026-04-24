@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { motion } from 'framer-motion';
+import { motion, useScroll, useMotionValueEvent } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { LogoEmblem } from './Logos/LogoEmblem';
 import { LogoText } from './Logos/LogoText';
@@ -111,21 +111,21 @@ const CharacterRevealCapture: React.FC = () => {
     return () => mq.removeEventListener('change', handler);
   }, []);
 
-  useEffect(() => {
+  // useScroll auto-detects the actual scroll container and handles iOS Safari's
+  // vh/innerHeight quirks internally. Progress 0 = spacer top at viewport top,
+  // progress 1 = spacer bottom at viewport bottom.
+  const { scrollYProgress } = useScroll({
+    target: sectionRef,
+    offset: ['start start', 'end end'],
+  });
+
+  useMotionValueEvent(scrollYProgress, 'change', (v) => {
     if (prefersReducedMotion) { setProgress(1); return; }
+    setProgress(v);
+  });
 
-    const handleScroll = () => {
-      const scrollTop = window.scrollY || document.documentElement.scrollTop;
-      const el = sectionRef.current;
-      if (!el) return;
-      const totalScrollable = el.offsetTop + el.offsetHeight - window.innerHeight;
-      const raw = scrollTop / totalScrollable;
-      setProgress(Math.max(0, Math.min(1, raw)));
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    handleScroll();
-    return () => window.removeEventListener('scroll', handleScroll);
+  useEffect(() => {
+    if (prefersReducedMotion) setProgress(1);
   }, [prefersReducedMotion]);
 
   const ease = (t: number) => 1 - Math.pow(1 - t, 2.5);
@@ -145,20 +145,19 @@ const CharacterRevealCapture: React.FC = () => {
   const leftP = ease(Math.max(0, Math.min(1, (progress - 0.60) / 0.10)));
   // 5. 嘉 right slides in (70% → 80%)
   const rightP = ease(Math.max(0, Math.min(1, (progress - 0.70) / 0.10)));
-  // 6. Email + account links rise from below (82% → 95%)
-  const emailP = ease(Math.max(0, Math.min(1, (progress - 0.82) / 0.13)));
+  // 6. Spirit + philosophy fade in (80% → 90%)
+  const spiritP = ease(Math.max(0, Math.min(1, (progress - 0.80) / 0.10)));
+  // 7. Email + account links rise from below (90% → 100%)
+  const emailP = ease(Math.max(0, Math.min(1, (progress - 0.90) / 0.10)));
 
   const isVisible = progress > 0;
 
   return (
     <>
-      {/* Spacer — scroll distance for the character reveal + email sequence.
-          dvh (not vh) is critical: on iOS Safari, vh uses the large viewport
-          (address bar hidden) while window.innerHeight uses the small viewport
-          (address bar visible). Using vh makes the spacer physically taller than
-          the scroll space actually available, so progress caps at ~70% and the
-          last characters never appear. dvh tracks the actual visual viewport. */}
-      <div ref={sectionRef} id="brand-story" style={{ height: '160dvh' }} />
+      {/* Spacer — 200dvh gives scroll distance for: logo, teaser, 3 characters,
+          spirit+philosophy lines, and email capture. dvh (not vh) is critical on
+          iOS Safari where vh and window.innerHeight disagree. */}
+      <div ref={sectionRef} id="brand-story" style={{ height: '200dvh' }} />
 
       {/* Fixed overlay — pointer-events-none so scroll passes through; interactive children opt back in */}
       {isVisible && (
@@ -214,9 +213,29 @@ const CharacterRevealCapture: React.FC = () => {
             </div>
           </div>
 
+          {/* Spirit + philosophy — the business, in one breath */}
+          <div
+            className="flex flex-col items-center mt-6 max-w-[340px] text-center"
+            style={{ opacity: spiritP, transform: `translateY(${(1 - spiritP) * 12}px)` }}
+          >
+            <p
+              className="text-[14px] md:text-[15px] leading-[1.7] text-tea-text-sec font-light"
+              style={{ fontFamily: 'var(--font-body)' }}
+            >
+              A home for fine tea — a place to source it, study it, and share it
+              with those who gather around the cup.
+            </p>
+            <p
+              className="mt-3 text-[13px] italic text-tea-text-dim"
+              style={{ fontFamily: 'var(--font-body)', letterSpacing: '0.04em' }}
+            >
+              Honor the past. Live in the present. Build for the future.
+            </p>
+          </div>
+
           {/* Email capture + account links */}
           <div
-            className="flex flex-col items-center mt-6 sm:mt-12 pointer-events-auto w-full max-w-[280px]"
+            className="flex flex-col items-center mt-6 sm:mt-8 pointer-events-auto w-full max-w-[280px]"
             style={{ opacity: emailP, transform: `translateY(${(1 - emailP) * 20}px)` }}
           >
             <p className="text-base italic font-light text-tea-text-dim" style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.04em' }}>stay connected</p>
@@ -271,7 +290,13 @@ export const HomePage: React.FC<HomePageProps> = ({
   }, []);
 
   const scrollToBrandStory = () => {
-    document.getElementById('brand-story')?.scrollIntoView({ behavior: 'smooth' });
+    const el = document.getElementById('brand-story');
+    if (!el) return;
+    // Scroll to the END of the spacer (progress=1), not the start (progress=0).
+    // The smooth scroll traverses the full spacer, playing the reveal along the way.
+    const rect = el.getBoundingClientRect();
+    const targetY = window.scrollY + rect.top + el.offsetHeight - window.innerHeight;
+    window.scrollTo({ top: targetY, behavior: 'smooth' });
   };
 
   return (

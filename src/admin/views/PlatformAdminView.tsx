@@ -1,13 +1,14 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Shield, ShieldCheck, Store, Users, Check, Loader2,
   ChevronDown, ChevronUp, Plus, Copy,
-  AlertTriangle, RefreshCw, ClipboardList, Download,
+  AlertTriangle, RefreshCw, ClipboardList, Download, X,
 } from 'lucide-react';
 import { api } from '../../lib/api';
 import type { PlatformUser, PlatformAccount, AuditLogEntry } from '../../lib/api';
 import { useAppStore } from '../store';
+import { useToast } from '../components/Toast';
 import type { PlatformRole } from '../../types';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -27,22 +28,27 @@ const TRUST_TIERS: { value: 'basic' | 'verified' | 'partner'; label: string; des
 const CURRENCIES = ['USD', 'AUD', 'NT', 'Yuan', 'MYR', 'IDR', 'JPY', 'HKD'];
 const TIMEZONES  = ['UTC','Asia/Taipei','Asia/Singapore','Asia/Jakarta','Australia/Sydney','America/New_York','America/Los_Angeles','Europe/London','Asia/Tokyo','Asia/Kuala_Lumpur'];
 
-// ── Shared components ─────────────────────────────────────────────────────────
+// ── Shared primitives ─────────────────────────────────────────────────────────
+
+/** Eyebrow: the ONE uppercase micro-label role. Use it for section headers only. */
+const Eyebrow: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = '' }) => (
+  <p className={`text-[10px] uppercase tracking-[0.12em] text-tea-text-dim ${className}`}>{children}</p>
+);
 
 const Field: React.FC<{ label: string; value: string; onChange: (v: string) => void; placeholder?: string; required?: boolean; hint?: string; type?: string }> =
   ({ label, value, onChange, placeholder, required, hint, type = 'text' }) => (
     <label className="block space-y-1">
-      <span className="text-[10px] uppercase tracking-[0.12em] text-tea-text-dim">{label}{required && <span className="text-tea-gold ml-0.5">*</span>}</span>
+      <span className="text-[12px] text-tea-text-sec">{label}{required && <span className="text-tea-gold ml-0.5">*</span>}</span>
       <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} required={required}
         className="w-full bg-tea-bg border border-tea-border rounded-md px-3 py-2 text-tea-text text-sm outline-none focus:ring-2 focus:ring-tea-gold/40" />
-      {hint && <p className="text-[10px] text-tea-text-dim">{hint}</p>}
+      {hint && <p className="text-[11px] text-tea-text-dim">{hint}</p>}
     </label>
   );
 
 const SelectField: React.FC<{ label: string; value: string; onChange: (v: string) => void; options: string[] }> =
   ({ label, value, onChange, options }) => (
     <label className="block space-y-1">
-      <span className="text-[10px] uppercase tracking-[0.12em] text-tea-text-dim">{label}</span>
+      <span className="text-[12px] text-tea-text-sec">{label}</span>
       <select value={value} onChange={e => onChange(e.target.value)}
         className="w-full bg-tea-bg border border-tea-border rounded-md px-3 py-2 text-tea-text text-sm outline-none focus:ring-2 focus:ring-tea-gold/40">
         {options.map(o => <option key={o} value={o}>{o}</option>)}
@@ -50,12 +56,12 @@ const SelectField: React.FC<{ label: string; value: string; onChange: (v: string
     </label>
   );
 
-const Toggle: React.FC<{ enabled: boolean; onChange: (v: boolean) => void; busy?: boolean }> = ({ enabled, onChange, busy }) => (
-  <button type="button" onClick={() => onChange(!enabled)} disabled={busy}
-    className={`relative w-10 h-5 rounded-full transition-colors shrink-0 ${enabled ? 'bg-tea-gold' : 'bg-tea-surface'}`}>
+const Toggle: React.FC<{ enabled: boolean; onChange: (v: boolean) => void; busy?: boolean; disabled?: boolean }> = ({ enabled, onChange, busy, disabled }) => (
+  <button type="button" onClick={() => onChange(!enabled)} disabled={busy || disabled}
+    className={`relative w-10 h-5 rounded-full transition-colors shrink-0 disabled:opacity-40 ${enabled ? 'bg-tea-gold' : 'bg-tea-surface'}`}>
     {busy
       ? <Loader2 size={10} className="absolute inset-0 m-auto animate-spin text-tea-text-dim" />
-      : <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-all ${enabled ? 'left-[22px]' : 'left-0.5'}`} />}
+      : <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-tea-bg shadow-sm transition-all ${enabled ? 'left-[22px]' : 'left-0.5'}`} />}
   </button>
 );
 
@@ -69,9 +75,52 @@ const PlatformRoleBadge: React.FC<{ role: PlatformRole }> = ({ role }) => {
   );
 };
 
+/**
+ * ConfirmButton — two-stage inline confirm.
+ * First click arms the button; second click (within timeout) fires.
+ * Prevents one-click suspension/grant mistakes without interrupting flow.
+ */
+const ConfirmButton: React.FC<{
+  onConfirm: () => void;
+  busy?: boolean;
+  idleLabel: React.ReactNode;
+  confirmLabel: React.ReactNode;
+  idleClassName?: string;
+  confirmClassName?: string;
+  timeoutMs?: number;
+  title?: string;
+  disabled?: boolean;
+}> = ({ onConfirm, busy, idleLabel, confirmLabel, idleClassName = 'pill', confirmClassName = 'pill pill-destructive-confirm', timeoutMs = 3500, title, disabled }) => {
+  const [armed, setArmed] = useState(false);
+  const timer = useRef<number | null>(null);
+
+  useEffect(() => () => { if (timer.current) window.clearTimeout(timer.current); }, []);
+
+  const handleClick = () => {
+    if (busy || disabled) return;
+    if (!armed) {
+      setArmed(true);
+      timer.current = window.setTimeout(() => setArmed(false), timeoutMs);
+      return;
+    }
+    if (timer.current) window.clearTimeout(timer.current);
+    setArmed(false);
+    onConfirm();
+  };
+
+  return (
+    <button type="button" onClick={handleClick} disabled={busy || disabled} title={title}
+      className={`${armed ? confirmClassName : idleClassName} flex items-center gap-1.5 disabled:opacity-40`}>
+      {busy ? <Loader2 size={10} className="animate-spin" /> : armed ? <AlertTriangle size={10} /> : null}
+      {armed ? confirmLabel : idleLabel}
+    </button>
+  );
+};
+
 // ── Users panel ───────────────────────────────────────────────────────────────
 
 const UsersPanel: React.FC<{ isPlatformOwner: boolean }> = ({ isPlatformOwner }) => {
+  const { showToast } = useToast();
   const [users, setUsers] = useState<PlatformUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
@@ -79,9 +128,13 @@ const UsersPanel: React.FC<{ isPlatformOwner: boolean }> = ({ isPlatformOwner })
 
   const load = useCallback(async () => {
     setLoading(true);
-    try { const d = await api.platform.listUsers(); setUsers(d.users); }
-    finally { setLoading(false); }
-  }, []);
+    try {
+      const d = await api.platform.listUsers();
+      setUsers(d.users);
+    } catch (err: any) {
+      showToast(err?.message || 'Failed to load users', 'error');
+    } finally { setLoading(false); }
+  }, [showToast]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -91,6 +144,9 @@ const UsersPanel: React.FC<{ isPlatformOwner: boolean }> = ({ isPlatformOwner })
     try {
       await api.platform.setUserPlatformRole(user.id, next);
       setUsers(prev => prev.map(u => u.id === user.id ? { ...u, platform_role: next } : u));
+      showToast(next ? `Platform admin granted to ${user.email}` : `Platform admin revoked from ${user.email}`, 'success');
+    } catch (err: any) {
+      showToast(err?.message || 'Failed to update admin role', 'error');
     } finally { setBusy(null); }
   };
 
@@ -98,9 +154,13 @@ const UsersPanel: React.FC<{ isPlatformOwner: boolean }> = ({ isPlatformOwner })
     setBusy(`invite-${user.id}`);
     try {
       const res = await api.platform.resendInvite(user.id);
-      if (!res.email_sent) {
+      if (res.email_sent) {
+        showToast(`Invite email sent to ${user.email}`, 'success');
+      } else {
         setInviteResult({ userId: user.id, link: `${window.location.origin}${res.invite_link}`, copied: false });
       }
+    } catch (err: any) {
+      showToast(err?.message || 'Failed to resend invite', 'error');
     } finally { setBusy(null); }
   };
 
@@ -117,23 +177,21 @@ const UsersPanel: React.FC<{ isPlatformOwner: boolean }> = ({ isPlatformOwner })
     <div className="space-y-2">
       {inviteResult && (
         <div className="inset-panel p-3 space-y-2">
-          <p className="text-[11px] text-tea-text-dim">Invite link (email not configured — copy manually):</p>
+          <p className="text-[12px] text-tea-text-sec">Invite link — email not configured, copy manually:</p>
           <div className="flex gap-2">
-            <code className="flex-1 text-[10px] font-mono bg-tea-bg border border-tea-border rounded px-2 py-1.5 text-tea-text-sec truncate">{inviteResult.link}</code>
+            <code className="flex-1 text-[11px] font-mono bg-tea-bg border border-tea-border rounded px-2 py-1.5 text-tea-text-sec truncate">{inviteResult.link}</code>
             <button type="button" onClick={copyInvite} className="pill flex items-center gap-1 shrink-0">
               {inviteResult.copied ? <Check size={10} /> : <Copy size={10} />}
               {inviteResult.copied ? 'Copied' : 'Copy'}
             </button>
           </div>
-          <button type="button" onClick={() => setInviteResult(null)} className="text-[10px] text-tea-text-sec hover:text-tea-text transition-colors">Dismiss</button>
+          <button type="button" onClick={() => setInviteResult(null)} className="text-[11px] text-tea-text-sec hover:text-tea-text transition-colors">Dismiss</button>
         </div>
       )}
 
       {users.map(user => {
         const isPO = user.platform_role === 'platform_owner';
         const isPA = user.platform_role === 'platform_admin';
-        // Detect if user has any invited (not yet active) memberships — simple heuristic
-        const hasInvitedStatus = user.memberships.length === 0;
         return (
           <div key={user.id} className="inset-panel px-3 py-2.5 flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-tea-gold/10 flex items-center justify-center shrink-0">
@@ -144,20 +202,33 @@ const UsersPanel: React.FC<{ isPlatformOwner: boolean }> = ({ isPlatformOwner })
                 <p className="text-tea-text text-sm font-medium truncate">{user.name || '—'}</p>
                 <PlatformRoleBadge role={user.platform_role} />
               </div>
-              <p className="text-tea-text-dim text-[11px] truncate">{user.email}</p>
+              <p className="text-tea-text-sec text-[12px] truncate">{user.email}</p>
               {user.memberships.length > 0 && (
-                <p className="text-tea-text-dim text-[10px] mt-0.5 truncate">
-                  {user.memberships.map(m => `${m.account_id} · ${m.role}`).join('  ')}
+                <p className="text-tea-text-dim text-[11px] mt-0.5 truncate">
+                  {user.memberships.map(m => `${m.account_id} · ${m.role}`).join('  ·  ')}
                 </p>
               )}
             </div>
             <div className="flex items-center gap-1.5 shrink-0">
               {isPlatformOwner && !isPO && (
-                <button type="button" onClick={() => handleToggleAdmin(user)} disabled={busy === user.id}
-                  className={`pill flex items-center gap-1 ${isPA ? 'pill-active' : ''}`}>
-                  {busy === user.id ? <Loader2 size={10} className="animate-spin" /> : isPA ? <Check size={10} /> : <Shield size={10} />}
-                  {isPA ? 'Admin' : 'Make Admin'}
-                </button>
+                isPA ? (
+                  <ConfirmButton
+                    onConfirm={() => handleToggleAdmin(user)}
+                    busy={busy === user.id}
+                    idleLabel={<><Check size={10} />Admin</>}
+                    confirmLabel={<>Revoke?</>}
+                    idleClassName="pill pill-active"
+                    title="Revoke platform admin role"
+                  />
+                ) : (
+                  <ConfirmButton
+                    onConfirm={() => handleToggleAdmin(user)}
+                    busy={busy === user.id}
+                    idleLabel={<><Shield size={10} />Make Admin</>}
+                    confirmLabel={<>Grant platform-wide access?</>}
+                    title="Grants platform-wide admin access — not account-level"
+                  />
+                )
               )}
               <button type="button" onClick={() => handleResendInvite(user)} disabled={busy === `invite-${user.id}`}
                 className="pill flex items-center gap-1" title="Resend invite">
@@ -175,18 +246,20 @@ const UsersPanel: React.FC<{ isPlatformOwner: boolean }> = ({ isPlatformOwner })
 // ── Seed panel ────────────────────────────────────────────────────────────────
 
 const SeedPanel: React.FC<{ accountId: string; accountName: string }> = ({ accountId, accountName }) => {
+  const { showToast } = useToast();
   const [open, setOpen] = useState(false);
   const [products, setProducts] = useState<any[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
   const [seeding, setSeeding] = useState(false);
-  const [done, setDone] = useState<string[]>([]);
 
   const load = async () => {
     setLoading(true);
     try {
       const res = await api.catalog.list();
       setProducts(res.products || []);
+    } catch (err: any) {
+      showToast(err?.message || 'Failed to load catalog', 'error');
     } finally { setLoading(false); }
   };
 
@@ -198,8 +271,12 @@ const SeedPanel: React.FC<{ accountId: string; accountName: string }> = ({ accou
     setSeeding(true);
     try {
       const res = await api.catalog.seed(accountId, Array.from(selected));
-      setDone(res.seeded || []);
+      const count = (res.seeded || []).length;
+      showToast(`${count} product${count !== 1 ? 's' : ''} seeded to ${accountName}`, 'success');
       setSelected(new Set());
+      setOpen(false);
+    } catch (err: any) {
+      showToast(err?.message || 'Failed to seed inventory', 'error');
     } finally { setSeeding(false); }
   };
 
@@ -215,16 +292,13 @@ const SeedPanel: React.FC<{ accountId: string; accountName: string }> = ({ accou
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <p className="text-[10px] uppercase tracking-[0.12em] text-tea-text-dim">Seed to {accountName}</p>
-        <button type="button" onClick={() => setOpen(false)} className="text-[10px] text-tea-text-sec hover:text-tea-text transition-colors">Close</button>
+        <p className="text-[12px] text-tea-text-sec">Seed to {accountName}</p>
+        <button type="button" onClick={() => setOpen(false)} className="text-[11px] text-tea-text-sec hover:text-tea-text transition-colors">Close</button>
       </div>
-      {done.length > 0 && (
-        <p className="text-[11px] text-tea-gold">{done.length} product{done.length !== 1 ? 's' : ''} seeded.</p>
-      )}
       {loading ? (
         <div className="flex justify-center py-3"><Loader2 size={14} className="animate-spin text-tea-text-dim" /></div>
       ) : products.length === 0 ? (
-        <p className="text-[11px] text-tea-text-dim">No catalog products available. Add products with "In Catalog" enabled first.</p>
+        <p className="text-[12px] text-tea-text-sec">No catalog products available. Add products with "In Catalog" enabled first.</p>
       ) : (
         <div className="space-y-1 max-h-48 overflow-y-auto">
           {products.map((p: any) => (
@@ -232,7 +306,7 @@ const SeedPanel: React.FC<{ accountId: string; accountName: string }> = ({ accou
               <input type="checkbox" checked={selected.has(p.id)} onChange={() => toggle(p.id)}
                 className="accent-[var(--tea-gold)]" />
               <span className="text-[12px] text-tea-text flex-1 truncate">{p.given_name} {p.product_name}</span>
-              <span className="text-[10px] text-tea-text-dim shrink-0">{p.type}</span>
+              <span className="text-[11px] text-tea-text-dim shrink-0">{p.type}</span>
             </label>
           ))}
         </div>
@@ -240,7 +314,7 @@ const SeedPanel: React.FC<{ accountId: string; accountName: string }> = ({ accou
       {!loading && products.length > 0 && (
         <div className="flex items-center gap-2">
           <button type="button" onClick={handleSeed} disabled={seeding || selected.size === 0}
-            className="pill-active flex items-center gap-1 text-[11px]">
+            className="pill pill-primary flex items-center gap-1 text-[11px]">
             {seeding ? <Loader2 size={10} className="animate-spin" /> : <Download size={10} />}
             Seed {selected.size > 0 ? `${selected.size} ` : ''}selected
           </button>
@@ -255,6 +329,7 @@ const SeedPanel: React.FC<{ accountId: string; accountName: string }> = ({ accou
 // ── Accounts panel ────────────────────────────────────────────────────────────
 
 const AccountsPanel: React.FC = () => {
+  const { showToast } = useToast();
   const [accounts, setAccounts] = useState<PlatformAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -264,12 +339,17 @@ const AccountsPanel: React.FC = () => {
   const [busyStatus, setBusyStatus] = useState<string | null>(null);
   const [busyTier, setBusyTier] = useState<string | null>(null);
   const [saveBusy, setSaveBusy] = useState(false);
+  const [query, setQuery] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
-    try { const d = await api.platform.listAccounts(); setAccounts(d.accounts); }
-    finally { setLoading(false); }
-  }, []);
+    try {
+      const d = await api.platform.listAccounts();
+      setAccounts(d.accounts);
+    } catch (err: any) {
+      showToast(err?.message || 'Failed to load accounts', 'error');
+    } finally { setLoading(false); }
+  }, [showToast]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -282,6 +362,8 @@ const AccountsPanel: React.FC = () => {
     try {
       await api.platform.toggleFeature(accountId, feature, !current);
       setAccounts(prev => prev.map(a => a.id === accountId ? { ...a, features: { ...a.features, [feature]: !current } } : a));
+    } catch (err: any) {
+      showToast(err?.message || `Failed to toggle ${feature}`, 'error');
     } finally { setBusyFeature(null); }
   };
 
@@ -291,6 +373,9 @@ const AccountsPanel: React.FC = () => {
     try {
       await api.platform.setAccountStatus(account.id, next);
       setAccounts(prev => prev.map(a => a.id === account.id ? { ...a, status: next } : a));
+      showToast(next === 'suspended' ? `${account.name} suspended` : `${account.name} reactivated`, 'success');
+    } catch (err: any) {
+      showToast(err?.message || 'Failed to update status', 'error');
     } finally { setBusyStatus(null); }
   };
 
@@ -299,6 +384,8 @@ const AccountsPanel: React.FC = () => {
     try {
       await api.platform.setTrustTier(accountId, tier);
       setAccounts(prev => prev.map(a => a.id === accountId ? { ...a, trust_tier: tier } : a));
+    } catch (err: any) {
+      showToast(err?.message || 'Failed to update trust tier', 'error');
     } finally { setBusyTier(null); }
   };
 
@@ -310,18 +397,43 @@ const AccountsPanel: React.FC = () => {
       await api.accounts.update(accountId, editDraft as any);
       setAccounts(prev => prev.map(a => a.id === accountId ? { ...a, ...editDraft } : a));
       setEditing(null);
+      showToast('Profile updated', 'success');
+    } catch (err: any) {
+      showToast(err?.message || 'Failed to save profile', 'error');
     } finally { setSaveBusy(false); }
   };
 
   if (loading) return <div className="flex justify-center py-10"><Loader2 size={18} className="animate-spin text-tea-text-dim" /></div>;
 
+  const q = query.trim().toLowerCase();
+  const visible = q
+    ? accounts.filter(a =>
+        a.name.toLowerCase().includes(q) ||
+        a.slug.toLowerCase().includes(q) ||
+        (a.location_city || '').toLowerCase().includes(q) ||
+        (a.location_country || '').toLowerCase().includes(q))
+    : accounts;
+
   return (
-    <div className="space-y-1.5">
-      {accounts.map(account => {
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <input
+          type="search"
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          placeholder="Search accounts…"
+          className="flex-1 bg-tea-bg border border-tea-border rounded-md px-3 py-2 text-tea-text text-sm outline-none focus:ring-2 focus:ring-tea-gold/40"
+        />
+        <span className="text-[11px] text-tea-text-dim tabular-nums shrink-0">{visible.length}/{accounts.length}</span>
+      </div>
+
+      <div className="space-y-1.5">
+      {visible.map(account => {
         const isOpen = expanded.has(account.id);
         const isSuspended = account.status === 'suspended';
         const enabledCount = Object.values(account.features).filter(Boolean).length;
-        const tierInfo = TRUST_TIERS.find(t => t.value === (account.trust_tier || 'basic'));
+        const currentTier = account.trust_tier || 'basic';
+        const tierInfo = TRUST_TIERS.find(t => t.value === currentTier);
 
         return (
           <div key={account.id} className={`inset-panel overflow-hidden ${isSuspended ? 'opacity-60' : ''}`}>
@@ -333,19 +445,18 @@ const AccountsPanel: React.FC = () => {
                   <p className="text-tea-text text-sm font-medium truncate">{account.name}</p>
                   {account.is_platform_owner && <span className="badge-status badge-status-gold">Primary</span>}
                   {isSuspended && <span className="badge-status badge-status-default flex items-center gap-0.5"><AlertTriangle size={9} />Suspended</span>}
-                  {!isSuspended && account.trust_tier && account.trust_tier !== 'basic' && (
-                    <span className="badge-status badge-status-gold">{tierInfo?.label}</span>
-                  )}
                 </div>
-                <p className="text-tea-text-dim text-[11px]">
+                <p className="text-tea-text-sec text-[12px]">
                   /{account.slug} · {account.member_count} {account.member_count === 1 ? 'member' : 'members'}
                   {account.location_city ? ` · ${account.location_city}` : ''}
                 </p>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
-                {enabledCount > 0 && !isSuspended && (
-                  <span className="badge-status badge-status-gold text-[10px]">{enabledCount} feature{enabledCount !== 1 ? 's' : ''}</span>
-                )}
+              <div className="flex items-center gap-1.5 shrink-0">
+                {/* Always show tier and feature count so scanning finds anomalies without expanding */}
+                <span className={`badge-status ${currentTier === 'basic' ? 'badge-status-muted' : 'badge-status-gold'}`}>{tierInfo?.label}</span>
+                <span className={`badge-status ${enabledCount > 0 ? 'badge-status-gold' : 'badge-status-muted'} tabular-nums`} title={`${enabledCount} feature${enabledCount !== 1 ? 's' : ''} enabled`}>
+                  {enabledCount} feat
+                </span>
                 {isOpen ? <ChevronUp size={13} className="text-tea-text-dim" /> : <ChevronDown size={13} className="text-tea-text-dim" />}
               </div>
             </button>
@@ -356,50 +467,50 @@ const AccountsPanel: React.FC = () => {
                 {/* Profile edit */}
                 {editing === account.id ? (
                   <div className="space-y-3">
-                    <p className="text-[10px] uppercase tracking-[0.12em] text-tea-text-dim">Edit Profile</p>
+                    <Eyebrow>Edit Profile</Eyebrow>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <Field label="Name" value={editDraft.name || ''} onChange={v => setEditDraft(d => ({ ...d, name: v }))} required />
                       <Field label="City" value={editDraft.location_city || ''} onChange={v => setEditDraft(d => ({ ...d, location_city: v }))} />
                       <Field label="Country" value={editDraft.location_country || ''} onChange={v => setEditDraft(d => ({ ...d, location_country: v }))} />
                     </div>
-                    <div className="flex gap-2">
-                      <button type="button" onClick={() => setEditing(null)} className="pill">Cancel</button>
-                      <button type="button" onClick={() => handleSaveEdit(account.id)} disabled={saveBusy} className="pill-active flex items-center gap-1">
+                    <div className="flex items-center justify-between">
+                      <button type="button" onClick={() => setEditing(null)} className="text-[12px] text-tea-text-sec hover:text-tea-text transition-colors">Cancel</button>
+                      <button type="button" onClick={() => handleSaveEdit(account.id)} disabled={saveBusy} className="pill pill-primary flex items-center gap-1">
                         {saveBusy ? <Loader2 size={10} className="animate-spin" /> : <Check size={10} />}Save
                       </button>
                     </div>
                   </div>
                 ) : (
                   <div className="flex items-center justify-between">
-                    <div className="text-[11px] text-tea-text-dim space-y-0.5">
-                      <p>ID: <span className="font-mono text-[10px]">{account.id}</span></p>
+                    <div className="text-[12px] text-tea-text-sec space-y-0.5">
+                      <p>ID <span className="font-mono text-[11px] text-tea-text-dim">{account.id}</span></p>
                       {account.location_city && <p>{account.location_city}{account.location_country ? `, ${account.location_country}` : ''}</p>}
                     </div>
-                    <button type="button" onClick={() => startEdit(account)} className="pill text-[10px]">Edit profile</button>
+                    <button type="button" onClick={() => startEdit(account)} className="pill text-[11px]">Edit profile</button>
                   </div>
                 )}
 
                 {/* Trust tier */}
                 <div className="space-y-2">
-                  <p className="text-[10px] uppercase tracking-[0.12em] text-tea-text-dim">Trust Tier</p>
+                  <Eyebrow>Trust Tier</Eyebrow>
                   <div className="flex gap-1.5 flex-wrap">
                     {TRUST_TIERS.map(tier => (
                       <button key={tier.value} type="button"
                         onClick={() => handleSetTrustTier(account.id, tier.value)}
                         disabled={busyTier === account.id || account.is_platform_owner}
                         title={tier.description}
-                        className={`pill flex items-center gap-1 ${(account.trust_tier || 'basic') === tier.value ? 'pill-active' : ''}`}>
-                        {busyTier === account.id && (account.trust_tier || 'basic') !== tier.value ? <Loader2 size={10} className="animate-spin" /> : null}
+                        className={`pill flex items-center gap-1 ${currentTier === tier.value ? 'pill-active' : ''}`}>
+                        {busyTier === account.id && currentTier !== tier.value ? <Loader2 size={10} className="animate-spin" /> : null}
                         {tier.label}
                       </button>
                     ))}
                   </div>
-                  <p className="text-[10px] text-tea-text-dim">{tierInfo?.description}</p>
+                  <p className="text-[12px] text-tea-text-sec">{tierInfo?.description}</p>
                 </div>
 
                 {/* Features */}
                 <div className="space-y-2">
-                  <p className="text-[10px] uppercase tracking-[0.12em] text-tea-text-dim">Features</p>
+                  <Eyebrow>Features</Eyebrow>
                   {KNOWN_FEATURES.map(feat => {
                     const enabled = account.features[feat.id] ?? false;
                     const tier = account.trust_tier ?? 'basic';
@@ -412,10 +523,10 @@ const AccountsPanel: React.FC = () => {
                           <div className="flex items-center gap-1.5">
                             <p className="text-tea-text text-[13px] font-medium">{feat.label}</p>
                             {isPlanDefault && (
-                              <span className="text-[9px] uppercase tracking-[0.1em] text-tea-gold/60">plan</span>
+                              <span className="text-[10px] text-tea-gold/70" title={`Included by default on ${feat.planDefault.join(' / ')} tier`}>included</span>
                             )}
                           </div>
-                          <p className="text-tea-text-dim text-[11px]">{feat.description}</p>
+                          <p className="text-tea-text-sec text-[12px]">{feat.description}</p>
                         </div>
                         <Toggle enabled={enabled} busy={busyFeature === `${account.id}:${feat.id}`}
                           onChange={() => handleToggleFeature(account.id, feat.id, enabled)} />
@@ -427,21 +538,30 @@ const AccountsPanel: React.FC = () => {
                 {/* Seed inventory */}
                 {!account.is_platform_owner && (
                   <div className="space-y-2">
-                    <p className="text-[10px] uppercase tracking-[0.12em] text-tea-text-dim">Seed Inventory</p>
+                    <Eyebrow>Seed Inventory</Eyebrow>
                     <SeedPanel accountId={account.id} accountName={account.name} />
                   </div>
                 )}
 
-                {/* Suspend / reactivate */}
+                {/* Suspend / reactivate — with confirm step */}
                 {!account.is_platform_owner && (
-                  <div className="pt-1 border-t border-tea-border">
-                    <button type="button" onClick={() => handleToggleSuspend(account)} disabled={busyStatus === account.id}
-                      className={`pill flex items-center gap-1.5 text-[11px] ${isSuspended ? '' : 'text-red-400 hover:text-red-300'}`}>
-                      {busyStatus === account.id
-                        ? <Loader2 size={10} className="animate-spin" />
-                        : isSuspended ? <Check size={10} /> : <AlertTriangle size={10} />}
-                      {isSuspended ? 'Reactivate account' : 'Suspend account'}
-                    </button>
+                  <div className="pt-3 border-t border-tea-border">
+                    {isSuspended ? (
+                      <ConfirmButton
+                        onConfirm={() => handleToggleSuspend(account)}
+                        busy={busyStatus === account.id}
+                        idleLabel={<><Check size={10} />Reactivate account</>}
+                        confirmLabel={<>Reactivate {account.name}?</>}
+                      />
+                    ) : (
+                      <ConfirmButton
+                        onConfirm={() => handleToggleSuspend(account)}
+                        busy={busyStatus === account.id}
+                        idleLabel={<><AlertTriangle size={10} />Suspend account</>}
+                        confirmLabel={<>Suspend {account.name}?</>}
+                        idleClassName="pill pill-destructive"
+                      />
+                    )}
                   </div>
                 )}
               </div>
@@ -449,6 +569,10 @@ const AccountsPanel: React.FC = () => {
           </div>
         );
       })}
+      {visible.length === 0 && (
+        <p className="text-center py-8 text-[12px] text-tea-text-sec">No accounts match "{query}".</p>
+      )}
+      </div>
     </div>
   );
 };
@@ -467,6 +591,7 @@ const ACTION_LABELS: Record<string, string> = {
 
 const AuditPanel: React.FC = () => {
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [entries, setEntries] = useState<AuditLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [offset, setOffset] = useState(0);
@@ -476,9 +601,11 @@ const AuditPanel: React.FC = () => {
     setLoading(true);
     try {
       const d = await api.platform.getAuditLog(LIMIT, off);
-      setEntries(off === 0 ? d.entries : prev => [...prev, ...d.entries]);
+      setEntries(prev => off === 0 ? d.entries : [...prev, ...d.entries]);
+    } catch (err: any) {
+      showToast(err?.message || 'Failed to load audit log', 'error');
     } finally { setLoading(false); }
-  }, []);
+  }, [showToast]);
 
   useEffect(() => { load(0); }, [load]);
 
@@ -491,18 +618,19 @@ const AuditPanel: React.FC = () => {
   if (loading && entries.length === 0) return <div className="flex justify-center py-10"><Loader2 size={18} className="animate-spin text-tea-text-dim" /></div>;
 
   if (entries.length === 0) return (
-    <div className="text-center py-10 text-tea-text-dim text-sm font-serif">No audit log entries yet.</div>
+    <div className="text-center py-10 text-tea-text-sec text-sm font-serif">No audit log entries yet.</div>
   );
 
   return (
     <div className="space-y-1.5">
-      <div className="flex items-center justify-end mb-2">
+      <div className="flex items-center justify-between mb-1">
+        <p className="text-[12px] text-tea-text-sec">Recent platform actions</p>
         <button
           type="button"
           onClick={() => navigate('/admin/platform/audit-log')}
-          className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim hover:text-tea-gold transition-colors"
+          className="text-[11px] text-tea-gold hover:text-tea-gold-lt transition-colors"
         >
-          View full log with filters
+          Full log with filters →
         </button>
       </div>
       {entries.map(entry => {
@@ -516,14 +644,14 @@ const AuditPanel: React.FC = () => {
                 <p className="text-tea-text text-[13px] font-medium">
                   {ACTION_LABELS[entry.action] || entry.action}
                 </p>
-                <p className="text-tea-text-dim text-[11px] truncate">
+                <p className="text-tea-text-sec text-[12px] truncate">
                   {entry.actor_email}
                   {details.name ? ` → ${details.name}` : details.email ? ` → ${details.email}` : ''}
                   {details.from != null && details.to != null ? ` · ${details.from || 'none'} → ${details.to || 'none'}` : ''}
                   {details.feature ? ` · ${details.feature} ${details.enabled ? 'on' : 'off'}` : ''}
                 </p>
               </div>
-              <span className="text-[10px] text-tea-text-dim shrink-0 num tabular-nums">
+              <span className="text-[11px] text-tea-text-dim shrink-0 tabular-nums">
                 {new Date(entry.created_at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
               </span>
             </div>
@@ -545,10 +673,11 @@ const AuditPanel: React.FC = () => {
 const EMPTY_FORM = { name: '', slug: '', invoice_prefix: '', location_city: '', location_country: '', currency_default: 'USD', timezone: 'UTC', whatsapp_number: '', contact_email: '', owner_email: '', public_enabled: true };
 
 const NewAccountPanel: React.FC<{ onCreated: () => void }> = ({ onCreated }) => {
+  const { showToast } = useToast();
   const [form, setForm] = useState({ ...EMPTY_FORM });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<{ account_id: string; slug: string; invite_link: string | null; email_sent: boolean } | null>(null);
+  const [result, setResult] = useState<{ account_id: string; slug: string; invite_link: string | null; email_sent: boolean; invite_expires_at?: string } | null>(null);
   const [copied, setCopied] = useState(false);
 
   const set = (key: keyof typeof EMPTY_FORM) => (v: string) => setForm(p => ({ ...p, [key]: v }));
@@ -573,9 +702,12 @@ const NewAccountPanel: React.FC<{ onCreated: () => void }> = ({ onCreated }) => 
     try {
       const res = await api.platform.createAccount({ ...form, owner_email: form.owner_email || undefined });
       setResult(res as any);
+      showToast(`Account /${res.slug} created`, 'success');
       onCreated();
     } catch (err: any) {
-      setError(err?.message || 'Failed to create account');
+      const msg = err?.message || 'Failed to create account';
+      setError(msg);
+      showToast(msg, 'error');
     } finally { setBusy(false); }
   };
 
@@ -586,44 +718,57 @@ const NewAccountPanel: React.FC<{ onCreated: () => void }> = ({ onCreated }) => 
     setTimeout(() => setCopied(false), 2000);
   };
 
-  if (result) return (
-    <div className="inset-panel p-5 space-y-4">
-      <div className="flex items-center gap-2">
-        <div className="w-8 h-8 rounded-full bg-tea-gold/10 flex items-center justify-center">
-          <Check size={16} className="text-tea-gold" />
-        </div>
-        <div>
-          <p className="text-tea-text font-medium text-sm">Account created</p>
-          <p className="text-tea-text-dim text-[11px] font-mono">/{result.slug}</p>
-        </div>
-      </div>
-      {result.invite_link && !result.email_sent && (
-        <div className="space-y-2">
-          <p className="text-[10px] uppercase tracking-[0.12em] text-tea-text-dim">Owner invite link</p>
-          <div className="flex gap-2">
-            <code className="flex-1 text-[11px] bg-tea-bg border border-tea-border rounded px-2 py-1.5 text-tea-text-sec truncate font-mono">
-              {window.location.origin}{result.invite_link}
-            </code>
-            <button type="button" onClick={copyLink} className="pill flex items-center gap-1 shrink-0">
-              {copied ? <Check size={10} /> : <Copy size={10} />}{copied ? 'Copied' : 'Copy'}
-            </button>
+  if (result) {
+    const expiry = result.invite_expires_at
+      ? new Date(result.invite_expires_at)
+      : new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
+    return (
+      <div className="inset-panel p-5 space-y-4">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-full bg-tea-gold/10 flex items-center justify-center">
+            <Check size={16} className="text-tea-gold" />
           </div>
-          <p className="text-[10px] text-tea-text-dim">Send this to the owner — expires in 14 days.</p>
+          <div>
+            <p className="text-tea-text font-medium text-sm">Account created</p>
+            <p className="text-tea-text-sec text-[12px] font-mono">/{result.slug}</p>
+          </div>
         </div>
-      )}
-      {result.email_sent && <p className="text-[12px] text-tea-text-sec">Invite email sent to the owner.</p>}
-      <button type="button" onClick={() => { setResult(null); setForm({ ...EMPTY_FORM }); }} className="pill flex items-center gap-1">
-        <Plus size={10} />Create another
-      </button>
-    </div>
-  );
+        {result.invite_link && !result.email_sent && (
+          <div className="space-y-2">
+            <Eyebrow>Owner invite link</Eyebrow>
+            <div className="flex gap-2">
+              <code className="flex-1 text-[11px] bg-tea-bg border border-tea-border rounded px-2 py-1.5 text-tea-text-sec truncate font-mono">
+                {window.location.origin}{result.invite_link}
+              </code>
+              <button type="button" onClick={copyLink} className="pill flex items-center gap-1 shrink-0">
+                {copied ? <Check size={10} /> : <Copy size={10} />}{copied ? 'Copied' : 'Copy'}
+              </button>
+            </div>
+            <p className="text-[12px] text-tea-text-sec">
+              Send this to the owner. Expires {expiry.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}.
+            </p>
+          </div>
+        )}
+        {result.email_sent && <p className="text-[12px] text-tea-text-sec">Invite email sent to the owner.</p>}
+        <button type="button" onClick={() => { setResult(null); setForm({ ...EMPTY_FORM }); }} className="pill flex items-center gap-1">
+          <Plus size={10} />Create another
+        </button>
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
-      {error && <div className="px-3 py-2.5 rounded-lg bg-tea-elevated text-[12px] text-tea-text-sec">{error}</div>}
+      {error && (
+        <div className="px-3 py-2.5 rounded-lg bg-red-500/10 border border-red-500/30 flex items-start gap-2">
+          <AlertTriangle size={14} className="text-red-400 shrink-0 mt-0.5" />
+          <p className="text-[12px] text-red-300 flex-1">{error}</p>
+          <button type="button" onClick={() => setError(null)} className="text-red-300 hover:text-red-200"><X size={12} /></button>
+        </div>
+      )}
 
       <div className="inset-panel p-4 space-y-3">
-        <p className="text-[10px] uppercase tracking-[0.12em] text-tea-text-dim">Identity</p>
+        <Eyebrow>Identity</Eyebrow>
         <Field label="Store name" value={form.name} onChange={handleNameChange} placeholder="Teajia Melbourne" required />
         <div className="grid grid-cols-2 gap-3">
           <Field label="URL slug" value={form.slug} onChange={handleSlugChange} placeholder="teajia-melbourne" required hint="teajia.app/store/[slug]" />
@@ -632,7 +777,7 @@ const NewAccountPanel: React.FC<{ onCreated: () => void }> = ({ onCreated }) => 
       </div>
 
       <div className="inset-panel p-4 space-y-3">
-        <p className="text-[10px] uppercase tracking-[0.12em] text-tea-text-dim">Location & Currency</p>
+        <Eyebrow>Location & Currency</Eyebrow>
         <div className="grid grid-cols-2 gap-3">
           <Field label="City" value={form.location_city} onChange={set('location_city')} placeholder="Melbourne" />
           <Field label="Country" value={form.location_country} onChange={set('location_country')} placeholder="Australia" />
@@ -642,7 +787,7 @@ const NewAccountPanel: React.FC<{ onCreated: () => void }> = ({ onCreated }) => 
       </div>
 
       <div className="inset-panel p-4 space-y-3">
-        <p className="text-[10px] uppercase tracking-[0.12em] text-tea-text-dim">Contact</p>
+        <Eyebrow>Contact</Eyebrow>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="WhatsApp" value={form.whatsapp_number} onChange={set('whatsapp_number')} placeholder="+61 4XX XXX XXX" />
           <Field label="Contact email" value={form.contact_email} onChange={set('contact_email')} type="email" />
@@ -650,7 +795,7 @@ const NewAccountPanel: React.FC<{ onCreated: () => void }> = ({ onCreated }) => 
       </div>
 
       <div className="inset-panel p-4 space-y-3">
-        <p className="text-[10px] uppercase tracking-[0.12em] text-tea-text-dim">First Owner</p>
+        <Eyebrow>First Owner</Eyebrow>
         <Field label="Owner email" value={form.owner_email} onChange={set('owner_email')} placeholder="owner@example.com" type="email"
           hint="A new user is created if this email doesn't exist. An invite link will be generated." />
       </div>
@@ -660,12 +805,12 @@ const NewAccountPanel: React.FC<{ onCreated: () => void }> = ({ onCreated }) => 
           className="w-4 h-4 rounded accent-[var(--tea-gold)]" />
         <div>
           <p className="text-tea-text text-sm">Public storefront enabled</p>
-          <p className="text-tea-text-dim text-[11px]">Visible at /find-a-table and in the network directory</p>
+          <p className="text-tea-text-sec text-[12px]">Visible at /find-a-table and in the network directory</p>
         </div>
       </label>
 
       <button type="submit" disabled={busy || !form.name || !form.slug || !form.invoice_prefix}
-        className="w-full py-3 bg-tea-gold text-tea-bg text-[11px] font-semibold uppercase tracking-[0.08em] rounded-lg disabled:opacity-40 flex items-center justify-center gap-2">
+        className="w-full py-3 bg-tea-gold text-tea-bg text-[11px] font-semibold uppercase tracking-[0.08em] rounded-lg disabled:opacity-40 flex items-center justify-center gap-2 hover:bg-tea-gold-lt transition-colors">
         {busy ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
         Create Account
       </button>
@@ -685,7 +830,7 @@ export const PlatformAdminView: React.FC = () => {
     <div className="flex flex-col items-center justify-center py-20 text-center px-4">
       <Shield size={32} className="text-tea-text-dim mb-3" />
       <p className="text-tea-text font-serif text-base">Platform access required</p>
-      <p className="text-tea-text-dim text-sm mt-1">You don't have platform admin permissions.</p>
+      <p className="text-tea-text-sec text-sm mt-1">You don't have platform admin permissions. If you think this is a mistake, ask a Super Owner to grant you the Platform Admin role.</p>
     </div>
   );
 
@@ -695,7 +840,7 @@ export const PlatformAdminView: React.FC = () => {
         <ShieldCheck size={18} className="text-tea-gold shrink-0" />
         <div>
           <h1 className="text-tea-text font-serif text-lg">Platform Admin</h1>
-          <p className="text-tea-text-dim text-[11px] uppercase tracking-[0.08em]">
+          <p className="text-tea-text-sec text-[12px]">
             {isPlatformOwner ? 'Super Owner' : 'Platform Admin'} · Full network access
           </p>
         </div>
@@ -709,7 +854,7 @@ export const PlatformAdminView: React.FC = () => {
           { id: 'new',      label: 'New Account', icon: <Plus size={11} /> },
         ] as const).map(t => (
           <button key={t.id} onClick={() => setTab(t.id)}
-            className={`${tab === t.id ? 'pill-active' : 'pill'} flex items-center gap-1.5`}>
+            className={`${tab === t.id ? 'pill pill-active' : 'pill'} flex items-center gap-1.5`}>
             {t.icon}{t.label}
           </button>
         ))}
