@@ -530,10 +530,14 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
 
         {/* === STORY — prose (intro + lore + experience description merged) === */}
         {(() => {
-          // Collect all narrative prose into one flow
+          // When Adrian has starred voice notes, his impressions take over as
+          // the sensory description. Suppress the AI-leaning experience and
+          // introduction prose so they don't duplicate — keep the historical
+          // lore (mainStory) which is distinct cultural context.
+          const hasImpressions = starredNotes(item.tasting).length > 0;
           const storyParts: string[] = [];
-          if (feelingDescription) storyParts.push(feelingDescription);
-          if (introduction) storyParts.push(introduction);
+          if (!hasImpressions && feelingDescription) storyParts.push(feelingDescription);
+          if (!hasImpressions && introduction) storyParts.push(introduction);
           if (mainStory) storyParts.push(mainStory);
           const fullStory = storyParts.join('\n\n');
           if (!fullStory) return null;
@@ -576,24 +580,51 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
           );
         })()}
 
-        {/* === IMPRESSIONS — starred tasting notes curated for public display === */}
+        {/* === IMPRESSIONS — starred tasting notes, promoted to primary voice === */}
         {(() => {
           const starred = starredNotes(item.tasting);
           if (starred.length === 0) return null;
+          // Partition so community-attributed notes render distinct from
+          // Adrian's own voice, but still under the same Impressions heading.
           return (
             <div style={{
-              padding: "20px 24px 4px",
+              padding: "22px 24px 6px",
+              marginTop: "8px",
             }}>
+              {/* Eyebrow + hairline — signals this is the curator's voice */}
+              <div style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                marginBottom: "12px",
+              }}>
+                <span style={{
+                  fontFamily: "var(--font-display)",
+                  fontSize: "10px",
+                  letterSpacing: "0.18em",
+                  textTransform: "uppercase",
+                  color: "var(--tea-gold)",
+                  whiteSpace: "nowrap",
+                }}>
+                  In Adrian's words
+                </span>
+                <span style={{
+                  flex: 1,
+                  height: "1px",
+                  background: "linear-gradient(90deg, rgb(var(--tea-gold-rgb) / 0.35), transparent)",
+                }} />
+              </div>
+
               {starred.map((note, i) => (
                 <p
                   key={note.id}
                   style={{
                     fontFamily: "var(--font-display)",
-                    fontSize: "15px",
+                    fontSize: "17px",
                     fontStyle: "italic",
-                    lineHeight: 1.55,
-                    color: "var(--tea-text-sec)",
-                    marginTop: i === 0 ? 0 : 10,
+                    lineHeight: 1.6,
+                    color: "var(--tea-text)",
+                    marginTop: i === 0 ? 0 : 14,
                     marginBottom: 0,
                   }}
                 >
@@ -602,7 +633,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                     <span
                       style={{
                         display: "block",
-                        marginTop: 4,
+                        marginTop: 6,
                         fontSize: "10px",
                         fontStyle: "normal",
                         letterSpacing: "0.12em",

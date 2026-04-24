@@ -47,9 +47,25 @@ export const TastingEditorModal: React.FC<TastingEditorModalProps> = ({
         );
       });
 
-      // Refresh the public storefront inventory so the shop card / product page
-      // show the new tasting without waiting on the edge cache TTL.
-      await queryClient.invalidateQueries({ queryKey: ['storefront', 'products'] });
+      // Optimistically patch the public storefront cache too, so toggling a
+      // star (on or off) reflects on the card immediately — even while the
+      // 10s edge cache still serves stale JSON to fresh fetches.
+      queryClient.setQueriesData<any[]>({ queryKey: ['storefront', 'products'] }, (old) => {
+        if (!Array.isArray(old)) return old;
+        return old.map((item: any) =>
+          item?.id === product.id
+            ? {
+                ...item,
+                tasting: hasTerms ? tastingData : undefined,
+                tastingSource: tastingSource ?? undefined,
+              }
+            : item
+        );
+      });
+
+      // Refetch in the background so eventual reality catches up with the
+      // optimistic patch once the edge cache expires.
+      queryClient.invalidateQueries({ queryKey: ['storefront', 'products'] });
 
       const derivedMood = deriveMoodFromFeeling(tastingData);
       showToast('Tasting profile saved', 'success');
