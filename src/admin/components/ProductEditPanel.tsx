@@ -107,7 +107,7 @@ export const GhostInput = ({
   );
 };
 
-const GhostAutocompleteInput = ({
+export const GhostAutocompleteInput = ({
   value, onSave, suggestions, itemData, onAutoFill, className = '', placeholder = '',
 }: {
   value: string;
@@ -152,7 +152,7 @@ const GhostAutocompleteInput = ({
   );
 };
 
-const GhostSelect = ({ value, onSave, options, className = '' }: {
+export const GhostSelect = ({ value, onSave, options, className = '' }: {
   value: string; onSave: (val: string) => void; options: string[]; className?: string;
 }) => (
   <div className="relative flex-1">
@@ -169,7 +169,7 @@ const GhostSelect = ({ value, onSave, options, className = '' }: {
   </div>
 );
 
-const VendorPicker = ({ value, onChange, productId, className }: {
+export const VendorPicker = ({ value, onChange, productId, className }: {
   value: string; onChange: (name: string) => void; productId?: string; className?: string;
 }) => {
   const { data: customers = [], refetch: refetchCustomers } = useCustomers();
@@ -259,7 +259,7 @@ const VendorPicker = ({ value, onChange, productId, className }: {
   );
 };
 
-const CollapsibleSection = ({ title, defaultOpen = true, mobileDefault, children }: {
+export const CollapsibleSection = ({ title, defaultOpen = true, mobileDefault, children }: {
   title: string; defaultOpen?: boolean; mobileDefault?: boolean; children: React.ReactNode;
 }) => {
   const [open, setOpen] = useState(() => {
@@ -283,7 +283,7 @@ const CollapsibleSection = ({ title, defaultOpen = true, mobileDefault, children
   );
 };
 
-const ImageManager = ({ product, onUpdate }: {
+export const ImageManager = ({ product, onUpdate }: {
   product: Product; onUpdate: (field: keyof Product, value: any) => void;
 }) => {
   const [uploadingSlot, setUploadingSlot] = useState<number | null>(null);

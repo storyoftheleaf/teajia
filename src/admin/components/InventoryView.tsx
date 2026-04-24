@@ -239,7 +239,7 @@ interface InventoryViewProps {
 }
 
 // Shared inline-edit components + ProductEditPanel (extracted for reuse)
-import { GhostInput, GhostTextarea, ProductEditPanel, buildProductUpdatePayload } from './ProductEditPanel';
+import { GhostInput, GhostTextarea, GhostAutocompleteInput, GhostSelect, VendorPicker, ImageManager, ProductEditPanel, CollapsibleSection, buildProductUpdatePayload } from './ProductEditPanel';
 
 
 // ─────────────────────────────────────────────────────────────────────────────
