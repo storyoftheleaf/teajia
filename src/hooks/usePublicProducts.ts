@@ -40,6 +40,10 @@ export const usePublicProducts = () => {
         teawareCategory: p.teaware_category || undefined,
         quantityUnits: p.quantity_units != null ? Number(p.quantity_units) : undefined,
         tasting: p.tasting && typeof p.tasting === 'object' ? p.tasting : undefined,
+        tastingSource:
+          p.tasting_source === 'owner' || p.tasting_source === 'community' || p.tasting_source === 'common'
+            ? p.tasting_source
+            : undefined,
       }));
     },
     staleTime: 1000 * 60 * 5,

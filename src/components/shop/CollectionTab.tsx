@@ -264,7 +264,7 @@ export const CollectionTab: React.FC<CollectionTabProps> = ({ inventory, onAddTo
       {/* Saved items section */}
       {hasSaved && (
         <>
-          <SectionDivider label="Saved" subtitle={`${savedItems.length} ${savedItems.length === 1 ? 'item' : 'items'} you've set aside.`} />
+          <SectionDivider label="Liked" subtitle={`${savedItems.length} ${savedItems.length === 1 ? 'item' : 'items'} you've set aside.`} />
           <div className="flex flex-col gap-6 md:gap-8">
             {savedItems.map(item => (
               <ItemCard

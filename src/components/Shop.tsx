@@ -11,6 +11,7 @@ import { TeawareCatalog } from './TeawareCatalog';
 import { PageHeader } from './shared/PageHeader';
 import { PageHeaderTabs } from './shared/PageHeaderTabs';
 import { Icons } from './Icons';
+import { fmtShopPrice, fmtShopPricePerGram } from '../utils/formatNumber';
 import { STARTER_TEA_SETS, STARTER_TEAWARE_SETS } from '../constants';
 import { CardImage } from './shared/CardImage';
 import { SectionDivider } from './shared/SectionDivider';
@@ -47,7 +48,7 @@ const TABS = [
   { id: 'tea', label: 'Tea', icon: <Icons.Leaf className="w-4 h-4" /> },
   { id: 'teaware', label: 'Teaware', icon: <Icons.Teapot className="w-4 h-4" /> },
   { id: 'sets', label: 'Sets', icon: <Icons.Box className="w-4 h-4" /> },
-  { id: 'collection', label: 'Saved', icon: <Icons.Bookmark className="w-4 h-4" /> },
+  { id: 'collection', label: 'Liked', icon: <Icons.Heart className="w-4 h-4" /> },
 ];
 
 export const Shop: React.FC<ShopProps> = ({
@@ -495,8 +496,8 @@ export const Shop: React.FC<ShopProps> = ({
                     <p className="text-xs text-tea-text leading-snug line-clamp-2" style={{ fontFamily: 'var(--font-display)' }}>{item.name}</p>
                     <p className="text-[10px] text-tea-text-sec mt-0.5 font-mono tabular-nums">
                       {item.category === 'tea'
-                        ? `$${parseFloat(item.price_per_gram || '0').toFixed(2)}/g`
-                        : `$${parseFloat(item.price_50g || '0').toFixed(2)} each`}
+                        ? fmtShopPricePerGram(parseFloat(item.price_per_gram || '0'))
+                        : `${fmtShopPrice(parseFloat(item.price_50g || '0'))} each`}
                     </p>
                   </div>
                 ))}

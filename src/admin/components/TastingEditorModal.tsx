@@ -26,8 +26,13 @@ export const TastingEditorModal: React.FC<TastingEditorModalProps> = ({
   const handleSave = useCallback(async (tastingData: TastingData) => {
     try {
       const syncFields = buildTastingSyncPayload(tastingData);
+      const hasTerms = Object.keys(tastingData).length > 0;
+      // Owner-stamp: saving through this editor means Adrian has reviewed the profile.
+      // Clearing everything resets source so the public page falls back to the style baseline.
+      const tastingSource: 'owner' | null = hasTerms ? 'owner' : null;
       const payload: Record<string, unknown> = {
-        tasting: Object.keys(tastingData).length > 0 ? tastingData : null,
+        tasting: hasTerms ? tastingData : null,
+        tasting_source: tastingSource,
         ...syncFields,
       };
 
@@ -36,7 +41,9 @@ export const TastingEditorModal: React.FC<TastingEditorModalProps> = ({
       queryClient.setQueryData(['products'], (old: Product[] | undefined) => {
         if (!old) return old;
         return old.map(p =>
-          p.id === product.id ? { ...p, tasting: tastingData, ...syncFields } : p
+          p.id === product.id
+            ? { ...p, tasting: tastingData, tastingSource: tastingSource ?? undefined, ...syncFields }
+            : p
         );
       });
 

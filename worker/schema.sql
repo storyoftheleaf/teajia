@@ -120,6 +120,7 @@ CREATE TABLE IF NOT EXISTS products (
     is_sample INTEGER DEFAULT 0,                    -- Sample/trial tea not yet committed to inventory
     in_transit INTEGER DEFAULT 0,                   -- Stock ordered but not yet physically arrived
     tasting TEXT DEFAULT '{}',                    -- Structured tasting taxonomy JSON
+    tasting_source TEXT,                          -- 'owner' | 'community' | NULL; NULL falls back to style baseline
     sold_out_at TEXT,                             -- When product auto-archived due to zero stock
     stock_verified_at TEXT,                        -- Last time stock was physically verified
     source_compass_entry_id TEXT,                  -- FK to tea_compass_entries(id) — which field note sourced this product

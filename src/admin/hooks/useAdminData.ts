@@ -55,6 +55,10 @@ export const useProducts = (options?: { enabled?: boolean }) => {
         recheckStock: !!p.recheck_stock,
         stockVerifiedAt: p.stock_verified_at || null,
         tasting: p.tasting && typeof p.tasting === 'object' ? p.tasting : undefined,
+        tastingSource:
+          p.tasting_source === 'owner' || p.tasting_source === 'community' || p.tasting_source === 'common'
+            ? p.tasting_source
+            : undefined,
         sourceCompassEntryId: p.source_compass_entry_id || undefined,
       })) as Product[];
     }

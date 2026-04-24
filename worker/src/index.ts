@@ -1383,6 +1383,12 @@ const handleCreateProduct: Handler = async (request, env) => {
   // Convert tasting_notes array to JSON string
   if (Array.isArray(body.tasting_notes)) body.tasting_notes = JSON.stringify(body.tasting_notes);
   if (Array.isArray(body.additional_images)) body.additional_images = JSON.stringify(body.additional_images);
+  // Admin-created products with tasting data default to owner-authored unless
+  // the caller explicitly says otherwise.
+  // TODO(second-writer): see handleUpdateProduct for the upgrade path.
+  if ('tasting' in body && body.tasting_source === undefined) {
+    body.tasting_source = body.tasting && Object.keys(body.tasting).length > 0 ? 'owner' : null;
+  }
   if (body.tasting && typeof body.tasting === 'object') body.tasting = JSON.stringify(body.tasting);
   // Convert booleans to integers for SQLite
   for (const key of ['is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_curated', 'is_custom_wisdom', 'show_wisdom', 'is_sample', 'in_transit']) {
@@ -1513,6 +1519,18 @@ const handleUpdateProduct: Handler = async (request, env, params) => {
   delete body.account_id;
   if (Array.isArray(body.tasting_notes)) body.tasting_notes = JSON.stringify(body.tasting_notes);
   if (Array.isArray(body.additional_images)) body.additional_images = JSON.stringify(body.additional_images);
+  // Any admin-authenticated write that mutates the tasting profile is, by
+  // default, the owner's voice. Explicit callers (community aggregation,
+  // seed scripts) can override by passing tasting_source themselves.
+  //
+  // TODO(second-writer): when a non-owner path starts writing tasting (e.g.
+  // community aggregation sync), switch this to read-then-write: fetch the
+  // current row's tasting_source and preserve it instead of defaulting to
+  // 'owner'. Until then every write that omits tasting_source gets stamped
+  // owner, which is correct while Adrian is the only writer.
+  if ('tasting' in body && body.tasting_source === undefined) {
+    body.tasting_source = body.tasting && Object.keys(body.tasting).length > 0 ? 'owner' : null;
+  }
   if (body.tasting && typeof body.tasting === 'object') body.tasting = JSON.stringify(body.tasting);
   for (const key of ['is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_curated', 'is_custom_wisdom', 'show_wisdom', 'is_sample', 'in_transit']) {
     if (body[key] !== undefined) body[key] = body[key] ? 1 : 0;

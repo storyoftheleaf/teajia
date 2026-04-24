@@ -1,14 +1,14 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { MessageCircle } from 'lucide-react';
+import { MessageCircle, Pencil } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useInventory } from '../context/InventoryContext';
 import { useAppStore } from '../lib/store';
 import { Icons } from '../components/Icons';
 import { TeaPlaceholder } from '../components/shop/TeaPlaceholder';
 import { HapticSlider } from '../components/shared/HapticSlider';
-import { fmtPrice, fmtPricePerGram, fmtNum } from '../utils/formatNumber';
+import { fmtPrice, fmtPricePerGram, fmtNum, fmtShopPrice, fmtShopPricePerGram } from '../utils/formatNumber';
 import { CardImage } from '../components/shared/CardImage';
 import type { InventoryItem, TastingData } from '../types';
 import { buildWhatsAppUrl, buildOrderMessage } from '../lib/whatsapp';
@@ -17,6 +17,9 @@ import { resolveTermLabel, flattenTastingNotes } from '../data/tastingTaxonomy';
 import { getTeaColor } from '../designTokens';
 import { ProductTastingEditorial } from '../components/tasting/ProductTastingEditorial';
 import { useProductTasting } from '../hooks/useProductTasting';
+import { useAuth } from '../hooks/useAuth';
+import { TastingEditorModal } from '../admin/components/TastingEditorModal';
+import type { Product } from '../admin/types';
 
 // ── Feature 4: Public tea reviews section ────────────────────────────────────
 
@@ -155,7 +158,7 @@ interface ProductPageProps {
 export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { inventory } = useInventory();
+  const { inventory, refetch: refetchInventory } = useInventory();
   const { favoriteTeas, toggleFavoriteTea } = useAppStore();
 
   const item = useMemo(() => inventory.find(i => i.id === id), [inventory, id]);
@@ -214,6 +217,21 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
   const terroir = item.terroir || '';
   const processing = item.processingNotes || '';
   const resolvedTasting = useProductTasting(item);
+  const { isAdmin } = useAuth();
+  const [tastingEditorOpen, setTastingEditorOpen] = useState(false);
+
+  // Minimal Product shape TastingEditorModal needs; mapped from the public InventoryItem.
+  const adminProductShim: Product | null = useMemo(() => {
+    if (!item) return null;
+    return {
+      id: item.id,
+      givenName: item.name,
+      productName: item.variant || item.name,
+      type: item.type as Product['type'],
+      imageUrl: item.image || '',
+      tasting: item.tasting,
+    } as Product;
+  }, [item]);
 
   const handleAdd = () => {
     if (isSoldOut) return;
@@ -376,7 +394,21 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
 
           {/* Tasting description — flavor + energy, linked through to /shop filters */}
           {resolvedTasting ? (
-            <ProductTastingEditorial tasting={resolvedTasting.tasting} source={resolvedTasting.source} />
+            <ProductTastingEditorial
+              tasting={resolvedTasting.tasting}
+              source={resolvedTasting.source}
+              onEdit={isAdmin ? () => setTastingEditorOpen(true) : undefined}
+            />
+          ) : isAdmin ? (
+            <button
+              type="button"
+              onClick={() => setTastingEditorOpen(true)}
+              className="mb-6 flex items-center gap-1.5 text-[10px] uppercase tracking-[0.18em] text-tea-text-dim hover:text-tea-gold transition-colors"
+              style={{ fontFamily: 'var(--font-display)' }}
+            >
+              <Pencil size={11} strokeWidth={1.5} />
+              <span>Add tasting profile</span>
+            </button>
           ) : item.mood ? (
             <div className="mb-4">
               <div className="flex flex-wrap gap-1.5 justify-start">
@@ -444,10 +476,10 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
             </div>
             <div className="text-right">
               <span className="font-mono text-sm text-tea-text-sec block">
-                {fmtPricePerGram(pricePerGram)}
+                {fmtShopPricePerGram(pricePerGram)}
               </span>
               <span className="font-mono text-[11px] text-tea-text-dim">
-                from {fmtPrice(pricePerGram * 25)} / 25g
+                from {fmtShopPrice(pricePerGram * 25)} / 25g
               </span>
             </div>
           </div>
@@ -476,7 +508,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
           {!isSoldOut && (
             <div className="mb-4">
               <div className="flex items-end justify-between mb-1 px-0.5">
-                <span className="font-mono text-sm text-tea-text">{fmtPrice(total)}</span>
+                <span className="font-mono text-sm text-tea-text">{fmtShopPrice(total)}</span>
                 <div className="flex items-baseline gap-0.5">
                   <span className="font-mono text-2xl text-tea-text leading-none">{grams}</span>
                   <span className="font-sans text-xs text-tea-text-dim">g</span>
@@ -525,7 +557,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
               {!isSoldOut && !added && (
                 <>
                   <span className="w-px h-3 bg-white/20" />
-                  <span className="font-mono">{fmtPrice(total)}</span>
+                  <span className="font-mono">{fmtShopPrice(total)}</span>
                 </>
               )}
             </button>
@@ -543,10 +575,10 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
                       quantity: grams,
                       unit: 'g',
                       price: fmtPricePerGram(pricePerGram),
-                      total: fmtPrice(total),
+                      total: fmtShopPrice(total),
                     }],
-                    subtotal: fmtPrice(total),
-                    total: fmtPrice(total),
+                    subtotal: fmtShopPrice(total),
+                    total: fmtShopPrice(total),
                   });
                   window.open(buildWhatsAppUrl(WHATSAPP_NUMBER, message), '_blank');
                 }}
@@ -601,7 +633,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
                   {related.name}
                 </h4>
                 <p className="font-mono text-xs text-tea-text-sec mt-0.5">
-                  {fmtPricePerGram(parseFloat(related.price_per_gram || '0'))}
+                  {fmtShopPricePerGram(parseFloat(related.price_per_gram || '0'))}
                 </p>
               </Link>
             ))}
@@ -652,7 +684,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
           <div className="pointer-events-auto bg-tea-bg/95 backdrop-blur-sm border border-tea-border rounded-lg p-3 flex items-center gap-3 shadow-lg">
             <div className="flex-1 min-w-0">
               <p className="font-serif text-sm text-tea-text truncate">{item.name}</p>
-              <p className="font-mono text-xs text-tea-text-sec">{grams}g · {fmtPrice(total)}</p>
+              <p className="font-mono text-xs text-tea-text-sec">{grams}g · {fmtShopPrice(total)}</p>
             </div>
             <button
               onClick={handleAdd}
@@ -666,6 +698,18 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
             </button>
           </div>
         </div>
+      )}
+
+      {/* Admin: inline tasting editor — same modal used from the admin panel. */}
+      {tastingEditorOpen && adminProductShim && (
+        <TastingEditorModal
+          product={adminProductShim}
+          onClose={() => setTastingEditorOpen(false)}
+          onSaved={() => {
+            setTastingEditorOpen(false);
+            refetchInventory();
+          }}
+        />
       )}
     </div>
   );

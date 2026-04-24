@@ -8,6 +8,7 @@ import { useAppStore } from '../../lib/store';
 import { api } from '../../lib/api';
 import { useTastingCount } from '../../hooks/useTastingCount';
 import { fmtNum } from '../../utils/formatNumber';
+import { fmtShopPrice } from '../../utils/formatNumber';
 import { TeaPlaceholder } from './TeaPlaceholder';
 import {
   flattenTastingNotes,
@@ -159,7 +160,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   const sliderMax = Math.max(25, Math.floor(item.stock_g || 500));
   const sliderStep = 5;
   const snapPoints = [25, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500].filter(p => p <= sliderMax);
-  const total = formatPrice ? formatPrice(pricePerGram, grams) : fmtNum(pricePerGram * grams);
+  const total = formatPrice ? formatPrice(pricePerGram, grams) : fmtNum(Math.ceil(pricePerGram * grams), 0);
   const perGramDisplay = formatPrice ? formatPrice(pricePerGram, 1) : fmtNum(pricePerGram);
   const sliderPercentage = sliderMax > sliderMin ? ((grams - sliderMin) / (sliderMax - sliderMin)) * 100 : 0;
 
@@ -1491,7 +1492,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                     <span>Sample — 10g</span>
                     {pricePerGram > 0 && (
                       <span style={{ fontFamily: "var(--font-mono)", fontWeight: 500, fontSize: "12px" }}>
-                        {formatPrice ? formatPrice(pricePerGram, 10) : `$${fmtNum(pricePerGram * 10)}`}
+                        {formatPrice ? formatPrice(pricePerGram, 10) : fmtShopPrice(pricePerGram * 10)}
                       </span>
                     )}
                   </>
@@ -1641,7 +1642,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                   <div style={{ display: "flex", gap: "6px" }}>
                     {([5, 10, 15] as const).map(g => {
                       const cost = pricePerGram * g;
-                      const costDisplay = formatPrice ? formatPrice(pricePerGram, g) : `$${fmtNum(cost)}`;
+                      const costDisplay = formatPrice ? formatPrice(pricePerGram, g) : fmtShopPrice(cost);
                       return (
                         <button
                           key={g}

@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { CartItem as PublicCartItem } from '../../types';
-import { fmtPrice } from '../../utils/formatNumber';
+import { fmtPrice, fmtShopPrice } from '../../utils/formatNumber';
 import { buildOrderMessage, buildWhatsAppUrl } from '../../lib/whatsapp';
 import { useAppStore } from '../../lib/store';
 import { formatCurrency } from '../../admin/utils';
@@ -59,10 +59,11 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
   const { data: rates = [] } = useRates();
 
   const displayPrice = useCallback((usd: number) => {
+    const rounded = Math.ceil(usd);
     if (rates.length > 0 && currency !== 'USD') {
-      return formatCurrency(usd, currency, rates);
+      return formatCurrency(rounded, currency, rates);
     }
-    return fmtPrice(usd);
+    return fmtShopPrice(usd);
   }, [currency, rates]);
 
   const orderRef = useMemo(() => {
@@ -148,11 +149,11 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
       variant: item.variant,
       quantity: item.quantityGrams,
       unit: item.category === 'tea' ? 'g' : '\u00d7',
-      price: `$${fmtPrice(item.pricePerGram)}`,
-      total: `$${fmtPrice(item.totalPrice)}`,
+      price: fmtPrice(item.pricePerGram),
+      total: fmtShopPrice(item.totalPrice),
     })),
-    subtotal: fmtPrice(subtotal),
-    total: fmtPrice(subtotal),
+    subtotal: fmtShopPrice(subtotal),
+    total: fmtShopPrice(subtotal),
   }), [cart, details, subtotal, orderRef]);
 
   // ── Handlers ─────────────────────────────────────────────────────────────

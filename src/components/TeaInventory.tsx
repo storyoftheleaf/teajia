@@ -10,7 +10,7 @@ import { getCommonTastingForType } from '../data/commonTastingByStyle';
 import { TeaPlaceholder } from './shop/TeaPlaceholder';
 import { PageHeader } from './shared/PageHeader';
 import { PageHeaderTabs } from './shared/PageHeaderTabs';
-import { fmtPrice } from '../utils/formatNumber';
+import { fmtShopPrice } from '../utils/formatNumber';
 import { TEA_TYPE_COLORS } from '../designTokens';
 import { InventoryItem } from '../types';
 import { SALE_ITEM_IDS } from '../data/curatedCollections';
@@ -675,7 +675,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                         {/* Divider between actions and price */}
                                         <div className="w-px h-5 bg-tea-border ml-2.5 mr-3" />
                                         <div className="text-right num text-sm text-tea-gold font-medium tabular-nums min-w-[44px]">
-                                            {fmtPrice(Math.ceil(priceAtWeight), 0)}
+                                            {fmtShopPrice(priceAtWeight)}
                                         </div>
                                     </div>
                                 </div>
