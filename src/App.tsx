@@ -76,6 +76,7 @@ const ForYourSpacePage = lazy(() => import('./pages/ForYourSpacePage'));
 const SpacesPage = lazy(() => import('./pages/SpacesPage'));
 const StartHerePage = lazy(() => import('./pages/StartHerePage'));
 const ArticlePage = lazy(() => import('./pages/ArticlePage'));
+const PublicCollectionPage = lazy(() => import('./pages/PublicCollectionPage'));
 
 import { useQuery } from '@tanstack/react-query';
 import { fetchStore } from './lib/storefrontApi';
@@ -720,6 +721,7 @@ const AppContent = () => {
                 <Route path="/invite/:token" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><GuestInviteClaimPage /></Suspense></ErrorBoundary>} />
                 <Route path="/s/:sampleId" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><SamplePage /></Suspense></ErrorBoundary>} />
                 <Route path="/share/:token" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><ShareCardPage /></Suspense></ErrorBoundary>} />
+                <Route path="/c/:slug" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><PublicCollectionPage /></Suspense></ErrorBoundary>} />
                 <Route path="/me" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="list" />}><CenterPage /></Suspense></ErrorBoundary>} />
                 <Route path="/session/:id" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><SessionPage /></Suspense></ErrorBoundary>} />
                 <Route path="/t/:token" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><TableCardPage /></Suspense></ErrorBoundary>} />

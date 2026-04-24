@@ -8,7 +8,7 @@ import { SectionDivider } from '../shared/SectionDivider';
 import { useProductUrl } from '../../hooks/useProductUrl';
 import { useAppStore } from '../../lib/store';
 import type { InventoryItem } from '../../types';
-import { fmtPrice } from '../../utils/formatNumber';
+import { fmtPrice, fmtShopPrice } from '../../utils/formatNumber';
 import { AddToSampleButton } from '../samples/AddToSampleButton';
 
 interface CollectionTabProps {
@@ -129,12 +129,12 @@ const ItemCard: React.FC<{
             <div>
               {isTea ? (
                 <>
-                  <span className="num text-sm text-tea-gold">{fmtPrice(pricePerGram * 50)}</span>
+                  <span className="num text-sm text-tea-gold">{fmtShopPrice(pricePerGram * 50)}</span>
                   <span className="text-tea-text-sec text-xs ml-1">/ 50g</span>
                 </>
               ) : (
                 <>
-                  <span className="num text-sm text-tea-gold">{fmtPrice(priceUnit)}</span>
+                  <span className="num text-sm text-tea-gold">{fmtShopPrice(priceUnit)}</span>
                   <span className="text-tea-text-sec text-xs ml-1">each</span>
                 </>
               )}

@@ -5,7 +5,7 @@ import { HapticSlider } from '../shared/HapticSlider';
 import { TeaPlaceholder } from './TeaPlaceholder';
 import { useScrollLock } from '../../hooks/useScrollLock';
 import type { InventoryItem } from '../../types';
-import { fmtPrice } from '../../utils/formatNumber';
+import { fmtPrice, fmtShopPrice } from '../../utils/formatNumber';
 
 interface QuickPeekDrawerProps {
   item: InventoryItem | null;
@@ -166,13 +166,13 @@ export const QuickPeekDrawer: React.FC<QuickPeekDrawerProps> = ({ item, onClose,
             <span>
               {isTea
                 ? `${fmtPrice(pricePerUnit)} / g`
-                : `${fmtPrice(pricePerUnit)} each`}
+                : `${fmtShopPrice(pricePerUnit)} each`}
             </span>
           </div>
 
           {/* Add to Cart */}
           <Button variant="primary" fullWidth onClick={handleAdd}>
-            Add {fmtPrice(total)}
+            Add {fmtShopPrice(total)}
           </Button>
         </div>
       </div>

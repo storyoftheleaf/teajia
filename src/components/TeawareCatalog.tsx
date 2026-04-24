@@ -9,7 +9,7 @@ import { PageHeaderActions } from './shared/PageHeaderActions';
 import { ShopGridLayout } from './shared/ShopGridLayout';
 import { TeaItem } from './TeaInventory';
 import { TeaPlaceholder } from './shop/TeaPlaceholder';
-import { fmtPrice } from '../utils/formatNumber';
+import { fmtShopPrice } from '../utils/formatNumber';
 import { useProductUrl } from '../hooks/useProductUrl';
 import { useAppStore } from '../lib/store';
 import type { Product } from '../admin/types';
@@ -214,7 +214,7 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
                           }
                           priceDisplay={
                             <span className="card-grid-price">
-                              <span className="num">{fmtPrice(parseFloat(item.price_50g))}</span>
+                              <span className="num">{fmtShopPrice(parseFloat(item.price_50g))}</span>
                               <span className="text-tea-text-sec text-[10px] ml-1">each</span>
                             </span>
                           }
@@ -249,7 +249,7 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
                     }
                     priceDisplay={
                       <span className="card-grid-price">
-                        <span className="num">{fmtPrice(parseFloat(item.price_50g))}</span>
+                        <span className="num">{fmtShopPrice(parseFloat(item.price_50g))}</span>
                         <span className="text-tea-text-sec text-[10px] ml-1">each</span>
                       </span>
                     }
@@ -344,7 +344,7 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
                               </button>
                             )}
                             <div className="text-right">
-                              <span className="num text-sm text-tea-gold">{fmtPrice(unitPrice)}</span>
+                              <span className="num text-sm text-tea-gold">{fmtShopPrice(unitPrice)}</span>
                               <span className="text-tea-text-sec text-[10px] ml-1">each</span>
                             </div>
                             <Icons.Next className="w-4 h-4 text-tea-text/20 shrink-0" />

@@ -44,7 +44,6 @@ import { CustomerProfilePage } from './components/CustomerProfilePage';
 import { ActivityView } from './components/ActivityView';
 import { QuickCapture } from './components/QuickCapture';
 import { CatalogView } from './views/CatalogView';
-import { CatalogSeedView } from './views/CatalogSeedView';
 import { ActivityLogsPage } from './views/ActivityLogsPage';
 import { PurchaseOrdersPage } from './views/PurchaseOrdersPage';
 import { TeaCompass } from '../components/TeaCompass';
@@ -53,6 +52,8 @@ import { VendorProfileView } from './views/VendorProfileView';
 import { ProductStoryView } from './views/ProductStoryView';
 import { PlatformAuditLogPage } from './views/PlatformAuditLogPage';
 import { MagazineView } from './views/MagazineView';
+import { CollectionsView } from './views/CollectionsView';
+import { CollectionEditView } from './views/CollectionEditView';
 
 // Import Modals
 import { AuthModal } from './components/AuthModal';
@@ -65,12 +66,19 @@ const CompassWithMode: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   const [params] = useSearchParams();
   const tab = params.get('tab');
   const entryId = params.get('entry');
+  const capture = params.get('capture');
   const initialMode: CompassMode | undefined =
     tab === 'buying' ? 'buying' : tab === 'ledger' ? 'buying' :
     tab === 'sourcing' ? 'sourcing' : tab === 'capture' ? 'sourcing' :
+    tab === 'samples' ? 'sourcing' :
     tab === 'tasting' ? 'tasting' : tab === 'browse' ? 'tasting' :
     undefined;
-  return <TeaCompass onBack={onBack} initialMode={initialMode} initialEntryId={entryId || undefined} />;
+  const initialCaptureOption: 'tea' | 'teaware' | 'samples' | undefined =
+    tab === 'samples' || capture === 'samples' ? 'samples' :
+    capture === 'teaware' ? 'teaware' :
+    capture === 'tea' ? 'tea' :
+    undefined;
+  return <TeaCompass onBack={onBack} initialMode={initialMode} initialEntryId={entryId || undefined} initialCaptureOption={initialCaptureOption} />;
 };
 
 const PageTransition = ({ children }: { children: React.ReactNode }) => (
@@ -541,7 +549,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
               <Route path="events" element={<ProtectedRoute hasAccess={isMember} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><EventsManager /></PageTransition></ProtectedRoute>} />
               <Route path="events/:id" element={<ProtectedRoute hasAccess={isMember} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><EventDetail /></PageTransition></ProtectedRoute>} />
               <Route path="venues" element={<ProtectedRoute hasAccess={isMember} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><VenueManager /></PageTransition></ProtectedRoute>} />
-              <Route path="samples" element={<Navigate to="/admin/compass?tab=sourcing" replace />} />
+              <Route path="samples" element={<Navigate to="/admin/compass?tab=samples" replace />} />
 
               {/* Operations — staff, admin, owner */}
               <Route path="activity" element={<ProtectedRoute hasAccess={isStaff} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><ActivityView products={products} /></PageTransition></ProtectedRoute>} />
@@ -577,8 +585,9 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
               <Route path="account-settings" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><AccountSettingsView /></PageTransition></ProtectedRoute>} />
               <Route path="platform" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><PlatformAdminView /></PageTransition></ProtectedRoute>} />
               <Route path="platform/audit-log" element={<ProtectedRoute hasAccess={isAdmin && !!platformRole} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><PlatformAuditLogPage /></PageTransition></ProtectedRoute>} />
-              <Route path="catalog-seed" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><CatalogSeedView products={products} isLoading={loading} /></PageTransition></ProtectedRoute>} />
               <Route path="magazine" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><MagazineView /></PageTransition></ProtectedRoute>} />
+              <Route path="collections" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><CollectionsView /></PageTransition></ProtectedRoute>} />
+              <Route path="collections/:id" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><CollectionEditView /></PageTransition></ProtectedRoute>} />
 
               {/* Legacy routes — redirect to new unified views */}
               <Route path="catalog" element={

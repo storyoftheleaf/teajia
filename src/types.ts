@@ -553,3 +553,118 @@ export interface DbArticle {
   updated_at: string;
   blocks_preview?: string;
 }
+
+// ── Collections (Phase 1) ───────────────────────────────────────────────────
+
+export type CollectionStatus = 'draft' | 'active' | 'archived';
+export type CollectionTargetType = 'person' | 'store' | 'event' | 'shop';
+
+export interface CollectionRecipient {
+  customer_id?: string;
+  name: string;
+  phone?: string;
+}
+
+export interface Collection {
+  id: string;
+  account_id: string;
+  title: string;
+  note?: string | null;
+  hero_image_url?: string | null;
+  status: CollectionStatus;
+  created_by_user_id?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CollectionListRow {
+  id: string;
+  title: string;
+  note?: string | null;
+  hero_image_url?: string | null;
+  status: CollectionStatus;
+  created_at: string;
+  updated_at: string;
+  item_count: number;
+  active_publication_count: number;
+  last_published_at?: string | null;
+  thumbnails: string[];
+}
+
+export interface CollectionItem {
+  id: string;
+  collection_id: string;
+  product_id: string;
+  position: number;
+  item_note?: string | null;
+  product_type?: string;
+  product_name?: string;
+  chinese_name?: string | null;
+  year?: number | null;
+  origin_country?: string | null;
+  origin_region?: string | null;
+  image_url?: string | null;
+  product_status?: string;
+  stock_grams?: number | null;
+  quantity_units?: number | null;
+  tasting_notes?: string[] | string | null;
+  description?: string | null;
+}
+
+export interface CollectionPublication {
+  id: string;
+  collection_id: string;
+  target_type: CollectionTargetType;
+  target_id?: string | null;
+  slug: string;
+  recipients: CollectionRecipient[];
+  published_at: string;
+  unpublished_at?: string | null;
+  view_count: number;
+}
+
+export interface CollectionDetail {
+  collection: Collection;
+  items: CollectionItem[];
+  publications: CollectionPublication[];
+}
+
+export interface PublicCollectionItem {
+  id: string;
+  position: number;
+  item_note?: string | null;
+  product_id: string;
+  product_type?: string;
+  product_name?: string;
+  chinese_name?: string | null;
+  year?: number | null;
+  origin_country?: string | null;
+  origin_region?: string | null;
+  image_url?: string | null;
+  description?: string | null;
+  tasting_notes?: string[] | null;
+  product_status?: string;
+  out_of_stock: boolean;
+}
+
+export interface PublicCollectionResponse {
+  collection: {
+    title: string;
+    note?: string | null;
+    hero_image_url?: string | null;
+  };
+  items: PublicCollectionItem[];
+  account: { name: string; whatsapp_number?: string | null } | null;
+  publication: { slug: string; view_count: number };
+}
+
+export interface NeedsAttentionItem {
+  item_id: string;
+  collection_id: string;
+  collection_title: string;
+  product_id: string;
+  product_name: string;
+  product_type?: string;
+  product_status?: string;
+  issue: 'out_of_stock' | 'archived';
+}

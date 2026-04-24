@@ -29,7 +29,7 @@ const CONTACT_LABELS: Record<ContactChannel, string> = {
 
 interface QuickInvoiceModalPrefill {
   vendorName?: string;
-  items?: Array<{ name: string; quantity?: number; unit?: 'g' | 'pcs' }>;
+  items?: Array<{ name: string; quantity?: number; unit?: 'g' | 'pcs'; productId?: string; price?: number }>;
 }
 
 interface QuickInvoiceModalProps {
@@ -105,13 +105,18 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
     if (prefill) {
       if (prefill.vendorName) setCustomerQuery(prefill.vendorName);
       if (prefill.items && prefill.items.length > 0) {
-        setLineItems(prefill.items.map((item) => ({
-          localId: crypto.randomUUID(),
-          name: item.name,
-          quantity: item.quantity ?? 1,
-          unit: item.unit ?? 'g',
-          price: 0,
-        })));
+        setLineItems(prefill.items.map((item) => {
+          const product = item.productId ? products.find(p => p.id === item.productId) : undefined;
+          const isTeaware = product?.type === 'Teaware';
+          return {
+            localId: crypto.randomUUID(),
+            name: item.name,
+            productId: item.productId,
+            quantity: item.quantity ?? (isTeaware ? 1 : 10),
+            unit: item.unit ?? (isTeaware ? 'pcs' : 'g'),
+            price: item.price ?? product?.pricePerGramUSD ?? 0,
+          };
+        }));
       } else {
         setLineItems([newItem()]);
       }

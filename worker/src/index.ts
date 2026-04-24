@@ -9881,6 +9881,487 @@ const handleGetCustomerRFM: Handler = async (request, env) => {
   });
 };
 
+// ── Collections (Phase 1) ──
+// Persistent curator-driven product sets + link-gated person publications.
+// Phase 1: Person audience only. target_type reserves store/event/shop for later phases.
+
+function shortId(len = 10): string {
+  return crypto.randomUUID().replace(/-/g, '').slice(0, len);
+}
+
+function newId(prefix: string): string {
+  return `${prefix}_${crypto.randomUUID().replace(/-/g, '')}`;
+}
+
+function slugifyTitle(title: string): string {
+  return title
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[̀-ͯ]/g, '')    // strip accents
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 48) || 'collection';
+}
+
+function buildCollectionSlug(title: string): string {
+  return `${slugifyTitle(title)}-${shortId(4)}`;
+}
+
+async function loadCollectionOr404(
+  env: Env,
+  id: string,
+  accountId: string
+): Promise<{ row: any } | { error: Response }> {
+  const row = await env.DB.prepare(
+    `SELECT id, account_id, title, note, hero_image_url, status,
+            created_by_user_id, created_at, updated_at
+       FROM collections
+      WHERE id = ? AND account_id = ?`
+  ).bind(id, accountId).first();
+  if (!row) return { error: json({ error: 'Collection not found' }, 404) };
+  return { row };
+}
+
+const handleListCollections: Handler = async (request, env) => {
+  const ctx = await getActiveAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const url = new URL(request.url);
+  const statusFilter = url.searchParams.get('status');
+  const productId = url.searchParams.get('product_id');
+
+  let sql = `
+    SELECT c.id, c.title, c.note, c.hero_image_url, c.status,
+           c.created_at, c.updated_at,
+           (SELECT COUNT(*) FROM collection_items ci WHERE ci.collection_id = c.id) AS item_count,
+           (SELECT COUNT(*) FROM collection_publications p
+              WHERE p.collection_id = c.id AND p.unpublished_at IS NULL) AS active_publication_count,
+           (SELECT MAX(p.published_at) FROM collection_publications p
+              WHERE p.collection_id = c.id AND p.unpublished_at IS NULL) AS last_published_at
+      FROM collections c
+     WHERE c.account_id = ?`;
+  const binds: any[] = [ctx.accountId];
+  if (statusFilter && ['draft', 'active', 'archived'].includes(statusFilter)) {
+    sql += ` AND c.status = ?`;
+    binds.push(statusFilter);
+  }
+  if (productId) {
+    sql += ` AND EXISTS (SELECT 1 FROM collection_items ci WHERE ci.collection_id = c.id AND ci.product_id = ?)`;
+    binds.push(productId);
+  }
+  sql += ` ORDER BY c.updated_at DESC LIMIT 200`;
+
+  const { results } = await env.DB.prepare(sql).bind(...binds).all();
+
+  // Enrich with first three product image URLs for thumbnails.
+  const ids = (results as any[]).map(r => r.id);
+  let thumbMap = new Map<string, string[]>();
+  if (ids.length) {
+    const placeholders = ids.map(() => '?').join(',');
+    const thumbRows = await env.DB.prepare(
+      `SELECT ci.collection_id, p.image_url
+         FROM collection_items ci
+         JOIN products p ON p.id = ci.product_id
+        WHERE ci.collection_id IN (${placeholders})
+        ORDER BY ci.collection_id, ci.position`
+    ).bind(...ids).all();
+    for (const r of (thumbRows.results ?? []) as any[]) {
+      const existing = thumbMap.get(r.collection_id) ?? [];
+      if (existing.length < 3 && r.image_url) {
+        existing.push(r.image_url);
+        thumbMap.set(r.collection_id, existing);
+      }
+    }
+  }
+
+  const rows = (results as any[]).map(r => ({
+    ...r,
+    thumbnails: thumbMap.get(r.id) ?? [],
+  }));
+  return json({ collections: rows });
+};
+
+const handleGetCollection: Handler = async (request, env, params) => {
+  const ctx = await getActiveAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const found = await loadCollectionOr404(env, params.id, ctx.accountId);
+  if ('error' in found) return found.error;
+
+  const items = await env.DB.prepare(
+    `SELECT ci.id, ci.collection_id, ci.product_id, ci.position, ci.item_note,
+            p.type AS product_type,
+            COALESCE(p.given_name, p.product_name) AS product_name,
+            p.chinese_name, p.year, p.origin_country, p.origin_region,
+            p.image_url, p.status AS product_status, p.stock_grams, p.quantity_units,
+            p.tasting_notes, p.description
+       FROM collection_items ci
+       JOIN products p ON p.id = ci.product_id
+      WHERE ci.collection_id = ?
+      ORDER BY ci.position ASC`
+  ).bind(params.id).all();
+
+  const pubs = await env.DB.prepare(
+    `SELECT id, collection_id, target_type, target_id, slug, recipients_json,
+            published_at, unpublished_at, view_count
+       FROM collection_publications
+      WHERE collection_id = ?
+      ORDER BY published_at DESC`
+  ).bind(params.id).all();
+
+  const publications = ((pubs.results ?? []) as any[]).map(p => ({
+    ...p,
+    recipients: p.recipients_json ? JSON.parse(p.recipients_json) : [],
+  }));
+
+  return json({
+    collection: found.row,
+    items: items.results ?? [],
+    publications,
+  });
+};
+
+const handleCreateCollection: Handler = async (request, env) => {
+  const ctx = await getActiveAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const body = await request.json() as any;
+  const title = (body.title || '').trim();
+  if (!title) return json({ error: 'Title required' }, 400);
+
+  const id = newId('col');
+  const now = new Date().toISOString();
+  await env.DB.prepare(
+    `INSERT INTO collections (id, account_id, title, note, hero_image_url, status,
+                              created_by_user_id, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, 'draft', ?, ?, ?)`
+  ).bind(
+    id, ctx.accountId, title,
+    body.note || null, body.hero_image_url || null,
+    ctx.userId, now, now
+  ).run();
+
+  const productIds: string[] = Array.isArray(body.initial_product_ids) ? body.initial_product_ids : [];
+  if (productIds.length) {
+    const stmts = productIds.map((pid: string, idx: number) =>
+      env.DB.prepare(
+        `INSERT INTO collection_items (id, collection_id, product_id, position)
+         VALUES (?, ?, ?, ?)`
+      ).bind(newId('ci'), id, pid, idx + 1)
+    );
+    await env.DB.batch(stmts);
+  }
+
+  return json({ id }, 201);
+};
+
+const handlePatchCollection: Handler = async (request, env, params) => {
+  const ctx = await getActiveAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const found = await loadCollectionOr404(env, params.id, ctx.accountId);
+  if ('error' in found) return found.error;
+
+  const body = await request.json() as any;
+  const updates: string[] = [];
+  const binds: any[] = [];
+  for (const field of ['title', 'note', 'hero_image_url', 'status']) {
+    if (field in body) {
+      if (field === 'status' && !['draft', 'active', 'archived'].includes(body.status)) {
+        return json({ error: 'Invalid status' }, 400);
+      }
+      updates.push(`${field} = ?`);
+      binds.push(body[field]);
+    }
+  }
+  if (!updates.length) return json({ ok: true });
+  updates.push(`updated_at = ?`);
+  binds.push(new Date().toISOString());
+  binds.push(params.id);
+
+  await env.DB.prepare(
+    `UPDATE collections SET ${updates.join(', ')} WHERE id = ?`
+  ).bind(...binds).run();
+  return json({ ok: true });
+};
+
+const handleAddCollectionItems: Handler = async (request, env, params) => {
+  const ctx = await getActiveAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const found = await loadCollectionOr404(env, params.id, ctx.accountId);
+  if ('error' in found) return found.error;
+
+  const body = await request.json() as any;
+  const productIds: string[] = Array.isArray(body.product_ids) ? body.product_ids : [];
+  if (!productIds.length) return json({ error: 'product_ids required' }, 400);
+
+  const maxRow = await env.DB.prepare(
+    `SELECT COALESCE(MAX(position), 0) AS max_pos FROM collection_items WHERE collection_id = ?`
+  ).bind(params.id).first();
+  let pos = (maxRow?.max_pos as number) || 0;
+
+  // Filter products that aren't already in the collection.
+  const existing = await env.DB.prepare(
+    `SELECT product_id FROM collection_items WHERE collection_id = ?`
+  ).bind(params.id).all();
+  const have = new Set((existing.results as any[]).map(r => r.product_id));
+  const toInsert = productIds.filter(pid => !have.has(pid));
+
+  if (toInsert.length) {
+    const stmts = toInsert.map(pid => {
+      pos += 1;
+      return env.DB.prepare(
+        `INSERT INTO collection_items (id, collection_id, product_id, position)
+         VALUES (?, ?, ?, ?)`
+      ).bind(newId('ci'), params.id, pid, pos);
+    });
+    await env.DB.batch(stmts);
+  }
+
+  await env.DB.prepare(
+    `UPDATE collections SET updated_at = ? WHERE id = ?`
+  ).bind(new Date().toISOString(), params.id).run();
+
+  return json({ added: toInsert.length, skipped: productIds.length - toInsert.length });
+};
+
+const handleRemoveCollectionItem: Handler = async (request, env, params) => {
+  const ctx = await getActiveAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const found = await loadCollectionOr404(env, params.id, ctx.accountId);
+  if ('error' in found) return found.error;
+
+  await env.DB.prepare(
+    `DELETE FROM collection_items WHERE id = ? AND collection_id = ?`
+  ).bind(params.itemId, params.id).run();
+
+  await env.DB.prepare(
+    `UPDATE collections SET updated_at = ? WHERE id = ?`
+  ).bind(new Date().toISOString(), params.id).run();
+
+  return json({ ok: true });
+};
+
+const handlePatchCollectionItem: Handler = async (request, env, params) => {
+  const ctx = await getActiveAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const found = await loadCollectionOr404(env, params.id, ctx.accountId);
+  if ('error' in found) return found.error;
+
+  const body = await request.json() as any;
+
+  // Reorder: swap with neighbor.
+  if (body.direction === 'up' || body.direction === 'down') {
+    const current = await env.DB.prepare(
+      `SELECT id, position FROM collection_items WHERE id = ? AND collection_id = ?`
+    ).bind(params.itemId, params.id).first();
+    if (!current) return json({ error: 'Item not found' }, 404);
+    const op = body.direction === 'up' ? '<' : '>';
+    const ord = body.direction === 'up' ? 'DESC' : 'ASC';
+    const neighbor = await env.DB.prepare(
+      `SELECT id, position FROM collection_items
+        WHERE collection_id = ? AND position ${op} ?
+        ORDER BY position ${ord} LIMIT 1`
+    ).bind(params.id, current.position).first();
+    if (!neighbor) return json({ ok: true }); // already at boundary
+
+    await env.DB.batch([
+      env.DB.prepare(`UPDATE collection_items SET position = ? WHERE id = ?`)
+        .bind(neighbor.position, current.id),
+      env.DB.prepare(`UPDATE collection_items SET position = ? WHERE id = ?`)
+        .bind(current.position, neighbor.id),
+    ]);
+    return json({ ok: true });
+  }
+
+  if ('item_note' in body) {
+    await env.DB.prepare(
+      `UPDATE collection_items SET item_note = ? WHERE id = ? AND collection_id = ?`
+    ).bind(body.item_note, params.itemId, params.id).run();
+    return json({ ok: true });
+  }
+
+  return json({ error: 'No valid update' }, 400);
+};
+
+const handlePublishCollection: Handler = async (request, env, params) => {
+  const ctx = await getActiveAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const found = await loadCollectionOr404(env, params.id, ctx.accountId);
+  if ('error' in found) return found.error;
+
+  const body = await request.json() as any;
+  const targetType = body.target_type || 'person';
+  if (targetType !== 'person') {
+    // Phase 1 gate — other audiences land in Phases 2-4.
+    return json({ error: 'Only person audience is supported in Phase 1' }, 400);
+  }
+  const recipients = Array.isArray(body.recipients) ? body.recipients : [];
+  if (recipients.length === 0) return json({ error: 'At least one recipient is required' }, 400);
+
+  // Require at least one item.
+  const itemCount = await env.DB.prepare(
+    `SELECT COUNT(*) AS n FROM collection_items WHERE collection_id = ?`
+  ).bind(params.id).first();
+  if (!itemCount || (itemCount.n as number) === 0) {
+    return json({ error: 'Collection must contain at least one item before publishing' }, 400);
+  }
+
+  // Human-readable slug with short hash suffix for uniqueness.
+  const coll = found.row as { title: string };
+  let slug = '';
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const candidate = buildCollectionSlug(coll.title);
+    const exists = await env.DB.prepare(
+      `SELECT 1 FROM collection_publications WHERE slug = ?`
+    ).bind(candidate).first();
+    if (!exists) { slug = candidate; break; }
+  }
+  if (!slug) return json({ error: 'Slug generation failed' }, 500);
+
+  const pubId = newId('pub');
+  await env.DB.prepare(
+    `INSERT INTO collection_publications
+       (id, collection_id, target_type, slug, recipients_json, created_by_user_id)
+     VALUES (?, ?, 'person', ?, ?, ?)`
+  ).bind(pubId, params.id, slug, JSON.stringify(recipients), ctx.userId).run();
+
+  // Auto-promote draft → active on first publish.
+  await env.DB.prepare(
+    `UPDATE collections SET status = CASE WHEN status = 'draft' THEN 'active' ELSE status END,
+                            updated_at = ?
+      WHERE id = ?`
+  ).bind(new Date().toISOString(), params.id).run();
+
+  return json({ id: pubId, slug }, 201);
+};
+
+const handleUnpublish: Handler = async (request, env, params) => {
+  const ctx = await getActiveAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const found = await loadCollectionOr404(env, params.id, ctx.accountId);
+  if ('error' in found) return found.error;
+
+  await env.DB.prepare(
+    `UPDATE collection_publications SET unpublished_at = ?
+      WHERE id = ? AND collection_id = ?`
+  ).bind(new Date().toISOString(), params.pubId, params.id).run();
+
+  return json({ ok: true });
+};
+
+const handleNeedsAttention: Handler = async (request, env) => {
+  const ctx = await getActiveAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+
+  // OOS/archived products that appear in at least one active (non-unpublished) publication.
+  // OOS = tea with stock_grams <= 0, or teaware with quantity_units <= 0.
+  const { results } = await env.DB.prepare(
+    `SELECT DISTINCT ci.id AS item_id,
+            ci.collection_id,
+            c.title AS collection_title,
+            p.id AS product_id,
+            COALESCE(p.given_name, p.product_name) AS product_name,
+            p.type AS product_type,
+            p.status AS product_status,
+            p.stock_grams,
+            p.quantity_units,
+            CASE
+              WHEN p.status <> 'Active' THEN 'archived'
+              WHEN p.type = 'Teaware' AND COALESCE(p.quantity_units, 0) <= 0 THEN 'out_of_stock'
+              WHEN p.type <> 'Teaware' AND COALESCE(p.stock_grams, 0) <= 0 THEN 'out_of_stock'
+              ELSE NULL
+            END AS issue
+       FROM collection_items ci
+       JOIN products p ON p.id = ci.product_id
+       JOIN collections c ON c.id = ci.collection_id
+      WHERE c.account_id = ?
+        AND c.status = 'active'
+        AND EXISTS (
+          SELECT 1 FROM collection_publications cp
+           WHERE cp.collection_id = c.id AND cp.unpublished_at IS NULL
+        )
+        AND (
+          p.status <> 'Active'
+          OR (p.type = 'Teaware' AND COALESCE(p.quantity_units, 0) <= 0)
+          OR (p.type <> 'Teaware' AND COALESCE(p.stock_grams, 0) <= 0)
+        )
+      ORDER BY c.updated_at DESC
+      LIMIT 50`
+  ).bind(ctx.accountId).all();
+
+  return json({ items: results ?? [] });
+};
+
+// Public — no auth, link-gated by slug.
+const handleGetPublicCollection: Handler = async (_request, env, params) => {
+  const pub = await env.DB.prepare(
+    `SELECT id, collection_id, slug, unpublished_at, view_count
+       FROM collection_publications
+      WHERE slug = ?`
+  ).bind(params.slug).first();
+  if (!pub) return json({ error: 'Not found' }, 404);
+  if (pub.unpublished_at) return json({ error: 'No longer available' }, 410);
+
+  const collection = await env.DB.prepare(
+    `SELECT id, title, note, hero_image_url, status FROM collections WHERE id = ?`
+  ).bind(pub.collection_id).first();
+  if (!collection || collection.status === 'archived') {
+    return json({ error: 'No longer available' }, 410);
+  }
+
+  // Account for WhatsApp deep link.
+  const account = await env.DB.prepare(
+    `SELECT id, name, whatsapp_number FROM accounts WHERE id = (
+       SELECT account_id FROM collections WHERE id = ?
+     )`
+  ).bind(pub.collection_id).first();
+
+  const items = await env.DB.prepare(
+    `SELECT ci.id, ci.position, ci.item_note,
+            p.id AS product_id, p.type AS product_type,
+            COALESCE(p.given_name, p.product_name) AS product_name,
+            p.chinese_name, p.year, p.origin_country, p.origin_region,
+            p.image_url, p.description, p.tasting_notes,
+            p.status AS product_status, p.stock_grams, p.quantity_units
+       FROM collection_items ci
+       JOIN products p ON p.id = ci.product_id
+      WHERE ci.collection_id = ?
+      ORDER BY ci.position ASC`
+  ).bind(pub.collection_id).all();
+
+  const visibleItems = ((items.results ?? []) as any[])
+    .filter(i => i.product_status === 'Active')
+    .map(i => {
+      if (typeof i.tasting_notes === 'string') {
+        try { i.tasting_notes = JSON.parse(i.tasting_notes); } catch { i.tasting_notes = []; }
+      }
+      const outOfStock = i.product_type === 'Teaware'
+        ? (i.quantity_units ?? 0) <= 0
+        : (i.stock_grams ?? 0) <= 0;
+      return { ...i, out_of_stock: outOfStock };
+    });
+
+  return json({
+    collection: {
+      title: collection.title,
+      note: collection.note,
+      hero_image_url: collection.hero_image_url,
+    },
+    items: visibleItems,
+    account: account ? { name: account.name, whatsapp_number: account.whatsapp_number } : null,
+    publication: { slug: pub.slug, view_count: pub.view_count },
+  });
+};
+
+// Public — increment view_count (sessionStorage-guarded client call).
+const handlePublicCollectionView: Handler = async (_request, env, params) => {
+  const pub = await env.DB.prepare(
+    `SELECT id, unpublished_at FROM collection_publications WHERE slug = ?`
+  ).bind(params.slug).first();
+  if (!pub || pub.unpublished_at) return json({ ok: false }, 404);
+  await env.DB.prepare(
+    `UPDATE collection_publications SET view_count = view_count + 1 WHERE id = ?`
+  ).bind(pub.id).run();
+  return json({ ok: true });
+};
+
 // ── Routes ──
 const routes: [string, string, Handler][] = [
   // Auth
@@ -9984,6 +10465,22 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/customers/:id/products', handleGetVendorProducts],
   ['POST', '/api/customers/:id/products', handleLinkVendorProduct],
   ['DELETE', '/api/customers/:id/products/:productId', handleUnlinkVendorProduct],
+
+  // Collections (Phase 1: Person audience only)
+  ['GET',    '/api/collections', handleListCollections],
+  ['POST',   '/api/collections', handleCreateCollection],
+  ['GET',    '/api/collections/needs-attention', handleNeedsAttention],
+  ['GET',    '/api/collections/:id', handleGetCollection],
+  ['PUT',    '/api/collections/:id', handlePatchCollection],
+  ['POST',   '/api/collections/:id/items', handleAddCollectionItems],
+  ['PUT',    '/api/collections/:id/items/:itemId', handlePatchCollectionItem],
+  ['DELETE', '/api/collections/:id/items/:itemId', handleRemoveCollectionItem],
+  ['POST',   '/api/collections/:id/publications', handlePublishCollection],
+  ['DELETE', '/api/collections/:id/publications/:pubId', handleUnpublish],
+
+  // Public collection pages — no auth, link-gated by slug.
+  ['GET',  '/api/public/c/:slug', handleGetPublicCollection],
+  ['POST', '/api/public/c/:slug/view', handlePublicCollectionView],
 
   // Invoices — edit items
   ['PUT', '/api/invoices/:id/items', handleUpdateInvoiceItems],

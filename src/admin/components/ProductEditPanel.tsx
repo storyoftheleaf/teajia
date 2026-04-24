@@ -11,6 +11,7 @@ import { useCustomers } from '../hooks/useAdminData';
 import { useToast } from './Toast';
 import { TastingEditorModal } from './TastingEditorModal';
 import { QrCodeModal } from './QrCodeModal';
+import { ProductCollectionsSection } from './collections/ProductCollectionsSection';
 import { StockLedgerPanel } from './StockLedgerPanel';
 import { AutocompleteInput } from '../../components/TeaCompass/AutocompleteInput';
 import { buildVarietyDataMap, getTeaVarietySuggestions } from '../../data/teaVarieties';
@@ -1193,6 +1194,10 @@ export const ProductEditPanel: React.FC<ProductEditPanelProps> = ({
                   </div>
                 </>
               )}
+            </CollapsibleSection>
+
+            <CollapsibleSection title="Collections" defaultOpen={false}>
+              {product?.id && <ProductCollectionsSection productId={product.id} />}
             </CollapsibleSection>
 
             <div className="pb-16" />

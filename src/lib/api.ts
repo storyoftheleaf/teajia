@@ -1908,6 +1908,93 @@ export const api = {
     },
   },
 
+  collections: {
+    list: async (opts?: { status?: 'draft' | 'active' | 'archived'; productId?: string }): Promise<{ collections: import('../types').CollectionListRow[] }> => {
+      const qs = new URLSearchParams();
+      if (opts?.status) qs.set('status', opts.status);
+      if (opts?.productId) qs.set('product_id', opts.productId);
+      const suffix = qs.toString() ? `?${qs.toString()}` : '';
+      const res = await fetchWithTimeout(`${API_URL}/api/collections${suffix}`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    get: async (id: string): Promise<import('../types').CollectionDetail> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/collections/${id}`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    create: async (data: { title: string; note?: string; hero_image_url?: string; initial_product_ids?: string[] }): Promise<{ id: string }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/collections`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
+    update: async (id: string, patch: Partial<{ title: string; note: string | null; hero_image_url: string | null; status: 'draft' | 'active' | 'archived' }>): Promise<{ ok: true }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/collections/${id}`, {
+        method: 'PUT',
+        headers: authHeaders(),
+        body: JSON.stringify(patch),
+      });
+      return handleResponse(res);
+    },
+    addItems: async (id: string, productIds: string[]): Promise<{ added: number; skipped: number }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/collections/${id}/items`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ product_ids: productIds }),
+      });
+      return handleResponse(res);
+    },
+    removeItem: async (id: string, itemId: string): Promise<{ ok: true }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/collections/${id}/items/${itemId}`, {
+        method: 'DELETE',
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    reorderItem: async (id: string, itemId: string, direction: 'up' | 'down'): Promise<{ ok: true }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/collections/${id}/items/${itemId}`, {
+        method: 'PUT',
+        headers: authHeaders(),
+        body: JSON.stringify({ direction }),
+      });
+      return handleResponse(res);
+    },
+    publish: async (id: string, recipients: import('../types').CollectionRecipient[]): Promise<{ id: string; slug: string }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/collections/${id}/publications`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ target_type: 'person', recipients }),
+      });
+      return handleResponse(res);
+    },
+    unpublish: async (id: string, pubId: string): Promise<{ ok: true }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/collections/${id}/publications/${pubId}`, {
+        method: 'DELETE',
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    needsAttention: async (): Promise<{ items: import('../types').NeedsAttentionItem[] }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/collections/needs-attention`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    /** Public — no auth. Used by /c/:slug page. */
+    getPublic: async (slug: string): Promise<import('../types').PublicCollectionResponse> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/public/c/${slug}`, {});
+      return handleResponse(res);
+    },
+    trackPublicView: async (slug: string): Promise<void> => {
+      await fetchWithTimeout(`${API_URL}/api/public/c/${slug}/view`, { method: 'POST' });
+    },
+  },
+
   platform: {
     listUsers: async (): Promise<{ users: PlatformUser[] }> => {
       const res = await fetchWithTimeout(`${API_URL}/api/platform/users`, {

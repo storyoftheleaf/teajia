@@ -27,13 +27,13 @@ export const ADMIN_TOOLS: AdminTool[] = [
   { id: 'compass', label: 'Tea Compass', group: 'source', route: '/admin/compass', addedAt: '2025-09-01' },
   { id: 'capture', label: 'Quick Capture', group: 'source', route: '/admin/capture', addedAt: '2026-01-12' },
   { id: 'vendors', label: 'Vendors', group: 'source', route: '/admin/compass?tab=sourcing', addedAt: '2025-11-05' },
-  { id: 'catalog-seed', label: 'Catalog Seed', group: 'source', route: '/admin/catalog-seed', addedAt: '2026-03-01', requires: 'owner' },
 
   { id: 'events', label: 'Events', group: 'gather', route: '/admin/events', addedAt: '2025-09-20' },
   { id: 'venues', label: 'Venues', group: 'gather', route: '/admin/venues', addedAt: '2026-02-02' },
   { id: 'interest-signups', label: 'Interest Signups', group: 'gather', route: '/admin/events?tab=interest', addedAt: '2026-04-20' },
 
   { id: 'magazine', label: 'Magazine', group: 'publish', route: '/admin/magazine', addedAt: '2026-01-28', requires: 'owner' },
+  { id: 'collections', label: 'Collections', group: 'publish', route: '/admin/collections', addedAt: '2026-04-24', requires: 'owner' },
 
   { id: 'team', label: 'Team', group: 'teach', route: '/admin/team', addedAt: '2025-12-05', requires: 'owner' },
   { id: 'account-settings', label: 'Account Settings', group: 'teach', route: '/admin/account-settings', addedAt: '2025-10-01', requires: 'owner' },

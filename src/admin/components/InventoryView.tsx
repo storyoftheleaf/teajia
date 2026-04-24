@@ -37,7 +37,8 @@ import {
 } from '../../data/tastingTaxonomy';
 import { AutocompleteInput } from '../../components/TeaCompass/AutocompleteInput';
 import { buildVarietyDataMap, getTeaVarietySuggestions } from '../../data/teaVarieties';
-import { ShareToNetworkModal } from './inventory/ShareToNetworkModal';
+import { CollectionShareSheet } from './collections/CollectionShareSheet';
+import { QuickInvoiceModal } from './QuickInvoiceModal';
 
 const MAINTENANCE_SQL = `-- Reset all data via API\n// Use the admin panel's reset function`;
 
@@ -1100,7 +1101,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     const count = selectedIds.size;
     const allSelected = count === processedProducts.length;
     return (
-      <tr key={`__drawer__${anchorProductId}`} className="bg-tea-gold-lt border-b border-tea-border">
+      <tr key={`__drawer__${anchorProductId}`} className="bg-tea-elevated border-b border-tea-border">
         <td colSpan={colSpan} className="p-0">
           <div className="flex items-center gap-1 px-4 py-2 flex-wrap">
             <button
@@ -1143,10 +1144,10 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               onClick={() => setShareToNetworkOpen(true)}
               disabled={isBulkApplying}
               className="flex items-center gap-1.5 px-2.5 py-1.5 text-tea-text-sec rounded-md hover:text-tea-text hover:bg-tea-bg/40 transition-colors disabled:opacity-40"
-              title="Share to network"
+              title="Share"
             >
               <Globe size={12} />
-              <span className="text-[10px] font-bold uppercase tracking-[0.15em]">Network</span>
+              <span className="text-[10px] font-bold uppercase tracking-[0.15em]">Share</span>
             </button>
             <button
               onClick={() => setInvoiceFromInventoryOpen(true)}
@@ -1781,7 +1782,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     setActiveSet(newSet.id);
     setSelectedIds(new Set());
     lastSelectedIdxRef.current = null;
-    navigate('/admin/compass?tab=sourcing');
+    navigate('/admin/compass?tab=samples');
   };
 
   // renderCell, makeLongPressHandlers, getRowBorderClass all live in InventoryRowBase above.
@@ -4580,17 +4581,44 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         </div>
       )}
 
-      <ShareToNetworkModal
+      <CollectionShareSheet
         open={shareToNetworkOpen}
         productIds={selectedIds.size > 0 ? [...selectedIds] : panelProduct ? [panelProduct.id] : []}
         onClose={() => setShareToNetworkOpen(false)}
-        onSuccess={(count, storeName) => {
+        onSuccess={({ collectionTitle, addedCount, publicationSlug }) => {
           setShareToNetworkOpen(false);
           if (selectedIds.size > 0) {
             setSelectedIds(new Set());
             lastSelectedIdxRef.current = null;
           }
-          showToast(`${count} product${count !== 1 ? 's' : ''} shared to ${storeName}`, 'success');
+          const msg = publicationSlug
+            ? `Shared "${collectionTitle}" — link created`
+            : `Added ${addedCount} product${addedCount !== 1 ? 's' : ''} to "${collectionTitle}"`;
+          showToast(msg, 'success');
+        }}
+      />
+
+      <QuickInvoiceModal
+        isOpen={invoiceFromInventoryOpen}
+        onClose={() => setInvoiceFromInventoryOpen(false)}
+        onSuccess={() => {
+          setInvoiceFromInventoryOpen(false);
+          setSelectedIds(new Set());
+          lastSelectedIdxRef.current = null;
+        }}
+        products={localProducts}
+        showToast={showToast}
+        prefill={{
+          items: (() => {
+            const ids = selectedIds.size > 0 ? [...selectedIds] : panelProduct ? [panelProduct.id] : [];
+            return ids
+              .map(id => localProducts.find(p => p.id === id))
+              .filter((p): p is Product => !!p)
+              .map(p => ({
+                name: p.givenName || p.productName,
+                productId: p.id,
+              }));
+          })(),
         }}
       />
 

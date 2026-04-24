@@ -4,7 +4,7 @@ import { HapticSlider } from './HapticSlider';
 import { TeaPlaceholder } from '../shop/TeaPlaceholder';
 import { useScrollLock } from '../../hooks/useScrollLock';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
-import { fmtPrice } from '../../utils/formatNumber';
+import { fmtShopPrice } from '../../utils/formatNumber';
 
 export interface PopupItem {
   id: string;
@@ -208,7 +208,7 @@ export const PopupModal: React.FC<PopupModalProps> = ({
           >
             <span>Add to Cart</span>
             <span className="opacity-50">•</span>
-            <span className="num">{fmtPrice(totalPrice)}</span>
+            <span className="num">{fmtShopPrice(totalPrice)}</span>
           </button>
         </>
       ) : (
@@ -235,7 +235,7 @@ export const PopupModal: React.FC<PopupModalProps> = ({
           >
             <span>Add to Cart</span>
             <span className="opacity-50">•</span>
-            <span className="num">{fmtPrice(totalPrice)}</span>
+            <span className="num">{fmtShopPrice(totalPrice)}</span>
           </button>
         </>
       )}

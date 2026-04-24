@@ -2,7 +2,7 @@
 import React from 'react';
 import { CartItem as PublicCartItemType } from '../../types';
 import { Icons } from '../Icons';
-import { fmtPrice } from '../../utils/formatNumber';
+import { fmtShopPrice } from '../../utils/formatNumber';
 import { useAppStore } from '../../lib/store';
 import { formatCurrency } from '../../admin/utils';
 import { useRates } from '../../admin/hooks/useAdminData';
@@ -22,10 +22,11 @@ export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQ
   const { data: rates = [] } = useRates();
 
   const displayPrice = (usd: number) => {
+    const rounded = Math.ceil(usd);
     if (rates.length > 0 && currency !== 'USD') {
-      return formatCurrency(usd, currency, rates);
+      return formatCurrency(rounded, currency, rates);
     }
-    return fmtPrice(usd);
+    return fmtShopPrice(usd);
   };
   const step = item.category === 'tea' ? 10 : 1;
 
