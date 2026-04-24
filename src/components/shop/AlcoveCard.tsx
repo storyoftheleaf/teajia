@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Pencil, Leaf, ChevronRight, X, Loader2 } from 'lucide-react';
-import { SampleIcon } from '../Icons';
+import { Pencil, Leaf, ChevronRight, X, Loader2, QrCode } from 'lucide-react';
 import { useSampleCartStore } from '../../samples/sampleCartStore';
 import type { InventoryItem, Story } from '../../types';
 import { ContentType } from '../../types';
@@ -52,17 +51,6 @@ function BookmarkIcon({ filled, color, strokeColor }: { filled: boolean; color: 
     <svg width="18" height="18" viewBox="0 0 24 24" fill={filled ? color : "none"}
       stroke={filled ? color : strokeColor} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <path d="M5 4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v18l-7-4-7 4V4z" />
-    </svg>
-  );
-}
-
-function ShareIcon({ color }: { color: string }) {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-      stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M4 14v5a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5" />
-      <polyline points="12 3 12 16" />
-      <polyline points="8 7 12 3 16 7" />
     </svg>
   );
 }
@@ -1369,12 +1357,6 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                   }}
                 >
                   <BookmarkIcon filled={favorited} color={accent} strokeColor={alcoveColors.muted} />
-                  <span style={{
-                    fontFamily: "var(--font-sans)",
-                    fontSize: "10px", fontWeight: 400,
-                    letterSpacing: "0.08em", textTransform: "uppercase",
-                    color: favorited ? accent : alcoveColors.subtitle,
-                  }}>Save</span>
                 </button>
                 <div style={{ width: "1px", height: "10px", background: "var(--tea-border)" }} />
                 <button
@@ -1389,7 +1371,6 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                     opacity: hovered === "share" ? 0.9 : 0.7,
                   }}
                 >
-                  <ShareIcon color={shareCopied ? alcoveColors.success : alcoveColors.muted} />
                   <span style={{
                     fontFamily: "var(--font-sans)",
                     fontSize: "10px", fontWeight: 400,
@@ -1413,9 +1394,6 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                         opacity: hovered === "taste" ? 0.9 : 0.7,
                       }}
                     >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={alcoveColors.muted} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z" />
-                      </svg>
                       <span style={{
                         fontFamily: "var(--font-sans)",
                         fontSize: "10px", fontWeight: 400,
@@ -1425,31 +1403,32 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                     </button>
                   </>
                 )}
-                {/* Flask — add to sample list */}
-                <>
-                  <div style={{ width: "1px", height: "10px", background: "var(--tea-border)" }} />
-                  <button
-                    onClick={toggleSampleCart}
-                    onMouseEnter={() => setHovered("flask")}
-                    onMouseLeave={() => setHovered(null)}
-                    aria-label={inSampleCart ? "Remove from sample list" : "Add to sample list"}
-                    title={inSampleCart ? "In sample list" : "Add to sample list"}
-                    style={{
-                      background: "none", border: "none", padding: "0",
-                      cursor: "pointer", transition: "all 0.2s ease",
-                      display: "inline-flex", alignItems: "center", gap: "4px",
-                      opacity: inSampleCart ? 1 : (hovered === "flask" ? 0.9 : 0.7),
-                    }}
-                  >
-                    <SampleIcon style={{ width: 14, height: 14, color: inSampleCart ? "var(--tea-gold)" : alcoveColors.muted }} />
-                    <span style={{
-                      fontFamily: "var(--font-sans)",
-                      fontSize: "10px", fontWeight: 400,
-                      letterSpacing: "0.08em", textTransform: "uppercase",
-                      color: inSampleCart ? "var(--tea-gold)" : alcoveColors.subtitle,
-                    }}>List</span>
-                  </button>
-                </>
+                {isAdmin && (
+                  <>
+                    <div style={{ width: "1px", height: "10px", background: "var(--tea-border)" }} />
+                    <button
+                      onClick={toggleSampleCart}
+                      onMouseEnter={() => setHovered("sample")}
+                      onMouseLeave={() => setHovered(null)}
+                      aria-label={inSampleCart ? "Remove from sample pack" : "Add to sample pack"}
+                      title={inSampleCart ? "In sample pack" : "Add to sample pack"}
+                      style={{
+                        background: "none", border: "none", padding: "0",
+                        cursor: "pointer", transition: "all 0.2s ease",
+                        display: "inline-flex", alignItems: "center", gap: "4px",
+                        opacity: inSampleCart ? 1 : (hovered === "sample" ? 0.9 : 0.7),
+                      }}
+                    >
+                      <QrCode size={13} color={inSampleCart ? "var(--tea-gold)" : alcoveColors.muted} />
+                      <span style={{
+                        fontFamily: "var(--font-sans)",
+                        fontSize: "10px", fontWeight: 400,
+                        letterSpacing: "0.08em", textTransform: "uppercase",
+                        color: inSampleCart ? "var(--tea-gold)" : alcoveColors.subtitle,
+                      }}>Sample</span>
+                    </button>
+                  </>
+                )}
                 {isAdmin && onEdit && (
                   <>
                     <div style={{ width: "1px", height: "10px", background: "var(--tea-border)" }} />

@@ -1,11 +1,10 @@
 import React from 'react';
-import { SampleIcon } from '../Icons';
 import { useSampleCartStore } from '../../samples/sampleCartStore';
 import type { SampleCartItem } from '../../samples/sampleCartStore';
 
 interface AddToSampleButtonProps {
   item: Omit<SampleCartItem, 'grams'> & { grams?: number };
-  /** 'icon' renders icon-only; 'labeled' renders icon + text */
+  /** 'icon' and 'labeled' both render text-only; kept for API compatibility */
   variant?: 'icon' | 'labeled';
   size?: number;
   className?: string;
@@ -14,7 +13,6 @@ interface AddToSampleButtonProps {
 export const AddToSampleButton: React.FC<AddToSampleButtonProps> = ({
   item,
   variant = 'icon',
-  size = 14,
   className = '',
 }) => {
   const inCart = useSampleCartStore((s) => s.items.some((i) => i.id === item.id));
@@ -35,15 +33,14 @@ export const AddToSampleButton: React.FC<AddToSampleButtonProps> = ({
       <button
         type="button"
         onClick={handleClick}
-        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors ${
+        className={`px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors ${
           inCart
             ? 'bg-tea-gold/15 text-tea-gold'
             : 'bg-tea-surface text-tea-text-sec hover:bg-tea-gold/10 hover:text-tea-gold'
         } ${className}`}
-        title={inCart ? 'Remove from sample list' : 'Add to sample list'}
+        title={inCart ? 'Remove from sample pack' : 'Add to sample pack'}
       >
-        <SampleIcon style={{ width: size, height: size }} />
-        {inCart ? 'In Sample List' : 'Add to Sample'}
+        {inCart ? 'In Sample Pack' : 'Sample'}
       </button>
     );
   }
@@ -52,15 +49,15 @@ export const AddToSampleButton: React.FC<AddToSampleButtonProps> = ({
     <button
       type="button"
       onClick={handleClick}
-      className={`p-1.5 rounded-lg transition-colors ${
+      className={`text-[10px] uppercase tracking-[0.08em] transition-colors ${
         inCart
-          ? 'text-tea-gold bg-tea-gold/10'
-          : 'text-tea-text-dim hover:text-tea-gold hover:bg-tea-gold/8'
+          ? 'text-tea-gold'
+          : 'text-tea-text-sec hover:text-tea-gold'
       } ${className}`}
-      title={inCart ? 'Remove from sample list' : 'Add to sample list'}
-      aria-label={inCart ? 'Remove from sample list' : 'Add to sample list'}
+      title={inCart ? 'Remove from sample pack' : 'Add to sample pack'}
+      aria-label={inCart ? 'Remove from sample pack' : 'Add to sample pack'}
     >
-      <SampleIcon style={{ width: size, height: size }} />
+      {inCart ? 'In Pack' : 'Sample'}
     </button>
   );
 };
