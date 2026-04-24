@@ -5,6 +5,7 @@ import { Icons } from './Icons';
 import { X, Leaf } from 'lucide-react';
 import { AddToSampleButton } from './samples/AddToSampleButton';
 import { AlcoveModal } from './shop/AlcoveModal';
+import { TastingEditorModal } from '../admin/components/TastingEditorModal';
 import { resolveTermLabel, resolveTermIcon, TASTING_TAXONOMY, type TastingCategoryId } from '../data/tastingTaxonomy';
 import { getCommonTastingForType } from '../data/commonTastingByStyle';
 import { TeaPlaceholder } from './shop/TeaPlaceholder';
@@ -160,6 +161,16 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
     if (item) addRecentlyViewed(item.id);
   }, [addRecentlyViewed]);
 
+  // Keep the open card's data fresh. When React Query refetches inventory
+  // (e.g. after an admin tasting save), re-derive viewItem from the new
+  // inventory array so the card visually updates instead of holding the
+  // stale snapshot captured when it was first opened.
+  useEffect(() => {
+    if (!viewItem) return;
+    const fresh = inventory.find(i => i.id === viewItem.id);
+    if (fresh && fresh !== viewItem) setViewItemRaw(fresh);
+  }, [inventory, viewItem]);
+
   // Filter area ref
   const filterRef = useRef<HTMLDivElement>(null);
 
@@ -172,18 +183,41 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
 
   // Tasting Session State
   const [tastingItem, setTastingItem] = useState<TeaItem | null>(null);
+  // Admin: edit the product's own tasting profile (writes to products.tasting with source='owner')
+  const [adminTastingItem, setAdminTastingItem] = useState<TeaItem | null>(null);
+  const handleEditProductTasting = useCallback((item: TeaItem) => {
+    setAdminTastingItem(item);
+  }, []);
   const handleTaste = useCallback((item: TeaItem) => {
     // If we're on a product path, return to /shop so useProductUrl doesn't re-open the modal
     if (window.location.pathname.startsWith('/shop/product/')) {
       window.history.replaceState(null, '', '/shop');
     }
+    // Admins editing their own shop almost always want to update the product's
+    // tasting profile, not file a personal journal entry. Route them into the
+    // admin editor instead. Customers still get the journaling flow.
+    if (isAdmin) {
+      setAdminTastingItem(item);
+      return;
+    }
     setViewItem(null); // close AlcoveModal
     setTastingItem(item);
-  }, []);
+  }, [isAdmin, setViewItem]);
   const handleOrderFromTasting = useCallback((item: TastingItem) => {
     setTastingItem(null);
     setViewItem(item as TeaItem); // item is always a full TeaItem at runtime
-  }, []);
+  }, [setViewItem]);
+  const adminTastingProductShim: Product | null = useMemo(() => {
+    if (!adminTastingItem) return null;
+    return {
+      id: adminTastingItem.id,
+      givenName: adminTastingItem.name,
+      productName: adminTastingItem.variant || adminTastingItem.name,
+      type: adminTastingItem.type as Product['type'],
+      imageUrl: adminTastingItem.image || '',
+      tasting: adminTastingItem.tasting,
+    } as Product;
+  }, [adminTastingItem]);
 
   // Sync modal state with URL (/shop/product/<id>) for shareability and back-button support
   const { closeWithHistory, navigateWithinModal } = useProductUrl(inventory, viewItem, setViewItem);
@@ -315,6 +349,8 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
         }}
         onTermClick={handleTermClick}
         onTaste={handleTaste}
+        isAdmin={isAdmin}
+        onEditProductTasting={isAdmin ? handleEditProductTasting : undefined}
       />
 
       {/* Tasting Session Modal */}
@@ -327,6 +363,15 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
           />
         )}
       </AnimatePresence>
+
+      {/* Admin: product-tasting editor (writes to products.tasting with source='owner') */}
+      {adminTastingItem && adminTastingProductShim && (
+        <TastingEditorModal
+          product={adminTastingProductShim}
+          onClose={() => setAdminTastingItem(null)}
+          onSaved={() => setAdminTastingItem(null)}
+        />
+      )}
 
       {!hideHeader && (
         <PageHeader
@@ -352,7 +397,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
       <div className="max-w-full mx-auto px-1 md:px-2 lg:px-4 pt-4">
 
          {/* Sticky shop toolbar */}
-         <div className="sticky top-0 z-40 -mx-1 md:-mx-2 lg:-mx-4 px-1 md:px-2 lg:px-4 bg-tea-bg/95 backdrop-blur-sm border-b border-tea-border">
+         <div className="sticky top-0 z-sticky -mx-1 md:-mx-2 lg:-mx-4 px-1 md:px-2 lg:px-4 bg-tea-bg/95 backdrop-blur-sm border-b border-tea-border">
            {/* Row 1: search + result count */}
            <div className="flex items-center gap-3 pt-2 pb-1.5">
              <input
@@ -453,8 +498,8 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
             {/* Full-width popover — shared backdrop, content depends on which is open */}
             {openFilter && (
                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setOpenFilter(null)} />
-                  <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-tea-bg border border-tea-border rounded-lg shadow-xl p-3 animate-[fadeIn_0.15s_ease-out]">
+                  <div className="fixed inset-0 z-overlay" onClick={() => setOpenFilter(null)} />
+                  <div className="absolute left-0 right-0 top-full mt-1 z-drawer bg-tea-bg border border-tea-border rounded-lg shadow-xl p-3 animate-[fadeIn_0.15s_ease-out]">
                      {openFilter === 'type' && (
                         <div className="flex flex-wrap gap-1.5">
                            <button
@@ -719,7 +764,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
 
       {/* Floating Compare Button */}
       {compareItems.length > 0 && (
-        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-40 animate-[fadeIn_0.3s_ease-out]">
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-sticky animate-[fadeIn_0.3s_ease-out]">
           <button
             onClick={() => setShowCompare(true)}
             className="flex items-center gap-2 px-5 py-2.5 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.1em] font-medium rounded-sm shadow-lg hover:bg-tea-gold-lt transition-all active:scale-95"

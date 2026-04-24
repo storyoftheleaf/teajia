@@ -37,6 +37,7 @@ import {
 } from '../../data/tastingTaxonomy';
 import { AutocompleteInput } from '../../components/TeaCompass/AutocompleteInput';
 import { buildVarietyDataMap, getTeaVarietySuggestions } from '../../data/teaVarieties';
+import { ShareToNetworkModal } from './inventory/ShareToNetworkModal';
 
 const MAINTENANCE_SQL = `-- Reset all data via API\n// Use the admin panel's reset function`;
 
@@ -213,6 +214,8 @@ const DEFAULT_TEAWARE_VIEWS: typeof DEFAULT_TEA_VIEWS = [
 ];
 
 
+const TYPE_OPTIONS = ['Green', 'Yellow', 'White', 'Oolong', 'Red', 'Dark', 'Sheng', 'Shou', 'Herbal', 'Teaware', 'Misc'] as const;
+
 const BULK_EDIT_FIELDS: readonly { key: string; label: string; type: 'select' | 'boolean'; options?: readonly string[] }[] = [
   { key: 'status', label: 'Status', type: 'select', options: ['Active', 'Archived', 'Sold Out', 'Draft'] },
   { key: 'isPublic', label: 'Public', type: 'boolean' },
@@ -307,12 +310,12 @@ function InventoryRowBase(props: InventoryRowProps) {
               <>
                 <span className="text-sm font-serif text-tea-text tracking-wide group-hover:text-tea-gold transition-colors truncate">{product.productName}</span>
                 {product.givenName && (
-                  <span className="text-[10px] text-tea-text-sec font-sans mt-0.5 truncate block">
+                  <span className="text-[10px] text-tea-text-sec font-sans truncate block">
                     {product.givenName}{product.form && <span className="ml-1 opacity-50">· {product.form}</span>}
                   </span>
                 )}
                 {!product.givenName && product.form && (
-                  <span className="text-[10px] text-tea-text-sec/50 font-sans mt-0.5 truncate block">{product.form}</span>
+                  <span className="text-[10px] text-tea-text-sec/50 font-sans truncate block">{product.form}</span>
                 )}
               </>
             )}
@@ -323,9 +326,24 @@ function InventoryRowBase(props: InventoryRowProps) {
         const dotColor = getThemeColor(product.type);
         return (
           <td key={colKey} id={cellId(colIndex)} className={`px-4 align-middle overflow-hidden ${fr}`}>
-            <span className="flex items-center gap-2 text-xs font-medium tracking-wide text-tea-text-sec truncate">
-              <span style={{ color: dotColor, fontSize: '10px' }}>&#9679;</span> {product.type}
-            </span>
+            {isEditMode ? (
+              <label className="flex items-center gap-2 text-xs font-medium tracking-wide text-tea-text-sec truncate cursor-pointer">
+                <span style={{ color: dotColor, fontSize: '10px' }} className="flex-shrink-0">&#9679;</span>
+                <select
+                  value={product.type}
+                  onChange={(e) => onProductUpdate(product.id, 'type', e.target.value)}
+                  onClick={(e) => e.stopPropagation()}
+                  className="bg-transparent outline-none appearance-none cursor-pointer text-xs text-tea-text-sec hover:text-tea-text focus-visible:ring-2 focus-visible:ring-tea-gold/50 rounded"
+                  aria-label="Tea type"
+                >
+                  {TYPE_OPTIONS.map((t) => <option key={t} value={t} className="bg-tea-surface text-tea-text">{t}</option>)}
+                </select>
+              </label>
+            ) : (
+              <span className="flex items-center gap-2 text-xs font-medium tracking-wide text-tea-text-sec truncate">
+                <span style={{ color: dotColor, fontSize: '10px' }}>&#9679;</span> {product.type}
+              </span>
+            )}
           </td>
         );
       }
@@ -479,23 +497,9 @@ function InventoryRowBase(props: InventoryRowProps) {
         onRowClick(product.id, globalIdxRef.current, e);
       }}
     >
-      {splitView ? (
-        <td className="px-3 align-middle">
-          <div className="flex items-start gap-2 min-w-0">
-            <span style={{ color: getThemeColor(product.type), fontSize: 8, marginTop: 4, flexShrink: 0 }}>●</span>
-            <div className="min-w-0 flex-1">
-              <div className="text-[13px] font-serif text-tea-text leading-snug truncate">{product.productName || product.givenName}</div>
-              <div className="text-[10px] text-tea-text-sec leading-tight mt-0.5 flex items-center gap-1.5">
-                <span className="truncate">{product.chineseName || product.form || product.type}</span>
-                {!product.isPublic && <EyeOff size={9} className="text-tea-text-dim flex-shrink-0" />}
-                {product.isFeatured && <Star size={9} className="fill-tea-gold text-tea-gold flex-shrink-0" />}
-              </div>
-            </div>
-          </div>
-        </td>
-      ) : (
-        visibleCols.map((col, colIdx) => renderCell(col.key, colIdx))
-      )}
+      {splitView
+        ? renderCell('productName', 0)
+        : visibleCols.map((col, colIdx) => renderCell(col.key, colIdx))}
       <td className="px-1 align-middle text-right">
         <div className={`flex justify-end gap-0.5 transition-opacity ${isDropdownOpen ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`} onClick={(e) => e.stopPropagation()}>
           {!isEditMode && (
@@ -815,6 +819,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
   // Feature 7: Bulk Edit
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [shareToNetworkOpen, setShareToNetworkOpen] = useState(false);
+  const [invoiceFromInventoryOpen, setInvoiceFromInventoryOpen] = useState(false);
   const [bulkField, setBulkField] = useState<string>('status');
   const [bulkValue, setBulkValue] = useState<string>('');
   const [isBulkApplying, setIsBulkApplying] = useState(false);
@@ -1026,8 +1032,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   }, [filterType, localProducts]);
 
   // --- VIRTUALIZATION LOGIC (TABLE BASED) ---
-  const ROW_HEIGHT = 36;
-  const SPLIT_ROW_HEIGHT = 52; // taller rows in split view (2-line name)
+  const ROW_HEIGHT = 42;
+  const SPLIT_ROW_HEIGHT = 42;
   const BUFFER_ROWS = 5;
   const splitView = !!panelProduct;
   const effectiveRowHeight = splitView ? SPLIT_ROW_HEIGHT : ROW_HEIGHT;
@@ -1075,6 +1081,96 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const paddingTop = startIndex * effectiveRowHeight;
   const paddingBottom = Math.max(0, totalHeight - paddingTop - (visibleProducts.length * effectiveRowHeight));
 
+  // Context-anchored action drawer — the row the drawer docks beneath.
+  // Prefers the last-clicked row (lastSelectedIdxRef) so the drawer follows the user's
+  // most recent action; falls back to any selected id if that anchor isn't selected.
+  const anchorProductId = (() => {
+    if (selectedIds.size === 0) return null;
+    const lastIdx = lastSelectedIdxRef.current;
+    if (lastIdx != null) {
+      const p = processedProducts[lastIdx];
+      if (p && selectedIds.has(p.id)) return p.id;
+    }
+    for (const p of processedProducts) if (selectedIds.has(p.id)) return p.id;
+    return null;
+  })();
+
+  const renderActionDrawer = (colSpan: number) => {
+    if (!anchorProductId || isEditMode) return null;
+    const count = selectedIds.size;
+    const allSelected = count === processedProducts.length;
+    return (
+      <tr key={`__drawer__${anchorProductId}`} className="bg-tea-gold-lt border-b border-tea-border">
+        <td colSpan={colSpan} className="p-0">
+          <div className="flex items-center gap-1 px-4 py-2 flex-wrap">
+            <button
+              onClick={toggleSelectAll}
+              className="flex items-baseline gap-1 px-2 py-1 rounded-md hover:bg-tea-bg/40 transition-colors"
+              title={allSelected ? 'Deselect all' : 'Select all'}
+            >
+              <span className="text-sm font-bold text-tea-text tabular-nums leading-none">{allSelected ? 'All' : count}</span>
+              <span className="text-[9px] text-tea-text-sec uppercase tracking-[0.1em] leading-none">item{count !== 1 ? 's' : ''}</span>
+            </button>
+            <div className="w-px h-4 bg-tea-border mx-1 flex-shrink-0" />
+            <button
+              onClick={() => handleBulkVisibility(true)}
+              disabled={isBulkApplying}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-tea-gold text-tea-bg rounded-md hover:bg-tea-gold/90 transition-colors disabled:opacity-40"
+              title="Publish"
+            >
+              {isBulkApplying ? <Loader2 size={12} className="animate-spin" /> : <Eye size={12} />}
+              <span className="text-[10px] font-bold uppercase tracking-[0.15em]">Publish</span>
+            </button>
+            <button
+              onClick={() => handleBulkVisibility(false)}
+              disabled={isBulkApplying}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 text-tea-text-sec rounded-md hover:text-tea-text hover:bg-tea-bg/40 transition-colors disabled:opacity-40"
+              title="Unpublish"
+            >
+              {isBulkApplying ? <Loader2 size={12} className="animate-spin" /> : <EyeOff size={12} />}
+              <span className="text-[10px] font-bold uppercase tracking-[0.15em]">Unpublish</span>
+            </button>
+            <button
+              onClick={handleSendToSamples}
+              disabled={isBulkApplying}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 text-tea-text-sec rounded-md hover:text-tea-text hover:bg-tea-bg/40 transition-colors disabled:opacity-40"
+              title="Send to samples"
+            >
+              <FlaskConical size={12} />
+              <span className="text-[10px] font-bold uppercase tracking-[0.15em]">Samples</span>
+            </button>
+            <button
+              onClick={() => setShareToNetworkOpen(true)}
+              disabled={isBulkApplying}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 text-tea-text-sec rounded-md hover:text-tea-text hover:bg-tea-bg/40 transition-colors disabled:opacity-40"
+              title="Share to network"
+            >
+              <Globe size={12} />
+              <span className="text-[10px] font-bold uppercase tracking-[0.15em]">Network</span>
+            </button>
+            <button
+              onClick={() => setInvoiceFromInventoryOpen(true)}
+              disabled={isBulkApplying}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 text-tea-text-sec rounded-md hover:text-tea-text hover:bg-tea-bg/40 transition-colors disabled:opacity-40"
+              title="Add to invoice"
+            >
+              <Receipt size={12} />
+              <span className="text-[10px] font-bold uppercase tracking-[0.15em]">Invoice</span>
+            </button>
+            <div className="flex-1" />
+            <button
+              onClick={() => { setSelectedIds(new Set()); lastSelectedIdxRef.current = null; }}
+              className="p-1.5 text-tea-text-sec hover:text-tea-text rounded-md hover:bg-tea-bg/40 transition-colors"
+              title="Clear selection"
+            >
+              <XIcon size={13} />
+            </button>
+          </div>
+        </td>
+      </tr>
+    );
+  };
+
   // --- HANDLERS ---
   const handleSort = (key: keyof Product) => {
       const existing = inventorySortConfig.find(s => s.key === key);
@@ -1099,10 +1195,14 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const processedProductsRef = useRef(processedProducts);
   const productIndexMapRef = useRef(productIndexMap);
   const ratesRef = useRef(rates);
+  const isEditModeRef = useRef(isEditMode);
+  const panelProductRef = useRef(panelProduct);
   useLayoutEffect(() => { selectedIdsRef.current = selectedIds; }, [selectedIds]);
   useLayoutEffect(() => { processedProductsRef.current = processedProducts; }, [processedProducts]);
   useLayoutEffect(() => { productIndexMapRef.current = productIndexMap; }, [productIndexMap]);
   useLayoutEffect(() => { ratesRef.current = rates; }, [rates]);
+  useLayoutEffect(() => { isEditModeRef.current = isEditMode; }, [isEditMode]);
+  useLayoutEffect(() => { panelProductRef.current = panelProduct; }, [panelProduct]);
 
   // Stable open-panel — row passes the product object directly.
   // stableRowClick and stableLongPressSelect are declared after toggleSelectId below.
@@ -1578,9 +1678,19 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       toggleSelectId(productId, globalIdx, true);
     } else if (selectedIdsRef.current.size > 0) {
       toggleSelectId(productId, globalIdx, false);
-    } else {
+    } else if (!isEditModeRef.current) {
       const idx = productIndexMapRef.current.get(productId) ?? -1;
-      if (idx >= 0) setPanelProduct(processedProductsRef.current[idx]);
+      if (idx >= 0) {
+        const current = panelProductRef.current;
+        if (current && current.id === productId) {
+          setPanelProduct(null);
+          setSelectedIds(new Set());
+        } else {
+          setPanelProduct(processedProductsRef.current[idx]);
+          setSelectedIds(new Set([productId]));
+          lastSelectedIdxRef.current = idx;
+        }
+      }
     }
   }, [toggleSelectId, setPanelProduct]);
 
@@ -1699,13 +1809,13 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     {product.productName}
                   </span>
                   {product.givenName && (
-                    <span className="text-[10px] text-tea-text-sec font-sans mt-0.5 truncate block">
+                    <span className="text-[10px] text-tea-text-sec font-sans truncate block">
                       {product.givenName}
                       {product.form && <span className="ml-1 opacity-50">· {product.form}</span>}
                     </span>
                   )}
                   {!product.givenName && product.form && (
-                    <span className="text-[10px] text-tea-text-sec/50 font-sans mt-0.5 truncate block">{product.form}</span>
+                    <span className="text-[10px] text-tea-text-sec/50 font-sans truncate block">{product.form}</span>
                   )}
                 </>
               )}
@@ -3157,6 +3267,10 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         {/* DESKTOP TABLE */}
         {!isMobile && filterType !== 'Pending' && !glossaryMode && <div className="w-full max-w-7xl mx-auto bg-tea-surface min-h-full">
 
+          {/* Anchor row for context-anchored action drawer.
+              Prefers the last-clicked index, falls back to the first selected id. */}
+          {(() => { /* no-op placeholder for readability */ return null; })()}
+
           {/* --- GROUPED VIEW --- */}
           {groupedProducts ? (
             <div>
@@ -3209,29 +3323,31 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                           {items.map((product) => {
                             const globalIdx = productIndexMap.get(product.id) ?? 0;
                             return (
-                              <InventoryRow
-                                key={product.id}
-                                product={product}
-                                globalIdx={globalIdx}
-                                isSelected={selectedIds.has(product.id)}
-                                focusedCol={focusedCell?.row === globalIdx ? (focusedCell.col ?? null) : null}
-                                isEditMode={isEditMode}
-                                visibleCols={visibleCols}
-                                splitView={splitView}
-                                rowHeight={effectiveRowHeight}
-                                isPanelOpen={panelProduct?.id === product.id}
-                                isDropdownOpen={rowDropdownId === product.id}
-                                onRowClick={stableRowClick}
-                                onLongPressSelect={stableLongPressSelect}
-                                onProductUpdate={handleProductUpdate}
-                                onSelectionAwareUpdate={handleSelectionAwareUpdate}
-                                onOpenPanel={stableOpenPanel}
-                                onToggleDropdown={stableToggleDropdown}
-                                onStockHistory={stableStockHistory}
-                                onRestock={handleRestock}
-                                showToast={showToast}
-                                navigate={navigate}
-                              />
+                              <React.Fragment key={product.id}>
+                                <InventoryRow
+                                  product={product}
+                                  globalIdx={globalIdx}
+                                  isSelected={selectedIds.has(product.id)}
+                                  focusedCol={focusedCell?.row === globalIdx ? (focusedCell.col ?? null) : null}
+                                  isEditMode={isEditMode}
+                                  visibleCols={visibleCols}
+                                  splitView={splitView}
+                                  rowHeight={effectiveRowHeight}
+                                  isPanelOpen={panelProduct?.id === product.id}
+                                  isDropdownOpen={rowDropdownId === product.id}
+                                  onRowClick={stableRowClick}
+                                  onLongPressSelect={stableLongPressSelect}
+                                  onProductUpdate={handleProductUpdate}
+                                  onSelectionAwareUpdate={handleSelectionAwareUpdate}
+                                  onOpenPanel={stableOpenPanel}
+                                  onToggleDropdown={stableToggleDropdown}
+                                  onStockHistory={stableStockHistory}
+                                  onRestock={handleRestock}
+                                  showToast={showToast}
+                                  navigate={navigate}
+                                />
+                                {product.id === anchorProductId && renderActionDrawer(splitView ? 2 : visibleCols.length + 1)}
+                              </React.Fragment>
                             );
                           })}
                         </tbody>
@@ -3256,9 +3372,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 <thead className="sticky top-0 z-20 bg-tea-bg shadow-sm">
                     <tr>
                         {splitView ? (
-                          <th className="px-4 py-2 border-b border-tea-border text-left">
-                            <span className="text-[10px] uppercase tracking-[0.12em] font-sans font-medium text-tea-text-sec">Product</span>
-                          </th>
+                          <SortHeader colKey={'productName' as keyof Product} label="Product" align="left" />
                         ) : (
                           visibleCols.map(col => (
                             <SortHeader key={col.key} colKey={col.key as keyof Product} label={col.label} align="left" />
@@ -3274,29 +3388,31 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     {visibleProducts.map((product, idx) => {
                         const globalIdx = startIndex + idx;
                         return (
-                          <InventoryRow
-                            key={product.id}
-                            product={product}
-                            globalIdx={globalIdx}
-                            isSelected={selectedIds.has(product.id)}
-                            focusedCol={focusedCell?.row === globalIdx ? (focusedCell.col ?? null) : null}
-                            isEditMode={isEditMode}
-                            visibleCols={visibleCols}
-                            splitView={splitView}
-                            rowHeight={effectiveRowHeight}
-                            isPanelOpen={panelProduct?.id === product.id}
-                            isDropdownOpen={rowDropdownId === product.id}
-                            onRowClick={stableRowClick}
-                            onLongPressSelect={stableLongPressSelect}
-                            onProductUpdate={handleProductUpdate}
-                            onSelectionAwareUpdate={handleSelectionAwareUpdate}
-                            onOpenPanel={stableOpenPanel}
-                            onToggleDropdown={stableToggleDropdown}
-                            onStockHistory={stableStockHistory}
-                            onRestock={handleRestock}
-                            showToast={showToast}
-                            navigate={navigate}
-                          />
+                          <React.Fragment key={product.id}>
+                            <InventoryRow
+                              product={product}
+                              globalIdx={globalIdx}
+                              isSelected={selectedIds.has(product.id)}
+                              focusedCol={focusedCell?.row === globalIdx ? (focusedCell.col ?? null) : null}
+                              isEditMode={isEditMode}
+                              visibleCols={visibleCols}
+                              splitView={splitView}
+                              rowHeight={effectiveRowHeight}
+                              isPanelOpen={panelProduct?.id === product.id}
+                              isDropdownOpen={rowDropdownId === product.id}
+                              onRowClick={stableRowClick}
+                              onLongPressSelect={stableLongPressSelect}
+                              onProductUpdate={handleProductUpdate}
+                              onSelectionAwareUpdate={handleSelectionAwareUpdate}
+                              onOpenPanel={stableOpenPanel}
+                              onToggleDropdown={stableToggleDropdown}
+                              onStockHistory={stableStockHistory}
+                              onRestock={handleRestock}
+                              showToast={showToast}
+                              navigate={navigate}
+                            />
+                            {product.id === anchorProductId && renderActionDrawer(splitView ? 2 : colCountWithBulk)}
+                          </React.Fragment>
                         );
                     })}
 
@@ -4374,70 +4490,6 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
       {/* --- FEATURE 7: BULK EDIT FLOATING TOOLBAR --- */}
       <AnimatePresence>
-        {selectedIds.size > 0 && !isEditMode && !(isMobile && panelProduct) && (
-          <motion.div
-            initial={{ y: 80, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 80, opacity: 0 }}
-            className={`fixed bottom-nav-gap left-0 mx-auto w-fit z-50 bg-tea-surface border border-tea-border shadow-2xl rounded-xl px-3 py-2 flex items-center gap-1 ${splitView ? 'right-0 md:right-[420px]' : 'right-0'}`}
-          >
-            {/* Count — click to toggle all */}
-            <button
-              onClick={toggleSelectAll}
-              className="flex items-baseline gap-1 px-2 py-1 rounded-lg hover:bg-tea-bg/60 transition-colors"
-              title={selectedIds.size === processedProducts.length ? 'Deselect all' : 'Select all'}
-            >
-              <span className="text-sm font-bold text-tea-text tabular-nums leading-none">{selectedIds.size === processedProducts.length ? 'All' : selectedIds.size}</span>
-              <span className="text-[9px] text-tea-text-sec uppercase tracking-[0.1em] leading-none">item{selectedIds.size !== 1 ? 's' : ''}</span>
-            </button>
-
-            <div className="w-px h-4 bg-tea-border mx-1 flex-shrink-0" />
-
-            {/* Publish */}
-            <button
-              onClick={() => handleBulkVisibility(true)}
-              disabled={isBulkApplying}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-tea-gold text-tea-bg rounded-lg hover:bg-tea-gold/90 transition-colors disabled:opacity-40"
-              title="Publish selected"
-            >
-              {isBulkApplying ? <Loader2 size={12} className="animate-spin" /> : <Eye size={12} />}
-              <span className="hidden md:inline text-[10px] font-bold uppercase tracking-[0.15em]">Publish</span>
-            </button>
-
-            {/* Unpublish */}
-            <button
-              onClick={() => handleBulkVisibility(false)}
-              disabled={isBulkApplying}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 border border-tea-border text-tea-text-sec rounded-lg hover:text-tea-text hover:border-tea-text-sec transition-colors disabled:opacity-40"
-              title="Unpublish selected"
-            >
-              {isBulkApplying ? <Loader2 size={12} className="animate-spin" /> : <EyeOff size={12} />}
-              <span className="hidden md:inline text-[10px] font-bold uppercase tracking-[0.15em]">Unpublish</span>
-            </button>
-
-            {/* Samples */}
-            <button
-              onClick={handleSendToSamples}
-              disabled={isBulkApplying}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 border border-tea-border text-tea-text-sec rounded-lg hover:text-tea-text hover:border-tea-text-sec transition-colors disabled:opacity-40"
-              title="Send to sample pack"
-            >
-              <FlaskConical size={12} />
-              <span className="hidden md:inline text-[10px] font-bold uppercase tracking-[0.15em]">Samples</span>
-            </button>
-
-            <div className="w-px h-4 bg-tea-border mx-1 flex-shrink-0" />
-
-            {/* Clear */}
-            <button
-              onClick={() => { setSelectedIds(new Set()); lastSelectedIdxRef.current = null; }}
-              className="p-1.5 text-tea-text-sec hover:text-tea-text rounded-lg hover:bg-tea-bg/60 transition-colors"
-              title="Clear selection"
-            >
-              <XIcon size={13} />
-            </button>
-          </motion.div>
-        )}
         {selectedIds.size > 0 && isEditMode && (
           <motion.div
             initial={{ y: 80, opacity: 0 }}
@@ -4527,6 +4579,20 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           />
         </div>
       )}
+
+      <ShareToNetworkModal
+        open={shareToNetworkOpen}
+        productIds={selectedIds.size > 0 ? [...selectedIds] : panelProduct ? [panelProduct.id] : []}
+        onClose={() => setShareToNetworkOpen(false)}
+        onSuccess={(count, storeName) => {
+          setShareToNetworkOpen(false);
+          if (selectedIds.size > 0) {
+            setSelectedIds(new Set());
+            lastSelectedIdxRef.current = null;
+          }
+          showToast(`${count} product${count !== 1 ? 's' : ''} shared to ${storeName}`, 'success');
+        }}
+      />
 
     </div>
   );

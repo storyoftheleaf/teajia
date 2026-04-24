@@ -16,6 +16,8 @@ import { syncNotes } from '../../lib/notesSync';
 import { api, hasToken } from '../../lib/api';
 import { resolveTermLabel, resolveTermIcon } from '../../data/tastingTaxonomy';
 import { VoiceNoteField } from './VoiceNoteField';
+import { NoteReviewPanel } from './NoteReviewPanel';
+import { normalizeNotes, notesAsStrings } from '../../lib/noteEntries';
 import { useScrollLock } from '../../hooks/useScrollLock';
 import { SampleIcon } from '../Icons';
 
@@ -116,7 +118,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
 
   const [tastingData, setTastingData] = useState<TastingData>(initialData ?? lastTasting?.tasting ?? {});
   const [isContinuing, setIsContinuing] = useState(!!lastTasting);
-  const [phase, setPhase] = useState<'tasting' | 'saved'>('tasting');
+  const [phase, setPhase] = useState<'tasting' | 'review' | 'saved'>('tasting');
 
   useScrollLock(true);
 
@@ -188,7 +190,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
         tea_key: item.teaKey,
         source_sample_id: item.sourceSampleId,
         tasting: data as Record<string, unknown>,
-        voice_notes: data.notes,
+        voice_notes: notesAsStrings(data),
         status: 'draft',
         visibility: 'network',
       }).then((review: any) => {
@@ -203,7 +205,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
         if (draftReviewIdRef.current) {
           api.teaReviews.update(draftReviewIdRef.current, {
             tasting: data as Record<string, unknown>,
-            voice_notes: data.notes,
+            voice_notes: notesAsStrings(data),
           }).catch(() => {});
         }
       }, 2000);
@@ -235,6 +237,14 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
 
   const handleSave = useCallback(async () => {
     if (!canSave) return;
+
+    // Admin: gate through the review screen when notes exist so Adrian can
+    // edit and star them before the session is committed.
+    if (adminMode && phase === 'tasting' && normalizeNotes(tastingData).length > 0) {
+      setPhase('review');
+      return;
+    }
+
     setSaveState('saving');
 
     try {
@@ -243,7 +253,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
         if (draftDebounceRef.current) clearTimeout(draftDebounceRef.current);
         api.teaReviews.update(draftReviewIdRef.current, {
           tasting: tastingData as Record<string, unknown>,
-          voice_notes: tastingData.notes,
+          voice_notes: notesAsStrings(tastingData),
           status: 'submitted',
         }).catch(() => {});
         draftReviewIdRef.current = null; // prevent cleanup on unmount from deleting it
@@ -311,7 +321,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
       saveTimerRef.current = setTimeout(() => onClose(), 2000);
     }
     // Customer: stays open until user taps Done
-  }, [item, tastingData, verdict, wouldBuy, addTasting, onSave, onAfterSave, adminMode, activeAccountId, activeAccount, canSave, onClose, onCreatePO, onWriteDescription]);
+  }, [item, tastingData, verdict, wouldBuy, addTasting, onSave, onAfterSave, adminMode, activeAccountId, activeAccount, canSave, onClose, onCreatePO, onWriteDescription, phase]);
 
   const handleVerdictSelect = useCallback((v: Verdict) => {
     setVerdict(v);
@@ -569,12 +579,12 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                   >
                     <div className="px-4 py-3">
                       <VoiceNoteField
-                        values={tastingData.notes || []}
-                        onChange={(notes) => {
-                          const prev = tastingData.notes || [];
+                        values={notesAsStrings(tastingData)}
+                        onChange={(nextTexts) => {
+                          const prev = normalizeNotes(tastingData);
                           // Write newly added notes into the shared thread
-                          if (notes.length > prev.length && (item.compassEntryId || item.teaKey)) {
-                            notes.slice(prev.length).forEach(text => {
+                          if (nextTexts.length > prev.length && (item.compassEntryId || item.teaKey)) {
+                            nextTexts.slice(prev.length).forEach(text => {
                               addNote({
                                 accountId: activeAccountId ?? 'guest',
                                 teaKey: item.teaKey,
@@ -588,7 +598,14 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                             });
                             syncNotes().catch(() => {});
                           }
-                          handleTastingChange({ ...tastingData, notes: notes.length ? notes : undefined });
+                          // Pair each text with its existing NoteEntry metadata by index,
+                          // minting a fresh entry for any newly appended text.
+                          const merged = nextTexts.map((text, i) => {
+                            const existing = prev[i];
+                            if (existing) return { ...existing, text };
+                            return { id: `note-${Date.now()}-${i}`, text, capturedAt: new Date().toISOString() };
+                          });
+                          handleTastingChange({ ...tastingData, notes: merged.length ? merged : undefined });
                         }}
                       />
                     </div>
@@ -740,6 +757,39 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
             </div>
           </motion.div>
 
+        ) : phase === 'review' ? (
+
+          /* ── Review phase: star + edit captured notes before committing ── */
+          <motion.div
+            key="review"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="flex-1 min-h-0 flex flex-col overflow-auto"
+          >
+            <NoteReviewPanel
+              notes={normalizeNotes(tastingData)}
+              onChange={(next) => setTastingData(prev => ({ ...prev, notes: next }))}
+            />
+            <div className="sticky bottom-0 bg-tea-bg border-t border-tea-border px-3 py-3 flex items-center justify-between gap-2">
+              <button
+                type="button"
+                onClick={() => setPhase('tasting')}
+                className="text-[12px] text-tea-text-sec hover:text-tea-text transition-colors"
+                style={{ fontFamily: 'var(--font-body)' }}
+              >
+                ← Back
+              </button>
+              <button
+                type="button"
+                onClick={handleSave}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-tea-gold text-tea-bg hover:bg-tea-gold-lt transition-colors"
+              >
+                {saveState === 'saving' ? 'Saving…' : 'Save'}
+              </button>
+            </div>
+          </motion.div>
+
         ) : (
 
           /* ── Confirmation phase ── */
@@ -844,9 +894,9 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
 
             {(tastingData.notes?.length ?? 0) > 0 && (
               <div className="flex flex-col gap-1.5 mb-4">
-                {tastingData.notes!.map((note, i) => (
-                  <div key={i} className="text-xs text-tea-text-dim italic px-1" style={{ fontFamily: 'var(--font-body)' }}>
-                    &ldquo;{note}&rdquo;
+                {normalizeNotes(tastingData).map((note, i) => (
+                  <div key={note.id || i} className="text-xs text-tea-text-dim italic px-1" style={{ fontFamily: 'var(--font-body)' }}>
+                    &ldquo;{note.text}&rdquo;
                   </div>
                 ))}
               </div>

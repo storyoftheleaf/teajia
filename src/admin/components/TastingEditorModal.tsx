@@ -47,6 +47,10 @@ export const TastingEditorModal: React.FC<TastingEditorModalProps> = ({
         );
       });
 
+      // Refresh the public storefront inventory so the shop card / product page
+      // show the new tasting without waiting on the edge cache TTL.
+      await queryClient.invalidateQueries({ queryKey: ['storefront', 'products'] });
+
       const derivedMood = deriveMoodFromFeeling(tastingData);
       showToast('Tasting profile saved', 'success');
       onSaved?.(product, tastingData, derivedMood);

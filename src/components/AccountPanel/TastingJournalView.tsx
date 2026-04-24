@@ -172,7 +172,7 @@ export const TastingJournalView: React.FC<TastingJournalViewProps> = ({ onBack }
             {/* Notes from tasting data */}
             {!entry.personalNote && entry.tasting.notes && entry.tasting.notes.length > 0 && (
               <p className="text-[11px] text-tea-text-sec mt-1.5 leading-relaxed line-clamp-2 italic">
-                "{entry.tasting.notes[0]}"
+                "{typeof entry.tasting.notes[0] === 'string' ? entry.tasting.notes[0] : entry.tasting.notes[0].text}"
               </p>
             )}
           </div>

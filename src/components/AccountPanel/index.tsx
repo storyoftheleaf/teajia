@@ -1153,6 +1153,23 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                 pendingInvoiceCount={pendingCount}
                 todayEventCount={todayEventCount}
                 unsyncedJournalCount={0}
+                journalLastAt={tastingJournal[0]?.createdAt ?? null}
+                journalLastTea={tastingJournal[0]?.teaName ?? null}
+                journalLastExcerpt={(() => {
+                  const firstNote = tastingJournal[0]?.tasting?.notes?.[0];
+                  return (
+                    tastingJournal[0]?.personalNote
+                    ?? (typeof firstNote === 'string' ? firstNote : firstNote?.text)
+                    ?? tastingJournal[0]?.tasting?.voiceNote
+                    ?? null
+                  );
+                })()}
+                journalCount={tastingJournal.length}
+                collectionCount={favoriteTeas.length}
+                compassProfile={compassProfile}
+                journey={myJourney}
+                nextEvent={nextEvent ?? null}
+                nextEventWithin24h={nextEventWithin24h}
                 onClose={onClose}
                 onOpenJournal={() => setPanelView('journal')}
                 onOpenEvents={() => setPanelView('events')}
@@ -1193,6 +1210,16 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                 onAvatarClick={handleAvatarClick}
                 journey={myJourney}
                 journalLastAt={tastingJournal[0]?.createdAt ?? null}
+                journalLastTea={tastingJournal[0]?.teaName ?? null}
+                journalLastExcerpt={(() => {
+                  const firstNote = tastingJournal[0]?.tasting?.notes?.[0];
+                  return (
+                    tastingJournal[0]?.personalNote
+                    ?? (typeof firstNote === 'string' ? firstNote : firstNote?.text)
+                    ?? tastingJournal[0]?.tasting?.voiceNote
+                    ?? null
+                  );
+                })()}
                 journalCount={tastingJournal.length}
                 collectionCount={favoriteTeas.length}
                 compassProfile={compassProfile}

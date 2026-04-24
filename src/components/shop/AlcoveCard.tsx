@@ -1,12 +1,13 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Pencil, Leaf, ChevronRight, X, Loader2, QrCode } from 'lucide-react';
+import { Pencil, Leaf, ChevronRight, X, Loader2, QrCode, Heart } from 'lucide-react';
 import { useSampleCartStore } from '../../samples/sampleCartStore';
 import type { InventoryItem, Story } from '../../types';
 import { ContentType } from '../../types';
 import { useAppStore } from '../../lib/store';
 import { api } from '../../lib/api';
 import { useTastingCount } from '../../hooks/useTastingCount';
+import { starredNotes } from '../../lib/noteEntries';
 import { fmtNum } from '../../utils/formatNumber';
 import { fmtShopPrice } from '../../utils/formatNumber';
 import { TeaPlaceholder } from './TeaPlaceholder';
@@ -36,6 +37,8 @@ interface AlcoveCardProps {
   formatPrice?: (pricePerGram: number, grams: number) => string;
   /** Called when user wants to start a tasting session */
   onTaste?: (item: InventoryItem) => void;
+  /** Admin-only: called to open the product tasting editor (writes to the product's own tasting field). */
+  onEditProductTasting?: (item: InventoryItem) => void;
   /** All available items for "You might also like" recommendations */
   items?: InventoryItem[];
   /** Called when a recommended item is selected */
@@ -67,7 +70,7 @@ function getStockStatus(stockG: number, status?: string) {
   return { label: 'In Stock', color: '#5A6E5A', level: 'ok' as const };
 }
 
-export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClose, isAdmin, onEdit, formatPrice, onTermClick, onTaste, items, onItemSelect }) => {
+export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClose, isAdmin, onEdit, formatPrice, onTermClick, onTaste, onEditProductTasting, items, onItemSelect }) => {
   const navigate = useNavigate();
   const { favoriteTeas, toggleFavoriteTea, activeAccountId } = useAppStore();
 
@@ -407,37 +410,6 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                 </p>
               </div>
 
-              {/* Tasting badge — clickable link to tasting journal */}
-              {tastingCount > 0 && (
-                <div style={{
-                  display: "flex", justifyContent: "center", alignItems: "center",
-                  paddingTop: "8px",
-                }}>
-                  <button
-                    onClick={() => navigate('/account?tab=journal')}
-                    style={{
-                      display: "flex", alignItems: "center", gap: "5px",
-                      background: "none", border: "none", cursor: "pointer",
-                      padding: "2px 6px", borderRadius: "4px",
-                      transition: "opacity 0.2s",
-                    }}
-                    onMouseEnter={e => { e.currentTarget.style.opacity = '0.75'; }}
-                    onMouseLeave={e => { e.currentTarget.style.opacity = '1'; }}
-                  >
-                    <Leaf size={13} style={{ color: '#5A6E5A' }} />
-                    <span style={{
-                      fontFamily: "var(--font-display)",
-                      fontSize: "11px", fontWeight: 400,
-                      color: "var(--tea-text-sec)",
-                      letterSpacing: "0.05em",
-                    }}>
-                      Tasted {tastingCount} {tastingCount === 1 ? 'time' : 'times'}
-                    </span>
-                    <ChevronRight size={11} style={{ color: "var(--tea-text-dim)", marginLeft: "1px" }} />
-                  </button>
-                </div>
-              )}
-
               {/* Vendor / Source — admin-only link to source profile */}
               {item.supplier && isAdmin && (
                 <div style={{ textAlign: "center", paddingTop: 4 }}>
@@ -604,16 +576,69 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
           );
         })()}
 
+        {/* === IMPRESSIONS — starred tasting notes curated for public display === */}
+        {(() => {
+          const starred = starredNotes(item.tasting);
+          if (starred.length === 0) return null;
+          return (
+            <div style={{
+              padding: "20px 24px 4px",
+            }}>
+              {starred.map((note, i) => (
+                <p
+                  key={note.id}
+                  style={{
+                    fontFamily: "var(--font-display)",
+                    fontSize: "15px",
+                    fontStyle: "italic",
+                    lineHeight: 1.55,
+                    color: "var(--tea-text-sec)",
+                    marginTop: i === 0 ? 0 : 10,
+                    marginBottom: 0,
+                  }}
+                >
+                  {note.text}
+                  {note.sourceAuthor && (
+                    <span
+                      style={{
+                        display: "block",
+                        marginTop: 4,
+                        fontSize: "10px",
+                        fontStyle: "normal",
+                        letterSpacing: "0.12em",
+                        textTransform: "uppercase",
+                        color: "var(--tea-text-dim)",
+                      }}
+                    >
+                      — {note.sourceAuthor.initial || note.sourceAuthor.accountName || 'Community'}
+                    </span>
+                  )}
+                </p>
+              ))}
+            </div>
+          );
+        })()}
+
         {/* === SENSORY PANEL — unified: experience tags + tasting notes in one box === */}
         {(() => {
           const tasting = item.tasting;
-          const hasTasting = tasting && Object.values(tasting).some(arr => arr && arr.length > 0);
-          const sensoryNotes = hasTasting ? flattenTastingNotes(tasting) : [];
+          // Shopper-facing display: flavor + energy only. Body / finish /
+          // liquor-color are journaling data, useful to the admin but noisy on
+          // a product page.
+          const customerFacingTerms = tasting
+            ? [...(tasting.flavor ?? []), ...(tasting.feeling ?? [])]
+            : [];
+          const hasTasting = customerFacingTerms.length > 0;
+          const sensoryNotes = hasTasting ? customerFacingTerms : [];
           const legacyNotes = !hasTasting ? notes : [];
           const hasAnySensory = sensoryNotes.length > 0 || legacyNotes.length > 0;
-          const hasMood = moodTags.length > 0;
+          // Legacy `mood` header (e.g. "Gentle Patience") is no longer rendered
+          // on the card — the feeling of the tea is now carried by the
+          // structured `feeling` chips in the grid below.
+          const hasMood = false;
+          void moodTags;
 
-          if (!hasAnySensory && !hasMood) return null;
+          if (!hasAnySensory && !hasMood && !(isAdmin && onEditProductTasting) && tastingCount === 0) return null;
 
           // Collect note items for the grid
           const noteItems = sensoryNotes.map((termId) => {
@@ -643,6 +668,24 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
           borderBottom: "1px solid var(--tea-border)",
           padding: "4px 16px",
         }}>
+          {isAdmin && onEditProductTasting && (
+            <div style={{
+              display: "flex",
+              justifyContent: "flex-end",
+              paddingTop: "6px",
+            }}>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onEditProductTasting(item); }}
+                className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim hover:text-tea-gold transition-colors"
+                style={{ fontFamily: "var(--font-display)", display: "inline-flex", alignItems: "center", gap: "4px" }}
+                aria-label="Edit product tasting"
+              >
+                Edit tasting
+              </button>
+            </div>
+          )}
+
           {/* Mood tags — centered single column with dashed dividers */}
           {hasMood && (
             <div style={{
@@ -737,6 +780,42 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
               })}
             </div>
           )}
+
+          {/* Tasting count — personal journal link, scoped to the tasting context */}
+          {tastingCount > 0 && (
+            <div style={{
+              display: "flex",
+              justifyContent: "center",
+              paddingTop: "10px",
+              paddingBottom: "2px",
+              borderTop: (hasAnySensory || hasMood) ? "1px solid var(--tea-border)" : "none",
+              marginTop: (hasAnySensory || hasMood) ? "10px" : "0",
+            }}>
+              <button
+                onClick={() => navigate('/account?tab=journal')}
+                style={{
+                  display: "flex", alignItems: "center", gap: "5px",
+                  background: "none", border: "none", cursor: "pointer",
+                  padding: "2px 6px", borderRadius: "4px",
+                  transition: "opacity 0.2s",
+                }}
+                onMouseEnter={e => { e.currentTarget.style.opacity = '0.75'; }}
+                onMouseLeave={e => { e.currentTarget.style.opacity = '1'; }}
+              >
+                <Leaf size={12} style={{ color: '#5A6E5A', opacity: 0.75 }} />
+                <span style={{
+                  fontFamily: "var(--font-display)",
+                  fontSize: "10px", fontWeight: 400,
+                  color: "var(--tea-text-dim)",
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                }}>
+                  Tasted {tastingCount} {tastingCount === 1 ? 'time' : 'times'}
+                </span>
+                <ChevronRight size={10} style={{ color: "var(--tea-text-dim)", opacity: 0.6, marginLeft: "1px" }} />
+              </button>
+            </div>
+          )}
         </div>
           );
         })()}
@@ -821,23 +900,6 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                 opacity: i === 1 ? 0.6 : 0.8,
               }} />
             ))}
-          </div>
-        )}
-        {!eventsLoading && productEvents && productEvents.length === 0 && isAdmin && (
-          <div style={{
-            marginTop: "28px",
-            padding: "0 20px 8px",
-          }}>
-            <p style={{
-              fontFamily: "var(--font-display)",
-              fontSize: "11px", fontWeight: 400,
-              color: "var(--tea-text-dim)",
-              letterSpacing: "0.05em",
-              fontStyle: "italic",
-              margin: 0,
-            }}>
-              Not yet featured in any events
-            </p>
           </div>
         )}
         {productEvents && productEvents.length > 0 && (
@@ -1357,8 +1419,33 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                     opacity: favorited ? 1 : (hovered === "fav" ? 0.9 : 0.7),
                   }}
                 >
-                  <BookmarkIcon filled={favorited} color={accent} strokeColor={alcoveColors.muted} />
+                  <Heart
+                    size={13}
+                    color={favorited ? accent : alcoveColors.muted}
+                    fill={favorited ? accent : "none"}
+                    strokeWidth={1.5}
+                  />
                 </button>
+                {isAdmin && (
+                  <>
+                    <div style={{ width: "1px", height: "10px", background: "var(--tea-border)" }} />
+                    <button
+                      onClick={toggleSampleCart}
+                      onMouseEnter={() => setHovered("sample")}
+                      onMouseLeave={() => setHovered(null)}
+                      aria-label={inSampleCart ? "Remove from sample pack" : "Add to sample pack"}
+                      title={inSampleCart ? "In sample pack" : "Add to sample pack"}
+                      style={{
+                        background: "none", border: "none", padding: "0",
+                        cursor: "pointer", transition: "all 0.2s ease",
+                        display: "inline-flex", alignItems: "center", gap: "4px",
+                        opacity: inSampleCart ? 1 : (hovered === "sample" ? 0.9 : 0.7),
+                      }}
+                    >
+                      <QrCode size={13} color={inSampleCart ? "var(--tea-gold)" : alcoveColors.muted} />
+                    </button>
+                  </>
+                )}
                 <div style={{ width: "1px", height: "10px", background: "var(--tea-border)" }} />
                 <button
                   onClick={handleShare}
@@ -1401,32 +1488,6 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                         letterSpacing: "0.08em", textTransform: "uppercase",
                         color: alcoveColors.subtitle,
                       }}>Taste</span>
-                    </button>
-                  </>
-                )}
-                {isAdmin && (
-                  <>
-                    <div style={{ width: "1px", height: "10px", background: "var(--tea-border)" }} />
-                    <button
-                      onClick={toggleSampleCart}
-                      onMouseEnter={() => setHovered("sample")}
-                      onMouseLeave={() => setHovered(null)}
-                      aria-label={inSampleCart ? "Remove from sample pack" : "Add to sample pack"}
-                      title={inSampleCart ? "In sample pack" : "Add to sample pack"}
-                      style={{
-                        background: "none", border: "none", padding: "0",
-                        cursor: "pointer", transition: "all 0.2s ease",
-                        display: "inline-flex", alignItems: "center", gap: "4px",
-                        opacity: inSampleCart ? 1 : (hovered === "sample" ? 0.9 : 0.7),
-                      }}
-                    >
-                      <QrCode size={13} color={inSampleCart ? "var(--tea-gold)" : alcoveColors.muted} />
-                      <span style={{
-                        fontFamily: "var(--font-sans)",
-                        fontSize: "10px", fontWeight: 400,
-                        letterSpacing: "0.08em", textTransform: "uppercase",
-                        color: inSampleCart ? "var(--tea-gold)" : alcoveColors.subtitle,
-                      }}>Sample</span>
                     </button>
                   </>
                 )}

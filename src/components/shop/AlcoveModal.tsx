@@ -12,6 +12,8 @@ interface AlcoveModalProps {
   onItemChange?: (item: InventoryItem) => void;
   onTermClick?: (termId: string, categoryId: string) => void;
   onTaste?: (item: InventoryItem) => void;
+  onEditProductTasting?: (item: InventoryItem) => void;
+  isAdmin?: boolean;
 }
 
 export const AlcoveModal: React.FC<AlcoveModalProps> = ({
@@ -22,6 +24,8 @@ export const AlcoveModal: React.FC<AlcoveModalProps> = ({
   onItemChange,
   onTermClick,
   onTaste,
+  onEditProductTasting,
+  isAdmin,
 }) => {
   const [isVisible, setIsVisible] = useState(false);
   const isOpen = !!item;
@@ -237,24 +241,26 @@ export const AlcoveModal: React.FC<AlcoveModalProps> = ({
               }
             }
           `}</style>
-          <div data-alcove-card-wrapper className="w-full md:rounded-[3px] overflow-hidden">
+          <div data-alcove-card-wrapper className="relative w-full md:rounded-[3px] overflow-hidden">
             <AlcoveCard
               item={item}
               onAddToCart={handleAddToCart}
               onClose={onClose}
               onTermClick={onTermClick}
               onTaste={onTaste}
+              onEditProductTasting={onEditProductTasting}
+              isAdmin={isAdmin}
               items={items}
               onItemSelect={onItemChange}
             />
-            {/* Close button */}
+            {/* Close button — top-left of the card per CLAUDE.md panel header rule */}
             <button
-              className="absolute top-3 right-3 z-10 w-7 h-7 flex items-center justify-center rounded-md glass-panel hover:border-tea-gold/30 transition-all duration-200"
+              className="absolute top-3 left-3 z-10 w-7 h-7 flex items-center justify-center text-tea-text-sec hover:text-tea-text transition-colors duration-200"
               onClick={onClose}
               aria-label="Close"
             >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
-                stroke="var(--tea-text-sec)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="18" y1="6" x2="6" y2="18" />
                 <line x1="6" y1="6" x2="18" y2="18" />
               </svg>

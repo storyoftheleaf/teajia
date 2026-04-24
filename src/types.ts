@@ -1,4 +1,23 @@
 
+/**
+ * A single captured note within a tasting session. May originate from a voice
+ * transcription, typed entry, or promoted community entry. Starred notes are
+ * the admin's published voice on the product's tasting profile.
+ */
+export interface NoteEntry {
+  id: string;
+  text: string;
+  /** If true, the note has been curated and should render publicly. */
+  starred?: boolean;
+  /** Which section of the session the note was captured in. */
+  section?: 'flavor' | 'feeling' | 'body' | 'finish' | 'general';
+  /** ISO timestamp of when the note was first captured. */
+  capturedAt?: string;
+  /** When the note was promoted from a community source, its attribution. */
+  sourceAuthor?: { initial?: string; accountName?: string };
+  sourceJournalEntryId?: string;
+}
+
 export interface TastingData {
   // Section 1: Sensation (temperature, weight, texture)
   body?: string[];              // temperature + weight + texture terms
@@ -22,8 +41,9 @@ export interface TastingData {
   // Section 5: Appearance (color + clarity)
   'liquor-color'?: string[];    // color swatch
 
-  // Notes
-  notes?: string[];             // separate note entries (text / transcribed voice)
+  // Notes — accepts legacy plain strings or structured entries so admin
+  // can star/edit/curate specific notes for public display.
+  notes?: (string | NoteEntry)[];
   voiceNote?: string;           // legacy single concatenated note
 
   // Brewing context (session conditions)

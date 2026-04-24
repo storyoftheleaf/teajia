@@ -1598,7 +1598,8 @@ const handleUpdateProduct: Handler = async (request, env, params) => {
     'mood', 'experience', 'material', 'capacity_ml', 'teaware_category',
     'additional_images', 'quantity_units', 'vendor_id', 'is_sample', 'in_transit',
     'in_transit_grams', 'in_transit_eta',
-    'tasting', 'sold_out_at', 'stock_verified_at', 'source_compass_entry_id',
+    'tasting', 'tasting_source',
+    'sold_out_at', 'stock_verified_at', 'source_compass_entry_id',
     'updated_at', 'last_synced_at', 'tea_key', 'vendor_url',
     'wholesale_price', 'catalog_visible', 'price_per_gram_usd',
     'session_reserve_grams',
@@ -1714,8 +1715,8 @@ const handleSeedCatalog: Handler = async (request, env) => {
   for (const src of rows.results as any[]) {
     const id = crypto.randomUUID();
     insertedIds.push(id);
-    const cols = ['id', 'account_id', 'status', 'is_public', 'stock_grams', 'price_per_gram_usd', 'fixed_retail_price_usd', ...COPY_COLS];
-    const vals = [id, target_account_id, 'Draft', 0, 0, src.wholesale_price ?? 0, null, ...COPY_COLS.map(c => src[c] ?? null)];
+    const cols = ['id', 'account_id', 'status', 'is_public', 'stock_grams', 'fixed_retail_price_usd', ...COPY_COLS];
+    const vals = [id, target_account_id, 'Draft', 0, 0, null, ...COPY_COLS.map(c => src[c] ?? null)];
     const placeholders = cols.map(() => '?').join(', ');
     stmts.push(
       env.DB.prepare(`INSERT INTO products (${cols.join(', ')}) VALUES (${placeholders})`).bind(...vals)
@@ -8645,11 +8646,14 @@ async function fetchPublicProductsForAccount(
 }
 
 // GET /api/s/:slug/products — PUBLIC products for a store
+// Short 10s cache so admin tasting edits reflect quickly on the public page;
+// product data changes throughout the day and we don't want a 60s stale window
+// when the owner is actively curating.
 const handleGetPublicAccountProducts: Handler = async (_request, env, params) => {
   const accountId = await getAccountIdBySlug(env, params.slug);
   if (!accountId) return json({ error: 'Store not found' }, 404);
   const products = await fetchPublicProductsForAccount(env, accountId);
-  return cachedJson(products, 60);
+  return cachedJson(products, 10);
 };
 
 // GET /api/s/:slug/events — PUBLIC active events for a store

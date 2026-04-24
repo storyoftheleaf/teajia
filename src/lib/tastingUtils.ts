@@ -24,13 +24,15 @@ export function deriveFlavorNotes(tasting: TastingData): string[] {
 
 /**
  * Build the payload fields that should auto-sync when saving tasting data.
- * Returns { mood, tastingNotes } fields to merge into save payload.
+ * Returns DB-column-named fields ({ mood, tasting_notes }) so the worker's
+ * UPDATE allowlist accepts them. Previously emitted camelCase keys which
+ * were silently filtered out by the allowlist.
  */
-export function buildTastingSyncPayload(tasting: TastingData): { mood?: string; tastingNotes?: string[] } {
-  const result: { mood?: string; tastingNotes?: string[] } = {};
+export function buildTastingSyncPayload(tasting: TastingData): { mood?: string; tasting_notes?: string[] } {
+  const result: { mood?: string; tasting_notes?: string[] } = {};
   const mood = deriveMoodFromFeeling(tasting);
   if (mood) result.mood = mood;
   const notes = deriveFlavorNotes(tasting);
-  if (notes.length > 0) result.tastingNotes = notes;
+  if (notes.length > 0) result.tasting_notes = notes;
   return result;
 }
