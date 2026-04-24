@@ -27,6 +27,7 @@ import type { StarterSet } from '../types';
 import type { Product } from '../admin/types';
 
 const AddProductModal = lazy(() => import('../admin/components/AddProductModal').then(m => ({ default: m.AddProductModal })));
+const ProductEditPanel = lazy(() => import('../admin/components/ProductEditPanel').then(m => ({ default: m.ProductEditPanel })));
 
 type ShopTab = 'collection' | 'tea' | 'teaware' | 'sets';
 
@@ -511,16 +512,32 @@ export const Shop: React.FC<ShopProps> = ({
 
 
 
-      {/* Admin: Edit/Create Product Modal */}
-      {(editingProduct || showCreateModal) && (
+      {/* Admin: Create Product Modal (new items only) */}
+      {showCreateModal && (
         <ToastProvider>
           <Suspense fallback={null}>
             <AddProductModal
               isOpen={true}
-              onClose={() => { setEditingProduct(null); setShowCreateModal(false); }}
-              onSuccess={() => { setEditingProduct(null); setShowCreateModal(false); refetchProducts(); }}
-              initialData={editingProduct}
+              onClose={() => setShowCreateModal(false)}
+              onSuccess={() => { setShowCreateModal(false); refetchProducts(); }}
               rates={rates}
+            />
+          </Suspense>
+        </ToastProvider>
+      )}
+
+      {/* Admin: Edit Product — same sidebar panel used in the inventory view */}
+      {editingProduct && (
+        <ToastProvider>
+          <Suspense fallback={null}>
+            <ProductEditPanel
+              product={editingProduct}
+              rates={rates}
+              onClose={() => { setEditingProduct(null); refetchProducts(); }}
+              onUpdate={(id, field, value) => {
+                // Optimistic local update so the panel reflects the change immediately
+                setEditingProduct(prev => (prev && prev.id === id ? { ...prev, [field]: value } : prev));
+              }}
             />
           </Suspense>
         </ToastProvider>

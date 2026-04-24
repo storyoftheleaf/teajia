@@ -9,6 +9,7 @@ import { useProductUrl } from '../../hooks/useProductUrl';
 import { useAppStore } from '../../lib/store';
 import type { InventoryItem } from '../../types';
 import { fmtPrice } from '../../utils/formatNumber';
+import { AddToSampleButton } from '../samples/AddToSampleButton';
 
 interface CollectionTabProps {
   inventory: InventoryItem[];
@@ -138,25 +139,41 @@ const ItemCard: React.FC<{
                 </>
               )}
             </div>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                if (isSoldOut) return;
-                if (isTea) {
-                  onAddToCart(item, 50, Math.round(pricePerGram * 50 * 100) / 100);
-                } else {
-                  onAddToCart(item, 1, priceUnit);
-                }
-              }}
-              disabled={isSoldOut}
-              className={`ml-auto text-[10px] uppercase tracking-[0.12em] font-medium py-2 px-4 rounded-sm transition-all min-h-[44px] ${
-                isSoldOut
-                  ? 'bg-tea-accent-sub text-tea-text-sec cursor-not-allowed opacity-60'
-                  : 'bg-tea-gold hover:bg-tea-gold-lt text-tea-bg active:scale-95'
-              }`}
-            >
-              {isSoldOut ? 'Sold Out' : isTea ? 'Add 50g' : 'Add to Cart'}
-            </button>
+            <div className="ml-auto flex items-center gap-2">
+              {isTea && (
+                <AddToSampleButton
+                  item={{
+                    id: item.id,
+                    name: item.name,
+                    chineseName: item.chineseName,
+                    type: item.type,
+                    vendorName: item.supplier || undefined,
+                    productId: item.id,
+                  }}
+                  variant="icon"
+                  size={15}
+                />
+              )}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (isSoldOut) return;
+                  if (isTea) {
+                    onAddToCart(item, 50, Math.round(pricePerGram * 50 * 100) / 100);
+                  } else {
+                    onAddToCart(item, 1, priceUnit);
+                  }
+                }}
+                disabled={isSoldOut}
+                className={`text-[10px] uppercase tracking-[0.12em] font-medium py-2 px-4 rounded-sm transition-all min-h-[44px] ${
+                  isSoldOut
+                    ? 'bg-tea-accent-sub text-tea-text-sec cursor-not-allowed opacity-60'
+                    : 'bg-tea-gold hover:bg-tea-gold-lt text-tea-bg active:scale-95'
+                }`}
+              >
+                {isSoldOut ? 'Sold Out' : isTea ? 'Add 50g' : 'Add to Cart'}
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -173,10 +190,8 @@ export const CollectionTab: React.FC<CollectionTabProps> = ({ inventory, onAddTo
   const toggleFavoriteTea = useAppStore(state => state.toggleFavoriteTea);
 
   const handleTaste = useCallback((item: InventoryItem) => {
-    const url = new URL(window.location.href);
-    if (url.searchParams.has('product')) {
-      url.searchParams.delete('product');
-      window.history.replaceState(null, '', url.toString());
+    if (window.location.pathname.startsWith('/shop/product/')) {
+      window.history.replaceState(null, '', '/shop');
     }
     setViewItem(null);
     setTastingItem(item);

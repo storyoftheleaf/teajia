@@ -9,6 +9,7 @@ import {
   useMarkBriefed,
   useUpdateRSVPNotes,
   useUpdateApprovedGuests,
+  useUpdateGuestListVisibility,
 } from '../../hooks/useEventPolling';
 import { api } from '../../lib/api';
 import EventCountdown from './EventCountdown';
@@ -154,6 +155,7 @@ const GuestManagement: React.FC = () => {
   const markBriefed = useMarkBriefed(magicToken || '');
   const updateNotes = useUpdateRSVPNotes(magicToken || '');
   const updateGuests = useUpdateApprovedGuests(magicToken || '');
+  const updateGuestListVisibility = useUpdateGuestListVisibility(magicToken || '');
 
   // Post-session archive data (gallery, session notes, aggregated tasting
   // impressions). Fetched lazily for the post-event recap view. Returns
@@ -215,7 +217,7 @@ const GuestManagement: React.FC = () => {
           </p>
           <button
             onClick={() => navigate('/')}
-            className="px-8 py-3 bg-tea-gold text-white text-xs uppercase tracking-[0.2em] hover:bg-tea-gold/90 transition-colors"
+            className="px-8 py-3 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.2em] hover:bg-tea-gold/90 transition-colors"
           >
             Return Home
           </button>
@@ -539,7 +541,7 @@ const GuestManagement: React.FC = () => {
 
           {/* Main message */}
           <div className="p-7 bg-tea-surface border border-tea-border rounded-md text-center mb-6">
-            <div className="w-10 h-10 rounded-full bg-tea-border/40 flex items-center justify-center mx-auto mb-5">
+            <div className="w-10 h-10 rounded-full bg-tea-border flex items-center justify-center mx-auto mb-5">
               <span className="text-xl font-serif text-tea-text-sec">茶</span>
             </div>
             <p className="font-serif text-lg text-tea-text mb-4 leading-snug">
@@ -623,7 +625,7 @@ const GuestManagement: React.FC = () => {
                 <button
                   onClick={() => claimSeat.mutate()}
                   disabled={claimSeat.isPending}
-                  className="w-full py-4 bg-tea-gold text-white text-xs uppercase tracking-[0.25em] font-semibold rounded-sm hover:bg-tea-gold/90 disabled:opacity-50 transition-all duration-300 flex items-center justify-center gap-2 shadow-lg shadow-tea-gold/20"
+                  className="w-full py-4 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.25em] font-semibold rounded-sm hover:bg-tea-gold/90 disabled:opacity-50 transition-all duration-300 flex items-center justify-center gap-2 shadow-lg shadow-tea-gold/20"
                 >
                   {claimSeat.isPending ? (
                     <span className="inline-block w-4 h-4 border-2 border-tea-border border-t-tea-gold rounded-full animate-spin" />
@@ -715,7 +717,7 @@ const GuestManagement: React.FC = () => {
           </p>
           <button
             onClick={() => navigate(`/event/${event.slug}`)}
-            className="px-8 py-3 bg-tea-gold text-white text-xs uppercase tracking-[0.2em] hover:bg-tea-gold/90 transition-colors"
+            className="px-8 py-3 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.2em] hover:bg-tea-gold/90 transition-colors"
           >
             View Event
           </button>
@@ -970,6 +972,33 @@ const GuestManagement: React.FC = () => {
               <p className="text-xs text-red-400 mt-1">
                 {(updateNotes.error as Error)?.message || 'Could not save notes'}
               </p>
+            )}
+          </div>
+        )}
+
+        {/* Guest list opt-in toggle */}
+        {status === 'confirmed' && (
+          <div className="mb-8 p-5 bg-tea-surface border border-tea-border rounded-md">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec mb-3">
+              Guest list
+            </p>
+            <label className="flex items-start gap-3 cursor-pointer group">
+              <input
+                type="checkbox"
+                checked={!!(attendee as any).showInGuestList}
+                onChange={(e) => updateGuestListVisibility.mutate(e.target.checked)}
+                disabled={updateGuestListVisibility.isPending}
+                className="mt-0.5 w-4 h-4 rounded-sm border border-tea-border bg-tea-bg accent-tea-gold cursor-pointer"
+              />
+              <span className="text-xs text-tea-text-sec leading-relaxed group-hover:text-tea-text transition-colors">
+                Show my first name to other confirmed guests
+                <span className="block text-[10px] text-tea-text-dim mt-0.5">
+                  {(attendee as any).showInGuestList ? 'Your name is visible to other guests' : 'Only the host can see your name'}
+                </span>
+              </span>
+            </label>
+            {updateGuestListVisibility.isPending && (
+              <span className="text-xs text-tea-text-dim mt-2 block">Updating...</span>
             )}
           </div>
         )}

@@ -84,6 +84,19 @@ export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQ
           </div>
           <span className="num text-sm text-tea-text font-medium">{displayPrice(item.totalPrice)}</span>
         </div>
+        {item.category === 'tea' && (
+          <div className="flex gap-1.5 mt-2">
+            {[25, 50, 100, 250].map((g) => (
+              <button
+                key={g}
+                onClick={() => onUpdateQuantity(item.id, g)}
+                className={`flex-1 text-[10px] num py-1 rounded transition-colors ${item.quantityGrams === g ? 'bg-tea-gold/25 text-tea-gold font-semibold' : 'bg-tea-surface text-tea-text-dim hover:bg-tea-gold/10 hover:text-tea-text-sec'}`}
+              >
+                {g}g
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

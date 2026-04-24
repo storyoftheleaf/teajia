@@ -258,10 +258,8 @@ export const COLORS = {
   },
 } as const;
 
-/** Legacy color aliases — kept during migration */
-export const LEGACY_COLORS = {
-  'tea-paper':    '#ede4d4',
-  'tea-charcoal': '#18130e',
+/** Utility color aliases — not for component className use */
+export const UTIL_COLORS = {
   'tea-green':    '#5A6E5A',
   'tea-moss':     '#2A3430',
   'tea-shadow':   'rgba(0,0,0,0.15)',

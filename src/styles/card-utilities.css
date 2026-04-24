@@ -634,7 +634,8 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 
 .pill:hover {
-  background: rgb(var(--tea-gold-rgb) / 0.05);
+  background: rgb(var(--tea-gold-rgb) / 0.07);
+  color: var(--tea-text-sec);
 }
 
 .pill-active {
@@ -1005,6 +1006,11 @@ input[type="number"]::-webkit-outer-spin-button {
 @keyframes badgePulse {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.2); }
+}
+
+@keyframes equalizerPulse {
+  from { transform: scaleY(0.25); }
+  to   { transform: scaleY(1); }
 }
 
 .cart-badge-pulse {

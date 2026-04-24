@@ -214,6 +214,7 @@ async function fetchWithTimeout(url: string, options: RequestInit = {}): Promise
     if (err.name === 'AbortError') {
       throw new Error('Request timed out. Please try again.');
     }
+    dispatchNetworkError();
     throw err;
   } finally {
     clearTimeout(timeoutId);
@@ -225,6 +226,16 @@ export const SESSION_EXPIRED_EVENT = 'teajia:session-expired';
 
 /** Dispatched when the server rejects the active account (e.g., membership revoked). */
 export const ACCOUNT_MISMATCH_EVENT = 'teajia:account-mismatch';
+
+/** Dispatched on true network failure (offline / DNS / CORS) — not HTTP errors. Debounced to 5s. */
+export const NETWORK_ERROR_EVENT = 'teajia:network-error';
+let _lastNetworkErrorAt = 0;
+function dispatchNetworkError() {
+  const now = Date.now();
+  if (now - _lastNetworkErrorAt < 5000) return;
+  _lastNetworkErrorAt = now;
+  window.dispatchEvent(new CustomEvent(NETWORK_ERROR_EVENT));
+}
 
 async function handleResponse(res: Response) {
   let data: any;
@@ -423,6 +434,14 @@ export const api = {
       });
       return handleResponse(res);
     },
+    deleteAccount: async (password: string): Promise<{ ok: boolean }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/auth/account`, {
+        method: 'DELETE',
+        headers: authHeaders(),
+        body: JSON.stringify({ password }),
+      });
+      return handleResponse(res);
+    },
   },
 
   users: {
@@ -558,6 +577,17 @@ export const api = {
         method: 'DELETE',
         headers: authHeaders(),
       });
+      return handleResponse(res);
+    },
+  },
+
+  analytics: {
+    revenue: async () => {
+      const res = await fetchWithTimeout(`${API_URL}/api/analytics/revenue`, { headers: authHeaders() });
+      return handleResponse(res);
+    },
+    rfm: async () => {
+      const res = await fetchWithTimeout(`${API_URL}/api/customers/rfm`, { headers: authHeaders() });
       return handleResponse(res);
     },
   },
@@ -1271,6 +1301,7 @@ export const api = {
           contact: g.contact || undefined,
         })),
         notes: data.notes || undefined,
+        show_in_guest_list: data.show_in_guest_list ? true : undefined,
       };
       const res = await fetchWithTimeout(`${API_URL}/api/events/${slug}/rsvp`, {
         method: 'POST',
@@ -1548,11 +1579,23 @@ export const api = {
       return res.json();
     },
 
-    list: async () => {
-      const res = await fetchWithTimeout(`${API_URL}/api/inquiries`, {
+    list: async (status?: string) => {
+      const url = new URL(`${API_URL}/api/admin/inquiries`);
+      if (status) url.searchParams.set('status', status);
+      const res = await fetchWithTimeout(url.toString(), {
         headers: authHeaders(),
       });
-      if (!res.ok) return [];
+      if (!res.ok) return { inquiries: [] };
+      return res.json();
+    },
+
+    updateStatus: async (id: string, status: 'new' | 'seen' | 'replied' | 'closed') => {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/inquiries/${encodeURIComponent(id)}/status`, {
+        method: 'PATCH',
+        headers: authHeaders(),
+        body: JSON.stringify({ status }),
+      });
+      if (!res.ok) return null;
       return res.json();
     },
   },

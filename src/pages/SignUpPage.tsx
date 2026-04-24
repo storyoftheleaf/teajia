@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { Icons, SealIcon } from '../components/Icons';
+import { Icons } from '../components/Icons';
+import { LogoEmblem } from '../components/Logos';
 
 const inputClass = "w-full bg-tea-surface border border-tea-border p-3.5 text-tea-text rounded outline-none focus:border-tea-gold focus:ring-0 transition-colors duration-150 placeholder-tea-text-dim font-sans text-sm";
 const inputStyle = { boxShadow: 'inset 0 1px 0 var(--tea-accent-sub), inset 0 -1px 0 var(--tea-accent-sub)' };
 const labelClass = "block text-[10px] font-bold uppercase tracking-[0.2em] text-tea-text-sec mb-2";
+
+type ContactPlatform = 'whatsapp' | 'telegram';
 
 export default function SignUpPage() {
   const navigate = useNavigate();
@@ -17,6 +20,9 @@ export default function SignUpPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [whatOpen, setWhatOpen] = useState(false);
+  const [contactPlatform, setContactPlatform] = useState<ContactPlatform | null>(null);
+  const [contactPhone, setContactPhone] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,6 +31,10 @@ export default function SignUpPage() {
     setLoading(true);
     try {
       await auth.signup(email, password, name, username.trim() || null);
+      if (contactPlatform) {
+        localStorage.setItem('teajia_contact_platform', contactPlatform);
+        if (contactPhone.trim()) localStorage.setItem('teajia_contact_phone', contactPhone.trim());
+      }
       navigate(-1);
     } catch (err: unknown) {
       setError((err as Error)?.message || 'Account creation failed. Please try again.');
@@ -34,13 +44,28 @@ export default function SignUpPage() {
   };
 
   return (
-    <div className="max-w-sm mx-auto pt-12 pb-12">
+    <div className="max-w-sm mx-auto pt-10 pb-nav-gap">
+      {/* Logo */}
       <div className="flex flex-col items-center pb-8">
-        <div className="w-16 h-16 rounded-full bg-tea-gold/10 flex items-center justify-center mb-4">
-          <SealIcon className="w-7 h-7 text-tea-gold" />
-        </div>
+        <LogoEmblem size={64} color="var(--tea-gold)" className="mb-5" />
         <h1 className="font-display text-3xl text-tea-text">Join Teajia</h1>
         <p className="font-body italic text-sm text-tea-text-dim mt-1">Create your account to get started</p>
+
+        {/* What's that? */}
+        <button
+          type="button"
+          onClick={() => setWhatOpen(v => !v)}
+          className="mt-3 flex items-center gap-1 text-[11px] text-tea-text-dim hover:text-tea-text-sec transition-colors"
+        >
+          <Icons.Info className="w-3.5 h-3.5" />
+          What is Teajia?
+          <Icons.ChevronDown className={`w-3 h-3 transition-transform duration-200 ${whatOpen ? 'rotate-180' : ''}`} />
+        </button>
+        {whatOpen && (
+          <div className="mt-2 max-w-xs text-center text-[12px] text-tea-text-sec leading-relaxed px-2 font-body italic">
+            A curated tea platform — sourcing, education, and private sessions. Every order is a personal conversation; every cup has a story.
+          </div>
+        )}
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -107,6 +132,61 @@ export default function SignUpPage() {
           </div>
           <p className="text-[11px] text-tea-text-dim mt-1.5">Must be at least 6 characters</p>
         </div>
+
+        {/* Event & order contact opt-in */}
+        <div className="pt-1 border-t border-tea-border/40">
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-tea-text-sec mt-3 mb-2.5">Contact for events & orders</p>
+          <p className="text-[12px] text-tea-text-dim mb-3 leading-relaxed">
+            Reserve spots at tea events, receive orders and invoices directly to your phone.
+          </p>
+
+          {/* Platform selector */}
+          <div className="flex gap-2 mb-3">
+            {(['whatsapp', 'telegram'] as ContactPlatform[]).map(platform => (
+              <button
+                key={platform}
+                type="button"
+                onClick={() => {
+                  setContactPlatform(prev => prev === platform ? null : platform);
+                  setContactPhone('');
+                }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-[12px] font-medium border transition-colors ${
+                  contactPlatform === platform
+                    ? 'border-tea-gold bg-tea-gold/10 text-tea-text'
+                    : 'border-tea-border bg-tea-surface text-tea-text-sec hover:text-tea-text'
+                }`}
+              >
+                {platform === 'whatsapp' ? (
+                  <Icons.Message className="w-3.5 h-3.5" />
+                ) : (
+                  <Icons.Send className="w-3.5 h-3.5" />
+                )}
+                {platform === 'whatsapp' ? 'WhatsApp' : 'Telegram'}
+              </button>
+            ))}
+            <span className="self-center text-[11px] text-tea-text-dim ml-1">Optional</span>
+          </div>
+
+          {/* Phone input — shown once a platform is selected */}
+          {contactPlatform && (
+            <div>
+              <label className={labelClass}>
+                {contactPlatform === 'whatsapp' ? 'WhatsApp' : 'Telegram'} number
+              </label>
+              <input
+                type="tel"
+                value={contactPhone}
+                onChange={e => setContactPhone(e.target.value)}
+                className={inputClass}
+                style={inputStyle}
+                placeholder="+1 234 567 8900"
+                autoFocus
+              />
+              <p className="text-[11px] text-tea-text-dim mt-1.5">Include country code, e.g. +1, +44, +86</p>
+            </div>
+          )}
+        </div>
+
         {error && (
           <div className="flex items-start gap-2 p-3 bg-red-500/5 border border-red-500/20 text-red-600 text-sm">
             <Icons.AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />

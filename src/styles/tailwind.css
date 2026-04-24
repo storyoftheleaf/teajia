@@ -73,9 +73,6 @@ nav[aria-label="Admin navigation"] * {
   --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
   --font-mono: 'IBM Plex Mono', 'Menlo', 'Courier New', monospace;
 
-  /* Legacy aliases (for CSS that still uses old names) */
-  --color-tea-seal: var(--tea-gold);
-  --color-tea-seal-dark: var(--tea-gold);
 }
 
 /* Light mode */
@@ -99,6 +96,29 @@ nav[aria-label="Admin navigation"] * {
   --tea-gold-lt-rgb: 122 92 46;
   --tea-border: rgba(107,82,44,0.2);
   --tea-accent-sub: rgba(128,101,56,0.07);
+}
+
+/* Force dark tokens on any nested .dark wrapper (e.g. Journal — always dark) */
+:root.light .dark, .light .dark {
+  color-scheme: dark;
+  --tea-bg: #18130e;
+  --tea-bg-rgb: 24 19 14;
+  --tea-surface: #28211a;
+  --tea-surface-rgb: 40 33 26;
+  --tea-elevated: #3a3126;
+  --tea-elevated-rgb: 58 49 38;
+  --tea-text: #ede4d4;
+  --tea-text-rgb: 237 228 212;
+  --tea-text-sec: #b5a892;
+  --tea-text-sec-rgb: 181 168 146;
+  --tea-text-dim: #917a55;
+  --tea-text-dim-rgb: 145 122 85;
+  --tea-gold: #a8874d;
+  --tea-gold-rgb: 168 135 77;
+  --tea-gold-lt: #bfa06a;
+  --tea-gold-lt-rgb: 191 160 106;
+  --tea-border: rgba(139,110,68,0.28);
+  --tea-accent-sub: rgba(168,135,77,0.1);
 }
 
 /* ============================================

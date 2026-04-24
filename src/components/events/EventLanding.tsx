@@ -228,7 +228,7 @@ const EventLanding: React.FC = () => {
           </p>
           <button
             onClick={() => navigate('/')}
-            className="px-8 py-3 bg-tea-gold text-white text-xs uppercase tracking-[0.2em] hover:bg-tea-gold/90 transition-colors"
+            className="px-8 py-3 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.2em] hover:bg-tea-gold/90 transition-colors"
           >
             Return Home
           </button>
@@ -320,7 +320,7 @@ const EventLanding: React.FC = () => {
         {isAdmin && (
           <button
             onClick={() => navigate(`/admin/events/${event.id}`)}
-            className="absolute top-3 right-4 z-10 flex items-center gap-1.5 px-3 h-9 rounded-full text-[11px] font-medium text-white"
+            className="absolute top-3 right-4 z-10 flex items-center gap-1.5 px-3 h-9 rounded-full text-[11px] font-medium text-tea-bg"
             style={{ background: 'rgba(24,19,14,0.6)', backdropFilter: 'blur(8px)' }}
           >
             <Edit3 size={12} /> Edit
@@ -388,19 +388,26 @@ const EventLanding: React.FC = () => {
             </div>
           )}
 
-          {/* Social proof — confirmed seat count.
-              TODO: The public endpoint (/api/events/:slug/public) returns only a count (confirmed_count),
-              not individual attendee names. To show first names here, the endpoint would need a JOIN on
-              event_attendees with status='confirmed', returning first-name-only strings (never full names
-              or contact info). Until that is added, we show the count only. */}
-          {confirmedCount > 0 && !isCompleted && (
-            <div className="flex items-center justify-center gap-2 text-tea-text-sec mb-6">
-              <Users className="w-3.5 h-3.5" />
-              <span className="text-xs">
-                {confirmedCount} {confirmedCount === 1 ? 'seat' : 'seats'} confirmed
-              </span>
-            </div>
-          )}
+          {/* Confirmed seat count + opt-in guest names */}
+          {confirmedCount > 0 && !isCompleted && (() => {
+            const confirmedNames: string[] = (ev as any).confirmed_names ?? [];
+            const extra = confirmedCount - confirmedNames.length;
+            return (
+              <div className="flex flex-col items-center gap-1 mb-6">
+                <div className="flex items-center gap-2 text-tea-text-sec">
+                  <Users className="w-3.5 h-3.5" />
+                  <span className="text-xs">
+                    {confirmedCount} {confirmedCount === 1 ? 'seat' : 'seats'} confirmed
+                  </span>
+                </div>
+                {confirmedNames.length > 0 && (
+                  <p className="text-[10px] text-tea-text-dim text-center">
+                    {confirmedNames.join(', ')}{extra > 0 ? ` +${extra} more` : ''}
+                  </p>
+                )}
+              </div>
+            );
+          })()}
 
           {/* Countdown */}
           {!isCompleted && !isCancelled && (
@@ -475,7 +482,7 @@ const EventLanding: React.FC = () => {
               <div className="space-y-2.5">
                 <button
                   onClick={() => setShowRSVP(true)}
-                  className="w-full py-[15px] bg-tea-gold text-white text-[11px] uppercase tracking-[0.25em] font-semibold rounded-sm hover:bg-tea-gold/90 transition-all duration-300 shadow-[0_6px_20px_rgba(184,146,78,0.3)]"
+                  className="w-full py-[15px] bg-tea-gold text-tea-bg text-[11px] uppercase tracking-[0.25em] font-semibold rounded-sm hover:bg-tea-gold/90 transition-all duration-300 shadow-[0_6px_20px_rgba(184,146,78,0.3)]"
                 >
                   Request Your Seat
                 </button>

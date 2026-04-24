@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import {
   Check, Leaf, Sparkles, Mic,
   Heart, ThumbsUp, Minus, ThumbsDown, ShoppingCart,
-  FlaskConical, Thermometer, Timer,
+  Thermometer, Timer,
 } from 'lucide-react';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import type { TastingData, CustomerTasting } from '../../types';
@@ -16,6 +16,8 @@ import { syncNotes } from '../../lib/notesSync';
 import { api, hasToken } from '../../lib/api';
 import { resolveTermLabel, resolveTermIcon } from '../../data/tastingTaxonomy';
 import { VoiceNoteField } from './VoiceNoteField';
+import { useScrollLock } from '../../hooks/useScrollLock';
+import { SampleIcon } from '../Icons';
 
 export interface TastingItem {
   id: string;
@@ -114,8 +116,15 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
 
   const [tastingData, setTastingData] = useState<TastingData>(initialData ?? lastTasting?.tasting ?? {});
   const [isContinuing, setIsContinuing] = useState(!!lastTasting);
-  const [simplified, setSimplified] = useState(false);
   const [phase, setPhase] = useState<'tasting' | 'saved'>('tasting');
+
+  useScrollLock(true);
+
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [onClose]);
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [savedEntryId, setSavedEntryId] = useState<string | null>(null);
 
@@ -324,12 +333,13 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
   }, [wouldBuy, savedEntryId, updateTasting, onSave, adminMode, tastingData, verdict]);
 
   return createPortal(
+    <div className="fixed inset-0 z-priority lg:bg-black/75 lg:backdrop-blur-sm lg:flex lg:items-center lg:justify-center">
     <motion.div
       initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 24 }}
-      transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
-      className="fixed inset-0 sidebar-inset z-priority bg-tea-bg flex flex-col"
+      transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
+      className="fixed inset-0 bg-tea-bg flex flex-col lg:relative lg:inset-auto lg:w-[540px] lg:h-[min(94vh,960px)] lg:rounded-lg lg:border lg:border-tea-border lg:overflow-hidden"
       style={{
         paddingLeft: 'env(safe-area-inset-left, 0px)',
         paddingRight: 'env(safe-area-inset-right, 0px)',
@@ -337,21 +347,15 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
     >
       {/* Header */}
       <div
-        className="flex items-center justify-between px-4 py-3 border-b border-tea-border shrink-0"
+        className="relative flex items-center justify-center px-12 py-3 border-b border-tea-border shrink-0"
         style={{ paddingTop: 'max(12px, env(safe-area-inset-top, 12px))' }}
       >
-        <div className="flex items-center gap-3 min-w-0">
-          <button
-            onClick={onClose}
-            className="pill text-xs text-tea-text-sec shrink-0"
-            style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.06em' }}
-          >
-            Cancel
-          </button>
+        {/* Centered title */}
+        <div className="flex items-center gap-2.5 min-w-0">
           {item.image && (
-            <img src={item.image} alt="" className="w-8 h-8 rounded-md object-cover shrink-0" loading="lazy" />
+            <img src={item.image} alt="" className="w-7 h-7 rounded object-cover shrink-0 opacity-80" loading="lazy" />
           )}
-          <div className="min-w-0">
+          <div className="min-w-0 text-center">
             <div
               className="text-sm font-medium text-tea-text truncate"
               style={{ fontFamily: 'var(--font-display)' }}
@@ -359,19 +363,22 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
               {item.name}
             </div>
             {item.type && (
-              <div className="text-[10px] text-tea-text-dim">{item.type}</div>
+              <div className="text-[10px] text-tea-text-dim tracking-wide">{item.type}</div>
             )}
           </div>
         </div>
 
+        {/* X close — top right */}
         <button
-          type="button"
-          onClick={() => setSimplified(p => !p)}
-          className="text-[11px] text-tea-text-sec hover:text-tea-text transition-colors shrink-0 ml-3"
-          style={{ fontFamily: 'var(--font-body)' }}
-          title={simplified ? 'Show all options' : 'Feeling lost? Reduce the options'}
+          onClick={onClose}
+          className="absolute right-3 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center rounded text-tea-text-sec hover:text-tea-text transition-colors"
+          aria-label="Close"
         >
-          {simplified ? 'full view' : 'simplify'}
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
         </button>
       </div>
 
@@ -412,7 +419,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                   className="w-full flex items-center gap-2 px-4 py-2 text-[11px] text-tea-text-sec hover:text-tea-text transition-colors"
                   style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.06em' }}
                 >
-                  <FlaskConical size={12} className="shrink-0 opacity-50" />
+                  <SampleIcon className="w-3 h-3 shrink-0 opacity-50" />
                   <span className="uppercase tracking-[0.1em]">
                     {tastingData.brewingVessel || tastingData.brewingTemp || tastingData.brewingTime
                       ? [tastingData.brewingVessel, tastingData.brewingTemp ? `${tastingData.brewingTemp}°C` : null, tastingData.brewingTime].filter(Boolean).join(' · ')
@@ -536,7 +543,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                 activeSectionId={activeSectionId}
                 onSectionChange={setActiveSectionId}
                 onCountsChange={setSectionCounts}
-                simplified={simplified}
+                simplified={false}
                 teaType={item.type}
               />
             </div>
@@ -798,7 +805,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
               {/* Brewing context summary */}
               {(tastingData.brewingVessel || tastingData.brewingTemp || tastingData.brewingTime) && (
                 <div className="mt-2 flex items-center justify-center gap-2 text-[11px] text-tea-text-dim" style={{ fontFamily: 'var(--font-body)' }}>
-                  <FlaskConical size={11} className="opacity-50" />
+                  <SampleIcon className="w-[11px] h-[11px] opacity-50" />
                   {[tastingData.brewingVessel, tastingData.brewingTemp ? `${tastingData.brewingTemp}°C` : null, tastingData.brewingTime].filter(Boolean).join(' · ')}
                 </div>
               )}
@@ -996,7 +1003,8 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
           </motion.div>
         )}
       </AnimatePresence>
-    </motion.div>,
+    </motion.div>
+    </div>,
     document.body
   );
 };

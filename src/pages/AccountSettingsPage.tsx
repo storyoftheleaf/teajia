@@ -49,6 +49,11 @@ export default function AccountSettingsPage() {
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [passwordSaved, setPasswordSaved] = useState(false);
 
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteError, setDeleteError] = useState('');
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
   const handleEditProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setProfileError('');
@@ -79,6 +84,23 @@ export default function AccountSettingsPage() {
       setProfileError((err as Error)?.message || 'Failed to update profile.');
     } finally {
       setProfileLoading(false);
+    }
+  };
+
+  const handleDeleteAccount = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setDeleteError('');
+    if (deleteConfirmText !== 'DELETE') { setDeleteError('Type DELETE to confirm.'); return; }
+    if (!deletePassword) { setDeleteError('Password is required.'); return; }
+    setDeleteLoading(true);
+    try {
+      await api.auth.deleteAccount(deletePassword);
+      auth.logout();
+      navigate('/');
+    } catch (err: unknown) {
+      setDeleteError((err as Error)?.message || 'Failed to delete account.');
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -241,6 +263,55 @@ export default function AccountSettingsPage() {
           <FormError error={passwordError} />
           {passwordSaved && <p className="text-sm text-green-600">Password updated.</p>}
           <SubmitButton label="Update Password" loading={passwordLoading} />
+        </form>
+      </section>
+
+      <div className="border-t border-tea-border" />
+
+      {/* Danger Zone */}
+      <section>
+        <div className="flex flex-col items-center pb-8">
+          <div className="w-16 h-16 rounded-full bg-red-500/8 flex items-center justify-center mb-4">
+            <Icons.AlertCircle className="w-7 h-7 text-red-500" />
+          </div>
+          <h2 className="font-display text-3xl text-tea-text">Delete Account</h2>
+          <p className="font-body italic text-sm text-tea-text-dim mt-1">This action is permanent and cannot be undone</p>
+        </div>
+        <form onSubmit={handleDeleteAccount} className="space-y-4">
+          <div className="p-4 bg-red-500/5 border border-red-500/15 text-sm text-tea-text-sec space-y-1">
+            <p>Deleting your account will permanently remove your profile, order history, and tasting journal. This cannot be reversed.</p>
+          </div>
+          <div>
+            <label className={labelClass}>Type DELETE to confirm</label>
+            <input
+              type="text"
+              value={deleteConfirmText}
+              onChange={e => setDeleteConfirmText(e.target.value)}
+              className={inputClass}
+              style={inputStyle}
+              placeholder="DELETE"
+              autoComplete="off"
+            />
+          </div>
+          <div>
+            <label className={labelClass}>Your password</label>
+            <input
+              type="password"
+              value={deletePassword}
+              onChange={e => setDeletePassword(e.target.value)}
+              className={inputClass}
+              style={inputStyle}
+              required
+            />
+          </div>
+          <FormError error={deleteError} />
+          <button
+            type="submit"
+            disabled={deleteLoading || deleteConfirmText !== 'DELETE'}
+            className="w-full py-2.5 bg-red-600 text-tea-bg font-sans font-medium rounded hover:bg-red-700 transition-colors duration-150 disabled:opacity-40 flex justify-center items-center gap-2 mt-2"
+          >
+            {deleteLoading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : 'Permanently Delete Account'}
+          </button>
         </form>
       </section>
     </div>

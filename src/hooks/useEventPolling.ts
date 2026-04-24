@@ -93,6 +93,7 @@ function mapAttendee(a: any): EventAttendee {
     cancellationNote: a.cancellation_note || undefined,
     denialMessage: a.denial_message || undefined,
     source: a.source || undefined,
+    showInGuestList: a.show_in_guest_list != null ? !!a.show_in_guest_list : undefined,
     // Computed from customer record
     sessionsAttended: a.sessions_attended != null ? Number(a.sessions_attended) : undefined,
     lastAttended: a.last_attended || undefined,
@@ -248,6 +249,18 @@ export function useUpdateApprovedGuests(token: string) {
   return useMutation({
     mutationFn: ({ plusOne, plusOneName }: { plusOne: boolean; plusOneName?: string }) =>
       api.rsvp.update(token, { plus_one: plusOne ? 1 : 0, plus_one_name: plusOneName }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['guest-management', token] });
+    },
+  });
+}
+
+/** Toggle show_in_guest_list — lets confirmed guests opt in/out of the public name list. */
+export function useUpdateGuestListVisibility(token: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (show: boolean) =>
+      api.rsvp.update(token, { show_in_guest_list: show }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['guest-management', token] });
     },
