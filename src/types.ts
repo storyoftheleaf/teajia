@@ -455,9 +455,9 @@ export interface Resource {
 }
 
 // Navigation Types
-export type Section = 'HOME' | 'MAGAZINE' | 'LEARN' | 'SHOP' | 'OFFERINGS' | 'EVENTS' | 'ACCOUNT' | 'ABOUT';
-export type MainNavSection = Exclude<Section, 'HOME' | 'ACCOUNT'>;
-export type UtilitySection = Extract<Section, 'ACCOUNT'>;
+export type Section = 'HOME' | 'MAGAZINE' | 'LEARN' | 'SHOP' | 'OFFERINGS' | 'EVENTS' | 'YOUR_TABLE' | 'ABOUT';
+export type MainNavSection = Exclude<Section, 'HOME' | 'YOUR_TABLE'>;
+export type UtilitySection = Extract<Section, 'YOUR_TABLE'>;
 
 // ─── Multi-Account (Multi-Store) Types ───────────────────────────────────────
 // A Teajia "account" is a tea house / store. Users belong to one or more

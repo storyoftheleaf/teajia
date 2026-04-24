@@ -288,8 +288,8 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
             }}
             className="w-8 flex-shrink-0 h-full flex flex-col items-center justify-center gap-px group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none relative"
             style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', touchAction: 'manipulation' }}
-            title="Account"
-            aria-label="Account"
+            title="Your Table"
+            aria-label="Your Table"
           >
             <svg
               viewBox="0 0 24 24"

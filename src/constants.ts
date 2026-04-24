@@ -22,7 +22,7 @@ export const MAIN_NAV_ITEMS = [
 ] as const;
 
 export const UTILITY_NAV = {
-  ACCOUNT: { id: 'ACCOUNT', label: 'Account', icon: 'User', position: 'topRight' },
+  YOUR_TABLE: { id: 'YOUR_TABLE', label: 'Your Table', icon: 'User', position: 'topRight' },
 } as const;
 
 export const CENTER_NAV = {

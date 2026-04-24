@@ -170,7 +170,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   const browseItems: NavItem[] = [
     { id: 'MAGAZINE',  label: 'Read',    icon: <Icons.Magazine  className="w-[18px] h-[18px]" strokeWidth={1.75} />, section: 'MAGAZINE'  as Section },
     { id: 'LEARN',     label: 'Learn',   icon: <Icons.School    className="w-[18px] h-[18px]" strokeWidth={1.75} />, section: 'LEARN'     as Section },
-    { id: 'OFFERINGS', label: 'Consult', icon: <Icons.Sparkles  className="w-[18px] h-[18px]" strokeWidth={1.75} />, section: 'OFFERINGS' as Section },
+    { id: 'OFFERINGS', label: 'Advise',  icon: <Icons.Sparkles  className="w-[18px] h-[18px]" strokeWidth={1.75} />, section: 'OFFERINGS' as Section },
     { id: 'SHOP',      label: 'Shop',    icon: <Icons.Bag       className="w-[18px] h-[18px]" strokeWidth={1.75} />, section: 'SHOP'      as Section },
   ];
 
@@ -218,7 +218,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   // section would hide the highlighted child after internal navigation.
 
   const userName = auth.isAuthenticated
-    ? (auth.user?.name || auth.user?.email?.split('@')[0] || 'Account')
+    ? (auth.user?.name || auth.user?.email?.split('@')[0] || 'Signed in')
     : null;
   const locationLine = activeAccount?.location_city || activeAccount?.location_country || null;
 
@@ -311,11 +311,11 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
             className={`relative w-full flex items-center min-h-[48px] ${
               collapsed ? 'justify-center px-2' : 'gap-3 px-5'
             } py-3 border-b border-tea-border transition-colors duration-200 group ${
-              activeSection === 'ACCOUNT' ? 'bg-tea-gold/10' : 'hover:bg-tea-gold/6'
+              activeSection === 'YOUR_TABLE' ? 'bg-tea-gold/10' : 'hover:bg-tea-gold/6'
             }`}
-            title={userName ?? 'Sign in'}
+            title="Your Table"
           >
-            {activeSection === 'ACCOUNT' && (
+            {activeSection === 'YOUR_TABLE' && (
               <motion.div
                 layoutId="account-indicator"
                 className="absolute left-0 inset-y-0 w-[2px] bg-tea-gold"
@@ -325,7 +325,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
             {collapsed && (
               <Icons.User
                 className={`shrink-0 w-[18px] h-[18px] transition-colors duration-200 ${
-                  activeSection === 'ACCOUNT' ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
+                  activeSection === 'YOUR_TABLE' ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
                 }`}
                 strokeWidth={1.75}
               />
@@ -334,20 +334,18 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
               <div className="min-w-0 flex-1 text-left">
                 <span
                   className={`text-sm block leading-tight transition-colors duration-200 ${
-                    activeSection === 'ACCOUNT' ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
+                    activeSection === 'YOUR_TABLE' ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
                   }`}
                   style={{ fontFamily: 'var(--font-display)', fontWeight: 400, letterSpacing: '0.03em' }}
                 >
+                  Your Table
+                </span>
+                <span className="text-[11px] text-tea-text-sec leading-none block mt-0.5 tracking-[0.04em]">
                   {userName ?? 'Sign in'}
                 </span>
                 {locationLine && (
-                  <span className="text-[11px] text-tea-text-sec/70 leading-none block mt-0.5 tracking-[0.04em]">
+                  <span className="text-[11px] text-tea-text-sec leading-none block mt-0.5 tracking-[0.04em]">
                     ◉ {locationLine}
-                  </span>
-                )}
-                {!auth.isAuthenticated && (
-                  <span className="text-[11px] text-tea-text-sec/60 leading-none block mt-0.5 tracking-[0.04em]">
-                    journal · collection · compass
                   </span>
                 )}
               </div>

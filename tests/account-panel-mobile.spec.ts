@@ -51,7 +51,7 @@ async function goto(page: Page, route: string) {
 }
 
 async function openPanel(page: Page) {
-  await page.locator('button[aria-label="Account"]').click();
+  await page.locator('button[aria-label="Your Table"]').click();
   // Wait for panel backdrop to appear
   await page.waitForSelector('.fixed.inset-0', { timeout: 4000 }).catch(() => {});
   await page.waitForTimeout(500);
