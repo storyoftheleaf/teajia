@@ -114,7 +114,6 @@ import { SectionSkeleton } from './components/shared/SectionSkeleton';
 import { PullToRefreshIndicator } from './components/shared/PullToRefreshIndicator';
 import { NetworkStatus } from './components/shared/NetworkStatus';
 import { SessionExpiredNotice } from './components/shared/SessionExpiredNotice';
-import { NetworkErrorNotice } from './components/shared/NetworkErrorNotice';
 import { PreloadIndicator } from './components/shared/PreloadIndicator';
 import { CartFlyAnimation } from './components/shared/CartFlyAnimation';
 import { CartToast } from './components/shared/CartToast';
@@ -920,7 +919,6 @@ export default function App() {
             <InventoryProvider>
                 <NetworkStatus />
                 <SessionExpiredNotice />
-                <NetworkErrorNotice />
                 <AppContent />
             </InventoryProvider>
           </StoryProvider>

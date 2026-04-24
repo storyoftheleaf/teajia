@@ -40,6 +40,7 @@ interface ShopProps {
   isError?: boolean;
   error?: Error | null;
   onRetry?: () => void;
+  initialProductId?: string;
 }
 
 const TABS = [

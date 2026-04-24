@@ -186,7 +186,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
   }, []);
 
   // Sync modal state with URL (/shop/product/<id>) for shareability and back-button support
-  const { closeWithHistory, navigateWithinModal } = useProductUrl(inventory, viewItem, setViewItem, initialProductId);
+  const { closeWithHistory, navigateWithinModal } = useProductUrl(inventory, viewItem, setViewItem);
 
 
   // Filter Logic
