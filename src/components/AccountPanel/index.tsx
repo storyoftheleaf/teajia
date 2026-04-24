@@ -20,6 +20,10 @@ import type { TeaEvent } from '../../types/events';
 
 import type { PanelView } from './types';
 import { TastingJournalView } from './TastingJournalView';
+import { OperatorView } from './OperatorView';
+import { MemberView } from './MemberView';
+import { ReaderView } from './ReaderView';
+import { StaffView } from './StaffView';
 
 interface AccountPanelProps {
   onClose: () => void;
@@ -358,15 +362,6 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
     } catch {}
     return null;
   }, []);
-
-  // Taste profile completion (0–100)
-  const tasteProfilePct = useMemo(() => {
-    let score = 0;
-    if (tastingJournal.length > 0) score += 40;
-    if (favoriteTeas.length > 0) score += 20;
-    if (compassProfile) score += 40;
-    return score;
-  }, [tastingJournal.length, favoriteTeas.length, compassProfile]);
 
   // Animate in
   useEffect(() => {
@@ -813,45 +808,36 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
           onChange={handleAvatarFile}
         />
 
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 py-2.5 border-b border-tea-border bg-tea-surface/50">
-          {/* Left slot: X (main) or ← Back (sub-view) */}
-          {isSubView ? (
-            <button
-              onClick={() => { setPanelView('main'); resetForm(); setLocationSearch(''); }}
-              className="min-w-[36px] min-h-[36px] flex items-center justify-center p-1.5"
-            >
-              <Icons.Back className="w-5 h-5 text-tea-text-sec hover:text-tea-text transition-colors" />
-            </button>
-          ) : (
-            <button
-              onClick={onClose}
-              className="min-w-[36px] min-h-[36px] flex items-center justify-center p-1.5"
-            >
-              <Icons.Close className="w-5 h-5 text-tea-text-sec hover:text-tea-text transition-colors" />
-            </button>
-          )}
-          <h2 className="text-sm font-serif text-tea-text tracking-wide">{headerTitle}</h2>
-          {/* Right slot: theme toggle (main) or X (sub-view) */}
-          {isSubView ? (
-            <button
-              onClick={onClose}
-              className="min-w-[36px] min-h-[36px] flex items-center justify-center p-1.5"
-            >
-              <Icons.Close className="w-5 h-5 text-tea-text-sec hover:text-tea-text transition-colors" />
-            </button>
-          ) : (
-            <button
-              onClick={(e) => toggleTheme(e)}
-              className="min-w-[36px] min-h-[36px] flex items-center justify-center p-1.5 hover:bg-tea-gold/10 rounded-full transition-colors"
-              title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-              aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-            >
-              {theme === 'dark'
-                ? <Sun className="w-4.5 h-4.5 text-tea-gold" />
-                : <Moon className="w-4.5 h-4.5 text-tea-gold" />}
-            </button>
-          )}
+        {/* Header — Close-X always top-left; Back lives inline with title when in a sub-view */}
+        <div className="flex items-center gap-2 px-4 py-2.5 border-b border-tea-border bg-tea-surface/50">
+          <button
+            onClick={onClose}
+            className="min-w-[36px] min-h-[36px] flex items-center justify-center p-1.5 shrink-0"
+            aria-label="Close"
+          >
+            <Icons.Close className="w-5 h-5 text-tea-text-sec hover:text-tea-text transition-colors" />
+          </button>
+          <div className="flex-1 min-w-0 flex items-center justify-center gap-2">
+            {isSubView && (
+              <button
+                onClick={() => { setPanelView('main'); resetForm(); setLocationSearch(''); }}
+                className="text-[11px] text-tea-text-sec hover:text-tea-text transition-colors uppercase tracking-[0.15em] font-medium"
+              >
+                ← Back
+              </button>
+            )}
+            <h2 className="text-sm font-serif text-tea-text tracking-wide truncate">{headerTitle}</h2>
+          </div>
+          <button
+            onClick={(e) => toggleTheme(e)}
+            className="min-w-[36px] min-h-[36px] flex items-center justify-center p-1.5 hover:bg-tea-gold/10 rounded-full transition-colors shrink-0"
+            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
+            {theme === 'dark'
+              ? <Sun className="w-4.5 h-4.5 text-tea-gold" />
+              : <Moon className="w-4.5 h-4.5 text-tea-gold" />}
+          </button>
         </div>
 
         {/* Content */}
@@ -1154,390 +1140,75 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
             {/* ══════════════════════════════════════════════════════════════
                 MAIN VIEW — three zones
             ══════════════════════════════════════════════════════════════ */}
-            {panelView === 'main' && (
-              <div className="animate-[fadeIn_0.3s_ease-out]">
-
-                {/* ══ ZONE 1 — Right Now ══════════════════════════════════ */}
-                <div className="bg-tea-surface/40 px-6 py-5">
-                  {nextEventWithin24h && nextEvent && (
-                    <button
-                      onClick={() => setPanelView('events')}
-                      className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-tea-gold/10 border border-tea-gold/40 text-left hover:bg-tea-gold/15 transition-colors mb-4"
-                    >
-                      <div className="w-2 h-2 rounded-full bg-tea-gold shrink-0 animate-pulse" />
-                      <div className="flex-1 min-w-0">
-                        <div className="text-[11px] uppercase tracking-[0.15em] text-tea-gold font-medium">Session today</div>
-                        <div className="text-[12px] text-tea-text font-serif truncate mt-0.5">{nextEvent.title}</div>
-                      </div>
-                      <Icons.ChevronRight className="w-3.5 h-3.5 text-tea-gold/60 shrink-0" />
-                    </button>
-                  )}
-
-                  {/* Owner/Admin — 4 core items; secondary ops live in Zone 3 */}
-                  {(membershipRole === 'owner' || auth.isAdmin) && (
-                    <div className="grid grid-cols-2 gap-2">
-                      <QuickAction icon={<Receipt size={18} />} label="+ Invoice" gold onClick={() => { onClose(); navigate('/admin/activity?qi=1'); }} />
-                      <QuickAction icon={<Clock size={18} />} label="Pending" badge={pendingCount} onClick={() => { onClose(); navigate('/admin/activity'); }} />
-                      <QuickAction icon={<CalendarCheck size={18} />} label="Today" badge={todayEventCount || undefined} onClick={() => { onClose(); navigate('/admin/events'); }} />
-                      <QuickAction icon={<AlertTriangle size={18} />} label="Stock Alerts" onClick={() => { onClose(); navigate('/admin/inventory'); }} />
-                    </div>
-                  )}
-
-                  {/* Staff */}
-                  {membershipRole === 'staff' && (
-                    <div className="grid grid-cols-2 gap-2">
-                      <QuickAction icon={<Receipt size={18} />} label="+ Invoice" gold onClick={() => { onClose(); navigate('/admin/activity?qi=1'); }} />
-                      <QuickAction icon={<UserCheck size={18} />} label="Check In" onClick={() => { onClose(); navigate('/admin/events'); }} />
-                      <QuickAction icon={<CalendarCheck size={18} />} label="Today" badge={todayEventCount || undefined} onClick={() => { onClose(); navigate('/admin/events'); }} />
-                      <QuickAction icon={<Zap size={18} />} label="Capture" onClick={() => { onClose(); navigate('/admin/capture'); }} />
-                    </div>
-                  )}
-
-                  {/* Member */}
-                  {auth.isAuthenticated && !isStaff && (
-                    <div className="grid grid-cols-2 gap-2">
-                      <QuickAction icon={<Icons.Sparkles className="w-[18px] h-[18px]" />} label="Journal" onClick={() => setPanelView('journal')} />
-                      <QuickAction icon={<Icons.Heart className="w-[18px] h-[18px]" />} label="Collection" onClick={() => { onClose(); navigate('/account/collection'); }} />
-                      <QuickAction icon={<Calendar size={18} />} label="Book a Session" onClick={() => setPanelView('events')} />
-                      <QuickAction icon={<Compass size={18} />} label="Compass" onClick={() => { onClose(); navigate('/compass'); }} />
-                    </div>
-                  )}
-
-                  {/* Guest */}
-                  {!auth.isAuthenticated && (
-                    <div className="grid grid-cols-2 gap-2">
-                      <QuickAction icon={<LogIn size={18} />} label="Sign In" gold onClick={() => setPanelView('signin')} />
-                      <QuickAction icon={<Icons.Search className="w-[18px] h-[18px]" />} label="Browse Teas" onClick={() => { onClose(); navigate('/shop'); }} />
-                      <QuickAction icon={<Calendar size={18} />} label="Book a Session" onClick={() => setPanelView('events')} />
-                    </div>
-                  )}
-                </div>
-
-                {/* ══ ZONE 2 — You ════════════════════════════════════════ */}
-                <div className="bg-tea-bg px-6 py-5 border-t border-tea-border space-y-4">
-
-                  {/* Identity */}
-                  {auth.isAuthenticated && auth.user ? (
-                    <div className="flex items-center gap-3">
-                      <button
-                        onClick={handleAvatarClick}
-                        className="w-12 h-12 rounded-full bg-tea-gold/10 flex items-center justify-center border border-tea-border shrink-0 overflow-hidden relative group"
-                        title="Tap to change photo"
-                      >
-                        {avatarDataUrl ? (
-                          <img src={avatarDataUrl} alt="Avatar" className="w-full h-full object-cover" loading="lazy" />
-                        ) : (
-                          <span className="text-base font-serif text-tea-gold font-medium">
-                            {getInitials(auth.user.name || auth.user.email)}
-                          </span>
-                        )}
-                        <div className="absolute inset-0 bg-tea-text/0 group-hover:bg-tea-text/20 transition-colors flex items-center justify-center">
-                          <Icons.Camera className="w-4 h-4 text-tea-bg opacity-0 group-hover:opacity-100 transition-opacity" />
-                        </div>
-                      </button>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="font-serif text-sm text-tea-text truncate">
-                            {auth.user.name || 'Tea Enthusiast'}
-                          </h3>
-                          {roleBadgeLabel && (
-                            <span className="inline-flex items-center gap-0.5 px-1.5 py-px text-[8px] uppercase tracking-[0.1em] text-tea-gold bg-tea-gold/10 rounded shrink-0">
-                              {(membershipRole === 'owner' || platformRole) && <SealIcon className="w-2.5 h-2.5" />}
-                              {roleBadgeLabel}
-                            </span>
-                          )}
-                        </div>
-                        <span className="text-[11px] text-tea-text-sec truncate block">{auth.user.email}</span>
-                        {tasteProfilePct < 100 && (
-                          <div className="mt-1.5 flex items-center gap-2">
-                            <div className="flex-1 h-0.5 bg-tea-border rounded-full overflow-hidden">
-                              <div
-                                className="h-full bg-tea-gold/60 rounded-full transition-all duration-500"
-                                style={{ width: `${tasteProfilePct}%` }}
-                              />
-                            </div>
-                            <button
-                              onClick={() => { onClose(); navigate('/compass'); }}
-                              className="text-[9px] uppercase tracking-[0.15em] text-tea-text-dim hover:text-tea-gold transition-colors whitespace-nowrap"
-                            >
-                              Complete profile
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-full bg-tea-elevated/50 flex items-center justify-center shrink-0">
-                        <Icons.User className="w-5 h-5 text-tea-text/30" />
-                      </div>
-                      <div className="min-w-0">
-                        <h3 className="font-serif text-sm text-tea-text">Guest</h3>
-                        <p className="text-[11px] text-tea-text-dim mt-0.5 leading-relaxed">Sign in to track teas, journal sessions, and build your collection.</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Location card — no duplicate action strip */}
-                  {auth.isAuthenticated && memberships.length > 0 && (
-                    <div className="space-y-2">
-                      <ActiveLocationCard showSwitchButton={memberships.length >= 4} hideActions />
-                      {memberships.length >= 2 && memberships.length <= 3 && inactiveMemberships.map(m => (
-                        <InactiveLocationCard key={m.account_id} membership={m} />
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Your Practice */}
-                  <div className="rounded-xl border border-tea-border overflow-hidden">
-                    <CardSectionLabel>Your Practice</CardSectionLabel>
-                    <Item
-                      icon={<Icons.MapPin className="w-4 h-4" />}
-                      label="Tea Compass"
-                      description={compassProfile ? `Profile: ${compassProfile}` : "Discover teas matched to your taste"}
-                      onClick={() => { onClose(); navigate(isStaff ? '/admin/compass' : '/compass'); }}
-                      gold={!!compassProfile}
-                    />
-                    {auth.isAuthenticated ? (
-                      <>
-                        <Item
-                          icon={<Icons.Sparkles className="w-4 h-4" />}
-                          label="Tasting Journal"
-                          description={tastingJournal.length > 0 ? `Last session: ${formatRelativeDate(tastingJournal[0].createdAt)}` : "Record sessions and track your palate"}
-                          onClick={() => setPanelView('journal')}
-                          gold={tastingJournal.length > 0}
-                        />
-                        <Item
-                          icon={<Icons.Heart className="w-4 h-4" />}
-                          label="My Collection"
-                          description={favoriteTeas.length > 0 ? `${favoriteTeas.length} teas saved` : "Teas you love and want to revisit"}
-                          onClick={() => { onClose(); navigate('/account/collection'); }}
-                          gold={favoriteTeas.length > 0}
-                        />
-                        <JourneyCard
-                          journey={myJourney}
-                          onClick={() => { onClose(); navigate('/account/journey'); }}
-                        />
-                      </>
-                    ) : (
-                      <button
-                        onClick={() => setPanelView('signup')}
-                        className="w-full flex items-center gap-3.5 px-4 py-3.5 text-left hover:bg-tea-surface/50 transition-colors border-b border-tea-border group"
-                        style={{ WebkitTapHighlightColor: 'transparent' }}
-                      >
-                        <div className="shrink-0 text-tea-gold/50 group-hover:text-tea-gold/70 transition-colors">
-                          <Icons.Sparkles className="w-4 h-4" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-[13px] font-medium text-tea-text leading-tight">Journal & Collection</div>
-                          <div className="text-[11px] text-tea-text-dim mt-0.5 leading-tight">Track tastings and save teas — create an account</div>
-                        </div>
-                        <Icons.ChevronRight className="w-3.5 h-3.5 text-tea-text/15 group-hover:text-tea-text/30 transition-colors shrink-0" />
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Orders */}
-                  <div className="rounded-xl border border-tea-border overflow-hidden">
-                    <CardSectionLabel>Orders</CardSectionLabel>
-                    <Item
-                      icon={<Icons.Bag className="w-4 h-4" />}
-                      label="Cart"
-                      description={cartCount > 0 ? `${cartCount} item${cartCount > 1 ? 's' : ''} in your order` : "Build your tea order"}
-                      onClick={handleOpenCart}
-                      gold={cartCount > 0}
-                      pulse={cartIsNew && cartCount > 0}
-                    />
-                    {auth.isAuthenticated && (
-                      <>
-                        <Item
-                          icon={<Icons.Clock className="w-4 h-4" />}
-                          label="Order History"
-                          description="Past purchases and order tracking"
-                          onClick={() => { onClose(); navigate('/account/orders'); }}
-                        />
-                        <Item
-                          icon={<Icons.Leaf className="w-4 h-4" />}
-                          label="Samples"
-                          description="Track your sample requests"
-                          onClick={() => { onClose(); navigate('/account/samples'); }}
-                        />
-                      </>
-                    )}
-                  </div>
-
-                  {/* Currency + Settings */}
-                  <div className="rounded-xl border border-tea-border overflow-hidden">
-                    <div className="px-4 py-3.5 border-b border-tea-border">
-                      <div className="flex items-center gap-3 flex-wrap">
-                        <span className="text-[11px] text-tea-text-dim font-medium shrink-0">Currency</span>
-                        <div className="flex flex-wrap gap-1">
-                          {CURRENCY_OPTIONS.map(opt => (
-                            <button
-                              key={opt.code}
-                              onClick={() => setCurrency(opt.code)}
-                              className={`px-2 py-1 text-[10px] uppercase tracking-wider rounded transition-colors ${
-                                currency === opt.code
-                                  ? 'bg-tea-gold/15 text-tea-gold'
-                                  : 'text-tea-text-sec/40 hover:text-tea-text-sec'
-                              }`}
-                            >
-                              {opt.code}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                    {auth.isAuthenticated && (
-                      <Item
-                        icon={<Icons.User className="w-4 h-4" />}
-                        label="Settings"
-                        description="Profile, password & account details"
-                        onClick={() => { onClose(); navigate('/account/settings'); }}
-                      />
-                    )}
-                    {(membershipRole === 'owner' || auth.isAdmin) && (
-                      <>
-                        <Item
-                          icon={<Users className="w-4 h-4" />}
-                          label="Team"
-                          description="Manage members and roles"
-                          onClick={() => { onClose(); navigate('/admin/team'); }}
-                        />
-                        <Item
-                          icon={<Settings className="w-4 h-4" />}
-                          label="Account Settings"
-                          description="Store details and preferences"
-                          onClick={() => { onClose(); navigate('/admin/account-settings'); }}
-                        />
-                      </>
-                    )}
-                  </div>
-
-                  {/* Sign Out */}
-                  {auth.isAuthenticated && (
-                    <button
-                      onClick={handleSignOut}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-tea-text-sec/40 hover:text-red-500 transition-colors text-xs uppercase tracking-[0.2em]"
-                    >
-                      <Icons.LogOut className="w-3.5 h-3.5" />
-                      Sign Out
-                    </button>
-                  )}
-                </div>
-
-                {/* ══ ZONE 3 — Explore ════════════════════════════════════ */}
-                <div className="bg-tea-surface/20 px-6 py-5 border-t border-tea-border space-y-3 pb-[calc(44px+env(safe-area-inset-bottom,0px))] lg:pb-8">
-
-                  {/* Guest orientation — entry paths for new visitors and B2B */}
-                  {!auth.isAuthenticated && (
-                    <div className="rounded-xl border border-tea-border overflow-hidden">
-                      <Item
-                        icon={<Icons.MapPin className="w-4 h-4" />}
-                        label="New here? Start here"
-                        description="Find your entry point into Teajia"
-                        onClick={() => { onClose(); navigate('/start'); }}
-                      />
-                      <Item
-                        icon={<Icons.Leaf className="w-4 h-4" />}
-                        label="Tea for Your Business"
-                        description="Hotels, studios, retreats — bring tea to your space"
-                        onClick={() => { onClose(); navigate('/for-your-space'); }}
-                      />
-                    </div>
-                  )}
-
-                  {/* Contact + discovery — non-staff */}
-                  {!isStaff && (
-                    <div className="rounded-xl border border-tea-border overflow-hidden">
-                      <div className="flex divide-x divide-tea-border border-b border-tea-border">
-                        <button
-                          onClick={() => { onClose(); navigate('/spaces'); }}
-                          className="flex-1 py-3 text-[11px] text-tea-text-sec hover:text-tea-gold hover:bg-tea-surface/50 transition-colors uppercase tracking-[0.12em]"
-                        >
-                          Our Spaces
-                        </button>
-                        <button
-                          onClick={() => { onClose(); navigate('/community'); }}
-                          className="flex-1 py-3 text-[11px] text-tea-text-sec hover:text-tea-gold hover:bg-tea-surface/50 transition-colors uppercase tracking-[0.12em]"
-                        >
-                          Community
-                        </button>
-                      </div>
-                      <a
-                        href={waLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-3.5 px-4 py-3.5 hover:bg-tea-surface/50 transition-colors group"
-                        onClick={onClose}
-                      >
-                        <div className="shrink-0 text-tea-gold/50 group-hover:text-tea-gold/70 transition-colors">
-                          <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-[13px] font-medium text-tea-text leading-tight">Message Us</div>
-                          <div className="text-[11px] text-tea-text-dim mt-0.5 leading-tight">WhatsApp — direct conversation</div>
-                        </div>
-                        <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 text-tea-text/15 group-hover:text-tea-text/30 transition-colors shrink-0" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg>
-                      </a>
-                    </div>
-                  )}
-
-                  {/* Operations — staff only */}
-                  {isStaff && (
-                    <>
-                      <div className="pt-1">
-                        <ZoneLabel>Operations</ZoneLabel>
-                      </div>
-                      <div className="rounded-xl border border-tea-gold/20 overflow-hidden">
-                        <Item
-                          icon={<Icons.Settings className="w-4 h-4" />}
-                          label="Admin Dashboard"
-                          description="Inventory, orders, events & team"
-                          onClick={() => handleGoToAdmin('/admin/inventory')}
-                          gold
-                        />
-                        <Item
-                          icon={<Calendar className="w-4 h-4" />}
-                          label="Events Manager"
-                          description="Create and manage tea sessions"
-                          onClick={() => handleGoToAdmin('/admin/events')}
-                        />
-                        {platformRole && (
-                          <Item
-                            icon={<Icons.Shield className="w-4 h-4" />}
-                            label="Platform"
-                            description="Super admin — all accounts & users"
-                            onClick={() => handleGoToAdmin('/admin/platform')}
-                            gold
-                          />
-                        )}
-                      </div>
-
-                      {/* Secondary owner actions moved from Zone 1 */}
-                      {(membershipRole === 'owner' || auth.isAdmin) && (
-                        <div className="grid grid-cols-3 gap-2">
-                          <QuickAction icon={<UserPlus size={18} />} label="+ Customer" onClick={() => { onClose(); navigate('/admin/people'); }} />
-                          <QuickAction icon={<Package size={18} />} label="+ Purchase Order" onClick={() => { onClose(); navigate('/admin/purchase-orders'); }} />
-                          <QuickAction icon={<Zap size={18} />} label="Capture" onClick={() => { onClose(); navigate('/admin/capture'); }} />
-                        </div>
-                      )}
-
-                      {memberships.length >= 2 && (
-                        <div className="rounded-xl border border-tea-border overflow-hidden">
-                          <Item
-                            icon={<Icons.MapPin className="w-4 h-4" />}
-                            label="Switch Location"
-                            description={`${memberships.length} locations — ${activeMembership?.account_name ?? 'current'} is active`}
-                            onClick={() => setPanelView('location-switcher')}
-                          />
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-              </div>
+            {panelView === 'main' && (membershipRole === 'owner' || auth.isAdmin) && (
+              <OperatorView
+                user={auth.user}
+                avatarDataUrl={avatarDataUrl}
+                onAvatarClick={handleAvatarClick}
+                roleBadgeLabel={roleBadgeLabel}
+                accountName={activeAccount?.name ?? null}
+                locationLabel={activeLocationStr || null}
+                isPlatform={!!platformRole}
+                isOwner={membershipRole === 'owner' || auth.isAdmin}
+                pendingInvoiceCount={pendingCount}
+                todayEventCount={todayEventCount}
+                unsyncedJournalCount={0}
+                onClose={onClose}
+                onOpenJournal={() => setPanelView('journal')}
+                onOpenEvents={() => setPanelView('events')}
+                onOpenLocationSwitcher={() => setPanelView('location-switcher')}
+                onSignOut={handleSignOut}
+                memberCount={memberships.length}
+              />
             )}
+
+            {panelView === 'main' && !(membershipRole === 'owner' || auth.isAdmin) && !auth.isAuthenticated && (
+              <ReaderView
+                onClose={onClose}
+                onOpenSignIn={() => setPanelView('signin')}
+                onOpenSignUp={() => setPanelView('signup')}
+                onOpenEvents={() => setPanelView('events')}
+              />
+            )}
+
+            {panelView === 'main' && membershipRole === 'staff' && (
+              <StaffView
+                user={auth.user}
+                avatarDataUrl={avatarDataUrl}
+                onAvatarClick={handleAvatarClick}
+                roleBadgeLabel={roleBadgeLabel}
+                accountName={activeAccount?.name ?? null}
+                locationLabel={activeLocationStr || null}
+                todayEventCount={todayEventCount}
+                onClose={onClose}
+                onOpenEvents={() => setPanelView('events')}
+                onSignOut={handleSignOut}
+              />
+            )}
+
+            {panelView === 'main' && auth.isAuthenticated && !(membershipRole === 'owner' || auth.isAdmin) && membershipRole !== 'staff' && (
+              <MemberView
+                user={auth.user}
+                avatarDataUrl={avatarDataUrl}
+                onAvatarClick={handleAvatarClick}
+                journey={myJourney}
+                journalLastAt={tastingJournal[0]?.createdAt ?? null}
+                journalCount={tastingJournal.length}
+                collectionCount={favoriteTeas.length}
+                compassProfile={compassProfile}
+                cartCount={cartCount}
+                cartIsNew={cartIsNew}
+                nextEvent={nextEvent ?? null}
+                nextEventWithin24h={nextEventWithin24h}
+                upcomingEventsCount={upcomingEvents.length}
+                onClose={onClose}
+                onOpenJournal={() => setPanelView('journal')}
+                onOpenEvents={() => setPanelView('events')}
+                onOpenCart={handleOpenCart}
+                onSignOut={handleSignOut}
+              />
+            )}
+
 
           </motion.div>
           </AnimatePresence>
