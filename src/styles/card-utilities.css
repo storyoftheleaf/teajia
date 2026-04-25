@@ -713,9 +713,12 @@ input[type="number"]::-webkit-outer-spin-button {
   letter-spacing: 0.05em;
 }
 
+/* Gold-tinted background with readable text (not gold-on-gold).
+   Used for "active" / "published" / "ordered" status badges. */
 .badge-status-gold {
-  background: rgb(var(--tea-gold-rgb) / 0.10);
-  color: var(--tea-gold);
+  background: rgb(var(--tea-gold-rgb) / 0.12);
+  color: var(--tea-text);
+  box-shadow: inset 0 0 0 1px rgb(var(--tea-gold-rgb) / 0.35);
 }
 
 .badge-status-muted {

@@ -395,7 +395,7 @@ const StatusPill: React.FC<{ status: CollectionStatus; onSet: (s: CollectionStat
   const label: Record<CollectionStatus, string> = { draft: 'Draft', active: 'Active', archived: 'Archived' };
   const cls: Record<CollectionStatus, string> = {
     draft:    'bg-tea-elevated text-tea-text-sec',
-    active:   'bg-tea-gold-lt text-tea-gold',
+    active:   'bg-tea-gold/10 text-tea-text ring-1 ring-inset ring-tea-gold/40',
     archived: 'bg-tea-elevated text-tea-text-dim',
   };
   return (

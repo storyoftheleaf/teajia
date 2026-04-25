@@ -15,7 +15,7 @@ function formatDate(iso?: string): string {
 
 const STATUS_STYLES: Record<string, string> = {
   draft: 'bg-tea-elevated text-tea-text-sec',
-  published: 'bg-tea-gold-lt text-tea-gold',
+  published: 'bg-tea-gold/10 text-tea-text ring-1 ring-inset ring-tea-gold/40',
   archived: 'bg-tea-elevated text-tea-text-dim',
 };
 
