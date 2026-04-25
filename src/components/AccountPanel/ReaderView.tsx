@@ -14,15 +14,15 @@ const LinkCluster: React.FC<{
   hint: string;
   links: { label: string; onClick: () => void }[];
 }> = ({ hint, links }) => (
-  <div className="px-6 py-4 border-t border-tea-border">
-    <div className="text-[9px] uppercase tracking-[0.28em] text-tea-text-dim mb-2.5">{hint}</div>
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[13px] text-tea-text-sec tracking-[0.02em]">
+  <div className="px-6 py-5 border-t border-tea-border">
+    <div className="text-[11px] uppercase tracking-[0.24em] text-tea-text-sec font-medium mb-3">{hint}</div>
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[14px] text-tea-text-sec tracking-[0.01em]">
       {links.map((link, i) => (
         <React.Fragment key={link.label}>
-          {i > 0 && <span className="text-tea-text-dim" aria-hidden="true">·</span>}
+          {i > 0 && <span className="text-tea-text-sec" aria-hidden="true">·</span>}
           <button
             onClick={link.onClick}
-            className="hover:text-tea-gold transition-colors"
+            className="py-1 -my-1 hover:text-tea-gold transition-colors"
             style={{ fontFamily: 'var(--font-display)', WebkitTapHighlightColor: 'transparent' }}
           >
             {link.label}
@@ -46,15 +46,15 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
     <div>
       {/* ── Hero — the invitation ───────────────────────────────────── */}
       <div className="px-6 pt-8 pb-6">
-        <p className="text-[10px] uppercase tracking-[0.3em] text-tea-text-dim mb-3">Teajia</p>
+        <p className="text-[11px] uppercase tracking-[0.28em] text-tea-text-sec font-medium mb-3">Teajia</p>
         <h2
-          className="text-[28px] font-normal text-tea-text leading-[1.05] tracking-[-0.5px]"
+          className="text-[30px] font-normal text-tea-text leading-[1.05] tracking-[-0.5px]"
           style={{ fontFamily: 'var(--font-display)' }}
         >
           Gather <em className="text-tea-gold italic">around tea.</em>
         </h2>
         <p
-          className="italic text-[13px] text-tea-text-sec mt-3 leading-relaxed"
+          className="italic text-[15px] text-tea-text-sec mt-3 leading-relaxed"
           style={{ fontFamily: 'var(--font-display)' }}
         >
           A home for practitioners, readers, and those just beginning.
@@ -65,14 +65,14 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
       <div className="px-6 pb-6">
         <button
           onClick={onOpenSignIn}
-          className="w-full py-3 bg-tea-gold text-tea-bg text-[11px] uppercase tracking-[0.25em] font-semibold rounded-sm hover:bg-tea-gold/90 transition-colors"
+          className="w-full py-3.5 bg-tea-gold text-tea-bg text-[12px] uppercase tracking-[0.22em] font-semibold rounded-sm hover:bg-tea-gold-lt transition-colors"
           style={{ WebkitTapHighlightColor: 'transparent' }}
         >
           Sign In
         </button>
         <button
           onClick={onOpenSignUp}
-          className="w-full mt-2 py-3 text-[11px] uppercase tracking-[0.2em] text-tea-text-sec hover:text-tea-text transition-colors"
+          className="w-full mt-2 py-3 text-[12px] uppercase tracking-[0.18em] text-tea-text-sec hover:text-tea-text transition-colors"
           style={{ WebkitTapHighlightColor: 'transparent' }}
         >
           Create an account

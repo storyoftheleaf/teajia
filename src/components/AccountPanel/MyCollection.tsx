@@ -65,12 +65,12 @@ export const MyCollection: React.FC<MyCollectionProps> = ({ onBack, onViewItem }
           className="flex items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors mb-6"
         >
           <Icons.Back className="w-4 h-4" />
-          <span className="text-xs uppercase tracking-[0.15em]">Back</span>
+          <span className="text-[12px] uppercase tracking-[0.18em]">Back</span>
         </button>
 
         <div className="flex flex-col items-center justify-center py-16">
           <div className="w-16 h-16 rounded-full bg-tea-gold/10 flex items-center justify-center mb-4">
-            <Icons.Heart className="w-7 h-7 text-tea-gold/40" />
+            <Icons.Heart className="w-7 h-7 text-tea-gold/70" />
           </div>
           <h3 className="font-serif text-lg text-tea-text  mb-2">No Favorites Yet</h3>
           <p className="text-sm text-tea-text-sec text-center max-w-[260px] leading-relaxed">
@@ -88,30 +88,30 @@ export const MyCollection: React.FC<MyCollectionProps> = ({ onBack, onViewItem }
         className="flex items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors mb-4"
       >
         <Icons.Back className="w-4 h-4" />
-        <span className="text-xs uppercase tracking-[0.15em]">Back</span>
+        <span className="text-[12px] uppercase tracking-[0.18em]">Back</span>
       </button>
 
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h3 className="font-serif text-lg text-tea-text ">My Collection</h3>
-          <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec">
+          <h3 className="font-serif text-lg text-tea-text">My Collection</h3>
+          <span className="text-[12px] uppercase tracking-[0.15em] text-tea-text-sec">
             {favoriteItems.length} {favoriteItems.length === 1 ? 'tea' : 'teas'}
           </span>
         </div>
         <button
           onClick={handleShare}
-          className="flex items-center gap-2 px-3 py-2 bg-tea-gold/10 border border-tea-border hover:bg-tea-gold/20 transition-colors"
+          className="flex items-center gap-2 px-3 py-2 bg-tea-gold/10 border border-tea-border hover:bg-tea-gold/20 transition-colors min-h-[36px]"
         >
           {copied ? (
             <>
               <Icons.Check className="w-3.5 h-3.5 text-green-600" />
-              <span className="text-[10px] uppercase tracking-[0.15em] text-green-600 font-medium">Copied!</span>
+              <span className="text-[11px] uppercase tracking-[0.15em] text-green-600 font-medium">Copied!</span>
             </>
           ) : (
             <>
               <Icons.Share className="w-3.5 h-3.5 text-tea-gold" />
-              <span className="text-[10px] uppercase tracking-[0.15em] text-tea-gold font-medium">Share</span>
+              <span className="text-[11px] uppercase tracking-[0.15em] text-tea-gold font-medium">Share</span>
             </>
           )}
         </button>
@@ -120,13 +120,13 @@ export const MyCollection: React.FC<MyCollectionProps> = ({ onBack, onViewItem }
       {/* Copy link bar */}
       <button
         onClick={handleCopyLink}
-        className="w-full flex items-center gap-3 px-3 py-2.5 mb-4 bg-tea-elevated/30 border border-tea-border hover:bg-tea-elevated/50 transition-colors group"
+        className="w-full flex items-center gap-3 px-3 py-3 mb-4 bg-tea-elevated border border-tea-border hover:bg-tea-elevated/80 transition-colors group"
       >
         <Icons.Link className="w-3.5 h-3.5 text-tea-text-sec group-hover:text-tea-gold transition-colors" />
-        <span className="text-[11px] text-tea-text/60 /50 truncate flex-1 text-left">
+        <span className="text-[12px] text-tea-text-sec truncate flex-1 text-left">
           {copied ? 'Link copied to clipboard!' : 'Copy shareable link'}
         </span>
-        <Icons.Copy className="w-3.5 h-3.5 text-tea-text/30" />
+        <Icons.Copy className="w-3.5 h-3.5 text-tea-text-sec" />
       </button>
 
       {/* Tasting Session Modal */}
@@ -161,12 +161,12 @@ export const MyCollection: React.FC<MyCollectionProps> = ({ onBack, onViewItem }
 
             {/* Info */}
             <div className="flex-1 min-w-0 cursor-pointer" onClick={() => onViewItem?.(item)}>
-              <h4 className="font-serif text-sm text-tea-text  truncate">{item.name}</h4>
-              <div className="flex items-center gap-1.5 text-[10px] text-tea-text/50 /40">
+              <h4 className="font-serif text-[15px] text-tea-text truncate">{item.name}</h4>
+              <div className="flex items-center gap-1.5 text-[12px] text-tea-text-sec mt-0.5">
                 <span>{item.type}</span>
                 {item.origin && (
                   <>
-                    <span className="opacity-50">·</span>
+                    <span className="text-tea-text-sec">·</span>
                     <span className="truncate">{item.origin}</span>
                   </>
                 )}
@@ -175,19 +175,19 @@ export const MyCollection: React.FC<MyCollectionProps> = ({ onBack, onViewItem }
 
             {/* Actions */}
             <div className="flex items-center gap-2 shrink-0">
-              <span className="num text-xs text-tea-text/50">
+              <span className="num text-[12px] text-tea-text-sec">
                 {fmtPricePerGram(parseFloat(item.price_per_gram || '0'))}
               </span>
               <button
                 onClick={(e) => { e.stopPropagation(); setTastingItem(item); }}
-                className="p-1 text-tea-text/30 hover:text-tea-gold transition-colors"
+                className="p-2 text-tea-text-sec hover:text-tea-gold transition-colors"
                 title="Record tasting"
               >
                 <Icons.Sparkles className="w-3.5 h-3.5" />
               </button>
               <button
                 onClick={() => toggleFavoriteTea(item.id)}
-                className="p-1 text-tea-gold hover:text-red-500 transition-colors"
+                className="p-2 text-tea-gold hover:text-red-500 transition-colors"
                 title="Remove from collection"
               >
                 <Icons.Heart filled className="w-3.5 h-3.5" />

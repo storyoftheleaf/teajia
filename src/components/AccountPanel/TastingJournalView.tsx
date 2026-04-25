@@ -27,7 +27,7 @@ function StarRating({ rating }: { rating: number }) {
         <svg
           key={i}
           viewBox="0 0 12 12"
-          className={`w-2.5 h-2.5 ${i < rating ? 'text-tea-gold' : 'text-tea-border'}`}
+          className={`w-3 h-3 ${i < rating ? 'text-tea-gold' : 'text-tea-text-sec'}`}
           fill="currentColor"
         >
           <path d="M6 1l1.4 2.8 3.1.4-2.2 2.2.5 3.1L6 8l-2.8 1.5.5-3.1L1.5 4.2l3.1-.4z" />
@@ -52,7 +52,7 @@ function DescriptorPills({ entry }: { entry: CustomerTasting }) {
       {descriptors.map((tag) => (
         <span
           key={tag}
-          className="inline-block px-1.5 py-0.5 text-[9px] uppercase tracking-[0.1em] bg-tea-elevated/60 text-tea-text-dim rounded-sm"
+          className="inline-block px-2 py-0.5 text-[11px] uppercase tracking-[0.08em] bg-tea-elevated text-tea-text-sec rounded-sm"
         >
           {tag}
         </span>
@@ -85,12 +85,12 @@ export const TastingJournalView: React.FC<TastingJournalViewProps> = ({ onBack, 
           className="flex items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors mb-6"
         >
           <Icons.Back className="w-4 h-4" />
-          <span className="text-xs uppercase tracking-[0.15em]">Back</span>
+          <span className="text-[12px] uppercase tracking-[0.18em]">Back</span>
         </button>
 
         <div className="flex flex-col items-center justify-center py-16">
           <div className="w-16 h-16 rounded-full bg-tea-gold/10 flex items-center justify-center mb-4">
-            <Icons.Sparkles className="w-7 h-7 text-tea-gold/40" />
+            <Icons.Sparkles className="w-7 h-7 text-tea-gold/70" />
           </div>
           <h3 className="font-serif text-lg text-tea-text mb-2">No Entries Yet</h3>
           <p className="text-sm text-tea-text-sec text-center max-w-[260px] leading-relaxed">
@@ -108,19 +108,19 @@ export const TastingJournalView: React.FC<TastingJournalViewProps> = ({ onBack, 
         className="flex items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors mb-4"
       >
         <Icons.Back className="w-4 h-4" />
-        <span className="text-xs uppercase tracking-[0.15em]">Back</span>
+        <span className="text-[12px] uppercase tracking-[0.18em]">Back</span>
       </button>
 
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h3 className="font-serif text-lg text-tea-text">Tasting Journal</h3>
-          <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec">
+          <span className="text-[12px] uppercase tracking-[0.15em] text-tea-text-sec">
             {entries.length} {entries.length === 1 ? 'entry' : 'entries'}
           </span>
         </div>
         {unsyncedCount > 0 && (
-          <span className="inline-flex items-center gap-1 px-2 py-1 text-[9px] uppercase tracking-[0.12em] bg-tea-gold/10 text-tea-gold border border-tea-gold/20 rounded">
+          <span className="inline-flex items-center gap-1.5 px-2 py-1 text-[11px] uppercase tracking-[0.1em] bg-tea-gold/10 text-tea-gold border border-tea-gold/20 rounded">
             <span className="w-1.5 h-1.5 rounded-full bg-tea-gold animate-pulse shrink-0" />
             {unsyncedCount} unsynced
           </span>
@@ -129,71 +129,69 @@ export const TastingJournalView: React.FC<TastingJournalViewProps> = ({ onBack, 
 
       {/* Entry list */}
       <div className="border border-tea-border overflow-hidden">
-        {entries.map((entry, i) => (
-          <div
-            key={entry.id}
-            className={`px-3 py-3 hover:bg-tea-elevated/30 transition-colors ${
-              i < entries.length - 1 ? 'border-b border-tea-border' : ''
-            }`}
-          >
-            {/* Row 1: tea name + date */}
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0 flex-1">
-                {onOpenTea && entry.teaId !== 'quick-note' ? (
-                  <button
-                    onClick={() => onOpenTea(entry.teaId)}
-                    className="group/tealink inline-flex items-baseline gap-1 max-w-full font-serif text-sm text-tea-text hover:text-tea-gold focus-visible:text-tea-gold focus-visible:outline-none transition-colors text-left"
-                  >
-                    <span className="truncate">{entry.teaName}</span>
-                    <span
-                      aria-hidden="true"
-                      className="text-[10px] text-tea-gold-lt shrink-0 transition-all duration-200 ease-out lg:opacity-0 lg:-translate-x-1 lg:group-hover/tealink:opacity-100 lg:group-hover/tealink:translate-x-0 lg:group-focus-visible/tealink:opacity-100 lg:group-focus-visible/tealink:translate-x-0"
-                      style={{ fontFamily: 'var(--font-display)', fontWeight: 300 }}
-                    >
-                      →
+        {entries.map((entry, i) => {
+          const linkable = !!onOpenTea && entry.teaId !== 'quick-note' && !!entry.teaId;
+          const displayName = entry.teaName?.trim() || (entry.teaId === 'quick-note' ? 'Quick note' : 'Untitled tasting');
+          const rowClass = `group/entry relative w-full text-left px-3 py-3 transition-colors ${
+            i < entries.length - 1 ? 'border-b border-tea-border' : ''
+          } ${linkable ? 'hover:bg-tea-elevated cursor-pointer' : 'hover:bg-tea-elevated/30 cursor-default'}`;
+          const Wrapper: React.ElementType = linkable ? 'button' : 'div';
+          const wrapperProps = linkable
+            ? { onClick: () => onOpenTea!(entry.teaId), 'aria-label': `Open ${displayName}` }
+            : {};
+
+          return (
+            <Wrapper key={entry.id} className={rowClass} {...wrapperProps}>
+              {/* Row 1: tea name + date */}
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <h4 className={`font-serif text-sm truncate ${linkable ? 'text-tea-text group-hover/entry:text-tea-gold transition-colors' : 'text-tea-text'}`}>
+                    {displayName}
+                  </h4>
+                  <div className="flex items-center gap-1.5 text-[12px] text-tea-text-sec mt-1">
+                    {entry.teaType && <span>{entry.teaType}</span>}
+                    {entry.eventTitle && (
+                      <>
+                        <span className="text-tea-text-sec">·</span>
+                        <span className="truncate italic">{entry.eventTitle}</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex flex-col items-end gap-1">
+                    <span className="text-[12px] text-tea-text-sec whitespace-nowrap">
+                      {formatDate(entry.createdAt)}
                     </span>
-                  </button>
-                ) : (
-                  <h4 className="font-serif text-sm text-tea-text truncate">{entry.teaName}</h4>
-                )}
-                <div className="flex items-center gap-1.5 text-[10px] text-tea-text-dim mt-0.5">
-                  {entry.teaType && <span>{entry.teaType}</span>}
-                  {entry.eventTitle && (
-                    <>
-                      <span className="opacity-50">·</span>
-                      <span className="truncate italic">{entry.eventTitle}</span>
-                    </>
+                    {entry.rating != null && entry.rating > 0 && (
+                      <StarRating rating={entry.rating} />
+                    )}
+                  </div>
+                  {linkable && (
+                    <Icons.ChevronRight className="w-3.5 h-3.5 text-tea-text-sec shrink-0" aria-hidden="true" />
                   )}
                 </div>
               </div>
-              <div className="flex flex-col items-end gap-1 shrink-0">
-                <span className="text-[10px] text-tea-text-dim whitespace-nowrap">
-                  {formatDate(entry.createdAt)}
-                </span>
-                {entry.rating != null && entry.rating > 0 && (
-                  <StarRating rating={entry.rating} />
-                )}
-              </div>
-            </div>
 
-            {/* Descriptors */}
-            <DescriptorPills entry={entry} />
+              {/* Descriptors */}
+              <DescriptorPills entry={entry} />
 
-            {/* Personal note */}
-            {entry.personalNote && (
-              <p className="text-[11px] text-tea-text-sec mt-1.5 leading-relaxed line-clamp-2 italic">
-                "{entry.personalNote}"
-              </p>
-            )}
+              {/* Personal note */}
+              {entry.personalNote && (
+                <p className="text-[13px] text-tea-text-sec mt-2 leading-relaxed line-clamp-2 italic">
+                  "{entry.personalNote}"
+                </p>
+              )}
 
-            {/* Notes from tasting data */}
-            {!entry.personalNote && entry.tasting.notes && entry.tasting.notes.length > 0 && (
-              <p className="text-[11px] text-tea-text-sec mt-1.5 leading-relaxed line-clamp-2 italic">
-                "{typeof entry.tasting.notes[0] === 'string' ? entry.tasting.notes[0] : entry.tasting.notes[0].text}"
-              </p>
-            )}
-          </div>
-        ))}
+              {/* Notes from tasting data */}
+              {!entry.personalNote && entry.tasting.notes && entry.tasting.notes.length > 0 && (
+                <p className="text-[13px] text-tea-text-sec mt-2 leading-relaxed line-clamp-2 italic">
+                  "{typeof entry.tasting.notes[0] === 'string' ? entry.tasting.notes[0] : entry.tasting.notes[0].text}"
+                </p>
+              )}
+            </Wrapper>
+          );
+        })}
       </div>
     </div>
   );
