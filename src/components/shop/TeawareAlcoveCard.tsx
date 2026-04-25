@@ -455,6 +455,7 @@ export const TeawareAlcoveCard: React.FC<TeawareAlcoveCardProps> = ({ item, onAd
     >
 
         {/* === GALLERY SECTION === */}
+        {currentImage && (
         <div
           style={{
             position: "relative",
@@ -463,29 +464,23 @@ export const TeawareAlcoveCard: React.FC<TeawareAlcoveCardProps> = ({ item, onAd
             maxHeight: hasContent ? "55%" : "65%",
             background: "var(--tea-surface)",
             overflow: "hidden",
-            cursor: currentImage ? "pointer" : "default",
+            cursor: "pointer",
             flexShrink: 0,
           }}
-          onClick={() => currentImage && setImageExpanded(true)}
+          onClick={() => setImageExpanded(true)}
           onTouchStart={handleGalleryTouchStart}
           onTouchEnd={handleGalleryTouchEnd}
         >
-          {currentImage ? (
-            <img
-              key={currentImage}
-              src={currentImage}
-              alt={productName}
-              style={{
-                width: "100%", height: "100%",
-                objectFit: "cover",
-                animation: "fadeIn 0.3s ease-out",
-              }}
-            />
-          ) : (
-            <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <TeaPlaceholder type={item.type} style={{ width: "60%", height: "60%", opacity: 0.4 }} />
-            </div>
-          )}
+          <img
+            key={currentImage}
+            src={currentImage}
+            alt={productName}
+            style={{
+              width: "100%", height: "100%",
+              objectFit: "cover",
+              animation: "fadeIn 0.3s ease-out",
+            }}
+          />
 
           {/* Bottom gradient fade */}
           <div style={{
@@ -519,6 +514,7 @@ export const TeawareAlcoveCard: React.FC<TeawareAlcoveCardProps> = ({ item, onAd
             </div>
           )}
         </div>
+        )}
 
         {/* === IDENTITY + INFO === */}
         <div style={{

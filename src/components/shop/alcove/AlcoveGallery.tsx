@@ -2,62 +2,14 @@ import React from 'react';
 
 interface AlcoveGalleryProps {
   allImages: string[];
-  chineseCharacters: string;
-  origin: string;
-  typeColor: string;
   onExpandImage: (url: string) => void;
 }
 
 export const AlcoveGallery: React.FC<AlcoveGalleryProps> = ({
   allImages,
-  chineseCharacters,
-  origin,
-  typeColor,
   onExpandImage,
 }) => {
-  if (allImages.length === 0) {
-    return (
-      <div style={{
-        margin: "12px 12px 0",
-        borderRadius: "4px",
-        overflow: "hidden",
-        height: "140px",
-        position: "relative",
-        background: `radial-gradient(ellipse 80% 60% at 50% 40%, ${typeColor}22 0%, transparent 70%), var(--tea-elevated)`,
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: "6px",
-      }}>
-        {chineseCharacters && (
-          <div style={{
-            fontFamily: "'Ma Shan Zheng', cursive",
-            fontSize: "52px", fontWeight: 400,
-            color: typeColor,
-            opacity: 0.25,
-            lineHeight: 1,
-            letterSpacing: "0.1em",
-            userSelect: "none",
-          }}>
-            {chineseCharacters}
-          </div>
-        )}
-        {origin && !chineseCharacters && (
-          <span style={{
-            fontFamily: "var(--font-display)",
-            fontSize: "11px", fontWeight: 300,
-            color: "var(--tea-text-dim)",
-            letterSpacing: "0.18em",
-            textTransform: "uppercase",
-            userSelect: "none",
-          }}>
-            {origin}
-          </span>
-        )}
-      </div>
-    );
-  }
+  if (allImages.length === 0) return null;
 
   return (
     <div style={{

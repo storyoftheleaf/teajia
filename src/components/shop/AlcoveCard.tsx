@@ -402,9 +402,6 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
       {/* Gallery: image strip */}
       <AlcoveGallery
         allImages={allImages}
-        chineseCharacters={chineseCharacters}
-        origin={origin || ''}
-        typeColor={typeColor}
         onExpandImage={(url) => { setExpandedImageUrl(url); setImageExpanded(true); }}
       />
 
