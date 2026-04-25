@@ -6,6 +6,7 @@ import type { CustomerTasting } from '../../types';
 
 interface TastingJournalViewProps {
   onBack: () => void;
+  onOpenTea?: (teaId: string) => void;
 }
 
 function formatDate(iso: string): string {
@@ -60,7 +61,7 @@ function DescriptorPills({ entry }: { entry: CustomerTasting }) {
   );
 }
 
-export const TastingJournalView: React.FC<TastingJournalViewProps> = ({ onBack }) => {
+export const TastingJournalView: React.FC<TastingJournalViewProps> = ({ onBack, onOpenTea }) => {
   const { tastingJournal } = useAppStore();
 
   const entries = useMemo(
@@ -138,7 +139,23 @@ export const TastingJournalView: React.FC<TastingJournalViewProps> = ({ onBack }
             {/* Row 1: tea name + date */}
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0 flex-1">
-                <h4 className="font-serif text-sm text-tea-text truncate">{entry.teaName}</h4>
+                {onOpenTea && entry.teaId !== 'quick-note' ? (
+                  <button
+                    onClick={() => onOpenTea(entry.teaId)}
+                    className="group/tealink inline-flex items-baseline gap-1 max-w-full font-serif text-sm text-tea-text hover:text-tea-gold focus-visible:text-tea-gold focus-visible:outline-none transition-colors text-left"
+                  >
+                    <span className="truncate">{entry.teaName}</span>
+                    <span
+                      aria-hidden="true"
+                      className="text-[10px] text-tea-gold-lt shrink-0 transition-all duration-200 ease-out lg:opacity-0 lg:-translate-x-1 lg:group-hover/tealink:opacity-100 lg:group-hover/tealink:translate-x-0 lg:group-focus-visible/tealink:opacity-100 lg:group-focus-visible/tealink:translate-x-0"
+                      style={{ fontFamily: 'var(--font-display)', fontWeight: 300 }}
+                    >
+                      →
+                    </span>
+                  </button>
+                ) : (
+                  <h4 className="font-serif text-sm text-tea-text truncate">{entry.teaName}</h4>
+                )}
                 <div className="flex items-center gap-1.5 text-[10px] text-tea-text-dim mt-0.5">
                   {entry.teaType && <span>{entry.teaType}</span>}
                   {entry.eventTitle && (

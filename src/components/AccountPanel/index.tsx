@@ -1089,7 +1089,10 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
             ══════════════════════════════════════════════════════════════ */}
             {panelView === 'journal' && (
               <div className="px-6 pt-6 pb-[calc(44px+env(safe-area-inset-bottom,0px))] lg:pb-6">
-                <TastingJournalView onBack={() => setPanelView('main')} />
+                <TastingJournalView
+                  onBack={() => setPanelView('main')}
+                  onOpenTea={(teaId) => { onClose(); navigate(`/shop/product/${teaId}`); }}
+                />
               </div>
             )}
 

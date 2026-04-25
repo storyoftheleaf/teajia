@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Archive, RotateCcw, ExternalLink, BookOpen, Calendar, Filter, Search, X, Mic, PenLine, Plus, Share2 } from 'lucide-react';
+import { Archive, RotateCcw, BookOpen, Calendar, Filter, Search, X, Mic, PenLine, Plus, Share2 } from 'lucide-react';
 import { TastingCardModal } from './TastingCard';
 import { motion, AnimatePresence } from 'framer-motion';
 import Fuse from 'fuse.js';
@@ -428,8 +428,15 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
                                 <BookOpen size={16} className="text-tea-text-dim" />
                               </div>
                             );
-                            return onOrderTea ? (
-                              <button onClick={(e) => { e.stopPropagation(); onOrderTea(entry.teaId); }} className="shrink-0">{swatch}</button>
+                            const linkable = onOrderTea && entry.teaId !== 'quick-note';
+                            return linkable ? (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); onOrderTea(entry.teaId); }}
+                                aria-label={`Open ${entry.teaName}`}
+                                className="shrink-0 rounded-lg ring-1 ring-transparent hover:ring-tea-gold/30 transition-[box-shadow,transform] duration-150 active:scale-[0.98]"
+                              >
+                                {swatch}
+                              </button>
                             ) : (
                               <div className="shrink-0">{swatch}</div>
                             );
@@ -438,9 +445,19 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
                           <div className="flex-1 min-w-0">
                             {/* Name row */}
                             <div className="flex items-center gap-2 mb-0.5">
-                              {onOrderTea ? (
-                                <button onClick={(e) => { e.stopPropagation(); onOrderTea(entry.teaId); }} className="text-sm font-serif text-tea-text hover:text-tea-gold truncate transition-colors text-left">
-                                  {entry.teaName}
+                              {onOrderTea && entry.teaId !== 'quick-note' ? (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); onOrderTea(entry.teaId); }}
+                                  className="group/tealink inline-flex items-baseline gap-1 text-sm font-serif text-tea-text hover:text-tea-gold focus-visible:text-tea-gold focus-visible:outline-none transition-colors text-left min-w-0"
+                                >
+                                  <span className="truncate">{entry.teaName}</span>
+                                  <span
+                                    aria-hidden="true"
+                                    className="text-[10px] text-tea-gold-lt shrink-0 transition-all duration-200 ease-out lg:opacity-0 lg:-translate-x-1 lg:group-hover/tealink:opacity-100 lg:group-hover/tealink:translate-x-0 lg:group-focus-visible/tealink:opacity-100 lg:group-focus-visible/tealink:translate-x-0"
+                                    style={{ fontFamily: 'var(--font-display)', fontWeight: 300 }}
+                                  >
+                                    →
+                                  </span>
                                 </button>
                               ) : (
                                 <span className="text-sm font-serif text-tea-text truncate">{entry.teaName}</span>
@@ -553,18 +570,9 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
 
                               {/* Actions */}
                               <div className="flex border-t border-tea-border mt-1 pt-2">
-                                {onOrderTea && entry.teaId !== 'quick-note' && (
-                                  <button
-                                    onClick={() => onOrderTea(entry.teaId)}
-                                    className="flex flex-1 items-center justify-center gap-1.5 py-1.5 text-[11px] font-medium text-tea-gold hover:text-tea-gold/80 border-r border-tea-border transition-colors"
-                                  >
-                                    <ExternalLink size={11} />
-                                    Find tea
-                                  </button>
-                                )}
                                 <button
                                   onClick={() => handleShare(entry)}
-                                  className={`flex flex-1 items-center justify-center gap-1.5 py-1.5 text-[11px] font-medium text-tea-text-dim hover:text-tea-text transition-colors ${onOrderTea && entry.teaId !== 'quick-note' ? 'border-r border-tea-border' : ''}`}
+                                  className="flex flex-1 items-center justify-center gap-1.5 py-1.5 text-[11px] font-medium text-tea-text-dim hover:text-tea-text transition-colors border-r border-tea-border"
                                 >
                                   <Share2 size={11} />
                                   Share card

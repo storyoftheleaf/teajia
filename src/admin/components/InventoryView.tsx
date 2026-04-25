@@ -1071,17 +1071,6 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       return () => ro.disconnect();
   }, []);
 
-  const totalRows = processedProducts.length;
-  const totalHeight = totalRows * effectiveRowHeight;
-  const startIndex = Math.max(0, Math.floor(scrollTop / effectiveRowHeight) - BUFFER_ROWS);
-  const endIndex = Math.min(totalRows, Math.ceil((scrollTop + containerHeight) / effectiveRowHeight) + BUFFER_ROWS);
-
-  const visibleProducts = processedProducts.slice(startIndex, endIndex);
-
-  // Spacer Heights
-  const paddingTop = startIndex * effectiveRowHeight;
-  const paddingBottom = Math.max(0, totalHeight - paddingTop - (visibleProducts.length * effectiveRowHeight));
-
   // Context-anchored action drawer — the row the drawer docks beneath.
   // Prefers the last-clicked row (lastSelectedIdxRef) so the drawer follows the user's
   // most recent action; falls back to any selected id if that anchor isn't selected.
@@ -3384,10 +3373,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 </thead>
 
                 <tbody>
-                    {paddingTop > 0 && <tr style={{ height: paddingTop }}><td colSpan={splitView ? 2 : colCountWithBulk}></td></tr>}
-
-                    {visibleProducts.map((product, idx) => {
-                        const globalIdx = startIndex + idx;
+                    {processedProducts.map((product, idx) => {
+                        const globalIdx = idx;
                         return (
                           <React.Fragment key={product.id}>
                             <InventoryRow
@@ -3416,8 +3403,6 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                           </React.Fragment>
                         );
                     })}
-
-                    {paddingBottom > 0 && <tr style={{ height: paddingBottom }}><td colSpan={splitView ? 2 : colCountWithBulk}></td></tr>}
                 </tbody>
             </table>
           )}
