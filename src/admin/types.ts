@@ -140,6 +140,8 @@ export interface Customer {
   country?: string;
   preferredCurrency: Currency;
   tags: CustomerTag[];
+  /** Freeform contact tags (admin-only, lowercase). Joined from customer_tags. */
+  contact_tags?: string[];
   notes?: string;
   source?: string;
   createdAt: string;

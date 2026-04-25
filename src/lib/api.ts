@@ -675,11 +675,19 @@ export const api = {
       });
       return handleResponse(res);
     },
-    addTag: async (customerId: string, tag: string): Promise<{ success: boolean; tag: string }> => {
+    addTag: async (customerId: string, tag: string): Promise<{ success: boolean; tags: string[] }> => {
       const res = await fetchWithTimeout(`${API_URL}/api/customers/${customerId}/tags`, {
         method: 'POST',
         headers: authHeaders(),
         body: JSON.stringify({ tag }),
+      });
+      return handleResponse(res);
+    },
+    addTags: async (customerId: string, tags: string[]): Promise<{ success: boolean; tags: string[] }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/customers/${customerId}/tags`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ tags }),
       });
       return handleResponse(res);
     },
@@ -1942,6 +1950,15 @@ export const api = {
       });
       return handleResponse(res);
     },
+    /** Rename or merge a tag account-wide. Pass renameTo='' to delete everywhere. */
+    rename: async (tag: string, renameTo: string): Promise<{ success: boolean }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/customer-tags/${encodeURIComponent(tag)}`, {
+        method: 'PUT',
+        headers: authHeaders(),
+        body: JSON.stringify({ rename_to: renameTo }),
+      });
+      return handleResponse(res);
+    },
   },
 
   collections: {
@@ -2013,6 +2030,20 @@ export const api = {
         method: 'POST',
         headers: authHeaders(),
         body: JSON.stringify({ target_type: 'store', target_id: targetAccountId }),
+      });
+      return handleResponse(res);
+    },
+    publishToTag: async (id: string, tag: string): Promise<{ id: string; slug: string }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/collections/${id}/publications`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ target_type: 'tag', target_id: tag }),
+      });
+      return handleResponse(res);
+    },
+    recentRecipients: async (days = 90, limit = 6): Promise<Array<{ customer_id: string; name: string; phone?: string; last_published_at: string }>> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/collection-publications/recent-recipients?days=${days}&limit=${limit}`, {
+        headers: authHeaders(),
       });
       return handleResponse(res);
     },

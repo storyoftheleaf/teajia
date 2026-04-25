@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft, Loader2, Trash2, ChevronUp, ChevronDown, Plus, ImagePlus,
   Send, X as XIcon, Search, Copy, Check, AlertTriangle, Archive,
-  User as UserIcon, Building2,
+  User as UserIcon, Building2, Tag as TagIcon,
 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useAppStore } from '../../lib/store';
@@ -640,7 +640,7 @@ const AddProductsSheet: React.FC<{
 };
 
 // ── Add publication sheet ──
-type PublishMode = 'person' | 'store';
+type PublishMode = 'person' | 'store' | 'tag';
 
 interface NetworkStore {
   id: string;
@@ -663,8 +663,21 @@ const AddPublicationSheet: React.FC<{
   const [recipients, setRecipients] = useState<CollectionRecipient[]>([]);
   const [storeQuery, setStoreQuery] = useState('');
   const [selectedStoreId, setSelectedStoreId] = useState<string | null>(null);
+  const [allTags, setAllTags] = useState<Array<{ tag: string; count: number }>>([]);
+  const [tagFilter, setTagFilter] = useState('');
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    api.customerTags.listAll().then(setAllTags).catch(() => setAllTags([]));
+  }, []);
+
+  const filteredTags = useMemo(() => {
+    if (!tagFilter.trim()) return allTags;
+    const q = tagFilter.toLowerCase();
+    return allTags.filter(t => t.tag.includes(q));
+  }, [allTags, tagFilter]);
 
   const eligibleStores = useMemo(
     () => stores.filter(s => s.id !== activeAccountId),
@@ -690,6 +703,12 @@ const AddPublicationSheet: React.FC<{
           return;
         }
         await api.collections.publish(collectionId, recipients);
+      } else if (mode === 'tag') {
+        if (!selectedTag) {
+          setError('Pick a tag to share with.');
+          return;
+        }
+        await api.collections.publishToTag(collectionId, selectedTag);
       } else {
         if (!selectedStoreId) {
           setError('Pick a store to share with.');
@@ -705,7 +724,11 @@ const AddPublicationSheet: React.FC<{
     }
   };
 
-  const canSubmit = mode === 'person' ? recipients.length > 0 : !!selectedStoreId;
+  const canSubmit = mode === 'person'
+    ? recipients.length > 0
+    : mode === 'tag'
+      ? !!selectedTag
+      : !!selectedStoreId;
 
   return (
     <div className="fixed inset-0 z-modal flex items-center justify-center p-4">
@@ -719,7 +742,7 @@ const AddPublicationSheet: React.FC<{
         </header>
 
         <div className="px-5 pb-3 flex-shrink-0">
-          <div role="tablist" className="grid grid-cols-2 gap-1 p-1 bg-tea-bg border border-tea-border rounded-lg">
+          <div role="tablist" className="grid grid-cols-3 gap-1 p-1 bg-tea-bg border border-tea-border rounded-lg">
             <button
               type="button"
               role="tab"
@@ -729,7 +752,18 @@ const AddPublicationSheet: React.FC<{
                 mode === 'person' ? 'bg-tea-surface text-tea-text' : 'text-tea-text-sec hover:text-tea-text'
               }`}
             >
-              <UserIcon size={11} /> To a person
+              <UserIcon size={11} /> Person
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={mode === 'tag'}
+              onClick={() => { setMode('tag'); setError(null); }}
+              className={`flex items-center justify-center gap-1.5 py-2 text-[11px] uppercase tracking-wide rounded-md transition-colors ${
+                mode === 'tag' ? 'bg-tea-surface text-tea-text' : 'text-tea-text-sec hover:text-tea-text'
+              }`}
+            >
+              <TagIcon size={11} /> By tag
             </button>
             <button
               type="button"
@@ -740,7 +774,7 @@ const AddPublicationSheet: React.FC<{
                 mode === 'store' ? 'bg-tea-surface text-tea-text' : 'text-tea-text-sec hover:text-tea-text'
               }`}
             >
-              <Building2 size={11} /> To a store
+              <Building2 size={11} /> Store
             </button>
           </div>
         </div>
@@ -752,6 +786,55 @@ const AddPublicationSheet: React.FC<{
                 Each recipient gets the same link. Only people with the link can see the page.
               </p>
               <RecipientTypeahead value={recipients} onChange={setRecipients} collectionId={collectionId} autoFocus />
+            </>
+          ) : mode === 'tag' ? (
+            <>
+              <p className="text-[11px] text-tea-text-dim mb-3">
+                Publishes the collection to everyone tagged with the chosen tag. Recipients are snapshotted now, so adding or removing the tag later won't change who has the link.
+              </p>
+              <div className="relative mb-2">
+                <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-text-dim pointer-events-none" />
+                <input
+                  type="text"
+                  value={tagFilter}
+                  onChange={e => setTagFilter(e.target.value)}
+                  placeholder="Filter tags…"
+                  autoFocus
+                  className="w-full pl-8 pr-3 py-2 text-xs bg-tea-bg border border-tea-border rounded-lg outline-none text-tea-text placeholder:text-tea-text-dim focus:ring-1 focus:ring-tea-gold/40"
+                />
+              </div>
+              {filteredTags.length === 0 ? (
+                <p className="py-6 text-xs text-tea-text-dim text-center">
+                  {tagFilter ? 'No tags match that search.' : 'No contact tags yet. Add tags to people in the People view first.'}
+                </p>
+              ) : (
+                <ul className="space-y-1">
+                  {filteredTags.map(t => {
+                    const isSel = t.tag === selectedTag;
+                    return (
+                      <li key={t.tag}>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedTag(t.tag)}
+                          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+                            isSel ? 'bg-tea-gold-lt' : 'bg-tea-bg hover:bg-tea-elevated'
+                          }`}
+                        >
+                          <div className={`w-4 h-4 rounded-full flex-shrink-0 flex items-center justify-center transition-colors ${
+                            isSel ? 'bg-tea-gold' : 'bg-tea-surface'
+                          }`}>
+                            {isSel && <Check size={10} className="text-tea-bg" strokeWidth={3} />}
+                          </div>
+                          <div className="flex-1 min-w-0 flex items-center justify-between gap-2">
+                            <p className="text-sm text-tea-text truncate">{t.tag}</p>
+                            <p className="text-[11px] text-tea-text-dim shrink-0">{t.count}</p>
+                          </div>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
             </>
           ) : (
             <>
@@ -815,8 +898,10 @@ const AddPublicationSheet: React.FC<{
             className="flex items-center gap-2 px-4 py-2 bg-tea-gold text-tea-bg rounded-lg text-xs font-semibold tracking-wide hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {submitting
-              ? <><Loader2 size={12} className="animate-spin" /> {mode === 'person' ? 'Publishing…' : 'Sharing…'}</>
-              : (mode === 'person' ? <>Create link</> : <>Share {selectedStore ? `to ${selectedStore.name}` : ''}</>)}
+              ? <><Loader2 size={12} className="animate-spin" /> {mode === 'person' ? 'Publishing…' : mode === 'tag' ? 'Publishing…' : 'Sharing…'}</>
+              : mode === 'person' ? <>Create link</>
+              : mode === 'tag' ? <>Publish to {selectedTag ? `"${selectedTag}"` : 'tag'}</>
+              : <>Share {selectedStore ? `to ${selectedStore.name}` : ''}</>}
           </button>
         </footer>
       </div>

@@ -1466,18 +1466,27 @@ export const CustomersView = () => {
               : <span className="text-xs text-tea-text-dim">—</span>}
           </td>
         );
-      case 'tags':
+      case 'tags': {
+        const contactTags = customer.contact_tags ?? [];
+        const legacyShown = customer.tags.slice(0, 2);
+        const contactShown = contactTags.slice(0, 3);
+        const extra = (customer.tags.length - legacyShown.length) + (contactTags.length - contactShown.length);
+        const empty = customer.tags.length === 0 && contactTags.length === 0;
         return (
           <td key="tags" className="px-4 align-middle overflow-hidden">
             <div className="flex items-center gap-1 flex-wrap">
-              {customer.tags.slice(0, 2).map(tag => (
-                <span key={tag} className={`text-[9px] px-1.5 py-0.5 rounded-full ${TAG_COLORS[tag as CustomerTag] || 'bg-tea-elevated text-tea-text-sec'}`}>{tag}</span>
+              {legacyShown.map(tag => (
+                <span key={`l-${tag}`} className={`text-[9px] px-1.5 py-0.5 rounded-full ${TAG_COLORS[tag as CustomerTag] || 'bg-tea-elevated text-tea-text-sec'}`}>{tag}</span>
               ))}
-              {customer.tags.length > 2 && <span className="text-[9px] text-tea-text-dim">+{customer.tags.length - 2}</span>}
-              {customer.tags.length === 0 && <span className="text-xs text-tea-text-dim">—</span>}
+              {contactShown.map(tag => (
+                <span key={`c-${tag}`} className="text-[9px] px-1.5 py-0.5 rounded-md bg-tea-elevated text-tea-text-sec truncate max-w-[120px]">{tag}</span>
+              ))}
+              {extra > 0 && <span className="text-[9px] text-tea-text-dim">+{extra}</span>}
+              {empty && <span className="text-xs text-tea-text-dim">—</span>}
             </div>
           </td>
         );
+      }
       case 'contact':
         return (
           <td key="contact" className="px-4 align-middle overflow-hidden">

@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { X as XIcon, Search, Loader2, Plus } from 'lucide-react';
+import { X as XIcon, Search, Loader2, Plus, Tag as TagIcon } from 'lucide-react';
 import { api } from '../../../lib/api';
 import type { CollectionRecipient } from '../../../types';
+import { ContactTagEditor } from '../contactTags/ContactTagEditor';
 
 // Filename + export name kept for source-compatibility with existing imports
 // (CollectionShareSheet, AddPublicationSheet). The component is now the
@@ -72,6 +73,33 @@ export const RecipientTypeahead: React.FC<RecipientTypeaheadProps> = ({
   const [skipNote, setSkipNote] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Inline tag editor: customer_id of the chip whose popover is open, or null.
+  const [tagEditingId, setTagEditingId] = useState<string | null>(null);
+  const tagEditorRef = useRef<HTMLDivElement>(null);
+
+  // Refresh the account-wide tag list when a chip's tags change so the
+  // picker's tag chips stay accurate (counts/new tags) without remount.
+  const handleTagsChanged = () => {
+    api.customerTags.listAll().then(setTags).catch(() => {});
+  };
+
+  // Close the per-chip tag editor on outside click / Escape.
+  useEffect(() => {
+    if (!tagEditingId) return;
+    const handleClick = (e: MouseEvent) => {
+      if (!tagEditorRef.current?.contains(e.target as Node)) setTagEditingId(null);
+    };
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setTagEditingId(null);
+    };
+    document.addEventListener('mousedown', handleClick);
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      document.removeEventListener('mousedown', handleClick);
+      document.removeEventListener('keydown', handleKey);
+    };
+  }, [tagEditingId]);
+
   // ── Data loading ────────────────────────────────────────────────────────
   useEffect(() => {
     let cancelled = false;
@@ -117,48 +145,15 @@ export const RecipientTypeahead: React.FC<RecipientTypeaheadProps> = ({
     return () => { cancelled = true; };
   }, [collectionId]);
 
-  // Recents: derive from collection_publications across the account.
-  // We don't have a dedicated endpoint, so we infer from the collections list
-  // (each row carries last_published_at and active_publication_count). For
-  // recipient-level history we'd need a new endpoint; for v1 we approximate
-  // using customers that appear in publications of OTHER collections recently.
-  // Practical short-term: reuse the customers list ordered by last activity.
-  // To keep this honest, we hit collections.list and walk their publications.
+  // Recents: dedicated endpoint, scales beyond client-side fan-out.
   useEffect(() => {
     let cancelled = false;
-    api.collections.list({ status: 'active' }).then(async ({ collections }) => {
-      if (cancelled) return;
-      const cutoff = Date.now() - RECENT_WINDOW_DAYS * 24 * 60 * 60 * 1000;
-      const recentCollections = (collections || []).filter(c =>
-        c.last_published_at && new Date(c.last_published_at).getTime() >= cutoff
-      ).slice(0, 12);
-
-      // Fan out to fetch each recent collection's publications in parallel.
-      const details = await Promise.all(
-        recentCollections.map(c => api.collections.get(c.id).catch(() => null))
-      );
-      if (cancelled) return;
-
-      // Collect customer ids by most-recent publication date.
-      const seen = new Map<string, { id: string; name: string; phone?: string; ts: number }>();
-      for (const d of details) {
-        if (!d) continue;
-        for (const pub of d.publications || []) {
-          if (pub.target_type !== 'person') continue;
-          const ts = new Date(pub.published_at).getTime();
-          if (ts < cutoff) continue;
-          for (const r of pub.recipients || []) {
-            if (!r.customer_id) continue;
-            const prev = seen.get(r.customer_id);
-            if (!prev || prev.ts < ts) {
-              seen.set(r.customer_id, { id: r.customer_id, name: r.name, phone: r.phone, ts });
-            }
-          }
-        }
-      }
-      const ordered = Array.from(seen.values()).sort((a, b) => b.ts - a.ts);
-      setRecents(ordered.slice(0, RECENT_LIMIT * 2)); // overshoot, filter later
-    }).catch(() => { /* leave empty */ });
+    api.collections.recentRecipients(RECENT_WINDOW_DAYS, RECENT_LIMIT * 2)
+      .then(rows => {
+        if (cancelled) return;
+        setRecents(rows.map(r => ({ id: r.customer_id, name: r.name, phone: r.phone })));
+      })
+      .catch(() => { /* leave empty */ });
     return () => { cancelled = true; };
   }, []);
 
@@ -467,22 +462,55 @@ export const RecipientTypeahead: React.FC<RecipientTypeaheadProps> = ({
           <p className="text-[11px] text-tea-text-dim">No recipients yet.</p>
         ) : (
           <div className="flex flex-wrap gap-1.5">
-            {value.map((r, i) => (
-              <span
-                key={`${r.customer_id ?? 'n'}_${i}`}
-                className="inline-flex items-center gap-1 pl-2 pr-1 py-0.5 rounded-md bg-tea-gold/10 text-tea-text text-[12px]"
-              >
-                <span className="truncate max-w-[180px]">{r.name}</span>
-                <button
-                  type="button"
-                  onClick={() => removeAt(i)}
-                  className="text-tea-text-sec hover:text-tea-text transition-colors p-0.5"
-                  aria-label={`Remove ${r.name}`}
-                >
-                  <XIcon size={10} />
-                </button>
-              </span>
-            ))}
+            {value.map((r, i) => {
+              const editing = !!r.customer_id && tagEditingId === r.customer_id;
+              return (
+                <div key={`${r.customer_id ?? 'n'}_${i}`} className="relative">
+                  <span
+                    className={`inline-flex items-center gap-1 pl-2 pr-1 py-0.5 rounded-md text-[12px] transition-colors ${
+                      editing ? 'bg-tea-gold/15 text-tea-text' : 'bg-tea-gold/10 text-tea-text'
+                    }`}
+                  >
+                    <span className="truncate max-w-[180px]">{r.name}</span>
+                    {r.customer_id && (
+                      <button
+                        type="button"
+                        onClick={() => setTagEditingId(prev => prev === r.customer_id ? null : r.customer_id!)}
+                        className="text-tea-text-dim hover:text-tea-text transition-colors p-0.5"
+                        aria-label={`Tag ${r.name}`}
+                        title="Edit tags"
+                      >
+                        <TagIcon size={10} />
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => removeAt(i)}
+                      className="text-tea-text-sec hover:text-tea-text transition-colors p-0.5"
+                      aria-label={`Remove ${r.name}`}
+                    >
+                      <XIcon size={10} />
+                    </button>
+                  </span>
+                  {editing && (
+                    <div
+                      ref={tagEditorRef}
+                      className="absolute z-30 top-full left-0 mt-1 w-[280px] max-w-[calc(100vw-2rem)] rounded-lg bg-tea-surface border border-tea-border shadow-xl p-3"
+                    >
+                      <p className="text-[10px] uppercase tracking-[0.12em] text-tea-text-dim mb-2 truncate">
+                        Tags for {r.name}
+                      </p>
+                      <ContactTagEditor
+                        customerId={r.customer_id!}
+                        compact
+                        autoFocus
+                        onChange={handleTagsChanged}
+                      />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

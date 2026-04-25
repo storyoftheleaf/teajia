@@ -2422,10 +2422,25 @@ const handleGetCustomers: Handler = async (request, env) => {
     `).bind(accountId).all();
   }
 
+  // Attach contact tags (the new freeform admin tags, separate from the
+  // legacy customers.tags JSON column).
+  let tagMap = new Map<string, string[]>();
+  try {
+    const tagRows = await env.DB.prepare(
+      `SELECT customer_id, tag FROM customer_tags WHERE account_id = ? ORDER BY tag ASC`
+    ).bind(accountId).all();
+    for (const row of (tagRows.results ?? []) as any[]) {
+      const list = tagMap.get(row.customer_id) || [];
+      list.push(row.tag);
+      tagMap.set(row.customer_id, list);
+    }
+  } catch { /* tag table may not exist yet on older databases */ }
+
   const customers = (result.results as any[]).map(c => ({
     ...c,
     contacts: typeof c.contacts === 'string' ? JSON.parse(c.contacts || '[]') : (c.contacts ?? []),
     tags: typeof c.tags === 'string' ? JSON.parse(c.tags || '[]') : (c.tags ?? []),
+    contact_tags: tagMap.get(c.id) || [],
   }));
   return json(customers);
 };
@@ -2797,21 +2812,32 @@ const handleAddCustomerTag: Handler = async (request, env, params) => {
   const { accountId } = ctx;
 
   const body = await request.json().catch(() => ({})) as Record<string, any>;
-  const tag = normalizeTag(body.tag);
-  if (!tag) return json({ error: 'tag required' }, 400);
 
-  // Confirm the customer belongs to this account before tagging.
+  // Accept either { tag: string } or { tags: string[] } for batch add.
+  const rawTags: unknown[] = Array.isArray(body.tags)
+    ? body.tags
+    : (body.tag !== undefined ? [body.tag] : []);
+  const cleaned = Array.from(new Set(
+    rawTags.map(normalizeTag).filter((t): t is string => !!t)
+  ));
+  if (cleaned.length === 0) return json({ error: 'tag required' }, 400);
+
   const customer = await env.DB.prepare(
     'SELECT id FROM customers WHERE id = ? AND account_id = ?'
   ).bind(params.id, accountId).first();
   if (!customer) return json({ error: 'Customer not found' }, 404);
 
-  await env.DB.prepare(
+  const stmts = cleaned.map(t => env.DB.prepare(
     `INSERT OR IGNORE INTO customer_tags (id, account_id, customer_id, tag)
      VALUES (?, ?, ?, ?)`
-  ).bind(crypto.randomUUID(), accountId, params.id, tag).run();
+  ).bind(crypto.randomUUID(), accountId, params.id, t));
+  if (stmts.length === 1) {
+    await stmts[0].run();
+  } else {
+    await env.DB.batch(stmts);
+  }
 
-  return json({ success: true, tag });
+  return json({ success: true, tags: cleaned });
 };
 
 const handleRemoveCustomerTag: Handler = async (request, env, params) => {
@@ -2846,6 +2872,90 @@ const handleListAccountCustomerTags: Handler = async (request, env) => {
   ).bind(accountId).all();
 
   return json(results);
+};
+
+// Rename or merge a tag across the whole account. If the target name already
+// exists on a customer that also has the old tag, the union is preserved and
+// no duplicates are created. Empty target means delete the tag everywhere.
+const handleRenameOrDeleteCustomerTag: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+
+  const from = normalizeTag(decodeURIComponent(params.tag));
+  if (!from) return json({ error: 'tag required' }, 400);
+
+  const body = await request.json().catch(() => ({})) as Record<string, any>;
+
+  // Empty/null rename_to means "delete everywhere."
+  const to = body.rename_to === null || body.rename_to === '' || body.rename_to === undefined
+    ? null
+    : normalizeTag(body.rename_to);
+
+  if (to === null) {
+    await env.DB.prepare(
+      `DELETE FROM customer_tags WHERE account_id = ? AND tag = ?`
+    ).bind(accountId, from).run();
+    return json({ success: true, deleted: from });
+  }
+
+  if (to === from) return json({ success: true, renamed: 0 });
+
+  // Insert new rows for every customer holding the old tag, ignoring
+  // conflicts (which means the customer already had both). Then delete old.
+  await env.DB.batch([
+    env.DB.prepare(
+      `INSERT OR IGNORE INTO customer_tags (id, account_id, customer_id, tag)
+       SELECT lower(hex(randomblob(8))), account_id, customer_id, ?
+         FROM customer_tags WHERE account_id = ? AND tag = ?`
+    ).bind(to, accountId, from),
+    env.DB.prepare(
+      `DELETE FROM customer_tags WHERE account_id = ? AND tag = ?`
+    ).bind(accountId, from),
+  ]);
+
+  return json({ success: true, from, to });
+};
+
+// Recently shared-with customers across all active person/tag publications.
+// Powers the "Recently shared with" row in the recipient picker.
+const handleRecentRecipients: Handler = async (request, env) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+
+  const url = new URL(request.url);
+  const days = Math.max(1, Math.min(365, parseInt(url.searchParams.get('days') || '90', 10) || 90));
+  const limit = Math.max(1, Math.min(50, parseInt(url.searchParams.get('limit') || '6', 10) || 6));
+  const cutoffMs = Date.now() - days * 24 * 60 * 60 * 1000;
+  const cutoffIso = new Date(cutoffMs).toISOString().replace('T', ' ').replace(/\..+$/, '');
+
+  // json_each unrolls each recipient. We dedupe by customer_id, keeping the
+  // most recent publication.
+  const { results } = await env.DB.prepare(`
+    WITH recent AS (
+      SELECT
+        json_extract(r.value, '$.customer_id') AS customer_id,
+        json_extract(r.value, '$.name')        AS name,
+        json_extract(r.value, '$.phone')       AS phone,
+        cp.published_at                        AS published_at
+      FROM collection_publications cp
+      JOIN collections c ON c.id = cp.collection_id
+      JOIN json_each(cp.recipients_json) r
+      WHERE c.account_id = ?
+        AND cp.unpublished_at IS NULL
+        AND cp.published_at >= ?
+        AND cp.target_type IN ('person','tag')
+        AND json_extract(r.value, '$.customer_id') IS NOT NULL
+    )
+    SELECT customer_id, name, phone, MAX(published_at) AS last_published_at
+      FROM recent
+     GROUP BY customer_id
+     ORDER BY last_published_at DESC
+     LIMIT ?
+  `).bind(accountId, cutoffIso, limit).all();
+
+  return json(results || []);
 };
 
 // All customers carrying a given tag. Used by tag-expansion in the picker.
@@ -10319,7 +10429,7 @@ const handlePublishCollection: Handler = async (request, env, params) => {
 
   const body = await request.json() as any;
   const targetType = body.target_type || 'person';
-  if (targetType !== 'person' && targetType !== 'store') {
+  if (targetType !== 'person' && targetType !== 'store' && targetType !== 'tag') {
     // Phases 3-4 (event, shop) not yet implemented.
     return json({ error: `target_type '${targetType}' not yet supported` }, 400);
   }
@@ -10332,6 +10442,41 @@ const handlePublishCollection: Handler = async (request, env, params) => {
     if (recipients.length === 0) {
       return json({ error: 'At least one recipient is required' }, 400);
     }
+  } else if (targetType === 'tag') {
+    // Tag audience: snapshot matching customers into recipients_json so the
+    // publication is stable even if tag membership later changes.
+    const tag = normalizeTag(body.target_id ?? body.tag);
+    if (!tag) return json({ error: 'tag is required for tag target' }, 400);
+
+    // Idempotent: drop anyone who already has an active publication of this
+    // collection on the person/tag track.
+    const activePubs = await env.DB.prepare(
+      `SELECT recipients_json FROM collection_publications
+        WHERE collection_id = ? AND unpublished_at IS NULL
+          AND target_type IN ('person','tag')`
+    ).bind(params.id).all();
+    const alreadyIds = new Set<string>();
+    for (const p of (activePubs.results ?? []) as any[]) {
+      const rs = p.recipients_json ? JSON.parse(p.recipients_json) : [];
+      for (const r of rs) if (r?.customer_id) alreadyIds.add(r.customer_id);
+    }
+
+    const matched = await env.DB.prepare(
+      `SELECT c.id, c.name, c.phone, c.whatsapp
+         FROM customer_tags ct
+         JOIN customers c ON c.id = ct.customer_id
+        WHERE ct.account_id = ? AND ct.tag = ? AND c.account_id = ?
+        ORDER BY c.name ASC`
+    ).bind(ctx.accountId, tag, ctx.accountId).all();
+
+    recipients = ((matched.results ?? []) as any[])
+      .filter(c => !alreadyIds.has(c.id))
+      .map(c => ({ customer_id: c.id, name: c.name, phone: c.phone || c.whatsapp || undefined }));
+
+    if (recipients.length === 0) {
+      return json({ error: `No new recipients for tag "${tag}" (everyone already has this collection)` }, 400);
+    }
+    targetId = tag;
   } else {
     // store: target_id is the receiving account.
     targetId = typeof body.target_id === 'string' ? body.target_id : '';
@@ -10373,7 +10518,7 @@ const handlePublishCollection: Handler = async (request, env, params) => {
      VALUES (?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     pubId, params.id, targetType, targetId,
-    slug, targetType === 'person' ? JSON.stringify(recipients) : null,
+    slug, (targetType === 'person' || targetType === 'tag') ? JSON.stringify(recipients) : null,
     ctx.userId
   ).run();
 
@@ -10863,6 +11008,8 @@ const routes: [string, string, Handler][] = [
   ['DELETE', '/api/customers/:id/tags/:tag', handleRemoveCustomerTag],
   ['GET',    '/api/customer-tags', handleListAccountCustomerTags],
   ['GET',    '/api/customer-tags/:tag/customers', handleListCustomersByTag],
+  ['PUT',    '/api/customer-tags/:tag', handleRenameOrDeleteCustomerTag],
+  ['GET',    '/api/collection-publications/recent-recipients', handleRecentRecipients],
 
   // Collections (Phase 1: Person audience; Phase 2: Store audience)
   ['GET',    '/api/collections', handleListCollections],

@@ -587,7 +587,7 @@ export interface DbArticle {
 // ── Collections (Phase 1) ───────────────────────────────────────────────────
 
 export type CollectionStatus = 'draft' | 'active' | 'archived';
-export type CollectionTargetType = 'person' | 'store' | 'event' | 'shop';
+export type CollectionTargetType = 'person' | 'store' | 'event' | 'shop' | 'tag';
 
 export interface CollectionRecipient {
   customer_id?: string;
