@@ -80,6 +80,34 @@ promote the good ones onto product tastings.
 Loose concepts. Think through before building; some will be dropped or
 reshaped. If you want to commit one, move it up to *Committed*.
 
+### Collector-tier platform (the bigger vision)
+
+Teajia isn't just a storefront. Other tea makers / collectors have the
+same collection-management need Adrian does — they have shelves of tea
+they're not selling but want to track, taste, and keep personal notes on.
+Same tasting infrastructure, same Impressions, same inventory tools, but
+with the public storefront optionally turned off or limited.
+
+Open questions worth sitting with before scoping:
+
+- Do collectors sign up as their own *Account* (like a store), or as a
+  *Member* with a richer private inventory surface?
+- If Account-level: what's the onboarding shape when commerce isn't the
+  goal? The current account setup leans heavily on shop/WhatsApp flow.
+- How does tasting data flow between a collector's private inventory and
+  the community/network layer (if at all)? Do their starred impressions
+  help other collectors, or stay fully private?
+- Pricing model for non-commercial users — flat fee, per-tea, free tier
+  with limits?
+- Does `is_personal = 1` at scale mean we need a view that treats "my
+  collection" as a distinct surface from "my shop," not just a filter?
+- Naming: we already have "Your Table" as the personal panel. Does that
+  extend, or does a collector deserve their own top-level workspace
+  (e.g. "My Cellar" or "My Archive")?
+
+Not ready to build. Revisit when the immediate tasting work settles;
+could become its own multi-quarter product track.
+
 ### Section header in the review/notes panel
 If you accumulate 15+ notes on a tea over time, a flat list gets hard to
 scan. Group them by capture date or section. Only worth building if note
@@ -90,13 +118,15 @@ counts actually grow that far — lightweight as an idea.
 The data shape already supports `sourceAuthor` attribution and the Impressions
 block renders it; what's missing is the admin review queue UI.
 
-### Drafts status cleanup
-The `Draft` product status and the `is_public` boolean are partially
-redundant (both can hide a product from the public shop). Consider
-consolidating: either drop `Draft` and rely on `is_public = 0`, or keep
-`Draft` only for truly unfinished product entries and enforce that any
-non-Draft product needs `is_public` explicitly set. See Loose ends for
-the open question.
+### (resolved) Drafts vs is_public
+Not redundant — these carry different intents:
+- `status = 'Draft'` → workflow state: "still being filled in, incomplete."
+- `is_public = 0` → visibility state: "complete product, but not for
+  public sale." Adrian uses this to manage his personal tea collection
+  through Teajia without listing it on the storefront.
+- `is_personal = 1` → ownership state: "my own collection, not catalog."
+
+Keep all three. No consolidation needed.
 
 ---
 
@@ -107,9 +137,9 @@ Not urgent, but worth resolving when convenient.
 - [ ] The 3 Bali products currently stamped `tasting_source='common'` are
       all status `Draft`, so the public storefront filter hides them.
       Decide per-product: promote to Active or clear the stamp.
-- [ ] Decide whether `Draft` status is still needed (see Ideas → Drafts
-      status cleanup). If kept, document when to use Draft vs `is_public
-      = 0`.
+- [ ] For each of the 3 `common`-stamped Drafts, decide: finish the
+      product data and promote to Active, or keep as personal reference
+      (set `is_public = 0` + `is_personal = 1`, status Active).
 - [ ] "Untasted" admin filter currently bundles "never reviewed" with
       "on community data — upgrade to your voice". One-line filter change
       if you want to split them.
