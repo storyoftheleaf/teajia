@@ -818,35 +818,43 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
           onChange={handleAvatarFile}
         />
 
-        {/* Header — Close-X always top-left; Back lives inline with title when in a sub-view */}
-        <div className="flex items-center gap-2 px-4 py-2.5 border-b border-tea-border bg-tea-surface/50">
-          <button
-            onClick={onClose}
-            className="min-w-[36px] min-h-[36px] flex items-center justify-center p-1.5 shrink-0"
-            aria-label="Close"
-          >
-            <Icons.Close className="w-5 h-5 text-tea-text-sec hover:text-tea-text transition-colors" />
-          </button>
-          <div className="flex-1 min-w-0 flex items-center justify-center gap-2">
+        {/* Header — Close + Back cluster top-left; title absolutely centered; theme toggle demoted right */}
+        <div className="relative flex items-center px-4 py-2.5 border-b border-tea-border bg-tea-surface">
+          {/* Left cluster — Close, then Back (when in a sub-view) */}
+          <div className="flex items-center gap-1 shrink-0 relative z-10">
+            <button
+              onClick={onClose}
+              className="min-w-[36px] min-h-[36px] flex items-center justify-center p-1.5 text-tea-text-sec hover:text-tea-text active:scale-95 transition-[color,transform] duration-150"
+              aria-label="Close"
+            >
+              <Icons.Close className="w-5 h-5" />
+            </button>
             {isSubView && (
               <button
                 onClick={() => { setPanelView('main'); resetForm(); setLocationSearch(''); }}
-                className="text-[12px] text-tea-text-sec hover:text-tea-text transition-colors uppercase tracking-[0.15em] font-medium py-2 -my-2"
+                className="min-w-[36px] min-h-[36px] flex items-center justify-center p-1.5 text-tea-text-sec hover:text-tea-text active:scale-95 transition-[color,transform] duration-150"
+                aria-label="Back"
               >
-                ← Back
+                <Icons.ChevronLeft className="w-5 h-5" />
               </button>
             )}
-            <h2 className="text-[15px] font-serif text-tea-text tracking-wide truncate">{headerTitle}</h2>
           </div>
+
+          {/* Centered title — absolutely positioned so it ignores sibling width */}
+          <h2 className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-[18px] font-serif text-tea-text tracking-[-0.01em] truncate max-w-[60%] text-center">
+            {headerTitle}
+          </h2>
+
+          {/* Right — theme toggle, demoted */}
           <button
             onClick={(e) => toggleTheme(e)}
-            className="min-w-[36px] min-h-[36px] flex items-center justify-center p-1.5 hover:bg-tea-gold/10 rounded-full transition-colors shrink-0"
+            className="ml-auto min-w-[36px] min-h-[36px] flex items-center justify-center p-1.5 text-tea-text-dim hover:text-tea-text-sec active:scale-95 transition-[color,transform] duration-150 shrink-0 relative z-10"
             title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
             aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
           >
             {theme === 'dark'
-              ? <Sun className="w-4.5 h-4.5 text-tea-gold" />
-              : <Moon className="w-4.5 h-4.5 text-tea-gold" />}
+              ? <Sun className="w-4 h-4" />
+              : <Moon className="w-4 h-4" />}
           </button>
         </div>
 
