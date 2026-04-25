@@ -226,8 +226,6 @@ export const OrdersView = () => {
       <div className="sticky top-0 z-dropdown bg-tea-bg/90 backdrop-blur-md border-b border-tea-border flex-shrink-0">
         {/* Row 1: filter + actions */}
         <div className="px-3 md:px-6 lg:px-10 max-w-5xl mx-auto flex items-center gap-2 md:gap-4 py-2.5 md:h-16 md:py-0">
-          <h1 className="font-serif font-normal text-2xl lg:text-3xl text-tea-text leading-tight tracking-[0.02em] hidden md:block shrink-0" style={{ fontFamily: 'var(--font-display)' }}>Orders</h1>
-
           {/* Pipeline Summary — segmented filter */}
           <div className="flex items-center bg-tea-surface rounded-lg border border-tea-border p-0.5 overflow-x-auto hide-scrollbar min-w-0">
             {([

@@ -310,6 +310,8 @@ export const PurchaseOrdersPage: React.FC = () => {
   const { data: orders = [], isLoading } = useQuery<PurchaseOrder[]>({
     queryKey: ['purchase_orders'],
     queryFn: () => api.purchaseOrders.list(),
+    staleTime: 1000 * 60 * 5,
+    refetchOnWindowFocus: false,
   });
 
   const createMutation = useMutation({
