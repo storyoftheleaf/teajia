@@ -195,12 +195,12 @@ export const ForYourSpacePage: React.FC = () => {
       {/* Back nav */}
       <div className="pt-6 pb-2">
         <button
-          onClick={() => navigate('/consult')}
+          onClick={() => navigate('/advise')}
           className="flex items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors duration-200 min-h-[44px]"
           style={{ fontFamily: 'var(--font-sans)' }}
         >
           <Icons.ChevronLeft className="w-4 h-4" />
-          <span className="text-[13px]">Consult</span>
+          <span className="text-[13px]">Advise</span>
         </button>
       </div>
 

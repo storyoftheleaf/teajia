@@ -1,4 +1,4 @@
-export interface ConsultTestimonial {
+export interface AdviseTestimonial {
   id: string;
   quote: string;
   name: string;
@@ -6,7 +6,7 @@ export interface ConsultTestimonial {
   projectId?: string;
 }
 
-export const consultTestimonials: ConsultTestimonial[] = [
+export const adviseTestimonials: AdviseTestimonial[] = [
   {
     id: 't1',
     quote: 'The tea house became the heart of our resort. Guests return specifically for the experience.',

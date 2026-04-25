@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { LayoutGroup, motion } from 'framer-motion';
 
-const TABS = ['Read', 'Learn', 'Consult', 'Shop'];
+const TABS = ['Read', 'Learn', 'Advise', 'Shop'];
 
 // ─── Style 1: Whisper Capsule — frosted gold outline ───────────────────────
 function Style1({ tabs }: { tabs: string[] }) {

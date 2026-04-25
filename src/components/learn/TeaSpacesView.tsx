@@ -7,10 +7,10 @@ const BACK_BTN = 'flex items-center gap-1.5 mb-8 group min-h-[44px] rounded-md h
 
 interface TeaSpacesViewProps {
   onBack: () => void;
-  onNavigateToConsult?: () => void;
+  onNavigateToAdvise?: () => void;
 }
 
-export const TeaSpacesView: React.FC<TeaSpacesViewProps> = ({ onBack, onNavigateToConsult }) => {
+export const TeaSpacesView: React.FC<TeaSpacesViewProps> = ({ onBack, onNavigateToAdvise }) => {
   const [expandedSpace, setExpandedSpace] = useState<string | null>(null);
 
   const toggleSpace = (id: string) => {
@@ -82,9 +82,9 @@ export const TeaSpacesView: React.FC<TeaSpacesViewProps> = ({ onBack, onNavigate
         ))}
       </div>
 
-      {onNavigateToConsult && (
+      {onNavigateToAdvise && (
         <button
-          onClick={onNavigateToConsult}
+          onClick={onNavigateToAdvise}
           className="flex items-center justify-between w-full py-3 px-4 rounded-lg bg-tea-gold/5/8 hover:bg-tea-gold/8 dark:hover:bg-tea-gold/12 transition-colors group"
         >
           <div className="flex items-center gap-3">

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { Icons } from '../Icons';
 import { Button } from '../shared/Button';
-import { INQUIRY_OPTIONS, InquiryFormData } from '../../types/consult';
+import { INQUIRY_OPTIONS, InquiryFormData } from '../../types/advise';
 import { useScrollLock } from '../../hooks/useScrollLock';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { useReducedMotion } from '../../hooks/useReducedMotion';

@@ -1,11 +1,11 @@
-export type ConsultView = 'main' | 'projects' | 'project-detail';
+export type AdviseView = 'main' | 'projects' | 'project-detail';
 
-export type ConsultProjectType = 'space' | 'event' | 'journey';
+export type AdviseProjectType = 'space' | 'event' | 'journey';
 
-export interface ConsultProject {
+export interface AdviseProject {
   id: string;
   name: string;
-  type: ConsultProjectType;
+  type: AdviseProjectType;
   location: string;
   description: string;
   work: string;

@@ -94,14 +94,14 @@ interface LearnOverviewProps {
   onStoryClick: (story: Story) => void;
   watchedStories: Record<string, boolean>;
   onNavigateTo: (view: LearnView) => void;
-  onNavigateToConsult?: () => void;
+  onNavigateToAdvise?: () => void;
 }
 
 export const LearnOverview: React.FC<LearnOverviewProps> = ({
   onStoryClick,
   watchedStories,
   onNavigateTo,
-  onNavigateToConsult,
+  onNavigateToAdvise,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -597,9 +597,9 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
             <p className="text-[15px] md:text-[17px] text-tea-text/70 leading-[1.85] mb-5" style={{ fontFamily: 'var(--font-body)' }}>
               This archive grows with every session, every conversation, every cup.
             </p>
-            {onNavigateToConsult ? (
+            {onNavigateToAdvise ? (
               <button
-                onClick={onNavigateToConsult}
+                onClick={onNavigateToAdvise}
                 className={`inline-flex items-center gap-1.5 text-tea-gold hover:text-tea-gold/80 text-xs uppercase tracking-[0.15em] font-sans hover:gap-2.5 transition-all ${CTA_FOCUS}`}
               >
                 Share something <Icons.ChevronRight className="w-3.5 h-3.5" />

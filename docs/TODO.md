@@ -151,14 +151,14 @@ Not urgent, but worth resolving when convenient.
       `045_inquiry_source` failed locally with `no such table: inquiries`,
       but ran clean on remote). Symptom of the bulk-marked tracker above.
       Ties into the same drop-and-recreate fix.
-- [ ] **Advise (Consult) project images.** `ConsultProject.heroImage` and
-      `gallery` are wired up in `src/types/consult.ts`; the views in
-      `src/components/consult/{Projects,ProjectDetail}.tsx` already render
-      real `<img>` when present and fall back to a coloured wash when not.
+- [ ] **Advise project images.** `AdviseProject.heroImage` and `gallery`
+      are wired up in `src/types/advise.ts`; the views in
+      `src/components/advise/{Projects,ProjectDetail}.tsx` render real
+      `<img>` when present and fall back to a minimal SVG placeholder
+      (initial + type label, in `ProjectPlaceholder.tsx`) when not.
       Populate `heroImage` (and optionally `gallery`) in
-      `src/data/consultProjects.ts` once Cloudinary URLs are ready for
-      the 10 projects. Selling design services without real photos is the
-      single biggest credibility gap on `/consult`.
+      `src/data/adviseProjects.ts` once real images are ready for the
+      10 projects.
 
 ---
 

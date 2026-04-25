@@ -1,9 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import { Icons } from '../Icons';
-import { ConsultProject } from '../../types/consult';
-import { consultProjects } from '../../data/consultProjects';
+import { AdviseProject } from '../../types/advise';
+import { adviseProjects } from '../../data/adviseProjects';
 import { CardContainer } from '../shared/CardContainer';
 import { useSectionReveal } from '../../hooks/useSectionReveal';
+import { ProjectPlaceholder } from './ProjectPlaceholder';
 
 const CTA_FOCUS = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-2 rounded-sm';
 const BACK_BTN = 'flex items-center gap-1.5 mb-8 group min-h-[44px] rounded-md hover:bg-tea-text/5 px-2 -ml-2';
@@ -23,7 +24,7 @@ interface ProjectsProps {
 }
 
 const ProjectCard: React.FC<{
-  project: ConsultProject;
+  project: AdviseProject;
   onSelect: (id: string) => void;
 }> = ({ project, onSelect }) => (
   <button
@@ -40,7 +41,7 @@ const ProjectCard: React.FC<{
           style={{ aspectRatio: '16/10' }}
         />
       ) : (
-        <div className="w-full bg-tea-elevated" style={{ aspectRatio: '16/10' }} role="img" aria-label={`${project.name} project`} />
+        <ProjectPlaceholder project={project} variant="card" />
       )}
     </CardContainer>
     <h3 className="font-serif text-lg font-medium text-tea-text">
@@ -57,8 +58,8 @@ export const Projects: React.FC<ProjectsProps> = ({ onBack, onSelectProject }) =
   const reveal = useSectionReveal();
 
   const filteredProjects = useMemo(() => {
-    if (filterType === 'all') return consultProjects;
-    return consultProjects.filter(p => p.type === filterType);
+    if (filterType === 'all') return adviseProjects;
+    return adviseProjects.filter(p => p.type === filterType);
   }, [filterType]);
 
   return (

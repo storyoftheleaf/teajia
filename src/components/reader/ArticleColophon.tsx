@@ -10,7 +10,7 @@ interface ArticleColophonProps {
 /**
  * Article colophon — lists teas referenced by a Magazine article.
  * Thin wrapper over `ProductReferences` so the Magazine, Learn, and
- * Consult colophons all share the same primitive.
+ * Advise colophons all share the same primitive.
  */
 const ArticleColophon: React.FC<ArticleColophonProps> = ({ articleId, fallbackTeaId }) => (
   <ProductReferences

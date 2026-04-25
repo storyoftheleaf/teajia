@@ -3,12 +3,12 @@ import { Helmet } from 'react-helmet-async';
 import { useSearchParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { PageHeader } from './shared/PageHeader';
-import { ConsultView } from '../types/consult';
-import { consultProjects } from '../data/consultProjects';
-import { consultTestimonials } from '../data/consultTestimonials';
-import { InquiryForm } from './consult/InquiryForm';
-import { Projects } from './consult/Projects';
-import { ProjectDetail } from './consult/ProjectDetail';
+import { AdviseView } from '../types/advise';
+import { adviseProjects } from '../data/adviseProjects';
+import { adviseTestimonials } from '../data/adviseTestimonials';
+import { InquiryForm } from './advise/InquiryForm';
+import { Projects } from './advise/Projects';
+import { ProjectDetail } from './advise/ProjectDetail';
 import { useScrollDirection } from '../hooks/useScrollDirection';
 import { useSectionReveal } from '../hooks/useSectionReveal';
 
@@ -50,24 +50,24 @@ const SERVICES = [
 ] as const;
 
 /* =====================================================
-   ConsultPage — main shell
+   AdvisePage — main shell
    ===================================================== */
 
-interface ConsultPageProps {
+interface AdvisePageProps {
   onCartClick?: () => void;
   onAccountClick?: () => void;
   cartItemCount?: number;
 }
 
-export const ConsultPage: React.FC<ConsultPageProps> = ({ onCartClick, onAccountClick, cartItemCount = 0 }) => {
+export const AdvisePage: React.FC<AdvisePageProps> = ({ onCartClick, onAccountClick, cartItemCount = 0 }) => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const currentView = (searchParams.get('v') || 'main') as ConsultView;
+  const currentView = (searchParams.get('v') || 'main') as AdviseView;
   const selectedProjectId = searchParams.get('pid') || null;
   const [inquiryOpen, setInquiryOpen] = useState(false);
   const [inquiryPreselect, setInquiryPreselect] = useState('');
 
   const scrollPositions = useRef<Record<string, number>>({});
-  const prevView = useRef<ConsultView>(currentView);
+  const prevView = useRef<AdviseView>(currentView);
 
   const heroReveal = useSectionReveal('up');
   const bioReveal = useSectionReveal('up');
@@ -87,7 +87,7 @@ export const ConsultPage: React.FC<ConsultPageProps> = ({ onCartClick, onAccount
     setInquiryOpen(true);
   }, []);
 
-  const navigateTo = useCallback((view: ConsultView, projectId?: string) => {
+  const navigateTo = useCallback((view: AdviseView, projectId?: string) => {
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev);
       if (view === 'main') { next.delete('v'); next.delete('pid'); }
@@ -97,7 +97,7 @@ export const ConsultPage: React.FC<ConsultPageProps> = ({ onCartClick, onAccount
     delete scrollPositions.current[view];
   }, [setSearchParams]);
 
-  const selectedProject = selectedProjectId ? consultProjects.find(p => p.id === selectedProjectId) : null;
+  const selectedProject = selectedProjectId ? adviseProjects.find(p => p.id === selectedProjectId) : null;
 
   // Sub-views
   if (currentView === 'projects') {
@@ -360,7 +360,7 @@ interface ProjectsPreviewProps {
 }
 
 const ProjectsPreview: React.FC<ProjectsPreviewProps> = ({ onSelectProject, onViewAll }) => {
-  const projects = consultProjects.filter(p => p.featured).slice(0, 3);
+  const projects = adviseProjects.filter(p => p.featured).slice(0, 3);
 
   if (projects.length === 0) return null;
 
@@ -417,7 +417,7 @@ const ProjectsPreview: React.FC<ProjectsPreviewProps> = ({ onSelectProject, onVi
    ===================================================== */
 
 const Testimonial: React.FC = () => {
-  const testimonial = consultTestimonials[0];
+  const testimonial = adviseTestimonials[0];
 
   return (
     <motion.section

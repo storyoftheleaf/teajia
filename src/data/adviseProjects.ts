@@ -1,6 +1,6 @@
-import { ConsultProject } from '../types/consult';
+import { AdviseProject } from '../types/advise';
 
-export const consultProjects: ConsultProject[] = [
+export const adviseProjects: AdviseProject[] = [
   {
     id: 'intaaya-resort',
     name: 'Intaaya Resort',

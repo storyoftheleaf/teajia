@@ -20,7 +20,7 @@ interface LibraryItem {
 
 interface LearnExploreProps {
   watchedStories: Record<string, boolean>;
-  onNavigateToConsult?: () => void;
+  onNavigateToAdvise?: () => void;
 }
 
 // ─── Static Data ─────────────────────────────────────────────────────────────
@@ -72,7 +72,7 @@ const GRID_TILES: { id: ExploreView; title: string; subtitle: string; icon: Reac
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-export const LearnExplore: React.FC<LearnExploreProps> = ({ watchedStories, onNavigateToConsult }) => {
+export const LearnExplore: React.FC<LearnExploreProps> = ({ watchedStories, onNavigateToAdvise }) => {
   const [activeView, setActiveView] = useState<ExploreView>('grid');
 
   // Tea Journeys state
@@ -529,9 +529,9 @@ export const LearnExplore: React.FC<LearnExploreProps> = ({ watchedStories, onNa
             ))}
           </div>
 
-          {onNavigateToConsult && (
+          {onNavigateToAdvise && (
             <button
-              onClick={onNavigateToConsult}
+              onClick={onNavigateToAdvise}
               className="flex items-center justify-between w-full py-3 px-4 rounded-lg bg-tea-gold/5 hover:bg-tea-gold/10 transition-colors group"
             >
               <div className="flex items-center gap-3">

@@ -23,7 +23,7 @@ const PATHS: Path[] = [
   {
     label: 'I want to open a space',
     desc: 'Get the infrastructure to build your tea house',
-    route: '/consult',
+    route: '/advise',
   },
   {
     label: 'Tea for my business',

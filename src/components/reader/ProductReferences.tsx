@@ -6,7 +6,7 @@ import { InventoryItem } from '../../types';
 /**
  * ProductReferences — shared "quiet footnote" colophon primitive for
  * linking network-level content (Magazine articles, Learn modules,
- * Consult projects) to referenced teas. Renders nothing if there is
+ * Advise projects) to referenced teas. Renders nothing if there is
  * nothing to link.
  *
  * Editorial, not promotional:

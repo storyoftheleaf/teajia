@@ -1811,7 +1811,7 @@ export const api = {
     },
   },
 
-  // Public (no-auth) xref reads for Magazine / Learn / Consult colophons.
+  // Public (no-auth) xref reads for Magazine / Learn / Advise colophons.
   // Returns PUBLIC_FIELDS products from the platform-owner account. Used by
   // the colophon components on public content pages.
   publicXref: {

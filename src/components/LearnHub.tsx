@@ -38,7 +38,7 @@ interface LearnHubProps {
   onCartClick?: () => void;
   onAccountClick?: () => void;
   cartItemCount?: number;
-  onNavigateToConsult?: () => void;
+  onNavigateToAdvise?: () => void;
 }
 
 export const LearnHub: React.FC<LearnHubProps> = ({
@@ -47,7 +47,7 @@ export const LearnHub: React.FC<LearnHubProps> = ({
   onCartClick,
   onAccountClick,
   cartItemCount = 0,
-  onNavigateToConsult,
+  onNavigateToAdvise,
 }) => {
   // URL-synced sub-view navigation — browser back works properly
   const { currentView, navigateTo, navigateBack, isSubView } = useSubViewNavigation<LearnView>('v', 'overview');
@@ -111,7 +111,7 @@ export const LearnHub: React.FC<LearnHubProps> = ({
       case 'wisdom':
         return <CommunityWisdomView onBack={navigateBack} />;
       case 'spaces':
-        return <TeaSpacesView onBack={navigateBack} onNavigateToConsult={onNavigateToConsult} />;
+        return <TeaSpacesView onBack={navigateBack} onNavigateToAdvise={onNavigateToAdvise} />;
       default:
         return null;
     }
@@ -143,7 +143,7 @@ export const LearnHub: React.FC<LearnHubProps> = ({
             onStoryClick={onStoryClick}
             watchedStories={watchedStories}
             onNavigateTo={handleNavigate}
-            onNavigateToConsult={onNavigateToConsult}
+            onNavigateToAdvise={onNavigateToAdvise}
           />
         )}
       </div>

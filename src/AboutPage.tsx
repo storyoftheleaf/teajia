@@ -158,7 +158,7 @@ export default function AboutPage() {
           </p>
         </div>
         <div className="bg-tea-surface rounded-xl p-6 hover:bg-tea-elevated transition-colors duration-150">
-          <h3 className="font-display text-lg text-tea-text mb-2">Consult</h3>
+          <h3 className="font-display text-lg text-tea-text mb-2">Advise</h3>
           <p className="font-body text-sm text-tea-text-sec leading-relaxed">
             Tea space design, sourcing guidance, ceremony training, and origin journeys. Twenty years of practice offered to those who take tea seriously.
           </p>

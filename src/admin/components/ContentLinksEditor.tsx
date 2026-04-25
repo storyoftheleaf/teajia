@@ -4,7 +4,7 @@ import { X, Plus, Trash2, Link2, Loader2, ChevronDown } from 'lucide-react';
 import { api } from '../../lib/api';
 import { STORIES } from '../../content';
 import { LEARN_CURRICULUM } from '../../constants';
-import { consultProjects } from '../../data/consultProjects';
+import { adviseProjects } from '../../data/adviseProjects';
 import { Product } from '../types';
 
 /**
@@ -18,7 +18,7 @@ type EntityType = 'article' | 'module' | 'project';
 const ENTITY_LABELS: Record<EntityType, string> = {
   article: 'Magazine Article',
   module: 'Learn Module',
-  project: 'Consult Project',
+  project: 'Advise Project',
 };
 
 function useEntityOptions(type: EntityType): Array<{ id: string; label: string }> {
@@ -33,7 +33,7 @@ function useEntityOptions(type: EntityType): Array<{ id: string; label: string }
       return LEARN_CURRICULUM.map(m => ({ id: m.id, label: `${m.subtitle}: ${m.title}` }));
     }
     // project
-    return consultProjects.map(p => ({ id: p.id, label: p.name }));
+    return adviseProjects.map(p => ({ id: p.id, label: p.name }));
   }, [type]);
 }
 

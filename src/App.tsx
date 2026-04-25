@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
-import { Routes, Route, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { AnimatePresence, motion, MotionConfig } from 'framer-motion';
 
 // Reload once on stale chunk hash (happens after a new deployment)
@@ -107,7 +107,7 @@ import { GlobalSearch } from './components/shared/GlobalSearch';
 import { LeftSidebar } from './components/LeftSidebar';
 import { BottomTabBar } from './components/BottomTabBar';
 import { MagazineTabbed } from './components/MagazineTabbed';
-import { ConsultPage } from './components/ConsultPage';
+import { AdvisePage } from './components/AdvisePage';
 import AboutPage from './AboutPage';
 import Footer from './components/shared/Footer';
 import { ErrorBoundary } from './admin/components/ErrorBoundary';
@@ -210,6 +210,17 @@ const AppContent = () => {
       prevSection.current = activeSection;
     }
   }, [activeSection]);
+
+  // Reset scroll on any pathname change. The activeSection effect above only
+  // fires for Section-tracked routes; pages like /signin, /signup, /account/*
+  // are not in that enum, so without this they inherit the previous scrollY.
+  const lastPathname = useRef(location.pathname);
+  useEffect(() => {
+    if (lastPathname.current !== location.pathname) {
+      lastPathname.current = location.pathname;
+      window.scrollTo(0, 0);
+    }
+  }, [location.pathname]);
 
   // Update document title on section change
   useEffect(() => {
@@ -559,7 +570,6 @@ const AppContent = () => {
     <div className={`${isAdminRoute ? 'h-screen overflow-hidden' : 'min-h-screen'} bg-tea-bg text-tea-text relative selection:bg-tea-gold selection:text-white overflow-x-hidden font-serif flex flex-col lg:flex-row transition-colors duration-300 pt-[env(safe-area-inset-top)]`}>
 
       <div className="texture-overlay"></div>
-      <div className="fixed inset-0 grain-texture pointer-events-none opacity-[0.20] z-0"></div>
       <div className="fixed inset-0 bg-gradient-radial from-transparent via-tea-bg/40 to-tea-surface/90 pointer-events-none z-0"></div>
 
       {/* Admin Toolbar — visible only for admin users */}
@@ -641,7 +651,7 @@ const AppContent = () => {
                 } />
                 <Route path="/learn" element={
                   <ErrorBoundary>
-                    <LearnHub onStoryClick={handleCardClick} watchedStories={watchedStoryIds} onCartClick={handleOpenCart} onAccountClick={handleOpenAccount} cartItemCount={cart.length} onNavigateToConsult={() => setActiveSection('OFFERINGS')} />
+                    <LearnHub onStoryClick={handleCardClick} watchedStories={watchedStoryIds} onCartClick={handleOpenCart} onAccountClick={handleOpenAccount} cartItemCount={cart.length} onNavigateToAdvise={() => setActiveSection('OFFERINGS')} />
                   </ErrorBoundary>
                 } />
                 <Route path="/shop" element={
@@ -662,11 +672,13 @@ const AppContent = () => {
                     </Suspense>
                   </ErrorBoundary>
                 } />
-                <Route path="/consult" element={
+                <Route path="/advise" element={
                   <ErrorBoundary>
-                    <ConsultPage onCartClick={handleOpenCart} onAccountClick={handleOpenAccount} cartItemCount={cart.length} />
+                    <AdvisePage onCartClick={handleOpenCart} onAccountClick={handleOpenAccount} cartItemCount={cart.length} />
                   </ErrorBoundary>
                 } />
+                {/* Legacy route — old links to /consult keep working. */}
+                <Route path="/consult" element={<Navigate to="/advise" replace />} />
                 {/* PREVIEW_MODE stubs — restore in docs/LAUNCH_CHECKLIST.md */}
                 <Route path="/for-your-space" element={PREVIEW_MODE ? <ComingSoonPage label="For your space" /> : (
                   <ErrorBoundary>

@@ -5,7 +5,7 @@ export const SECTION_TO_PATH: Record<Section, string> = {
   MAGAZINE: '/magazine',
   LEARN: '/learn',
   SHOP: '/shop',
-  OFFERINGS: '/consult',
+  OFFERINGS: '/advise',
   EVENTS: '/events',
   YOUR_TABLE: '/account',
   ABOUT: '/about',

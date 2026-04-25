@@ -1,17 +1,18 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Icons } from '../Icons';
-import { ConsultProject } from '../../types/consult';
+import { AdviseProject } from '../../types/advise';
 import { CardContainer } from '../shared/CardContainer';
 import { useSectionReveal } from '../../hooks/useSectionReveal';
 import { SECTION_GAP_LG } from '../shared/spacing';
 import { useParallax } from '../../hooks/useParallax';
 import { useProductReferences } from '../reader/ProductReferences';
 import { api } from '../../lib/api';
+import { ProjectPlaceholder } from './ProjectPlaceholder';
 
 /**
  * "Vessels and teas in this space" — editorial provenance block
- * linking a Consult project to the teas and teaware it featured.
+ * linking a Advise project to the teas and teaware it featured.
  * Uses the project_products xref (no fallback). Renders nothing if
  * no products are linked.
  */
@@ -59,7 +60,7 @@ const CTA_FOCUS = 'focus-visible:outline-none focus-visible:ring-2 focus-visible
 const BACK_BTN = 'flex items-center gap-1.5 mb-8 group min-h-[44px] rounded-md hover:bg-tea-text/5 px-2 -ml-2';
 
 interface ProjectDetailProps {
-  project: ConsultProject;
+  project: AdviseProject;
   onBack: () => void;
   onOpenInquiry: (preselect: string) => void;
   onNavigateProjects: () => void;
@@ -118,11 +119,11 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, o
             />
           ) : (
             <div
-              className="absolute inset-0 bg-tea-elevated transition-transform duration-100"
+              className="absolute inset-0 transition-transform duration-100"
               style={{ transform: `translateY(${parallaxVisible ? offset : 0}px) scale(1.1)` }}
-              role="img"
-              aria-label={`${project.name} project`}
-            />
+            >
+              <ProjectPlaceholder project={project} variant="hero" className="h-full" />
+            </div>
           )}
           <div className="absolute inset-0 bg-gradient-to-b from-tea-border via-transparent to-tea-bg" />
         </div>
