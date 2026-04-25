@@ -11,7 +11,7 @@ import { useAppStore } from '../lib/store';
 import {
   Calendar, LayoutDashboard, Briefcase, Leaf, Coffee, Store, Users,
   FolderOpen, Settings, ChevronLeft, ChevronRight, UserCheck, MapPin,
-  BookOpen, Package, ShoppingCart,
+  BookOpen, Package, ShoppingCart, Sun, Moon,
 } from 'lucide-react';
 import { SampleIcon } from './Icons';
 import { useSampleCartStore } from '../samples/sampleCartStore';
@@ -139,7 +139,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   onSearchClick,
   cartItemCount = 0,
 }) => {
-  const { theme } = useTheme();
+  const { theme, toggleTheme } = useTheme();
   const auth = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -597,36 +597,51 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
           <div
             className={`py-3 ${collapsed ? 'px-1.5' : 'px-3'} border-t border-tea-border shrink-0`}
           >
-            {/* Our Spaces */}
+            {/* Our Spaces + theme toggle */}
             {!PREVIEW_MODE && (
-              <Link
-                to="/spaces"
-                className={`w-full flex items-center min-h-[44px] ${
-                  collapsed ? 'justify-center px-2' : 'gap-3 px-4'
-                } rounded-md transition-colors duration-200 group hover:bg-tea-gold/6 ${
-                  currentPath === '/spaces' ? '' : ''
-                }`}
-                title="Our spaces"
-              >
-                {collapsed && (
-                  <MapPin
-                    className={`w-[18px] h-[18px] shrink-0 transition-colors duration-200 ${
-                      currentPath === '/spaces' ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
-                    }`}
-                    strokeWidth={1.75}
-                  />
-                )}
-                {!collapsed && (
-                  <span
-                    className={`text-sm transition-colors duration-200 ${
-                      currentPath === '/spaces' ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
-                    }`}
-                    style={{ fontFamily: 'var(--font-display)', fontWeight: 400, letterSpacing: '0.03em' }}
-                  >
-                    Our spaces
-                  </span>
-                )}
-              </Link>
+              <div className={`flex items-center ${collapsed ? 'flex-col gap-1' : 'justify-between gap-2'}`}>
+                <Link
+                  to="/spaces"
+                  className={`flex items-center min-h-[44px] ${
+                    collapsed ? 'justify-center px-2' : 'flex-1 gap-3 px-4'
+                  } rounded-md transition-colors duration-200 group hover:bg-tea-gold/6`}
+                  title="Our spaces"
+                >
+                  {collapsed && (
+                    <MapPin
+                      className={`w-[18px] h-[18px] shrink-0 transition-colors duration-200 ${
+                        currentPath === '/spaces' ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
+                      }`}
+                      strokeWidth={1.75}
+                    />
+                  )}
+                  {!collapsed && (
+                    <span
+                      className={`text-sm transition-colors duration-200 ${
+                        currentPath === '/spaces' ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
+                      }`}
+                      style={{ fontFamily: 'var(--font-display)', fontWeight: 400, letterSpacing: '0.03em' }}
+                    >
+                      Our spaces
+                    </span>
+                  )}
+                </Link>
+                <button
+                  type="button"
+                  onClick={(e) => toggleTheme(e)}
+                  className={`flex items-center justify-center min-h-[44px] min-w-[44px] rounded-md transition-colors duration-200 text-tea-text-sec hover:text-tea-text hover:bg-tea-gold/6 ${
+                    collapsed ? 'px-2' : 'px-3'
+                  }`}
+                  title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                  aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                >
+                  {theme === 'dark' ? (
+                    <Sun className="w-[18px] h-[18px]" strokeWidth={1.75} />
+                  ) : (
+                    <Moon className="w-[18px] h-[18px]" strokeWidth={1.75} />
+                  )}
+                </button>
+              </div>
             )}
 
           </div>
