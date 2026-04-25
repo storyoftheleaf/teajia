@@ -1,11 +1,13 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { Users, Store, Shield, ShoppingBag } from 'lucide-react';
 import { CustomersView } from './CustomersView';
 import { SourcesView } from './SourcesView';
 import { TeamView } from '../views/TeamView';
 import { PurchaseOrdersPage } from '../views/PurchaseOrdersPage';
 import { useAppStore } from '../store';
+import { api } from '../../lib/api';
 
 type PeopleTab = 'customers' | 'sources' | 'purchase-orders' | 'team';
 
@@ -39,6 +41,19 @@ export const PeopleView: React.FC<PeopleViewProps> = ({
   const fallback = visibleTabs[0]?.id || 'customers';
   const activeTab: PeopleTab = rawTab && visibleTabs.find(t => t.id === rawTab) ? rawTab : fallback;
   const setActiveTab = (tab: PeopleTab) => setSearchParams({ tab }, { replace: true });
+
+  // Warm caches for sibling tabs so switching feels instant.
+  // Worker cold-start is the dominant cost; prefetching on hub mount hides it.
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    if (canSeeSources) {
+      queryClient.prefetchQuery({
+        queryKey: ['purchase_orders'],
+        queryFn: () => api.purchaseOrders.list(),
+        staleTime: 1000 * 60 * 5,
+      });
+    }
+  }, [canSeeSources, queryClient]);
 
   return (
     <div className="h-full flex flex-col overflow-hidden bg-tea-bg">
