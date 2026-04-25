@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
+import { useScrollFade } from './alcove/hooks/useScrollFade';
 import { useNavigate } from 'react-router-dom';
 import { Pencil, Leaf, ChevronRight, X, Loader2, QrCode, Heart } from 'lucide-react';
 import { useSampleCartStore } from '../../samples/sampleCartStore';
@@ -50,6 +51,8 @@ function toTitleCase(str: string): string {
   return str.replace(/\b\w/g, c => c.toUpperCase());
 }
 
+// TODO: BookmarkIcon is dead code (not used in JSX). Kept here to avoid behavior changes.
+// Remove in a future cleanup pass, or replace with import from './alcove/icons'.
 function BookmarkIcon({ filled, color, strokeColor }: { filled: boolean; color: string; strokeColor: string }) {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill={filled ? color : "none"}
@@ -145,7 +148,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   const [expandedImageUrl, setExpandedImageUrl] = useState<string | null>(null);
   const [shareCopied, setShareCopied] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [showFade, setShowFade] = useState(false);
+  const showFade = useScrollFade(scrollRef);
 
   // Fetch events that featured this product
   const { data: productEvents, isLoading: eventsLoading } = useProductEvents(item.id);
@@ -251,23 +254,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
       : [feeling]
     : [];
 
-  // Scroll overflow detection
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const check = () => {
-      const canScroll = el.scrollHeight > el.clientHeight;
-      const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 8;
-      setShowFade(canScroll && !atBottom);
-    };
-    check();
-    el.addEventListener("scroll", check, { passive: true });
-    window.addEventListener("resize", check);
-    return () => {
-      el.removeEventListener("scroll", check);
-      window.removeEventListener("resize", check);
-    };
-  }, []);
+  // Scroll overflow detection — handled by useScrollFade(scrollRef)
 
   const handleAdd = () => {
     if (isSoldOut) return;

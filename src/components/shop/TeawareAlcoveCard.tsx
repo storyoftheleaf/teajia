@@ -1,4 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
+import { BookmarkIcon, ShareIcon } from './alcove/icons';
+import { useScrollFade } from './alcove/hooks/useScrollFade';
 import type { InventoryItem } from '../../types';
 import { useAppStore } from '../../lib/store';
 import { fmtNum } from '../../utils/formatNumber';
@@ -10,25 +12,6 @@ interface TeawareAlcoveCardProps {
   onClose?: () => void;
 }
 
-function BookmarkIcon({ filled, color, strokeColor }: { filled: boolean; color: string; strokeColor: string }) {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill={filled ? color : "none"}
-      stroke={filled ? color : strokeColor} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M5 4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v18l-7-4-7 4V4z" />
-    </svg>
-  );
-}
-
-function ShareIcon({ color }: { color: string }) {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-      stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M4 14v5a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5" />
-      <polyline points="12 3 12 16" />
-      <polyline points="8 7 12 3 16 7" />
-    </svg>
-  );
-}
 
 export const TeawareAlcoveCard: React.FC<TeawareAlcoveCardProps> = ({ item, onAddToCart, onClose }) => {
   const { favoriteTeas, toggleFavoriteTea, activeAccount } = useAppStore();
@@ -40,7 +23,7 @@ export const TeawareAlcoveCard: React.FC<TeawareAlcoveCardProps> = ({ item, onAd
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [shareCopied, setShareCopied] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [showFade, setShowFade] = useState(false);
+  const showFade = useScrollFade(scrollRef);
   const galleryTouchStart = useRef<number | null>(null);
 
   // Share handler — builds ?product=<id> URL, uses Web Share API with clipboard fallback
@@ -115,23 +98,7 @@ export const TeawareAlcoveCard: React.FC<TeawareAlcoveCardProps> = ({ item, onAd
   const feelingDescription = item.experience || '';
   const hasContent = !!(story || technique || feeling);
 
-  // Scroll overflow detection
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const check = () => {
-      const canScroll = el.scrollHeight > el.clientHeight;
-      const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 8;
-      setShowFade(canScroll && !atBottom);
-    };
-    check();
-    el.addEventListener("scroll", check, { passive: true });
-    window.addEventListener("resize", check);
-    return () => {
-      el.removeEventListener("scroll", check);
-      window.removeEventListener("resize", check);
-    };
-  }, []);
+  // Scroll overflow detection — handled by useScrollFade(scrollRef)
 
   const handleAdd = () => {
     if (isSoldOut) return;
