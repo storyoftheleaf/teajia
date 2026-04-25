@@ -161,6 +161,9 @@ export const TYPOGRAPHY_CLASSES = {
   nav:       'font-sans text-[12px] font-normal uppercase tracking-[1px] leading-[1.4]',
   link:      'font-sans text-[14px] font-normal tracking-[0.2px]',
   mono:      'font-mono text-[11px] font-normal',
+  navSidebar:      'font-display text-[15px] font-medium tracking-[0.04em] leading-[1.3]',
+  navSidebarChild: 'font-display text-[13px] font-normal tracking-[0.04em] leading-[1.3]',
+  accountMeta:     'font-sans text-[12px] font-normal tracking-[0.04em] leading-[1.3]',
 } as const;
 
 export const FONT_SIZES = {

@@ -8,10 +8,11 @@ import { useTheme } from '../context/ThemeContext';
 import { PREVIEW_MODE } from '../constants';
 import { useAuth } from '../hooks/useAuth';
 import { useAppStore } from '../lib/store';
+import { TYPOGRAPHY_CLASSES } from '../designTokens';
 import {
   Calendar, LayoutDashboard, Briefcase, Leaf, Coffee, Store, Users,
-  FolderOpen, Settings, ChevronLeft, ChevronRight, UserCheck, MapPin,
-  BookOpen, Package, ShoppingCart, Sun, Moon, Compass, Wrench,
+  FolderOpen, ChevronLeft, ChevronRight, UserCheck, MapPin,
+  BookOpen, Package, ShoppingCart, Sun, Moon,
 } from 'lucide-react';
 import { SampleIcon } from './Icons';
 import { useSampleCartStore } from '../samples/sampleCartStore';
@@ -63,10 +64,9 @@ const NavButton: React.FC<{
 
   const labelEl = !collapsed && (
     <span
-      className={`text-sm text-left transition-colors duration-200 ${
+      className={`${TYPOGRAPHY_CLASSES.navSidebar} text-left transition-colors duration-200 ${
         isActive ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
       }`}
-      style={{ fontFamily: 'var(--font-display)', fontWeight: 400, letterSpacing: '0.03em' }}
     >
       {item.label}
     </span>
@@ -337,26 +337,22 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
             {!collapsed && (
               <div className="min-w-0 flex-1 text-left">
                 <span
-                  className={`text-sm block leading-tight transition-colors duration-200 ${
+                  className={`${TYPOGRAPHY_CLASSES.navSidebar} block transition-colors duration-200 ${
                     activeSection === 'YOUR_TABLE' ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
                   }`}
-                  style={{ fontFamily: 'var(--font-display)', fontWeight: 400, letterSpacing: '0.03em' }}
                 >
                   Your Table
                 </span>
-                <span className="text-[11px] text-tea-text-sec leading-none block mt-0.5 tracking-[0.04em]">
+                <span className={`${TYPOGRAPHY_CLASSES.accountMeta} text-tea-text-sec block mt-1`}>
                   {userName ?? 'Sign in'}
                 </span>
                 {locationLine && (
-                  <span className="text-[11px] text-tea-text-sec leading-none block mt-0.5 tracking-[0.04em]">
+                  <span className={`${TYPOGRAPHY_CLASSES.accountMeta} text-tea-text-sec block mt-0.5`}>
                     ◉ {locationLine}
                   </span>
                 )}
                 {!auth.isAuthenticated && (
-                  <span
-                    className="text-[11px] text-tea-text-sec leading-none block mt-0.5 tracking-[0.04em] italic"
-                    style={{ fontFamily: 'var(--font-display)' }}
-                  >
+                  <span className="font-display text-[13px] italic tracking-[0.02em] leading-[1.3] text-tea-text-sec block mt-1">
                     your practice, kept
                   </span>
                 )}
@@ -376,13 +372,10 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
               <Icons.Search className="w-4 h-4 text-tea-text-sec group-hover:text-tea-text transition-colors shrink-0" strokeWidth={1.75} />
               {!collapsed && (
                 <>
-                  <span
-                    className="text-[13px] text-tea-text-sec group-hover:text-tea-text transition-colors flex-1 text-left"
-                    style={{ fontFamily: 'var(--font-sans)', fontWeight: 400 }}
-                  >
+                  <span className={`${TYPOGRAPHY_CLASSES.accountMeta} text-tea-text-sec group-hover:text-tea-text transition-colors flex-1 text-left`}>
                     Search
                   </span>
-                  <kbd className="text-[10px] text-tea-text-sec/70 border border-tea-border rounded px-1.5 py-0.5 font-mono shrink-0">
+                  <kbd className="text-[11px] text-tea-text-sec border border-tea-border rounded px-1.5 py-0.5 font-mono shrink-0">
                     ⌘K
                   </kbd>
                 </>
@@ -392,13 +385,6 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 
           {/* ── Browse Nav ────────────────────────────────────────────────── */}
           <nav className={`flex flex-col py-3 gap-1 ${collapsed ? 'px-1.5' : 'px-3'}`}>
-            {!collapsed && (
-              <div className="flex items-center gap-1.5 px-4 pt-1 pb-2">
-                <Compass size={11} strokeWidth={1.75} className="text-tea-gold/70 shrink-0" aria-hidden="true" />
-                <span className="text-[10px] uppercase tracking-[0.22em] text-tea-text-sec font-medium">Browse</span>
-                <div className="flex-1 h-px bg-tea-border ml-1" aria-hidden="true" />
-              </div>
-            )}
             {browseItems.map((item, index) => (
               <NavButton
                 key={item.id}
@@ -454,13 +440,10 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                   ) : (
                     <>
                       <ShoppingCart
-                        className="w-[14px] h-[14px] text-tea-gold/55 group-hover:text-tea-gold/80 transition-colors duration-200 shrink-0"
+                        className="w-[18px] h-[18px] text-tea-gold/55 group-hover:text-tea-gold/80 transition-colors duration-200 shrink-0"
                         strokeWidth={1.75}
                       />
-                      <span
-                        className="text-sm text-tea-text-sec group-hover:text-tea-text transition-colors duration-200"
-                        style={{ fontFamily: 'var(--font-display)', fontWeight: 400, letterSpacing: '0.03em' }}
-                      >
+                      <span className={`${TYPOGRAPHY_CLASSES.navSidebar} text-tea-text-sec group-hover:text-tea-text transition-colors duration-200`}>
                         Cart
                       </span>
                       {cartItemCount > 0 && (
@@ -494,16 +477,8 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.2 }}
-                className={`flex flex-col gap-1 ${collapsed ? 'px-1.5' : 'px-3'} pt-2 pb-3 border-t border-tea-border`}
+                className={`flex flex-col gap-1 ${collapsed ? 'px-1.5' : 'px-3'} pt-3 pb-3 border-t border-tea-border`}
               >
-                {!collapsed && (
-                  <div className="flex items-center gap-1.5 px-4 pt-1 pb-2">
-                    <Wrench size={11} strokeWidth={1.75} className="text-tea-gold/70 shrink-0" aria-hidden="true" />
-                    <span className="text-[10px] uppercase tracking-[0.22em] text-tea-text-sec font-medium">Admin</span>
-                    <div className="flex-1 h-px bg-tea-border ml-1" aria-hidden="true" />
-                  </div>
-                )}
-
                 {adminItems.map((item, index) => {
                   const hasChildren = (item.children?.length ?? 0) > 0;
                   const isAnyChildActive = item.children?.some(c => currentPath === c.path) ?? false;
@@ -547,10 +522,9 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                         </div>
                         {!collapsed && (
                           <span
-                            className={`text-sm text-left transition-colors duration-200 ${
+                            className={`${TYPOGRAPHY_CLASSES.navSidebar} text-left transition-colors duration-200 ${
                               (showActive || isAnyChildActive) ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
                             }`}
-                            style={{ fontFamily: 'var(--font-display)', fontWeight: 400, letterSpacing: '0.03em' }}
                           >
                             {item.label}
                           </span>
@@ -581,10 +555,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                                   {currentPath === child.path && (
                                     <div className="absolute -left-2.5 inset-y-0 w-[2px] bg-tea-gold/60" />
                                   )}
-                                  <span
-                                    className="text-[12px]"
-                                    style={{ fontFamily: 'var(--font-display)', fontWeight: 400, letterSpacing: '0.03em' }}
-                                  >
+                                  <span className={TYPOGRAPHY_CLASSES.navSidebarChild}>
                                     {child.label}
                                   </span>
                                 </Link>
@@ -617,9 +588,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                   title="Our spaces"
                 >
                   <MapPin
-                    className={`shrink-0 transition-colors duration-200 ${
-                      collapsed ? 'w-[18px] h-[18px]' : 'w-[14px] h-[14px]'
-                    } ${
+                    className={`shrink-0 w-[18px] h-[18px] transition-colors duration-200 ${
                       currentPath === '/spaces'
                         ? 'text-tea-gold'
                         : collapsed
@@ -630,10 +599,9 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                   />
                   {!collapsed && (
                     <span
-                      className={`text-sm transition-colors duration-200 ${
+                      className={`${TYPOGRAPHY_CLASSES.navSidebar} transition-colors duration-200 ${
                         currentPath === '/spaces' ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
                       }`}
-                      style={{ fontFamily: 'var(--font-display)', fontWeight: 400, letterSpacing: '0.03em' }}
                     >
                       Our spaces
                     </span>
