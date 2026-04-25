@@ -35,6 +35,8 @@ interface TeaCompassProps {
   initialMode?: CompassMode;
   /** Open a specific entry by ID */
   initialEntryId?: string;
+  /** In sourcing mode, preselect the capture sub-tab (tea / teaware / samples) */
+  initialCaptureOption?: 'tea' | 'teaware' | 'samples';
 }
 
 // ─── Desktop-only right column placeholder ───────────────────────────────────
@@ -70,7 +72,7 @@ const CompassRightEmptyState: React.FC<{
 
 // ─── Main Tea Compass ────────────────────────────────────────────────────
 
-export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, initialEntryId }) => {
+export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, initialEntryId, initialCaptureOption }) => {
   const activeEntryId = useTeaCompassStore((s) => s.activeEntryId);
   const setActiveEntry = useTeaCompassStore((s) => s.setActiveEntry);
   const startNewCapture = useTeaCompassStore((s) => s.startNewCapture);
@@ -375,7 +377,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
 
   const pendingIncomingCount = visibleShares.length;
 
-  const [captureOption, setCaptureOption] = useState<'tea' | 'teaware' | 'samples'>('tea');
+  const [captureOption, setCaptureOption] = useState<'tea' | 'teaware' | 'samples'>(initialCaptureOption || 'tea');
   const sampleCartCount = useSampleCartStore((s) => s.items.length);
   const captureEntryInCart = useSampleCartStore((s) => !!activeEntryId && s.items.some((i) => i.id === activeEntryId));
   const addSampleCartItem = useSampleCartStore((s) => s.addItem);

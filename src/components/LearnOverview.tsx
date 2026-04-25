@@ -200,6 +200,23 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
           />
         </div>
 
+        {/* Start Here — new user callout */}
+        <div className="mb-5 px-4 py-3.5 rounded-sm bg-tea-surface/60 border border-tea-border flex items-start gap-3">
+          <span className="text-tea-gold/60 mt-0.5 shrink-0" aria-hidden="true">
+            <Icons.Leaf className="w-4 h-4" />
+          </span>
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] uppercase tracking-[0.18em] text-tea-gold/70 mb-1">New here?</p>
+            <p className="text-xs text-tea-text-sec leading-relaxed">
+              Start with{' '}
+              <button onClick={() => onNavigateTo('course')} className="text-tea-text underline underline-offset-2 hover:text-tea-gold transition-colors">Go Deeper</button>
+              {' '}for structured lessons, or visit the{' '}
+              <button onClick={() => onNavigateTo('glossary')} className="text-tea-text underline underline-offset-2 hover:text-tea-gold transition-colors">Glossary</button>
+              {' '}to learn the language of tea.
+            </p>
+          </div>
+        </div>
+
         {/* Explore — flows directly from the hero, no separator */}
         <div>
           {[

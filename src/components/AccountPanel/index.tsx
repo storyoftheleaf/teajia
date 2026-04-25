@@ -20,6 +20,10 @@ import type { TeaEvent } from '../../types/events';
 
 import type { PanelView } from './types';
 import { TastingJournalView } from './TastingJournalView';
+import { OperatorView } from './OperatorView';
+import { MemberView } from './MemberView';
+import { ReaderView } from './ReaderView';
+import { StaffView } from './StaffView';
 
 interface AccountPanelProps {
   onClose: () => void;
@@ -83,14 +87,14 @@ const Separator: React.FC = () => (
 );
 
 const ZoneLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <span className="text-[9px] uppercase tracking-[0.25em] text-tea-text-dim font-medium block mb-2.5 px-0.5">
+  <span className="text-[11px] uppercase tracking-[0.22em] text-tea-text-sec font-medium block mb-2.5 px-0.5">
     {children}
   </span>
 );
 
 const CardSectionLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="px-4 py-2.5 border-b border-tea-border bg-tea-surface/30">
-    <span className="text-[9px] uppercase tracking-[0.25em] text-tea-text-dim font-medium">{children}</span>
+  <div className="px-4 py-2.5 border-b border-tea-border bg-tea-surface">
+    <span className="text-[11px] uppercase tracking-[0.22em] text-tea-text-sec font-medium">{children}</span>
   </div>
 );
 
@@ -118,17 +122,17 @@ const Item: React.FC<{
       onClick={handleClick}
       className={`w-full flex items-center gap-3.5 px-4 py-3.5 text-left transition-colors group border-b border-tea-border last:border-0 ${
         locked
-          ? tapped ? 'opacity-80 bg-tea-gold/8' : 'opacity-55'
+          ? tapped ? 'opacity-90 bg-tea-gold/10' : 'opacity-75'
           : 'hover:bg-tea-surface/50'
       }`}
       style={{ WebkitTapHighlightColor: 'transparent' }}
     >
-      <div className={`shrink-0 ${gold ? 'text-tea-gold' : 'text-tea-gold/50 group-hover:text-tea-gold/70 transition-colors'}`}>
+      <div className={`shrink-0 ${gold ? 'text-tea-gold' : 'text-tea-gold/70 group-hover:text-tea-gold transition-colors'}`}>
         {icon}
       </div>
       <div className="flex-1 min-w-0">
-        <div className="text-[13px] font-medium text-tea-text leading-tight">{label}</div>
-        <div className="text-[11px] text-tea-text-dim mt-0.5 leading-tight">{description}</div>
+        <div className="text-[14px] font-medium text-tea-text leading-tight">{label}</div>
+        <div className="text-[12px] text-tea-text-sec mt-1 leading-snug">{description}</div>
       </div>
       {pulse ? (
         <span className="relative flex shrink-0">
@@ -136,9 +140,9 @@ const Item: React.FC<{
           <span className="relative inline-flex h-2 w-2 rounded-full bg-tea-gold" />
         </span>
       ) : locked ? (
-        <Icons.Lock className={`w-3.5 h-3.5 shrink-0 transition-colors ${tapped ? 'text-tea-gold/60' : 'text-tea-text-dim'}`} />
+        <Icons.Lock className={`w-3.5 h-3.5 shrink-0 transition-colors ${tapped ? 'text-tea-gold' : 'text-tea-text-sec'}`} />
       ) : (
-        <Icons.ChevronRight className="w-3.5 h-3.5 text-tea-text/15 group-hover:text-tea-text/30 transition-colors shrink-0" />
+        <Icons.ChevronRight className="w-3.5 h-3.5 text-tea-text-sec group-hover:text-tea-gold transition-colors shrink-0" />
       )}
     </button>
   );
@@ -161,33 +165,33 @@ const JourneyCard: React.FC<{
     >
       <div className="flex items-start gap-3.5">
         {/* Circular emblem — mirrors the avatar */}
-        <div className="w-10 h-10 rounded-full bg-tea-gold/8 border border-tea-border flex items-center justify-center shrink-0 group-hover:border-tea-gold/30 transition-colors">
-          <span className="font-serif text-[17px] text-tea-gold/50 group-hover:text-tea-gold/70 transition-colors leading-none">茶</span>
+        <div className="w-10 h-10 rounded-full bg-tea-gold/10 border border-tea-border flex items-center justify-center shrink-0 group-hover:border-tea-gold/40 transition-colors">
+          <span className="font-serif text-[17px] text-tea-gold/80 group-hover:text-tea-gold transition-colors leading-none">茶</span>
         </div>
 
         <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between gap-2 mb-0.5">
-            <span className="text-[13px] font-medium text-tea-text leading-tight">My Journey</span>
-            <Icons.ChevronRight className="w-3.5 h-3.5 text-tea-text/15 group-hover:text-tea-text/30 transition-colors shrink-0" />
+          <div className="flex items-center justify-between gap-2 mb-1">
+            <span className="text-[14px] font-medium text-tea-text leading-tight">My Journey</span>
+            <Icons.ChevronRight className="w-3.5 h-3.5 text-tea-text-sec group-hover:text-tea-gold transition-colors shrink-0" />
           </div>
 
           {journey?.hasLinkedCustomer ? (
             <>
               {/* Stat line */}
-              <div className="text-[11px] text-tea-text-sec leading-tight">
+              <div className="text-[12px] text-tea-text-sec leading-snug">
                 <span className="font-serif text-tea-text">{journey.sessionsAttended}</span>
                 {' '}gathering{journey.sessionsAttended !== 1 ? 's' : ''}
                 {journey.totalTeas > 0 && (
-                  <span className="text-tea-text-dim"> · {journey.totalTeas} teas</span>
+                  <span className="text-tea-text-sec"> · {journey.totalTeas} teas</span>
                 )}
                 {(journey.samples?.length ?? 0) > 0 && (
-                  <span className="text-tea-text-dim"> · {journey.samples!.length} sampled</span>
+                  <span className="text-tea-text-sec"> · {journey.samples!.length} sampled</span>
                 )}
                 {(journey.compass?.length ?? 0) > 0 && (
-                  <span className="text-tea-text-dim"> · {journey.compass!.length} in collection</span>
+                  <span className="text-tea-text-sec"> · {journey.compass!.length} in collection</span>
                 )}
                 {topTypes.length > 0 && (
-                  <span className="text-tea-text-dim"> · {topTypes.join(', ')}</span>
+                  <span className="text-tea-text-sec"> · {topTypes.join(', ')}</span>
                 )}
               </div>
 
@@ -197,14 +201,14 @@ const JourneyCard: React.FC<{
                   {journey.seals.slice(-5).map(s => (
                     <div key={s.eventId} className="w-5 h-5 rounded-full border border-tea-border overflow-hidden bg-tea-surface shrink-0">
                       {s.flyerUrl
-                        ? <img src={s.flyerUrl} alt="" className="w-full h-full object-cover opacity-70" />
-                        : <span className="flex items-center justify-center w-full h-full text-[7px] font-serif text-tea-gold/40">茶</span>}
+                        ? <img src={s.flyerUrl} alt="" className="w-full h-full object-cover opacity-90" />
+                        : <span className="flex items-center justify-center w-full h-full text-[8px] font-serif text-tea-gold/80">茶</span>}
                     </div>
                   ))}
                   {journey.milestones.length > 0 && (
                     <div className="flex items-center gap-1 ml-0.5">
                       {journey.milestones.slice(-3).map(m => (
-                        <span key={m} className="text-[11px] font-serif text-tea-gold/60 leading-none">{m}</span>
+                        <span key={m} className="text-[12px] font-serif text-tea-gold leading-none">{m}</span>
                       ))}
                     </div>
                   )}
@@ -212,7 +216,7 @@ const JourneyCard: React.FC<{
               )}
             </>
           ) : (
-            <div className="text-[11px] text-tea-text-dim leading-tight">
+            <div className="text-[12px] text-tea-text-sec leading-snug">
               Sessions attended, teas experienced, your marks
             </div>
           )}
@@ -235,12 +239,12 @@ const QuickAction: React.FC<{
     style={{ WebkitTapHighlightColor: 'transparent' }}
   >
     {!!badge && (
-      <span className="absolute top-1.5 right-1.5 min-w-[16px] h-4 px-1 text-[9px] bg-tea-gold text-tea-bg rounded-full flex items-center justify-center font-semibold tabular-nums">
+      <span className="absolute top-1.5 right-1.5 min-w-[18px] h-[18px] px-1 text-[10px] bg-tea-gold text-tea-bg rounded-full flex items-center justify-center font-semibold tabular-nums">
         {badge > 99 ? '99+' : badge}
       </span>
     )}
     <div className={gold ? 'text-tea-gold' : 'text-tea-text-sec'}>{icon}</div>
-    <span className="text-[11px] text-tea-text font-medium leading-tight text-center">{label}</span>
+    <span className="text-[12px] text-tea-text font-medium leading-tight text-center">{label}</span>
   </button>
 );
 
@@ -358,15 +362,6 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
     } catch {}
     return null;
   }, []);
-
-  // Taste profile completion (0–100)
-  const tasteProfilePct = useMemo(() => {
-    let score = 0;
-    if (tastingJournal.length > 0) score += 40;
-    if (favoriteTeas.length > 0) score += 20;
-    if (compassProfile) score += 40;
-    return score;
-  }, [tastingJournal.length, favoriteTeas.length, compassProfile]);
 
   // Animate in
   useEffect(() => {
@@ -649,7 +644,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
     panelView === 'signin' ? 'Sign In' :
     panelView === 'signup' ? 'Create Account' :
     panelView === 'journal' ? 'Tasting Journal' :
-    'Account';
+    'Your Table';
 
   // Filtered memberships for location switcher
   const filteredMemberships = useMemo(() => {
@@ -665,29 +660,29 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
   // ── Location card ───────────────────────────────────────────────────────────
   const ActiveLocationCard: React.FC<{ showSwitchButton?: boolean; hideActions?: boolean }> = ({ showSwitchButton, hideActions }) => (
     <div className="rounded-md overflow-hidden border border-tea-border">
-      <div className="flex items-start justify-between px-4 py-3 bg-tea-surface/40 border-l-2 border-tea-gold">
+      <div className="flex items-start justify-between px-4 py-3.5 bg-tea-surface">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <div className="w-1.5 h-1.5 rounded-full bg-tea-gold shrink-0" />
-            <span className="text-sm font-serif text-tea-text">
+            <div className="w-2 h-2 rounded-full bg-tea-gold shrink-0" />
+            <span className="text-[15px] font-serif text-tea-text">
               {activeAccount?.name || activeMembership?.account_name || 'Teajia'}
             </span>
             {roleBadgeLabel && (
-              <span className="inline-flex items-center gap-0.5 px-1.5 py-px text-[8px] uppercase tracking-[0.1em] text-tea-gold bg-tea-gold/10 rounded shrink-0">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] uppercase tracking-[0.08em] text-tea-gold bg-tea-gold/10 rounded shrink-0 font-medium">
                 {(membershipRole === 'owner' || platformRole) && <SealIcon className="w-2.5 h-2.5" />}
                 {roleBadgeLabel}
               </span>
             )}
           </div>
           {activeLocationStr && (
-            <span className="text-[11px] text-tea-text-sec mt-0.5 block ml-3.5">
+            <span className="text-[12px] text-tea-text-sec mt-1 block ml-4">
               {activeLocationStr}
               {activeDisplayCurrency && ` · ${activeDisplayCurrency}`}
             </span>
           )}
           {/* Next event line */}
           {nextEvent && (
-            <span className="text-[10px] text-tea-text-sec mt-0.5 block ml-3.5">
+            <span className="text-[12px] text-tea-text-sec mt-0.5 block ml-4">
               Next: {new Date(nextEvent.eventDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
             </span>
           )}
@@ -695,7 +690,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
         {showSwitchButton && (
           <button
             onClick={() => setPanelView('location-switcher')}
-            className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec/60 hover:text-tea-gold transition-colors shrink-0 ml-3 mt-0.5"
+            className="text-[11px] uppercase tracking-[0.15em] text-tea-text-sec hover:text-tea-gold transition-colors shrink-0 ml-3 mt-0.5 py-2 -my-2"
           >
             Switch
           </button>
@@ -705,20 +700,20 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
         <div className="flex border-t border-tea-border divide-x divide-tea-border">
           <button
             onClick={() => { onClose(); navigate('/shop'); }}
-            className="flex-1 py-2.5 text-[9px] uppercase tracking-[0.15em] text-tea-text-sec hover:text-tea-gold hover:bg-tea-surface/50 transition-colors"
+            className="flex-1 py-3 text-[11px] uppercase tracking-[0.15em] text-tea-text-sec hover:text-tea-gold hover:bg-tea-surface/50 transition-colors font-medium"
           >
             Shop
           </button>
           <button
             onClick={() => setPanelView('events')}
-            className="flex-1 py-2.5 text-[9px] uppercase tracking-[0.15em] text-tea-text-sec hover:text-tea-gold hover:bg-tea-surface/50 transition-colors"
+            className="flex-1 py-3 text-[11px] uppercase tracking-[0.15em] text-tea-text-sec hover:text-tea-gold hover:bg-tea-surface/50 transition-colors font-medium"
           >
             Sessions
           </button>
           {isStaff && (
             <button
               onClick={() => handleGoToAdmin('/admin/inventory')}
-              className="flex-1 py-2.5 text-[9px] uppercase tracking-[0.15em] text-tea-gold hover:bg-tea-surface/50 transition-colors"
+              className="flex-1 py-3 text-[11px] uppercase tracking-[0.15em] text-tea-gold hover:bg-tea-surface/50 transition-colors font-medium"
             >
               Ops
             </button>
@@ -734,28 +729,28 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
       <button
         onClick={() => handleSwitchLocation(membership)}
         disabled={!!switchingTo}
-        className="w-full rounded-md border border-tea-border px-4 py-3 flex items-center justify-between hover:bg-tea-surface/30 transition-colors group text-left disabled:opacity-60"
+        className="w-full rounded-md border border-tea-border px-4 py-3.5 flex items-center justify-between hover:bg-tea-surface/40 transition-colors group text-left disabled:opacity-60"
       >
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <div className="w-1.5 h-1.5 rounded-full bg-tea-text/20 group-hover:bg-tea-gold/50 transition-colors shrink-0" />
-            <span className="text-sm text-tea-text-sec group-hover:text-tea-text transition-colors font-serif truncate">
+            <div className="w-2 h-2 rounded-full bg-tea-text-sec group-hover:bg-tea-gold transition-colors shrink-0" />
+            <span className="text-[15px] text-tea-text-sec group-hover:text-tea-text transition-colors font-serif truncate">
               {membership.account_name}
             </span>
             {membership.role !== 'viewer' && (
-              <span className="text-[8px] uppercase tracking-[0.1em] text-tea-text-dim shrink-0">
+              <span className="text-[10px] uppercase tracking-[0.08em] text-tea-text-sec shrink-0 font-medium">
                 {membership.role}
               </span>
             )}
           </div>
-          <span className="text-[10px] text-tea-text-dim mt-0.5 block ml-3.5">
+          <span className="text-[12px] text-tea-text-sec mt-1 block ml-4">
             {getLocationFromSlug(membership.slug)} · {getCurrencyFromSlug(membership.slug)}
           </span>
         </div>
         {isLoading ? (
           <div className="w-3.5 h-3.5 border border-tea-border border-t-tea-text-sec rounded-full animate-spin shrink-0 ml-2" />
         ) : (
-          <Icons.ChevronRight className="w-3.5 h-3.5 text-tea-text/15 group-hover:text-tea-text/30 transition-colors shrink-0 ml-2" />
+          <Icons.ChevronRight className="w-3.5 h-3.5 text-tea-text-sec group-hover:text-tea-gold transition-colors shrink-0 ml-2" />
         )}
       </button>
     );
@@ -813,52 +808,40 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
           onChange={handleAvatarFile}
         />
 
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 py-2.5 border-b border-tea-border bg-tea-surface/50">
-          {/* Left slot: X (main) or ← Back (sub-view) */}
-          {isSubView ? (
-            <button
-              onClick={() => { setPanelView('main'); resetForm(); setLocationSearch(''); }}
-              className="min-w-[36px] min-h-[36px] flex items-center justify-center p-1.5"
-            >
-              <Icons.Back className="w-5 h-5 text-tea-text-sec hover:text-tea-text transition-colors" />
-            </button>
-          ) : (
-            <button
-              onClick={onClose}
-              className="min-w-[36px] min-h-[36px] flex items-center justify-center p-1.5"
-            >
-              <Icons.Close className="w-5 h-5 text-tea-text-sec hover:text-tea-text transition-colors" />
-            </button>
-          )}
-          <h2 className="text-sm font-serif text-tea-text tracking-wide">{headerTitle}</h2>
-          {/* Right slot: theme toggle (main) or X (sub-view) */}
-          {isSubView ? (
-            <button
-              onClick={onClose}
-              className="min-w-[36px] min-h-[36px] flex items-center justify-center p-1.5"
-            >
-              <Icons.Close className="w-5 h-5 text-tea-text-sec hover:text-tea-text transition-colors" />
-            </button>
-          ) : (
-            <button
-              onClick={(e) => toggleTheme(e)}
-              className="min-w-[36px] min-h-[36px] flex items-center justify-center p-1.5 hover:bg-tea-gold/10 rounded-full transition-colors"
-              title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-              aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-            >
-              {theme === 'dark'
-                ? <Sun className="w-4.5 h-4.5 text-tea-gold" />
-                : <Moon className="w-4.5 h-4.5 text-tea-gold" />}
-            </button>
-          )}
+        {/* Header — Close-X always top-left; Back lives inline with title when in a sub-view */}
+        <div className="flex items-center gap-2 px-4 py-2.5 border-b border-tea-border bg-tea-surface/50">
+          <button
+            onClick={onClose}
+            className="min-w-[36px] min-h-[36px] flex items-center justify-center p-1.5 shrink-0"
+            aria-label="Close"
+          >
+            <Icons.Close className="w-5 h-5 text-tea-text-sec hover:text-tea-text transition-colors" />
+          </button>
+          <div className="flex-1 min-w-0 flex items-center justify-center gap-2">
+            {isSubView && (
+              <button
+                onClick={() => { setPanelView('main'); resetForm(); setLocationSearch(''); }}
+                className="text-[12px] text-tea-text-sec hover:text-tea-text transition-colors uppercase tracking-[0.15em] font-medium py-2 -my-2"
+              >
+                ← Back
+              </button>
+            )}
+            <h2 className="text-[15px] font-serif text-tea-text tracking-wide truncate">{headerTitle}</h2>
+          </div>
+          <button
+            onClick={(e) => toggleTheme(e)}
+            className="min-w-[36px] min-h-[36px] flex items-center justify-center p-1.5 hover:bg-tea-gold/10 rounded-full transition-colors shrink-0"
+            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
+            {theme === 'dark'
+              ? <Sun className="w-4.5 h-4.5 text-tea-gold" />
+              : <Moon className="w-4.5 h-4.5 text-tea-gold" />}
+          </button>
         </div>
 
         {/* Content */}
-        <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto overscroll-contain relative">
-          {/* Grain texture */}
-          <div className="absolute inset-0 pointer-events-none" style={{ opacity: 0.06, backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`, backgroundSize: '120px' }} />
-
+        <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto overscroll-contain relative pb-nav-gap surface-warm">
           <AnimatePresence mode="wait">
           <motion.div
             key={panelView}
@@ -873,10 +856,10 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                 SIGN IN VIEW (inline, no navigation away)
             ══════════════════════════════════════════════════════════════ */}
             {panelView === 'signin' && (
-              <div className="px-6 pt-6 pb-[calc(44px+env(safe-area-inset-bottom,0px))] lg:pb-6 space-y-5">
+              <div className="px-6 pt-6 pb-6 space-y-5">
                 <div>
                   <h2 className="font-serif text-2xl text-tea-text">Welcome back.</h2>
-                  <p className="text-[12px] text-tea-text-sec mt-1">Sign in to your Teajia account.</p>
+                  <p className="text-[14px] text-tea-text-sec mt-1.5">Sign in to your Teajia account.</p>
                 </div>
                 <form onSubmit={handleSignIn} className="space-y-4">
                   <FormError />
@@ -920,7 +903,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                 <div className="text-center">
                   <button
                     onClick={() => { resetForm(); setPanelView('signup'); }}
-                    className="text-[11px] text-tea-text-sec hover:text-tea-gold transition-colors"
+                    className="text-[13px] text-tea-text-sec hover:text-tea-gold transition-colors py-2 -my-2"
                   >
                     No account? <span className="underline underline-offset-2">Create one</span>
                   </button>
@@ -932,10 +915,10 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                 SIGN UP VIEW (inline)
             ══════════════════════════════════════════════════════════════ */}
             {panelView === 'signup' && (
-              <div className="px-6 pt-6 pb-[calc(44px+env(safe-area-inset-bottom,0px))] lg:pb-6 space-y-5">
+              <div className="px-6 pt-6 pb-6 space-y-5">
                 <div>
                   <h2 className="font-serif text-2xl text-tea-text">Join Teajia.</h2>
-                  <p className="text-[12px] text-tea-text-sec mt-1">Create your account to track teas, journal sessions, and more.</p>
+                  <p className="text-[14px] text-tea-text-sec mt-1.5">Create your account to track teas, journal sessions, and more.</p>
                 </div>
                 <form onSubmit={handleSignUp} className="space-y-4">
                   <FormError />
@@ -973,7 +956,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                 <div className="text-center">
                   <button
                     onClick={() => { resetForm(); setPanelView('signin'); }}
-                    className="text-[11px] text-tea-text-sec hover:text-tea-gold transition-colors"
+                    className="text-[13px] text-tea-text-sec hover:text-tea-gold transition-colors py-2 -my-2"
                   >
                     Already have an account? <span className="underline underline-offset-2">Sign in</span>
                   </button>
@@ -985,9 +968,9 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                 EVENTS VIEW — inline sessions listing
             ══════════════════════════════════════════════════════════════ */}
             {panelView === 'events' && (
-              <div className="px-6 pt-6 pb-[calc(44px+env(safe-area-inset-bottom,0px))] lg:pb-6 animate-[fadeIn_0.25s_ease-out] space-y-1">
+              <div className="px-6 pt-6 pb-6 animate-[fadeIn_0.25s_ease-out] space-y-1">
                 <div className="mb-4">
-                  <p className="text-[10px] uppercase tracking-[0.3em] text-tea-text-dim mb-2">
+                  <p className="text-[11px] uppercase tracking-[0.24em] text-tea-text-sec font-medium mb-2">
                     {activeAccount?.name || 'Sessions'} · {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                   </p>
                   <h2 className="font-serif text-3xl font-normal text-tea-text leading-[1.05] tracking-[-0.5px]">
@@ -998,7 +981,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                       <button
                         key={key}
                         onClick={() => setEventListFilter(key)}
-                        className={`px-3 py-1.5 rounded-full text-[11px] font-medium tracking-[0.02em] transition-colors border ${
+                        className={`px-3.5 py-2 rounded-full text-[12px] font-medium tracking-[0.02em] transition-colors border min-h-[36px] ${
                           eventListFilter === key
                             ? 'bg-tea-gold/10 border-tea-gold/40 text-tea-gold'
                             : 'bg-transparent border-tea-border text-tea-text-sec hover:text-tea-text'
@@ -1026,7 +1009,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                     ))}
                   </div>
                 ) : displayedEvents.length === 0 ? (
-                  <p className="font-serif italic text-sm text-tea-text-sec py-10 text-center">
+                  <p className="font-serif italic text-[15px] text-tea-text-sec py-10 text-center">
                     {eventListFilter === 'past' ? 'No past sessions yet.' : eventListFilter === 'open' ? 'No open seats right now.' : 'No upcoming gatherings at this table.'}
                   </p>
                 ) : (
@@ -1050,20 +1033,20 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                             className="w-full flex gap-3.5 text-left hover:opacity-75 transition-opacity"
                           >
                             <div className="w-12 shrink-0 text-center pt-0.5">
-                              <div className="text-[9px] tracking-[0.25em] text-tea-text-dim uppercase">{day}</div>
+                              <div className="text-[11px] tracking-[0.2em] text-tea-text-sec uppercase font-medium">{day}</div>
                               <div className="font-serif text-[28px] font-normal text-tea-text leading-none mt-0.5">{dateNum}</div>
-                              <div className="text-[9px] tracking-[0.2em] text-tea-text-dim mt-0.5">{month}</div>
+                              <div className="text-[11px] tracking-[0.18em] text-tea-text-sec mt-0.5 font-medium">{month}</div>
                             </div>
                             <div className="flex-1 min-w-0">
-                              <h3 className="font-serif text-sm font-medium text-tea-text leading-snug">{ev.title}</h3>
+                              <h3 className="font-serif text-[15px] font-medium text-tea-text leading-snug">{ev.title}</h3>
                               {ev.subtitle && (
-                                <p className="font-serif italic text-[12px] text-tea-text-sec mt-0.5">{ev.subtitle}</p>
+                                <p className="font-serif italic text-[13px] text-tea-text-sec mt-1">{ev.subtitle}</p>
                               )}
-                              <div className="flex items-center gap-2 mt-1.5 text-[10px] text-tea-text-dim flex-wrap">
+                              <div className="flex items-center gap-2 mt-2 text-[12px] text-tea-text-sec flex-wrap">
                                 <span>{time}</span>
                                 {(ev.areaHint || ev.locationName) && (
                                   <>
-                                    <span className="w-0.5 h-0.5 rounded-full bg-tea-text-dim shrink-0" />
+                                    <span className="w-0.5 h-0.5 rounded-full bg-tea-text-sec shrink-0" />
                                     <span>{ev.areaHint ?? ev.locationName}</span>
                                   </>
                                 )}
@@ -1077,12 +1060,12 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                           </button>
                           {/* RSVP button — only for upcoming events with seats available */}
                           {!isPast && !isFull && (
-                            <div className="mt-2.5 ml-[calc(3rem+0.875rem)]">
+                            <div className="mt-3 ml-[calc(3rem+0.875rem)]">
                               <a
                                 href={buildRsvpLink(ev)}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] uppercase tracking-[0.15em] font-medium bg-tea-gold/10 text-tea-gold border border-tea-gold/30 rounded hover:bg-tea-gold/20 transition-colors"
+                                className="inline-flex items-center gap-1.5 px-4 py-2.5 text-[11px] uppercase tracking-[0.15em] font-medium bg-tea-gold/10 text-tea-gold border border-tea-gold/30 rounded hover:bg-tea-gold/20 transition-colors min-h-[44px]"
                                 onClick={e => e.stopPropagation()}
                               >
                                 <svg viewBox="0 0 24 24" className="w-3 h-3 fill-current" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
@@ -1102,8 +1085,11 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                 TASTING JOURNAL VIEW
             ══════════════════════════════════════════════════════════════ */}
             {panelView === 'journal' && (
-              <div className="px-6 pt-6 pb-[calc(44px+env(safe-area-inset-bottom,0px))] lg:pb-6">
-                <TastingJournalView onBack={() => setPanelView('main')} />
+              <div className="px-6 pt-6 pb-6">
+                <TastingJournalView
+                  onBack={() => setPanelView('main')}
+                  onOpenTea={(teaId) => { onClose(); navigate(`/shop/product/${teaId}`); }}
+                />
               </div>
             )}
 
@@ -1111,16 +1097,16 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                 LOCATION SWITCHER (4+ memberships)
             ══════════════════════════════════════════════════════════════ */}
             {panelView === 'location-switcher' && (
-              <div className="px-6 pt-6 pb-[calc(44px+env(safe-area-inset-bottom,0px))] lg:pb-6 animate-[fadeIn_0.3s_ease-out] space-y-4">
+              <div className="px-6 pt-6 pb-6 animate-[fadeIn_0.3s_ease-out] space-y-4">
                 <div className="relative">
-                  <Icons.Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-tea-text-sec/50 pointer-events-none" />
+                  <Icons.Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-tea-text-sec pointer-events-none" />
                   <input
                     type="text"
                     value={locationSearch}
                     onChange={e => setLocationSearch(e.target.value)}
                     placeholder="Search locations…"
                     autoFocus
-                    className="w-full bg-tea-surface border border-tea-border pl-9 pr-4 py-2.5 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus:border-tea-gold transition-colors placeholder-tea-text-sec/40"
+                    className="w-full bg-tea-surface border border-tea-border pl-9 pr-4 py-3 text-[14px] text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus:border-tea-gold transition-colors placeholder-tea-text-sec"
                   />
                 </div>
 
@@ -1145,7 +1131,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                     ))
                   }
                   {filteredMemberships.length === 0 && (
-                    <p className="text-sm text-tea-text-sec/60 text-center py-8">No locations match "{locationSearch}"</p>
+                    <p className="text-[14px] text-tea-text-sec text-center py-8">No locations match "{locationSearch}"</p>
                   )}
                 </div>
               </div>
@@ -1154,390 +1140,106 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
             {/* ══════════════════════════════════════════════════════════════
                 MAIN VIEW — three zones
             ══════════════════════════════════════════════════════════════ */}
-            {panelView === 'main' && (
-              <div className="animate-[fadeIn_0.3s_ease-out]">
-
-                {/* ══ ZONE 1 — Right Now ══════════════════════════════════ */}
-                <div className="bg-tea-surface/40 px-6 py-5">
-                  {nextEventWithin24h && nextEvent && (
-                    <button
-                      onClick={() => setPanelView('events')}
-                      className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-tea-gold/10 border border-tea-gold/40 text-left hover:bg-tea-gold/15 transition-colors mb-4"
-                    >
-                      <div className="w-2 h-2 rounded-full bg-tea-gold shrink-0 animate-pulse" />
-                      <div className="flex-1 min-w-0">
-                        <div className="text-[11px] uppercase tracking-[0.15em] text-tea-gold font-medium">Session today</div>
-                        <div className="text-[12px] text-tea-text font-serif truncate mt-0.5">{nextEvent.title}</div>
-                      </div>
-                      <Icons.ChevronRight className="w-3.5 h-3.5 text-tea-gold/60 shrink-0" />
-                    </button>
-                  )}
-
-                  {/* Owner/Admin — 4 core items; secondary ops live in Zone 3 */}
-                  {(membershipRole === 'owner' || auth.isAdmin) && (
-                    <div className="grid grid-cols-2 gap-2">
-                      <QuickAction icon={<Receipt size={18} />} label="+ Invoice" gold onClick={() => { onClose(); navigate('/admin/activity?qi=1'); }} />
-                      <QuickAction icon={<Clock size={18} />} label="Pending" badge={pendingCount} onClick={() => { onClose(); navigate('/admin/activity'); }} />
-                      <QuickAction icon={<CalendarCheck size={18} />} label="Today" badge={todayEventCount || undefined} onClick={() => { onClose(); navigate('/admin/events'); }} />
-                      <QuickAction icon={<AlertTriangle size={18} />} label="Stock Alerts" onClick={() => { onClose(); navigate('/admin/inventory'); }} />
-                    </div>
-                  )}
-
-                  {/* Staff */}
-                  {membershipRole === 'staff' && (
-                    <div className="grid grid-cols-2 gap-2">
-                      <QuickAction icon={<Receipt size={18} />} label="+ Invoice" gold onClick={() => { onClose(); navigate('/admin/activity?qi=1'); }} />
-                      <QuickAction icon={<UserCheck size={18} />} label="Check In" onClick={() => { onClose(); navigate('/admin/events'); }} />
-                      <QuickAction icon={<CalendarCheck size={18} />} label="Today" badge={todayEventCount || undefined} onClick={() => { onClose(); navigate('/admin/events'); }} />
-                      <QuickAction icon={<Zap size={18} />} label="Capture" onClick={() => { onClose(); navigate('/admin/capture'); }} />
-                    </div>
-                  )}
-
-                  {/* Member */}
-                  {auth.isAuthenticated && !isStaff && (
-                    <div className="grid grid-cols-2 gap-2">
-                      <QuickAction icon={<Icons.Sparkles className="w-[18px] h-[18px]" />} label="Journal" onClick={() => setPanelView('journal')} />
-                      <QuickAction icon={<Icons.Heart className="w-[18px] h-[18px]" />} label="Collection" onClick={() => { onClose(); navigate('/account/collection'); }} />
-                      <QuickAction icon={<Calendar size={18} />} label="Book a Session" onClick={() => setPanelView('events')} />
-                      <QuickAction icon={<Compass size={18} />} label="Compass" onClick={() => { onClose(); navigate('/compass'); }} />
-                    </div>
-                  )}
-
-                  {/* Guest */}
-                  {!auth.isAuthenticated && (
-                    <div className="grid grid-cols-2 gap-2">
-                      <QuickAction icon={<LogIn size={18} />} label="Sign In" gold onClick={() => setPanelView('signin')} />
-                      <QuickAction icon={<Icons.Search className="w-[18px] h-[18px]" />} label="Browse Teas" onClick={() => { onClose(); navigate('/shop'); }} />
-                      <QuickAction icon={<Calendar size={18} />} label="Book a Session" onClick={() => setPanelView('events')} />
-                    </div>
-                  )}
-                </div>
-
-                {/* ══ ZONE 2 — You ════════════════════════════════════════ */}
-                <div className="bg-tea-bg px-6 py-5 border-t border-tea-border space-y-4">
-
-                  {/* Identity */}
-                  {auth.isAuthenticated && auth.user ? (
-                    <div className="flex items-center gap-3">
-                      <button
-                        onClick={handleAvatarClick}
-                        className="w-12 h-12 rounded-full bg-tea-gold/10 flex items-center justify-center border border-tea-border shrink-0 overflow-hidden relative group"
-                        title="Tap to change photo"
-                      >
-                        {avatarDataUrl ? (
-                          <img src={avatarDataUrl} alt="Avatar" className="w-full h-full object-cover" loading="lazy" />
-                        ) : (
-                          <span className="text-base font-serif text-tea-gold font-medium">
-                            {getInitials(auth.user.name || auth.user.email)}
-                          </span>
-                        )}
-                        <div className="absolute inset-0 bg-tea-text/0 group-hover:bg-tea-text/20 transition-colors flex items-center justify-center">
-                          <Icons.Camera className="w-4 h-4 text-tea-bg opacity-0 group-hover:opacity-100 transition-opacity" />
-                        </div>
-                      </button>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="font-serif text-sm text-tea-text truncate">
-                            {auth.user.name || 'Tea Enthusiast'}
-                          </h3>
-                          {roleBadgeLabel && (
-                            <span className="inline-flex items-center gap-0.5 px-1.5 py-px text-[8px] uppercase tracking-[0.1em] text-tea-gold bg-tea-gold/10 rounded shrink-0">
-                              {(membershipRole === 'owner' || platformRole) && <SealIcon className="w-2.5 h-2.5" />}
-                              {roleBadgeLabel}
-                            </span>
-                          )}
-                        </div>
-                        <span className="text-[11px] text-tea-text-sec truncate block">{auth.user.email}</span>
-                        {tasteProfilePct < 100 && (
-                          <div className="mt-1.5 flex items-center gap-2">
-                            <div className="flex-1 h-0.5 bg-tea-border rounded-full overflow-hidden">
-                              <div
-                                className="h-full bg-tea-gold/60 rounded-full transition-all duration-500"
-                                style={{ width: `${tasteProfilePct}%` }}
-                              />
-                            </div>
-                            <button
-                              onClick={() => { onClose(); navigate('/compass'); }}
-                              className="text-[9px] uppercase tracking-[0.15em] text-tea-text-dim hover:text-tea-gold transition-colors whitespace-nowrap"
-                            >
-                              Complete profile
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-full bg-tea-elevated/50 flex items-center justify-center shrink-0">
-                        <Icons.User className="w-5 h-5 text-tea-text/30" />
-                      </div>
-                      <div className="min-w-0">
-                        <h3 className="font-serif text-sm text-tea-text">Guest</h3>
-                        <p className="text-[11px] text-tea-text-dim mt-0.5 leading-relaxed">Sign in to track teas, journal sessions, and build your collection.</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Location card — no duplicate action strip */}
-                  {auth.isAuthenticated && memberships.length > 0 && (
-                    <div className="space-y-2">
-                      <ActiveLocationCard showSwitchButton={memberships.length >= 4} hideActions />
-                      {memberships.length >= 2 && memberships.length <= 3 && inactiveMemberships.map(m => (
-                        <InactiveLocationCard key={m.account_id} membership={m} />
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Your Practice */}
-                  <div className="rounded-xl border border-tea-border overflow-hidden">
-                    <CardSectionLabel>Your Practice</CardSectionLabel>
-                    <Item
-                      icon={<Icons.MapPin className="w-4 h-4" />}
-                      label="Tea Compass"
-                      description={compassProfile ? `Profile: ${compassProfile}` : "Discover teas matched to your taste"}
-                      onClick={() => { onClose(); navigate(isStaff ? '/admin/compass' : '/compass'); }}
-                      gold={!!compassProfile}
-                    />
-                    {auth.isAuthenticated ? (
-                      <>
-                        <Item
-                          icon={<Icons.Sparkles className="w-4 h-4" />}
-                          label="Tasting Journal"
-                          description={tastingJournal.length > 0 ? `Last session: ${formatRelativeDate(tastingJournal[0].createdAt)}` : "Record sessions and track your palate"}
-                          onClick={() => setPanelView('journal')}
-                          gold={tastingJournal.length > 0}
-                        />
-                        <Item
-                          icon={<Icons.Heart className="w-4 h-4" />}
-                          label="My Collection"
-                          description={favoriteTeas.length > 0 ? `${favoriteTeas.length} teas saved` : "Teas you love and want to revisit"}
-                          onClick={() => { onClose(); navigate('/account/collection'); }}
-                          gold={favoriteTeas.length > 0}
-                        />
-                        <JourneyCard
-                          journey={myJourney}
-                          onClick={() => { onClose(); navigate('/account/journey'); }}
-                        />
-                      </>
-                    ) : (
-                      <button
-                        onClick={() => setPanelView('signup')}
-                        className="w-full flex items-center gap-3.5 px-4 py-3.5 text-left hover:bg-tea-surface/50 transition-colors border-b border-tea-border group"
-                        style={{ WebkitTapHighlightColor: 'transparent' }}
-                      >
-                        <div className="shrink-0 text-tea-gold/50 group-hover:text-tea-gold/70 transition-colors">
-                          <Icons.Sparkles className="w-4 h-4" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-[13px] font-medium text-tea-text leading-tight">Journal & Collection</div>
-                          <div className="text-[11px] text-tea-text-dim mt-0.5 leading-tight">Track tastings and save teas — create an account</div>
-                        </div>
-                        <Icons.ChevronRight className="w-3.5 h-3.5 text-tea-text/15 group-hover:text-tea-text/30 transition-colors shrink-0" />
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Orders */}
-                  <div className="rounded-xl border border-tea-border overflow-hidden">
-                    <CardSectionLabel>Orders</CardSectionLabel>
-                    <Item
-                      icon={<Icons.Bag className="w-4 h-4" />}
-                      label="Cart"
-                      description={cartCount > 0 ? `${cartCount} item${cartCount > 1 ? 's' : ''} in your order` : "Build your tea order"}
-                      onClick={handleOpenCart}
-                      gold={cartCount > 0}
-                      pulse={cartIsNew && cartCount > 0}
-                    />
-                    {auth.isAuthenticated && (
-                      <>
-                        <Item
-                          icon={<Icons.Clock className="w-4 h-4" />}
-                          label="Order History"
-                          description="Past purchases and order tracking"
-                          onClick={() => { onClose(); navigate('/account/orders'); }}
-                        />
-                        <Item
-                          icon={<Icons.Leaf className="w-4 h-4" />}
-                          label="Samples"
-                          description="Track your sample requests"
-                          onClick={() => { onClose(); navigate('/account/samples'); }}
-                        />
-                      </>
-                    )}
-                  </div>
-
-                  {/* Currency + Settings */}
-                  <div className="rounded-xl border border-tea-border overflow-hidden">
-                    <div className="px-4 py-3.5 border-b border-tea-border">
-                      <div className="flex items-center gap-3 flex-wrap">
-                        <span className="text-[11px] text-tea-text-dim font-medium shrink-0">Currency</span>
-                        <div className="flex flex-wrap gap-1">
-                          {CURRENCY_OPTIONS.map(opt => (
-                            <button
-                              key={opt.code}
-                              onClick={() => setCurrency(opt.code)}
-                              className={`px-2 py-1 text-[10px] uppercase tracking-wider rounded transition-colors ${
-                                currency === opt.code
-                                  ? 'bg-tea-gold/15 text-tea-gold'
-                                  : 'text-tea-text-sec/40 hover:text-tea-text-sec'
-                              }`}
-                            >
-                              {opt.code}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                    {auth.isAuthenticated && (
-                      <Item
-                        icon={<Icons.User className="w-4 h-4" />}
-                        label="Settings"
-                        description="Profile, password & account details"
-                        onClick={() => { onClose(); navigate('/account/settings'); }}
-                      />
-                    )}
-                    {(membershipRole === 'owner' || auth.isAdmin) && (
-                      <>
-                        <Item
-                          icon={<Users className="w-4 h-4" />}
-                          label="Team"
-                          description="Manage members and roles"
-                          onClick={() => { onClose(); navigate('/admin/team'); }}
-                        />
-                        <Item
-                          icon={<Settings className="w-4 h-4" />}
-                          label="Account Settings"
-                          description="Store details and preferences"
-                          onClick={() => { onClose(); navigate('/admin/account-settings'); }}
-                        />
-                      </>
-                    )}
-                  </div>
-
-                  {/* Sign Out */}
-                  {auth.isAuthenticated && (
-                    <button
-                      onClick={handleSignOut}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-tea-text-sec/40 hover:text-red-500 transition-colors text-xs uppercase tracking-[0.2em]"
-                    >
-                      <Icons.LogOut className="w-3.5 h-3.5" />
-                      Sign Out
-                    </button>
-                  )}
-                </div>
-
-                {/* ══ ZONE 3 — Explore ════════════════════════════════════ */}
-                <div className="bg-tea-surface/20 px-6 py-5 border-t border-tea-border space-y-3 pb-[calc(44px+env(safe-area-inset-bottom,0px))] lg:pb-8">
-
-                  {/* Guest orientation — entry paths for new visitors and B2B */}
-                  {!auth.isAuthenticated && (
-                    <div className="rounded-xl border border-tea-border overflow-hidden">
-                      <Item
-                        icon={<Icons.MapPin className="w-4 h-4" />}
-                        label="New here? Start here"
-                        description="Find your entry point into Teajia"
-                        onClick={() => { onClose(); navigate('/start'); }}
-                      />
-                      <Item
-                        icon={<Icons.Leaf className="w-4 h-4" />}
-                        label="Tea for Your Business"
-                        description="Hotels, studios, retreats — bring tea to your space"
-                        onClick={() => { onClose(); navigate('/for-your-space'); }}
-                      />
-                    </div>
-                  )}
-
-                  {/* Contact + discovery — non-staff */}
-                  {!isStaff && (
-                    <div className="rounded-xl border border-tea-border overflow-hidden">
-                      <div className="flex divide-x divide-tea-border border-b border-tea-border">
-                        <button
-                          onClick={() => { onClose(); navigate('/spaces'); }}
-                          className="flex-1 py-3 text-[11px] text-tea-text-sec hover:text-tea-gold hover:bg-tea-surface/50 transition-colors uppercase tracking-[0.12em]"
-                        >
-                          Our Spaces
-                        </button>
-                        <button
-                          onClick={() => { onClose(); navigate('/community'); }}
-                          className="flex-1 py-3 text-[11px] text-tea-text-sec hover:text-tea-gold hover:bg-tea-surface/50 transition-colors uppercase tracking-[0.12em]"
-                        >
-                          Community
-                        </button>
-                      </div>
-                      <a
-                        href={waLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-3.5 px-4 py-3.5 hover:bg-tea-surface/50 transition-colors group"
-                        onClick={onClose}
-                      >
-                        <div className="shrink-0 text-tea-gold/50 group-hover:text-tea-gold/70 transition-colors">
-                          <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-[13px] font-medium text-tea-text leading-tight">Message Us</div>
-                          <div className="text-[11px] text-tea-text-dim mt-0.5 leading-tight">WhatsApp — direct conversation</div>
-                        </div>
-                        <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 text-tea-text/15 group-hover:text-tea-text/30 transition-colors shrink-0" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg>
-                      </a>
-                    </div>
-                  )}
-
-                  {/* Operations — staff only */}
-                  {isStaff && (
-                    <>
-                      <div className="pt-1">
-                        <ZoneLabel>Operations</ZoneLabel>
-                      </div>
-                      <div className="rounded-xl border border-tea-gold/20 overflow-hidden">
-                        <Item
-                          icon={<Icons.Settings className="w-4 h-4" />}
-                          label="Admin Dashboard"
-                          description="Inventory, orders, events & team"
-                          onClick={() => handleGoToAdmin('/admin/inventory')}
-                          gold
-                        />
-                        <Item
-                          icon={<Calendar className="w-4 h-4" />}
-                          label="Events Manager"
-                          description="Create and manage tea sessions"
-                          onClick={() => handleGoToAdmin('/admin/events')}
-                        />
-                        {platformRole && (
-                          <Item
-                            icon={<Icons.Shield className="w-4 h-4" />}
-                            label="Platform"
-                            description="Super admin — all accounts & users"
-                            onClick={() => handleGoToAdmin('/admin/platform')}
-                            gold
-                          />
-                        )}
-                      </div>
-
-                      {/* Secondary owner actions moved from Zone 1 */}
-                      {(membershipRole === 'owner' || auth.isAdmin) && (
-                        <div className="grid grid-cols-3 gap-2">
-                          <QuickAction icon={<UserPlus size={18} />} label="+ Customer" onClick={() => { onClose(); navigate('/admin/people'); }} />
-                          <QuickAction icon={<Package size={18} />} label="+ Purchase Order" onClick={() => { onClose(); navigate('/admin/purchase-orders'); }} />
-                          <QuickAction icon={<Zap size={18} />} label="Capture" onClick={() => { onClose(); navigate('/admin/capture'); }} />
-                        </div>
-                      )}
-
-                      {memberships.length >= 2 && (
-                        <div className="rounded-xl border border-tea-border overflow-hidden">
-                          <Item
-                            icon={<Icons.MapPin className="w-4 h-4" />}
-                            label="Switch Location"
-                            description={`${memberships.length} locations — ${activeMembership?.account_name ?? 'current'} is active`}
-                            onClick={() => setPanelView('location-switcher')}
-                          />
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-              </div>
+            {panelView === 'main' && (membershipRole === 'owner' || auth.isAdmin) && (
+              <OperatorView
+                user={auth.user}
+                avatarDataUrl={avatarDataUrl}
+                onAvatarClick={handleAvatarClick}
+                roleBadgeLabel={roleBadgeLabel}
+                accountName={activeAccount?.name ?? null}
+                locationLabel={activeLocationStr || null}
+                isPlatform={!!platformRole}
+                isOwner={membershipRole === 'owner' || auth.isAdmin}
+                pendingInvoiceCount={pendingCount}
+                todayEventCount={todayEventCount}
+                unsyncedJournalCount={0}
+                journalLastAt={tastingJournal[0]?.createdAt ?? null}
+                journalLastTea={tastingJournal[0]?.productName ?? null}
+                journalLastExcerpt={(() => {
+                  const head = tastingJournal[0];
+                  if (!head) return null;
+                  const firstNote = head.note.tasting?.notes?.[0];
+                  return (
+                    head.note.personalNote
+                    ?? (typeof firstNote === 'string' ? firstNote : firstNote?.text)
+                    ?? head.note.tasting?.voiceNote
+                    ?? null
+                  );
+                })()}
+                journalCount={tastingJournal.length}
+                collectionCount={favoriteTeas.length}
+                compassProfile={compassProfile}
+                journey={myJourney}
+                nextEvent={nextEvent ?? null}
+                nextEventWithin24h={nextEventWithin24h}
+                onClose={onClose}
+                onOpenJournal={() => setPanelView('journal')}
+                onOpenEvents={() => setPanelView('events')}
+                onOpenLocationSwitcher={() => setPanelView('location-switcher')}
+                onSignOut={handleSignOut}
+                memberCount={memberships.length}
+              />
             )}
+
+            {panelView === 'main' && !(membershipRole === 'owner' || auth.isAdmin) && !auth.isAuthenticated && (
+              <ReaderView
+                onClose={onClose}
+                onOpenSignIn={() => setPanelView('signin')}
+                onOpenSignUp={() => setPanelView('signup')}
+                onOpenEvents={() => setPanelView('events')}
+              />
+            )}
+
+            {panelView === 'main' && membershipRole === 'staff' && (
+              <StaffView
+                user={auth.user}
+                avatarDataUrl={avatarDataUrl}
+                onAvatarClick={handleAvatarClick}
+                roleBadgeLabel={roleBadgeLabel}
+                accountName={activeAccount?.name ?? null}
+                locationLabel={activeLocationStr || null}
+                todayEventCount={todayEventCount}
+                onClose={onClose}
+                onOpenEvents={() => setPanelView('events')}
+                onSignOut={handleSignOut}
+              />
+            )}
+
+            {panelView === 'main' && auth.isAuthenticated && !(membershipRole === 'owner' || auth.isAdmin) && membershipRole !== 'staff' && (
+              <MemberView
+                user={auth.user}
+                avatarDataUrl={avatarDataUrl}
+                onAvatarClick={handleAvatarClick}
+                journey={myJourney}
+                journalLastAt={tastingJournal[0]?.createdAt ?? null}
+                journalLastTea={tastingJournal[0]?.productName ?? null}
+                journalLastExcerpt={(() => {
+                  const head = tastingJournal[0];
+                  if (!head) return null;
+                  const firstNote = head.note.tasting?.notes?.[0];
+                  return (
+                    head.note.personalNote
+                    ?? (typeof firstNote === 'string' ? firstNote : firstNote?.text)
+                    ?? head.note.tasting?.voiceNote
+                    ?? null
+                  );
+                })()}
+                journalCount={tastingJournal.length}
+                collectionCount={favoriteTeas.length}
+                compassProfile={compassProfile}
+                cartCount={cartCount}
+                cartIsNew={cartIsNew}
+                nextEvent={nextEvent ?? null}
+                nextEventWithin24h={nextEventWithin24h}
+                upcomingEventsCount={upcomingEvents.length}
+                onClose={onClose}
+                onOpenJournal={() => setPanelView('journal')}
+                onOpenEvents={() => setPanelView('events')}
+                onOpenCart={handleOpenCart}
+                onSignOut={handleSignOut}
+              />
+            )}
+
 
           </motion.div>
           </AnimatePresence>

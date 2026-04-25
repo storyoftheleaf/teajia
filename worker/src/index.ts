@@ -513,6 +513,16 @@ function cachedJson(data: unknown, maxAge: number, status = 200): Response {
   });
 }
 
+function swrJson(data: unknown, sMaxAge: number, swr: number, status = 200): Response {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: {
+      'Content-Type': 'application/json',
+      'Cache-Control': `public, max-age=30, s-maxage=${sMaxAge}, stale-while-revalidate=${swr}`,
+    },
+  });
+}
+
 function cors(response: Response, origin: string): Response {
   const headers = new Headers(response.headers);
   headers.set('Access-Control-Allow-Origin', origin);
@@ -1383,6 +1393,12 @@ const handleCreateProduct: Handler = async (request, env) => {
   // Convert tasting_notes array to JSON string
   if (Array.isArray(body.tasting_notes)) body.tasting_notes = JSON.stringify(body.tasting_notes);
   if (Array.isArray(body.additional_images)) body.additional_images = JSON.stringify(body.additional_images);
+  // Admin-created products with tasting data default to owner-authored unless
+  // the caller explicitly says otherwise.
+  // TODO(second-writer): see handleUpdateProduct for the upgrade path.
+  if ('tasting' in body && body.tasting_source === undefined) {
+    body.tasting_source = body.tasting && Object.keys(body.tasting).length > 0 ? 'owner' : null;
+  }
   if (body.tasting && typeof body.tasting === 'object') body.tasting = JSON.stringify(body.tasting);
   // Convert booleans to integers for SQLite
   for (const key of ['is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_curated', 'is_custom_wisdom', 'show_wisdom', 'is_sample', 'in_transit']) {
@@ -1513,6 +1529,18 @@ const handleUpdateProduct: Handler = async (request, env, params) => {
   delete body.account_id;
   if (Array.isArray(body.tasting_notes)) body.tasting_notes = JSON.stringify(body.tasting_notes);
   if (Array.isArray(body.additional_images)) body.additional_images = JSON.stringify(body.additional_images);
+  // Any admin-authenticated write that mutates the tasting profile is, by
+  // default, the owner's voice. Explicit callers (community aggregation,
+  // seed scripts) can override by passing tasting_source themselves.
+  //
+  // TODO(second-writer): when a non-owner path starts writing tasting (e.g.
+  // community aggregation sync), switch this to read-then-write: fetch the
+  // current row's tasting_source and preserve it instead of defaulting to
+  // 'owner'. Until then every write that omits tasting_source gets stamped
+  // owner, which is correct while Adrian is the only writer.
+  if ('tasting' in body && body.tasting_source === undefined) {
+    body.tasting_source = body.tasting && Object.keys(body.tasting).length > 0 ? 'owner' : null;
+  }
   if (body.tasting && typeof body.tasting === 'object') body.tasting = JSON.stringify(body.tasting);
   for (const key of ['is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_curated', 'is_custom_wisdom', 'show_wisdom', 'is_sample', 'in_transit']) {
     if (body[key] !== undefined) body[key] = body[key] ? 1 : 0;
@@ -1580,7 +1608,8 @@ const handleUpdateProduct: Handler = async (request, env, params) => {
     'mood', 'experience', 'material', 'capacity_ml', 'teaware_category',
     'additional_images', 'quantity_units', 'vendor_id', 'is_sample', 'in_transit',
     'in_transit_grams', 'in_transit_eta',
-    'tasting', 'sold_out_at', 'stock_verified_at', 'source_compass_entry_id',
+    'tasting', 'tasting_source',
+    'sold_out_at', 'stock_verified_at', 'source_compass_entry_id',
     'updated_at', 'last_synced_at', 'tea_key', 'vendor_url',
     'wholesale_price', 'catalog_visible', 'price_per_gram_usd',
     'session_reserve_grams',
@@ -1696,8 +1725,8 @@ const handleSeedCatalog: Handler = async (request, env) => {
   for (const src of rows.results as any[]) {
     const id = crypto.randomUUID();
     insertedIds.push(id);
-    const cols = ['id', 'account_id', 'status', 'is_public', 'stock_grams', 'price_per_gram_usd', 'fixed_retail_price_usd', ...COPY_COLS];
-    const vals = [id, target_account_id, 'Draft', 0, 0, src.wholesale_price ?? 0, null, ...COPY_COLS.map(c => src[c] ?? null)];
+    const cols = ['id', 'account_id', 'status', 'is_public', 'stock_grams', 'fixed_retail_price_usd', ...COPY_COLS];
+    const vals = [id, target_account_id, 'Draft', 0, 0, null, ...COPY_COLS.map(c => src[c] ?? null)];
     const placeholders = cols.map(() => '?').join(', ');
     stmts.push(
       env.DB.prepare(`INSERT INTO products (${cols.join(', ')}) VALUES (${placeholders})`).bind(...vals)
@@ -3596,32 +3625,29 @@ const handleGetPublicEventRecap: Handler = async (_request, env, params) => {
 const handleListPublicEvents: Handler = async (_request, env, _params) => {
   const rows = await env.DB.prepare(
     `SELECT e.id, e.slug, e.title, e.subtitle, e.description, e.flyer_image_url, e.event_date,
-            e.location_name, e.area_hint, e.mood_hints, e.total_capacity, e.timezone, e.status
+            e.location_name, e.area_hint, e.mood_hints, e.total_capacity, e.timezone, e.status,
+            COALESCE(SUM(CASE WHEN ea.status = 'confirmed' THEN 1 + ea.plus_one ELSE 0 END), 0) AS confirmed_count
      FROM events e
      JOIN accounts a ON a.id = e.account_id
+     LEFT JOIN event_attendees ea ON ea.event_id = e.id
      WHERE e.status = 'active'
        AND e.event_date >= datetime('now')
        AND a.is_platform_owner = 1
+     GROUP BY e.id
      ORDER BY e.event_date ASC
      LIMIT 20`
   ).all();
 
-  const events = await Promise.all(
-    (rows.results ?? []).map(async (ev) => {
-      const count = await env.DB.prepare(
-        `SELECT COALESCE(SUM(1 + plus_one), 0) as total
-         FROM event_attendees WHERE event_id = ? AND status = 'confirmed'`
-      ).bind(ev.id).first();
-      const confirmedCount = (count?.total as number) || 0;
-      return {
-        ...ev,
-        confirmed_count: confirmedCount,
-        seats_remaining: (ev.total_capacity as number) - confirmedCount,
-      };
-    })
-  );
+  const events = (rows.results ?? []).map((ev) => {
+    const confirmedCount = (ev.confirmed_count as number) || 0;
+    return {
+      ...ev,
+      confirmed_count: confirmedCount,
+      seats_remaining: (ev.total_capacity as number) - confirmedCount,
+    };
+  });
 
-  return cachedJson(events, 30);
+  return swrJson(events, 300, 3600);
 };
 
 const handleRSVP: Handler = async (request, env, params) => {
@@ -7290,7 +7316,9 @@ const handleDeleteTeaReview: Handler = async (request, env, params) => {
   return json({ ok: true });
 };
 
-// Customer: GET /api/tasting-journal — scoped to current account if one set.
+// Customer: GET /api/tasting-journal. Returns the new shape with `note` and
+// `tastings` JSON columns. Legacy rows (pre-migration) still parse via the
+// client's tolerant fromApiRow.
 const handleGetTastingJournal: Handler = async (request, env) => {
   const authErr = await requireAuth(request, env);
   if (authErr) return authErr;
@@ -7308,13 +7336,14 @@ const handleGetTastingJournal: Handler = async (request, env) => {
 
   const { results } = await env.DB.prepare(query).bind(...binds).all();
 
-  return json((results as any[]).map(r => ({
-    ...r,
-    tasting: typeof r.tasting === 'string' ? JSON.parse(r.tasting as string) : r.tasting,
-  })));
+  // Pass JSON strings through verbatim. The client parses them. This avoids
+  // double-stringification and keeps the worker handler narrow.
+  return json(results);
 };
 
-// Customer: POST /api/tasting-journal
+// Customer: POST /api/tasting-journal. Accepts the new shape (one entry per
+// productId, with `note` and `tastings` JSON). Upserts on (user_id, product_id).
+// Quick-note sentinel rows are rejected.
 const handleAddTastingEntry: Handler = async (request, env) => {
   const authErr = await requireAuth(request, env);
   if (authErr) return authErr;
@@ -7323,24 +7352,37 @@ const handleAddTastingEntry: Handler = async (request, env) => {
   const headerAccount = request.headers.get('X-Teajia-Account') || claims?.active_account_id || null;
   const body = await request.json() as any;
 
+  if (!body.product_id || body.product_id === 'quick-note') {
+    return json({ error: 'product_id required (quick-note removed)' }, 400);
+  }
+
   const id = body.id || crypto.randomUUID();
 
   await env.DB.prepare(`
-    INSERT INTO customer_tasting_journal (id, account_id, user_id, product_id, product_name, product_type, product_image, tasting, personal_note, rating, event_id, event_title)
+    INSERT INTO customer_tasting_journal
+      (id, account_id, user_id, product_id, product_name, product_type, product_image, note, tastings, compass_entry_id, archived, created_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(user_id, product_id) DO UPDATE SET
+      product_name = excluded.product_name,
+      product_type = excluded.product_type,
+      product_image = excluded.product_image,
+      note = excluded.note,
+      tastings = excluded.tastings,
+      compass_entry_id = excluded.compass_entry_id,
+      archived = excluded.archived
   `).bind(
     id,
     headerAccount,
     email,
-    body.teaId || null,
-    body.teaName || null,
-    body.teaType || null,
-    body.teaImage || null,
-    JSON.stringify(body.tasting || {}),
-    body.personalNote || null,
-    body.rating || null,
-    body.eventId || null,
-    body.eventTitle || null
+    body.product_id,
+    body.product_name || null,
+    body.product_type || null,
+    body.product_image || null,
+    typeof body.note === 'string' ? body.note : JSON.stringify(body.note || {}),
+    typeof body.tastings === 'string' ? body.tastings : JSON.stringify(body.tastings || []),
+    body.compass_entry_id || null,
+    body.archived ? 1 : 0,
+    body.created_at || new Date().toISOString()
   ).run();
 
   return json({ id, success: true }, 201);
@@ -7359,7 +7401,7 @@ const handleDeleteTastingEntry: Handler = async (request, env, params) => {
   return json({ success: true });
 };
 
-// Customer: POST /api/tasting-journal/sync
+// Customer: POST /api/tasting-journal/sync. Bulk upsert by (user_id, product_id).
 const handleSyncTastingJournal: Handler = async (request, env) => {
   const authErr = await requireAuth(request, env);
   if (authErr) return authErr;
@@ -7367,28 +7409,38 @@ const handleSyncTastingJournal: Handler = async (request, env) => {
   const claims = parseToken(isAuthed(request)!);
   const headerAccount = request.headers.get('X-Teajia-Account') || claims?.active_account_id || null;
   const body = await request.json() as any;
-  const entries = body.entries || [];
+  const entries = Array.isArray(body) ? body : (body.entries || []);
 
   if (!Array.isArray(entries)) return json({ error: 'entries must be an array' }, 400);
 
-  const stmts = entries.map((e: any) =>
+  const valid = entries.filter((e: any) => e.product_id && e.product_id !== 'quick-note');
+
+  const stmts = valid.map((e: any) =>
     env.DB.prepare(`
-      INSERT OR IGNORE INTO customer_tasting_journal (id, account_id, user_id, product_id, product_name, product_type, product_image, tasting, personal_note, rating, event_id, event_title, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO customer_tasting_journal
+        (id, account_id, user_id, product_id, product_name, product_type, product_image, note, tastings, compass_entry_id, archived, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(user_id, product_id) DO UPDATE SET
+        product_name = excluded.product_name,
+        product_type = excluded.product_type,
+        product_image = excluded.product_image,
+        note = excluded.note,
+        tastings = excluded.tastings,
+        compass_entry_id = excluded.compass_entry_id,
+        archived = excluded.archived
     `).bind(
       e.id || crypto.randomUUID(),
       headerAccount,
       email,
-      e.teaId || null,
-      e.teaName || null,
-      e.teaType || null,
-      e.teaImage || null,
-      JSON.stringify(e.tasting || {}),
-      e.personalNote || null,
-      e.rating || null,
-      e.eventId || null,
-      e.eventTitle || null,
-      e.createdAt || new Date().toISOString()
+      e.product_id,
+      e.product_name || null,
+      e.product_type || null,
+      e.product_image || null,
+      typeof e.note === 'string' ? e.note : JSON.stringify(e.note || {}),
+      typeof e.tastings === 'string' ? e.tastings : JSON.stringify(e.tastings || []),
+      e.compass_entry_id || null,
+      e.archived ? 1 : 0,
+      e.created_at || new Date().toISOString()
     )
   );
 
@@ -7896,13 +7948,17 @@ const handleGetAccountMembers: Handler = async (request, env, params) => {
 
   const { results } = await env.DB.prepare(
     `SELECT am.id, am.account_id, am.user_id, am.role, am.permissions, am.status, am.joined_at, am.invited_at,
-            u.email, u.name, u.platform_role
+            u.email, u.name, u.platform_role, u.can_create_collections
      FROM account_members am
      LEFT JOIN users u ON u.id = am.user_id
      WHERE am.account_id = ?
      ORDER BY am.joined_at ASC`
   ).bind(params.id).all();
-  return json({ members: results });
+  const members = (results as any[]).map(row => ({
+    ...row,
+    can_create_collections: Boolean(row.can_create_collections),
+  }));
+  return json({ members });
 };
 
 // POST /api/accounts/:id/members — invite by email (owner only)
@@ -8627,11 +8683,14 @@ async function fetchPublicProductsForAccount(
 }
 
 // GET /api/s/:slug/products — PUBLIC products for a store
+// Short 10s cache so admin tasting edits reflect quickly on the public page;
+// product data changes throughout the day and we don't want a 60s stale window
+// when the owner is actively curating.
 const handleGetPublicAccountProducts: Handler = async (_request, env, params) => {
   const accountId = await getAccountIdBySlug(env, params.slug);
   if (!accountId) return json({ error: 'Store not found' }, 404);
   const products = await fetchPublicProductsForAccount(env, accountId);
-  return cachedJson(products, 60);
+  return cachedJson(products, 10);
 };
 
 // GET /api/s/:slug/events — PUBLIC active events for a store
@@ -9859,6 +9918,546 @@ const handleGetCustomerRFM: Handler = async (request, env) => {
   });
 };
 
+// ── Collections (Phase 1) ──
+// Persistent curator-driven product sets + link-gated person publications.
+// Phase 1: Person audience only. target_type reserves store/event/shop for later phases.
+
+function shortId(len = 10): string {
+  return crypto.randomUUID().replace(/-/g, '').slice(0, len);
+}
+
+function newId(prefix: string): string {
+  return `${prefix}_${crypto.randomUUID().replace(/-/g, '')}`;
+}
+
+function slugifyTitle(title: string): string {
+  return title
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[̀-ͯ]/g, '')    // strip accents
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 48) || 'collection';
+}
+
+function buildCollectionSlug(title: string): string {
+  return `${slugifyTitle(title)}-${shortId(4)}`;
+}
+
+async function loadCollectionOr404(
+  env: Env,
+  id: string,
+  accountId: string
+): Promise<{ row: any } | { error: Response }> {
+  const row = await env.DB.prepare(
+    `SELECT id, account_id, title, note, hero_image_url, status,
+            created_by_user_id, curator_user_id, curator_display_name,
+            created_at, updated_at
+       FROM collections
+      WHERE id = ? AND account_id = ?`
+  ).bind(id, accountId).first();
+  if (!row) return { error: json({ error: 'Collection not found' }, 404) };
+  return { row };
+}
+
+const handleListCollections: Handler = async (request, env) => {
+  const ctx = await getActiveAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const url = new URL(request.url);
+  const statusFilter = url.searchParams.get('status');
+  const productId = url.searchParams.get('product_id');
+  const isOwner = ctx.role === 'owner';
+
+  let sql = `
+    SELECT c.id, c.title, c.note, c.hero_image_url, c.status,
+           c.curator_display_name,
+           c.created_at, c.updated_at,
+           (SELECT COUNT(*) FROM collection_items ci WHERE ci.collection_id = c.id) AS item_count,
+           (SELECT COUNT(*) FROM collection_publications p
+              WHERE p.collection_id = c.id AND p.unpublished_at IS NULL) AS active_publication_count,
+           (SELECT MAX(p.published_at) FROM collection_publications p
+              WHERE p.collection_id = c.id AND p.unpublished_at IS NULL) AS last_published_at
+      FROM collections c
+     WHERE c.account_id = ?`;
+  const binds: any[] = [ctx.accountId];
+  if (!isOwner) {
+    sql += ` AND c.curator_user_id = ?`;
+    binds.push(ctx.userId);
+  }
+  if (statusFilter && ['draft', 'active', 'archived'].includes(statusFilter)) {
+    sql += ` AND c.status = ?`;
+    binds.push(statusFilter);
+  }
+  if (productId) {
+    sql += ` AND EXISTS (SELECT 1 FROM collection_items ci WHERE ci.collection_id = c.id AND ci.product_id = ?)`;
+    binds.push(productId);
+  }
+  sql += ` ORDER BY c.updated_at DESC LIMIT 200`;
+
+  const { results } = await env.DB.prepare(sql).bind(...binds).all();
+
+  // Enrich with first three product image URLs for thumbnails.
+  const ids = (results as any[]).map(r => r.id);
+  let thumbMap = new Map<string, string[]>();
+  if (ids.length) {
+    const placeholders = ids.map(() => '?').join(',');
+    const thumbRows = await env.DB.prepare(
+      `SELECT ci.collection_id, p.image_url
+         FROM collection_items ci
+         JOIN products p ON p.id = ci.product_id
+        WHERE ci.collection_id IN (${placeholders})
+        ORDER BY ci.collection_id, ci.position`
+    ).bind(...ids).all();
+    for (const r of (thumbRows.results ?? []) as any[]) {
+      const existing = thumbMap.get(r.collection_id) ?? [];
+      if (existing.length < 3 && r.image_url) {
+        existing.push(r.image_url);
+        thumbMap.set(r.collection_id, existing);
+      }
+    }
+  }
+
+  const rows = (results as any[]).map(r => ({
+    ...r,
+    thumbnails: thumbMap.get(r.id) ?? [],
+  }));
+  return json({ collections: rows });
+};
+
+const handleGetCollection: Handler = async (request, env, params) => {
+  const ctx = await getActiveAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const found = await loadCollectionOr404(env, params.id, ctx.accountId);
+  if ('error' in found) return found.error;
+
+  const isOwner = ctx.role === 'owner';
+  if (!isOwner && found.row.curator_user_id !== ctx.userId) {
+    return json({ error: 'Forbidden' }, 403);
+  }
+
+  const items = await env.DB.prepare(
+    `SELECT ci.id, ci.collection_id, ci.product_id, ci.position, ci.item_note,
+            p.type AS product_type,
+            COALESCE(p.given_name, p.product_name) AS product_name,
+            p.chinese_name, p.year, p.origin_country, p.origin_region,
+            p.image_url, p.status AS product_status, p.stock_grams, p.quantity_units,
+            p.tasting_notes, p.description
+       FROM collection_items ci
+       JOIN products p ON p.id = ci.product_id
+      WHERE ci.collection_id = ?
+      ORDER BY ci.position ASC`
+  ).bind(params.id).all();
+
+  const pubs = await env.DB.prepare(
+    `SELECT id, collection_id, target_type, target_id, slug, recipients_json,
+            published_at, unpublished_at, view_count
+       FROM collection_publications
+      WHERE collection_id = ?
+      ORDER BY published_at DESC`
+  ).bind(params.id).all();
+
+  const publications = ((pubs.results ?? []) as any[]).map(p => ({
+    ...p,
+    recipients: p.recipients_json ? JSON.parse(p.recipients_json) : [],
+  }));
+
+  return json({
+    collection: found.row,
+    items: items.results ?? [],
+    publications,
+  });
+};
+
+const handleCreateCollection: Handler = async (request, env) => {
+  const ctx = await getActiveAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const isOwner = ctx.role === 'owner';
+
+  // Non-owners must have can_create_collections flag.
+  if (!isOwner) {
+    const userRow = await env.DB.prepare(
+      `SELECT can_create_collections FROM users WHERE id = ?`
+    ).bind(ctx.userId).first();
+    if (!userRow || !userRow.can_create_collections) {
+      return json({ error: 'Insufficient permissions to create collections' }, 403);
+    }
+  }
+
+  const body = await request.json() as any;
+  const title = (body.title || '').trim();
+  if (!title) return json({ error: 'Title required' }, 400);
+
+  // Set curator attribution for non-owners with the flag.
+  const curatorUserId = !isOwner ? ctx.userId : null;
+  const curatorDisplayName = !isOwner ? ((body.curator_display_name || '').trim() || null) : null;
+
+  const id = newId('col');
+  const now = new Date().toISOString();
+  await env.DB.prepare(
+    `INSERT INTO collections (id, account_id, title, note, hero_image_url, status,
+                              created_by_user_id, curator_user_id, curator_display_name,
+                              created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?)`
+  ).bind(
+    id, ctx.accountId, title,
+    body.note || null, body.hero_image_url || null,
+    ctx.userId, curatorUserId, curatorDisplayName, now, now
+  ).run();
+
+  const productIds: string[] = Array.isArray(body.initial_product_ids) ? body.initial_product_ids : [];
+  if (productIds.length) {
+    const stmts = productIds.map((pid: string, idx: number) =>
+      env.DB.prepare(
+        `INSERT INTO collection_items (id, collection_id, product_id, position)
+         VALUES (?, ?, ?, ?)`
+      ).bind(newId('ci'), id, pid, idx + 1)
+    );
+    await env.DB.batch(stmts);
+  }
+
+  return json({ id }, 201);
+};
+
+const handlePatchCollection: Handler = async (request, env, params) => {
+  const ctx = await getActiveAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const found = await loadCollectionOr404(env, params.id, ctx.accountId);
+  if ('error' in found) return found.error;
+
+  const isOwner = ctx.role === 'owner';
+  if (!isOwner && found.row.curator_user_id !== ctx.userId) {
+    return json({ error: 'Forbidden' }, 403);
+  }
+
+  const body = await request.json() as any;
+  const updates: string[] = [];
+  const binds: any[] = [];
+  for (const field of ['title', 'note', 'hero_image_url', 'status', 'curator_display_name']) {
+    if (field in body) {
+      if (field === 'status' && !['draft', 'active', 'archived'].includes(body.status)) {
+        return json({ error: 'Invalid status' }, 400);
+      }
+      updates.push(`${field} = ?`);
+      binds.push(body[field]);
+    }
+  }
+  if (!updates.length) return json({ ok: true });
+  updates.push(`updated_at = ?`);
+  binds.push(new Date().toISOString());
+  binds.push(params.id);
+
+  await env.DB.prepare(
+    `UPDATE collections SET ${updates.join(', ')} WHERE id = ?`
+  ).bind(...binds).run();
+  return json({ ok: true });
+};
+
+const handleAddCollectionItems: Handler = async (request, env, params) => {
+  const ctx = await getActiveAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const found = await loadCollectionOr404(env, params.id, ctx.accountId);
+  if ('error' in found) return found.error;
+
+  const body = await request.json() as any;
+  const productIds: string[] = Array.isArray(body.product_ids) ? body.product_ids : [];
+  if (!productIds.length) return json({ error: 'product_ids required' }, 400);
+
+  const maxRow = await env.DB.prepare(
+    `SELECT COALESCE(MAX(position), 0) AS max_pos FROM collection_items WHERE collection_id = ?`
+  ).bind(params.id).first();
+  let pos = (maxRow?.max_pos as number) || 0;
+
+  // Filter products that aren't already in the collection.
+  const existing = await env.DB.prepare(
+    `SELECT product_id FROM collection_items WHERE collection_id = ?`
+  ).bind(params.id).all();
+  const have = new Set((existing.results as any[]).map(r => r.product_id));
+  const toInsert = productIds.filter(pid => !have.has(pid));
+
+  if (toInsert.length) {
+    const stmts = toInsert.map(pid => {
+      pos += 1;
+      return env.DB.prepare(
+        `INSERT INTO collection_items (id, collection_id, product_id, position)
+         VALUES (?, ?, ?, ?)`
+      ).bind(newId('ci'), params.id, pid, pos);
+    });
+    await env.DB.batch(stmts);
+  }
+
+  await env.DB.prepare(
+    `UPDATE collections SET updated_at = ? WHERE id = ?`
+  ).bind(new Date().toISOString(), params.id).run();
+
+  return json({ added: toInsert.length, skipped: productIds.length - toInsert.length });
+};
+
+const handleRemoveCollectionItem: Handler = async (request, env, params) => {
+  const ctx = await getActiveAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const found = await loadCollectionOr404(env, params.id, ctx.accountId);
+  if ('error' in found) return found.error;
+
+  await env.DB.prepare(
+    `DELETE FROM collection_items WHERE id = ? AND collection_id = ?`
+  ).bind(params.itemId, params.id).run();
+
+  await env.DB.prepare(
+    `UPDATE collections SET updated_at = ? WHERE id = ?`
+  ).bind(new Date().toISOString(), params.id).run();
+
+  return json({ ok: true });
+};
+
+const handlePatchCollectionItem: Handler = async (request, env, params) => {
+  const ctx = await getActiveAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const found = await loadCollectionOr404(env, params.id, ctx.accountId);
+  if ('error' in found) return found.error;
+
+  const body = await request.json() as any;
+
+  // Reorder: swap with neighbor.
+  if (body.direction === 'up' || body.direction === 'down') {
+    const current = await env.DB.prepare(
+      `SELECT id, position FROM collection_items WHERE id = ? AND collection_id = ?`
+    ).bind(params.itemId, params.id).first();
+    if (!current) return json({ error: 'Item not found' }, 404);
+    const op = body.direction === 'up' ? '<' : '>';
+    const ord = body.direction === 'up' ? 'DESC' : 'ASC';
+    const neighbor = await env.DB.prepare(
+      `SELECT id, position FROM collection_items
+        WHERE collection_id = ? AND position ${op} ?
+        ORDER BY position ${ord} LIMIT 1`
+    ).bind(params.id, current.position).first();
+    if (!neighbor) return json({ ok: true }); // already at boundary
+
+    await env.DB.batch([
+      env.DB.prepare(`UPDATE collection_items SET position = ? WHERE id = ?`)
+        .bind(neighbor.position, current.id),
+      env.DB.prepare(`UPDATE collection_items SET position = ? WHERE id = ?`)
+        .bind(current.position, neighbor.id),
+    ]);
+    return json({ ok: true });
+  }
+
+  if ('item_note' in body) {
+    await env.DB.prepare(
+      `UPDATE collection_items SET item_note = ? WHERE id = ? AND collection_id = ?`
+    ).bind(body.item_note, params.itemId, params.id).run();
+    return json({ ok: true });
+  }
+
+  return json({ error: 'No valid update' }, 400);
+};
+
+const handlePublishCollection: Handler = async (request, env, params) => {
+  const ctx = await getActiveAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const found = await loadCollectionOr404(env, params.id, ctx.accountId);
+  if ('error' in found) return found.error;
+
+  const body = await request.json() as any;
+  const targetType = body.target_type || 'person';
+  if (targetType !== 'person') {
+    // Phase 1 gate — other audiences land in Phases 2-4.
+    return json({ error: 'Only person audience is supported in Phase 1' }, 400);
+  }
+  const recipients = Array.isArray(body.recipients) ? body.recipients : [];
+  if (recipients.length === 0) return json({ error: 'At least one recipient is required' }, 400);
+
+  // Require at least one item.
+  const itemCount = await env.DB.prepare(
+    `SELECT COUNT(*) AS n FROM collection_items WHERE collection_id = ?`
+  ).bind(params.id).first();
+  if (!itemCount || (itemCount.n as number) === 0) {
+    return json({ error: 'Collection must contain at least one item before publishing' }, 400);
+  }
+
+  // Human-readable slug with short hash suffix for uniqueness.
+  const coll = found.row as { title: string };
+  let slug = '';
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const candidate = buildCollectionSlug(coll.title);
+    const exists = await env.DB.prepare(
+      `SELECT 1 FROM collection_publications WHERE slug = ?`
+    ).bind(candidate).first();
+    if (!exists) { slug = candidate; break; }
+  }
+  if (!slug) return json({ error: 'Slug generation failed' }, 500);
+
+  const pubId = newId('pub');
+  await env.DB.prepare(
+    `INSERT INTO collection_publications
+       (id, collection_id, target_type, slug, recipients_json, created_by_user_id)
+     VALUES (?, ?, 'person', ?, ?, ?)`
+  ).bind(pubId, params.id, slug, JSON.stringify(recipients), ctx.userId).run();
+
+  // Auto-promote draft → active on first publish.
+  await env.DB.prepare(
+    `UPDATE collections SET status = CASE WHEN status = 'draft' THEN 'active' ELSE status END,
+                            updated_at = ?
+      WHERE id = ?`
+  ).bind(new Date().toISOString(), params.id).run();
+
+  return json({ id: pubId, slug }, 201);
+};
+
+const handleUnpublish: Handler = async (request, env, params) => {
+  const ctx = await getActiveAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const found = await loadCollectionOr404(env, params.id, ctx.accountId);
+  if ('error' in found) return found.error;
+
+  await env.DB.prepare(
+    `UPDATE collection_publications SET unpublished_at = ?
+      WHERE id = ? AND collection_id = ?`
+  ).bind(new Date().toISOString(), params.pubId, params.id).run();
+
+  return json({ ok: true });
+};
+
+const handleNeedsAttention: Handler = async (request, env) => {
+  const ctx = await getActiveAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+
+  // OOS/archived products that appear in at least one active (non-unpublished) publication.
+  // OOS = tea with stock_grams <= 0, or teaware with quantity_units <= 0.
+  const { results } = await env.DB.prepare(
+    `SELECT DISTINCT ci.id AS item_id,
+            ci.collection_id,
+            c.title AS collection_title,
+            p.id AS product_id,
+            COALESCE(p.given_name, p.product_name) AS product_name,
+            p.type AS product_type,
+            p.status AS product_status,
+            p.stock_grams,
+            p.quantity_units,
+            CASE
+              WHEN p.status <> 'Active' THEN 'archived'
+              WHEN p.type = 'Teaware' AND COALESCE(p.quantity_units, 0) <= 0 THEN 'out_of_stock'
+              WHEN p.type <> 'Teaware' AND COALESCE(p.stock_grams, 0) <= 0 THEN 'out_of_stock'
+              ELSE NULL
+            END AS issue
+       FROM collection_items ci
+       JOIN products p ON p.id = ci.product_id
+       JOIN collections c ON c.id = ci.collection_id
+      WHERE c.account_id = ?
+        AND c.status = 'active'
+        AND EXISTS (
+          SELECT 1 FROM collection_publications cp
+           WHERE cp.collection_id = c.id AND cp.unpublished_at IS NULL
+        )
+        AND (
+          p.status <> 'Active'
+          OR (p.type = 'Teaware' AND COALESCE(p.quantity_units, 0) <= 0)
+          OR (p.type <> 'Teaware' AND COALESCE(p.stock_grams, 0) <= 0)
+        )
+      ORDER BY c.updated_at DESC
+      LIMIT 50`
+  ).bind(ctx.accountId).all();
+
+  return json({ items: results ?? [] });
+};
+
+// Public — no auth, link-gated by slug.
+const handleGetPublicCollection: Handler = async (_request, env, params) => {
+  const pub = await env.DB.prepare(
+    `SELECT id, collection_id, slug, unpublished_at, view_count
+       FROM collection_publications
+      WHERE slug = ?`
+  ).bind(params.slug).first();
+  if (!pub) return json({ error: 'Not found' }, 404);
+  if (pub.unpublished_at) return json({ error: 'No longer available' }, 410);
+
+  const collection = await env.DB.prepare(
+    `SELECT c.id, c.title, c.note, c.hero_image_url, c.status,
+            c.curator_user_id, c.curator_display_name,
+            u.name AS curator_user_name
+       FROM collections c
+       LEFT JOIN users u ON u.id = c.curator_user_id
+      WHERE c.id = ?`
+  ).bind(pub.collection_id).first();
+  if (!collection || collection.status === 'archived') {
+    return json({ error: 'No longer available' }, 410);
+  }
+
+  // Account for WhatsApp deep link.
+  const account = await env.DB.prepare(
+    `SELECT id, name, whatsapp_number FROM accounts WHERE id = (
+       SELECT account_id FROM collections WHERE id = ?
+     )`
+  ).bind(pub.collection_id).first();
+
+  const items = await env.DB.prepare(
+    `SELECT ci.id, ci.position, ci.item_note,
+            p.id AS product_id, p.type AS product_type,
+            COALESCE(p.given_name, p.product_name) AS product_name,
+            p.chinese_name, p.year, p.origin_country, p.origin_region,
+            p.image_url, p.description, p.tasting_notes,
+            p.status AS product_status, p.stock_grams, p.quantity_units
+       FROM collection_items ci
+       JOIN products p ON p.id = ci.product_id
+      WHERE ci.collection_id = ?
+      ORDER BY ci.position ASC`
+  ).bind(pub.collection_id).all();
+
+  const visibleItems = ((items.results ?? []) as any[])
+    .filter(i => i.product_status === 'Active')
+    .map(i => {
+      if (typeof i.tasting_notes === 'string') {
+        try { i.tasting_notes = JSON.parse(i.tasting_notes); } catch { i.tasting_notes = []; }
+      }
+      const outOfStock = i.product_type === 'Teaware'
+        ? (i.quantity_units ?? 0) <= 0
+        : (i.stock_grams ?? 0) <= 0;
+      return { ...i, out_of_stock: outOfStock };
+    });
+
+  return json({
+    collection: {
+      title: collection.title,
+      note: collection.note,
+      hero_image_url: collection.hero_image_url,
+      curator_display_name: collection.curator_user_id
+        ? (collection.curator_display_name || collection.curator_user_name || null)
+        : null,
+    },
+    items: visibleItems,
+    account: account ? { name: account.name, whatsapp_number: account.whatsapp_number } : null,
+    publication: { slug: pub.slug, view_count: pub.view_count },
+  });
+};
+
+// Public — increment view_count (sessionStorage-guarded client call).
+const handlePublicCollectionView: Handler = async (_request, env, params) => {
+  const pub = await env.DB.prepare(
+    `SELECT id, unpublished_at FROM collection_publications WHERE slug = ?`
+  ).bind(params.slug).first();
+  if (!pub || pub.unpublished_at) return json({ ok: false }, 404);
+  await env.DB.prepare(
+    `UPDATE collection_publications SET view_count = view_count + 1 WHERE id = ?`
+  ).bind(pub.id).run();
+  return json({ ok: true });
+};
+
+// PUT /api/accounts/:id/members/:userId/curator — promote/demote curator flag (owner only)
+const handleSetCuratorFlag: Handler = async (request, env, params) => {
+  const ctx = await requireAccountRole(request, env, ['owner']);
+  if ('error' in ctx) return ctx.error;
+  if (params.id !== ctx.accountId) return json({ error: 'Account access denied' }, 403);
+  const member = await env.DB.prepare(
+    `SELECT user_id FROM account_members WHERE account_id = ? AND user_id = ?`
+  ).bind(params.id, params.userId).first();
+  if (!member) return json({ error: 'User is not a member of this account' }, 404);
+  const body = await request.json() as { can_create_collections?: boolean };
+  const flag = body.can_create_collections ? 1 : 0;
+  await env.DB.prepare(
+    `UPDATE users SET can_create_collections = ? WHERE id = ?`
+  ).bind(flag, params.userId).run();
+  return json({ ok: true, can_create_collections: Boolean(flag) });
+};
+
 // ── Routes ──
 const routes: [string, string, Handler][] = [
   // Auth
@@ -9899,6 +10498,7 @@ const routes: [string, string, Handler][] = [
   ['GET',  '/api/platform/audit-log', handlePlatformAuditLog],
   // Account member management
   ['PUT',  '/api/accounts/:id/members/:userId/permissions', handleUpdateMemberPermissions],
+  ['PUT',  '/api/accounts/:id/members/:userId/curator', handleSetCuratorFlag],
   ['POST', '/api/accounts/:id/transfer-ownership', handleTransferOwnership],
 
   // Network (public)
@@ -9962,6 +10562,22 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/customers/:id/products', handleGetVendorProducts],
   ['POST', '/api/customers/:id/products', handleLinkVendorProduct],
   ['DELETE', '/api/customers/:id/products/:productId', handleUnlinkVendorProduct],
+
+  // Collections (Phase 1: Person audience only)
+  ['GET',    '/api/collections', handleListCollections],
+  ['POST',   '/api/collections', handleCreateCollection],
+  ['GET',    '/api/collections/needs-attention', handleNeedsAttention],
+  ['GET',    '/api/collections/:id', handleGetCollection],
+  ['PUT',    '/api/collections/:id', handlePatchCollection],
+  ['POST',   '/api/collections/:id/items', handleAddCollectionItems],
+  ['PUT',    '/api/collections/:id/items/:itemId', handlePatchCollectionItem],
+  ['DELETE', '/api/collections/:id/items/:itemId', handleRemoveCollectionItem],
+  ['POST',   '/api/collections/:id/publications', handlePublishCollection],
+  ['DELETE', '/api/collections/:id/publications/:pubId', handleUnpublish],
+
+  // Public collection pages — no auth, link-gated by slug.
+  ['GET',  '/api/public/c/:slug', handleGetPublicCollection],
+  ['POST', '/api/public/c/:slug/view', handlePublicCollectionView],
 
   // Invoices — edit items
   ['PUT', '/api/invoices/:id/items', handleUpdateInvoiceItems],

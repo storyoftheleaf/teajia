@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { api } from '../lib/api';
-import { fmtPrice } from '../utils/formatNumber';
+import { fmtShopPrice } from '../utils/formatNumber';
 
 const OrderStatusPage: React.FC = () => {
   const { ref } = useParams<{ ref: string }>();
@@ -84,12 +84,12 @@ const OrderStatusPage: React.FC = () => {
                 {item.category === 'tea' ? `${item.quantityGrams}g` : `\u00d7${item.quantityGrams}`}
               </span>
             </div>
-            <span className="num text-tea-text">{fmtPrice(item.totalPrice)}</span>
+            <span className="num text-tea-text">{fmtShopPrice(item.totalPrice)}</span>
           </div>
         ))}
         <div className="flex justify-between items-center pt-3 border-t border-tea-border mt-2">
           <span className="text-sm font-medium text-tea-text">Estimate</span>
-          <span className="num text-lg font-serif text-tea-gold">{fmtPrice(inquiry?.total_estimate_usd || 0)}</span>
+          <span className="num text-lg font-serif text-tea-gold">{fmtShopPrice(inquiry?.total_estimate_usd || 0)}</span>
         </div>
       </div>
 

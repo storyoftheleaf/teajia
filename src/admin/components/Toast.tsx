@@ -72,10 +72,23 @@ export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
+/**
+ * Soft-fallback toast. When no ToastProvider is in the tree (admin components
+ * opened from the public shop as admin), log to console for success/info and
+ * surface a visible alert for errors so silent failures don't hide.
+ */
+const fallbackToast: ToastContextType = {
+  showToast: (msg, kind = 'info') => {
+    if (kind === 'error' && typeof window !== 'undefined') {
+      // eslint-disable-next-line no-alert
+      window.alert(`⚠ ${msg}`);
+      return;
+    }
+    // eslint-disable-next-line no-console
+    console.info(`[toast:${kind}] ${msg}`);
+  },
+};
+
 export const useToast = () => {
-  const context = useContext(ToastContext);
-  if (!context) {
-    throw new Error('useToast must be used within a ToastProvider');
-  }
-  return context;
+  return useContext(ToastContext) ?? fallbackToast;
 };

@@ -56,6 +56,7 @@ export interface Product {
   teawareCategory?: 'pot' | 'cup' | 'tray' | 'storage' | 'accessory' | 'decorative';
   quantityUnits?: number; // Unit count (used instead of stockGrams for teaware)
   tasting?: TastingData;
+  tastingSource?: 'common' | 'owner' | 'community';
   sourceCompassEntryId?: string; // Persistent link to the Tea Compass entry that sourced this product
   teaKey?: string; // Normalised tea identity key — shared across accounts for cross-store review aggregation
   wholesalePrice?: number;

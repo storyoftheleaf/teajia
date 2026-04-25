@@ -1,11 +1,16 @@
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Icons } from '../Icons';
 import { useAppStore } from '../../lib/store';
+import { entryEvent } from '../../lib/tastingAccessors';
+import { TastingSession, type TastingItem } from '../tasting/TastingSession';
 import type { CustomerTasting } from '../../types';
 
 interface TastingJournalViewProps {
   onBack: () => void;
+  /** Navigates to the product page (separate from opening the entry detail). */
+  onOpenTea?: (productId: string) => void;
 }
 
 function formatDate(iso: string): string {
@@ -26,7 +31,7 @@ function StarRating({ rating }: { rating: number }) {
         <svg
           key={i}
           viewBox="0 0 12 12"
-          className={`w-2.5 h-2.5 ${i < rating ? 'text-tea-gold' : 'text-tea-border'}`}
+          className={`w-3 h-3 ${i < rating ? 'text-tea-gold' : 'text-tea-text-sec'}`}
           fill="currentColor"
         >
           <path d="M6 1l1.4 2.8 3.1.4-2.2 2.2.5 3.1L6 8l-2.8 1.5.5-3.1L1.5 4.2l3.1-.4z" />
@@ -36,13 +41,14 @@ function StarRating({ rating }: { rating: number }) {
   );
 }
 
-function DescriptorPills({ entry }: { entry: CustomerTasting }) {
+function DescriptorPills({ entry, max = 6 }: { entry: CustomerTasting; max?: number }) {
+  const t = entry.note.tasting;
   const descriptors: string[] = [
-    ...(entry.tasting.flavor ?? []),
-    ...(entry.tasting.body ?? []),
-    ...(entry.tasting.feeling ?? []),
-    ...(entry.tasting.finish ?? []),
-  ].slice(0, 6);
+    ...(t.flavor ?? []),
+    ...(t.body ?? []),
+    ...(t.feeling ?? []),
+    ...(t.finish ?? []),
+  ].slice(0, max);
 
   if (descriptors.length === 0) return null;
 
@@ -51,7 +57,7 @@ function DescriptorPills({ entry }: { entry: CustomerTasting }) {
       {descriptors.map((tag) => (
         <span
           key={tag}
-          className="inline-block px-1.5 py-0.5 text-[9px] uppercase tracking-[0.1em] bg-tea-elevated/60 text-tea-text-dim rounded-sm"
+          className="inline-block px-2 py-0.5 text-[11px] uppercase tracking-[0.08em] bg-tea-elevated text-tea-text-sec rounded-sm"
         >
           {tag}
         </span>
@@ -60,14 +66,227 @@ function DescriptorPills({ entry }: { entry: CustomerTasting }) {
   );
 }
 
-export const TastingJournalView: React.FC<TastingJournalViewProps> = ({ onBack }) => {
+/**
+ * Entry detail. The primary surface in the destination per the brief:
+ * tea identity, editable note, past-tastings list, and actions.
+ */
+const EntryDetail: React.FC<{
+  entry: CustomerTasting;
+  onClose: () => void;
+  onOpenTea?: (productId: string) => void;
+}> = ({ entry, onClose, onOpenTea }) => {
+  const updateTasting = useAppStore((s) => s.updateTasting);
+
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(entry.note.personalNote ?? '');
+  const [savedFlash, setSavedFlash] = useState(false);
+  const [tastingItem, setTastingItem] = useState<TastingItem | null>(null);
+  const blurSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const ev = entryEvent(entry);
+  const rating = entry.note.rating ?? entry.note.tasting.rating ?? 0;
+
+  const commit = useCallback(() => {
+    const trimmed = draft.trim();
+    const current = entry.note.personalNote ?? '';
+    if (trimmed === current.trim()) {
+      setEditing(false);
+      return;
+    }
+    updateTasting(entry.id, {
+      note: {
+        ...entry.note,
+        personalNote: trimmed || undefined,
+        updatedAt: new Date().toISOString(),
+      },
+    });
+    setEditing(false);
+    setSavedFlash(true);
+    setTimeout(() => setSavedFlash(false), 1500);
+  }, [draft, entry, updateTasting]);
+
+  const handleArchive = () => {
+    updateTasting(entry.id, { archived: true });
+    onClose();
+  };
+
+  useEffect(() => {
+    if (editing) setTimeout(() => textareaRef.current?.focus(), 0);
+    return () => {
+      if (blurSaveRef.current) clearTimeout(blurSaveRef.current);
+    };
+  }, [editing]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: 20 }}
+      transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+      className="animate-[fadeIn_0.24s_ease-out]"
+    >
+      {/* Back to list */}
+      <button
+        onClick={onClose}
+        className="flex items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors mb-4"
+      >
+        <Icons.Back className="w-4 h-4" />
+        <span className="text-[12px] uppercase tracking-[0.18em]">Tasting Journal</span>
+      </button>
+
+      {/* Tea identity */}
+      <div className="mb-5">
+        <div className="flex items-start gap-3">
+          {entry.productImage ? (
+            <img src={entry.productImage} alt="" className="w-14 h-14 rounded-md object-cover shrink-0" loading="lazy" />
+          ) : (
+            <div className="w-14 h-14 rounded-md bg-tea-surface flex items-center justify-center shrink-0">
+              <span className="font-serif text-tea-gold/60 text-lg">茶</span>
+            </div>
+          )}
+          <div className="min-w-0 flex-1">
+            <h3 className="font-serif text-lg text-tea-text leading-tight">{entry.productName}</h3>
+            {entry.productType && (
+              <div className="text-[11px] uppercase tracking-[0.15em] text-tea-text-sec mt-1">
+                {entry.productType}
+              </div>
+            )}
+            <div className="flex items-center gap-2 mt-1.5">
+              {rating > 0 && <StarRating rating={rating} />}
+              <span className="text-[11px] text-tea-text-sec">
+                Last touched {formatDate(entry.note.updatedAt || entry.createdAt)}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Note (editable inline) */}
+      <div className="mb-5">
+        {editing ? (
+          <textarea
+            ref={textareaRef}
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={() => {
+              if (blurSaveRef.current) clearTimeout(blurSaveRef.current);
+              blurSaveRef.current = setTimeout(commit, 200);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') { setDraft(entry.note.personalNote ?? ''); setEditing(false); }
+              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) commit();
+            }}
+            placeholder="Write your note here."
+            rows={6}
+            className="w-full bg-tea-surface/60 text-tea-text font-serif italic text-[14px] leading-relaxed rounded-md p-3 outline-none border border-tea-border focus:border-tea-gold transition-colors resize-y"
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={() => { setDraft(entry.note.personalNote ?? ''); setEditing(true); }}
+            className="w-full text-left rounded-md p-3 -mx-3 hover:bg-tea-surface/40 transition-colors"
+          >
+            {entry.note.personalNote ? (
+              <p className="font-serif italic text-[14px] leading-relaxed text-tea-text">
+                {entry.note.personalNote}
+              </p>
+            ) : (
+              <p className="font-serif italic text-[13px] leading-relaxed text-tea-text-sec">
+                Write your note here.
+              </p>
+            )}
+          </button>
+        )}
+        <div className="mt-1 flex items-center gap-3 text-[11px] text-tea-text-sec h-4">
+          {editing && (
+            <>
+              <button onClick={commit} className="text-tea-gold hover:text-tea-gold-lt transition-colors">Save</button>
+              <button onClick={() => { setDraft(entry.note.personalNote ?? ''); setEditing(false); }} className="text-tea-text-sec hover:text-tea-text transition-colors">Cancel</button>
+            </>
+          )}
+          {!editing && savedFlash && <span className="text-tea-text-sec">Saved</span>}
+        </div>
+      </div>
+
+      {/* Descriptors */}
+      <DescriptorPills entry={entry} max={12} />
+
+      {/* Past tastings list */}
+      {entry.tastings.length > 1 && (
+        <div className="mt-6">
+          <div className="text-[10px] uppercase tracking-[0.18em] text-tea-text-sec mb-3" style={{ fontFamily: 'var(--font-display)' }}>
+            Past tastings
+          </div>
+          <div className="space-y-3 pl-3 border-l border-tea-border">
+            {[...entry.tastings].reverse().map(t => (
+              <div key={t.id} className="text-[12px] leading-snug">
+                <div className="flex items-baseline gap-2 text-tea-text-sec">
+                  <span className="text-[11px] text-tea-text-sec">{formatDate(t.createdAt)}</span>
+                  {t.eventTitle && <span className="text-[11px] italic text-tea-text-sec">at {t.eventTitle}</span>}
+                </div>
+                {t.reason && (
+                  <div className="font-serif italic text-tea-text mt-0.5">
+                    "{t.reason}"
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Actions footer */}
+      <div className="mt-8 pt-4 border-t border-tea-border flex items-center gap-5 text-[12px]">
+        <button
+          onClick={() => setTastingItem({
+            id: entry.productId,
+            name: entry.productName,
+            type: entry.productType,
+            image: entry.productImage,
+          })}
+          className="text-tea-gold hover:text-tea-gold-lt transition-colors"
+        >
+          Open tasting
+        </button>
+        {onOpenTea && entry.productId && (
+          <button
+            onClick={() => onOpenTea(entry.productId)}
+            className="text-tea-text-sec hover:text-tea-text transition-colors"
+          >
+            Find this tea
+          </button>
+        )}
+        <button
+          onClick={handleArchive}
+          className="text-tea-text-sec hover:text-tea-text transition-colors ml-auto"
+        >
+          Archive
+        </button>
+      </div>
+
+      {/* Tasting Session: re-open tasting from inside the entry detail */}
+      <AnimatePresence>
+        {tastingItem && (
+          <TastingSession
+            item={tastingItem}
+            onClose={() => setTastingItem(null)}
+          />
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+};
+
+export const TastingJournalView: React.FC<TastingJournalViewProps> = ({ onBack, onOpenTea }) => {
   const { tastingJournal } = useAppStore();
+  const [openId, setOpenId] = useState<string | null>(null);
 
   const entries = useMemo(
     () =>
       [...tastingJournal]
         .filter((e) => !e.archived)
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+        .sort((a, b) => new Date(b.note.updatedAt || b.createdAt).getTime() - new Date(a.note.updatedAt || a.createdAt).getTime()),
     [tastingJournal]
   );
 
@@ -76,6 +295,14 @@ export const TastingJournalView: React.FC<TastingJournalViewProps> = ({ onBack }
     [entries]
   );
 
+  const openEntry = openId ? entries.find(e => e.id === openId) ?? null : null;
+
+  // Detail view
+  if (openEntry) {
+    return <EntryDetail entry={openEntry} onClose={() => setOpenId(null)} onOpenTea={onOpenTea} />;
+  }
+
+  // Empty state
   if (entries.length === 0) {
     return (
       <div className="animate-[fadeIn_0.3s_ease-out]">
@@ -84,100 +311,123 @@ export const TastingJournalView: React.FC<TastingJournalViewProps> = ({ onBack }
           className="flex items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors mb-6"
         >
           <Icons.Back className="w-4 h-4" />
-          <span className="text-xs uppercase tracking-[0.15em]">Back</span>
+          <span className="text-[12px] uppercase tracking-[0.18em]">Back</span>
         </button>
 
         <div className="flex flex-col items-center justify-center py-16">
           <div className="w-16 h-16 rounded-full bg-tea-gold/10 flex items-center justify-center mb-4">
-            <Icons.Sparkles className="w-7 h-7 text-tea-gold/40" />
+            <Icons.Sparkles className="w-7 h-7 text-tea-gold/70" />
           </div>
-          <h3 className="font-serif text-lg text-tea-text mb-2">No Entries Yet</h3>
+          <h3 className="font-serif text-lg text-tea-text mb-2">No teas yet</h3>
           <p className="text-sm text-tea-text-sec text-center max-w-[260px] leading-relaxed">
-            Your tasting journal is empty. After a session or tasting, your notes will appear here.
+            The teas you taste will show up here. Come back to write what you noticed.
           </p>
         </div>
       </div>
     );
   }
 
+  // List view
   return (
-    <div className="animate-[fadeIn_0.3s_ease-out]">
-      <button
-        onClick={onBack}
-        className="flex items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors mb-4"
+    <AnimatePresence mode="wait">
+      <motion.div
+        key="list"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.18 }}
       >
-        <Icons.Back className="w-4 h-4" />
-        <span className="text-xs uppercase tracking-[0.15em]">Back</span>
-      </button>
+        <button
+          onClick={onBack}
+          className="flex items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors mb-4"
+        >
+          <Icons.Back className="w-4 h-4" />
+          <span className="text-[12px] uppercase tracking-[0.18em]">Back</span>
+        </button>
 
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h3 className="font-serif text-lg text-tea-text">Tasting Journal</h3>
-          <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec">
-            {entries.length} {entries.length === 1 ? 'entry' : 'entries'}
-          </span>
-        </div>
-        {unsyncedCount > 0 && (
-          <span className="inline-flex items-center gap-1 px-2 py-1 text-[9px] uppercase tracking-[0.12em] bg-tea-gold/10 text-tea-gold border border-tea-gold/20 rounded">
-            <span className="w-1.5 h-1.5 rounded-full bg-tea-gold animate-pulse shrink-0" />
-            {unsyncedCount} unsynced
-          </span>
-        )}
-      </div>
-
-      {/* Entry list */}
-      <div className="border border-tea-border overflow-hidden">
-        {entries.map((entry, i) => (
-          <div
-            key={entry.id}
-            className={`px-3 py-3 hover:bg-tea-elevated/30 transition-colors ${
-              i < entries.length - 1 ? 'border-b border-tea-border' : ''
-            }`}
-          >
-            {/* Row 1: tea name + date */}
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0 flex-1">
-                <h4 className="font-serif text-sm text-tea-text truncate">{entry.teaName}</h4>
-                <div className="flex items-center gap-1.5 text-[10px] text-tea-text-dim mt-0.5">
-                  {entry.teaType && <span>{entry.teaType}</span>}
-                  {entry.eventTitle && (
-                    <>
-                      <span className="opacity-50">·</span>
-                      <span className="truncate italic">{entry.eventTitle}</span>
-                    </>
-                  )}
-                </div>
-              </div>
-              <div className="flex flex-col items-end gap-1 shrink-0">
-                <span className="text-[10px] text-tea-text-dim whitespace-nowrap">
-                  {formatDate(entry.createdAt)}
-                </span>
-                {entry.rating != null && entry.rating > 0 && (
-                  <StarRating rating={entry.rating} />
-                )}
-              </div>
-            </div>
-
-            {/* Descriptors */}
-            <DescriptorPills entry={entry} />
-
-            {/* Personal note */}
-            {entry.personalNote && (
-              <p className="text-[11px] text-tea-text-sec mt-1.5 leading-relaxed line-clamp-2 italic">
-                "{entry.personalNote}"
-              </p>
-            )}
-
-            {/* Notes from tasting data */}
-            {!entry.personalNote && entry.tasting.notes && entry.tasting.notes.length > 0 && (
-              <p className="text-[11px] text-tea-text-sec mt-1.5 leading-relaxed line-clamp-2 italic">
-                "{entry.tasting.notes[0]}"
-              </p>
-            )}
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h3 className="font-serif text-lg text-tea-text">Tasting Journal</h3>
+            <span className="text-[12px] uppercase tracking-[0.15em] text-tea-text-sec">
+              {entries.length} {entries.length === 1 ? 'tea' : 'teas'}
+            </span>
           </div>
-        ))}
-      </div>
-    </div>
+          {unsyncedCount > 0 && (
+            <span className="inline-flex items-center gap-1.5 px-2 py-1 text-[11px] uppercase tracking-[0.1em] bg-tea-gold/10 text-tea-gold border border-tea-gold/20 rounded">
+              <span className="w-1.5 h-1.5 rounded-full bg-tea-gold animate-pulse shrink-0" />
+              {unsyncedCount} unsynced
+            </span>
+          )}
+        </div>
+
+        {/* Entry list */}
+        <div className="border border-tea-border overflow-hidden">
+          {entries.map((entry, i) => {
+            const displayName = entry.productName?.trim() || 'Untitled';
+            const ev = entryEvent(entry);
+            const rating = entry.note.rating ?? entry.note.tasting.rating ?? 0;
+            const noteText = entry.note.personalNote;
+            const tastingsCount = entry.tastings.length;
+
+            return (
+              <button
+                key={entry.id}
+                onClick={() => setOpenId(entry.id)}
+                aria-label={`Open ${displayName}`}
+                className={`group/entry relative w-full text-left px-3 py-3 hover:bg-tea-elevated cursor-pointer transition-colors ${
+                  i < entries.length - 1 ? 'border-b border-tea-border' : ''
+                }`}
+              >
+                {/* Row 1: tea name + date */}
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <h4 className="font-serif text-sm truncate text-tea-text group-hover/entry:text-tea-gold transition-colors">
+                      {displayName}
+                    </h4>
+                    <div className="flex items-center gap-1.5 text-[12px] text-tea-text-sec mt-1">
+                      {entry.productType && <span>{entry.productType}</span>}
+                      {tastingsCount > 1 && (
+                        <>
+                          <span className="text-tea-text-sec">·</span>
+                          <span>{tastingsCount} tastings</span>
+                        </>
+                      )}
+                      {ev.eventTitle && (
+                        <>
+                          <span className="text-tea-text-sec">·</span>
+                          <span className="truncate italic">{ev.eventTitle}</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex flex-col items-end gap-1">
+                      <span className="text-[12px] text-tea-text-sec whitespace-nowrap">
+                        {formatDate(entry.note.updatedAt || entry.createdAt)}
+                      </span>
+                      {rating > 0 && (
+                        <StarRating rating={rating} />
+                      )}
+                    </div>
+                    <Icons.ChevronRight className="w-3.5 h-3.5 text-tea-text-sec shrink-0" aria-hidden="true" />
+                  </div>
+                </div>
+
+                {/* Descriptors */}
+                <DescriptorPills entry={entry} />
+
+                {/* Personal note preview */}
+                {noteText && (
+                  <p className="text-[13px] text-tea-text-sec mt-2 leading-relaxed line-clamp-2 italic">
+                    "{noteText}"
+                  </p>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </motion.div>
+    </AnimatePresence>
   );
 };

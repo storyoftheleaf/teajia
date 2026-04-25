@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Archive, RotateCcw, ExternalLink, BookOpen, Calendar, Filter, Search, X, Mic, PenLine, Plus, Share2 } from 'lucide-react';
+import { Archive, RotateCcw, BookOpen, Calendar, Filter, Search, X, Mic, Share2 } from 'lucide-react';
 import { TastingCardModal } from './TastingCard';
 import { motion, AnimatePresence } from 'framer-motion';
 import Fuse from 'fuse.js';
@@ -10,106 +10,20 @@ import { TastingProfileStrip } from './TastingProfileStrip';
 import { usePlatformPrivilege } from '../../lib/permissions';
 import { formatRelativeDate, getDateGroup } from '../TeaCompass/BrowseCard';
 import type { CustomerTasting } from '../../types';
+import { entryEvent, latestTasting } from '../../lib/tastingAccessors';
 import { flattenTastingNotes, resolveTermLabel, resolveTermIcon, LIQUOR_COLORS } from '../../data/tastingTaxonomy';
-
-// ── Feature 6: Quick Note entry bar ─────────────────────────────────────────
-
-interface QuickNoteBarProps {
-  onSave: (text: string) => void;
-}
-
-const QuickNoteBar: React.FC<QuickNoteBarProps> = ({ onSave }) => {
-  const [open, setOpen] = useState(false);
-  const [text, setText] = useState('');
-
-  const handleSave = () => {
-    const trimmed = text.trim();
-    if (!trimmed) return;
-    onSave(trimmed);
-    setText('');
-    setOpen(false);
-  };
-
-  if (!open) {
-    return (
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="flex items-center gap-2 w-full text-left px-4 py-3 text-xs text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-surface/40 rounded-lg transition-colors"
-      >
-        <PenLine size={13} className="text-tea-text-dim" />
-        Quick note…
-      </button>
-    );
-  }
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: -4 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="px-4 py-3 bg-tea-surface/60 rounded-lg space-y-2"
-    >
-      <textarea
-        autoFocus
-        value={text}
-        onChange={e => setText(e.target.value)}
-        onKeyDown={e => {
-          if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSave(); }
-          if (e.key === 'Escape') { setOpen(false); setText(''); }
-        }}
-        placeholder="Write a quick tea note…"
-        rows={3}
-        className="w-full bg-transparent text-sm text-tea-text placeholder:text-tea-text-dim outline-none resize-none"
-      />
-      <div className="flex items-center gap-2 justify-end">
-        <button
-          type="button"
-          onClick={() => { setOpen(false); setText(''); }}
-          className="text-xs text-tea-text-dim hover:text-tea-text transition-colors"
-        >
-          Cancel
-        </button>
-        <button
-          type="button"
-          onClick={handleSave}
-          disabled={!text.trim()}
-          className="flex items-center gap-1.5 text-xs bg-tea-gold text-tea-bg px-3 py-1.5 rounded-md hover:bg-tea-gold-lt transition-colors disabled:opacity-40"
-        >
-          <Plus size={11} /> Save note
-        </button>
-      </div>
-    </motion.div>
-  );
-};
-
-// ── End Feature 6 ────────────────────────────────────────────────────────────
 
 interface TastingJournalProps {
   onBack: () => void;
-  onOrderTea?: (teaId: string) => void;
+  onOrderTea?: (productId: string) => void;
 }
 
 type EventFilter = 'all' | 'event-only' | 'no-events';
 type SortMode = 'recent' | 'rating' | 'type';
 
 export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderTea }) => {
-  const { tastingJournal, updateTasting, addTasting } = useAppStore();
+  const { tastingJournal, updateTasting } = useAppStore();
   const navigate = useNavigate();
-
-  // Feature 6: Create a quick-note journal entry
-  const handleQuickNote = (text: string) => {
-    const entry: CustomerTasting = {
-      id: crypto.randomUUID(),
-      teaId: 'quick-note',
-      teaName: 'Quick note',
-      teaType: '',
-      tasting: { notes: [text] },
-      sourceType: 'product',
-      synced: false,
-      createdAt: new Date().toISOString(),
-    };
-    addTasting(entry);
-  };
   const isPlatformPrivileged = usePlatformPrivilege();
 
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -124,46 +38,34 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
     setShareCardEntry(entry);
   };
 
-  const hasEventTastings = useMemo(() => tastingJournal.some(e => !!e.eventId), [tastingJournal]);
+  // Pre-derive per-entry event metadata so memoized blocks below can read it cheaply.
+  const eventByEntryId = useMemo(() => {
+    const m = new Map<string, ReturnType<typeof entryEvent>>();
+    for (const e of tastingJournal) m.set(e.id, entryEvent(e));
+    return m;
+  }, [tastingJournal]);
+
+  const hasEventTastings = useMemo(
+    () => tastingJournal.some(e => !!eventByEntryId.get(e.id)?.eventId),
+    [tastingJournal, eventByEntryId]
+  );
 
   const uniqueTypes = useMemo(() => {
-    const types = [...new Set(tastingJournal.map(e => e.teaType).filter(Boolean))];
+    const types = [...new Set(tastingJournal.map(e => e.productType).filter(Boolean))];
     return types.length > 1 ? types : [];
-  }, [tastingJournal]);
-
-  // tastingCountByTeaId: total number of tastings per teaId
-  const tastingCountByTeaId = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const e of tastingJournal) {
-      counts.set(e.teaId, (counts.get(e.teaId) || 0) + 1);
-    }
-    return counts;
-  }, [tastingJournal]);
-
-  // tastingOrdinal: for each entry id, what ordinal tasting is it for its tea (1st, 2nd, etc.)
-  // tastingJournal is newest-first so we iterate reverse for chronological numbering
-  const tastingOrdinal = useMemo(() => {
-    const ordinals = new Map<string, number>();
-    const running = new Map<string, number>();
-    for (const e of [...tastingJournal].reverse()) {
-      const n = (running.get(e.teaId) || 0) + 1;
-      running.set(e.teaId, n);
-      ordinals.set(e.id, n);
-    }
-    return ordinals;
   }, [tastingJournal]);
 
   const stats = useMemo(() => {
     if (tastingJournal.length < 3) return null;
     const ratings = tastingJournal
-      .map(e => e.tasting.rating ?? e.rating ?? 0)
+      .map(e => e.note.tasting.rating ?? e.note.rating ?? 0)
       .filter(r => r > 0);
     const avgRating = ratings.length > 0
       ? (ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(1)
       : null;
     const typeCounts = new Map<string, number>();
     for (const e of tastingJournal) {
-      if (e.teaType) typeCounts.set(e.teaType, (typeCounts.get(e.teaType) || 0) + 1);
+      if (e.productType) typeCounts.set(e.productType, (typeCounts.get(e.productType) || 0) + 1);
     }
     let topType: string | null = null;
     let topCount = 0;
@@ -182,9 +84,9 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
 
   const fuseInstance = useMemo(() => new Fuse(tastingJournal, {
     keys: [
-      { name: 'teaName', weight: 2 },
-      { name: 'teaType', weight: 1 },
-      { name: 'personalNote', weight: 0.5 },
+      { name: 'productName', weight: 2 },
+      { name: 'productType', weight: 1 },
+      { name: 'note.personalNote', weight: 0.5 },
     ],
     threshold: 0.35,
     includeScore: true,
@@ -198,22 +100,21 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
   const filteredEntries = useMemo(() => {
     let result = tastingJournal.filter(e => showArchived ? !!e.archived : !e.archived);
     if (searchResults !== null) result = result.filter(e => searchResults.has(e.id));
-    if (eventFilter === 'event-only') result = result.filter(e => !!e.eventId);
-    else if (eventFilter === 'no-events') result = result.filter(e => !e.eventId);
-    if (typeFilter) result = result.filter(e => e.teaType === typeFilter);
+    if (eventFilter === 'event-only') result = result.filter(e => !!eventByEntryId.get(e.id)?.eventId);
+    else if (eventFilter === 'no-events') result = result.filter(e => !eventByEntryId.get(e.id)?.eventId);
+    if (typeFilter) result = result.filter(e => e.productType === typeFilter);
     if (sortMode === 'rating') {
       result = [...result].sort((a, b) => {
-        const ra = a.tasting.rating ?? a.rating ?? 0;
-        const rb = b.tasting.rating ?? b.rating ?? 0;
+        const ra = a.note.tasting.rating ?? a.note.rating ?? 0;
+        const rb = b.note.tasting.rating ?? b.note.rating ?? 0;
         return rb - ra;
       });
     } else if (sortMode === 'type') {
-      result = [...result].sort((a, b) => (a.teaType || '').localeCompare(b.teaType || ''));
+      result = [...result].sort((a, b) => (a.productType || '').localeCompare(b.productType || ''));
     }
     return result;
-  }, [tastingJournal, showArchived, eventFilter, searchResults, typeFilter, sortMode]);
+  }, [tastingJournal, showArchived, eventFilter, searchResults, typeFilter, sortMode, eventByEntryId]);
 
-  // Group type adds dateGroup for session grouping
   const groupedEntries = useMemo(() => {
     const groups: {
       eventId: string | null;
@@ -226,13 +127,14 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
     const eventMap = new Map<string, typeof groups[number]>();
 
     for (const entry of filteredEntries) {
-      if (entry.eventId) {
-        const existing = eventMap.get(entry.eventId);
+      const ev = eventByEntryId.get(entry.id) || {};
+      if (ev.eventId) {
+        const existing = eventMap.get(ev.eventId);
         if (existing) {
           existing.entries.push(entry);
         } else {
-          const group = { eventId: entry.eventId, eventSlug: entry.eventSlug || null, eventTitle: entry.eventTitle || 'Event', date: entry.createdAt, dateGroup: null, entries: [entry] };
-          eventMap.set(entry.eventId, group);
+          const group = { eventId: ev.eventId, eventSlug: ev.eventSlug || null, eventTitle: ev.eventTitle || 'Event', date: entry.createdAt, dateGroup: null, entries: [entry] };
+          eventMap.set(ev.eventId, group);
           groups.push(group);
         }
       } else if (sortMode === 'recent') {
@@ -248,7 +150,7 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
       }
     }
     return groups;
-  }, [filteredEntries, sortMode]);
+  }, [filteredEntries, sortMode, eventByEntryId]);
 
   const handleArchive = (id: string) => {
     updateTasting(id, { archived: true });
@@ -284,12 +186,8 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
           </svg>
           <h2 className="font-serif text-base font-normal text-tea-text flex-1">Tasting Journal</h2>
           <span className="text-[10px] text-tea-text-dim tabular-nums">
-            {tastingJournal.filter(e => !e.archived).length} {tastingJournal.filter(e => !e.archived).length === 1 ? 'entry' : 'entries'}
+            {tastingJournal.filter(e => !e.archived).length} {tastingJournal.filter(e => !e.archived).length === 1 ? 'tea' : 'teas'}
           </span>
-        </div>
-        {/* Quick note entry */}
-        <div className="mt-2">
-          <QuickNoteBar onSave={handleQuickNote} />
         </div>
       </header>
 
@@ -354,9 +252,9 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
             <div className="w-20 h-20 rounded-full bg-tea-gold/8 flex items-center justify-center mx-auto mb-5 shadow-[0_0_30px_rgba(184,146,78,0.08)]">
               <BookOpen className="w-9 h-9 text-tea-gold/30" />
             </div>
-            <h3 className="font-serif text-lg text-tea-text mb-1.5 tracking-wide">No tastings yet</h3>
+            <h3 className="font-serif text-lg text-tea-text mb-1.5 tracking-wide">No teas yet</h3>
             <p className="text-[13px] text-tea-text-sec text-center max-w-[240px] mx-auto leading-relaxed font-serif">
-              Every cup leaves a trace.
+              The teas you taste will show up here. Come back to write what you noticed.
             </p>
           </div>
         ) : filteredEntries.length === 0 ? (
@@ -393,16 +291,17 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
               <div className={`space-y-2 ${(group.eventId || (!group.eventId && group.dateGroup && group.entries.length > 1)) ? 'ml-1 pl-3 border-l border-tea-border' : ''}`}>
                 {group.entries.map(entry => {
                   const isExpanded = expandedId === entry.id;
-                  const allNotes = flattenTastingNotes(entry.tasting);
+                  const noteData = entry.note.tasting;
+                  const allNotes = flattenTastingNotes(noteData);
                   const previewNotes = allNotes.slice(0, 3);
-                  const typeColor = entry.teaType ? getTeaColor(entry.teaType) : null;
-                  const typeVividColor = entry.teaType ? getTeaVividColor(entry.teaType) : null;
-                  const rating = entry.tasting.rating ?? entry.rating ?? 0;
-                  const liquorColorTerms = entry.tasting['liquor-color'];
+                  const typeColor = entry.productType ? getTeaColor(entry.productType) : null;
+                  const typeVividColor = entry.productType ? getTeaVividColor(entry.productType) : null;
+                  const rating = noteData.rating ?? entry.note.rating ?? 0;
+                  const liquorColorTerms = noteData['liquor-color'];
                   const firstColorHex = liquorColorTerms?.[0] ? LIQUOR_COLORS[liquorColorTerms[0]] : null;
-                  const totalForTea = tastingCountByTeaId.get(entry.teaId) || 1;
-                  const ordinal = tastingOrdinal.get(entry.id) || 1;
-                  const ordSuffix = ordinal === 1 ? 'st' : ordinal === 2 ? 'nd' : ordinal === 3 ? 'rd' : 'th';
+                  const ev = eventByEntryId.get(entry.id) || {};
+                  const tastingsCount = entry.tastings.length;
+                  const latest = latestTasting(entry);
 
                   return (
                     <div
@@ -417,8 +316,8 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
                         <div className="flex items-start gap-3">
                           {/* Thumbnail: product image → type color swatch → liquor color swatch → BookOpen fallback */}
                           {(() => {
-                            const swatch = entry.teaImage ? (
-                              <img src={entry.teaImage} alt="" className="w-11 h-11 rounded-lg object-cover" loading="lazy" />
+                            const swatch = entry.productImage ? (
+                              <img src={entry.productImage} alt="" className="w-11 h-11 rounded-lg object-cover" loading="lazy" />
                             ) : typeVividColor ? (
                               <div className="w-11 h-11 rounded-lg" style={{ backgroundColor: typeVividColor, opacity: 0.75 }} />
                             ) : firstColorHex ? (
@@ -428,8 +327,15 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
                                 <BookOpen size={16} className="text-tea-text-dim" />
                               </div>
                             );
-                            return onOrderTea ? (
-                              <button onClick={(e) => { e.stopPropagation(); onOrderTea(entry.teaId); }} className="shrink-0">{swatch}</button>
+                            const linkable = !!onOrderTea && !!entry.productId;
+                            return linkable ? (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); onOrderTea!(entry.productId); }}
+                                aria-label={`Open ${entry.productName}`}
+                                className="shrink-0 rounded-lg ring-1 ring-transparent hover:ring-tea-gold/30 transition-[box-shadow,transform] duration-150 active:scale-[0.98]"
+                              >
+                                {swatch}
+                              </button>
                             ) : (
                               <div className="shrink-0">{swatch}</div>
                             );
@@ -438,50 +344,60 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
                           <div className="flex-1 min-w-0">
                             {/* Name row */}
                             <div className="flex items-center gap-2 mb-0.5">
-                              {onOrderTea ? (
-                                <button onClick={(e) => { e.stopPropagation(); onOrderTea(entry.teaId); }} className="text-sm font-serif text-tea-text hover:text-tea-gold truncate transition-colors text-left">
-                                  {entry.teaName}
+                              {onOrderTea && entry.productId ? (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); onOrderTea(entry.productId); }}
+                                  className="group/tealink inline-flex items-baseline gap-1 text-sm font-serif text-tea-text hover:text-tea-gold focus-visible:text-tea-gold focus-visible:outline-none transition-colors text-left min-w-0"
+                                >
+                                  <span className="truncate">{entry.productName}</span>
+                                  <span
+                                    aria-hidden="true"
+                                    className="text-[10px] text-tea-gold-lt shrink-0 transition-all duration-200 ease-out lg:opacity-0 lg:-translate-x-1 lg:group-hover/tealink:opacity-100 lg:group-hover/tealink:translate-x-0 lg:group-focus-visible/tealink:opacity-100 lg:group-focus-visible/tealink:translate-x-0"
+                                    style={{ fontFamily: 'var(--font-display)', fontWeight: 300 }}
+                                  >
+                                    →
+                                  </span>
                                 </button>
                               ) : (
-                                <span className="text-sm font-serif text-tea-text truncate">{entry.teaName}</span>
+                                <span className="text-sm font-serif text-tea-text truncate">{entry.productName}</span>
                               )}
-                              {entry.teaType && <span className="text-[9px] text-tea-text-dim shrink-0">{entry.teaType}</span>}
-                              {entry.tasting.mood && <span className="text-[9px] text-tea-text-dim/60 italic shrink-0">{entry.tasting.mood}</span>}
+                              {entry.productType && <span className="text-[9px] text-tea-text-dim shrink-0">{entry.productType}</span>}
+                              {noteData.mood && <span className="text-[9px] text-tea-text-dim/60 italic shrink-0">{noteData.mood}</span>}
                             </div>
 
                             {/* Impression */}
-                            {entry.tasting.overallImpression && (
+                            {noteData.overallImpression && (
                               <div className="text-[13px] text-tea-text-sec font-serif italic leading-snug mb-1.5">
-                                &ldquo;{entry.tasting.overallImpression}&rdquo;
+                                &ldquo;{noteData.overallImpression}&rdquo;
                               </div>
                             )}
 
-                            {/* Date + rating + huiGan + ordinal row */}
+                            {/* Date + rating + huiGan + tastings count row */}
                             <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                              <span className="text-[10px] text-tea-text-dim">{formatRelativeDate(entry.createdAt)}</span>
-                              {totalForTea > 1 && (
-                                <span className="text-[9px] text-tea-text-dim/60">{ordinal}{ordSuffix} tasting</span>
+                              <span className="text-[10px] text-tea-text-dim">{formatRelativeDate(entry.note.updatedAt || entry.createdAt)}</span>
+                              {tastingsCount > 1 && (
+                                <span className="text-[9px] text-tea-text-dim/60">{tastingsCount} tastings</span>
                               )}
                               {rating > 0 && (
                                 <span className="text-[11px] font-semibold tabular-nums" style={typeColor ? { color: typeColor } : undefined}>
                                   {rating}/10
                                 </span>
                               )}
-                              {entry.tasting.huiGan && (
+                              {noteData.huiGan && (
                                 <span className="text-[10px] text-tea-gold font-medium" title="Returning sweetness (回甘)">回甘</span>
                               )}
-                              {entry.eventId && (
-                                <button onClick={(e) => { e.stopPropagation(); navigate(`/event/${entry.eventSlug || entry.eventId}`); }} className="badge-status badge-status-gold hover:opacity-80 transition-opacity cursor-pointer">
+                              {ev.eventId && (
+                                <button onClick={(e) => { e.stopPropagation(); navigate(`/event/${ev.eventSlug || ev.eventId}`); }} className="badge-status badge-status-gold hover:opacity-80 transition-opacity cursor-pointer">
                                   <Calendar size={9} />
-                                  {entry.eventTitle || 'Event'}
+                                  {ev.eventTitle || 'Event'}
                                 </button>
                               )}
                             </div>
 
                             {/* Primary notes */}
-                            {entry.tasting.primaryNotes && entry.tasting.primaryNotes.length > 0 && (
+                            {noteData.primaryNotes && noteData.primaryNotes.length > 0 && (
                               <div className="flex flex-wrap gap-1 mb-1">
-                                {entry.tasting.primaryNotes.map(termId => {
+                                {noteData.primaryNotes.map(termId => {
                                   const Icon = resolveTermIcon(termId);
                                   return <span key={termId} className="tag"><Icon size={12} />{resolveTermLabel(termId)}</span>;
                                 })}
@@ -490,7 +406,7 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
 
                             {/* Preview notes */}
                             <div className="flex flex-wrap gap-1">
-                              {previewNotes.filter(t => !entry.tasting.primaryNotes?.includes(t)).slice(0, 3).map(termId => {
+                              {previewNotes.filter(t => !noteData.primaryNotes?.includes(t)).slice(0, 3).map(termId => {
                                 const Icon = resolveTermIcon(termId);
                                 return <span key={termId} className="tag"><Icon size={10} />{resolveTermLabel(termId)}</span>;
                               })}
@@ -511,60 +427,73 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
                             className="overflow-hidden"
                           >
                             <div className="px-3.5 pb-3.5 border-t border-tea-border pt-3 space-y-2">
-                              {/* Tasting profile */}
-                              <TastingProfileStrip value={entry.tasting} onRemove={() => {}} variant="cloud" />
+                              {/* Tasting profile from the synthesized note */}
+                              <TastingProfileStrip value={noteData} onRemove={() => {}} variant="cloud" />
 
                               {/* Quality bar + secondary scores */}
-                              {entry.tasting.quality != null && (
+                              {noteData.quality != null && (
                                 <div className="flex items-center gap-2 pt-0.5">
                                   <div className="flex-1 h-[3px] rounded-full overflow-hidden bg-tea-elevated">
                                     <div
                                       className="h-full rounded-full"
-                                      style={{ width: `${entry.tasting.quality * 10}%`, background: 'linear-gradient(90deg, var(--color-tea-gold-lt,#d4ac66)80, var(--color-tea-gold,#b8924e))' }}
+                                      style={{ width: `${noteData.quality * 10}%`, background: 'linear-gradient(90deg, var(--color-tea-gold-lt,#d4ac66)80, var(--color-tea-gold,#b8924e))' }}
                                     />
                                   </div>
-                                  <span className="text-[10px] text-tea-text-dim tabular-nums shrink-0">Quality {entry.tasting.quality}</span>
+                                  <span className="text-[10px] text-tea-text-dim tabular-nums shrink-0">Quality {noteData.quality}</span>
                                 </div>
                               )}
-                              {(entry.tasting.cleanliness != null || entry.tasting.patience != null) && (
+                              {(noteData.cleanliness != null || noteData.patience != null) && (
                                 <div className="flex items-center gap-2 text-[10px] text-tea-text-dim tabular-nums px-0.5">
-                                  {entry.tasting.cleanliness != null && <span>Cleanliness {entry.tasting.cleanliness}</span>}
-                                  {entry.tasting.cleanliness != null && entry.tasting.patience != null && <span>·</span>}
-                                  {entry.tasting.patience != null && <span>Patience {entry.tasting.patience}</span>}
+                                  {noteData.cleanliness != null && <span>Cleanliness {noteData.cleanliness}</span>}
+                                  {noteData.cleanliness != null && noteData.patience != null && <span>·</span>}
+                                  {noteData.patience != null && <span>Patience {noteData.patience}</span>}
                                 </div>
                               )}
 
-                              {/* Voice note — PLATFORM PRIVILEGED ONLY */}
-                              {isPlatformPrivileged && entry.tasting.voiceNote?.trim() && (
+                              {/* Voice note from the most recent tasting (platform-privileged only) */}
+                              {isPlatformPrivileged && latest.tasting.voiceNote?.trim() && (
                                 <div className="flex items-start gap-2 px-2 py-2 rounded-md bg-tea-gold/5">
                                   <Mic size={12} className="text-tea-gold shrink-0 mt-0.5" />
                                   <div className="text-[11px] text-tea-text-sec italic leading-relaxed">
-                                    {entry.tasting.voiceNote}
+                                    {latest.tasting.voiceNote}
                                   </div>
                                 </div>
                               )}
 
                               {/* Personal note */}
-                              {entry.personalNote && (
+                              {entry.note.personalNote && (
                                 <div className="text-[11px] text-tea-text-dim italic px-1">
-                                  "{entry.personalNote}"
+                                  "{entry.note.personalNote}"
+                                </div>
+                              )}
+
+                              {/* Past tastings timeline. Shown when this tea has been tasted more than once. */}
+                              {entry.tastings.length > 1 && (
+                                <div className="mt-2 pt-2 border-t border-tea-border space-y-1.5">
+                                  <div className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim px-1" style={{ fontFamily: 'var(--font-display)' }}>
+                                    Past tastings
+                                  </div>
+                                  {[...entry.tastings].reverse().map(t => (
+                                    <div key={t.id} className="px-1 py-1 text-[11px] leading-snug">
+                                      <div className="flex items-baseline gap-2 text-tea-text-sec">
+                                        <span className="text-[10px] text-tea-text-dim">{formatRelativeDate(t.createdAt)}</span>
+                                        {t.eventTitle && <span className="text-[10px] italic text-tea-text-dim">at {t.eventTitle}</span>}
+                                      </div>
+                                      {t.reason && (
+                                        <div className="italic text-tea-text-sec mt-0.5">
+                                          "{t.reason}"
+                                        </div>
+                                      )}
+                                    </div>
+                                  ))}
                                 </div>
                               )}
 
                               {/* Actions */}
                               <div className="flex border-t border-tea-border mt-1 pt-2">
-                                {onOrderTea && entry.teaId !== 'quick-note' && (
-                                  <button
-                                    onClick={() => onOrderTea(entry.teaId)}
-                                    className="flex flex-1 items-center justify-center gap-1.5 py-1.5 text-[11px] font-medium text-tea-gold hover:text-tea-gold/80 border-r border-tea-border transition-colors"
-                                  >
-                                    <ExternalLink size={11} />
-                                    Find tea
-                                  </button>
-                                )}
                                 <button
                                   onClick={() => handleShare(entry)}
-                                  className={`flex flex-1 items-center justify-center gap-1.5 py-1.5 text-[11px] font-medium text-tea-text-dim hover:text-tea-text transition-colors ${onOrderTea && entry.teaId !== 'quick-note' ? 'border-r border-tea-border' : ''}`}
+                                  className="flex flex-1 items-center justify-center gap-1.5 py-1.5 text-[11px] font-medium text-tea-text-dim hover:text-tea-text transition-colors border-r border-tea-border"
                                 >
                                   <Share2 size={11} />
                                   Share card

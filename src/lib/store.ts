@@ -63,6 +63,14 @@ interface AppState {
   sidebarCollapsed: boolean;
   toggleSidebarCollapsed: () => void;
 
+  // Shop display preferences
+  shopPriceWeight: 25 | 50 | 100;
+  setShopPriceWeight: (grams: 25 | 50 | 100) => void;
+  shopSort: 'featured' | 'price_asc' | 'price_desc' | 'recent' | 'tasted';
+  setShopSort: (sort: 'featured' | 'price_asc' | 'price_desc' | 'recent' | 'tasted') => void;
+  shopSavedOnly: boolean;
+  setShopSavedOnly: (v: boolean) => void;
+
   // Recently Viewed
   recentlyViewed: string[];
   addRecentlyViewed: (id: string) => void;
@@ -75,9 +83,24 @@ interface AppState {
 
   // Tasting Journal (customer)
   tastingJournal: CustomerTasting[];
+  /** Insert a new entry. Use upsertTastingByProductId for the normal save path. */
   addTasting: (tasting: CustomerTasting) => void;
   removeTasting: (id: string) => void;
   updateTasting: (id: string, updates: Partial<CustomerTasting>) => void;
+  /**
+   * Save a tasting for a product. If an entry exists for (productId), edit it
+   * in place (overwrites the most recent record). If `record.reason` is set,
+   * appends as a new TastingRecord instead. Returns the entry id.
+   */
+  upsertTastingByProductId: (
+    productId: string,
+    productName: string,
+    productType: string,
+    productImage: string | undefined,
+    record: import('../types').TastingRecord,
+    noteUpdates?: Partial<CustomerTasting['note']>,
+    accountId?: string,
+  ) => string;
 
   // Inventory view management
   inventoryColumns: string[];
@@ -247,6 +270,13 @@ export const useAppStore = create<AppState>()(
       sidebarCollapsed: false,
       toggleSidebarCollapsed: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
 
+      shopPriceWeight: 50,
+      setShopPriceWeight: (grams) => set({ shopPriceWeight: grams }),
+      shopSort: 'featured',
+      setShopSort: (sort) => set({ shopSort: sort }),
+      shopSavedOnly: false,
+      setShopSavedOnly: (v) => set({ shopSavedOnly: v }),
+
       // Recently Viewed
       recentlyViewed: [],
       addRecentlyViewed: (id) =>
@@ -283,9 +313,71 @@ export const useAppStore = create<AppState>()(
       updateTasting: (id, updates) =>
         set((state) => ({
           tastingJournal: state.tastingJournal.map((t) =>
-            t.id === id ? { ...t, ...updates } : t
+            t.id === id ? { ...t, ...updates, synced: false } : t
           ),
         })),
+      upsertTastingByProductId: (productId, productName, productType, productImage, record, noteUpdates, accountId) => {
+        const now = new Date().toISOString();
+        let entryId = '';
+        set((state) => {
+          const existing = state.tastingJournal.find(
+            (e) => e.productId === productId && !e.archived
+          );
+          if (existing) {
+            entryId = existing.id;
+            const isFreshTasting = !!record.reason;
+            const updatedTastings = isFreshTasting
+              ? [...existing.tastings, record]
+              : existing.tastings.length > 0
+                ? [...existing.tastings.slice(0, -1), { ...existing.tastings[existing.tastings.length - 1], ...record, id: existing.tastings[existing.tastings.length - 1].id }]
+                : [record];
+            return {
+              tastingJournal: state.tastingJournal.map((t) =>
+                t.id === existing.id
+                  ? {
+                      ...t,
+                      productName,
+                      productType,
+                      productImage: productImage ?? t.productImage,
+                      tastings: updatedTastings,
+                      note: {
+                        ...t.note,
+                        tasting: record.tasting,
+                        ...noteUpdates,
+                        updatedAt: now,
+                      },
+                      synced: false,
+                    }
+                  : t
+              ),
+            };
+          }
+          entryId = crypto.randomUUID();
+          const newEntry: CustomerTasting = {
+            id: entryId,
+            productId,
+            productName,
+            productType,
+            productImage,
+            note: {
+              tasting: record.tasting,
+              personalNote: noteUpdates?.personalNote,
+              rating: noteUpdates?.rating,
+              verdict: noteUpdates?.verdict,
+              wouldBuy: noteUpdates?.wouldBuy,
+              updatedAt: now,
+            },
+            tastings: [{ ...record, reason: undefined }],
+            createdAt: now,
+            accountId,
+            synced: false,
+          };
+          return {
+            tastingJournal: [newEntry, ...state.tastingJournal].slice(0, 100),
+          };
+        });
+        return entryId;
+      },
 
       // Inventory view management
       inventoryColumns: ['productName', 'type', 'year', 'originRegion', 'stockGrams', 'costAmount', 'pricePerGramUSD'],
@@ -369,6 +461,9 @@ export const useAppStore = create<AppState>()(
         activeAccountId: state.activeAccountId,
         // isDevAdmin intentionally excluded — never persisted to localStorage (security fix)
         sidebarCollapsed: state.sidebarCollapsed,
+        shopPriceWeight: state.shopPriceWeight,
+        shopSort: state.shopSort,
+        shopSavedOnly: state.shopSavedOnly,
         upcomingEventsCount: state.upcomingEventsCount,
         cartLastAddedAt: state.cartLastAddedAt,
       }),

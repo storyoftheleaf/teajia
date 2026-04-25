@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ChevronDown, Droplets, Waves, Timer, Flame, Circle } from 'lucide-react';
 import {
@@ -11,11 +12,25 @@ import {
 import type { TastingData } from '../../types';
 import type { TastingCategoryId } from '../../data/tastingTaxonomy';
 
+export type TastingStripLinkMode = 'remove' | 'shop-filter';
+
 interface TastingProfileStripProps {
   value?: TastingData;
   tasting?: TastingData;
   onRemove?: (categoryId: TastingCategoryId, termId: string) => void;
   variant?: string | 'cloud';
+  /**
+   * Interaction mode for individual term chips.
+   * - 'remove' (default): clicking fires onRemove — for editing contexts.
+   * - 'shop-filter': chips become <Link>s to /shop?flavor=<id> or /shop?feel=<id>.
+   */
+  linkMode?: TastingStripLinkMode;
+}
+
+function shopFilterHref(categoryId: string, termId: string): string | null {
+  if (categoryId === 'flavor') return `/shop?flavor=${encodeURIComponent(termId)}`;
+  if (categoryId === 'feeling') return `/shop?feel=${encodeURIComponent(termId)}`;
+  return null;
 }
 
 const CATEGORY_DOT_COLORS: Record<string, string> = {
@@ -66,7 +81,7 @@ const CATEGORY_TINT_CLASSES: Record<string, string> = {
 const MAX_VISIBLE = 8;
 const COLLAPSED_SHOW = 6;
 
-const TastingProfileStripInner: React.FC<TastingProfileStripProps> = ({ value, tasting, onRemove, variant }) => {
+const TastingProfileStripInner: React.FC<TastingProfileStripProps> = ({ value, tasting, onRemove, variant, linkMode = 'remove' }) => {
   const [expanded, setExpanded] = useState(false);
   const data = tasting ?? value ?? {};
 
@@ -283,20 +298,10 @@ const TastingProfileStripInner: React.FC<TastingProfileStripProps> = ({ value, t
                     const hex = isColor ? LIQUOR_COLORS[termId] : null;
                     const Icon = !isColor ? resolveTermIcon(termId) : null;
                     const label = resolveTermLabel(termId);
+                    const href = linkMode === 'shop-filter' ? shopFilterHref(group.categoryId, termId) : null;
 
-                    return (
-                      <motion.button
-                        key={`${group.categoryId}-${termId}`}
-                        type="button"
-                        layout
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.6 }}
-                        transition={{ duration: 0.18 }}
-                        whileTap={{ scale: 0.9 }}
-                        onClick={() => onRemove?.(group.categoryId, termId)}
-                        className={`tag group shrink-0 cursor-pointer hover:bg-tea-gold/20 transition-colors ${group.tintClass}`}
-                      >
+                    const inner = (
+                      <>
                         {hex ? (
                           <span
                             className="shrink-0 rounded-full"
@@ -310,11 +315,48 @@ const TastingProfileStripInner: React.FC<TastingProfileStripProps> = ({ value, t
                         ) : Icon ? (
                           <Icon size={11} className="shrink-0" />
                         ) : null}
-                        <span>{label}</span>
-                        <X
-                          size={9}
-                          className="shrink-0 opacity-0 group-hover:opacity-60 transition-opacity ml-0.5"
-                        />
+                        <span
+                          className={href ? 'underline decoration-tea-gold/35 decoration-[1px] underline-offset-[3px] group-hover:decoration-tea-gold transition-colors' : ''}
+                        >
+                          {label}
+                        </span>
+                        {linkMode === 'remove' && (
+                          <X
+                            size={9}
+                            className="shrink-0 opacity-0 group-hover:opacity-60 transition-opacity ml-0.5"
+                          />
+                        )}
+                      </>
+                    );
+
+                    const motionProps = {
+                      layout: true as const,
+                      initial: { opacity: 0, scale: 0.8 },
+                      animate: { opacity: 1, scale: 1 },
+                      exit: { opacity: 0, scale: 0.6 },
+                      transition: { duration: 0.18 },
+                      className: `tag group shrink-0 cursor-pointer hover:bg-tea-gold/14 transition-colors ${group.tintClass}`,
+                    };
+
+                    if (href) {
+                      return (
+                        <motion.span key={`${group.categoryId}-${termId}`} {...motionProps}>
+                          <Link to={href} className="flex items-center gap-1.5">
+                            {inner}
+                          </Link>
+                        </motion.span>
+                      );
+                    }
+
+                    return (
+                      <motion.button
+                        key={`${group.categoryId}-${termId}`}
+                        type="button"
+                        {...motionProps}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => onRemove?.(group.categoryId, termId)}
+                      >
+                        {inner}
                       </motion.button>
                     );
                   })}

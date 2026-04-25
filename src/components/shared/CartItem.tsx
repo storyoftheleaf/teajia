@@ -2,7 +2,7 @@
 import React from 'react';
 import { CartItem as PublicCartItemType } from '../../types';
 import { Icons } from '../Icons';
-import { fmtPrice } from '../../utils/formatNumber';
+import { fmtShopPrice } from '../../utils/formatNumber';
 import { useAppStore } from '../../lib/store';
 import { formatCurrency } from '../../admin/utils';
 import { useRates } from '../../admin/hooks/useAdminData';
@@ -22,10 +22,11 @@ export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQ
   const { data: rates = [] } = useRates();
 
   const displayPrice = (usd: number) => {
+    const rounded = Math.ceil(usd);
     if (rates.length > 0 && currency !== 'USD') {
-      return formatCurrency(usd, currency, rates);
+      return formatCurrency(rounded, currency, rates);
     }
-    return fmtPrice(usd);
+    return fmtShopPrice(usd);
   };
   const step = item.category === 'tea' ? 10 : 1;
 
@@ -84,6 +85,19 @@ export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQ
           </div>
           <span className="num text-sm text-tea-text font-medium">{displayPrice(item.totalPrice)}</span>
         </div>
+        {item.category === 'tea' && (
+          <div className="flex gap-1.5 mt-2">
+            {[25, 50, 100, 250].map((g) => (
+              <button
+                key={g}
+                onClick={() => onUpdateQuantity(item.id, g)}
+                className={`flex-1 text-[10px] num py-1 rounded transition-colors ${item.quantityGrams === g ? 'bg-tea-gold/25 text-tea-gold font-semibold' : 'bg-tea-surface text-tea-text-dim hover:bg-tea-gold/10 hover:text-tea-text-sec'}`}
+              >
+                {g}g
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

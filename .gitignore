@@ -4,3 +4,4 @@ dist
 .dev.vars
 .claude/
 worker/.wrangler/
+test-results/

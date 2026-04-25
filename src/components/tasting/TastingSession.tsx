@@ -1,9 +1,9 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  Check, Leaf, Sparkles, Mic,
+  Check, Leaf, Sparkles, Mic, Loader2,
   Heart, ThumbsUp, Minus, ThumbsDown, ShoppingCart,
-  FlaskConical, Thermometer, Timer,
+  Thermometer, Timer,
 } from 'lucide-react';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import type { TastingData, CustomerTasting } from '../../types';
@@ -15,7 +15,11 @@ import { useNotesStore } from '../../lib/notesStore';
 import { syncNotes } from '../../lib/notesSync';
 import { api, hasToken } from '../../lib/api';
 import { resolveTermLabel, resolveTermIcon } from '../../data/tastingTaxonomy';
-import { VoiceNoteField } from './VoiceNoteField';
+import { NotesPanel } from './NotesPanel';
+import { normalizeNotes, notesAsStrings } from '../../lib/noteEntries';
+import { useScrollLock } from '../../hooks/useScrollLock';
+import { useVoiceCapture } from '../../hooks/useVoiceCapture';
+import { SampleIcon } from '../Icons';
 
 export interface TastingItem {
   id: string;
@@ -31,6 +35,13 @@ export interface TastingItem {
   teaKey?: string;
   /** Links the review back to the originating sample */
   sourceSampleId?: string;
+  /**
+   * When set, this is a fresh tasting on a tea that already has an entry. The
+   * session opens with a blank profile (not pre-filled), and on save appends a
+   * new TastingRecord to the entry instead of editing the note in place. The
+   * string is the user-supplied reason ("different vessel", "aged a year", etc).
+   */
+  freshReason?: string;
 }
 
 type Verdict = 'love' | 'like' | 'neutral' | 'pass';
@@ -102,20 +113,32 @@ function generateDescription(data: TastingData): string {
 export const TastingSession: React.FC<TastingSessionProps> = ({
   item, onClose, onSave, onAfterSave, adminMode = false, initialData, showVerdict = false, onOrderTea, onCreatePO, onWriteDescription, writeDraftReview = false,
 }) => {
-  const { addTasting, updateTasting, activeAccountId, activeAccount, tastingJournal } = useAppStore();
+  const { addTasting, updateTasting, upsertTastingByProductId, activeAccountId, activeAccount, tastingJournal } = useAppStore();
   const { addNote } = useNotesStore();
   const isGuest = !hasToken();
 
-  // Pre-fill from the most recent tasting of this tea (customer mode only)
-  const lastTasting = React.useMemo(() => {
-    if (adminMode || !item.id || item.id === 'quick-note' || initialData) return null;
-    return tastingJournal.find(e => e.teaId === item.id && !e.archived) ?? null;
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps — intentionally only run once on mount
+  // Existing entry for this product, if any. In the new model, opening
+  // TastingSession on a tea you've tasted before edits the entry's note in
+  // place (default) instead of creating a new journal row. A freshReason on
+  // the item bypasses the pre-fill: this is the friction path for a fully
+  // new tasting (different vessel, aged tea, etc.) that nests under the
+  // same entry as a new TastingRecord.
+  const existingEntry = React.useMemo(() => {
+    if (adminMode || !item.id || initialData || item.freshReason) return null;
+    return tastingJournal.find(e => e.productId === item.id && !e.archived) ?? null;
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- only on mount
 
-  const [tastingData, setTastingData] = useState<TastingData>(initialData ?? lastTasting?.tasting ?? {});
-  const [isContinuing, setIsContinuing] = useState(!!lastTasting);
-  const [simplified, setSimplified] = useState(false);
+  const [tastingData, setTastingData] = useState<TastingData>(initialData ?? existingEntry?.note.tasting ?? {});
+  const [isContinuing, setIsContinuing] = useState(!!existingEntry);
   const [phase, setPhase] = useState<'tasting' | 'saved'>('tasting');
+
+  useScrollLock(true);
+
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [onClose]);
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [savedEntryId, setSavedEntryId] = useState<string | null>(null);
 
@@ -134,6 +157,15 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
   const [verdict, setVerdict] = useState<Verdict | null>(null);
   const [wouldBuy, setWouldBuy] = useState(false);
 
+  // Fresh-tasting flow: when a user explicitly starts a new tasting on a tea
+  // they've already noted (different vessel, aged tea, etc.), they enter a
+  // reason and the next save appends a TastingRecord rather than editing the
+  // note in place. The reason is required (~10+ chars) so this stays the
+  // friction path, not the default.
+  const [freshReason, setFreshReason] = useState<string>(item.freshReason ?? '');
+  const [freshPromptOpen, setFreshPromptOpen] = useState<boolean>(!!item.freshReason);
+  const isFreshTasting = !!freshReason.trim();
+
   const [activeSectionId, setActiveSectionId] = useState<SectionId>('body');
   const [showNote, setShowNote] = useState(false);
   const [descriptionDraft, setDescriptionDraft] = useState('');
@@ -141,6 +173,30 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
   const [sectionCounts, setSectionCounts] = useState<Record<SectionId, number>>({
     body: 0, state: 0, flavor: 0, appearance: 0,
   });
+
+  // NOTE tab press-and-hold: hold (>=150ms) starts silent capture; release or
+  // a subsequent tap stops it. Short press (<150ms) toggles the panel.
+  const noteTabHoldTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const noteTabPressStartRef = useRef<number | null>(null);
+  const noteTabRecordingStartedRef = useRef(false);
+  const noteTabHandledInDownRef = useRef(false);
+  const HOLD_THRESHOLD_MS = 150;
+
+  const pushSilentNote = useCallback((text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    const entry = {
+      id: typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `note-${Date.now()}`,
+      text: trimmed,
+      capturedAt: new Date().toISOString(),
+    };
+    setTastingData(prev => ({
+      ...prev,
+      notes: [...normalizeNotes(prev), entry],
+    }));
+  }, []);
+
+  const silentVoice = useVoiceCapture({ onTranscribed: pushSilentNote });
 
   const saveTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
   useEffect(() => () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); }, []);
@@ -179,7 +235,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
         tea_key: item.teaKey,
         source_sample_id: item.sourceSampleId,
         tasting: data as Record<string, unknown>,
-        voice_notes: data.notes,
+        voice_notes: notesAsStrings(data),
         status: 'draft',
         visibility: 'network',
       }).then((review: any) => {
@@ -194,7 +250,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
         if (draftReviewIdRef.current) {
           api.teaReviews.update(draftReviewIdRef.current, {
             tasting: data as Record<string, unknown>,
-            voice_notes: data.notes,
+            voice_notes: notesAsStrings(data),
           }).catch(() => {});
         }
       }, 2000);
@@ -234,38 +290,50 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
         if (draftDebounceRef.current) clearTimeout(draftDebounceRef.current);
         api.teaReviews.update(draftReviewIdRef.current, {
           tasting: tastingData as Record<string, unknown>,
-          voice_notes: tastingData.notes,
+          voice_notes: notesAsStrings(tastingData),
           status: 'submitted',
         }).catch(() => {});
         draftReviewIdRef.current = null; // prevent cleanup on unmount from deleting it
       }
 
+      // Admin saves go to the product record. The personal journal write below
+      // also runs for admins, because the admin is also a customer of their
+      // own platform: tasting a tea should appear in the journal regardless of
+      // whether the tasting also updated the product profile.
       if (adminMode && onSave) {
-        // Admin flow: write to product record only, no journal entry
         await onSave(tastingData);
-      } else {
-        // Customer flow: always write to journal
-        const entryId = crypto.randomUUID();
-        const entry: CustomerTasting = {
-          id: entryId,
-          teaId: item.id,
-          teaName: item.name,
-          teaType: item.type || '',
-          teaImage: item.image,
-          tasting: tastingData,
-          personalNote: tastingData.notes?.join('\n') || tastingData.voiceNote?.trim() || undefined,
-          rating: tastingData.quality ?? tastingData.rating,
+      }
+
+      {
+        // Customer flow (also runs for admin): upsert by productId. If an
+        // entry exists for this tea, edits the note in place. If this is a
+        // fresh-tasting flow (item carries a freshReason), appends a new
+        // TastingRecord instead.
+        const recordId = crypto.randomUUID();
+        const record = {
+          id: recordId,
           createdAt: new Date().toISOString(),
+          tasting: tastingData,
+          reason: isFreshTasting ? freshReason.trim() : undefined,
           sourceType: item.sourceType,
-          compassEntryId: item.compassEntryId,
           eventId: item.eventId,
           eventTitle: item.eventTitle,
-          accountId: activeAccountId ?? undefined,
-          // Stamp verdict if already selected (sourcing mode pre-save verdict)
+        };
+        const noteUpdates = {
+          personalNote: tastingData.notes?.map(n => typeof n === 'string' ? n : n.text).join('\n') || tastingData.voiceNote?.trim() || undefined,
+          rating: tastingData.quality ?? tastingData.rating,
           verdict: verdict ?? undefined,
           wouldBuy: wouldBuy || undefined,
         };
-        addTasting(entry);
+        const entryId = upsertTastingByProductId(
+          item.id,
+          item.name,
+          item.type || '',
+          item.image,
+          record,
+          noteUpdates,
+          activeAccountId ?? undefined,
+        );
         setSavedEntryId(entryId);
         // Inject tasting artifact into the shared note thread
         if (item.compassEntryId || item.teaKey) {
@@ -302,16 +370,29 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
       saveTimerRef.current = setTimeout(() => onClose(), 2000);
     }
     // Customer: stays open until user taps Done
-  }, [item, tastingData, verdict, wouldBuy, addTasting, onSave, onAfterSave, adminMode, activeAccountId, activeAccount, canSave, onClose, onCreatePO, onWriteDescription]);
+  }, [item, tastingData, verdict, wouldBuy, addTasting, onSave, onAfterSave, adminMode, activeAccountId, activeAccount, canSave, onClose, onCreatePO, onWriteDescription, phase]);
+
+  const updateNoteFields = useCallback((updates: { verdict?: Verdict; wouldBuy?: boolean }) => {
+    if (!savedEntryId) return;
+    const current = useAppStore.getState().tastingJournal.find(t => t.id === savedEntryId);
+    if (!current) return;
+    updateTasting(savedEntryId, {
+      note: {
+        ...current.note,
+        ...updates,
+        updatedAt: new Date().toISOString(),
+      },
+    });
+  }, [savedEntryId, updateTasting]);
 
   const handleVerdictSelect = useCallback((v: Verdict) => {
     setVerdict(v);
     if (adminMode && onSave) {
       onSave(tastingData, v, wouldBuy);
-    } else if (savedEntryId) {
-      updateTasting(savedEntryId, { verdict: v, wouldBuy });
+    } else {
+      updateNoteFields({ verdict: v, wouldBuy });
     }
-  }, [savedEntryId, wouldBuy, updateTasting, onSave, adminMode, tastingData]);
+  }, [updateNoteFields, wouldBuy, onSave, adminMode, tastingData]);
 
   const handleWouldBuyToggle = useCallback(() => {
     const next = !wouldBuy;
@@ -320,16 +401,17 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
       onSave(tastingData, verdict ?? undefined, next);
       return;
     }
-    if (savedEntryId) updateTasting(savedEntryId, { wouldBuy: next });
-  }, [wouldBuy, savedEntryId, updateTasting, onSave, adminMode, tastingData, verdict]);
+    updateNoteFields({ wouldBuy: next });
+  }, [wouldBuy, updateNoteFields, onSave, adminMode, tastingData, verdict]);
 
   return createPortal(
+    <div className="fixed inset-0 z-priority lg:bg-black/75 lg:backdrop-blur-sm lg:flex lg:items-center lg:justify-center">
     <motion.div
       initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 24 }}
-      transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
-      className="fixed inset-0 sidebar-inset z-priority bg-tea-bg flex flex-col"
+      transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
+      className="fixed inset-0 bg-tea-bg flex flex-col lg:relative lg:inset-auto lg:w-[540px] lg:h-[min(94vh,960px)] lg:rounded-lg lg:border lg:border-tea-border lg:overflow-hidden"
       style={{
         paddingLeft: 'env(safe-area-inset-left, 0px)',
         paddingRight: 'env(safe-area-inset-right, 0px)',
@@ -337,21 +419,15 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
     >
       {/* Header */}
       <div
-        className="flex items-center justify-between px-4 py-3 border-b border-tea-border shrink-0"
+        className="relative flex items-center justify-center px-12 py-3 border-b border-tea-border shrink-0"
         style={{ paddingTop: 'max(12px, env(safe-area-inset-top, 12px))' }}
       >
-        <div className="flex items-center gap-3 min-w-0">
-          <button
-            onClick={onClose}
-            className="pill text-xs text-tea-text-sec shrink-0"
-            style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.06em' }}
-          >
-            Cancel
-          </button>
+        {/* Centered title */}
+        <div className="flex items-center gap-2.5 min-w-0">
           {item.image && (
-            <img src={item.image} alt="" className="w-8 h-8 rounded-md object-cover shrink-0" loading="lazy" />
+            <img src={item.image} alt="" className="w-7 h-7 rounded object-cover shrink-0 opacity-80" loading="lazy" />
           )}
-          <div className="min-w-0">
+          <div className="min-w-0 text-center">
             <div
               className="text-sm font-medium text-tea-text truncate"
               style={{ fontFamily: 'var(--font-display)' }}
@@ -359,19 +435,22 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
               {item.name}
             </div>
             {item.type && (
-              <div className="text-[10px] text-tea-text-dim">{item.type}</div>
+              <div className="text-[10px] text-tea-text-dim tracking-wide">{item.type}</div>
             )}
           </div>
         </div>
 
+        {/* X close — top right */}
         <button
-          type="button"
-          onClick={() => setSimplified(p => !p)}
-          className="text-[11px] text-tea-text-sec hover:text-tea-text transition-colors shrink-0 ml-3"
-          style={{ fontFamily: 'var(--font-body)' }}
-          title={simplified ? 'Show all options' : 'Feeling lost? Reduce the options'}
+          onClick={onClose}
+          className="absolute right-3 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center rounded text-tea-text-sec hover:text-tea-text transition-colors"
+          aria-label="Close"
         >
-          {simplified ? 'full view' : 'simplify'}
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
         </button>
       </div>
 
@@ -386,20 +465,72 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
             exit={{ opacity: 0 }}
             className="flex-1 min-h-0 flex flex-col"
           >
-            {/* Continuing banner */}
-            {isContinuing && (
-              <div className="flex items-center justify-between px-4 py-2 bg-tea-surface/60 border-b border-tea-border shrink-0">
-                <span className="text-[11px] text-tea-text-sec italic" style={{ fontFamily: 'var(--font-body)' }}>
-                  Continuing from your last notes — change anything
-                </span>
-                <button
-                  type="button"
-                  onClick={() => { setTastingData({}); setIsContinuing(false); }}
-                  className="text-[10px] text-tea-text-sec hover:text-tea-text transition-colors ml-3 shrink-0"
-                  style={{ fontFamily: 'var(--font-body)' }}
-                >
-                  Start fresh
-                </button>
+            {/* Continuing banner. The default re-tasting flow edits the
+                existing note in place. The "Start a new tasting" affordance
+                opens an inline reason prompt for the friction path. */}
+            {isContinuing && !isFreshTasting && (
+              <div className="px-4 py-2 bg-tea-surface/60 border-b border-tea-border shrink-0">
+                {!freshPromptOpen ? (
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-[11px] text-tea-text-sec italic" style={{ fontFamily: 'var(--font-body)' }}>
+                      Adding to your note for this tea.
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setFreshPromptOpen(true)}
+                      className="text-[10px] text-tea-text-sec hover:text-tea-text transition-colors shrink-0"
+                      style={{ fontFamily: 'var(--font-body)' }}
+                    >
+                      Start a new tasting
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="text-[11px] text-tea-text-sec leading-snug" style={{ fontFamily: 'var(--font-body)' }}>
+                      Use this when something changed (different brew, aged tea, new pot). Otherwise just add to your note above.
+                    </div>
+                    <textarea
+                      autoFocus
+                      value={freshReason}
+                      onChange={e => setFreshReason(e.target.value)}
+                      placeholder="Why are you tasting this again?"
+                      rows={2}
+                      className="w-full bg-transparent text-[12px] text-tea-text placeholder:text-tea-text-dim outline-none resize-none border border-tea-border rounded px-2 py-1.5"
+                      style={{ fontFamily: 'var(--font-body)' }}
+                    />
+                    <div className="flex items-center justify-end gap-3">
+                      <button
+                        type="button"
+                        onClick={() => { setFreshPromptOpen(false); setFreshReason(''); }}
+                        className="text-[11px] text-tea-text-sec hover:text-tea-text transition-colors"
+                        style={{ fontFamily: 'var(--font-body)' }}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        disabled={freshReason.trim().length < 10}
+                        onClick={() => { setTastingData({}); setIsContinuing(false); }}
+                        className="text-[11px] text-tea-gold hover:text-tea-gold-lt disabled:text-tea-text-dim disabled:cursor-not-allowed transition-colors"
+                        style={{ fontFamily: 'var(--font-body)' }}
+                      >
+                        Begin new tasting
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Fresh-tasting context banner. Appears once a fresh tasting is
+                under way (the reason has been set). Shows the reason so the
+                user can keep their head in the new context. */}
+            {isFreshTasting && (
+              <div className="px-4 py-2 bg-tea-gold/8 border-b border-tea-border shrink-0">
+                <div className="text-[11px] text-tea-text-sec leading-snug" style={{ fontFamily: 'var(--font-body)' }}>
+                  <span className="text-tea-gold">New tasting:</span>{' '}
+                  <span className="italic">{freshReason}</span>
+                </div>
               </div>
             )}
 
@@ -412,7 +543,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                   className="w-full flex items-center gap-2 px-4 py-2 text-[11px] text-tea-text-sec hover:text-tea-text transition-colors"
                   style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.06em' }}
                 >
-                  <FlaskConical size={12} className="shrink-0 opacity-50" />
+                  <SampleIcon className="w-3 h-3 shrink-0 opacity-50" />
                   <span className="uppercase tracking-[0.1em]">
                     {tastingData.brewingVessel || tastingData.brewingTemp || tastingData.brewingTime
                       ? [tastingData.brewingVessel, tastingData.brewingTemp ? `${tastingData.brewingTemp}°C` : null, tastingData.brewingTime].filter(Boolean).join(' · ')
@@ -497,7 +628,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                   className="text-[10px] uppercase tracking-[0.16em] text-tea-text-dim mb-2"
                   style={{ fontFamily: 'var(--font-display)' }}
                 >
-                  Sourcing verdict {!verdict && <span className="text-tea-gold/70 normal-case tracking-normal">— select before saving</span>}
+                  Sourcing verdict {!verdict && <span className="text-tea-gold/70 normal-case tracking-normal">(select before saving)</span>}
                 </div>
                 <div className="grid grid-cols-4 gap-1.5">
                   {VERDICT_OPTIONS.map(({ id, label, icon: Icon }) => {
@@ -523,22 +654,29 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
               </div>
             )}
 
-            {/* Structured sections */}
+            {/* Structured sections — or the Notes workspace when the NOTE tab is active */}
             <div className="flex-1 min-h-0 overflow-hidden relative">
               <div
                 className="absolute bottom-0 left-0 right-0 h-6 pointer-events-none z-10"
                 style={{ background: 'linear-gradient(to bottom, transparent, var(--tea-bg))' }}
               />
-              <TastingFlow
-                mode={adminMode ? 'admin' : 'customer'}
-                value={tastingData}
-                onChange={handleTastingChange}
-                activeSectionId={activeSectionId}
-                onSectionChange={setActiveSectionId}
-                onCountsChange={setSectionCounts}
-                simplified={simplified}
-                teaType={item.type}
-              />
+              {showNote ? (
+                <NotesPanel
+                  notes={normalizeNotes(tastingData)}
+                  onChange={(next) => setTastingData(prev => ({ ...prev, notes: next.length ? next : undefined }))}
+                />
+              ) : (
+                <TastingFlow
+                  mode={adminMode ? 'admin' : 'customer'}
+                  value={tastingData}
+                  onChange={handleTastingChange}
+                  activeSectionId={activeSectionId}
+                  onSectionChange={setActiveSectionId}
+                  onCountsChange={setSectionCounts}
+                  simplified={false}
+                  teaType={item.type}
+                />
+              )}
             </div>
 
             {/* Bottom bar */}
@@ -549,47 +687,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                 boxShadow: '0 -4px 16px rgba(24,19,14,0.25)',
               }}
             >
-              {/* Note panel — slides down when open */}
-              <AnimatePresence>
-                {showNote && (
-                  <motion.div
-                    key="note-panel"
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="overflow-hidden border-b border-tea-border"
-                  >
-                    <div className="px-4 py-3">
-                      <VoiceNoteField
-                        values={tastingData.notes || []}
-                        onChange={(notes) => {
-                          const prev = tastingData.notes || [];
-                          // Write newly added notes into the shared thread
-                          if (notes.length > prev.length && (item.compassEntryId || item.teaKey)) {
-                            notes.slice(prev.length).forEach(text => {
-                              addNote({
-                                accountId: activeAccountId ?? 'guest',
-                                teaKey: item.teaKey,
-                                compassEntryId: item.compassEntryId,
-                                text,
-                                sourceType: 'manual',
-                                authorId: activeAccountId ?? 'guest',
-                                authorName: activeAccount?.name ?? 'You',
-                                visibility: 'private',
-                              });
-                            });
-                            syncNotes().catch(() => {});
-                          }
-                          handleTastingChange({ ...tastingData, notes: notes.length ? notes : undefined });
-                        }}
-                      />
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {/* Section tabs + mic */}
+              {/* Section tabs + mic — NOTE tab supports tap-to-open and hold-to-record */}
               <LayoutGroup>
                 <div className="flex">
                   {ALL_SECTIONS.map((section) => {
@@ -644,16 +742,71 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                     );
                   })}
 
-                  {/* Note — 5th tab cell */}
+                  {/* Note — 5th tab cell. Tap to open panel; press-and-hold to silently capture voice. */}
                   <button
-                    onClick={() => setShowNote(v => !v)}
+                    type="button"
                     aria-pressed={showNote}
-                    className={`relative flex-1 flex items-center justify-center py-3 transition-colors duration-200 ${
-                      showNote
+                    aria-label="Notes — tap to open, hold to record"
+                    onPointerDown={(e) => {
+                      e.preventDefault();
+                      // If already recording (e.g. from a previous hold that
+                      // left the finger up), any tap stops it.
+                      if (silentVoice.state === 'recording') {
+                        silentVoice.stop();
+                        noteTabHandledInDownRef.current = true;
+                        return;
+                      }
+                      noteTabHandledInDownRef.current = false;
+                      noteTabPressStartRef.current = Date.now();
+                      noteTabRecordingStartedRef.current = false;
+                      noteTabHoldTimerRef.current = setTimeout(() => {
+                        noteTabRecordingStartedRef.current = true;
+                        silentVoice.start();
+                      }, HOLD_THRESHOLD_MS);
+                    }}
+                    onPointerUp={() => {
+                      if (noteTabHandledInDownRef.current) {
+                        noteTabHandledInDownRef.current = false;
+                        return;
+                      }
+                      if (noteTabHoldTimerRef.current) {
+                        clearTimeout(noteTabHoldTimerRef.current);
+                        noteTabHoldTimerRef.current = null;
+                      }
+                      if (noteTabRecordingStartedRef.current) {
+                        // Release-to-stop — the natural hold gesture's end.
+                        silentVoice.stop();
+                      } else {
+                        setShowNote(v => !v);
+                      }
+                      noteTabPressStartRef.current = null;
+                      noteTabRecordingStartedRef.current = false;
+                    }}
+                    onPointerCancel={() => {
+                      if (noteTabHoldTimerRef.current) {
+                        clearTimeout(noteTabHoldTimerRef.current);
+                        noteTabHoldTimerRef.current = null;
+                      }
+                      if (noteTabRecordingStartedRef.current) silentVoice.stop();
+                      noteTabPressStartRef.current = null;
+                      noteTabRecordingStartedRef.current = false;
+                      noteTabHandledInDownRef.current = false;
+                    }}
+                    onPointerLeave={() => {
+                      if (noteTabHoldTimerRef.current) {
+                        clearTimeout(noteTabHoldTimerRef.current);
+                        noteTabHoldTimerRef.current = null;
+                      }
+                      // Keep recording if finger/cursor leaves — user may still be holding.
+                    }}
+                    className={`relative flex-1 flex items-center justify-center py-3 transition-colors duration-200 select-none touch-none ${
+                      silentVoice.state === 'recording'
                         ? 'text-tea-gold'
-                        : (tastingData.notes?.length ?? 0) > 0
-                          ? 'text-tea-gold/60'
-                          : 'text-tea-text/40 hover:text-tea-text/70'
+                        : showNote
+                          ? 'text-tea-gold'
+                          : (tastingData.notes?.length ?? 0) > 0
+                            ? 'text-tea-gold/60'
+                            : 'text-tea-text/40 hover:text-tea-text/70'
                     }`}
                   >
                     {showNote && (
@@ -664,7 +817,16 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                         transition={{ type: 'spring', stiffness: 400, damping: 32 }}
                       />
                     )}
-                    {(tastingData.notes?.length ?? 0) > 0 && !showNote && (
+                    {silentVoice.state === 'recording' && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: [0.4, 1, 0.4] }}
+                        transition={{ duration: 1.2, repeat: Infinity }}
+                        className="absolute inset-x-1 top-1.5 bottom-1.5 rounded-md"
+                        style={{ background: 'rgb(var(--tea-gold-rgb) / 0.18)' }}
+                      />
+                    )}
+                    {(tastingData.notes?.length ?? 0) > 0 && !showNote && silentVoice.state !== 'recording' && (
                       <motion.span
                         initial={{ scale: 0, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
@@ -676,8 +838,16 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                       </motion.span>
                     )}
                     <span className="relative z-[1] flex flex-col items-center gap-0.5">
-                      <Mic size={13} />
-                      <span style={{ fontFamily: 'var(--font-display)', fontSize: '9px', letterSpacing: '0.12em', textTransform: 'uppercase' }}>Note</span>
+                      {silentVoice.state === 'transcribing' ? (
+                        <motion.span animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
+                          <Loader2 size={13} />
+                        </motion.span>
+                      ) : (
+                        <Mic size={13} />
+                      )}
+                      <span style={{ fontFamily: 'var(--font-display)', fontSize: '9px', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+                        {silentVoice.state === 'recording' ? 'Rec…' : 'Note'}
+                      </span>
                     </span>
                   </button>
                 </div>
@@ -798,7 +968,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
               {/* Brewing context summary */}
               {(tastingData.brewingVessel || tastingData.brewingTemp || tastingData.brewingTime) && (
                 <div className="mt-2 flex items-center justify-center gap-2 text-[11px] text-tea-text-dim" style={{ fontFamily: 'var(--font-body)' }}>
-                  <FlaskConical size={11} className="opacity-50" />
+                  <SampleIcon className="w-[11px] h-[11px] opacity-50" />
                   {[tastingData.brewingVessel, tastingData.brewingTemp ? `${tastingData.brewingTemp}°C` : null, tastingData.brewingTime].filter(Boolean).join(' · ')}
                 </div>
               )}
@@ -837,9 +1007,9 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
 
             {(tastingData.notes?.length ?? 0) > 0 && (
               <div className="flex flex-col gap-1.5 mb-4">
-                {tastingData.notes!.map((note, i) => (
-                  <div key={i} className="text-xs text-tea-text-dim italic px-1" style={{ fontFamily: 'var(--font-body)' }}>
-                    &ldquo;{note}&rdquo;
+                {normalizeNotes(tastingData).map((note, i) => (
+                  <div key={note.id || i} className="text-xs text-tea-text-dim italic px-1" style={{ fontFamily: 'var(--font-body)' }}>
+                    &ldquo;{note.text}&rdquo;
                   </div>
                 ))}
               </div>
@@ -996,7 +1166,8 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
           </motion.div>
         )}
       </AnimatePresence>
-    </motion.div>,
+    </motion.div>
+    </div>,
     document.body
   );
 };

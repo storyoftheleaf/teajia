@@ -753,7 +753,7 @@ export const MagazineTabbed: React.FC<MagazineTabbedProps> = ({
             <button
               onClick={onAccountClick}
               className="p-2.5 text-tea-text-sec hover:text-tea-text transition-colors"
-              aria-label="Account"
+              aria-label="Your Table"
             >
               <Icons.User className="w-4 h-4" />
             </button>

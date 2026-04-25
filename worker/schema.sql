@@ -120,6 +120,7 @@ CREATE TABLE IF NOT EXISTS products (
     is_sample INTEGER DEFAULT 0,                    -- Sample/trial tea not yet committed to inventory
     in_transit INTEGER DEFAULT 0,                   -- Stock ordered but not yet physically arrived
     tasting TEXT DEFAULT '{}',                    -- Structured tasting taxonomy JSON
+    tasting_source TEXT,                          -- 'owner' | 'community' | NULL; NULL falls back to style baseline
     sold_out_at TEXT,                             -- When product auto-archived due to zero stock
     stock_verified_at TEXT,                        -- Last time stock was physically verified
     source_compass_entry_id TEXT,                  -- FK to tea_compass_entries(id) — which field note sourced this product
@@ -380,3 +381,46 @@ CREATE INDEX IF NOT EXISTS idx_invoices_account_status ON invoices(account_id, s
 CREATE INDEX IF NOT EXISTS idx_customers_account_name ON customers(account_id, name);
 CREATE INDEX IF NOT EXISTS idx_activity_logs_account_created ON activity_logs(account_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_account_members_user_status ON account_members(user_id, status);
+
+-- 8. Collections — persistent curator-driven product sets published to audiences.
+-- Phase 1 ships Person audience; target_type accommodates future store/event/shop.
+CREATE TABLE IF NOT EXISTS collections (
+    id TEXT PRIMARY KEY,
+    account_id TEXT NOT NULL,
+    title TEXT NOT NULL,
+    note TEXT,
+    hero_image_url TEXT,
+    status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','active','archived')),
+    created_by_user_id TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS collection_items (
+    id TEXT PRIMARY KEY,
+    collection_id TEXT NOT NULL REFERENCES collections(id) ON DELETE CASCADE,
+    product_id TEXT NOT NULL,
+    position INTEGER NOT NULL,
+    item_note TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE (collection_id, product_id)
+);
+
+CREATE TABLE IF NOT EXISTS collection_publications (
+    id TEXT PRIMARY KEY,
+    collection_id TEXT NOT NULL REFERENCES collections(id) ON DELETE CASCADE,
+    target_type TEXT NOT NULL DEFAULT 'person' CHECK (target_type IN ('person','store','event','shop')),
+    target_id TEXT,
+    slug TEXT NOT NULL UNIQUE,
+    recipients_json TEXT,
+    published_at TEXT NOT NULL DEFAULT (datetime('now')),
+    unpublished_at TEXT,
+    view_count INTEGER NOT NULL DEFAULT 0,
+    created_by_user_id TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_collections_account_status ON collections(account_id, status);
+CREATE INDEX IF NOT EXISTS idx_collection_items_collection ON collection_items(collection_id, position);
+CREATE INDEX IF NOT EXISTS idx_collection_items_product ON collection_items(product_id);
+CREATE INDEX IF NOT EXISTS idx_collection_publications_collection ON collection_publications(collection_id);
+CREATE INDEX IF NOT EXISTS idx_collection_publications_slug ON collection_publications(slug);

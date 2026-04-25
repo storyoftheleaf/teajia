@@ -26,8 +26,13 @@ export const TastingEditorModal: React.FC<TastingEditorModalProps> = ({
   const handleSave = useCallback(async (tastingData: TastingData) => {
     try {
       const syncFields = buildTastingSyncPayload(tastingData);
+      const hasTerms = Object.keys(tastingData).length > 0;
+      // Owner-stamp: saving through this editor means Adrian has reviewed the profile.
+      // Clearing everything resets source so the public page falls back to the style baseline.
+      const tastingSource: 'owner' | null = hasTerms ? 'owner' : null;
       const payload: Record<string, unknown> = {
-        tasting: Object.keys(tastingData).length > 0 ? tastingData : null,
+        tasting: hasTerms ? tastingData : null,
+        tasting_source: tastingSource,
         ...syncFields,
       };
 
@@ -36,9 +41,45 @@ export const TastingEditorModal: React.FC<TastingEditorModalProps> = ({
       queryClient.setQueryData(['products'], (old: Product[] | undefined) => {
         if (!old) return old;
         return old.map(p =>
-          p.id === product.id ? { ...p, tasting: tastingData, ...syncFields } : p
+          p.id === product.id
+            ? { ...p, tasting: tastingData, tastingSource: tastingSource ?? undefined, ...syncFields }
+            : p
         );
       });
+
+      // Optimistically patch every public-product cache so toggling a star
+      // (on or off) reflects on the card immediately. There are two distinct
+      // query keys depending on which storefront path is active:
+      //   ['products', 'public']            — legacy default (Bali) path
+      //   ['storefront', 'products', slug]  — slug-scoped multi-store path
+      // Patching both means the optimistic state survives regardless of which
+      // hook is rendering the card. We intentionally do NOT invalidate after:
+      // the public endpoint has a 10s CDN edge cache, so an immediate refetch
+      // would just overwrite our patch with stale JSON. Reconciliation
+      // happens naturally on the next refetch (after staleTime expires).
+      const patchItem = (item: any) =>
+        item?.id === product.id
+          ? {
+              ...item,
+              tasting: hasTerms ? tastingData : undefined,
+              tastingSource: tastingSource ?? undefined,
+            }
+          : item;
+      queryClient.setQueriesData<any[]>(
+        {
+          predicate: (q) => {
+            const key = q.queryKey;
+            if (!Array.isArray(key)) return false;
+            if (key[0] === 'storefront' && key[1] === 'products') return true;
+            if (key[0] === 'products' && key[1] === 'public') return true;
+            return false;
+          },
+        },
+        (old) => {
+          if (!Array.isArray(old)) return old;
+          return old.map(patchItem);
+        }
+      );
 
       const derivedMood = deriveMoodFromFeeling(tastingData);
       showToast('Tasting profile saved', 'success');

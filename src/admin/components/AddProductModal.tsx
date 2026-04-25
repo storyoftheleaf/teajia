@@ -586,6 +586,9 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
             lore: formData.lore,
             tasting_notes: formData.tastingNotes.split(',').map(n => n.trim()).filter(n => n),
             tasting: Object.keys(tastingData).length > 0 ? tastingData : undefined,
+            // Admin-authored tasting data speaks in the owner's voice.
+            // Clearing the profile resets source so the product falls back to the style baseline.
+            tasting_source: Object.keys(tastingData).length > 0 ? 'owner' : null,
             is_custom_wisdom: formData.isCustomWisdom,
             show_wisdom: formData.showWisdom,
             processing_notes: formData.processingNotes,
@@ -1201,7 +1204,23 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
 
                         {/* Tasting Taxonomy Picker */}
                         <div>
-                            <label className={labelStyle}>Tasting Notes</label>
+                            <div className="flex items-center justify-between mb-1">
+                                <label className={`${labelStyle} mb-0`}>Tasting Notes</label>
+                                {(() => {
+                                    const hasTerms = flattenTastingNotes(tastingData).length > 0;
+                                    const isOwner = initialData?.tastingSource === 'owner';
+                                    if (!hasTerms) return null;
+                                    return isOwner ? (
+                                        <span className="text-[10px] uppercase tracking-[0.15em] text-tea-gold" style={{ fontFamily: 'var(--font-display)' }}>
+                                            Tasted
+                                        </span>
+                                    ) : (
+                                        <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim italic" style={{ fontFamily: 'var(--font-display)' }}>
+                                            Draft — not yet confirmed
+                                        </span>
+                                    );
+                                })()}
+                            </div>
                             <button
                                 type="button"
                                 onClick={() => setTastingOpen(true)}

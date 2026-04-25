@@ -33,7 +33,6 @@ import { CommandPalette } from './components/CommandPalette';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { DashboardView } from './components/DashboardView';
 import { NoMembershipGate } from './components/NoMembershipGate';
-import { TeamView } from './views/TeamView';
 import { AccountSettingsView } from './views/AccountSettingsView';
 import { PlatformAdminView } from './views/PlatformAdminView';
 import { EventsManager } from './components/EventsManager';
@@ -44,8 +43,6 @@ import { CustomerProfilePage } from './components/CustomerProfilePage';
 import { ActivityView } from './components/ActivityView';
 import { QuickCapture } from './components/QuickCapture';
 import { CatalogView } from './views/CatalogView';
-import { CatalogSeedView } from './views/CatalogSeedView';
-import { ActivityLogsPage } from './views/ActivityLogsPage';
 import { PurchaseOrdersPage } from './views/PurchaseOrdersPage';
 import { TeaCompass } from '../components/TeaCompass';
 import type { CompassMode } from '../components/TeaCompass';
@@ -53,6 +50,8 @@ import { VendorProfileView } from './views/VendorProfileView';
 import { ProductStoryView } from './views/ProductStoryView';
 import { PlatformAuditLogPage } from './views/PlatformAuditLogPage';
 import { MagazineView } from './views/MagazineView';
+import { CollectionsView } from './views/CollectionsView';
+import { CollectionEditView } from './views/CollectionEditView';
 
 // Import Modals
 import { AuthModal } from './components/AuthModal';
@@ -65,12 +64,19 @@ const CompassWithMode: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   const [params] = useSearchParams();
   const tab = params.get('tab');
   const entryId = params.get('entry');
+  const capture = params.get('capture');
   const initialMode: CompassMode | undefined =
     tab === 'buying' ? 'buying' : tab === 'ledger' ? 'buying' :
     tab === 'sourcing' ? 'sourcing' : tab === 'capture' ? 'sourcing' :
+    tab === 'samples' ? 'sourcing' :
     tab === 'tasting' ? 'tasting' : tab === 'browse' ? 'tasting' :
     undefined;
-  return <TeaCompass onBack={onBack} initialMode={initialMode} initialEntryId={entryId || undefined} />;
+  const initialCaptureOption: 'tea' | 'teaware' | 'samples' | undefined =
+    tab === 'samples' || capture === 'samples' ? 'samples' :
+    capture === 'teaware' ? 'teaware' :
+    capture === 'tea' ? 'tea' :
+    undefined;
+  return <TeaCompass onBack={onBack} initialMode={initialMode} initialEntryId={entryId || undefined} initialCaptureOption={initialCaptureOption} />;
 };
 
 const PageTransition = ({ children }: { children: React.ReactNode }) => (
@@ -541,11 +547,11 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
               <Route path="events" element={<ProtectedRoute hasAccess={isMember} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><EventsManager /></PageTransition></ProtectedRoute>} />
               <Route path="events/:id" element={<ProtectedRoute hasAccess={isMember} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><EventDetail /></PageTransition></ProtectedRoute>} />
               <Route path="venues" element={<ProtectedRoute hasAccess={isMember} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><VenueManager /></PageTransition></ProtectedRoute>} />
-              <Route path="samples" element={<Navigate to="/admin/compass?tab=sourcing" replace />} />
+              <Route path="samples" element={<Navigate to="/admin/compass?tab=samples" replace />} />
 
               {/* Operations — staff, admin, owner */}
               <Route path="activity" element={<ProtectedRoute hasAccess={isStaff} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><ActivityView products={products} /></PageTransition></ProtectedRoute>} />
-              <Route path="activity-logs" element={<ProtectedRoute hasAccess={isStaff} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><ActivityLogsPage /></PageTransition></ProtectedRoute>} />
+              <Route path="activity-logs" element={<Navigate to="/admin/activity?tab=log" replace />} />
               <Route path="people" element={<ProtectedRoute hasAccess={isStaff} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><PeopleView userRole={userRole || 'user'} /></PageTransition></ProtectedRoute>} />
               <Route path="people/:customerId" element={<ProtectedRoute hasAccess={isStaff} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><CustomerProfilePage /></PageTransition></ProtectedRoute>} />
 
@@ -572,13 +578,14 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
               <Route path="dashboard" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><DashboardView products={products} isLoading={loading} /></PageTransition></ProtectedRoute>} />
               <Route path="vendors/:vendorId" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><VendorProfileView /></PageTransition></ProtectedRoute>} />
               <Route path="products/:id/story" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><ProductStoryView /></PageTransition></ProtectedRoute>} />
-              <Route path="purchase-orders" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><PurchaseOrdersPage /></PageTransition></ProtectedRoute>} />
-              <Route path="team" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><TeamView /></PageTransition></ProtectedRoute>} />
+              <Route path="purchase-orders" element={<Navigate to="/admin/people?tab=purchase-orders" replace />} />
+              <Route path="team" element={<Navigate to="/admin/people?tab=team" replace />} />
               <Route path="account-settings" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><AccountSettingsView /></PageTransition></ProtectedRoute>} />
               <Route path="platform" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><PlatformAdminView /></PageTransition></ProtectedRoute>} />
               <Route path="platform/audit-log" element={<ProtectedRoute hasAccess={isAdmin && !!platformRole} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><PlatformAuditLogPage /></PageTransition></ProtectedRoute>} />
-              <Route path="catalog-seed" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><CatalogSeedView products={products} isLoading={loading} /></PageTransition></ProtectedRoute>} />
               <Route path="magazine" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><MagazineView /></PageTransition></ProtectedRoute>} />
+              <Route path="collections" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><CollectionsView /></PageTransition></ProtectedRoute>} />
+              <Route path="collections/:id" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><CollectionEditView /></PageTransition></ProtectedRoute>} />
 
               {/* Legacy routes — redirect to new unified views */}
               <Route path="catalog" element={
@@ -590,8 +597,8 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
               <Route path="personal" element={<Navigate to="/admin/inventory" replace />} />
               <Route path="customers" element={<Navigate to="/admin/people" replace />} />
               <Route path="sources" element={<Navigate to="/admin/people" replace />} />
-              <Route path="orders" element={<Navigate to="/admin/activity" replace />} />
-              <Route path="records" element={<Navigate to="/admin/activity" replace />} />
+              <Route path="orders" element={<Navigate to="/admin/activity?tab=orders" replace />} />
+              <Route path="records" element={<Navigate to="/admin/activity?tab=log" replace />} />
               <Route path="settings" element={<Navigate to="/admin/people" replace />} />
 
               <Route path="*" element={<Navigate to="home" replace />} />

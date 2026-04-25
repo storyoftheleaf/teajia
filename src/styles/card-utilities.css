@@ -634,7 +634,8 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 
 .pill:hover {
-  background: rgb(var(--tea-gold-rgb) / 0.05);
+  background: rgb(var(--tea-gold-rgb) / 0.07);
+  color: var(--tea-text-sec);
 }
 
 .pill-active {
@@ -660,6 +661,43 @@ input[type="number"]::-webkit-outer-spin-button {
   background: rgba(251, 191, 36, 0.06);
 }
 
+/* Primary solid — reserve for ONE commit action per surface */
+.pill-primary {
+  background: var(--tea-gold);
+  color: var(--tea-bg);
+  font-weight: 600;
+}
+
+.pill-primary:hover {
+  background: color-mix(in srgb, var(--tea-gold) 88%, white);
+}
+
+.pill-primary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Destructive — subtle red tint, used for confirm step of suspend/delete */
+.pill-destructive {
+  color: #f87171;
+}
+
+.pill-destructive:hover {
+  background: rgba(248, 113, 113, 0.08);
+  color: #fca5a5;
+}
+
+.pill-destructive-confirm {
+  background: rgba(248, 113, 113, 0.12);
+  color: #fca5a5;
+  font-weight: 600;
+  box-shadow: inset 0 0 0 1px rgba(248, 113, 113, 0.3);
+}
+
+.pill-destructive-confirm:hover {
+  background: rgba(248, 113, 113, 0.18);
+}
+
 /* --- Status Badge (read-only labels) --- */
 /* Use on: order status, attendee status, notification status */
 .badge-status {
@@ -675,9 +713,12 @@ input[type="number"]::-webkit-outer-spin-button {
   letter-spacing: 0.05em;
 }
 
+/* Gold-tinted background with readable text (not gold-on-gold).
+   Used for "active" / "published" / "ordered" status badges. */
 .badge-status-gold {
-  background: rgb(var(--tea-gold-rgb) / 0.10);
-  color: var(--tea-gold);
+  background: rgb(var(--tea-gold-rgb) / 0.12);
+  color: var(--tea-text);
+  box-shadow: inset 0 0 0 1px rgb(var(--tea-gold-rgb) / 0.35);
 }
 
 .badge-status-muted {
@@ -968,6 +1009,11 @@ input[type="number"]::-webkit-outer-spin-button {
 @keyframes badgePulse {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.2); }
+}
+
+@keyframes equalizerPulse {
+  from { transform: scaleY(0.25); }
+  to   { transform: scaleY(1); }
 }
 
 .cart-badge-pulse {

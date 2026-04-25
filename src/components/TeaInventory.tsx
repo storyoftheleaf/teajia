@@ -5,12 +5,13 @@ import { Icons } from './Icons';
 import { X, Leaf } from 'lucide-react';
 import { AddToSampleButton } from './samples/AddToSampleButton';
 import { AlcoveModal } from './shop/AlcoveModal';
+import { TastingEditorModal } from '../admin/components/TastingEditorModal';
 import { resolveTermLabel, resolveTermIcon, TASTING_TAXONOMY, type TastingCategoryId } from '../data/tastingTaxonomy';
 import { getCommonTastingForType } from '../data/commonTastingByStyle';
 import { TeaPlaceholder } from './shop/TeaPlaceholder';
 import { PageHeader } from './shared/PageHeader';
 import { PageHeaderTabs } from './shared/PageHeaderTabs';
-import { fmtPrice } from '../utils/formatNumber';
+import { fmtShopPrice } from '../utils/formatNumber';
 import { TEA_TYPE_COLORS } from '../designTokens';
 import { InventoryItem } from '../types';
 import { SALE_ITEM_IDS } from '../data/curatedCollections';
@@ -104,7 +105,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
   }, [inventory]);
 
   // User Interaction State — persisted via Zustand store
-  const { favoriteTeas, toggleFavoriteTea, compareItems, recentlyViewed, addRecentlyViewed } = useAppStore();
+  const { favoriteTeas, toggleFavoriteTea, compareItems, recentlyViewed, addRecentlyViewed, shopPriceWeight, setShopPriceWeight, shopSort, setShopSort, shopSavedOnly, setShopSavedOnly } = useAppStore();
   const userFavorites = useMemo(() => new Set(favoriteTeas), [favoriteTeas]);
   const [showCompare, setShowCompare] = useState(false);
 
@@ -160,6 +161,16 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
     if (item) addRecentlyViewed(item.id);
   }, [addRecentlyViewed]);
 
+  // Keep the open card's data fresh. When React Query refetches inventory
+  // (e.g. after an admin tasting save), re-derive viewItem from the new
+  // inventory array so the card visually updates instead of holding the
+  // stale snapshot captured when it was first opened.
+  useEffect(() => {
+    if (!viewItem) return;
+    const fresh = inventory.find(i => i.id === viewItem.id);
+    if (fresh && fresh !== viewItem) setViewItemRaw(fresh);
+  }, [inventory, viewItem]);
+
   // Filter area ref
   const filterRef = useRef<HTMLDivElement>(null);
 
@@ -172,18 +183,41 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
 
   // Tasting Session State
   const [tastingItem, setTastingItem] = useState<TeaItem | null>(null);
+  // Admin: edit the product's own tasting profile (writes to products.tasting with source='owner')
+  const [adminTastingItem, setAdminTastingItem] = useState<TeaItem | null>(null);
+  const handleEditProductTasting = useCallback((item: TeaItem) => {
+    setAdminTastingItem(item);
+  }, []);
   const handleTaste = useCallback((item: TeaItem) => {
     // If we're on a product path, return to /shop so useProductUrl doesn't re-open the modal
     if (window.location.pathname.startsWith('/shop/product/')) {
       window.history.replaceState(null, '', '/shop');
     }
+    // Admins editing their own shop almost always want to update the product's
+    // tasting profile, not file a personal journal entry. Route them into the
+    // admin editor instead. Customers still get the journaling flow.
+    if (isAdmin) {
+      setAdminTastingItem(item);
+      return;
+    }
     setViewItem(null); // close AlcoveModal
     setTastingItem(item);
-  }, []);
+  }, [isAdmin, setViewItem]);
   const handleOrderFromTasting = useCallback((item: TastingItem) => {
     setTastingItem(null);
     setViewItem(item as TeaItem); // item is always a full TeaItem at runtime
-  }, []);
+  }, [setViewItem]);
+  const adminTastingProductShim: Product | null = useMemo(() => {
+    if (!adminTastingItem) return null;
+    return {
+      id: adminTastingItem.id,
+      givenName: adminTastingItem.name,
+      productName: adminTastingItem.variant || adminTastingItem.name,
+      type: adminTastingItem.type as Product['type'],
+      imageUrl: adminTastingItem.image || '',
+      tasting: adminTastingItem.tasting,
+    } as Product;
+  }, [adminTastingItem]);
 
   // Sync modal state with URL (/shop/product/<id>) for shareability and back-button support
   const { closeWithHistory, navigateWithinModal } = useProductUrl(inventory, viewItem, setViewItem);
@@ -225,9 +259,12 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
         }
       }
 
-      return matchSearch && matchType && matchFeeling && matchSpecial && matchTasting;
+      // 4. Saved-only shop toggle
+      const matchSaved = !shopSavedOnly || userFavorites.has(item.id);
+
+      return matchSearch && matchType && matchFeeling && matchSpecial && matchTasting && matchSaved;
     });
-  }, [inventory, searchText, activeType, activeFeeling, specialFilter, userFavorites, tastingFilter]);
+  }, [inventory, searchText, activeType, activeFeeling, specialFilter, userFavorites, tastingFilter, shopSavedOnly]);
 
   // Grouping & Sorting Logic
   const groupedInventory = useMemo(() => {
@@ -247,18 +284,34 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
         .filter(type => groups[type] && groups[type].length > 0)
         .map(type => ({
             type,
-            // Sort: featured first, then by price per gram (Low to High)
             items: groups[type].sort((a, b) => {
-                const aFeat = a.isFeatured ? 1 : 0;
-                const bFeat = b.isFeatured ? 1 : 0;
-                if (aFeat !== bFeat) return bFeat - aFeat;
-                // Tea uses price_per_gram; teaware/misc uses price_50g (which is actually per-unit price — legacy field name)
                 const priceA = parseFloat(a.price_per_gram || a.price_50g || '0');
                 const priceB = parseFloat(b.price_per_gram || b.price_50g || '0');
-                return priceA - priceB;
+                const tastedA = tastingCounts.get(a.id) || 0;
+                const tastedB = tastingCounts.get(b.id) || 0;
+                switch (shopSort) {
+                    case 'price_asc':  return priceA - priceB;
+                    case 'price_desc': return priceB - priceA;
+                    case 'recent': {
+                        const idxA = recentlyViewed.indexOf(a.id);
+                        const idxB = recentlyViewed.indexOf(b.id);
+                        if (idxA === -1 && idxB === -1) return 0;
+                        if (idxA === -1) return 1;
+                        if (idxB === -1) return -1;
+                        return idxA - idxB;
+                    }
+                    case 'tasted': return tastedB - tastedA;
+                    case 'featured':
+                    default: {
+                        const aFeat = a.isFeatured ? 1 : 0;
+                        const bFeat = b.isFeatured ? 1 : 0;
+                        if (aFeat !== bFeat) return bFeat - aFeat;
+                        return priceA - priceB;
+                    }
+                }
             })
         }));
-  }, [filteredInventory, activeType, teaTypes]);
+  }, [filteredInventory, activeType, teaTypes, shopSort, tastingCounts, recentlyViewed]);
 
   const handleFavoriteToggle = useCallback((itemId: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -296,6 +349,8 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
         }}
         onTermClick={handleTermClick}
         onTaste={handleTaste}
+        isAdmin={isAdmin}
+        onEditProductTasting={isAdmin ? handleEditProductTasting : undefined}
       />
 
       {/* Tasting Session Modal */}
@@ -308,6 +363,15 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
           />
         )}
       </AnimatePresence>
+
+      {/* Admin: product-tasting editor (writes to products.tasting with source='owner') */}
+      {adminTastingItem && adminTastingProductShim && (
+        <TastingEditorModal
+          product={adminTastingProductShim}
+          onClose={() => setAdminTastingItem(null)}
+          onSaved={() => setAdminTastingItem(null)}
+        />
+      )}
 
       {!hideHeader && (
         <PageHeader
@@ -332,16 +396,75 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
       {/* --- Inline Filter Bar + Content (full width) --- */}
       <div className="max-w-full mx-auto px-1 md:px-2 lg:px-4 pt-4">
 
-         {/* Search input */}
-         <div className="mb-2">
-           <input
-             type="search"
-             value={searchText}
-             onChange={e => setSearchText(e.target.value)}
-             placeholder="search teas"
-             className="w-full bg-transparent border-b border-tea-border text-tea-text text-sm placeholder:text-tea-text-dim py-1.5 pr-2 outline-none focus:border-tea-gold transition-colors"
-             style={{ fontFamily: 'var(--font-body)' }}
-           />
+         {/* Sticky shop toolbar */}
+         <div className="sticky top-0 z-sticky -mx-1 md:-mx-2 lg:-mx-4 px-1 md:px-2 lg:px-4 bg-tea-bg/95 backdrop-blur-sm border-b border-tea-border">
+           {/* Row 1: search + result count */}
+           <div className="flex items-center gap-3 pt-2 pb-1.5">
+             <input
+               type="search"
+               value={searchText}
+               onChange={e => setSearchText(e.target.value)}
+               placeholder="search teas"
+               className="flex-1 min-w-0 bg-transparent border-b border-tea-border text-tea-text text-sm placeholder:text-tea-text-dim py-1 pr-2 outline-none focus:border-tea-gold transition-colors"
+               style={{ fontFamily: 'var(--font-body)' }}
+             />
+             <span className="shrink-0 text-[10px] uppercase tracking-[0.15em] text-tea-text-dim num">
+               {filteredInventory.length} {filteredInventory.length === 1 ? 'tea' : 'teas'}
+             </span>
+           </div>
+
+           {/* Row 2: actions — saved toggle · sort · weight */}
+           <div className="flex items-center gap-4 pb-2 overflow-x-auto hide-scrollbar">
+             <button
+               onClick={() => setShopSavedOnly(!shopSavedOnly)}
+               className={`flex items-center gap-1.5 text-[10px] uppercase tracking-[0.15em] py-1 shrink-0 transition-colors ${
+                 shopSavedOnly ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
+               }`}
+               title="Show only liked teas"
+             >
+               <Icons.Heart className="w-3 h-3" filled={shopSavedOnly} />
+               <span>Liked</span>
+             </button>
+
+             <div className="w-px h-3.5 bg-tea-border shrink-0" />
+
+             <label className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.15em] text-tea-text-sec shrink-0">
+               <span>Sort</span>
+               <select
+                 value={shopSort}
+                 onChange={e => setShopSort(e.target.value as any)}
+                 className="bg-transparent text-tea-text text-[10px] uppercase tracking-[0.15em] outline-none cursor-pointer border-none"
+                 style={{ fontFamily: 'var(--font-body)' }}
+               >
+                 <option value="featured">Featured</option>
+                 <option value="price_asc">Price ↑</option>
+                 <option value="price_desc">Price ↓</option>
+                 <option value="recent">Recently viewed</option>
+                 <option value="tasted">Most tasted</option>
+               </select>
+             </label>
+
+             <div className="w-px h-3.5 bg-tea-border shrink-0" />
+
+             <div className="flex items-center gap-1.5 shrink-0 ml-auto">
+               <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec">Price per</span>
+               <div className="flex items-center gap-0.5 border border-tea-border rounded-sm overflow-hidden">
+                 {([25, 50, 100] as const).map(g => (
+                   <button
+                     key={g}
+                     onClick={() => setShopPriceWeight(g)}
+                     className={`px-2 py-0.5 text-[10px] uppercase tracking-wider transition-colors num ${
+                       shopPriceWeight === g
+                         ? 'bg-tea-gold/10 text-tea-gold'
+                         : 'text-tea-text-sec hover:text-tea-text'
+                     }`}
+                   >
+                     {g}g
+                   </button>
+                 ))}
+               </div>
+             </div>
+           </div>
          </div>
 
          {/* Filter bar — two dropdown buttons */}
@@ -375,8 +498,8 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
             {/* Full-width popover — shared backdrop, content depends on which is open */}
             {openFilter && (
                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setOpenFilter(null)} />
-                  <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-tea-bg border border-tea-border rounded-lg shadow-xl p-3 animate-[fadeIn_0.15s_ease-out]">
+                  <div className="fixed inset-0 z-overlay" onClick={() => setOpenFilter(null)} />
+                  <div className="absolute left-0 right-0 top-full mt-1 z-drawer bg-tea-bg border border-tea-border rounded-lg shadow-xl p-3 animate-[fadeIn_0.15s_ease-out]">
                      {openFilter === 'type' && (
                         <div className="flex flex-wrap gap-1.5">
                            <button
@@ -502,7 +625,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                         const isTeajiaFav = !!item.isFeatured;
                         const isFavorite = userFavorites.has(item.id);
                         const pricePerGram = parseFloat(item.price_per_gram || '0') || 0;
-                        const price50g = Math.round(pricePerGram * 50 * 100) / 100;
+                        const priceAtWeight = Math.round(pricePerGram * shopPriceWeight * 100) / 100;
                         const showType = activeType !== 'All' || specialFilter !== 'None';
 
                         // Stock badge logic (tea items only, stock_g is in grams)
@@ -572,58 +695,32 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                         </div>
                                     </div>
 
-                                    {/* Right: bookmark + price + admin controls */}
-                                    <div className="flex items-center gap-2.5 shrink-0">
-                                        {/* Save/bookmark toggle */}
-                                        <button
-                                            onClick={(e) => handleFavoriteToggle(item.id, e)}
-                                            className={`-my-1 p-1 transition-colors ${isFavorite ? 'text-tea-gold' : 'text-tea-text/15 hover:text-tea-text/40'}`}
-                                            title={isFavorite ? 'Remove from saved' : 'Save'}
-                                        >
-                                            <Icons.Bookmark className="w-3.5 h-3.5" fill={isFavorite ? 'currentColor' : 'none'} />
-                                        </button>
-                                        {/* Sample list toggle */}
-                                        <AddToSampleButton
-                                            item={{
-                                                id: item.id,
-                                                name: item.name,
-                                                chineseName: item.chineseName,
-                                                type: item.type,
-                                                vendorName: item.supplier || undefined,
-                                                productId: item.id,
-                                            }}
-                                            size={13}
-                                            className="-my-1"
-                                        />
-                                        {/* Admin: stock indicator */}
-                                        {isAdmin && adminProductMap?.has(item.id) && (() => {
-                                            const ap = adminProductMap.get(item.id)!;
-                                            const stockColor = ap.stockGrams < 50 ? 'bg-red-400' : ap.stockGrams < (ap.lowStockThreshold || 100) ? 'bg-amber-400' : 'bg-emerald-400';
-                                            return (
-                                                <span className="hidden md:flex items-center gap-1.5" title={`${Math.round(ap.stockGrams)}g in stock`}>
-                                                    <span className={`w-1.5 h-1.5 rounded-full ${stockColor}`} />
-                                                    <span className="text-[10px] num text-tea-text/40">{Math.round(ap.stockGrams)}g</span>
-                                                </span>
-                                            );
-                                        })()}
-                                        {/* Admin: edit button */}
-                                        {isAdmin && onAdminEdit && (
-                                            <button
-                                                onClick={(e) => { e.stopPropagation(); onAdminEdit(item.id); }}
-                                                className="p-1 text-tea-text/20 hover:text-tea-gold transition-colors"
-                                                title="Edit product"
-                                            >
-                                                <Icons.Edit className="w-3.5 h-3.5" />
-                                            </button>
-                                        )}
-                                        <div className="text-right">
-                                            <span className="num text-sm text-tea-gold font-medium">{fmtPrice(price50g)}</span>
-                                            {item.category === 'tea' && price50g > 0 && (
-                                                <div className="text-[10px] text-tea-text-dim leading-none mt-0.5">
-                                                    <span>per 50g</span>
-                                                    <span className="text-tea-text-dim/50 ml-1">· {fmtPrice(Math.round(pricePerGram * 100) / 100)}/g</span>
-                                                </div>
+                                    {/* Right: actions · divider · price */}
+                                    <div className="flex items-center shrink-0">
+                                        <div className="flex items-center gap-1">
+                                            {/* Admin: edit button */}
+                                            {isAdmin && onAdminEdit && (
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); onAdminEdit(item.id); }}
+                                                    className="p-1 text-tea-text-sec hover:text-tea-gold transition-colors"
+                                                    title="Edit product"
+                                                >
+                                                    <Icons.Edit className="w-4 h-4" />
+                                                </button>
                                             )}
+                                            {/* Like toggle */}
+                                            <button
+                                                onClick={(e) => handleFavoriteToggle(item.id, e)}
+                                                className={`p-1 transition-colors ${isFavorite ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-gold'}`}
+                                                title={isFavorite ? 'Unlike' : 'Like'}
+                                            >
+                                                <Icons.Heart className="w-4 h-4" filled={isFavorite} />
+                                            </button>
+                                        </div>
+                                        {/* Divider between actions and price */}
+                                        <div className="w-px h-5 bg-tea-border ml-2.5 mr-3" />
+                                        <div className="text-right num text-sm text-tea-gold font-medium tabular-nums min-w-[44px]">
+                                            {fmtShopPrice(priceAtWeight)}
                                         </div>
                                     </div>
                                 </div>
@@ -667,7 +764,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
 
       {/* Floating Compare Button */}
       {compareItems.length > 0 && (
-        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-40 animate-[fadeIn_0.3s_ease-out]">
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-sticky animate-[fadeIn_0.3s_ease-out]">
           <button
             onClick={() => setShowCompare(true)}
             className="flex items-center gap-2 px-5 py-2.5 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.1em] font-medium rounded-sm shadow-lg hover:bg-tea-gold-lt transition-all active:scale-95"

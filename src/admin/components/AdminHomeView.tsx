@@ -44,7 +44,7 @@ const operationsTiles: TileData[] = [
 
 const managementTiles: TileData[] = [
   { id: 'dashboard', label: 'Dashboard', sub: 'Analytics',      icon: LayoutDashboard, path: '/admin/dashboard' },
-  { id: 'team',      label: 'Team',      sub: 'Members & roles',icon: UserCog,         path: '/admin/team' },
+  { id: 'team',      label: 'Team',      sub: 'Members & roles',icon: UserCog,         path: '/admin/people?tab=team' },
   { id: 'account',   label: 'Account',   sub: 'Settings',       icon: Settings,        path: '/admin/account-settings' },
 ];
 
@@ -107,6 +107,16 @@ export const AdminHomeView: React.FC<{
   const { data: pendingRSVPs = [] } = usePendingAttendees();
   const pendingCount = isStaff ? pendingOrders.length + pendingRSVPs.length : 0;
 
+  const { data: attentionItems = [] } = useQuery({
+    queryKey: ['collections-needs-attention'],
+    staleTime: 60_000,
+    enabled: isAdmin,
+    queryFn: async () => {
+      const res = await api.collections.needsAttention();
+      return res.items;
+    },
+  });
+
   const catalogTile: TileData = {
     id: 'catalog', label: 'Catalog', sub: 'Source from Teajia', icon: Package, path: '/admin/catalog',
   };
@@ -156,6 +166,40 @@ export const AdminHomeView: React.FC<{
             </div>
             <ArrowRight size={15} className="text-tea-text-dim shrink-0" />
           </button>
+        )}
+
+        {/* ── Needs attention (admin) ───────────────────────────────── */}
+        {isAdmin && attentionItems.length > 0 && (
+          <div className="relative">
+            <SectionLabel>Needs attention</SectionLabel>
+            <ul className="flex flex-col gap-1 bg-tea-surface border border-tea-border rounded-2xl p-2">
+              {attentionItems.slice(0, 5).map(item => (
+                <li key={item.item_id}>
+                  <button
+                    onClick={() => navigate(`/admin/collections/${item.collection_id}?item=${item.item_id}`)}
+                    className="w-full flex items-center gap-3 px-2.5 py-2 rounded-lg text-left hover:bg-tea-elevated transition-colors"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] text-tea-text truncate">
+                        {item.product_name}
+                      </p>
+                      <p className="text-[11px] text-tea-text-dim truncate">
+                        {item.issue === 'archived' ? 'Archived' : 'Out of stock'}
+                        {' in '}
+                        <span className="text-tea-text-sec">{item.collection_title}</span>
+                      </p>
+                    </div>
+                    <span className="text-[10px] uppercase tracking-[1.2px] text-tea-gold">Review</span>
+                  </button>
+                </li>
+              ))}
+              {attentionItems.length > 5 && (
+                <li className="px-3 py-1.5 text-[10px] text-tea-text-dim text-center">
+                  + {attentionItems.length - 5} more
+                </li>
+              )}
+            </ul>
+          </div>
         )}
 
         {/* ── Member tools (always visible) ─────────────────────────── */}

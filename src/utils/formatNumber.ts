@@ -13,6 +13,17 @@ export function fmtPrice(amount: number, decimals = 2): string {
   return '$' + fmtNum(amount, decimals);
 }
 
+/** Customer-facing price — always rounded up to whole dollars: "$13", "$1,250" */
+export function fmtShopPrice(amount: number): string {
+  return '$' + fmtNum(Math.ceil(amount), 0);
+}
+
+/** Customer-facing price-per-gram — rounded up to whole cents: "$0.85/g" */
+export function fmtShopPricePerGram(amount: number): string {
+  const cents = Math.ceil(amount * 100) / 100;
+  return '$' + fmtNum(cents, 2) + '/g';
+}
+
 /** Format a price-per-gram: "$0.85/g" */
 export function fmtPricePerGram(amount: number, decimals = 2): string {
   return fmtPrice(amount, decimals) + '/g';

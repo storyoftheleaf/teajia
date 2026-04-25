@@ -214,6 +214,7 @@ async function fetchWithTimeout(url: string, options: RequestInit = {}): Promise
     if (err.name === 'AbortError') {
       throw new Error('Request timed out. Please try again.');
     }
+    dispatchNetworkError();
     throw err;
   } finally {
     clearTimeout(timeoutId);
@@ -225,6 +226,16 @@ export const SESSION_EXPIRED_EVENT = 'teajia:session-expired';
 
 /** Dispatched when the server rejects the active account (e.g., membership revoked). */
 export const ACCOUNT_MISMATCH_EVENT = 'teajia:account-mismatch';
+
+/** Dispatched on true network failure (offline / DNS / CORS) — not HTTP errors. Debounced to 5s. */
+export const NETWORK_ERROR_EVENT = 'teajia:network-error';
+let _lastNetworkErrorAt = 0;
+function dispatchNetworkError() {
+  const now = Date.now();
+  if (now - _lastNetworkErrorAt < 5000) return;
+  _lastNetworkErrorAt = now;
+  window.dispatchEvent(new CustomEvent(NETWORK_ERROR_EVENT));
+}
 
 async function handleResponse(res: Response) {
   let data: any;
@@ -423,6 +434,14 @@ export const api = {
       });
       return handleResponse(res);
     },
+    deleteAccount: async (password: string): Promise<{ ok: boolean }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/auth/account`, {
+        method: 'DELETE',
+        headers: authHeaders(),
+        body: JSON.stringify({ password }),
+      });
+      return handleResponse(res);
+    },
   },
 
   users: {
@@ -558,6 +577,17 @@ export const api = {
         method: 'DELETE',
         headers: authHeaders(),
       });
+      return handleResponse(res);
+    },
+  },
+
+  analytics: {
+    revenue: async () => {
+      const res = await fetchWithTimeout(`${API_URL}/api/analytics/revenue`, { headers: authHeaders() });
+      return handleResponse(res);
+    },
+    rfm: async () => {
+      const res = await fetchWithTimeout(`${API_URL}/api/customers/rfm`, { headers: authHeaders() });
       return handleResponse(res);
     },
   },
@@ -1271,6 +1301,7 @@ export const api = {
           contact: g.contact || undefined,
         })),
         notes: data.notes || undefined,
+        show_in_guest_list: data.show_in_guest_list ? true : undefined,
       };
       const res = await fetchWithTimeout(`${API_URL}/api/events/${slug}/rsvp`, {
         method: 'POST',
@@ -1548,11 +1579,23 @@ export const api = {
       return res.json();
     },
 
-    list: async () => {
-      const res = await fetchWithTimeout(`${API_URL}/api/inquiries`, {
+    list: async (status?: string) => {
+      const url = new URL(`${API_URL}/api/admin/inquiries`);
+      if (status) url.searchParams.set('status', status);
+      const res = await fetchWithTimeout(url.toString(), {
         headers: authHeaders(),
       });
-      if (!res.ok) return [];
+      if (!res.ok) return { inquiries: [] };
+      return res.json();
+    },
+
+    updateStatus: async (id: string, status: 'new' | 'seen' | 'replied' | 'closed') => {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/inquiries/${encodeURIComponent(id)}/status`, {
+        method: 'PATCH',
+        headers: authHeaders(),
+        body: JSON.stringify({ status }),
+      });
+      if (!res.ok) return null;
       return res.json();
     },
   },
@@ -1825,6 +1868,12 @@ export const api = {
       });
       await handleResponse(res);
     },
+    setCuratorFlag: async (accountId: string, userId: string, can_create_collections: boolean): Promise<void> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/accounts/${accountId}/members/${userId}/curator`, {
+        method: 'PUT', headers: authHeaders(), body: JSON.stringify({ can_create_collections }),
+      });
+      await handleResponse(res);
+    },
     transferOwnership: async (accountId: string, newOwnerUserId: string): Promise<void> => {
       const res = await fetchWithTimeout(`${API_URL}/api/accounts/${accountId}/transfer-ownership`, {
         method: 'POST', headers: authHeaders(), body: JSON.stringify({ new_owner_user_id: newOwnerUserId }),
@@ -1862,6 +1911,93 @@ export const api = {
         headers: authHeaders(),
       });
       return handleResponse(res);
+    },
+  },
+
+  collections: {
+    list: async (opts?: { status?: 'draft' | 'active' | 'archived'; productId?: string }): Promise<{ collections: import('../types').CollectionListRow[] }> => {
+      const qs = new URLSearchParams();
+      if (opts?.status) qs.set('status', opts.status);
+      if (opts?.productId) qs.set('product_id', opts.productId);
+      const suffix = qs.toString() ? `?${qs.toString()}` : '';
+      const res = await fetchWithTimeout(`${API_URL}/api/collections${suffix}`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    get: async (id: string): Promise<import('../types').CollectionDetail> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/collections/${id}`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    create: async (data: { title: string; note?: string; hero_image_url?: string; initial_product_ids?: string[] }): Promise<{ id: string }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/collections`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
+    update: async (id: string, patch: Partial<{ title: string; note: string | null; hero_image_url: string | null; status: 'draft' | 'active' | 'archived' }>): Promise<{ ok: true }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/collections/${id}`, {
+        method: 'PUT',
+        headers: authHeaders(),
+        body: JSON.stringify(patch),
+      });
+      return handleResponse(res);
+    },
+    addItems: async (id: string, productIds: string[]): Promise<{ added: number; skipped: number }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/collections/${id}/items`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ product_ids: productIds }),
+      });
+      return handleResponse(res);
+    },
+    removeItem: async (id: string, itemId: string): Promise<{ ok: true }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/collections/${id}/items/${itemId}`, {
+        method: 'DELETE',
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    reorderItem: async (id: string, itemId: string, direction: 'up' | 'down'): Promise<{ ok: true }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/collections/${id}/items/${itemId}`, {
+        method: 'PUT',
+        headers: authHeaders(),
+        body: JSON.stringify({ direction }),
+      });
+      return handleResponse(res);
+    },
+    publish: async (id: string, recipients: import('../types').CollectionRecipient[]): Promise<{ id: string; slug: string }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/collections/${id}/publications`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ target_type: 'person', recipients }),
+      });
+      return handleResponse(res);
+    },
+    unpublish: async (id: string, pubId: string): Promise<{ ok: true }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/collections/${id}/publications/${pubId}`, {
+        method: 'DELETE',
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    needsAttention: async (): Promise<{ items: import('../types').NeedsAttentionItem[] }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/collections/needs-attention`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    /** Public — no auth. Used by /c/:slug page. */
+    getPublic: async (slug: string): Promise<import('../types').PublicCollectionResponse> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/public/c/${slug}`, {});
+      return handleResponse(res);
+    },
+    trackPublicView: async (slug: string): Promise<void> => {
+      await fetchWithTimeout(`${API_URL}/api/public/c/${slug}/view`, { method: 'POST' });
     },
   },
 

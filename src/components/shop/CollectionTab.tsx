@@ -8,7 +8,8 @@ import { SectionDivider } from '../shared/SectionDivider';
 import { useProductUrl } from '../../hooks/useProductUrl';
 import { useAppStore } from '../../lib/store';
 import type { InventoryItem } from '../../types';
-import { fmtPrice } from '../../utils/formatNumber';
+import { fmtPrice, fmtShopPrice } from '../../utils/formatNumber';
+import { AddToSampleButton } from '../samples/AddToSampleButton';
 
 interface CollectionTabProps {
   inventory: InventoryItem[];
@@ -128,35 +129,51 @@ const ItemCard: React.FC<{
             <div>
               {isTea ? (
                 <>
-                  <span className="num text-sm text-tea-gold">{fmtPrice(pricePerGram * 50)}</span>
+                  <span className="num text-sm text-tea-gold">{fmtShopPrice(pricePerGram * 50)}</span>
                   <span className="text-tea-text-sec text-xs ml-1">/ 50g</span>
                 </>
               ) : (
                 <>
-                  <span className="num text-sm text-tea-gold">{fmtPrice(priceUnit)}</span>
+                  <span className="num text-sm text-tea-gold">{fmtShopPrice(priceUnit)}</span>
                   <span className="text-tea-text-sec text-xs ml-1">each</span>
                 </>
               )}
             </div>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                if (isSoldOut) return;
-                if (isTea) {
-                  onAddToCart(item, 50, Math.round(pricePerGram * 50 * 100) / 100);
-                } else {
-                  onAddToCart(item, 1, priceUnit);
-                }
-              }}
-              disabled={isSoldOut}
-              className={`ml-auto text-[10px] uppercase tracking-[0.12em] font-medium py-2 px-4 rounded-sm transition-all min-h-[44px] ${
-                isSoldOut
-                  ? 'bg-tea-accent-sub text-tea-text-sec cursor-not-allowed opacity-60'
-                  : 'bg-tea-gold hover:bg-tea-gold-lt text-tea-bg active:scale-95'
-              }`}
-            >
-              {isSoldOut ? 'Sold Out' : isTea ? 'Add 50g' : 'Add to Cart'}
-            </button>
+            <div className="ml-auto flex items-center gap-2">
+              {isTea && (
+                <AddToSampleButton
+                  item={{
+                    id: item.id,
+                    name: item.name,
+                    chineseName: item.chineseName,
+                    type: item.type,
+                    vendorName: item.supplier || undefined,
+                    productId: item.id,
+                  }}
+                  variant="icon"
+                  size={15}
+                />
+              )}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (isSoldOut) return;
+                  if (isTea) {
+                    onAddToCart(item, 50, Math.round(pricePerGram * 50 * 100) / 100);
+                  } else {
+                    onAddToCart(item, 1, priceUnit);
+                  }
+                }}
+                disabled={isSoldOut}
+                className={`text-[10px] uppercase tracking-[0.12em] font-medium py-2 px-4 rounded-sm transition-all min-h-[44px] ${
+                  isSoldOut
+                    ? 'bg-tea-accent-sub text-tea-text-sec cursor-not-allowed opacity-60'
+                    : 'bg-tea-gold hover:bg-tea-gold-lt text-tea-bg active:scale-95'
+                }`}
+              >
+                {isSoldOut ? 'Sold Out' : isTea ? 'Add 50g' : 'Add to Cart'}
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -173,10 +190,8 @@ export const CollectionTab: React.FC<CollectionTabProps> = ({ inventory, onAddTo
   const toggleFavoriteTea = useAppStore(state => state.toggleFavoriteTea);
 
   const handleTaste = useCallback((item: InventoryItem) => {
-    const url = new URL(window.location.href);
-    if (url.searchParams.has('product')) {
-      url.searchParams.delete('product');
-      window.history.replaceState(null, '', url.toString());
+    if (window.location.pathname.startsWith('/shop/product/')) {
+      window.history.replaceState(null, '', '/shop');
     }
     setViewItem(null);
     setTastingItem(item);
@@ -264,7 +279,7 @@ export const CollectionTab: React.FC<CollectionTabProps> = ({ inventory, onAddTo
       {/* Saved items section */}
       {hasSaved && (
         <>
-          <SectionDivider label="Saved" subtitle={`${savedItems.length} ${savedItems.length === 1 ? 'item' : 'items'} you've set aside.`} />
+          <SectionDivider label="Liked" subtitle={`${savedItems.length} ${savedItems.length === 1 ? 'item' : 'items'} you've set aside.`} />
           <div className="flex flex-col gap-6 md:gap-8">
             {savedItems.map(item => (
               <ItemCard

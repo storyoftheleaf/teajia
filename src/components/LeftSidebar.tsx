@@ -11,7 +11,7 @@ import { useAppStore } from '../lib/store';
 import {
   Calendar, LayoutDashboard, Briefcase, Leaf, Coffee, Store, Users,
   FolderOpen, Settings, ChevronLeft, ChevronRight, UserCheck, MapPin,
-  BookOpen, Package, ShoppingCart,
+  BookOpen, Package, ShoppingCart, Sun, Moon, Compass, Wrench,
 } from 'lucide-react';
 import { SampleIcon } from './Icons';
 import { useSampleCartStore } from '../samples/sampleCartStore';
@@ -47,10 +47,15 @@ const NavButton: React.FC<{
   delay?: number;
   collapsed?: boolean;
 }> = ({ item, isActive, onClick, delay = 0, collapsed = false }) => {
-  // Icons only appear when collapsed; expanded sidebar is text-only.
-  const iconEl = collapsed && (
+  // Icons appear in both modes — muted gold anchor in expanded mode so the
+  // eye has a landmark per row without losing the editorial text-first feel.
+  const iconEl = (
     <div className={`shrink-0 transition-colors duration-200 ${
-      isActive ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
+      isActive
+        ? 'text-tea-gold'
+        : collapsed
+          ? 'text-tea-text-sec group-hover:text-tea-text'
+          : 'text-tea-gold/55 group-hover:text-tea-gold/80'
     }`}>
       {item.icon}
     </div>
@@ -58,7 +63,7 @@ const NavButton: React.FC<{
 
   const labelEl = !collapsed && (
     <span
-      className={`text-sm flex-1 transition-colors duration-200 ${
+      className={`text-sm text-left transition-colors duration-200 ${
         isActive ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
       }`}
       style={{ fontFamily: 'var(--font-display)', fontWeight: 400, letterSpacing: '0.03em' }}
@@ -90,7 +95,7 @@ const NavButton: React.FC<{
   const baseClass = `relative flex items-center min-h-[44px] ${
     collapsed ? 'justify-center px-2' : 'gap-3 px-4'
   } rounded-md transition-colors duration-200 group ${
-    isActive ? 'bg-tea-gold/10' : 'hover:bg-tea-gold/6'
+    isActive ? '' : 'hover:bg-tea-gold/6'
   }`;
 
   const inner = (
@@ -139,7 +144,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   onSearchClick,
   cartItemCount = 0,
 }) => {
-  const { theme } = useTheme();
+  const { theme, toggleTheme } = useTheme();
   const auth = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -170,7 +175,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   const browseItems: NavItem[] = [
     { id: 'MAGAZINE',  label: 'Read',    icon: <Icons.Magazine  className="w-[18px] h-[18px]" strokeWidth={1.75} />, section: 'MAGAZINE'  as Section },
     { id: 'LEARN',     label: 'Learn',   icon: <Icons.School    className="w-[18px] h-[18px]" strokeWidth={1.75} />, section: 'LEARN'     as Section },
-    { id: 'OFFERINGS', label: 'Consult', icon: <Icons.Sparkles  className="w-[18px] h-[18px]" strokeWidth={1.75} />, section: 'OFFERINGS' as Section },
+    { id: 'OFFERINGS', label: 'Advise',  icon: <Icons.Sparkles  className="w-[18px] h-[18px]" strokeWidth={1.75} />, section: 'OFFERINGS' as Section },
     { id: 'SHOP',      label: 'Shop',    icon: <Icons.Bag       className="w-[18px] h-[18px]" strokeWidth={1.75} />, section: 'SHOP'      as Section },
   ];
 
@@ -194,11 +199,10 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
     {
       id: 'business', label: 'Business',
       icon: <Briefcase size={18} strokeWidth={1.75} />,
-      path: '/admin/orders',
+      path: '/admin/activity',
       children: [
-        { id: 'customers', path: '/admin/customers', label: 'Customers',      icon: <Users      className="w-3.5 h-3.5" strokeWidth={1.75} /> },
-        { id: 'records',   path: '/admin/records',   label: 'Records & Logs', icon: <FolderOpen className="w-3.5 h-3.5" strokeWidth={1.75} /> },
-        { id: 'settings',  path: '/admin/settings',  label: 'Settings',       icon: <Settings   className="w-3.5 h-3.5" strokeWidth={1.75} /> },
+        { id: 'activity', path: '/admin/activity', label: 'Activity', icon: <FolderOpen className="w-3.5 h-3.5" strokeWidth={1.75} /> },
+        { id: 'people',   path: '/admin/people',   label: 'People',   icon: <Users      className="w-3.5 h-3.5" strokeWidth={1.75} /> },
       ],
     },
     {
@@ -218,7 +222,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   // section would hide the highlighted child after internal navigation.
 
   const userName = auth.isAuthenticated
-    ? (auth.user?.name || auth.user?.email?.split('@')[0] || 'Account')
+    ? (auth.user?.name || auth.user?.email?.split('@')[0] || 'Signed in')
     : null;
   const locationLine = activeAccount?.location_city || activeAccount?.location_country || null;
 
@@ -249,7 +253,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
             <button
               onClick={() => { if (isAdminRoute) { navigate('/'); } else { onNavigate('HOME'); window.scrollTo({ top: 0, behavior: 'smooth' }); } }}
               className={`relative flex items-center ${collapsed ? 'justify-center w-full h-full' : 'gap-3 px-5 h-full flex-1 min-w-0'} transition-colors duration-200 group ${
-                activeSection === 'HOME' && !isAdminRoute ? 'bg-tea-gold/10' : 'hover:bg-tea-gold/6'
+                activeSection === 'HOME' && !isAdminRoute ? '' : 'hover:bg-tea-gold/6'
               }`}
               title="Home"
             >
@@ -311,11 +315,11 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
             className={`relative w-full flex items-center min-h-[48px] ${
               collapsed ? 'justify-center px-2' : 'gap-3 px-5'
             } py-3 border-b border-tea-border transition-colors duration-200 group ${
-              activeSection === 'ACCOUNT' ? 'bg-tea-gold/10' : 'hover:bg-tea-gold/6'
+              activeSection === 'YOUR_TABLE' ? '' : 'hover:bg-tea-gold/6'
             }`}
-            title={userName ?? 'Sign in'}
+            title="Your Table"
           >
-            {activeSection === 'ACCOUNT' && (
+            {activeSection === 'YOUR_TABLE' && (
               <motion.div
                 layoutId="account-indicator"
                 className="absolute left-0 inset-y-0 w-[2px] bg-tea-gold"
@@ -325,7 +329,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
             {collapsed && (
               <Icons.User
                 className={`shrink-0 w-[18px] h-[18px] transition-colors duration-200 ${
-                  activeSection === 'ACCOUNT' ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
+                  activeSection === 'YOUR_TABLE' ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
                 }`}
                 strokeWidth={1.75}
               />
@@ -334,20 +338,26 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
               <div className="min-w-0 flex-1 text-left">
                 <span
                   className={`text-sm block leading-tight transition-colors duration-200 ${
-                    activeSection === 'ACCOUNT' ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
+                    activeSection === 'YOUR_TABLE' ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
                   }`}
                   style={{ fontFamily: 'var(--font-display)', fontWeight: 400, letterSpacing: '0.03em' }}
                 >
+                  Your Table
+                </span>
+                <span className="text-[11px] text-tea-text-sec leading-none block mt-0.5 tracking-[0.04em]">
                   {userName ?? 'Sign in'}
                 </span>
                 {locationLine && (
-                  <span className="text-[11px] text-tea-text-sec/70 leading-none block mt-0.5 tracking-[0.04em]">
+                  <span className="text-[11px] text-tea-text-sec leading-none block mt-0.5 tracking-[0.04em]">
                     ◉ {locationLine}
                   </span>
                 )}
                 {!auth.isAuthenticated && (
-                  <span className="text-[11px] text-tea-text-sec/60 leading-none block mt-0.5 tracking-[0.04em]">
-                    journal · collection · compass
+                  <span
+                    className="text-[11px] text-tea-text-sec leading-none block mt-0.5 tracking-[0.04em] italic"
+                    style={{ fontFamily: 'var(--font-display)' }}
+                  >
+                    your practice, kept
                   </span>
                 )}
               </div>
@@ -360,7 +370,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
               onClick={onSearchClick}
               className={`w-full flex items-center ${
                 collapsed ? 'justify-center px-2 min-h-[40px]' : 'gap-3 px-3 min-h-[36px]'
-              } rounded-md transition-colors duration-200 group bg-tea-accent-sub hover:bg-tea-gold/6 border border-tea-border`}
+              } rounded-md transition-colors duration-200 group hover:bg-tea-gold/6`}
               title="Search (⌘K)"
             >
               <Icons.Search className="w-4 h-4 text-tea-text-sec group-hover:text-tea-text transition-colors shrink-0" strokeWidth={1.75} />
@@ -382,6 +392,13 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 
           {/* ── Browse Nav ────────────────────────────────────────────────── */}
           <nav className={`flex flex-col py-3 gap-1 ${collapsed ? 'px-1.5' : 'px-3'}`}>
+            {!collapsed && (
+              <div className="flex items-center gap-1.5 px-4 pt-1 pb-2">
+                <Compass size={11} strokeWidth={1.75} className="text-tea-gold/70 shrink-0" aria-hidden="true" />
+                <span className="text-[10px] uppercase tracking-[0.22em] text-tea-text-sec font-medium">Browse</span>
+                <div className="flex-1 h-px bg-tea-border ml-1" aria-hidden="true" />
+              </div>
+            )}
             {browseItems.map((item, index) => (
               <NavButton
                 key={item.id}
@@ -436,6 +453,10 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                     </div>
                   ) : (
                     <>
+                      <ShoppingCart
+                        className="w-[14px] h-[14px] text-tea-gold/55 group-hover:text-tea-gold/80 transition-colors duration-200 shrink-0"
+                        strokeWidth={1.75}
+                      />
                       <span
                         className="text-sm text-tea-text-sec group-hover:text-tea-text transition-colors duration-200"
                         style={{ fontFamily: 'var(--font-display)', fontWeight: 400, letterSpacing: '0.03em' }}
@@ -475,20 +496,12 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                 transition={{ duration: 0.2 }}
                 className={`flex flex-col gap-1 ${collapsed ? 'px-1.5' : 'px-3'} pt-2 pb-3 border-t border-tea-border`}
               >
-                {/* Back to storefront — only when on an admin route */}
-                {isAdminRoute && !collapsed && (
-                  <Link
-                    to="/"
-                    className="flex items-center gap-1.5 px-4 py-1.5 mb-0.5 rounded-md text-tea-text-sec hover:text-tea-text transition-colors duration-200 group"
-                  >
-                    <ChevronLeft size={11} strokeWidth={2} />
-                    <span
-                      className="text-[11px] tracking-[0.04em]"
-                      style={{ fontFamily: 'var(--font-sans)', fontWeight: 400 }}
-                    >
-                      Storefront
-                    </span>
-                  </Link>
+                {!collapsed && (
+                  <div className="flex items-center gap-1.5 px-4 pt-1 pb-2">
+                    <Wrench size={11} strokeWidth={1.75} className="text-tea-gold/70 shrink-0" aria-hidden="true" />
+                    <span className="text-[10px] uppercase tracking-[0.22em] text-tea-text-sec font-medium">Admin</span>
+                    <div className="flex-1 h-px bg-tea-border ml-1" aria-hidden="true" />
+                  </div>
                 )}
 
                 {adminItems.map((item, index) => {
@@ -512,7 +525,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                         className={`relative flex items-center min-h-[44px] ${
                           collapsed ? 'justify-center px-2' : 'gap-3 px-4'
                         } rounded-md transition-colors duration-200 group ${
-                          (showActive || isAnyChildActive) ? 'bg-tea-gold/10' : 'hover:bg-tea-gold/6'
+                          (showActive || isAnyChildActive) ? '' : 'hover:bg-tea-gold/6'
                         }`}
                         title={item.label}
                       >
@@ -523,16 +536,18 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                             transition={{ type: 'spring', stiffness: 350, damping: 30 }}
                           />
                         )}
-                        {collapsed && (
-                          <div className={`shrink-0 transition-colors duration-200 ${
-                            (showActive || isAnyChildActive) ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
-                          }`}>
-                            {item.icon}
-                          </div>
-                        )}
+                        <div className={`shrink-0 transition-colors duration-200 ${
+                          (showActive || isAnyChildActive)
+                            ? 'text-tea-gold'
+                            : collapsed
+                              ? 'text-tea-text-sec group-hover:text-tea-text'
+                              : 'text-tea-gold/55 group-hover:text-tea-gold/80'
+                        }`}>
+                          {item.icon}
+                        </div>
                         {!collapsed && (
                           <span
-                            className={`text-sm flex-1 transition-colors duration-200 ${
+                            className={`text-sm text-left transition-colors duration-200 ${
                               (showActive || isAnyChildActive) ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
                             }`}
                             style={{ fontFamily: 'var(--font-display)', fontWeight: 400, letterSpacing: '0.03em' }}
@@ -591,36 +606,55 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
           <div
             className={`py-3 ${collapsed ? 'px-1.5' : 'px-3'} border-t border-tea-border shrink-0`}
           >
-            {/* Our Spaces */}
+            {/* Our Spaces + theme toggle */}
             {!PREVIEW_MODE && (
-              <Link
-                to="/spaces"
-                className={`w-full flex items-center min-h-[44px] ${
-                  collapsed ? 'justify-center px-2' : 'gap-3 px-4'
-                } rounded-md transition-colors duration-200 group hover:bg-tea-gold/6 ${
-                  currentPath === '/spaces' ? 'bg-tea-gold/10' : ''
-                }`}
-                title="Our spaces"
-              >
-                {collapsed && (
+              <div className={`flex items-center ${collapsed ? 'flex-col gap-1' : 'justify-between gap-2'}`}>
+                <Link
+                  to="/spaces"
+                  className={`flex items-center min-h-[44px] ${
+                    collapsed ? 'justify-center px-2' : 'flex-1 gap-3 px-4'
+                  } rounded-md transition-colors duration-200 group hover:bg-tea-gold/6`}
+                  title="Our spaces"
+                >
                   <MapPin
-                    className={`w-[18px] h-[18px] shrink-0 transition-colors duration-200 ${
-                      currentPath === '/spaces' ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
+                    className={`shrink-0 transition-colors duration-200 ${
+                      collapsed ? 'w-[18px] h-[18px]' : 'w-[14px] h-[14px]'
+                    } ${
+                      currentPath === '/spaces'
+                        ? 'text-tea-gold'
+                        : collapsed
+                          ? 'text-tea-text-sec group-hover:text-tea-text'
+                          : 'text-tea-gold/55 group-hover:text-tea-gold/80'
                     }`}
                     strokeWidth={1.75}
                   />
-                )}
-                {!collapsed && (
-                  <span
-                    className={`text-sm transition-colors duration-200 ${
-                      currentPath === '/spaces' ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
-                    }`}
-                    style={{ fontFamily: 'var(--font-display)', fontWeight: 400, letterSpacing: '0.03em' }}
-                  >
-                    Our spaces
-                  </span>
-                )}
-              </Link>
+                  {!collapsed && (
+                    <span
+                      className={`text-sm transition-colors duration-200 ${
+                        currentPath === '/spaces' ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
+                      }`}
+                      style={{ fontFamily: 'var(--font-display)', fontWeight: 400, letterSpacing: '0.03em' }}
+                    >
+                      Our spaces
+                    </span>
+                  )}
+                </Link>
+                <button
+                  type="button"
+                  onClick={(e) => toggleTheme(e)}
+                  className={`flex items-center justify-center min-h-[44px] min-w-[44px] rounded-md transition-colors duration-200 text-tea-text-sec hover:text-tea-text hover:bg-tea-gold/6 ${
+                    collapsed ? 'px-2' : 'px-3'
+                  }`}
+                  title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                  aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                >
+                  {theme === 'dark' ? (
+                    <Sun className="w-[18px] h-[18px]" strokeWidth={1.75} />
+                  ) : (
+                    <Moon className="w-[18px] h-[18px]" strokeWidth={1.75} />
+                  )}
+                </button>
+              </div>
             )}
 
           </div>

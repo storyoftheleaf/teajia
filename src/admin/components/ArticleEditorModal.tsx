@@ -431,7 +431,7 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
 
   const STATUS_BADGE_STYLES: Record<string, string> = {
     draft: 'bg-tea-elevated text-tea-text-sec',
-    published: 'bg-tea-gold-lt text-tea-gold',
+    published: 'bg-tea-gold/10 text-tea-text ring-1 ring-inset ring-tea-gold/40',
     archived: 'bg-tea-elevated text-tea-text-dim',
   };
 
@@ -486,7 +486,7 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
           className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors disabled:opacity-40 shrink-0 ${
             status === 'published'
               ? 'text-tea-text-sec hover:text-tea-text bg-tea-elevated'
-              : 'text-tea-gold hover:text-tea-gold/80 bg-tea-gold-lt'
+              : 'text-tea-bg bg-tea-gold hover:bg-tea-gold/90'
           }`}
           title={status === 'published' ? 'Unpublish' : 'Publish'}
         >

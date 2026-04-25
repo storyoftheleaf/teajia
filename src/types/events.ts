@@ -166,6 +166,7 @@ export interface EventAttendee {
   cancellationNote?: string;
   denialMessage?: string;
   source?: 'direct' | 'waitlist_notify' | 'public_page' | 'guest_invite';
+  showInGuestList?: boolean;
   createdAt: string;
   // Computed — from customer record
   sessionsAttended?: number;

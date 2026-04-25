@@ -29,6 +29,22 @@ check_pattern() {
   fi
 }
 
+check_pattern_ere() {
+  local pattern="$1"
+  local message="$2"
+  local matches
+
+  # POSIX ERE (BSD-grep compatible) — no lookarounds. Use this for rules that
+  # must work reliably inside non-interactive bash (where grep is BSD, not PCRE).
+  matches=$(grep -rn --include='*.tsx' --include='*.ts' -E "$pattern" "$SRC_DIR" 2>/dev/null || true)
+  if [ -n "$matches" ]; then
+    echo ""
+    echo "COLOR RULE VIOLATION: $message"
+    echo "$matches"
+    ERRORS=$((ERRORS + 1))
+  fi
+}
+
 check_pattern_notice() {
   local pattern="$1"
   local message="$2"
@@ -71,6 +87,18 @@ check_pattern 'border-white|border-black' \
 # 4. Legacy tokens
 check_pattern '(bg|text|border)-tea-(ink|paper|seal|charcoal)[^-a-z]' \
   "Legacy token detected. See COLOR_RULES.md for replacements."
+
+# 4b. Gold-on-gold combos (bg-tea-gold[-lt] paired with text-tea-gold[-lt] on same element)
+#     The two gold tokens are near-identical, so this combo is unreadable in both modes.
+#     Use: bg-tea-gold/10 text-tea-text ring-1 ring-inset ring-tea-gold/40  (subtle badge)
+#     Or:  bg-tea-gold text-tea-bg                                         (solid CTA)
+#     Matches only when each token is a complete class (next char is space, quote, ` or end).
+# Intermediate region excludes quotes, braces, and ':' — so hover:/focus:/dark: variants
+# won't trigger false positives. Requires both tokens to be base classes on the same element.
+check_pattern_ere 'bg-tea-gold(-lt)?[[:space:]][^"'"'"'`{}:]*text-tea-gold(-lt)?([[:space:]"'"'"'`]|$)' \
+  "Gold-on-gold combo detected (bg-tea-gold[-lt] + text-tea-gold[-lt]). Unreadable in both modes — see COLOR_RULES.md."
+check_pattern_ere 'text-tea-gold(-lt)?[[:space:]][^"'"'"'`{}:]*bg-tea-gold(-lt)?([[:space:]"'"'"'`]|$)' \
+  "Gold-on-gold combo detected (text-tea-gold[-lt] + bg-tea-gold[-lt]). Unreadable in both modes — see COLOR_RULES.md."
 
 # ── Progressive checks (non-blocking) ─────────────────────────────────────────
 # These catch existing violations that are too numerous to fix at once.

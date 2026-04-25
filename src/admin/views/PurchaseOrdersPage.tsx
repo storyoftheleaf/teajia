@@ -18,7 +18,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 const STATUS_STYLES: Record<string, string> = {
   pending: 'bg-tea-elevated text-tea-text-sec',
-  ordered: 'bg-tea-gold-lt text-tea-gold',
+  ordered: 'bg-tea-gold/10 text-tea-text ring-1 ring-inset ring-tea-gold/40',
   received: 'bg-tea-elevated text-tea-text',
   cancelled: 'bg-tea-elevated text-tea-text-dim',
 };

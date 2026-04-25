@@ -139,7 +139,8 @@ const EventsPage: React.FC = () => {
   const { data: rawEvents = [], isLoading } = useQuery<(TeaEvent & { seats_remaining?: number; confirmed_count?: number })[]>({
     queryKey: ['events-public-list'],
     queryFn: () => api.events.listPublic(),
-    staleTime: 60_000,
+    staleTime: 5 * 60_000,
+    placeholderData: (prev) => prev,
   });
 
   const events: TeaEvent[] = useMemo(() => {

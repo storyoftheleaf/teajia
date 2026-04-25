@@ -11,6 +11,7 @@ import { TeawareCatalog } from './TeawareCatalog';
 import { PageHeader } from './shared/PageHeader';
 import { PageHeaderTabs } from './shared/PageHeaderTabs';
 import { Icons } from './Icons';
+import { fmtShopPrice, fmtShopPricePerGram } from '../utils/formatNumber';
 import { STARTER_TEA_SETS, STARTER_TEAWARE_SETS } from '../constants';
 import { CardImage } from './shared/CardImage';
 import { SectionDivider } from './shared/SectionDivider';
@@ -26,6 +27,7 @@ import type { StarterSet } from '../types';
 import type { Product } from '../admin/types';
 
 const AddProductModal = lazy(() => import('../admin/components/AddProductModal').then(m => ({ default: m.AddProductModal })));
+const ProductEditPanel = lazy(() => import('../admin/components/ProductEditPanel').then(m => ({ default: m.ProductEditPanel })));
 
 type ShopTab = 'collection' | 'tea' | 'teaware' | 'sets';
 
@@ -47,7 +49,7 @@ const TABS = [
   { id: 'tea', label: 'Tea', icon: <Icons.Leaf className="w-4 h-4" /> },
   { id: 'teaware', label: 'Teaware', icon: <Icons.Teapot className="w-4 h-4" /> },
   { id: 'sets', label: 'Sets', icon: <Icons.Box className="w-4 h-4" /> },
-  { id: 'collection', label: 'Saved', icon: <Icons.Bookmark className="w-4 h-4" /> },
+  { id: 'collection', label: 'Liked', icon: <Icons.Heart className="w-4 h-4" /> },
 ];
 
 export const Shop: React.FC<ShopProps> = ({
@@ -495,8 +497,8 @@ export const Shop: React.FC<ShopProps> = ({
                     <p className="text-xs text-tea-text leading-snug line-clamp-2" style={{ fontFamily: 'var(--font-display)' }}>{item.name}</p>
                     <p className="text-[10px] text-tea-text-sec mt-0.5 font-mono tabular-nums">
                       {item.category === 'tea'
-                        ? `$${parseFloat(item.price_per_gram || '0').toFixed(2)}/g`
-                        : `$${parseFloat(item.price_50g || '0').toFixed(2)} each`}
+                        ? fmtShopPricePerGram(parseFloat(item.price_per_gram || '0'))
+                        : `${fmtShopPrice(parseFloat(item.price_50g || '0'))} each`}
                     </p>
                   </div>
                 ))}
@@ -510,16 +512,32 @@ export const Shop: React.FC<ShopProps> = ({
 
 
 
-      {/* Admin: Edit/Create Product Modal */}
-      {(editingProduct || showCreateModal) && (
+      {/* Admin: Create Product Modal (new items only) */}
+      {showCreateModal && (
         <ToastProvider>
           <Suspense fallback={null}>
             <AddProductModal
               isOpen={true}
-              onClose={() => { setEditingProduct(null); setShowCreateModal(false); }}
-              onSuccess={() => { setEditingProduct(null); setShowCreateModal(false); refetchProducts(); }}
-              initialData={editingProduct}
+              onClose={() => setShowCreateModal(false)}
+              onSuccess={() => { setShowCreateModal(false); refetchProducts(); }}
               rates={rates}
+            />
+          </Suspense>
+        </ToastProvider>
+      )}
+
+      {/* Admin: Edit Product — same sidebar panel used in the inventory view */}
+      {editingProduct && (
+        <ToastProvider>
+          <Suspense fallback={null}>
+            <ProductEditPanel
+              product={editingProduct}
+              rates={rates}
+              onClose={() => { setEditingProduct(null); refetchProducts(); }}
+              onUpdate={(id, field, value) => {
+                // Optimistic local update so the panel reflects the change immediately
+                setEditingProduct(prev => (prev && prev.id === id ? { ...prev, [field]: value } : prev));
+              }}
             />
           </Suspense>
         </ToastProvider>

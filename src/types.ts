@@ -1,4 +1,23 @@
 
+/**
+ * A single captured note within a tasting session. May originate from a voice
+ * transcription, typed entry, or promoted community entry. Starred notes are
+ * the admin's published voice on the product's tasting profile.
+ */
+export interface NoteEntry {
+  id: string;
+  text: string;
+  /** If true, the note has been curated and should render publicly. */
+  starred?: boolean;
+  /** Which section of the session the note was captured in. */
+  section?: 'flavor' | 'feeling' | 'body' | 'finish' | 'general';
+  /** ISO timestamp of when the note was first captured. */
+  capturedAt?: string;
+  /** When the note was promoted from a community source, its attribution. */
+  sourceAuthor?: { initial?: string; accountName?: string };
+  sourceJournalEntryId?: string;
+}
+
 export interface TastingData {
   // Section 1: Sensation (temperature, weight, texture)
   body?: string[];              // temperature + weight + texture terms
@@ -22,8 +41,9 @@ export interface TastingData {
   // Section 5: Appearance (color + clarity)
   'liquor-color'?: string[];    // color swatch
 
-  // Notes
-  notes?: string[];             // separate note entries (text / transcribed voice)
+  // Notes — accepts legacy plain strings or structured entries so admin
+  // can star/edit/curate specific notes for public display.
+  notes?: (string | NoteEntry)[];
   voiceNote?: string;           // legacy single concatenated note
 
   // Brewing context (session conditions)
@@ -42,38 +62,67 @@ export interface TastingData {
   mood?: string;
 }
 
+/**
+ * One recorded tasting sitting. Holds the raw TastingData captured that day.
+ * Sessions beyond the first carry a `reason` explaining why a fresh tasting was
+ * warranted instead of editing the entry's note in place.
+ */
+export interface TastingRecord {
+  id: string;
+  createdAt: string;
+  tasting: TastingData;
+  /**
+   * Required for tastings 2..N. Why a fresh tasting was needed (different brew,
+   * aged tea, new vessel, etc.). The first record on an entry leaves this empty.
+   */
+  reason?: string;
+  /** Per-tasting provenance. Source context lives here, not at entry level. */
+  sourceType?: 'product' | 'compass' | 'event' | 'sample';
+  eventId?: string;
+  eventSlug?: string;
+  eventTitle?: string;
+  tasterName?: string;
+}
+
+/**
+ * Canonical tasting entry. One row per (userId, productId).
+ *
+ * The `note` layer is the user's current view of this tea: the paragraph that
+ * surfaces in the journal card and the latest tasting profile. Edited in place
+ * over time. The `tastings[]` array holds every recorded sitting, oldest first.
+ */
 export interface CustomerTasting {
   id: string;
-  teaId: string;
-  teaName: string;
-  teaType: string;
-  teaImage?: string;
-  tasting: TastingData;
-  personalNote?: string;
-  rating?: number;
-  createdAt: string;
-  /** When this tasting originated from an event session */
-  eventId?: string;
-  /** URL slug for the event (e.g. "winter-2024") — used for navigation */
-  eventSlug?: string;
-  /** Human-readable event title for display in the journal */
-  eventTitle?: string;
-  /** Origin context */
-  sourceType?: 'product' | 'compass' | 'event' | 'sample';
-  /** Cross-link to a TeaCompassEntry */
+  /** Canonical key. Renamed from teaId. Never 'quick-note' (that sentinel is gone). */
+  productId: string;
+  productName: string;
+  productType: string;
+  productImage?: string;
+
+  /**
+   * The current view of this tea for this user. Surfaces in the journal card
+   * and the entry detail. Mutated in place by edits and (with confirmation)
+   * when a new tasting is added.
+   */
+  note: {
+    tasting: TastingData;
+    personalNote?: string;
+    rating?: number;
+    verdict?: 'love' | 'like' | 'neutral' | 'pass';
+    wouldBuy?: boolean;
+    updatedAt: string;
+  };
+
+  /** Every recorded tasting, oldest first. Length >= 1. */
+  tastings: TastingRecord[];
+
+  /** Cross-links and origin context that belong to the entry as a whole. */
   compassEntryId?: string;
-  /** Sourcing verdict — would we stock/order this tea? */
-  verdict?: 'love' | 'like' | 'neutral' | 'pass';
-  /** Would you buy/order this tea? */
-  wouldBuy?: boolean;
-  /** Name of the person who tasted (group cuppings) */
-  tasterName?: string;
-  /** Whether this entry has been synced to the server */
-  synced?: boolean;
-  /** Account this tasting belongs to (for multi-account filtering) */
+
+  createdAt: string;
   accountId?: string;
-  /** Archived entries are hidden from the main journal view but never deleted */
   archived?: boolean;
+  synced?: boolean;
 }
 
 export enum ContentType {
@@ -455,9 +504,9 @@ export interface Resource {
 }
 
 // Navigation Types
-export type Section = 'HOME' | 'MAGAZINE' | 'LEARN' | 'SHOP' | 'OFFERINGS' | 'EVENTS' | 'ACCOUNT' | 'ABOUT';
-export type MainNavSection = Exclude<Section, 'HOME' | 'ACCOUNT'>;
-export type UtilitySection = Extract<Section, 'ACCOUNT'>;
+export type Section = 'HOME' | 'MAGAZINE' | 'LEARN' | 'SHOP' | 'OFFERINGS' | 'EVENTS' | 'YOUR_TABLE' | 'ABOUT';
+export type MainNavSection = Exclude<Section, 'HOME' | 'YOUR_TABLE'>;
+export type UtilitySection = Extract<Section, 'YOUR_TABLE'>;
 
 // ─── Multi-Account (Multi-Store) Types ───────────────────────────────────────
 // A Teajia "account" is a tea house / store. Users belong to one or more
@@ -503,6 +552,7 @@ export interface AccountMember {
   permissions?: Record<string, boolean>;
   joined_at?: string;
   status?: string;
+  can_create_collections?: boolean;
 }
 
 // ── Magazine / Article types ────────────────────────────────────────────────
@@ -532,4 +582,123 @@ export interface DbArticle {
   created_at: string;
   updated_at: string;
   blocks_preview?: string;
+}
+
+// ── Collections (Phase 1) ───────────────────────────────────────────────────
+
+export type CollectionStatus = 'draft' | 'active' | 'archived';
+export type CollectionTargetType = 'person' | 'store' | 'event' | 'shop';
+
+export interface CollectionRecipient {
+  customer_id?: string;
+  name: string;
+  phone?: string;
+}
+
+export interface Collection {
+  id: string;
+  account_id: string;
+  title: string;
+  note?: string | null;
+  hero_image_url?: string | null;
+  status: CollectionStatus;
+  created_by_user_id?: string | null;
+  curator_user_id?: string | null;
+  curator_display_name?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CollectionListRow {
+  id: string;
+  title: string;
+  note?: string | null;
+  hero_image_url?: string | null;
+  status: CollectionStatus;
+  curator_display_name?: string | null;
+  created_at: string;
+  updated_at: string;
+  item_count: number;
+  active_publication_count: number;
+  last_published_at?: string | null;
+  thumbnails: string[];
+}
+
+export interface CollectionItem {
+  id: string;
+  collection_id: string;
+  product_id: string;
+  position: number;
+  item_note?: string | null;
+  product_type?: string;
+  product_name?: string;
+  chinese_name?: string | null;
+  year?: number | null;
+  origin_country?: string | null;
+  origin_region?: string | null;
+  image_url?: string | null;
+  product_status?: string;
+  stock_grams?: number | null;
+  quantity_units?: number | null;
+  tasting_notes?: string[] | string | null;
+  description?: string | null;
+}
+
+export interface CollectionPublication {
+  id: string;
+  collection_id: string;
+  target_type: CollectionTargetType;
+  target_id?: string | null;
+  slug: string;
+  recipients: CollectionRecipient[];
+  published_at: string;
+  unpublished_at?: string | null;
+  view_count: number;
+}
+
+export interface CollectionDetail {
+  collection: Collection;
+  items: CollectionItem[];
+  publications: CollectionPublication[];
+}
+
+export interface PublicCollectionItem {
+  id: string;
+  position: number;
+  item_note?: string | null;
+  product_id: string;
+  product_type?: string;
+  product_name?: string;
+  chinese_name?: string | null;
+  year?: number | null;
+  origin_country?: string | null;
+  origin_region?: string | null;
+  image_url?: string | null;
+  description?: string | null;
+  tasting_notes?: string[] | null;
+  product_status?: string;
+  out_of_stock: boolean;
+}
+
+export interface PublicCollectionResponse {
+  collection: {
+    title: string;
+    note?: string | null;
+    hero_image_url?: string | null;
+    curator_display_name?: string | null;
+  };
+  items: PublicCollectionItem[];
+  account: { name: string; whatsapp_number?: string | null } | null;
+  publication: { slug: string; view_count: number };
+}
+
+export interface NeedsAttentionItem {
+  item_id: string;
+  collection_id: string;
+  collection_title: string;
+  product_id: string;
+  product_name: string;
+  product_type?: string;
+  product_status?: string;
+  issue: 'out_of_stock' | 'archived';
 }

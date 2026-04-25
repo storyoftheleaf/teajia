@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useLayoutEffect, useRef, useCallba
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import {
   Loader2, FileSpreadsheet, Plus, Search, QrCode, Download,
-  Trash2, AlertTriangle, Archive, Pencil, AlertOctagon, ArrowUpDown, ArrowUp, ArrowDown, Copy, Layers, Settings, MoreHorizontal, Check, X as XIcon, Eye, EyeOff, Star, Sparkles, FlaskConical, RefreshCw, ChevronDown, ChevronRight, ChevronLeft, MapPin, Save, Columns, Square, CheckSquare, Leaf, Coffee, Image as ImageIcon, Globe, Tag, FileText, User, Receipt, BookOpen
+  Trash2, AlertTriangle, Archive, Pencil, AlertOctagon, ArrowUpDown, ArrowUp, ArrowDown, Copy, Layers, Settings, MoreHorizontal, Check, X as XIcon, Eye, EyeOff, Star, Sparkles, FlaskConical, RefreshCw, ChevronDown, ChevronRight, ChevronLeft, MapPin, Save, Columns, Square, CheckSquare, Leaf, Coffee, Image as ImageIcon, Globe, Tag, FileText, User, Receipt, BookOpen, Droplets, PackageX
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Papa from 'papaparse';
@@ -37,6 +37,8 @@ import {
 } from '../../data/tastingTaxonomy';
 import { AutocompleteInput } from '../../components/TeaCompass/AutocompleteInput';
 import { buildVarietyDataMap, getTeaVarietySuggestions } from '../../data/teaVarieties';
+import { CollectionShareSheet } from './collections/CollectionShareSheet';
+import { QuickInvoiceModal } from './QuickInvoiceModal';
 
 const MAINTENANCE_SQL = `-- Reset all data via API\n// Use the admin panel's reset function`;
 
@@ -48,6 +50,8 @@ const VIEW_ICON_MAP: Record<string, React.ComponentType<{ size?: number; classNa
   Archive,
   Coffee,
   Globe,
+  Droplets,
+  PackageX,
 };
 
 const VIEW_FILTER_LABELS: Record<string, string> = {
@@ -59,6 +63,8 @@ const VIEW_FILTER_LABELS: Record<string, string> = {
   Samples: 'Samples',
   Personal: 'Personal Collection',
   Archived: 'Archived',
+  SoldOut: 'Sold Out',
+  Untasted: 'Tasting Unreviewed',
 };
 
 // --- COLUMN DEFINITIONS ---
@@ -164,12 +170,30 @@ const DEFAULT_TEA_VIEWS: Array<{ id: string; name: string; icon?: string | null;
     groupBy: null,
   },
   {
+    id: 'default-untasted',
+    name: '',
+    icon: 'Droplets',
+    columns: ['productName', 'type', 'year', 'originRegion', 'stockGrams', 'pricePerGramUSD'],
+    sortConfig: [{ key: 'type', direction: 'asc' as const }],
+    filterType: 'Untasted',
+    groupBy: null,
+  },
+  {
     id: 'default-archived',
     name: '',
     icon: 'Archive',
     columns: ['productName', 'type', 'year', 'originRegion', 'stockGrams', 'costAmount'],
     sortConfig: [{ key: 'type', direction: 'asc' as const }],
     filterType: 'Archived',
+    groupBy: null,
+  },
+  {
+    id: 'default-soldout',
+    name: '',
+    icon: 'PackageX',
+    columns: ['productName', 'type', 'year', 'originRegion', 'vendor', 'pricePerGramUSD'],
+    sortConfig: [{ key: 'type', direction: 'asc' as const }],
+    filterType: 'SoldOut',
     groupBy: null,
   },
 ];
@@ -202,6 +226,8 @@ const DEFAULT_TEAWARE_VIEWS: typeof DEFAULT_TEA_VIEWS = [
 ];
 
 
+const TYPE_OPTIONS = ['Green', 'Yellow', 'White', 'Oolong', 'Red', 'Dark', 'Sheng', 'Shou', 'Herbal', 'Teaware', 'Misc'] as const;
+
 const BULK_EDIT_FIELDS: readonly { key: string; label: string; type: 'select' | 'boolean'; options?: readonly string[] }[] = [
   { key: 'status', label: 'Status', type: 'select', options: ['Active', 'Archived', 'Sold Out', 'Draft'] },
   { key: 'isPublic', label: 'Public', type: 'boolean' },
@@ -227,529 +253,9 @@ interface InventoryViewProps {
   onOptionsToggle?: (open: boolean) => void;
 }
 
-// --- GHOST INPUT COMPONENT ---
-// Subtle dotted underline in resting state signals editability; solid on focus.
-const GhostTextarea = ({
-    value,
-    onSave,
-    className = '',
-    placeholder = '',
-    rows = 3,
-}: {
-    value: string,
-    onSave: (val: string) => void,
-    className?: string,
-    placeholder?: string,
-    rows?: number,
-}) => {
-    const [localValue, setLocalValue] = useState(value);
-    const [justSaved, setJustSaved] = useState(false);
-    const textareaRef = useRef<HTMLTextAreaElement>(null);
-    useEffect(() => { setLocalValue(value); }, [value]);
-    const handleBlur = () => {
-        if (localValue !== value) {
-            onSave(localValue);
-            setJustSaved(true);
-            setTimeout(() => setJustSaved(false), 600);
-        }
-    };
-    // Auto-expand to fit content
-    useEffect(() => {
-        const el = textareaRef.current;
-        if (el) {
-            el.style.height = 'auto';
-            el.style.height = el.scrollHeight + 'px';
-        }
-    }, [localValue]);
-    return (
-        <textarea
-            ref={textareaRef}
-            value={localValue || ''}
-            onChange={(e) => setLocalValue(e.target.value)}
-            onBlur={handleBlur}
-            placeholder={placeholder}
-            rows={rows}
-            className={`w-full bg-transparent border border-dashed border-tea-accent-sub focus:border-solid focus:border-tea-accent-sub focus:bg-tea-gold/[0.06] rounded-md py-1.5 px-2 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-all resize-none text-xs leading-relaxed whitespace-pre-line placeholder-tea-text-dim/70 min-h-[80px] overflow-hidden ${justSaved ? '!text-tea-gold' : ''} ${className}`}
-        />
-    );
-};
+// Shared inline-edit components + ProductEditPanel (extracted for reuse)
+import { GhostInput, GhostTextarea, GhostAutocompleteInput, GhostSelect, VendorPicker, ImageManager, ProductEditPanel, CollapsibleSection, buildProductUpdatePayload } from './ProductEditPanel';
 
-const GhostInput = ({
-    value,
-    onSave,
-    type = 'text',
-    align = 'left',
-    className = '',
-    placeholder = '',
-    inputMode,
-    id,
-    ariaLabel,
-}: {
-    value: string | number,
-    onSave: (val: any) => void,
-    type?: 'text' | 'number',
-    align?: 'left' | 'right',
-    className?: string,
-    placeholder?: string,
-    inputMode?: string,
-    id?: string,
-    ariaLabel?: string,
-}) => {
-    const [localValue, setLocalValue] = useState(value);
-    
-    // Sync with prop updates (e.g. from refresh)
-    useEffect(() => {
-        setLocalValue(value);
-    }, [value]);
-
-    const [justSaved, setJustSaved] = useState(false);
-
-    const handleBlur = () => {
-        // Simple loose equality check to prevent unnecessary saves (e.g. "10" vs 10)
-        if (localValue != value) {
-            onSave(localValue);
-            setJustSaved(true);
-            setTimeout(() => setJustSaved(false), 600);
-        }
-    };
-
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'Enter') {
-            e.currentTarget.blur();
-        }
-    };
-
-    return (
-        <input
-            id={id}
-            aria-label={ariaLabel}
-            type={type}
-            value={localValue || ''}
-            onChange={(e) => setLocalValue(e.target.value)}
-            onBlur={handleBlur}
-            onKeyDown={handleKeyDown}
-            placeholder={placeholder}
-            inputMode={inputMode || (type === 'number' ? 'decimal' : undefined) as any}
-            className={`w-full bg-transparent border-b border-dashed border-tea-accent-sub focus:border-solid focus:border-tea-accent-sub focus:bg-tea-gold/[0.06] rounded-none py-0 px-0 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-all text-${align} placeholder-tea-text-dim/70 leading-none ${justSaved ? '!text-tea-gold' : ''} ${className}`}
-        />
-    );
-};
-
-// Ghost input with autocomplete dropdown — for product name field in panel
-const GhostAutocompleteInput = ({
-  value, onSave, suggestions, itemData, onAutoFill, className = '', placeholder = '',
-}: {
-  value: string;
-  onSave: (val: string) => void;
-  suggestions: string[];
-  itemData?: Record<string, any>;
-  onAutoFill?: (data: any) => void;
-  className?: string;
-  placeholder?: string;
-}) => {
-  const [localValue, setLocalValue] = useState(value);
-  const localValueRef = useRef(value);
-  const [justSaved, setJustSaved] = useState(false);
-
-  useEffect(() => {
-    setLocalValue(value);
-    localValueRef.current = value;
-  }, [value]);
-
-  const save = useCallback((val: string) => {
-    if (val !== value) {
-      onSave(val);
-      setJustSaved(true);
-      setTimeout(() => setJustSaved(false), 600);
-    }
-  }, [value, onSave]);
-
-  const handleChange = (val: string) => {
-    localValueRef.current = val;
-    setLocalValue(val);
-  };
-
-  const handleSelect = (data: any) => {
-    save(localValueRef.current);
-    onAutoFill?.(data);
-  };
-
-  return (
-    <div
-      className="flex-1 min-w-0"
-      onBlur={(e) => {
-        if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-          save(localValueRef.current);
-        }
-      }}
-    >
-      <AutocompleteInput
-        value={localValue}
-        onChange={handleChange}
-        suggestions={suggestions}
-        itemData={itemData}
-        onSelect={handleSelect}
-        placeholder={placeholder}
-        className={`w-full bg-transparent border-b border-dashed border-tea-accent-sub focus:border-solid focus:border-tea-accent-sub focus:bg-tea-gold/[0.06] rounded-none py-0 px-0 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-all text-right placeholder-tea-text-dim/70 leading-none ${justSaved ? '!text-tea-gold' : ''} ${className}`}
-      />
-    </div>
-  );
-};
-
-// --- GHOST SELECT ---
-const GhostSelect = ({ value, onSave, options, className = '' }: {
-    value: string, onSave: (val: string) => void, options: string[], className?: string
-}) => (
-    <div className="relative flex-1">
-        <select
-            value={value}
-            onChange={(e) => onSave(e.target.value)}
-            className={`w-full bg-transparent border-b border-dashed border-tea-accent-sub focus:border-solid focus:border-tea-accent-sub focus:bg-tea-gold/[0.06] rounded-none py-0 px-0 pr-4 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-all text-right appearance-none cursor-pointer leading-none ${className}`}
-        >
-            {options.map(opt => (
-                <option key={opt} value={opt} className="bg-tea-surface text-tea-text">{opt}</option>
-            ))}
-        </select>
-        <ChevronRight size={10} className="absolute right-0 top-1/2 -translate-y-1/2 rotate-90 text-tea-text-sec pointer-events-none" />
-    </div>
-);
-
-// --- VENDOR PICKER (inline, uses useCustomers) ---
-const VendorPicker = ({ value, onChange, productId, className }: {
-    value: string, onChange: (name: string) => void, productId?: string, className?: string
-}) => {
-    const { data: customers = [], refetch: refetchCustomers } = useCustomers();
-    const [open, setOpen] = useState(false);
-    const [query, setQuery] = useState(value);
-    const wrapperRef = useRef<HTMLDivElement>(null);
-
-    const vendors = useMemo(() => {
-        return customers
-            .filter(c => c.tags?.includes('vendor'))
-            .map(c => c.name)
-            .sort((a, b) => a.localeCompare(b));
-    }, [customers]);
-
-    const allOptions = useMemo(() => {
-        const set = new Set(vendors);
-        if (value && !set.has(value)) set.add(value);
-        return Array.from(set).sort((a, b) => a.localeCompare(b));
-    }, [vendors, value]);
-
-    const filtered = useMemo(() => {
-        if (!query) return allOptions;
-        const q = query.toLowerCase();
-        return allOptions.filter(v => v.toLowerCase().includes(q));
-    }, [allOptions, query]);
-
-    useEffect(() => { setQuery(value); }, [value]);
-
-    useEffect(() => {
-        const handler = (e: MouseEvent) => {
-            if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
-                setOpen(false);
-            }
-        };
-        document.addEventListener('mousedown', handler);
-        return () => document.removeEventListener('mousedown', handler);
-    }, []);
-
-    const isNew = query.trim() && !vendors.some(v => v.toLowerCase() === query.trim().toLowerCase());
-
-    // Auto-create vendor customer and link the product
-    const handleSelectVendor = async (name: string) => {
-        onChange(name);
-        setOpen(false);
-        if (!name) return;
-
-        // Find existing customer by name (with or without vendor tag)
-        let vendorCustomer = customers.find(
-            c => c.name.toLowerCase() === name.toLowerCase()
-        );
-
-        if (!vendorCustomer) {
-            // Create new customer with vendor tag
-            try {
-                const created = await api.customers.create({
-                    name,
-                    tags: ['vendor'],
-                });
-                refetchCustomers();
-                // Link the product to the new vendor
-                if (productId && created?.id) {
-                    await api.customers.linkProduct(created.id, productId);
-                }
-                return;
-            } catch (err) {
-                console.error('Failed to create vendor customer:', err);
-                return;
-            }
-        }
-
-        // Existing customer — ensure they have the vendor tag
-        if (!vendorCustomer.tags?.includes('vendor')) {
-            try {
-                await api.customers.update(vendorCustomer.id, {
-                    tags: [...(vendorCustomer.tags || []), 'vendor'],
-                });
-                refetchCustomers();
-            } catch (err) {
-                console.error('Failed to add vendor tag:', err);
-            }
-        }
-
-        // Link the product to the vendor
-        if (productId && vendorCustomer.id) {
-            try {
-                await api.customers.linkProduct(vendorCustomer.id, productId);
-            } catch (err) {
-                // Link may already exist — that's fine
-            }
-        }
-    };
-
-    return (
-        <div ref={wrapperRef} className="relative flex-1">
-            <input
-                type="text"
-                value={query}
-                onChange={e => { setQuery(e.target.value); setOpen(true); }}
-                onFocus={() => setOpen(true)}
-                onBlur={() => { setTimeout(() => handleSelectVendor(query.trim()), 150); }}
-                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleSelectVendor(query.trim()); } }}
-                className={className}
-                placeholder="Type or pick a source..."
-            />
-
-            {open && (filtered.length > 0 || (query.trim() && isNew)) && (
-                <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-tea-surface border border-tea-accent-sub rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                    {isNew && query.trim() && (
-                        <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => handleSelectVendor(query.trim())}
-                            className="w-full text-left px-3 py-2 text-xs text-tea-gold hover:bg-tea-bg transition-colors border-b border-tea-accent-sub">
-                            + Add "{query.trim()}" as new source
-                        </button>
-                    )}
-                    {filtered.map(v => (
-                        <button key={v} type="button" onMouseDown={e => e.preventDefault()} onClick={() => { setQuery(v); handleSelectVendor(v); }}
-                            className={`w-full text-left px-3 py-2 text-xs hover:bg-tea-bg transition-colors ${v === value ? 'text-tea-gold font-medium' : 'text-tea-text'}`}>
-                            {v}
-                        </button>
-                    ))}
-                </div>
-            )}
-        </div>
-    );
-};
-
-// --- COLLAPSIBLE SECTION ---
-const CollapsibleSection = ({ title, defaultOpen = true, mobileDefault, children }: {
-    title: string, defaultOpen?: boolean, mobileDefault?: boolean, children: React.ReactNode
-}) => {
-    const [open, setOpen] = useState(() => {
-        if (mobileDefault !== undefined && typeof window !== 'undefined' && !window.matchMedia('(min-width: 768px)').matches) {
-            return mobileDefault;
-        }
-        return defaultOpen;
-    });
-    return (
-        <div className="mx-3 mb-3 rounded-lg bg-tea-surface">
-            <button onClick={() => setOpen(!open)} className="w-full flex items-center justify-between px-4 py-3 group">
-                <span className="text-[10px] text-tea-text-sec uppercase tracking-[0.12em] font-bold">{title}</span>
-                <ChevronRight size={13} className={`text-tea-text-dim/60 transition-transform duration-200 group-hover:text-tea-text-sec ${open ? 'rotate-90' : ''}`} />
-            </button>
-            <div
-                className="grid transition-[grid-template-rows] duration-200 ease-out"
-                style={{ gridTemplateRows: open ? '1fr' : '0fr' }}
-            >
-                <div className="overflow-hidden">
-                    <div className="px-4 pb-4">{children}</div>
-                </div>
-            </div>
-        </div>
-    );
-};
-
-// --- TAG INPUT COMPONENT ---
-const TagInput = ({ suggestions, value, onSave, multiple = true, placeholder = '' }: {
-    suggestions: string[], value: string[] | string, onSave: (val: any) => void,
-    multiple?: boolean, placeholder?: string
-}) => {
-    const [input, setInput] = useState('');
-    const [showDropdown, setShowDropdown] = useState(false);
-    const inputRef = useRef<HTMLInputElement>(null);
-    const tags = multiple ? (Array.isArray(value) ? value : []) : [];
-    const singleValue = !multiple ? (typeof value === 'string' ? value : '') : '';
-    const filtered = suggestions.filter(s =>
-        s.toLowerCase().includes(input.toLowerCase()) &&
-        (multiple ? !tags.includes(s) : true)
-    ).slice(0, 8);
-
-    const addTag = (tag: string) => {
-        if (multiple) {
-            const newTags = [...tags, tag];
-            onSave(newTags);
-        } else {
-            onSave(tag);
-        }
-        setInput('');
-        setShowDropdown(false);
-    };
-
-    const removeTag = (tag: string) => {
-        if (multiple) {
-            onSave(tags.filter(t => t !== tag));
-        }
-    };
-
-    const handleKeyDown = (e: React.KeyboardEvent) => {
-        if (e.key === 'Enter' && input.trim()) {
-            e.preventDefault();
-            addTag(input.trim());
-        }
-    };
-
-    return (
-        <div className="relative">
-            <input
-                ref={inputRef}
-                value={multiple ? input : (input || singleValue)}
-                onChange={e => { setInput(e.target.value); setShowDropdown(true); if (!multiple) onSave(e.target.value); }}
-                onFocus={() => setShowDropdown(true)}
-                onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
-                onKeyDown={handleKeyDown}
-                placeholder={placeholder}
-                className="w-full bg-transparent border-b border-transparent focus:border-tea-accent-sub focus:bg-tea-gold/[0.06] rounded-none py-0 px-0 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-all text-xs text-tea-text placeholder-tea-text-dim/70 leading-none"
-            />
-            {showDropdown && input && filtered.length > 0 && (
-                <div className="absolute z-10 left-0 right-0 mt-1 bg-tea-surface border border-tea-accent-sub rounded-md shadow-lg max-h-32 overflow-y-auto">
-                    {filtered.map(s => (
-                        <button key={s} onMouseDown={() => addTag(s)} className="w-full text-left px-3 py-1.5 text-xs text-tea-text-sec hover:bg-tea-elevated transition-colors">
-                            {s}
-                        </button>
-                    ))}
-                </div>
-            )}
-            {multiple && tags.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 mt-2">
-                    {tags.map(tag => (
-                        <span key={tag} className="text-[10px] text-tea-text-sec bg-tea-surface/50 px-2 py-0.5 rounded-full flex items-center gap-1 group">
-                            {tag}
-                            <button onClick={() => removeTag(tag)} className="opacity-0 group-hover:opacity-100 transition-opacity"><XIcon size={8} /></button>
-                        </span>
-                    ))}
-                </div>
-            )}
-        </div>
-    );
-};
-
-// --- IMAGE MANAGER ---
-const ImageManager = ({ product, onUpdate }: {
-    product: Product, onUpdate: (field: keyof Product, value: any) => void
-}) => {
-    const fileInputRef = useRef<HTMLInputElement>(null);
-    const [uploadingSlot, setUploadingSlot] = useState<number | null>(null);
-    const [justUploadedSlot, setJustUploadedSlot] = useState<number | null>(null);
-    const { showToast } = useToast();
-
-    const images = [
-        product.imageUrl || '',
-        ...(product.additionalImages || [])
-    ].slice(0, 3);
-    // Pad to 3 slots
-    while (images.length < 3) images.push('');
-
-    const handleUpload = async (file: File, slotIndex: number) => {
-        setUploadingSlot(slotIndex);
-        try {
-            const url = await api.uploadImage(file);
-            if (slotIndex === 0) {
-                onUpdate('imageUrl', url);
-            } else {
-                const additional = [...(product.additionalImages || [])];
-                additional[slotIndex - 1] = url;
-                onUpdate('additionalImages' as keyof Product, additional);
-            }
-            setJustUploadedSlot(slotIndex);
-            setTimeout(() => setJustUploadedSlot(null), 1200);
-        } catch (err: any) {
-            showToast(`Upload failed: ${err.message}`, 'error');
-        } finally {
-            setUploadingSlot(null);
-        }
-    };
-
-    const handleRemove = (slotIndex: number) => {
-        if (slotIndex === 0) {
-            onUpdate('imageUrl', '');
-        } else {
-            const additional = [...(product.additionalImages || [])];
-            additional.splice(slotIndex - 1, 1);
-            onUpdate('additionalImages' as keyof Product, additional);
-        }
-    };
-
-    const slotLabels = ['Primary', '2nd', '3rd'];
-    return (
-        <div className="flex gap-3">
-            {images.map((img, i) => (
-                <div key={i} className="flex flex-col items-center gap-1.5">
-                    {img ? (
-                        <div className="w-24 h-24 rounded-lg overflow-hidden relative group">
-                            <img src={img} alt={slotLabels[i]} className="w-full h-full object-cover" loading="lazy" />
-                            {justUploadedSlot === i ? (
-                                <div className="absolute inset-0 bg-emerald-900/60 flex items-center justify-center pointer-events-none">
-                                    <Check size={22} className="text-emerald-300" />
-                                </div>
-                            ) : (
-                                <button
-                                    onClick={() => handleRemove(i)}
-                                    className="absolute inset-0 bg-tea-bg/70 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
-                                >
-                                    <XIcon size={16} className="text-tea-text" />
-                                </button>
-                            )}
-                            {i === 0 && (
-                                <div className="absolute bottom-0 left-0 right-0 bg-tea-bg/60 text-[8px] text-tea-text-dim text-center py-0.5 uppercase tracking-[0.1em]">
-                                    Primary
-                                </div>
-                            )}
-                        </div>
-                    ) : (
-                        <button
-                            onClick={() => {
-                                const input = document.createElement('input');
-                                input.type = 'file';
-                                input.accept = 'image/*';
-                                input.onchange = (e: any) => {
-                                    const file = e.target.files?.[0];
-                                    if (file) handleUpload(file, i);
-                                };
-                                document.body.appendChild(input);
-                                input.click();
-                                input.remove();
-                            }}
-                            disabled={uploadingSlot !== null}
-                            className="w-24 h-24 rounded-lg bg-tea-surface/50 hover:bg-tea-surface border border-dashed border-tea-accent-sub hover:border-tea-gold/30 transition-colors flex flex-col items-center justify-center gap-1.5 cursor-pointer"
-                        >
-                            {uploadingSlot === i ? (
-                                <Loader2 size={16} className="text-tea-text-dim animate-spin" />
-                            ) : (
-                                <>
-                                    <Plus size={16} className="text-tea-text-dim" />
-                                    {i === 0 && <span className="text-[9px] text-tea-text-dim/60 uppercase tracking-[0.1em]">Primary</span>}
-                                </>
-                            )}
-                        </button>
-                    )}
-                    {i > 0 && (
-                        <span className="text-[9px] text-tea-text-dim/50 uppercase tracking-[0.1em]">{slotLabels[i]}</span>
-                    )}
-                </div>
-            ))}
-        </div>
-    );
-};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MEMOIZED ROW — defined outside InventoryView so it is never redefined.
@@ -816,12 +322,12 @@ function InventoryRowBase(props: InventoryRowProps) {
               <>
                 <span className="text-sm font-serif text-tea-text tracking-wide group-hover:text-tea-gold transition-colors truncate">{product.productName}</span>
                 {product.givenName && (
-                  <span className="text-[10px] text-tea-text-sec font-sans mt-0.5 truncate block">
+                  <span className="text-[10px] text-tea-text-sec font-sans truncate block">
                     {product.givenName}{product.form && <span className="ml-1 opacity-50">· {product.form}</span>}
                   </span>
                 )}
                 {!product.givenName && product.form && (
-                  <span className="text-[10px] text-tea-text-sec/50 font-sans mt-0.5 truncate block">{product.form}</span>
+                  <span className="text-[10px] text-tea-text-sec/50 font-sans truncate block">{product.form}</span>
                 )}
               </>
             )}
@@ -832,9 +338,24 @@ function InventoryRowBase(props: InventoryRowProps) {
         const dotColor = getThemeColor(product.type);
         return (
           <td key={colKey} id={cellId(colIndex)} className={`px-4 align-middle overflow-hidden ${fr}`}>
-            <span className="flex items-center gap-2 text-xs font-medium tracking-wide text-tea-text-sec truncate">
-              <span style={{ color: dotColor, fontSize: '10px' }}>&#9679;</span> {product.type}
-            </span>
+            {isEditMode ? (
+              <label className="flex items-center gap-2 text-xs font-medium tracking-wide text-tea-text-sec truncate cursor-pointer">
+                <span style={{ color: dotColor, fontSize: '10px' }} className="flex-shrink-0">&#9679;</span>
+                <select
+                  value={product.type}
+                  onChange={(e) => onProductUpdate(product.id, 'type', e.target.value)}
+                  onClick={(e) => e.stopPropagation()}
+                  className="bg-transparent outline-none appearance-none cursor-pointer text-xs text-tea-text-sec hover:text-tea-text focus-visible:ring-2 focus-visible:ring-tea-gold/50 rounded"
+                  aria-label="Tea type"
+                >
+                  {TYPE_OPTIONS.map((t) => <option key={t} value={t} className="bg-tea-surface text-tea-text">{t}</option>)}
+                </select>
+              </label>
+            ) : (
+              <span className="flex items-center gap-2 text-xs font-medium tracking-wide text-tea-text-sec truncate">
+                <span style={{ color: dotColor, fontSize: '10px' }}>&#9679;</span> {product.type}
+              </span>
+            )}
           </td>
         );
       }
@@ -988,23 +509,9 @@ function InventoryRowBase(props: InventoryRowProps) {
         onRowClick(product.id, globalIdxRef.current, e);
       }}
     >
-      {splitView ? (
-        <td className="px-3 align-middle">
-          <div className="flex items-start gap-2 min-w-0">
-            <span style={{ color: getThemeColor(product.type), fontSize: 8, marginTop: 4, flexShrink: 0 }}>●</span>
-            <div className="min-w-0 flex-1">
-              <div className="text-[13px] font-serif text-tea-text leading-snug truncate">{product.productName || product.givenName}</div>
-              <div className="text-[10px] text-tea-text-sec leading-tight mt-0.5 flex items-center gap-1.5">
-                <span className="truncate">{product.chineseName || product.form || product.type}</span>
-                {!product.isPublic && <EyeOff size={9} className="text-tea-text-dim flex-shrink-0" />}
-                {product.isFeatured && <Star size={9} className="fill-tea-gold text-tea-gold flex-shrink-0" />}
-              </div>
-            </div>
-          </div>
-        </td>
-      ) : (
-        visibleCols.map((col, colIdx) => renderCell(col.key, colIdx))
-      )}
+      {splitView
+        ? renderCell('productName', 0)
+        : visibleCols.map((col, colIdx) => renderCell(col.key, colIdx))}
       <td className="px-1 align-middle text-right">
         <div className={`flex justify-end gap-0.5 transition-opacity ${isDropdownOpen ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`} onClick={(e) => e.stopPropagation()}>
           {!isEditMode && (
@@ -1324,6 +831,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
   // Feature 7: Bulk Edit
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [shareToNetworkOpen, setShareToNetworkOpen] = useState(false);
+  const [invoiceFromInventoryOpen, setInvoiceFromInventoryOpen] = useState(false);
   const [bulkField, setBulkField] = useState<string>('status');
   const [bulkValue, setBulkValue] = useState<string>('');
   const [isBulkApplying, setIsBulkApplying] = useState(false);
@@ -1413,8 +922,14 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       result = result.filter(p => p.isPersonal);
     } else if (filterType === 'ForSale') {
       result = result.filter(p => !p.isPersonal && !p.isSample);
+    } else if (filterType === 'Untasted') {
+      // Products whose tasting profile hasn't been reviewed & saved by the owner yet.
+      // Includes products with no tasting at all and products still on 'common' / 'community' source.
+      result = result.filter(p => p.tastingSource !== 'owner');
     } else if (filterType === 'Archived') {
       result = result.filter(p => p.status === 'Archived');
+    } else if (filterType === 'SoldOut') {
+      result = result.filter(p => p.status === 'Sold Out');
     } else if (filterType !== 'All') {
       result = result.filter(p => p.type === filterType);
     }
@@ -1531,8 +1046,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   }, [filterType, localProducts]);
 
   // --- VIRTUALIZATION LOGIC (TABLE BASED) ---
-  const ROW_HEIGHT = 36;
-  const SPLIT_ROW_HEIGHT = 52; // taller rows in split view (2-line name)
+  const ROW_HEIGHT = 42;
+  const SPLIT_ROW_HEIGHT = 42;
   const BUFFER_ROWS = 5;
   const splitView = !!panelProduct;
   const effectiveRowHeight = splitView ? SPLIT_ROW_HEIGHT : ROW_HEIGHT;
@@ -1569,16 +1084,95 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       return () => ro.disconnect();
   }, []);
 
-  const totalRows = processedProducts.length;
-  const totalHeight = totalRows * effectiveRowHeight;
-  const startIndex = Math.max(0, Math.floor(scrollTop / effectiveRowHeight) - BUFFER_ROWS);
-  const endIndex = Math.min(totalRows, Math.ceil((scrollTop + containerHeight) / effectiveRowHeight) + BUFFER_ROWS);
+  // Context-anchored action drawer — the row the drawer docks beneath.
+  // Prefers the last-clicked row (lastSelectedIdxRef) so the drawer follows the user's
+  // most recent action; falls back to any selected id if that anchor isn't selected.
+  const anchorProductId = (() => {
+    if (selectedIds.size === 0) return null;
+    const lastIdx = lastSelectedIdxRef.current;
+    if (lastIdx != null) {
+      const p = processedProducts[lastIdx];
+      if (p && selectedIds.has(p.id)) return p.id;
+    }
+    for (const p of processedProducts) if (selectedIds.has(p.id)) return p.id;
+    return null;
+  })();
 
-  const visibleProducts = processedProducts.slice(startIndex, endIndex);
-
-  // Spacer Heights
-  const paddingTop = startIndex * effectiveRowHeight;
-  const paddingBottom = Math.max(0, totalHeight - paddingTop - (visibleProducts.length * effectiveRowHeight));
+  const renderActionDrawer = (colSpan: number) => {
+    if (!anchorProductId || isEditMode) return null;
+    const count = selectedIds.size;
+    const allSelected = count === processedProducts.length;
+    return (
+      <tr key={`__drawer__${anchorProductId}`} className="bg-tea-elevated border-b border-tea-border">
+        <td colSpan={colSpan} className="p-0">
+          <div className="flex items-center gap-1 px-4 py-2 flex-wrap">
+            <button
+              onClick={toggleSelectAll}
+              className="flex items-baseline gap-1 px-2 py-1 rounded-md hover:bg-tea-bg/40 transition-colors"
+              title={allSelected ? 'Deselect all' : 'Select all'}
+            >
+              <span className="text-sm font-bold text-tea-text tabular-nums leading-none">{allSelected ? 'All' : count}</span>
+              <span className="text-[9px] text-tea-text-sec uppercase tracking-[0.1em] leading-none">item{count !== 1 ? 's' : ''}</span>
+            </button>
+            <div className="w-px h-4 bg-tea-border mx-1 flex-shrink-0" />
+            <button
+              onClick={() => handleBulkVisibility(true)}
+              disabled={isBulkApplying}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-tea-gold text-tea-bg rounded-md hover:bg-tea-gold/90 transition-colors disabled:opacity-40"
+              title="Publish"
+            >
+              {isBulkApplying ? <Loader2 size={12} className="animate-spin" /> : <Eye size={12} />}
+              <span className="text-[10px] font-bold uppercase tracking-[0.15em]">Publish</span>
+            </button>
+            <button
+              onClick={() => handleBulkVisibility(false)}
+              disabled={isBulkApplying}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 text-tea-text-sec rounded-md hover:text-tea-text hover:bg-tea-bg/40 transition-colors disabled:opacity-40"
+              title="Unpublish"
+            >
+              {isBulkApplying ? <Loader2 size={12} className="animate-spin" /> : <EyeOff size={12} />}
+              <span className="text-[10px] font-bold uppercase tracking-[0.15em]">Unpublish</span>
+            </button>
+            <button
+              onClick={handleSendToSamples}
+              disabled={isBulkApplying}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 text-tea-text-sec rounded-md hover:text-tea-text hover:bg-tea-bg/40 transition-colors disabled:opacity-40"
+              title="Send to samples"
+            >
+              <FlaskConical size={12} />
+              <span className="text-[10px] font-bold uppercase tracking-[0.15em]">Samples</span>
+            </button>
+            <button
+              onClick={() => setShareToNetworkOpen(true)}
+              disabled={isBulkApplying}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 text-tea-text-sec rounded-md hover:text-tea-text hover:bg-tea-bg/40 transition-colors disabled:opacity-40"
+              title="Share"
+            >
+              <Globe size={12} />
+              <span className="text-[10px] font-bold uppercase tracking-[0.15em]">Share</span>
+            </button>
+            <button
+              onClick={() => setInvoiceFromInventoryOpen(true)}
+              disabled={isBulkApplying}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 text-tea-text-sec rounded-md hover:text-tea-text hover:bg-tea-bg/40 transition-colors disabled:opacity-40"
+              title="Add to invoice"
+            >
+              <Receipt size={12} />
+              <span className="text-[10px] font-bold uppercase tracking-[0.15em]">Invoice</span>
+            </button>
+            <div className="flex-1" />
+            <button
+              onClick={() => { setSelectedIds(new Set()); lastSelectedIdxRef.current = null; }}
+              className="p-1.5 text-tea-text-sec hover:text-tea-text rounded-md hover:bg-tea-bg/40 transition-colors"
+              title="Clear selection"
+            >
+              <XIcon size={13} />
+            </button>
+          </div>
+        </td>
+      </tr>
+    );
+  };
 
   // --- HANDLERS ---
   const handleSort = (key: keyof Product) => {
@@ -1604,10 +1198,14 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const processedProductsRef = useRef(processedProducts);
   const productIndexMapRef = useRef(productIndexMap);
   const ratesRef = useRef(rates);
+  const isEditModeRef = useRef(isEditMode);
+  const panelProductRef = useRef(panelProduct);
   useLayoutEffect(() => { selectedIdsRef.current = selectedIds; }, [selectedIds]);
   useLayoutEffect(() => { processedProductsRef.current = processedProducts; }, [processedProducts]);
   useLayoutEffect(() => { productIndexMapRef.current = productIndexMap; }, [productIndexMap]);
   useLayoutEffect(() => { ratesRef.current = rates; }, [rates]);
+  useLayoutEffect(() => { isEditModeRef.current = isEditMode; }, [isEditMode]);
+  useLayoutEffect(() => { panelProductRef.current = panelProduct; }, [panelProduct]);
 
   // Stable open-panel — row passes the product object directly.
   // stableRowClick and stableLongPressSelect are declared after toggleSelectId below.
@@ -2083,9 +1681,19 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       toggleSelectId(productId, globalIdx, true);
     } else if (selectedIdsRef.current.size > 0) {
       toggleSelectId(productId, globalIdx, false);
-    } else {
+    } else if (!isEditModeRef.current) {
       const idx = productIndexMapRef.current.get(productId) ?? -1;
-      if (idx >= 0) setPanelProduct(processedProductsRef.current[idx]);
+      if (idx >= 0) {
+        const current = panelProductRef.current;
+        if (current && current.id === productId) {
+          setPanelProduct(null);
+          setSelectedIds(new Set());
+        } else {
+          setPanelProduct(processedProductsRef.current[idx]);
+          setSelectedIds(new Set([productId]));
+          lastSelectedIdxRef.current = idx;
+        }
+      }
     }
   }, [toggleSelectId, setPanelProduct]);
 
@@ -2176,7 +1784,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     setActiveSet(newSet.id);
     setSelectedIds(new Set());
     lastSelectedIdxRef.current = null;
-    navigate('/admin/compass?tab=sourcing');
+    navigate('/admin/compass?tab=samples');
   };
 
   // renderCell, makeLongPressHandlers, getRowBorderClass all live in InventoryRowBase above.
@@ -2204,13 +1812,13 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     {product.productName}
                   </span>
                   {product.givenName && (
-                    <span className="text-[10px] text-tea-text-sec font-sans mt-0.5 truncate block">
+                    <span className="text-[10px] text-tea-text-sec font-sans truncate block">
                       {product.givenName}
                       {product.form && <span className="ml-1 opacity-50">· {product.form}</span>}
                     </span>
                   )}
                   {!product.givenName && product.form && (
-                    <span className="text-[10px] text-tea-text-sec/50 font-sans mt-0.5 truncate block">{product.form}</span>
+                    <span className="text-[10px] text-tea-text-sec/50 font-sans truncate block">{product.form}</span>
                   )}
                 </>
               )}
@@ -3662,6 +3270,10 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         {/* DESKTOP TABLE */}
         {!isMobile && filterType !== 'Pending' && !glossaryMode && <div className="w-full max-w-7xl mx-auto bg-tea-surface min-h-full">
 
+          {/* Anchor row for context-anchored action drawer.
+              Prefers the last-clicked index, falls back to the first selected id. */}
+          {(() => { /* no-op placeholder for readability */ return null; })()}
+
           {/* --- GROUPED VIEW --- */}
           {groupedProducts ? (
             <div>
@@ -3714,29 +3326,31 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                           {items.map((product) => {
                             const globalIdx = productIndexMap.get(product.id) ?? 0;
                             return (
-                              <InventoryRow
-                                key={product.id}
-                                product={product}
-                                globalIdx={globalIdx}
-                                isSelected={selectedIds.has(product.id)}
-                                focusedCol={focusedCell?.row === globalIdx ? (focusedCell.col ?? null) : null}
-                                isEditMode={isEditMode}
-                                visibleCols={visibleCols}
-                                splitView={splitView}
-                                rowHeight={effectiveRowHeight}
-                                isPanelOpen={panelProduct?.id === product.id}
-                                isDropdownOpen={rowDropdownId === product.id}
-                                onRowClick={stableRowClick}
-                                onLongPressSelect={stableLongPressSelect}
-                                onProductUpdate={handleProductUpdate}
-                                onSelectionAwareUpdate={handleSelectionAwareUpdate}
-                                onOpenPanel={stableOpenPanel}
-                                onToggleDropdown={stableToggleDropdown}
-                                onStockHistory={stableStockHistory}
-                                onRestock={handleRestock}
-                                showToast={showToast}
-                                navigate={navigate}
-                              />
+                              <React.Fragment key={product.id}>
+                                <InventoryRow
+                                  product={product}
+                                  globalIdx={globalIdx}
+                                  isSelected={selectedIds.has(product.id)}
+                                  focusedCol={focusedCell?.row === globalIdx ? (focusedCell.col ?? null) : null}
+                                  isEditMode={isEditMode}
+                                  visibleCols={visibleCols}
+                                  splitView={splitView}
+                                  rowHeight={effectiveRowHeight}
+                                  isPanelOpen={panelProduct?.id === product.id}
+                                  isDropdownOpen={rowDropdownId === product.id}
+                                  onRowClick={stableRowClick}
+                                  onLongPressSelect={stableLongPressSelect}
+                                  onProductUpdate={handleProductUpdate}
+                                  onSelectionAwareUpdate={handleSelectionAwareUpdate}
+                                  onOpenPanel={stableOpenPanel}
+                                  onToggleDropdown={stableToggleDropdown}
+                                  onStockHistory={stableStockHistory}
+                                  onRestock={handleRestock}
+                                  showToast={showToast}
+                                  navigate={navigate}
+                                />
+                                {product.id === anchorProductId && renderActionDrawer(splitView ? 2 : visibleCols.length + 1)}
+                              </React.Fragment>
                             );
                           })}
                         </tbody>
@@ -3761,9 +3375,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 <thead className="sticky top-0 z-20 bg-tea-bg shadow-sm">
                     <tr>
                         {splitView ? (
-                          <th className="px-4 py-2 border-b border-tea-border text-left">
-                            <span className="text-[10px] uppercase tracking-[0.12em] font-sans font-medium text-tea-text-sec">Product</span>
-                          </th>
+                          <SortHeader colKey={'productName' as keyof Product} label="Product" align="left" />
                         ) : (
                           visibleCols.map(col => (
                             <SortHeader key={col.key} colKey={col.key as keyof Product} label={col.label} align="left" />
@@ -3774,38 +3386,36 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 </thead>
 
                 <tbody>
-                    {paddingTop > 0 && <tr style={{ height: paddingTop }}><td colSpan={splitView ? 2 : colCountWithBulk}></td></tr>}
-
-                    {visibleProducts.map((product, idx) => {
-                        const globalIdx = startIndex + idx;
+                    {processedProducts.map((product, idx) => {
+                        const globalIdx = idx;
                         return (
-                          <InventoryRow
-                            key={product.id}
-                            product={product}
-                            globalIdx={globalIdx}
-                            isSelected={selectedIds.has(product.id)}
-                            focusedCol={focusedCell?.row === globalIdx ? (focusedCell.col ?? null) : null}
-                            isEditMode={isEditMode}
-                            visibleCols={visibleCols}
-                            splitView={splitView}
-                            rowHeight={effectiveRowHeight}
-                            isPanelOpen={panelProduct?.id === product.id}
-                            isDropdownOpen={rowDropdownId === product.id}
-                            onRowClick={stableRowClick}
-                            onLongPressSelect={stableLongPressSelect}
-                            onProductUpdate={handleProductUpdate}
-                            onSelectionAwareUpdate={handleSelectionAwareUpdate}
-                            onOpenPanel={stableOpenPanel}
-                            onToggleDropdown={stableToggleDropdown}
-                            onStockHistory={stableStockHistory}
-                            onRestock={handleRestock}
-                            showToast={showToast}
-                            navigate={navigate}
-                          />
+                          <React.Fragment key={product.id}>
+                            <InventoryRow
+                              product={product}
+                              globalIdx={globalIdx}
+                              isSelected={selectedIds.has(product.id)}
+                              focusedCol={focusedCell?.row === globalIdx ? (focusedCell.col ?? null) : null}
+                              isEditMode={isEditMode}
+                              visibleCols={visibleCols}
+                              splitView={splitView}
+                              rowHeight={effectiveRowHeight}
+                              isPanelOpen={panelProduct?.id === product.id}
+                              isDropdownOpen={rowDropdownId === product.id}
+                              onRowClick={stableRowClick}
+                              onLongPressSelect={stableLongPressSelect}
+                              onProductUpdate={handleProductUpdate}
+                              onSelectionAwareUpdate={handleSelectionAwareUpdate}
+                              onOpenPanel={stableOpenPanel}
+                              onToggleDropdown={stableToggleDropdown}
+                              onStockHistory={stableStockHistory}
+                              onRestock={handleRestock}
+                              showToast={showToast}
+                              navigate={navigate}
+                            />
+                            {product.id === anchorProductId && renderActionDrawer(splitView ? 2 : colCountWithBulk)}
+                          </React.Fragment>
                         );
                     })}
-
-                    {paddingBottom > 0 && <tr style={{ height: paddingBottom }}><td colSpan={splitView ? 2 : colCountWithBulk}></td></tr>}
                 </tbody>
             </table>
           )}
@@ -4879,70 +4489,6 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
       {/* --- FEATURE 7: BULK EDIT FLOATING TOOLBAR --- */}
       <AnimatePresence>
-        {selectedIds.size > 0 && !isEditMode && !(isMobile && panelProduct) && (
-          <motion.div
-            initial={{ y: 80, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 80, opacity: 0 }}
-            className={`fixed bottom-nav-gap left-0 mx-auto w-fit z-50 bg-tea-surface border border-tea-border shadow-2xl rounded-xl px-3 py-2 flex items-center gap-1 ${splitView ? 'right-0 md:right-[420px]' : 'right-0'}`}
-          >
-            {/* Count — click to toggle all */}
-            <button
-              onClick={toggleSelectAll}
-              className="flex items-baseline gap-1 px-2 py-1 rounded-lg hover:bg-tea-bg/60 transition-colors"
-              title={selectedIds.size === processedProducts.length ? 'Deselect all' : 'Select all'}
-            >
-              <span className="text-sm font-bold text-tea-text tabular-nums leading-none">{selectedIds.size === processedProducts.length ? 'All' : selectedIds.size}</span>
-              <span className="text-[9px] text-tea-text-sec uppercase tracking-[0.1em] leading-none">item{selectedIds.size !== 1 ? 's' : ''}</span>
-            </button>
-
-            <div className="w-px h-4 bg-tea-border mx-1 flex-shrink-0" />
-
-            {/* Publish */}
-            <button
-              onClick={() => handleBulkVisibility(true)}
-              disabled={isBulkApplying}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-tea-gold text-tea-bg rounded-lg hover:bg-tea-gold/90 transition-colors disabled:opacity-40"
-              title="Publish selected"
-            >
-              {isBulkApplying ? <Loader2 size={12} className="animate-spin" /> : <Eye size={12} />}
-              <span className="hidden md:inline text-[10px] font-bold uppercase tracking-[0.15em]">Publish</span>
-            </button>
-
-            {/* Unpublish */}
-            <button
-              onClick={() => handleBulkVisibility(false)}
-              disabled={isBulkApplying}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 border border-tea-border text-tea-text-sec rounded-lg hover:text-tea-text hover:border-tea-text-sec transition-colors disabled:opacity-40"
-              title="Unpublish selected"
-            >
-              {isBulkApplying ? <Loader2 size={12} className="animate-spin" /> : <EyeOff size={12} />}
-              <span className="hidden md:inline text-[10px] font-bold uppercase tracking-[0.15em]">Unpublish</span>
-            </button>
-
-            {/* Samples */}
-            <button
-              onClick={handleSendToSamples}
-              disabled={isBulkApplying}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 border border-tea-border text-tea-text-sec rounded-lg hover:text-tea-text hover:border-tea-text-sec transition-colors disabled:opacity-40"
-              title="Send to sample pack"
-            >
-              <FlaskConical size={12} />
-              <span className="hidden md:inline text-[10px] font-bold uppercase tracking-[0.15em]">Samples</span>
-            </button>
-
-            <div className="w-px h-4 bg-tea-border mx-1 flex-shrink-0" />
-
-            {/* Clear */}
-            <button
-              onClick={() => { setSelectedIds(new Set()); lastSelectedIdxRef.current = null; }}
-              className="p-1.5 text-tea-text-sec hover:text-tea-text rounded-lg hover:bg-tea-bg/60 transition-colors"
-              title="Clear selection"
-            >
-              <XIcon size={13} />
-            </button>
-          </motion.div>
-        )}
         {selectedIds.size > 0 && isEditMode && (
           <motion.div
             initial={{ y: 80, opacity: 0 }}
@@ -5032,6 +4578,45 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           />
         </div>
       )}
+
+      <CollectionShareSheet
+        open={shareToNetworkOpen}
+        productIds={selectedIds.size > 0 ? [...selectedIds] : panelProduct ? [panelProduct.id] : []}
+        onClose={() => setShareToNetworkOpen(false)}
+        onSuccess={() => {
+          // The sheet itself shows the success card with copy/WhatsApp/view-collection
+          // actions. We only need to close + clear selection when the user finishes.
+          setShareToNetworkOpen(false);
+          if (selectedIds.size > 0) {
+            setSelectedIds(new Set());
+            lastSelectedIdxRef.current = null;
+          }
+        }}
+      />
+
+      <QuickInvoiceModal
+        isOpen={invoiceFromInventoryOpen}
+        onClose={() => setInvoiceFromInventoryOpen(false)}
+        onSuccess={() => {
+          setInvoiceFromInventoryOpen(false);
+          setSelectedIds(new Set());
+          lastSelectedIdxRef.current = null;
+        }}
+        products={localProducts}
+        showToast={showToast}
+        prefill={{
+          items: (() => {
+            const ids = selectedIds.size > 0 ? [...selectedIds] : panelProduct ? [panelProduct.id] : [];
+            return ids
+              .map(id => localProducts.find(p => p.id === id))
+              .filter((p): p is Product => !!p)
+              .map(p => ({
+                name: p.givenName || p.productName,
+                productId: p.id,
+              }));
+          })(),
+        }}
+      />
 
     </div>
   );

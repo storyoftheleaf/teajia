@@ -1,8 +1,8 @@
 import React, { useMemo, useCallback, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend } from 'recharts';
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend } from 'recharts';
 import type { TooltipProps } from 'recharts';
-import { Loader2, DollarSign, PieChart as PieIcon, MapPin } from 'lucide-react';
+import { Loader2, DollarSign, PieChart as PieIcon, MapPin, TrendingUp, AlertCircle, UserPlus, Clock } from 'lucide-react';
 import { Product, Customer } from '../types';
 import { useRates } from '../hooks/useAdminData';
 import { fmtDollars, fmtPct, fmtNum } from '../../utils/formatNumber';
@@ -23,11 +23,26 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
 
   const [customers, setCustomers] = useState<Customer[]>([]);
 
+  interface WeeklyRevenue { week: string; revenue: number; order_count: number; }
+  interface RFMCustomer { id: string; name: string; email: string; lifetime_usd: number; order_count: number; last_order_at?: string; first_order_at?: string; }
+  interface InventoryAlert { id: string; product_name: string; stock_grams: number; last_sold_at: string | null; }
+  interface RFMData { top10: RFMCustomer[]; lapsed: RFMCustomer[]; new_this_month: RFMCustomer[]; }
+  interface RevenueData { weekly_revenue: WeeklyRevenue[]; inventory_age_alerts: InventoryAlert[]; }
+
+  const [revenueData, setRevenueData] = useState<RevenueData | null>(null);
+  const [rfmData, setRfmData] = useState<RFMData | null>(null);
+  const [analyticsError, setAnalyticsError] = useState(false);
+
   useEffect(() => {
     api.customers.list().then((data: unknown) => {
       const list = Array.isArray(data) ? data : (data as { customers?: Customer[] }).customers ?? [];
       setCustomers(list as Customer[]);
     }).catch(() => {});
+
+    Promise.all([
+      api.analytics.revenue().then((d: unknown) => setRevenueData(d as RevenueData)),
+      api.analytics.rfm().then((d: unknown) => setRfmData(d as RFMData)),
+    ]).catch(() => setAnalyticsError(true));
   }, []);
 
   const handleChartClick = useCallback((dimension: string, value: string) => {
@@ -294,59 +309,157 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
         </div>
       </div>
 
-      {/* Customer Intelligence Section */}
-      {customerMetrics && (
+      {/* Analytics error state */}
+      {analyticsError && (
+        <div className="mt-8 flex items-center gap-2 text-xs text-tea-text-sec bg-tea-surface border border-tea-border rounded-md px-4 py-3">
+          <AlertCircle className="w-3.5 h-3.5 shrink-0 text-tea-text-dim" />
+          Revenue and customer analytics failed to load. Check your session or try refreshing.
+        </div>
+      )}
+
+      {/* Revenue over time */}
+      {revenueData && revenueData.weekly_revenue.length > 0 && (
+        <div className="mt-8">
+          <div className="bg-tea-surface border border-tea-border p-5 md:p-8 rounded-lg h-64 md:h-80">
+            <div className="flex items-center gap-2 mb-4 md:mb-6">
+              <TrendingUp className="w-4 h-4 text-tea-gold" />
+              <h4 className="text-sm font-medium text-tea-text font-serif">Weekly Revenue (Last 6 Months)</h4>
+            </div>
+            <ResponsiveContainer width="100%" height="80%">
+              <LineChart data={revenueData.weekly_revenue} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#26221D" vertical={false} />
+                <XAxis dataKey="week" stroke="#A39B8E" fontSize={9} tickLine={false} axisLine={false}
+                  tickFormatter={(w: string) => { const [, wk] = w.split('-W'); return `W${wk}`; }} />
+                <YAxis stroke="#A39B8E" fontSize={10} tickLine={false} axisLine={false}
+                  tickFormatter={(v: number) => `$${v >= 1000 ? `${(v/1000).toFixed(1)}k` : v}`} />
+                <RechartsTooltip
+                  contentStyle={{ backgroundColor: '#141210', borderColor: '#26221D', color: '#E8E3D9', fontSize: '12px', borderRadius: '8px' }}
+                  formatter={(v: number) => [`$${v.toFixed(0)}`, 'Revenue']}
+                  labelFormatter={(w: string) => `Week ${w.split('-W')[1]}`}
+                />
+                <Line type="monotone" dataKey="revenue" stroke="#C8A97E" strokeWidth={2} dot={false} activeDot={{ r: 4, fill: '#C8A97E' }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Inventory age alerts */}
+          {revenueData.inventory_age_alerts.length > 0 && (
+            <div className="mt-4 bg-tea-surface border border-tea-border rounded-lg p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <AlertCircle className="w-4 h-4 text-amber-500/70" />
+                <h4 className="text-xs font-sans text-tea-text-sec uppercase tracking-wider">Inventory Not Sold in 90+ Days</h4>
+              </div>
+              <div className="space-y-2">
+                {revenueData.inventory_age_alerts.map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => navigate(`/admin/inventory?search=${encodeURIComponent(p.product_name)}`)}
+                    className="flex items-center justify-between w-full px-2 py-1.5 rounded hover:bg-tea-accent-sub transition-colors text-left group"
+                  >
+                    <span className="text-sm text-tea-text group-hover:text-tea-gold transition-colors truncate">{p.product_name}</span>
+                    <div className="flex items-center gap-3 shrink-0 ml-3">
+                      <span className="text-xs text-tea-text-dim num">{p.stock_grams}g in stock</span>
+                      <span className="text-[10px] text-amber-500/70">{p.last_sold_at ? 'stale' : 'never sold'}</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Customer Intelligence — RFM */}
+      {(customerMetrics || rfmData) && (
         <div className="mt-8">
           <h2 className="text-sm font-sans font-medium uppercase tracking-wider text-tea-text-sec mb-4">
             Customer Intelligence
           </h2>
 
-          {/* Customer KPI cards - same style as financial KPIs */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-            <div className="bg-tea-surface rounded-lg p-4">
-              <p className="text-xs font-sans text-tea-text-dim uppercase tracking-wider">Total Customers</p>
-              <p className="text-2xl font-mono text-tea-text mt-1">{customerMetrics.totalCustomers}</p>
+          {/* KPI cards */}
+          {customerMetrics && (
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+              <div className="bg-tea-surface border border-tea-border rounded-lg p-4">
+                <p className="text-xs font-sans text-tea-text-dim uppercase tracking-wider">Total Customers</p>
+                <p className="text-2xl font-serif font-light text-tea-text mt-1 num">{customerMetrics.totalCustomers}</p>
+              </div>
+              <div className="bg-tea-surface border border-tea-border rounded-lg p-4">
+                <p className="text-xs font-sans text-tea-text-dim uppercase tracking-wider">Active Buyers</p>
+                <p className="text-2xl font-serif font-light text-tea-text mt-1 num">{customerMetrics.activeCustomers}</p>
+              </div>
+              <div className="bg-tea-surface border border-tea-border rounded-lg p-4">
+                <p className="text-xs font-sans text-tea-text-dim uppercase tracking-wider">Total Revenue</p>
+                <p className="text-2xl font-serif font-light text-tea-gold mt-1 num">${customerMetrics.totalRevenue.toFixed(0)}</p>
+              </div>
+              <div className="bg-tea-surface border border-tea-border rounded-lg p-4">
+                <p className="text-xs font-sans text-tea-text-dim uppercase tracking-wider">Avg Order Value</p>
+                <p className="text-2xl font-serif font-light text-tea-text mt-1 num">${customerMetrics.avgOrderValue.toFixed(0)}</p>
+              </div>
             </div>
-            <div className="bg-tea-surface rounded-lg p-4">
-              <p className="text-xs font-sans text-tea-text-dim uppercase tracking-wider">Active Buyers</p>
-              <p className="text-2xl font-mono text-tea-text mt-1">{customerMetrics.activeCustomers}</p>
-            </div>
-            <div className="bg-tea-surface rounded-lg p-4">
-              <p className="text-xs font-sans text-tea-text-dim uppercase tracking-wider">Total Revenue</p>
-              <p className="text-2xl font-mono text-tea-gold mt-1">${customerMetrics.totalRevenue.toFixed(0)}</p>
-            </div>
-            <div className="bg-tea-surface rounded-lg p-4">
-              <p className="text-xs font-sans text-tea-text-dim uppercase tracking-wider">Avg Order Value</p>
-              <p className="text-2xl font-mono text-tea-text mt-1">${customerMetrics.avgOrderValue.toFixed(0)}</p>
-            </div>
-          </div>
+          )}
 
-          {/* Top customers list */}
-          <div className="bg-tea-surface rounded-lg p-4">
-            <h3 className="text-xs font-sans text-tea-text-dim uppercase tracking-wider mb-3">Top Customers by Revenue</h3>
-            <div className="space-y-2">
-              {customerMetrics.topCustomers.map((c, i: number) => (
-                <button
-                  key={c.id}
-                  onClick={() => navigate(`/admin/people?search=${encodeURIComponent(c.name)}`)}
-                  className="flex items-center justify-between w-full px-2 py-1.5 rounded hover:bg-tea-accent-sub/50 transition-colors text-left group"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-mono text-tea-text-dim w-4">{i + 1}</span>
-                    <span className="text-sm font-sans text-tea-text group-hover:text-tea-gold transition-colors">{c.name}</span>
-                    {c.tags && (
-                      <span className="text-[10px] font-sans text-tea-text-dim">
-                        {(Array.isArray(c.tags) ? c.tags : JSON.parse(c.tags || '[]')).join(', ')}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            {/* Top 10 by spend */}
+            {rfmData && rfmData.top10.length > 0 && (
+              <div className="bg-tea-surface border border-tea-border rounded-lg p-4 lg:col-span-1">
+                <div className="flex items-center gap-2 mb-3">
+                  <DollarSign className="w-3.5 h-3.5 text-tea-gold" />
+                  <h3 className="text-xs font-sans text-tea-text-sec uppercase tracking-wider">Top by Spend</h3>
+                </div>
+                <div className="space-y-2">
+                  {rfmData.top10.map((c, i) => (
+                    <button key={c.id} onClick={() => navigate(`/admin/people?search=${encodeURIComponent(c.name)}`)}
+                      className="flex items-center justify-between w-full px-1 py-1 rounded hover:bg-tea-accent-sub transition-colors text-left group">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-[10px] font-mono text-tea-text-dim w-4 shrink-0">{i + 1}</span>
+                        <span className="text-sm text-tea-text group-hover:text-tea-gold transition-colors truncate">{c.name}</span>
+                      </div>
+                      <span className="text-sm font-mono text-tea-gold shrink-0 ml-2">${c.lifetime_usd.toFixed(0)}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Lapsed (>90 days) */}
+            {rfmData && rfmData.lapsed.length > 0 && (
+              <div className="bg-tea-surface border border-tea-border rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Clock className="w-3.5 h-3.5 text-amber-500/70" />
+                  <h3 className="text-xs font-sans text-tea-text-sec uppercase tracking-wider">Lapsed · 90+ Days</h3>
+                </div>
+                <div className="space-y-2">
+                  {rfmData.lapsed.slice(0, 8).map((c) => (
+                    <button key={c.id} onClick={() => navigate(`/admin/people?search=${encodeURIComponent(c.name)}`)}
+                      className="flex items-center justify-between w-full px-1 py-1 rounded hover:bg-tea-accent-sub transition-colors text-left group">
+                      <span className="text-sm text-tea-text group-hover:text-tea-gold transition-colors truncate">{c.name}</span>
+                      <span className="text-[10px] text-tea-text-dim shrink-0 ml-2">
+                        {c.last_order_at ? new Date(c.last_order_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}
                       </span>
-                    )}
-                  </div>
-                  <div className="text-right">
-                    <span className="text-sm font-mono text-tea-gold">${(c.totalSpentUSD || 0).toFixed(0)}</span>
-                    <span className="text-xs font-sans text-tea-text-dim ml-2">{c.orderCount} orders</span>
-                  </div>
-                </button>
-              ))}
-            </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* New this month */}
+            {rfmData && rfmData.new_this_month.length > 0 && (
+              <div className="bg-tea-surface border border-tea-border rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <UserPlus className="w-3.5 h-3.5 text-emerald-500/70" />
+                  <h3 className="text-xs font-sans text-tea-text-sec uppercase tracking-wider">New This Month</h3>
+                </div>
+                <div className="space-y-2">
+                  {rfmData.new_this_month.slice(0, 8).map((c) => (
+                    <button key={c.id} onClick={() => navigate(`/admin/people?search=${encodeURIComponent(c.name)}`)}
+                      className="flex items-center justify-between w-full px-1 py-1 rounded hover:bg-tea-accent-sub transition-colors text-left group">
+                      <span className="text-sm text-tea-text group-hover:text-tea-gold transition-colors truncate">{c.name}</span>
+                      <span className="text-[10px] text-tea-gold/70 shrink-0 ml-2">${c.lifetime_usd.toFixed(0)}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
