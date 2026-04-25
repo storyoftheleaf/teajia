@@ -668,7 +668,29 @@ export const api = {
       });
       return handleResponse(res);
     },
-    /** Fetch customers tagged as 'vendor' — used for compass vendor auto-suggest */
+    /** Contact tags (admin-only freeform). Storage is lowercase. */
+    listTags: async (customerId: string): Promise<string[]> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/customers/${customerId}/tags`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    addTag: async (customerId: string, tag: string): Promise<{ success: boolean; tag: string }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/customers/${customerId}/tags`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ tag }),
+      });
+      return handleResponse(res);
+    },
+    removeTag: async (customerId: string, tag: string): Promise<{ success: boolean }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/customers/${customerId}/tags/${encodeURIComponent(tag)}`, {
+        method: 'DELETE',
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    /** Fetch customers tagged as 'vendor' (legacy field on customers.tags, distinct from contact-tags). */
     fetchVendors: async (): Promise<Array<{ id: string; name: string; country?: string; tags?: string }>> => {
       const res = await fetchWithTimeout(`${API_URL}/api/customers`, {
         headers: authHeaders(),
@@ -1894,20 +1916,28 @@ export const api = {
       const res = await fetchWithTimeout(`${API_URL}/api/catalog`, { headers: authHeaders() });
       return handleResponse(res);
     },
-    seed: async (targetAccountId: string, productIds: string[]): Promise<{ seeded: string[] }> => {
-      const res = await fetchWithTimeout(`${API_URL}/api/catalog/seed`, {
-        method: 'POST',
-        headers: authHeaders(),
-        body: JSON.stringify({ target_account_id: targetAccountId, product_ids: productIds }),
-      });
-      return handleResponse(res);
-    },
   },
 
   network: {
     /** Public list of accounts with public_enabled = true */
     getStores: async (): Promise<Array<{ id: string; slug: string; name: string; tagline?: string; logo_url?: string; location_city?: string; location_country?: string }>> => {
       const res = await fetchWithTimeout(`${API_URL}/api/network/stores`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+  },
+
+  /** Account-wide contact tag queries (autocomplete + tag-aware picker). */
+  customerTags: {
+    listAll: async (): Promise<Array<{ tag: string; count: number }>> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/customer-tags`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    customersByTag: async (tag: string): Promise<Array<{ id: string; name: string; phone?: string; whatsapp?: string }>> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/customer-tags/${encodeURIComponent(tag)}/customers`, {
         headers: authHeaders(),
       });
       return handleResponse(res);
@@ -1975,6 +2005,34 @@ export const api = {
         method: 'POST',
         headers: authHeaders(),
         body: JSON.stringify({ target_type: 'person', recipients }),
+      });
+      return handleResponse(res);
+    },
+    publishToStore: async (id: string, targetAccountId: string): Promise<{ id: string; slug: string }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/collections/${id}/publications`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ target_type: 'store', target_id: targetAccountId }),
+      });
+      return handleResponse(res);
+    },
+    listInbound: async (): Promise<{ inbound: import('../types').InboundCollectionRow[]; unread_count: number }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/collections/inbound`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    getInbound: async (pubId: string): Promise<import('../types').InboundCollectionDetail> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/collections/inbound/${pubId}`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    importInbound: async (pubId: string, productIds: string[]): Promise<{ imported: Array<{ source_id: string; new_id: string }>; skipped: number }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/collections/inbound/${pubId}/import`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ product_ids: productIds }),
       });
       return handleResponse(res);
     },

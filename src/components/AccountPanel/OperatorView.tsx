@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Clock, PenLine, Users, Compass, Bookmark, ShoppingBag, Sprout, BookOpen, GraduationCap } from 'lucide-react';
+import { Calendar, Clock, PenLine, Users, Compass, Bookmark, ShoppingBag, Sprout, BookOpen, GraduationCap, Inbox } from 'lucide-react';
 import { SealIcon } from '../Icons';
 import {
   ADMIN_TOOL_GROUPS,
@@ -47,6 +47,7 @@ interface OperatorViewProps {
   pendingInvoiceCount: number;
   todayEventCount: number;
   unsyncedJournalCount: number;
+  inboundUnreadCount: number;
 
   // Personal practice (unified Bench — Adrian IS the shop)
   journalLastAt: string | null;
@@ -129,6 +130,7 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
   pendingInvoiceCount,
   todayEventCount,
   unsyncedJournalCount,
+  inboundUnreadCount,
   journalLastAt,
   journalLastTea,
   journalLastExcerpt,
@@ -175,6 +177,14 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
       id: 'unsynced-journal',
       label: `${unsyncedJournalCount} journal entr${unsyncedJournalCount === 1 ? 'y' : 'ies'} unsynced`,
       onClick: onOpenJournal,
+    });
+  }
+  if (inboundUnreadCount > 0) {
+    attention.push({
+      id: 'inbound-collections',
+      label: `${inboundUnreadCount} collection${inboundUnreadCount === 1 ? '' : 's'} shared with your store`,
+      meta: 'Open',
+      onClick: () => go('/admin/collections'),
     });
   }
 
@@ -254,6 +264,15 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
         <PreviewBlock hint="Waiting" icon={<Clock {...ICON_PROPS} />} onClick={() => go('/admin/activity')}>
           <p className="text-[15px] text-tea-text" style={{ fontFamily: 'var(--font-display)' }}>
             {pendingInvoiceCount} invoice{pendingInvoiceCount === 1 ? '' : 's'} pending review.
+          </p>
+        </PreviewBlock>
+      )}
+
+      {/* ── Inbound collections (Phase 2) ────────────────────────────── */}
+      {inboundUnreadCount > 0 && (
+        <PreviewBlock hint="Shared with your store" icon={<Inbox {...ICON_PROPS} />} onClick={() => go('/admin/collections')}>
+          <p className="text-[15px] text-tea-text" style={{ fontFamily: 'var(--font-display)' }}>
+            {inboundUnreadCount} new collection{inboundUnreadCount === 1 ? '' : 's'} to review.
           </p>
         </PreviewBlock>
       )}

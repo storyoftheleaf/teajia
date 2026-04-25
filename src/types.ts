@@ -692,6 +692,60 @@ export interface PublicCollectionResponse {
   publication: { slug: string; view_count: number };
 }
 
+export interface InboundCollectionRow {
+  publication_id: string;
+  slug: string;
+  published_at: string;
+  unpublished_at?: string | null;
+  recipient_seen_at?: string | null;
+  collection_id: string;
+  title: string;
+  note?: string | null;
+  hero_image_url?: string | null;
+  publisher_account_id: string;
+  publisher_account_name: string;
+  item_count: number;
+  imported_count: number;
+  thumbnails: string[];
+}
+
+export interface InboundCollectionItem {
+  item_id: string;
+  product_id: string;
+  position: number;
+  item_note?: string | null;
+  product_type?: string;
+  product_name?: string;
+  chinese_name?: string | null;
+  year?: number | null;
+  origin_country?: string | null;
+  origin_region?: string | null;
+  image_url?: string | null;
+  tasting_notes?: string[] | string | null;
+  description?: string | null;
+  imported_product_id?: string | null;
+}
+
+export interface InboundCollectionDetail {
+  publication: {
+    publication_id: string;
+    slug: string;
+    target_id: string;
+    published_at: string;
+    unpublished_at?: string | null;
+    recipient_seen_at?: string | null;
+    collection_id: string;
+    title: string;
+    note?: string | null;
+    hero_image_url?: string | null;
+    publisher_account_id: string;
+    publisher_account_name: string;
+    publisher_tagline?: string | null;
+    curator_display_name?: string | null;
+  };
+  items: InboundCollectionItem[];
+}
+
 export interface NeedsAttentionItem {
   item_id: string;
   collection_id: string;

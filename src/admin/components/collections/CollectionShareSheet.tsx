@@ -367,7 +367,7 @@ const FormPhase: React.FC<FormPhaseProps> = ({
             <label className="block text-[10px] uppercase tracking-[1.2px] text-tea-text-dim mb-1.5">
               Recipients
             </label>
-            <RecipientTypeahead value={recipients} onChange={setRecipients} />
+            <RecipientTypeahead value={recipients} onChange={setRecipients} collectionId={null} />
             <p className="text-[10px] text-tea-text-dim mt-2">
               Each recipient gets the same link. Pick from your contacts or add a new name.
             </p>
@@ -451,7 +451,11 @@ const FormPhase: React.FC<FormPhaseProps> = ({
                 </span>
               </label>
               {publishAfterAdd && (
-                <RecipientTypeahead value={recipients} onChange={setRecipients} />
+                <RecipientTypeahead
+                  value={recipients}
+                  onChange={setRecipients}
+                  collectionId={selectedCollectionId}
+                />
               )}
             </div>
           )}

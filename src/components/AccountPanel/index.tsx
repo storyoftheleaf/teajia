@@ -580,6 +580,16 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
     },
   });
 
+  const { data: inboundUnreadCount = 0 } = useQuery({
+    queryKey: ['panel-inbound-unread'],
+    enabled: isStaff,
+    staleTime: 1000 * 60 * 2,
+    queryFn: async () => {
+      const res = await api.collections.listInbound();
+      return res.unread_count ?? 0;
+    },
+  });
+
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const upcomingEvents = useMemo(() => {
@@ -1153,6 +1163,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                 pendingInvoiceCount={pendingCount}
                 todayEventCount={todayEventCount}
                 unsyncedJournalCount={0}
+                inboundUnreadCount={inboundUnreadCount}
                 journalLastAt={tastingJournal[0]?.createdAt ?? null}
                 journalLastTea={tastingJournal[0]?.productName ?? null}
                 journalLastExcerpt={(() => {

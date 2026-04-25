@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Shield, ShieldCheck, Store, Users, Check, Loader2,
   ChevronDown, ChevronUp, Plus, Copy,
-  AlertTriangle, RefreshCw, ClipboardList, Download, X,
+  AlertTriangle, RefreshCw, ClipboardList, X,
 } from 'lucide-react';
 import { api } from '../../lib/api';
 import type { PlatformUser, PlatformAccount, AuditLogEntry } from '../../lib/api';
@@ -243,89 +243,6 @@ const UsersPanel: React.FC<{ isPlatformOwner: boolean }> = ({ isPlatformOwner })
   );
 };
 
-// ── Seed panel ────────────────────────────────────────────────────────────────
-
-const SeedPanel: React.FC<{ accountId: string; accountName: string }> = ({ accountId, accountName }) => {
-  const { showToast } = useToast();
-  const [open, setOpen] = useState(false);
-  const [products, setProducts] = useState<any[]>([]);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [loading, setLoading] = useState(false);
-  const [seeding, setSeeding] = useState(false);
-
-  const load = async () => {
-    setLoading(true);
-    try {
-      const res = await api.catalog.list();
-      setProducts(res.products || []);
-    } catch (err: any) {
-      showToast(err?.message || 'Failed to load catalog', 'error');
-    } finally { setLoading(false); }
-  };
-
-  const toggle = (id: string) =>
-    setSelected(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
-
-  const handleSeed = async () => {
-    if (selected.size === 0) return;
-    setSeeding(true);
-    try {
-      const res = await api.catalog.seed(accountId, Array.from(selected));
-      const count = (res.seeded || []).length;
-      showToast(`${count} product${count !== 1 ? 's' : ''} seeded to ${accountName}`, 'success');
-      setSelected(new Set());
-      setOpen(false);
-    } catch (err: any) {
-      showToast(err?.message || 'Failed to seed inventory', 'error');
-    } finally { setSeeding(false); }
-  };
-
-  if (!open) {
-    return (
-      <button type="button" onClick={() => { setOpen(true); load(); }}
-        className="pill flex items-center gap-1 text-[11px]">
-        <Download size={10} />Seed Inventory
-      </button>
-    );
-  }
-
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <p className="text-[12px] text-tea-text-sec">Seed to {accountName}</p>
-        <button type="button" onClick={() => setOpen(false)} className="text-[11px] text-tea-text-sec hover:text-tea-text transition-colors">Close</button>
-      </div>
-      {loading ? (
-        <div className="flex justify-center py-3"><Loader2 size={14} className="animate-spin text-tea-text-dim" /></div>
-      ) : products.length === 0 ? (
-        <p className="text-[12px] text-tea-text-sec">No catalog products available. Add products with "In Catalog" enabled first.</p>
-      ) : (
-        <div className="space-y-1 max-h-48 overflow-y-auto">
-          {products.map((p: any) => (
-            <label key={p.id} className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-tea-elevated cursor-pointer">
-              <input type="checkbox" checked={selected.has(p.id)} onChange={() => toggle(p.id)}
-                className="accent-[var(--tea-gold)]" />
-              <span className="text-[12px] text-tea-text flex-1 truncate">{p.given_name} {p.product_name}</span>
-              <span className="text-[11px] text-tea-text-dim shrink-0">{p.type}</span>
-            </label>
-          ))}
-        </div>
-      )}
-      {!loading && products.length > 0 && (
-        <div className="flex items-center gap-2">
-          <button type="button" onClick={handleSeed} disabled={seeding || selected.size === 0}
-            className="pill pill-primary flex items-center gap-1 text-[11px]">
-            {seeding ? <Loader2 size={10} className="animate-spin" /> : <Download size={10} />}
-            Seed {selected.size > 0 ? `${selected.size} ` : ''}selected
-          </button>
-          <button type="button" onClick={() => setSelected(new Set(products.map((p: any) => p.id)))}
-            className="pill text-[11px]">Select all</button>
-        </div>
-      )}
-    </div>
-  );
-};
-
 // ── Accounts panel ────────────────────────────────────────────────────────────
 
 const AccountsPanel: React.FC = () => {
@@ -534,14 +451,6 @@ const AccountsPanel: React.FC = () => {
                     );
                   })}
                 </div>
-
-                {/* Seed inventory */}
-                {!account.is_platform_owner && (
-                  <div className="space-y-2">
-                    <Eyebrow>Seed Inventory</Eyebrow>
-                    <SeedPanel accountId={account.id} accountName={account.name} />
-                  </div>
-                )}
 
                 {/* Suspend / reactivate — with confirm step */}
                 {!account.is_platform_owner && (

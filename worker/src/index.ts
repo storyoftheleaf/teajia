@@ -1696,48 +1696,6 @@ const handleGetCatalog: Handler = async (request, env) => {
   return json({ products, trust_tier, platform_whatsapp: platformWhatsapp });
 };
 
-const handleSeedCatalog: Handler = async (request, env) => {
-  const token = isAuthed(request);
-  const claims = token ? parseToken(token) : null;
-  if (claims?.platform_role !== 'platform_owner') return json({ error: 'Platform owner only' }, 403);
-
-  const body = await request.json() as { target_account_id?: string; product_ids?: string[] };
-  if (!body.target_account_id || !Array.isArray(body.product_ids) || body.product_ids.length === 0) {
-    return json({ error: 'target_account_id and product_ids are required' }, 400);
-  }
-  const { target_account_id, product_ids } = body;
-
-  const rows = await env.DB.prepare(
-    `SELECT * FROM products WHERE id IN (${product_ids.map(() => '?').join(', ')})`
-  ).bind(...product_ids).all();
-
-  const COPY_COLS = [
-    'type', 'form', 'given_name', 'chinese_name', 'product_name', 'year',
-    'origin_country', 'origin_region', 'description', 'tasting_notes', 'image_url',
-    'additional_images', 'lore', 'show_wisdom', 'processing_notes', 'terroir', 'mood',
-    'experience', 'tea_key', 'tasting', 'material', 'capacity_ml', 'teaware_category',
-    'quantity_units', 'is_featured', 'is_curated', 'can_reorder',
-  ];
-
-  const insertedIds: string[] = [];
-  const stmts: D1PreparedStatement[] = [];
-
-  for (const src of rows.results as any[]) {
-    const id = crypto.randomUUID();
-    insertedIds.push(id);
-    const cols = ['id', 'account_id', 'status', 'is_public', 'stock_grams', 'fixed_retail_price_usd', ...COPY_COLS];
-    const vals = [id, target_account_id, 'Draft', 0, 0, null, ...COPY_COLS.map(c => src[c] ?? null)];
-    const placeholders = cols.map(() => '?').join(', ');
-    stmts.push(
-      env.DB.prepare(`INSERT INTO products (${cols.join(', ')}) VALUES (${placeholders})`).bind(...vals)
-    );
-  }
-
-  await env.DB.batch(stmts);
-
-  return json({ seeded: insertedIds });
-};
-
 // ── Product Events (cross-link: which events featured this product) ──
 // Public endpoint: auth is optional. Authenticated users see their account's
 // events; unauthenticated users (public shop) fall back to the Bali account.
@@ -2806,6 +2764,108 @@ const handleUnlinkVendorProduct: Handler = async (request, env, params) => {
     .bind(params.productId, accountId).run();
 
   return json({ success: true });
+};
+
+// ── Customer tags ──
+// Freeform admin-only tags. Storage is lowercase, trimmed; max 50 chars.
+// See project_contact_tags_feature memory for the platform-wide intent.
+function normalizeTag(raw: unknown): string | null {
+  if (typeof raw !== 'string') return null;
+  const t = raw.trim().toLowerCase();
+  if (!t) return null;
+  if (t.length > 50) return t.slice(0, 50);
+  return t;
+}
+
+const handleListCustomerTags: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+
+  const { results } = await env.DB.prepare(
+    `SELECT tag FROM customer_tags
+     WHERE account_id = ? AND customer_id = ?
+     ORDER BY tag ASC`
+  ).bind(accountId, params.id).all();
+
+  return json((results as any[]).map(r => r.tag));
+};
+
+const handleAddCustomerTag: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+
+  const body = await request.json().catch(() => ({})) as Record<string, any>;
+  const tag = normalizeTag(body.tag);
+  if (!tag) return json({ error: 'tag required' }, 400);
+
+  // Confirm the customer belongs to this account before tagging.
+  const customer = await env.DB.prepare(
+    'SELECT id FROM customers WHERE id = ? AND account_id = ?'
+  ).bind(params.id, accountId).first();
+  if (!customer) return json({ error: 'Customer not found' }, 404);
+
+  await env.DB.prepare(
+    `INSERT OR IGNORE INTO customer_tags (id, account_id, customer_id, tag)
+     VALUES (?, ?, ?, ?)`
+  ).bind(crypto.randomUUID(), accountId, params.id, tag).run();
+
+  return json({ success: true, tag });
+};
+
+const handleRemoveCustomerTag: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+
+  const tag = normalizeTag(decodeURIComponent(params.tag));
+  if (!tag) return json({ error: 'tag required' }, 400);
+
+  await env.DB.prepare(
+    `DELETE FROM customer_tags
+     WHERE account_id = ? AND customer_id = ? AND tag = ?`
+  ).bind(accountId, params.id, tag).run();
+
+  return json({ success: true });
+};
+
+// All distinct tags in the account, ordered by usage count desc.
+// Powers autocomplete (Phase A) and the picker tag chips (Phase B).
+const handleListAccountCustomerTags: Handler = async (request, env) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+
+  const { results } = await env.DB.prepare(
+    `SELECT tag, COUNT(*) as count
+     FROM customer_tags
+     WHERE account_id = ?
+     GROUP BY tag
+     ORDER BY count DESC, tag ASC`
+  ).bind(accountId).all();
+
+  return json(results);
+};
+
+// All customers carrying a given tag. Used by tag-expansion in the picker.
+const handleListCustomersByTag: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+
+  const tag = normalizeTag(decodeURIComponent(params.tag));
+  if (!tag) return json({ error: 'tag required' }, 400);
+
+  const { results } = await env.DB.prepare(
+    `SELECT c.id, c.name, c.phone, c.whatsapp
+     FROM customer_tags ct
+     JOIN customers c ON c.id = ct.customer_id
+     WHERE ct.account_id = ? AND ct.tag = ? AND c.account_id = ?
+     ORDER BY c.name ASC`
+  ).bind(accountId, tag, accountId).all();
+
+  return json(results);
 };
 
 // ── Cross-reference junction table handlers (article_products, module_products, project_products) ──
@@ -10259,12 +10319,32 @@ const handlePublishCollection: Handler = async (request, env, params) => {
 
   const body = await request.json() as any;
   const targetType = body.target_type || 'person';
-  if (targetType !== 'person') {
-    // Phase 1 gate — other audiences land in Phases 2-4.
-    return json({ error: 'Only person audience is supported in Phase 1' }, 400);
+  if (targetType !== 'person' && targetType !== 'store') {
+    // Phases 3-4 (event, shop) not yet implemented.
+    return json({ error: `target_type '${targetType}' not yet supported` }, 400);
   }
-  const recipients = Array.isArray(body.recipients) ? body.recipients : [];
-  if (recipients.length === 0) return json({ error: 'At least one recipient is required' }, 400);
+
+  let recipients: any[] = [];
+  let targetId: string | null = null;
+
+  if (targetType === 'person') {
+    recipients = Array.isArray(body.recipients) ? body.recipients : [];
+    if (recipients.length === 0) {
+      return json({ error: 'At least one recipient is required' }, 400);
+    }
+  } else {
+    // store: target_id is the receiving account.
+    targetId = typeof body.target_id === 'string' ? body.target_id : '';
+    if (!targetId) return json({ error: 'target_id (account) is required for store target' }, 400);
+    if (targetId === ctx.accountId) {
+      return json({ error: 'Cannot publish a collection to your own account' }, 400);
+    }
+    // Verify the target is a real account.
+    const targetAcct = await env.DB.prepare(
+      `SELECT id FROM accounts WHERE id = ? AND status != 'suspended'`
+    ).bind(targetId).first();
+    if (!targetAcct) return json({ error: 'Target store not found' }, 404);
+  }
 
   // Require at least one item.
   const itemCount = await env.DB.prepare(
@@ -10289,9 +10369,13 @@ const handlePublishCollection: Handler = async (request, env, params) => {
   const pubId = newId('pub');
   await env.DB.prepare(
     `INSERT INTO collection_publications
-       (id, collection_id, target_type, slug, recipients_json, created_by_user_id)
-     VALUES (?, ?, 'person', ?, ?, ?)`
-  ).bind(pubId, params.id, slug, JSON.stringify(recipients), ctx.userId).run();
+       (id, collection_id, target_type, target_id, slug, recipients_json, created_by_user_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`
+  ).bind(
+    pubId, params.id, targetType, targetId,
+    slug, targetType === 'person' ? JSON.stringify(recipients) : null,
+    ctx.userId
+  ).run();
 
   // Auto-promote draft → active on first publish.
   await env.DB.prepare(
@@ -10358,6 +10442,219 @@ const handleNeedsAttention: Handler = async (request, env) => {
   ).bind(ctx.accountId).all();
 
   return json({ items: results ?? [] });
+};
+
+// ── Inbound (store-target) collections ──────────────────────────────────────
+// A store account is the recipient of one or more `target_type='store'`
+// publications. These handlers expose those publications to the recipient and
+// let them import items into their own inventory.
+
+const handleListInboundCollections: Handler = async (request, env) => {
+  const ctx = await getActiveAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+
+  const { results } = await env.DB.prepare(
+    `SELECT cp.id AS publication_id,
+            cp.slug,
+            cp.published_at,
+            cp.unpublished_at,
+            cp.recipient_seen_at,
+            c.id AS collection_id,
+            c.title,
+            c.note,
+            c.hero_image_url,
+            c.account_id AS publisher_account_id,
+            a.name AS publisher_account_name,
+            (SELECT COUNT(*) FROM collection_items ci WHERE ci.collection_id = c.id) AS item_count,
+            (SELECT COUNT(*) FROM collection_items ci
+                JOIN products p ON p.id = ci.product_id
+              WHERE ci.collection_id = c.id
+                AND EXISTS (
+                  SELECT 1 FROM products p2
+                   WHERE p2.account_id = ?
+                     AND p2.imported_via_publication_id = cp.id
+                     AND p2.imported_from_product_id = ci.product_id
+                )) AS imported_count
+       FROM collection_publications cp
+       JOIN collections c ON c.id = cp.collection_id
+       JOIN accounts a ON a.id = c.account_id
+      WHERE cp.target_type = 'store'
+        AND cp.target_id = ?
+        AND cp.unpublished_at IS NULL
+      ORDER BY cp.published_at DESC
+      LIMIT 200`
+  ).bind(ctx.accountId, ctx.accountId).all();
+
+  // Thumbnails for each inbound collection (first 3 product images).
+  const ids = (results as any[]).map(r => r.collection_id);
+  const thumbMap = new Map<string, string[]>();
+  if (ids.length) {
+    const placeholders = ids.map(() => '?').join(',');
+    const thumbRows = await env.DB.prepare(
+      `SELECT ci.collection_id, p.image_url
+         FROM collection_items ci
+         JOIN products p ON p.id = ci.product_id
+        WHERE ci.collection_id IN (${placeholders})
+        ORDER BY ci.collection_id, ci.position`
+    ).bind(...ids).all();
+    for (const r of (thumbRows.results ?? []) as any[]) {
+      const existing = thumbMap.get(r.collection_id) ?? [];
+      if (existing.length < 3 && r.image_url) {
+        existing.push(r.image_url);
+        thumbMap.set(r.collection_id, existing);
+      }
+    }
+  }
+
+  const rows = (results as any[]).map(r => ({
+    ...r,
+    thumbnails: thumbMap.get(r.collection_id) ?? [],
+  }));
+
+  const unread_count = rows.filter(r => !r.recipient_seen_at).length;
+  return json({ inbound: rows, unread_count });
+};
+
+const handleGetInboundCollection: Handler = async (request, env, params) => {
+  const ctx = await getActiveAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+
+  const pub = await env.DB.prepare(
+    `SELECT cp.id AS publication_id, cp.slug, cp.target_id,
+            cp.published_at, cp.unpublished_at, cp.recipient_seen_at,
+            c.id AS collection_id, c.title, c.note, c.hero_image_url,
+            c.account_id AS publisher_account_id,
+            c.curator_display_name,
+            a.name AS publisher_account_name,
+            a.tagline AS publisher_tagline
+       FROM collection_publications cp
+       JOIN collections c ON c.id = cp.collection_id
+       JOIN accounts a ON a.id = c.account_id
+      WHERE cp.id = ?
+        AND cp.target_type = 'store'
+        AND cp.target_id = ?`
+  ).bind(params.pubId, ctx.accountId).first();
+
+  if (!pub) return json({ error: 'Inbound collection not found' }, 404);
+  if (pub.unpublished_at) return json({ error: 'No longer available' }, 410);
+
+  const items = await env.DB.prepare(
+    `SELECT ci.id AS item_id, ci.product_id, ci.position, ci.item_note,
+            p.type AS product_type,
+            COALESCE(p.given_name, p.product_name) AS product_name,
+            p.chinese_name, p.year, p.origin_country, p.origin_region,
+            p.image_url, p.tasting_notes, p.description,
+            (SELECT id FROM products
+               WHERE account_id = ?
+                 AND imported_from_product_id = ci.product_id
+                 AND imported_via_publication_id = ?
+               LIMIT 1) AS imported_product_id
+       FROM collection_items ci
+       JOIN products p ON p.id = ci.product_id
+      WHERE ci.collection_id = ?
+      ORDER BY ci.position ASC`
+  ).bind(ctx.accountId, params.pubId, pub.collection_id).all();
+
+  // Stamp seen_at on first view.
+  if (!pub.recipient_seen_at) {
+    const now = new Date().toISOString();
+    await env.DB.prepare(
+      `UPDATE collection_publications SET recipient_seen_at = ? WHERE id = ?`
+    ).bind(now, params.pubId).run();
+    (pub as any).recipient_seen_at = now;
+  }
+
+  return json({
+    publication: pub,
+    items: items.results ?? [],
+  });
+};
+
+const handleImportInboundItems: Handler = async (request, env, params) => {
+  const ctx = await getActiveAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+
+  const body = await request.json() as { product_ids?: string[] };
+  const productIds = Array.isArray(body.product_ids) ? body.product_ids : [];
+  if (productIds.length === 0) return json({ error: 'product_ids required' }, 400);
+
+  // Verify the publication targets this account and includes those items.
+  const pub = await env.DB.prepare(
+    `SELECT cp.id, cp.collection_id
+       FROM collection_publications cp
+      WHERE cp.id = ?
+        AND cp.target_type = 'store'
+        AND cp.target_id = ?
+        AND cp.unpublished_at IS NULL`
+  ).bind(params.pubId, ctx.accountId).first();
+  if (!pub) return json({ error: 'Inbound collection not found' }, 404);
+
+  // Filter to only items actually in the collection.
+  const validRows = await env.DB.prepare(
+    `SELECT ci.product_id
+       FROM collection_items ci
+      WHERE ci.collection_id = ?
+        AND ci.product_id IN (${productIds.map(() => '?').join(',')})`
+  ).bind(pub.collection_id, ...productIds).all();
+  const valid = new Set((validRows.results as any[]).map(r => r.product_id));
+  const toImport = productIds.filter(id => valid.has(id));
+  if (toImport.length === 0) return json({ imported: [], skipped: productIds.length });
+
+  // Skip already-imported.
+  const existingRows = await env.DB.prepare(
+    `SELECT imported_from_product_id FROM products
+      WHERE account_id = ?
+        AND imported_via_publication_id = ?
+        AND imported_from_product_id IN (${toImport.map(() => '?').join(',')})`
+  ).bind(ctx.accountId, params.pubId, ...toImport).all();
+  const already = new Set((existingRows.results as any[]).map(r => r.imported_from_product_id));
+  const fresh = toImport.filter(id => !already.has(id));
+  if (fresh.length === 0) {
+    return json({ imported: [], skipped: productIds.length, reason: 'all already imported' });
+  }
+
+  const sourceRows = await env.DB.prepare(
+    `SELECT * FROM products WHERE id IN (${fresh.map(() => '?').join(',')})`
+  ).bind(...fresh).all();
+
+  const COPY_COLS = [
+    'type', 'form', 'given_name', 'chinese_name', 'product_name', 'year',
+    'origin_country', 'origin_region', 'description', 'tasting_notes', 'image_url',
+    'additional_images', 'lore', 'show_wisdom', 'processing_notes', 'terroir', 'mood',
+    'experience', 'tea_key', 'tasting', 'material', 'capacity_ml', 'teaware_category',
+    'quantity_units', 'is_featured', 'is_curated', 'can_reorder',
+  ];
+
+  const stmts: D1PreparedStatement[] = [];
+  const imported: Array<{ source_id: string; new_id: string }> = [];
+
+  for (const src of sourceRows.results as any[]) {
+    const id = newId('prd');
+    imported.push({ source_id: src.id, new_id: id });
+    const cols = [
+      'id', 'account_id', 'status', 'is_public', 'stock_grams', 'fixed_retail_price_usd',
+      'imported_from_product_id', 'imported_via_publication_id',
+      ...COPY_COLS,
+    ];
+    const vals = [
+      id, ctx.accountId, 'Draft', 0, 0, null,
+      src.id, params.pubId,
+      ...COPY_COLS.map(c => src[c] ?? null),
+    ];
+    const placeholders = cols.map(() => '?').join(', ');
+    stmts.push(
+      env.DB.prepare(
+        `INSERT INTO products (${cols.join(', ')}) VALUES (${placeholders})`
+      ).bind(...vals)
+    );
+  }
+
+  await env.DB.batch(stmts);
+
+  return json({
+    imported,
+    skipped: productIds.length - imported.length,
+  });
 };
 
 // Public — no auth, link-gated by slug.
@@ -10534,7 +10831,6 @@ const routes: [string, string, Handler][] = [
 
   // Wholesale Catalog
   ['GET', '/api/catalog', handleGetCatalog],
-  ['POST', '/api/catalog/seed', handleSeedCatalog],
 
   // Exchange Rates
   ['GET', '/api/rates', handleGetRates],
@@ -10562,11 +10858,19 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/customers/:id/products', handleGetVendorProducts],
   ['POST', '/api/customers/:id/products', handleLinkVendorProduct],
   ['DELETE', '/api/customers/:id/products/:productId', handleUnlinkVendorProduct],
+  ['GET',    '/api/customers/:id/tags', handleListCustomerTags],
+  ['POST',   '/api/customers/:id/tags', handleAddCustomerTag],
+  ['DELETE', '/api/customers/:id/tags/:tag', handleRemoveCustomerTag],
+  ['GET',    '/api/customer-tags', handleListAccountCustomerTags],
+  ['GET',    '/api/customer-tags/:tag/customers', handleListCustomersByTag],
 
-  // Collections (Phase 1: Person audience only)
+  // Collections (Phase 1: Person audience; Phase 2: Store audience)
   ['GET',    '/api/collections', handleListCollections],
   ['POST',   '/api/collections', handleCreateCollection],
   ['GET',    '/api/collections/needs-attention', handleNeedsAttention],
+  ['GET',    '/api/collections/inbound', handleListInboundCollections],
+  ['GET',    '/api/collections/inbound/:pubId', handleGetInboundCollection],
+  ['POST',   '/api/collections/inbound/:pubId/import', handleImportInboundItems],
   ['GET',    '/api/collections/:id', handleGetCollection],
   ['PUT',    '/api/collections/:id', handlePatchCollection],
   ['POST',   '/api/collections/:id/items', handleAddCollectionItems],

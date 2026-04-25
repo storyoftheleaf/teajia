@@ -4,8 +4,10 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft, Loader2, Trash2, ChevronUp, ChevronDown, Plus, ImagePlus,
   Send, X as XIcon, Search, Copy, Check, AlertTriangle, Archive,
+  User as UserIcon, Building2,
 } from 'lucide-react';
 import { api } from '../../lib/api';
+import { useAppStore } from '../../lib/store';
 import { useToast } from '../components/Toast';
 import { useProducts } from '../hooks/useAdminData';
 import { RecipientTypeahead } from '../components/collections/RecipientTypeahead';
@@ -43,6 +45,19 @@ export const CollectionEditView: React.FC = () => {
     queryFn: () => api.collections.get(id!),
     enabled: !!id,
   });
+
+  // Network stores — used to label store-target publications and to populate the
+  // "Publish to store" picker.
+  const { data: networkStores } = useQuery({
+    queryKey: ['network-stores'],
+    queryFn: () => api.network.getStores(),
+    staleTime: 60_000,
+  });
+  const storeNameById = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const s of networkStores ?? []) m.set(s.id, s.name);
+    return m;
+  }, [networkStores]);
 
   const detail = data as CollectionDetail | undefined;
   const [titleDraft, setTitleDraft] = useState('');
@@ -359,7 +374,12 @@ export const CollectionEditView: React.FC = () => {
             ) : (
               <ul className="flex flex-col gap-1.5">
                 {detail.publications.map(pub => (
-                  <PublicationRow key={pub.id} pub={pub} onUnpublish={() => unpublish(pub.id)} />
+                  <PublicationRow
+                    key={pub.id}
+                    pub={pub}
+                    storeNameById={storeNameById}
+                    onUnpublish={() => unpublish(pub.id)}
+                  />
                 ))}
               </ul>
             )}
@@ -380,6 +400,7 @@ export const CollectionEditView: React.FC = () => {
       {publishOpen && id && (
         <AddPublicationSheet
           collectionId={id}
+          stores={networkStores ?? []}
           onClose={() => setPublishOpen(false)}
           onPublished={() => { setPublishOpen(false); invalidate(); }}
           disabled={!canPublish}
@@ -433,10 +454,15 @@ const StatusPill: React.FC<{ status: CollectionStatus; onSet: (s: CollectionStat
 };
 
 // ── Publication row ──
-const PublicationRow: React.FC<{ pub: CollectionPublication; onUnpublish: () => void }> = ({ pub, onUnpublish }) => {
+const PublicationRow: React.FC<{
+  pub: CollectionPublication;
+  storeNameById?: Map<string, string>;
+  onUnpublish: () => void;
+}> = ({ pub, storeNameById, onUnpublish }) => {
   const [copied, setCopied] = useState(false);
   const active = !pub.unpublished_at;
   const url = `${window.location.origin}/c/${pub.slug}`;
+  const isStore = pub.target_type === 'store';
 
   const copy = async () => {
     try {
@@ -446,32 +472,46 @@ const PublicationRow: React.FC<{ pub: CollectionPublication; onUnpublish: () => 
     } catch { /* noop */ }
   };
 
+  const headline = isStore
+    ? (pub.target_id && storeNameById?.get(pub.target_id)) || 'Partner store'
+    : pub.recipients.length > 0
+      ? pub.recipients.map(r => r.name).join(', ')
+      : 'No recipients';
+
   return (
     <li className={`flex items-center gap-3 px-3 py-2.5 rounded-md ${active ? 'bg-tea-surface' : 'bg-tea-elevated opacity-60'}`}>
+      <div className="w-7 h-7 rounded-md bg-tea-elevated flex items-center justify-center flex-shrink-0 text-tea-text-sec">
+        {isStore ? <Building2 size={13} /> : <UserIcon size={13} />}
+      </div>
       <div className="flex-1 min-w-0">
         <p className="text-xs text-tea-text truncate">
-          {pub.recipients.length > 0
-            ? pub.recipients.map(r => r.name).join(', ')
-            : 'No recipients'}
+          {headline}
+          {isStore && (
+            <span className="ml-1.5 text-[10px] uppercase tracking-[1.2px] text-tea-text-dim">store</span>
+          )}
         </p>
         <p className="text-[10px] text-tea-text-dim truncate mt-0.5 font-mono">
-          /c/{pub.slug} · {pub.view_count} view{pub.view_count !== 1 ? 's' : ''} · {active ? `shared ${formatWhen(pub.published_at)}` : `unpublished ${formatWhen(pub.unpublished_at)}`}
+          {isStore
+            ? `${active ? `shared ${formatWhen(pub.published_at)}` : `unpublished ${formatWhen(pub.unpublished_at)}`}`
+            : `/c/${pub.slug} · ${pub.view_count} view${pub.view_count !== 1 ? 's' : ''} · ${active ? `shared ${formatWhen(pub.published_at)}` : `unpublished ${formatWhen(pub.unpublished_at)}`}`}
         </p>
       </div>
       {active && (
         <>
-          <button
-            onClick={copy}
-            className="p-1.5 text-tea-text-sec hover:text-tea-text transition-colors"
-            title="Copy link"
-          >
-            {copied ? <Check size={13} className="text-tea-gold" /> : <Copy size={13} />}
-          </button>
+          {!isStore && (
+            <button
+              onClick={copy}
+              className="p-1.5 text-tea-text-sec hover:text-tea-text transition-colors"
+              title="Copy link"
+            >
+              {copied ? <Check size={13} className="text-tea-gold" /> : <Copy size={13} />}
+            </button>
+          )}
           <button
             onClick={onUnpublish}
             className="text-[10px] uppercase tracking-[1.2px] text-tea-text-sec hover:text-red-400 transition-colors"
           >
-            Unpublish
+            {isStore ? 'Stop sharing' : 'Unpublish'}
           </button>
         </>
       )}
@@ -600,22 +640,63 @@ const AddProductsSheet: React.FC<{
 };
 
 // ── Add publication sheet ──
+type PublishMode = 'person' | 'store';
+
+interface NetworkStore {
+  id: string;
+  slug: string;
+  name: string;
+  tagline?: string;
+  location_city?: string;
+  location_country?: string;
+}
+
 const AddPublicationSheet: React.FC<{
   collectionId: string;
+  stores: NetworkStore[];
   onClose: () => void;
   onPublished: () => void;
   disabled: boolean;
-}> = ({ collectionId, onClose, onPublished, disabled }) => {
+}> = ({ collectionId, stores, onClose, onPublished, disabled }) => {
+  const { activeAccountId } = useAppStore();
+  const [mode, setMode] = useState<PublishMode>('person');
   const [recipients, setRecipients] = useState<CollectionRecipient[]>([]);
+  const [storeQuery, setStoreQuery] = useState('');
+  const [selectedStoreId, setSelectedStoreId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const eligibleStores = useMemo(
+    () => stores.filter(s => s.id !== activeAccountId),
+    [stores, activeAccountId]
+  );
+  const filteredStores = useMemo(() => {
+    if (!storeQuery.trim()) return eligibleStores;
+    const q = storeQuery.toLowerCase();
+    return eligibleStores.filter(s =>
+      s.name.toLowerCase().includes(q) || s.slug.toLowerCase().includes(q)
+    );
+  }, [eligibleStores, storeQuery]);
+  const selectedStore = eligibleStores.find(s => s.id === selectedStoreId) || null;
+
   const submit = async () => {
-    if (recipients.length === 0 || submitting || disabled) return;
-    setSubmitting(true);
+    if (submitting || disabled) return;
     setError(null);
+    setSubmitting(true);
     try {
-      await api.collections.publish(collectionId, recipients);
+      if (mode === 'person') {
+        if (recipients.length === 0) {
+          setError('Add at least one recipient.');
+          return;
+        }
+        await api.collections.publish(collectionId, recipients);
+      } else {
+        if (!selectedStoreId) {
+          setError('Pick a store to share with.');
+          return;
+        }
+        await api.collections.publishToStore(collectionId, selectedStoreId);
+      }
       onPublished();
     } catch (err: any) {
       setError(err?.message || 'Publish failed');
@@ -624,29 +705,118 @@ const AddPublicationSheet: React.FC<{
     }
   };
 
+  const canSubmit = mode === 'person' ? recipients.length > 0 : !!selectedStoreId;
+
   return (
     <div className="fixed inset-0 z-modal flex items-center justify-center p-4">
       <button aria-label="Close" className="absolute inset-0 bg-tea-bg/80 backdrop-blur-sm" onClick={submitting ? undefined : onClose} />
-      <div className="relative w-full max-w-md bg-tea-surface border border-tea-border rounded-2xl shadow-2xl p-5">
-        <header className="flex items-center justify-between mb-4">
+      <div className="relative w-full max-w-md bg-tea-surface border border-tea-border rounded-2xl shadow-2xl flex flex-col max-h-[85vh]">
+        <header className="flex items-center justify-between px-5 pt-5 pb-3 flex-shrink-0">
           <h2 className="text-sm font-medium text-tea-text">New share</h2>
           <button onClick={onClose} disabled={submitting} className="text-tea-text-sec hover:text-tea-text transition-colors disabled:opacity-40" aria-label="Close">
             <XIcon size={15} />
           </button>
         </header>
-        <p className="text-[11px] text-tea-text-dim mb-3">
-          Each recipient gets the same link. Only people with the link can see the page.
-        </p>
-        <RecipientTypeahead value={recipients} onChange={setRecipients} autoFocus />
-        {error && <p className="text-xs text-red-400 mt-2">{error}</p>}
-        <footer className="flex items-center justify-between gap-3 mt-5">
+
+        <div className="px-5 pb-3 flex-shrink-0">
+          <div role="tablist" className="grid grid-cols-2 gap-1 p-1 bg-tea-bg border border-tea-border rounded-lg">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={mode === 'person'}
+              onClick={() => { setMode('person'); setError(null); }}
+              className={`flex items-center justify-center gap-1.5 py-2 text-[11px] uppercase tracking-wide rounded-md transition-colors ${
+                mode === 'person' ? 'bg-tea-surface text-tea-text' : 'text-tea-text-sec hover:text-tea-text'
+              }`}
+            >
+              <UserIcon size={11} /> To a person
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={mode === 'store'}
+              onClick={() => { setMode('store'); setError(null); }}
+              className={`flex items-center justify-center gap-1.5 py-2 text-[11px] uppercase tracking-wide rounded-md transition-colors ${
+                mode === 'store' ? 'bg-tea-surface text-tea-text' : 'text-tea-text-sec hover:text-tea-text'
+              }`}
+            >
+              <Building2 size={11} /> To a store
+            </button>
+          </div>
+        </div>
+
+        <div className="flex-1 min-h-0 overflow-y-auto px-5 pb-3">
+          {mode === 'person' ? (
+            <>
+              <p className="text-[11px] text-tea-text-dim mb-3">
+                Each recipient gets the same link. Only people with the link can see the page.
+              </p>
+              <RecipientTypeahead value={recipients} onChange={setRecipients} collectionId={collectionId} autoFocus />
+            </>
+          ) : (
+            <>
+              <p className="text-[11px] text-tea-text-dim mb-3">
+                The receiving store sees this collection in their admin. They choose which products to import into their own inventory.
+              </p>
+              <div className="relative mb-2">
+                <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-text-dim pointer-events-none" />
+                <input
+                  type="text"
+                  value={storeQuery}
+                  onChange={e => setStoreQuery(e.target.value)}
+                  placeholder="Search stores…"
+                  autoFocus
+                  className="w-full pl-8 pr-3 py-2 text-xs bg-tea-bg border border-tea-border rounded-lg outline-none text-tea-text placeholder:text-tea-text-dim focus:ring-1 focus:ring-tea-gold/40"
+                />
+              </div>
+              {filteredStores.length === 0 ? (
+                <p className="py-6 text-xs text-tea-text-dim text-center">
+                  {storeQuery ? 'No stores match that search.' : 'No partner stores yet.'}
+                </p>
+              ) : (
+                <ul className="space-y-1">
+                  {filteredStores.map(s => {
+                    const isSel = s.id === selectedStoreId;
+                    const locality = [s.location_city, s.location_country].filter(Boolean).join(', ');
+                    return (
+                      <li key={s.id}>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedStoreId(s.id)}
+                          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+                            isSel ? 'bg-tea-gold-lt' : 'bg-tea-bg hover:bg-tea-elevated'
+                          }`}
+                        >
+                          <div className={`w-4 h-4 rounded-full flex-shrink-0 flex items-center justify-center transition-colors ${
+                            isSel ? 'bg-tea-gold' : 'bg-tea-surface'
+                          }`}>
+                            {isSel && <Check size={10} className="text-tea-bg" strokeWidth={3} />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-tea-text truncate">{s.name}</p>
+                            {locality && <p className="text-[11px] text-tea-text-dim truncate">{locality}</p>}
+                          </div>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </>
+          )}
+          {error && <p className="text-xs text-red-400 mt-3">{error}</p>}
+        </div>
+
+        <footer className="flex items-center justify-between gap-3 px-5 py-4 border-t border-tea-border flex-shrink-0">
           <button onClick={onClose} disabled={submitting} className="text-xs text-tea-text-sec hover:text-tea-text transition-colors disabled:opacity-40">Cancel</button>
           <button
             onClick={submit}
-            disabled={recipients.length === 0 || submitting || disabled}
+            disabled={!canSubmit || submitting || disabled}
             className="flex items-center gap-2 px-4 py-2 bg-tea-gold text-tea-bg rounded-lg text-xs font-semibold tracking-wide hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            {submitting ? <><Loader2 size={12} className="animate-spin" /> Publishing…</> : <>Create link</>}
+            {submitting
+              ? <><Loader2 size={12} className="animate-spin" /> {mode === 'person' ? 'Publishing…' : 'Sharing…'}</>
+              : (mode === 'person' ? <>Create link</> : <>Share {selectedStore ? `to ${selectedStore.name}` : ''}</>)}
           </button>
         </footer>
       </div>

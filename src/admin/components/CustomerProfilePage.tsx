@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, MessageCircle, Leaf, Loader2, ShoppingBag,
-  Calendar, Edit3, Star, Package, Search, Check, Copy, X,
+  Calendar, Edit3, Star, Package, Search, Check, Copy, X, Plus,
 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { Customer, Product } from '../types';
@@ -166,6 +166,172 @@ const SampleOfferModal: React.FC<{
   );
 };
 
+// ── Contact tags section (Phase A) ─────────────────────────────────────────
+// Freeform admin-only tags. Storage is lowercase (see worker normalizeTag);
+// display is the same lowercase string for consistency with the picker.
+const ContactTagsSection: React.FC<{ customerId: string }> = ({ customerId }) => {
+  const [tags, setTags] = useState<string[]>([]);
+  const [allTags, setAllTags] = useState<Array<{ tag: string; count: number }>>([]);
+  const [adding, setAdding] = useState(false);
+  const [draft, setDraft] = useState('');
+  const [busy, setBusy] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    api.customers.listTags(customerId)
+      .then(setTags)
+      .catch(() => setTags([]));
+    api.customerTags.listAll()
+      .then(setAllTags)
+      .catch(() => setAllTags([]));
+  }, [customerId]);
+
+  useEffect(() => {
+    if (adding) inputRef.current?.focus();
+  }, [adding]);
+
+  const known = useMemo(() => new Set(tags.map(t => t.toLowerCase())), [tags]);
+  const suggestions = useMemo(() => {
+    const q = draft.trim().toLowerCase();
+    if (!q) return [];
+    return allTags
+      .filter(t => t.tag.includes(q) && !known.has(t.tag))
+      .slice(0, 6);
+  }, [draft, allTags, known]);
+
+  const commit = async (raw: string) => {
+    const clean = raw.trim().toLowerCase().slice(0, 50);
+    if (!clean || known.has(clean) || busy) {
+      setDraft('');
+      return;
+    }
+    setBusy(true);
+    // Optimistic add.
+    setTags(prev => [...prev, clean].sort());
+    setDraft('');
+    try {
+      await api.customers.addTag(customerId, clean);
+      // Refresh account-wide tag list so autocomplete picks up new tags.
+      api.customerTags.listAll().then(setAllTags).catch(() => {});
+    } catch {
+      // Rollback on failure.
+      setTags(prev => prev.filter(t => t !== clean));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const remove = async (tag: string) => {
+    if (busy) return;
+    setBusy(true);
+    setTags(prev => prev.filter(t => t !== tag));
+    try {
+      await api.customers.removeTag(customerId, tag);
+      api.customerTags.listAll().then(setAllTags).catch(() => {});
+    } catch {
+      setTags(prev => [...prev, tag].sort());
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      commit(draft);
+    } else if (e.key === 'Escape') {
+      setDraft('');
+      setAdding(false);
+    } else if (e.key === 'Backspace' && !draft && tags.length > 0) {
+      // Quick removal of the most recent tag.
+      void remove(tags[tags.length - 1]);
+    }
+  };
+
+  return (
+    <div>
+      <p className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec mb-3">
+        Tags
+        {tags.length > 0 && (
+          <span className="ml-1 normal-case text-tea-text-dim">({tags.length})</span>
+        )}
+      </p>
+
+      <div className="flex flex-wrap items-center gap-1.5">
+        {tags.map(tag => (
+          <span
+            key={tag}
+            className="group inline-flex items-center gap-1 pl-2 pr-1 py-0.5 rounded-md bg-tea-elevated text-tea-text text-[12px]"
+          >
+            <span className="truncate max-w-[200px]">{tag}</span>
+            <button
+              type="button"
+              onClick={() => remove(tag)}
+              className="text-tea-text-dim hover:text-tea-text transition-colors p-0.5 opacity-0 group-hover:opacity-100 focus:opacity-100"
+              aria-label={`Remove tag ${tag}`}
+            >
+              <X size={10} />
+            </button>
+          </span>
+        ))}
+
+        {adding ? (
+          <div className="relative">
+            <input
+              ref={inputRef}
+              value={draft}
+              onChange={e => setDraft(e.target.value)}
+              onKeyDown={onKeyDown}
+              onBlur={() => {
+                // Commit any in-progress draft on blur, then collapse.
+                if (draft.trim()) commit(draft);
+                setTimeout(() => setAdding(false), 120);
+              }}
+              placeholder="add tag, press enter"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="none"
+              spellCheck={false}
+              maxLength={50}
+              className="w-44 px-2 py-1 text-[12px] bg-tea-bg border border-tea-border rounded-md outline-none text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold/40"
+            />
+            {suggestions.length > 0 && (
+              <ul className="absolute top-full left-0 mt-1 z-10 w-56 max-h-56 overflow-y-auto rounded-md bg-tea-surface border border-tea-border shadow-lg py-1">
+                {suggestions.map(s => (
+                  <li key={s.tag}>
+                    <button
+                      type="button"
+                      // onMouseDown so blur doesn't fire first and close the panel.
+                      onMouseDown={e => { e.preventDefault(); commit(s.tag); }}
+                      className="w-full flex items-center justify-between gap-3 px-2.5 py-1.5 text-left text-[12px] text-tea-text hover:bg-tea-elevated transition-colors"
+                    >
+                      <span className="truncate">{s.tag}</span>
+                      <span className="text-[10px] text-tea-text-dim shrink-0">{s.count}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setAdding(true)}
+            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[12px] text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated/60 transition-colors"
+          >
+            <Plus size={11} />
+            add tag
+          </button>
+        )}
+      </div>
+
+      {tags.length === 0 && !adding && (
+        <p className="text-[11px] text-tea-text-dim mt-2">No tags yet.</p>
+      )}
+    </div>
+  );
+};
+
 // ── Main profile page ──────────────────────────────────────────────────────
 export const CustomerProfilePage: React.FC = () => {
   const { customerId } = useParams<{ customerId: string }>();
@@ -291,6 +457,9 @@ export const CustomerProfilePage: React.FC = () => {
               </div>
             )}
           </div>
+
+          {/* Contact tags */}
+          <ContactTagsSection customerId={customer.id} />
 
           {/* Stats */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

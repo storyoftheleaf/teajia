@@ -52,6 +52,7 @@ import { PlatformAuditLogPage } from './views/PlatformAuditLogPage';
 import { MagazineView } from './views/MagazineView';
 import { CollectionsView } from './views/CollectionsView';
 import { CollectionEditView } from './views/CollectionEditView';
+import { InboundCollectionView } from './views/InboundCollectionView';
 
 // Import Modals
 import { AuthModal } from './components/AuthModal';
@@ -585,6 +586,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
               <Route path="platform/audit-log" element={<ProtectedRoute hasAccess={isAdmin && !!platformRole} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><PlatformAuditLogPage /></PageTransition></ProtectedRoute>} />
               <Route path="magazine" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><MagazineView /></PageTransition></ProtectedRoute>} />
               <Route path="collections" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><CollectionsView /></PageTransition></ProtectedRoute>} />
+              <Route path="collections/inbound/:pubId" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><InboundCollectionView /></PageTransition></ProtectedRoute>} />
               <Route path="collections/:id" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><CollectionEditView /></PageTransition></ProtectedRoute>} />
 
               {/* Legacy routes — redirect to new unified views */}
