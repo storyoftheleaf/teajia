@@ -11,7 +11,7 @@ import { useAppStore } from '../lib/store';
 import {
   Calendar, LayoutDashboard, Briefcase, Leaf, Coffee, Store, Users,
   FolderOpen, Settings, ChevronLeft, ChevronRight, UserCheck, MapPin,
-  BookOpen, Package, ShoppingCart, Sun, Moon,
+  BookOpen, Package, ShoppingCart, Sun, Moon, Compass, Wrench,
 } from 'lucide-react';
 import { SampleIcon } from './Icons';
 import { useSampleCartStore } from '../samples/sampleCartStore';
@@ -47,10 +47,15 @@ const NavButton: React.FC<{
   delay?: number;
   collapsed?: boolean;
 }> = ({ item, isActive, onClick, delay = 0, collapsed = false }) => {
-  // Icons only appear when collapsed; expanded sidebar is text-only.
-  const iconEl = collapsed && (
+  // Icons appear in both modes — muted gold anchor in expanded mode so the
+  // eye has a landmark per row without losing the editorial text-first feel.
+  const iconEl = (
     <div className={`shrink-0 transition-colors duration-200 ${
-      isActive ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
+      isActive
+        ? 'text-tea-gold'
+        : collapsed
+          ? 'text-tea-text-sec group-hover:text-tea-text'
+          : 'text-tea-gold/55 group-hover:text-tea-gold/80'
     }`}>
       {item.icon}
     </div>
@@ -58,7 +63,7 @@ const NavButton: React.FC<{
 
   const labelEl = !collapsed && (
     <span
-      className={`text-sm flex-1 transition-colors duration-200 ${
+      className={`text-sm text-left transition-colors duration-200 ${
         isActive ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
       }`}
       style={{ fontFamily: 'var(--font-display)', fontWeight: 400, letterSpacing: '0.03em' }}
@@ -194,11 +199,10 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
     {
       id: 'business', label: 'Business',
       icon: <Briefcase size={18} strokeWidth={1.75} />,
-      path: '/admin/orders',
+      path: '/admin/activity',
       children: [
-        { id: 'customers', path: '/admin/customers', label: 'Customers',      icon: <Users      className="w-3.5 h-3.5" strokeWidth={1.75} /> },
-        { id: 'records',   path: '/admin/records',   label: 'Records & Logs', icon: <FolderOpen className="w-3.5 h-3.5" strokeWidth={1.75} /> },
-        { id: 'settings',  path: '/admin/settings',  label: 'Settings',       icon: <Settings   className="w-3.5 h-3.5" strokeWidth={1.75} /> },
+        { id: 'activity', path: '/admin/activity', label: 'Activity', icon: <FolderOpen className="w-3.5 h-3.5" strokeWidth={1.75} /> },
+        { id: 'people',   path: '/admin/people',   label: 'People',   icon: <Users      className="w-3.5 h-3.5" strokeWidth={1.75} /> },
       ],
     },
     {
@@ -388,6 +392,13 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 
           {/* ── Browse Nav ────────────────────────────────────────────────── */}
           <nav className={`flex flex-col py-3 gap-1 ${collapsed ? 'px-1.5' : 'px-3'}`}>
+            {!collapsed && (
+              <div className="flex items-center gap-1.5 px-4 pt-1 pb-2">
+                <Compass size={11} strokeWidth={1.75} className="text-tea-gold/70 shrink-0" aria-hidden="true" />
+                <span className="text-[10px] uppercase tracking-[0.22em] text-tea-text-sec font-medium">Browse</span>
+                <div className="flex-1 h-px bg-tea-border ml-1" aria-hidden="true" />
+              </div>
+            )}
             {browseItems.map((item, index) => (
               <NavButton
                 key={item.id}
@@ -442,6 +453,10 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                     </div>
                   ) : (
                     <>
+                      <ShoppingCart
+                        className="w-[14px] h-[14px] text-tea-gold/55 group-hover:text-tea-gold/80 transition-colors duration-200 shrink-0"
+                        strokeWidth={1.75}
+                      />
                       <span
                         className="text-sm text-tea-text-sec group-hover:text-tea-text transition-colors duration-200"
                         style={{ fontFamily: 'var(--font-display)', fontWeight: 400, letterSpacing: '0.03em' }}
@@ -481,20 +496,12 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                 transition={{ duration: 0.2 }}
                 className={`flex flex-col gap-1 ${collapsed ? 'px-1.5' : 'px-3'} pt-2 pb-3 border-t border-tea-border`}
               >
-                {/* Back to storefront — only when on an admin route */}
-                {isAdminRoute && !collapsed && (
-                  <Link
-                    to="/"
-                    className="flex items-center gap-1.5 px-4 py-1.5 mb-0.5 rounded-md text-tea-text-sec hover:text-tea-text transition-colors duration-200 group"
-                  >
-                    <ChevronLeft size={11} strokeWidth={2} />
-                    <span
-                      className="text-[11px] tracking-[0.04em]"
-                      style={{ fontFamily: 'var(--font-sans)', fontWeight: 400 }}
-                    >
-                      Storefront
-                    </span>
-                  </Link>
+                {!collapsed && (
+                  <div className="flex items-center gap-1.5 px-4 pt-1 pb-2">
+                    <Wrench size={11} strokeWidth={1.75} className="text-tea-gold/70 shrink-0" aria-hidden="true" />
+                    <span className="text-[10px] uppercase tracking-[0.22em] text-tea-text-sec font-medium">Admin</span>
+                    <div className="flex-1 h-px bg-tea-border ml-1" aria-hidden="true" />
+                  </div>
                 )}
 
                 {adminItems.map((item, index) => {
@@ -529,16 +536,18 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                             transition={{ type: 'spring', stiffness: 350, damping: 30 }}
                           />
                         )}
-                        {collapsed && (
-                          <div className={`shrink-0 transition-colors duration-200 ${
-                            (showActive || isAnyChildActive) ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
-                          }`}>
-                            {item.icon}
-                          </div>
-                        )}
+                        <div className={`shrink-0 transition-colors duration-200 ${
+                          (showActive || isAnyChildActive)
+                            ? 'text-tea-gold'
+                            : collapsed
+                              ? 'text-tea-text-sec group-hover:text-tea-text'
+                              : 'text-tea-gold/55 group-hover:text-tea-gold/80'
+                        }`}>
+                          {item.icon}
+                        </div>
                         {!collapsed && (
                           <span
-                            className={`text-sm flex-1 transition-colors duration-200 ${
+                            className={`text-sm text-left transition-colors duration-200 ${
                               (showActive || isAnyChildActive) ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
                             }`}
                             style={{ fontFamily: 'var(--font-display)', fontWeight: 400, letterSpacing: '0.03em' }}
@@ -607,14 +616,18 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                   } rounded-md transition-colors duration-200 group hover:bg-tea-gold/6`}
                   title="Our spaces"
                 >
-                  {collapsed && (
-                    <MapPin
-                      className={`w-[18px] h-[18px] shrink-0 transition-colors duration-200 ${
-                        currentPath === '/spaces' ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
-                      }`}
-                      strokeWidth={1.75}
-                    />
-                  )}
+                  <MapPin
+                    className={`shrink-0 transition-colors duration-200 ${
+                      collapsed ? 'w-[18px] h-[18px]' : 'w-[14px] h-[14px]'
+                    } ${
+                      currentPath === '/spaces'
+                        ? 'text-tea-gold'
+                        : collapsed
+                          ? 'text-tea-text-sec group-hover:text-tea-text'
+                          : 'text-tea-gold/55 group-hover:text-tea-gold/80'
+                    }`}
+                    strokeWidth={1.75}
+                  />
                   {!collapsed && (
                     <span
                       className={`text-sm transition-colors duration-200 ${

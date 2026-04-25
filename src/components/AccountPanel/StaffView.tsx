@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar } from 'lucide-react';
+import { Calendar, Wrench, BookOpen } from 'lucide-react';
 import {
   NeedsAttention,
   PreviewBlock,
@@ -125,8 +125,12 @@ export const StaffView: React.FC<StaffViewProps> = ({
       )}
 
       {/* ── Shift tools — compact text-link cluster ─────────────────── */}
-      <div className="border-t border-tea-border px-6 py-4">
-        <div className="text-[11px] uppercase tracking-[0.24em] text-tea-text-sec font-medium mb-3">Shift</div>
+      <div className="border-t border-tea-border px-6 pt-7 pb-5">
+        <div className="flex items-center gap-2 text-[12px] uppercase tracking-[0.22em] text-tea-text font-medium">
+          <span className="text-tea-gold/70 shrink-0 flex items-center" aria-hidden="true"><Wrench size={14} strokeWidth={1.5} /></span>
+          <span>Shift</span>
+        </div>
+        <div className="w-8 h-px bg-tea-gold/40 mt-2 mb-3.5 ml-[22px]" aria-hidden="true" />
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[14px] text-tea-text-sec tracking-[0.01em]">
           <button
             onClick={() => go('/admin/inventory')}
@@ -155,8 +159,12 @@ export const StaffView: React.FC<StaffViewProps> = ({
       </div>
 
       {/* ── Learn — quiet text links ────────────────────────────────── */}
-      <div className="border-t border-tea-border px-6 py-4">
-        <div className="text-[11px] uppercase tracking-[0.24em] text-tea-text-sec font-medium mb-3">Learn</div>
+      <div className="border-t border-tea-border px-6 pt-7 pb-5">
+        <div className="flex items-center gap-2 text-[12px] uppercase tracking-[0.22em] text-tea-text font-medium">
+          <span className="text-tea-gold/70 shrink-0 flex items-center" aria-hidden="true"><BookOpen size={14} strokeWidth={1.5} /></span>
+          <span>Learn</span>
+        </div>
+        <div className="w-8 h-px bg-tea-gold/40 mt-2 mb-3.5 ml-[22px]" aria-hidden="true" />
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[14px] text-tea-text-sec tracking-[0.01em]">
           <button
             onClick={() => go('/magazine')}

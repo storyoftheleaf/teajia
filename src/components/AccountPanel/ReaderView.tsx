@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Sparkles, Compass, Building2 } from 'lucide-react';
 
 interface ReaderViewProps {
   onClose: () => void;
@@ -8,14 +9,21 @@ interface ReaderViewProps {
   onOpenEvents: () => void;
 }
 
+const ICON_PROPS = { size: 14, strokeWidth: 1.5 } as const;
+
 // Small text-link cluster, matches the footer pattern used in
 // MemberView/OperatorView — no chevrons, no row grammar.
 const LinkCluster: React.FC<{
   hint: string;
+  icon?: React.ReactNode;
   links: { label: string; onClick: () => void }[];
-}> = ({ hint, links }) => (
-  <div className="px-6 py-5 border-t border-tea-border">
-    <div className="text-[11px] uppercase tracking-[0.24em] text-tea-text-sec font-medium mb-3">{hint}</div>
+}> = ({ hint, icon, links }) => (
+  <div className="px-6 py-6 border-t border-tea-border">
+    <div className="flex items-center gap-2 text-[12px] uppercase tracking-[0.22em] text-tea-text font-medium">
+      {icon && <span className="text-tea-gold/70 shrink-0 flex items-center" aria-hidden="true">{icon}</span>}
+      <span>{hint}</span>
+    </div>
+    <div className="w-8 h-px bg-tea-gold/40 mt-2 mb-3.5 ml-[22px]" aria-hidden="true" />
     <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[14px] text-tea-text-sec tracking-[0.01em]">
       {links.map((link, i) => (
         <React.Fragment key={link.label}>
@@ -82,6 +90,7 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
       {/* ── What's inside — text-link cluster, not rows ─────────────── */}
       <LinkCluster
         hint="What's inside"
+        icon={<Sparkles {...ICON_PROPS} />}
         links={[
           { label: 'Journal your sessions', onClick: onOpenSignUp },
           { label: 'Find teas for your taste', onClick: () => go('/compass') },
@@ -92,6 +101,7 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
       {/* ── Explore ───────────────────────────────────────────────────── */}
       <LinkCluster
         hint="Explore"
+        icon={<Compass {...ICON_PROPS} />}
         links={[
           { label: 'The Magazine', onClick: () => go('/magazine') },
           { label: 'Shop', onClick: () => go('/shop') },
@@ -102,6 +112,7 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
       {/* ── For your space (B2B outreach) ─────────────────────────────── */}
       <LinkCluster
         hint="For your space"
+        icon={<Building2 {...ICON_PROPS} />}
         links={[
           { label: 'Tea for hotels, studios & retreats', onClick: () => go('/for-your-space') },
         ]}

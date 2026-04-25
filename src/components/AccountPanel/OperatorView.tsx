@@ -1,15 +1,14 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Clock, PenLine, Users, Compass, Bookmark } from 'lucide-react';
+import { Calendar, Clock, PenLine, Users, Compass, Bookmark, ShoppingBag, Sprout, BookOpen, GraduationCap } from 'lucide-react';
 import { SealIcon } from '../Icons';
-
-const ICON_PROPS = { size: 13, strokeWidth: 1.5 } as const;
 import {
   ADMIN_TOOL_GROUPS,
   toolsForRole,
   groupTools,
   isRecentlyAdded,
   type AdminTool,
+  type AdminToolGroup,
 } from '../../admin/toolRegistry';
 import {
   NeedsAttention,
@@ -22,6 +21,17 @@ import {
   truncate,
 } from './primitives';
 import type { TeaEvent } from '../../types/events';
+
+const ICON_PROPS = { size: 13, strokeWidth: 1.5 } as const;
+const GROUP_ICON_PROPS = { size: 14, strokeWidth: 1.5 } as const;
+
+const GROUP_ICONS: Record<AdminToolGroup, React.ReactNode> = {
+  sell:    <ShoppingBag {...GROUP_ICON_PROPS} />,
+  source:  <Sprout {...GROUP_ICON_PROPS} />,
+  gather:  <Users {...GROUP_ICON_PROPS} />,
+  publish: <BookOpen {...GROUP_ICON_PROPS} />,
+  teach:   <GraduationCap {...GROUP_ICON_PROPS} />,
+};
 
 interface OperatorViewProps {
   user: { name?: string; email: string } | null;
@@ -322,16 +332,20 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
         </PreviewBlock>
       )}
 
-      {/* ── Tools — compact grouped grid, below the portal zone ──────── */}
+      {/* ── Tools — grouped by domain, icon-anchored headers ─────────── */}
       {ADMIN_TOOL_GROUPS.map(group => {
         const list: AdminTool[] = grouped[group.id];
         if (list.length === 0) return null;
         return (
-          <div key={group.id} className="border-t border-tea-border pt-4 pb-2">
-            <div className="px-6 pb-2.5">
-              <div className="text-[11px] uppercase tracking-[0.24em] text-tea-text-sec font-medium">{group.label}</div>
+          <div key={group.id} className="border-t border-tea-border pt-7 pb-5">
+            <div className="px-6 pb-3">
+              <div className="flex items-center gap-2 text-[12px] uppercase tracking-[0.22em] text-tea-text font-medium">
+                <span className="text-tea-gold/70 shrink-0 flex items-center" aria-hidden="true">{GROUP_ICONS[group.id]}</span>
+                <span>{group.label}</span>
+              </div>
+              <div className="w-8 h-px bg-tea-gold/40 mt-2 ml-[22px]" aria-hidden="true" />
             </div>
-            <div className="px-6 pb-3 flex flex-wrap gap-x-4 gap-y-3">
+            <div className="px-6 flex flex-wrap gap-x-5 gap-y-3">
               {list.map(tool => (
                 <button
                   key={tool.id}

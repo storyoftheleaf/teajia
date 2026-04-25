@@ -1154,13 +1154,15 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                 todayEventCount={todayEventCount}
                 unsyncedJournalCount={0}
                 journalLastAt={tastingJournal[0]?.createdAt ?? null}
-                journalLastTea={tastingJournal[0]?.teaName ?? null}
+                journalLastTea={tastingJournal[0]?.productName ?? null}
                 journalLastExcerpt={(() => {
-                  const firstNote = tastingJournal[0]?.tasting?.notes?.[0];
+                  const head = tastingJournal[0];
+                  if (!head) return null;
+                  const firstNote = head.note.tasting?.notes?.[0];
                   return (
-                    tastingJournal[0]?.personalNote
+                    head.note.personalNote
                     ?? (typeof firstNote === 'string' ? firstNote : firstNote?.text)
-                    ?? tastingJournal[0]?.tasting?.voiceNote
+                    ?? head.note.tasting?.voiceNote
                     ?? null
                   );
                 })()}
@@ -1210,13 +1212,15 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                 onAvatarClick={handleAvatarClick}
                 journey={myJourney}
                 journalLastAt={tastingJournal[0]?.createdAt ?? null}
-                journalLastTea={tastingJournal[0]?.teaName ?? null}
+                journalLastTea={tastingJournal[0]?.productName ?? null}
                 journalLastExcerpt={(() => {
-                  const firstNote = tastingJournal[0]?.tasting?.notes?.[0];
+                  const head = tastingJournal[0];
+                  if (!head) return null;
+                  const firstNote = head.note.tasting?.notes?.[0];
                   return (
-                    tastingJournal[0]?.personalNote
+                    head.note.personalNote
                     ?? (typeof firstNote === 'string' ? firstNote : firstNote?.text)
-                    ?? tastingJournal[0]?.tasting?.voiceNote
+                    ?? head.note.tasting?.voiceNote
                     ?? null
                   );
                 })()}

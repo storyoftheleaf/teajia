@@ -181,7 +181,7 @@ export const MyCollection: React.FC<MyCollectionProps> = ({ onBack, onViewItem }
               <button
                 onClick={(e) => { e.stopPropagation(); setTastingItem(item); }}
                 className="p-2 text-tea-text-sec hover:text-tea-gold transition-colors"
-                title="Record tasting"
+                title="Add to your note"
               >
                 <Icons.Sparkles className="w-3.5 h-3.5" />
               </button>
