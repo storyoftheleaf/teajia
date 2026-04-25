@@ -16,8 +16,6 @@ interface AlcoveIdentityHeaderProps {
     bodyHighlight: string;
   };
   isAdmin?: boolean;
-  hovered: string | null;
-  setHovered: (v: string | null) => void;
   allImages: string[];
   magazineUrl: string | undefined;
   mainStory: string;
@@ -35,8 +33,6 @@ export const AlcoveIdentityHeader: React.FC<AlcoveIdentityHeaderProps> = ({
   vintage,
   alcoveColors,
   isAdmin,
-  hovered,
-  setHovered,
   allImages,
   magazineUrl,
   mainStory,
@@ -92,19 +88,7 @@ export const AlcoveIdentityHeader: React.FC<AlcoveIdentityHeaderProps> = ({
         {/* Vendor / Source — admin-only link to source profile */}
         {item.supplier && isAdmin && (
           <div style={{ textAlign: "center", paddingTop: 4 }}>
-            <button
-              onClick={onNavigateSource}
-              style={{
-                background: "none", border: "none", cursor: "pointer",
-                fontFamily: "var(--font-display)", fontSize: "11px",
-                color: alcoveColors.subtitle, opacity: 0.7,
-                letterSpacing: "0.1em", textTransform: "uppercase",
-                padding: "2px 6px",
-                transition: "opacity 0.2s",
-              }}
-              onMouseEnter={(e) => { (e.target as HTMLElement).style.opacity = '1'; }}
-              onMouseLeave={(e) => { (e.target as HTMLElement).style.opacity = '0.7'; }}
-            >
+            <button type="button" onClick={onNavigateSource} className="alcove-source-link">
               Source: {item.supplier}
             </button>
           </div>
@@ -138,22 +122,17 @@ export const AlcoveIdentityHeader: React.FC<AlcoveIdentityHeaderProps> = ({
             marginTop: allImages.length > 0 ? "20px" : "16px",
           }}>
             {magazineUrl ? (
-              <a
-                href={magazineUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                onMouseEnter={() => setHovered("magazine")}
-                onMouseLeave={() => setHovered(null)}
-                style={{ textDecoration: "none" }}
-              >
-                <p style={{
-                  ...storyStyle,
-                  color: hovered === "magazine" ? alcoveColors.bodyHighlight : alcoveColors.body,
-                  transition: "color 0.2s ease",
-                }}>
+              <p style={storyStyle}>
+                <a
+                  href={magazineUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="alcove-magazine-link"
+                  style={{ color: alcoveColors.body }}
+                >
                   {fullStory}
-                </p>
-              </a>
+                </a>
+              </p>
             ) : (
               <p style={storyStyle}>
                 {fullStory}
@@ -174,13 +153,8 @@ export const AlcoveIdentityHeader: React.FC<AlcoveIdentityHeaderProps> = ({
             padding: "22px 24px 6px",
             marginTop: "8px",
           }}>
-            {/* Eyebrow + hairline — signals this is the curator's voice */}
-            <div style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "10px",
-              marginBottom: "12px",
-            }}>
+            {/* Eyebrow — bronze used once; hairline removed to keep bronze rare. */}
+            <div style={{ marginBottom: 12 }}>
               <span style={{
                 fontFamily: "var(--font-display)",
                 fontSize: "10px",
@@ -191,11 +165,6 @@ export const AlcoveIdentityHeader: React.FC<AlcoveIdentityHeaderProps> = ({
               }}>
                 In Adrian's words
               </span>
-              <span style={{
-                flex: 1,
-                height: "1px",
-                background: "linear-gradient(90deg, rgb(var(--tea-gold-rgb) / 0.35), transparent)",
-              }} />
             </div>
 
             {starred.map((note, i) => (

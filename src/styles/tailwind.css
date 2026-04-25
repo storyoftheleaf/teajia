@@ -65,6 +65,7 @@ nav[aria-label="Admin navigation"] * {
   --tea-gold-lt-rgb: 191 160 106;
   --tea-border: rgba(139,110,68,0.28);
   --tea-accent-sub: rgba(168,135,77,0.1);
+  --tea-leaf: #5A6E5A;
 
   /* Font Families */
   --font-display: 'Cormorant Garamond', 'Cormorant Garamond Fallback', 'Noto Serif SC', Georgia, serif;
@@ -96,6 +97,7 @@ nav[aria-label="Admin navigation"] * {
   --tea-gold-lt-rgb: 122 92 46;
   --tea-border: rgba(107,82,44,0.2);
   --tea-accent-sub: rgba(128,101,56,0.07);
+  --tea-leaf: #4a5e4a;
 }
 
 /* Force dark tokens on any nested .dark wrapper (e.g. Journal — always dark) */
@@ -119,6 +121,7 @@ nav[aria-label="Admin navigation"] * {
   --tea-gold-lt-rgb: 191 160 106;
   --tea-border: rgba(139,110,68,0.28);
   --tea-accent-sub: rgba(168,135,77,0.1);
+  --tea-leaf: #5A6E5A;
 }
 
 /* ============================================

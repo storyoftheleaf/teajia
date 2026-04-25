@@ -48,17 +48,6 @@ function toTitleCase(str: string): string {
   return str.replace(/\b\w/g, c => c.toUpperCase());
 }
 
-// TODO: BookmarkIcon is dead code (not used in JSX). Kept here to avoid behavior changes.
-// Remove in a future cleanup pass, or replace with import from './alcove/icons'.
-function BookmarkIcon({ filled, color, strokeColor }: { filled: boolean; color: string; strokeColor: string }) {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill={filled ? color : "none"}
-      stroke={filled ? color : strokeColor} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M5 4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v18l-7-4-7 4V4z" />
-    </svg>
-  );
-}
-
 /** Returns stock status info for display */
 function getStockStatus(stockG: number, status?: string) {
   if (status === 'Sold Out' || stockG <= 0) {
@@ -67,7 +56,7 @@ function getStockStatus(stockG: number, status?: string) {
   if (stockG < 100) {
     return { label: 'Low Stock', color: '#c09a51', level: 'low' as const };
   }
-  return { label: 'In Stock', color: '#5A6E5A', level: 'ok' as const };
+  return { label: 'In Stock', color: 'var(--tea-leaf)', level: 'ok' as const };
 }
 
 export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClose, isAdmin, onEdit, formatPrice, onTermClick, onTaste, onEditProductTasting, items, onItemSelect }) => {
@@ -140,7 +129,6 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   const [customMode, setCustomMode] = useState(false);
   const [customInput, setCustomInput] = useState('');
   const [added, setAdded] = useState(false);
-  const [hovered, setHovered] = useState<string | null>(null);
   const [imageExpanded, setImageExpanded] = useState(false);
   const [expandedImageUrl, setExpandedImageUrl] = useState<string | null>(null);
   const [shareCopied, setShareCopied] = useState(false);
@@ -218,7 +206,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
     accent: 'var(--tea-gold)',
     muted: 'var(--tea-text-sec)',
     mutedDark: 'var(--tea-text-sec)',
-    success: '#5A6E5A',
+    success: 'var(--tea-leaf)',
   };
   const accent = alcoveColors.accent;
   const typeColor = getTeaColor(item.type);
@@ -329,8 +317,6 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
           perGramDisplay={perGramDisplay}
           total={total}
           added={added}
-          hovered={hovered}
-          setHovered={setHovered}
           shareCopied={shareCopied}
           favorited={favorited}
           inSampleCart={inSampleCart}
@@ -389,8 +375,6 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
         vintage={vintage}
         alcoveColors={alcoveColors}
         isAdmin={isAdmin}
-        hovered={hovered}
-        setHovered={setHovered}
         allImages={allImages}
         magazineUrl={magazineUrl}
         mainStory={mainStory}
@@ -402,6 +386,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
       {/* Gallery: image strip */}
       <AlcoveGallery
         allImages={allImages}
+        itemName={item.name}
         onExpandImage={(url) => { setExpandedImageUrl(url); setImageExpanded(true); }}
       />
 
@@ -522,25 +507,9 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
               return (
                 <button
                   key={evt.id}
+                  type="button"
+                  className="alcove-event-btn"
                   onClick={() => navigate(`/event/${evt.slug}`)}
-                  style={{
-                    display: "flex", alignItems: "center", gap: "10px",
-                    background: "var(--tea-accent-sub)",
-                    border: "1px solid var(--tea-border)",
-                    borderRadius: "6px",
-                    padding: "8px 12px",
-                    cursor: "pointer",
-                    textAlign: "left",
-                    transition: "background 0.2s ease, border-color 0.2s ease",
-                  }}
-                  onMouseEnter={e => {
-                    e.currentTarget.style.background = "var(--tea-surface)";
-                    e.currentTarget.style.borderColor = "var(--tea-gold, #a8874d)";
-                  }}
-                  onMouseLeave={e => {
-                    e.currentTarget.style.background = "var(--tea-accent-sub)";
-                    e.currentTarget.style.borderColor = "var(--tea-border)";
-                  }}
                 >
                   {evt.flyer_image_url ? (
                     <img
@@ -631,21 +600,10 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
               {related.map(rec => (
                 <button
                   key={rec.id}
+                  type="button"
+                  className="alcove-rec-btn"
                   onClick={() => onItemSelect?.(rec)}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    padding: 0,
-                    cursor: onItemSelect ? "pointer" : "default",
-                    fontFamily: "var(--font-body)",
-                    fontSize: "12px",
-                    fontWeight: 300,
-                    color: "var(--tea-text-sec)",
-                    lineHeight: 1.4,
-                    transition: "color 0.2s",
-                  }}
-                  onMouseEnter={e => (e.currentTarget.style.color = "var(--tea-gold)")}
-                  onMouseLeave={e => (e.currentTarget.style.color = "var(--tea-text-sec)")}
+                  disabled={!onItemSelect}
                 >
                   {rec.name}
                 </button>

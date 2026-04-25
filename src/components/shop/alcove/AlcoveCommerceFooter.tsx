@@ -34,8 +34,6 @@ interface AlcoveCommerceFooterProps {
   perGramDisplay: string;
   total: string;
   added: boolean;
-  hovered: string | null;
-  setHovered: (v: string | null) => void;
   shareCopied: boolean;
   favorited: boolean;
   inSampleCart: boolean;
@@ -50,9 +48,21 @@ interface AlcoveCommerceFooterProps {
   formatPrice?: (pricePerGram: number, grams: number) => string;
 }
 
+const STOCK_DOT: React.CSSProperties = {
+  width: 5,
+  height: 5,
+  borderRadius: '50%',
+  flexShrink: 0,
+};
+
+const DIVIDER: React.CSSProperties = {
+  width: 1,
+  height: 10,
+  background: 'var(--tea-border)',
+};
+
 export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
   item,
-  alcoveBg,
   alcoveColors,
   accent,
   stockStatus,
@@ -69,8 +79,6 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
   perGramDisplay,
   total,
   added,
-  hovered,
-  setHovered,
   shareCopied,
   favorited,
   inSampleCart,
@@ -83,144 +91,129 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
   handleAdd,
   formatPrice,
 }) => {
-  void alcoveBg;
   return (
-    <div style={{
-      position: "relative", zIndex: 3, flexShrink: 0,
-      padding: "6px 14px 8px",
-      borderTop: "1px solid var(--tea-border)",
-      background: alcoveColors.bg,
-    }}>
+    <div
+      style={{
+        position: 'relative',
+        zIndex: 3,
+        flexShrink: 0,
+        padding: '8px 14px 10px',
+        borderTop: '1px solid var(--tea-border)',
+        background: alcoveColors.bg,
+      }}
+    >
       {/* Row 1: Amount selector */}
       {isSoldOut ? (
-        <div style={{
-          display: "flex", alignItems: "center", gap: "6px",
-          marginBottom: "4px",
-        }}>
-          <div style={{
-            width: "5px", height: "5px", borderRadius: "50%",
-            background: stockStatus.color,
-          }} />
-          <span style={{
-            fontFamily: "var(--font-sans)",
-            fontSize: "10px", fontWeight: 400,
-            letterSpacing: "0.08em", textTransform: "uppercase",
-            color: stockStatus.color,
-          }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+          <div style={{ ...STOCK_DOT, background: stockStatus.color }} />
+          <span
+            style={{
+              fontFamily: 'var(--font-sans)',
+              fontSize: 10,
+              fontWeight: 400,
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              color: stockStatus.color,
+            }}
+          >
             {stockStatus.label}
           </span>
         </div>
       ) : item.category === 'tea' ? (
         <>
-          {/* Tea: Sample | 50g | 100g | Custom */}
-          <div style={{ display: "flex", gap: "4px", marginBottom: "4px" }}>
+          <div style={{ display: 'flex', gap: 4, marginBottom: 6 }}>
             {[
               { key: 'sample', label: 'Sample', sub: '10g' },
               ...(50 <= sliderMax ? [{ key: '50', label: '50g', sub: '' }] : []),
               ...(100 <= sliderMax ? [{ key: '100', label: '100g', sub: '' }] : []),
               { key: 'custom', label: 'Custom', sub: '' },
-            ].map(opt => {
+            ].map((opt) => {
               const isActive =
-                opt.key === 'sample' ? sampleMode :
-                opt.key === 'custom' ? customMode :
-                (!sampleMode && !customMode && grams === parseInt(opt.key));
+                opt.key === 'sample'
+                  ? sampleMode
+                  : opt.key === 'custom'
+                    ? customMode
+                    : !sampleMode && !customMode && grams === parseInt(opt.key);
               return (
                 <button
                   key={opt.key}
+                  type="button"
+                  className="alcove-qty-btn"
+                  data-active={isActive}
+                  aria-pressed={isActive}
                   onClick={() => {
                     if (navigator.vibrate) navigator.vibrate(8);
                     if (opt.key === 'sample') {
-                      setSampleMode(true); setCustomMode(false);
+                      setSampleMode(true);
+                      setCustomMode(false);
                     } else if (opt.key === 'custom') {
-                      setCustomMode(true); setSampleMode(false);
+                      setCustomMode(true);
+                      setSampleMode(false);
                     } else {
-                      setGrams(parseInt(opt.key)); setSampleMode(false); setCustomMode(false);
+                      setGrams(parseInt(opt.key));
+                      setSampleMode(false);
+                      setCustomMode(false);
                     }
-                  }}
-                  style={{
-                    flex: 1,
-                    padding: "5px 0",
-                    fontFamily: "var(--font-mono)",
-                    fontSize: "10px", fontWeight: 400,
-                    letterSpacing: "0.05em",
-                    color: isActive ? 'var(--tea-gold)' : 'var(--tea-text-dim)',
-                    background: 'var(--tea-accent-sub)',
-                    border: isActive ? '1px solid var(--tea-gold)' : '1px solid var(--tea-border)',
-                    borderRadius: "3px",
-                    cursor: "pointer",
-                    transition: "border-color 0.15s, color 0.15s",
-                    display: "flex", flexDirection: "column",
-                    alignItems: "center", justifyContent: "center", gap: "1px",
                   }}
                 >
                   <span>{opt.label}</span>
-                  {opt.sub && <span style={{ fontSize: "9px", opacity: 0.6 }}>{opt.sub}</span>}
+                  {opt.sub && <span style={{ fontSize: 9, opacity: 0.6 }}>{opt.sub}</span>}
                 </button>
               );
             })}
           </div>
 
-          {/* Stock status */}
           {stockStatus.level !== 'ok' && (
-            <div style={{
-              display: "flex", alignItems: "center", gap: "6px",
-              marginBottom: "4px",
-            }}>
-              <div style={{
-                width: "5px", height: "5px", borderRadius: "50%",
-                background: stockStatus.color,
-                boxShadow: stockStatus.level === 'low' ? `0 0 4px ${stockStatus.color}` : 'none',
-                flexShrink: 0,
-              }} />
-              <span style={{
-                fontFamily: "var(--font-sans)",
-                fontSize: "10px",
-                color: stockStatus.color,
-                letterSpacing: "0.06em",
-                textTransform: "uppercase",
-              }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+              <div style={{ ...STOCK_DOT, background: stockStatus.color }} />
+              <span
+                style={{
+                  fontFamily: 'var(--font-sans)',
+                  fontSize: 10,
+                  color: stockStatus.color,
+                  letterSpacing: '0.06em',
+                  textTransform: 'uppercase',
+                }}
+              >
                 {stockStatus.label}
               </span>
             </div>
           )}
         </>
       ) : (
-        /* Teaware / non-tea: original preset row */
-        <div style={{
-          display: "flex", gap: "4px", alignItems: "center",
-          marginBottom: "4px",
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "4px", marginRight: "4px", flexShrink: 0 }}>
-            <div style={{
-              width: "5px", height: "5px", borderRadius: "50%",
-              background: stockStatus.color,
-              boxShadow: stockStatus.level === 'low' ? `0 0 4px ${stockStatus.color}` : 'none',
-            }} />
-            <span style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: "10px", fontWeight: 400,
-              color: alcoveColors.body,
-              fontVariantNumeric: "tabular-nums lining-nums",
-            }}>
+        <div style={{ display: 'flex', gap: 4, alignItems: 'center', marginBottom: 6 }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              marginRight: 4,
+              flexShrink: 0,
+            }}
+          >
+            <div style={{ ...STOCK_DOT, background: stockStatus.color }} />
+            <span
+              style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: 10,
+                fontWeight: 400,
+                color: alcoveColors.body,
+                fontVariantNumeric: 'tabular-nums lining-nums',
+              }}
+            >
               {formatPrice ? perGramDisplay : `$${perGramDisplay}`}/g
             </span>
           </div>
-          {presets.map(p => (
+          {presets.map((p) => (
             <button
               key={p}
-              onClick={() => { setGrams(p); if (navigator.vibrate) navigator.vibrate(8); }}
-              style={{
-                flex: 1,
-                padding: "4px 0",
-                fontFamily: "var(--font-mono)",
-                fontSize: "10px", fontWeight: 400,
-                letterSpacing: "0.04em",
-                color: grams === p ? 'var(--tea-bg)' : 'var(--tea-text-sec)',
-                background: grams === p ? 'var(--tea-gold)' : 'var(--tea-accent-sub)',
-                border: grams === p ? '1px solid var(--tea-gold)' : '1px solid var(--tea-border)',
-                borderRadius: "3px",
-                cursor: "pointer",
-                transition: "all 0.2s ease-out",
+              type="button"
+              className="alcove-preset-btn"
+              data-active={grams === p}
+              aria-pressed={grams === p}
+              onClick={() => {
+                setGrams(p);
+                if (navigator.vibrate) navigator.vibrate(8);
               }}
             >
               {p}g
@@ -230,160 +223,130 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
       )}
 
       {/* Session reserve soft warning */}
-      {item.sessionReserveGrams != null && item.sessionReserveGrams > 0 && item.stock_g <= item.sessionReserveGrams && !isSoldOut && (
-        <div style={{ marginBottom: "4px" }}>
-          <span className="text-tea-gold text-xs">
-            Last ~{item.stock_g}g available — we'll confirm quantity before dispatching.
-          </span>
-        </div>
-      )}
+      {item.sessionReserveGrams != null &&
+        item.sessionReserveGrams > 0 &&
+        item.stock_g <= item.sessionReserveGrams &&
+        !isSoldOut && (
+          <div style={{ marginBottom: 4 }}>
+            <span className="text-tea-gold text-xs">
+              Last ~{item.stock_g}g available. We'll confirm quantity before dispatching.
+            </span>
+          </div>
+        )}
 
       {/* Row 2: Save/Share(/Edit) + Add button */}
-      <div style={{ display: "flex", gap: "4px" }}>
-        <div style={{
-          display: "flex", alignItems: "center", justifyContent: "center", gap: "10px",
-          height: "34px", boxSizing: "border-box",
-          border: "1px solid var(--tea-border)",
-          borderRadius: "3px",
-          flexShrink: 0,
-          padding: "0 10px",
-        }}>
+      <div style={{ display: 'flex', gap: 6 }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 6,
+            minHeight: 44,
+            border: '1px solid var(--tea-border)',
+            borderRadius: 3,
+            flexShrink: 0,
+            padding: '0 8px',
+          }}
+        >
           <button
+            type="button"
+            className="alcove-icon-btn"
+            data-active={favorited}
             onClick={() => toggleFavoriteTea(item.id)}
-            onMouseEnter={() => setHovered("fav")}
-            onMouseLeave={() => setHovered(null)}
-            aria-label={favorited ? "Remove from favorites" : "Add to favorites"}
-            style={{
-              background: "none", border: "none", padding: "0",
-              cursor: "pointer", transition: "all 0.2s ease",
-              display: "inline-flex", alignItems: "center", gap: "4px",
-              opacity: favorited ? 1 : (hovered === "fav" ? 0.9 : 0.7),
-            }}
+            aria-label={favorited ? 'Remove from favorites' : 'Add to favorites'}
+            aria-pressed={favorited}
           >
             <Heart
-              size={13}
-              color={favorited ? accent : alcoveColors.muted}
-              fill={favorited ? accent : "none"}
+              size={14}
+              color={favorited ? accent : 'currentColor'}
+              fill={favorited ? accent : 'none'}
               strokeWidth={1.5}
             />
           </button>
           {isAdmin && (
             <>
-              <div style={{ width: "1px", height: "10px", background: "var(--tea-border)" }} />
+              <div style={DIVIDER} />
               <button
+                type="button"
+                className="alcove-icon-btn"
+                data-active={inSampleCart}
                 onClick={toggleSampleCart}
-                onMouseEnter={() => setHovered("sample")}
-                onMouseLeave={() => setHovered(null)}
-                aria-label={inSampleCart ? "Remove from sample pack" : "Add to sample pack"}
-                title={inSampleCart ? "In sample pack" : "Add to sample pack"}
-                style={{
-                  background: "none", border: "none", padding: "0",
-                  cursor: "pointer", transition: "all 0.2s ease",
-                  display: "inline-flex", alignItems: "center", gap: "4px",
-                  opacity: inSampleCart ? 1 : (hovered === "sample" ? 0.9 : 0.7),
-                }}
+                aria-label={inSampleCart ? 'Remove from sample pack' : 'Add to sample pack'}
+                aria-pressed={inSampleCart}
+                title={inSampleCart ? 'In sample pack' : 'Add to sample pack'}
               >
-                <QrCode size={13} color={inSampleCart ? "var(--tea-gold)" : alcoveColors.muted} />
+                <QrCode size={14} />
               </button>
             </>
           )}
-          <div style={{ width: "1px", height: "10px", background: "var(--tea-border)" }} />
+          <div style={DIVIDER} />
           <button
+            type="button"
+            className="alcove-icon-btn"
             onClick={handleShare}
-            onMouseEnter={() => setHovered("share")}
-            onMouseLeave={() => setHovered(null)}
             aria-label="Share"
-            style={{
-              background: "none", border: "none", padding: "0",
-              cursor: "pointer", transition: "all 0.2s ease",
-              display: "inline-flex", alignItems: "center", gap: "4px",
-              opacity: hovered === "share" ? 0.9 : 0.7,
-            }}
           >
-            <span style={{
-              fontFamily: "var(--font-sans)",
-              fontSize: "10px", fontWeight: 400,
-              letterSpacing: "0.08em", textTransform: "uppercase",
-              color: shareCopied ? alcoveColors.success : alcoveColors.subtitle,
-            }}>{shareCopied ? 'Copied' : 'Share'}</span>
+            <span
+              style={{
+                fontFamily: 'var(--font-sans)',
+                fontSize: 10,
+                fontWeight: 400,
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                color: shareCopied ? alcoveColors.success : 'currentColor',
+              }}
+            >
+              {shareCopied ? 'Copied' : 'Share'}
+            </span>
           </button>
           {onTaste && (
             <>
-              <div style={{ width: "1px", height: "10px", background: "var(--tea-border)" }} />
+              <div style={DIVIDER} />
               <button
                 type="button"
-                onClick={(e) => { e.stopPropagation(); onTaste(item); }}
-                onMouseEnter={() => setHovered("taste")}
-                onMouseLeave={() => setHovered(null)}
-                aria-label="Start tasting session"
-                style={{
-                  background: "none", border: "none", padding: "4px 0",
-                  cursor: "pointer", transition: "all 0.2s ease",
-                  display: "inline-flex", alignItems: "center", gap: "4px",
-                  opacity: hovered === "taste" ? 0.9 : 0.7,
+                className="alcove-icon-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onTaste(item);
                 }}
+                aria-label="Start tasting session"
               >
-                <span style={{
-                  fontFamily: "var(--font-sans)",
-                  fontSize: "10px", fontWeight: 400,
-                  letterSpacing: "0.08em", textTransform: "uppercase",
-                  color: alcoveColors.subtitle,
-                }}>Taste</span>
+                <span
+                  style={{
+                    fontFamily: 'var(--font-sans)',
+                    fontSize: 10,
+                    fontWeight: 400,
+                    letterSpacing: '0.08em',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  Taste
+                </span>
               </button>
             </>
           )}
           {isAdmin && onEdit && (
             <>
-              <div style={{ width: "1px", height: "10px", background: "var(--tea-border)" }} />
+              <div style={DIVIDER} />
               <button
+                type="button"
+                className="alcove-icon-btn"
                 onClick={() => onEdit(item)}
-                onMouseEnter={() => setHovered("edit")}
-                onMouseLeave={() => setHovered(null)}
                 aria-label="Edit Product"
-                style={{
-                  background: "none", border: "none", padding: "0",
-                  cursor: "pointer", transition: "all 0.2s ease",
-                  display: "inline-flex", alignItems: "center", gap: "4px",
-                  opacity: hovered === "edit" ? 0.9 : 0.7,
-                }}
               >
-                <Pencil size={14} style={{ color: alcoveColors.muted }} />
+                <Pencil size={14} />
               </button>
             </>
           )}
         </div>
 
         <button
+          type="button"
+          className="alcove-order-btn"
           onClick={handleAdd}
           disabled={isSoldOut}
-          onMouseEnter={() => setHovered("cart")}
-          onMouseLeave={() => setHovered(null)}
-          style={{
-            flex: 1, height: "34px", boxSizing: "border-box",
-            fontFamily: "var(--font-sans)",
-            fontSize: "12px", fontWeight: 700,
-            letterSpacing: "0.08em", textTransform: "uppercase",
-            color: isSoldOut
-              ? 'var(--tea-text-sec)'
-              : added ? alcoveColors.bg : alcoveColors.bg,
-            background: isSoldOut
-              ? 'var(--tea-accent-sub)'
-              : added
-                ? alcoveColors.success
-                : hovered === "cart"
-                  ? 'var(--tea-gold-lt, #bfa06a)'
-                  : 'var(--tea-gold, #a8874d)',
-            border: isSoldOut
-              ? '1px solid var(--tea-border)'
-              : added
-                ? `1px solid ${alcoveColors.success}`
-                : '1px solid transparent',
-            borderRadius: "4px",
-            cursor: isSoldOut ? "not-allowed" : "pointer",
-            transition: "all 0.25s ease",
-            display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
-            opacity: isSoldOut ? 0.6 : 1,
-          }}
+          data-state={added ? 'added' : isSoldOut ? 'sold-out' : 'default'}
         >
           {isSoldOut ? (
             <span>Sold Out</span>
@@ -391,9 +354,15 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
             <span>Added</span>
           ) : sampleMode ? (
             <>
-              <span>Sample — 10g</span>
+              <span>Sample. 10g</span>
               {pricePerGram > 0 && (
-                <span style={{ fontFamily: "var(--font-mono)", fontWeight: 500, fontSize: "12px" }}>
+                <span
+                  style={{
+                    fontFamily: 'var(--font-mono)',
+                    fontWeight: 500,
+                    fontSize: 12,
+                  }}
+                >
                   {formatPrice ? formatPrice(pricePerGram, 10) : fmtShopPrice(pricePerGram * 10)}
                 </span>
               )}
@@ -401,17 +370,18 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
           ) : (
             <>
               <span>Order</span>
-              <span style={{
-                fontFamily: "var(--font-mono)",
-                fontWeight: 500, fontSize: "12px",
-              }}>
+              <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 500, fontSize: 12 }}>
                 {formatPrice ? total : `$${total}`}
               </span>
               {pricePerGram > 0 && (
-                <span style={{
-                  fontFamily: "var(--font-mono)",
-                  fontWeight: 400, fontSize: "10px", opacity: 0.55,
-                }}>
+                <span
+                  style={{
+                    fontFamily: 'var(--font-mono)',
+                    fontWeight: 400,
+                    fontSize: 10,
+                    opacity: 0.6,
+                  }}
+                >
                   {formatPrice ? perGramDisplay : `$${perGramDisplay}`}/g
                 </span>
               )}

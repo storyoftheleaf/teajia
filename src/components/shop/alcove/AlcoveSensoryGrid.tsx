@@ -110,36 +110,35 @@ export const AlcoveSensoryGrid: React.FC<AlcoveSensoryGridProps> = ({
           padding: "6px 0",
           borderBottom: hasAnySensory ? "1px solid var(--tea-border)" : "none",
         }}>
-          {moodTags.map((tag, i) => (
-            <React.Fragment key={`mood-${tag}`}>
-              {i > 0 && (
-                <div style={{
-                  width: "40px",
-                  borderTop: "1px dashed var(--tea-border)",
-                  margin: "2px 0",
-                }} />
-              )}
-              <span
-                onClick={onTermClick ? () => onTermClick(tag.toLowerCase().trim(), 'mood') : undefined}
-                style={{
-                  fontFamily: "var(--font-body)",
-                  fontSize: "13px",
-                  fontWeight: 300,
-                  fontStyle: "italic",
-                  letterSpacing: "0.06em",
-                  color: "var(--tea-text-sec)",
-                  cursor: onTermClick ? "pointer" : "default",
-                  padding: "5px 4px",
-                  transition: "color 0.2s ease-out",
-                  textAlign: "center",
-                }}
-                onMouseEnter={onTermClick ? (e) => { e.currentTarget.style.color = "var(--tea-gold)"; } : undefined}
-                onMouseLeave={onTermClick ? (e) => { e.currentTarget.style.color = "var(--tea-text-sec)"; } : undefined}
-              >
-                {toTitleCase(tag)}
-              </span>
-            </React.Fragment>
-          ))}
+          {moodTags.map((tag, i) => {
+            const Tag = onTermClick ? 'button' : 'span';
+            return (
+              <React.Fragment key={`mood-${tag}`}>
+                {i > 0 && (
+                  <div style={{
+                    width: "40px",
+                    borderTop: "1px dashed var(--tea-border)",
+                    margin: "2px 0",
+                  }} />
+                )}
+                <Tag
+                  type={onTermClick ? 'button' : undefined}
+                  onClick={onTermClick ? () => onTermClick(tag.toLowerCase().trim(), 'mood') : undefined}
+                  className="alcove-note-btn"
+                  data-readonly={!onTermClick}
+                  style={{
+                    fontStyle: "italic",
+                    letterSpacing: "0.06em",
+                    color: "var(--tea-text-sec)",
+                    justifyContent: 'center',
+                    textAlign: 'center',
+                  }}
+                >
+                  {toTitleCase(tag)}
+                </Tag>
+              </React.Fragment>
+            );
+          })}
         </div>
       )}
 
@@ -155,29 +154,21 @@ export const AlcoveSensoryGrid: React.FC<AlcoveSensoryGridProps> = ({
             const isLastRow = rowIdx === noteTotalRows - 1;
             const isOddLast = idx === allNotes.length - 1 && allNotes.length % 2 === 1;
             const NoteIcon = noteItem.icon;
+            const Tag = onTermClick ? 'button' : 'span';
 
             return (
-              <span
+              <Tag
                 key={noteItem.key}
+                type={onTermClick ? 'button' : undefined}
                 onClick={onTermClick ? () => onTermClick(noteItem.termId, noteItem.categoryId || 'flavor') : undefined}
+                className="alcove-note-btn"
+                data-readonly={!onTermClick}
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "flex-start",
-                  gap: "7px",
-                  fontFamily: "var(--font-body)",
-                  fontSize: "13px",
-                  fontWeight: 300,
                   color: typeColor,
-                  cursor: onTermClick ? "pointer" : "default",
-                  padding: "9px 4px",
-                  transition: "color 0.2s ease-out",
                   ...(isOddLast ? { gridColumn: "1 / -1" } : {}),
                   borderRight: (isLeftCol && !isOddLast) ? "1px solid var(--tea-border)" : "none",
                   borderBottom: isLastRow ? "none" : "1px solid var(--tea-border)",
                 }}
-                onMouseEnter={onTermClick ? (e) => { e.currentTarget.style.color = "var(--tea-gold)"; } : undefined}
-                onMouseLeave={onTermClick ? (e) => { e.currentTarget.style.color = typeColor; } : undefined}
               >
                 {noteItem.swatchColor ? (
                   <span style={{
@@ -190,7 +181,7 @@ export const AlcoveSensoryGrid: React.FC<AlcoveSensoryGridProps> = ({
                   <NoteIcon size={16} style={{ opacity: 0.7, flexShrink: 0, color: "var(--tea-gold)" }} />
                 ) : null}
                 <span>{noteItem.label}</span>
-              </span>
+              </Tag>
             );
           })}
         </div>

@@ -3,62 +3,60 @@ import React from 'react';
 interface AlcoveGalleryProps {
   allImages: string[];
   onExpandImage: (url: string) => void;
+  itemName?: string;
 }
 
 export const AlcoveGallery: React.FC<AlcoveGalleryProps> = ({
   allImages,
   onExpandImage,
+  itemName = '',
 }) => {
   if (allImages.length === 0) return null;
 
+  const altFor = (i: number) =>
+    i === 0
+      ? itemName
+      : itemName
+        ? `${itemName}, view ${i + 1}`
+        : '';
+
   return (
-    <div style={{
-      animation: "panelReveal 0.5s ease-out",
-      padding: "12px 12px 0",
-      flexShrink: 0,
-    }}>
+    <div
+      style={{ animation: 'panelReveal 0.5s ease-out' }}
+      className="px-3 pt-3 flex-shrink-0"
+    >
       {allImages.length === 1 ? (
-        <div
+        <button
+          type="button"
           onClick={() => onExpandImage(allImages[0])}
-          style={{
-            width: "100%", height: "180px",
-            borderRadius: "4px", overflow: "hidden",
-            cursor: "pointer",
-            willChange: 'transform',
-          }}
+          aria-label={itemName ? `View ${itemName} larger` : 'View image larger'}
+          className="alcove-thumb-btn-single"
         >
-          <img src={allImages[0]} alt="" loading="lazy" style={{
-            width: "100%", height: "100%", objectFit: "cover",
-            opacity: 0.9, transition: "opacity 0.3s ease",
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.opacity = "1"; }}
-          onMouseLeave={(e) => { e.currentTarget.style.opacity = "0.9"; }}
+          <img
+            src={allImages[0]}
+            alt={altFor(0)}
+            loading="lazy"
+            className="alcove-thumb-img"
           />
-        </div>
+        </button>
       ) : (
-        <div style={{
-          display: "flex", gap: "4px",
-          justifyContent: "center",
-        }}>
+        <div
+          role="group"
+          aria-label="Product gallery"
+          style={{ display: 'flex', flexWrap: 'wrap', gap: 4, justifyContent: 'center' }}
+        >
           {allImages.map((img, i) => (
-            <div
+            <button
               key={i}
+              type="button"
               onClick={() => onExpandImage(img)}
-              style={{
-                width: "100px", height: "100px",
-                borderRadius: "4px", overflow: "hidden",
-                cursor: "pointer",
-                flexShrink: 0,
-              }}
+              aria-label={
+                itemName ? `View ${itemName} image ${i + 1} larger` : `View image ${i + 1} larger`
+              }
+              className="alcove-thumb-btn"
             >
-              <img src={img} alt="" loading="lazy" style={{
-                width: "100%", height: "100%", objectFit: "cover",
-                opacity: 0.9, transition: "opacity 0.3s ease",
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.opacity = "1"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.opacity = "0.9"; }}
-              />
-            </div>
+              <img src={img} alt={altFor(i)} loading="lazy" className="alcove-thumb-img" />
+            </button>
           ))}
         </div>
       )}
