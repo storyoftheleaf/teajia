@@ -513,6 +513,16 @@ function cachedJson(data: unknown, maxAge: number, status = 200): Response {
   });
 }
 
+function swrJson(data: unknown, sMaxAge: number, swr: number, status = 200): Response {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: {
+      'Content-Type': 'application/json',
+      'Cache-Control': `public, max-age=30, s-maxage=${sMaxAge}, stale-while-revalidate=${swr}`,
+    },
+  });
+}
+
 function cors(response: Response, origin: string): Response {
   const headers = new Headers(response.headers);
   headers.set('Access-Control-Allow-Origin', origin);
@@ -3615,32 +3625,29 @@ const handleGetPublicEventRecap: Handler = async (_request, env, params) => {
 const handleListPublicEvents: Handler = async (_request, env, _params) => {
   const rows = await env.DB.prepare(
     `SELECT e.id, e.slug, e.title, e.subtitle, e.description, e.flyer_image_url, e.event_date,
-            e.location_name, e.area_hint, e.mood_hints, e.total_capacity, e.timezone, e.status
+            e.location_name, e.area_hint, e.mood_hints, e.total_capacity, e.timezone, e.status,
+            COALESCE(SUM(CASE WHEN ea.status = 'confirmed' THEN 1 + ea.plus_one ELSE 0 END), 0) AS confirmed_count
      FROM events e
      JOIN accounts a ON a.id = e.account_id
+     LEFT JOIN event_attendees ea ON ea.event_id = e.id
      WHERE e.status = 'active'
        AND e.event_date >= datetime('now')
        AND a.is_platform_owner = 1
+     GROUP BY e.id
      ORDER BY e.event_date ASC
      LIMIT 20`
   ).all();
 
-  const events = await Promise.all(
-    (rows.results ?? []).map(async (ev) => {
-      const count = await env.DB.prepare(
-        `SELECT COALESCE(SUM(1 + plus_one), 0) as total
-         FROM event_attendees WHERE event_id = ? AND status = 'confirmed'`
-      ).bind(ev.id).first();
-      const confirmedCount = (count?.total as number) || 0;
-      return {
-        ...ev,
-        confirmed_count: confirmedCount,
-        seats_remaining: (ev.total_capacity as number) - confirmedCount,
-      };
-    })
-  );
+  const events = (rows.results ?? []).map((ev) => {
+    const confirmedCount = (ev.confirmed_count as number) || 0;
+    return {
+      ...ev,
+      confirmed_count: confirmedCount,
+      seats_remaining: (ev.total_capacity as number) - confirmedCount,
+    };
+  });
 
-  return cachedJson(events, 30);
+  return swrJson(events, 300, 3600);
 };
 
 const handleRSVP: Handler = async (request, env, params) => {
