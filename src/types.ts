@@ -523,6 +523,7 @@ export interface AccountMember {
   permissions?: Record<string, boolean>;
   joined_at?: string;
   status?: string;
+  can_create_collections?: boolean;
 }
 
 // ── Magazine / Article types ────────────────────────────────────────────────
@@ -573,6 +574,8 @@ export interface Collection {
   hero_image_url?: string | null;
   status: CollectionStatus;
   created_by_user_id?: string | null;
+  curator_user_id?: string | null;
+  curator_display_name?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -583,6 +586,7 @@ export interface CollectionListRow {
   note?: string | null;
   hero_image_url?: string | null;
   status: CollectionStatus;
+  curator_display_name?: string | null;
   created_at: string;
   updated_at: string;
   item_count: number;
@@ -652,6 +656,7 @@ export interface PublicCollectionResponse {
     title: string;
     note?: string | null;
     hero_image_url?: string | null;
+    curator_display_name?: string | null;
   };
   items: PublicCollectionItem[];
   account: { name: string; whatsapp_number?: string | null } | null;

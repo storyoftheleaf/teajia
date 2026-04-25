@@ -7915,13 +7915,17 @@ const handleGetAccountMembers: Handler = async (request, env, params) => {
 
   const { results } = await env.DB.prepare(
     `SELECT am.id, am.account_id, am.user_id, am.role, am.permissions, am.status, am.joined_at, am.invited_at,
-            u.email, u.name, u.platform_role
+            u.email, u.name, u.platform_role, u.can_create_collections
      FROM account_members am
      LEFT JOIN users u ON u.id = am.user_id
      WHERE am.account_id = ?
      ORDER BY am.joined_at ASC`
   ).bind(params.id).all();
-  return json({ members: results });
+  const members = (results as any[]).map(row => ({
+    ...row,
+    can_create_collections: Boolean(row.can_create_collections),
+  }));
+  return json({ members });
 };
 
 // POST /api/accounts/:id/members — invite by email (owner only)
@@ -9914,7 +9918,8 @@ async function loadCollectionOr404(
 ): Promise<{ row: any } | { error: Response }> {
   const row = await env.DB.prepare(
     `SELECT id, account_id, title, note, hero_image_url, status,
-            created_by_user_id, created_at, updated_at
+            created_by_user_id, curator_user_id, curator_display_name,
+            created_at, updated_at
        FROM collections
       WHERE id = ? AND account_id = ?`
   ).bind(id, accountId).first();
@@ -9928,9 +9933,11 @@ const handleListCollections: Handler = async (request, env) => {
   const url = new URL(request.url);
   const statusFilter = url.searchParams.get('status');
   const productId = url.searchParams.get('product_id');
+  const isOwner = ctx.role === 'owner';
 
   let sql = `
     SELECT c.id, c.title, c.note, c.hero_image_url, c.status,
+           c.curator_display_name,
            c.created_at, c.updated_at,
            (SELECT COUNT(*) FROM collection_items ci WHERE ci.collection_id = c.id) AS item_count,
            (SELECT COUNT(*) FROM collection_publications p
@@ -9940,6 +9947,10 @@ const handleListCollections: Handler = async (request, env) => {
       FROM collections c
      WHERE c.account_id = ?`;
   const binds: any[] = [ctx.accountId];
+  if (!isOwner) {
+    sql += ` AND c.curator_user_id = ?`;
+    binds.push(ctx.userId);
+  }
   if (statusFilter && ['draft', 'active', 'archived'].includes(statusFilter)) {
     sql += ` AND c.status = ?`;
     binds.push(statusFilter);
@@ -9986,6 +9997,11 @@ const handleGetCollection: Handler = async (request, env, params) => {
   const found = await loadCollectionOr404(env, params.id, ctx.accountId);
   if ('error' in found) return found.error;
 
+  const isOwner = ctx.role === 'owner';
+  if (!isOwner && found.row.curator_user_id !== ctx.userId) {
+    return json({ error: 'Forbidden' }, 403);
+  }
+
   const items = await env.DB.prepare(
     `SELECT ci.id, ci.collection_id, ci.product_id, ci.position, ci.item_note,
             p.type AS product_type,
@@ -10022,20 +10038,37 @@ const handleGetCollection: Handler = async (request, env, params) => {
 const handleCreateCollection: Handler = async (request, env) => {
   const ctx = await getActiveAccount(request, env);
   if ('error' in ctx) return ctx.error;
+  const isOwner = ctx.role === 'owner';
+
+  // Non-owners must have can_create_collections flag.
+  if (!isOwner) {
+    const userRow = await env.DB.prepare(
+      `SELECT can_create_collections FROM users WHERE id = ?`
+    ).bind(ctx.userId).first();
+    if (!userRow || !userRow.can_create_collections) {
+      return json({ error: 'Insufficient permissions to create collections' }, 403);
+    }
+  }
+
   const body = await request.json() as any;
   const title = (body.title || '').trim();
   if (!title) return json({ error: 'Title required' }, 400);
+
+  // Set curator attribution for non-owners with the flag.
+  const curatorUserId = !isOwner ? ctx.userId : null;
+  const curatorDisplayName = !isOwner ? ((body.curator_display_name || '').trim() || null) : null;
 
   const id = newId('col');
   const now = new Date().toISOString();
   await env.DB.prepare(
     `INSERT INTO collections (id, account_id, title, note, hero_image_url, status,
-                              created_by_user_id, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, 'draft', ?, ?, ?)`
+                              created_by_user_id, curator_user_id, curator_display_name,
+                              created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?)`
   ).bind(
     id, ctx.accountId, title,
     body.note || null, body.hero_image_url || null,
-    ctx.userId, now, now
+    ctx.userId, curatorUserId, curatorDisplayName, now, now
   ).run();
 
   const productIds: string[] = Array.isArray(body.initial_product_ids) ? body.initial_product_ids : [];
@@ -10058,10 +10091,15 @@ const handlePatchCollection: Handler = async (request, env, params) => {
   const found = await loadCollectionOr404(env, params.id, ctx.accountId);
   if ('error' in found) return found.error;
 
+  const isOwner = ctx.role === 'owner';
+  if (!isOwner && found.row.curator_user_id !== ctx.userId) {
+    return json({ error: 'Forbidden' }, 403);
+  }
+
   const body = await request.json() as any;
   const updates: string[] = [];
   const binds: any[] = [];
-  for (const field of ['title', 'note', 'hero_image_url', 'status']) {
+  for (const field of ['title', 'note', 'hero_image_url', 'status', 'curator_display_name']) {
     if (field in body) {
       if (field === 'status' && !['draft', 'active', 'archived'].includes(body.status)) {
         return json({ error: 'Invalid status' }, 400);
@@ -10300,7 +10338,12 @@ const handleGetPublicCollection: Handler = async (_request, env, params) => {
   if (pub.unpublished_at) return json({ error: 'No longer available' }, 410);
 
   const collection = await env.DB.prepare(
-    `SELECT id, title, note, hero_image_url, status FROM collections WHERE id = ?`
+    `SELECT c.id, c.title, c.note, c.hero_image_url, c.status,
+            c.curator_user_id, c.curator_display_name,
+            u.name AS curator_user_name
+       FROM collections c
+       LEFT JOIN users u ON u.id = c.curator_user_id
+      WHERE c.id = ?`
   ).bind(pub.collection_id).first();
   if (!collection || collection.status === 'archived') {
     return json({ error: 'No longer available' }, 410);
@@ -10343,6 +10386,9 @@ const handleGetPublicCollection: Handler = async (_request, env, params) => {
       title: collection.title,
       note: collection.note,
       hero_image_url: collection.hero_image_url,
+      curator_display_name: collection.curator_user_id
+        ? (collection.curator_display_name || collection.curator_user_name || null)
+        : null,
     },
     items: visibleItems,
     account: account ? { name: account.name, whatsapp_number: account.whatsapp_number } : null,
@@ -10360,6 +10406,23 @@ const handlePublicCollectionView: Handler = async (_request, env, params) => {
     `UPDATE collection_publications SET view_count = view_count + 1 WHERE id = ?`
   ).bind(pub.id).run();
   return json({ ok: true });
+};
+
+// PUT /api/accounts/:id/members/:userId/curator — promote/demote curator flag (owner only)
+const handleSetCuratorFlag: Handler = async (request, env, params) => {
+  const ctx = await requireAccountRole(request, env, ['owner']);
+  if ('error' in ctx) return ctx.error;
+  if (params.id !== ctx.accountId) return json({ error: 'Account access denied' }, 403);
+  const member = await env.DB.prepare(
+    `SELECT user_id FROM account_members WHERE account_id = ? AND user_id = ?`
+  ).bind(params.id, params.userId).first();
+  if (!member) return json({ error: 'User is not a member of this account' }, 404);
+  const body = await request.json() as { can_create_collections?: boolean };
+  const flag = body.can_create_collections ? 1 : 0;
+  await env.DB.prepare(
+    `UPDATE users SET can_create_collections = ? WHERE id = ?`
+  ).bind(flag, params.userId).run();
+  return json({ ok: true, can_create_collections: Boolean(flag) });
 };
 
 // ── Routes ──
@@ -10402,6 +10465,7 @@ const routes: [string, string, Handler][] = [
   ['GET',  '/api/platform/audit-log', handlePlatformAuditLog],
   // Account member management
   ['PUT',  '/api/accounts/:id/members/:userId/permissions', handleUpdateMemberPermissions],
+  ['PUT',  '/api/accounts/:id/members/:userId/curator', handleSetCuratorFlag],
   ['POST', '/api/accounts/:id/transfer-ownership', handleTransferOwnership],
 
   // Network (public)

@@ -1868,6 +1868,12 @@ export const api = {
       });
       await handleResponse(res);
     },
+    setCuratorFlag: async (accountId: string, userId: string, can_create_collections: boolean): Promise<void> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/accounts/${accountId}/members/${userId}/curator`, {
+        method: 'PUT', headers: authHeaders(), body: JSON.stringify({ can_create_collections }),
+      });
+      await handleResponse(res);
+    },
     transferOwnership: async (accountId: string, newOwnerUserId: string): Promise<void> => {
       const res = await fetchWithTimeout(`${API_URL}/api/accounts/${accountId}/transfer-ownership`, {
         method: 'POST', headers: authHeaders(), body: JSON.stringify({ new_owner_user_id: newOwnerUserId }),

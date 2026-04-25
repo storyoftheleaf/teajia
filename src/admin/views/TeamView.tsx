@@ -44,9 +44,14 @@ const MemberSettingsModal: React.FC<MemberSettingsModalProps> = ({
   onOwnershipTransferred,
 }) => {
   const [permissions, setPermissions] = useState<Record<string, boolean>>(member.permissions ?? {});
+  const [canCreateCollections, setCanCreateCollections] = useState<boolean>(
+    !!member.can_create_collections,
+  );
   const [permBusy, setPermBusy] = useState(false);
   const [transferBusy, setTransferBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+
+  const [curatorBusy, setCuratorBusy] = useState(false);
 
   const isSelf = member.user_id === currentUserId;
   const isLastOwner = member.role === 'owner' && ownerCount <= 1;
@@ -65,6 +70,21 @@ const MemberSettingsModal: React.FC<MemberSettingsModalProps> = ({
       setPermissions(permissions); // revert
     } finally {
       setPermBusy(false);
+    }
+  };
+
+  const handleCuratorToggle = async (value: boolean) => {
+    setCanCreateCollections(value);
+    setCuratorBusy(true);
+    setMsg(null);
+    try {
+      await api.accounts.setCuratorFlag(accountId, member.user_id, value);
+      setMsg('Curator access saved.');
+    } catch (err: any) {
+      setMsg(err?.message || 'Failed to save curator access');
+      setCanCreateCollections(!value); // revert
+    } finally {
+      setCuratorBusy(false);
     }
   };
 
@@ -151,6 +171,44 @@ const MemberSettingsModal: React.FC<MemberSettingsModalProps> = ({
                 </label>
               ))}
             </div>
+          </div>
+
+          {/* Curator Access */}
+          <div className="pt-2 border-t border-tea-border">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec mb-3">
+              Curator Access
+            </p>
+            <label className="flex items-start gap-3 cursor-pointer group">
+              <div className="relative mt-0.5">
+                <input
+                  type="checkbox"
+                  checked={canCreateCollections}
+                  onChange={(e) => handleCuratorToggle(e.target.checked)}
+                  disabled={curatorBusy}
+                  className="sr-only"
+                />
+                <div
+                  className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${
+                    canCreateCollections
+                      ? 'bg-tea-gold border-tea-gold'
+                      : 'bg-tea-bg border-tea-border group-hover:border-tea-gold/50'
+                  }`}
+                  onClick={() => !curatorBusy && handleCuratorToggle(!canCreateCollections)}
+                >
+                  {canCreateCollections && (
+                    <svg width="8" height="6" viewBox="0 0 8 6" fill="none">
+                      <path d="M1 3L3 5L7 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-tea-bg" />
+                    </svg>
+                  )}
+                </div>
+              </div>
+              <div>
+                <p className="text-xs text-tea-text leading-tight">Can create collections</p>
+                <p className="text-[10px] text-tea-text-dim mt-0.5 leading-relaxed">
+                  Member can create and publish their own collections. Requests still route to you.
+                </p>
+              </div>
+            </label>
           </div>
 
           {msg && (

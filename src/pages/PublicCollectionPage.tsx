@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { MessageCircle, AlertCircle } from 'lucide-react';
+import { AlertCircle, Check, MessageCircle, Minus, Plus } from 'lucide-react';
 import { api } from '../lib/api';
-import { buildWhatsAppUrl } from '../lib/whatsapp';
+import { buildWhatsAppUrl, buildCollectionBasketMessage } from '../lib/whatsapp';
 import type { PublicCollectionResponse, PublicCollectionItem } from '../types';
 
 const ROMAN = [
@@ -14,9 +14,34 @@ const ROMAN = [
 
 function toRoman(n: number): string {
   if (n <= 30) return ROMAN[n] || String(n);
-  // Beyond 30 — still a reasonable format for a collection.
   return String(n);
 }
+
+// ── Picker mode ──────────────────────────────────────────────────────────────
+
+type PickerMode = 'loose-leaf' | 'cake-brick' | 'teaware' | 'misc';
+
+function getPickerMode(item: PublicCollectionItem): PickerMode {
+  const t = (item.product_type || '').toLowerCase();
+  if (t === 'teaware') return 'teaware';
+  if (t === 'misc') return 'misc';
+  if (t === 'sheng' || t === 'shou' || t === 'dark') return 'cake-brick';
+  return 'loose-leaf';
+}
+
+// ── Basket state ─────────────────────────────────────────────────────────────
+
+interface BasketEntry {
+  quantity: string | number;
+  note: string;
+  outOfStock: boolean;
+  pickerMode: PickerMode;
+  productName: string;
+}
+
+type BasketState = Record<string, BasketEntry>;
+
+// ── Page shell ───────────────────────────────────────────────────────────────
 
 const PublicCollectionPage: React.FC = () => {
   const { slug = '' } = useParams();
@@ -71,7 +96,7 @@ const PublicCollectionPage: React.FC = () => {
           <p className="font-body text-[15px] leading-[1.65] text-tea-text-sec italic">
             {status === 'gone'
               ? 'The link may have been taken down. Ask Adrian directly for a new one.'
-              : 'The link you followed doesn’t lead anywhere. Check it with whoever shared it.'}
+              : "The link you followed doesn’t lead anywhere. Check it with whoever shared it."}
           </p>
         </div>
       </main>
@@ -106,11 +131,42 @@ export default PublicCollectionPage;
 const CollectionCatalog: React.FC<{ data: PublicCollectionResponse }> = ({ data }) => {
   const { collection, items, account } = data;
   const storeName = account?.name ?? 'Teajia';
+  const curatorName = collection.curator_display_name;
 
   const visible = useMemo(
     () => items.filter(i => i.product_status === 'Active'),
     [items]
   );
+
+  const [basket, setBasket] = useState<BasketState>({});
+
+  const selectedIds = Object.keys(basket);
+  const selectedCount = selectedIds.length;
+
+  function handleSendPicks() {
+    const basketItems = selectedIds.map(id => {
+      const entry = basket[id];
+      const unit = entry.pickerMode === 'loose-leaf' ? 'g'
+        : entry.pickerMode === 'cake-brick' ? (Number(entry.quantity) === 1 ? ' cake' : ' cakes')
+        : (Number(entry.quantity) === 1 ? ' unit' : ' units');
+      return {
+        name: entry.productName,
+        quantity: entry.quantity,
+        quantityUnit: entry.pickerMode === 'loose-leaf' ? 'g' : unit,
+        note: entry.note || undefined,
+        outOfStock: entry.outOfStock,
+      };
+    });
+
+    const message = buildCollectionBasketMessage({
+      collectionTitle: collection.title,
+      collectionUrl: window.location.href,
+      curatorDisplayName: curatorName,
+      items: basketItems,
+    });
+
+    window.open(buildWhatsAppUrl(account?.whatsapp_number ?? '', message), '_blank');
+  }
 
   return (
     <main className="min-h-screen bg-tea-bg text-tea-text">
@@ -131,6 +187,11 @@ const CollectionCatalog: React.FC<{ data: PublicCollectionResponse }> = ({ data 
               {collection.note}
             </p>
           )}
+          {curatorName && (
+            <p className="font-sans text-[11px] uppercase tracking-[1.2px] text-tea-text-dim mt-4">
+              Curated by {curatorName}
+            </p>
+          )}
           {collection.hero_image_url && (
             <figure className="mt-10 -mx-5 sm:mx-0">
               <img
@@ -145,7 +206,7 @@ const CollectionCatalog: React.FC<{ data: PublicCollectionResponse }> = ({ data 
       </header>
 
       {/* Catalog body */}
-      <section className="max-w-[720px] mx-auto px-5 sm:px-8 py-10 md:py-16">
+      <section className={`max-w-[720px] mx-auto px-5 sm:px-8 py-10 md:py-16 ${selectedCount > 0 ? 'pb-nav-gap-lg' : 'pb-nav-gap'}`}>
         {visible.length === 0 ? (
           <p className="font-body text-[15px] leading-[1.65] text-tea-text-sec italic py-10 text-center">
             The teas in this collection are currently unavailable.
@@ -157,8 +218,8 @@ const CollectionCatalog: React.FC<{ data: PublicCollectionResponse }> = ({ data 
                 key={item.id}
                 item={item}
                 index={i + 1}
-                collectionTitle={collection.title}
-                whatsappNumber={account?.whatsapp_number}
+                basket={basket}
+                setBasket={setBasket}
               />
             ))}
           </ol>
@@ -170,27 +231,92 @@ const CollectionCatalog: React.FC<{ data: PublicCollectionResponse }> = ({ data 
           {storeName} · Curated for you
         </p>
       </footer>
+
+      {/* Sticky basket footer — only visible when ≥1 item selected */}
+      {selectedCount > 0 && (
+        <div className="fixed left-0 right-0 bottom-nav bg-tea-surface border-t border-tea-border z-40 px-5 sm:px-8 py-3 flex items-center justify-between gap-4">
+          <p className="font-sans text-[12px] text-tea-text-sec">
+            <span className="text-tea-gold font-medium">{selectedCount}</span>{' '}
+            {selectedCount === 1 ? 'item' : 'items'} selected
+          </p>
+          <button
+            onClick={handleSendPicks}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-tea-gold text-tea-bg rounded-md text-[12px] font-medium tracking-[0.3px] hover:bg-tea-gold-lt transition-colors"
+          >
+            <MessageCircle size={13} />
+            Send my picks
+          </button>
+        </div>
+      )}
     </main>
   );
 };
 
-// ── One entry ───────────────────────────────────────────────────────────────
+// ── One entry ────────────────────────────────────────────────────────────────
+
+const LOOSE_LEAF_GRAM_OPTIONS = [25, 50, 100, 200];
 
 const CatalogEntry: React.FC<{
   item: PublicCollectionItem;
   index: number;
-  collectionTitle: string;
-  whatsappNumber?: string | null;
-}> = ({ item, index, collectionTitle, whatsappNumber }) => {
+  basket: BasketState;
+  setBasket: React.Dispatch<React.SetStateAction<BasketState>>;
+}> = ({ item, index, basket, setBasket }) => {
   const oos = item.out_of_stock;
   const tastingList = Array.isArray(item.tasting_notes) ? item.tasting_notes : [];
-
-  const msg = oos
-    ? `Hi — I saw ${item.product_name} in your "${collectionTitle}" collection. Is it available again?`
-    : `Hi — I'd like to know more about ${item.product_name} from your "${collectionTitle}" collection.`;
-
-  const href = buildWhatsAppUrl(whatsappNumber ?? '', msg);
   const origin = [item.origin_region, item.origin_country].filter(Boolean).join(', ');
+
+  const pickerMode = getPickerMode(item);
+  const entry = basket[item.id];
+  const isSelected = Boolean(entry);
+
+  function defaultQuantity(): string | number {
+    if (pickerMode === 'loose-leaf') return 50;
+    return 1;
+  }
+
+  function toggle() {
+    setBasket(prev => {
+      if (prev[item.id]) {
+        const next = { ...prev };
+        delete next[item.id];
+        return next;
+      }
+      return {
+        ...prev,
+        [item.id]: {
+          quantity: defaultQuantity(),
+          note: '',
+          outOfStock: oos,
+          pickerMode,
+          productName: item.product_name || 'Unknown tea',
+        },
+      };
+    });
+  }
+
+  function setQuantity(qty: string | number) {
+    setBasket(prev => {
+      if (!prev[item.id]) return prev;
+      return { ...prev, [item.id]: { ...prev[item.id], quantity: qty } };
+    });
+  }
+
+  function setNote(note: string) {
+    setBasket(prev => {
+      if (!prev[item.id]) return prev;
+      return { ...prev, [item.id]: { ...prev[item.id], note } };
+    });
+  }
+
+  function adjustStepper(delta: number) {
+    const current = Number(entry?.quantity ?? 1);
+    const max = pickerMode === 'cake-brick' ? 10 : 5;
+    const next = Math.min(max, Math.max(1, current + delta));
+    setQuantity(next);
+  }
+
+  const qty = entry?.quantity ?? defaultQuantity();
 
   return (
     <li className="flex flex-col gap-5">
@@ -247,15 +373,89 @@ const CatalogEntry: React.FC<{
           </p>
         )}
 
-        <a
-          href={href}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-tea-gold text-tea-bg rounded-md text-[12px] font-medium tracking-[0.3px] hover:bg-tea-gold-lt transition-colors"
+        {/* Want this toggle */}
+        <button
+          onClick={toggle}
+          className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-md text-[12px] font-medium tracking-[0.3px] transition-colors ${
+            isSelected
+              ? 'border border-tea-gold text-tea-gold bg-tea-gold/[0.06]'
+              : 'border border-tea-border text-tea-text-sec hover:text-tea-text hover:border-tea-gold/[0.4]'
+          }`}
         >
-          <MessageCircle size={13} />
-          {oos ? 'Ask about availability' : 'Request via WhatsApp'}
-        </a>
+          {isSelected && <Check size={12} />}
+          {isSelected ? 'Selected' : 'Want this'}
+        </button>
+
+        {/* Quantity + note — only when selected */}
+        {isSelected && (
+          <div className="mt-4 flex flex-col gap-3">
+            {/* OOS note */}
+            {oos && (
+              <p className="font-sans text-[11px] text-tea-text-dim italic">
+                Currently out of stock. Requesting availability.
+              </p>
+            )}
+
+            {/* Quantity picker — skip for OOS */}
+            {!oos && (
+              <>
+                {pickerMode === 'loose-leaf' && (
+                  <div className="flex flex-wrap gap-2">
+                    {LOOSE_LEAF_GRAM_OPTIONS.map(g => (
+                      <button
+                        key={g}
+                        onClick={() => setQuantity(g)}
+                        className={`px-3 py-1.5 rounded text-[11px] font-medium transition-colors ${
+                          qty === g
+                            ? 'bg-tea-gold/[0.15] text-tea-gold'
+                            : 'bg-tea-surface text-tea-text-sec hover:text-tea-text'
+                        }`}
+                      >
+                        {g}g
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {(pickerMode === 'cake-brick' || pickerMode === 'teaware' || pickerMode === 'misc') && (
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => adjustStepper(-1)}
+                      disabled={Number(qty) <= 1}
+                      className="w-7 h-7 flex items-center justify-center rounded border border-tea-border text-tea-text-sec hover:text-tea-text hover:border-tea-gold/[0.4] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    >
+                      <Minus size={11} />
+                    </button>
+                    <span className="font-mono text-[13px] text-tea-text w-8 text-center tabular-nums">
+                      {qty}
+                    </span>
+                    <button
+                      onClick={() => adjustStepper(1)}
+                      disabled={Number(qty) >= (pickerMode === 'cake-brick' ? 10 : 5)}
+                      className="w-7 h-7 flex items-center justify-center rounded border border-tea-border text-tea-text-sec hover:text-tea-text hover:border-tea-gold/[0.4] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    >
+                      <Plus size={11} />
+                    </button>
+                    <span className="font-sans text-[11px] text-tea-text-dim">
+                      {pickerMode === 'cake-brick'
+                        ? (Number(qty) === 1 ? 'cake' : 'cakes')
+                        : (Number(qty) === 1 ? 'unit' : 'units')}
+                    </span>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* Per-item note */}
+            <input
+              type="text"
+              value={entry?.note ?? ''}
+              onChange={e => setNote(e.target.value)}
+              placeholder="Anything to add?"
+              className="input-warm w-full max-w-[300px] px-3 py-2 text-[13px] leading-[1.5]"
+            />
+          </div>
+        )}
       </div>
     </li>
   );

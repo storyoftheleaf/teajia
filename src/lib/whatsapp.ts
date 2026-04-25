@@ -111,6 +111,40 @@ export function buildWhatsAppUrl(phone: string, message: string): string {
   return `https://wa.me/${clean}?text=${encodeURIComponent(message)}`;
 }
 
+export interface CollectionBasketItem {
+  name: string;
+  quantity: string | number;
+  quantityUnit: string;   // 'g' for loose-leaf; 'cake', 'unit' otherwise
+  note?: string;
+  outOfStock?: boolean;
+}
+
+export function buildCollectionBasketMessage(opts: {
+  collectionTitle: string;
+  collectionUrl: string;
+  curatorDisplayName?: string | null;
+  items: CollectionBasketItem[];
+}): string {
+  const lines: string[] = [];
+  lines.push(`Hi, I've been looking through your collection "${opts.collectionTitle}" and I'd like to request a few things:`);
+  lines.push('');
+  if (opts.curatorDisplayName) {
+    lines.push(`Curated by ${opts.curatorDisplayName}`);
+    lines.push('');
+  }
+  for (const item of opts.items) {
+    const noteStr = item.note ? ` (${item.note})` : '';
+    if (item.outOfStock) {
+      lines.push(`• ${item.name}: asking about availability${noteStr}`);
+    } else {
+      lines.push(`• ${item.name}: ${item.quantity}${item.quantityUnit}${noteStr}`);
+    }
+  }
+  lines.push('');
+  lines.push(opts.collectionUrl);
+  return lines.join('\n');
+}
+
 /** Open WhatsApp with a pre-filled status update message */
 export function openWhatsAppStatus(phone: string, opts: Parameters<typeof buildStatusMessage>[0]): void {
   const message = buildStatusMessage(opts);

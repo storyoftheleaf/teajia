@@ -15,7 +15,7 @@ function formatDate(iso?: string | null): string {
 
 const STATUS_STYLES: Record<CollectionStatus, string> = {
   draft:    'bg-tea-elevated text-tea-text-sec',
-  active:   'bg-tea-gold-lt text-tea-gold',
+  active:   'bg-tea-gold/10 text-tea-text ring-1 ring-inset ring-tea-gold/40',
   archived: 'bg-tea-elevated text-tea-text-dim',
 };
 
@@ -152,6 +152,11 @@ export const CollectionsView: React.FC = () => {
                         ? `${c.active_publication_count} active link${c.active_publication_count !== 1 ? 's' : ''}`
                         : 'no active links'}
                       {c.last_published_at && ` · last shared ${formatDate(c.last_published_at)}`}
+                      {(c as any).curator_display_name && (
+                        <span className="ml-1 text-[11px] text-tea-text-dim">
+                          {' · '}Curated by {(c as any).curator_display_name}
+                        </span>
+                      )}
                     </p>
                   </div>
                 </button>
