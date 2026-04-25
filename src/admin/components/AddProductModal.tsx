@@ -682,12 +682,11 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
               <Edit className="text-tea-gold" size={16} />
             </div>
             <div>
-              <h2 className="text-lg font-serif text-tea-text tracking-wide">{isEditMode ? 'EDIT ITEM' : 'NEW ITEM'}</h2>
-              <p className="text-[10px] text-tea-text-sec font-mono uppercase tracking-[0.2em]">Database Access</p>
+              <h2 className="text-lg font-serif text-tea-text">{isEditMode ? 'Edit item' : 'New item'}</h2>
             </div>
           </div>
-          <button onClick={handleClose} className="text-tea-text-sec hover:text-tea-text transition-colors p-1.5 hover:bg-tea-bg rounded-full">
-            <X size={20} />
+          <button onClick={handleClose} aria-label="Close" className="text-tea-text-sec hover:text-tea-text transition-colors p-1.5 hover:bg-tea-bg rounded-full">
+            <X size={20} aria-hidden="true" />
           </button>
         </div>
 
@@ -851,7 +850,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                  <div className="space-y-2.5 border-b border-dashed border-tea-border pb-3">
                       <div className="flex justify-between items-center">
                           <label className="text-tea-gold/70 uppercase text-xs tracking-[0.2em]">Batch Cost</label>
-                          <div className="flex items-center gap-2 border-b border-tea-border hover:border-tea-gold/40 transition-colors">
+                          <div className="flex items-center gap-2 border-b border-tea-border hover:border-tea-gold/20 transition-colors">
                               <select
                                   name="costCurrency" value={formData.costCurrency} onChange={handleChange}
                                   className="bg-transparent appearance-none rounded-none text-xs text-tea-gold font-bold outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg cursor-pointer uppercase"
@@ -874,7 +873,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                           <label className="text-tea-gold/70 uppercase text-xs tracking-[0.2em]">Weight (g)</label>
                           <input
                               name="quantityPurchased" type="number" value={formData.quantityPurchased} onChange={handleChange}
-                              className="w-24 bg-transparent text-right text-tea-text border-b border-tea-border hover:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg placeholder-tea-text-sec/40 transition-colors tabular-nums" placeholder="0"
+                              className="w-24 bg-transparent text-right text-tea-text border-b border-tea-border hover:border-tea-gold/20 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg placeholder-tea-text-sec/40 transition-colors tabular-nums" placeholder="0"
                               inputMode="decimal" onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 300); }}
                           />
                       </div>
@@ -882,7 +881,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                           <label className="text-tea-gold/70 uppercase text-xs tracking-[0.2em]">Ship (USD/kg)</label>
                           <input
                               name="shippingRateUSD" type="number" step="0.01" value={formData.shippingRateUSD} onChange={handleChange}
-                              className="w-24 bg-transparent text-right text-tea-text border-b border-tea-border hover:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg placeholder-tea-text-sec/40 transition-colors tabular-nums" placeholder="10.00"
+                              className="w-24 bg-transparent text-right text-tea-text border-b border-tea-border hover:border-tea-gold/20 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg placeholder-tea-text-sec/40 transition-colors tabular-nums" placeholder="10.00"
                               inputMode="decimal" onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 300); }}
                           />
                       </div>
@@ -950,7 +949,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                           <label className="text-tea-gold/70 uppercase text-xs tracking-[0.2em]">Current Stock</label>
                           <input
                               name="stockGrams" type="number" value={formData.stockGrams} onChange={handleChange}
-                              className="w-24 bg-transparent text-right text-tea-text border-b border-tea-border hover:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg placeholder-tea-text-sec/40 transition-colors tabular-nums" placeholder="0"
+                              className="w-24 bg-transparent text-right text-tea-text border-b border-tea-border hover:border-tea-gold/20 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg placeholder-tea-text-sec/40 transition-colors tabular-nums" placeholder="0"
                               inputMode="numeric"
                           />
                       </div>
@@ -960,7 +959,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                           <label className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim">Alert below (g)</label>
                           <input
                               name="lowStockThreshold" type="number" value={formData.lowStockThreshold} onChange={handleChange}
-                              className="w-24 bg-transparent text-right text-tea-text-sec border-b border-tea-border hover:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg placeholder-tea-text-sec/40 transition-colors tabular-nums text-sm" placeholder="0"
+                              className="w-24 bg-transparent text-right text-tea-text-sec border-b border-tea-border hover:border-tea-gold/20 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg placeholder-tea-text-sec/40 transition-colors tabular-nums text-sm" placeholder="0"
                               inputMode="numeric"
                           />
                       </div>
@@ -971,7 +970,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                             <label className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim" title="Stock below this amount shows a low-availability warning on the shop.">Session reserve (g)</label>
                             <input
                                 name="sessionReserveGrams" type="number" value={formData.sessionReserveGrams} onChange={handleChange}
-                                className="w-24 bg-transparent text-right text-tea-text-sec border-b border-tea-border hover:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg placeholder-tea-text-sec/40 transition-colors tabular-nums text-sm" placeholder="0"
+                                className="w-24 bg-transparent text-right text-tea-text-sec border-b border-tea-border hover:border-tea-gold/20 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg placeholder-tea-text-sec/40 transition-colors tabular-nums text-sm" placeholder="0"
                                 inputMode="numeric"
                             />
                         </div>
@@ -980,22 +979,22 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                       <label className="flex items-center gap-2 mt-1.5 cursor-pointer group">
                           <div className="relative">
                               <input type="checkbox" name="recheckStock" checked={formData.recheckStock} onChange={handleChange} className="sr-only" />
-                              <div className={`w-3.5 h-3.5 rounded-sm border transition-colors ${formData.recheckStock ? 'bg-tea-gold border-tea-gold' : 'border-tea-border group-hover:border-tea-gold/40'}`}>
+                              <div className={`w-3.5 h-3.5 rounded-sm border transition-colors ${formData.recheckStock ? 'bg-tea-gold border-tea-gold' : 'border-tea-border group-hover:border-tea-gold/20'}`}>
                                   {formData.recheckStock && <svg className="w-3.5 h-3.5 text-tea-bg" viewBox="0 0 14 14" fill="none"><path d="M3.5 7L6 9.5L10.5 4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                               </div>
                           </div>
-                          <span className="text-xs text-tea-text-sec group-hover:text-tea-gold transition-colors uppercase tracking-[0.15em]">Flag for stock recheck</span>
+                          <span className="text-xs text-tea-text-sec group-hover:text-tea-text transition-colors">Flag for stock recheck</span>
                       </label>
 
                       {/* In-transit toggle + expanded fields */}
                       <label className="flex items-center gap-2 mt-1.5 cursor-pointer group">
                           <div className="relative">
                               <input type="checkbox" name="inTransit" checked={formData.inTransit} onChange={handleChange} className="sr-only" />
-                              <div className={`w-3.5 h-3.5 rounded-sm border transition-colors ${formData.inTransit ? 'bg-tea-gold border-tea-gold' : 'border-tea-border group-hover:border-tea-gold/40'}`}>
+                              <div className={`w-3.5 h-3.5 rounded-sm border transition-colors ${formData.inTransit ? 'bg-tea-gold border-tea-gold' : 'border-tea-border group-hover:border-tea-gold/20'}`}>
                                   {formData.inTransit && <svg className="w-3.5 h-3.5 text-tea-bg" viewBox="0 0 14 14" fill="none"><path d="M3.5 7L6 9.5L10.5 4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                               </div>
                           </div>
-                          <span className="text-xs text-tea-text-sec group-hover:text-tea-gold transition-colors uppercase tracking-[0.15em]">In transit</span>
+                          <span className="text-xs text-tea-text-sec group-hover:text-tea-text transition-colors">In transit</span>
                       </label>
                       {formData.inTransit && (
                         <div className="mt-2 pl-5 space-y-1.5 border-l border-tea-border">
@@ -1003,7 +1002,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                             <label className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim">Qty in transit (g)</label>
                             <input
                               name="inTransitGrams" type="number" value={formData.inTransitGrams} onChange={handleChange}
-                              className="w-20 bg-transparent text-right text-tea-gold border-b border-tea-border hover:border-tea-gold/40 outline-none text-sm tabular-nums placeholder-tea-text-sec/40"
+                              className="w-20 bg-transparent text-right text-tea-gold border-b border-tea-border hover:border-tea-gold/20 outline-none text-sm tabular-nums placeholder-tea-text-sec/40"
                               placeholder="0" inputMode="numeric"
                             />
                           </div>
@@ -1011,7 +1010,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                             <label className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim">Expected arrival</label>
                             <input
                               name="inTransitEta" type="date" value={formData.inTransitEta} onChange={handleChange}
-                              className="bg-transparent text-right text-tea-text-sec border-b border-tea-border hover:border-tea-gold/40 outline-none text-xs"
+                              className="bg-transparent text-right text-tea-text-sec border-b border-tea-border hover:border-tea-gold/20 outline-none text-xs"
                             />
                           </div>
                         </div>
@@ -1440,17 +1439,17 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
 
         {/* STICKY FOOTER */}
         <div className="px-6 py-3.5 border-t border-tea-border flex justify-between gap-3 bg-tea-bg/50 backdrop-blur-sm shrink-0">
-            <button type="button" onClick={handleClose} className="px-6 py-2.5 text-xs font-medium text-tea-text-sec hover:text-tea-text transition-colors uppercase tracking-[0.2em] border border-transparent hover:border-tea-border rounded-lg">
+            <button type="button" onClick={handleClose} className="px-4 py-2.5 text-sm text-tea-text-sec hover:text-tea-text transition-colors">
                 Cancel
             </button>
             <button
                 type="submit"
                 form="add-product-form"
                 disabled={loading || !formData.productName || uploading}
-                className="px-8 py-2.5 bg-tea-gold text-tea-bg text-xs font-bold uppercase tracking-[0.2em] hover:bg-tea-gold/90 transition-all disabled:opacity-50 flex items-center justify-center gap-2 rounded-lg shadow-lg shadow-tea-gold/10"
+                className="px-6 py-2.5 bg-tea-gold text-tea-bg text-sm font-medium hover:bg-tea-gold/90 transition-all disabled:opacity-50 flex items-center justify-center gap-2 rounded-lg"
             >
-                {loading || uploading ? <Loader2 className="animate-spin" size={14} /> : <Save size={14} />}
-                <span>Save Item</span>
+                {loading || uploading ? <Loader2 className="animate-spin" size={14} aria-hidden="true" /> : <Save size={14} aria-hidden="true" />}
+                <span>Save item</span>
             </button>
         </div>
       </div>

@@ -1,13 +1,14 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { X as XIcon, Search, Loader2, Plus, Tag as TagIcon } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { api } from '../../../lib/api';
 import type { CollectionRecipient } from '../../../types';
 import { ContactTagEditor } from '../contactTags/ContactTagEditor';
 
 // Filename + export name kept for source-compatibility with existing imports
-// (CollectionShareSheet, AddPublicationSheet). The component is now the
-// tag-aware "RecipientPicker": three add-sources (recents, typeahead, tags)
-// merging into one chip set, with idempotent filtering against an existing
+// (CollectionShareSheet, AddPublicationSheet). The component is the
+// tag-aware "RecipientPicker": one compose surface (typeahead + recents +
+// tag chips) feeding a row-based guest list. Idempotent against an existing
 // collection's active publications. See project_contact_tags_feature memory.
 
 interface RecipientTypeaheadProps {
@@ -55,6 +56,12 @@ function dedupeRecipients(rs: CollectionRecipient[]): CollectionRecipient[] {
   return out;
 }
 
+function initialOf(name: string): string {
+  const trimmed = name.trim();
+  if (!trimmed) return '·';
+  return trimmed.charAt(0).toUpperCase();
+}
+
 export const RecipientTypeahead: React.FC<RecipientTypeaheadProps> = ({
   value, onChange, collectionId, placeholder, autoFocus,
 }) => {
@@ -77,13 +84,20 @@ export const RecipientTypeahead: React.FC<RecipientTypeaheadProps> = ({
   const [tagEditingId, setTagEditingId] = useState<string | null>(null);
   const tagEditorRef = useRef<HTMLDivElement>(null);
 
-  // Refresh the account-wide tag list when a chip's tags change so the
+  // Refresh the account-wide tag list when a row's tags change so the
   // picker's tag chips stay accurate (counts/new tags) without remount.
   const handleTagsChanged = () => {
     api.customerTags.listAll().then(setTags).catch(() => {});
   };
 
-  // Close the per-chip tag editor on outside click / Escape.
+  // Auto-dismiss skip notes so they don't persist as visual noise.
+  useEffect(() => {
+    if (!skipNote) return;
+    const t = setTimeout(() => setSkipNote(null), 4000);
+    return () => clearTimeout(t);
+  }, [skipNote]);
+
+  // Close the per-row tag editor on outside click / Escape.
   useEffect(() => {
     if (!tagEditingId) return;
     const handleClick = (e: MouseEvent) => {
@@ -194,14 +208,12 @@ export const RecipientTypeahead: React.FC<RecipientTypeaheadProps> = ({
 
   const isExcluded = (id: string) => alreadyPublishedIds.has(id);
 
-  // Recents row, filtered against already-published and already-selected.
   const visibleRecents = useMemo(() => {
     return recents
       .filter(c => !isExcluded(c.id) && !selectedIds.has(c.id))
       .slice(0, RECENT_LIMIT);
   }, [recents, alreadyPublishedIds, selectedIds]);
 
-  // Typeahead matches.
   const matches = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return [];
@@ -219,7 +231,6 @@ export const RecipientTypeahead: React.FC<RecipientTypeaheadProps> = ({
     return true;
   }, [query, matches, freeformLowerNames]);
 
-  // Tag chips: top by count, with overflow popover.
   const visibleTags = tags.slice(0, TAG_VISIBLE);
   const overflowTags = tags.slice(TAG_VISIBLE);
 
@@ -269,7 +280,7 @@ export const RecipientTypeahead: React.FC<RecipientTypeaheadProps> = ({
           ? '1 already has this collection. Skipped.'
           : `${skipped} already have this collection. Skipped.`);
       } else if (added === 0) {
-        setSkipNote(`Everyone tagged "${tag}" is already selected.`);
+        setSkipNote(`Everyone tagged "${tag}" is already on the list.`);
       }
     } catch {
       setSkipNote('Could not load that tag.');
@@ -289,40 +300,19 @@ export const RecipientTypeahead: React.FC<RecipientTypeaheadProps> = ({
       }
     } else if (e.key === 'Escape') {
       setOpen(false);
-    } else if (e.key === 'Backspace' && !query && value.length > 0) {
-      removeAt(value.length - 1);
     }
   };
+
+  const hasQuickAdds = visibleRecents.length > 0 || tags.length > 0;
 
   // ── Render ──────────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col gap-4">
-      {/* Recents */}
-      {visibleRecents.length > 0 && (
-        <div>
-          <p className="text-[10px] uppercase tracking-[0.12em] text-tea-text-dim mb-1.5">
-            Recently shared with
-          </p>
-          <div className="flex flex-wrap gap-1.5">
-            {visibleRecents.map(c => (
-              <button
-                key={c.id}
-                type="button"
-                onClick={() => addCustomer(c)}
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-tea-elevated text-tea-text text-[12px] hover:bg-tea-gold/10 hover:text-tea-text transition-colors"
-              >
-                <Plus size={10} className="text-tea-text-dim" />
-                <span className="truncate max-w-[160px]">{c.name}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Typeahead */}
-      <div>
+      {/* Compose surface — typeahead + quick-add rails read as one tool */}
+      <div className="rounded-xl border border-tea-border bg-tea-bg/40 overflow-visible">
+        {/* Typeahead row */}
         <div className="relative">
-          <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-text-dim pointer-events-none" />
+          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-text-dim pointer-events-none" />
           <input
             ref={inputRef}
             type="text"
@@ -339,10 +329,13 @@ export const RecipientTypeahead: React.FC<RecipientTypeaheadProps> = ({
             data-1p-ignore
             data-lpignore="true"
             name="recipient-typeahead"
-            className="w-full pl-8 pr-3 py-2 text-[13px] bg-tea-bg border border-tea-border rounded-lg outline-none text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold/40"
+            className="w-full pl-9 pr-9 py-2.5 text-[13px] bg-transparent border-0 rounded-t-xl outline-none text-tea-text placeholder:text-tea-text-dim focus:bg-tea-bg/60 transition-colors"
           />
+          {customersLoading && (
+            <Loader2 size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-tea-text-dim animate-spin" />
+          )}
           {open && (matches.length > 0 || queryIsNewName) && (
-            <ul className="absolute top-full left-0 right-0 mt-1 z-20 max-h-64 overflow-y-auto rounded-lg bg-tea-surface border border-tea-border shadow-lg py-1">
+            <ul className="absolute top-full left-0 right-0 mt-1 z-30 max-h-64 overflow-y-auto rounded-lg bg-tea-surface border border-tea-border shadow-xl py-1">
               {matches.map(c => (
                 <li key={c.id}>
                   <button
@@ -355,7 +348,7 @@ export const RecipientTypeahead: React.FC<RecipientTypeaheadProps> = ({
                     className="w-full flex items-center justify-between gap-3 px-3 py-1.5 text-left hover:bg-tea-elevated transition-colors"
                   >
                     <span className="text-[13px] text-tea-text truncate">{c.name}</span>
-                    {c.phone && <span className="text-[10px] text-tea-text-dim shrink-0">{c.phone}</span>}
+                    {c.phone && <span className="text-[10px] text-tea-text-dim shrink-0 num">{c.phone}</span>}
                   </button>
                 </li>
               ))}
@@ -377,141 +370,221 @@ export const RecipientTypeahead: React.FC<RecipientTypeaheadProps> = ({
               )}
             </ul>
           )}
-          {customersLoading && (
-            <Loader2 size={11} className="absolute right-3 top-1/2 -translate-y-1/2 text-tea-text-dim animate-spin" />
-          )}
         </div>
-      </div>
 
-      {/* Tag chips */}
-      {tags.length > 0 && (
-        <div className="relative">
-          <p className="text-[10px] uppercase tracking-[0.12em] text-tea-text-dim mb-1.5">
-            Or pick by tag
-          </p>
-          <div className="flex flex-wrap gap-1.5">
-            {visibleTags.map(t => (
-              <button
-                key={t.tag}
-                type="button"
-                onClick={() => addByTag(t.tag)}
-                className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-tea-elevated text-tea-text text-[12px] hover:bg-tea-gold/10 transition-colors"
-              >
-                <span className="truncate max-w-[180px]">{t.tag}</span>
-                <span className="text-[10px] text-tea-text-dim">{t.count}</span>
-              </button>
-            ))}
-            {overflowTags.length > 0 && (
-              <button
-                type="button"
-                onClick={() => setTagsExpanded(v => !v)}
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[12px] text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated/60 transition-colors"
-              >
-                +{overflowTags.length} more
-              </button>
-            )}
-          </div>
-
-          {tagsExpanded && (
-            <div
-              ref={tagPopoverRef}
-              className="absolute z-30 mt-2 left-0 w-[280px] max-w-full rounded-lg bg-tea-surface border border-tea-border shadow-xl"
-            >
-              <div className="relative border-b border-tea-border">
-                <Search size={11} className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-text-dim pointer-events-none" />
-                <input
-                  type="text"
-                  value={tagFilter}
-                  onChange={e => setTagFilter(e.target.value)}
-                  placeholder="Filter tags…"
-                  autoFocus
-                  className="w-full pl-7 pr-3 py-1.5 text-[12px] bg-transparent border-none outline-none text-tea-text placeholder:text-tea-text-dim"
-                />
+        {/* Quick-add rails — separated by a hairline, never just floating */}
+        {hasQuickAdds && (
+          <div className="px-3 pb-2.5 pt-1 flex flex-col gap-2">
+            {visibleRecents.length > 0 && (
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] uppercase tracking-[0.12em] text-tea-text-dim shrink-0 w-14">
+                  Recent
+                </span>
+                <div className="flex flex-wrap gap-1">
+                  {visibleRecents.map(c => (
+                    <motion.button
+                      key={c.id}
+                      type="button"
+                      onClick={() => addCustomer(c)}
+                      whileTap={{ scale: 0.96 }}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-tea-elevated/70 text-tea-text text-[12px] hover:bg-tea-gold/10 transition-colors"
+                    >
+                      <Plus size={10} className="text-tea-text-dim" />
+                      <span className="truncate max-w-[140px]">{c.name}</span>
+                    </motion.button>
+                  ))}
+                </div>
               </div>
-              <ul className="max-h-64 overflow-y-auto py-1">
-                {filteredOverflowTags.length === 0 ? (
-                  <li className="px-3 py-2 text-[11px] text-tea-text-dim italic">No tags match.</li>
-                ) : filteredOverflowTags.map(t => (
-                  <li key={t.tag}>
+            )}
+
+            {tags.length > 0 && (
+              <div className="relative flex items-start gap-2">
+                <span className="text-[10px] uppercase tracking-[0.12em] text-tea-text-dim shrink-0 w-14 pt-0.5">
+                  Tags
+                </span>
+                <div className="flex flex-wrap gap-1">
+                  {visibleTags.map(t => (
+                    <motion.button
+                      key={t.tag}
+                      type="button"
+                      onClick={() => addByTag(t.tag)}
+                      whileTap={{ scale: 0.96 }}
+                      className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-tea-elevated/70 text-tea-text text-[12px] hover:bg-tea-gold/10 transition-colors"
+                    >
+                      <span className="truncate max-w-[160px]">{t.tag}</span>
+                      <span className="text-[10px] text-tea-text-dim num">{t.count}</span>
+                    </motion.button>
+                  ))}
+                  {overflowTags.length > 0 && (
                     <button
                       type="button"
-                      onClick={() => { addByTag(t.tag); setTagsExpanded(false); setTagFilter(''); }}
-                      className="w-full flex items-center justify-between gap-3 px-3 py-1.5 text-left hover:bg-tea-elevated transition-colors"
+                      onClick={() => setTagsExpanded(v => !v)}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[12px] text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated/70 transition-colors"
                     >
-                      <span className="text-[12px] text-tea-text truncate">{t.tag}</span>
-                      <span className="text-[10px] text-tea-text-dim shrink-0">{t.count}</span>
+                      +{overflowTags.length} more
                     </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
+                  )}
+                </div>
+
+                {tagsExpanded && (
+                  <div
+                    ref={tagPopoverRef}
+                    className="absolute z-40 top-full mt-1 left-16 w-[280px] max-w-[calc(100%-4rem)] rounded-lg bg-tea-surface border border-tea-border shadow-xl"
+                  >
+                    <div className="relative border-b border-tea-border">
+                      <Search size={11} className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-text-dim pointer-events-none" />
+                      <input
+                        type="text"
+                        value={tagFilter}
+                        onChange={e => setTagFilter(e.target.value)}
+                        placeholder="Filter tags…"
+                        autoFocus
+                        className="w-full pl-7 pr-3 py-1.5 text-[12px] bg-transparent border-none outline-none text-tea-text placeholder:text-tea-text-dim"
+                      />
+                    </div>
+                    <ul className="max-h-64 overflow-y-auto py-1">
+                      {filteredOverflowTags.length === 0 ? (
+                        <li className="px-3 py-2 text-[11px] text-tea-text-dim italic">No tags match.</li>
+                      ) : filteredOverflowTags.map(t => (
+                        <li key={t.tag}>
+                          <button
+                            type="button"
+                            onClick={() => { addByTag(t.tag); setTagsExpanded(false); setTagFilter(''); }}
+                            className="w-full flex items-center justify-between gap-3 px-3 py-1.5 text-left hover:bg-tea-elevated transition-colors"
+                          >
+                            <span className="text-[12px] text-tea-text truncate">{t.tag}</span>
+                            <span className="text-[10px] text-tea-text-dim shrink-0 num">{t.count}</span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      <AnimatePresence>
+        {skipNote && (
+          <motion.p
+            key={skipNote}
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="text-[11px] text-tea-text-dim italic"
+          >
+            {skipNote}
+          </motion.p>
+        )}
+      </AnimatePresence>
+
+      {/* Guest list */}
+      <div>
+        <div className="flex items-baseline justify-between mb-1.5">
+          <p className="text-[10px] uppercase tracking-[0.12em] text-tea-text-dim">
+            Guest list
+          </p>
+          {value.length > 0 && (
+            <span className="text-[10px] text-tea-text-dim num">{value.length}</span>
           )}
         </div>
-      )}
 
-      {skipNote && (
-        <p className="text-[11px] text-tea-text-dim italic">{skipNote}</p>
-      )}
-
-      {/* Selected footer */}
-      <div className="border-t border-tea-border pt-3">
-        <p className="text-[10px] uppercase tracking-[0.12em] text-tea-text-dim mb-1.5">
-          Selected {value.length > 0 && <span className="normal-case">({value.length})</span>}
-        </p>
         {value.length === 0 ? (
-          <p className="text-[11px] text-tea-text-dim">No recipients yet.</p>
+          <div className="py-8 text-center">
+            <p className="text-[12px] text-tea-text-dim italic">
+              No one yet. Pick from recents or type a name above.
+            </p>
+          </div>
         ) : (
-          <div className="flex flex-wrap gap-1.5">
-            {value.map((r, i) => {
-              const editing = !!r.customer_id && tagEditingId === r.customer_id;
-              return (
-                <div key={`${r.customer_id ?? 'n'}_${i}`} className="relative">
-                  <span
-                    className={`inline-flex items-center gap-1 pl-2 pr-1 py-0.5 rounded-md text-[12px] transition-colors ${
-                      editing ? 'bg-tea-gold/15 text-tea-text' : 'bg-tea-gold/10 text-tea-text'
-                    }`}
+          <ul className="flex flex-col">
+            <AnimatePresence initial={false}>
+              {value.map((r, i) => {
+                const editing = !!r.customer_id && tagEditingId === r.customer_id;
+                const key = `${r.customer_id ?? 'n'}_${r.name}_${i}`;
+                return (
+                  <motion.li
+                    key={key}
+                    layout
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, x: -8, transition: { duration: 0.15 } }}
+                    transition={{ duration: 0.18, ease: [0.4, 0, 0.2, 1] }}
+                    className="group relative flex items-center gap-2.5 py-1.5 px-1 -mx-1 rounded-md hover:bg-tea-elevated/40 transition-colors"
                   >
-                    <span className="truncate max-w-[180px]">{r.name}</span>
+                    {/* Monogram avatar */}
+                    <div
+                      className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 bg-tea-gold/10 text-tea-gold text-[12px] font-medium tracking-wide"
+                      aria-hidden
+                    >
+                      {initialOf(r.name)}
+                    </div>
+
+                    {/* Identity */}
+                    <div className="flex-1 min-w-0 flex items-baseline gap-2">
+                      <span className="text-[13px] text-tea-text truncate">
+                        {r.name}
+                      </span>
+                      {r.phone ? (
+                        <span className="text-[11px] text-tea-text-dim num truncate">
+                          {r.phone}
+                        </span>
+                      ) : !r.customer_id ? (
+                        <span className="text-[10px] text-tea-text-dim italic">
+                          new contact
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-tea-text-dim italic">
+                          no phone
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Tag editor trigger (customer rows only) */}
                     {r.customer_id && (
                       <button
                         type="button"
                         onClick={() => setTagEditingId(prev => prev === r.customer_id ? null : r.customer_id!)}
-                        className="text-tea-text-dim hover:text-tea-text transition-colors p-0.5"
-                        aria-label={`Tag ${r.name}`}
+                        className="opacity-0 group-hover:opacity-100 focus:opacity-100 text-tea-text-sec hover:text-tea-gold transition-all p-1"
+                        aria-label={`Edit tags for ${r.name}`}
                         title="Edit tags"
                       >
-                        <TagIcon size={10} />
+                        <TagIcon size={12} />
                       </button>
                     )}
+
+                    {/* Remove */}
                     <button
                       type="button"
                       onClick={() => removeAt(i)}
-                      className="text-tea-text-sec hover:text-tea-text transition-colors p-0.5"
+                      className="opacity-0 group-hover:opacity-100 focus:opacity-100 text-tea-text-sec hover:text-tea-text transition-all p-1"
                       aria-label={`Remove ${r.name}`}
                     >
-                      <XIcon size={10} />
+                      <XIcon size={13} />
                     </button>
-                  </span>
-                  {editing && (
-                    <div
-                      ref={tagEditorRef}
-                      className="absolute z-30 top-full left-0 mt-1 w-[280px] max-w-[calc(100vw-2rem)] rounded-lg bg-tea-surface border border-tea-border shadow-xl p-3"
-                    >
-                      <p className="text-[10px] uppercase tracking-[0.12em] text-tea-text-dim mb-2 truncate">
-                        Tags for {r.name}
-                      </p>
-                      <ContactTagEditor
-                        customerId={r.customer_id!}
-                        compact
-                        autoFocus
-                        onChange={handleTagsChanged}
-                      />
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+
+                    {editing && (
+                      <div
+                        ref={tagEditorRef}
+                        className="absolute z-30 top-full right-0 mt-1 w-[280px] max-w-[calc(100vw-2rem)] rounded-lg bg-tea-surface border border-tea-border shadow-xl p-3"
+                      >
+                        <p className="text-[10px] uppercase tracking-[0.12em] text-tea-text-dim mb-2 truncate">
+                          Tags for {r.name}
+                        </p>
+                        <ContactTagEditor
+                          customerId={r.customer_id!}
+                          compact
+                          autoFocus
+                          onChange={handleTagsChanged}
+                        />
+                      </div>
+                    )}
+                  </motion.li>
+                );
+              })}
+            </AnimatePresence>
+          </ul>
         )}
       </div>
     </div>

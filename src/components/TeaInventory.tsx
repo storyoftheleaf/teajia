@@ -405,6 +405,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                value={searchText}
                onChange={e => setSearchText(e.target.value)}
                placeholder="search teas"
+               aria-label="Search teas"
                className="flex-1 min-w-0 bg-transparent border-b border-tea-border text-tea-text text-sm placeholder:text-tea-text-dim py-1 pr-2 outline-none focus:border-tea-gold transition-colors"
                style={{ fontFamily: 'var(--font-body)' }}
              />
@@ -416,13 +417,15 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
            {/* Row 2: actions — saved toggle · sort · weight */}
            <div className="flex items-center gap-4 pb-2 overflow-x-auto hide-scrollbar">
              <button
+               type="button"
                onClick={() => setShopSavedOnly(!shopSavedOnly)}
+               aria-pressed={shopSavedOnly}
+               aria-label="Show only liked teas"
                className={`flex items-center gap-1.5 text-[10px] uppercase tracking-[0.15em] py-1 shrink-0 transition-colors ${
                  shopSavedOnly ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
                }`}
-               title="Show only liked teas"
              >
-               <Icons.Heart className="w-3 h-3" filled={shopSavedOnly} />
+               <Icons.Heart className="w-3 h-3" filled={shopSavedOnly} aria-hidden="true" />
                <span>Liked</span>
              </button>
 
@@ -433,7 +436,8 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                <select
                  value={shopSort}
                  onChange={e => setShopSort(e.target.value as any)}
-                 className="bg-transparent text-tea-text text-[10px] uppercase tracking-[0.15em] outline-none cursor-pointer border-none"
+                 aria-label="Sort teas by"
+                 className="bg-transparent text-tea-text text-[10px] uppercase tracking-[0.15em] outline-none cursor-pointer border-none focus-visible:underline"
                  style={{ fontFamily: 'var(--font-body)' }}
                >
                  <option value="featured">Featured</option>
@@ -568,36 +572,28 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
          {filteredInventory.length === 0 ? (
             <div className="text-center py-32">
                <svg
-                 className="w-16 h-16 mx-auto mb-6 text-tea-text/15"
+                 className="w-16 h-16 mx-auto mb-6 text-tea-text/15 tea-leaf-float"
                  viewBox="0 0 64 64"
                  fill="none"
                  stroke="currentColor"
                  strokeWidth="1.2"
                  strokeLinecap="round"
                  strokeLinejoin="round"
-                 style={{ animation: 'teaLeafFloat 3s ease-in-out infinite' }}
+                 aria-hidden="true"
                >
                  <path d="M32 56 C32 56 12 44 12 28 C12 16 20 8 32 8 C44 8 52 16 52 28 C52 44 32 56 32 56Z" />
                  <path d="M32 8 C32 8 28 20 28 32 C28 44 32 56 32 56" />
                  <path d="M18 22 C24 26 32 28 46 24" />
                  <path d="M16 34 C22 36 30 38 48 32" />
                </svg>
-               <p className="font-serif italic text-tea-text/60 mb-2">Nothing matched — try different filters</p>
+               <p className="font-serif italic text-tea-text-sec mb-2">Nothing matched. Try different filters.</p>
                <button
+                  type="button"
                   onClick={clearFilters}
-                  className="text-sm text-tea-gold hover:text-tea-gold/80 transition-colors underline"
+                  className="text-sm text-tea-gold hover:text-tea-gold-lt transition-colors underline"
                >
                   Clear all filters
                </button>
-               <style>{`
-                 @keyframes teaLeafFloat {
-                   0%, 100% { transform: translateY(0px); }
-                   50% { transform: translateY(-8px); }
-                 }
-                 @media (prefers-reduced-motion: reduce) {
-                   .teaLeafFloat { animation: none !important; }
-                 }
-               `}</style>
             </div>
          ) : null}
 
@@ -643,8 +639,17 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                         return (
                             <div
                                 key={item.id}
-                                className="border-b border-tea-border hover:bg-tea-surface/40 transition-colors cursor-pointer"
+                                role="button"
+                                tabIndex={0}
+                                aria-label={`View ${item.name}`}
+                                className="border-b border-tea-border hover:bg-tea-surface/40 transition-colors cursor-pointer focus:outline-none focus-visible:bg-tea-surface/60 focus-visible:ring-1 focus-visible:ring-tea-gold/30"
                                 onClick={() => setViewItem(item)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault();
+                                    setViewItem(item);
+                                  }
+                                }}
                             >
                                 <div className="flex items-center py-2 lg:py-2.5 px-1 gap-3">
                                     {/* Name + metadata */}
@@ -701,20 +706,23 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                             {/* Admin: edit button */}
                                             {isAdmin && onAdminEdit && (
                                                 <button
+                                                    type="button"
                                                     onClick={(e) => { e.stopPropagation(); onAdminEdit(item.id); }}
-                                                    className="p-1 text-tea-text-sec hover:text-tea-gold transition-colors"
-                                                    title="Edit product"
+                                                    aria-label={`Edit ${item.name}`}
+                                                    className="p-1 text-tea-text-sec hover:text-tea-text transition-colors"
                                                 >
-                                                    <Icons.Edit className="w-4 h-4" />
+                                                    <Icons.Edit className="w-4 h-4" aria-hidden="true" />
                                                 </button>
                                             )}
                                             {/* Like toggle */}
                                             <button
+                                                type="button"
                                                 onClick={(e) => handleFavoriteToggle(item.id, e)}
-                                                className={`p-1 transition-colors ${isFavorite ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-gold'}`}
-                                                title={isFavorite ? 'Unlike' : 'Like'}
+                                                aria-pressed={isFavorite}
+                                                aria-label={isFavorite ? `Unlike ${item.name}` : `Like ${item.name}`}
+                                                className={`p-1 transition-colors ${isFavorite ? 'text-tea-text hover:text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'}`}
                                             >
-                                                <Icons.Heart className="w-4 h-4" filled={isFavorite} />
+                                                <Icons.Heart className="w-4 h-4" filled={isFavorite} aria-hidden="true" />
                                             </button>
                                         </div>
                                         {/* Divider between actions and price */}

@@ -67,7 +67,7 @@
 </head>
   <body class="bg-tea-bg text-tea-text font-sans" style="scrollbar-gutter: stable; -webkit-font-smoothing: antialiased;">
     <!-- Skip to main content link for keyboard/screen reader users -->
-    <a href="#main-content" class="fixed -top-full left-4 z-[9999] focus:top-4 bg-tea-gold text-white px-4 py-2 rounded-sm text-sm font-sans tracking-wide shadow-lg transition-[top] duration-150">Skip to content</a>
+    <a href="#main-content" style="position:fixed;top:-100px;left:1rem;z-index:9999;background:#7a5e3a;color:#18130e;padding:8px 16px;border-radius:2px;font-size:14px;text-decoration:none;letter-spacing:0.02em;box-shadow:0 4px 12px rgba(0,0,0,0.3);transition:top 150ms ease;" onfocus="this.style.top='1rem'" onblur="this.style.top='-100px'">Skip to content</a>
     <div id="root">
       <div id="app-loading" style="display:flex;align-items:center;justify-content:center;min-height:100dvh;background:#18130e;color:#b5a892;font-family:Georgia,serif;font-size:14px;">Loading Teajia…</div>
     </div>

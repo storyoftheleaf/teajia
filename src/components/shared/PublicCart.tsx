@@ -84,12 +84,12 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
     }
     const sessionCart = sessionStorage.getItem('teajia_cartState');
     if (sessionCart && isOpen && cart.length === 0) setRecoveredCart(true);
-    const update = () => {
-      setPreferredChannel(window.innerWidth < 768 ? 'whatsapp' : 'email');
-    };
-    update();
-    window.addEventListener('resize', update);
-    return () => window.removeEventListener('resize', update);
+    // Use a media query (no resize storm) — re-evaluated only when crossing the breakpoint
+    const mql = window.matchMedia('(min-width: 768px)');
+    const apply = () => setPreferredChannel(mql.matches ? 'email' : 'whatsapp');
+    apply();
+    mql.addEventListener('change', apply);
+    return () => mql.removeEventListener('change', apply);
   }, [isOpen]);
 
   useEffect(() => {
@@ -238,25 +238,34 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
 
   return (
     <>
-      {/* Step indicator + currency selector */}
-      <div className="flex items-center justify-between px-4 py-2.5 border-b border-tea-border bg-tea-surface flex-shrink-0">
-        <div className="flex items-center gap-3">
-          {STEPS.map((s, i) => (
-            <React.Fragment key={s.key}>
-              <span className={`text-[11px] uppercase tracking-[0.15em] transition-colors duration-300 ${step === s.key ? 'text-tea-gold' : currentStepIndex > i ? 'text-tea-text-sec/60' : 'text-tea-text/20'}`}>
-                {s.label}
-              </span>
-              {i < STEPS.length - 1 && (
-                <span className={`text-[11px] transition-colors duration-300 ${currentStepIndex > i ? 'text-tea-gold/30' : 'text-tea-text/15'}`}>·</span>
-              )}
-            </React.Fragment>
-          ))}
+      {/* Step indicator + currency selector — hairline rules, single bronze for active step */}
+      <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-tea-border bg-tea-surface flex-shrink-0">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          {STEPS.map((s, i) => {
+            const isActive = step === s.key;
+            const isPast = currentStepIndex > i;
+            return (
+              <React.Fragment key={s.key}>
+                <span
+                  className={`text-[11px] uppercase tracking-[0.15em] transition-colors duration-300 whitespace-nowrap ${
+                    isActive ? 'text-tea-gold' : isPast ? 'text-tea-text-sec' : 'text-tea-text-sec/70'
+                  }`}
+                  aria-current={isActive ? 'step' : undefined}
+                >
+                  {s.label}
+                </span>
+                {i < STEPS.length - 1 && (
+                  <span className="block w-4 h-px bg-tea-border" aria-hidden="true" />
+                )}
+              </React.Fragment>
+            );
+          })}
         </div>
         {rates.length > 0 && (
           <select
             value={currency}
             onChange={(e) => setCurrency(e.target.value as any)}
-            className="bg-transparent border-none text-[11px] text-tea-text-sec outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 cursor-pointer hover:text-tea-text transition-colors"
+            className="bg-transparent border-none text-[11px] text-tea-text-sec outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 cursor-pointer hover:text-tea-text transition-colors shrink-0"
             aria-label="Currency"
           >
             {rates.map(r => (
@@ -268,16 +277,16 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
 
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto relative tea-card-scroll">
-        <div className="surface-warm-inset mx-2 mt-2 mb-2 p-4 min-h-full">
+        <div className="px-5 py-5 min-h-full">
 
           {/* Undo toast */}
           {undoItem && (
-            <div className="relative z-20 mb-4 animate-[slideUp_0.3s_ease-out]">
-              <div className="flex items-center justify-between bg-tea-bg text-tea-text px-4 py-3 rounded-sm">
-                <span className="text-xs font-sans">{undoItem.item.name} removed</span>
+            <div className="relative z-20 mb-4 cart-slide-up">
+              <div className="flex items-center justify-between bg-tea-bg border border-tea-border text-tea-text px-4 py-3 rounded-sm">
+                <span className="text-xs">{undoItem.item.name} removed</span>
                 <button
                   onClick={handleUndo}
-                  className="text-tea-gold text-xs uppercase tracking-[0.15em] font-medium ml-4 hover:text-tea-gold/80 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+                  className="text-tea-text text-xs uppercase tracking-[0.15em] underline underline-offset-4 decoration-tea-border hover:decoration-tea-gold ml-4 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
                 >
                   Undo
                 </button>
@@ -287,37 +296,12 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
 
           {/* Step 1: Cart items */}
           {step === 'CART' && (
-            <div className="space-y-6 relative z-[1]">
+            <div className="space-y-4 relative z-[1]">
               {isEmpty ? (
                 <div className="text-center py-20">
-                  <svg
-                    className="w-16 h-16 mx-auto mb-5 text-tea-text/15"
-                    viewBox="0 0 64 64"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    style={{ animation: 'teaCupFloat 3s ease-in-out infinite' }}
-                  >
-                    <path d="M8 24 h36 v4 c0 14 -8 24 -18 24 c-10 0 -18-10 -18-24 v-4z" />
-                    <path d="M44 28 c6 0 10 3 10 8 s-4 8 -10 8" />
-                    <path d="M16 16 c0 -4 2 -8 2 -8" />
-                    <path d="M26 14 c0 -4 2 -8 2 -8" />
-                    <path d="M36 16 c0 -4 2 -8 2 -8" />
-                    <line x1="4" y1="56" x2="48" y2="56" />
-                  </svg>
-                  <p className="font-serif italic text-tea-text/40">Nothing added yet.</p>
-                  <p className="text-xs text-tea-text/30 mt-1">Browse the shop and add teas to begin.</p>
-                  <style>{`
-                    @keyframes teaCupFloat {
-                      0%, 100% { transform: translateY(0px); }
-                      50% { transform: translateY(-6px); }
-                    }
-                    @media (prefers-reduced-motion: reduce) {
-                      [style*="teaCupFloat"] { animation: none !important; }
-                    }
-                  `}</style>
+                  <span className="block w-8 h-px mx-auto mb-6 bg-tea-border" aria-hidden="true" />
+                  <p className="font-serif italic text-base text-tea-text-sec">Nothing added yet.</p>
+                  <p className="text-xs text-tea-text-sec mt-2">Browse the shop and add teas to begin.</p>
                 </div>
               ) : (
                 cart.map(item => (
@@ -335,7 +319,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
           {/* Step 2: Inquiry Form */}
           {step === 'INQUIRY' && (
             <div className="space-y-6 relative z-[1]">
-              <p className="font-serif text-sm text-tea-text/70 italic mb-4">
+              <p className="font-serif text-sm text-tea-text-sec italic mb-4">
                 Fill in your details below. Your order inquiry will be generated automatically.
               </p>
               <form onSubmit={handleFormSubmit} className="space-y-4 p-4 bg-tea-surface rounded-sm border border-tea-border" id="inquiry-form">
@@ -353,17 +337,17 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
                       onChange={(e) => handleFieldChange('name', e.target.value)}
                       onBlur={() => handleFieldBlur('name')}
                       aria-invalid={touched.name && !!errors.name}
-                      className={`w-full bg-tea-surface border-b p-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg font-serif text-lg placeholder:text-tea-text/20 transition-colors min-h-[44px] ${
-                        touched.name && errors.name ? 'border-red-500 focus:border-red-500' : 'border-tea-border focus:border-tea-gold'
+                      className={`w-full bg-tea-surface border-b p-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg font-serif text-lg placeholder:text-tea-text-dim transition-colors min-h-[44px] ${
+                        touched.name && errors.name ? 'border-tea-error focus:border-tea-error' : 'border-tea-border focus:border-tea-gold'
                       }`}
                       placeholder="Your full name"
                     />
                     {details.name && !errors.name && (
-                      <Icons.Check className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-tea-green" />
+                      <Icons.Check className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-tea-text-sec" />
                     )}
                   </div>
                   {touched.name && errors.name && (
-                    <p role="alert" className="text-red-500 text-xs mt-1">{errors.name}</p>
+                    <p role="alert" className="text-tea-error text-xs mt-1">{errors.name}</p>
                   )}
                 </div>
 
@@ -382,17 +366,17 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
                       onChange={(e) => handleFieldChange('contact', e.target.value)}
                       onBlur={() => handleFieldBlur('contact')}
                       aria-invalid={touched.contact && !!errors.contact}
-                      className={`w-full bg-tea-surface border-b p-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg font-serif text-lg placeholder:text-tea-text/20 transition-colors min-h-[44px] ${
-                        touched.contact && errors.contact ? 'border-red-500 focus:border-red-500' : 'border-tea-border focus:border-tea-gold'
+                      className={`w-full bg-tea-surface border-b p-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg font-serif text-lg placeholder:text-tea-text-dim transition-colors min-h-[44px] ${
+                        touched.contact && errors.contact ? 'border-tea-error focus:border-tea-error' : 'border-tea-border focus:border-tea-gold'
                       }`}
                       placeholder="Phone or email"
                     />
                     {details.contact && !errors.contact && (
-                      <Icons.Check className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-tea-green" />
+                      <Icons.Check className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-tea-text-sec" />
                     )}
                   </div>
                   {touched.contact && errors.contact && (
-                    <p role="alert" className="text-red-500 text-xs mt-1">{errors.contact}</p>
+                    <p role="alert" className="text-tea-error text-xs mt-1">{errors.contact}</p>
                   )}
                 </div>
 
@@ -410,17 +394,17 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
                       onChange={(e) => handleFieldChange('location', e.target.value)}
                       onBlur={() => handleFieldBlur('location')}
                       aria-invalid={touched.location && !!errors.location}
-                      className={`w-full bg-tea-surface border-b p-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg font-serif text-lg placeholder:text-tea-text/20 transition-colors min-h-[44px] ${
-                        touched.location && errors.location ? 'border-red-500 focus:border-red-500' : 'border-tea-border focus:border-tea-gold'
+                      className={`w-full bg-tea-surface border-b p-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg font-serif text-lg placeholder:text-tea-text-dim transition-colors min-h-[44px] ${
+                        touched.location && errors.location ? 'border-tea-error focus:border-tea-error' : 'border-tea-border focus:border-tea-gold'
                       }`}
                       placeholder="City, Country"
                     />
                     {details.location && !errors.location && (
-                      <Icons.Check className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-tea-green" />
+                      <Icons.Check className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-tea-text-sec" />
                     )}
                   </div>
                   {touched.location && errors.location && (
-                    <p role="alert" className="text-red-500 text-xs mt-1">{errors.location}</p>
+                    <p role="alert" className="text-tea-error text-xs mt-1">{errors.location}</p>
                   )}
                 </div>
 
@@ -433,7 +417,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
                     name="notes"
                     value={details.notes}
                     onChange={(e) => setDetails(d => ({ ...d, notes: e.target.value }))}
-                    className="w-full bg-tea-surface border-b border-tea-border p-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold font-serif text-base h-20 resize-none placeholder:text-tea-text/20 min-h-[44px]"
+                    className="w-full bg-tea-surface border-b border-tea-border p-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold font-serif text-base h-20 resize-none placeholder:text-tea-text-dim min-h-[44px]"
                     placeholder="Any special requests..."
                   />
                 </div>
@@ -452,34 +436,34 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
           {step === 'CONFIRM' && (
             <div className="space-y-6 relative z-[1]">
               <div className="text-center mb-2">
-                <h3 className="font-serif text-lg text-tea-text mb-1">Review Your Inquiry</h3>
-                <p className="text-xs text-tea-text-sec">Please review before sending</p>
+                <h3 className="font-serif text-lg text-tea-text mb-1">Review your inquiry</h3>
+                <p className="text-xs text-tea-text-sec">Please review before sending.</p>
               </div>
 
-              {/* Customer details summary */}
-              <div className="bg-tea-accent-sub border border-tea-border rounded-md p-4 space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-[11px] uppercase tracking-[0.15em] text-tea-text-sec">Name</span>
-                  <span className="text-sm text-tea-text">{details.name}</span>
+              {/* Customer details summary — type + rule, not gold-tinted card */}
+              <dl className="border border-tea-border rounded-sm p-4 space-y-2.5">
+                <div className="flex justify-between gap-4">
+                  <dt className="text-[11px] uppercase tracking-[0.15em] text-tea-text-sec">Name</dt>
+                  <dd className="text-sm text-tea-text">{details.name}</dd>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-[11px] uppercase tracking-[0.15em] text-tea-text-sec">Contact</span>
-                  <span className="text-sm text-tea-text">{details.contact}</span>
+                <div className="flex justify-between gap-4">
+                  <dt className="text-[11px] uppercase tracking-[0.15em] text-tea-text-sec">Contact</dt>
+                  <dd className="text-sm text-tea-text">{details.contact}</dd>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-[11px] uppercase tracking-[0.15em] text-tea-text-sec">Location</span>
-                  <span className="text-sm text-tea-text">{details.location}</span>
+                <div className="flex justify-between gap-4">
+                  <dt className="text-[11px] uppercase tracking-[0.15em] text-tea-text-sec">Location</dt>
+                  <dd className="text-sm text-tea-text">{details.location}</dd>
                 </div>
                 {details.notes && (
-                  <div className="flex justify-between">
-                    <span className="text-[11px] uppercase tracking-[0.15em] text-tea-text-sec">Notes</span>
-                    <span className="text-sm text-tea-text text-right max-w-[60%]">{details.notes}</span>
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-[11px] uppercase tracking-[0.15em] text-tea-text-sec">Notes</dt>
+                    <dd className="text-sm text-tea-text text-right max-w-[60%]">{details.notes}</dd>
                   </div>
                 )}
-              </div>
+              </dl>
 
               {/* Order items summary */}
-              <div className="bg-tea-surface border border-tea-border rounded-md p-4 space-y-3">
+              <div className="border border-tea-border rounded-sm p-4 space-y-3">
                 <p className="text-[11px] uppercase tracking-[0.15em] text-tea-text-sec mb-2">Items</p>
                 {cart.map(item => (
                   <div key={item.id} className="flex justify-between items-center text-sm border-b border-tea-border pb-2 last:border-0 last:pb-0">
@@ -493,27 +477,27 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
                   </div>
                 ))}
                 <div className="flex justify-between items-center pt-2 border-t border-tea-border">
-                  <span className="text-sm font-medium text-tea-text">Total Estimate</span>
+                  <span className="text-sm text-tea-text">Total estimate</span>
                   <span className="num text-lg font-serif text-tea-gold">{displayPrice(subtotal)}</span>
                 </div>
               </div>
 
               <p className="text-[11px] text-tea-text-sec text-center font-mono">{orderRef}</p>
 
-              {/* Persistent success message */}
+              {/* Persistent success message — editorial confirmation, no green */}
               {successMessage?.show && (
-                <div className="animate-[fadeIn_0.3s_ease-out] bg-tea-green/10 border border-tea-green/30 text-tea-green px-4 py-3 rounded-lg flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <Icons.Check className="w-4 h-4" />
-                    <span className="text-xs uppercase tracking-[0.15em] font-medium">
-                      {successMessage.type === 'whatsapp' && 'WhatsApp opened — tap Send to complete'}
-                      {successMessage.type === 'email' && 'Email client opened — review and send'}
-                      {successMessage.type === 'copy' && 'Copied to clipboard!'}
+                <div className="cart-fade-in border border-tea-border rounded-sm px-4 py-3 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-3">
+                    <Icons.Check className="w-4 h-4 text-tea-text-sec shrink-0" />
+                    <span className="text-xs text-tea-text">
+                      {successMessage.type === 'whatsapp' && 'WhatsApp opened. Tap Send to complete.'}
+                      {successMessage.type === 'email' && 'Email client opened. Review and send.'}
+                      {successMessage.type === 'copy' && 'Copied to clipboard.'}
                     </span>
                   </div>
                   <button
                     onClick={() => setSuccessMessage(null)}
-                    className="text-tea-green/60 hover:text-tea-green min-w-[44px] min-h-[44px] flex items-center justify-center"
+                    className="text-tea-text-sec hover:text-tea-text min-w-[44px] min-h-[44px] flex items-center justify-center"
                     aria-label="Dismiss"
                   >
                     <Icons.Close className="w-3 h-3" />
@@ -522,36 +506,26 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
               )}
 
               {successMessage?.show && (
-                <div className="mt-3 text-center">
-                  <p className="text-xs text-tea-text-sec mb-1">Track your order:</p>
-                  <a href={`/order/${orderRef}`} className="text-sm text-tea-gold underline font-mono">{orderRef}</a>
+                <div className="text-center">
+                  <p className="text-xs text-tea-text-sec mb-1">Track your order</p>
+                  <a href={`/order/${orderRef}`} className="text-sm text-tea-text underline underline-offset-4 decoration-tea-border hover:decoration-tea-gold transition-colors font-mono">{orderRef}</a>
                 </div>
               )}
 
-              {/* Send actions */}
+              {/* Send actions — neutral surfaces, no green/recommended labels */}
               <div className="grid grid-cols-1 gap-3">
                 <button onClick={handleWhatsApp}
-                  className={`flex items-center justify-center gap-2 py-3 border font-medium transition-all min-h-[44px] ${
-                    preferredChannel === 'whatsapp'
-                      ? 'border-tea-green/50 bg-tea-green/10 text-tea-green shadow-md'
-                      : 'border-tea-green/30 hover:bg-tea-green/10 text-tea-green'
-                  }`}>
-                  <Icons.Message className="w-4 h-4" />
+                  className="flex items-center justify-center gap-2 py-3 border border-tea-border hover:border-tea-gold text-tea-text transition-colors min-h-[44px] rounded-sm">
+                  <Icons.Message className="w-4 h-4 text-tea-text-sec" />
                   <span className="text-[11px] uppercase tracking-[0.15em]">Send via WhatsApp</span>
-                  {preferredChannel === 'whatsapp' && <span className="text-xs ml-1 text-tea-green">Recommended</span>}
                 </button>
                 <button onClick={handleEmail}
-                  className={`flex items-center justify-center gap-2 py-3 border font-medium transition-all min-h-[44px] ${
-                    preferredChannel === 'email'
-                      ? 'border-tea-border bg-tea-accent-sub text-tea-text shadow-md'
-                      : 'border-tea-border hover:bg-tea-accent-sub text-tea-text'
-                  }`}>
+                  className="flex items-center justify-center gap-2 py-3 border border-tea-border hover:border-tea-gold text-tea-text transition-colors min-h-[44px] rounded-sm">
                   <span className="text-[11px] uppercase tracking-[0.15em]">Send via Email</span>
-                  {preferredChannel === 'email' && <span className="text-xs ml-1 text-tea-text-sec">Recommended</span>}
                 </button>
                 <button onClick={handleCopy}
-                  className="flex items-center justify-center gap-2 py-3 border border-tea-border hover:bg-tea-accent-sub text-tea-text transition-colors min-h-[44px]">
-                  <span className="text-[11px] uppercase tracking-[0.15em]">Copy to Clipboard</span>
+                  className="flex items-center justify-center gap-2 py-3 border border-tea-border hover:border-tea-gold text-tea-text transition-colors min-h-[44px] rounded-sm">
+                  <span className="text-[11px] uppercase tracking-[0.15em]">Copy to clipboard</span>
                 </button>
               </div>
 
@@ -568,12 +542,9 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
         {step === 'CART' && (
           <div className="flex flex-col gap-4">
             {!isEmpty && (
-              <div className="bg-tea-accent-sub border border-tea-border rounded-md px-4 py-3">
-                <p className="text-[11px] uppercase tracking-[0.15em] text-tea-gold font-medium mb-1.5">How ordering works</p>
-                <p className="text-xs text-tea-text-sec leading-relaxed">
-                  We confirm every order personally — availability, pricing, and shipping are confirmed via WhatsApp or email. This is a personal service, not an automated checkout.
-                </p>
-              </div>
+              <p className="text-xs text-tea-text-sec leading-relaxed font-serif italic">
+                We confirm every order personally. Availability, pricing, and shipping are settled by message. This is a service, not a checkout.
+              </p>
             )}
             <div className="flex justify-between items-center font-serif text-xl text-tea-text">
               <span>Total</span>
@@ -586,13 +557,8 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
               fullWidth
               className="py-4 uppercase tracking-[0.2em] text-xs rounded-none"
             >
-              Send Inquiry
+              Send inquiry
             </Button>
-            {!isEmpty && (
-              <p className="text-tea-text-dim text-xs text-center leading-relaxed">
-                Every order is a personal conversation — we'll confirm details with you on WhatsApp.
-              </p>
-            )}
           </div>
         )}
         {step === 'INQUIRY' && (

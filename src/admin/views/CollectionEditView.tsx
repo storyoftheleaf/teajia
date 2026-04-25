@@ -3,8 +3,8 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft, Loader2, Trash2, ChevronUp, ChevronDown, Plus, ImagePlus,
-  Send, X as XIcon, Search, Copy, Check, AlertTriangle, Archive,
-  User as UserIcon, Building2, Tag as TagIcon,
+  X as XIcon, Search, Copy, Check, AlertTriangle, Archive,
+  User as UserIcon, UserPlus, Building2, Tag as TagIcon,
 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useAppStore } from '../../lib/store';
@@ -352,36 +352,48 @@ export const CollectionEditView: React.FC = () => {
             )}
           </section>
 
-          {/* Publications */}
-          <section className="flex flex-col gap-2">
-            <div className="flex items-center justify-between">
-              <label className="text-[10px] uppercase tracking-[1.2px] text-tea-text-dim">
-                Shared links <span className="text-tea-text-dim/70">({detail.publications.filter(p => !p.unpublished_at).length} active)</span>
-              </label>
-              <button
-                onClick={() => setPublishOpen(true)}
-                disabled={!canPublish}
-                className="flex items-center gap-1 px-2.5 py-1 text-[11px] text-tea-gold hover:text-tea-gold-lt transition-colors disabled:text-tea-text-dim disabled:cursor-not-allowed"
-                title={!canPublish ? 'Add at least one product first' : 'Share with new recipients'}
-              >
-                <Send size={11} /> New share
-              </button>
-            </div>
+          {/* Shared with */}
+          <section className="flex flex-col gap-3">
+            <label className="text-[10px] uppercase tracking-[1.2px] text-tea-text-dim">
+              Shared with {detail.publications.filter(p => !p.unpublished_at).length > 0 && (
+                <span className="text-tea-text-dim/70 num">({detail.publications.filter(p => !p.unpublished_at).length})</span>
+              )}
+            </label>
+
             {detail.publications.length === 0 ? (
-              <p className="text-xs text-tea-text-dim py-4 text-center">
-                Not shared yet. {canPublish ? 'Click “New share” to create a link.' : 'Add a product before sharing.'}
-              </p>
+              <button
+                onClick={() => canPublish && setPublishOpen(true)}
+                disabled={!canPublish}
+                className="group flex items-center justify-center gap-2 py-6 rounded-lg border border-dashed border-tea-border hover:border-tea-gold/40 hover:bg-tea-gold/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-tea-border disabled:hover:bg-transparent"
+                title={!canPublish ? 'Add at least one product first' : undefined}
+              >
+                <UserPlus size={14} className="text-tea-text-sec group-hover:text-tea-gold group-disabled:text-tea-text-dim transition-colors" />
+                <span className="text-[12px] text-tea-text-sec group-hover:text-tea-text group-disabled:text-tea-text-dim transition-colors">
+                  {canPublish ? 'Share with people' : 'Add a product before sharing'}
+                </span>
+              </button>
             ) : (
-              <ul className="flex flex-col gap-1.5">
-                {detail.publications.map(pub => (
-                  <PublicationRow
-                    key={pub.id}
-                    pub={pub}
-                    storeNameById={storeNameById}
-                    onUnpublish={() => unpublish(pub.id)}
-                  />
-                ))}
-              </ul>
+              <>
+                <button
+                  onClick={() => setPublishOpen(true)}
+                  disabled={!canPublish}
+                  className="flex items-center justify-center gap-2 py-2.5 rounded-lg bg-tea-gold/10 hover:bg-tea-gold/15 text-tea-gold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  title={!canPublish ? 'Add at least one product first' : 'Share with new people, by tag, or with a store'}
+                >
+                  <UserPlus size={13} />
+                  <span className="text-[12px] font-medium tracking-wide">Share with people</span>
+                </button>
+                <ul className="flex flex-col gap-1.5">
+                  {detail.publications.map(pub => (
+                    <PublicationRow
+                      key={pub.id}
+                      pub={pub}
+                      storeNameById={storeNameById}
+                      onUnpublish={() => unpublish(pub.id)}
+                    />
+                  ))}
+                </ul>
+              </>
             )}
           </section>
 
@@ -400,6 +412,7 @@ export const CollectionEditView: React.FC = () => {
       {publishOpen && id && (
         <AddPublicationSheet
           collectionId={id}
+          collectionTitle={detail.collection.title}
           stores={networkStores ?? []}
           onClose={() => setPublishOpen(false)}
           onPublished={() => { setPublishOpen(false); invalidate(); }}
@@ -520,6 +533,9 @@ const PublicationRow: React.FC<{
 };
 
 // ── Add products sheet ──
+const TEA_TYPE_FILTERS = ['Sheng', 'Shou', 'Oolong', 'Red', 'Green', 'White', 'Yellow', 'Dark', 'Herbal', 'Misc'] as const;
+type TopFilter = 'all' | 'tea' | 'teaware';
+
 const AddProductsSheet: React.FC<{
   collectionId: string;
   existingProductIds: Set<string>;
@@ -528,20 +544,48 @@ const AddProductsSheet: React.FC<{
 }> = ({ collectionId, existingProductIds, onClose, onAdded }) => {
   const { data: products } = useProducts();
   const [query, setQuery] = useState('');
+  const [topFilter, setTopFilter] = useState<TopFilter>('all');
+  const [teaSubFilter, setTeaSubFilter] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [submitting, setSubmitting] = useState(false);
   const { showToast } = useToast();
 
+  // Eligible pool = active products not already in the collection.
+  const pool = useMemo(() => {
+    return (products ?? []).filter(p =>
+      p.status === 'Active' && !existingProductIds.has(p.id)
+    );
+  }, [products, existingProductIds]);
+
+  // Counts for the chip badges — derived from the un-filtered pool so the
+  // numbers stay stable as the user narrows.
+  const counts = useMemo(() => {
+    const c = { all: pool.length, tea: 0, teaware: 0, byType: new Map<string, number>() };
+    for (const p of pool) {
+      const t = p.type || 'Misc';
+      if (t === 'Teaware') c.teaware++;
+      else { c.tea++; c.byType.set(t, (c.byType.get(t) ?? 0) + 1); }
+    }
+    return c;
+  }, [pool]);
+
   const available = useMemo(() => {
     const q = query.toLowerCase().trim();
-    return (products ?? []).filter(p => {
-      if (existingProductIds.has(p.id)) return false;
-      if (p.status !== 'Active') return false;
+    return pool.filter(p => {
+      const t = p.type || 'Misc';
+      if (topFilter === 'tea' && t === 'Teaware') return false;
+      if (topFilter === 'teaware' && t !== 'Teaware') return false;
+      if (teaSubFilter && t !== teaSubFilter) return false;
       if (!q) return true;
       const hay = `${p.givenName ?? ''} ${p.productName ?? ''} ${p.chineseName ?? ''}`.toLowerCase();
       return hay.includes(q);
-    }).slice(0, 60);
-  }, [products, query, existingProductIds]);
+    });
+  }, [pool, query, topFilter, teaSubFilter]);
+
+  // When switching to Teaware, drop any tea-only sub-filter.
+  useEffect(() => {
+    if (topFilter === 'teaware' && teaSubFilter) setTeaSubFilter(null);
+  }, [topFilter, teaSubFilter]);
 
   const toggle = (id: string) => {
     setSelected(s => {
@@ -565,33 +609,97 @@ const AddProductsSheet: React.FC<{
     }
   };
 
+  const topChip = (key: TopFilter, label: string, count: number) => (
+    <button
+      type="button"
+      onClick={() => setTopFilter(key)}
+      className={`px-2.5 py-1 rounded-md text-[11px] tracking-wide transition-colors ${
+        topFilter === key
+          ? 'bg-tea-gold/15 text-tea-text'
+          : 'bg-tea-elevated/60 text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated'
+      }`}
+    >
+      {label} <span className="text-tea-text-dim num ml-0.5">{count}</span>
+    </button>
+  );
+
   return (
     <div className="fixed inset-0 z-modal flex items-center justify-center p-4">
       <button aria-label="Close" className="absolute inset-0 bg-tea-bg/80 backdrop-blur-sm" onClick={submitting ? undefined : onClose} />
       <div className="relative w-full max-w-md bg-tea-surface border border-tea-border rounded-2xl shadow-2xl flex flex-col max-h-[85vh]">
-        <header className="flex items-center justify-between px-5 pt-5 pb-3">
-          <h2 className="text-sm font-medium text-tea-text">Add products</h2>
-          <button onClick={onClose} disabled={submitting} className="text-tea-text-sec hover:text-tea-text transition-colors disabled:opacity-40" aria-label="Close">
+        <header className="flex items-start justify-between gap-3 px-5 pt-5 pb-3">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-lg bg-tea-gold/10 flex items-center justify-center flex-shrink-0">
+              <Plus size={14} className="text-tea-gold" />
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-sm font-medium text-tea-text tracking-wide">Add to collection</h2>
+              <p className="text-[11px] text-tea-text-dim mt-0.5 num">{pool.length} available</p>
+            </div>
+          </div>
+          <button onClick={onClose} disabled={submitting} className="text-tea-text-sec hover:text-tea-text transition-colors disabled:opacity-40 p-1 -mr-1" aria-label="Close">
             <XIcon size={15} />
           </button>
         </header>
-        <div className="px-5 pb-3">
+
+        <div className="px-5 pb-3 flex flex-col gap-2.5">
           <div className="relative">
             <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-text-dim pointer-events-none" />
             <input
               type="text"
               value={query}
               onChange={e => setQuery(e.target.value)}
-              placeholder="Search products…"
+              placeholder="Filter by name…"
               autoFocus
               className="w-full pl-8 pr-3 py-2 text-xs bg-tea-bg border border-tea-border rounded-lg outline-none text-tea-text placeholder:text-tea-text-dim focus:ring-1 focus:ring-tea-gold/40"
             />
           </div>
+
+          <div className="flex flex-wrap gap-1.5">
+            {topChip('all', 'All', counts.all)}
+            {topChip('tea', 'Tea', counts.tea)}
+            {topChip('teaware', 'Teaware', counts.teaware)}
+          </div>
+
+          {topFilter !== 'teaware' && (
+            <div className="flex flex-wrap gap-1">
+              {TEA_TYPE_FILTERS.filter(t => (counts.byType.get(t) ?? 0) > 0).map(t => {
+                const active = teaSubFilter === t;
+                const c = counts.byType.get(t) ?? 0;
+                return (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setTeaSubFilter(active ? null : t)}
+                    className={`px-2 py-0.5 rounded-md text-[11px] transition-colors ${
+                      active
+                        ? 'bg-tea-gold/12 text-tea-gold'
+                        : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated/60'
+                    }`}
+                  >
+                    {t} <span className={`num ml-0.5 ${active ? 'text-tea-gold/70' : 'text-tea-text-dim'}`}>{c}</span>
+                  </button>
+                );
+              })}
+              {teaSubFilter && (
+                <button
+                  type="button"
+                  onClick={() => setTeaSubFilter(null)}
+                  className="px-2 py-0.5 rounded-md text-[11px] text-tea-text-dim hover:text-tea-text transition-colors"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+          )}
         </div>
+
         <div className="flex-1 min-h-0 overflow-y-auto px-5 pb-3">
           {available.length === 0 ? (
-            <p className="py-6 text-xs text-tea-text-dim text-center">
-              {query ? 'No matches.' : 'All products are already in this collection.'}
+            <p className="py-6 text-xs text-tea-text-dim text-center italic">
+              {query || teaSubFilter || topFilter !== 'all'
+                ? 'Nothing matches these filters.'
+                : 'All products are already in this collection.'}
             </p>
           ) : (
             <ul className="space-y-0.5">
@@ -653,11 +761,12 @@ interface NetworkStore {
 
 const AddPublicationSheet: React.FC<{
   collectionId: string;
+  collectionTitle: string;
   stores: NetworkStore[];
   onClose: () => void;
   onPublished: () => void;
   disabled: boolean;
-}> = ({ collectionId, stores, onClose, onPublished, disabled }) => {
+}> = ({ collectionId, collectionTitle, stores, onClose, onPublished, disabled }) => {
   const { activeAccountId } = useAppStore();
   const [mode, setMode] = useState<PublishMode>('person');
   const [recipients, setRecipients] = useState<CollectionRecipient[]>([]);
@@ -734,9 +843,17 @@ const AddPublicationSheet: React.FC<{
     <div className="fixed inset-0 z-modal flex items-center justify-center p-4">
       <button aria-label="Close" className="absolute inset-0 bg-tea-bg/80 backdrop-blur-sm" onClick={submitting ? undefined : onClose} />
       <div className="relative w-full max-w-md bg-tea-surface border border-tea-border rounded-2xl shadow-2xl flex flex-col max-h-[85vh]">
-        <header className="flex items-center justify-between px-5 pt-5 pb-3 flex-shrink-0">
-          <h2 className="text-sm font-medium text-tea-text">New share</h2>
-          <button onClick={onClose} disabled={submitting} className="text-tea-text-sec hover:text-tea-text transition-colors disabled:opacity-40" aria-label="Close">
+        <header className="flex items-start justify-between gap-3 px-5 pt-5 pb-3 flex-shrink-0">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-lg bg-tea-gold/10 flex items-center justify-center flex-shrink-0">
+              <UserPlus size={14} className="text-tea-gold" />
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-sm font-medium text-tea-text tracking-wide">Share collection</h2>
+              <p className="text-[11px] text-tea-text-dim mt-0.5 truncate">{collectionTitle}</p>
+            </div>
+          </div>
+          <button onClick={onClose} disabled={submitting} className="text-tea-text-sec hover:text-tea-text transition-colors disabled:opacity-40 p-1 -mr-1" aria-label="Close">
             <XIcon size={15} />
           </button>
         </header>

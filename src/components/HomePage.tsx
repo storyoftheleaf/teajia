@@ -44,7 +44,7 @@ const EmailCapture: React.FC = () => {
       setEmail('');
       setSubmitted(true);
     } catch {
-      setError('something went wrong — try again.');
+      setError("couldn't subscribe. please try again.");
     } finally {
       setLoading(false);
     }
@@ -81,12 +81,19 @@ const EmailCapture: React.FC = () => {
         <button
           type="submit"
           disabled={loading}
-          className="absolute right-0 bottom-0 w-11 h-11 flex items-center justify-center bg-transparent border-none cursor-pointer transition-colors duration-300 text-tea-text-dim hover:text-tea-gold disabled:opacity-50"
-          aria-label="Submit email"
+          className="absolute right-0 bottom-0 w-11 h-11 flex items-center justify-center bg-transparent border-none cursor-pointer transition-all duration-300 text-tea-text-dim hover:text-tea-gold active:scale-95 disabled:opacity-50 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/40"
+          aria-label={loading ? 'Subscribing' : 'Subscribe'}
         >
-          <svg width="18" height="18" viewBox="0 0 16 16" fill="none">
-            <path d="M3 8h10M10 4.5L13.5 8 10 11.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+          {loading ? (
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true" className="animate-spin">
+              <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.2" opacity="0.25" />
+              <path d="M14 8a6 6 0 0 0-6-6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+            </svg>
+          ) : (
+            <svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="M3 8h10M10 4.5L13.5 8 10 11.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          )}
         </button>
       </form>
       {error && (
@@ -162,7 +169,7 @@ const CharacterRevealCapture: React.FC = () => {
       {/* Fixed overlay — pointer-events-none so scroll passes through; interactive children opt back in */}
       {isVisible && (
         <div
-          className={`fixed inset-0 flex flex-col items-center justify-center px-6 z-30 pointer-events-none pt-[env(safe-area-inset-top)] pb-[calc(44px+env(safe-area-inset-bottom,0px))] ${sidebarCollapsed ? 'lg:left-14' : 'lg:left-56'} transition-[left] duration-300`}
+          className={`fixed inset-0 flex flex-col items-center justify-center px-6 z-overlay pointer-events-none pt-[env(safe-area-inset-top)] pb-nav-gap lg:pb-0 ${sidebarCollapsed ? 'lg:left-14' : 'lg:left-56'} transition-[left] duration-300`}
         >
           {/* Logo — drops from top */}
           <div
@@ -187,7 +194,7 @@ const CharacterRevealCapture: React.FC = () => {
               <span className="font-semibold not-italic text-tea-gold">tea</span> &middot; leaf and water
             </p>
             <p className="text-[14px] md:text-[15px] tracking-[0.06em] italic mt-[1px] text-tea-text-sec" style={{ fontFamily: 'var(--font-body)' }}>
-              <span className="font-semibold not-italic text-tea-gold">jiā</span> &middot; one sound, three pillars...
+              <span className="font-semibold not-italic text-tea-gold">jiā</span> &middot; one sound, three pillars&hellip;
             </p>
           </div>
 
@@ -222,7 +229,7 @@ const CharacterRevealCapture: React.FC = () => {
               className="text-[14px] md:text-[15px] leading-[1.7] text-tea-text-sec font-light"
               style={{ fontFamily: 'var(--font-body)' }}
             >
-              A home for fine tea — a place to source it, study it, and share it
+              A home for fine tea. A place to source it, study it, and share it
               with those who gather around the cup.
             </p>
             <p
@@ -244,11 +251,11 @@ const CharacterRevealCapture: React.FC = () => {
               <EmailCapture />
             </div>
             <p className="mt-5 text-[12px] text-tea-text-dim" style={{ fontFamily: 'var(--font-body)' }}>
-              <Link to="/signup" className="text-tea-gold/80 hover:text-tea-gold transition-colors duration-300">
+              <Link to="/signup" className="text-tea-gold/80 hover:text-tea-gold transition-colors duration-300 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/40 focus-visible:ring-offset-2 focus-visible:ring-offset-tea-bg">
                 Create an account
               </Link>
               {' · '}
-              <Link to="/signin" className="text-tea-gold/80 hover:text-tea-gold transition-colors duration-300">
+              <Link to="/signin" className="text-tea-gold/80 hover:text-tea-gold transition-colors duration-300 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/40 focus-visible:ring-offset-2 focus-visible:ring-offset-tea-bg">
                 Sign in
               </Link>
             </p>
@@ -270,7 +277,17 @@ export const HomePage: React.FC<HomePageProps> = ({
     requestAnimationFrame(() => { hasAnimated = true; });
   }
 
-  const initial = (vals: Record<string, any>) => shouldAnimate ? vals : false;
+  const initial = (vals: Record<string, any>) => animateAct1 ? vals : false;
+
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    setPrefersReducedMotion(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+  const animateAct1 = shouldAnimate && !prefersReducedMotion;
 
   // Scroll-driven fade-out for Act 1 + glow position
   const [fadeOpacity, setFadeOpacity] = useState(1);
@@ -302,22 +319,28 @@ export const HomePage: React.FC<HomePageProps> = ({
   return (
     <div className="flex flex-col items-center text-center">
       <Helmet>
-        <title>Teajia — Fine Tea & Teaware</title>
-        <meta name="description" content="Every culture brings wisdom to the table. Teajia is where it is served." />
+        <title>Teajia. Fine Tea & Teaware</title>
+        <meta name="description" content="A home for fine tea. Source it, study it, and share it with those who gather around the cup." />
+        <meta property="og:title" content="Teajia. Fine Tea & Teaware" />
+        <meta property="og:description" content="A home for fine tea. Source it, study it, and share it with those who gather around the cup." />
+        <meta property="og:type" content="website" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Teajia. Fine Tea & Teaware" />
+        <meta name="twitter:description" content="A home for fine tea. Source it, study it, and share it with those who gather around the cup." />
       </Helmet>
 
-      {/* Act 1 bottom glow — fades out on scroll */}
+      {/* Act 1 bottom glow. Fades out on scroll. */}
       <div
-        className="fixed bottom-0 left-0 w-screen h-[200px] pointer-events-none z-[2]"
+        className="fixed bottom-0 left-0 w-screen h-[200px] pointer-events-none z-base"
         style={{
           background: 'radial-gradient(ellipse 70% 100% at 50% 100%, rgb(var(--tea-gold-rgb) / 0.18) 0%, rgb(var(--tea-gold-rgb) / 0.05) 50%, transparent 100%)',
           opacity: glowY,
         }}
       />
 
-      {/* Scroll-driven glow — rises to top as you enter Act 2 */}
+      {/* Scroll-driven glow. Rises to top as you enter Act 2. */}
       <div
-        className="fixed left-0 w-screen h-[200px] pointer-events-none z-[2]"
+        className="fixed left-0 w-screen h-[200px] pointer-events-none z-base"
         style={{
           top: 0,
           background: 'radial-gradient(ellipse 70% 100% at 50% 0%, rgb(var(--tea-gold-rgb) / 0.18) 0%, rgb(var(--tea-gold-rgb) / 0.05) 50%, transparent 100%)',
@@ -348,7 +371,11 @@ export const HomePage: React.FC<HomePageProps> = ({
                 transform: 'translate(-50%, -50%)',
               }}
             />
-            <button onClick={() => onAccountClick?.()} className="bg-transparent border-none cursor-default p-0" aria-label="Home" tabIndex={-1}>
+            <button
+              onClick={() => onAccountClick?.()}
+              className="bg-transparent border-none p-0 rounded-full transition-transform duration-500 hover:scale-[1.03] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/40 focus-visible:ring-offset-4 focus-visible:ring-offset-tea-bg"
+              aria-label="Open your table"
+            >
               <LogoEmblem size={76} color="var(--tea-gold)" className="opacity-70 lg:hidden" />
               <LogoEmblem size={108} color="var(--tea-gold)" className="opacity-70 hidden lg:block" />
             </button>
@@ -356,7 +383,7 @@ export const HomePage: React.FC<HomePageProps> = ({
 
           <motion.h1
             className="text-tea-text max-w-[380px] lg:max-w-[560px] text-[28px] md:text-[34px] lg:text-[48px] leading-[1.35] tracking-[0.01em] font-normal mt-8 sm:mt-12"
-            style={{ fontFamily: 'var(--font-display)' }}
+            style={{ fontFamily: 'var(--font-display)', textWrap: 'balance' }}
             initial={initial({ opacity: 0, y: 10 })}
             animate={{ opacity: 1, y: 0 }}
             transition={shouldAnimate ? { duration: 0.8, delay: 0.35, ease: [0.4, 0, 0.2, 1] } : { duration: 0 }}
@@ -379,7 +406,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               <button
                 key={item.section}
                 onClick={() => onNavigateToSection(item.section)}
-                className="group text-tea-text-sec/90 hover:text-tea-text transition-colors duration-300 cursor-pointer bg-transparent border-none text-[15px] md:text-[16px] lg:text-[17px] leading-[1.8] tracking-[0.005em] flex items-center gap-1.5"
+                className="group text-tea-text-sec/90 hover:text-tea-text transition-colors duration-300 cursor-pointer bg-transparent border-none text-[15px] md:text-[16px] lg:text-[17px] leading-[1.8] tracking-[0.005em] flex items-center gap-1.5 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/40 focus-visible:ring-offset-2 focus-visible:ring-offset-tea-bg"
                 style={{ fontFamily: 'var(--font-body)' }}
               >
                 <span className="font-semibold text-tea-gold">{item.accent}</span>
@@ -398,7 +425,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           >
             <button
               onClick={scrollToBrandStory}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-tea-border text-[13px] tracking-[0.06em] text-tea-text-sec hover:text-tea-text hover:border-tea-gold/30 transition-all duration-300"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-tea-border text-[13px] tracking-[0.06em] text-tea-text-sec hover:text-tea-text hover:border-tea-gold/30 active:scale-[0.98] transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/40 focus-visible:ring-offset-2 focus-visible:ring-offset-tea-bg"
               style={{ fontFamily: 'var(--font-body)' }}
             >
               New here? Start here →

@@ -120,17 +120,15 @@ export const TeaTable: React.FC<TeaTableProps> = ({
 
   if (isError) {
     return (
-      <div className="flex flex-col items-center justify-center p-16 text-center h-full">
-        <div className="p-4 bg-red-500/10 rounded-full border border-red-500/20 mb-6">
-          <AlertCircle className="text-tea-text-sec" size={32} />
-        </div>
+      <div className="flex flex-col items-center justify-center p-16 text-center h-full" role="alert">
+        <AlertCircle className="text-tea-error/70 mb-5" size={28} aria-hidden="true" />
         <h2 className="text-lg font-serif text-tea-text mb-2">Failed to load catalog</h2>
-        <p className="text-tea-text-sec text-sm mb-6 max-w-md">
+        <p className="text-tea-text-sec text-sm mb-6 max-w-md font-serif italic">
           {error?.message || 'Could not connect to the server. Please check your connection and try again.'}
         </p>
         {onRefresh && (
-          <button onClick={onRefresh} className="bg-tea-gold text-tea-bg px-6 py-3 rounded-xl text-sm font-medium hover:bg-tea-gold/90 transition-colors">
-            Try Again
+          <button onClick={onRefresh} className="text-sm text-tea-text-sec hover:text-tea-text border-b border-tea-border hover:border-tea-text-sec pb-1 transition-colors">
+            Try again
           </button>
         )}
       </div>
@@ -191,7 +189,7 @@ export const TeaTable: React.FC<TeaTableProps> = ({
               onClick={() => setFilter('All')}
               role="tab"
               aria-selected={filter === 'All'}
-              className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wider transition-colors rounded-full border ${filter === 'All' ? 'bg-tea-gold text-tea-bg border-tea-gold' : 'text-tea-text-sec border-tea-border hover:border-tea-text-sec hover:text-tea-text'}`}
+              className={`px-1 pb-1 text-[11px] tracking-[0.08em] transition-colors border-b ${filter === 'All' ? 'text-tea-text border-tea-gold' : 'text-tea-text-sec border-transparent hover:text-tea-text hover:border-tea-border'}`}
           >
               All
           </button>
@@ -200,9 +198,9 @@ export const TeaTable: React.FC<TeaTableProps> = ({
                   onClick={() => setFilter('Featured')}
                   role="tab"
                   aria-selected={filter === 'Featured'}
-                  className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wider transition-colors rounded-full border flex items-center gap-1 ${filter === 'Featured' ? 'bg-tea-gold text-tea-bg border-tea-gold' : 'text-tea-gold/70 border-tea-border hover:border-tea-gold/60 hover:text-tea-gold'}`}
+                  className={`px-1 pb-1 text-[11px] tracking-[0.08em] transition-colors border-b flex items-center gap-1.5 ${filter === 'Featured' ? 'text-tea-text border-tea-gold' : 'text-tea-text-sec border-transparent hover:text-tea-text hover:border-tea-border'}`}
               >
-                  <Star className={`w-3 h-3 ${filter === 'Featured' ? 'fill-tea-bg' : 'fill-tea-gold/70'}`} />
+                  <Star className={`w-3 h-3 ${filter === 'Featured' ? 'fill-tea-gold text-tea-gold' : 'fill-tea-gold/40 text-tea-gold/40'}`} aria-hidden="true" />
                   Featured
               </button>
           )}
@@ -216,7 +214,7 @@ export const TeaTable: React.FC<TeaTableProps> = ({
                   onClick={() => setFilter(type)}
                   role="tab"
                   aria-selected={isActive}
-                  className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wider transition-colors rounded-full border ${isActive ? 'bg-tea-gold text-tea-bg border-tea-gold' : 'text-tea-text-sec border-tea-border hover:border-tea-text-sec hover:text-tea-text'}`}
+                  className={`px-1 pb-1 text-[11px] tracking-[0.08em] transition-colors border-b ${isActive ? 'text-tea-text border-tea-gold' : 'text-tea-text-sec border-transparent hover:text-tea-text hover:border-tea-border'}`}
               >
                   {type}
               </button>

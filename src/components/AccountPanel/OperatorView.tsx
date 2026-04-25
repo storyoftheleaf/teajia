@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Clock, PenLine, Users, Compass, Bookmark, ShoppingBag, Sprout, BookOpen, GraduationCap, Inbox } from 'lucide-react';
+import { PenLine, Users, Compass, ShoppingBag, Sprout, BookOpen, GraduationCap } from 'lucide-react';
 import { SealIcon } from '../Icons';
 import {
   ADMIN_TOOL_GROUPS,
@@ -11,9 +11,10 @@ import {
   type AdminToolGroup,
 } from '../../admin/toolRegistry';
 import {
-  NeedsAttention,
   PreviewBlock,
-  FOOTER_LINK_CLASS,
+  Instrument,
+  ConsoleGrid,
+  PrimaryVerb,
   capitalize,
   daysSince,
   daysWord,
@@ -153,40 +154,55 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
 
   const go = (route: string) => { onClose(); navigate(route); };
 
-  // ── Attention (urgent items, unchanged semantics) ─────────────────────
-  const attention: { id: string; label: string; meta?: string; onClick: () => void; urgent?: boolean }[] = [];
-  if (todayEventCount > 0) {
-    attention.push({
-      id: 'today-event',
-      label: `${todayEventCount} session${todayEventCount === 1 ? '' : 's'} today`,
-      meta: 'Today',
-      urgent: true,
-      onClick: () => go('/admin/events'),
-    });
-  }
-  if (pendingInvoiceCount > 0) {
-    attention.push({
-      id: 'pending-invoices',
-      label: `${pendingInvoiceCount} invoice${pendingInvoiceCount === 1 ? '' : 's'} pending`,
-      meta: 'Review',
-      onClick: () => go('/admin/activity'),
-    });
-  }
-  if (unsyncedJournalCount > 0) {
-    attention.push({
-      id: 'unsynced-journal',
-      label: `${unsyncedJournalCount} journal entr${unsyncedJournalCount === 1 ? 'y' : 'ies'} unsynced`,
-      onClick: onOpenJournal,
-    });
-  }
-  if (inboundUnreadCount > 0) {
-    attention.push({
-      id: 'inbound-collections',
-      label: `${inboundUnreadCount} collection${inboundUnreadCount === 1 ? '' : 's'} shared with your store`,
-      meta: 'Open',
-      onClick: () => go('/admin/collections'),
-    });
-  }
+  // ── Urgency resolution — exactly one tile may be urgent ───────────
+  // Priority: today's sessions > pending invoices > inbound collections
+  // > unsynced journal. The same key drives both the bronze-fill on the
+  // matching Instrument and the bordered/filled variant of PrimaryVerb,
+  // so the screen always carries exactly one bronze moment.
+  type UrgentKey =
+    | 'today-event'
+    | 'pending-invoices'
+    | 'inbound-collections'
+    | 'unsynced-journal'
+    | null;
+
+  const urgentKey: UrgentKey =
+    todayEventCount > 0 ? 'today-event'
+    : pendingInvoiceCount > 0 ? 'pending-invoices'
+    : inboundUnreadCount > 0 ? 'inbound-collections'
+    : unsyncedJournalCount > 0 ? 'unsynced-journal'
+    : null;
+
+  const primaryVerb: { label: string; onClick: () => void } | null = (() => {
+    if (urgentKey === 'today-event') {
+      return {
+        label: todayEventCount === 1 ? 'Open today’s session' : `Open ${todayEventCount} sessions today`,
+        onClick: () => go('/admin/events'),
+      };
+    }
+    if (urgentKey === 'pending-invoices') {
+      return {
+        label: pendingInvoiceCount === 1 ? 'Review 1 invoice' : `Review ${pendingInvoiceCount} invoices`,
+        onClick: () => go('/admin/activity'),
+      };
+    }
+    if (urgentKey === 'inbound-collections') {
+      return {
+        label: inboundUnreadCount === 1 ? 'Open shared collection' : `Open ${inboundUnreadCount} shared collections`,
+        onClick: () => go('/admin/collections'),
+      };
+    }
+    if (urgentKey === 'unsynced-journal') {
+      return {
+        label: 'Sync notes',
+        onClick: onOpenJournal,
+      };
+    }
+    if (journalCount === 0) {
+      return { label: 'Begin a note', onClick: onOpenJournal };
+    }
+    return { label: 'Open inventory', onClick: () => go('/admin/inventory') };
+  })();
 
   const frontispiece = buildOperatorFrontispiece({
     todayEventCount,
@@ -247,34 +263,100 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
         </p>
       </div>
 
-      {/* ── Attention — urgent items ─────────────────────────────────── */}
-      <NeedsAttention items={attention} />
+      {/* ── Console — asymmetric instrument deck ─────────────────────
+          One hero tile across the top + four smaller tiles in a 2×2
+          beneath it. The hero is whichever signal is urgent; if nothing
+          is urgent, Today anchors the deck (showing "—" is part of the
+          language, not an error state). Exactly one tile may carry
+          bronze fill; the PrimaryVerb below picks up the bronze when the
+          deck is silent. */}
+      {(() => {
+        const tiles = {
+          today: (
+            <Instrument
+              key="today"
+              value={todayEventCount}
+              label="Today"
+              sublabel="sessions"
+              urgent={urgentKey === 'today-event'}
+              onClick={() => go('/admin/events')}
+            />
+          ),
+          invoices: (
+            <Instrument
+              key="invoices"
+              value={pendingInvoiceCount}
+              label="Invoices"
+              sublabel="pending"
+              urgent={urgentKey === 'pending-invoices'}
+              onClick={() => go('/admin/activity')}
+            />
+          ),
+          inbound: (
+            <Instrument
+              key="inbound"
+              value={inboundUnreadCount}
+              label="Inbound"
+              sublabel="shared"
+              urgent={urgentKey === 'inbound-collections'}
+              onClick={() => go('/admin/collections')}
+            />
+          ),
+          notes: (
+            <Instrument
+              key="notes"
+              value={journalCount}
+              label="Notes"
+              sublabel="kept"
+              urgent={urgentKey === 'unsynced-journal'}
+              onClick={onOpenJournal}
+            />
+          ),
+          collection: (
+            <Instrument
+              key="collection"
+              value={collectionCount}
+              label="Collection"
+              sublabel="teas"
+              onClick={() => go('/account/collection')}
+            />
+          ),
+        } as const;
 
-      {/* ── Today's sessions ─────────────────────────────────────────── */}
-      {todayEventCount > 0 && (
-        <PreviewBlock hint="On the bench" icon={<Calendar {...ICON_PROPS} />} onClick={() => go('/admin/events')}>
-          <p className="text-[15px] text-tea-text" style={{ fontFamily: 'var(--font-display)' }}>
-            {todayEventCount} session{todayEventCount === 1 ? '' : 's'} scheduled today.
-          </p>
-        </PreviewBlock>
-      )}
+        type TileKey = keyof typeof tiles;
+        const heroKey: TileKey =
+          urgentKey === 'today-event' ? 'today'
+          : urgentKey === 'pending-invoices' ? 'invoices'
+          : urgentKey === 'inbound-collections' ? 'inbound'
+          : urgentKey === 'unsynced-journal' ? 'notes'
+          : 'today';
 
-      {/* ── Pending invoices ─────────────────────────────────────────── */}
-      {pendingInvoiceCount > 0 && (
-        <PreviewBlock hint="Waiting" icon={<Clock {...ICON_PROPS} />} onClick={() => go('/admin/activity')}>
-          <p className="text-[15px] text-tea-text" style={{ fontFamily: 'var(--font-display)' }}>
-            {pendingInvoiceCount} invoice{pendingInvoiceCount === 1 ? '' : 's'} pending review.
-          </p>
-        </PreviewBlock>
-      )}
+        const order: TileKey[] = ['today', 'invoices', 'inbound', 'notes', 'collection'];
+        const ordered = [heroKey, ...order.filter(k => k !== heroKey)];
+        const [heroChild, ...restChildren] = ordered.map(k => tiles[k]);
+        const heroPropsOverride = React.cloneElement(
+          heroChild as React.ReactElement<{ size?: 'hero' | 'small' }>,
+          { size: 'hero' }
+        );
 
-      {/* ── Inbound collections (Phase 2) ────────────────────────────── */}
-      {inboundUnreadCount > 0 && (
-        <PreviewBlock hint="Shared with your store" icon={<Inbox {...ICON_PROPS} />} onClick={() => go('/admin/collections')}>
-          <p className="text-[15px] text-tea-text" style={{ fontFamily: 'var(--font-display)' }}>
-            {inboundUnreadCount} new collection{inboundUnreadCount === 1 ? '' : 's'} to review.
-          </p>
-        </PreviewBlock>
+        return (
+          <ConsoleGrid>
+            {heroPropsOverride}
+            {restChildren}
+          </ConsoleGrid>
+        );
+      })()}
+
+      {/* ── Primary verb — single state-driven CTA ─────────────────────
+          Filled bronze when there is no urgent tile (verb owns the
+          bronze). Bordered bronze when an urgent tile is already filled
+          (so we never show two bronze fills at once). */}
+      {primaryVerb && (
+        <PrimaryVerb
+          label={primaryVerb.label}
+          onClick={primaryVerb.onClick}
+          variant={urgentKey ? 'bordered' : 'filled'}
+        />
       )}
 
       {/* ── Last note — Adrian's own notes are operational knowledge ── */}
@@ -342,97 +424,120 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
         </PreviewBlock>
       )}
 
-      {/* ── Collection ───────────────────────────────────────────────── */}
-      {collectionCount > 0 && (
-        <PreviewBlock hint="Collection" icon={<Bookmark {...ICON_PROPS} />} onClick={() => go('/account/collection')}>
-          <p className="text-[15px] text-tea-text" style={{ fontFamily: 'var(--font-display)' }}>
-            {collectionCount} tea{collectionCount !== 1 ? 's' : ''} kept.
-          </p>
-        </PreviewBlock>
-      )}
+      {/* ── Tools — table of contents
+          Single-column list. Each group is a small-caps header row
+          followed by its tools stacked vertically. No empty cells, no
+          forced grid alignment. Rhythm comes from generous space
+          between groups and tighter rhythm inside them. */}
+      <nav className="mt-6 border-t border-tea-border" aria-label="Admin tools">
+        {ADMIN_TOOL_GROUPS.map((group, gIdx) => {
+          const list: AdminTool[] = grouped[group.id];
+          if (list.length === 0) return null;
+          return (
+            <section
+              key={group.id}
+              className={gIdx > 0 ? 'mt-1' : ''}
+            >
+              <header className="px-6 pt-5 pb-2 flex items-center gap-2">
+                <span className="text-tea-text-dim shrink-0 flex items-center" aria-hidden="true">
+                  {GROUP_ICONS[group.id]}
+                </span>
+                <span className="text-[10px] uppercase tracking-[0.28em] text-tea-text-sec font-medium">
+                  {group.label}
+                </span>
+              </header>
+              <ul>
+                {list.map(tool => (
+                  <li key={tool.id}>
+                    <button
+                      onClick={() => go(tool.route)}
+                      className={[
+                        'w-full text-left px-6 py-2.5',
+                        'flex items-center gap-2',
+                        'text-[15px] text-tea-text leading-tight',
+                        'hover:bg-tea-surface/60 active:bg-tea-surface',
+                        'transition-colors',
+                      ].join(' ')}
+                      style={{ fontFamily: 'var(--font-display)', WebkitTapHighlightColor: 'transparent' }}
+                    >
+                      <span className="flex-1 truncate">{tool.label}</span>
+                      {isRecentlyAdded(tool) && (
+                        <span
+                          className="inline-block w-1 h-1 rounded-full bg-tea-gold/60 shrink-0"
+                          aria-label="Recently added"
+                        />
+                      )}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          );
+        })}
+      </nav>
 
-      {/* ── Tools — grouped by domain, icon-anchored headers ─────────── */}
-      {ADMIN_TOOL_GROUPS.map(group => {
-        const list: AdminTool[] = grouped[group.id];
-        if (list.length === 0) return null;
-        return (
-          <div key={group.id} className="border-t border-tea-border pt-7 pb-5">
-            <div className="px-6 pb-3">
-              <div className="flex items-center gap-2 text-[12px] uppercase tracking-[0.22em] text-tea-text font-medium">
-                <span className="text-tea-gold/70 shrink-0 flex items-center" aria-hidden="true">{GROUP_ICONS[group.id]}</span>
-                <span>{group.label}</span>
-              </div>
-              <div className="w-8 h-px bg-tea-gold/40 mt-2 ml-[22px]" aria-hidden="true" />
-            </div>
-            <div className="px-6 flex flex-wrap gap-x-5 gap-y-3">
-              {list.map(tool => (
-                <button
-                  key={tool.id}
-                  onClick={() => go(tool.route)}
-                  className="text-[14px] text-tea-text-sec hover:text-tea-gold transition-colors tracking-[0.01em] flex items-center gap-1.5 py-1 -my-1"
-                  style={{ fontFamily: 'var(--font-display)', WebkitTapHighlightColor: 'transparent' }}
-                >
-                  {tool.label}
-                  {isRecentlyAdded(tool) && (
-                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-tea-gold" aria-label="Recently added" />
-                  )}
-                </button>
-              ))}
-            </div>
-          </div>
-        );
-      })}
-
-      {/* ── Utility footer — quiet text links ────────────────────────── */}
-      <div className="px-6 pt-6 pb-[calc(44px+env(safe-area-inset-bottom,0px))] lg:pb-8 border-t border-tea-border mt-3">
-        <div
-          className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-tea-text-sec tracking-[0.03em]"
-        >
-          <button
-            onClick={() => go('/account/orders')}
-            className={FOOTER_LINK_CLASS}
-            style={{ WebkitTapHighlightColor: 'transparent' }}
-          >
-            Orders
-          </button>
-          <span className="text-tea-text-sec" aria-hidden="true">·</span>
-          <button
-            onClick={onOpenEvents}
-            className={FOOTER_LINK_CLASS}
-            style={{ WebkitTapHighlightColor: 'transparent' }}
-          >
-            Events attending
-          </button>
+      {/* ── Footer — same table-of-contents vocabulary as the tools
+          above, with a labeled "Account" group and a trailing Sign Out
+          row that's tied into the same rhythm rather than orphaned. */}
+      <section className="mt-6 border-t border-tea-border">
+        <header className="px-6 pt-5 pb-2 flex items-center gap-2">
+          <span className="text-[10px] uppercase tracking-[0.28em] text-tea-text-sec font-medium">
+            Account
+          </span>
+        </header>
+        <ul>
+          <li>
+            <button
+              onClick={() => go('/account/orders')}
+              className="w-full text-left px-6 py-2.5 text-[15px] text-tea-text leading-tight hover:bg-tea-surface/60 active:bg-tea-surface transition-colors"
+              style={{ fontFamily: 'var(--font-display)', WebkitTapHighlightColor: 'transparent' }}
+            >
+              Orders
+            </button>
+          </li>
+          <li>
+            <button
+              onClick={onOpenEvents}
+              className="w-full text-left px-6 py-2.5 text-[15px] text-tea-text leading-tight hover:bg-tea-surface/60 active:bg-tea-surface transition-colors"
+              style={{ fontFamily: 'var(--font-display)', WebkitTapHighlightColor: 'transparent' }}
+            >
+              Events attending
+            </button>
+          </li>
           {memberCount >= 2 && (
-            <>
-              <span className="text-tea-text-sec" aria-hidden="true">·</span>
+            <li>
               <button
                 onClick={onOpenLocationSwitcher}
-                className={FOOTER_LINK_CLASS}
-                style={{ WebkitTapHighlightColor: 'transparent' }}
+                className="w-full text-left px-6 py-2.5 text-[15px] text-tea-text leading-tight hover:bg-tea-surface/60 active:bg-tea-surface transition-colors flex items-center gap-2"
+                style={{ fontFamily: 'var(--font-display)', WebkitTapHighlightColor: 'transparent' }}
               >
-                Switch location · {memberCount}
+                <span className="flex-1">Switch location</span>
+                <span className="text-[12px] text-tea-text-sec font-mono tabular-nums" style={{ fontFamily: 'var(--font-mono)' }}>
+                  {memberCount}
+                </span>
               </button>
-            </>
+            </li>
           )}
-          <span className="text-tea-text-sec" aria-hidden="true">·</span>
+          <li>
+            <button
+              onClick={() => go('/account/settings')}
+              className="w-full text-left px-6 py-2.5 text-[15px] text-tea-text leading-tight hover:bg-tea-surface/60 active:bg-tea-surface transition-colors"
+              style={{ fontFamily: 'var(--font-display)', WebkitTapHighlightColor: 'transparent' }}
+            >
+              Settings
+            </button>
+          </li>
+        </ul>
+        <div className="px-6 pt-5 pb-[calc(44px+env(safe-area-inset-bottom,0px))] lg:pb-8">
           <button
-            onClick={() => go('/account/settings')}
-            className={FOOTER_LINK_CLASS}
+            onClick={onSignOut}
+            className="text-[12px] uppercase tracking-[0.22em] text-tea-text-sec hover:text-tea-gold transition-colors py-2 -my-2 font-medium"
             style={{ WebkitTapHighlightColor: 'transparent' }}
           >
-            Settings
+            Sign Out
           </button>
         </div>
-
-        <button
-          onClick={onSignOut}
-          className="mt-6 py-2 -my-2 text-tea-text-sec hover:text-tea-gold transition-colors text-[12px] uppercase tracking-[0.2em] font-medium"
-          style={{ WebkitTapHighlightColor: 'transparent' }}
-        >
-          Sign Out
-        </button>
-      </div>
+      </section>
     </div>
   );
 };

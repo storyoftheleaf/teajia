@@ -331,13 +331,14 @@ export const ImageManager = ({ product, onUpdate }: {
             <div className="w-24 h-24 rounded-lg overflow-hidden relative group">
               <img src={img} alt={slotLabels[i]} className="w-full h-full object-cover" loading="lazy" />
               {justUploadedSlot === i ? (
-                <div className="absolute inset-0 bg-emerald-900/60 flex items-center justify-center pointer-events-none">
-                  <Check size={22} className="text-emerald-300" />
+                <div className="absolute inset-0 bg-tea-bg/70 flex items-center justify-center pointer-events-none">
+                  <Check size={22} className="text-tea-gold" />
                 </div>
               ) : (
                 <button onClick={() => handleRemove(i)}
-                  className="absolute inset-0 bg-tea-bg/70 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                  <XIcon size={16} className="text-tea-text" />
+                  aria-label={`Remove ${slotLabels[i].toLowerCase()} image`}
+                  className="absolute inset-0 bg-tea-bg/70 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity flex items-center justify-center">
+                  <XIcon size={16} className="text-tea-text" aria-hidden="true" />
                 </button>
               )}
               {i === 0 && (
@@ -975,7 +976,7 @@ export const ProductEditPanel: React.FC<ProductEditPanelProps> = ({
                       <div className="flex items-center gap-1.5 shrink-0 w-20 md:w-24">
                         <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.06em]">Override</span>
                         {product.fixedRetailPriceUSD && product.fixedRetailPriceUSD < calc.trueCostUSD && (
-                          <span className="text-[9px] text-red-400 uppercase tracking-[0.08em]" title="Below true cost">Below cost</span>
+                          <span className="text-[10px] text-tea-error italic" title="Below true cost">Below cost</span>
                         )}
                       </div>
                       <GhostInput
@@ -1028,7 +1029,7 @@ export const ProductEditPanel: React.FC<ProductEditPanelProps> = ({
                   const isLow = threshold > 0 && stock <= threshold;
                   const isOut = stock === 0;
                   const pct = threshold > 0 ? Math.min(1, stock / (threshold * 4)) : null;
-                  const barColor = isOut ? 'bg-red-400/60' : isLow ? 'bg-amber-400/70' : 'bg-emerald-500/60';
+                  const barColor = isOut ? 'bg-tea-error/60' : isLow ? 'bg-tea-gold/60' : 'bg-tea-gold/40';
                   return (
                     <>
                       <div className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
@@ -1037,15 +1038,15 @@ export const ProductEditPanel: React.FC<ProductEditPanelProps> = ({
                           <span className="text-[9px] text-tea-text-dim/60 uppercase tracking-[0.08em]">(g)</span>
                         </div>
                         <div className="flex items-center gap-2 flex-1 justify-end">
-                          {isLow && !isOut && <span className="text-[9px] text-amber-400 uppercase tracking-[0.1em]">Low</span>}
-                          {isOut && <span className="text-[9px] text-red-400 uppercase tracking-[0.1em]">Empty</span>}
-                          <GhostInput value={stock} onSave={(val) => handleUpdate(product.id, 'stockGrams', val)} type="number" align="right" className={`text-xs tabular-nums w-20 ${isLow ? 'text-amber-400 font-medium' : isOut ? 'text-red-400 font-medium' : 'text-tea-text'}`} />
+                          {isLow && !isOut && <span className="text-[10px] text-tea-gold/80 italic">Low</span>}
+                          {isOut && <span className="text-[10px] text-tea-error italic">Empty</span>}
+                          <GhostInput value={stock} onSave={(val) => handleUpdate(product.id, 'stockGrams', val)} type="number" align="right" className={`text-xs tabular-nums w-20 ${isOut ? 'text-tea-error font-medium' : isLow ? 'text-tea-gold font-medium' : 'text-tea-text'}`} />
                         </div>
                       </div>
                       {pct !== null && (
                         <div className="flex items-center gap-2 pb-1">
                           <div className="flex-1 h-1 bg-tea-bg rounded-full overflow-hidden">
-                            <div className={`h-full rounded-full transition-all duration-500 ${barColor}`} style={{ width: `${pct * 100}%` }} />
+                            <div className={`h-full rounded-full origin-left transition-transform duration-500 ${barColor}`} style={{ transform: `scaleX(${pct})` }} />
                           </div>
                           <span className="text-[9px] text-tea-text-dim/60 tabular-nums w-10 text-right">
                             {threshold > 0 ? `${Math.round((stock / threshold) * 10) / 10}× min` : ''}

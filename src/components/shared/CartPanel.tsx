@@ -50,7 +50,7 @@ export const CartPanel: React.FC<CartPanelProps> = (props) => {
     } else if (triggerRef.current) {
       const el = triggerRef.current;
       triggerRef.current = null;
-      setTimeout(() => el.focus(), 100);
+      requestAnimationFrame(() => requestAnimationFrame(() => el.focus()));
     }
   }, [isOpen]);
 
@@ -88,14 +88,14 @@ export const CartPanel: React.FC<CartPanelProps> = (props) => {
     <AnimatePresence>
       {isOpen && (
       <>
-      {/* Backdrop with blur fade — z-toast to render above bottom nav */}
+      {/* Backdrop — tinted espresso, never pure black (per .impeccable.md) */}
       <motion.div
-        className="fixed inset-0 z-toast bg-black/80 backdrop-blur-sm"
+        className="fixed inset-0 z-toast bg-tea-bg/85 backdrop-blur-sm"
         onClick={onClose}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        exit={{ opacity: 0, transition: { duration: 0.15, ease: 'easeOut' } }}
-        transition={{ duration: 0.3 }}
+        exit={{ opacity: 0, transition: { duration: 0.18, ease: [0.16, 1, 0.3, 1] } }}
+        transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
       />
 
       {/* Panel — fade in */}
@@ -106,10 +106,10 @@ export const CartPanel: React.FC<CartPanelProps> = (props) => {
             ? 'md:w-[480px] bg-tea-bg/95 backdrop-blur-2xl'
             : 'md:w-[460px] bg-tea-surface'
         } border-l border-tea-border`}
-        initial={{ opacity: 0 }}
+        initial={{ opacity: 0, x: 12 }}
         animate={isDragging ? { x: touchOffset, opacity: swipeOpacity } : { opacity: 1, x: 0 }}
-        exit={{ opacity: 0, transition: { duration: 0.15, ease: 'easeOut' } }}
-        transition={isDragging ? { duration: 0 } : { duration: 0.3, ease: 'easeOut' }}
+        exit={{ opacity: 0, x: 12, transition: { duration: 0.18, ease: [0.16, 1, 0.3, 1] } }}
+        transition={isDragging ? { duration: 0 } : { duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback, lazy, Suspense } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -114,15 +114,23 @@ export const Shop: React.FC<ShopProps> = ({
   const activeStore = networkStores.find(s => s.slug === shopStoreSlug) || networkStores[0];
   const activeStoreLabel = activeStore?.location_city || activeStore?.name || 'Bali';
 
-  // Close picker on outside click
+  // Close picker on outside click or Escape
   useEffect(() => {
-    const handler = (e: MouseEvent) => {
+    if (!storePickerOpen) return;
+    const handleClick = (e: MouseEvent) => {
       if (storePickerRef.current && !storePickerRef.current.contains(e.target as Node)) {
         setStorePickerOpen(false);
       }
     };
-    if (storePickerOpen) document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setStorePickerOpen(false);
+    };
+    document.addEventListener('mousedown', handleClick);
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      document.removeEventListener('mousedown', handleClick);
+      document.removeEventListener('keydown', handleKey);
+    };
   }, [storePickerOpen]);
 
   // Admin overlay state
@@ -142,7 +150,12 @@ export const Shop: React.FC<ShopProps> = ({
     setTimeout(() => setAddedProductId(null), 1500);
   };
 
-  const allInventory = [...teaInventory, ...teawareInventory];
+  const allInventory = useMemo(
+    () => [...teaInventory, ...teawareInventory],
+    [teaInventory, teawareInventory],
+  );
+
+  const collectionInventory = allInventory;
 
   const handleAddStarterSet = async (set: StarterSet) => {
     setIsAddingToCart(prev => ({ ...prev, [set.id]: true }));
@@ -203,15 +216,11 @@ export const Shop: React.FC<ShopProps> = ({
     return (
       <article
         key={set.id}
-        className="group bg-tea-surface rounded-[6px] overflow-hidden transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(0,0,0,0.3),0_2px_8px_rgba(0,0,0,0.15),inset_0_1px_0_rgba(184,146,78,0.08)] shadow-[0_1px_4px_rgba(0,0,0,0.25),0_2px_8px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(184,146,78,0.06)]"
+        className="group bg-tea-surface rounded-[6px] overflow-hidden border border-tea-border transition-colors duration-200 hover:border-tea-gold/30"
       >
         <div className="flex flex-col md:flex-row">
           {/* Image side */}
           <div className="relative md:w-[40%] lg:w-[35%] flex-shrink-0">
-            {/* SET badge — inline Tailwind, no .set-badge class */}
-            <span className="absolute top-3 left-3 z-10 font-sans text-[0.5625rem] font-bold uppercase tracking-[0.15em] px-2.5 py-1 rounded-sm bg-tea-gold/85 text-tea-bg">
-              Set
-            </span>
             <CardImage src={set.image} alt={set.name} aspect="video" className="md:!aspect-auto md:h-full" />
           </div>
 
@@ -233,7 +242,7 @@ export const Shop: React.FC<ShopProps> = ({
 
             {/* Ideal for */}
             {set.idealFor && (
-              <p className="font-body text-xs text-tea-gold/80 italic mb-3">
+              <p className="font-body text-xs text-tea-text-sec italic mb-3">
                 {set.idealFor}
               </p>
             )}
@@ -275,14 +284,12 @@ export const Shop: React.FC<ShopProps> = ({
                       ${retailTotal}
                     </span>
                   )}
-                  {/* current price — inline, no .set-price-current */}
-                  <span className="font-mono text-lg text-tea-gold font-semibold">
+                  <span className="font-mono text-lg text-tea-text font-semibold">
                     {set.price}
                   </span>
                 </div>
-                {/* discount label — inline, no .set-discount */}
                 {set.discount && (
-                  <p className="font-body text-[0.6875rem] text-tea-gold italic opacity-85 mt-0.5">
+                  <p className="font-body text-[0.6875rem] text-tea-text-sec italic mt-0.5">
                     {set.discount}
                   </p>
                 )}
@@ -341,38 +348,45 @@ export const Shop: React.FC<ShopProps> = ({
         rightContent={networkStores.length > 1 ? (
           <div ref={storePickerRef} className="relative">
             <button
+              type="button"
               onClick={() => setStorePickerOpen(p => !p)}
+              aria-haspopup="listbox"
+              aria-expanded={storePickerOpen}
+              aria-label={`Choose store, currently ${activeStoreLabel}`}
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs text-tea-text-sec hover:bg-tea-surface transition-colors"
             >
-              <Icons.Location className="w-3.5 h-3.5 text-tea-gold" />
+              <Icons.Location className="w-3.5 h-3.5 text-tea-text-sec" />
               <span className="tracking-wide">{activeStoreLabel}</span>
               <ChevronDown className={`w-3 h-3 transition-transform ${storePickerOpen ? 'rotate-180' : ''}`} />
             </button>
             {storePickerOpen && (
-              <div className="absolute right-0 top-full mt-1 bg-tea-elevated border border-tea-border rounded-lg shadow-lg py-1 min-w-[180px] z-50 animate-[fadeIn_0.15s_ease-out]">
+              <div role="listbox" className="absolute right-0 top-full mt-1 bg-tea-elevated border border-tea-border rounded-lg shadow-lg py-1 min-w-[180px] z-50 animate-[fadeIn_0.15s_ease-out]">
                 {networkStores.map(store => {
                   const isActive = store.slug === (shopStoreSlug || 'teajia-bali');
                   return (
                     <button
+                      type="button"
                       key={store.slug}
+                      role="option"
+                      aria-selected={isActive}
                       onClick={() => {
                         setShopStoreSlug(store.slug === 'teajia-bali' ? null : store.slug);
                         setStorePickerOpen(false);
                       }}
                       className={`w-full text-left px-3 py-2 flex items-center gap-2.5 text-sm transition-colors ${
                         isActive
-                          ? 'text-tea-gold bg-tea-surface'
+                          ? 'text-tea-text bg-tea-surface'
                           : 'text-tea-text hover:bg-tea-surface/60'
                       }`}
                     >
-                      <Icons.Location className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-tea-gold' : 'text-tea-text-dim'}`} />
+                      <Icons.Location className="w-3.5 h-3.5 shrink-0 text-tea-text-dim" />
                       <div className="flex-1 min-w-0">
                         <div className="truncate font-medium text-xs">{store.location_city || store.name}</div>
                         {store.location_country && (
                           <div className="text-[10px] text-tea-text-dim truncate">{store.location_country}</div>
                         )}
                       </div>
-                      {isActive && <Check className="w-3.5 h-3.5 text-tea-gold shrink-0" />}
+                      {isActive && <Check className="w-3.5 h-3.5 text-tea-gold shrink-0" aria-hidden="true" />}
                     </button>
                   );
                 })}
@@ -399,17 +413,6 @@ export const Shop: React.FC<ShopProps> = ({
           desktop: bottom-4 right-4
       */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto max-w-[1400px] mx-auto w-full">
-        {/* Shop page header subtitle — shown only on tea/teaware/sets tabs */}
-        {(activeTab === 'tea' || activeTab === 'teaware' || activeTab === 'sets') && (
-          <div className="px-4 md:px-6 lg:px-10 pt-5 pb-1">
-            <p className="font-body italic text-sm text-tea-text-sec">
-              {activeTab === 'tea' && 'Sourced with intention.'}
-              {activeTab === 'teaware' && 'Tools for the ritual.'}
-              {activeTab === 'sets' && 'Curated for the complete experience.'}
-            </p>
-          </div>
-        )}
-
         {isLoading && !isError && (
           (activeTab === 'tea' && teaInventory.length === 0) ||
           (activeTab === 'teaware' && teawareInventory.length === 0)
@@ -429,7 +432,7 @@ export const Shop: React.FC<ShopProps> = ({
             {onRetry && (
               <button
                 onClick={onRetry}
-                className="bg-tea-gold text-white text-xs uppercase tracking-[0.15em] font-medium py-2.5 px-6 rounded-lg hover:bg-tea-gold/90 transition-all active:scale-95"
+                className="bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.15em] font-medium py-2.5 px-6 rounded-lg hover:bg-tea-gold-lt transition-all active:scale-95"
               >
                 Try Again
               </button>
@@ -439,7 +442,7 @@ export const Shop: React.FC<ShopProps> = ({
 
         {!isError && activeTab === 'collection' && (
           <CollectionTab
-            inventory={[...teaInventory, ...teawareInventory]}
+            inventory={collectionInventory}
             onAddToCart={onAddToCart}
           />
         )}
@@ -479,29 +482,36 @@ export const Shop: React.FC<ShopProps> = ({
             <div className="px-3 md:px-4 lg:px-6 pb-8 pt-6">
               <p className="text-[11px] uppercase tracking-[0.15em] text-tea-text-dim mb-3 font-sans">Recently Viewed</p>
               <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none snap-x snap-mandatory">
-                {recentItems.map(item => (
-                  <div
-                    key={item.id}
-                    className="flex-shrink-0 snap-start w-28 cursor-pointer group"
-                    onClick={() => onAddToCart(item, item.category === 'tea' ? 50 : 1, parseFloat(item.category === 'tea' ? (item.price_per_gram || '0') : (item.price_50g || '0')) * (item.category === 'tea' ? 50 : 1))}
-                  >
-                    <div className="w-28 h-28 bg-tea-surface rounded-lg overflow-hidden mb-2 group-hover:opacity-90 transition-opacity">
-                      {item.image ? (
-                        <img src={item.image} alt={item.name} className="w-full h-full object-cover sepia-[0.2]" loading="lazy" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <Icons.Leaf className="w-8 h-8 text-tea-text-dim" />
-                        </div>
-                      )}
-                    </div>
-                    <p className="text-xs text-tea-text leading-snug line-clamp-2" style={{ fontFamily: 'var(--font-display)' }}>{item.name}</p>
-                    <p className="text-[10px] text-tea-text-sec mt-0.5 font-mono tabular-nums">
-                      {item.category === 'tea'
-                        ? fmtShopPricePerGram(parseFloat(item.price_per_gram || '0'))
-                        : `${fmtShopPrice(parseFloat(item.price_50g || '0'))} each`}
-                    </p>
-                  </div>
-                ))}
+                {recentItems.map(item => {
+                  const isTea = item.category === 'tea';
+                  const unitPrice = parseFloat((isTea ? item.price_per_gram : item.price_50g) || '0');
+                  const qty = isTea ? 50 : 1;
+                  return (
+                    <button
+                      type="button"
+                      key={item.id}
+                      onClick={() => onAddToCart(item, qty, unitPrice * qty)}
+                      aria-label={`Add ${item.name} to cart`}
+                      className="text-left flex-shrink-0 snap-start w-28 group focus:outline-none focus-visible:ring-1 focus-visible:ring-tea-gold/40 rounded-lg"
+                    >
+                      <div className="w-28 h-28 bg-tea-surface rounded-lg overflow-hidden mb-2 group-hover:opacity-90 transition-opacity">
+                        {item.image ? (
+                          <img src={item.image} alt="" className="w-full h-full object-cover sepia-[0.2]" loading="lazy" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Icons.Leaf className="w-8 h-8 text-tea-text-dim" aria-hidden="true" />
+                          </div>
+                        )}
+                      </div>
+                      <p className="text-xs text-tea-text leading-snug line-clamp-2" style={{ fontFamily: 'var(--font-display)' }}>{item.name}</p>
+                      <p className="text-[10px] text-tea-text-sec mt-0.5 font-mono tabular-nums">
+                        {isTea
+                          ? fmtShopPricePerGram(unitPrice)
+                          : `${fmtShopPrice(unitPrice)} each`}
+                      </p>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           );

@@ -19,6 +19,7 @@ const config: Config = {
         'tea-text-dim': 'rgb(var(--tea-text-dim-rgb) / <alpha-value>)',
         'tea-gold': 'rgb(var(--tea-gold-rgb) / <alpha-value>)',
         'tea-gold-lt': 'rgb(var(--tea-gold-lt-rgb) / <alpha-value>)',
+        'tea-error': 'rgb(var(--tea-error-rgb) / <alpha-value>)',
         'tea-border': 'var(--tea-border)',
         'tea-accent-sub': 'var(--tea-accent-sub)',
         // DEPRECATED LEGACY ALIASES — DO NOT USE IN NEW CODE
