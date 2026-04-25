@@ -1,4 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Icons } from '../Icons';
 import { ConsultProject } from '../../types/consult';
 import { CardContainer } from '../shared/CardContainer';
@@ -73,7 +74,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, o
   // Mobile swipeable gallery
   const galleryRef = useRef<HTMLDivElement>(null);
   const [activeSlide, setActiveSlide] = useState(0);
-  const galleryCount = 4;
+  const gallery = project.gallery ?? [];
 
   useEffect(() => {
     const el = galleryRef.current;
@@ -104,15 +105,25 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, o
       {/* Parallax Hero */}
       <section ref={parallaxRef} className="relative -mx-6 md:-mx-10 mb-10 overflow-hidden">
         <div className="absolute inset-0">
-          <div
-            className="absolute inset-0 bg-tea-elevated/90 transition-transform duration-100"
-            style={{
-              transform: `translateY(${parallaxVisible ? offset : 0}px) scale(1.1)`,
-              filter: 'brightness(0.3) saturate(0.7)',
-            }}
-            role="img"
-            aria-label={`${project.name} project`}
-          />
+          {project.heroImage ? (
+            <img
+              src={project.heroImage}
+              alt={`${project.name} project`}
+              loading="lazy"
+              className="absolute inset-0 w-full h-full object-cover transition-transform duration-100"
+              style={{
+                transform: `translateY(${parallaxVisible ? offset : 0}px) scale(1.1)`,
+                filter: 'brightness(0.55) saturate(0.85)',
+              }}
+            />
+          ) : (
+            <div
+              className="absolute inset-0 bg-tea-elevated transition-transform duration-100"
+              style={{ transform: `translateY(${parallaxVisible ? offset : 0}px) scale(1.1)` }}
+              role="img"
+              aria-label={`${project.name} project`}
+            />
+          )}
           <div className="absolute inset-0 bg-gradient-to-b from-tea-border via-transparent to-tea-bg" />
         </div>
         <div className="relative z-10 px-6 md:px-10 pt-20 pb-16 md:pt-28 md:pb-24 min-h-[55vh] md:min-h-[45vh] flex flex-col justify-end">
@@ -122,7 +133,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, o
           <h1 className="font-serif text-3xl md:text-4xl lg:text-5xl font-normal mb-4 text-tea-text">
             {project.name}
           </h1>
-          <p className="font-sans text-sm text-tea-text/50">
+          <p className="font-sans text-sm text-tea-text-sec">
             {project.location}
           </p>
         </div>
@@ -150,42 +161,58 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, o
         </p>
       </div>
 
-      {/* Image gallery */}
-      <div className={SECTION_GAP_LG}>
-        {/* Mobile: horizontal swipeable */}
-        <div
-          ref={galleryRef}
-          className="flex md:hidden overflow-x-auto snap-x snap-mandatory gap-0 -mx-6 px-6 hide-scrollbar"
-        >
-          {Array.from({ length: galleryCount }).map((_, i) => (
-            <div key={i} className="flex-shrink-0 w-full snap-center pr-4 last:pr-0">
-              <CardContainer className="w-full overflow-hidden">
-                <div className="w-full bg-tea-elevated/90" style={{ aspectRatio: '16/10' }} role="img" aria-label={`${project.name} detail ${i + 1}`} />
-              </CardContainer>
+      {/* Image gallery — only renders when the project has populated gallery URLs */}
+      {gallery.length > 0 && (
+        <div className={SECTION_GAP_LG}>
+          {/* Mobile: horizontal swipeable */}
+          <div
+            ref={galleryRef}
+            className="flex md:hidden overflow-x-auto snap-x snap-mandatory gap-0 -mx-6 px-6 hide-scrollbar"
+          >
+            {gallery.map((src, i) => (
+              <div key={src + i} className="flex-shrink-0 w-full snap-center pr-4 last:pr-0">
+                <CardContainer className="w-full overflow-hidden">
+                  <img
+                    src={src}
+                    alt={`${project.name} detail ${i + 1}`}
+                    loading="lazy"
+                    className="w-full object-cover"
+                    style={{ aspectRatio: '16/10' }}
+                  />
+                </CardContainer>
+              </div>
+            ))}
+          </div>
+          {/* Mobile dot indicators */}
+          {gallery.length > 1 && (
+            <div className="flex md:hidden justify-center gap-2 mt-4">
+              {gallery.map((src, i) => (
+                <span
+                  key={src + i}
+                  className={`w-1.5 h-1.5 rounded-full transition-colors duration-200 ${
+                    i === activeSlide ? 'bg-tea-gold' : 'bg-tea-border'
+                  }`}
+                />
+              ))}
             </div>
-          ))}
-        </div>
-        {/* Mobile dot indicators */}
-        <div className="flex md:hidden justify-center gap-2 mt-4">
-          {Array.from({ length: galleryCount }).map((_, i) => (
-            <span
-              key={i}
-              className={`w-1.5 h-1.5 rounded-full transition-colors duration-200 ${
-                i === activeSlide ? 'bg-tea-gold' : 'bg-tea-text/20'
-              }`}
-            />
-          ))}
-        </div>
+          )}
 
-        {/* Desktop: 2-column grid */}
-        <div className="hidden md:grid grid-cols-2 gap-6">
-          {Array.from({ length: galleryCount }).map((_, i) => (
-            <CardContainer key={i} className="w-full overflow-hidden">
-              <div className="w-full bg-tea-elevated/90" style={{ aspectRatio: '16/10' }} role="img" aria-label={`${project.name} detail ${i + 1}`} />
-            </CardContainer>
-          ))}
+          {/* Desktop: 2-column grid */}
+          <div className="hidden md:grid grid-cols-2 gap-6">
+            {gallery.map((src, i) => (
+              <CardContainer key={src + i} className="w-full overflow-hidden">
+                <img
+                  src={src}
+                  alt={`${project.name} detail ${i + 1}`}
+                  loading="lazy"
+                  className="w-full object-cover"
+                  style={{ aspectRatio: '16/10' }}
+                />
+              </CardContainer>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* The Result */}
       <div ref={reveal4.ref} className={`${SECTION_GAP_LG} max-w-[640px] ${reveal4.className}`} style={reveal4.style}>
@@ -217,7 +244,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, o
         <div>
           <button
             onClick={onNavigateProjects}
-            className={`text-tea-text/40 hover:text-tea-gold text-xs uppercase tracking-[0.15em] font-medium flex items-center gap-1 transition-colors duration-300 min-h-[44px] ${CTA_FOCUS}`}
+            className={`text-tea-text-dim hover:text-tea-gold text-xs uppercase tracking-[0.15em] font-medium flex items-center gap-1 transition-colors duration-300 min-h-[44px] ${CTA_FOCUS}`}
           >
             See more projects
             <Icons.ChevronRight className="w-3.5 h-3.5" />
@@ -233,13 +260,13 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, o
         <p className="font-serif text-lg text-tea-text mb-4">
           {project.type === 'space' ? 'Source teaware for your space' : 'Explore our tea collection'}
         </p>
-        <button
-          onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: { section: 'SHOP' } }))}
-          className={`text-tea-gold hover:text-tea-gold/80 text-xs uppercase tracking-[0.15em] font-medium flex items-center gap-1 transition-colors duration-300 min-h-[44px] ${CTA_FOCUS}`}
+        <Link
+          to="/shop"
+          className={`text-tea-gold hover:text-tea-gold/80 text-xs uppercase tracking-[0.15em] font-medium inline-flex items-center gap-1 transition-colors duration-300 min-h-[44px] ${CTA_FOCUS}`}
         >
           Browse the Shop
           <Icons.ChevronRight className="w-3.5 h-3.5" />
-        </button>
+        </Link>
       </div>
 
     </div>

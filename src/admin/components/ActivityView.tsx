@@ -149,7 +149,7 @@ function InquiriesView() {
   return (
     <div className="p-4 md:p-6 space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="font-serif text-lg text-tea-text">Cart Inquiries</h2>
+        <h2 className="font-serif text-lg text-tea-text">Inquiries</h2>
         <div className="flex gap-1">
           {['all', 'new', 'seen', 'replied', 'closed'].map(s => (
             <button
@@ -185,6 +185,11 @@ function InquiriesView() {
                 {inq.phone && <p className="text-tea-text-sec text-xs">{inq.phone}</p>}
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
+                {inq.source && inq.source !== 'cart' && (
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-tea-gold/15 text-tea-gold uppercase tracking-wider">
+                    {inq.source}
+                  </span>
+                )}
                 <span className={`text-[10px] px-2 py-0.5 rounded-full ${STATUS_COLORS[inq.status] ?? STATUS_COLORS.seen}`}>
                   {STATUS_LABELS[inq.status] ?? inq.status}
                 </span>

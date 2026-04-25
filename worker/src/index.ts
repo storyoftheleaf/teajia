@@ -5312,31 +5312,65 @@ const handleGetNewsletterSubscribers: Handler = async (request, env) => {
 
 const handleCreateInquiry: Handler = async (request, env) => {
   const body = await request.json() as Record<string, any>;
+  const source = typeof body.source === 'string' && body.source.trim() ? body.source.trim() : 'cart';
   const name = (body.customer_name || body.name || '').trim();
   const contact = (body.customer_contact || body.email || '').trim();
-  const itemsRaw = body.items_json || body.items;
-  if (!name || !contact || !itemsRaw) {
-    return json({ error: 'Name, contact and items are required' }, 400);
+
+  if (!name || !contact) {
+    return json({ error: 'Name and contact are required' }, 400);
   }
-  const itemsStr = typeof itemsRaw === 'string' ? itemsRaw : JSON.stringify(itemsRaw);
+
+  let itemsStr: string;
+  let totalUsd: number | null;
+  let message: string | null;
+  let phone: string | null;
+
+  if (source === 'consult') {
+    const vision = typeof body.vision === 'string' ? body.vision.trim() : '';
+    if (!vision) return json({ error: 'Message is required' }, 400);
+    const interests: string[] = Array.isArray(body.interests) ? body.interests : [];
+    const referral = typeof body.referral === 'string' ? body.referral.trim() : '';
+    const location = typeof body.location === 'string' ? body.location.trim() : '';
+    const parts = [vision];
+    if (interests.length > 0) parts.push(`Interests: ${interests.join(', ')}`);
+    if (location) parts.push(`Location: ${location}`);
+    if (referral) parts.push(`Referral: ${referral}`);
+    message = parts.join('\n\n');
+    itemsStr = '[]';
+    totalUsd = null;
+    phone = (body.whatsapp || '').trim() || null;
+  } else {
+    const itemsRaw = body.items_json || body.items;
+    if (!itemsRaw) return json({ error: 'Items are required' }, 400);
+    itemsStr = typeof itemsRaw === 'string' ? itemsRaw : JSON.stringify(itemsRaw);
+    totalUsd = body.total_estimate_usd ?? body.total_usd ?? null;
+    message = body.notes || body.message || null;
+    phone = body.phone || body.customer_location || null;
+  }
+
   let accountId: string | null = BALI_ACCOUNT_ID;
   if (typeof body.store_slug === 'string' && body.store_slug.trim()) {
     accountId = await getAccountIdBySlug(env, body.store_slug.trim());
     if (!accountId) return json({ error: 'Store not found' }, 404);
   }
   const id = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
-  await env.DB.prepare(
-    'INSERT INTO inquiries (id, account_id, name, email, phone, items, total_usd, currency, message) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
-  ).bind(
-    id, accountId, name,
-    contact,
-    body.phone || body.customer_location || null,
-    itemsStr,
-    body.total_estimate_usd ?? body.total_usd ?? null,
-    body.currency || 'USD',
-    body.notes || body.message || null,
-  ).run();
-  return json({ id, ref_number: body.ref_number, success: true }, 201);
+
+  // `source` column added in migration 045_inquiry_source. Fall back without it
+  // so deployments where the migration hasn't run yet still accept inquiries.
+  try {
+    await env.DB.prepare(
+      'INSERT INTO inquiries (id, account_id, name, email, phone, items, total_usd, currency, message, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    ).bind(id, accountId, name, contact, phone, itemsStr, totalUsd, body.currency || 'USD', message, source).run();
+  } catch (err: any) {
+    if (typeof err?.message === 'string' && err.message.includes('source')) {
+      await env.DB.prepare(
+        'INSERT INTO inquiries (id, account_id, name, email, phone, items, total_usd, currency, message) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+      ).bind(id, accountId, name, contact, phone, itemsStr, totalUsd, body.currency || 'USD', message).run();
+    } else {
+      throw err;
+    }
+  }
+  return json({ id, ref_number: body.ref_number, source, success: true }, 201);
 };
 
 const handleGetInquiries: Handler = async (request, env) => {

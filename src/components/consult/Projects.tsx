@@ -31,12 +31,22 @@ const ProjectCard: React.FC<{
     className={`text-left group w-full ${CTA_FOCUS}`}
   >
     <CardContainer className="overflow-hidden mb-4 md:hover:-translate-y-1 transition-all duration-300">
-      <div className="w-full bg-tea-elevated/90" style={{ aspectRatio: '16/10' }} role="img" aria-label={`${project.name} project`} />
+      {project.heroImage ? (
+        <img
+          src={project.heroImage}
+          alt={`${project.name} project`}
+          loading="lazy"
+          className="w-full object-cover"
+          style={{ aspectRatio: '16/10' }}
+        />
+      ) : (
+        <div className="w-full bg-tea-elevated" style={{ aspectRatio: '16/10' }} role="img" aria-label={`${project.name} project`} />
+      )}
     </CardContainer>
     <h3 className="font-serif text-lg font-medium text-tea-text">
       {project.name}
     </h3>
-    <p className="text-xs uppercase tracking-wider text-tea-text/40">
+    <p className="text-xs uppercase tracking-wider text-tea-text-dim">
       {project.location}
     </p>
   </button>
@@ -56,7 +66,7 @@ export const Projects: React.FC<ProjectsProps> = ({ onBack, onSelectProject }) =
       {/* Back navigation */}
       <button onClick={onBack} className={BACK_BTN}>
         <Icons.Back className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform text-tea-text-sec" />
-        <span className="font-serif text-sm text-tea-text-sec">Consult</span>
+        <span className="font-serif text-sm text-tea-text-sec">Advise</span>
       </button>
 
       {/* Header */}
@@ -77,7 +87,7 @@ export const Projects: React.FC<ProjectsProps> = ({ onBack, onSelectProject }) =
               className={`text-xs uppercase tracking-[0.25em] transition-all duration-300 relative ${
                 filterType === tab.id
                   ? 'text-tea-text font-medium'
-                  : 'text-tea-text/60 hover:text-tea-text/90/90'
+                  : 'text-tea-text-sec hover:text-tea-text'
               }`}
             >
               {tab.label}

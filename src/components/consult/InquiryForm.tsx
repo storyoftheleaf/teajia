@@ -5,6 +5,7 @@ import { Button } from '../shared/Button';
 import { INQUIRY_OPTIONS, InquiryFormData } from '../../types/consult';
 import { useScrollLock } from '../../hooks/useScrollLock';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
 
 interface InquiryFormProps {
   isOpen: boolean;
@@ -143,6 +144,16 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({ isOpen, onClose, prese
     setSubmitting(true);
 
     const entry = { ...formData, timestamp: new Date().toISOString() };
+    const payload = {
+      source: 'consult',
+      name: formData.name,
+      email: formData.email,
+      whatsapp: formData.whatsapp,
+      location: formData.location,
+      vision: formData.vision,
+      interests: formData.interests,
+      referral: formData.referral,
+    };
 
     // Try API first, fall back to localStorage
     const apiUrl = import.meta.env.VITE_API_URL;
@@ -151,7 +162,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({ isOpen, onClose, prese
         const res = await fetch(`${apiUrl}/api/inquiries`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(entry),
+          body: JSON.stringify(payload),
         });
         if (!res.ok) throw new Error(`API responded ${res.status}`);
       } catch (err) {
@@ -167,15 +178,15 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({ isOpen, onClose, prese
     setTimeout(handleClose, 1500);
   };
 
-  if (!isOpen) return null;
+  const reducedMotion = useReducedMotion();
 
-  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!isOpen) return null;
 
   return (
     <div
       ref={overlayRef}
       onClick={handleOverlayClick}
-      className={`fixed inset-0 z-modal flex items-end md:items-center md:justify-center transition-colors ${reducedMotion ? '' : 'duration-300'} ${isVisible ? 'bg-black/40' : 'bg-black/0'}`}
+      className={`fixed inset-0 z-modal flex items-end md:items-center md:justify-center transition-colors ${reducedMotion ? '' : 'duration-300'} ${isVisible ? 'bg-tea-text/40' : 'bg-tea-text/0'}`}
     >
       <div
         ref={focusTrapRef}
@@ -196,14 +207,14 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({ isOpen, onClose, prese
       >
         {/* Mobile drag handle */}
         <div className="md:hidden sheet-drag-handle flex justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing">
-          <div className="w-10 h-1 bg-tea-text/20 rounded-full" />
+          <div className="w-10 h-1 bg-tea-border rounded-full" />
         </div>
 
         {/* Close button */}
         <div className="sticky top-0 z-10 flex justify-end p-4 pb-0 bg-tea-bg">
           <button
             onClick={handleClose}
-            className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full hover:bg-tea-text/5 transition-colors"
+            className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full hover:bg-tea-surface transition-colors"
             aria-label="Close inquiry form"
           >
             <Icons.Close className="w-5 h-5 text-tea-text-sec" />
@@ -286,7 +297,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({ isOpen, onClose, prese
 
                     {/* Interests checkboxes */}
                     <fieldset className="mb-6">
-                      <legend className="font-sans text-sm mb-4 text-tea-text/70">
+                      <legend className="font-sans text-sm mb-4 text-tea-text-sec">
                         What brings you here?
                       </legend>
                       <div className="space-y-4">
@@ -306,7 +317,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({ isOpen, onClose, prese
                               `}
                             >
                               {formData.interests.includes(option) && (
-                                <Icons.Check className="w-3 h-3 text-white" />
+                                <Icons.Check className="w-3 h-3 text-tea-bg" />
                               )}
                             </span>
                             <input
@@ -377,7 +388,7 @@ const FloatingField: React.FC<FloatingFieldProps> = ({ label, type, value, onCha
           transition-all duration-200
           ${isActive
             ? 'top-0 text-[11px] tracking-wide text-tea-gold'
-            : 'top-5 text-base text-tea-text/40'
+            : 'top-5 text-base text-tea-text-dim'
           }
         `}
       >
@@ -410,7 +421,7 @@ const FloatingField: React.FC<FloatingFieldProps> = ({ label, type, value, onCha
           autoComplete={autoComplete}
         />
       )}
-      {error && <p className="text-red-400 text-xs mt-1">{error}</p>}
+      {error && <p className="text-tea-gold text-xs mt-1">{error}</p>}
     </div>
   );
 };

@@ -147,6 +147,18 @@ Not urgent, but worth resolving when convenient.
       future local migrations will skip properly, but if you ever need to
       re-run an old migration locally, the tracker will block it. Solve
       by dropping + recreating local D1 when convenient.
+- [ ] Local D1 is missing the `inquiries` table entirely (migration
+      `045_inquiry_source` failed locally with `no such table: inquiries`,
+      but ran clean on remote). Symptom of the bulk-marked tracker above.
+      Ties into the same drop-and-recreate fix.
+- [ ] **Advise (Consult) project images.** `ConsultProject.heroImage` and
+      `gallery` are wired up in `src/types/consult.ts`; the views in
+      `src/components/consult/{Projects,ProjectDetail}.tsx` already render
+      real `<img>` when present and fall back to a coloured wash when not.
+      Populate `heroImage` (and optionally `gallery`) in
+      `src/data/consultProjects.ts` once Cloudinary URLs are ready for
+      the 10 projects. Selling design services without real photos is the
+      single biggest credibility gap on `/consult`.
 
 ---
 

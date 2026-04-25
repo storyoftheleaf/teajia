@@ -103,7 +103,7 @@ export const ConsultPage: React.FC<ConsultPageProps> = ({ onCartClick, onAccount
   if (currentView === 'projects') {
     return (
       <div className="w-full animate-[fadeIn_0.6s_ease-out]">
-        <PageHeader title="Consult" onCartClick={onCartClick} onAccountClick={onAccountClick} cartItemCount={cartItemCount} />
+        <PageHeader title="Advise" onCartClick={onCartClick} onAccountClick={onAccountClick} cartItemCount={cartItemCount} />
         <div className="mt-8">
           <Projects onBack={() => window.history.back()} onSelectProject={(id) => navigateTo('project-detail', id)} />
         </div>
@@ -115,7 +115,7 @@ export const ConsultPage: React.FC<ConsultPageProps> = ({ onCartClick, onAccount
   if (currentView === 'project-detail' && selectedProject) {
     return (
       <div className="w-full animate-[fadeIn_0.6s_ease-out]">
-        <PageHeader title="Consult" onCartClick={onCartClick} onAccountClick={onAccountClick} cartItemCount={cartItemCount} />
+        <PageHeader title="Advise" onCartClick={onCartClick} onAccountClick={onAccountClick} cartItemCount={cartItemCount} />
         <div className="mt-8">
           <ProjectDetail project={selectedProject} onBack={() => window.history.back()} onOpenInquiry={openInquiry} onNavigateProjects={() => navigateTo('projects')} />
         </div>
@@ -128,10 +128,10 @@ export const ConsultPage: React.FC<ConsultPageProps> = ({ onCartClick, onAccount
   return (
     <div className="w-full animate-[fadeIn_0.6s_ease-out]">
       <Helmet>
-        <title>Consult — Teajia</title>
+        <title>Advise — Teajia</title>
         <meta name="description" content="Tea space design, sourcing guidance, ceremony training. Twenty years of practice distilled into services for those who take tea seriously." />
       </Helmet>
-      <PageHeader title="Consult" onCartClick={onCartClick} onAccountClick={onAccountClick} cartItemCount={cartItemCount} />
+      <PageHeader title="Advise" onCartClick={onCartClick} onAccountClick={onAccountClick} cartItemCount={cartItemCount} />
 
       <div className="max-w-[1400px] mx-auto">
 
@@ -158,7 +158,9 @@ export const ConsultPage: React.FC<ConsultPageProps> = ({ onCartClick, onAccount
             <img
               src="https://res.cloudinary.com/dobbosnda/image/upload/f_auto,q_auto,w_600/v1773837991/2021-06-27_IMG_7745_Original_ehkz30.jpg"
               alt=""
-              className="w-full aspect-[3/2] md:aspect-[4/5] object-cover bg-tea-text/[0.06] rounded-lg"
+              width={600}
+              height={750}
+              className="w-full aspect-[3/2] md:aspect-[4/5] object-cover bg-tea-surface rounded-lg"
               loading="lazy"
             />
           </div>
@@ -218,10 +220,7 @@ export const ConsultPage: React.FC<ConsultPageProps> = ({ onCartClick, onAccount
           onViewAll={() => navigateTo('projects')}
         />
 
-        {/* warm divider */}
-        <div className="divider-warm my-16 md:my-20" />
-
-        {/* 4. TESTIMONIAL */}
+        {/* 4. TESTIMONIAL — separated by whitespace alone, not a divider */}
         <Testimonial />
 
         {/* warm divider */}
@@ -246,9 +245,20 @@ const FloatingInquiryCTA: React.FC<{ onOpenInquiry: () => void }> = ({ onOpenInq
   const [pastHero, setPastHero] = useState(false);
 
   useEffect(() => {
-    const handleScroll = () => setPastHero(window.scrollY > 400);
+    let frame = 0;
+    const handleScroll = () => {
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        const next = window.scrollY > 400;
+        setPastHero(prev => (prev === next ? prev : next));
+        frame = 0;
+      });
+    };
     window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (frame) cancelAnimationFrame(frame);
+    };
   }, []);
 
   const visible = pastHero && scrollDir.direction !== 'down';
@@ -303,7 +313,7 @@ const Services: React.FC = () => (
             </span>
           </div>
 
-          <p className="text-[14px] text-tea-text/80 leading-[1.8]"
+          <p className="text-[14px] text-tea-text-sec leading-[1.8]"
              style={{ fontFamily: 'var(--font-body)' }}>
             {svc.desc}
           </p>
@@ -423,7 +433,7 @@ const Testimonial: React.FC = () => {
       </p>
       <p className="text-[11px] text-tea-text-sec mt-6 tracking-[0.1em]"
          style={{ fontFamily: 'var(--font-sans)' }}>
-        {testimonial.name}<span className="text-tea-text-sec/40 mx-2">&middot;</span>{testimonial.title}
+        {testimonial.name}<span className="text-tea-text-dim mx-2">&middot;</span>{testimonial.title}
       </p>
     </motion.section>
   );
