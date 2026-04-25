@@ -47,24 +47,39 @@ export const TastingEditorModal: React.FC<TastingEditorModalProps> = ({
         );
       });
 
-      // Optimistically patch the public storefront cache so toggling a star
-      // (on or off) reflects on the card immediately. We intentionally do NOT
-      // invalidate-and-refetch here: the public endpoint has a ~10s CDN edge
-      // cache, so a refetch right now would just overwrite our patch with
-      // stale JSON. The cache will reconcile naturally on the next natural
-      // refetch (window focus after staleTime, navigation, etc).
-      queryClient.setQueriesData<any[]>({ queryKey: ['storefront', 'products'] }, (old) => {
-        if (!Array.isArray(old)) return old;
-        return old.map((item: any) =>
-          item?.id === product.id
-            ? {
-                ...item,
-                tasting: hasTerms ? tastingData : undefined,
-                tastingSource: tastingSource ?? undefined,
-              }
-            : item
-        );
-      });
+      // Optimistically patch every public-product cache so toggling a star
+      // (on or off) reflects on the card immediately. There are two distinct
+      // query keys depending on which storefront path is active:
+      //   ['products', 'public']            — legacy default (Bali) path
+      //   ['storefront', 'products', slug]  — slug-scoped multi-store path
+      // Patching both means the optimistic state survives regardless of which
+      // hook is rendering the card. We intentionally do NOT invalidate after:
+      // the public endpoint has a 10s CDN edge cache, so an immediate refetch
+      // would just overwrite our patch with stale JSON. Reconciliation
+      // happens naturally on the next refetch (after staleTime expires).
+      const patchItem = (item: any) =>
+        item?.id === product.id
+          ? {
+              ...item,
+              tasting: hasTerms ? tastingData : undefined,
+              tastingSource: tastingSource ?? undefined,
+            }
+          : item;
+      queryClient.setQueriesData<any[]>(
+        {
+          predicate: (q) => {
+            const key = q.queryKey;
+            if (!Array.isArray(key)) return false;
+            if (key[0] === 'storefront' && key[1] === 'products') return true;
+            if (key[0] === 'products' && key[1] === 'public') return true;
+            return false;
+          },
+        },
+        (old) => {
+          if (!Array.isArray(old)) return old;
+          return old.map(patchItem);
+        }
+      );
 
       const derivedMood = deriveMoodFromFeeling(tastingData);
       showToast('Tasting profile saved', 'success');
