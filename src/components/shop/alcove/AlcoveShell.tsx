@@ -8,6 +8,10 @@ interface AlcoveShellProps {
   children: React.ReactNode;
   commerceFooter: React.ReactNode;
   modals: React.ReactNode;
+  /** Override grain layer opacity (default: 0.06) */
+  grainOpacity?: number;
+  /** Override the two radial warmth opacities [inner, outer] (defaults: [0.09, 0.05]) */
+  warmthOpacities?: [number, number];
 }
 
 export const AlcoveShell: React.FC<AlcoveShellProps> = ({
@@ -18,6 +22,8 @@ export const AlcoveShell: React.FC<AlcoveShellProps> = ({
   children,
   commerceFooter,
   modals,
+  grainOpacity = 0.06,
+  warmthOpacities = [0.09, 0.05],
 }) => {
   return (
     <div style={{
@@ -36,14 +42,14 @@ export const AlcoveShell: React.FC<AlcoveShellProps> = ({
       <div style={{
         position: "absolute", inset: 0, pointerEvents: "none",
         background: `
-          radial-gradient(ellipse 70% 50% at 85% 8%, rgba(180,120,40,0.09) 0%, transparent 60%),
-          radial-gradient(ellipse 50% 40% at 90% 0%, rgba(200,140,50,0.05) 0%, transparent 50%)
+          radial-gradient(ellipse 70% 50% at 85% 8%, rgba(180,120,40,${warmthOpacities[0]}) 0%, transparent 60%),
+          radial-gradient(ellipse 50% 40% at 90% 0%, rgba(200,140,50,${warmthOpacities[1]}) 0%, transparent 50%)
         `,
       }} />
 
       {/* Layer 2: Fine noise grain */}
       <div style={{
-        position: "absolute", inset: 0, pointerEvents: "none", opacity: 0.06,
+        position: "absolute", inset: 0, pointerEvents: "none", opacity: grainOpacity,
         backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
         backgroundSize: "120px",
       }} />
