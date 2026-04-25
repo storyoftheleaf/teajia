@@ -1,28 +1,25 @@
 import React, { useState, useRef, useMemo } from 'react';
 import { useScrollFade } from './alcove/hooks/useScrollFade';
 import { useNavigate } from 'react-router-dom';
-import { Pencil, Leaf, ChevronRight, X, Loader2, QrCode, Heart } from 'lucide-react';
-import { useSampleCartStore } from '../../samples/sampleCartStore';
-import type { InventoryItem, Story } from '../../types';
-import { ContentType } from '../../types';
 import { useAppStore } from '../../lib/store';
 import { api } from '../../lib/api';
 import { useTastingCount } from '../../hooks/useTastingCount';
-import { starredNotes } from '../../lib/noteEntries';
 import { fmtNum } from '../../utils/formatNumber';
-import { fmtShopPrice } from '../../utils/formatNumber';
-import { TeaPlaceholder } from './TeaPlaceholder';
-import {
-  flattenTastingNotes,
-  resolveTermLabel,
-  resolveTermIcon,
-  LIQUOR_COLORS,
-  TERM_MAP,
-} from '../../data/tastingTaxonomy';
 import { useProductEvents } from '../../hooks/useProductEvents';
 import { useStories } from '../../context/StoryContext';
 import { useAuth } from '../../hooks/useAuth';
 import { getTeaColor } from '../../designTokens';
+import { useSampleCartStore } from '../../samples/sampleCartStore';
+import type { InventoryItem, Story } from '../../types';
+import { ContentType } from '../../types';
+
+import { AlcoveShell } from './alcove/AlcoveShell';
+import { AlcoveGallery } from './alcove/AlcoveGallery';
+import { AlcoveIdentityHeader } from './alcove/AlcoveIdentityHeader';
+import { AlcoveSensoryGrid } from './alcove/AlcoveSensoryGrid';
+import { AlcoveJournalSection } from './alcove/AlcoveJournalSection';
+import { AlcoveCommerceFooter } from './alcove/AlcoveCommerceFooter';
+import { SampleModal, CustomAmountModal, ImageOverlayModal } from './alcove/AlcoveModals';
 
 interface AlcoveCardProps {
   item: InventoryItem;
@@ -296,749 +293,239 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
     }
   };
 
+  // Suppress unused-variable warnings for items kept for completeness
+  void sliderStep;
+  void sliderPercentage;
+  void noteOpacities;
+  void markerOpacities;
+  void markerWidths;
+  void snapToNearest;
+  void handleSliderChange;
+  void onClose;
+
   return (
-    <div style={{
-      width: "100%",
-      height: "100%",
-      maxHeight: "100%",
-      background: alcoveColors.bg,
-      position: "relative",
-      overflow: "hidden",
-      borderRadius: "3px",
-      display: "flex",
-      flexDirection: "column",
-    }}>
+    <AlcoveShell
+      alcoveBg={alcoveColors.bg}
+      chineseCharacters={chineseCharacters}
+      scrollRef={scrollRef}
+      showFade={showFade}
+      commerceFooter={
+        <AlcoveCommerceFooter
+          item={item}
+          alcoveBg={alcoveColors.bg}
+          alcoveColors={alcoveColors}
+          accent={accent}
+          stockStatus={stockStatus}
+          isSoldOut={isSoldOut}
+          grams={grams}
+          setGrams={setGrams}
+          sampleMode={sampleMode}
+          setSampleMode={setSampleMode}
+          customMode={customMode}
+          setCustomMode={setCustomMode}
+          sliderMax={sliderMax}
+          presets={presets}
+          pricePerGram={pricePerGram}
+          perGramDisplay={perGramDisplay}
+          total={total}
+          added={added}
+          hovered={hovered}
+          setHovered={setHovered}
+          shareCopied={shareCopied}
+          favorited={favorited}
+          inSampleCart={inSampleCart}
+          isAdmin={isAdmin}
+          onEdit={onEdit}
+          onTaste={onTaste}
+          toggleFavoriteTea={toggleFavoriteTea}
+          toggleSampleCart={toggleSampleCart}
+          handleShare={handleShare}
+          handleAdd={handleAdd}
+          formatPrice={formatPrice}
+        />
+      }
+      modals={
+        <>
+          <SampleModal
+            item={item}
+            open={sampleModalOpen}
+            onClose={() => { if (!sampleSubmitting) setSampleModalOpen(false); }}
+            sampleGrams={sampleGrams}
+            setSampleGrams={setSampleGrams}
+            sampleNote={sampleNote}
+            setSampleNote={setSampleNote}
+            sampleSubmitting={sampleSubmitting}
+            sampleDone={sampleDone}
+            sampleError={sampleError}
+            onSubmit={handleSampleSubmit}
+            isLoggedIn={isLoggedIn}
+            pricePerGram={pricePerGram}
+            formatPrice={formatPrice}
+          />
+          <CustomAmountModal
+            open={customMode}
+            onClose={() => setCustomMode(false)}
+            sliderMax={sliderMax}
+            customInput={customInput}
+            setCustomInput={setCustomInput}
+            setGrams={setGrams}
+          />
+          <ImageOverlayModal
+            open={imageExpanded}
+            expandedImageUrl={expandedImageUrl}
+            itemName={item.name}
+            onClose={() => { setImageExpanded(false); setExpandedImageUrl(null); }}
+          />
+        </>
+      }
+    >
+      {/* Identity header: title, meta bar, vendor link, story prose, impressions */}
+      <AlcoveIdentityHeader
+        item={item}
+        productName={productName}
+        givenName={givenName}
+        teaType={teaType}
+        origin={origin || ''}
+        vintage={vintage}
+        alcoveColors={alcoveColors}
+        isAdmin={isAdmin}
+        hovered={hovered}
+        setHovered={setHovered}
+        allImages={allImages}
+        magazineUrl={magazineUrl}
+        mainStory={mainStory}
+        introduction={introduction}
+        feelingDescription={feelingDescription}
+        onNavigateSource={() => navigate(`/admin/people?tab=sources&search=${encodeURIComponent(item.supplier!)}`)}
+      />
 
+      {/* Gallery: image strip */}
+      <AlcoveGallery
+        allImages={allImages}
+        chineseCharacters={chineseCharacters}
+        origin={origin || ''}
+        typeColor={typeColor}
+        onExpandImage={(url) => { setExpandedImageUrl(url); setImageExpanded(true); }}
+      />
 
+      {/* Sensory grid: tasting notes, mood tags, tasted count */}
+      <AlcoveSensoryGrid
+        item={item}
+        notes={notes}
+        moodTags={moodTags}
+        typeColor={typeColor}
+        isAdmin={isAdmin}
+        onEditProductTasting={onEditProductTasting}
+        onTermClick={onTermClick}
+        tastingCount={tastingCount}
+      />
 
-      {/* Layer 1: Multi-stop radial warmth */}
-      <div style={{
-        position: "absolute", inset: 0, pointerEvents: "none",
-        background: `
-          radial-gradient(ellipse 70% 50% at 85% 8%, rgba(180,120,40,0.09) 0%, transparent 60%),
-          radial-gradient(ellipse 50% 40% at 90% 0%, rgba(200,140,50,0.05) 0%, transparent 50%)
-        `,
-      }} />
-
-      {/* Layer 2: Fine noise grain */}
-      <div style={{
-        position: "absolute", inset: 0, pointerEvents: "none", opacity: 0.06,
-        backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
-        backgroundSize: "120px",
-      }} />
-
-      {/* Vertical calligraphy watermark — top-right, flowing down like a hanging scroll */}
-      {chineseCharacters && (
+      {/* === TERROIR & PROCESSING — quiet appendix === */}
+      {(terroir || processing) && (
         <div style={{
-          position: "absolute", right: "16px", bottom: "90px",
-          writingMode: "vertical-rl",
-          fontFamily: "'Ma Shan Zheng', cursive",
-          fontSize: "92px", fontWeight: 400, lineHeight: 1,
-          color: "var(--tea-text-dim)",
-          letterSpacing: "0.18em",
-          userSelect: "none", pointerEvents: "none",
-          whiteSpace: "nowrap",
-          opacity: 0.065,
-          zIndex: 4,
+          padding: "0 20px",
+          marginTop: "28px",
+          marginBottom: "8px",
         }}>
-          {chineseCharacters}
+          {terroir && (
+            <div>
+              <h3 style={{
+                fontFamily: "var(--font-display)",
+                fontSize: "10px", fontWeight: 400,
+                textTransform: "uppercase", letterSpacing: "0.12em",
+                color: "var(--tea-gold)",
+                margin: "0 0 6px 0",
+              }}>
+                Terroir
+              </h3>
+              <p style={{
+                fontFamily: "var(--font-body)",
+                fontSize: "15px", fontWeight: 300, lineHeight: 1.75,
+                color: alcoveColors.body, margin: 0,
+                whiteSpace: "pre-line",
+              }}>
+                {terroir}
+              </p>
+            </div>
+          )}
+          {processing && (
+            <div style={{ marginTop: terroir ? "20px" : 0 }}>
+              {terroir && (
+                <div style={{
+                  height: "1px", marginBottom: "14px",
+                  background: "linear-gradient(90deg, transparent, rgba(184, 146, 78, 0.25) 20%, rgba(184, 146, 78, 0.4) 50%, rgba(184, 146, 78, 0.25) 80%, transparent)",
+                }} />
+              )}
+              <h3 style={{
+                fontFamily: "var(--font-display)",
+                fontSize: "10px", fontWeight: 400,
+                textTransform: "uppercase", letterSpacing: "0.12em",
+                color: "var(--tea-gold)",
+                margin: "0 0 6px 0",
+              }}>
+                Processing
+              </h3>
+              <p style={{
+                fontFamily: "var(--font-body)",
+                fontSize: "15px", fontWeight: 300, lineHeight: 1.75,
+                color: alcoveColors.body, margin: 0,
+                whiteSpace: "pre-line",
+              }}>
+                {processing}
+              </p>
+            </div>
+          )}
         </div>
       )}
 
-      {/* === SCROLLABLE MIDDLE === */}
-      <div ref={scrollRef} className="tea-card-scroll" style={{
-        position: "relative", zIndex: 1,
-        flex: 1,
-        overflowY: "auto",
-        minHeight: 0,
-      }}>
-
-        {/* === Identity (scrolls with content) === */}
+      {/* === FEATURED IN EVENTS === */}
+      {eventsLoading && (
         <div style={{
-          padding: "16px 20px 0",
-          position: "relative",
+          marginTop: "28px",
+          padding: "0 20px 8px",
         }}>
-              <h1 style={{
-                fontFamily: "var(--font-display)",
-                fontSize: "26px", fontWeight: 340, color: alcoveColors.title,
-                margin: 0, lineHeight: 1.1, letterSpacing: "-0.01em",
-                textShadow: "0 0 20px rgba(0,0,0,0.3)",
-                textAlign: "center",
-              }}>
-                {productName}
-              </h1>
-              {givenName && (
-                <p style={{
-                  fontFamily: "var(--font-display)",
-                  fontSize: "16px", fontStyle: "italic", fontWeight: 300,
-                  lineHeight: 1.3,
-                  color: alcoveColors.subtitle, margin: "5px 0 0",
-                  textAlign: "center",
-                }}>
-                  {givenName}
-                </p>
-              )}
-              {/* Tea type · origin · year — descriptive bar */}
-              <div style={{
-                padding: "6px 0 5px",
-                borderTop: "1px solid var(--tea-border)",
-                borderBottom: "1px solid var(--tea-border)",
-                margin: givenName ? "6px -20px 0" : "8px -20px 0",
-              }}>
-                <p style={{
-                  fontFamily: "var(--font-display)",
-                  fontSize: "13px", fontWeight: 300, fontStyle: "italic",
-                  color: alcoveColors.subtitle, margin: 0,
-                  textAlign: "center",
-                }}>
-                  {teaType}
-                  {origin && <><span style={{ margin: "0 8px", opacity: 0.4 }}>·</span>{origin}</>}
-                  {vintage && <><span style={{ margin: "0 8px", opacity: 0.4 }}>·</span>{vintage}</>}
-                </p>
-              </div>
-
-              {/* Vendor / Source — admin-only link to source profile */}
-              {item.supplier && isAdmin && (
-                <div style={{ textAlign: "center", paddingTop: 4 }}>
-                  <button
-                    onClick={() => navigate(`/admin/people?tab=sources&search=${encodeURIComponent(item.supplier!)}`)}
-                    style={{
-                      background: "none", border: "none", cursor: "pointer",
-                      fontFamily: "var(--font-display)", fontSize: "11px",
-                      color: alcoveColors.subtitle, opacity: 0.7,
-                      letterSpacing: "0.1em", textTransform: "uppercase",
-                      padding: "2px 6px",
-                      transition: "opacity 0.2s",
-                    }}
-                    onMouseEnter={(e) => { (e.target as HTMLElement).style.opacity = '1'; }}
-                    onMouseLeave={(e) => { (e.target as HTMLElement).style.opacity = '0.7'; }}
-                  >
-                    Source: {item.supplier}
-                  </button>
-                </div>
-              )}
-        </div>
-
-        {/* === VISUAL ZONE — compact image strip, click to expand fullscreen === */}
-        {allImages.length === 0 && (
           <div style={{
-            margin: "12px 12px 0",
-            borderRadius: "4px",
-            overflow: "hidden",
-            height: "140px",
-            position: "relative",
-            background: `radial-gradient(ellipse 80% 60% at 50% 40%, ${typeColor}22 0%, transparent 70%), var(--tea-elevated)`,
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "6px",
-          }}>
-            {chineseCharacters && (
-              <div style={{
-                fontFamily: "'Ma Shan Zheng', cursive",
-                fontSize: "52px", fontWeight: 400,
-                color: typeColor,
-                opacity: 0.25,
-                lineHeight: 1,
-                letterSpacing: "0.1em",
-                userSelect: "none",
-              }}>
-                {chineseCharacters}
-              </div>
-            )}
-            {origin && !chineseCharacters && (
-              <span style={{
-                fontFamily: "var(--font-display)",
-                fontSize: "11px", fontWeight: 300,
-                color: "var(--tea-text-dim)",
-                letterSpacing: "0.18em",
-                textTransform: "uppercase",
-                userSelect: "none",
-              }}>
-                {origin}
-              </span>
-            )}
-          </div>
-        )}
-        {allImages.length > 0 && (
-        <div style={{
-          animation: "panelReveal 0.5s ease-out",
-          padding: "12px 12px 0",
-          flexShrink: 0,
-        }}>
-          {allImages.length === 1 ? (
-            <div
-              onClick={() => { setExpandedImageUrl(allImages[0]); setImageExpanded(true); }}
-              style={{
-                width: "100%", height: "180px",
-                borderRadius: "4px", overflow: "hidden",
-                cursor: "pointer",
-                willChange: 'transform',
-              }}
-            >
-              <img src={allImages[0]} alt="" loading="lazy" style={{
-                width: "100%", height: "100%", objectFit: "cover",
-                opacity: 0.9, transition: "opacity 0.3s ease",
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.opacity = "1"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.opacity = "0.9"; }}
-              />
-            </div>
-          ) : (
-            <div style={{
-              display: "flex", gap: "4px",
-              justifyContent: "center",
-            }}>
-              {allImages.map((img, i) => (
-                <div
-                  key={i}
-                  onClick={() => { setExpandedImageUrl(img); setImageExpanded(true); }}
-                  style={{
-                    width: "100px", height: "100px",
-                    borderRadius: "4px", overflow: "hidden",
-                    cursor: "pointer",
-                    flexShrink: 0,
-                  }}
-                >
-                  <img src={img} alt="" loading="lazy" style={{
-                    width: "100%", height: "100%", objectFit: "cover",
-                    opacity: 0.9, transition: "opacity 0.3s ease",
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.opacity = "1"; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.opacity = "0.9"; }}
-                  />
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-        )}
-
-        {/* === STORY — prose (intro + lore + experience description merged) === */}
-        {(() => {
-          // When Adrian has starred voice notes, his impressions take over as
-          // the sensory description. Suppress the AI-leaning experience and
-          // introduction prose so they don't duplicate — keep the historical
-          // lore (mainStory) which is distinct cultural context.
-          const hasImpressions = starredNotes(item.tasting).length > 0;
-          const storyParts: string[] = [];
-          if (!hasImpressions && feelingDescription) storyParts.push(feelingDescription);
-          if (!hasImpressions && introduction) storyParts.push(introduction);
-          if (mainStory) storyParts.push(mainStory);
-          const fullStory = storyParts.join('\n\n');
-          if (!fullStory) return null;
-
-          const storyStyle = {
-            fontFamily: "var(--font-body)",
-            fontSize: "15px", fontWeight: 300 as const, lineHeight: 1.65,
-            color: alcoveColors.body, margin: 0,
-            whiteSpace: "pre-line" as const,
-          };
-
-          return (
-            <div style={{
-              padding: "0 20px",
-              marginTop: allImages.length > 0 ? "20px" : "16px",
-            }}>
-              {magazineUrl ? (
-                <a
-                  href={magazineUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onMouseEnter={() => setHovered("magazine")}
-                  onMouseLeave={() => setHovered(null)}
-                  style={{ textDecoration: "none" }}
-                >
-                  <p style={{
-                    ...storyStyle,
-                    color: hovered === "magazine" ? alcoveColors.bodyHighlight : alcoveColors.body,
-                    transition: "color 0.2s ease",
-                  }}>
-                    {fullStory}
-                  </p>
-                </a>
-              ) : (
-                <p style={storyStyle}>
-                  {fullStory}
-                </p>
-              )}
-            </div>
-          );
-        })()}
-
-        {/* === IMPRESSIONS — starred tasting notes, promoted to primary voice === */}
-        {(() => {
-          const starred = starredNotes(item.tasting);
-          if (starred.length === 0) return null;
-          // Partition so community-attributed notes render distinct from
-          // Adrian's own voice, but still under the same Impressions heading.
-          return (
-            <div style={{
-              padding: "22px 24px 6px",
-              marginTop: "8px",
-            }}>
-              {/* Eyebrow + hairline — signals this is the curator's voice */}
-              <div style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "10px",
-                marginBottom: "12px",
-              }}>
-                <span style={{
-                  fontFamily: "var(--font-display)",
-                  fontSize: "10px",
-                  letterSpacing: "0.18em",
-                  textTransform: "uppercase",
-                  color: "var(--tea-gold)",
-                  whiteSpace: "nowrap",
-                }}>
-                  In Adrian's words
-                </span>
-                <span style={{
-                  flex: 1,
-                  height: "1px",
-                  background: "linear-gradient(90deg, rgb(var(--tea-gold-rgb) / 0.35), transparent)",
-                }} />
-              </div>
-
-              {starred.map((note, i) => (
-                <p
-                  key={note.id}
-                  style={{
-                    fontFamily: "var(--font-display)",
-                    fontSize: "17px",
-                    fontStyle: "italic",
-                    lineHeight: 1.6,
-                    color: "var(--tea-text)",
-                    marginTop: i === 0 ? 0 : 14,
-                    marginBottom: 0,
-                  }}
-                >
-                  {note.text}
-                  {note.sourceAuthor && (
-                    <span
-                      style={{
-                        display: "block",
-                        marginTop: 6,
-                        fontSize: "10px",
-                        fontStyle: "normal",
-                        letterSpacing: "0.12em",
-                        textTransform: "uppercase",
-                        color: "var(--tea-text-dim)",
-                      }}
-                    >
-                      — {note.sourceAuthor.initial || note.sourceAuthor.accountName || 'Community'}
-                    </span>
-                  )}
-                </p>
-              ))}
-            </div>
-          );
-        })()}
-
-        {/* === SENSORY PANEL — unified: experience tags + tasting notes in one box === */}
-        {(() => {
-          const tasting = item.tasting;
-          // Shopper-facing display: flavor + energy only. Body / finish /
-          // liquor-color are journaling data, useful to the admin but noisy on
-          // a product page.
-          const customerFacingTerms = tasting
-            ? [...(tasting.flavor ?? []), ...(tasting.feeling ?? [])]
-            : [];
-          const hasTasting = customerFacingTerms.length > 0;
-          const sensoryNotes = hasTasting ? customerFacingTerms : [];
-          const legacyNotes = !hasTasting ? notes : [];
-          const hasAnySensory = sensoryNotes.length > 0 || legacyNotes.length > 0;
-          // Legacy `mood` header (e.g. "Gentle Patience") is no longer rendered
-          // on the card — the feeling of the tea is now carried by the
-          // structured `feeling` chips in the grid below.
-          const hasMood = false;
-          void moodTags;
-
-          if (!hasAnySensory && !hasMood && !(isAdmin && onEditProductTasting) && tastingCount === 0) return null;
-
-          // Collect note items for the grid
-          const noteItems = sensoryNotes.map((termId) => {
-            const Icon = resolveTermIcon(termId);
-            const label = resolveTermLabel(termId);
-            const termInfo = TERM_MAP.get(termId);
-            const isLiquorColor = termInfo?.categoryId === 'liquor-color';
-            const swatchColor = isLiquorColor ? LIQUOR_COLORS[termId] : null;
-            return { key: termId, label, termId, icon: Icon, swatchColor, categoryId: termInfo?.categoryId || 'flavor' };
-          });
-
-          // Legacy notes as fallback
-          const legacyItems = legacyNotes.map((note) => {
-            const termId = note.toLowerCase().replace(/\s+/g, '-');
-            const Icon = resolveTermIcon(termId);
-            return { key: `legacy-${note}`, label: toTitleCase(note), termId, icon: Icon, swatchColor: null as string | null, categoryId: 'flavor' };
-          });
-
-          const allNotes = [...noteItems, ...legacyItems];
-          const noteTotalRows = Math.ceil(allNotes.length / 2);
-
-          return (
-        <div style={{
-          marginTop: "24px",
-          background: "rgba(0,0,0,0.12)",
-          borderTop: "1px solid var(--tea-border)",
-          borderBottom: "1px solid var(--tea-border)",
-          padding: "4px 16px",
-        }}>
-          {isAdmin && onEditProductTasting && (
-            <div style={{
-              display: "flex",
-              justifyContent: "flex-end",
-              paddingTop: "6px",
-            }}>
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); onEditProductTasting(item); }}
-                className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim hover:text-tea-gold transition-colors"
-                style={{ fontFamily: "var(--font-display)", display: "inline-flex", alignItems: "center", gap: "4px" }}
-                aria-label="Edit product tasting"
-              >
-                Edit tasting
-              </button>
-            </div>
-          )}
-
-          {/* Mood tags — centered single column with dashed dividers */}
-          {hasMood && (
-            <div style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              padding: "6px 0",
-              borderBottom: hasAnySensory ? "1px solid var(--tea-border)" : "none",
-            }}>
-              {moodTags.map((tag, i) => (
-                <React.Fragment key={`mood-${tag}`}>
-                  {i > 0 && (
-                    <div style={{
-                      width: "40px",
-                      borderTop: "1px dashed var(--tea-border)",
-                      margin: "2px 0",
-                    }} />
-                  )}
-                  <span
-                    onClick={onTermClick ? () => onTermClick(tag.toLowerCase().trim(), 'mood') : undefined}
-                    style={{
-                      fontFamily: "var(--font-body)",
-                      fontSize: "13px",
-                      fontWeight: 300,
-                      fontStyle: "italic",
-                      letterSpacing: "0.06em",
-                      color: "var(--tea-text-sec)",
-                      cursor: onTermClick ? "pointer" : "default",
-                      padding: "5px 4px",
-                      transition: "color 0.2s ease-out",
-                      textAlign: "center",
-                    }}
-                    onMouseEnter={onTermClick ? (e) => { e.currentTarget.style.color = "var(--tea-gold)"; } : undefined}
-                    onMouseLeave={onTermClick ? (e) => { e.currentTarget.style.color = "var(--tea-text-sec)"; } : undefined}
-                  >
-                    {toTitleCase(tag)}
-                  </span>
-                </React.Fragment>
-              ))}
-            </div>
-          )}
-
-          {/* Tasting notes grid */}
-          {allNotes.length > 0 && (
-            <div style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-            }}>
-              {allNotes.map((item, idx) => {
-                const isLeftCol = idx % 2 === 0;
-                const rowIdx = Math.floor(idx / 2);
-                const isLastRow = rowIdx === noteTotalRows - 1;
-                const isOddLast = idx === allNotes.length - 1 && allNotes.length % 2 === 1;
-                const NoteIcon = item.icon;
-
-                return (
-                  <span
-                    key={item.key}
-                    onClick={onTermClick ? () => onTermClick(item.termId, item.categoryId || 'flavor') : undefined}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "flex-start",
-                      gap: "7px",
-                      fontFamily: "var(--font-body)",
-                      fontSize: "13px",
-                      fontWeight: 300,
-                      color: typeColor,
-                      cursor: onTermClick ? "pointer" : "default",
-                      padding: "9px 4px",
-                      transition: "color 0.2s ease-out",
-                      ...(isOddLast ? { gridColumn: "1 / -1" } : {}),
-                      borderRight: (isLeftCol && !isOddLast) ? "1px solid var(--tea-border)" : "none",
-                      borderBottom: isLastRow ? "none" : "1px solid var(--tea-border)",
-                    }}
-                    onMouseEnter={onTermClick ? (e) => { e.currentTarget.style.color = "var(--tea-gold)"; } : undefined}
-                    onMouseLeave={onTermClick ? (e) => { e.currentTarget.style.color = typeColor; } : undefined}
-                  >
-                    {item.swatchColor ? (
-                      <span style={{
-                        width: "16px", height: "16px", borderRadius: "50%",
-                        background: item.swatchColor,
-                        border: "1px solid var(--tea-border)",
-                        flexShrink: 0,
-                      }} />
-                    ) : NoteIcon ? (
-                      <NoteIcon size={16} style={{ opacity: 0.7, flexShrink: 0, color: "var(--tea-gold)" }} />
-                    ) : null}
-                    <span>{item.label}</span>
-                  </span>
-                );
-              })}
-            </div>
-          )}
-
-          {/* Tasting count — personal journal link, scoped to the tasting context */}
-          {tastingCount > 0 && (
-            <div style={{
-              display: "flex",
-              justifyContent: "center",
-              paddingTop: "10px",
-              paddingBottom: "2px",
-              borderTop: (hasAnySensory || hasMood) ? "1px solid var(--tea-border)" : "none",
-              marginTop: (hasAnySensory || hasMood) ? "10px" : "0",
-            }}>
-              <button
-                onClick={() => navigate('/account?tab=journal')}
-                style={{
-                  display: "flex", alignItems: "center", gap: "5px",
-                  background: "none", border: "none", cursor: "pointer",
-                  padding: "2px 6px", borderRadius: "4px",
-                  transition: "opacity 0.2s",
-                }}
-                onMouseEnter={e => { e.currentTarget.style.opacity = '0.75'; }}
-                onMouseLeave={e => { e.currentTarget.style.opacity = '1'; }}
-              >
-                <Leaf size={12} style={{ color: '#5A6E5A', opacity: 0.75 }} />
-                <span style={{
-                  fontFamily: "var(--font-display)",
-                  fontSize: "10px", fontWeight: 400,
-                  color: "var(--tea-text-dim)",
-                  letterSpacing: "0.08em",
-                  textTransform: "uppercase",
-                }}>
-                  Tasted {tastingCount} {tastingCount === 1 ? 'time' : 'times'}
-                </span>
-                <ChevronRight size={10} style={{ color: "var(--tea-text-dim)", opacity: 0.6, marginLeft: "1px" }} />
-              </button>
-            </div>
-          )}
-        </div>
-          );
-        })()}
-
-        {/* === TERROIR & PROCESSING — quiet appendix === */}
-        {(terroir || processing) && (
-          <div style={{
-            padding: "0 20px",
-            marginTop: "28px",
-            marginBottom: "8px",
-          }}>
-              {terroir && (
-                <div>
-                  <h3 style={{
-                    fontFamily: "var(--font-display)",
-                    fontSize: "10px", fontWeight: 400,
-                    textTransform: "uppercase", letterSpacing: "0.12em",
-                    color: "var(--tea-gold)",
-                    margin: "0 0 6px 0",
-                  }}>
-                    Terroir
-                  </h3>
-                  <p style={{
-                    fontFamily: "var(--font-body)",
-                    fontSize: "15px", fontWeight: 300, lineHeight: 1.75,
-                    color: alcoveColors.body, margin: 0,
-                    whiteSpace: "pre-line",
-                  }}>
-                    {terroir}
-                  </p>
-                </div>
-              )}
-              {processing && (
-                <div style={{ marginTop: terroir ? "20px" : 0 }}>
-                  {terroir && (
-                    <div style={{
-                      height: "1px", marginBottom: "14px",
-                      background: "linear-gradient(90deg, transparent, rgba(184, 146, 78, 0.25) 20%, rgba(184, 146, 78, 0.4) 50%, rgba(184, 146, 78, 0.25) 80%, transparent)",
-                    }} />
-                  )}
-                  <h3 style={{
-                    fontFamily: "var(--font-display)",
-                    fontSize: "10px", fontWeight: 400,
-                    textTransform: "uppercase", letterSpacing: "0.12em",
-                    color: "var(--tea-gold)",
-                    margin: "0 0 6px 0",
-                  }}>
-                    Processing
-                  </h3>
-                  <p style={{
-                    fontFamily: "var(--font-body)",
-                    fontSize: "15px", fontWeight: 300, lineHeight: 1.75,
-                    color: alcoveColors.body, margin: 0,
-                    whiteSpace: "pre-line",
-                  }}>
-                    {processing}
-                  </p>
-                </div>
-              )}
-          </div>
-        )}
-
-        {/* === FEATURED IN EVENTS === */}
-        {eventsLoading && (
-          <div style={{
-            marginTop: "28px",
-            padding: "0 20px 8px",
-          }}>
-            <div style={{
-              width: "120px", height: "10px",
+            width: "120px", height: "10px",
+            background: "var(--tea-accent-sub)",
+            borderRadius: "3px",
+            marginBottom: "10px",
+          }} />
+          {[0, 1].map(i => (
+            <div key={i} style={{
+              height: "40px",
               background: "var(--tea-accent-sub)",
-              borderRadius: "3px",
-              marginBottom: "10px",
+              borderRadius: "6px",
+              marginBottom: "8px",
+              animation: "pulse 1.8s ease-in-out infinite",
+              opacity: i === 1 ? 0.6 : 0.8,
             }} />
-            {[0, 1].map(i => (
-              <div key={i} style={{
-                height: "40px",
-                background: "var(--tea-accent-sub)",
-                borderRadius: "6px",
-                marginBottom: "8px",
-                animation: "pulse 1.8s ease-in-out infinite",
-                opacity: i === 1 ? 0.6 : 0.8,
-              }} />
-            ))}
-          </div>
-        )}
-        {productEvents && productEvents.length > 0 && (
-          <div style={{
-            marginTop: "28px",
-            padding: "0 20px 8px",
+          ))}
+        </div>
+      )}
+      {productEvents && productEvents.length > 0 && (
+        <div style={{
+          marginTop: "28px",
+          padding: "0 20px 8px",
+        }}>
+          <h3 style={{
+            fontFamily: "var(--font-display)",
+            fontSize: "10px", fontWeight: 400,
+            textTransform: "uppercase", letterSpacing: "0.12em",
+            color: "var(--tea-gold)",
+            margin: "0 0 10px 0",
           }}>
-            <h3 style={{
-              fontFamily: "var(--font-display)",
-              fontSize: "10px", fontWeight: 400,
-              textTransform: "uppercase", letterSpacing: "0.12em",
-              color: "var(--tea-gold)",
-              margin: "0 0 10px 0",
-            }}>
-              Featured in {productEvents.length} {productEvents.length === 1 ? 'event' : 'events'}
-            </h3>
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-              {productEvents.map(evt => {
-                const eventDate = new Date(evt.event_date);
-                const formattedDate = eventDate.toLocaleDateString('en-US', {
-                  month: 'short', day: 'numeric', year: 'numeric',
-                });
-                return (
-                  <button
-                    key={evt.id}
-                    onClick={() => navigate(`/event/${evt.slug}`)}
-                    style={{
-                      display: "flex", alignItems: "center", gap: "10px",
-                      background: "var(--tea-accent-sub)",
-                      border: "1px solid var(--tea-border)",
-                      borderRadius: "6px",
-                      padding: "8px 12px",
-                      cursor: "pointer",
-                      textAlign: "left",
-                      transition: "background 0.2s ease, border-color 0.2s ease",
-                    }}
-                    onMouseEnter={e => {
-                      e.currentTarget.style.background = "var(--tea-surface)";
-                      e.currentTarget.style.borderColor = "var(--tea-gold, #a8874d)";
-                    }}
-                    onMouseLeave={e => {
-                      e.currentTarget.style.background = "var(--tea-accent-sub)";
-                      e.currentTarget.style.borderColor = "var(--tea-border)";
-                    }}
-                  >
-                    {evt.flyer_image_url ? (
-                      <img
-                        src={evt.flyer_image_url}
-                        alt=""
-                        style={{
-                          width: "36px", height: "36px",
-                          borderRadius: "4px", objectFit: "cover",
-                          flexShrink: 0,
-                        }}
-                      />
-                    ) : (
-                      <div style={{
-                        width: "36px", height: "36px",
-                        borderRadius: "4px",
-                        background: "var(--tea-surface)",
-                        border: "1px solid var(--tea-border)",
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        flexShrink: 0,
-                      }}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-                          stroke="var(--tea-text-dim)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                          <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                          <line x1="16" y1="2" x2="16" y2="6" />
-                          <line x1="8" y1="2" x2="8" y2="6" />
-                          <line x1="3" y1="10" x2="21" y2="10" />
-                        </svg>
-                      </div>
-                    )}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{
-                        fontFamily: "var(--font-body)",
-                        fontSize: "13px", fontWeight: 400,
-                        color: "var(--tea-text)",
-                        whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-                      }}>
-                        {evt.title}
-                      </div>
-                      <div style={{
-                        fontFamily: "var(--font-mono)",
-                        fontSize: "10px", fontWeight: 400,
-                        color: "var(--tea-text-dim)",
-                        marginTop: "2px",
-                      }}>
-                        {formattedDate}
-                        {evt.location_name ? ` · ${evt.location_name}` : ''}
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* === FROM THE JOURNAL === */}
-        {relatedArticles.length > 0 && (
-          <div style={{
-            marginTop: "28px",
-            padding: "0 20px 8px",
-          }}>
-            <h3 style={{
-              fontFamily: "var(--font-display)",
-              fontSize: "10px", fontWeight: 400,
-              textTransform: "uppercase", letterSpacing: "0.12em",
-              color: "var(--tea-gold)",
-              margin: "0 0 10px 0",
-            }}>
-              From the journal
-            </h3>
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-              {relatedArticles.map(article => (
+            Featured in {productEvents.length} {productEvents.length === 1 ? 'event' : 'events'}
+          </h3>
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            {productEvents.map(evt => {
+              const eventDate = new Date(evt.event_date);
+              const formattedDate = eventDate.toLocaleDateString('en-US', {
+                month: 'short', day: 'numeric', year: 'numeric',
+              });
+              return (
                 <button
-                  key={article.id}
-                  onClick={() => {
-                    window.dispatchEvent(new CustomEvent('openArticle', { detail: { story: article } }));
-                  }}
+                  key={evt.id}
+                  onClick={() => navigate(`/event/${evt.slug}`)}
                   style={{
                     display: "flex", alignItems: "center", gap: "10px",
                     background: "var(--tea-accent-sub)",
@@ -1058,9 +545,9 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                     e.currentTarget.style.borderColor = "var(--tea-border)";
                   }}
                 >
-                  {article.thumbnailUrl ? (
+                  {evt.flyer_image_url ? (
                     <img
-                      src={article.thumbnailUrl}
+                      src={evt.flyer_image_url}
                       alt=""
                       style={{
                         width: "36px", height: "36px",
@@ -1079,8 +566,10 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                     }}>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
                         stroke="var(--tea-text-dim)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                        <line x1="16" y1="2" x2="16" y2="6" />
+                        <line x1="8" y1="2" x2="8" y2="6" />
+                        <line x1="3" y1="10" x2="21" y2="10" />
                       </svg>
                     </div>
                   )}
@@ -1091,845 +580,84 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                       color: "var(--tea-text)",
                       whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
                     }}>
-                      {article.title}
+                      {evt.title}
                     </div>
-                    {article.subtitle && (
-                      <div style={{
-                        fontFamily: "var(--font-body)",
-                        fontSize: "11px", fontWeight: 300,
-                        color: "var(--tea-text-dim)",
-                        marginTop: "2px",
-                        whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-                      }}>
-                        {article.subtitle}
-                      </div>
-                    )}
+                    <div style={{
+                      fontFamily: "var(--font-mono)",
+                      fontSize: "10px", fontWeight: 400,
+                      color: "var(--tea-text-dim)",
+                      marginTop: "2px",
+                    }}>
+                      {formattedDate}
+                      {evt.location_name ? ` · ${evt.location_name}` : ''}
+                    </div>
                   </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Journal: "From the journal" (card style) + editorial links (both instances) */}
+      <AlcoveJournalSection
+        relatedArticles={relatedArticles}
+        item={item}
+      />
+
+      {/* === YOU MIGHT ALSO LIKE === */}
+      {(() => {
+        if (!items || items.length <= 1) return null;
+        const related = items
+          .filter(i => i.id !== item.id && i.type === item.type)
+          .slice(0, 4);
+        if (related.length === 0) return null;
+        return (
+          <div style={{
+            marginTop: "28px",
+            padding: "0 20px 16px",
+          }}>
+            <h3 style={{
+              fontFamily: "var(--font-display)",
+              fontSize: "10px", fontWeight: 400,
+              textTransform: "uppercase", letterSpacing: "0.12em",
+              color: "var(--tea-gold)",
+              margin: "0 0 10px 0",
+            }}>
+              You might also like
+            </h3>
+            <div style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: "6px 12px",
+            }}>
+              {related.map(rec => (
+                <button
+                  key={rec.id}
+                  onClick={() => onItemSelect?.(rec)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    padding: 0,
+                    cursor: onItemSelect ? "pointer" : "default",
+                    fontFamily: "var(--font-body)",
+                    fontSize: "12px",
+                    fontWeight: 300,
+                    color: "var(--tea-text-sec)",
+                    lineHeight: 1.4,
+                    transition: "color 0.2s",
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.color = "var(--tea-gold)")}
+                  onMouseLeave={e => (e.currentTarget.style.color = "var(--tea-text-sec)")}
+                >
+                  {rec.name}
                 </button>
               ))}
             </div>
           </div>
-        )}
+        );
+      })()}
 
-        {/* === YOU MIGHT ALSO LIKE === */}
-        {(() => {
-          if (!items || items.length <= 1) return null;
-          const related = items
-            .filter(i => i.id !== item.id && i.type === item.type)
-            .slice(0, 4);
-          if (related.length === 0) return null;
-          return (
-            <div style={{
-              marginTop: "28px",
-              padding: "0 20px 16px",
-            }}>
-              <h3 style={{
-                fontFamily: "var(--font-display)",
-                fontSize: "10px", fontWeight: 400,
-                textTransform: "uppercase", letterSpacing: "0.12em",
-                color: "var(--tea-gold)",
-                margin: "0 0 10px 0",
-              }}>
-                You might also like
-              </h3>
-              <div style={{
-                display: "flex",
-                flexWrap: "wrap",
-                gap: "6px 12px",
-              }}>
-                {related.map(rec => (
-                  <button
-                    key={rec.id}
-                    onClick={() => onItemSelect?.(rec)}
-                    style={{
-                      background: "none",
-                      border: "none",
-                      padding: 0,
-                      cursor: onItemSelect ? "pointer" : "default",
-                      fontFamily: "var(--font-body)",
-                      fontSize: "12px",
-                      fontWeight: 300,
-                      color: "var(--tea-text-sec)",
-                      lineHeight: 1.4,
-                      transition: "color 0.2s",
-                    }}
-                    onMouseEnter={e => (e.currentTarget.style.color = "var(--tea-gold)")}
-                    onMouseLeave={e => (e.currentTarget.style.color = "var(--tea-text-sec)")}
-                  >
-                    {rec.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-          );
-        })()}
-
-        {/* === EDITORIAL LINKS — Journal articles + Learn section === */}
-        {(relatedArticles.length > 0 || item.category === 'tea') && (
-          <div style={{
-            marginTop: "28px",
-            padding: "0 20px 20px",
-          }}>
-            <div className="border-t border-tea-border pt-3">
-              {relatedArticles.length > 0 && (
-                <>
-                  <p style={{
-                    fontFamily: "var(--font-display)",
-                    fontSize: "10px", fontWeight: 400,
-                    textTransform: "uppercase", letterSpacing: "0.12em",
-                    color: "var(--tea-text-dim)",
-                    margin: "0 0 6px 0",
-                  }}>
-                    From the journal
-                  </p>
-                  {relatedArticles.map(article => (
-                    <button
-                      key={article.id}
-                      onClick={() => navigate('/magazine')}
-                      style={{
-                        display: "flex", alignItems: "flex-start", justifyContent: "space-between",
-                        gap: "8px",
-                        background: "none", border: "none",
-                        padding: "5px 0", cursor: "pointer",
-                        width: "100%", textAlign: "left",
-                      }}
-                      onMouseEnter={e => {
-                        const span = e.currentTarget.querySelector('.article-title') as HTMLElement;
-                        if (span) span.style.color = "var(--tea-gold)";
-                      }}
-                      onMouseLeave={e => {
-                        const span = e.currentTarget.querySelector('.article-title') as HTMLElement;
-                        if (span) span.style.color = "var(--tea-text)";
-                      }}
-                    >
-                      <span className="article-title" style={{
-                        fontFamily: "var(--font-body)",
-                        fontSize: "14px", fontWeight: 300, lineHeight: 1.45,
-                        color: "var(--tea-text)",
-                        transition: "color 0.2s",
-                      }}>
-                        {article.title}
-                      </span>
-                      <span style={{
-                        fontFamily: "var(--font-sans)",
-                        fontSize: "12px",
-                        color: "var(--tea-text-dim)",
-                        flexShrink: 0,
-                        paddingTop: "2px",
-                      }}>
-                        →
-                      </span>
-                    </button>
-                  ))}
-                </>
-              )}
-
-              {item.category === 'tea' && (
-                <button
-                  onClick={() => navigate('/learn')}
-                  style={{
-                    display: "flex", alignItems: "center", gap: "6px",
-                    background: "none", border: "none",
-                    padding: relatedArticles.length > 0 ? "7px 0 0" : "3px 0 0",
-                    cursor: "pointer",
-                    width: "100%", textAlign: "left",
-                  }}
-                  onMouseEnter={e => {
-                    const span = e.currentTarget.querySelector('.learn-label') as HTMLElement;
-                    if (span) span.style.color = "var(--tea-gold)";
-                  }}
-                  onMouseLeave={e => {
-                    const span = e.currentTarget.querySelector('.learn-label') as HTMLElement;
-                    if (span) span.style.color = "var(--tea-text-sec)";
-                  }}
-                >
-                  <span className="learn-label" style={{
-                    fontFamily: "var(--font-sans)",
-                    fontSize: "12px", fontWeight: 400,
-                    letterSpacing: "0.02em",
-                    color: "var(--tea-text-sec)",
-                    transition: "color 0.2s",
-                  }}>
-                    Learn about {item.type ? item.type.toLowerCase() : ''} tea →
-                  </span>
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-
-
-      </div>
-
-      {/* === PINNED BOTTOM: Commerce (compressed 2-row) === */}
-      <div style={{
-        position: "relative", zIndex: 3, flexShrink: 0,
-        padding: "6px 14px 8px",
-        borderTop: "1px solid var(--tea-border)",
-        background: alcoveColors.bg,
-      }}>
-            {/* Row 1: Amount selector */}
-            {isSoldOut ? (
-              <div style={{
-                display: "flex", alignItems: "center", gap: "6px",
-                marginBottom: "4px",
-              }}>
-                <div style={{
-                  width: "5px", height: "5px", borderRadius: "50%",
-                  background: stockStatus.color,
-                }} />
-                <span style={{
-                  fontFamily: "var(--font-sans)",
-                  fontSize: "10px", fontWeight: 400,
-                  letterSpacing: "0.08em", textTransform: "uppercase",
-                  color: stockStatus.color,
-                }}>
-                  {stockStatus.label}
-                </span>
-              </div>
-            ) : item.category === 'tea' ? (
-              <>
-                {/* Tea: Sample | 50g | 100g | Custom */}
-                <div style={{ display: "flex", gap: "4px", marginBottom: "4px" }}>
-                  {[
-                    { key: 'sample', label: 'Sample', sub: '10g' },
-                    ...(50 <= sliderMax ? [{ key: '50', label: '50g', sub: '' }] : []),
-                    ...(100 <= sliderMax ? [{ key: '100', label: '100g', sub: '' }] : []),
-                    { key: 'custom', label: 'Custom', sub: '' },
-                  ].map(opt => {
-                    const isActive =
-                      opt.key === 'sample' ? sampleMode :
-                      opt.key === 'custom' ? customMode :
-                      (!sampleMode && !customMode && grams === parseInt(opt.key));
-                    return (
-                      <button
-                        key={opt.key}
-                        onClick={() => {
-                          if (navigator.vibrate) navigator.vibrate(8);
-                          if (opt.key === 'sample') {
-                            setSampleMode(true); setCustomMode(false);
-                          } else if (opt.key === 'custom') {
-                            setCustomMode(true); setSampleMode(false);
-                          } else {
-                            setGrams(parseInt(opt.key)); setSampleMode(false); setCustomMode(false);
-                          }
-                        }}
-                        style={{
-                          flex: 1,
-                          padding: "5px 0",
-                          fontFamily: "var(--font-mono)",
-                          fontSize: "10px", fontWeight: 400,
-                          letterSpacing: "0.05em",
-                          color: isActive ? 'var(--tea-gold)' : 'var(--tea-text-dim)',
-                          background: 'var(--tea-accent-sub)',
-                          border: isActive ? '1px solid var(--tea-gold)' : '1px solid var(--tea-border)',
-                          borderRadius: "3px",
-                          cursor: "pointer",
-                          transition: "border-color 0.15s, color 0.15s",
-                          display: "flex", flexDirection: "column",
-                          alignItems: "center", justifyContent: "center", gap: "1px",
-                        }}
-                      >
-                        <span>{opt.label}</span>
-                        {opt.sub && <span style={{ fontSize: "9px", opacity: 0.6 }}>{opt.sub}</span>}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* Stock status */}
-                {stockStatus.level !== 'ok' && (
-                  <div style={{
-                    display: "flex", alignItems: "center", gap: "6px",
-                    marginBottom: "4px",
-                  }}>
-                    <div style={{
-                      width: "5px", height: "5px", borderRadius: "50%",
-                      background: stockStatus.color,
-                      boxShadow: stockStatus.level === 'low' ? `0 0 4px ${stockStatus.color}` : 'none',
-                      flexShrink: 0,
-                    }} />
-                    <span style={{
-                      fontFamily: "var(--font-sans)",
-                      fontSize: "10px",
-                      color: stockStatus.color,
-                      letterSpacing: "0.06em",
-                      textTransform: "uppercase",
-                    }}>
-                      {stockStatus.label}
-                    </span>
-                  </div>
-                )}
-              </>
-            ) : (
-              /* Teaware / non-tea: original preset row */
-              <div style={{
-                display: "flex", gap: "4px", alignItems: "center",
-                marginBottom: "4px",
-              }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "4px", marginRight: "4px", flexShrink: 0 }}>
-                  <div style={{
-                    width: "5px", height: "5px", borderRadius: "50%",
-                    background: stockStatus.color,
-                    boxShadow: stockStatus.level === 'low' ? `0 0 4px ${stockStatus.color}` : 'none',
-                  }} />
-                  <span style={{
-                    fontFamily: "var(--font-mono)",
-                    fontSize: "10px", fontWeight: 400,
-                    color: alcoveColors.body,
-                    fontVariantNumeric: "tabular-nums lining-nums",
-                  }}>
-                    {formatPrice ? perGramDisplay : `$${perGramDisplay}`}/g
-                  </span>
-                </div>
-                {presets.map(p => (
-                  <button
-                    key={p}
-                    onClick={() => { setGrams(p); if (navigator.vibrate) navigator.vibrate(8); }}
-                    style={{
-                      flex: 1,
-                      padding: "4px 0",
-                      fontFamily: "var(--font-mono)",
-                      fontSize: "10px", fontWeight: 400,
-                      letterSpacing: "0.04em",
-                      color: grams === p ? 'var(--tea-bg)' : 'var(--tea-text-sec)',
-                      background: grams === p ? 'var(--tea-gold)' : 'var(--tea-accent-sub)',
-                      border: grams === p ? '1px solid var(--tea-gold)' : '1px solid var(--tea-border)',
-                      borderRadius: "3px",
-                      cursor: "pointer",
-                      transition: "all 0.2s ease-out",
-                    }}
-                  >
-                    {p}g
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* Session reserve soft warning */}
-            {item.sessionReserveGrams != null && item.sessionReserveGrams > 0 && item.stock_g <= item.sessionReserveGrams && !isSoldOut && (
-              <div style={{ marginBottom: "4px" }}>
-                <span className="text-tea-gold text-xs">
-                  Last ~{item.stock_g}g available — we'll confirm quantity before dispatching.
-                </span>
-              </div>
-            )}
-
-            {/* Row 2: Save/Share(/Edit) + Add button */}
-            <div style={{ display: "flex", gap: "4px" }}>
-              <div style={{
-                display: "flex", alignItems: "center", justifyContent: "center", gap: "10px",
-                height: "34px", boxSizing: "border-box",
-                border: "1px solid var(--tea-border)",
-                borderRadius: "3px",
-                flexShrink: 0,
-                padding: "0 10px",
-              }}>
-                <button
-                  onClick={() => toggleFavoriteTea(item.id)}
-                  onMouseEnter={() => setHovered("fav")}
-                  onMouseLeave={() => setHovered(null)}
-                  aria-label={favorited ? "Remove from favorites" : "Add to favorites"}
-                  style={{
-                    background: "none", border: "none", padding: "0",
-                    cursor: "pointer", transition: "all 0.2s ease",
-                    display: "inline-flex", alignItems: "center", gap: "4px",
-                    opacity: favorited ? 1 : (hovered === "fav" ? 0.9 : 0.7),
-                  }}
-                >
-                  <Heart
-                    size={13}
-                    color={favorited ? accent : alcoveColors.muted}
-                    fill={favorited ? accent : "none"}
-                    strokeWidth={1.5}
-                  />
-                </button>
-                {isAdmin && (
-                  <>
-                    <div style={{ width: "1px", height: "10px", background: "var(--tea-border)" }} />
-                    <button
-                      onClick={toggleSampleCart}
-                      onMouseEnter={() => setHovered("sample")}
-                      onMouseLeave={() => setHovered(null)}
-                      aria-label={inSampleCart ? "Remove from sample pack" : "Add to sample pack"}
-                      title={inSampleCart ? "In sample pack" : "Add to sample pack"}
-                      style={{
-                        background: "none", border: "none", padding: "0",
-                        cursor: "pointer", transition: "all 0.2s ease",
-                        display: "inline-flex", alignItems: "center", gap: "4px",
-                        opacity: inSampleCart ? 1 : (hovered === "sample" ? 0.9 : 0.7),
-                      }}
-                    >
-                      <QrCode size={13} color={inSampleCart ? "var(--tea-gold)" : alcoveColors.muted} />
-                    </button>
-                  </>
-                )}
-                <div style={{ width: "1px", height: "10px", background: "var(--tea-border)" }} />
-                <button
-                  onClick={handleShare}
-                  onMouseEnter={() => setHovered("share")}
-                  onMouseLeave={() => setHovered(null)}
-                  aria-label="Share"
-                  style={{
-                    background: "none", border: "none", padding: "0",
-                    cursor: "pointer", transition: "all 0.2s ease",
-                    display: "inline-flex", alignItems: "center", gap: "4px",
-                    opacity: hovered === "share" ? 0.9 : 0.7,
-                  }}
-                >
-                  <span style={{
-                    fontFamily: "var(--font-sans)",
-                    fontSize: "10px", fontWeight: 400,
-                    letterSpacing: "0.08em", textTransform: "uppercase",
-                    color: shareCopied ? alcoveColors.success : alcoveColors.subtitle,
-                  }}>{shareCopied ? 'Copied' : 'Share'}</span>
-                </button>
-                {onTaste && (
-                  <>
-                    <div style={{ width: "1px", height: "10px", background: "var(--tea-border)" }} />
-                    <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); onTaste(item); }}
-                      onMouseEnter={() => setHovered("taste")}
-                      onMouseLeave={() => setHovered(null)}
-                      aria-label="Start tasting session"
-                      style={{
-                        background: "none", border: "none", padding: "4px 0",
-                        cursor: "pointer", transition: "all 0.2s ease",
-                        display: "inline-flex", alignItems: "center", gap: "4px",
-                        opacity: hovered === "taste" ? 0.9 : 0.7,
-                      }}
-                    >
-                      <span style={{
-                        fontFamily: "var(--font-sans)",
-                        fontSize: "10px", fontWeight: 400,
-                        letterSpacing: "0.08em", textTransform: "uppercase",
-                        color: alcoveColors.subtitle,
-                      }}>Taste</span>
-                    </button>
-                  </>
-                )}
-                {isAdmin && onEdit && (
-                  <>
-                    <div style={{ width: "1px", height: "10px", background: "var(--tea-border)" }} />
-                    <button
-                      onClick={() => onEdit(item)}
-                      onMouseEnter={() => setHovered("edit")}
-                      onMouseLeave={() => setHovered(null)}
-                      aria-label="Edit Product"
-                      style={{
-                        background: "none", border: "none", padding: "0",
-                        cursor: "pointer", transition: "all 0.2s ease",
-                        display: "inline-flex", alignItems: "center", gap: "4px",
-                        opacity: hovered === "edit" ? 0.9 : 0.7,
-                      }}
-                    >
-                      <Pencil size={14} style={{ color: alcoveColors.muted }} />
-                    </button>
-                  </>
-                )}
-              </div>
-
-              <button
-                onClick={handleAdd}
-                disabled={isSoldOut}
-                onMouseEnter={() => setHovered("cart")}
-                onMouseLeave={() => setHovered(null)}
-                style={{
-                  flex: 1, height: "34px", boxSizing: "border-box",
-                  fontFamily: "var(--font-sans)",
-                  fontSize: "12px", fontWeight: 700,
-                  letterSpacing: "0.08em", textTransform: "uppercase",
-                  color: isSoldOut
-                    ? 'var(--tea-text-sec)'
-                    : added ? alcoveColors.bg : alcoveColors.bg,
-                  background: isSoldOut
-                    ? 'var(--tea-accent-sub)'
-                    : added
-                      ? alcoveColors.success
-                      : hovered === "cart"
-                        ? 'var(--tea-gold-lt, #bfa06a)'
-                        : 'var(--tea-gold, #a8874d)',
-                  border: isSoldOut
-                    ? '1px solid var(--tea-border)'
-                    : added
-                      ? `1px solid ${alcoveColors.success}`
-                      : '1px solid transparent',
-                  borderRadius: "4px",
-                  cursor: isSoldOut ? "not-allowed" : "pointer",
-                  transition: "all 0.25s ease",
-                  display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
-                  opacity: isSoldOut ? 0.6 : 1,
-                }}
-              >
-                {isSoldOut ? (
-                  <span>Sold Out</span>
-                ) : added ? (
-                  <span>Added</span>
-                ) : sampleMode ? (
-                  <>
-                    <span>Sample — 10g</span>
-                    {pricePerGram > 0 && (
-                      <span style={{ fontFamily: "var(--font-mono)", fontWeight: 500, fontSize: "12px" }}>
-                        {formatPrice ? formatPrice(pricePerGram, 10) : fmtShopPrice(pricePerGram * 10)}
-                      </span>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    <span>Order</span>
-                    <span style={{
-                      fontFamily: "var(--font-mono)",
-                      fontWeight: 500, fontSize: "12px",
-                    }}>
-                      {formatPrice ? total : `$${total}`}
-                    </span>
-                    {pricePerGram > 0 && (
-                      <span style={{
-                        fontFamily: "var(--font-mono)",
-                        fontWeight: 400, fontSize: "10px", opacity: 0.55,
-                      }}>
-                        {formatPrice ? perGramDisplay : `$${perGramDisplay}`}/g
-                      </span>
-                    )}
-                  </>
-                )}
-              </button>
-            </div>
-      </div>
-
-      {/* Fade indicator at bottom of scrollable area, above pinned commerce */}
-      <div style={{
-        position: "relative", flexShrink: 0, height: 0,
-        pointerEvents: "none", zIndex: 2,
-      }}>
-        <div style={{
-          position: "absolute", bottom: 0, left: 0, right: 0, height: "24px",
-          background: `linear-gradient(to top, ${alcoveColors.bg}, transparent)`,
-          opacity: showFade ? 1 : 0,
-          transition: "opacity 0.3s ease",
-        }} />
-      </div>
-
-      {/* Sample request modal */}
-      {sampleModalOpen && (
-        <div
-          onClick={() => { if (!sampleSubmitting) setSampleModalOpen(false); }}
-          style={{
-            position: "fixed", inset: 0, zIndex: 9999,
-            background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            padding: "16px",
-          }}
-        >
-          <div
-            onClick={e => e.stopPropagation()}
-            style={{
-              background: "var(--tea-surface)",
-              border: "1px solid var(--tea-border)",
-              borderRadius: "8px",
-              width: "100%", maxWidth: "360px",
-              padding: "24px",
-              position: "relative",
-            }}
-          >
-            {/* Close */}
-            <button
-              onClick={() => setSampleModalOpen(false)}
-              style={{
-                position: "absolute", top: "12px", right: "12px",
-                background: "none", border: "none", cursor: "pointer",
-                color: "var(--tea-text-dim)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-              }}
-            >
-              <X size={16} />
-            </button>
-
-            {sampleDone ? (
-              <div style={{ textAlign: "center", padding: "8px 0" }}>
-                <p style={{ fontFamily: "var(--font-display)", fontSize: "18px", color: "var(--tea-text)", marginBottom: "8px" }}>
-                  Sample requested.
-                </p>
-                <p style={{ fontFamily: "var(--font-body)", fontSize: "14px", color: "var(--tea-text-sec)", lineHeight: 1.6 }}>
-                  We'll be in touch to arrange delivery.
-                </p>
-                <button
-                  onClick={() => setSampleModalOpen(false)}
-                  style={{
-                    marginTop: "16px",
-                    background: "var(--tea-gold)", color: "var(--tea-bg)",
-                    border: "none", borderRadius: "4px",
-                    padding: "8px 20px", cursor: "pointer",
-                    fontFamily: "var(--font-sans)", fontSize: "12px",
-                    fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase",
-                  }}
-                >
-                  Done
-                </button>
-              </div>
-            ) : !isLoggedIn ? (
-              <div style={{ textAlign: "center", padding: "8px 0" }}>
-                <p style={{ fontFamily: "var(--font-display)", fontSize: "16px", color: "var(--tea-text)", marginBottom: "8px" }}>
-                  Create an account to request samples
-                </p>
-                <p style={{ fontFamily: "var(--font-body)", fontSize: "13px", color: "var(--tea-text-sec)", lineHeight: 1.6, marginBottom: "16px" }}>
-                  Sign in or create a free account to request a sample of {item.name}.
-                </p>
-                <button
-                  onClick={() => { setSampleModalOpen(false); window.dispatchEvent(new CustomEvent('openAccountPanel', { detail: { view: 'signup' } })); }}
-                  style={{
-                    background: "var(--tea-gold)", color: "var(--tea-bg)",
-                    border: "none", borderRadius: "4px",
-                    padding: "10px 20px", cursor: "pointer",
-                    fontFamily: "var(--font-sans)", fontSize: "12px",
-                    fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase",
-                    width: "100%",
-                  }}
-                >
-                  Sign In / Create Account
-                </button>
-              </div>
-            ) : (
-              <div>
-                {/* Product info */}
-                <div style={{ display: "flex", gap: "12px", marginBottom: "20px", alignItems: "center" }}>
-                  {item.image && (
-                    <img
-                      src={item.image}
-                      alt=""
-                      style={{ width: "48px", height: "48px", borderRadius: "4px", objectFit: "cover", flexShrink: 0 }}
-                    />
-                  )}
-                  <div style={{ minWidth: 0 }}>
-                    <p style={{ fontFamily: "var(--font-display)", fontSize: "15px", color: "var(--tea-text)", margin: 0 }}>
-                      {item.name}
-                    </p>
-                    {item.origin && (
-                      <p style={{ fontFamily: "var(--font-body)", fontSize: "12px", color: "var(--tea-text-sec)", margin: "2px 0 0" }}>
-                        {item.origin}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Size selector */}
-                <div style={{ marginBottom: "16px" }}>
-                  <p style={{ fontFamily: "var(--font-sans)", fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.15em", color: "var(--tea-text-sec)", marginBottom: "8px" }}>
-                    Sample size
-                  </p>
-                  <div style={{ display: "flex", gap: "6px" }}>
-                    {([5, 10, 15] as const).map(g => {
-                      const cost = pricePerGram * g;
-                      const costDisplay = formatPrice ? formatPrice(pricePerGram, g) : fmtShopPrice(cost);
-                      return (
-                        <button
-                          key={g}
-                          onClick={() => setSampleGrams(g)}
-                          style={{
-                            flex: 1, padding: "8px 4px",
-                            borderRadius: "4px",
-                            border: sampleGrams === g ? "1px solid var(--tea-gold)" : "1px solid var(--tea-border)",
-                            background: sampleGrams === g ? "var(--tea-gold)/10" : "var(--tea-bg)",
-                            cursor: "pointer", textAlign: "center",
-                          }}
-                        >
-                          <div style={{ fontFamily: "var(--font-mono)", fontSize: "13px", fontWeight: 600, color: sampleGrams === g ? "var(--tea-gold)" : "var(--tea-text)" }}>
-                            {g}g
-                          </div>
-                          <div style={{ fontFamily: "var(--font-mono)", fontSize: "10px", color: "var(--tea-text-sec)", marginTop: "2px" }}>
-                            {costDisplay}
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Note */}
-                <div style={{ marginBottom: "16px" }}>
-                  <p style={{ fontFamily: "var(--font-sans)", fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.15em", color: "var(--tea-text-sec)", marginBottom: "6px" }}>
-                    Note (optional)
-                  </p>
-                  <textarea
-                    value={sampleNote}
-                    onChange={e => setSampleNote(e.target.value)}
-                    placeholder="Anything you'd like us to know?"
-                    rows={2}
-                    style={{
-                      width: "100%", boxSizing: "border-box",
-                      background: "var(--tea-bg)", border: "1px solid var(--tea-border)",
-                      borderRadius: "4px", padding: "8px 10px",
-                      fontFamily: "var(--font-body)", fontSize: "13px", color: "var(--tea-text)",
-                      outline: "none", resize: "none",
-                    }}
-                  />
-                </div>
-
-                {sampleError && (
-                  <p style={{ fontSize: "12px", color: "var(--tea-text-sec)", marginBottom: "12px" }}>{sampleError}</p>
-                )}
-
-                <button
-                  onClick={handleSampleSubmit}
-                  disabled={sampleSubmitting}
-                  style={{
-                    width: "100%", padding: "10px",
-                    background: "var(--tea-gold)", color: "var(--tea-bg)",
-                    border: "none", borderRadius: "4px", cursor: sampleSubmitting ? "not-allowed" : "pointer",
-                    fontFamily: "var(--font-sans)", fontSize: "12px",
-                    fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase",
-                    display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
-                    opacity: sampleSubmitting ? 0.7 : 1,
-                  }}
-                >
-                  {sampleSubmitting && <Loader2 size={13} style={{ animation: "spin 1s linear infinite" }} />}
-                  Request sample
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Custom amount modal */}
-      {customMode && (
-        <div
-          onClick={() => setCustomMode(false)}
-          style={{
-            position: "fixed", inset: 0, zIndex: 9999,
-            background: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            padding: "16px",
-          }}
-        >
-          <div
-            onClick={e => e.stopPropagation()}
-            style={{
-              background: "var(--tea-surface)",
-              border: "1px solid var(--tea-border)",
-              borderRadius: "6px",
-              width: "100%", maxWidth: "320px",
-              padding: "24px",
-            }}
-          >
-            <p style={{
-              fontFamily: "var(--font-display)",
-              fontSize: "15px", fontWeight: 400,
-              color: "var(--tea-text)",
-              margin: "0 0 16px 0",
-            }}>
-              Custom amount
-            </p>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "20px" }}>
-              <input
-                type="number"
-                min={5}
-                max={sliderMax}
-                step={5}
-                value={customInput}
-                onChange={e => {
-                  setCustomInput(e.target.value);
-                  const v = parseInt(e.target.value);
-                  if (!isNaN(v) && v >= 5) setGrams(Math.min(v, sliderMax));
-                }}
-                placeholder="e.g. 200"
-                autoFocus
-                style={{
-                  flex: 1, height: "36px",
-                  background: 'var(--tea-bg)',
-                  border: '1px solid var(--tea-gold)',
-                  borderRadius: '4px', padding: '0 10px',
-                  fontFamily: 'var(--font-mono)', fontSize: '14px',
-                  color: 'var(--tea-text)', outline: 'none',
-                }}
-              />
-              <span style={{
-                fontFamily: 'var(--font-mono)', fontSize: '13px',
-                color: 'var(--tea-text-sec)',
-              }}>g</span>
-            </div>
-            <div style={{ display: "flex", gap: "8px" }}>
-              <button
-                onClick={() => setCustomMode(false)}
-                style={{
-                  flex: 1, padding: "9px",
-                  background: "none",
-                  border: "1px solid var(--tea-border)",
-                  borderRadius: "4px", cursor: "pointer",
-                  fontFamily: "var(--font-sans)", fontSize: "12px",
-                  color: "var(--tea-text-sec)",
-                  letterSpacing: "0.08em", textTransform: "uppercase",
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  const v = parseInt(customInput);
-                  if (!isNaN(v) && v >= 5) {
-                    setGrams(Math.min(v, sliderMax));
-                    setCustomMode(false);
-                  }
-                }}
-                style={{
-                  flex: 1, padding: "9px",
-                  background: "var(--tea-gold)", color: "var(--tea-bg)",
-                  border: "none", borderRadius: "4px", cursor: "pointer",
-                  fontFamily: "var(--font-sans)", fontSize: "12px",
-                  fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase",
-                }}
-              >
-                Confirm
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Fullscreen image overlay */}
-      {imageExpanded && expandedImageUrl && (
-        <div
-          onClick={() => { setImageExpanded(false); setExpandedImageUrl(null); }}
-          style={{
-            position: "fixed", inset: 0, zIndex: 9999,
-            background: "var(--tea-bg)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            cursor: "pointer",
-            animation: "panelReveal 0.3s ease-out",
-          }}
-        >
-          <img
-            src={expandedImageUrl}
-            alt={item.name}
-            style={{
-              maxWidth: "90vw", maxHeight: "90vh",
-              objectFit: "contain",
-              borderRadius: "4px",
-            }}
-          />
-          <button
-            style={{
-              position: "absolute", top: "14px", right: "14px",
-              width: "32px", height: "32px",
-              background: "rgba(0,0,0,0.25)", backdropFilter: "blur(8px)",
-              WebkitBackdropFilter: "blur(8px)",
-              border: "1px solid var(--tea-border)", borderRadius: "50%",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              cursor: "pointer",
-              transition: "background 0.2s ease",
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(0,0,0,0.4)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(0,0,0,0.25)"; }}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-              stroke="var(--tea-text-sec)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
-        </div>
-      )}
-    </div>
+    </AlcoveShell>
   );
 };
