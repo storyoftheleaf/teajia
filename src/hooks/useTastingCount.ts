@@ -2,28 +2,28 @@ import { useMemo } from 'react';
 import { useAppStore } from '../lib/store';
 
 /**
- * Returns how many times a given tea has been tasted,
- * based on the local tasting journal in the app store.
- * Purely client-side — no backend needed.
+ * How many times this tea has been tasted (counts the `tastings` array on the
+ * single entry per productId). 0 means no entry exists yet.
  */
-export function useTastingCount(teaId: string): number {
+export function useTastingCount(productId: string): number {
   const tastingJournal = useAppStore((s) => s.tastingJournal);
-  return useMemo(
-    () => tastingJournal.filter((t) => t.teaId === teaId).length,
-    [tastingJournal, teaId]
-  );
+  return useMemo(() => {
+    const entry = tastingJournal.find((t) => t.productId === productId && !t.archived);
+    return entry ? entry.tastings.length : 0;
+  }, [tastingJournal, productId]);
 }
 
 /**
- * Returns a Map of teaId → tasting count for all teas in the journal.
- * More efficient than calling useTastingCount per-card in a list.
+ * Map of productId → number of recorded tastings on that entry. Excludes
+ * archived entries.
  */
 export function useTastingCounts(): Map<string, number> {
   const tastingJournal = useAppStore((s) => s.tastingJournal);
   return useMemo(() => {
     const counts = new Map<string, number>();
     for (const entry of tastingJournal) {
-      counts.set(entry.teaId, (counts.get(entry.teaId) || 0) + 1);
+      if (entry.archived) continue;
+      counts.set(entry.productId, entry.tastings.length);
     }
     return counts;
   }, [tastingJournal]);

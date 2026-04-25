@@ -35,7 +35,7 @@ export const ADMIN_TOOLS: AdminTool[] = [
   { id: 'magazine', label: 'Magazine', group: 'publish', route: '/admin/magazine', addedAt: '2026-01-28', requires: 'owner' },
   { id: 'collections', label: 'Collections', group: 'publish', route: '/admin/collections', addedAt: '2026-04-24', requires: 'owner' },
 
-  { id: 'team', label: 'Team', group: 'teach', route: '/admin/team', addedAt: '2025-12-05', requires: 'owner' },
+  { id: 'team', label: 'Team', group: 'teach', route: '/admin/people?tab=team', addedAt: '2025-12-05', requires: 'owner' },
   { id: 'account-settings', label: 'Account Settings', group: 'teach', route: '/admin/account-settings', addedAt: '2025-10-01', requires: 'owner' },
   { id: 'platform', label: 'Platform Admin', group: 'teach', route: '/admin/platform', addedAt: '2025-12-20', requires: 'platform' },
 ];

@@ -71,7 +71,7 @@ export const AdminToolbar: React.FC<AdminToolbarProps> = ({ collapsed: controlle
         <span className="w-px h-3 bg-tea-text/10 shrink-0" />
 
         <button
-          onClick={() => navigate('/admin/records')}
+          onClick={() => navigate('/admin/activity?tab=ledger')}
           className="flex items-center gap-1.5 shrink-0 group"
           title="Revenue this week"
         >

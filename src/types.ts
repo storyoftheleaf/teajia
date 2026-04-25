@@ -62,38 +62,67 @@ export interface TastingData {
   mood?: string;
 }
 
+/**
+ * One recorded tasting sitting. Holds the raw TastingData captured that day.
+ * Sessions beyond the first carry a `reason` explaining why a fresh tasting was
+ * warranted instead of editing the entry's note in place.
+ */
+export interface TastingRecord {
+  id: string;
+  createdAt: string;
+  tasting: TastingData;
+  /**
+   * Required for tastings 2..N. Why a fresh tasting was needed (different brew,
+   * aged tea, new vessel, etc.). The first record on an entry leaves this empty.
+   */
+  reason?: string;
+  /** Per-tasting provenance. Source context lives here, not at entry level. */
+  sourceType?: 'product' | 'compass' | 'event' | 'sample';
+  eventId?: string;
+  eventSlug?: string;
+  eventTitle?: string;
+  tasterName?: string;
+}
+
+/**
+ * Canonical tasting entry. One row per (userId, productId).
+ *
+ * The `note` layer is the user's current view of this tea: the paragraph that
+ * surfaces in the journal card and the latest tasting profile. Edited in place
+ * over time. The `tastings[]` array holds every recorded sitting, oldest first.
+ */
 export interface CustomerTasting {
   id: string;
-  teaId: string;
-  teaName: string;
-  teaType: string;
-  teaImage?: string;
-  tasting: TastingData;
-  personalNote?: string;
-  rating?: number;
-  createdAt: string;
-  /** When this tasting originated from an event session */
-  eventId?: string;
-  /** URL slug for the event (e.g. "winter-2024") — used for navigation */
-  eventSlug?: string;
-  /** Human-readable event title for display in the journal */
-  eventTitle?: string;
-  /** Origin context */
-  sourceType?: 'product' | 'compass' | 'event' | 'sample';
-  /** Cross-link to a TeaCompassEntry */
+  /** Canonical key. Renamed from teaId. Never 'quick-note' (that sentinel is gone). */
+  productId: string;
+  productName: string;
+  productType: string;
+  productImage?: string;
+
+  /**
+   * The current view of this tea for this user. Surfaces in the journal card
+   * and the entry detail. Mutated in place by edits and (with confirmation)
+   * when a new tasting is added.
+   */
+  note: {
+    tasting: TastingData;
+    personalNote?: string;
+    rating?: number;
+    verdict?: 'love' | 'like' | 'neutral' | 'pass';
+    wouldBuy?: boolean;
+    updatedAt: string;
+  };
+
+  /** Every recorded tasting, oldest first. Length >= 1. */
+  tastings: TastingRecord[];
+
+  /** Cross-links and origin context that belong to the entry as a whole. */
   compassEntryId?: string;
-  /** Sourcing verdict — would we stock/order this tea? */
-  verdict?: 'love' | 'like' | 'neutral' | 'pass';
-  /** Would you buy/order this tea? */
-  wouldBuy?: boolean;
-  /** Name of the person who tasted (group cuppings) */
-  tasterName?: string;
-  /** Whether this entry has been synced to the server */
-  synced?: boolean;
-  /** Account this tasting belongs to (for multi-account filtering) */
+
+  createdAt: string;
   accountId?: string;
-  /** Archived entries are hidden from the main journal view but never deleted */
   archived?: boolean;
+  synced?: boolean;
 }
 
 export enum ContentType {

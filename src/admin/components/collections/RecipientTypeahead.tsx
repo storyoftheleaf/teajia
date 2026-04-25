@@ -1,12 +1,19 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { X as XIcon, User } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { X as XIcon, Check, Search, Plus, Loader2 } from 'lucide-react';
 import { api } from '../../../lib/api';
 import type { CollectionRecipient } from '../../../types';
+
+// Kept the original filename + export name so existing imports (Share sheet,
+// AddPublicationSheet) keep working without churn. The component is the
+// "RecipientPicker": a checkbox list of customers plus an inline freeform-name
+// input — better suited to small contact sets than a typeahead dropdown.
 
 interface RecipientTypeaheadProps {
   value: CollectionRecipient[];
   onChange: (next: CollectionRecipient[]) => void;
+  /** Unused now but kept in the signature for source-compatibility. */
   placeholder?: string;
+  /** Unused now — there's no single input to focus. */
   autoFocus?: boolean;
 }
 
@@ -17,14 +24,12 @@ interface CustomerRow {
 }
 
 export const RecipientTypeahead: React.FC<RecipientTypeaheadProps> = ({
-  value, onChange, placeholder = 'Type a name…', autoFocus,
+  value, onChange,
 }) => {
-  const [query, setQuery] = useState('');
   const [customers, setCustomers] = useState<CustomerRow[]>([]);
   const [loading, setLoading] = useState(false);
-  const [open, setOpen] = useState(false);
-  const [activeIdx, setActiveIdx] = useState(0);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [filter, setFilter] = useState('');
+  const [freeform, setFreeform] = useState('');
 
   useEffect(() => {
     let cancelled = false;
@@ -33,6 +38,8 @@ export const RecipientTypeahead: React.FC<RecipientTypeaheadProps> = ({
       .then((rows: any) => {
         if (cancelled) return;
         const list: CustomerRow[] = Array.isArray(rows) ? rows : (rows?.customers ?? rows?.results ?? []);
+        // Sort alphabetically — small list, predictable order beats recency.
+        list.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
         setCustomers(list);
       })
       .catch(() => { if (!cancelled) setCustomers([]); })
@@ -40,157 +47,163 @@ export const RecipientTypeahead: React.FC<RecipientTypeaheadProps> = ({
     return () => { cancelled = true; };
   }, []);
 
-  const alreadyAddedKeys = useMemo(() => {
-    const keys = new Set<string>();
-    for (const r of value) {
-      if (r.customer_id) keys.add(`c:${r.customer_id}`);
-      keys.add(`n:${r.name.trim().toLowerCase()}`);
-    }
-    return keys;
+  const selectedCustomerIds = useMemo(() => {
+    const s = new Set<string>();
+    for (const r of value) if (r.customer_id) s.add(r.customer_id);
+    return s;
   }, [value]);
 
-  const suggestions = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return [];
-    return customers
-      .filter(c => {
-        if (alreadyAddedKeys.has(`c:${c.id}`)) return false;
-        return c.name.toLowerCase().includes(q);
-      })
-      .slice(0, 6);
-  }, [customers, query, alreadyAddedKeys]);
+  const freeformAlreadyAdded = useMemo(() => {
+    const s = new Set<string>();
+    for (const r of value) if (!r.customer_id) s.add(r.name.trim().toLowerCase());
+    return s;
+  }, [value]);
 
-  useEffect(() => { setActiveIdx(0); }, [query, suggestions.length]);
+  const filtered = useMemo(() => {
+    const q = filter.trim().toLowerCase();
+    if (!q) return customers;
+    return customers.filter(c => c.name.toLowerCase().includes(q));
+  }, [customers, filter]);
 
-  useEffect(() => {
-    const onDocClick = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', onDocClick);
-    return () => document.removeEventListener('mousedown', onDocClick);
-  }, []);
-
-  const addFromCustomer = (c: CustomerRow) => {
-    if (alreadyAddedKeys.has(`c:${c.id}`)) return;
-    onChange([...value, { customer_id: c.id, name: c.name, phone: c.phone }]);
-    setQuery('');
-    setOpen(false);
-  };
-
-  const addAsFreeform = () => {
-    const raw = query.trim();
-    if (!raw) return;
-    if (alreadyAddedKeys.has(`n:${raw.toLowerCase()}`)) {
-      setQuery('');
-      return;
+  const toggleCustomer = (c: CustomerRow) => {
+    if (selectedCustomerIds.has(c.id)) {
+      onChange(value.filter(r => r.customer_id !== c.id));
+    } else {
+      onChange([...value, { customer_id: c.id, name: c.name, phone: c.phone }]);
     }
-    onChange([...value, { name: raw }]);
-    setQuery('');
-    setOpen(false);
   };
 
-  const remove = (idx: number) => {
+  const removeAt = (idx: number) => {
     const next = value.slice();
     next.splice(idx, 1);
     onChange(next);
   };
 
-  const handleKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'ArrowDown' && suggestions.length) {
-      e.preventDefault();
-      setActiveIdx(i => Math.min(i + 1, suggestions.length - 1));
-      setOpen(true);
-    } else if (e.key === 'ArrowUp' && suggestions.length) {
-      e.preventDefault();
-      setActiveIdx(i => Math.max(i - 1, 0));
-    } else if (e.key === 'Enter') {
-      e.preventDefault();
-      if (open && suggestions[activeIdx]) {
-        addFromCustomer(suggestions[activeIdx]);
-      } else {
-        addAsFreeform();
-      }
-    } else if (e.key === 'Backspace' && !query && value.length) {
-      remove(value.length - 1);
+  const addFreeform = () => {
+    const raw = freeform.trim();
+    if (!raw) return;
+    if (freeformAlreadyAdded.has(raw.toLowerCase())) {
+      setFreeform('');
+      return;
     }
+    onChange([...value, { name: raw }]);
+    setFreeform('');
   };
 
   return (
-    <div ref={containerRef} className="relative">
-      <div className="min-h-[44px] flex flex-wrap gap-1.5 px-2 py-1.5 bg-tea-bg border border-tea-border rounded-lg focus-within:ring-1 focus-within:ring-tea-gold/40">
-        {value.map((r, i) => (
-          <span
-            key={`${r.customer_id ?? 'n'}_${i}`}
-            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-tea-elevated text-tea-text text-[12px]"
-          >
-            {r.customer_id && <User size={10} className="text-tea-gold" />}
-            <span className="truncate max-w-[180px]">{r.name}</span>
-            <button
-              type="button"
-              onClick={() => remove(i)}
-              className="text-tea-text-sec hover:text-tea-text transition-colors"
-              aria-label={`Remove ${r.name}`}
+    <div className="flex flex-col gap-3">
+      {/* Selected chips — only render when there's something selected */}
+      {value.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {value.map((r, i) => (
+            <span
+              key={`${r.customer_id ?? 'n'}_${i}`}
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-tea-elevated text-tea-text text-[12px]"
             >
-              <XIcon size={11} />
-            </button>
-          </span>
-        ))}
-        <input
-          type="text"
-          value={query}
-          onChange={e => { setQuery(e.target.value); setOpen(true); }}
-          onFocus={() => setOpen(true)}
-          onKeyDown={handleKey}
-          placeholder={value.length === 0 ? placeholder : ''}
-          autoFocus={autoFocus}
-          className="flex-1 min-w-[120px] bg-transparent border-none outline-none text-xs text-tea-text placeholder:text-tea-text-dim py-1"
-        />
-      </div>
-
-      {open && query.trim() && (
-        <div className="absolute left-0 right-0 top-[calc(100%+4px)] z-dropdown bg-tea-elevated border border-tea-border rounded-lg shadow-lg max-h-[220px] overflow-y-auto">
-          {loading && suggestions.length === 0 ? (
-            <p className="px-3 py-2 text-[11px] text-tea-text-dim">Loading contacts…</p>
-          ) : suggestions.length === 0 ? (
-            <button
-              type="button"
-              onClick={addAsFreeform}
-              className="w-full text-left px-3 py-2 text-xs text-tea-text hover:bg-tea-surface transition-colors"
-            >
-              Add <span className="text-tea-gold">"{query.trim()}"</span> as recipient
-            </button>
-          ) : (
-            <>
-              {suggestions.map((c, i) => (
-                <button
-                  key={c.id}
-                  type="button"
-                  onMouseEnter={() => setActiveIdx(i)}
-                  onClick={() => addFromCustomer(c)}
-                  className={`w-full flex items-center gap-2 px-3 py-2 text-left transition-colors ${
-                    i === activeIdx ? 'bg-tea-surface' : 'hover:bg-tea-surface'
-                  }`}
-                >
-                  <User size={11} className="text-tea-gold flex-shrink-0" />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs text-tea-text truncate">{c.name}</p>
-                    {c.phone && <p className="text-[10px] text-tea-text-dim truncate">{c.phone}</p>}
-                  </div>
-                </button>
-              ))}
+              <span className="truncate max-w-[180px]">{r.name}</span>
               <button
                 type="button"
-                onClick={addAsFreeform}
-                className="w-full text-left px-3 py-2 text-[11px] text-tea-text-sec border-t border-tea-border hover:bg-tea-surface transition-colors"
+                onClick={() => removeAt(i)}
+                className="text-tea-text-sec hover:text-tea-text transition-colors"
+                aria-label={`Remove ${r.name}`}
               >
-                Or add <span className="text-tea-gold">"{query.trim()}"</span> as a new recipient
+                <XIcon size={11} />
               </button>
-            </>
-          )}
+            </span>
+          ))}
         </div>
       )}
+
+      {/* Customer list */}
+      <div className="border border-tea-border rounded-lg bg-tea-bg overflow-hidden">
+        {customers.length > 6 && (
+          <div className="relative border-b border-tea-border">
+            <Search size={11} className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-text-dim pointer-events-none" />
+            <input
+              type="text"
+              value={filter}
+              onChange={e => setFilter(e.target.value)}
+              placeholder="Filter contacts…"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck={false}
+              data-1p-ignore
+              data-lpignore="true"
+              name="recipient-filter"
+              className="w-full pl-7 pr-3 py-1.5 text-[11px] bg-transparent border-none outline-none text-tea-text placeholder:text-tea-text-dim"
+            />
+          </div>
+        )}
+
+        {loading ? (
+          <div className="flex items-center justify-center gap-2 py-6 text-tea-text-dim text-[11px]">
+            <Loader2 size={11} className="animate-spin" /> Loading contacts…
+          </div>
+        ) : customers.length === 0 ? (
+          <p className="px-3 py-4 text-[11px] text-tea-text-dim italic">
+            No contacts yet — add a recipient by name below.
+          </p>
+        ) : filtered.length === 0 ? (
+          <p className="px-3 py-4 text-[11px] text-tea-text-dim italic">
+            No contacts match "{filter}". Add by name below.
+          </p>
+        ) : (
+          <ul className="max-h-[260px] overflow-y-auto divide-y divide-tea-border">
+            {filtered.map(c => {
+              const isSelected = selectedCustomerIds.has(c.id);
+              return (
+                <li key={c.id}>
+                  <button
+                    type="button"
+                    onClick={() => toggleCustomer(c)}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors ${
+                      isSelected ? 'bg-tea-gold-lt' : 'hover:bg-tea-elevated'
+                    }`}
+                  >
+                    <div className={`w-4 h-4 rounded-sm flex-shrink-0 flex items-center justify-center transition-colors ${
+                      isSelected ? 'bg-tea-gold' : 'bg-tea-surface border border-tea-border'
+                    }`}>
+                      {isSelected && <Check size={9} className="text-tea-bg" strokeWidth={3} />}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[13px] text-tea-text truncate">{c.name}</p>
+                      {c.phone && <p className="text-[10px] text-tea-text-dim truncate">{c.phone}</p>}
+                    </div>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+
+      {/* Freeform — add by name */}
+      <div className="flex items-center gap-2">
+        <input
+          type="text"
+          value={freeform}
+          onChange={e => setFreeform(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addFreeform(); } }}
+          placeholder="Or add a name not in your contacts…"
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="words"
+          spellCheck={false}
+          data-1p-ignore
+          data-lpignore="true"
+          name="recipient-freeform"
+          className="flex-1 px-3 py-2 text-xs bg-tea-bg border border-tea-border rounded-lg outline-none text-tea-text placeholder:text-tea-text-dim focus:ring-1 focus:ring-tea-gold/40"
+        />
+        <button
+          type="button"
+          onClick={addFreeform}
+          disabled={!freeform.trim()}
+          className="flex items-center gap-1 px-3 py-2 text-[11px] text-tea-gold hover:text-tea-gold-lt transition-colors disabled:text-tea-text-dim disabled:cursor-not-allowed"
+        >
+          <Plus size={11} /> Add
+        </button>
+      </div>
     </div>
   );
 };

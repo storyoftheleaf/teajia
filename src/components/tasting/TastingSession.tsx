@@ -35,6 +35,13 @@ export interface TastingItem {
   teaKey?: string;
   /** Links the review back to the originating sample */
   sourceSampleId?: string;
+  /**
+   * When set, this is a fresh tasting on a tea that already has an entry. The
+   * session opens with a blank profile (not pre-filled), and on save appends a
+   * new TastingRecord to the entry instead of editing the note in place. The
+   * string is the user-supplied reason ("different vessel", "aged a year", etc).
+   */
+  freshReason?: string;
 }
 
 type Verdict = 'love' | 'like' | 'neutral' | 'pass';
@@ -106,18 +113,23 @@ function generateDescription(data: TastingData): string {
 export const TastingSession: React.FC<TastingSessionProps> = ({
   item, onClose, onSave, onAfterSave, adminMode = false, initialData, showVerdict = false, onOrderTea, onCreatePO, onWriteDescription, writeDraftReview = false,
 }) => {
-  const { addTasting, updateTasting, activeAccountId, activeAccount, tastingJournal } = useAppStore();
+  const { addTasting, updateTasting, upsertTastingByProductId, activeAccountId, activeAccount, tastingJournal } = useAppStore();
   const { addNote } = useNotesStore();
   const isGuest = !hasToken();
 
-  // Pre-fill from the most recent tasting of this tea (customer mode only)
-  const lastTasting = React.useMemo(() => {
-    if (adminMode || !item.id || item.id === 'quick-note' || initialData) return null;
-    return tastingJournal.find(e => e.teaId === item.id && !e.archived) ?? null;
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps — intentionally only run once on mount
+  // Existing entry for this product, if any. In the new model, opening
+  // TastingSession on a tea you've tasted before edits the entry's note in
+  // place (default) instead of creating a new journal row. A freshReason on
+  // the item bypasses the pre-fill: this is the friction path for a fully
+  // new tasting (different vessel, aged tea, etc.) that nests under the
+  // same entry as a new TastingRecord.
+  const existingEntry = React.useMemo(() => {
+    if (adminMode || !item.id || initialData || item.freshReason) return null;
+    return tastingJournal.find(e => e.productId === item.id && !e.archived) ?? null;
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- only on mount
 
-  const [tastingData, setTastingData] = useState<TastingData>(initialData ?? lastTasting?.tasting ?? {});
-  const [isContinuing, setIsContinuing] = useState(!!lastTasting);
+  const [tastingData, setTastingData] = useState<TastingData>(initialData ?? existingEntry?.note.tasting ?? {});
+  const [isContinuing, setIsContinuing] = useState(!!existingEntry);
   const [phase, setPhase] = useState<'tasting' | 'saved'>('tasting');
 
   useScrollLock(true);
@@ -144,6 +156,15 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
 
   const [verdict, setVerdict] = useState<Verdict | null>(null);
   const [wouldBuy, setWouldBuy] = useState(false);
+
+  // Fresh-tasting flow: when a user explicitly starts a new tasting on a tea
+  // they've already noted (different vessel, aged tea, etc.), they enter a
+  // reason and the next save appends a TastingRecord rather than editing the
+  // note in place. The reason is required (~10+ chars) so this stays the
+  // friction path, not the default.
+  const [freshReason, setFreshReason] = useState<string>(item.freshReason ?? '');
+  const [freshPromptOpen, setFreshPromptOpen] = useState<boolean>(!!item.freshReason);
+  const isFreshTasting = !!freshReason.trim();
 
   const [activeSectionId, setActiveSectionId] = useState<SectionId>('body');
   const [showNote, setShowNote] = useState(false);
@@ -275,32 +296,44 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
         draftReviewIdRef.current = null; // prevent cleanup on unmount from deleting it
       }
 
+      // Admin saves go to the product record. The personal journal write below
+      // also runs for admins, because the admin is also a customer of their
+      // own platform: tasting a tea should appear in the journal regardless of
+      // whether the tasting also updated the product profile.
       if (adminMode && onSave) {
-        // Admin flow: write to product record only, no journal entry
         await onSave(tastingData);
-      } else {
-        // Customer flow: always write to journal
-        const entryId = crypto.randomUUID();
-        const entry: CustomerTasting = {
-          id: entryId,
-          teaId: item.id,
-          teaName: item.name,
-          teaType: item.type || '',
-          teaImage: item.image,
-          tasting: tastingData,
-          personalNote: tastingData.notes?.join('\n') || tastingData.voiceNote?.trim() || undefined,
-          rating: tastingData.quality ?? tastingData.rating,
+      }
+
+      {
+        // Customer flow (also runs for admin): upsert by productId. If an
+        // entry exists for this tea, edits the note in place. If this is a
+        // fresh-tasting flow (item carries a freshReason), appends a new
+        // TastingRecord instead.
+        const recordId = crypto.randomUUID();
+        const record = {
+          id: recordId,
           createdAt: new Date().toISOString(),
+          tasting: tastingData,
+          reason: isFreshTasting ? freshReason.trim() : undefined,
           sourceType: item.sourceType,
-          compassEntryId: item.compassEntryId,
           eventId: item.eventId,
           eventTitle: item.eventTitle,
-          accountId: activeAccountId ?? undefined,
-          // Stamp verdict if already selected (sourcing mode pre-save verdict)
+        };
+        const noteUpdates = {
+          personalNote: tastingData.notes?.map(n => typeof n === 'string' ? n : n.text).join('\n') || tastingData.voiceNote?.trim() || undefined,
+          rating: tastingData.quality ?? tastingData.rating,
           verdict: verdict ?? undefined,
           wouldBuy: wouldBuy || undefined,
         };
-        addTasting(entry);
+        const entryId = upsertTastingByProductId(
+          item.id,
+          item.name,
+          item.type || '',
+          item.image,
+          record,
+          noteUpdates,
+          activeAccountId ?? undefined,
+        );
         setSavedEntryId(entryId);
         // Inject tasting artifact into the shared note thread
         if (item.compassEntryId || item.teaKey) {
@@ -339,14 +372,27 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
     // Customer: stays open until user taps Done
   }, [item, tastingData, verdict, wouldBuy, addTasting, onSave, onAfterSave, adminMode, activeAccountId, activeAccount, canSave, onClose, onCreatePO, onWriteDescription, phase]);
 
+  const updateNoteFields = useCallback((updates: { verdict?: Verdict; wouldBuy?: boolean }) => {
+    if (!savedEntryId) return;
+    const current = useAppStore.getState().tastingJournal.find(t => t.id === savedEntryId);
+    if (!current) return;
+    updateTasting(savedEntryId, {
+      note: {
+        ...current.note,
+        ...updates,
+        updatedAt: new Date().toISOString(),
+      },
+    });
+  }, [savedEntryId, updateTasting]);
+
   const handleVerdictSelect = useCallback((v: Verdict) => {
     setVerdict(v);
     if (adminMode && onSave) {
       onSave(tastingData, v, wouldBuy);
-    } else if (savedEntryId) {
-      updateTasting(savedEntryId, { verdict: v, wouldBuy });
+    } else {
+      updateNoteFields({ verdict: v, wouldBuy });
     }
-  }, [savedEntryId, wouldBuy, updateTasting, onSave, adminMode, tastingData]);
+  }, [updateNoteFields, wouldBuy, onSave, adminMode, tastingData]);
 
   const handleWouldBuyToggle = useCallback(() => {
     const next = !wouldBuy;
@@ -355,8 +401,8 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
       onSave(tastingData, verdict ?? undefined, next);
       return;
     }
-    if (savedEntryId) updateTasting(savedEntryId, { wouldBuy: next });
-  }, [wouldBuy, savedEntryId, updateTasting, onSave, adminMode, tastingData, verdict]);
+    updateNoteFields({ wouldBuy: next });
+  }, [wouldBuy, updateNoteFields, onSave, adminMode, tastingData, verdict]);
 
   return createPortal(
     <div className="fixed inset-0 z-priority lg:bg-black/75 lg:backdrop-blur-sm lg:flex lg:items-center lg:justify-center">
@@ -419,20 +465,72 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
             exit={{ opacity: 0 }}
             className="flex-1 min-h-0 flex flex-col"
           >
-            {/* Continuing banner */}
-            {isContinuing && (
-              <div className="flex items-center justify-between px-4 py-2 bg-tea-surface/60 border-b border-tea-border shrink-0">
-                <span className="text-[11px] text-tea-text-sec italic" style={{ fontFamily: 'var(--font-body)' }}>
-                  Continuing from your last notes — change anything
-                </span>
-                <button
-                  type="button"
-                  onClick={() => { setTastingData({}); setIsContinuing(false); }}
-                  className="text-[10px] text-tea-text-sec hover:text-tea-text transition-colors ml-3 shrink-0"
-                  style={{ fontFamily: 'var(--font-body)' }}
-                >
-                  Start fresh
-                </button>
+            {/* Continuing banner. The default re-tasting flow edits the
+                existing note in place. The "Start a new tasting" affordance
+                opens an inline reason prompt for the friction path. */}
+            {isContinuing && !isFreshTasting && (
+              <div className="px-4 py-2 bg-tea-surface/60 border-b border-tea-border shrink-0">
+                {!freshPromptOpen ? (
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-[11px] text-tea-text-sec italic" style={{ fontFamily: 'var(--font-body)' }}>
+                      Adding to your note for this tea.
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setFreshPromptOpen(true)}
+                      className="text-[10px] text-tea-text-sec hover:text-tea-text transition-colors shrink-0"
+                      style={{ fontFamily: 'var(--font-body)' }}
+                    >
+                      Start a new tasting
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="text-[11px] text-tea-text-sec leading-snug" style={{ fontFamily: 'var(--font-body)' }}>
+                      Use this when something changed (different brew, aged tea, new pot). Otherwise just add to your note above.
+                    </div>
+                    <textarea
+                      autoFocus
+                      value={freshReason}
+                      onChange={e => setFreshReason(e.target.value)}
+                      placeholder="Why are you tasting this again?"
+                      rows={2}
+                      className="w-full bg-transparent text-[12px] text-tea-text placeholder:text-tea-text-dim outline-none resize-none border border-tea-border rounded px-2 py-1.5"
+                      style={{ fontFamily: 'var(--font-body)' }}
+                    />
+                    <div className="flex items-center justify-end gap-3">
+                      <button
+                        type="button"
+                        onClick={() => { setFreshPromptOpen(false); setFreshReason(''); }}
+                        className="text-[11px] text-tea-text-sec hover:text-tea-text transition-colors"
+                        style={{ fontFamily: 'var(--font-body)' }}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        disabled={freshReason.trim().length < 10}
+                        onClick={() => { setTastingData({}); setIsContinuing(false); }}
+                        className="text-[11px] text-tea-gold hover:text-tea-gold-lt disabled:text-tea-text-dim disabled:cursor-not-allowed transition-colors"
+                        style={{ fontFamily: 'var(--font-body)' }}
+                      >
+                        Begin new tasting
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Fresh-tasting context banner. Appears once a fresh tasting is
+                under way (the reason has been set). Shows the reason so the
+                user can keep their head in the new context. */}
+            {isFreshTasting && (
+              <div className="px-4 py-2 bg-tea-gold/8 border-b border-tea-border shrink-0">
+                <div className="text-[11px] text-tea-text-sec leading-snug" style={{ fontFamily: 'var(--font-body)' }}>
+                  <span className="text-tea-gold">New tasting:</span>{' '}
+                  <span className="italic">{freshReason}</span>
+                </div>
               </div>
             )}
 
@@ -530,7 +628,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                   className="text-[10px] uppercase tracking-[0.16em] text-tea-text-dim mb-2"
                   style={{ fontFamily: 'var(--font-display)' }}
                 >
-                  Sourcing verdict {!verdict && <span className="text-tea-gold/70 normal-case tracking-normal">— select before saving</span>}
+                  Sourcing verdict {!verdict && <span className="text-tea-gold/70 normal-case tracking-normal">(select before saving)</span>}
                 </div>
                 <div className="grid grid-cols-4 gap-1.5">
                   {VERDICT_OPTIONS.map(({ id, label, icon: Icon }) => {

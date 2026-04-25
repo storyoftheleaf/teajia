@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useLayoutEffect, useRef, useCallba
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import {
   Loader2, FileSpreadsheet, Plus, Search, QrCode, Download,
-  Trash2, AlertTriangle, Archive, Pencil, AlertOctagon, ArrowUpDown, ArrowUp, ArrowDown, Copy, Layers, Settings, MoreHorizontal, Check, X as XIcon, Eye, EyeOff, Star, Sparkles, FlaskConical, RefreshCw, ChevronDown, ChevronRight, ChevronLeft, MapPin, Save, Columns, Square, CheckSquare, Leaf, Coffee, Image as ImageIcon, Globe, Tag, FileText, User, Receipt, BookOpen, Droplets
+  Trash2, AlertTriangle, Archive, Pencil, AlertOctagon, ArrowUpDown, ArrowUp, ArrowDown, Copy, Layers, Settings, MoreHorizontal, Check, X as XIcon, Eye, EyeOff, Star, Sparkles, FlaskConical, RefreshCw, ChevronDown, ChevronRight, ChevronLeft, MapPin, Save, Columns, Square, CheckSquare, Leaf, Coffee, Image as ImageIcon, Globe, Tag, FileText, User, Receipt, BookOpen, Droplets, PackageX
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Papa from 'papaparse';
@@ -51,6 +51,7 @@ const VIEW_ICON_MAP: Record<string, React.ComponentType<{ size?: number; classNa
   Coffee,
   Globe,
   Droplets,
+  PackageX,
 };
 
 const VIEW_FILTER_LABELS: Record<string, string> = {
@@ -62,6 +63,7 @@ const VIEW_FILTER_LABELS: Record<string, string> = {
   Samples: 'Samples',
   Personal: 'Personal Collection',
   Archived: 'Archived',
+  SoldOut: 'Sold Out',
   Untasted: 'Tasting Unreviewed',
 };
 
@@ -183,6 +185,15 @@ const DEFAULT_TEA_VIEWS: Array<{ id: string; name: string; icon?: string | null;
     columns: ['productName', 'type', 'year', 'originRegion', 'stockGrams', 'costAmount'],
     sortConfig: [{ key: 'type', direction: 'asc' as const }],
     filterType: 'Archived',
+    groupBy: null,
+  },
+  {
+    id: 'default-soldout',
+    name: '',
+    icon: 'PackageX',
+    columns: ['productName', 'type', 'year', 'originRegion', 'vendor', 'pricePerGramUSD'],
+    sortConfig: [{ key: 'type', direction: 'asc' as const }],
+    filterType: 'SoldOut',
     groupBy: null,
   },
 ];
@@ -917,6 +928,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       result = result.filter(p => p.tastingSource !== 'owner');
     } else if (filterType === 'Archived') {
       result = result.filter(p => p.status === 'Archived');
+    } else if (filterType === 'SoldOut') {
+      result = result.filter(p => p.status === 'Sold Out');
     } else if (filterType !== 'All') {
       result = result.filter(p => p.type === filterType);
     }
@@ -4570,16 +4583,14 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         open={shareToNetworkOpen}
         productIds={selectedIds.size > 0 ? [...selectedIds] : panelProduct ? [panelProduct.id] : []}
         onClose={() => setShareToNetworkOpen(false)}
-        onSuccess={({ collectionTitle, addedCount, publicationSlug }) => {
+        onSuccess={() => {
+          // The sheet itself shows the success card with copy/WhatsApp/view-collection
+          // actions. We only need to close + clear selection when the user finishes.
           setShareToNetworkOpen(false);
           if (selectedIds.size > 0) {
             setSelectedIds(new Set());
             lastSelectedIdxRef.current = null;
           }
-          const msg = publicationSlug
-            ? `Shared "${collectionTitle}" — link created`
-            : `Added ${addedCount} product${addedCount !== 1 ? 's' : ''} to "${collectionTitle}"`;
-          showToast(msg, 'success');
         }}
       />
 

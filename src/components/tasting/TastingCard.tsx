@@ -50,22 +50,23 @@ interface TastingCardVisualProps {
 }
 
 const TastingCardVisual: React.FC<TastingCardVisualProps> = ({ entry, cardRef }) => {
-  const liquorColorId = entry.tasting['liquor-color']?.[0] ?? null;
+  const noteData = entry.note.tasting;
+  const liquorColorId = noteData['liquor-color']?.[0] ?? null;
   const liquorHex = liquorColorId ? (LIQUOR_COLORS[liquorColorId] ?? null) : null;
 
-  const flavorTerms = (entry.tasting.flavor ?? [])
+  const flavorTerms = (noteData.flavor ?? [])
     .slice(0, 5)
     .map(id => resolveTermLabel(id))
     .filter(Boolean);
 
-  const qualityScore = entry.tasting.quality ?? entry.rating ?? null;
+  const qualityScore = noteData.quality ?? entry.note.rating ?? null;
   const word = qualityWord(qualityScore ?? undefined);
 
   const chineseMarkers: string[] = [
-    entry.tasting.huiGan ? '回甘' : '',
-    entry.tasting.yun    ? '韵'   : '',
-    entry.tasting.qi     ? '气'   : '',
-    entry.tasting.tangGan ? '汤感' : '',
+    noteData.huiGan ? '回甘' : '',
+    noteData.yun    ? '韵'   : '',
+    noteData.qi     ? '气'   : '',
+    noteData.tangGan ? '汤感' : '',
   ].filter(Boolean);
 
   const bg = '#171410';
@@ -135,11 +136,11 @@ const TastingCardVisual: React.FC<TastingCardVisualProps> = ({ entry, cardRef })
           marginBottom: 6,
           fontFamily: "'Georgia', 'Palatino Linotype', serif",
         }}>
-          {entry.teaName}
+          {entry.productName}
         </div>
 
         {/* Tea type */}
-        {entry.teaType && (
+        {entry.productType && (
           <div style={{
             fontSize: 11,
             color: muted,
@@ -148,7 +149,7 @@ const TastingCardVisual: React.FC<TastingCardVisualProps> = ({ entry, cardRef })
             marginBottom: 24,
             fontFamily: 'Georgia, serif',
           }}>
-            {entry.teaType}
+            {entry.productType}
           </div>
         )}
 
@@ -209,7 +210,7 @@ const TastingCardVisual: React.FC<TastingCardVisualProps> = ({ entry, cardRef })
         )}
 
         {/* Personal note */}
-        {entry.personalNote && (
+        {entry.note.personalNote && (
           <div style={{ marginBottom: 20 }}>
             <p style={{
               fontSize: 12,
@@ -220,7 +221,7 @@ const TastingCardVisual: React.FC<TastingCardVisualProps> = ({ entry, cardRef })
               borderLeft: `2px solid ${hexToRgba(gold, 0.3)}`,
               paddingLeft: 12,
             }}>
-              "{entry.personalNote}"
+              "{entry.note.personalNote}"
             </p>
           </div>
         )}
@@ -275,7 +276,7 @@ export const TastingCardModal: React.FC<TastingCardModalProps> = ({ entry, onClo
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${entry.teaName.replace(/\s+/g, '-').toLowerCase()}-tasting.png`;
+    a.download = `${entry.productName.replace(/\s+/g, '-').toLowerCase()}-tasting.png`;
     a.click();
     URL.revokeObjectURL(url);
     setDone(true);
@@ -285,13 +286,13 @@ export const TastingCardModal: React.FC<TastingCardModalProps> = ({ entry, onClo
   const handleShare = async () => {
     const blob = await getImage();
     if (!blob) return;
-    const file = new File([blob], `${entry.teaName}-tasting.png`, { type: 'image/png' });
+    const file = new File([blob], `${entry.productName}-tasting.png`, { type: 'image/png' });
     if (navigator.canShare?.({ files: [file] })) {
       try {
         await navigator.share({
           files: [file],
-          title: `${entry.teaName} — Teajia`,
-          text: entry.teaType ? `${entry.teaType} tea tasting` : 'Tea tasting',
+          title: `${entry.productName} · Teajia`,
+          text: entry.productType ? `${entry.productType} tea tasting` : 'Tea tasting',
         });
       } catch {}
     } else {
@@ -328,7 +329,7 @@ export const TastingCardModal: React.FC<TastingCardModalProps> = ({ entry, onClo
               Share tasting card
             </div>
             <div className="text-[11px] text-tea-text-dim mt-0.5" style={{ fontFamily: 'var(--font-body)' }}>
-              {entry.teaName}
+              {entry.productName}
             </div>
           </div>
           <button
@@ -386,15 +387,15 @@ export const TastingCardModal: React.FC<TastingCardModalProps> = ({ entry, onClo
 /* ── Preview card (visible inside the sheet, uses Tailwind) ── */
 
 const PreviewCard: React.FC<{ entry: CustomerTasting }> = ({ entry }) => {
-  const liquorColorId = entry.tasting['liquor-color']?.[0] ?? null;
+  const liquorColorId = entry.note.tasting['liquor-color']?.[0] ?? null;
   const liquorHex = liquorColorId ? (LIQUOR_COLORS[liquorColorId] ?? null) : null;
-  const flavorTerms = (entry.tasting.flavor ?? []).slice(0, 4).map(resolveTermLabel).filter(Boolean);
-  const word = qualityWord(entry.tasting.quality ?? entry.rating ?? undefined);
+  const flavorTerms = (entry.note.tasting.flavor ?? []).slice(0, 4).map(resolveTermLabel).filter(Boolean);
+  const word = qualityWord(entry.note.tasting.quality ?? entry.note.rating ?? undefined);
   const chineseMarkers = [
-    entry.tasting.huiGan ? '回甘' : '',
-    entry.tasting.yun    ? '韵'   : '',
-    entry.tasting.qi     ? '气'   : '',
-    entry.tasting.tangGan ? '汤感' : '',
+    entry.note.tasting.huiGan ? '回甘' : '',
+    entry.note.tasting.yun    ? '韵'   : '',
+    entry.note.tasting.qi     ? '气'   : '',
+    entry.note.tasting.tangGan ? '汤感' : '',
   ].filter(Boolean);
 
   return (
@@ -412,8 +413,8 @@ const PreviewCard: React.FC<{ entry: CustomerTasting }> = ({ entry }) => {
             </div>
           )}
         </div>
-        <div className="text-[22px] leading-snug mb-1" style={{ color: '#f0ebe3', fontFamily: 'Georgia, serif' }}>{entry.teaName}</div>
-        {entry.teaType && <div className="text-[9px] tracking-[0.18em] uppercase mb-4" style={{ color: '#8a7f74', fontFamily: 'Georgia, serif' }}>{entry.teaType}</div>}
+        <div className="text-[22px] leading-snug mb-1" style={{ color: '#f0ebe3', fontFamily: 'Georgia, serif' }}>{entry.productName}</div>
+        {entry.productType && <div className="text-[9px] tracking-[0.18em] uppercase mb-4" style={{ color: '#8a7f74', fontFamily: 'Georgia, serif' }}>{entry.productType}</div>}
         <div className="border-b mb-4" style={{ borderColor: '#2e2820' }} />
         {flavorTerms.length > 0 && (
           <div className="mb-3">
@@ -433,9 +434,9 @@ const PreviewCard: React.FC<{ entry: CustomerTasting }> = ({ entry }) => {
             ))}
           </div>
         )}
-        {entry.personalNote && (
+        {entry.note.personalNote && (
           <p className="text-[11px] italic mb-3 pl-3" style={{ color: '#8a7f74', fontFamily: 'Georgia, serif', borderLeft: '2px solid rgba(200,168,75,0.3)', lineHeight: 1.6 }}>
-            "{entry.personalNote}"
+            "{entry.note.personalNote}"
           </p>
         )}
         <div className="border-b mb-3" style={{ borderColor: '#2e2820' }} />

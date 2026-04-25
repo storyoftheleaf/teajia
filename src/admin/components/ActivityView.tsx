@@ -1,7 +1,7 @@
 import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
-import { ClipboardList, Archive, BarChart3, ScrollText, Inbox, MessageSquare } from 'lucide-react';
+import { ClipboardList, BarChart3, ScrollText, Inbox, MessageSquare } from 'lucide-react';
 import { OrdersView } from './OrdersView';
 import { RecordsView } from './SoldItemsView';
 import { PendingView } from './PendingView';
@@ -9,8 +9,8 @@ import { usePendingAttendees } from '../hooks/useEventData';
 import { api } from '../../lib/api';
 import { Product } from '../types';
 
-type ActivityTab = 'pending' | 'orders' | 'archive' | 'ledger' | 'log' | 'inquiries';
-const VALID_TABS: ActivityTab[] = ['pending', 'orders', 'archive', 'ledger', 'log', 'inquiries'];
+type ActivityTab = 'pending' | 'orders' | 'ledger' | 'log' | 'inquiries';
+const VALID_TABS: ActivityTab[] = ['pending', 'orders', 'ledger', 'log', 'inquiries'];
 
 interface ActivityViewProps {
   products: Product[];
@@ -52,13 +52,22 @@ export const ActivityView: React.FC<ActivityViewProps> = ({ products }) => {
     { id: 'pending', label: 'Pending', icon: <Inbox size={15} />, badge: pendingCount },
     { id: 'orders', label: 'Orders', icon: <ClipboardList size={15} /> },
     { id: 'inquiries', label: 'Inquiries', icon: <MessageSquare size={15} />, badge: newInquiryCount || undefined },
-    { id: 'archive', label: 'Archive', icon: <Archive size={15} /> },
     { id: 'ledger', label: 'Ledger', icon: <BarChart3 size={15} /> },
     { id: 'log', label: 'Log', icon: <ScrollText size={15} /> },
   ];
 
   return (
     <div className="h-full flex flex-col overflow-hidden bg-tea-bg">
+      {/* Page header */}
+      <div className="px-4 md:px-6 lg:px-10 pt-6 pb-3 flex-shrink-0">
+        <h1 className="text-2xl text-tea-text mb-1" style={{ fontFamily: 'var(--font-display)' }}>
+          Activity
+        </h1>
+        <p className="text-xs text-tea-text-dim uppercase tracking-[0.15em]">
+          Orders, payments, and customer inquiries
+        </p>
+      </div>
+
       {/* Tab bar */}
       <div className="flex items-center gap-1 px-3 md:px-6 py-2 border-b border-tea-border bg-tea-bg overflow-x-auto hide-scrollbar flex-shrink-0">
         <div className="flex items-center bg-tea-surface rounded-lg border border-tea-border p-0.5">
@@ -89,7 +98,6 @@ export const ActivityView: React.FC<ActivityViewProps> = ({ products }) => {
       <div className="flex-1 overflow-auto">
         {activeTab === 'pending' && <PendingView />}
         {activeTab === 'orders' && <OrdersView />}
-        {activeTab === 'archive' && <RecordsView products={products} initialTab="archive" />}
         {activeTab === 'ledger' && <RecordsView products={products} initialTab="ledger" />}
         {activeTab === 'log' && <RecordsView products={products} initialTab="log" />}
         {activeTab === 'inquiries' && <InquiriesView />}

@@ -48,7 +48,7 @@ export const AdminMiniDashboard: React.FC<{ onClose?: () => void }> = ({ onClose
         </button>
 
         <button
-          onClick={() => goTo('/admin/records')}
+          onClick={() => goTo('/admin/activity?tab=ledger')}
           className="bg-tea-surface/30 border border-tea-border p-3 flex flex-col items-center gap-1 hover:bg-tea-surface/50 transition-colors"
         >
           <span className="num text-xl text-tea-text">

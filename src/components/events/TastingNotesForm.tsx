@@ -93,22 +93,35 @@ const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, cla
             .filter((item) => notes[item.id].rating > 0)
             .forEach((item) => {
               const note = notes[item.id];
+              const productId = item.productId || item.id;
+              const recordId = crypto.randomUUID();
+              const now = new Date().toISOString();
+              const tastingPayload = {
+                rating: note.rating,
+                notes: note.impression ? [note.impression] : undefined,
+              };
               const journalEntry: CustomerTasting = {
                 id: crypto.randomUUID(),
-                teaId: item.productId || item.id,
-                teaName: item.customName || item.productName || 'Unknown Tea',
-                teaType: item.productType || '',
-                teaImage: item.productImageUrl || undefined,
-                tasting: {
+                productId,
+                productName: item.customName || item.productName || 'Unknown Tea',
+                productType: item.productType || '',
+                productImage: item.productImageUrl || undefined,
+                note: {
+                  tasting: tastingPayload,
+                  personalNote: note.impression || undefined,
                   rating: note.rating,
-                  notes: note.impression ? [note.impression] : undefined,
+                  updatedAt: now,
                 },
-                personalNote: note.impression || undefined,
-                rating: note.rating,
-                createdAt: new Date().toISOString(),
-                eventId,
-                eventSlug,
-                eventTitle,
+                tastings: [{
+                  id: recordId,
+                  createdAt: now,
+                  tasting: tastingPayload,
+                  sourceType: 'event',
+                  eventId,
+                  eventSlug,
+                  eventTitle,
+                }],
+                createdAt: now,
               };
               addTasting(journalEntry);
             });

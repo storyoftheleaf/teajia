@@ -44,7 +44,7 @@ const operationsTiles: TileData[] = [
 
 const managementTiles: TileData[] = [
   { id: 'dashboard', label: 'Dashboard', sub: 'Analytics',      icon: LayoutDashboard, path: '/admin/dashboard' },
-  { id: 'team',      label: 'Team',      sub: 'Members & roles',icon: UserCog,         path: '/admin/team' },
+  { id: 'team',      label: 'Team',      sub: 'Members & roles',icon: UserCog,         path: '/admin/people?tab=team' },
   { id: 'account',   label: 'Account',   sub: 'Settings',       icon: Settings,        path: '/admin/account-settings' },
 ];
 

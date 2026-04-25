@@ -112,13 +112,25 @@ const NoteCard: React.FC<{
   const canConvertToJournal = !isTasting && (!!note.teaKey || !!note.compassEntryId) && !converted;
 
   const handleConvertToJournal = () => {
+    const productId = note.teaKey || note.compassEntryId;
+    if (!productId) return;
+    const id = crypto.randomUUID();
     const entry: CustomerTasting = {
-      id: crypto.randomUUID(),
-      teaId: note.teaKey || note.compassEntryId || 'note',
-      teaName: note.teaKey || 'Tea note',
-      teaType: '',
-      tasting: { notes: [note.text] },
-      sourceType: note.compassEntryId ? 'compass' : 'product',
+      id,
+      productId,
+      productName: note.teaKey || 'Tea note',
+      productType: '',
+      note: {
+        tasting: { notes: [note.text] },
+        personalNote: note.text,
+        updatedAt: note.createdAt,
+      },
+      tastings: [{
+        id,
+        createdAt: note.createdAt,
+        tasting: { notes: [note.text] },
+        sourceType: note.compassEntryId ? 'compass' : 'product',
+      }],
       compassEntryId: note.compassEntryId,
       synced: false,
       createdAt: note.createdAt,

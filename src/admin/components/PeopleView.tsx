@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
-import { Users, Store, Shield } from 'lucide-react';
+import React from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { Users, Store, Shield, ShoppingBag } from 'lucide-react';
 import { CustomersView } from './CustomersView';
 import { SourcesView } from './SourcesView';
-import { UserManagement } from './UserManagement';
+import { TeamView } from '../views/TeamView';
+import { PurchaseOrdersPage } from '../views/PurchaseOrdersPage';
 import { useAppStore } from '../store';
-import { getTokenClaims } from '../../lib/api';
 
-type PeopleTab = 'customers' | 'sources' | 'team';
+type PeopleTab = 'customers' | 'sources' | 'purchase-orders' | 'team';
 
 interface PeopleViewProps {
   userRole: string;
@@ -28,19 +29,29 @@ export const PeopleView: React.FC<PeopleViewProps> = ({
   const tabs: { id: PeopleTab; label: string; icon: React.ReactNode; visible: boolean }[] = [
     { id: 'customers', label: 'Customers', icon: <Users size={15} />, visible: true },
     { id: 'sources', label: 'Sources', icon: <Store size={15} />, visible: canSeeSources },
+    { id: 'purchase-orders', label: 'Purchase Orders', icon: <ShoppingBag size={15} />, visible: canSeeSources },
     { id: 'team', label: 'Team', icon: <Shield size={15} />, visible: canSeeTeam },
   ];
 
   const visibleTabs = tabs.filter(t => t.visible);
-  const [activeTab, setActiveTab] = useState<PeopleTab>(visibleTabs[0]?.id || 'customers');
-
-  // Ensure activeTab is valid when access changes
-  if (!visibleTabs.find(t => t.id === activeTab) && visibleTabs.length > 0) {
-    setActiveTab(visibleTabs[0].id);
-  }
+  const [searchParams, setSearchParams] = useSearchParams();
+  const rawTab = searchParams.get('tab') as PeopleTab | null;
+  const fallback = visibleTabs[0]?.id || 'customers';
+  const activeTab: PeopleTab = rawTab && visibleTabs.find(t => t.id === rawTab) ? rawTab : fallback;
+  const setActiveTab = (tab: PeopleTab) => setSearchParams({ tab }, { replace: true });
 
   return (
     <div className="h-full flex flex-col overflow-hidden bg-tea-bg">
+      {/* Page header */}
+      <div className="px-4 md:px-6 lg:px-10 pt-6 pb-3 flex-shrink-0">
+        <h1 className="text-2xl text-tea-text mb-1" style={{ fontFamily: 'var(--font-display)' }}>
+          People
+        </h1>
+        <p className="text-xs text-tea-text-dim uppercase tracking-[0.15em]">
+          Customers, suppliers, and team
+        </p>
+      </div>
+
       {/* Tab bar */}
       <div className="flex items-center gap-1 px-3 md:px-6 py-2 border-b border-tea-border bg-tea-bg overflow-x-auto hide-scrollbar flex-shrink-0">
         <div className="flex items-center bg-tea-surface rounded-lg border border-tea-border p-0.5">
@@ -65,11 +76,8 @@ export const PeopleView: React.FC<PeopleViewProps> = ({
       <div className="flex-1 overflow-auto">
         {activeTab === 'customers' && <CustomersView />}
         {activeTab === 'sources' && canSeeSources && <SourcesView />}
-        {activeTab === 'team' && canSeeTeam && (
-          <div className="p-6 max-w-4xl mx-auto">
-            <UserManagement currentUserRole={effectiveRole} />
-          </div>
-        )}
+        {activeTab === 'purchase-orders' && canSeeSources && <PurchaseOrdersPage />}
+        {activeTab === 'team' && canSeeTeam && <TeamView />}
       </div>
     </div>
   );

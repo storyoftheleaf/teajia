@@ -7309,7 +7309,9 @@ const handleDeleteTeaReview: Handler = async (request, env, params) => {
   return json({ ok: true });
 };
 
-// Customer: GET /api/tasting-journal — scoped to current account if one set.
+// Customer: GET /api/tasting-journal. Returns the new shape with `note` and
+// `tastings` JSON columns. Legacy rows (pre-migration) still parse via the
+// client's tolerant fromApiRow.
 const handleGetTastingJournal: Handler = async (request, env) => {
   const authErr = await requireAuth(request, env);
   if (authErr) return authErr;
@@ -7327,13 +7329,14 @@ const handleGetTastingJournal: Handler = async (request, env) => {
 
   const { results } = await env.DB.prepare(query).bind(...binds).all();
 
-  return json((results as any[]).map(r => ({
-    ...r,
-    tasting: typeof r.tasting === 'string' ? JSON.parse(r.tasting as string) : r.tasting,
-  })));
+  // Pass JSON strings through verbatim. The client parses them. This avoids
+  // double-stringification and keeps the worker handler narrow.
+  return json(results);
 };
 
-// Customer: POST /api/tasting-journal
+// Customer: POST /api/tasting-journal. Accepts the new shape (one entry per
+// productId, with `note` and `tastings` JSON). Upserts on (user_id, product_id).
+// Quick-note sentinel rows are rejected.
 const handleAddTastingEntry: Handler = async (request, env) => {
   const authErr = await requireAuth(request, env);
   if (authErr) return authErr;
@@ -7342,24 +7345,37 @@ const handleAddTastingEntry: Handler = async (request, env) => {
   const headerAccount = request.headers.get('X-Teajia-Account') || claims?.active_account_id || null;
   const body = await request.json() as any;
 
+  if (!body.product_id || body.product_id === 'quick-note') {
+    return json({ error: 'product_id required (quick-note removed)' }, 400);
+  }
+
   const id = body.id || crypto.randomUUID();
 
   await env.DB.prepare(`
-    INSERT INTO customer_tasting_journal (id, account_id, user_id, product_id, product_name, product_type, product_image, tasting, personal_note, rating, event_id, event_title)
+    INSERT INTO customer_tasting_journal
+      (id, account_id, user_id, product_id, product_name, product_type, product_image, note, tastings, compass_entry_id, archived, created_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(user_id, product_id) DO UPDATE SET
+      product_name = excluded.product_name,
+      product_type = excluded.product_type,
+      product_image = excluded.product_image,
+      note = excluded.note,
+      tastings = excluded.tastings,
+      compass_entry_id = excluded.compass_entry_id,
+      archived = excluded.archived
   `).bind(
     id,
     headerAccount,
     email,
-    body.teaId || null,
-    body.teaName || null,
-    body.teaType || null,
-    body.teaImage || null,
-    JSON.stringify(body.tasting || {}),
-    body.personalNote || null,
-    body.rating || null,
-    body.eventId || null,
-    body.eventTitle || null
+    body.product_id,
+    body.product_name || null,
+    body.product_type || null,
+    body.product_image || null,
+    typeof body.note === 'string' ? body.note : JSON.stringify(body.note || {}),
+    typeof body.tastings === 'string' ? body.tastings : JSON.stringify(body.tastings || []),
+    body.compass_entry_id || null,
+    body.archived ? 1 : 0,
+    body.created_at || new Date().toISOString()
   ).run();
 
   return json({ id, success: true }, 201);
@@ -7378,7 +7394,7 @@ const handleDeleteTastingEntry: Handler = async (request, env, params) => {
   return json({ success: true });
 };
 
-// Customer: POST /api/tasting-journal/sync
+// Customer: POST /api/tasting-journal/sync. Bulk upsert by (user_id, product_id).
 const handleSyncTastingJournal: Handler = async (request, env) => {
   const authErr = await requireAuth(request, env);
   if (authErr) return authErr;
@@ -7386,28 +7402,38 @@ const handleSyncTastingJournal: Handler = async (request, env) => {
   const claims = parseToken(isAuthed(request)!);
   const headerAccount = request.headers.get('X-Teajia-Account') || claims?.active_account_id || null;
   const body = await request.json() as any;
-  const entries = body.entries || [];
+  const entries = Array.isArray(body) ? body : (body.entries || []);
 
   if (!Array.isArray(entries)) return json({ error: 'entries must be an array' }, 400);
 
-  const stmts = entries.map((e: any) =>
+  const valid = entries.filter((e: any) => e.product_id && e.product_id !== 'quick-note');
+
+  const stmts = valid.map((e: any) =>
     env.DB.prepare(`
-      INSERT OR IGNORE INTO customer_tasting_journal (id, account_id, user_id, product_id, product_name, product_type, product_image, tasting, personal_note, rating, event_id, event_title, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO customer_tasting_journal
+        (id, account_id, user_id, product_id, product_name, product_type, product_image, note, tastings, compass_entry_id, archived, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(user_id, product_id) DO UPDATE SET
+        product_name = excluded.product_name,
+        product_type = excluded.product_type,
+        product_image = excluded.product_image,
+        note = excluded.note,
+        tastings = excluded.tastings,
+        compass_entry_id = excluded.compass_entry_id,
+        archived = excluded.archived
     `).bind(
       e.id || crypto.randomUUID(),
       headerAccount,
       email,
-      e.teaId || null,
-      e.teaName || null,
-      e.teaType || null,
-      e.teaImage || null,
-      JSON.stringify(e.tasting || {}),
-      e.personalNote || null,
-      e.rating || null,
-      e.eventId || null,
-      e.eventTitle || null,
-      e.createdAt || new Date().toISOString()
+      e.product_id,
+      e.product_name || null,
+      e.product_type || null,
+      e.product_image || null,
+      typeof e.note === 'string' ? e.note : JSON.stringify(e.note || {}),
+      typeof e.tastings === 'string' ? e.tastings : JSON.stringify(e.tastings || []),
+      e.compass_entry_id || null,
+      e.archived ? 1 : 0,
+      e.created_at || new Date().toISOString()
     )
   );
 
