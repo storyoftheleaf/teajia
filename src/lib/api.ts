@@ -1982,6 +1982,66 @@ export const api = {
       });
       return handleResponse(res);
     },
+
+    /**
+     * POST /api/profiles/:id/suggestions
+     * Partner submits a bundle of canonical edits against a tea profile.
+     * fields: per-field changes the curator will review individually.
+     */
+    suggestEdits: async (
+      profileId: string,
+      fields: import('../types').ProfileSuggestionFieldDraft[],
+    ): Promise<{ suggestion_id: string; field_count: number }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/profiles/${profileId}/suggestions`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ fields }),
+      });
+      return handleResponse(res);
+    },
+
+    /**
+     * GET /api/profiles/:id/suggestions
+     * Curator-only on the profile. All bundles for one profile.
+     */
+    listProfileSuggestions: async (
+      profileId: string,
+    ): Promise<{ suggestions: import('../types').ProfileSuggestion[] }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/profiles/${profileId}/suggestions`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+
+    /**
+     * GET /api/suggestions/incoming
+     * Curator's whole queue across all profiles they curate.
+     * Default filter: pending + partial.
+     */
+    incomingSuggestions: async (
+      status?: 'pending' | 'partial' | 'resolved' | 'withdrawn',
+    ): Promise<{ suggestions: import('../types').ProfileSuggestion[] }> => {
+      const url = new URL(`${API_URL}/api/suggestions/incoming`);
+      if (status) url.searchParams.set('status', status);
+      const res = await fetchWithTimeout(url.toString(), { headers: authHeaders() });
+      return handleResponse(res);
+    },
+
+    /**
+     * POST /api/suggestions/:id/decide
+     * Per-field accept/reject. Accepted fields write to canonical immediately.
+     */
+    decideSuggestion: async (
+      suggestionId: string,
+      decisions: import('../types').ProfileSuggestionDecision[],
+    ): Promise<{ suggestion_id: string; bundle_status: string; decisions_recorded: number }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/suggestions/${suggestionId}/decide`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ decisions }),
+      });
+      return handleResponse(res);
+    },
   },
 
   /** Account-wide contact tag queries (autocomplete + tag-aware picker). */

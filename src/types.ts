@@ -598,6 +598,72 @@ export interface CarryProfileResult {
   listing_id: string;
 }
 
+// ── Profile suggestions (Step 3 — editorial governance) ──────────────────────
+
+/** A single field change a partner is proposing for canonical content. */
+export interface ProfileSuggestionFieldDraft {
+  field_name: ProfileSuggestableField;
+  /** Snapshot of the current canonical value so the curator sees drift later. */
+  current_value: string | null;
+  proposed_value: string;
+}
+
+/** The whitelist of fields a partner can suggest. Mirrors PROFILE_SUGGESTABLE_FIELDS in worker/src/index.ts. */
+export type ProfileSuggestableField =
+  | 'name'
+  | 'chinese_name'
+  | 'type'
+  | 'form'
+  | 'origin_country'
+  | 'origin_region'
+  | 'varietal'
+  | 'harvest_year'
+  | 'description'
+  | 'lore'
+  | 'processing_notes'
+  | 'terroir'
+  | 'mood'
+  | 'experience'
+  | 'image_url';
+
+export type ProfileSuggestionStatus = 'pending' | 'partial' | 'resolved' | 'withdrawn';
+export type ProfileSuggestionFieldStatus = 'pending' | 'accepted' | 'rejected';
+
+export interface ProfileSuggestionField {
+  id: string;
+  suggestion_id: string;
+  field_name: string;
+  current_value: string | null;
+  proposed_value: string;
+  status: ProfileSuggestionFieldStatus;
+  reject_note: string | null;
+  decided_at: string | null;
+}
+
+export interface ProfileSuggestion {
+  id: string;
+  profile_id: string;
+  /** Set on the incoming-queue endpoint; absent on the per-profile endpoint. */
+  profile_name?: string;
+  profile_slug?: string;
+  status: ProfileSuggestionStatus;
+  created_at: string;
+  updated_at: string;
+  suggested_by_account_id: string;
+  suggested_by_account_name: string;
+  suggested_by_user_id: string;
+  suggested_by_user_name: string | null;
+  suggested_by_email: string | null;
+  fields: ProfileSuggestionField[];
+}
+
+/** Per-field decision sent in POST /api/suggestions/:id/decide. */
+export interface ProfileSuggestionDecision {
+  field_id: string;
+  status: 'accepted' | 'rejected';
+  reject_note?: string;
+}
+
 export interface AccountMembership {
   account_id: string;
   account_name: string;
