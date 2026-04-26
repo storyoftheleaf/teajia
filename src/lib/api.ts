@@ -1,4 +1,4 @@
-import type { Account, AccountMember, AccountMembership, AccountRole, PlatformRole } from '../types';
+import type { Account, AccountApplication, AccountKind, AccountMember, AccountMembership, AccountRole, Bundle, PlatformRole } from '../types';
 
 export interface AuditLogEntry {
   id: string;
@@ -1910,6 +1910,20 @@ export const api = {
       });
       await handleResponse(res);
     },
+    // Members & Access — roster with bundle resolution per member
+    getAccess: async (accountId: string): Promise<{ members: AccountMember[] }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/accounts/${accountId}/access`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    // Members & Access — replace a member's bundles wholesale
+    setMemberBundles: async (accountId: string, userId: string, bundles: Bundle[]): Promise<void> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/accounts/${accountId}/members/${userId}/bundles`, {
+        method: 'PUT', headers: authHeaders(), body: JSON.stringify({ bundles }),
+      });
+      await handleResponse(res);
+    },
     getFeatures: async (accountId: string): Promise<Record<string, boolean>> => {
       const res = await fetchWithTimeout(`${API_URL}/api/accounts/${accountId}/features`, {
         headers: authHeaders(),
@@ -2137,8 +2151,16 @@ export const api = {
       });
       return handleResponse(res);
     },
-    getAuditLog: async (limit = 50, offset = 0): Promise<{ entries: AuditLogEntry[]; limit: number; offset: number }> => {
-      const res = await fetchWithTimeout(`${API_URL}/api/platform/audit-log?limit=${limit}&offset=${offset}`, {
+    getAuditLog: async (
+      opts: { limit?: number; offset?: number; account_id?: string; actor_id?: string; action?: string } = {}
+    ): Promise<{ entries: AuditLogEntry[]; limit: number; offset: number }> => {
+      const params = new URLSearchParams();
+      params.set('limit', String(opts.limit ?? 50));
+      params.set('offset', String(opts.offset ?? 0));
+      if (opts.account_id) params.set('account_id', opts.account_id);
+      if (opts.actor_id) params.set('actor_id', opts.actor_id);
+      if (opts.action) params.set('action', opts.action);
+      const res = await fetchWithTimeout(`${API_URL}/api/platform/audit-log?${params.toString()}`, {
         headers: authHeaders(),
       });
       return handleResponse(res);
@@ -2162,6 +2184,63 @@ export const api = {
         body: JSON.stringify(data),
       });
       return handleResponse(res);
+    },
+    // ── Members & Access (Platform tier) ────────────────────────────────────
+    listApplications: async (
+      filters: { status?: AccountApplication['status']; kind?: 'location' | 'master' } = {}
+    ): Promise<{ applications: AccountApplication[] }> => {
+      const params = new URLSearchParams();
+      if (filters.status) params.set('status', filters.status);
+      if (filters.kind) params.set('kind', filters.kind);
+      const qs = params.toString();
+      const res = await fetchWithTimeout(`${API_URL}/api/platform/applications${qs ? `?${qs}` : ''}`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    decideApplication: async (
+      applicationId: string,
+      decision: 'approve' | 'decline',
+      opts: { decision_note?: string; trust_tier?: 'basic' | 'verified' | 'partner' } = {}
+    ): Promise<{ success: true; account_id?: string; user_id?: string; claim_link?: string | null }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/platform/applications/${applicationId}/decide`, {
+        method: 'POST', headers: authHeaders(),
+        body: JSON.stringify({ decision, ...opts }),
+      });
+      return handleResponse(res);
+    },
+    inviteTeaMaster: async (
+      data: { email: string; name?: string; note?: string }
+    ): Promise<{ success: true; account_id: string; user_id: string; claim_link: string | null }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/platform/tea-masters/invite`, {
+        method: 'POST', headers: authHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
+    upgradeToLocation: async (
+      accountId: string,
+      data: { location_name?: string; location_city?: string; location_country?: string; timezone?: string } = {}
+    ): Promise<void> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/platform/accounts/${accountId}/upgrade-to-location`, {
+        method: 'POST', headers: authHeaders(),
+        body: JSON.stringify(data),
+      });
+      await handleResponse(res);
+    },
+    suspendAccount: async (accountId: string, reason?: string): Promise<void> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/platform/accounts/${accountId}/suspend`, {
+        method: 'POST', headers: authHeaders(),
+        body: JSON.stringify({ reason }),
+      });
+      await handleResponse(res);
+    },
+    reactivateAccount: async (accountId: string, note?: string): Promise<void> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/platform/accounts/${accountId}/reactivate`, {
+        method: 'POST', headers: authHeaders(),
+        body: JSON.stringify({ note }),
+      });
+      await handleResponse(res);
     },
   },
 

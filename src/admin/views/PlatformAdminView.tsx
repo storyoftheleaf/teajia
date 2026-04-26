@@ -509,7 +509,7 @@ const AuditPanel: React.FC = () => {
   const load = useCallback(async (off: number) => {
     setLoading(true);
     try {
-      const d = await api.platform.getAuditLog(LIMIT, off);
+      const d = await api.platform.getAuditLog({ limit: LIMIT, offset: off });
       setEntries(prev => off === 0 ? d.entries : [...prev, ...d.entries]);
     } catch (err: any) {
       showToast(err?.message || 'Failed to load audit log', 'error');

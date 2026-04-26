@@ -533,12 +533,41 @@ export interface Account {
 
 export type AccountRole = 'owner' | 'staff' | 'viewer';
 export type PlatformRole = 'platform_owner' | 'platform_admin' | null;
+export type AccountKind = 'platform' | 'location' | 'master';
+export type AccountStatus = 'active' | 'suspended';
+export type Bundle = 'catalog' | 'stock' | 'publish' | 'gather' | 'sell' | 'members';
+
+export const ALL_BUNDLES: Bundle[] = ['catalog', 'stock', 'publish', 'gather', 'sell', 'members'];
+
+export const BUNDLE_LABELS: Record<Bundle, string> = {
+  catalog: 'Catalog',
+  stock: 'Stock',
+  publish: 'Publish',
+  gather: 'Gather',
+  sell: 'Sell',
+  members: 'Members',
+};
+
+// One-line description shown in editor sheet under each bundle name (per M&A brief §10).
+export const BUNDLE_DESCRIPTIONS: Record<Bundle, string> = {
+  catalog: 'Add and edit teas, teaware, sources, and purchase orders.',
+  stock: 'Adjust inventory counts and log shipments received.',
+  publish: 'Write articles and curate Collections.',
+  gather: 'Run events and approve attendees.',
+  sell: 'Manage customers, orders, and pricing.',
+  members: 'Grant and revoke access for other people at this location.',
+};
 
 export interface AccountMembership {
   account_id: string;
   account_name: string;
   slug: string;
   role: AccountRole;
+  // Tea Master vs Location vs Platform — read at the account level.
+  account_kind?: AccountKind;
+  // Bundle authorization (Members & Access). Owners always have all six;
+  // staff bundles come from account_members.permissions.bundles; viewers have none.
+  bundles?: Bundle[];
   logo_url?: string;
   is_platform_account?: boolean;
 }
@@ -547,12 +576,29 @@ export interface AccountMember {
   user_id: string;
   email: string;
   name: string;
+  username?: string | null;
   role: AccountRole;
   platform_role?: PlatformRole;
+  bundles?: Bundle[];
   permissions?: Record<string, boolean>;
-  joined_at?: string;
+  joined_at?: string | null;
+  invited_at?: string | null;
   status?: string;
   can_create_collections?: boolean;
+}
+
+// Pending account application (Members & Access platform queue).
+export interface AccountApplication {
+  id: string;
+  applicant_email: string;
+  applicant_name: string | null;
+  proposed_account_kind: 'location' | 'master';
+  note: string | null;
+  status: 'pending' | 'approved' | 'declined' | 'withdrawn';
+  decided_by_user_id: string | null;
+  decided_at: string | null;
+  decision_note: string | null;
+  created_at: string;
 }
 
 // ── Magazine / Article types ────────────────────────────────────────────────

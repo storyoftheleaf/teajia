@@ -46,7 +46,7 @@ export const PlatformAuditLogPage: React.FC = () => {
   const load = useCallback(async (off: number, replace = false) => {
     setLoading(true);
     try {
-      const d = await api.platform.getAuditLog(LIMIT, off);
+      const d = await api.platform.getAuditLog({ limit: LIMIT, offset: off });
       setAllEntries(prev => replace ? d.entries : [...prev, ...d.entries]);
       setHasMore(d.entries.length === LIMIT);
     } finally {

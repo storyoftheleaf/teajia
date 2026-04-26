@@ -143,6 +143,26 @@ interface AppState {
   cartLastAddedAt: number | null;
 }
 
+// ── Members & Access selectors ────────────────────────────────────────────────
+// Use these in components to keep bundle checks consistent. Platform tier
+// (platform_owner / platform_admin) always returns true regardless of bundle —
+// they have all six bundles on every account by definition.
+export function selectHasBundle(state: Pick<AppState, 'memberships' | 'activeAccountId' | 'platformRole'>, bundle: import('../types').Bundle): boolean {
+  if (state.platformRole === 'platform_owner' || state.platformRole === 'platform_admin') return true;
+  const active = state.memberships.find(m => m.account_id === state.activeAccountId);
+  if (!active) return false;
+  return Array.isArray(active.bundles) && active.bundles.includes(bundle);
+}
+
+// True if the caller is the active account's owner-tier (or platform tier acting in it).
+// Used for actions reserved beyond Members bundle: transfer ownership, set per-partner
+// margin overrides, etc.
+export function selectIsOwnerTier(state: Pick<AppState, 'memberships' | 'activeAccountId' | 'platformRole'>): boolean {
+  if (state.platformRole === 'platform_owner' || state.platformRole === 'platform_admin') return true;
+  const active = state.memberships.find(m => m.account_id === state.activeAccountId);
+  return active?.role === 'owner';
+}
+
 export const useAppStore = create<AppState>()(
   persist(
     (set) => ({
