@@ -56,8 +56,14 @@ interface ProfileData {
   canonical_photos: string[];
   status: string;
   curated_by_account_id: string;
+  curated_by_kind?: string | null;
   originated_by_account_id: string;
   curated_by_name?: string | null;
+  // Adoption queue state — set when the originator has flagged this profile
+  // for network-wide adoption. Decision lives in tea_profiles.
+  adoption_decision?: 'pending' | 'adopted' | 'declined' | null;
+  suggested_for_network_at?: string | null;
+  adoption_decline_note?: string | null;
 }
 
 // One pending edit per field — indexed by field name
@@ -512,6 +518,161 @@ const ListingFields: React.FC<ListingFieldsProps> = ({ listing, profile, callerC
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Network adoption block — only when caller originated the profile
+// AND the curator is not yet the platform account.
+// Per Step 6 of the rollout: a partner flags their tea for Adrian to consider.
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface NetworkAdoptionBlockProps {
+  profileId: string;
+  profileName: string;
+  decision: 'pending' | 'adopted' | 'declined' | null;
+  suggestedAt: string | null;
+  declineNote: string | null;
+  onSuggested: () => void | Promise<void>;
+}
+
+const NetworkAdoptionBlock: React.FC<NetworkAdoptionBlockProps> = ({
+  profileId, profileName, decision, suggestedAt, declineNote, onSuggested,
+}) => {
+  const [busy, setBusy] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [note, setNote] = useState('');
+  const [error, setError] = useState<string | null>(null);
+
+  // If decision is 'pending', show a quiet pending notice — no action.
+  if (decision === 'pending') {
+    return (
+      <div className="mb-8">
+        <p className="font-body italic text-[14px] text-tea-text-sec leading-[1.7]">
+          Suggested for the Teajia network on{' '}
+          {suggestedAt ? new Date(suggestedAt).toLocaleDateString(undefined, { day: 'numeric', month: 'long' }) : 'recently'}.
+          Awaiting Adrian's review.
+        </p>
+      </div>
+    );
+  }
+
+  // If declined, show the note (if any) and offer re-suggestion.
+  if (decision === 'declined') {
+    return (
+      <div className="mb-8">
+        {declineNote && (
+          <p className="font-body italic text-[14px] text-tea-text-sec leading-[1.7] mb-2">
+            Adrian declined: "{declineNote}"
+          </p>
+        )}
+        {!open ? (
+          <button
+            type="button"
+            onClick={() => { setOpen(true); setError(null); }}
+            className="text-[13px] text-tea-text-sec hover:text-tea-gold transition-colors group"
+          >
+            Suggest for the network again{' '}
+            <span className="inline-block transition-transform group-hover:translate-x-0.5">→</span>
+          </button>
+        ) : (
+          <SuggestForm
+            note={note} setNote={setNote}
+            busy={busy} error={error}
+            onCancel={() => { setOpen(false); setNote(''); setError(null); }}
+            onSubmit={async () => {
+              setBusy(true); setError(null);
+              try {
+                await api.network.suggestForNetwork(profileId, note.trim() || undefined);
+                setOpen(false); setNote('');
+                await onSuggested();
+              } catch (err: any) {
+                setError(err?.message || 'Could not send. Try again.');
+              } finally { setBusy(false); }
+            }}
+          />
+        )}
+      </div>
+    );
+  }
+
+  // Default: never suggested. Offer the suggestion action.
+  return (
+    <div className="mb-8">
+      {!open ? (
+        <button
+          type="button"
+          onClick={() => { setOpen(true); setError(null); }}
+          className="text-[13px] text-tea-text-sec hover:text-tea-gold transition-colors group"
+        >
+          Suggest <span className="italic">{profileName}</span> for the Teajia network{' '}
+          <span className="inline-block transition-transform group-hover:translate-x-0.5">→</span>
+        </button>
+      ) : (
+        <SuggestForm
+          note={note} setNote={setNote}
+          busy={busy} error={error}
+          onCancel={() => { setOpen(false); setNote(''); setError(null); }}
+          onSubmit={async () => {
+            setBusy(true); setError(null);
+            try {
+              await api.network.suggestForNetwork(profileId, note.trim() || undefined);
+              setOpen(false); setNote('');
+              await onSuggested();
+            } catch (err: any) {
+              setError(err?.message || 'Could not send. Try again.');
+            } finally { setBusy(false); }
+          }}
+        />
+      )}
+    </div>
+  );
+};
+
+interface SuggestFormProps {
+  note: string;
+  setNote: (s: string) => void;
+  busy: boolean;
+  error: string | null;
+  onCancel: () => void;
+  onSubmit: () => void;
+}
+
+const SuggestForm: React.FC<SuggestFormProps> = ({ note, setNote, busy, error, onCancel, onSubmit }) => (
+  <div className="space-y-3">
+    <p className="font-body italic text-[14px] text-tea-text-sec leading-[1.7]">
+      Adrian reviews suggestions on his time. If adopted, this tea becomes
+      visible in every partner's catalog browse, with you credited as the originator.
+    </p>
+    <textarea
+      value={note}
+      onChange={e => setNote(e.target.value.slice(0, 1000))}
+      placeholder="Why does this tea belong in the network? (Optional)"
+      rows={3}
+      className="w-full px-3 py-2 bg-tea-bg border border-tea-border rounded-sm text-[14px] text-tea-text font-body placeholder:text-tea-text-dim placeholder:italic focus:outline-none focus:border-tea-gold/40"
+      maxLength={1000}
+    />
+    <div className="flex items-center gap-4 text-[13px]">
+      <button
+        type="button"
+        onClick={onCancel}
+        disabled={busy}
+        className="text-tea-text-sec hover:text-tea-text transition-colors"
+      >
+        Cancel
+      </button>
+      <button
+        type="button"
+        onClick={onSubmit}
+        disabled={busy}
+        className="text-tea-text-sec hover:text-tea-gold transition-colors disabled:opacity-50 disabled:cursor-wait"
+      >
+        {busy ? 'Sending…' : 'Send to Adrian →'}
+      </button>
+    </div>
+    {error && (
+      <p className="font-body italic text-[13px] text-tea-text-sec">{error}</p>
+    )}
+  </div>
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Main component
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -755,6 +916,20 @@ export const PartnerListingEdit: React.FC = () => {
             </button>
           </p>
         </div>
+      )}
+
+      {/* ── Network adoption — only when caller originated AND it's not yet canonical ─ */}
+      {isCurator
+        && profile.originated_by_account_id === activeAccountId
+        && profile.curated_by_kind !== 'platform' && (
+        <NetworkAdoptionBlock
+          profileId={profile.id}
+          profileName={profile.name}
+          decision={profile.adoption_decision ?? null}
+          suggestedAt={profile.suggested_for_network_at ?? null}
+          declineNote={profile.adoption_decline_note ?? null}
+          onSuggested={load}
+        />
       )}
 
       {/* Hairline */}

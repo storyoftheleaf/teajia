@@ -12210,7 +12210,11 @@ const handleGetListing: Handler = async (request, env) => {
       p.status          AS profile_status,
       p.curated_by_account_id,
       p.originated_by_account_id,
-      a.name            AS curated_by_name
+      a.name            AS curated_by_name,
+      a.kind            AS curated_by_kind,
+      p.adoption_decision,
+      p.suggested_for_network_at,
+      p.adoption_decline_note
     FROM product_listings l
     JOIN tea_profiles p ON p.id = l.profile_id
     LEFT JOIN accounts a ON a.id = p.curated_by_account_id
@@ -12259,8 +12263,12 @@ const handleGetListing: Handler = async (request, env) => {
       canonical_photos,
       status: row.profile_status,
       curated_by_account_id: row.curated_by_account_id,
+      curated_by_kind: row.curated_by_kind,
       originated_by_account_id: row.originated_by_account_id,
       curated_by_name: row.curated_by_name,
+      adoption_decision: row.adoption_decision,
+      suggested_for_network_at: row.suggested_for_network_at,
+      adoption_decline_note: row.adoption_decline_note,
     },
   });
 };
@@ -13291,6 +13299,221 @@ const handleGetWholesaleOrder: Handler = async (request, env, params) => {
   });
 };
 
+// ── Network adoption queue (Step 6 — cross-pollination) ────────────────────
+//
+// Per docs/NETWORK_ROLLOUT_PLAN.md Step 6:
+// A partner who originates a tea profile (one Adrian doesn't yet curate) can
+// flag it as a candidate for network-wide adoption. Adrian (or another platform
+// tier user) reviews and either adopts (transferring curated_by_account_id to
+// the platform account, making the profile visible to all partners' catalog
+// browse) or declines.
+//
+// Three endpoints:
+//   POST /api/network/profiles/:id/suggest-for-network  — partner flags own profile (Catalog)
+//   GET  /api/network/adoption-queue                    — Adrian's review queue (Platform tier)
+//   POST /api/network/profiles/:id/adopt                — adopt or decline (Platform tier)
+
+// POST /api/network/profiles/:id/suggest-for-network
+// Body: { note?: string }
+// Partner flags a profile they originated. Refuses if:
+//   - profile is already curated by the platform account (already-canonical)
+//   - profile already has a pending suggestion
+//   - caller is not the originator
+const handleSuggestProfileForNetwork: Handler = async (request, env, params) => {
+  const ctx = await requireBundle(request, env, 'catalog');
+  if ('error' in ctx) return ctx.error;
+  const { accountId, userId, email } = ctx;
+
+  const profileId = params.id;
+  if (!profileId) return json({ error: 'Profile id required' }, 400);
+
+  let body: any;
+  try { body = await request.json(); } catch { body = {}; }
+  const note = typeof body.note === 'string' ? body.note.slice(0, 1000) : null;
+
+  // Look up the profile and its current curator account
+  const profile = await env.DB.prepare(
+    `SELECT p.id, p.name, p.originated_by_account_id, p.curated_by_account_id,
+            p.adoption_decision, a.kind AS curator_kind
+     FROM tea_profiles p
+     LEFT JOIN accounts a ON a.id = p.curated_by_account_id
+     WHERE p.id = ?`
+  ).bind(profileId).first() as {
+    id: string; name: string;
+    originated_by_account_id: string;
+    curated_by_account_id: string;
+    adoption_decision: string | null;
+    curator_kind: string | null;
+  } | null;
+
+  if (!profile) return json({ error: 'Profile not found' }, 404);
+  if (profile.originated_by_account_id !== accountId) {
+    return json({ error: "You can only suggest profiles you originated." }, 403);
+  }
+  if (profile.curator_kind === 'platform') {
+    return json({ error: "This profile is already curated by Teajia." }, 400);
+  }
+  if (profile.adoption_decision === 'pending') {
+    return json({ error: "This profile is already pending adoption review." }, 409);
+  }
+
+  // Note: a profile that was previously declined CAN be re-suggested. The
+  // adoption_decision overwrites — Adrian sees a fresh pending entry.
+  await env.DB.prepare(
+    `UPDATE tea_profiles
+     SET suggested_for_network_at = datetime('now'),
+         suggested_for_network_by_user_id = ?,
+         suggested_for_network_note = ?,
+         adoption_decision = 'pending',
+         adoption_decided_at = NULL,
+         adoption_decided_by_user_id = NULL,
+         adoption_decline_note = NULL,
+         updated_at = datetime('now')
+     WHERE id = ?`
+  ).bind(userId, note, profileId).run();
+
+  await logPlatformAction(
+    env, 'profile.suggested_for_network', userId, email,
+    'tea_profile', profileId,
+    { profile_name: profile.name, originator_account_id: accountId, note }
+  );
+
+  return json({ ok: true }, 201);
+};
+
+// GET /api/network/adoption-queue?status=pending|adopted|declined
+// Platform tier only. Lists profiles that have been flagged.
+// Default filter: status=pending (Adrian's actionable queue).
+const handleAdoptionQueue: Handler = async (request, env) => {
+  const authErr = await requirePlatformAdmin(request, env);
+  if (authErr) return authErr;
+
+  const url = new URL(request.url);
+  const statusFilter = url.searchParams.get('status') || 'pending';
+  if (!['pending', 'adopted', 'declined'].includes(statusFilter)) {
+    return json({ error: "status must be 'pending', 'adopted', or 'declined'" }, 400);
+  }
+
+  const { results } = await env.DB.prepare(`
+    SELECT
+      p.id, p.slug, p.name, p.chinese_name,
+      p.type, p.form, p.origin_country, p.origin_region,
+      p.varietal, p.harvest_year, p.description, p.image_url,
+      p.suggested_for_network_at, p.suggested_for_network_note,
+      p.adoption_decision, p.adoption_decided_at, p.adoption_decline_note,
+      p.originated_by_account_id,
+      ao.name AS originator_account_name,
+      ao.slug AS originator_account_slug,
+      p.suggested_for_network_by_user_id,
+      u.name AS suggested_by_user_name,
+      u.email AS suggested_by_user_email
+    FROM tea_profiles p
+    JOIN accounts ao ON ao.id = p.originated_by_account_id
+    LEFT JOIN users u ON u.id = p.suggested_for_network_by_user_id
+    WHERE p.adoption_decision = ?
+    ORDER BY p.suggested_for_network_at DESC
+  `).bind(statusFilter).all();
+
+  return json({ profiles: results });
+};
+
+// POST /api/network/profiles/:id/adopt
+// Body: { decision: 'adopted'|'declined', decline_note?: string }
+// Platform tier only. On 'adopted': transfers curated_by_account_id to the
+// platform account, audits, the profile becomes visible in every partner's
+// catalog browse. On 'declined': records the decision + note, originator
+// stays as curator.
+const handleAdoptProfile: Handler = async (request, env, params) => {
+  const authErr = await requirePlatformAdmin(request, env);
+  if (authErr) return authErr;
+
+  const claims = parseToken(isAuthed(request)!)!;
+
+  const profileId = params.id;
+  if (!profileId) return json({ error: 'Profile id required' }, 400);
+
+  let body: any;
+  try { body = await request.json(); } catch { return json({ error: 'Invalid JSON body' }, 400); }
+  const decision = body.decision;
+  if (decision !== 'adopted' && decision !== 'declined') {
+    return json({ error: "decision must be 'adopted' or 'declined'" }, 400);
+  }
+  const declineNote = decision === 'declined' && typeof body.decline_note === 'string'
+    ? body.decline_note.slice(0, 1000)
+    : null;
+
+  const profile = await env.DB.prepare(
+    `SELECT id, name, adoption_decision, originated_by_account_id, curated_by_account_id
+     FROM tea_profiles WHERE id = ?`
+  ).bind(profileId).first() as {
+    id: string; name: string;
+    adoption_decision: string | null;
+    originated_by_account_id: string;
+    curated_by_account_id: string;
+  } | null;
+
+  if (!profile) return json({ error: 'Profile not found' }, 404);
+  if (profile.adoption_decision !== 'pending') {
+    return json({ error: `Profile is not pending adoption (status: ${profile.adoption_decision || 'never suggested'}).` }, 400);
+  }
+
+  // Find the platform account for the curator transfer.
+  // Adrian's account has kind='platform'; there should be exactly one.
+  const platformAccount = await env.DB.prepare(
+    "SELECT id FROM accounts WHERE kind = 'platform' LIMIT 1"
+  ).first() as { id: string } | null;
+  if (!platformAccount) {
+    return json({ error: 'Platform account not found — cannot adopt.' }, 500);
+  }
+
+  const now = new Date().toISOString();
+  const stmts: D1PreparedStatement[] = [];
+
+  if (decision === 'adopted') {
+    // Transfer curation to the platform account. Originator stays unchanged
+    // (it's immutable lineage per Decision 10).
+    stmts.push(env.DB.prepare(
+      `UPDATE tea_profiles
+       SET curated_by_account_id = ?,
+           adoption_decision = 'adopted',
+           adoption_decided_at = ?,
+           adoption_decided_by_user_id = ?,
+           adoption_decline_note = NULL,
+           network_visible = 1,
+           status = 'published',
+           updated_at = datetime('now')
+       WHERE id = ?`
+    ).bind(platformAccount.id, now, claims.sub, profileId));
+  } else {
+    // Decline: record decision + note. Curator unchanged.
+    stmts.push(env.DB.prepare(
+      `UPDATE tea_profiles
+       SET adoption_decision = 'declined',
+           adoption_decided_at = ?,
+           adoption_decided_by_user_id = ?,
+           adoption_decline_note = ?,
+           updated_at = datetime('now')
+       WHERE id = ?`
+    ).bind(now, claims.sub, declineNote, profileId));
+  }
+
+  await env.DB.batch(stmts);
+
+  await logPlatformAction(
+    env, `profile.adoption_${decision}`, claims.sub, claims.email,
+    'tea_profile', profileId,
+    {
+      profile_name: profile.name,
+      originator_account_id: profile.originated_by_account_id,
+      previous_curator_id: profile.curated_by_account_id,
+      new_curator_id: decision === 'adopted' ? platformAccount.id : profile.curated_by_account_id,
+      decline_note: declineNote,
+    }
+  );
+
+  return json({ ok: true, decision });
+};
+
 // ── Routes ──
 const routes: [string, string, Handler][] = [
   // Auth
@@ -13361,6 +13584,11 @@ const routes: [string, string, Handler][] = [
   ['PUT',  '/api/wholesale/orders/:id', handleUpdateWholesaleOrder],
   ['POST', '/api/wholesale/orders/:id/transition', handleTransitionWholesaleOrder],
   ['POST', '/api/wholesale/orders/:id/nudge', handleNudgeWholesaleOrder],
+
+  // ── Network adoption (Step 6) ──
+  ['POST', '/api/network/profiles/:id/suggest-for-network', handleSuggestProfileForNetwork],
+  ['GET',  '/api/network/adoption-queue', handleAdoptionQueue],
+  ['POST', '/api/network/profiles/:id/adopt', handleAdoptProfile],
 
   ['GET', '/api/s/:slug', handleGetPublicAccount],
   ['GET', '/api/s/:slug/products', handleGetPublicAccountProducts],

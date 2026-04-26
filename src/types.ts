@@ -782,6 +782,37 @@ export interface WholesaleTransitionBody {
   cancel_reason?: string;       // cancelled
 }
 
+// ── Network adoption (Step 6) ────────────────────────────────────────────────
+
+export type AdoptionDecision = 'pending' | 'adopted' | 'declined';
+
+/** A row in the adoption queue (GET /api/network/adoption-queue). */
+export interface AdoptionQueueEntry {
+  id: string;
+  slug: string;
+  name: string;
+  chinese_name: string | null;
+  type: string | null;
+  form: string | null;
+  origin_country: string | null;
+  origin_region: string | null;
+  varietal: string | null;
+  harvest_year: string | null;
+  description: string | null;
+  image_url: string | null;
+  suggested_for_network_at: string;
+  suggested_for_network_note: string | null;
+  adoption_decision: AdoptionDecision;
+  adoption_decided_at: string | null;
+  adoption_decline_note: string | null;
+  originated_by_account_id: string;
+  originator_account_name: string;
+  originator_account_slug: string;
+  suggested_for_network_by_user_id: string | null;
+  suggested_by_user_name: string | null;
+  suggested_by_user_email: string | null;
+}
+
 export interface AccountMembership {
   account_id: string;
   account_name: string;

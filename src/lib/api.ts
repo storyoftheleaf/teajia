@@ -2073,6 +2073,40 @@ export const api = {
       });
       return handleResponse(res);
     },
+
+    /** POST /api/network/profiles/:id/suggest-for-network — partner flags own profile */
+    suggestForNetwork: async (profileId: string, note?: string): Promise<{ ok: true }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/network/profiles/${profileId}/suggest-for-network`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ note }),
+      });
+      return handleResponse(res);
+    },
+
+    /** GET /api/network/adoption-queue?status=pending|adopted|declined — Platform tier */
+    adoptionQueue: async (
+      status: 'pending' | 'adopted' | 'declined' = 'pending',
+    ): Promise<{ profiles: import('../types').AdoptionQueueEntry[] }> => {
+      const url = new URL(`${API_URL}/api/network/adoption-queue`);
+      url.searchParams.set('status', status);
+      const res = await fetchWithTimeout(url.toString(), { headers: authHeaders() });
+      return handleResponse(res);
+    },
+
+    /** POST /api/network/profiles/:id/adopt — Platform tier decides */
+    decideAdoption: async (
+      profileId: string,
+      decision: 'adopted' | 'declined',
+      decline_note?: string,
+    ): Promise<{ ok: true; decision: string }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/network/profiles/${profileId}/adopt`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ decision, decline_note }),
+      });
+      return handleResponse(res);
+    },
   },
 
   /** Wholesale orders (Step 4) — cross-account transactional layer. */
