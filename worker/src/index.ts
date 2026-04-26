@@ -566,6 +566,228 @@ function buildStockLedgerEntry(
   ).bind(crypto.randomUUID(), productId, delta, balanceAfter, reason, invoiceId || null, invoiceNumber || null, userEmail || null, note || null, accountId || null);
 }
 
+// ── Profile / Listing mirror helpers (Step 2 write-through) ──────────────────
+//
+// During the transition from `products` to `tea_profiles` + `product_listings`,
+// every legacy product write must mirror the change to the new tables so partner
+// catalog browse and the network-wide views never see stale canonical data.
+//
+// Deterministic id mapping from migration 048:
+//   tea_profiles.id     = 'prof_' + products.id
+//   product_listings.id = 'list_' + products.id
+//
+// These helpers return D1 prepared statements (NOT awaited) so callers can
+// batch them with their existing UPDATE products statement. Add the result
+// to your extraStmts array — one DB.batch() call covers everything atomically.
+//
+// Both helpers no-op silently when no profile/listing exists for the product
+// (e.g. teaware rows, which were excluded from the migration backfill).
+
+// Columns shared 1:1 between products and tea_profiles. Listed in canonical
+// shape so the mirror SQL knows which value to take from `body`.
+const PROFILE_MIRROR_COLUMNS: Record<string, string> = {
+  // body key                     →  tea_profiles column
+  product_name:    'name',
+  chinese_name:    'chinese_name',
+  type:            'type',
+  form:            'form',
+  origin_country:  'origin_country',
+  origin_region:   'origin_region',
+  year:            'harvest_year',
+  description:     'description',
+  lore:            'lore',
+  processing_notes:'processing_notes',
+  terroir:         'terroir',
+  mood:            'mood',
+  experience:      'experience',
+  tasting_notes:   'tasting_notes',
+  image_url:       'image_url',
+  additional_images: 'canonical_photos',
+};
+
+// Columns shared 1:1 between products and product_listings.
+const LISTING_MIRROR_COLUMNS: Record<string, string> = {
+  // body key                     →  product_listings column
+  stock_grams:           'stock_grams',
+  low_stock_threshold:   'low_stock_threshold',
+  recheck_stock:         'recheck_stock',
+  fixed_retail_price_usd:'fixed_retail_price_usd',
+  markup_multiplier:     'markup_multiplier',
+  vendor:                'vendor',
+  vendor_id:             'vendor_id',
+  cost_amount:           'cost_amount',
+  cost_currency:         'cost_currency',
+  shipping_rate_per_kg:  'shipping_rate_per_kg',
+  quantity_purchased:    'quantity_purchased',
+  source_compass_entry_id:'source_compass_entry_id',
+  stock_verified_at:     'stock_verified_at',
+  is_personal:           'is_personal',
+  can_reorder:           'can_reorder',
+  is_public:             'is_public',
+  is_featured:           'is_featured',
+  is_curated:            'is_curated',
+  is_sample:             'is_sample',
+  in_transit:            'in_transit',
+  show_wisdom:           'show_wisdom',
+  is_custom_wisdom:      'is_custom_wisdom',
+  sold_out_at:           'sold_out_at',
+  tasting:               'tasting',
+  tasting_source:        'tasting_source',
+};
+
+// Build mirror statements for a product update. Pass the SAME body the
+// products UPDATE used; this filters down to only the relevant columns and
+// emits up to two prepared statements (profile mirror + listing mirror).
+// Returns [] if no fields touch either mirror table.
+function buildProductMirrorStmts(
+  env: Env, productId: string, body: Record<string, any>
+): D1PreparedStatement[] {
+  const stmts: D1PreparedStatement[] = [];
+
+  // Profile mirror — canonical content
+  const profileCols: string[] = [];
+  const profileVals: any[] = [];
+  for (const bodyKey of Object.keys(body)) {
+    const profileCol = PROFILE_MIRROR_COLUMNS[bodyKey];
+    if (!profileCol) continue;
+    profileCols.push(`${profileCol} = ?`);
+    profileVals.push(body[bodyKey] ?? null);
+  }
+  if (profileCols.length > 0) {
+    profileCols.push("updated_at = datetime('now')");
+    stmts.push(
+      env.DB.prepare(`UPDATE tea_profiles SET ${profileCols.join(', ')} WHERE id = ?`)
+        .bind(...profileVals, `prof_${productId}`)
+    );
+  }
+
+  // Listing mirror — inventory + per-account fields. Listing status mirrors
+  // products.status: legacy 'Archived' → listing 'archived', anything else stays 'active'.
+  const listingCols: string[] = [];
+  const listingVals: any[] = [];
+  for (const bodyKey of Object.keys(body)) {
+    const listingCol = LISTING_MIRROR_COLUMNS[bodyKey];
+    if (!listingCol) continue;
+    listingCols.push(`${listingCol} = ?`);
+    listingVals.push(body[bodyKey] ?? null);
+  }
+  if (body.status !== undefined) {
+    listingCols.push('status = ?');
+    listingVals.push(body.status === 'Archived' ? 'archived' : 'active');
+  }
+  if (listingCols.length > 0) {
+    listingCols.push("updated_at = datetime('now')");
+    stmts.push(
+      env.DB.prepare(`UPDATE product_listings SET ${listingCols.join(', ')} WHERE id = ?`)
+        .bind(...listingVals, `list_${productId}`)
+    );
+  }
+
+  return stmts;
+}
+
+// Stock-only mirror for the dozens of stock adjustment sites (invoice deduct,
+// invoice restore, deletion restore, etc.). Cheaper than the full mirror.
+function buildListingStockDelta(
+  env: Env, productId: string, delta: number
+): D1PreparedStatement {
+  return env.DB.prepare(
+    `UPDATE product_listings SET stock_grams = stock_grams + ?, updated_at = datetime('now') WHERE id = ?`
+  ).bind(delta, `list_${productId}`);
+}
+
+// Mirror a product status change to the corresponding listing. Used by the
+// sold-out / restored toggles (UPDATE products SET status = 'Sold Out' ...).
+function buildListingStatusMirror(
+  env: Env, productId: string, productStatus: string
+): D1PreparedStatement {
+  // Legacy products.status values: 'Active' | 'Sold Out' | 'Draft' | 'Archived'.
+  // Only 'Archived' maps to listing.status='archived' (soft-delete = stopped carrying).
+  // 'Sold Out' is just stock=0 and stays 'active' on the listing per Decision 13.
+  const listingStatus = productStatus === 'Archived' ? 'archived' : 'active';
+  return env.DB.prepare(
+    `UPDATE product_listings SET status = ?, sold_out_at = ?, updated_at = datetime('now') WHERE id = ?`
+  ).bind(listingStatus, productStatus === 'Sold Out' ? new Date().toISOString() : null, `list_${productId}`);
+}
+
+// Build INSERT statements for the profile + listing pair when a new tea product
+// is created. Skips teaware. Mirrors the migration 048 backfill shape so old
+// and new rows look identical regardless of which path created them.
+function buildProductMirrorInserts(
+  env: Env, productId: string, accountId: string, body: Record<string, any>
+): D1PreparedStatement[] {
+  // Teaware: no profile/listing row per the rollout plan.
+  if (body.type === 'Teaware') return [];
+
+  // Slug: same shape as migration backfill — tea_key (or name+year) + product id suffix.
+  const baseSlug = String(body.tea_key || (body.product_name + (body.year ? `-${body.year}` : '')) || productId)
+    .toLowerCase().replace(/['']/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  const slug = `${baseSlug}-${productId.slice(0, 6)}`.replace(/-+/g, '-');
+
+  // network_visible: same gating as migration backfill.
+  const networkVisible = (body.is_public === undefined || !!body.is_public)
+    && !body.is_personal
+    && !body.is_sample ? 1 : 0;
+
+  // Status mapping: products legacy values → profile lifecycle.
+  const profileStatus = body.status === 'Archived' ? 'archived'
+    : body.status === 'Draft' ? 'draft'
+    : 'published';
+  const listingStatus = body.status === 'Archived' ? 'archived' : 'active';
+
+  const profileInsert = env.DB.prepare(`
+    INSERT INTO tea_profiles (
+      id, slug, originated_by_account_id, curated_by_account_id,
+      name, chinese_name, type, form,
+      origin_country, origin_region, harvest_year,
+      description, lore, processing_notes, terroir, mood, experience,
+      tasting_notes, image_url, canonical_photos,
+      network_visible, status
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).bind(
+    `prof_${productId}`, slug, accountId, accountId,
+    body.product_name ?? null, body.chinese_name ?? null, body.type ?? null, body.form ?? null,
+    body.origin_country ?? null, body.origin_region ?? null, body.year ?? null,
+    body.description ?? null, body.lore ?? null, body.processing_notes ?? null,
+    body.terroir ?? null, body.mood ?? null, body.experience ?? null,
+    body.tasting_notes ?? '[]',
+    body.image_url ?? null,
+    body.additional_images ?? '[]',
+    networkVisible, profileStatus
+  );
+
+  const listingInsert = env.DB.prepare(`
+    INSERT INTO product_listings (
+      id, account_id, profile_id,
+      stock_grams, low_stock_threshold, recheck_stock,
+      fixed_retail_price_usd, markup_multiplier,
+      vendor, vendor_id, cost_amount, cost_currency,
+      shipping_rate_per_kg, quantity_purchased, source_compass_entry_id,
+      stock_verified_at,
+      is_personal, can_reorder, is_public, is_featured, is_curated, is_sample, in_transit,
+      show_wisdom, is_custom_wisdom,
+      status, sold_out_at,
+      tasting, tasting_source,
+      legacy_product_id
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).bind(
+    `list_${productId}`, accountId, `prof_${productId}`,
+    body.stock_grams ?? 0, body.low_stock_threshold ?? 100, body.recheck_stock ?? 0,
+    body.fixed_retail_price_usd ?? null, body.markup_multiplier ?? 2.5,
+    body.vendor ?? null, body.vendor_id ?? null, body.cost_amount ?? 0, body.cost_currency ?? 'USD',
+    body.shipping_rate_per_kg ?? 0, body.quantity_purchased ?? null, body.source_compass_entry_id ?? null,
+    body.stock_verified_at ?? null,
+    body.is_personal ?? 0, body.can_reorder ?? 0, body.is_public ?? 1, body.is_featured ?? 0,
+    body.is_curated ?? 0, body.is_sample ?? 0, body.in_transit ?? 0,
+    body.show_wisdom ?? 1, body.is_custom_wisdom ?? 0,
+    listingStatus, body.sold_out_at ?? null,
+    body.tasting ?? '{}', body.tasting_source ?? null,
+    productId
+  );
+
+  return [profileInsert, listingInsert];
+}
+
 async function requireAuth(request: Request, env: Env): Promise<Response | null> {
   const token = isAuthed(request);
   if (!token) return json({ error: 'Unauthorized', reason: 'no_token' }, 401);
@@ -1554,8 +1776,18 @@ const handleCreateProduct: Handler = async (request, env) => {
   const id = crypto.randomUUID();
   const cols = Object.keys(body);
   const placeholders = cols.map(() => '?').join(', ');
-  const stmt = env.DB.prepare(`INSERT INTO products (id, ${cols.join(', ')}) VALUES (?, ${placeholders})`);
-  await stmt.bind(id, ...cols.map(c => body[c] ?? null)).run();
+  const insertProduct = env.DB.prepare(`INSERT INTO products (id, ${cols.join(', ')}) VALUES (?, ${placeholders})`)
+    .bind(id, ...cols.map(c => body[c] ?? null));
+
+  // Mirror: create the profile + listing pair alongside the legacy product row
+  // so partner catalog browse reflects the new tea immediately.
+  const mirrorInserts = buildProductMirrorInserts(env, id, accountId, body);
+
+  if (mirrorInserts.length > 0) {
+    await env.DB.batch([insertProduct, ...mirrorInserts]);
+  } else {
+    await insertProduct.run();
+  }
 
   // Write PURCHASE_RECEIPT ledger entry if product has initial stock
   const initialStock = Number(body.stock_grams) || 0;
@@ -1760,8 +1992,14 @@ const handleUpdateProduct: Handler = async (request, env, params) => {
   const updateStmt = env.DB.prepare(`UPDATE products SET ${sets} WHERE id = ? AND account_id = ?`)
     .bind(...cols.map(c => body[c] ?? null), params.id, accountId);
 
-  if (extraStmts.length > 0) {
-    await env.DB.batch([updateStmt, ...extraStmts]);
+  // Mirror writes to tea_profiles + product_listings so partner catalog browse
+  // and network views never see stale canonical data. No-op for teaware (no
+  // profile/listing exists) since the UPDATE WHERE clauses won't match.
+  const mirrorStmts = buildProductMirrorStmts(env, params.id, body);
+
+  const allStmts = [updateStmt, ...extraStmts, ...mirrorStmts];
+  if (allStmts.length > 1) {
+    await env.DB.batch(allStmts);
   } else {
     await updateStmt.run();
   }
@@ -2049,6 +2287,7 @@ const handleFulfillInvoice: Handler = async (request, env) => {
       env.DB.prepare('UPDATE products SET stock_grams = stock_grams - ? WHERE id = ? AND account_id = ?')
         .bind(qty, item.product_id, accountId)
     );
+    stmts.push(buildListingStockDelta(env, item.product_id as string, -qty));
     stmts.push(buildStockLedgerEntry(
       env, item.product_id as string, -qty, newBalance, 'FULFILLMENT',
       userEmail, invoice_id, invoice.invoice_number as string, null, accountId
@@ -2059,6 +2298,7 @@ const handleFulfillInvoice: Handler = async (request, env) => {
         env.DB.prepare("UPDATE products SET status = 'Sold Out', sold_out_at = datetime('now') WHERE id = ? AND account_id = ?")
           .bind(item.product_id, accountId)
       );
+      stmts.push(buildListingStatusMirror(env, item.product_id as string, 'Sold Out'));
       stmts.push(buildActivityLog(
         env, 'PRODUCT_SOLD_OUT',
         `${product.given_name || product.product_name} auto-archived (stock reached ${newBalance}g after fulfillment of ${invoice.invoice_number})`,
@@ -2191,8 +2431,11 @@ const handleIncrementStock: Handler = async (request, env) => {
   const { accountId } = ctx;
 
   const { product_id, amount } = await request.json() as { product_id: string; amount: number };
-  await env.DB.prepare('UPDATE products SET stock_grams = stock_grams + ? WHERE id = ? AND account_id = ?')
-    .bind(amount, product_id, accountId).run();
+  await env.DB.batch([
+    env.DB.prepare('UPDATE products SET stock_grams = stock_grams + ? WHERE id = ? AND account_id = ?')
+      .bind(amount, product_id, accountId),
+    buildListingStockDelta(env, product_id, amount),
+  ]);
   return json({ success: true });
 };
 
@@ -2230,6 +2473,7 @@ const handleVoidInvoice: Handler = async (request, env) => {
         env.DB.prepare('UPDATE products SET stock_grams = stock_grams + ? WHERE id = ? AND account_id = ?')
           .bind(qty, item.product_id, accountId)
       );
+      stmts.push(buildListingStockDelta(env, item.product_id as string, qty));
       stmts.push(buildStockLedgerEntry(
         env, item.product_id as string, qty, newBalance, 'VOID',
         userEmail, invoice_id, invoice.invoice_number as string, null, accountId
@@ -2240,6 +2484,7 @@ const handleVoidInvoice: Handler = async (request, env) => {
           env.DB.prepare("UPDATE products SET status = 'Active', sold_out_at = NULL WHERE id = ? AND account_id = ?")
             .bind(item.product_id, accountId)
         );
+        stmts.push(buildListingStatusMirror(env, item.product_id as string, 'Active'));
         // Restore linked compass entry from depleted to in_stock
         if (product.source_compass_entry_id) {
           stmts.push(
@@ -2430,6 +2675,7 @@ const handleLinkLineItem: Handler = async (request, env) => {
     stmts.push(env.DB.prepare(
       'UPDATE products SET stock_grams = stock_grams - ? WHERE id = ? AND account_id = ?'
     ).bind(qty, product_id, accountId));
+    stmts.push(buildListingStockDelta(env, product_id, -qty));
 
     stmts.push(buildStockLedgerEntry(
       env, product_id, -qty, newBalance, 'FULFILLMENT',
@@ -2440,6 +2686,7 @@ const handleLinkLineItem: Handler = async (request, env) => {
       stmts.push(env.DB.prepare(
         "UPDATE products SET status = 'Sold Out', sold_out_at = datetime('now') WHERE id = ? AND account_id = ?"
       ).bind(product_id, accountId));
+      stmts.push(buildListingStatusMirror(env, product_id, 'Sold Out'));
       if (product.source_compass_entry_id) {
         stmts.push(env.DB.prepare(
           "UPDATE tea_compass_entries SET status = 'depleted', updated_at = datetime('now') WHERE id = ? AND status = 'in_stock'"
