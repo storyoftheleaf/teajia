@@ -2075,6 +2075,75 @@ export const api = {
     },
   },
 
+  /** Wholesale orders (Step 4) — cross-account transactional layer. */
+  wholesale: {
+    /** POST /api/wholesale/orders — buyer creates a draft. */
+    createOrder: async (
+      body: import('../types').WholesaleOrderCreateBody,
+    ): Promise<{ order_id: string }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/wholesale/orders`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify(body),
+      });
+      return handleResponse(res);
+    },
+
+    /** GET /api/wholesale/orders — list with optional role + status filters. */
+    listOrders: async (
+      opts: { role?: 'buyer' | 'supplier'; status?: import('../types').WholesaleOrderStatus } = {},
+    ): Promise<{ orders: import('../types').WholesaleOrderSummary[] }> => {
+      const url = new URL(`${API_URL}/api/wholesale/orders`);
+      if (opts.role) url.searchParams.set('role', opts.role);
+      if (opts.status) url.searchParams.set('status', opts.status);
+      const res = await fetchWithTimeout(url.toString(), { headers: authHeaders() });
+      return handleResponse(res);
+    },
+
+    /** GET /api/wholesale/orders/:id — detail + items + party accounts. */
+    getOrder: async (orderId: string): Promise<import('../types').WholesaleOrderDetail> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/wholesale/orders/${orderId}`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+
+    /** PUT /api/wholesale/orders/:id — buyer edits draft (or replied). */
+    updateOrder: async (
+      orderId: string,
+      patch: import('../types').WholesaleOrderUpdateBody,
+    ): Promise<{ ok: true }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/wholesale/orders/${orderId}`, {
+        method: 'PUT',
+        headers: authHeaders(),
+        body: JSON.stringify(patch),
+      });
+      return handleResponse(res);
+    },
+
+    /** POST /api/wholesale/orders/:id/transition — single dispatch for status changes. */
+    transition: async (
+      orderId: string,
+      transition: import('../types').WholesaleTransitionBody,
+    ): Promise<{ ok: true; status: string }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/wholesale/orders/${orderId}/transition`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify(transition),
+      });
+      return handleResponse(res);
+    },
+
+    /** POST /api/wholesale/orders/:id/nudge — buyer reminds supplier. 24h throttle. */
+    nudge: async (orderId: string): Promise<{ ok: true }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/wholesale/orders/${orderId}/nudge`, {
+        method: 'POST',
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+  },
+
   /** Account-wide contact tag queries (autocomplete + tag-aware picker). */
   customerTags: {
     listAll: async (): Promise<Array<{ tag: string; count: number }>> => {

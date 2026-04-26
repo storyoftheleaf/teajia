@@ -664,6 +664,118 @@ export interface ProfileSuggestionDecision {
   reject_note?: string;
 }
 
+// ── Wholesale orders (Step 4) ────────────────────────────────────────────────
+
+export type WholesaleOrderStatus =
+  | 'draft'
+  | 'submitted'
+  | 'replied'
+  | 'confirmed'
+  | 'shipped'
+  | 'received'
+  | 'cancelled';
+
+/** Per-line item in a wholesale order. */
+export interface WholesaleOrderItem {
+  id: string;
+  order_id: string;
+  supplier_listing_id: string;
+  buyer_listing_id: string | null;   // null until received
+  profile_id: string;
+  grams: number;
+  unit_price_amount: number;
+  unit_price_currency: string;
+  line_total: number;
+  // Joined when fetched via getOrder
+  profile_name?: string;
+  profile_slug?: string;
+  profile_image?: string | null;
+}
+
+/** The order envelope. Mirrors the wholesale_orders table. */
+export interface WholesaleOrder {
+  id: string;
+  supplier_account_id: string;
+  buyer_account_id: string;
+  status: WholesaleOrderStatus;
+  currency: string;
+  subtotal_amount: number | null;
+  shipping_amount: number | null;
+  total_amount: number | null;
+  shipping_address: string | null;
+  tracking_number: string | null;
+  carrier: string | null;
+  buyer_notes: string | null;
+  supplier_notes: string | null;
+  invoice_id_supplier: string | null;
+  invoice_id_buyer: string | null;
+  submitted_at: string | null;
+  replied_at: string | null;
+  confirmed_at: string | null;
+  shipped_at: string | null;
+  received_at: string | null;
+  cancelled_at: string | null;
+  cancelled_by_account_id: string | null;
+  cancel_reason: string | null;
+  last_nudge_at: string | null;
+  nudge_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Summary row from GET /api/wholesale/orders (list view). */
+export interface WholesaleOrderSummary extends WholesaleOrder {
+  supplier_name: string;
+  supplier_slug: string;
+  buyer_name: string;
+  buyer_slug: string;
+  item_count: number;
+}
+
+/** Detail response from GET /api/wholesale/orders/:id. */
+export interface WholesaleOrderDetail {
+  order: WholesaleOrder;
+  supplier: { id: string; name: string; slug: string; currency_default: string };
+  buyer: { id: string; name: string; slug: string; currency_default: string };
+  items: WholesaleOrderItem[];
+}
+
+/** Body for POST /api/wholesale/orders. */
+export interface WholesaleOrderCreateBody {
+  supplier_account_id: string;
+  currency: string;
+  shipping_address?: string | null;
+  buyer_notes?: string | null;
+  items?: Array<{
+    supplier_listing_id: string;
+    grams: number;
+    unit_price_amount: number;
+    unit_price_currency: string;
+  }>;
+}
+
+/** Body for PUT /api/wholesale/orders/:id. */
+export interface WholesaleOrderUpdateBody {
+  shipping_address?: string | null;
+  buyer_notes?: string | null;
+  items?: Array<{
+    supplier_listing_id: string;
+    grams: number;
+    unit_price_amount: number;
+    unit_price_currency: string;
+  }>;
+}
+
+/** Body for POST /api/wholesale/orders/:id/transition. */
+export interface WholesaleTransitionBody {
+  to: 'submitted' | 'replied' | 'confirmed' | 'shipped' | 'received' | 'cancelled';
+  shipping_amount?: number;     // confirmed
+  tracking_number?: string;     // shipped
+  carrier?: string;             // shipped
+  supplier_notes?: string;      // replied | confirmed
+  cancel_reason?: string;       // cancelled
+}
+
 export interface AccountMembership {
   account_id: string;
   account_name: string;
