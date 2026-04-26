@@ -35,6 +35,7 @@ import { DashboardView } from './components/DashboardView';
 import { NoMembershipGate } from './components/NoMembershipGate';
 import { AccountSettingsView } from './views/AccountSettingsView';
 import { PlatformAdminView } from './views/PlatformAdminView';
+import { AccessView } from './views/AccessView';
 import { EventsManager } from './components/EventsManager';
 import { EventDetail } from './components/EventDetail';
 import { VenueManager } from './components/VenueManager';
@@ -582,7 +583,8 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
               <Route path="vendors/:vendorId" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><VendorProfileView /></PageTransition></ProtectedRoute>} />
               <Route path="products/:id/story" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><ProductStoryView /></PageTransition></ProtectedRoute>} />
               <Route path="purchase-orders" element={<Navigate to="/admin/people?tab=purchase-orders" replace />} />
-              <Route path="team" element={<Navigate to="/admin/people?tab=team" replace />} />
+              <Route path="team" element={<Navigate to="/admin/access" replace />} />
+              <Route path="access" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><AccessView /></PageTransition></ProtectedRoute>} />
               <Route path="account-settings" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><AccountSettingsView /></PageTransition></ProtectedRoute>} />
               <Route path="platform" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><PlatformAdminView /></PageTransition></ProtectedRoute>} />
               <Route path="platform/audit-log" element={<ProtectedRoute hasAccess={isAdmin && !!platformRole} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><PlatformAuditLogPage /></PageTransition></ProtectedRoute>} />
