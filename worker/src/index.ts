@@ -25,8 +25,22 @@ export interface AccountMembership {
   role: 'owner' | 'staff' | 'viewer';
   slug: string;
   account_name: string;
+  // Tea Master vs Location vs Platform — read at the account level. Carried
+  // here so the frontend can render role-adaptive UI without a second fetch.
+  account_kind?: 'platform' | 'location' | 'master';
+  // Bundle authorization (Members & Access). Six possible bundles:
+  // catalog · stock · publish · gather · sell · members.
+  // Resolution rules (handled in resolveBundles, not stored here):
+  //   Platform Owner / Admin       → all six on every account
+  //   Location Owner / Tea Master  → all six on own account (members locked-on)
+  //   Member (staff)               → from account_members.permissions.bundles
+  //   Viewer                       → none
+  bundles?: Bundle[];
   is_platform_account?: boolean;
 }
+
+export type Bundle = 'catalog' | 'stock' | 'publish' | 'gather' | 'sell' | 'members';
+export const ALL_BUNDLES: Bundle[] = ['catalog', 'stock', 'publish', 'gather', 'sell', 'members'];
 
 export type PlatformRole = 'platform_owner' | 'platform_admin' | null;
 
@@ -246,22 +260,61 @@ async function verifyOAuthState(state: string, secret: string): Promise<boolean>
 async function loadMemberships(env: Env, userId: string): Promise<AccountMembership[]> {
   try {
     const { results } = await env.DB.prepare(
-      `SELECT am.account_id, am.role, a.slug, a.name, a.is_platform_owner
+      `SELECT am.account_id, am.role, am.permissions, a.slug, a.name, a.kind, a.is_platform_owner
        FROM account_members am
        JOIN accounts a ON a.id = am.account_id
        WHERE am.user_id = ? AND am.status = 'active'
        ORDER BY am.joined_at ASC`
     ).bind(userId).all();
-    return (results as any[]).map(r => ({
-      account_id: r.account_id as string,
-      role: r.role as AccountMembership['role'],
-      slug: r.slug as string,
-      account_name: r.name as string,
-      ...(r.is_platform_owner ? { is_platform_account: true } : {}),
-    }));
+    return (results as any[]).map(r => {
+      const role = r.role as AccountMembership['role'];
+      const kind = (r.kind as AccountMembership['account_kind']) || 'location';
+      const bundles = resolveBundles(role, kind, r.permissions as string | null);
+      return {
+        account_id: r.account_id as string,
+        role,
+        slug: r.slug as string,
+        account_name: r.name as string,
+        account_kind: kind,
+        bundles,
+        ...(r.is_platform_owner ? { is_platform_account: true } : {}),
+      };
+    });
   } catch {
     return [];
   }
+}
+
+// Resolve the bundle set for a single membership row given role, account kind,
+// and the raw permissions JSON. Platform-tier bypasses are handled in the
+// requireBundle middleware (it short-circuits for platform_owner/admin claims),
+// not here. This function only reasons about per-account membership state.
+function resolveBundles(
+  role: 'owner' | 'staff' | 'viewer',
+  _kind: 'platform' | 'location' | 'master',
+  permissionsJson: string | null
+): Bundle[] {
+  // Owners (Location or Tea Master) always get all six bundles on their own
+  // account. Members bundle is locked-on for owners — they cannot revoke it
+  // from themselves.
+  if (role === 'owner') return [...ALL_BUNDLES];
+  // Viewers have no write capabilities; bundles drive write permission.
+  if (role === 'viewer') return [];
+  // Staff: read bundles from account_members.permissions.bundles. Migration 047
+  // backfilled this with ['catalog','stock','sell'] for existing staff. The
+  // owner can edit it via PUT /api/accounts/:id/members/:userId/bundles.
+  if (role === 'staff') {
+    if (!permissionsJson) return [];
+    try {
+      const parsed = JSON.parse(permissionsJson);
+      const arr = parsed?.bundles;
+      if (!Array.isArray(arr)) return [];
+      return arr.filter((b): b is Bundle => ALL_BUNDLES.includes(b as Bundle));
+    } catch {
+      return [];
+    }
+  }
+  return [];
 }
 
 async function getAccountIdBySlug(env: Env, slug: string): Promise<string | null> {
@@ -275,7 +328,18 @@ async function getAccountIdBySlug(env: Env, slug: string): Promise<string | null
 
 const BALI_ACCOUNT_ID = 'acc_teajia_bali';
 
-type AccountCtx = { accountId: string; userId: string; role: string; email: string; name: string };
+type AccountCtx = {
+  accountId: string;
+  userId: string;
+  role: string;
+  email: string;
+  name: string;
+  // Bundle set for this caller in this account, computed by getActiveAccount.
+  // Platform Owner / Admin get all six bundles regardless of membership row.
+  bundles: Bundle[];
+  // True when caller is acting as platform tier (owner or admin) inside any account.
+  isPlatform: boolean;
+};
 
 // Validate X-Teajia-Account header (or fall back to JWT active_account_id),
 // verify the user has an active membership. Returns the account context or
@@ -298,7 +362,7 @@ async function getActiveAccount(
   if (!claims) return { error: json({ error: 'Unauthorized', reason: 'invalid' }, 401) };
 
   // Platform owner and platform admin bypass account membership checks —
-  // they have access to every account.
+  // they have access to every account, with all bundles.
   if (claims.platform_role === 'platform_owner' || claims.platform_role === 'platform_admin') {
     const headerAccount = request.headers.get('X-Teajia-Account');
     const requested = headerAccount || claims.active_account_id || null;
@@ -309,6 +373,8 @@ async function getActiveAccount(
       role: 'owner', // platform roles act as owner within any account
       email: claims.email,
       name: claims.name,
+      bundles: [...ALL_BUNDLES],
+      isPlatform: true,
     };
   }
 
@@ -318,20 +384,44 @@ async function getActiveAccount(
     return { error: json({ error: 'Account access denied' }, 403) };
   }
 
-  // Verify membership.
-  let membership: { role: string } | null = null;
-  // First try the embedded memberships list.
-  const inToken = (claims.memberships || []).find(m => m.account_id === requested);
-  if (inToken) {
-    membership = { role: inToken.role };
-  } else {
-    // Fallback: query the DB in case the token is stale.
-    try {
-      const row = await env.DB.prepare(
-        `SELECT role FROM account_members WHERE user_id = ? AND account_id = ? AND status = 'active'`
-      ).bind(claims.sub, requested).first();
-      if (row) membership = { role: row.role as string };
-    } catch {}
+  // Verify membership and resolve bundles. We always need bundles + kind from
+  // the DB (the token's embedded memberships may be stale or missing the new
+  // fields if minted before the bundle migration). For tokens that already
+  // carry bundles in the membership claim, we still re-verify against the DB
+  // on the first request after a deploy to avoid serving with stale auth.
+  let membership: {
+    role: 'owner' | 'staff' | 'viewer';
+    permissions: string | null;
+    kind: 'platform' | 'location' | 'master';
+  } | null = null;
+
+  try {
+    const row = await env.DB.prepare(
+      `SELECT am.role, am.permissions, a.kind
+       FROM account_members am
+       JOIN accounts a ON a.id = am.account_id
+       WHERE am.user_id = ? AND am.account_id = ? AND am.status = 'active'`
+    ).bind(claims.sub, requested).first();
+    if (row) {
+      membership = {
+        role: row.role as 'owner' | 'staff' | 'viewer',
+        permissions: (row.permissions as string | null) ?? null,
+        kind: ((row.kind as string) || 'location') as 'platform' | 'location' | 'master',
+      };
+    }
+  } catch {}
+
+  // Fallback to embedded membership if the DB lookup didn't return a row
+  // (e.g. transient DB error — preserve previous behavior of trusting the token).
+  if (!membership) {
+    const inToken = (claims.memberships || []).find(m => m.account_id === requested);
+    if (inToken) {
+      membership = {
+        role: inToken.role,
+        permissions: null,
+        kind: (inToken.account_kind as 'platform' | 'location' | 'master') || 'location',
+      };
+    }
   }
 
   if (!membership) {
@@ -346,12 +436,16 @@ async function getActiveAccount(
     }
   } catch {}
 
+  const bundles = resolveBundles(membership.role, membership.kind, membership.permissions);
+
   return {
     accountId: requested,
     userId: claims.sub,
     role: membership.role,
     email: claims.email,
     name: claims.name,
+    bundles,
+    isPlatform: false,
   };
 }
 
@@ -374,6 +468,48 @@ async function requireAccountRole(
     return { error: json({ error: 'Insufficient role for this account' }, 403) };
   }
   return ctx;
+}
+
+// Bundle-aware authorization (Members & Access). Use this for any handler
+// whose access maps to a capability bundle. The authorization matrix lives in
+// docs/NETWORK_ROLLOUT_PLAN.md.
+//
+// Examples:
+//   requireBundle(request, env, 'catalog')  — edit canonical, carry teas, suggest edits
+//   requireBundle(request, env, 'sell')     — wholesale orders, listing prices
+//   requireBundle(request, env, 'members')  — invite, change bundles, remove members
+//
+// Owner-tier-only actions (transfer ownership, set per-partner margin override,
+// suspend account) should additionally call requireOwnerTier. Platform-tier-only
+// actions (adopt profile to network, transfer curation) should call requirePlatformAdmin.
+async function requireBundle(
+  request: Request,
+  env: Env,
+  bundle: Bundle
+): Promise<AccountCtx | { error: Response }> {
+  const ctx = await getActiveAccount(request, env);
+  if ('error' in ctx) return ctx;
+  if (ctx.bundles.includes(bundle)) return ctx;
+  return {
+    error: json({
+      error: 'Insufficient bundle for this action',
+      required_bundle: bundle,
+    }, 403)
+  };
+}
+
+// Some actions are reserved to the account's owner tier specifically (not just
+// "anyone with the members bundle"). E.g. transferring ownership, configuring
+// the per-partner wholesale margin override that defines a financial relationship.
+// Platform Owner / Admin satisfy this by virtue of acting as 'owner' in any account.
+async function requireOwnerTier(
+  request: Request,
+  env: Env
+): Promise<AccountCtx | { error: Response }> {
+  const ctx = await getActiveAccount(request, env);
+  if ('error' in ctx) return ctx;
+  if (ctx.role === 'owner') return ctx;
+  return { error: json({ error: 'Owner-tier access required for this action' }, 403) };
 }
 
 // Require the caller to be the platform owner (only one user).
