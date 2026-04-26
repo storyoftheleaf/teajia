@@ -8402,6 +8402,93 @@ const handleDeleteAccountMember: Handler = async (request, env, params) => {
   return json({ success: true });
 };
 
+// GET /api/accounts/:id/access — roster with per-member bundle resolution (Members bundle)
+const handleGetAccountAccess: Handler = async (request, env, params) => {
+  const ctx = await requireBundle(request, env, 'members');
+  if ('error' in ctx) return ctx.error;
+  if (params.id !== ctx.accountId) return json({ error: 'Account access denied' }, 403);
+
+  const account = await env.DB.prepare(
+    'SELECT kind FROM accounts WHERE id = ?'
+  ).bind(params.id).first() as { kind: string } | null;
+  if (!account) return json({ error: 'Account not found' }, 404);
+  const accountKind = (account.kind || 'location') as 'platform' | 'location' | 'master';
+
+  const { results } = await env.DB.prepare(
+    `SELECT am.user_id, am.role, am.permissions, am.status, am.joined_at, am.invited_at,
+            u.email, u.name, u.username
+     FROM account_members am
+     LEFT JOIN users u ON u.id = am.user_id
+     WHERE am.account_id = ?`
+  ).bind(params.id).all();
+
+  const rolePriority = (role: string) => role === 'owner' ? 0 : role === 'staff' ? 1 : 2;
+
+  const members = (results as any[])
+    .map(row => ({
+      user_id: row.user_id as string,
+      email: (row.email as string) || '',
+      name: (row.name as string) || '',
+      username: (row.username as string | null) ?? null,
+      role: row.role as 'owner' | 'staff' | 'viewer',
+      bundles: resolveBundles(row.role as 'owner' | 'staff' | 'viewer', accountKind, row.permissions as string | null),
+      status: (row.status as string) || 'active',
+      joined_at: (row.joined_at as string) || null,
+      invited_at: (row.invited_at as string) || null,
+    }))
+    .sort((a, b) => {
+      const rDiff = rolePriority(a.role) - rolePriority(b.role);
+      if (rDiff !== 0) return rDiff;
+      const aTime = a.joined_at ?? '';
+      const bTime = b.joined_at ?? '';
+      return aTime < bTime ? -1 : aTime > bTime ? 1 : 0;
+    });
+
+  return json({ members });
+};
+
+// PUT /api/accounts/:id/members/:userId/bundles — replace bundle set wholesale (Members bundle)
+const handleUpdateMemberBundles: Handler = async (request, env, params) => {
+  const ctx = await requireBundle(request, env, 'members');
+  if ('error' in ctx) return ctx.error;
+  if (params.id !== ctx.accountId) return json({ error: 'Account access denied' }, 403);
+
+  const body = await request.json() as { bundles?: unknown };
+  if (!Array.isArray(body.bundles)) return json({ error: 'bundles must be an array' }, 400);
+  const invalid = (body.bundles as unknown[]).filter(b => !ALL_BUNDLES.includes(b as Bundle));
+  if (invalid.length > 0) {
+    return json({ error: `Invalid bundle(s): ${invalid.join(', ')}. Valid: ${ALL_BUNDLES.join(', ')}` }, 400);
+  }
+  const newBundles = body.bundles as Bundle[];
+
+  const member = await env.DB.prepare(
+    'SELECT role, status, permissions FROM account_members WHERE account_id = ? AND user_id = ?'
+  ).bind(params.id, params.userId).first() as { role: string; status: string; permissions: string | null } | null;
+
+  if (!member || member.status !== 'active') return json({ error: 'Member not found or not active in this account' }, 404);
+  if (member.role === 'owner') {
+    return json({ error: 'Cannot set bundles for owner-tier member; owners always have all bundles.' }, 400);
+  }
+
+  let existing: Record<string, unknown> = {};
+  if (member.permissions) {
+    try { existing = JSON.parse(member.permissions); } catch { /* ignore malformed */ }
+  }
+  const previousBundles = Array.isArray(existing.bundles) ? (existing.bundles as string[]) : [];
+  const updatedPermissions = JSON.stringify({ ...existing, bundles: newBundles });
+
+  await env.DB.prepare(
+    'UPDATE account_members SET permissions = ? WHERE account_id = ? AND user_id = ?'
+  ).bind(updatedPermissions, params.id, params.userId).run();
+
+  await logPlatformAction(env, 'member.bundles_updated', ctx.userId, ctx.email, 'member', `${params.id}:${params.userId}`, {
+    previous_bundles: previousBundles,
+    new_bundles: newBundles,
+  });
+
+  return json({ success: true, bundles: newBundles });
+};
+
 // ── Platform Audit Log Helper ─────────────────────────────────────────────────
 
 async function logPlatformAction(
@@ -11102,6 +11189,8 @@ const routes: [string, string, Handler][] = [
   ['POST', '/api/accounts/:id/members', handleInviteAccountMember],
   ['PUT', '/api/accounts/:id/members/:userId', handleUpdateAccountMember],
   ['DELETE', '/api/accounts/:id/members/:userId', handleDeleteAccountMember],
+  ['GET', '/api/accounts/:id/access', handleGetAccountAccess],
+  ['PUT', '/api/accounts/:id/members/:userId/bundles', handleUpdateMemberBundles],
 
   // Platform admin
   ['GET',  '/api/platform/users', handlePlatformListUsers],
