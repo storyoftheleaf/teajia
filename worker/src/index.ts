@@ -2506,9 +2506,9 @@ const handleResetStockVerification: Handler = async (request, env) => {
   return json({ success: true });
 };
 
-// ── RPC: Truncate All Data (per-account) ──
+// ── RPC: Truncate All Data (per-account, owner-tier only) ──
 const handleTruncateAll: Handler = async (request, env) => {
-  const ctx = await requireAccountRole(request, env, ['owner']);
+  const ctx = await requireOwnerTier(request, env);
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -8237,9 +8237,9 @@ const handleGetAccount: Handler = async (request, env, params) => {
   return json(acc);
 };
 
-// PUT /api/accounts/:id — update account profile (owner only)
+// PUT /api/accounts/:id — update account profile (owner-tier only)
 const handleUpdateAccount: Handler = async (request, env, params) => {
-  const ctx = await requireAccountRole(request, env, ['owner']);
+  const ctx = await requireOwnerTier(request, env);
   if ('error' in ctx) return ctx.error;
   if (params.id !== ctx.accountId) return json({ error: 'Account access denied' }, 403);
 
@@ -8301,9 +8301,9 @@ const handleGetAccountMembers: Handler = async (request, env, params) => {
   return json({ members });
 };
 
-// POST /api/accounts/:id/members — invite by email (owner only)
+// POST /api/accounts/:id/members — invite by email (Members bundle)
 const handleInviteAccountMember: Handler = async (request, env, params) => {
-  const ctx = await requireAccountRole(request, env, ['owner']);
+  const ctx = await requireBundle(request, env, 'members');
   if ('error' in ctx) return ctx.error;
   if (params.id !== ctx.accountId) return json({ error: 'Account access denied' }, 403);
 
@@ -8353,9 +8353,11 @@ const handleInviteAccountMember: Handler = async (request, env, params) => {
   return json({ success: true, user_id: user.id, created_user: createdUser, invite_link: inviteLink }, 201);
 };
 
-// PUT /api/accounts/:id/members/:userId — update role (owner only)
+// PUT /api/accounts/:id/members/:userId — update role/status (owner-tier only)
+// Role changes can promote a member to owner, which is effectively a tier change.
+// Reserved to owner-tier specifically; the Members bundle alone is insufficient.
 const handleUpdateAccountMember: Handler = async (request, env, params) => {
-  const ctx = await requireAccountRole(request, env, ['owner']);
+  const ctx = await requireOwnerTier(request, env);
   if ('error' in ctx) return ctx.error;
   if (params.id !== ctx.accountId) return json({ error: 'Account access denied' }, 403);
 
@@ -8383,9 +8385,9 @@ const handleUpdateAccountMember: Handler = async (request, env, params) => {
   return json({ success: true });
 };
 
-// DELETE /api/accounts/:id/members/:userId — remove (owner only)
+// DELETE /api/accounts/:id/members/:userId — remove (Members bundle)
 const handleDeleteAccountMember: Handler = async (request, env, params) => {
-  const ctx = await requireAccountRole(request, env, ['owner']);
+  const ctx = await requireBundle(request, env, 'members');
   if ('error' in ctx) return ctx.error;
   if (params.id !== ctx.accountId) return json({ error: 'Account access denied' }, 403);
 
@@ -8799,9 +8801,12 @@ const handlePlatformAuditLog: Handler = async (request, env) => {
   return json({ entries: results, limit, offset });
 };
 
-// PUT /api/accounts/:id/members/:userId/permissions — account owner sets per-member feature permissions
+// PUT /api/accounts/:id/members/:userId/permissions — set per-member feature permissions (Members bundle)
+// @deprecated Use the bundles endpoint introduced in sub-step 0.4 (PUT .../bundles)
+// for granular bundle assignment. This endpoint remains for backward compatibility
+// with the legacy TeamView UI; it will be retired in sub-step 0.6 alongside TeamView.
 const handleUpdateMemberPermissions: Handler = async (request, env, params) => {
-  const ctx = await requireAccountRole(request, env, ['owner']);
+  const ctx = await requireBundle(request, env, 'members');
   if ('error' in ctx) return ctx.error;
   if (params.id !== ctx.accountId) return json({ error: 'Account access denied' }, 403);
 
@@ -8825,9 +8830,9 @@ const handleUpdateMemberPermissions: Handler = async (request, env, params) => {
   return json({ success: true, permissions: sanitised });
 };
 
-// POST /api/accounts/:id/transfer-ownership — owner transfers account ownership to another member
+// POST /api/accounts/:id/transfer-ownership — owner-tier only
 const handleTransferOwnership: Handler = async (request, env, params) => {
-  const ctx = await requireAccountRole(request, env, ['owner']);
+  const ctx = await requireOwnerTier(request, env);
   if ('error' in ctx) return ctx.error;
   if (params.id !== ctx.accountId) return json({ error: 'Account access denied' }, 403);
 
