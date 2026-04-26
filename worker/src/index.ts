@@ -9046,6 +9046,300 @@ const handlePlatformCreateAccount: Handler = async (request, env) => {
   return json({ success: true, account_id: accountId, slug, invite_link: inviteLink, email_sent: emailSent }, 201);
 };
 
+// GET /api/platform/applications — pending account application queue (Platform tier)
+const handlePlatformListApplications: Handler = async (request, env) => {
+  const authErr = await requirePlatformAdmin(request, env);
+  if (authErr) return authErr;
+
+  const url = new URL(request.url);
+  const statusFilter = url.searchParams.get('status');
+  const kindFilter = url.searchParams.get('kind');
+
+  const validStatuses = ['pending', 'approved', 'declined', 'withdrawn'];
+  const validKinds = ['location', 'master'];
+
+  const conditions: string[] = [];
+  const binds: any[] = [];
+
+  if (statusFilter) {
+    if (!validStatuses.includes(statusFilter)) {
+      return json({ error: `status must be one of: ${validStatuses.join(', ')}` }, 400);
+    }
+    conditions.push('status = ?');
+    binds.push(statusFilter);
+  }
+  if (kindFilter) {
+    if (!validKinds.includes(kindFilter)) {
+      return json({ error: `kind must be one of: ${validKinds.join(', ')}` }, 400);
+    }
+    conditions.push('proposed_account_kind = ?');
+    binds.push(kindFilter);
+  }
+
+  const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+  const { results } = await env.DB.prepare(
+    `SELECT id, applicant_email, applicant_name, proposed_account_kind, note,
+            status, decided_by_user_id, decided_at, decision_note, created_at
+     FROM account_applications
+     ${where}
+     ORDER BY created_at DESC`
+  ).bind(...binds).all();
+
+  return json({ applications: results });
+};
+
+// POST /api/platform/applications/:id/decide — approve or decline a pending application (Platform tier)
+const handlePlatformDecideApplication: Handler = async (request, env, params) => {
+  const authErr = await requirePlatformAdmin(request, env);
+  if (authErr) return authErr;
+
+  const claims = parseToken(isAuthed(request)!)!;
+  const body = await request.json() as {
+    decision?: string;
+    decision_note?: string;
+    trust_tier?: string;
+  };
+
+  if (!body.decision || !['approve', 'decline'].includes(body.decision)) {
+    return json({ error: 'decision must be "approve" or "decline"' }, 400);
+  }
+
+  const app = await env.DB.prepare(
+    'SELECT * FROM account_applications WHERE id = ?'
+  ).bind(params.id).first();
+  if (!app) return json({ error: 'Application not found' }, 404);
+  if ((app as any).status !== 'pending') {
+    return json({ error: 'Application is not pending' }, 400);
+  }
+
+  const now = new Date().toISOString();
+
+  if (body.decision === 'decline') {
+    await env.DB.prepare(
+      `UPDATE account_applications
+       SET status = 'declined', decided_by_user_id = ?, decided_at = ?, decision_note = ?
+       WHERE id = ?`
+    ).bind(claims.sub, now, body.decision_note || null, params.id).run();
+
+    await logPlatformAction(env, 'application.declined', claims.sub, claims.email,
+      'application', params.id, { decision_note: body.decision_note || null });
+
+    return json({ success: true });
+  }
+
+  // Approve path
+  const validTiers = ['basic', 'verified', 'partner'];
+  const trustTier = body.trust_tier && validTiers.includes(body.trust_tier)
+    ? body.trust_tier
+    : 'basic';
+
+  const applicantEmail = (app as any).applicant_email as string;
+  const applicantName = (app as any).applicant_name as string | null;
+  const accountKind = (app as any).proposed_account_kind as string;
+
+  // Derive slug and invoice prefix from name or email local-part
+  const baseName = applicantName || applicantEmail.split('@')[0];
+  const slug = baseName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  const invoicePrefix = baseName.replace(/[^a-zA-Z]/g, '').slice(0, 4).toUpperCase() || 'NEW';
+
+  // Ensure slug uniqueness
+  const existingSlug = await env.DB.prepare('SELECT id FROM accounts WHERE slug = ?').bind(slug).first();
+  const finalSlug = existingSlug ? `${slug}-${Date.now().toString(36)}` : slug;
+
+  const accountId = `acc_${crypto.randomUUID().replace(/-/g, '').slice(0, 16)}`;
+
+  await env.DB.prepare(
+    `INSERT INTO accounts
+       (id, slug, name, contact_email, currency_default, trust_tier, kind, status, public_enabled,
+        invoice_prefix, created_at, updated_at)
+     VALUES (?, ?, ?, ?, 'USD', ?, ?, 'active', 1, ?, ?, ?)`
+  ).bind(
+    accountId, finalSlug,
+    applicantName || applicantEmail,
+    applicantEmail,
+    trustTier, accountKind,
+    invoicePrefix,
+    now, now
+  ).run();
+
+  // Find or create user
+  let user = await env.DB.prepare('SELECT id FROM users WHERE lower(email) = ?')
+    .bind(applicantEmail.toLowerCase()).first();
+  let createdUser = false;
+  if (!user) {
+    const uid = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
+    const tempHash = await hashPasswordPBKDF2(crypto.randomUUID().replace(/-/g, ''));
+    await env.DB.prepare(
+      "INSERT INTO users (id, email, name, password_hash, role) VALUES (?, ?, ?, ?, 'user')"
+    ).bind(uid, applicantEmail, applicantName || '', tempHash).run();
+    user = { id: uid };
+    createdUser = true;
+  }
+
+  // Create owner membership
+  await env.DB.prepare(
+    `INSERT OR REPLACE INTO account_members
+       (id, account_id, user_id, role, invited_by_user_id, invited_at, joined_at, status)
+     VALUES (lower(hex(randomblob(16))), ?, ?, 'owner', ?, datetime('now'), datetime('now'), 'active')`
+  ).bind(accountId, user.id, claims.sub).run();
+
+  // Generate claim link
+  let claimLink: string | null = null;
+  if (createdUser) {
+    const inviteToken = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
+    const resetId = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
+    await env.DB.prepare(
+      "INSERT INTO password_reset_tokens (id, user_id, token, expires_at) VALUES (?, ?, ?, datetime('now', '+14 days'))"
+    ).bind(resetId, user.id, inviteToken).run();
+    claimLink = `/invite/${inviteToken}`;
+  }
+
+  // Mark application approved
+  await env.DB.prepare(
+    `UPDATE account_applications
+     SET status = 'approved', decided_by_user_id = ?, decided_at = ?, decision_note = ?
+     WHERE id = ?`
+  ).bind(claims.sub, now, body.decision_note || null, params.id).run();
+
+  await logPlatformAction(env, 'application.approved', claims.sub, claims.email,
+    'application', params.id,
+    { account_id: accountId, user_id: user.id, trust_tier: trustTier, account_kind: accountKind });
+
+  return json({ success: true, account_id: accountId, user_id: user.id, claim_link: claimLink }, 201);
+};
+
+// POST /api/platform/tea-masters/invite — create Tea Master account + owner in one shot (Platform tier)
+const handlePlatformInviteTeaMaster: Handler = async (request, env) => {
+  const authErr = await requirePlatformAdmin(request, env);
+  if (authErr) return authErr;
+
+  const claims = parseToken(isAuthed(request)!)!;
+  const body = await request.json() as {
+    email?: string;
+    name?: string;
+    note?: string;
+  };
+
+  const email = (body.email || '').trim().toLowerCase();
+  if (!email) return json({ error: 'email is required' }, 400);
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return json({ error: 'Invalid email format' }, 400);
+  }
+
+  const displayName = (body.name || '').trim() || null;
+  const baseName = displayName || email.split('@')[0];
+  const slug = baseName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  const invoicePrefix = baseName.replace(/[^a-zA-Z]/g, '').slice(0, 4).toUpperCase() || 'NEW';
+
+  const existingSlug = await env.DB.prepare('SELECT id FROM accounts WHERE slug = ?').bind(slug).first();
+  const finalSlug = existingSlug ? `${slug}-${Date.now().toString(36)}` : slug;
+
+  const accountId = `acc_${crypto.randomUUID().replace(/-/g, '').slice(0, 16)}`;
+  const now = new Date().toISOString();
+
+  await env.DB.prepare(
+    `INSERT INTO accounts
+       (id, slug, name, contact_email, currency_default, trust_tier, kind, status, public_enabled,
+        invoice_prefix, created_at, updated_at)
+     VALUES (?, ?, ?, ?, 'USD', 'verified', 'master', 'active', 1, ?, ?, ?)`
+  ).bind(accountId, finalSlug, displayName || email, email, invoicePrefix, now, now).run();
+
+  // Find or create user
+  let user = await env.DB.prepare('SELECT id FROM users WHERE lower(email) = ?')
+    .bind(email).first();
+  let createdUser = false;
+  if (!user) {
+    const uid = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
+    const tempHash = await hashPasswordPBKDF2(crypto.randomUUID().replace(/-/g, ''));
+    await env.DB.prepare(
+      "INSERT INTO users (id, email, name, password_hash, role) VALUES (?, ?, ?, ?, 'user')"
+    ).bind(uid, email, displayName || '', tempHash).run();
+    user = { id: uid };
+    createdUser = true;
+  }
+
+  // Create owner membership
+  await env.DB.prepare(
+    `INSERT OR REPLACE INTO account_members
+       (id, account_id, user_id, role, invited_by_user_id, invited_at, joined_at, status)
+     VALUES (lower(hex(randomblob(16))), ?, ?, 'owner', ?, datetime('now'), datetime('now'), 'active')`
+  ).bind(accountId, user.id, claims.sub).run();
+
+  // Generate claim link
+  let claimLink: string | null = null;
+  if (createdUser) {
+    const inviteToken = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
+    const resetId = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
+    await env.DB.prepare(
+      "INSERT INTO password_reset_tokens (id, user_id, token, expires_at) VALUES (?, ?, ?, datetime('now', '+14 days'))"
+    ).bind(resetId, user.id, inviteToken).run();
+    claimLink = `/invite/${inviteToken}`;
+  }
+
+  await logPlatformAction(env, 'tea_master.invited', claims.sub, claims.email,
+    'account', accountId,
+    { email, name: displayName, note: body.note || null, user_id: user.id });
+
+  return json({ success: true, account_id: accountId, user_id: user.id, claim_link: claimLink }, 201);
+};
+
+// POST /api/platform/accounts/:id/upgrade-to-location — promote Tea Master account to Location (Platform tier)
+const handlePlatformUpgradeToLocation: Handler = async (request, env, params) => {
+  const authErr = await requirePlatformAdmin(request, env);
+  if (authErr) return authErr;
+
+  const claims = parseToken(isAuthed(request)!)!;
+  const account = await env.DB.prepare('SELECT id, kind, name FROM accounts WHERE id = ?')
+    .bind(params.id).first();
+  if (!account) return json({ error: 'Account not found' }, 404);
+  if ((account as any).kind !== 'master') {
+    return json({ error: 'Only Tea Master accounts can be upgraded to Location' }, 400);
+  }
+
+  const body = await request.json() as {
+    location_name?: string;
+    location_city?: string;
+    location_country?: string;
+    timezone?: string;
+  };
+
+  const updates: string[] = ['kind = \'location\'', 'updated_at = datetime(\'now\')'];
+  const binds: any[] = [];
+  const updatedFields: string[] = ['kind'];
+
+  if (body.location_name) {
+    updates.push('name = ?');
+    binds.push(body.location_name);
+    updatedFields.push('name');
+  }
+  if (body.location_city) {
+    updates.push('location_city = ?');
+    binds.push(body.location_city);
+    updatedFields.push('location_city');
+  }
+  if (body.location_country) {
+    updates.push('location_country = ?');
+    binds.push(body.location_country);
+    updatedFields.push('location_country');
+  }
+  if (body.timezone) {
+    updates.push('timezone = ?');
+    binds.push(body.timezone);
+    updatedFields.push('timezone');
+  }
+
+  binds.push(params.id);
+  await env.DB.prepare(
+    `UPDATE accounts SET ${updates.join(', ')} WHERE id = ?`
+  ).bind(...binds).run();
+
+  await logPlatformAction(env, 'account.upgraded_to_location', claims.sub, claims.email,
+    'account', params.id,
+    { previous_kind: 'master', new_kind: 'location', updated_fields: updatedFields });
+
+  return json({ success: true });
+};
+
 // GET /api/network/stores — PUBLIC list of accounts with public_enabled = 1
 const handleGetNetworkStores: Handler = async (_request, env) => {
   const { results } = await env.DB.prepare(
@@ -11202,6 +11496,10 @@ const routes: [string, string, Handler][] = [
   ['PUT',  '/api/platform/accounts/:id/trust-tier', handlePlatformSetTrustTier],
   ['PUT',  '/api/platform/accounts/:id/features/:feature', handlePlatformToggleFeature],
   ['GET',  '/api/platform/audit-log', handlePlatformAuditLog],
+  ['GET',  '/api/platform/applications', handlePlatformListApplications],
+  ['POST', '/api/platform/applications/:id/decide', handlePlatformDecideApplication],
+  ['POST', '/api/platform/tea-masters/invite', handlePlatformInviteTeaMaster],
+  ['POST', '/api/platform/accounts/:id/upgrade-to-location', handlePlatformUpgradeToLocation],
   // Account member management
   ['PUT',  '/api/accounts/:id/members/:userId/permissions', handleUpdateMemberPermissions],
   ['PUT',  '/api/accounts/:id/members/:userId/curator', handleSetCuratorFlag],
