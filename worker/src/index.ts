@@ -12017,6 +12017,145 @@ const handleNetworkCatalog: Handler = async (request, env) => {
   return json({ profiles });
 };
 
+// POST /api/listings/carry
+// Step 2 of Network Rollout — partner creates a product_listing from a network-visible
+// tea_profile, copying the curator's canonical_photos into listing_photos so the partner
+// starts with real photos. Requires the Catalog bundle on the caller's account.
+//
+// Body: { profile_id, initial_stock_grams, initial_price_amount, initial_price_currency }
+//
+// id generation: lower(hex(randomblob(16))) — matches the DEFAULT used by the migration
+// for all listing rows, making the lineage of carry-created listings indistinguishable
+// from migrated ones in queries. The legacy 'list_<product.id>' prefix was migration-only;
+// new carry listings use the schema default. No 'list_carry_' prefix is added because
+// D1's DEFAULT already generates the same opaque hex id, and relying on the schema default
+// keeps the INSERT minimal and the id column semantics consistent.
+//
+// FX handling: initial_price_amount is in initial_price_currency. We convert to USD per-gram
+// for fixed_retail_price_usd using the exchange_rates table. If the rate is unavailable for
+// that currency, we store the amount as-is (treating it as USD for now). The listing edit
+// flow (PUT /api/listings/:id, Step 2 polish phase) can correct this later.
+const handleCarryListing: Handler = async (request, env) => {
+  const ctx = await requireBundle(request, env, 'catalog');
+  if ('error' in ctx) return ctx.error;
+  const { accountId, userId, email } = ctx;
+
+  // Parse + validate body
+  let body: any;
+  try { body = await request.json(); } catch { return json({ error: 'Invalid JSON body' }, 400); }
+
+  const profileId = typeof body.profile_id === 'string' ? body.profile_id.trim() : '';
+  if (!profileId) return json({ error: 'profile_id is required' }, 400);
+
+  const stockGrams = Number(body.initial_stock_grams);
+  if (!isFinite(stockGrams) || stockGrams < 0) {
+    return json({ error: 'initial_stock_grams must be a number >= 0' }, 400);
+  }
+
+  const priceAmount = Number(body.initial_price_amount);
+  if (!isFinite(priceAmount) || priceAmount < 0) {
+    return json({ error: 'initial_price_amount must be a number >= 0' }, 400);
+  }
+
+  const priceCurrency = typeof body.initial_price_currency === 'string'
+    ? body.initial_price_currency.trim().toUpperCase()
+    : '';
+  if (!priceCurrency) return json({ error: 'initial_price_currency is required' }, 400);
+
+  // 1. Look up the profile — must exist, be published, and be network-visible
+  const profile = await env.DB.prepare(
+    `SELECT id, name, status, network_visible, curated_by_account_id, canonical_photos
+     FROM tea_profiles WHERE id = ?`
+  ).bind(profileId).first() as {
+    id: string;
+    name: string;
+    status: string;
+    network_visible: number;
+    curated_by_account_id: string;
+    canonical_photos: string | null;
+  } | null;
+
+  if (!profile) return json({ error: 'Tea profile not found' }, 404);
+
+  if (profile.status !== 'published' || profile.network_visible !== 1) {
+    return json({ error: 'This tea is not currently available in the network catalog.' }, 400);
+  }
+
+  // 2. Refuse self-carry — curator can't carry their own tea from the network
+  if (profile.curated_by_account_id === accountId) {
+    return json({ error: "You already curate this tea — you can't carry it from yourself." }, 400);
+  }
+
+  // 3. Refuse double-carry — friendly 409 rather than letting UNIQUE constraint surface
+  const existing = await env.DB.prepare(
+    `SELECT id FROM product_listings
+     WHERE account_id = ? AND profile_id = ? AND status = 'active'`
+  ).bind(accountId, profileId).first();
+
+  if (existing) {
+    return json({ error: "You're already carrying this tea." }, 409);
+  }
+
+  // 4. Copy canonical_photos verbatim as the listing's starting photos (Decision 4)
+  const listingPhotos = profile.canonical_photos ?? '[]';
+
+  // 5. Convert initial_price_amount → USD per-gram for fixed_retail_price_usd
+  //    Fetch only the two rates we need (caller currency + USD is a no-op).
+  let fixedRetailPriceUsd: number = priceAmount; // fallback: store as-is
+  if (priceCurrency !== 'USD') {
+    const rateRow = await env.DB.prepare(
+      'SELECT rate_to_usd FROM exchange_rates WHERE currency = ?'
+    ).bind(priceCurrency).first() as { rate_to_usd: number } | null;
+
+    if (rateRow && isFinite(rateRow.rate_to_usd) && rateRow.rate_to_usd > 0) {
+      // rate_to_usd: 1 unit of currency = rate_to_usd USD
+      fixedRetailPriceUsd = priceAmount / rateRow.rate_to_usd;
+    }
+    // If rate unavailable, fixedRetailPriceUsd stays as priceAmount (acceptable degradation;
+    // listing edit flow can correct after FX data is refreshed).
+  }
+
+  // 6. Insert the product_listing row.
+  //    id uses lower(hex(randomblob(16))) — same DEFAULT the schema uses; generated inline
+  //    in the INSERT rather than via JS crypto to keep id generation in one place (D1).
+  //    is_public = 1: carried teas default to publicly listed; partner can hide later.
+  const insertResult = await env.DB.prepare(`
+    INSERT INTO product_listings
+      (id, account_id, profile_id, stock_grams, fixed_retail_price_usd,
+       listing_photos, status, is_public)
+    VALUES
+      (lower(hex(randomblob(16))), ?, ?, ?, ?, ?, 'active', 1)
+    RETURNING id
+  `).bind(accountId, profileId, stockGrams, fixedRetailPriceUsd, listingPhotos).first() as
+    { id: string } | null;
+
+  if (!insertResult) {
+    return json({ error: 'Failed to create listing' }, 500);
+  }
+
+  const newListingId = insertResult.id;
+
+  // 7. Audit log
+  await logPlatformAction(
+    env,
+    'listing.carried',
+    userId,
+    email,
+    'listing',
+    newListingId,
+    {
+      profile_id: profileId,
+      profile_name: profile.name,
+      price_amount: priceAmount,
+      price_currency: priceCurrency,
+      stock_grams: stockGrams,
+    }
+  );
+
+  // 8. Return 201 — frontend refetches on InventoryView landing
+  return json({ listing_id: newListingId, profile_id: profileId }, 201);
+};
+
 // ── Routes ──
 const routes: [string, string, Handler][] = [
   // Auth
@@ -12072,7 +12211,8 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/network/stores', handleGetNetworkStores],
 
   // ── Network (authenticated — partner/catalog) ──
-  ['GET', '/api/network/catalog', handleNetworkCatalog],
+  ['GET',  '/api/network/catalog', handleNetworkCatalog],
+  ['POST', '/api/listings/carry',  handleCarryListing],
   ['GET', '/api/s/:slug', handleGetPublicAccount],
   ['GET', '/api/s/:slug/products', handleGetPublicAccountProducts],
   ['GET', '/api/s/:slug/events', handleGetPublicAccountEvents],
