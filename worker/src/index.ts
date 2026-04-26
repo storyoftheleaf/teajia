@@ -12156,6 +12156,107 @@ const handleCarryListing: Handler = async (request, env) => {
   return json({ listing_id: newListingId, profile_id: profileId }, 201);
 };
 
+// GET /api/listings/:id
+// Step 3 frontend fetch — returns the listing row joined to its tea_profile.
+// Caller must own the listing (account_id matches). Returns 404 if not found
+// or if the listing belongs to a different account. Catalog bundle required.
+const handleGetListing: Handler = async (request, env) => {
+  const ctx = await requireBundle(request, env, 'catalog');
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+
+  const url = new URL(request.url);
+  const listingId = url.pathname.split('/').pop() ?? '';
+  if (!listingId) return json({ error: 'listing id required' }, 400);
+
+  const row = await env.DB.prepare(`
+    SELECT
+      l.id              AS listing_id,
+      l.account_id,
+      l.profile_id,
+      l.stock_grams,
+      l.fixed_retail_price_usd,
+      l.store_note,
+      l.listing_photos,
+      l.is_sample,
+      l.status          AS listing_status,
+      l.created_at      AS listing_created_at,
+      p.id              AS profile_id_check,
+      p.slug,
+      p.name,
+      p.chinese_name,
+      p.type,
+      p.form,
+      p.origin_country,
+      p.origin_region,
+      p.varietal,
+      p.harvest_year,
+      p.description,
+      p.lore,
+      p.processing_notes,
+      p.terroir,
+      p.mood,
+      p.experience,
+      p.image_url,
+      p.canonical_photos,
+      p.status          AS profile_status,
+      p.curated_by_account_id,
+      p.originated_by_account_id,
+      a.name            AS curated_by_name
+    FROM product_listings l
+    JOIN tea_profiles p ON p.id = l.profile_id
+    LEFT JOIN accounts a ON a.id = p.curated_by_account_id
+    WHERE l.id = ? AND l.account_id = ?
+  `).bind(listingId, accountId).first() as Record<string, unknown> | null;
+
+  if (!row) return json({ error: 'Listing not found or not yours.' }, 404);
+
+  // Parse JSON arrays
+  let listing_photos: string[] = [];
+  let canonical_photos: string[] = [];
+  try { listing_photos = JSON.parse(row.listing_photos as string || '[]'); } catch { listing_photos = []; }
+  try { canonical_photos = JSON.parse(row.canonical_photos as string || '[]'); } catch { canonical_photos = []; }
+
+  return json({
+    listing: {
+      id: row.listing_id,
+      account_id: row.account_id,
+      profile_id: row.profile_id,
+      stock_grams: row.stock_grams,
+      fixed_retail_price_usd: row.fixed_retail_price_usd,
+      store_note: row.store_note,
+      listing_photos,
+      is_sample: !!row.is_sample,
+      status: row.listing_status,
+      created_at: row.listing_created_at,
+    },
+    profile: {
+      id: row.profile_id,
+      slug: row.slug,
+      name: row.name,
+      chinese_name: row.chinese_name,
+      type: row.type,
+      form: row.form,
+      origin_country: row.origin_country,
+      origin_region: row.origin_region,
+      varietal: row.varietal,
+      harvest_year: row.harvest_year,
+      description: row.description,
+      lore: row.lore,
+      processing_notes: row.processing_notes,
+      terroir: row.terroir,
+      mood: row.mood,
+      experience: row.experience,
+      image_url: row.image_url,
+      canonical_photos,
+      status: row.profile_status,
+      curated_by_account_id: row.curated_by_account_id,
+      originated_by_account_id: row.originated_by_account_id,
+      curated_by_name: row.curated_by_name,
+    },
+  });
+};
+
 // ── Profile suggestions (Step 3 — editorial governance) ─────────────────────
 // Partners propose canonical changes by editing tea cards directly. Each card
 // submission becomes a bundle (profile_suggestions) with one or more per-field
@@ -12555,6 +12656,7 @@ const routes: [string, string, Handler][] = [
 
   // ── Network (authenticated — partner/catalog) ──
   ['GET',  '/api/network/catalog', handleNetworkCatalog],
+  ['GET',  '/api/listings/:id',    handleGetListing],
   ['POST', '/api/listings/carry',  handleCarryListing],
   ['POST', '/api/profiles/:id/suggestions', handleCreateProfileSuggestion],
   ['GET',  '/api/profiles/:id/suggestions', handleListProfileSuggestions],

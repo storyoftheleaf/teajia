@@ -1962,6 +1962,37 @@ export const api = {
     },
 
     /**
+     * GET /api/listings/:id
+     * Returns the listing row + joined tea_profile for the caller's account.
+     * Requires Catalog bundle. Returns 404 if not found or not owned by caller.
+     */
+    getListing: async (listingId: string): Promise<{
+      listing: {
+        id: string; account_id: string; profile_id: string;
+        stock_grams: number | null; fixed_retail_price_usd: number | null;
+        store_note: string | null; listing_photos: string[];
+        is_sample: boolean; status: string; created_at: string;
+      };
+      profile: {
+        id: string; slug: string; name: string; chinese_name?: string | null;
+        type?: string | null; form?: string | null;
+        origin_country?: string | null; origin_region?: string | null;
+        varietal?: string | null; harvest_year?: string | null;
+        description?: string | null; lore?: string | null;
+        processing_notes?: string | null; terroir?: string | null;
+        mood?: string | null; experience?: string | null;
+        image_url?: string | null; canonical_photos: string[];
+        status: string; curated_by_account_id: string;
+        originated_by_account_id: string; curated_by_name?: string | null;
+      };
+    }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/listings/${listingId}`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+
+    /**
      * POST /api/listings/carry
      * Creates a listing for the given profile on the caller's account.
      * Copies canonical_photos into listing_photos. Requires Catalog bundle.
