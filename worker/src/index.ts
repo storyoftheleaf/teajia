@@ -12600,6 +12600,689 @@ const handleDecideSuggestion: Handler = async (request, env, params) => {
   });
 };
 
+// ── Wholesale orders (Step 4 — cross-account transactional layer) ───────────
+//
+// Per docs/NETWORK_ROLLOUT_PLAN.md Step 4 + docs/NETWORK_UI_BRIEF.md Surfaces 8 + 9.
+//
+// Lifecycle:
+//   draft → submitted → confirmed → shipped → received
+//         ↓
+//      replied (supplier asked for adjustments) → submitted (again)
+//      cancelled (terminal, before ship)
+//
+// Authorization:
+//   Buyer-side actions (create, edit draft, submit, mark received):
+//     requireBundle('sell') on the buyer account.
+//   Supplier-side actions (reply, confirm, ship):
+//     requireBundle('sell') on the supplier account.
+//   Cancel: either party with Sell bundle on their account.
+//   View: anyone with Sell bundle on either account.
+//
+// Conservative defaults documented earlier in the conversation:
+//   - Cancel before ship: simple terminal state, stock unaffected (none was
+//     deducted yet — supplier stock decrements only on receive).
+//   - Partial fulfillment: explicitly rejected (400) until a future phase.
+//   - Buyer's listing on receive: auto-created if missing.
+//   - Currency: snapshot at submit, never touched again.
+//   - Audit log: every transition.
+
+type WholesaleOrderRow = {
+  id: string;
+  supplier_account_id: string;
+  buyer_account_id: string;
+  status: string;
+  currency: string;
+  subtotal_amount: number | null;
+  shipping_amount: number | null;
+  total_amount: number | null;
+  shipping_address: string | null;
+  tracking_number: string | null;
+  carrier: string | null;
+  buyer_notes: string | null;
+  supplier_notes: string | null;
+  invoice_id_supplier: string | null;
+  invoice_id_buyer: string | null;
+  submitted_at: string | null;
+  replied_at: string | null;
+  confirmed_at: string | null;
+  shipped_at: string | null;
+  received_at: string | null;
+  cancelled_at: string | null;
+  cancelled_by_account_id: string | null;
+  cancel_reason: string | null;
+  last_nudge_at: string | null;
+  nudge_count: number;
+  created_at: string;
+  updated_at: string;
+};
+
+// Helper: load order by id, ensuring caller is buyer or supplier.
+// Returns the order row OR an error response (with 404 for not-found and
+// 403 if caller's account isn't on either side).
+async function loadWholesaleOrder(
+  env: Env, orderId: string, callerAccountId: string
+): Promise<{ order: WholesaleOrderRow } | { error: Response }> {
+  const order = await env.DB.prepare(
+    'SELECT * FROM wholesale_orders WHERE id = ?'
+  ).bind(orderId).first() as WholesaleOrderRow | null;
+  if (!order) return { error: json({ error: 'Wholesale order not found' }, 404) };
+  if (order.supplier_account_id !== callerAccountId && order.buyer_account_id !== callerAccountId) {
+    return { error: json({ error: 'You are not a party to this order' }, 403) };
+  }
+  return { order };
+}
+
+// Helper: recompute subtotal_amount + total_amount from current line items.
+// Called after add/edit/remove items in a draft. Doesn't touch shipping_amount
+// (set by supplier on confirm).
+async function rebuildOrderTotals(env: Env, orderId: string, currency: string): Promise<{ subtotal: number; total: number }> {
+  const sumRow = await env.DB.prepare(
+    `SELECT COALESCE(SUM(line_total), 0) AS subtotal
+     FROM wholesale_order_items WHERE order_id = ?`
+  ).bind(orderId).first() as { subtotal: number };
+  const subtotal = Number(sumRow.subtotal || 0);
+  // total = subtotal + shipping_amount; we don't know shipping yet so keep
+  // total = subtotal until supplier confirms with a freight quote.
+  await env.DB.prepare(
+    `UPDATE wholesale_orders
+     SET subtotal_amount = ?, total_amount = ?, currency = ?, updated_at = datetime('now')
+     WHERE id = ?`
+  ).bind(subtotal, subtotal, currency, orderId).run();
+  return { subtotal, total: subtotal };
+}
+
+// POST /api/wholesale/orders
+// Body: {
+//   supplier_account_id: string,
+//   currency: string,
+//   shipping_address?: string,
+//   buyer_notes?: string,
+//   items: [{ supplier_listing_id, grams, unit_price_amount, unit_price_currency }],
+// }
+// Buyer creates a draft. Items are validated against supplier's listings —
+// each must exist, be active, and belong to the supplier account.
+const handleCreateWholesaleOrder: Handler = async (request, env) => {
+  const ctx = await requireBundle(request, env, 'sell');
+  if ('error' in ctx) return ctx.error;
+  const { accountId: buyerAccountId, userId, email } = ctx;
+
+  let body: any;
+  try { body = await request.json(); } catch { return json({ error: 'Invalid JSON body' }, 400); }
+
+  const supplierAccountId = typeof body.supplier_account_id === 'string' ? body.supplier_account_id.trim() : '';
+  if (!supplierAccountId) return json({ error: 'supplier_account_id required' }, 400);
+  if (supplierAccountId === buyerAccountId) {
+    return json({ error: "You can't place a wholesale order with yourself." }, 400);
+  }
+
+  const currency = typeof body.currency === 'string' ? body.currency.trim().toUpperCase() : '';
+  if (!currency) return json({ error: 'currency required' }, 400);
+
+  // Verify supplier exists and isn't suspended
+  const supplier = await env.DB.prepare(
+    'SELECT id, status FROM accounts WHERE id = ?'
+  ).bind(supplierAccountId).first() as { id: string; status: string } | null;
+  if (!supplier) return json({ error: 'Supplier account not found' }, 404);
+  if (supplier.status === 'suspended') return json({ error: 'Supplier account is suspended.' }, 400);
+
+  // Items optional on create — buyer can add via PUT later — but if provided, validate.
+  const items = Array.isArray(body.items) ? body.items : [];
+  type ValidatedItem = {
+    supplier_listing_id: string;
+    profile_id: string;
+    grams: number;
+    unit_price_amount: number;
+    unit_price_currency: string;
+    line_total: number;
+  };
+  const validatedItems: ValidatedItem[] = [];
+  for (const it of items) {
+    if (typeof it.supplier_listing_id !== 'string') return json({ error: 'item.supplier_listing_id required' }, 400);
+    const grams = Number(it.grams);
+    const unitPrice = Number(it.unit_price_amount);
+    if (!isFinite(grams) || grams <= 0) return json({ error: 'item.grams must be > 0' }, 400);
+    if (!isFinite(unitPrice) || unitPrice < 0) return json({ error: 'item.unit_price_amount must be >= 0' }, 400);
+    const unitCur = typeof it.unit_price_currency === 'string' ? it.unit_price_currency.trim().toUpperCase() : '';
+    if (!unitCur) return json({ error: 'item.unit_price_currency required' }, 400);
+
+    const listing = await env.DB.prepare(
+      'SELECT id, account_id, profile_id, status FROM product_listings WHERE id = ?'
+    ).bind(it.supplier_listing_id).first() as { id: string; account_id: string; profile_id: string; status: string } | null;
+    if (!listing) return json({ error: `item.supplier_listing_id '${it.supplier_listing_id}' not found` }, 404);
+    if (listing.account_id !== supplierAccountId) {
+      return json({ error: `item.supplier_listing_id '${it.supplier_listing_id}' does not belong to this supplier` }, 400);
+    }
+    if (listing.status !== 'active') {
+      return json({ error: `Supplier listing '${it.supplier_listing_id}' is not active` }, 400);
+    }
+    validatedItems.push({
+      supplier_listing_id: listing.id,
+      profile_id: listing.profile_id,
+      grams,
+      unit_price_amount: unitPrice,
+      unit_price_currency: unitCur,
+      line_total: grams * unitPrice,
+    });
+  }
+
+  // Insert order + items in one batch
+  const orderId = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
+  const stmts: D1PreparedStatement[] = [
+    env.DB.prepare(
+      `INSERT INTO wholesale_orders
+         (id, supplier_account_id, buyer_account_id, status, currency,
+          shipping_address, buyer_notes)
+       VALUES (?, ?, ?, 'draft', ?, ?, ?)`
+    ).bind(orderId, supplierAccountId, buyerAccountId, currency,
+           typeof body.shipping_address === 'string' ? body.shipping_address : null,
+           typeof body.buyer_notes === 'string' ? body.buyer_notes : null),
+    ...validatedItems.map(it =>
+      env.DB.prepare(
+        `INSERT INTO wholesale_order_items
+           (id, order_id, supplier_listing_id, profile_id, grams,
+            unit_price_amount, unit_price_currency, line_total)
+         VALUES (lower(hex(randomblob(16))), ?, ?, ?, ?, ?, ?, ?)`
+      ).bind(orderId, it.supplier_listing_id, it.profile_id, it.grams,
+             it.unit_price_amount, it.unit_price_currency, it.line_total)
+    ),
+  ];
+  await env.DB.batch(stmts);
+
+  if (validatedItems.length > 0) {
+    await rebuildOrderTotals(env, orderId, currency);
+  }
+
+  await logPlatformAction(
+    env, 'wholesale.created', userId, email, 'wholesale_order', orderId,
+    { supplier_account_id: supplierAccountId, currency, item_count: validatedItems.length }
+  );
+
+  return json({ order_id: orderId }, 201);
+};
+
+// PUT /api/wholesale/orders/:id
+// Body: { shipping_address?, buyer_notes?, items? }
+// Buyer edits a draft (or replied) order. Supplier may also edit confirmed-state
+// fields (carrier, tracking) via the transition endpoint, not here.
+// If items[] is provided, it REPLACES all current items (cleaner than per-item
+// add/remove for the small ranges we expect, < 30 items per order).
+const handleUpdateWholesaleOrder: Handler = async (request, env, params) => {
+  const ctx = await requireBundle(request, env, 'sell');
+  if ('error' in ctx) return ctx.error;
+  const { accountId, userId, email } = ctx;
+
+  const orderId = params.id;
+  if (!orderId) return json({ error: 'Order id required' }, 400);
+
+  const loaded = await loadWholesaleOrder(env, orderId, accountId);
+  if ('error' in loaded) return loaded.error;
+  const { order } = loaded;
+
+  // Only the buyer can edit, and only in draft or replied state.
+  if (order.buyer_account_id !== accountId) {
+    return json({ error: 'Only the buyer can edit this order.' }, 403);
+  }
+  if (order.status !== 'draft' && order.status !== 'replied') {
+    return json({ error: `Order is ${order.status} — not editable.` }, 400);
+  }
+
+  let body: any;
+  try { body = await request.json(); } catch { return json({ error: 'Invalid JSON body' }, 400); }
+
+  const stmts: D1PreparedStatement[] = [];
+  const updates: string[] = [];
+  const binds: any[] = [];
+
+  if (typeof body.shipping_address === 'string' || body.shipping_address === null) {
+    updates.push('shipping_address = ?');
+    binds.push(body.shipping_address);
+  }
+  if (typeof body.buyer_notes === 'string' || body.buyer_notes === null) {
+    updates.push('buyer_notes = ?');
+    binds.push(body.buyer_notes);
+  }
+
+  if (updates.length > 0) {
+    updates.push("updated_at = datetime('now')");
+    binds.push(orderId);
+    stmts.push(env.DB.prepare(
+      `UPDATE wholesale_orders SET ${updates.join(', ')} WHERE id = ?`
+    ).bind(...binds));
+  }
+
+  // Replace items if provided
+  let itemsReplaced = false;
+  if (Array.isArray(body.items)) {
+    itemsReplaced = true;
+    if (body.items.length > 30) {
+      return json({ error: 'Order limited to 30 items.' }, 400);
+    }
+
+    type ValidatedItem = {
+      supplier_listing_id: string;
+      profile_id: string;
+      grams: number;
+      unit_price_amount: number;
+      unit_price_currency: string;
+      line_total: number;
+    };
+    const validated: ValidatedItem[] = [];
+    for (const it of body.items) {
+      if (typeof it.supplier_listing_id !== 'string') return json({ error: 'item.supplier_listing_id required' }, 400);
+      const grams = Number(it.grams);
+      const unitPrice = Number(it.unit_price_amount);
+      if (!isFinite(grams) || grams <= 0) return json({ error: 'item.grams must be > 0' }, 400);
+      if (!isFinite(unitPrice) || unitPrice < 0) return json({ error: 'item.unit_price_amount must be >= 0' }, 400);
+      const unitCur = typeof it.unit_price_currency === 'string' ? it.unit_price_currency.trim().toUpperCase() : '';
+      if (!unitCur) return json({ error: 'item.unit_price_currency required' }, 400);
+
+      const listing = await env.DB.prepare(
+        'SELECT id, account_id, profile_id, status FROM product_listings WHERE id = ?'
+      ).bind(it.supplier_listing_id).first() as { id: string; account_id: string; profile_id: string; status: string } | null;
+      if (!listing) return json({ error: `Listing '${it.supplier_listing_id}' not found` }, 404);
+      if (listing.account_id !== order.supplier_account_id) {
+        return json({ error: `Listing '${it.supplier_listing_id}' is not from this order's supplier` }, 400);
+      }
+      if (listing.status !== 'active') {
+        return json({ error: `Listing '${it.supplier_listing_id}' is not active` }, 400);
+      }
+      validated.push({
+        supplier_listing_id: listing.id,
+        profile_id: listing.profile_id,
+        grams, unit_price_amount: unitPrice, unit_price_currency: unitCur,
+        line_total: grams * unitPrice,
+      });
+    }
+
+    stmts.push(env.DB.prepare('DELETE FROM wholesale_order_items WHERE order_id = ?').bind(orderId));
+    for (const it of validated) {
+      stmts.push(env.DB.prepare(
+        `INSERT INTO wholesale_order_items
+           (id, order_id, supplier_listing_id, profile_id, grams,
+            unit_price_amount, unit_price_currency, line_total)
+         VALUES (lower(hex(randomblob(16))), ?, ?, ?, ?, ?, ?, ?)`
+      ).bind(orderId, it.supplier_listing_id, it.profile_id, it.grams,
+             it.unit_price_amount, it.unit_price_currency, it.line_total));
+    }
+  }
+
+  if (stmts.length === 0) return json({ ok: true });
+
+  await env.DB.batch(stmts);
+
+  if (itemsReplaced) {
+    await rebuildOrderTotals(env, orderId, order.currency);
+  }
+
+  await logPlatformAction(env, 'wholesale.updated', userId, email,
+    'wholesale_order', orderId, { items_replaced: itemsReplaced });
+
+  return json({ ok: true });
+};
+
+// POST /api/wholesale/orders/:id/transition
+// Body: { to: 'submitted'|'replied'|'confirmed'|'shipped'|'received'|'cancelled',
+//         shipping_amount?, tracking_number?, carrier?, supplier_notes?,
+//         cancel_reason? }
+// Single dispatch endpoint for every status change. Validates the transition
+// is legal from the current state and that the caller is the right party,
+// then runs the side effects atomically.
+const handleTransitionWholesaleOrder: Handler = async (request, env, params) => {
+  const ctx = await requireBundle(request, env, 'sell');
+  if ('error' in ctx) return ctx.error;
+  const { accountId, userId, email } = ctx;
+
+  const orderId = params.id;
+  if (!orderId) return json({ error: 'Order id required' }, 400);
+
+  const loaded = await loadWholesaleOrder(env, orderId, accountId);
+  if ('error' in loaded) return loaded.error;
+  const { order } = loaded;
+
+  let body: any;
+  try { body = await request.json(); } catch { body = {}; }
+
+  const to = typeof body.to === 'string' ? body.to.trim().toLowerCase() : '';
+  const validTargets = new Set(['submitted', 'replied', 'confirmed', 'shipped', 'received', 'cancelled']);
+  if (!validTargets.has(to)) return json({ error: `to must be one of ${[...validTargets].join(', ')}` }, 400);
+
+  const isBuyer = order.buyer_account_id === accountId;
+  const isSupplier = order.supplier_account_id === accountId;
+  const now = new Date().toISOString();
+  const stmts: D1PreparedStatement[] = [];
+
+  // Validate the transition is legal AND the caller is the right party.
+  // Each branch builds the appropriate UPDATE statement.
+  if (to === 'submitted') {
+    if (!isBuyer) return json({ error: 'Only the buyer can submit.' }, 403);
+    if (order.status !== 'draft' && order.status !== 'replied') {
+      return json({ error: `Cannot submit from ${order.status}.` }, 400);
+    }
+    // Refuse to submit an empty order
+    const itemCount = await env.DB.prepare(
+      'SELECT COUNT(*) AS c FROM wholesale_order_items WHERE order_id = ?'
+    ).bind(orderId).first() as { c: number };
+    if (!itemCount || itemCount.c === 0) {
+      return json({ error: 'Cannot submit an empty order.' }, 400);
+    }
+    if (!order.shipping_address) {
+      return json({ error: 'Cannot submit without a shipping address.' }, 400);
+    }
+    stmts.push(env.DB.prepare(
+      `UPDATE wholesale_orders SET status = 'submitted', submitted_at = ?, updated_at = ? WHERE id = ?`
+    ).bind(now, now, orderId));
+  }
+  else if (to === 'replied') {
+    if (!isSupplier) return json({ error: 'Only the supplier can reply with adjustments.' }, 403);
+    if (order.status !== 'submitted') {
+      return json({ error: `Cannot reply from ${order.status}.` }, 400);
+    }
+    const supplierNotes = typeof body.supplier_notes === 'string' ? body.supplier_notes : null;
+    stmts.push(env.DB.prepare(
+      `UPDATE wholesale_orders SET status = 'replied', replied_at = ?, supplier_notes = ?, updated_at = ? WHERE id = ?`
+    ).bind(now, supplierNotes, now, orderId));
+  }
+  else if (to === 'confirmed') {
+    if (!isSupplier) return json({ error: 'Only the supplier can confirm.' }, 403);
+    if (order.status !== 'submitted') {
+      return json({ error: `Cannot confirm from ${order.status}.` }, 400);
+    }
+    const shippingAmount = body.shipping_amount !== undefined ? Number(body.shipping_amount) : 0;
+    if (!isFinite(shippingAmount) || shippingAmount < 0) {
+      return json({ error: 'shipping_amount must be a number >= 0' }, 400);
+    }
+    const supplierNotes = typeof body.supplier_notes === 'string' ? body.supplier_notes : null;
+    const newTotal = (order.subtotal_amount || 0) + shippingAmount;
+    stmts.push(env.DB.prepare(
+      `UPDATE wholesale_orders
+       SET status = 'confirmed', confirmed_at = ?,
+           shipping_amount = ?, total_amount = ?,
+           supplier_notes = COALESCE(?, supplier_notes),
+           updated_at = ?
+       WHERE id = ?`
+    ).bind(now, shippingAmount, newTotal, supplierNotes, now, orderId));
+  }
+  else if (to === 'shipped') {
+    if (!isSupplier) return json({ error: 'Only the supplier can mark shipped.' }, 403);
+    if (order.status !== 'confirmed') {
+      return json({ error: `Cannot ship from ${order.status}.` }, 400);
+    }
+    const tracking = typeof body.tracking_number === 'string' ? body.tracking_number.trim() : '';
+    const carrier = typeof body.carrier === 'string' ? body.carrier.trim() : '';
+    if (!tracking) return json({ error: 'tracking_number required' }, 400);
+    if (!carrier) return json({ error: 'carrier required' }, 400);
+    stmts.push(env.DB.prepare(
+      `UPDATE wholesale_orders
+       SET status = 'shipped', shipped_at = ?,
+           tracking_number = ?, carrier = ?, updated_at = ?
+       WHERE id = ?`
+    ).bind(now, tracking, carrier, now, orderId));
+  }
+  else if (to === 'received') {
+    if (!isBuyer) return json({ error: 'Only the buyer can mark received.' }, 403);
+    if (order.status !== 'shipped') {
+      return json({ error: `Cannot receive from ${order.status}.` }, 400);
+    }
+    // Side effects fire — see processReceiveSideEffects below.
+    const sideEffectStmts = await processReceiveSideEffects(env, order, userId);
+    stmts.push(...sideEffectStmts);
+    stmts.push(env.DB.prepare(
+      `UPDATE wholesale_orders
+       SET status = 'received', received_at = ?, updated_at = ?
+       WHERE id = ?`
+    ).bind(now, now, orderId));
+  }
+  else if (to === 'cancelled') {
+    // Either party can cancel before ship.
+    if (!isBuyer && !isSupplier) return json({ error: 'Forbidden' }, 403);
+    if (order.status === 'shipped' || order.status === 'received' || order.status === 'cancelled') {
+      return json({ error: `Cannot cancel an order that is ${order.status}.` }, 400);
+    }
+    const reason = typeof body.cancel_reason === 'string' ? body.cancel_reason : null;
+    stmts.push(env.DB.prepare(
+      `UPDATE wholesale_orders
+       SET status = 'cancelled', cancelled_at = ?, cancelled_by_account_id = ?,
+           cancel_reason = ?, updated_at = ?
+       WHERE id = ?`
+    ).bind(now, accountId, reason, now, orderId));
+  }
+
+  await env.DB.batch(stmts);
+
+  await logPlatformAction(env, `wholesale.${to}`, userId, email,
+    'wholesale_order', orderId,
+    { from: order.status, to, by_account: accountId });
+
+  return json({ ok: true, status: to });
+};
+
+// Receive side effects:
+//   1. Decrement supplier's listing stock for each line item
+//   2. For each line item, find buyer's listing for the same profile
+//      (or create one) and increment its stock
+//   3. Generate two invoice rows (one per account)
+//
+// All in one batch so it commits atomically.
+async function processReceiveSideEffects(
+  env: Env, order: WholesaleOrderRow, _actorUserId: string
+): Promise<D1PreparedStatement[]> {
+  const items = await env.DB.prepare(
+    `SELECT id, supplier_listing_id, profile_id, grams, unit_price_amount, unit_price_currency, line_total
+     FROM wholesale_order_items WHERE order_id = ?`
+  ).bind(order.id).all();
+
+  const stmts: D1PreparedStatement[] = [];
+
+  for (const item of items.results as any[]) {
+    const grams = Number(item.grams);
+
+    // 1. Decrement supplier listing stock (also mirror to legacy products table
+    //    via the deterministic listing→product id mapping if it exists).
+    stmts.push(env.DB.prepare(
+      `UPDATE product_listings
+       SET stock_grams = MAX(0, COALESCE(stock_grams, 0) - ?), updated_at = datetime('now')
+       WHERE id = ?`
+    ).bind(grams, item.supplier_listing_id));
+    // Mirror to legacy products: listing id is 'list_<product_id>' (per migration 048
+    // deterministic shape), so the product id is the suffix after 'list_'. Carry-created
+    // listings (no legacy product) won't match — that's fine, the UPDATE just no-ops.
+    const legacyProductId = (item.supplier_listing_id as string).startsWith('list_')
+      ? (item.supplier_listing_id as string).slice(5)
+      : null;
+    if (legacyProductId) {
+      stmts.push(env.DB.prepare(
+        `UPDATE products SET stock_grams = MAX(0, COALESCE(stock_grams, 0) - ?), updated_at = datetime('now')
+         WHERE id = ? AND account_id = ?`
+      ).bind(grams, legacyProductId, order.supplier_account_id));
+    }
+
+    // 2. Find buyer's listing for this profile, or create one.
+    const buyerListing = await env.DB.prepare(
+      `SELECT id FROM product_listings WHERE account_id = ? AND profile_id = ?`
+    ).bind(order.buyer_account_id, item.profile_id).first() as { id: string } | null;
+
+    let buyerListingId: string;
+    if (buyerListing) {
+      buyerListingId = buyerListing.id;
+      stmts.push(env.DB.prepare(
+        `UPDATE product_listings
+         SET stock_grams = COALESCE(stock_grams, 0) + ?, updated_at = datetime('now'),
+             status = CASE WHEN status = 'archived' THEN 'active' ELSE status END
+         WHERE id = ?`
+      ).bind(grams, buyerListingId));
+    } else {
+      // Auto-create a new listing for the buyer. Defaults: status=active, is_public=1.
+      // No price set — buyer will refine on the listing edit page.
+      buyerListingId = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
+      stmts.push(env.DB.prepare(
+        `INSERT INTO product_listings
+           (id, account_id, profile_id, stock_grams, listing_photos, status, is_public)
+         VALUES (?, ?, ?, ?, '[]', 'active', 1)`
+      ).bind(buyerListingId, order.buyer_account_id, item.profile_id, grams));
+    }
+    // Link the order item to whichever buyer listing now holds the stock
+    stmts.push(env.DB.prepare(
+      `UPDATE wholesale_order_items SET buyer_listing_id = ? WHERE id = ?`
+    ).bind(buyerListingId, item.id));
+  }
+
+  // 3. Generate bilateral invoices.
+  // Supplier's outgoing invoice (account = supplier; customer = buyer account name)
+  // Buyer's incoming invoice (account = buyer; customer = supplier account name)
+  // Both reference the wholesale_order via `notes` for audit traceability.
+  const supplierAccount = await env.DB.prepare(
+    'SELECT name, invoice_prefix FROM accounts WHERE id = ?'
+  ).bind(order.supplier_account_id).first() as { name: string; invoice_prefix: string | null };
+  const buyerAccount = await env.DB.prepare(
+    'SELECT name, invoice_prefix FROM accounts WHERE id = ?'
+  ).bind(order.buyer_account_id).first() as { name: string; invoice_prefix: string | null };
+
+  const supplierInvoiceId = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
+  const buyerInvoiceId = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
+  const supplierPrefix = supplierAccount?.invoice_prefix || 'WS';
+  const buyerPrefix = buyerAccount?.invoice_prefix || 'WS';
+  const orderShortId = order.id.slice(0, 8).toUpperCase();
+
+  stmts.push(env.DB.prepare(
+    `INSERT INTO invoices (account_id, id, invoice_number, customer_name, display_currency, status, notes)
+     VALUES (?, ?, ?, ?, ?, 'Paid', ?)`
+  ).bind(
+    order.supplier_account_id, supplierInvoiceId,
+    `${supplierPrefix}-WS-${orderShortId}`,
+    buyerAccount?.name || 'Wholesale buyer',
+    order.currency,
+    `Wholesale order ${order.id}. See wholesale_orders table.`
+  ));
+  stmts.push(env.DB.prepare(
+    `INSERT INTO invoices (account_id, id, invoice_number, customer_name, display_currency, status, notes)
+     VALUES (?, ?, ?, ?, ?, 'Paid', ?)`
+  ).bind(
+    order.buyer_account_id, buyerInvoiceId,
+    `${buyerPrefix}-WS-${orderShortId}`,
+    supplierAccount?.name || 'Wholesale supplier',
+    order.currency,
+    `Wholesale order ${order.id}. See wholesale_orders table.`
+  ));
+
+  // Persist the invoice ids back onto the order
+  stmts.push(env.DB.prepare(
+    `UPDATE wholesale_orders SET invoice_id_supplier = ?, invoice_id_buyer = ? WHERE id = ?`
+  ).bind(supplierInvoiceId, buyerInvoiceId, order.id));
+
+  return stmts;
+}
+
+// POST /api/wholesale/orders/:id/nudge
+// Per Surface 9: gentle reminder buyer can send when supplier sits on a
+// submitted order. Throttled — last_nudge_at must be at least 24 hours ago.
+const handleNudgeWholesaleOrder: Handler = async (request, env, params) => {
+  const ctx = await requireBundle(request, env, 'sell');
+  if ('error' in ctx) return ctx.error;
+  const { accountId, userId, email } = ctx;
+
+  const orderId = params.id;
+  if (!orderId) return json({ error: 'Order id required' }, 400);
+
+  const loaded = await loadWholesaleOrder(env, orderId, accountId);
+  if ('error' in loaded) return loaded.error;
+  const { order } = loaded;
+
+  if (order.buyer_account_id !== accountId) {
+    return json({ error: 'Only the buyer can nudge.' }, 403);
+  }
+  if (order.status !== 'submitted' && order.status !== 'confirmed') {
+    return json({ error: `Cannot nudge an order that is ${order.status}.` }, 400);
+  }
+  if (order.last_nudge_at) {
+    const last = new Date(order.last_nudge_at).getTime();
+    const dayAgo = Date.now() - (24 * 60 * 60 * 1000);
+    if (last > dayAgo) {
+      return json({ error: 'Already nudged in the last 24 hours.' }, 429);
+    }
+  }
+
+  await env.DB.prepare(
+    `UPDATE wholesale_orders
+     SET last_nudge_at = datetime('now'), nudge_count = nudge_count + 1, updated_at = datetime('now')
+     WHERE id = ?`
+  ).bind(orderId).run();
+
+  await logPlatformAction(env, 'wholesale.nudged', userId, email,
+    'wholesale_order', orderId, { status: order.status });
+
+  return json({ ok: true });
+};
+
+// GET /api/wholesale/orders
+// Query params:
+//   role=buyer|supplier (default: returns orders where caller is on either side)
+//   status=draft|submitted|... (optional filter)
+// Returns the list of orders with item counts (not full items).
+const handleListWholesaleOrders: Handler = async (request, env) => {
+  const ctx = await requireBundle(request, env, 'sell');
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+
+  const url = new URL(request.url);
+  const role = url.searchParams.get('role');
+  const statusFilter = url.searchParams.get('status');
+
+  let where: string;
+  const binds: any[] = [];
+  if (role === 'buyer') { where = 'buyer_account_id = ?'; binds.push(accountId); }
+  else if (role === 'supplier') { where = 'supplier_account_id = ?'; binds.push(accountId); }
+  else { where = '(buyer_account_id = ? OR supplier_account_id = ?)'; binds.push(accountId, accountId); }
+  if (statusFilter) { where += ' AND status = ?'; binds.push(statusFilter); }
+
+  const { results } = await env.DB.prepare(`
+    SELECT o.*,
+           sa.name AS supplier_name, sa.slug AS supplier_slug,
+           ba.name AS buyer_name, ba.slug AS buyer_slug,
+           (SELECT COUNT(*) FROM wholesale_order_items WHERE order_id = o.id) AS item_count
+    FROM wholesale_orders o
+    LEFT JOIN accounts sa ON sa.id = o.supplier_account_id
+    LEFT JOIN accounts ba ON ba.id = o.buyer_account_id
+    WHERE ${where}
+    ORDER BY o.updated_at DESC
+  `).bind(...binds).all();
+
+  return json({ orders: results });
+};
+
+// GET /api/wholesale/orders/:id
+// Detail view including all items joined to profile names for display.
+const handleGetWholesaleOrder: Handler = async (request, env, params) => {
+  const ctx = await requireBundle(request, env, 'sell');
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+
+  const orderId = params.id;
+  if (!orderId) return json({ error: 'Order id required' }, 400);
+
+  const loaded = await loadWholesaleOrder(env, orderId, accountId);
+  if ('error' in loaded) return loaded.error;
+  const { order } = loaded;
+
+  const [supplierAccount, buyerAccount, itemsResult] = await Promise.all([
+    env.DB.prepare('SELECT id, name, slug, currency_default FROM accounts WHERE id = ?').bind(order.supplier_account_id).first(),
+    env.DB.prepare('SELECT id, name, slug, currency_default FROM accounts WHERE id = ?').bind(order.buyer_account_id).first(),
+    env.DB.prepare(`
+      SELECT i.*, p.name AS profile_name, p.slug AS profile_slug, p.image_url AS profile_image
+      FROM wholesale_order_items i
+      LEFT JOIN tea_profiles p ON p.id = i.profile_id
+      WHERE i.order_id = ?
+      ORDER BY i.created_at ASC
+    `).bind(orderId).all(),
+  ]);
+
+  return json({
+    order,
+    supplier: supplierAccount,
+    buyer: buyerAccount,
+    items: (itemsResult as any).results,
+  });
+};
+
 // ── Routes ──
 const routes: [string, string, Handler][] = [
   // Auth
@@ -12662,6 +13345,15 @@ const routes: [string, string, Handler][] = [
   ['GET',  '/api/profiles/:id/suggestions', handleListProfileSuggestions],
   ['GET',  '/api/suggestions/incoming', handleIncomingSuggestions],
   ['POST', '/api/suggestions/:id/decide', handleDecideSuggestion],
+
+  // ── Wholesale orders (Step 4) ──
+  ['POST', '/api/wholesale/orders', handleCreateWholesaleOrder],
+  ['GET',  '/api/wholesale/orders', handleListWholesaleOrders],
+  ['GET',  '/api/wholesale/orders/:id', handleGetWholesaleOrder],
+  ['PUT',  '/api/wholesale/orders/:id', handleUpdateWholesaleOrder],
+  ['POST', '/api/wholesale/orders/:id/transition', handleTransitionWholesaleOrder],
+  ['POST', '/api/wholesale/orders/:id/nudge', handleNudgeWholesaleOrder],
+
   ['GET', '/api/s/:slug', handleGetPublicAccount],
   ['GET', '/api/s/:slug/products', handleGetPublicAccountProducts],
   ['GET', '/api/s/:slug/events', handleGetPublicAccountEvents],
