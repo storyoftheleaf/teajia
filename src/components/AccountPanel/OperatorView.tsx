@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PenLine, Users, Compass, ShoppingBag, Sprout, BookOpen, GraduationCap } from 'lucide-react';
+import { PenLine, Users, Compass, ShoppingBag, Sprout, BookOpen, GraduationCap, Globe } from 'lucide-react';
 import { SealIcon } from '../Icons';
 import {
   ADMIN_TOOL_GROUPS,
@@ -32,6 +32,7 @@ const GROUP_ICONS: Record<AdminToolGroup, React.ReactNode> = {
   gather:  <Users {...GROUP_ICON_PROPS} />,
   publish: <BookOpen {...GROUP_ICON_PROPS} />,
   teach:   <GraduationCap {...GROUP_ICON_PROPS} />,
+  network: <Globe {...GROUP_ICON_PROPS} />,
 };
 
 interface OperatorViewProps {

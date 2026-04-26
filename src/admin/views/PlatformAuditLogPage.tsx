@@ -10,12 +10,39 @@ const LIMIT = 50;
 const ACTION_LABELS: Record<string, string> = {
   'account.created': 'Account created',
   'account.active': 'Account reactivated',
+  'account.reactivated': 'Account reactivated',
   'account.suspended': 'Account suspended',
   'account.trust_tier_changed': 'Trust tier changed',
+  'account.upgraded_to_location': 'Tea Master upgraded to Location',
   'feature.toggled': 'Feature toggled',
   'platform_role.changed': 'Platform role changed',
   'user.invite_resent': 'Invite resent',
   'ownership.transferred': 'Ownership transferred',
+  // Members & Access (Step 0)
+  'member.bundles_updated': 'Member bundles updated',
+  'application.approved': 'Application approved',
+  'application.declined': 'Application declined',
+  'tea_master.invited': 'Tea Master invited',
+  // Network listings (Step 2)
+  'listing.carried': 'Carried tea from network',
+  'listing.updated': 'Listing edited',
+  // Suggestions (Step 3)
+  'suggestion.created': 'Canonical edit suggested',
+  'suggestion.decided': 'Suggestion reviewed',
+  // Wholesale (Step 4)
+  'wholesale.created': 'Wholesale order drafted',
+  'wholesale.updated': 'Wholesale draft edited',
+  'wholesale.submitted': 'Wholesale order submitted',
+  'wholesale.replied': 'Wholesale supplier replied',
+  'wholesale.confirmed': 'Wholesale order confirmed',
+  'wholesale.shipped': 'Wholesale order shipped',
+  'wholesale.received': 'Wholesale order received',
+  'wholesale.cancelled': 'Wholesale order cancelled',
+  'wholesale.nudged': 'Wholesale supplier nudged',
+  // Adoption queue (Step 6)
+  'profile.suggested_for_network': 'Tea suggested for network',
+  'profile.adoption_adopted': 'Tea adopted into network',
+  'profile.adoption_declined': 'Network adoption declined',
 };
 
 const formatDate = (iso: string) => {

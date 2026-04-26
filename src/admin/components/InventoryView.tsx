@@ -596,7 +596,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   // Catalog bundle gates the "Carry from network" entry point. Per Step 2 of
   // the Network Rollout — partners with the Catalog bundle can carry teas
   // from Adrian's curated catalog into their own listings.
-  const hasCatalogBundle = selectHasBundle(useAppStore.getState(), 'catalog');
+  // Reactive subscription, not a one-shot snapshot — store hydrates async after mount.
+  const hasCatalogBundle = useAppStore(s => selectHasBundle(s, 'catalog'));
 
   const { addSampleSet, addSample, setActiveSet } = useSampleStore();
 

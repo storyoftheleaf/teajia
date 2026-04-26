@@ -269,27 +269,36 @@ const CatalogPicker: React.FC<CatalogPickerProps> = ({
 
       {!loading && filtered.length > 0 && (
         <ul className="divide-y divide-tea-border">
-          {filtered.map(profile => (
-            <li key={profile.id}>
-              <button
-                type="button"
-                onClick={() => handleAdd(profile)}
-                className="w-full text-left py-3 group"
-              >
-                <div className="font-display text-[16px] text-tea-text group-hover:text-tea-gold transition-colors leading-[1.2]">
-                  {profile.name}
-                </div>
-                <div className="font-body text-[12px] text-tea-text-sec mt-0.5 leading-[1.4]">
-                  {joinParts(profile.origin_region || profile.origin_country, profile.chinese_name, profile.varietal)}
-                  {profile.wholesale_price_per_gram_caller != null ? (
-                    <span className="font-mono ml-2 text-[11px]">
-                      {formatMoney(profile.wholesale_price_per_gram_caller * 100, profile.wholesale_currency_caller, 2)}/100g
-                    </span>
-                  ) : null}
-                </div>
-              </button>
-            </li>
-          ))}
+          {filtered.map(profile => {
+            // Disable when the curator has no active listing for this profile —
+            // worker requires supplier_listing_id and would 404 on submit.
+            const noSupplierListing = !profile.curator_listing_id;
+            return (
+              <li key={profile.id}>
+                <button
+                  type="button"
+                  onClick={() => !noSupplierListing && handleAdd(profile)}
+                  disabled={noSupplierListing}
+                  className={`w-full text-left py-3 group ${noSupplierListing ? 'cursor-not-allowed opacity-60' : ''}`}
+                >
+                  <div className={`font-display text-[16px] leading-[1.2] ${noSupplierListing ? 'text-tea-text-dim' : 'text-tea-text group-hover:text-tea-gold transition-colors'}`}>
+                    {profile.name}
+                  </div>
+                  <div className="font-body text-[12px] text-tea-text-sec mt-0.5 leading-[1.4]">
+                    {joinParts(profile.origin_region || profile.origin_country, profile.chinese_name, profile.varietal)}
+                    {profile.wholesale_price_per_gram_caller != null ? (
+                      <span className="font-mono ml-2 text-[11px]">
+                        {formatMoney(profile.wholesale_price_per_gram_caller * 100, profile.wholesale_currency_caller, 2)}/100g
+                      </span>
+                    ) : null}
+                    {noSupplierListing && (
+                      <span className="italic ml-2">— supplier has no active listing</span>
+                    )}
+                  </div>
+                </button>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>
@@ -550,10 +559,12 @@ export const WholesaleOrderDraft: React.FC = () => {
     [items],
   );
 
-  // FX snapshot from order detail
-  const fxSnapshot = orderDetail?.order
-    ? `1 ${orderDetail.supplier.currency_default} = ...` // server returns no explicit FX; show stub
-    : null;
+  // FX snapshot is intentionally null — the server doesn't return an explicit
+  // rate on the order detail. The fallback prose below ("rates are locked when
+  // you submit") covers what the partner needs to know without showing a half-
+  // baked rate string. When the server starts returning the snapshot rate this
+  // can populate.
+  const fxSnapshot: string | null = null;
 
   // ── Validation ─────────────────────────────────────────────────────────────
 
@@ -857,20 +868,6 @@ export const WholesaleOrderDraft: React.FC = () => {
               aria-label="Shipping address"
               className="w-full bg-transparent border-b border-tea-border focus:border-tea-gold outline-none text-tea-text font-body text-[14px] leading-[1.7] py-1 resize-none transition-colors placeholder:italic placeholder:text-tea-text-sec"
             />
-            {/* Override stub */}
-            <p className="mt-2 font-body text-[13px] text-tea-text-sec">
-              {/* TODO: expand inline to allow per-order address override */}
-              <span className="italic">Override for this order</span>{' '}
-              <button
-                type="button"
-                className="text-tea-text-sec hover:text-tea-text transition-colors underline underline-offset-2"
-                onClick={() => {
-                  /* TODO: expand inline address override */
-                }}
-              >
-                change
-              </button>
-            </p>
           </>
         ) : (
           <p className="font-body text-[14px] text-tea-text leading-[1.7] whitespace-pre-wrap">

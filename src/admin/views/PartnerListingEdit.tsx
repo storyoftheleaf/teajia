@@ -8,6 +8,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { useAppStore, selectHasBundle } from '../../lib/store';
 import { useShallow } from 'zustand/react/shallow';
+import { useRates } from '../hooks/useAdminData';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import type { ProfileSuggestableField, ProfileSuggestionFieldDraft } from '../../types';
 
@@ -371,6 +372,8 @@ interface ListingFieldsProps {
   listing: ListingData;
   profile: ProfileData;
   callerCurrency: string;
+  /** Rate of caller currency vs USD (units per USD). 1 means USD or unknown. */
+  callerRateToUsd: number;
 }
 
 // Inline save confirmation: "Saved · 14:32"
@@ -386,11 +389,14 @@ function useSaveConfirm() {
   return { msg, show };
 }
 
-const ListingFields: React.FC<ListingFieldsProps> = ({ listing, profile, callerCurrency }) => {
+const ListingFields: React.FC<ListingFieldsProps> = ({ listing, profile, callerCurrency, callerRateToUsd }) => {
   const [stockValue, setStockValue] = useState(String(listing.stock_grams ?? ''));
+  // The displayed price is in caller currency per 100g, derived from the stored
+  // fixed_retail_price_usd (USD per gram). Round to nearest unit so the partner
+  // sees clean numbers; the underlying USD/gram precision is preserved on save.
   const [priceValue, setPriceValue] = useState(
     listing.fixed_retail_price_usd != null
-      ? String(Math.round(listing.fixed_retail_price_usd))
+      ? String(Math.round(listing.fixed_retail_price_usd * 100 * callerRateToUsd))
       : ''
   );
   const [sampleAvail, setSampleAvail] = useState(listing.is_sample);
@@ -403,7 +409,7 @@ const ListingFields: React.FC<ListingFieldsProps> = ({ listing, profile, callerC
   const lastSaved = useRef({
     stock: String(listing.stock_grams ?? ''),
     price: listing.fixed_retail_price_usd != null
-      ? String(Math.round(listing.fixed_retail_price_usd))
+      ? String(Math.round(listing.fixed_retail_price_usd * 100 * callerRateToUsd))
       : '',
     sample: listing.is_sample,
     note: listing.store_note ?? '',
@@ -411,6 +417,8 @@ const ListingFields: React.FC<ListingFieldsProps> = ({ listing, profile, callerC
 
   const persist = useCallback(async (patch: {
     stock_grams?: number;
+    price_amount?: number | null;
+    price_currency?: string;
     fixed_retail_price_usd?: number | null;
     store_note?: string | null;
     is_sample?: boolean;
@@ -435,13 +443,15 @@ const ListingFields: React.FC<ListingFieldsProps> = ({ listing, profile, callerC
     if (priceValue === lastSaved.current.price) return;
     if (priceValue.trim() === '') {
       lastSaved.current.price = '';
-      void persist({ fixed_retail_price_usd: null });
+      void persist({ price_amount: null });
       return;
     }
     const n = Number(priceValue);
     if (!isFinite(n) || n < 0) { showSave('Price must be ≥ 0'); return; }
     lastSaved.current.price = priceValue;
-    void persist({ fixed_retail_price_usd: n });
+    // Send the partner's local-currency-per-100g amount; server converts to USD/gram
+    // via exchange_rates. Avoids the silent-no-conversion bug from earlier.
+    void persist({ price_amount: n, price_currency: callerCurrency });
   };
 
   const saveSample = (next: boolean) => {
@@ -548,17 +558,34 @@ const ListingFields: React.FC<ListingFieldsProps> = ({ listing, profile, callerC
         </div>
       </div>
 
-      {/* Photos */}
+      {/* Photos — display-only for now. Upload + reorder + delete is its own surface
+          (deferred). Partners can at least see what they have. */}
       <div>
-        <p className="text-tea-text-sec text-[13px] mb-1">Your photos</p>
+        <p className="text-tea-text-sec text-[13px] mb-2">Your photos</p>
         {listing.listing_photos.length > 0 ? (
-          <p className="text-tea-text-dim italic text-[13px]">
-            {listing.listing_photos.length} photo{listing.listing_photos.length !== 1 ? 's' : ''} uploaded.
-            Photo management coming in the next step.
-          </p>
+          <>
+            <div className="flex gap-2 flex-wrap mb-1">
+              {listing.listing_photos.map((url, i) => (
+                <a
+                  key={i}
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block w-16 h-16 overflow-hidden border border-tea-border bg-tea-bg hover:border-tea-gold/40 transition-colors"
+                  title={`Open photo ${i + 1} in a new tab`}
+                >
+                  <img src={url} alt="" className="w-full h-full object-cover" loading="lazy" />
+                </a>
+              ))}
+            </div>
+            <p className="text-tea-text-dim italic text-[12px] leading-[1.5]">
+              {listing.listing_photos.length} photo{listing.listing_photos.length !== 1 ? 's' : ''}.
+              Upload + reorder coming in a follow-up.
+            </p>
+          </>
         ) : (
           <p className="text-tea-text-dim italic text-[13px]">
-            No photos yet. Photo upload coming in the next step.
+            No photos yet. Customer-facing storefront falls back to canonical photos.
           </p>
         )}
       </div>
@@ -583,16 +610,31 @@ interface NetworkAdoptionBlockProps {
   decision: 'pending' | 'adopted' | 'declined' | null;
   suggestedAt: string | null;
   declineNote: string | null;
+  /** True when curated_by_account_id is the platform account — already canonical. */
+  curatorIsPlatform: boolean;
   onSuggested: () => void | Promise<void>;
 }
 
 const NetworkAdoptionBlock: React.FC<NetworkAdoptionBlockProps> = ({
-  profileId, profileName, decision, suggestedAt, declineNote, onSuggested,
+  profileId, profileName, decision, suggestedAt, declineNote, curatorIsPlatform, onSuggested,
 }) => {
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState(false);
   const [note, setNote] = useState('');
   const [error, setError] = useState<string | null>(null);
+
+  // Adopted — quiet credit line, originator stays attributed permanently.
+  if (decision === 'adopted' || curatorIsPlatform) {
+    return (
+      <div className="mb-8">
+        <p className="font-body italic text-[14px] text-tea-text-sec leading-[1.7]">
+          {curatorIsPlatform
+            ? "This tea is in the Teajia network catalog. You're credited as the originator."
+            : 'Adopted into the Teajia network. You stay attributed as the originator.'}
+        </p>
+      </div>
+    );
+  }
 
   // If decision is 'pending', show a quiet pending notice — no action.
   if (decision === 'pending') {
@@ -734,19 +776,31 @@ export const PartnerListingEdit: React.FC = () => {
   const { listingId } = useParams<{ listingId: string }>();
   const navigate = useNavigate();
 
-  const { memberships, activeAccountId, platformRole } = useAppStore(
+  const { memberships, activeAccountId, platformRole, activeAccount } = useAppStore(
     useShallow(s => ({
       memberships: s.memberships,
       activeAccountId: s.activeAccountId,
       platformRole: s.platformRole,
+      activeAccount: s.activeAccount,
     })),
   );
 
   const hasCatalog = selectHasBundle({ memberships, activeAccountId, platformRole }, 'catalog');
+  const hasSell = selectHasBundle({ memberships, activeAccountId, platformRole }, 'sell');
 
-  // Caller currency: first membership's currency or AUD
-  const callerCurrency =
-    ((memberships.find(m => m.account_id === activeAccountId) as any)?.currency) || 'AUD';
+  // Caller currency: prefer the active account's canonical currency_default
+  // (set on the account row by Adrian during account creation), fall back
+  // to USD when no account is loaded yet.
+  const callerCurrency = (activeAccount as any)?.currency_default || 'USD';
+
+  // Rate: units of caller currency per 1 USD. Used to convert the stored
+  // fixed_retail_price_usd into the partner's display currency.
+  const ratesQuery = useRates();
+  const callerRateToUsd = (() => {
+    if (callerCurrency === 'USD') return 1;
+    const row = ratesQuery.data?.find(r => r.currency === callerCurrency);
+    return row?.rateToUSD ?? 1;
+  })();
 
   // ── Data ──────────────────────────────────────────────────────────────────
   const [listing, setListing] = useState<ListingData | null>(null);
@@ -954,6 +1008,19 @@ export const PartnerListingEdit: React.FC = () => {
           View {profile.curated_by_name ?? 'curator'}'s full canonical content{' '}
           <span className="inline-block transition-transform group-hover:translate-x-0.5">→</span>
         </button>
+
+        {/* Order more from this supplier — only when caller is the carrier, not the curator,
+            and has the Sell bundle. Lands them on a fresh wholesale draft view. */}
+        {!isCurator && hasSell && (
+          <button
+            type="button"
+            onClick={() => navigate('/admin/network/wholesale/new')}
+            className="mt-2 ml-4 text-[12px] text-tea-text-sec hover:text-tea-gold transition-colors group"
+          >
+            Order more from {profile.curated_by_name ?? 'this supplier'}{' '}
+            <span className="inline-block transition-transform group-hover:translate-x-0.5">→</span>
+          </button>
+        )}
       </header>
 
       {/* ── Curator notice — hides suggestion machinery ─────────────────────── */}
@@ -972,16 +1039,18 @@ export const PartnerListingEdit: React.FC = () => {
         </div>
       )}
 
-      {/* ── Network adoption — only when caller originated AND it's not yet canonical ─ */}
-      {isCurator
-        && profile.originated_by_account_id === activeAccountId
-        && profile.curated_by_kind !== 'platform' && (
+      {/* ── Network adoption — show whenever the active account originated this profile.
+          The block handles its own state machine (never-suggested / pending / declined / adopted),
+          so it stays visible after Adrian adopts so the originator can see "your tea is now in the network."
+          ───────────────────────────────────────────────────────────────────────────── */}
+      {profile.originated_by_account_id === activeAccountId && (
         <NetworkAdoptionBlock
           profileId={profile.id}
           profileName={profile.name}
           decision={profile.adoption_decision ?? null}
           suggestedAt={profile.suggested_for_network_at ?? null}
           declineNote={profile.adoption_decline_note ?? null}
+          curatorIsPlatform={profile.curated_by_kind === 'platform'}
           onSuggested={load}
         />
       )}
@@ -994,7 +1063,7 @@ export const PartnerListingEdit: React.FC = () => {
         <p className="text-[11px] uppercase tracking-[0.1em] text-tea-text-dim mb-6">
           Your listing
         </p>
-        <ListingFields listing={listing} profile={profile} callerCurrency={callerCurrency} />
+        <ListingFields listing={listing} profile={profile} callerCurrency={callerCurrency} callerRateToUsd={callerRateToUsd} />
       </section>
 
       {/* Hairline */}

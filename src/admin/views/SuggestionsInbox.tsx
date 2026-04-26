@@ -61,7 +61,7 @@ const SkeletonRow: React.FC = () => (
 // Filter tab
 // ─────────────────────────────────────────────────────────────────────────────
 
-type FilterStatus = 'default' | 'resolved' | 'withdrawn';
+type FilterStatus = 'default' | 'partial' | 'resolved' | 'withdrawn';
 
 interface FilterTabProps {
   active: boolean;
@@ -499,6 +499,7 @@ export const SuggestionsInbox: React.FC = () => {
       const statusParam =
         filter === 'resolved' ? 'resolved'
         : filter === 'withdrawn' ? 'withdrawn'
+        : filter === 'partial' ? 'partial'
         : undefined; // default = pending + partial
       const data = await api.network.incomingSuggestions(statusParam);
       setSuggestions(data.suggestions);
@@ -560,6 +561,10 @@ export const SuggestionsInbox: React.FC = () => {
       <div className="flex items-baseline gap-3 mb-8 text-[14px]">
         <FilterTab active={filter === 'default'} onClick={() => setFilter('default')}>
           Pending
+        </FilterTab>
+        <span className="text-tea-border" aria-hidden>·</span>
+        <FilterTab active={filter === 'partial'} onClick={() => setFilter('partial')}>
+          Partial
         </FilterTab>
         <span className="text-tea-border" aria-hidden>·</span>
         <FilterTab active={filter === 'resolved'} onClick={() => setFilter('resolved')}>

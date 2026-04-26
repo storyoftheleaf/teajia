@@ -7,12 +7,13 @@ import { Section } from '../types';
 import { useTheme } from '../context/ThemeContext';
 import { PREVIEW_MODE } from '../constants';
 import { useAuth } from '../hooks/useAuth';
-import { useAppStore } from '../lib/store';
+import { useAppStore, selectHasBundle } from '../lib/store';
 import { TYPOGRAPHY_CLASSES } from '../designTokens';
 import {
   Calendar, LayoutDashboard, Briefcase, Leaf, Coffee, Store, Users,
   FolderOpen, ChevronLeft, ChevronRight, UserCheck, MapPin,
-  BookOpen, Package, ShoppingCart, Sun, Moon,
+  BookOpen, Package, ShoppingCart, Sun, Moon, Layers, Camera, Compass,
+  Settings as SettingsIcon, Globe, MessageSquare, Truck, Sprout,
 } from 'lucide-react';
 import { SampleIcon } from './Icons';
 import { useSampleCartStore } from '../samples/sampleCartStore';
@@ -151,6 +152,11 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   const currentPath = location.pathname;
   const isAdminRoute = currentPath.startsWith('/admin');
   const { sidebarCollapsed: collapsed, toggleSidebarCollapsed, activeAccount } = useAppStore();
+  // Bundle gates for the network destinations (Step 2-6 of NETWORK_ROLLOUT_PLAN).
+  // Reactive subscriptions so they update when memberships hydrate post-mount.
+  const hasCatalog = useAppStore(s => selectHasBundle(s, 'catalog'));
+  const hasSell = useAppStore(s => selectHasBundle(s, 'sell'));
+  const platformRole = useAppStore(s => s.platformRole);
   const sampleCount = useSampleCartStore(s => s.items.length);
 
   // Sync sidebar width to CSS variable for full-screen panel offsets
@@ -194,7 +200,14 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
         { id: 'teaware',  path: '/admin/teaware',  label: 'Equipment',    icon: <Coffee    className="w-3.5 h-3.5" strokeWidth={1.75} /> },
         { id: 'sources',  path: '/admin/sources',  label: 'Sources',      icon: <Store     className="w-3.5 h-3.5" strokeWidth={1.75} /> },
         { id: 'personal', path: '/admin/personal', label: 'Collection',   icon: <UserCheck className="w-3.5 h-3.5" strokeWidth={1.75} /> },
+        { id: 'capture',  path: '/admin/capture',  label: 'Quick Capture', icon: <Camera   className="w-3.5 h-3.5" strokeWidth={1.75} /> },
+        { id: 'compass',  path: '/admin/compass',  label: 'Compass',      icon: <Compass   className="w-3.5 h-3.5" strokeWidth={1.75} /> },
       ],
+    },
+    {
+      id: 'collections', label: 'Collections',
+      icon: <Layers size={18} strokeWidth={1.75} />,
+      path: '/admin/collections',
     },
     {
       id: 'business', label: 'Business',
@@ -214,6 +227,36 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
       id: 'magazine', label: 'Magazine',
       icon: <BookOpen size={18} strokeWidth={1.75} />,
       path: '/admin/magazine',
+    },
+    // Network — only render the parent if the caller has at least one of the
+    // child capabilities. Children further filter by bundle.
+    ...(hasCatalog || hasSell || platformRole ? [{
+      id: 'network', label: 'Network',
+      icon: <Globe size={18} strokeWidth={1.75} />,
+      path: '/admin/network/catalog',
+      children: [
+        ...(hasCatalog ? [{
+          id: 'network-catalog', path: '/admin/network/catalog', label: 'Carry from network',
+          icon: <Sprout className="w-3.5 h-3.5" strokeWidth={1.75} />,
+        }] : []),
+        ...(hasCatalog ? [{
+          id: 'network-suggestions', path: '/admin/network/suggestions', label: 'Suggestions',
+          icon: <MessageSquare className="w-3.5 h-3.5" strokeWidth={1.75} />,
+        }] : []),
+        ...(hasSell ? [{
+          id: 'network-wholesale', path: '/admin/network/wholesale', label: 'Wholesale',
+          icon: <Truck className="w-3.5 h-3.5" strokeWidth={1.75} />,
+        }] : []),
+        ...(platformRole ? [{
+          id: 'network-adoptions', path: '/admin/network/adoptions', label: 'Adoptions',
+          icon: <Sprout className="w-3.5 h-3.5" strokeWidth={1.75} />,
+        }] : []),
+      ],
+    }] : []),
+    {
+      id: 'settings', label: 'Settings',
+      icon: <SettingsIcon size={18} strokeWidth={1.75} />,
+      path: '/admin/settings',
     },
   ];
 

@@ -151,7 +151,7 @@ const AdoptionRow: React.FC<AdoptionRowProps> = ({ entry, onChange }) => {
   if (entry.origin_region) originParts.push(entry.origin_region);
   else if (entry.origin_country) originParts.push(entry.origin_country);
   if (entry.varietal) originParts.push(entry.varietal);
-  if (entry.harvest_year) originParts.push(entry.harvest_year);
+  if (entry.harvest_year) originParts.push(String(entry.harvest_year));
   const originLine = originParts.join(' · ');
 
   const suggestedDate = entry.suggested_for_network_at

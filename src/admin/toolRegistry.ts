@@ -1,4 +1,4 @@
-export type AdminToolGroup = 'sell' | 'source' | 'gather' | 'publish' | 'teach';
+export type AdminToolGroup = 'sell' | 'source' | 'gather' | 'publish' | 'teach' | 'network';
 
 export interface AdminTool {
   id: string;
@@ -15,6 +15,7 @@ export const ADMIN_TOOL_GROUPS: { id: AdminToolGroup; label: string }[] = [
   { id: 'gather', label: 'Gather' },
   { id: 'publish', label: 'Publish' },
   { id: 'teach', label: 'Teach' },
+  { id: 'network', label: 'Network' },
 ];
 
 export const ADMIN_TOOLS: AdminTool[] = [
@@ -36,8 +37,18 @@ export const ADMIN_TOOLS: AdminTool[] = [
   { id: 'collections', label: 'Collections', group: 'publish', route: '/admin/collections', addedAt: '2026-04-24', requires: 'owner' },
 
   { id: 'team', label: 'Team', group: 'teach', route: '/admin/people?tab=team', addedAt: '2025-12-05', requires: 'owner' },
+  { id: 'access', label: 'Members & Access', group: 'teach', route: '/admin/access', addedAt: '2026-04-26', requires: 'owner' },
   { id: 'account-settings', label: 'Account Settings', group: 'teach', route: '/admin/account-settings', addedAt: '2025-10-01', requires: 'owner' },
   { id: 'platform', label: 'Platform Admin', group: 'teach', route: '/admin/platform', addedAt: '2025-12-20', requires: 'platform' },
+  { id: 'platform-access', label: 'Platform Access', group: 'teach', route: '/admin/access/platform', addedAt: '2026-04-26', requires: 'platform' },
+
+  // Network — Steps 2-6 of NETWORK_ROLLOUT_PLAN. Owner-gated as a proxy for the
+  // bundles (catalog/sell/etc); the views themselves enforce the bundle gate
+  // server-side and inline.
+  { id: 'network-catalog', label: 'Carry from Network', group: 'network', route: '/admin/network/catalog', addedAt: '2026-04-26', requires: 'owner' },
+  { id: 'network-suggestions', label: 'Suggestions', group: 'network', route: '/admin/network/suggestions', addedAt: '2026-04-26', requires: 'owner' },
+  { id: 'network-wholesale', label: 'Wholesale', group: 'network', route: '/admin/network/wholesale', addedAt: '2026-04-26', requires: 'owner' },
+  { id: 'network-adoptions', label: 'Adoptions', group: 'network', route: '/admin/network/adoptions', addedAt: '2026-04-26', requires: 'platform' },
 ];
 
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
@@ -59,7 +70,7 @@ export function toolsForRole(opts: { isOwner: boolean; isPlatform: boolean }): A
 
 export function groupTools(tools: AdminTool[]): Record<AdminToolGroup, AdminTool[]> {
   const out: Record<AdminToolGroup, AdminTool[]> = {
-    sell: [], source: [], gather: [], publish: [], teach: [],
+    sell: [], source: [], gather: [], publish: [], teach: [], network: [],
   };
   for (const t of tools) out[t.group].push(t);
   return out;

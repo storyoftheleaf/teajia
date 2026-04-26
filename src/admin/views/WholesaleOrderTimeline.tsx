@@ -107,7 +107,7 @@ function currentStateSentence(
 
     case 'confirmed':
       return role === 'buyer' ? (
-        <>{supplierName} confirmed your order on {formatDate(order.confirmed_at)}. He'll ship within the week and update with tracking when it goes out.</>
+        <>{supplierName} confirmed your order on {formatDate(order.confirmed_at)}. They'll ship within the week and update with tracking when it goes out.</>
       ) : (
         <>You confirmed {buyerName}'s order on {formatDate(order.confirmed_at)}. Ship when ready and add tracking.</>
       );
@@ -458,20 +458,34 @@ const SupplierShipArea: React.FC<SupplierShipAreaProps> = ({ orderId, onTransiti
       </div>
 
       {!confirmOpen ? (
-        <div className="mt-5 flex justify-end">
-          <button
-            type="button"
-            onClick={() => setConfirmOpen(true)}
-            className="font-display tracking-[0.04em] text-[14px] text-tea-text-sec hover:text-tea-gold transition-colors"
-          >
-            Mark as shipped
-          </button>
+        <div className="mt-5">
+          {/* Inline validation hint when fields are empty — surfaces the requirement
+              before the user clicks Confirm and gets a generic 400 from the worker. */}
+          {(!carrier.trim() || !trackingNumber.trim()) && (
+            <p className="text-tea-text-sec italic text-[13px] leading-[1.6] mb-3">
+              {!carrier.trim() && !trackingNumber.trim()
+                ? 'Carrier and tracking number are required to mark shipped.'
+                : !carrier.trim()
+                ? 'Carrier is required to mark shipped.'
+                : 'Tracking number is required to mark shipped.'}
+            </p>
+          )}
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={() => setConfirmOpen(true)}
+              disabled={!carrier.trim() || !trackingNumber.trim()}
+              className="font-display tracking-[0.04em] text-[14px] text-tea-text-sec hover:text-tea-gold transition-colors disabled:text-tea-text-dim disabled:cursor-not-allowed"
+            >
+              Mark as shipped
+            </button>
+          </div>
         </div>
       ) : (
         <div className="mt-5 space-y-3">
           <p className="text-tea-text-sec italic text-[13px] leading-[1.6]">
             Confirm: mark as shipped
-            {trackingNumber ? ` with tracking ${trackingNumber}` : ''}?
+            {trackingNumber ? ` with tracking ${trackingNumber} via ${carrier}` : ''}?
           </p>
           <div className="flex items-baseline justify-between gap-4">
             <button
@@ -1197,8 +1211,15 @@ export const WholesaleOrderTimeline: React.FC = () => {
                 <span className="text-tea-text-sec text-[13px]">{supplier.name}'s outgoing invoice</span>
                 <div className="flex items-baseline gap-4">
                   <span className="font-mono text-[12px] text-tea-text-sec">{order.invoice_id_supplier}</span>
-                  {/* TODO: wire to /admin/invoices/:id once that route exists */}
-                  <span className="text-tea-text-sec text-[13px] italic">Open →</span>
+                  {/* No /admin/invoices/:id route yet — land in the orders list with the
+                      invoice id as the search query so the user can find it. */}
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/admin/activity?tab=orders&search=${encodeURIComponent(order.invoice_id_supplier!)}`)}
+                    className="text-tea-text-sec hover:text-tea-gold text-[13px] transition-colors"
+                  >
+                    Open →
+                  </button>
                 </div>
               </div>
             )}
@@ -1207,8 +1228,13 @@ export const WholesaleOrderTimeline: React.FC = () => {
                 <span className="text-tea-text-sec text-[13px]">Your incoming invoice</span>
                 <div className="flex items-baseline gap-4">
                   <span className="font-mono text-[12px] text-tea-text-sec">{order.invoice_id_buyer}</span>
-                  {/* TODO: wire to /admin/invoices/:id once that route exists */}
-                  <span className="text-tea-text-sec text-[13px] italic">Open →</span>
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/admin/activity?tab=orders&search=${encodeURIComponent(order.invoice_id_buyer!)}`)}
+                    className="text-tea-text-sec hover:text-tea-gold text-[13px] transition-colors"
+                  >
+                    Open →
+                  </button>
                 </div>
               </div>
             )}

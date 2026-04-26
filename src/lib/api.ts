@@ -2001,6 +2001,11 @@ export const api = {
       listingId: string,
       patch: {
         stock_grams?: number;
+        // Preferred: send price in the partner's display currency per 100g;
+        // server converts to USD/gram via the exchange_rates table.
+        price_amount?: number | null;
+        price_currency?: string;
+        // Legacy direct-USD shape; kept for backward compatibility.
         fixed_retail_price_usd?: number | null;
         store_note?: string | null;
         is_sample?: boolean;

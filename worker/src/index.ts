@@ -12274,7 +12274,13 @@ const handleGetListing: Handler = async (request, env) => {
 };
 
 // PUT /api/listings/:id
-// Body: { stock_grams?, fixed_retail_price_usd?, store_note?, is_sample? }
+// Body: {
+//   stock_grams?,
+//   price_amount? + price_currency?,   // preferred: server converts to USD/gram
+//   fixed_retail_price_usd?,           // legacy: raw USD/gram, kept for compat
+//   store_note?,
+//   is_sample?,
+// }
 // Partner edits their own listing fields. Catalog bundle required.
 // Caller must own the listing. ALLOW_LIST is enforced — no canonical fields,
 // no account_id changes, no profile_id swaps.
@@ -12307,8 +12313,43 @@ const handleUpdateListing: Handler = async (request, env) => {
     binds.push(Math.floor(n));
   }
 
-  // Retail price (USD)
-  if (body.fixed_retail_price_usd !== undefined) {
+  // Retail price — preferred path: price_amount + price_currency, server
+  // converts to USD/gram via exchange_rates (1 unit of currency = N USD per
+  // the existing rate convention). The frontend now sends this shape so
+  // partners think in their own currency without client-side conversion.
+  if (body.price_amount !== undefined) {
+    if (body.price_amount === null) {
+      updates.push('fixed_retail_price_usd = NULL');
+    } else {
+      const amount = Number(body.price_amount);
+      if (!isFinite(amount) || amount < 0) {
+        return json({ error: 'price_amount must be a number >= 0' }, 400);
+      }
+      const currency = typeof body.price_currency === 'string' ? body.price_currency.trim().toUpperCase() : '';
+      if (!currency) {
+        return json({ error: 'price_currency required when price_amount is set' }, 400);
+      }
+      // Convert to USD per gram. The amount the partner enters is per-100g
+      // (matching the catalog browse + listing edit display), so divide by 100.
+      let usdPerGram: number;
+      if (currency === 'USD') {
+        usdPerGram = amount / 100;
+      } else {
+        const rateRow = await env.DB.prepare(
+          'SELECT rate_to_usd FROM exchange_rates WHERE currency = ?'
+        ).bind(currency).first() as { rate_to_usd: number } | null;
+        if (!rateRow || !isFinite(rateRow.rate_to_usd) || rateRow.rate_to_usd <= 0) {
+          return json({ error: `No FX rate available for ${currency}` }, 400);
+        }
+        // exchange_rates convention: rate_to_usd is units-per-USD (e.g. IDR=16210),
+        // so USD = amount / rate_to_usd.
+        usdPerGram = (amount / rateRow.rate_to_usd) / 100;
+      }
+      updates.push('fixed_retail_price_usd = ?');
+      binds.push(usdPerGram);
+    }
+  } else if (body.fixed_retail_price_usd !== undefined) {
+    // Legacy direct-USD path. Kept so older callers keep working.
     if (body.fixed_retail_price_usd === null) {
       updates.push('fixed_retail_price_usd = NULL');
     } else {
@@ -12351,7 +12392,7 @@ const handleUpdateListing: Handler = async (request, env) => {
   // Audit only when the change is meaningful (skip for store_note-only blurs;
   // they're noisy). Pricing + stock + sample changes are audited.
   const auditedFields = Object.keys(body).filter(k =>
-    ['stock_grams', 'fixed_retail_price_usd', 'is_sample'].includes(k)
+    ['stock_grams', 'fixed_retail_price_usd', 'price_amount', 'is_sample'].includes(k)
   );
   if (auditedFields.length > 0) {
     await logPlatformAction(
