@@ -1,3 +1,7 @@
+// @deprecated TeamView is superseded by AccessView at /admin/access (Members &
+// Access sub-step 0.5). This file remains because PeopleView still renders it
+// as a tab; remove that reference and delete this file when ready. Reference:
+// docs/NETWORK_ROLLOUT_PLAN.md Step 0.6.
 import React, { useEffect, useMemo, useState } from 'react';
 import { Loader2, UserPlus, Trash2, X, ShieldCheck, Shield, Settings } from 'lucide-react';
 import { api, getTokenClaims } from '../../lib/api';

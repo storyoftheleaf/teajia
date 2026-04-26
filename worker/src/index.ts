@@ -11518,6 +11518,13 @@ const handlePublicCollectionView: Handler = async (_request, env, params) => {
 };
 
 // PUT /api/accounts/:id/members/:userId/curator — promote/demote curator flag (owner only)
+// @deprecated Curator flag is superseded by Tea Master tier (accounts.kind = 'master').
+// Per Members & Access decision §2: "Tea Master is the canonical curator tier."
+// This endpoint and the underlying users.can_create_collections column remain
+// in place because TeamView still calls it from src/admin/views/TeamView.tsx.
+// Retire this handler when TeamView is removed; convert any active curators to
+// Tea Master accounts via POST /api/platform/accounts/:id/upgrade-to-location
+// or by setting accounts.kind = 'master' directly.
 const handleSetCuratorFlag: Handler = async (request, env, params) => {
   const ctx = await requireAccountRole(request, env, ['owner']);
   if ('error' in ctx) return ctx.error;

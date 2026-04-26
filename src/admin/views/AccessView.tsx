@@ -29,15 +29,18 @@ interface EditorSheetProps {
   isViewerOwner: boolean;
   onClose: () => void;
   onSaved: () => void;
-  onRemove: () => void;
+  onRemove: () => Promise<void> | void;
   accountId: string;
+  accountName: string;
 }
 
-const EditorSheet: React.FC<EditorSheetProps> = ({ member, isViewerOwner, onClose, onSaved, onRemove, accountId }) => {
+const EditorSheet: React.FC<EditorSheetProps> = ({ member, isViewerOwner, onClose, onSaved, onRemove, accountId, accountName }) => {
   const initialBundles = useMemo(() => member.bundles || [], [member.bundles]);
   const [working, setWorking] = useState<Set<Bundle>>(() => new Set(initialBundles));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmingRemove, setConfirmingRemove] = useState(false);
+  const [removing, setRemoving] = useState(false);
 
   const isOwner = member.role === 'owner';
   const dirty = useMemo(() => {
@@ -138,16 +141,47 @@ const EditorSheet: React.FC<EditorSheetProps> = ({ member, isViewerOwner, onClos
             </>
           )}
 
-          {/* Dangerous actions — secondary color, never red */}
+          {/* Dangerous actions — secondary color, never red. Inline confirm. */}
           {isViewerOwner && !isOwner && (
-            <div className="mt-10 pt-6 border-t border-tea-border space-y-2">
-              <button
-                type="button"
-                onClick={onRemove}
-                className="text-tea-text-sec hover:text-tea-text transition-colors text-[14px] py-2"
-              >
-                Remove from this account
-              </button>
+            <div className="mt-10 pt-6 border-t border-tea-border">
+              {!confirmingRemove ? (
+                <button
+                  type="button"
+                  onClick={() => setConfirmingRemove(true)}
+                  className="text-tea-text-sec hover:text-tea-text transition-colors text-[14px] py-2"
+                >
+                  Remove from this account
+                </button>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-tea-text-sec italic text-[14px] leading-[1.6]">
+                    Remove {member.name || member.email} from {accountName}?
+                    They will lose access immediately. They can be re-invited.
+                  </p>
+                  <div className="flex items-center gap-6 text-[13px]">
+                    <button
+                      type="button"
+                      onClick={() => setConfirmingRemove(false)}
+                      disabled={removing}
+                      className="text-tea-text-sec hover:text-tea-text transition-colors"
+                    >
+                      Keep
+                    </button>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        setRemoving(true);
+                        try { await onRemove(); }
+                        finally { setRemoving(false); setConfirmingRemove(false); }
+                      }}
+                      disabled={removing}
+                      className="text-tea-text-sec hover:text-tea-text transition-colors disabled:text-tea-text-dim"
+                    >
+                      {removing ? 'Removing…' : 'Remove'}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -230,9 +264,9 @@ export const AccessView: React.FC = () => {
     }
   };
 
+  // Confirmation lives inline inside EditorSheet — this just executes the removal.
   const handleRemove = async () => {
     if (!editing || !activeAccountId) return;
-    if (!confirm(`Remove ${editing.name || editing.email} from ${activeAccount?.name || 'this account'}? They will lose access immediately. They can be re-invited.`)) return;
     try {
       await api.accounts.removeMember(activeAccountId, editing.user_id);
       setEditing(null);
@@ -363,6 +397,7 @@ export const AccessView: React.FC = () => {
           onSaved={async () => { setEditing(null); await load(); }}
           onRemove={handleRemove}
           accountId={activeAccountId}
+          accountName={activeAccount?.name || 'this account'}
         />
       )}
     </div>

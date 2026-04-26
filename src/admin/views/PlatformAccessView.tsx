@@ -202,28 +202,39 @@ const SectionLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 
 const AccountRow: React.FC<{ account: PlatformAccount; onChange: () => Promise<void> | void }> = ({ account, onChange }) => {
   const [busy, setBusy] = useState(false);
+  const [confirming, setConfirming] = useState<'suspend' | 'reactivate' | null>(null);
+  const [reason, setReason] = useState('');
+  const [error, setError] = useState<string | null>(null);
   const isSuspended = account.status === 'suspended';
 
-  const handleSuspendToggle = async () => {
-    if (busy) return;
-    if (isSuspended) {
-      if (!confirm(`Reactivate ${account.name}?`)) return;
-      setBusy(true);
-      try { await api.platform.reactivateAccount(account.id); await onChange(); }
-      catch (err: any) { alert(err?.message || 'Could not reactivate.'); }
-      finally { setBusy(false); }
-    } else {
-      const reason = prompt(`Suspend ${account.name}? No one in this account will be able to act, including the owner. The account's data is preserved.\n\nOptional reason:`);
-      if (reason === null) return;
-      setBusy(true);
-      try { await api.platform.suspendAccount(account.id, reason || undefined); await onChange(); }
-      catch (err: any) { alert(err?.message || 'Could not suspend.'); }
-      finally { setBusy(false); }
+  const handleAction = (action: 'suspend' | 'reactivate') => {
+    setConfirming(action);
+    setReason('');
+    setError(null);
+  };
+
+  const handleConfirm = async () => {
+    if (!confirming || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      if (confirming === 'suspend') {
+        await api.platform.suspendAccount(account.id, reason.trim() || undefined);
+      } else {
+        await api.platform.reactivateAccount(account.id, reason.trim() || undefined);
+      }
+      setConfirming(null);
+      setReason('');
+      await onChange();
+    } catch (err: any) {
+      setError(err?.message || `Could not ${confirming}.`);
+    } finally {
+      setBusy(false);
     }
   };
 
   return (
-    <div className={`py-4 ${isSuspended ? 'opacity-50' : ''}`}>
+    <div className={`py-4 ${isSuspended && !confirming ? 'opacity-50' : ''}`}>
       <div className="flex items-baseline justify-between gap-4">
         <div className="min-w-0 flex-1">
           <div className="flex items-baseline gap-3 flex-wrap">
@@ -243,23 +254,65 @@ const AccountRow: React.FC<{ account: PlatformAccount; onChange: () => Promise<v
             </div>
           )}
         </div>
-        <button
-          type="button"
-          onClick={handleSuspendToggle}
-          disabled={busy}
-          className="text-tea-text-sec hover:text-tea-text transition-colors text-[13px] shrink-0"
-        >
-          {busy ? '…' : isSuspended ? 'Reactivate' : 'Suspend'}
-        </button>
+        {!confirming && (
+          <button
+            type="button"
+            onClick={() => handleAction(isSuspended ? 'reactivate' : 'suspend')}
+            disabled={busy}
+            className="text-tea-text-sec hover:text-tea-text transition-colors text-[13px] shrink-0"
+          >
+            {isSuspended ? 'Reactivate' : 'Suspend'}
+          </button>
+        )}
       </div>
+
+      {confirming && (
+        <div className="mt-4 space-y-3">
+          <p className="text-tea-text-sec italic text-[14px] leading-[1.6]">
+            {confirming === 'suspend'
+              ? `Suspend ${account.name}? No one in this account will be able to act, including the owner. The account's data is preserved.`
+              : `Reactivate ${account.name}?`}
+          </p>
+          <input
+            type="text"
+            value={reason}
+            onChange={e => setReason(e.target.value)}
+            placeholder={confirming === 'suspend' ? 'Reason (optional)' : 'Note (optional)'}
+            autoFocus
+            className="w-full bg-transparent border-b border-tea-border focus:border-tea-gold outline-none text-tea-text font-body text-[14px] py-1.5 transition-colors"
+          />
+          <div className="flex items-center gap-6 text-[13px]">
+            <button
+              type="button"
+              onClick={() => { setConfirming(null); setReason(''); }}
+              disabled={busy}
+              className="text-tea-text-sec hover:text-tea-text transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleConfirm}
+              disabled={busy}
+              className="text-tea-text-sec hover:text-tea-text transition-colors disabled:text-tea-text-dim"
+            >
+              {busy ? `${confirming === 'suspend' ? 'Suspending' : 'Reactivating'}…` : `Confirm ${confirming}`}
+            </button>
+          </div>
+          {error && (
+            <p className="text-tea-text-sec italic text-[13px]">{error}</p>
+          )}
+        </div>
+      )}
     </div>
   );
 };
 
 const PendingRow: React.FC<{ application: AccountApplication; onChange: () => Promise<void> | void }> = ({ application, onChange }) => {
   const [busy, setBusy] = useState<'approve' | 'decline' | null>(null);
-  const [showApprove, setShowApprove] = useState(false);
+  const [mode, setMode] = useState<'idle' | 'approve' | 'decline'>('idle');
   const [trustTier, setTrustTier] = useState<'basic' | 'verified' | 'partner'>('basic');
+  const [declineNote, setDeclineNote] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   const handleApprove = async () => {
@@ -276,12 +329,10 @@ const PendingRow: React.FC<{ application: AccountApplication; onChange: () => Pr
   };
 
   const handleDecline = async () => {
-    const note = prompt(`Decline ${application.applicant_name || application.applicant_email}'s application?\n\nOptional reason (helps the applicant):`);
-    if (note === null) return;
     setBusy('decline');
     setError(null);
     try {
-      await api.platform.decideApplication(application.id, 'decline', { decision_note: note || undefined });
+      await api.platform.decideApplication(application.id, 'decline', { decision_note: declineNote.trim() || undefined });
       await onChange();
     } catch (err: any) {
       setError(err?.message || 'Could not decline.');
@@ -304,28 +355,30 @@ const PendingRow: React.FC<{ application: AccountApplication; onChange: () => Pr
         </div>
       )}
 
-      {!showApprove ? (
+      {mode === 'idle' && (
         <div className="flex gap-6 items-baseline text-[14px]">
           <button
             type="button"
-            onClick={() => setShowApprove(true)}
+            onClick={() => { setMode('approve'); setError(null); }}
             disabled={busy !== null}
             className="text-tea-gold hover:text-tea-gold-lt transition-colors"
           >
-            {busy === 'approve' ? 'Approving…' : 'Approve'}
+            Approve
           </button>
           <button
             type="button"
-            onClick={handleDecline}
+            onClick={() => { setMode('decline'); setError(null); }}
             disabled={busy !== null}
             className="text-tea-text-sec hover:text-tea-text transition-colors"
           >
-            {busy === 'decline' ? 'Declining…' : 'Decline'}
+            Decline
           </button>
         </div>
-      ) : (
+      )}
+
+      {mode === 'approve' && (
         <div className="space-y-3">
-          <div className="flex items-baseline gap-4 text-[14px]">
+          <div className="flex items-baseline gap-4 text-[14px] flex-wrap">
             <span className="text-tea-text-sec">Trust tier:</span>
             {(['basic', 'verified', 'partner'] as const).map(t => (
               <button
@@ -343,19 +396,53 @@ const PendingRow: React.FC<{ application: AccountApplication; onChange: () => Pr
           <div className="flex gap-6 items-baseline text-[14px]">
             <button
               type="button"
-              onClick={handleApprove}
-              disabled={busy !== null}
-              className="text-tea-gold hover:text-tea-gold-lt transition-colors"
-            >
-              {busy === 'approve' ? 'Approving…' : 'Confirm approval'}
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowApprove(false)}
+              onClick={() => { setMode('idle'); }}
               disabled={busy !== null}
               className="text-tea-text-sec hover:text-tea-text transition-colors"
             >
               Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleApprove}
+              disabled={busy !== null}
+              className="text-tea-gold hover:text-tea-gold-lt transition-colors disabled:text-tea-text-dim"
+            >
+              {busy === 'approve' ? 'Approving…' : 'Confirm approval'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {mode === 'decline' && (
+        <div className="space-y-3">
+          <p className="text-tea-text-sec italic text-[14px] leading-[1.6]">
+            Decline {application.applicant_name || application.applicant_email}'s application?
+          </p>
+          <input
+            type="text"
+            value={declineNote}
+            onChange={e => setDeclineNote(e.target.value)}
+            placeholder="A reason helps the applicant (optional)"
+            autoFocus
+            className="w-full bg-transparent border-b border-tea-border focus:border-tea-gold outline-none text-tea-text font-body text-[14px] py-1.5 transition-colors"
+          />
+          <div className="flex gap-6 items-baseline text-[14px]">
+            <button
+              type="button"
+              onClick={() => { setMode('idle'); setDeclineNote(''); }}
+              disabled={busy !== null}
+              className="text-tea-text-sec hover:text-tea-text transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleDecline}
+              disabled={busy !== null}
+              className="text-tea-text-sec hover:text-tea-text transition-colors disabled:text-tea-text-dim"
+            >
+              {busy === 'decline' ? 'Declining…' : 'Confirm decline'}
             </button>
           </div>
         </div>
