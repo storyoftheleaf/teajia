@@ -1993,6 +1993,28 @@ export const api = {
     },
 
     /**
+     * PUT /api/listings/:id — update partner-owned listing fields
+     * (stock_grams, fixed_retail_price_usd, store_note, is_sample).
+     * No canonical fields. Catalog bundle required.
+     */
+    updateListing: async (
+      listingId: string,
+      patch: {
+        stock_grams?: number;
+        fixed_retail_price_usd?: number | null;
+        store_note?: string | null;
+        is_sample?: boolean;
+      },
+    ): Promise<{ ok: true }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/listings/${listingId}`, {
+        method: 'PUT',
+        headers: authHeaders(),
+        body: JSON.stringify(patch),
+      });
+      return handleResponse(res);
+    },
+
+    /**
      * POST /api/listings/carry
      * Creates a listing for the given profile on the caller's account.
      * Copies canonical_photos into listing_photos. Requires Catalog bundle.

@@ -397,10 +397,64 @@ const ListingFields: React.FC<ListingFieldsProps> = ({ listing, profile, callerC
   const [storeNote, setStoreNote] = useState(listing.store_note ?? '');
   const { msg: saveMsg, show: showSave } = useSaveConfirm();
 
-  // TODO: Wire to PUT /api/listings/:id once that endpoint is built (Step 2 polish phase).
-  //       For now, listing-owned fields are display-only with a stub autosave message.
-  const stubSave = () => {
-    showSave('Saved · ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+  // Inline autosave on blur. Only persists fields that genuinely changed
+  // since the last successful save (initial value or last server-confirmed).
+  // Errors surface as inline italic prose in the saveMsg slot — no toast.
+  const lastSaved = useRef({
+    stock: String(listing.stock_grams ?? ''),
+    price: listing.fixed_retail_price_usd != null
+      ? String(Math.round(listing.fixed_retail_price_usd))
+      : '',
+    sample: listing.is_sample,
+    note: listing.store_note ?? '',
+  });
+
+  const persist = useCallback(async (patch: {
+    stock_grams?: number;
+    fixed_retail_price_usd?: number | null;
+    store_note?: string | null;
+    is_sample?: boolean;
+  }) => {
+    try {
+      await api.network.updateListing(listing.id, patch);
+      showSave('Saved · ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+    } catch (err: any) {
+      showSave(err?.message || "Couldn't save. Try again.");
+    }
+  }, [listing.id, showSave]);
+
+  const saveStock = () => {
+    if (stockValue === lastSaved.current.stock) return;
+    const n = Number(stockValue);
+    if (!isFinite(n) || n < 0) { showSave('Stock must be ≥ 0'); return; }
+    lastSaved.current.stock = stockValue;
+    void persist({ stock_grams: Math.floor(n) });
+  };
+
+  const savePrice = () => {
+    if (priceValue === lastSaved.current.price) return;
+    if (priceValue.trim() === '') {
+      lastSaved.current.price = '';
+      void persist({ fixed_retail_price_usd: null });
+      return;
+    }
+    const n = Number(priceValue);
+    if (!isFinite(n) || n < 0) { showSave('Price must be ≥ 0'); return; }
+    lastSaved.current.price = priceValue;
+    void persist({ fixed_retail_price_usd: n });
+  };
+
+  const saveSample = (next: boolean) => {
+    if (next === lastSaved.current.sample) return;
+    lastSaved.current.sample = next;
+    setSampleAvail(next);
+    void persist({ is_sample: next });
+  };
+
+  const saveNote = () => {
+    if (storeNote === lastSaved.current.note) return;
+    lastSaved.current.note = storeNote;
+    void persist({ store_note: storeNote || null });
   };
 
   return (
@@ -416,7 +470,7 @@ const ListingFields: React.FC<ListingFieldsProps> = ({ listing, profile, callerC
               step="1"
               value={stockValue}
               onChange={e => setStockValue(e.target.value)}
-              onBlur={stubSave}
+              onBlur={saveStock}
               className="w-24 bg-transparent border-b border-tea-border focus:border-tea-gold/60 outline-none font-mono text-[14px] text-tea-text py-1 text-right transition-colors"
             />
             <span className="text-tea-text-sec text-[13px]">g</span>
@@ -427,7 +481,7 @@ const ListingFields: React.FC<ListingFieldsProps> = ({ listing, profile, callerC
           <div className="flex items-center gap-3">
             <button
               type="button"
-              onClick={() => { setSampleAvail(true); stubSave(); }}
+              onClick={() => saveSample(true)}
               className={`text-[13px] transition-colors ${sampleAvail ? 'text-tea-text' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
             >
               yes
@@ -435,7 +489,7 @@ const ListingFields: React.FC<ListingFieldsProps> = ({ listing, profile, callerC
             <span className="text-tea-border text-[11px]">/</span>
             <button
               type="button"
-              onClick={() => { setSampleAvail(false); stubSave(); }}
+              onClick={() => saveSample(false)}
               className={`text-[13px] transition-colors ${!sampleAvail ? 'text-tea-text' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
             >
               no
@@ -456,7 +510,7 @@ const ListingFields: React.FC<ListingFieldsProps> = ({ listing, profile, callerC
               step="1"
               value={priceValue}
               onChange={e => setPriceValue(e.target.value)}
-              onBlur={stubSave}
+              onBlur={savePrice}
               className="w-24 bg-transparent border-b border-tea-border focus:border-tea-gold/60 outline-none font-mono text-[14px] text-tea-text py-1 text-right transition-colors"
             />
             <span className="text-tea-text-sec text-[13px]">/100g</span>
@@ -486,7 +540,7 @@ const ListingFields: React.FC<ListingFieldsProps> = ({ listing, profile, callerC
           </p>
           <button
             type="button"
-            onClick={stubSave}
+            onClick={saveNote}
             className="text-[12px] text-tea-text-sec hover:text-tea-text transition-colors"
           >
             Save note

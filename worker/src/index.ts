@@ -12273,6 +12273,97 @@ const handleGetListing: Handler = async (request, env) => {
   });
 };
 
+// PUT /api/listings/:id
+// Body: { stock_grams?, fixed_retail_price_usd?, store_note?, is_sample? }
+// Partner edits their own listing fields. Catalog bundle required.
+// Caller must own the listing. ALLOW_LIST is enforced — no canonical fields,
+// no account_id changes, no profile_id swaps.
+const handleUpdateListing: Handler = async (request, env) => {
+  const ctx = await requireBundle(request, env, 'catalog');
+  if ('error' in ctx) return ctx.error;
+  const { accountId, userId, email } = ctx;
+
+  const url = new URL(request.url);
+  const listingId = url.pathname.split('/').pop() ?? '';
+  if (!listingId) return json({ error: 'listing id required' }, 400);
+
+  let body: any;
+  try { body = await request.json(); } catch { return json({ error: 'Invalid JSON body' }, 400); }
+
+  // Verify caller owns the listing
+  const owned = await env.DB.prepare(
+    'SELECT id FROM product_listings WHERE id = ? AND account_id = ?'
+  ).bind(listingId, accountId).first();
+  if (!owned) return json({ error: 'Listing not found or not yours.' }, 404);
+
+  const updates: string[] = [];
+  const binds: any[] = [];
+
+  // Stock
+  if (body.stock_grams !== undefined) {
+    const n = Number(body.stock_grams);
+    if (!isFinite(n) || n < 0) return json({ error: 'stock_grams must be >= 0' }, 400);
+    updates.push('stock_grams = ?');
+    binds.push(Math.floor(n));
+  }
+
+  // Retail price (USD)
+  if (body.fixed_retail_price_usd !== undefined) {
+    if (body.fixed_retail_price_usd === null) {
+      updates.push('fixed_retail_price_usd = NULL');
+    } else {
+      const n = Number(body.fixed_retail_price_usd);
+      if (!isFinite(n) || n < 0) return json({ error: 'fixed_retail_price_usd must be >= 0' }, 400);
+      updates.push('fixed_retail_price_usd = ?');
+      binds.push(n);
+    }
+  }
+
+  // Store note (free text, capped to 4000 chars to match other prose fields)
+  if (body.store_note !== undefined) {
+    if (body.store_note === null) {
+      updates.push('store_note = NULL');
+    } else if (typeof body.store_note === 'string') {
+      updates.push('store_note = ?');
+      binds.push(body.store_note.slice(0, 4000));
+    } else {
+      return json({ error: 'store_note must be a string or null' }, 400);
+    }
+  }
+
+  // Sample-available toggle
+  if (body.is_sample !== undefined) {
+    updates.push('is_sample = ?');
+    binds.push(body.is_sample ? 1 : 0);
+  }
+
+  if (updates.length === 0) {
+    return json({ error: 'No editable fields supplied.' }, 400);
+  }
+
+  updates.push("updated_at = datetime('now')");
+  binds.push(listingId);
+
+  await env.DB.prepare(
+    `UPDATE product_listings SET ${updates.join(', ')} WHERE id = ?`
+  ).bind(...binds).run();
+
+  // Audit only when the change is meaningful (skip for store_note-only blurs;
+  // they're noisy). Pricing + stock + sample changes are audited.
+  const auditedFields = Object.keys(body).filter(k =>
+    ['stock_grams', 'fixed_retail_price_usd', 'is_sample'].includes(k)
+  );
+  if (auditedFields.length > 0) {
+    await logPlatformAction(
+      env, 'listing.updated', userId, email,
+      'product_listing', listingId,
+      { fields: auditedFields, account_id: accountId }
+    );
+  }
+
+  return json({ ok: true });
+};
+
 // ── Profile suggestions (Step 3 — editorial governance) ─────────────────────
 // Partners propose canonical changes by editing tea cards directly. Each card
 // submission becomes a bundle (profile_suggestions) with one or more per-field
@@ -13571,6 +13662,7 @@ const routes: [string, string, Handler][] = [
   // ── Network (authenticated — partner/catalog) ──
   ['GET',  '/api/network/catalog', handleNetworkCatalog],
   ['GET',  '/api/listings/:id',    handleGetListing],
+  ['PUT',  '/api/listings/:id',    handleUpdateListing],
   ['POST', '/api/listings/carry',  handleCarryListing],
   ['POST', '/api/profiles/:id/suggestions', handleCreateProfileSuggestion],
   ['GET',  '/api/profiles/:id/suggestions', handleListProfileSuggestions],
