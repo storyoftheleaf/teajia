@@ -809,11 +809,15 @@ const handleLogin: Handler = async (request, env) => {
   const storedHash = env.ADMIN_PASSWORD_HASH?.trim();
   if (storedHash && computedHash === storedHash) {
     // env-admin is mapped to Bali for legacy single-tenant behaviour.
+    // Include account_kind and bundles so the frontend can render role-adaptive
+    // UI without a second fetch even when this legacy path is used.
     const memberships: AccountMembership[] = [{
       account_id: BALI_ACCOUNT_ID,
       role: 'owner',
       slug: 'teajia-bali',
       account_name: 'Teajia Bali',
+      account_kind: 'platform',
+      bundles: [...ALL_BUNDLES],
     }];
     const token = await createToken(env.JWT_SECRET, {
       sub: 'env-admin',
@@ -8806,6 +8810,48 @@ const handlePlatformSetAccountStatus: Handler = async (request, env, params) => 
   return json({ success: true, status: body.status });
 };
 
+// POST /api/platform/accounts/:id/suspend — suspend an account (Platform tier)
+const handlePlatformSuspendAccount: Handler = async (request, env, params) => {
+  const authErr = await requirePlatformAdmin(request, env);
+  if (authErr) return authErr;
+
+  const claims = parseToken(isAuthed(request)!)!;
+  const body = await request.json().catch(() => ({})) as { reason?: string };
+
+  const account = await env.DB.prepare('SELECT id, name, kind FROM accounts WHERE id = ?').bind(params.id).first();
+  if (!account) return json({ error: 'Account not found' }, 404);
+  if ((account.kind as string) === 'platform') return json({ error: 'Cannot suspend the platform account' }, 400);
+
+  await env.DB.prepare("UPDATE accounts SET status = 'suspended', updated_at = datetime('now') WHERE id = ?")
+    .bind(params.id).run();
+
+  await logPlatformAction(env, 'account.suspended', claims.sub, claims.email,
+    'account', params.id, { name: account.name, reason: body.reason || null });
+
+  return json({ success: true });
+};
+
+// POST /api/platform/accounts/:id/reactivate — reactivate a suspended account (Platform tier)
+const handlePlatformReactivateAccount: Handler = async (request, env, params) => {
+  const authErr = await requirePlatformAdmin(request, env);
+  if (authErr) return authErr;
+
+  const claims = parseToken(isAuthed(request)!)!;
+  const body = await request.json().catch(() => ({})) as { note?: string };
+
+  const account = await env.DB.prepare('SELECT id, name, status FROM accounts WHERE id = ?').bind(params.id).first();
+  if (!account) return json({ error: 'Account not found' }, 404);
+  if ((account.status as string) !== 'suspended') return json({ error: 'Account is not suspended' }, 400);
+
+  await env.DB.prepare("UPDATE accounts SET status = 'active', updated_at = datetime('now') WHERE id = ?")
+    .bind(params.id).run();
+
+  await logPlatformAction(env, 'account.reactivated', claims.sub, claims.email,
+    'account', params.id, { name: account.name, note: body.note || null });
+
+  return json({ success: true });
+};
+
 // PUT /api/platform/accounts/:id/trust-tier — set trust tier
 const handlePlatformSetTrustTier: Handler = async (request, env, params) => {
   const authErr = await requirePlatformAdmin(request, env);
@@ -8870,6 +8916,7 @@ const handlePlatformResendInvite: Handler = async (request, env, params) => {
 };
 
 // GET /api/platform/audit-log — recent platform actions
+// Optional filters: account_id, actor_id, action (exact match), limit (default 50, max 200), offset (default 0)
 const handlePlatformAuditLog: Handler = async (request, env) => {
   const authErr = await requirePlatformAdmin(request, env);
   if (authErr) return authErr;
@@ -8877,15 +8924,46 @@ const handlePlatformAuditLog: Handler = async (request, env) => {
   const url = new URL(request.url);
   const limit = Math.min(parseInt(url.searchParams.get('limit') || '50'), 200);
   const offset = parseInt(url.searchParams.get('offset') || '0');
+  const filterAccountId = url.searchParams.get('account_id') || null;
+  const filterActorId = url.searchParams.get('actor_id') || null;
+  const filterAction = url.searchParams.get('action') || null;
+
+  const conditions: string[] = [];
+  const binds: (string | number)[] = [];
+
+  if (filterAccountId) {
+    conditions.push("target_id = ?");
+    binds.push(filterAccountId);
+  }
+  if (filterActorId) {
+    conditions.push("actor_id = ?");
+    binds.push(filterActorId);
+  }
+  if (filterAction) {
+    conditions.push("action = ?");
+    binds.push(filterAction);
+  }
+
+  const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+  binds.push(limit, offset);
 
   const { results } = await env.DB.prepare(
     `SELECT id, action, actor_id, actor_email, target_type, target_id, details, created_at
      FROM platform_audit_log
+     ${where}
      ORDER BY created_at DESC
      LIMIT ? OFFSET ?`
-  ).bind(limit, offset).all();
+  ).bind(...binds).all();
 
-  return json({ entries: results, limit, offset });
+  // Parse details JSON so the client doesn't have to
+  const entries = (results as any[]).map(r => ({
+    ...r,
+    details: (() => {
+      try { return JSON.parse(r.details as string); } catch { return r.details; }
+    })(),
+  }));
+
+  return json({ entries, limit, offset });
 };
 
 // PUT /api/accounts/:id/members/:userId/permissions — set per-member feature permissions (Members bundle)
@@ -11493,6 +11571,8 @@ const routes: [string, string, Handler][] = [
   ['GET',  '/api/platform/accounts', handlePlatformListAccounts],
   ['POST', '/api/platform/accounts', handlePlatformCreateAccount],
   ['PUT',  '/api/platform/accounts/:id/status', handlePlatformSetAccountStatus],
+  ['POST', '/api/platform/accounts/:id/suspend', handlePlatformSuspendAccount],
+  ['POST', '/api/platform/accounts/:id/reactivate', handlePlatformReactivateAccount],
   ['PUT',  '/api/platform/accounts/:id/trust-tier', handlePlatformSetTrustTier],
   ['PUT',  '/api/platform/accounts/:id/features/:feature', handlePlatformToggleFeature],
   ['GET',  '/api/platform/audit-log', handlePlatformAuditLog],
