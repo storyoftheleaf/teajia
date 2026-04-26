@@ -11845,12 +11845,17 @@ const handleNetworkCatalog: Handler = async (request, env) => {
         p.description, p.image_url, p.canonical_photos,
         p.wholesale_margin_pct,
         p.created_at,
+        p.curated_by_account_id   AS curator_account_id,
+        p.originated_by_account_id AS originator_account_id,
         a.name  AS curator_account_name,
         a.slug  AS curator_account_slug,
         ao.name AS originator_account_name,
         a.currency_default AS curator_currency,
         -- Pull the curator's own listing for this profile so we have the
         -- canonical retail reference the rest of the network prices off.
+        -- The listing id is what wholesale order items reference; expose it
+        -- so the draft view can build supplier_listing_id without a second fetch.
+        cl.id                     AS curator_listing_id,
         cl.fixed_retail_price_usd AS curator_fixed_retail_usd,
         cl.cost_amount            AS curator_cost_amount,
         cl.cost_currency          AS curator_cost_currency,
@@ -12002,8 +12007,11 @@ const handleNetworkCatalog: Handler = async (request, env) => {
       description: p.description ?? null,
       image_url: p.image_url ?? null,
       canonical_photos: canonicalPhotos,
+      curator_account_id: p.curator_account_id,
       curator_account_name: p.curator_account_name,
       curator_account_slug: p.curator_account_slug,
+      curator_listing_id: p.curator_listing_id ?? null,
+      originator_account_id: p.originator_account_id,
       originator_account_name: p.originator_account_name,
       retail_currency: curatorCurrency,
       retail_price_per_gram_curator: retailPricePerGramCurator,

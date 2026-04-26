@@ -561,31 +561,37 @@ export const BUNDLE_DESCRIPTIONS: Record<Bundle, string> = {
 // ── Network catalog — Step 2 (Carry from network) ─────────────────────────
 // Shape returned by GET /api/network/catalog. Agent A is building that endpoint;
 // this type mirrors the agreed response shape from docs/NETWORK_ROLLOUT_PLAN.md §Step 2.
+// Profile shape returned by GET /api/network/catalog. Mirrors the response
+// constructed in worker/src/index.ts handleNetworkCatalog.
 export interface NetworkCatalogProfile {
   id: string;
   slug: string;
   name: string;
-  chinese_name?: string | null;
-  origin?: string | null;
-  varietal?: string | null;
-  harvest_year?: number | null;
-  type?: string | null;          // e.g. "White", "Oolong", "Green"
-  description?: string | null;
-  flavor_tags?: string[] | null; // from tasting, shown when populated
-  mood_tags?: string[] | null;   // from tasting, shown when populated
-  canonical_photos?: string[] | null; // URLs
-  // Pricing — canonical retail in Adrian's currency
-  retail_amount?: number | null;
-  retail_currency?: string | null; // e.g. "IDR"
-  // Buyer's effective wholesale computed server-side
-  wholesale_amount?: number | null;
-  wholesale_currency?: string | null; // e.g. "AUD" — caller's account currency
-  wholesale_margin_pct?: number | null; // e.g. 45
-  trust_tier?: string | null;    // e.g. "verified"
-  fx_unavailable?: boolean;      // true when FX rate missing; buyer wholesale line omitted
-  // Attribution
-  curated_by_name?: string | null; // e.g. "Adrian"
-  originated_by_name?: string | null; // shown only when different from curated_by
+  chinese_name: string | null;
+  type: string | null;            // e.g. "White", "Oolong", "Green"
+  form: string | null;
+  origin_country: string | null;
+  origin_region: string | null;
+  varietal: string | null;
+  harvest_year: string | null;
+  description: string | null;
+  image_url: string | null;
+  canonical_photos: string[];     // parsed array
+  // Attribution — both ids exposed so the draft view can build wholesale orders
+  // without a second fetch.
+  curator_account_id: string;
+  curator_account_name: string;
+  curator_account_slug: string;
+  curator_listing_id: string | null;  // the supplier_listing_id for wholesale orders
+  originator_account_id: string;
+  originator_account_name: string;
+  // Pricing — curator's retail in their currency, caller's wholesale in theirs
+  retail_currency: string;
+  retail_price_per_gram_curator: number | null;
+  wholesale_margin_pct_for_caller: number;
+  wholesale_price_per_gram_caller: number | null;
+  wholesale_currency_caller: string;
+  fx_unavailable: boolean;
 }
 
 export interface CarryProfileOpts {

@@ -59,6 +59,9 @@ import { InboundCollectionView } from './views/InboundCollectionView';
 import { CatalogBrowse } from './views/CatalogBrowse';
 import { PartnerListingEdit } from './views/PartnerListingEdit';
 import { SuggestionsInbox } from './views/SuggestionsInbox';
+import { WholesaleOrdersList } from './views/WholesaleOrdersList';
+import { WholesaleOrderDraft } from './views/WholesaleOrderDraft';
+import { WholesaleOrderTimeline } from './views/WholesaleOrderTimeline';
 
 // Import Modals
 import { AuthModal } from './components/AuthModal';
@@ -593,6 +596,10 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
               <Route path="network/catalog" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><CatalogBrowse /></PageTransition></ProtectedRoute>} />
               <Route path="network/listings/:listingId" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><PartnerListingEdit /></PageTransition></ProtectedRoute>} />
               <Route path="network/suggestions" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><SuggestionsInbox /></PageTransition></ProtectedRoute>} />
+              <Route path="network/wholesale" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><WholesaleOrdersList /></PageTransition></ProtectedRoute>} />
+              <Route path="network/wholesale/new" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><WholesaleOrderDraft /></PageTransition></ProtectedRoute>} />
+              <Route path="network/wholesale/:orderId" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><WholesaleOrderDraft /></PageTransition></ProtectedRoute>} />
+              <Route path="network/wholesale/:orderId/timeline" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><WholesaleOrderTimeline /></PageTransition></ProtectedRoute>} />
               <Route path="account-settings" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><AccountSettingsView /></PageTransition></ProtectedRoute>} />
               <Route path="platform" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><PlatformAdminView /></PageTransition></ProtectedRoute>} />
               <Route path="platform/audit-log" element={<ProtectedRoute hasAccess={isAdmin && !!platformRole} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><PlatformAuditLogPage /></PageTransition></ProtectedRoute>} />

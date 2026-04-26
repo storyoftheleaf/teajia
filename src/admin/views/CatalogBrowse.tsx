@@ -60,14 +60,14 @@ interface CarryFormProps {
 }
 
 const CarryForm: React.FC<CarryFormProps> = ({ profile, callerCurrency, onCarried, onCancel }) => {
-  // Suggested retail: convert Adrian's retail via FX if available
+  // Suggested retail: derived from buyer's wholesale per gram (in their currency) + margin.
+  // wholesale = retail × margin_pct/100, so retail = wholesale / (margin_pct/100).
+  // Then ×100 for the per-100g display.
   const suggestedRetail = useMemo(() => {
-    if (profile.wholesale_amount == null || profile.wholesale_margin_pct == null) return null;
-    // Suggested retail derived from wholesale price + margin:
-    // wholesale = retail × (1 - margin_pct/100), so retail = wholesale / (1 - margin_pct/100)
-    const margin = profile.wholesale_margin_pct / 100;
-    return Math.round(profile.wholesale_amount / (1 - margin));
-  }, [profile.wholesale_amount, profile.wholesale_margin_pct]);
+    if (profile.wholesale_price_per_gram_caller == null || !profile.wholesale_margin_pct_for_caller) return null;
+    const marginFraction = profile.wholesale_margin_pct_for_caller / 100;
+    return Math.round((profile.wholesale_price_per_gram_caller / marginFraction) * 100);
+  }, [profile.wholesale_price_per_gram_caller, profile.wholesale_margin_pct_for_caller]);
 
   const [stockGrams, setStockGrams] = useState('');
   const [retailPrice, setRetailPrice] = useState(suggestedRetail?.toString() ?? '');
@@ -139,8 +139,8 @@ const CarryForm: React.FC<CarryFormProps> = ({ profile, callerCurrency, onCarrie
         {suggestedRetail != null && (
           <p className="text-tea-text-sec italic text-[12px] leading-[1.6] mt-2 pl-0 md:pl-48">
             Suggested {callerCurrency} {suggestedRetail.toLocaleString()} — Adrian's{' '}
-            {profile.retail_amount != null && profile.retail_currency
-              ? `${profile.retail_currency} ${profile.retail_amount.toLocaleString()} × FX`
+            {profile.retail_price_per_gram_curator != null && profile.retail_currency
+              ? `${profile.retail_currency} ${(profile.retail_price_per_gram_curator * 100).toLocaleString()}/100g × FX`
               : 'retail × FX'}
           </p>
         )}
@@ -225,11 +225,11 @@ const ProfileDrawer: React.FC<DrawerProps> = ({ profile, callerCurrency, onClose
             ← Back
           </button>
           <h2 className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text`}>{profile.name}</h2>
-          {profile.curated_by_name && (
+          {profile.curator_account_name && (
             <p className="text-tea-text-sec text-[11px] tracking-[0.04em] mt-1">
-              Sourced from Teajia · curated by {profile.curated_by_name}
-              {profile.originated_by_name && profile.originated_by_name !== profile.curated_by_name
-                ? ` · originated by ${profile.originated_by_name}`
+              Sourced from Teajia · curated by {profile.curator_account_name}
+              {profile.originator_account_name && profile.originator_account_name !== profile.curator_account_name
+                ? ` · originated by ${profile.originator_account_name}`
                 : null}
             </p>
           )}
@@ -270,7 +270,7 @@ const ProfileDrawer: React.FC<DrawerProps> = ({ profile, callerCurrency, onClose
 
           {/* Meta */}
           <div className="font-body text-[14px] leading-[1.6] text-tea-text-sec mb-4">
-            {joinParts(profile.origin, profile.chinese_name, profile.varietal, profile.harvest_year?.toString())}
+            {joinParts(profile.origin_region || profile.origin_country, profile.chinese_name, profile.varietal, profile.harvest_year)}
           </div>
 
           {/* Description */}
@@ -280,29 +280,16 @@ const ProfileDrawer: React.FC<DrawerProps> = ({ profile, callerCurrency, onClose
             </p>
           )}
 
-          {/* Flavor / mood tags — prose, not pills */}
-          {(profile.flavor_tags?.length || profile.mood_tags?.length) ? (
-            <div className="mb-6 text-tea-text-sec text-[13px] leading-[1.6]">
-              {profile.flavor_tags?.length ? (
-                <span>{profile.flavor_tags.join(' · ')}</span>
-              ) : null}
-              {profile.flavor_tags?.length && profile.mood_tags?.length ? (
-                <span className="mx-2 text-tea-border">·</span>
-              ) : null}
-              {profile.mood_tags?.length ? (
-                <span>{profile.mood_tags.join(' · ')}</span>
-              ) : null}
-            </div>
-          ) : null}
+          {/* Flavor / mood tags live in tasting per Decision 23 — not exposed by the catalog endpoint. */}
 
           {/* Hairline */}
           <div className="h-px bg-tea-border my-4" />
 
           {/* Pricing block */}
           <div className="space-y-1 mb-6">
-            {profile.retail_amount != null && profile.retail_currency && (
+            {profile.retail_price_per_gram_curator != null && profile.retail_currency && (
               <div className="font-mono text-[13px] text-tea-text-sec">
-                Adrian's retail · {formatMoney(profile.retail_amount, profile.retail_currency)}/100g
+                Adrian's retail · {formatMoney(profile.retail_price_per_gram_curator * 100, profile.retail_currency)}/100g
               </div>
             )}
             {profile.fx_unavailable ? (
@@ -310,14 +297,10 @@ const ProfileDrawer: React.FC<DrawerProps> = ({ profile, callerCurrency, onClose
                 Wholesale will calculate when prices reload
               </div>
             ) : (
-              profile.wholesale_amount != null && profile.wholesale_currency && (
+              profile.wholesale_price_per_gram_caller != null && (
                 <div className="font-mono text-[13px] text-tea-text-sec">
-                  Your wholesale · {formatMoney(profile.wholesale_amount, profile.wholesale_currency)}/100g
-                  {profile.wholesale_margin_pct != null && profile.trust_tier
-                    ? ` (${profile.wholesale_margin_pct}% · ${profile.trust_tier})`
-                    : profile.wholesale_margin_pct != null
-                    ? ` (${profile.wholesale_margin_pct}%)`
-                    : null}
+                  Your wholesale · {formatMoney(profile.wholesale_price_per_gram_caller * 100, profile.wholesale_currency_caller)}/100g
+                  {' '}({profile.wholesale_margin_pct_for_caller}%)
                 </div>
               )
             )}
@@ -424,27 +407,22 @@ const CatalogCard: React.FC<CatalogCardProps> = ({ profile, onSelect, isHovered,
           </h3>
 
           {/* Origin / chinese / form */}
-          {(profile.origin || profile.chinese_name || profile.varietal || profile.type) && (
+          {(profile.origin_region || profile.origin_country || profile.chinese_name || profile.varietal || profile.type) && (
             <p className="font-body text-[14px] leading-[1.6] text-tea-text-sec">
-              {joinParts(profile.origin, profile.chinese_name, profile.varietal || profile.type)}
+              {joinParts(profile.origin_region || profile.origin_country, profile.chinese_name, profile.varietal || profile.type)}
             </p>
           )}
 
-          {/* Flavor tags as prose */}
-          {profile.flavor_tags && profile.flavor_tags.length > 0 && (
-            <p className="font-body text-[13px] text-tea-text-sec leading-[1.5]">
-              {profile.flavor_tags.join(' · ')}
-            </p>
-          )}
+          {/* Flavor tags live in tasting per Decision 23, not on the catalog endpoint. */}
 
           {/* Hairline */}
           <div className="h-px bg-tea-border my-3" />
 
           {/* Prices */}
           <div className="space-y-1">
-            {profile.retail_amount != null && profile.retail_currency && (
+            {profile.retail_price_per_gram_curator != null && profile.retail_currency && (
               <p className="num text-[13px] text-tea-text-sec">
-                Adrian's retail · {formatMoney(profile.retail_amount, profile.retail_currency)}/100g
+                Adrian's retail · {formatMoney(profile.retail_price_per_gram_curator * 100, profile.retail_currency)}/100g
               </p>
             )}
             {profile.fx_unavailable ? (
@@ -452,12 +430,10 @@ const CatalogCard: React.FC<CatalogCardProps> = ({ profile, onSelect, isHovered,
                 Wholesale will calculate when prices reload
               </p>
             ) : (
-              profile.wholesale_amount != null && profile.wholesale_currency && (
+              profile.wholesale_price_per_gram_caller != null && (
                 <p className="num text-[13px] text-tea-text-sec">
-                  Your wholesale · {formatMoney(profile.wholesale_amount, profile.wholesale_currency)}/100g
-                  {profile.wholesale_margin_pct != null && profile.trust_tier
-                    ? ` (${profile.wholesale_margin_pct}% · ${profile.trust_tier})`
-                    : null}
+                  Your wholesale · {formatMoney(profile.wholesale_price_per_gram_caller * 100, profile.wholesale_currency_caller)}/100g
+                  {' '}({profile.wholesale_margin_pct_for_caller}%)
                 </p>
               )
             )}
