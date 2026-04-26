@@ -12156,6 +12156,349 @@ const handleCarryListing: Handler = async (request, env) => {
   return json({ listing_id: newListingId, profile_id: profileId }, 201);
 };
 
+// ── Profile suggestions (Step 3 — editorial governance) ─────────────────────
+// Partners propose canonical changes by editing tea cards directly. Each card
+// submission becomes a bundle (profile_suggestions) with one or more per-field
+// rows (profile_suggestion_fields). The curator reviews per-field — accepting
+// some, rejecting others — and accepted changes write to canonical immediately.
+//
+// Authorization (per the matrix in NETWORK_ROLLOUT_PLAN.md):
+//   POST /api/profiles/:id/suggestions      — Catalog bundle
+//   GET  /api/profiles/:id/suggestions      — Catalog bundle (curator view of one profile)
+//   GET  /api/suggestions/incoming          — Catalog bundle (curator's whole queue)
+//   POST /api/suggestions/:id/decide        — Catalog bundle on the curator account
+//
+// Per Decision 25: NO rationale field on the partner's submission. The change
+// itself is the argument; the curator can leave a per-field reject_note.
+
+// Whitelist of canonical fields a partner can suggest. Other tea_profiles
+// columns are intentionally not editable via suggestions:
+//   slug, originated_by_account_id, curated_by_account_id (immutable / Platform-only)
+//   wholesale_margin_pct, network_visible, status (curator ops, not editorial)
+//   flavor_tags, mood_tags, tasting_notes (live in tasting per Decision 23)
+//   canonical_photos (photo suggestion is its own flow per Surface 5; deferred)
+const PROFILE_SUGGESTABLE_FIELDS = new Set([
+  'name',
+  'chinese_name',
+  'type',
+  'form',
+  'origin_country',
+  'origin_region',
+  'varietal',
+  'harvest_year',
+  'description',
+  'lore',
+  'processing_notes',
+  'terroir',
+  'mood',
+  'experience',
+  'image_url',
+]);
+
+// POST /api/profiles/:id/suggestions
+// Body: { fields: [{ field_name, current_value, proposed_value }, ...] }
+// Creates a new bundle + per-field rows. The current_value the partner sends
+// is stored as a snapshot — used by the curator to detect drift if canonical
+// changes between submission and review.
+const handleCreateProfileSuggestion: Handler = async (request, env, params) => {
+  const ctx = await requireBundle(request, env, 'catalog');
+  if ('error' in ctx) return ctx.error;
+  const { accountId, userId, email } = ctx;
+
+  const profileId = params.id;
+  if (!profileId) return json({ error: 'Profile id required' }, 400);
+
+  let body: any;
+  try { body = await request.json(); } catch { return json({ error: 'Invalid JSON body' }, 400); }
+
+  const fields = Array.isArray(body.fields) ? body.fields : null;
+  if (!fields || fields.length === 0) {
+    return json({ error: 'fields[] required (at least one field change)' }, 400);
+  }
+  if (fields.length > 20) {
+    return json({ error: 'A single suggestion bundle can include at most 20 field changes.' }, 400);
+  }
+
+  // Validate each field row
+  const cleaned: { field_name: string; current_value: string | null; proposed_value: string }[] = [];
+  for (const f of fields) {
+    if (typeof f.field_name !== 'string' || !PROFILE_SUGGESTABLE_FIELDS.has(f.field_name)) {
+      return json({ error: `Field '${f.field_name}' is not editable via suggestions.` }, 400);
+    }
+    if (typeof f.proposed_value !== 'string' || f.proposed_value.length === 0) {
+      return json({ error: `field_name='${f.field_name}': proposed_value required and must be non-empty string.` }, 400);
+    }
+    if (f.proposed_value.length > 8000) {
+      return json({ error: `field_name='${f.field_name}': proposed_value too long (>8000 chars).` }, 400);
+    }
+    cleaned.push({
+      field_name: f.field_name,
+      current_value: typeof f.current_value === 'string' ? f.current_value : null,
+      proposed_value: f.proposed_value,
+    });
+  }
+
+  // Profile must exist; partner can't suggest against a profile they curate.
+  const profile = await env.DB.prepare(
+    'SELECT id, name, curated_by_account_id, status FROM tea_profiles WHERE id = ?'
+  ).bind(profileId).first() as { id: string; name: string; curated_by_account_id: string; status: string } | null;
+
+  if (!profile) return json({ error: 'Tea profile not found' }, 404);
+  if (profile.curated_by_account_id === accountId) {
+    return json({ error: "You curate this tea — edit it directly instead of suggesting." }, 400);
+  }
+
+  // Create bundle + field rows in one batch
+  const suggestionId = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
+  const stmts = [
+    env.DB.prepare(
+      `INSERT INTO profile_suggestions (id, profile_id, suggested_by_account_id, suggested_by_user_id, status)
+       VALUES (?, ?, ?, ?, 'pending')`
+    ).bind(suggestionId, profileId, accountId, userId),
+    ...cleaned.map(f =>
+      env.DB.prepare(
+        `INSERT INTO profile_suggestion_fields (id, suggestion_id, field_name, current_value, proposed_value, status)
+         VALUES (lower(hex(randomblob(16))), ?, ?, ?, ?, 'pending')`
+      ).bind(suggestionId, f.field_name, f.current_value, f.proposed_value)
+    ),
+  ];
+  await env.DB.batch(stmts);
+
+  await logPlatformAction(
+    env, 'suggestion.created', userId, email,
+    'suggestion', suggestionId,
+    { profile_id: profileId, profile_name: profile.name, field_count: cleaned.length, fields: cleaned.map(f => f.field_name) }
+  );
+
+  return json({ suggestion_id: suggestionId, field_count: cleaned.length }, 201);
+};
+
+// GET /api/profiles/:id/suggestions
+// Returns all suggestions for a single profile. Useful for "Adrian, show me
+// every pending suggestion against Silver Needle." Curator-only on the profile.
+const handleListProfileSuggestions: Handler = async (request, env, params) => {
+  const ctx = await requireBundle(request, env, 'catalog');
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+
+  const profileId = params.id;
+  if (!profileId) return json({ error: 'Profile id required' }, 400);
+
+  // Curator-only — partners read suggestions they themselves submitted via the
+  // incoming queue. Only the curator of a profile sees ALL suggestions for it.
+  const profile = await env.DB.prepare(
+    'SELECT curated_by_account_id FROM tea_profiles WHERE id = ?'
+  ).bind(profileId).first() as { curated_by_account_id: string } | null;
+  if (!profile) return json({ error: 'Tea profile not found' }, 404);
+  if (profile.curated_by_account_id !== accountId) {
+    return json({ error: 'Only the curator can list suggestions for this profile.' }, 403);
+  }
+
+  const { results } = await env.DB.batch([
+    env.DB.prepare(`
+      SELECT s.id, s.profile_id, s.status, s.created_at, s.updated_at,
+             s.suggested_by_account_id, a.name AS suggested_by_account_name,
+             s.suggested_by_user_id, u.name AS suggested_by_user_name, u.email AS suggested_by_email
+      FROM profile_suggestions s
+      JOIN accounts a ON a.id = s.suggested_by_account_id
+      LEFT JOIN users u ON u.id = s.suggested_by_user_id
+      WHERE s.profile_id = ?
+      ORDER BY s.created_at DESC
+    `).bind(profileId),
+    env.DB.prepare(`
+      SELECT f.id, f.suggestion_id, f.field_name, f.current_value, f.proposed_value,
+             f.status, f.reject_note, f.decided_at
+      FROM profile_suggestion_fields f
+      JOIN profile_suggestions s ON s.id = f.suggestion_id
+      WHERE s.profile_id = ?
+      ORDER BY f.created_at ASC
+    `).bind(profileId),
+  ]) as [{ results: any[] }, { results: any[] }];
+
+  // Group fields under their bundles
+  const bundles = (results[0].results as any[]).map((b: any) => ({
+    ...b,
+    fields: (results[1].results as any[]).filter((f: any) => f.suggestion_id === b.id),
+  }));
+
+  return json({ suggestions: bundles });
+};
+
+// GET /api/suggestions/incoming
+// Curator's full incoming queue — all pending/partial bundles across every
+// profile they curate. Surface 6 (Adrian's review queue).
+const handleIncomingSuggestions: Handler = async (request, env) => {
+  const ctx = await requireBundle(request, env, 'catalog');
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+
+  // Optional ?status= filter (default: pending + partial)
+  const url = new URL(request.url);
+  const statusFilter = url.searchParams.get('status'); // 'pending' | 'partial' | 'resolved' | 'withdrawn' | null
+  const statusClause = statusFilter
+    ? 'AND s.status = ?'
+    : "AND s.status IN ('pending', 'partial')";
+
+  const params = [accountId];
+  if (statusFilter) params.push(statusFilter);
+
+  const { results } = await env.DB.batch([
+    env.DB.prepare(`
+      SELECT s.id, s.profile_id, s.status, s.created_at, s.updated_at,
+             p.name AS profile_name, p.slug AS profile_slug,
+             s.suggested_by_account_id, a.name AS suggested_by_account_name,
+             s.suggested_by_user_id, u.name AS suggested_by_user_name, u.email AS suggested_by_email
+      FROM profile_suggestions s
+      JOIN tea_profiles p ON p.id = s.profile_id
+      JOIN accounts a ON a.id = s.suggested_by_account_id
+      LEFT JOIN users u ON u.id = s.suggested_by_user_id
+      WHERE p.curated_by_account_id = ?
+        ${statusClause}
+      ORDER BY s.created_at DESC
+    `).bind(...params),
+    env.DB.prepare(`
+      SELECT f.id, f.suggestion_id, f.field_name, f.current_value, f.proposed_value,
+             f.status, f.reject_note, f.decided_at
+      FROM profile_suggestion_fields f
+      JOIN profile_suggestions s ON s.id = f.suggestion_id
+      JOIN tea_profiles p ON p.id = s.profile_id
+      WHERE p.curated_by_account_id = ?
+        ${statusClause}
+      ORDER BY f.created_at ASC
+    `).bind(...params),
+  ]) as [{ results: any[] }, { results: any[] }];
+
+  const bundles = (results[0].results as any[]).map((b: any) => ({
+    ...b,
+    fields: (results[1].results as any[]).filter((f: any) => f.suggestion_id === b.id),
+  }));
+
+  return json({ suggestions: bundles });
+};
+
+// POST /api/suggestions/:id/decide
+// Body: { decisions: [{ field_id, status: 'accepted'|'rejected', reject_note? }, ...] }
+// Per Decision 3: per-field accept/reject. Accepted fields write to canonical
+// IMMEDIATELY (one batch, atomic). The bundle status is recomputed from the
+// resulting field statuses: all decided → 'resolved', some pending → 'partial'.
+const handleDecideSuggestion: Handler = async (request, env, params) => {
+  const ctx = await requireBundle(request, env, 'catalog');
+  if ('error' in ctx) return ctx.error;
+  const { accountId, userId, email } = ctx;
+
+  const suggestionId = params.id;
+  if (!suggestionId) return json({ error: 'Suggestion id required' }, 400);
+
+  let body: any;
+  try { body = await request.json(); } catch { return json({ error: 'Invalid JSON body' }, 400); }
+
+  const decisions = Array.isArray(body.decisions) ? body.decisions : null;
+  if (!decisions || decisions.length === 0) {
+    return json({ error: 'decisions[] required' }, 400);
+  }
+
+  // Look up the bundle + verify the caller curates the underlying profile
+  const bundle = await env.DB.prepare(`
+    SELECT s.id, s.profile_id, s.status, p.curated_by_account_id
+    FROM profile_suggestions s
+    JOIN tea_profiles p ON p.id = s.profile_id
+    WHERE s.id = ?
+  `).bind(suggestionId).first() as { id: string; profile_id: string; status: string; curated_by_account_id: string } | null;
+
+  if (!bundle) return json({ error: 'Suggestion not found' }, 404);
+  if (bundle.curated_by_account_id !== accountId) {
+    return json({ error: 'Only the curator of this profile can decide its suggestions.' }, 403);
+  }
+  if (bundle.status === 'withdrawn' || bundle.status === 'resolved') {
+    return json({ error: `Suggestion is ${bundle.status} — no further decisions accepted.` }, 400);
+  }
+
+  // Load all field rows for this bundle, by id, so we can validate decisions
+  const { results: fieldRows } = await env.DB.prepare(
+    `SELECT id, field_name, proposed_value, status FROM profile_suggestion_fields WHERE suggestion_id = ?`
+  ).bind(suggestionId).all() as { results: any[] };
+  const fieldsById = new Map(fieldRows.map((f: any) => [f.id as string, f]));
+
+  // Validate every decision references a field in this bundle and isn't already decided
+  const cleanedDecisions: { field_id: string; status: 'accepted' | 'rejected'; reject_note: string | null; field_name: string; proposed_value: string }[] = [];
+  for (const d of decisions) {
+    if (typeof d.field_id !== 'string') return json({ error: 'decision.field_id required' }, 400);
+    if (d.status !== 'accepted' && d.status !== 'rejected') {
+      return json({ error: `decision.status must be 'accepted' or 'rejected' (got '${d.status}')` }, 400);
+    }
+    const f = fieldsById.get(d.field_id);
+    if (!f) return json({ error: `field_id '${d.field_id}' is not part of this suggestion bundle.` }, 400);
+    if (f.status !== 'pending') {
+      return json({ error: `field_id '${d.field_id}' is already ${f.status}.` }, 400);
+    }
+    cleanedDecisions.push({
+      field_id: d.field_id,
+      status: d.status,
+      reject_note: typeof d.reject_note === 'string' ? d.reject_note.slice(0, 500) : null,
+      field_name: f.field_name as string,
+      proposed_value: f.proposed_value as string,
+    });
+  }
+
+  // Build the batch:
+  //   1. UPDATE each decided field row
+  //   2. UPDATE tea_profiles.<field_name> for each accepted decision
+  //   3. UPDATE the bundle status (recomputed from resulting per-field statuses)
+  const stmts: D1PreparedStatement[] = [];
+  const now = new Date().toISOString();
+
+  for (const d of cleanedDecisions) {
+    stmts.push(
+      env.DB.prepare(
+        `UPDATE profile_suggestion_fields
+         SET status = ?, reject_note = ?, decided_at = ?
+         WHERE id = ?`
+      ).bind(d.status, d.reject_note, now, d.field_id)
+    );
+    if (d.status === 'accepted') {
+      // Whitelist already enforced at submission; defensive double-check here.
+      if (!PROFILE_SUGGESTABLE_FIELDS.has(d.field_name)) continue;
+      stmts.push(
+        env.DB.prepare(
+          `UPDATE tea_profiles SET ${d.field_name} = ?, updated_at = datetime('now') WHERE id = ?`
+        ).bind(d.proposed_value, bundle.profile_id)
+      );
+    }
+  }
+
+  // Recompute bundle status: any pending → 'partial' (or stays 'pending' if no decisions in this batch),
+  // none pending → 'resolved'.
+  const decidedIds = new Set(cleanedDecisions.map(d => d.field_id));
+  const remainingPending = fieldRows.filter((f: any) => !decidedIds.has(f.id) && f.status === 'pending').length;
+  const newBundleStatus = remainingPending === 0 ? 'resolved' : 'partial';
+
+  stmts.push(
+    env.DB.prepare(
+      `UPDATE profile_suggestions
+       SET status = ?, reviewed_by_user_id = ?, reviewed_at = ?, updated_at = ?
+       WHERE id = ?`
+    ).bind(newBundleStatus, userId, now, now, suggestionId)
+  );
+
+  await env.DB.batch(stmts);
+
+  await logPlatformAction(
+    env, 'suggestion.decided', userId, email,
+    'suggestion', suggestionId,
+    {
+      profile_id: bundle.profile_id,
+      decisions: cleanedDecisions.map(d => ({ field_name: d.field_name, status: d.status })),
+      bundle_status: newBundleStatus,
+    }
+  );
+
+  return json({
+    suggestion_id: suggestionId,
+    bundle_status: newBundleStatus,
+    decisions_recorded: cleanedDecisions.length,
+  });
+};
+
 // ── Routes ──
 const routes: [string, string, Handler][] = [
   // Auth
@@ -12213,6 +12556,10 @@ const routes: [string, string, Handler][] = [
   // ── Network (authenticated — partner/catalog) ──
   ['GET',  '/api/network/catalog', handleNetworkCatalog],
   ['POST', '/api/listings/carry',  handleCarryListing],
+  ['POST', '/api/profiles/:id/suggestions', handleCreateProfileSuggestion],
+  ['GET',  '/api/profiles/:id/suggestions', handleListProfileSuggestions],
+  ['GET',  '/api/suggestions/incoming', handleIncomingSuggestions],
+  ['POST', '/api/suggestions/:id/decide', handleDecideSuggestion],
   ['GET', '/api/s/:slug', handleGetPublicAccount],
   ['GET', '/api/s/:slug/products', handleGetPublicAccountProducts],
   ['GET', '/api/s/:slug/events', handleGetPublicAccountEvents],
