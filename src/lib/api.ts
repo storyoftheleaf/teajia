@@ -1948,6 +1948,40 @@ export const api = {
       });
       return handleResponse(res);
     },
+
+    /**
+     * GET /api/network/catalog
+     * Returns profiles the caller does not yet carry, with computed wholesale price.
+     * Requires Catalog bundle on caller account.
+     */
+    catalog: async (): Promise<{ profiles: import('../types').NetworkCatalogProfile[] }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/network/catalog`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+
+    /**
+     * POST /api/listings/carry
+     * Creates a listing for the given profile on the caller's account.
+     * Copies canonical_photos into listing_photos. Requires Catalog bundle.
+     */
+    carryProfile: async (
+      profileId: string,
+      opts: import('../types').CarryProfileOpts,
+    ): Promise<import('../types').CarryProfileResult> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/listings/carry`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({
+          profile_id: profileId,
+          initial_price_amount: opts.initial_price_amount,
+          initial_price_currency: opts.initial_price_currency,
+          initial_stock_grams: opts.initial_stock_grams,
+        }),
+      });
+      return handleResponse(res);
+    },
   },
 
   /** Account-wide contact tag queries (autocomplete + tag-aware picker). */

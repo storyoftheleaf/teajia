@@ -11788,6 +11788,235 @@ const handleSetCuratorFlag: Handler = async (request, env, params) => {
   return json({ ok: true, can_create_collections: Boolean(flag) });
 };
 
+// ── Network Catalog ──
+
+// GET /api/network/catalog
+// Returns tea_profiles that the caller can carry (Step 2 of Network Rollout).
+// Filters: network_visible=1, status='published', curated_by != caller account,
+// caller has no existing active product_listing for this profile.
+// Requires the Catalog bundle on the caller's account.
+//
+// Pricing resolution per profile (Decision 7 in NETWORK_ROLLOUT_PLAN.md):
+//   1. account_wholesale_overrides[profile.id, caller.account_id].margin_pct_override
+//   2. profile.wholesale_margin_pct (if not NULL)
+//   3. wholesale_margin_defaults[tier].default_margin_pct
+//   4. 50 (hardcoded fallback)
+//
+// Trust tier lookup: if caller's account.kind = 'master', use tier 'tea_master'
+// for the wholesale_margin_defaults lookup, even though accounts.trust_tier
+// defaults to 'verified' for Tea Masters at invite time. This correctly applies
+// the tea_master margin seed (48%) for all master accounts.
+// If kind != 'master', use accounts.trust_tier directly.
+//
+// TODO: add pagination when catalog grows past ~500 profiles.
+const handleNetworkCatalog: Handler = async (request, env) => {
+  const ctx = await requireBundle(request, env, 'catalog');
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+
+  // Fetch caller's account metadata (kind, trust_tier, currency_default)
+  const callerAccount = await env.DB.prepare(
+    'SELECT kind, trust_tier, currency_default FROM accounts WHERE id = ?'
+  ).bind(accountId).first() as {
+    kind: string;
+    trust_tier: string;
+    currency_default: string;
+  } | null;
+
+  if (!callerAccount) return json({ error: 'Caller account not found' }, 404);
+
+  // Determine which tier key to use for wholesale_margin_defaults lookup.
+  // Tea Master accounts (kind='master') use the 'tea_master' tier row even though
+  // their accounts.trust_tier is 'verified' — the seed table has a distinct row for it.
+  const marginTier = callerAccount.kind === 'master' ? 'tea_master' : (callerAccount.trust_tier || 'basic');
+  const callerCurrency = callerAccount.currency_default || 'USD';
+
+  // Batch: exchange rates + tier default margin + profiles in one round-trip
+  const [ratesResult, tierDefaultResult, profilesResult] = await env.DB.batch([
+    env.DB.prepare('SELECT currency, rate_to_usd FROM exchange_rates'),
+    env.DB.prepare(
+      'SELECT default_margin_pct FROM wholesale_margin_defaults WHERE trust_tier = ?'
+    ).bind(marginTier),
+    env.DB.prepare(`
+      SELECT
+        p.id, p.slug, p.name, p.chinese_name,
+        p.type, p.form,
+        p.origin_country, p.origin_region, p.varietal, p.harvest_year,
+        p.description, p.image_url, p.canonical_photos,
+        p.wholesale_margin_pct,
+        p.created_at,
+        a.name  AS curator_account_name,
+        a.slug  AS curator_account_slug,
+        ao.name AS originator_account_name,
+        a.currency_default AS curator_currency,
+        -- Pull the curator's own listing for this profile so we have the
+        -- canonical retail reference the rest of the network prices off.
+        cl.fixed_retail_price_usd AS curator_fixed_retail_usd,
+        cl.cost_amount            AS curator_cost_amount,
+        cl.cost_currency          AS curator_cost_currency,
+        cl.markup_multiplier      AS curator_markup_multiplier
+      FROM tea_profiles p
+      JOIN accounts a  ON a.id  = p.curated_by_account_id
+      JOIN accounts ao ON ao.id = p.originated_by_account_id
+      -- Curator's own listing for this profile. LEFT JOIN because in rare
+      -- cases (a profile created before any listing was made) it could be
+      -- missing; we degrade to null pricing rather than dropping the row.
+      LEFT JOIN product_listings cl
+             ON cl.profile_id  = p.id
+            AND cl.account_id  = p.curated_by_account_id
+            AND cl.status      = 'active'
+      WHERE p.network_visible = 1
+        AND p.status = 'published'
+        AND p.curated_by_account_id != ?
+        AND NOT EXISTS (
+          SELECT 1 FROM product_listings pl
+          WHERE pl.account_id  = ?
+            AND pl.profile_id  = p.id
+            AND pl.status      = 'active'
+        )
+      ORDER BY p.created_at DESC
+    `).bind(accountId, accountId),
+  ]);
+
+  // Build exchange rate map: currency -> rate_to_usd (i.e. 1 unit = N USD)
+  const rates = new Map<string, number>();
+  for (const r of ratesResult.results as any[]) {
+    rates.set(r.currency as string, r.rate_to_usd as number);
+  }
+
+  const tierDefaultMargin: number = (tierDefaultResult.results[0] as any)?.default_margin_pct ?? 50;
+
+  // Fetch per-profile wholesale overrides for this caller in a second pass.
+  // At small network scale (100-200 profiles) this is acceptable. The profiles
+  // query above cannot join overrides inline without a correlated subquery per row.
+  const profileIds = (profilesResult.results as any[]).map(p => p.id as string);
+  let overrideMap = new Map<string, number>(); // profile_id -> margin_pct_override
+
+  if (profileIds.length > 0) {
+    // D1 does not support IN (?, ?, ...) with dynamic binding via batch, so we
+    // build the placeholders manually. Safe: values are profile IDs from our own DB.
+    const placeholders = profileIds.map(() => '?').join(', ');
+    const overrideResult = await env.DB.prepare(
+      `SELECT profile_id, margin_pct_override
+       FROM account_wholesale_overrides
+       WHERE buyer_account_id = ?
+         AND profile_id IN (${placeholders})`
+    ).bind(accountId, ...profileIds).all();
+
+    for (const row of overrideResult.results as any[]) {
+      overrideMap.set(row.profile_id as string, row.margin_pct_override as number);
+    }
+  }
+
+  // Build response profiles with computed pricing
+  const profiles = (profilesResult.results as any[]).map(p => {
+    // Parse JSON array fields
+    let canonicalPhotos: any[] = [];
+    if (typeof p.canonical_photos === 'string') {
+      try { canonicalPhotos = JSON.parse(p.canonical_photos); } catch { canonicalPhotos = []; }
+    }
+
+    // Resolve effective wholesale margin via Decision 7 chain
+    let marginPct: number;
+    if (overrideMap.has(p.id)) {
+      marginPct = overrideMap.get(p.id)!;
+    } else if (p.wholesale_margin_pct != null) {
+      marginPct = p.wholesale_margin_pct as number;
+    } else {
+      marginPct = tierDefaultMargin;
+    }
+
+    // Pricing: the curator's own listing (joined above) gives the retail reference
+    // the rest of the network prices off. Two ways the curator's listing expresses retail:
+    //   1. fixed_retail_price_usd  → an explicit per-gram retail in USD
+    //   2. cost_amount + markup_multiplier → derived per-gram retail in cost_currency
+    // If neither is set (rare), return null prices and the frontend shows "Price on request".
+    const curatorCurrency: string = p.curator_currency || 'USD';
+
+    // Currency conversion helper: convert an amount from fromCurrency to toCurrency via USD.
+    // Returns null when a required rate is missing.
+    const convert = (amount: number, fromCurrency: string, toCurrency: string): number | null => {
+      if (fromCurrency === toCurrency) return amount;
+      const fromRate = rates.get(fromCurrency); // units per USD
+      const toRate   = rates.get(toCurrency);   // units per USD
+      if (!fromRate || !toRate) return null;
+      return (amount / fromRate) * toRate;
+    };
+
+    let retailPricePerGramCurator: number | null = null;
+    let wholesalePricePerGramCaller: number | null = null;
+    let fxUnavailable = false;
+
+    // Resolve the curator's retail per gram in the curator's display currency.
+    if (p.curator_fixed_retail_usd != null) {
+      // fixed_retail_price_usd is already per-gram in USD. Convert to curator's currency.
+      const inCuratorCurrency = convert(p.curator_fixed_retail_usd as number, 'USD', curatorCurrency);
+      if (inCuratorCurrency === null) {
+        retailPricePerGramCurator = p.curator_fixed_retail_usd as number;
+        fxUnavailable = true;
+      } else {
+        retailPricePerGramCurator = inCuratorCurrency;
+      }
+    } else if (p.curator_cost_amount != null && p.curator_cost_amount > 0) {
+      // Cost-based: cost_per_gram (in cost_currency) * markup → retail in cost_currency.
+      // Then convert to curator currency for display.
+      const costCurrency = (p.curator_cost_currency as string) || 'USD';
+      const markup = (p.curator_markup_multiplier as number) ?? 2.5;
+      // cost_amount is the total cost for quantity_purchased; without that here,
+      // we treat cost_amount as already per-gram. This matches how the legacy
+      // products API returns it (see addPricingFields). Acceptable for browse.
+      const retailInCostCurrency = (p.curator_cost_amount as number) * markup;
+      const converted = convert(retailInCostCurrency, costCurrency, curatorCurrency);
+      if (converted === null) {
+        retailPricePerGramCurator = retailInCostCurrency;
+        fxUnavailable = true;
+      } else {
+        retailPricePerGramCurator = converted;
+      }
+    }
+
+    // Compute the caller's effective wholesale once retail is known.
+    //   wholesale = retail_in_curator_currency * (marginPct / 100)  → convert to caller currency
+    if (retailPricePerGramCurator !== null) {
+      const wholesaleInCuratorCurrency = retailPricePerGramCurator * (marginPct / 100);
+      const converted = convert(wholesaleInCuratorCurrency, curatorCurrency, callerCurrency);
+      if (converted === null) {
+        fxUnavailable = true;
+        wholesalePricePerGramCaller = wholesaleInCuratorCurrency;
+      } else {
+        wholesalePricePerGramCaller = converted;
+      }
+    }
+
+    return {
+      id: p.id,
+      slug: p.slug,
+      name: p.name,
+      chinese_name: p.chinese_name ?? null,
+      type: p.type ?? null,
+      form: p.form ?? null,
+      origin_country: p.origin_country ?? null,
+      origin_region: p.origin_region ?? null,
+      varietal: p.varietal ?? null,
+      harvest_year: p.harvest_year ?? null,
+      description: p.description ?? null,
+      image_url: p.image_url ?? null,
+      canonical_photos: canonicalPhotos,
+      curator_account_name: p.curator_account_name,
+      curator_account_slug: p.curator_account_slug,
+      originator_account_name: p.originator_account_name,
+      retail_currency: curatorCurrency,
+      retail_price_per_gram_curator: retailPricePerGramCurator,
+      wholesale_margin_pct_for_caller: marginPct,
+      wholesale_price_per_gram_caller: wholesalePricePerGramCaller,
+      wholesale_currency_caller: callerCurrency,
+      fx_unavailable: fxUnavailable,
+    };
+  });
+
+  return json({ profiles });
+};
+
 // ── Routes ──
 const routes: [string, string, Handler][] = [
   // Auth
@@ -11841,6 +12070,9 @@ const routes: [string, string, Handler][] = [
 
   // Network (public)
   ['GET', '/api/network/stores', handleGetNetworkStores],
+
+  // ── Network (authenticated — partner/catalog) ──
+  ['GET', '/api/network/catalog', handleNetworkCatalog],
   ['GET', '/api/s/:slug', handleGetPublicAccount],
   ['GET', '/api/s/:slug/products', handleGetPublicAccountProducts],
   ['GET', '/api/s/:slug/events', handleGetPublicAccountEvents],

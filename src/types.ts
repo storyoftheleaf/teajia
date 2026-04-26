@@ -558,6 +558,46 @@ export const BUNDLE_DESCRIPTIONS: Record<Bundle, string> = {
   members: 'Grant and revoke access for other people at this location.',
 };
 
+// ── Network catalog — Step 2 (Carry from network) ─────────────────────────
+// Shape returned by GET /api/network/catalog. Agent A is building that endpoint;
+// this type mirrors the agreed response shape from docs/NETWORK_ROLLOUT_PLAN.md §Step 2.
+export interface NetworkCatalogProfile {
+  id: string;
+  slug: string;
+  name: string;
+  chinese_name?: string | null;
+  origin?: string | null;
+  varietal?: string | null;
+  harvest_year?: number | null;
+  type?: string | null;          // e.g. "White", "Oolong", "Green"
+  description?: string | null;
+  flavor_tags?: string[] | null; // from tasting, shown when populated
+  mood_tags?: string[] | null;   // from tasting, shown when populated
+  canonical_photos?: string[] | null; // URLs
+  // Pricing — canonical retail in Adrian's currency
+  retail_amount?: number | null;
+  retail_currency?: string | null; // e.g. "IDR"
+  // Buyer's effective wholesale computed server-side
+  wholesale_amount?: number | null;
+  wholesale_currency?: string | null; // e.g. "AUD" — caller's account currency
+  wholesale_margin_pct?: number | null; // e.g. 45
+  trust_tier?: string | null;    // e.g. "verified"
+  fx_unavailable?: boolean;      // true when FX rate missing; buyer wholesale line omitted
+  // Attribution
+  curated_by_name?: string | null; // e.g. "Adrian"
+  originated_by_name?: string | null; // shown only when different from curated_by
+}
+
+export interface CarryProfileOpts {
+  initial_stock_grams: number;
+  initial_price_amount: number;
+  initial_price_currency: string;
+}
+
+export interface CarryProfileResult {
+  listing_id: string;
+}
+
 export interface AccountMembership {
   account_id: string;
   account_name: string;

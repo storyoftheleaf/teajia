@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import {
   Loader2, FileSpreadsheet, Plus, Search, QrCode, Download,
   Trash2, AlertTriangle, Archive, Pencil, AlertOctagon, ArrowUpDown, ArrowUp, ArrowDown, Copy, Layers, Settings, MoreHorizontal, Check, X as XIcon, Eye, EyeOff, Star, Sparkles, FlaskConical, RefreshCw, ChevronDown, ChevronRight, ChevronLeft, MapPin, Save, Columns, Square, CheckSquare, Leaf, Coffee, Image as ImageIcon, Globe, Tag, FileText, User, Receipt, BookOpen, Droplets, PackageX
@@ -14,6 +14,7 @@ import { QrCodeModal } from './QrCodeModal';
 import { useRates, useCustomers } from '../hooks/useAdminData';
 import { useToast } from './Toast';
 import { useAppStore } from '../store';
+import { selectHasBundle } from '../../lib/store';
 import { useShallow } from 'zustand/react/shallow';
 import { fmtNum } from '../../utils/formatNumber';
 import { getThemeColor } from '../themeUtils';
@@ -591,6 +592,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     addToCart: s.addToCart,
     setIsCartOpen: s.setIsCartOpen,
   })));
+
+  // Catalog bundle gates the "Carry from network" entry point. Per Step 2 of
+  // the Network Rollout — partners with the Catalog bundle can carry teas
+  // from Adrian's curated catalog into their own listings.
+  const hasCatalogBundle = selectHasBundle(useAppStore.getState(), 'catalog');
 
   const { addSampleSet, addSample, setActiveSet } = useSampleStore();
 
@@ -2409,6 +2415,17 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     <button onClick={onAddClick} className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] font-bold text-tea-text-sec hover:text-tea-text transition-colors px-3 py-1.5 border border-transparent hover:border-tea-border rounded-lg">
                         <Plus size={14} /> New
                     </button>
+
+                    {/* Carry from network — gated by Catalog bundle. Step 2 of the Network Rollout. */}
+                    {hasCatalogBundle && (
+                      <Link
+                        to="/admin/network/catalog"
+                        className="font-body text-[13px] text-tea-text-sec hover:text-tea-gold transition-colors px-3 py-1.5 group"
+                      >
+                        Carry from network{' '}
+                        <span className="inline-block transition-transform group-hover:translate-x-0.5">→</span>
+                      </Link>
+                    )}
 
                     {/* Columns Toggle */}
                     <div className="relative">
