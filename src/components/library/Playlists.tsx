@@ -61,7 +61,7 @@ export const Playlists: React.FC<PlaylistsProps> = ({ onBack }) => {
               <span className="text-[10px] text-tea-text/30 hidden sm:inline">
                 {item.duration}
               </span>
-              <Icons.Next className="w-4 h-4 text-tea-text/20 group-hover:text-tea-gold transition-colors" />
+              <Icons.Next className="w-4 h-4 text-tea-text-sec group-hover:text-tea-gold transition-colors" />
             </div>
           </a>
         ))}

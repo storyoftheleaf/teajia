@@ -66,7 +66,7 @@ export const CardThumbnail: React.FC<CardThumbnailProps> = ({
           {teaType ? (
             <TeaPlaceholder type={teaType} style={{ width: '100%', height: '100%' }} />
           ) : (
-            <span className="text-tea-text/20 text-[8px]">—</span>
+            <span className="text-tea-text-dim text-[8px]">—</span>
           )}
         </div>
       )}

@@ -144,7 +144,7 @@ export const LearnExplore: React.FC<LearnExploreProps> = ({ watchedStories, onNa
             <Icons.Back className="w-4 h-4 text-tea-text-sec" />
           </div>
           <span className="text-sm font-medium text-tea-text-sec">Explore</span>
-          <span className="text-tea-text/20">/</span>
+          <span className="text-tea-text-dim">/</span>
           <span className="text-sm text-tea-text/50 truncate">{title}</span>
         </button>
       </div>

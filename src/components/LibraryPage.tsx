@@ -162,7 +162,7 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({
                             {result.description}
                           </p>
                         </div>
-                        <Icons.Next className="w-4 h-4 text-tea-text/20 group-hover:text-tea-gold transition-colors shrink-0 mt-1" />
+                        <Icons.Next className="w-4 h-4 text-tea-text-sec group-hover:text-tea-gold transition-colors shrink-0 mt-1" />
                       </button>
                     ))}
                   </div>

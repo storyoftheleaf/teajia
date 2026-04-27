@@ -26,7 +26,7 @@ export const TeaMap: React.FC<TeaMapProps> = ({ onBack }) => {
             <Icons.Back className="w-4 h-4 text-tea-gold" />
           </div>
           <span className="text-sm font-medium text-tea-gold">Library</span>
-          <span className="text-tea-text/20">/</span>
+          <span className="text-tea-text-dim">/</span>
           <span className="text-sm text-tea-text/50 truncate">Tea Map</span>
         </button>
       </div>

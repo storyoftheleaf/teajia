@@ -771,7 +771,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
          {filteredInventory.length === 0 ? (
             <div className="text-center py-32">
                <svg
-                 className="w-16 h-16 mx-auto mb-6 text-tea-text/15 tea-leaf-float"
+                 className="w-16 h-16 mx-auto mb-6 text-tea-text-dim tea-leaf-float"
                  viewBox="0 0 64 64"
                  fill="none"
                  stroke="currentColor"
@@ -887,13 +887,13 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                         <div className="mt-0.5 truncate flex items-center gap-1.5">
                                              {showType && (
                                                  <><span className="text-[10px] uppercase tracking-wider text-tea-text-sec">{item.type}</span>
-                                                 <span className="text-tea-text/15">·</span></>
+                                                 <span className="text-tea-text-dim">·</span></>
                                              )}
                                              {item.origin && (
                                                  <span className="text-[11px] text-tea-text-sec">{item.origin}</span>
                                              )}
                                              {item.year && (
-                                                 <><span className="text-tea-text/15">·</span>
+                                                 <><span className="text-tea-text-dim">·</span>
                                                  <span className="text-[11px] text-tea-text-dim">{item.year}</span></>
                                              )}
                                         </div>

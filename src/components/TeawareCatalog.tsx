@@ -169,7 +169,7 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
           {/* Empty state */}
           {filteredItems.length === 0 && (
             <div className="text-center py-32">
-              <Icons.Grid className="w-12 h-12 mx-auto mb-4 text-tea-text/20" />
+              <Icons.Grid className="w-12 h-12 mx-auto mb-4 text-tea-text-dim" />
               <p className="font-serif italic text-tea-text/60 mb-2">No pieces match your filters</p>
               <button
                 onClick={clearFilters}
@@ -302,11 +302,11 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
                             <div className="text-[13px] mt-1 truncate flex items-center gap-2">
                               <span className="text-[10px] uppercase tracking-wider text-tea-text-sec">{item.variant}</span>
                               {item.origin && (
-                                <><span className="text-tea-text/20">·</span>
+                                <><span className="text-tea-text-dim">·</span>
                                 <span className="font-body italic text-tea-text/40">{item.origin}</span></>
                               )}
                               {item.year && (
-                                <><span className="text-tea-text/20">·</span>
+                                <><span className="text-tea-text-dim">·</span>
                                 <span className="font-mono num text-[11px] text-tea-gold/60">{item.year}</span></>
                               )}
                             </div>
@@ -317,7 +317,7 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
                             {/* Favorite toggle */}
                             <button
                               onClick={(e) => { e.stopPropagation(); toggleFavoriteTea(item.id); }}
-                              className={`-my-1 p-1.5 transition-colors ${isFavorite ? 'text-tea-gold' : 'text-tea-text/20 hover:text-tea-text/50'}`}
+                              className={`-my-1 p-1.5 transition-colors ${isFavorite ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'}`}
                               title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
                             >
                               <Icons.Heart filled={isFavorite} className="w-4 h-4" />
@@ -337,7 +337,7 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
                             {isAdmin && onAdminEdit && (
                               <button
                                 onClick={(e) => { e.stopPropagation(); onAdminEdit(item.id); }}
-                                className="p-1 text-tea-text/20 hover:text-tea-gold transition-colors"
+                                className="p-1 text-tea-text-sec hover:text-tea-gold transition-colors"
                                 title="Edit product"
                               >
                                 <Icons.Edit className="w-3.5 h-3.5" />
@@ -347,7 +347,7 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
                               <span className="num text-sm text-tea-gold">{fmtShopPrice(unitPrice)}</span>
                               <span className="text-tea-text-sec text-[10px] ml-1">each</span>
                             </div>
-                            <Icons.Next className="w-4 h-4 text-tea-text/20 shrink-0" />
+                            <Icons.Next className="w-4 h-4 text-tea-text-sec shrink-0" />
                           </div>
                         </div>
                       </div>

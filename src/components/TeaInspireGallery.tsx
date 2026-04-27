@@ -215,7 +215,7 @@ export const TeaInspireGallery: React.FC = () => {
           })
         ) : (
           <div className="col-span-full flex flex-col items-center justify-center py-16">
-            <Icons.Image className="w-12 h-12 text-tea-text/20 mb-4" />
+            <Icons.Image className="w-12 h-12 text-tea-text-dim mb-4" />
             <p className="text-tea-text/50 text-sm">
               No moments found in this category.
             </p>

@@ -93,7 +93,7 @@ export const LearnReadingLists: React.FC = () => {
                       {item.duration}
                     </span>
                   )}
-                  <Icons.Next className="w-4 h-4 text-tea-text/20 group-hover:text-tea-gold transition-colors" />
+                  <Icons.Next className="w-4 h-4 text-tea-text-sec group-hover:text-tea-gold transition-colors" />
                 </div>
               </div>
             ))}

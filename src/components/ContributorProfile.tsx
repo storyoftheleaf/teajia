@@ -44,7 +44,7 @@ export const ContributorProfile: React.FC<ContributorProfileProps> = ({ person, 
           {person.avatarUrl ? (
              <img src={person.avatarUrl} alt={person.name} className="w-full h-full object-cover sepia-[0.2]" loading="lazy" />
           ) : (
-             <div className="w-full h-full bg-tea-elevated flex items-center justify-center text-tea-text/20">
+             <div className="w-full h-full bg-tea-elevated flex items-center justify-center text-tea-text-dim">
                 <Icons.Seal className="w-12 h-12" />
              </div>
           )}

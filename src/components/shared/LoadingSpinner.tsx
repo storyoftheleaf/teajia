@@ -35,7 +35,7 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ size = 'md', cla
         fill="none"
         stroke="currentColor"
         strokeWidth={strokeWidth}
-        className="text-tea-text/10"
+        className="text-tea-text-dim"
       />
       {/* Gradient arc */}
       <defs>

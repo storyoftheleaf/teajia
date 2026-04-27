@@ -70,7 +70,7 @@ export default function ReadingHistoryPage() {
                 </span>
                 <span className="text-[10px] text-tea-text-sec">Page {entry.page + 1}</span>
               </div>
-              <Icons.ChevronRight className="w-3.5 h-3.5 text-tea-text/20 shrink-0" />
+              <Icons.ChevronRight className="w-3.5 h-3.5 text-tea-text-sec shrink-0" />
             </button>
           ))}
         </div>

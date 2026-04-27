@@ -61,7 +61,7 @@ export default function SavedStoriesPage() {
               <span className="font-serif text-sm text-tea-text group-hover:text-tea-gold transition-colors truncate flex-1">
                 Story #{storyId}
               </span>
-              <Icons.ChevronRight className="w-3.5 h-3.5 text-tea-text/20 shrink-0" />
+              <Icons.ChevronRight className="w-3.5 h-3.5 text-tea-text-sec shrink-0" />
             </button>
           ))}
         </div>

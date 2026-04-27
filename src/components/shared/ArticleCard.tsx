@@ -109,7 +109,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
           </div>
         ) : (
           <div className="w-full h-full bg-tea-elevated/40 flex items-center justify-center">
-            <p className="text-[8px] uppercase tracking-[0.2em] text-tea-text/20 font-sans rotate-90 whitespace-nowrap">
+            <p className="text-[8px] uppercase tracking-[0.2em] text-tea-text-dim font-sans rotate-90 whitespace-nowrap">
               {categoryLabel ?? 'Article'}
             </p>
           </div>

@@ -313,7 +313,7 @@ export const TeaGlossary: React.FC<TeaGlossaryProps> = ({
           ))
         ) : (
           <div className="flex flex-col items-center justify-center py-12 text-center">
-            <Icons.Search className="w-8 h-8 text-tea-text/15 mb-3" />
+            <Icons.Search className="w-8 h-8 text-tea-text-dim mb-3" />
             <p className="text-tea-text-sec text-sm">
               No terms found matching your search.
             </p>

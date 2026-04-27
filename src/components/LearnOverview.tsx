@@ -65,7 +65,7 @@ const InkWashPlaceholder: React.FC<{ label?: string; aspectRatio?: string; class
         <path d="M-20,200 Q150,160 250,190 T420,170" stroke={mood === 'dark' ? 'var(--tea-gold)' : 'var(--tea-text)'} strokeWidth="20" fill="none" strokeLinecap="round" opacity="0.3" />
       </svg>
       {label && (
-        <div className={`absolute bottom-0 left-0 right-0 p-3 ${mood === 'dark' ? 'text-tea-text/20' : 'text-tea-text/15'}`}>
+        <div className="absolute bottom-0 left-0 right-0 p-3 text-tea-text-dim">
           <span className="text-[8px] font-mono tracking-[0.25em] uppercase">{label}</span>
         </div>
       )}
