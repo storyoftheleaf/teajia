@@ -46,26 +46,39 @@ Until this is done, every other phase is fighting the build system. **Do this fi
 
 ---
 
-## Phase B — Token migration (2–3 days)
+## Phase B — Token migration ✅ COMPLETE (shipped 2026-04-27)
 
 **Goal:** Every component speaks in safe tokens. Lint enforces it.
 
-**Scope:**
-1. Codemod the 49 files using banned legacy tokens (`tea-ink`, `tea-paper`, `tea-seal`, `tea-charcoal`, `tea-muted`, `tea-beige`) → safe equivalents (`tea-text`, `tea-bg`, `tea-gold`, etc.). ~215 uses total.
-2. Replace ~328 hardcoded `rgba()` instances + ~65 hex-bracket instances with semantic tokens. Where no token exists for a color, add one to `designTokens.ts` rather than keep the literal.
-3. Replace `text-white` / `bg-white` (~25 instances) with `text-tea-bg` / `bg-tea-text` per the existing rule in `/CLAUDE.md`.
-4. Rationalize the triple gold (`#b8882d` / `#C9943A` / `#a07830`) into a single `tea-gold` palette ramp.
-5. Collapse the three duplicate tea-type color maps (`themeUtils.ts`, `TeaDetailsModal.tsx`, `PersonalCollectionView.tsx`) into one shared import.
-6. Promote `lint:colors` from "non-blocking notices" to "blocking errors" once the migration is complete. Wire into pre-commit hook.
+**Reality vs. plan:** The audit was synthesized against an older snapshot. By the time B started, items 1, 4, and 5 were already done in earlier work (verified by grep). The remaining real work was the white-token migration (much larger than the plan said) and a smaller-than-claimed rgba migration.
 
-**Done when:**
-- `npm run lint:colors` exits 0 with no notices.
-- `grep -r 'tea-ink\|tea-paper\|tea-seal\|tea-charcoal' src/` returns nothing.
-- The pre-commit hook blocks any new violation.
+**What shipped:**
 
-**Risk:** Codemod may catch false positives in comments or fixture data. Run a dry-run first; review the diff before merging.
+**B0 — Dead alias cleanup (commit 259ae67):** Removed 14 unused legacy color aliases from `tailwind.config.ts` (`tea-ink`, `tea-paper`, `tea-seal`, `tea-charcoal`, `tea-muted`, `tea-beige`, etc.). Verified zero references in `src/` first.
 
-**Unblocks:** Phase C — once tokens are honest, you can confidently rename or restructure them without breaking anything visually.
+**B1 — Token migration (commit 259ae67, parallel-agent fan-out):**
+- ~155 `text-white` / `bg-white` / `border-white` sites migrated across 49 files. Mapping: `bg-tea-gold` buttons → `text-tea-bg`; dark photo overlays → `text-tea-text` (opacity preserved); `border-white/N` → `border-tea-border`. Documented exceptions kept: print contexts, QR code containers, WhatsApp brand `#25D366`, TeaTagSheet print preview.
+- ~16 hardcoded `rgba()` sites migrated across 7 editorial / page files (single borders, single backgrounds → tokens or `var(--tea-*)`). Decorative multi-stop gradients, shadows, and fixed-export imagery preserved per `COLOR_RULES.md` Rule 2 exception.
+- 1 hex-bracket fixed (`from-[#1a1a1a]` → `from-tea-bg` in `PopupModal.tsx`).
+
+**B2 — Lint promotion (commit 3441768):**
+- Hex-bracket check (`text-[#xxx]`, `bg-[#xxx]`, etc.) promoted from non-blocking notice to blocking error. New violations now fail the pre-commit hook. WhatsApp brand literal in `SampleOrderModal.tsx` excluded by path.
+- rgba-in-className notice tightened to exclude `shadow-[...]` arbitrary classes and inline `style=` blocks (Rule 2 exception). Notice count dropped from ~20 false positives to 0, freeing the notice channel for real Phase C migration candidates.
+- Pre-commit hook (`.git/hooks/pre-commit`) was already installed and runs `npm run lint:colors`. Verified: a `text-[#ff0000]` inserted into `src/` causes the hook to reject the commit.
+
+**Skipped from the original plan (already done before B started):**
+- B item 1 (legacy-token codemod): grep returned 0 occurrences in `src/`. The aliases existed in `tailwind.config.ts` but nothing referenced them — handled by B0.
+- B item 4 (triple gold): `#b8882d` / `#C9943A` / `#a07830` returned 0 occurrences.
+- B item 5 (3 duplicate tea-type maps): None of `themeUtils.ts`, `TeaDetailsModal.tsx`, `PersonalCollectionView.tsx` exist.
+
+**Verification:**
+- `npm run lint`: clean
+- `npm run lint:colors`: 0 errors / 0 notices
+- `npm run build`: ✓
+- `npm run test:mobile`: 20/20 real routes passing (1 pre-existing `/community` failure unrelated)
+- Pre-commit hook positive-control test: hook fails as expected on injected violation.
+
+**Unblocks:** Phase C — token soil is now honest, lint has teeth, and any new arbitrary hex bracket fails CI.
 
 ---
 
