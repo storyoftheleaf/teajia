@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { useAppStore, selectHasBundle } from '../../lib/store';
+import { FirstTouchNote } from '../components/FirstTouchNote';
 import { useShallow } from 'zustand/react/shallow';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import type { NetworkCatalogProfile } from '../../types';
@@ -578,6 +579,13 @@ export const CatalogBrowse: React.FC = () => {
           About the network →
         </button>
       </header>
+
+      <FirstTouchNote surface="catalog">
+        Carrying a tea is a curatorial act, not a stock order. Pick the tea,
+        set your stock and your retail price, and your shop has it. The
+        canonical content (description, origin, photos) stays anchored to
+        the curator and updates everywhere when they revise it.
+      </FirstTouchNote>
 
       {/* Filter row — comma-separated text-links */}
       {teaTypes.length > 0 && (

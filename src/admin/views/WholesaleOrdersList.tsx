@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { useAppStore, selectHasBundle } from '../../lib/store';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
+import { FirstTouchNote } from '../components/FirstTouchNote';
 import type { WholesaleOrderStatus, WholesaleOrderSummary } from '../../types';
 
 // ── WholesaleOrdersList — Surface 9 (index) per docs/NETWORK_UI_BRIEF.md ─────
@@ -203,6 +204,14 @@ export const WholesaleOrdersList: React.FC = () => {
           <p className="text-tea-text-sec italic text-[14px] leading-[1.6]">{subtitle}</p>
         )}
       </header>
+
+      <FirstTouchNote surface="wholesale">
+        Wholesale moves stock between houses. A buyer drafts an order from
+        the catalog and submits. The supplier confirms and ships. When the
+        buyer marks it received, both stocks adjust together and bilateral
+        invoices generate on each side. The whole exchange reads as one
+        timeline both parties can follow.
+      </FirstTouchNote>
 
       {/* Filter line */}
       <div className="flex items-baseline gap-x-3 gap-y-2 flex-wrap mb-8">

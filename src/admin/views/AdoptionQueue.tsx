@@ -11,6 +11,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { api } from '../../lib/api';
+import { FirstTouchNote } from '../components/FirstTouchNote';
 import type { AdoptionQueueEntry, AdoptionDecision } from '../../types';
 
 const FILTERS: Array<{ key: AdoptionDecision; label: string }> = [
@@ -56,6 +57,14 @@ export const AdoptionQueue: React.FC = () => {
           Adopting transfers curation to you; declining keeps it with the originator.
         </p>
       </header>
+
+      <FirstTouchNote surface="adoptions">
+        Adoption is how a Tea Master's profile joins the wider network.
+        When you adopt, curation transfers to Teajia and the profile becomes
+        visible in every partner's catalog — the originator stays attributed
+        on the canonical record. Decline returns the profile to the
+        originator with an optional note. They can re-suggest after revising.
+      </FirstTouchNote>
 
       {/* Filter tabs */}
       <div className="flex items-center gap-5 mb-8 text-[13px]">

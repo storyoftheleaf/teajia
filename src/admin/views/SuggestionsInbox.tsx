@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../../lib/api';
 import { useAppStore, selectHasBundle } from '../../lib/store';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
+import { FirstTouchNote } from '../components/FirstTouchNote';
 import type { ProfileSuggestion, ProfileSuggestionDecision, ProfileSuggestionFieldStatus } from '../../types';
 
 // ── Suggestions Inbox — Surface 6 per docs/NETWORK_UI_BRIEF.md ───────────────
@@ -556,6 +557,14 @@ export const SuggestionsInbox: React.FC = () => {
           </p>
         ) : null}
       </header>
+
+      <FirstTouchNote surface="suggestions">
+        Each bundle is a partner's proposed edit to your canonical content.
+        Decide field by field — accepted writes apply to canonical
+        immediately and update on every storefront carrying the tea.
+        Rejected fields can carry a short note back to the partner. The
+        change is the argument; nobody had to write a justification.
+      </FirstTouchNote>
 
       {/* Filter line — text-link tabs, no chrome */}
       <div className="flex items-baseline gap-3 mb-8 text-[14px]">
