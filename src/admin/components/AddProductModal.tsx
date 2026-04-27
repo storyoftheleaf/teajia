@@ -742,10 +742,6 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                     <input type="checkbox" name="isPublic" checked={formData.isPublic} onChange={handleChange} className="hidden" />
                     <Globe size={12} /> Public
                 </label>
-                <label className={`pill cursor-pointer select-none font-bold ${formData.isFeatured ? 'pill-active' : ''}`}>
-                    <input type="checkbox" name="isFeatured" checked={formData.isFeatured} onChange={handleChange} className="hidden" />
-                    <Star size={12} /> Featured
-                </label>
                 <label className={`pill cursor-pointer select-none font-bold ${formData.isCurated ? 'pill-active' : ''}`}>
                     <input type="checkbox" name="isCurated" checked={formData.isCurated} onChange={handleChange} className="hidden" />
                     <Star size={12} /> Curated
