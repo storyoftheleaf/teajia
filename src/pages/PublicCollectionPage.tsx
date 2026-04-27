@@ -188,8 +188,8 @@ const CollectionCatalog: React.FC<{ data: PublicCollectionResponse }> = ({ data 
             </p>
           )}
           {curatorName && (
-            <p className="font-sans text-[11px] uppercase tracking-[1.2px] text-tea-text-dim mt-4">
-              Curated by {curatorName}
+            <p className="font-body text-[14px] leading-[1.65] text-tea-text-sec italic mt-4">
+              Curated by {curatorName}.
             </p>
           )}
           {collection.hero_image_url && (

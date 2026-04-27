@@ -157,6 +157,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   const hasCatalog = useAppStore(s => selectHasBundle(s, 'catalog'));
   const hasSell = useAppStore(s => selectHasBundle(s, 'sell'));
   const platformRole = useAppStore(s => s.platformRole);
+  const canCreateCollections = auth.user?.canCreateCollections ?? false;
   const sampleCount = useSampleCartStore(s => s.items.length);
 
   // Sync sidebar width to CSS variable for full-screen panel offsets
@@ -592,6 +593,59 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                     </motion.div>
                   );
                 })}
+              </motion.nav>
+            )}
+          </AnimatePresence>
+
+          {/* ── Curator Nav (Collections only — for Members with curator capability) ── */}
+          <AnimatePresence>
+            {auth.isAuthenticated && !auth.isAdmin && canCreateCollections && (
+              <motion.nav
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className={`flex flex-col gap-1 ${collapsed ? 'px-1.5' : 'px-3'} pt-3 pb-3 border-t border-tea-border`}
+              >
+                <motion.div
+                  initial={{ opacity: 0, x: -6 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0, duration: 0.25, ease: 'easeOut' }}
+                >
+                  <Link
+                    to="/admin/collections"
+                    className={`relative flex items-center min-h-[44px] ${
+                      collapsed ? 'justify-center px-2' : 'gap-3 px-4'
+                    } rounded-md transition-colors duration-200 group ${
+                      currentPath.startsWith('/admin/collections') ? '' : 'hover:bg-tea-gold/6'
+                    }`}
+                    title="Collections"
+                  >
+                    {currentPath.startsWith('/admin/collections') && (
+                      <motion.div
+                        layoutId="nav-indicator"
+                        className="absolute left-0 inset-y-0 w-[2px] bg-tea-gold"
+                        transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+                      />
+                    )}
+                    <div className={`shrink-0 transition-colors duration-200 ${
+                      currentPath.startsWith('/admin/collections')
+                        ? 'text-tea-gold'
+                        : collapsed
+                          ? 'text-tea-text-sec group-hover:text-tea-text'
+                          : 'text-tea-gold/55 group-hover:text-tea-gold/80'
+                    }`}>
+                      <Layers size={18} strokeWidth={1.75} />
+                    </div>
+                    {!collapsed && (
+                      <span className={`${TYPOGRAPHY_CLASSES.navSidebar} text-left transition-colors duration-200 ${
+                        currentPath.startsWith('/admin/collections') ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
+                      }`}>
+                        Collections
+                      </span>
+                    )}
+                  </Link>
+                </motion.div>
               </motion.nav>
             )}
           </AnimatePresence>

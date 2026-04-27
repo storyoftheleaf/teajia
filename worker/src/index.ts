@@ -1138,7 +1138,7 @@ const handleGetMe: Handler = async (request, env) => {
 
   // Try to fetch fresh user data from DB
   try {
-    const user = await env.DB.prepare('SELECT id, email, username, name, role, phone, admin_request_status, created_at FROM users WHERE id = ?').bind(claims.sub).first();
+    const user = await env.DB.prepare('SELECT id, email, username, name, role, phone, admin_request_status, created_at, can_create_collections FROM users WHERE id = ?').bind(claims.sub).first();
     if (user) {
       return json({ ...user, ...(refreshedToken ? { refreshed_token: refreshedToken } : {}) });
     }
