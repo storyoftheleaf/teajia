@@ -108,13 +108,9 @@ Until this is done, every other phase is fighting the build system. **Do this fi
 - `Card.tsx` `backdrop-blur-[0px]` → `backdrop-blur-none`. The hover `backdrop-blur-[1px]` kept as intentional micro-detail (no scale equivalent at 1px; `backdrop-blur-sm` is 4px, too strong).
 - `saturate-150` is not arbitrary — it's a Tailwind default, kept as-is.
 
-**Deferred / not shipped:**
+**Deferred / not shipped (initial pass):**
 
-**C1 — Typography (deferred):**
-- Recon found **~2,733 `text-[Npx]` sites in `src/`**, dominated by `text-[10px]` (980×), `text-[11px]` (637×), `text-[13px]` (260×), `text-[12px]` (232×), `text-[9px]` (222×). The plan estimated ~30 sites — off by two orders of magnitude.
-- Migrating this requires a separate multi-session initiative: define a UI typography scale (`text-ui-9` / `text-ui-10` / etc.) or codemod by exact value, then walk every screen for visual drift. Risk of regression is high without per-component review.
-- The Google Fonts loadout in `index.html` is already 6 fonts (Cormorant Garamond, Lora, Plus Jakarta Sans, IBM Plex Mono, Noto Serif SC, Ma Shan Zheng), not 8. The plan's "drop 5 of 8" is stale. Subsetting (e.g. Noto Serif SC's `&text=` parameter) is already in place.
-- The `--font-size-*` CSS custom properties the plan said to delete don't exist in current `src/`. Already done.
+**C1 — Typography:** Initially deferred at first Phase C pass; **shipped on follow-up (commits 1fdd781 + 199d600)** as a mechanical scale migration. See "Phase C1 — UI text scale" below.
 
 **C2 — Spacing (deferred as intentional):**
 - The two `0.875rem` and one `0.625rem` sites in `card-utilities.css` are intentional micro-stops (an intermediate responsive ramp at md, an asymmetric pill-tag padding). Not violations. Replacing with grid increments would break the visual.
@@ -131,6 +127,34 @@ Until this is done, every other phase is fighting the build system. **Do this fi
 - `grep z-\\[9999\\] src/`: returns nothing (collision resolved)
 
 **Unblocks:** Phase D (mobile + a11y) is now trivial — z-index is named, scales exist, lint has teeth.
+
+---
+
+## Phase C1 — UI text scale ✅ COMPLETE (shipped 2026-04-28)
+
+**Goal:** Eliminate the 2,733 `text-[Npx]` arbitrary classes scattered across `src/` without changing a single rendered pixel.
+
+**Strategy:** Mechanical rename, not semantic migration. Defining a UI text scale in `designTokens.ts` and renaming every existing site to its named equivalent preserves the design exactly while killing the arbitrary-class drift and giving lint something to enforce.
+
+**What shipped:**
+
+**C1 (commit 1fdd781):**
+- Added `UI_TEXT_SCALE` to `designTokens.ts` — 13 named stops (`ui-8` through `ui-28`) covering every pixel value that appears 5+ times in `src/`.
+- Wired into `tailwind.config.ts` via `theme.extend.fontSize` alongside the existing `FONT_SIZES`.
+- Mechanically renamed **2,658 `text-[Npx]` sites across 241 files** to their named equivalent. Top values: `text-[10px]` (980→) `text-ui-10`, `[11px]` (637→) `text-ui-11`, `[13px]` (260→) `text-ui-13`, `[12px]` (232→) `text-ui-12`, `[9px]` (222→) `text-ui-9`, `[14px]` (152), `[15px]` (113).
+- Long-tail (35 sites with values <5 occurrences each: 18px, 22px, 30px, 48px, 69px, 200px, etc.) intentionally left as arbitrary classes — not worth carrying scale stops for one-offs.
+- Verified by inspecting built CSS: `.text-ui-10 { font-size: 10px }`, `.text-ui-11 { font-size: 11px }`, etc. Identical pixel output to the original `text-[Npx]` arbitraries. Zero visual drift.
+
+**C1b (commit 199d600):**
+- Added Rule 7 to `lint-colors.sh`: any new `text-[(8|9|10|...|28)px]` in `src/` fails the pre-commit hook with a clear message pointing to `designTokens.ts`. The migration is now permanent.
+- Long-tail values still allowed.
+- Positive-control verified: a fake `text-[10px]` injected into `src/App.tsx` causes `lint:colors` to exit 1 and the pre-commit hook to reject the commit.
+
+**What was NOT done (intentionally out of scope):**
+- Semantic migration to `TYPOGRAPHY_CLASSES.h2` / `.body` / `.label`. That would require per-component review across every screen with high regression risk. The mechanical rename gives 95% of the practical benefit (kills the drift, enforces with lint) without that cost. Future component touches can opt into the semantic classes naturally.
+- Long-tail value migration. Carrying 20+ scale stops for sub-5-occurrence values would bloat the design tokens.
+- Google Fonts pruning. Recon showed 6 fonts loaded, not 8 (audit was stale); subsetting is already in place via `&text=` parameters.
+- The `--font-size-*` CSS custom properties the plan said to delete don't exist in current `src/`. Already gone.
 
 ---
 
@@ -152,10 +176,17 @@ Until this is done, every other phase is fighting the build system. **Do this fi
 - D4 — `bg-white/N` is gone from `src/` (no surviving asymmetric scrims after Phase B1).
 - "text-tea-ink/40" — `tea-ink` token is removed entirely (Phase B); zero references remain.
 
-**Deferred:**
+**Initially deferred, then shipped:**
 
-**D1 — Tap targets (deferred):**
-- The plan named 5–6 violations (PageHeader Back, ChevronRight, cart stepper, Reader progress handle, footer admin link) but no file paths or click-target sizes. No `tap-target` utility token exists yet. Properly closing this needs an a11y audit pass (preferably a Playwright a11y check enumerating every interactive element below 44×44) — out of scope for a one-pass migration. The Footer admin link was bumped for contrast in D2 but its tap-target remains.
+**D1 — Tap targets (commit 1de9680):**
+- Defined `.tap-target` utility in `card-utilities.css`: `min-width: 44px; min-height: 44px; inline-flex; align/justify center`. Adds invisible padding around the click area without changing visible element size.
+- Applied to all 5 audit-named violations:
+  - `PageHeader.tsx` Back button (was `min-h-[36px]`)
+  - `SoldItemsView.tsx` ChevronRight pagination buttons (8 sites, were `min-h-[36px] min-w-[36px]`)
+  - `CartItem.tsx` cart stepper +/- buttons (were `w-9 h-9`)
+  - `Reader.tsx` progress scrubber handle (was `h-8`; uses `!justify-stretch` override to preserve `w-full` track)
+  - `Footer.tsx` admin link (text-only link, no prior min-sizing)
+- Conservative: did NOT add tap-target to disclosure chevrons inside larger row buttons (parent IS the tap target with ample padding), inline action icons inside dense edit panels, or PageHeader's mobile buttons that already declared `min-w-[44px] min-h-[44px]` inline.
 
 **Verification:**
 - `npm run lint`: clean
@@ -171,7 +202,7 @@ Until this is done, every other phase is fighting the build system. **Do this fi
 
 **E1 — `transparenttextures.com` external dep:** Already gone. `grep -r transparenttextures` returns nothing.
 
-**E1 — `feTurbulence` overlays:** 17 files use feTurbulence (34 occurrences). The plan said "remove three full-screen fixed overlays" but recon shows these are intentional editorial textures embedded in component-level recipes, not bloat. Removing them is a design decision (loses the warm grain that defines the brand) rather than a perf optimization. No action.
+**E1 — `feTurbulence` overlays:** Audited via worktree agent on 2026-04-28. Of 34 feTurbulence occurrences across 17 files, **exactly one** is an app-shell full-page overlay (`<div className="texture-overlay" />` in `src/App.tsx:580`, defined in `tailwind.css:211` as `position: fixed; inset: 0; z-index: 1; opacity: 0.06`). The remaining 33 occurrences are component-scoped (Card grain, sidebar grain, alcove grain, modal canvas grain) — they layer additional texture on specific surfaces, not redundant with the app-shell layer. The audit's "three full-screen fixed overlays" claim does not match current code (likely stale snapshot). Recommendation: keep the lone app-shell overlay; it's the base grain layer for routes that don't ship per-component grain (Shop, Account, Admin lists). Removing it would strip brand grain off large swaths of the app. **No action taken.**
 
 **E2 — framer-motion code-split:** 97 files import `framer-motion`. 20 in `src/admin/`, 77 in public components/pages. Code-splitting it to admin-only would require refactoring 77 files to use CSS animations or a lighter library. This is a multi-week refactor, not a half-day perf pass. Deferred until there's evidence framer-motion is actually a Lighthouse bottleneck (the production bundle splits framer-motion into its own chunk via Vite's automatic chunking, so the practical impact may already be minimal).
 
