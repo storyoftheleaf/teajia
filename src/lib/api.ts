@@ -9,6 +9,11 @@ export interface AuditLogEntry {
   target_id: string;
   details: string; // JSON string
   created_at: string;
+  // account_id = the account the action targets (or NULL for platform-wide).
+  // actor_account_id = the account context the actor was operating in when
+  // the action fired. When these differ, the actor was acting cross-account.
+  account_id?: string | null;
+  actor_account_id?: string | null;
 }
 
 export interface PlatformUser {
@@ -2551,6 +2556,40 @@ export const api = {
         body: JSON.stringify({ note }),
       });
       await handleResponse(res);
+    },
+
+    // Exchange-rate admin (Platform tier only).
+    listExchangeRates: async (): Promise<{
+      rates: Array<{ currency: string; rate_to_usd: number; last_updated: string | null; usage_count: number }>;
+    }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/platform/exchange-rates`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    createExchangeRate: async (data: { currency: string; rate_to_usd: number }): Promise<{
+      success: true; currency: string; rate_to_usd: number;
+    }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/platform/exchange-rates`, {
+        method: 'POST', headers: authHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
+    updateExchangeRate: async (currency: string, rate_to_usd: number): Promise<{
+      success: true; currency: string; rate_to_usd: number;
+    }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/platform/exchange-rates/${encodeURIComponent(currency)}`, {
+        method: 'PUT', headers: authHeaders(),
+        body: JSON.stringify({ rate_to_usd }),
+      });
+      return handleResponse(res);
+    },
+    deleteExchangeRate: async (currency: string): Promise<{ success: true }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/platform/exchange-rates/${encodeURIComponent(currency)}`, {
+        method: 'DELETE', headers: authHeaders(),
+      });
+      return handleResponse(res);
     },
   },
 

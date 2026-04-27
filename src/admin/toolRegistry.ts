@@ -34,7 +34,7 @@ export const ADMIN_TOOLS: AdminTool[] = [
   { id: 'quick-invoice', label: 'Quick Invoice', group: 'sell', route: '/admin/activity?qi=1', addedAt: '2025-11-10', bundle: 'sell' },
   { id: 'people', label: 'Customers', group: 'sell', route: '/admin/people', addedAt: '2025-10-01', bundle: 'sell' },
   { id: 'inventory', label: 'Inventory', group: 'sell', route: '/admin/inventory', addedAt: '2025-09-15', bundle: 'stock' },
-  { id: 'purchase-orders', label: 'Purchase Orders', group: 'sell', route: '/admin/purchase-orders', addedAt: '2026-02-20', requires: 'owner' },
+  { id: 'purchase-orders', label: 'Purchase Orders', group: 'sell', route: '/admin/purchase-orders', addedAt: '2026-02-20', requires: 'owner', bundle: 'stock' },
 
   { id: 'compass', label: 'Tea Compass', group: 'source', route: '/admin/compass', addedAt: '2025-09-01', bundle: 'catalog' },
   { id: 'capture', label: 'Quick Capture', group: 'source', route: '/admin/capture', addedAt: '2026-01-12', bundle: 'catalog' },
@@ -47,10 +47,11 @@ export const ADMIN_TOOLS: AdminTool[] = [
   { id: 'magazine', label: 'Magazine', group: 'publish', route: '/admin/magazine', addedAt: '2026-01-28', requires: 'owner', bundle: 'publish' },
   { id: 'collections', label: 'Collections', group: 'publish', route: '/admin/collections', addedAt: '2026-04-24', requires: 'owner', bundle: 'publish' },
 
-  { id: 'team', label: 'Team', group: 'teach', route: '/admin/people?tab=team', addedAt: '2025-12-05', requires: 'owner' },
-  { id: 'access', label: 'Members & Access', group: 'teach', route: '/admin/access', addedAt: '2026-04-26', requires: 'owner' },
+  { id: 'team', label: 'Team', group: 'teach', route: '/admin/people?tab=team', addedAt: '2025-12-05', requires: 'owner', bundle: 'members' },
+  { id: 'access', label: 'Members & Access', group: 'teach', route: '/admin/access', addedAt: '2026-04-26', requires: 'owner', bundle: 'members' },
   { id: 'settings', label: 'Settings', group: 'teach', route: '/admin/settings', addedAt: '2026-04-27', requires: 'owner' },
   { id: 'platform-access', label: 'Platform Access', group: 'teach', route: '/admin/access/platform', addedAt: '2026-04-26', requires: 'platform' },
+  { id: 'currency-rates', label: 'Exchange Rates', group: 'teach', route: '/admin/currency', addedAt: '2026-04-27', requires: 'platform' },
 
   // Network — Steps 2-6 of NETWORK_ROLLOUT_PLAN. Owner-gated as a proxy for the
   // bundles (catalog/sell/etc); the views themselves enforce the bundle gate

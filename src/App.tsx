@@ -79,7 +79,7 @@ const StartHerePage = lazy(() => import('./pages/StartHerePage'));
 const ArticlePage = lazy(() => import('./pages/ArticlePage'));
 const PublicCollectionPage = lazy(() => import('./pages/PublicCollectionPage'));
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchStore } from './lib/storefrontApi';
 import { STORIES, LEARN_STORIES, PREVIEW_MODE } from './constants';
 import { Story, ContentType, ViewState, Person, InventoryItem, Section } from './types';
@@ -164,7 +164,16 @@ const AppContent = () => {
   useNotesSync(syncEnabled);
   const showAdminBar = false;
 
-  const { pullDistance, isRefreshing, progress } = usePullToRefresh();
+  const queryClient = useQueryClient();
+  // Pull-to-refresh: re-fetch inventory + invalidate active server queries so
+  // public pages (Shop, Magazine, Events) reflect any updates made elsewhere.
+  // The hook awaits this promise before hiding the indicator.
+  const { pullDistance, isRefreshing, progress } = usePullToRefresh(async () => {
+    await Promise.all([
+      refetchInventory(),
+      queryClient.invalidateQueries(),
+    ]);
+  });
 
   const location = useLocation();
   const navigate = useNavigate();

@@ -2181,6 +2181,155 @@ const handleGetRates: Handler = async (_request, env) => {
   return cachedJson(result.results, 3600);
 };
 
+// Normalise and validate a currency code. Codes are case-sensitive in this
+// schema (e.g. 'NT', 'Yuan', 'USD'); we trim only and reject empty/oversize.
+function validateCurrencyCode(raw: unknown): { ok: true; code: string } | { ok: false; error: string } {
+  if (typeof raw !== 'string') return { ok: false, error: 'currency must be a string' };
+  const code = raw.trim();
+  if (!code) return { ok: false, error: 'currency is required' };
+  if (code.length > 12) return { ok: false, error: 'currency code too long (max 12 chars)' };
+  if (!/^[A-Za-z][A-Za-z0-9]*$/.test(code)) {
+    return { ok: false, error: 'currency must be alphanumeric and start with a letter' };
+  }
+  return { ok: true, code };
+}
+
+function validateRate(raw: unknown): { ok: true; rate: number } | { ok: false; error: string } {
+  const n = typeof raw === 'string' ? Number(raw) : (typeof raw === 'number' ? raw : NaN);
+  if (!Number.isFinite(n)) return { ok: false, error: 'rate_to_usd must be a finite number' };
+  if (n <= 0) return { ok: false, error: 'rate_to_usd must be greater than 0' };
+  return { ok: true, rate: n };
+}
+
+// Count rows referencing a given currency across the main scoped tables. Used
+// to gate deletion (in-use check) and to surface usage in the admin panel.
+async function countCurrencyUsage(env: Env, code: string): Promise<number> {
+  const queries = [
+    'SELECT COUNT(*) as c FROM products WHERE cost_currency = ?',
+    'SELECT COUNT(*) as c FROM customers WHERE preferred_currency = ?',
+    'SELECT COUNT(*) as c FROM invoices WHERE display_currency = ?',
+  ];
+  let total = 0;
+  for (const q of queries) {
+    try {
+      const row = await env.DB.prepare(q).bind(code).first();
+      const c = (row as any)?.c;
+      if (typeof c === 'number') total += c;
+    } catch {
+      // Table or column may not exist in older schemas; ignore.
+    }
+  }
+  return total;
+}
+
+// GET /api/platform/exchange-rates — list with usage counts (Platform tier)
+const handlePlatformListExchangeRates: Handler = async (request, env) => {
+  const authErr = await requirePlatformAdmin(request, env);
+  if (authErr) return authErr;
+
+  const result = await env.DB.prepare(
+    'SELECT currency, rate_to_usd, last_updated FROM exchange_rates ORDER BY currency ASC'
+  ).all();
+
+  const rows = (result.results as any[]) || [];
+  const enriched = await Promise.all(rows.map(async r => ({
+    currency: r.currency,
+    rate_to_usd: Number(r.rate_to_usd),
+    last_updated: r.last_updated,
+    usage_count: await countCurrencyUsage(env, r.currency as string),
+  })));
+
+  return json({ rates: enriched });
+};
+
+// POST /api/platform/exchange-rates — create a new currency (Platform tier)
+const handlePlatformCreateExchangeRate: Handler = async (request, env) => {
+  const authErr = await requirePlatformAdmin(request, env);
+  if (authErr) return authErr;
+
+  const claims = parseToken(isAuthed(request)!)!;
+  const body = await request.json() as { currency?: unknown; rate_to_usd?: unknown };
+
+  const codeCheck = validateCurrencyCode(body.currency);
+  if (!codeCheck.ok) return json({ error: codeCheck.error }, 400);
+  const rateCheck = validateRate(body.rate_to_usd);
+  if (!rateCheck.ok) return json({ error: rateCheck.error }, 400);
+
+  const existing = await env.DB.prepare('SELECT currency FROM exchange_rates WHERE currency = ?')
+    .bind(codeCheck.code).first();
+  if (existing) return json({ error: 'Currency already exists' }, 409);
+
+  await env.DB.prepare(
+    "INSERT INTO exchange_rates (currency, rate_to_usd, last_updated) VALUES (?, ?, datetime('now'))"
+  ).bind(codeCheck.code, rateCheck.rate).run();
+
+  await logPlatformAction(env, 'exchange_rate.created', claims.sub, claims.email,
+    'exchange_rate', codeCheck.code, { rate_to_usd: rateCheck.rate });
+
+  return json({ success: true, currency: codeCheck.code, rate_to_usd: rateCheck.rate });
+};
+
+// PUT /api/platform/exchange-rates/:currency — update an existing rate (Platform tier)
+const handlePlatformUpdateExchangeRate: Handler = async (request, env, params) => {
+  const authErr = await requirePlatformAdmin(request, env);
+  if (authErr) return authErr;
+
+  const claims = parseToken(isAuthed(request)!)!;
+  const codeCheck = validateCurrencyCode(params.currency);
+  if (!codeCheck.ok) return json({ error: codeCheck.error }, 400);
+
+  const body = await request.json() as { rate_to_usd?: unknown };
+  const rateCheck = validateRate(body.rate_to_usd);
+  if (!rateCheck.ok) return json({ error: rateCheck.error }, 400);
+
+  const existing = await env.DB.prepare('SELECT rate_to_usd FROM exchange_rates WHERE currency = ?')
+    .bind(codeCheck.code).first();
+  if (!existing) return json({ error: 'Currency not found' }, 404);
+  const previousRate = Number((existing as any).rate_to_usd);
+
+  await env.DB.prepare(
+    "UPDATE exchange_rates SET rate_to_usd = ?, last_updated = datetime('now') WHERE currency = ?"
+  ).bind(rateCheck.rate, codeCheck.code).run();
+
+  await logPlatformAction(env, 'exchange_rate.updated', claims.sub, claims.email,
+    'exchange_rate', codeCheck.code, { from: previousRate, to: rateCheck.rate });
+
+  return json({ success: true, currency: codeCheck.code, rate_to_usd: rateCheck.rate });
+};
+
+// DELETE /api/platform/exchange-rates/:currency — delete if unused (Platform tier)
+const handlePlatformDeleteExchangeRate: Handler = async (request, env, params) => {
+  const authErr = await requirePlatformAdmin(request, env);
+  if (authErr) return authErr;
+
+  const claims = parseToken(isAuthed(request)!)!;
+  const codeCheck = validateCurrencyCode(params.currency);
+  if (!codeCheck.ok) return json({ error: codeCheck.error }, 400);
+
+  if (codeCheck.code === 'USD') {
+    return json({ error: 'USD is the base currency and cannot be deleted' }, 400);
+  }
+
+  const existing = await env.DB.prepare('SELECT currency FROM exchange_rates WHERE currency = ?')
+    .bind(codeCheck.code).first();
+  if (!existing) return json({ error: 'Currency not found' }, 404);
+
+  const usage = await countCurrencyUsage(env, codeCheck.code);
+  if (usage > 0) {
+    return json({
+      error: 'Currency is in use and cannot be deleted',
+      usage_count: usage,
+    }, 409);
+  }
+
+  await env.DB.prepare('DELETE FROM exchange_rates WHERE currency = ?').bind(codeCheck.code).run();
+
+  await logPlatformAction(env, 'exchange_rate.deleted', claims.sub, claims.email,
+    'exchange_rate', codeCheck.code, {});
+
+  return json({ success: true });
+};
+
 // ── Invoices ──
 const handleGetInvoices: Handler = async (request, env) => {
   const ctx = await requireAccount(request, env);
@@ -8861,7 +9010,8 @@ const handleGetAccountActivity: Handler = async (request, env, params) => {
   const offset = parseInt(url.searchParams.get('offset') || '0');
 
   const { results } = await env.DB.prepare(
-    `SELECT id, action, actor_id, actor_email, target_type, target_id, details, created_at
+    `SELECT id, action, actor_id, actor_email, target_type, target_id, details, created_at,
+            account_id, actor_account_id
      FROM platform_audit_log
      WHERE account_id = ?
      ORDER BY created_at DESC
@@ -8886,16 +9036,23 @@ async function logPlatformAction(
   targetType: string,
   targetId: string,
   details: Record<string, any> = {},
-  accountId?: string | null
+  accountId?: string | null,
+  actorAccountId?: string | null
 ): Promise<void> {
   try {
     // Default account_id to target_id when the target is an account, so legacy
     // call sites (which don't pass accountId) still produce per-account-filterable rows.
     const acct = accountId ?? (targetType === 'account' ? targetId : null);
+    // actor_account_id = the account context the actor was operating in when
+    // this fired. Distinct from `acct` (the action's target). Defaults to acct
+    // so legacy callers — which historically pass ctx.accountId as accountId —
+    // keep their meaning. Cross-account / acting-as call sites should pass it
+    // explicitly so the UI can render "Operating as X".
+    const actorAcct = actorAccountId ?? acct;
     await env.DB.prepare(
-      `INSERT INTO platform_audit_log (action, actor_id, actor_email, target_type, target_id, details, account_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`
-    ).bind(action, actorId, actorEmail, targetType, targetId, JSON.stringify(details), acct).run();
+      `INSERT INTO platform_audit_log (action, actor_id, actor_email, target_type, target_id, details, account_id, actor_account_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    ).bind(action, actorId, actorEmail, targetType, targetId, JSON.stringify(details), acct, actorAcct).run();
   } catch {
     // Non-critical — never let logging failure break the actual operation
   }
@@ -8921,7 +9078,13 @@ async function auditPlatformActingWrite(
     ).bind(ctx.userId, ctx.accountId).first();
     if (row) return; // acting in own account — not cross-account
   } catch {}
-  await logPlatformAction(env, action, ctx.userId, ctx.email, targetType, targetId, details, ctx.accountId);
+  // For acting-as writes: target account = ctx.accountId, AND the actor's
+  // active context is also ctx.accountId. Pass both so the audit row clearly
+  // says "Adrian, while acting as <account>, did X to <account>".
+  await logPlatformAction(
+    env, action, ctx.userId, ctx.email, targetType, targetId, details,
+    ctx.accountId, ctx.accountId
+  );
 }
 
 // ── Email Helper (Resend — optional) ──────────────────────────────────────────
@@ -9358,7 +9521,8 @@ const handlePlatformAuditLog: Handler = async (request, env) => {
   binds.push(limit, offset);
 
   const { results } = await env.DB.prepare(
-    `SELECT id, action, actor_id, actor_email, target_type, target_id, details, created_at
+    `SELECT id, action, actor_id, actor_email, target_type, target_id, details, created_at,
+            account_id, actor_account_id
      FROM platform_audit_log
      ${where}
      ORDER BY created_at DESC
@@ -9972,7 +10136,7 @@ const handleGetPublicAccountEvents: Handler = async (_request, env, params) => {
 // ── Purchase Orders ──
 
 const handleListPurchaseOrders: Handler = async (request, env) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'stock');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -9984,7 +10148,7 @@ const handleListPurchaseOrders: Handler = async (request, env) => {
 };
 
 const handleCreatePurchaseOrder: Handler = async (request, env) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'stock');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -10014,7 +10178,7 @@ const handleCreatePurchaseOrder: Handler = async (request, env) => {
 };
 
 const handleUpdatePurchaseOrder: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'stock');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -14178,12 +14342,44 @@ const handleAdoptProfile: Handler = async (request, env, params) => {
 
   await env.DB.batch(stmts);
 
+  // Resolve applicant correlation for the audit row. Closes Finding #37.
+  // The originating account's contact_email is the applicant. We additionally
+  // look up the most recent approved account_application for that email so
+  // reviewers can jump from the audit log back to the original onboarding
+  // record. Both fields are best-effort — older accounts may have no
+  // application row, in which case application_id is null.
+  let applicantEmail: string | null = null;
+  let applicationId: string | null = null;
+  let originatorTrustTier: string | null = null;
+  try {
+    const originator = await env.DB.prepare(
+      `SELECT contact_email, trust_tier FROM accounts WHERE id = ?`
+    ).bind(profile.originated_by_account_id).first() as
+      { contact_email: string | null; trust_tier: string | null } | null;
+    applicantEmail = originator?.contact_email ?? null;
+    originatorTrustTier = originator?.trust_tier ?? null;
+    if (applicantEmail) {
+      const app = await env.DB.prepare(
+        `SELECT id FROM account_applications
+          WHERE lower(applicant_email) = lower(?) AND status = 'approved'
+          ORDER BY decided_at DESC LIMIT 1`
+      ).bind(applicantEmail).first() as { id: string } | null;
+      applicationId = app?.id ?? null;
+    }
+  } catch {
+    // Non-fatal — audit logging must not block the decision.
+  }
+
   await logPlatformAction(
     env, `profile.adoption_${decision}`, claims.sub, claims.email,
     'tea_profile', profileId,
     {
+      decision,
       profile_name: profile.name,
       originator_account_id: profile.originated_by_account_id,
+      applicant_email: applicantEmail,
+      application_id: applicationId,
+      trust_tier: originatorTrustTier,
       previous_curator_id: profile.curated_by_account_id,
       new_curator_id: decision === 'adopted' ? platformAccount.id : profile.curated_by_account_id,
       decline_note: declineNote,
@@ -14306,6 +14502,12 @@ const routes: [string, string, Handler][] = [
 
   // Exchange Rates
   ['GET', '/api/rates', handleGetRates],
+
+  // Exchange Rates: Platform admin CRUD
+  ['GET',    '/api/platform/exchange-rates', handlePlatformListExchangeRates],
+  ['POST',   '/api/platform/exchange-rates', handlePlatformCreateExchangeRate],
+  ['PUT',    '/api/platform/exchange-rates/:currency', handlePlatformUpdateExchangeRate],
+  ['DELETE', '/api/platform/exchange-rates/:currency', handlePlatformDeleteExchangeRate],
 
   // Invoices
   ['GET', '/api/invoices', handleGetInvoices],

@@ -64,6 +64,22 @@ export const PlatformAuditLogPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(true);
+  const [accountNames, setAccountNames] = useState<Record<string, string>>({});
+
+  // Load account name lookup once so we can render "Operating as <name>"
+  // when an actor's active account differs from the action's target.
+  useEffect(() => {
+    let cancelled = false;
+    api.platform.listAccounts()
+      .then(d => {
+        if (cancelled) return;
+        const map: Record<string, string> = {};
+        for (const a of d.accounts) map[a.id] = a.name || a.slug || a.id;
+        setAccountNames(map);
+      })
+      .catch(() => { /* non-fatal — UI just won't show the friendly name */ });
+    return () => { cancelled = true; };
+  }, []);
 
   // Filters
   const [searchAction, setSearchAction] = useState('');
@@ -236,6 +252,15 @@ export const PlatformAuditLogPage: React.FC = () => {
             let details: Record<string, string | number | boolean> = {};
             try { details = JSON.parse(entry.details); } catch { /* ignore */ }
 
+            // Show "Operating as X" when the actor's active account context
+            // differs from the action's target account (cross-account write).
+            const actorAcct = entry.actor_account_id || null;
+            const targetAcct = entry.account_id || null;
+            const showActingAs = !!actorAcct && actorAcct !== targetAcct;
+            const actingAsName = actorAcct
+              ? (accountNames[actorAcct] || actorAcct.slice(0, 8))
+              : null;
+
             return (
               <div key={entry.id} className="inset-panel px-3 py-2.5">
                 <div className="flex items-start gap-3">
@@ -245,6 +270,9 @@ export const PlatformAuditLogPage: React.FC = () => {
                     </p>
                     <p className="text-tea-text-dim text-[11px] truncate">
                       <span className="text-tea-text-sec">{entry.actor_email}</span>
+                      {showActingAs && actingAsName && (
+                        <span className="text-tea-text-sec"> · operating as {actingAsName}</span>
+                      )}
                       {typeof details.name === 'string' && details.name ? ` → ${details.name}` : typeof details.email === 'string' && details.email ? ` → ${details.email}` : ''}
                       {details.from != null && details.to != null ? ` · ${String(details.from) || 'none'} → ${String(details.to) || 'none'}` : ''}
                       {typeof details.feature === 'string' && details.feature ? ` · ${details.feature} ${details.enabled ? 'on' : 'off'}` : ''}

@@ -10,7 +10,9 @@ const PULL_THRESHOLD = 80;
 const MAX_PULL = 120;
 const RESISTANCE = 0.4;
 
-export const usePullToRefresh = (onRefresh?: () => void) => {
+type RefreshFn = () => void | Promise<void>;
+
+export const usePullToRefresh = (onRefresh?: RefreshFn) => {
   const [state, setState] = useState<PullToRefreshState>({
     pullDistance: 0,
     isRefreshing: false,
@@ -19,6 +21,10 @@ export const usePullToRefresh = (onRefresh?: () => void) => {
 
   const touchStartY = useRef(0);
   const isAtTop = useRef(false);
+  // Hold the latest callback in a ref so handlers don't need to re-bind on every
+  // render of the consuming component (refetch fns from React Query are unstable).
+  const onRefreshRef = useRef<RefreshFn | undefined>(onRefresh);
+  useEffect(() => { onRefreshRef.current = onRefresh; }, [onRefresh]);
 
   const handleTouchStart = useCallback((e: TouchEvent) => {
     if (window.scrollY <= 0) {
@@ -46,23 +52,33 @@ export const usePullToRefresh = (onRefresh?: () => void) => {
     }
   }, [state.isRefreshing]);
 
+  const finish = useCallback(() => {
+    setState({ pullDistance: 0, isRefreshing: false, isPulling: false });
+  }, []);
+
   const handleTouchEnd = useCallback(() => {
     if (!state.isPulling) return;
 
     if (state.pullDistance >= PULL_THRESHOLD) {
       setState(prev => ({ ...prev, isRefreshing: true, pullDistance: PULL_THRESHOLD * 0.6 }));
-      // Execute refresh
-      if (onRefresh) {
-        onRefresh();
-      }
-      // Auto-complete after 1s
-      setTimeout(() => {
-        setState({ pullDistance: 0, isRefreshing: false, isPulling: false });
-      }, 1000);
+      const cb = onRefreshRef.current;
+      const minDuration = new Promise<void>(resolve => setTimeout(resolve, 600));
+      const refresh = (() => {
+        try {
+          const ret = cb ? cb() : undefined;
+          return ret instanceof Promise ? ret : Promise.resolve();
+        } catch {
+          return Promise.resolve();
+        }
+      })();
+      // Resolve indicator only after refresh AND a short minimum so the user
+      // perceives the action. Cap total at 4s in case a query hangs.
+      const timeout = new Promise<void>(resolve => setTimeout(resolve, 4000));
+      Promise.race([Promise.all([refresh, minDuration]), timeout]).finally(finish);
     } else {
-      setState({ pullDistance: 0, isRefreshing: false, isPulling: false });
+      finish();
     }
-  }, [state.isPulling, state.pullDistance, onRefresh]);
+  }, [state.isPulling, state.pullDistance, finish]);
 
   useEffect(() => {
     window.addEventListener('touchstart', handleTouchStart, { passive: true });

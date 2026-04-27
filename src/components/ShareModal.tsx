@@ -130,8 +130,14 @@ export const ShareModal: React.FC<ShareModalProps> = ({ story, onClose }) => {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleTwitter = () => {
-    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`, '_blank');
+  const twitterHref = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
+  const facebookHref = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
+
+  const openIntent = (href: string) => (e: React.MouseEvent) => {
+    // Anchor handles the navigation; this is just defensive for environments
+    // where `target=_blank` is blocked but `window.open` from a click is allowed.
+    e.preventDefault();
+    window.open(href, '_blank', 'noopener,noreferrer');
   };
 
   const handleWhatsApp = () => {
@@ -265,36 +271,53 @@ export const ShareModal: React.FC<ShareModalProps> = ({ story, onClose }) => {
            </button>
 
            {/* 3. Desktop / Direct Links Grid - with platform colors */}
-           <div className="grid grid-cols-3 gap-3 pt-2">
+           <div className="grid grid-cols-4 gap-2 pt-2">
               {/* Copy Link Button */}
               <button
                 onClick={handleCopy}
-                className={`flex flex-col items-center justify-center p-3 border-2 rounded-sm transition-all duration-300 gap-2 h-20 group ${
+                className={`flex flex-col items-center justify-center p-2 border-2 rounded-sm transition-all duration-300 gap-2 h-20 group ${
                   copied
                     ? 'bg-tea-green/10 border-tea-green text-tea-green'
                     : 'border-tea-text/20 hover:border-tea-text/40 hover:bg-tea-text/5'
                 }`}
               >
                 {copied ? <Icons.Check className="w-5 h-5" /> : <Icons.Link className="w-5 h-5 group-hover:scale-110 transition-transform" />}
-                <span className="text-[9px] uppercase tracking-wider font-semibold">{copied ? 'Copied!' : 'Copy Link'}</span>
+                <span className="text-[9px] uppercase tracking-wider font-semibold">{copied ? 'Copied' : 'Copy'}</span>
               </button>
 
-              {/* Twitter Button */}
-              <button
-                onClick={handleTwitter}
-                className="flex flex-col items-center justify-center p-3 border-2 border-tea-text/20 hover:border-tea-text/40 bg-tea-text/5 hover:bg-tea-text/10 transition-all duration-300 gap-2 h-20 group rounded-sm"
+              {/* Twitter Button — anchor for popup-blocker friendliness */}
+              <a
+                href={twitterHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={openIntent(twitterHref)}
+                className="flex flex-col items-center justify-center p-2 border-2 border-tea-text/20 hover:border-tea-text/40 bg-tea-text/5 hover:bg-tea-text/10 transition-all duration-300 gap-2 h-20 group rounded-sm text-tea-text-sec hover:text-tea-text"
+                aria-label="Share on Twitter"
               >
-                <Icons.Twitter className="w-5 h-5 text-tea-text/60 group-hover:scale-110 transition-transform" />
-                <span className="text-[9px] uppercase tracking-wider font-semibold text-tea-text/70">Post</span>
-              </button>
+                <Icons.Twitter className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                <span className="text-[9px] uppercase tracking-wider font-semibold">Post</span>
+              </a>
+
+              {/* Facebook Button */}
+              <a
+                href={facebookHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={openIntent(facebookHref)}
+                className="flex flex-col items-center justify-center p-2 border-2 border-tea-text/20 hover:border-tea-text/40 bg-tea-text/5 hover:bg-tea-text/10 transition-all duration-300 gap-2 h-20 group rounded-sm text-tea-text-sec hover:text-tea-text"
+                aria-label="Share on Facebook"
+              >
+                <span className="font-serif text-lg leading-none group-hover:scale-110 transition-transform">f</span>
+                <span className="text-[9px] uppercase tracking-wider font-semibold">Share</span>
+              </a>
 
               {/* WhatsApp Button */}
               <button
                 onClick={handleWhatsApp}
-                className="flex flex-col items-center justify-center p-3 border-2 border-tea-text/20 hover:border-tea-text/40 bg-tea-text/5 hover:bg-tea-text/10 transition-all duration-300 gap-2 h-20 group rounded-sm"
+                className="flex flex-col items-center justify-center p-2 border-2 border-tea-text/20 hover:border-tea-text/40 bg-tea-text/5 hover:bg-tea-text/10 transition-all duration-300 gap-2 h-20 group rounded-sm"
               >
-                <Icons.Message className="w-5 h-5 text-tea-text/60 group-hover:scale-110 transition-transform" />
-                <span className="text-[9px] uppercase tracking-wider font-semibold text-tea-text/70">Chat</span>
+                <Icons.Message className="w-5 h-5 text-tea-text-sec group-hover:scale-110 transition-transform" />
+                <span className="text-[9px] uppercase tracking-wider font-semibold text-tea-text-sec">Chat</span>
               </button>
            </div>
 

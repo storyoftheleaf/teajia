@@ -73,6 +73,7 @@ import { AccountSettingsView } from './views/AccountSettingsView';
 import { PlatformAdminView } from './views/PlatformAdminView';
 import { AccessView } from './views/AccessView';
 import { PlatformAccessView } from './views/PlatformAccessView';
+import { CurrencyRatesView } from './views/CurrencyRatesView';
 import { EventsManager } from './components/EventsManager';
 import { EventDetail } from './components/EventDetail';
 import { VenueManager } from './components/VenueManager';
@@ -312,9 +313,8 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
   const incomingShareCount = incomingSharesData?.length ?? 0;
 
   // Pull-to-refresh (mobile)
-  const { pullDistance, isRefreshing, progress } = usePullToRefresh(() => {
-    refetchProducts();
-    refetchRates();
+  const { pullDistance, isRefreshing, progress } = usePullToRefresh(async () => {
+    await Promise.all([refetchProducts(), refetchRates()]);
   });
 
   const loading = productsLoading;
@@ -658,6 +658,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
               <Route path="team" element={<Navigate to="/admin/access" replace />} />
               <Route path="access" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><AccessView /></PageTransition></ProtectedRoute>} />
               <Route path="access/platform" element={<ProtectedRoute hasAccess={isAdmin && !!platformRole} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><PlatformAccessView /></PageTransition></ProtectedRoute>} />
+              <Route path="currency" element={<ProtectedRoute hasAccess={isAdmin && !!platformRole} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><CurrencyRatesView /></PageTransition></ProtectedRoute>} />
               {/* Network hub — single page with tabbed surfaces */}
               <Route path="network" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><NetworkLanding /></PageTransition></ProtectedRoute>} />
               {/* Legacy destination routes redirect into the hub with their tab */}

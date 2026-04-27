@@ -2,21 +2,44 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion';
 import Fuse from 'fuse.js';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { Icons } from '../Icons';
 import { useStories } from '../../context/StoryContext';
 import { useInventory } from '../../context/InventoryContext';
-import { Story, InventoryItem, ContentType } from '../../types';
+import { ContentType } from '../../types';
+import { api } from '../../lib/api';
 
 // ── Result types ──────────────────────────────────────────────
 
 interface SearchResult {
   id: string;
-  type: 'product' | 'article' | 'story';
+  type: 'product' | 'article' | 'story' | 'dbarticle' | 'event';
   title: string;
   subtitle: string;
   category?: string;
   image?: string;
   action: () => void;
+}
+
+interface DbArticleLite {
+  id: string;
+  slug: string;
+  title: string;
+  subtitle?: string;
+  excerpt?: string;
+  hero_image?: string;
+  published_at?: string;
+}
+
+interface PublicEventLite {
+  id: string;
+  slug: string;
+  title: string;
+  subtitle?: string;
+  description?: string;
+  starts_at?: string;
+  hero_image?: string;
+  venue_name?: string;
 }
 
 // ── Component ─────────────────────────────────────────────────
@@ -69,11 +92,40 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) =
     }
   }, [isOpen]);
 
-  // Published stories only
+  // Published stories only (legacy localStorage source)
   const publishedStories = useMemo(
     () => stories.filter(s => s.status === 'published'),
     [stories]
   );
+
+  // Pull live data sources from React Query — these reuse the cache populated
+  // by Magazine + Events pages, so opening search doesn't trigger duplicate
+  // network requests on warm caches.
+  const { data: dbArticlesRaw } = useQuery({
+    queryKey: ['articles', 'published', 'search'],
+    queryFn: () => api.articles.listPublished(50, 0),
+    staleTime: 5 * 60 * 1000,
+    enabled: isOpen,
+  });
+  const dbArticles: DbArticleLite[] = useMemo(() => {
+    const d: any = dbArticlesRaw;
+    if (!d) return [];
+    if (Array.isArray(d)) return d;
+    return (d.articles || []) as DbArticleLite[];
+  }, [dbArticlesRaw]);
+
+  const { data: publicEventsRaw } = useQuery({
+    queryKey: ['events', 'public', 'search'],
+    queryFn: () => api.events.listPublic(),
+    staleTime: 5 * 60 * 1000,
+    enabled: isOpen,
+  });
+  const publicEvents: PublicEventLite[] = useMemo(() => {
+    const d: any = publicEventsRaw;
+    if (!d) return [];
+    if (Array.isArray(d)) return d;
+    return (d.events || []) as PublicEventLite[];
+  }, [publicEventsRaw]);
 
   // Build fuse indexes
   const productFuse = useMemo(
@@ -106,6 +158,37 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) =
         ignoreLocation: true,
       }),
     [publishedStories]
+  );
+
+  const dbArticleFuse = useMemo(
+    () =>
+      new Fuse(dbArticles, {
+        keys: [
+          { name: 'title', weight: 2 },
+          { name: 'subtitle', weight: 1 },
+          { name: 'excerpt', weight: 0.5 },
+        ],
+        threshold: 0.35,
+        includeScore: true,
+        ignoreLocation: true,
+      }),
+    [dbArticles]
+  );
+
+  const eventFuse = useMemo(
+    () =>
+      new Fuse(publicEvents, {
+        keys: [
+          { name: 'title', weight: 2 },
+          { name: 'subtitle', weight: 1 },
+          { name: 'description', weight: 0.5 },
+          { name: 'venue_name', weight: 0.8 },
+        ],
+        threshold: 0.35,
+        includeScore: true,
+        ignoreLocation: true,
+      }),
+    [publicEvents]
   );
 
   const navigateAndClose = useCallback(
@@ -159,17 +242,48 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) =
       };
     });
 
-    return [...productHits, ...storyHits];
-  }, [query, productFuse, storyFuse, navigateAndClose, navigate, onClose]);
+    const dbArticleHits = dbArticleFuse.search(query, { limit: 5 }).map(r => {
+      const a = r.item;
+      return {
+        id: `dbarticle-${a.id}`,
+        type: 'dbarticle' as const,
+        title: a.title,
+        subtitle: a.subtitle || a.excerpt?.slice(0, 80) || '',
+        category: 'Article',
+        image: a.hero_image,
+        action: () => navigateAndClose(`/magazine/${encodeURIComponent(a.slug)}`),
+      };
+    });
 
-  // Group results by type
+    const eventHits = eventFuse.search(query, { limit: 5 }).map(r => {
+      const ev = r.item;
+      return {
+        id: `event-${ev.id}`,
+        type: 'event' as const,
+        title: ev.title,
+        subtitle: [ev.subtitle, ev.venue_name].filter(Boolean).join(' . ') || ev.description?.slice(0, 80) || '',
+        category: 'Session',
+        image: ev.hero_image,
+        action: () => navigateAndClose(`/events/${encodeURIComponent(ev.slug)}`),
+      };
+    });
+
+    return [...productHits, ...dbArticleHits, ...storyHits, ...eventHits];
+  }, [query, productFuse, storyFuse, dbArticleFuse, eventFuse, navigateAndClose, navigate, onClose]);
+
+  // Group results by type. Legacy localStorage Stories are surfaced under their
+  // own heading so it is clear they aren't synced with the server.
   const groupedResults = useMemo(() => {
     const groups: { label: string; items: SearchResult[] }[] = [];
     const products = results.filter(r => r.type === 'product');
-    const articles = results.filter(r => r.type !== 'product');
+    const dbArticles = results.filter(r => r.type === 'dbarticle');
+    const stories = results.filter(r => r.type === 'story' || r.type === 'article');
+    const events = results.filter(r => r.type === 'event');
 
     if (products.length > 0) groups.push({ label: 'Products', items: products });
-    if (articles.length > 0) groups.push({ label: 'Articles & Stories', items: articles });
+    if (dbArticles.length > 0) groups.push({ label: 'Articles', items: dbArticles });
+    if (events.length > 0) groups.push({ label: 'Sessions', items: events });
+    if (stories.length > 0) groups.push({ label: 'Journal (saved on this device)', items: stories });
     return groups;
   }, [results]);
 
@@ -195,7 +309,7 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) =
   const typeBadgeColor = (type: string) => {
     switch (type) {
       case 'product': return 'bg-tea-gold/15 text-tea-gold';
-      case 'article': return 'bg-tea-accent-sub text-tea-text-sec';
+      case 'event': return 'bg-tea-gold/10 text-tea-text-sec';
       default: return 'bg-tea-accent-sub text-tea-text-sec';
     }
   };
