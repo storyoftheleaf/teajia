@@ -69,7 +69,6 @@ const ReadingHistoryPage = lazy(() => import('./pages/ReadingHistoryPage'));
 const CenterPage = lazy(() => import('./pages/CenterPage'));
 const OrderHistoryPage = lazy(() => import('./pages/OrderHistoryPage'));
 const SampleHistoryPage = lazy(() => import('./pages/SampleHistoryPage'));
-const CommunityPage = lazy(() => import('./pages/CommunityPage'));
 const SessionPage = lazy(() => import('./pages/SessionPage'));
 const TableCardPage = lazy(() => import('./pages/TableCardPage'));
 const EventsPage = lazy(() => import('./pages/EventsPage'));
@@ -81,7 +80,7 @@ const PublicCollectionPage = lazy(() => import('./pages/PublicCollectionPage'));
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchStore } from './lib/storefrontApi';
-import { STORIES, LEARN_STORIES, PREVIEW_MODE } from './constants';
+import { STORIES, LEARN_STORIES } from './constants';
 import { Story, ContentType, ViewState, Person, InventoryItem, Section } from './types';
 import type { Account } from './types';
 import { useAppStore } from './lib/store';
@@ -121,7 +120,6 @@ import { PreloadIndicator } from './components/shared/PreloadIndicator';
 import { CartFlyAnimation } from './components/shared/CartFlyAnimation';
 import { CartToast } from './components/shared/CartToast';
 import { ScrollProgressBar } from './components/shared/ScrollProgressBar';
-import { ComingSoonPage } from './components/shared/ComingSoonPage';
 import { AnimatedRoutes } from './components/shared/AnimatedRoutes';
 import { usePullToRefresh } from './hooks/usePullToRefresh';
 import { COMMUNITY_MEMBERS } from './data/communityMembers';
@@ -691,28 +689,27 @@ const AppContent = () => {
                 } />
                 {/* Legacy route — old links to /consult keep working. */}
                 <Route path="/consult" element={<Navigate to="/advise" replace />} />
-                {/* PREVIEW_MODE stubs — restore in docs/LAUNCH_CHECKLIST.md */}
-                <Route path="/for-your-space" element={PREVIEW_MODE ? <ComingSoonPage label="For your space" /> : (
+                <Route path="/for-your-space" element={
                   <ErrorBoundary>
                     <Suspense fallback={<SectionSkeleton variant="hero" />}>
                       <ForYourSpacePage />
                     </Suspense>
                   </ErrorBoundary>
-                )} />
-                <Route path="/spaces" element={PREVIEW_MODE ? <ComingSoonPage label="Our spaces" /> : (
+                } />
+                <Route path="/spaces" element={
                   <ErrorBoundary>
                     <Suspense fallback={<SectionSkeleton variant="list" />}>
                       <SpacesPage />
                     </Suspense>
                   </ErrorBoundary>
-                )} />
-                <Route path="/start" element={PREVIEW_MODE ? <ComingSoonPage label="Start here" /> : (
+                } />
+                <Route path="/start" element={
                   <ErrorBoundary>
                     <Suspense fallback={<SectionSkeleton variant="grid" />}>
                       <StartHerePage />
                     </Suspense>
                   </ErrorBoundary>
-                )} />
+                } />
                 <Route path="/collection" element={
                   <ErrorBoundary>
                     <Suspense fallback={<SectionSkeleton variant="list" />}>
@@ -732,7 +729,6 @@ const AppContent = () => {
                 <Route path="/account/history" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="list" />}><ReadingHistoryPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/orders" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="list" />}><OrderHistoryPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/samples" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="list" />}><SampleHistoryPage /></Suspense></ErrorBoundary>} />
-                <Route path="/community" element={PREVIEW_MODE ? <ComingSoonPage label="Community" /> : <ErrorBoundary><Suspense fallback={<SectionSkeleton variant="grid" />}><CommunityPage /></Suspense></ErrorBoundary>} />
                 <Route path="/design/tabs" element={<ErrorBoundary><Suspense fallback={null}><TabStyleDemo /></Suspense></ErrorBoundary>} />
                 <Route path="/events" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="list" />}><EventsPage /></Suspense></ErrorBoundary>} />
                 <Route path="/event/:slug" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><EventLanding /></Suspense></ErrorBoundary>} />

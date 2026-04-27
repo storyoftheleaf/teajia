@@ -2,10 +2,6 @@
 
 import { ContentType, Story, Person, LearnModule, LearnPath, StarterSet } from './types';
 
-// Soft-launch mode — hides unfinished sections from public visitors.
-// Set to false to restore each route. See docs/LAUNCH_CHECKLIST.md for what's hidden and how to restore.
-export const PREVIEW_MODE = false;
-
 // Import stories and people from content directory
 export { STORIES } from './content';
 export { PEOPLE, PEOPLE_DIRECTORY } from './content/people';

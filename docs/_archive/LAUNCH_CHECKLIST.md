@@ -1,3 +1,5 @@
+SUPERSEDED 2026-04-27: PREVIEW_MODE was permanently removed (commit cleaning up #25 + #26). Kept here for historical context only.
+
 # Launch Checklist — Restoring Hidden Sections
 
 All sections below were hidden for the soft launch. Each one is gated by `PREVIEW_MODE = true` in `src/constants.ts`.

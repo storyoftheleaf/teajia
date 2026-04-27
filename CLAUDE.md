@@ -110,7 +110,6 @@ Requires dev server already running (`npm run dev`). Takes ~90 seconds.
 ### Known stub/incomplete pages — do not add links to these without building them first
 | Route | Status |
 |---|---|
-| `/community` | Placeholder — heading + Back only, no content |
 | `/account/orders` | Empty state only — no order data wired |
 | `/account/samples` | Empty state only — no sample data wired |
 

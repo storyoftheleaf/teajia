@@ -5,7 +5,6 @@ import { Icons } from './Icons';
 import { LogoEmblem } from './Logos';
 import { Section } from '../types';
 import { useTheme } from '../context/ThemeContext';
-import { PREVIEW_MODE } from '../constants';
 import { useAuth } from '../hooks/useAuth';
 import { useAppStore, selectHasBundle } from '../lib/store';
 import { TYPOGRAPHY_CLASSES } from '../designTokens';
@@ -657,8 +656,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
             className={`py-3 ${collapsed ? 'px-1.5' : 'px-3'} border-t border-tea-border shrink-0`}
           >
             {/* Our Spaces + theme toggle */}
-            {!PREVIEW_MODE && (
-              <div className={`flex items-center ${collapsed ? 'flex-col gap-1' : 'justify-between gap-2'}`}>
+            <div className={`flex items-center ${collapsed ? 'flex-col gap-1' : 'justify-between gap-2'}`}>
                 <Link
                   to="/spaces"
                   className={`flex items-center min-h-[44px] ${
@@ -701,8 +699,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                     <Moon className="w-[18px] h-[18px]" strokeWidth={1.75} />
                   )}
                 </button>
-              </div>
-            )}
+            </div>
 
           </div>
 

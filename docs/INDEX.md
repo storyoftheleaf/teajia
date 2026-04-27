@@ -24,7 +24,6 @@
 | **SITE_MAP.md** | Every route + action, by tier | Adding a link, designing nav, checking if a page exists |
 | **ACTIVE_BRIEFS.md** | Index of in-progress feature briefs | Implementing a feature; need to find its spec |
 | **COLOR_RULES.md** | Design tokens, safe colors, theme contract | Writing CSS or adding a color |
-| **LAUNCH_CHECKLIST.md** | PREVIEW_MODE gates, restore procedures | Hiding/stubbing/restoring a feature |
 
 ## For engineering
 

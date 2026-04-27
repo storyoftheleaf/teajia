@@ -76,15 +76,13 @@
 - Adrian's story, sourcing philosophy, contact, press
 - **Status:** WIRED
 
-### Routes Behind PREVIEW_MODE Flag (Hidden by `constants.PREVIEW_MODE`)
+### Marketing & Onboarding Routes
 
-If PREVIEW_MODE=true, routes show ComingSoonPage overlay:
-- `/for-your-space` — Seasonal/contextual curation (PARTIAL: underlying page exists)
-- `/spaces` — Network location showcase (PARTIAL: underlying page exists)
-- `/start` — Onboarding flows (PARTIAL: underlying page exists)
-- `/community` — Community features (STUB: placeholder only, no content)
+- `/for-your-space` — B2B marketing page (private events, ongoing supply, team experiences) with WhatsApp inquiry CTA
+- `/spaces` — Network location showcase pulling from API with hardcoded fallback
+- `/start` — "Start Here" path picker routing to /craft, /shop, /advise, /admin, /magazine
 
-**Status:** PREVIEW_MODE-gated (feature flag in App.tsx:686–706)
+**Status:** WIRED. PREVIEW_MODE flag was removed 2026-04-27 (was permanently `false`).
 
 ---
 
@@ -252,13 +250,9 @@ All public (no auth required).
 
 | Route | Status | Notes |
 |---|---|---|
-| `/community` | STUB (placeholder) | No community content, member feeds, or discovery. PREVIEW_MODE-gated. |
 | `/account/orders` | EMPTY STATE ONLY | No order data wired. WhatsApp checkout works, but order list not connected. |
 | `/account/samples` | EMPTY STATE ONLY | No sample data wired. Sample request flow UI exists but backend incomplete. |
 | `/design/tabs` | ORPHAN | Internal design system demo page; not in navigation. |
-| `/for-your-space` | PARTIAL (PREVIEW_MODE) | Seasonal/contextual curation UI exists, but PREVIEW_MODE-gated. |
-| `/spaces` | PARTIAL (PREVIEW_MODE) | Network location showcase UI exists, but PREVIEW_MODE-gated. |
-| `/start` | PARTIAL (PREVIEW_MODE) | Welcome + intro flows UI exists, but PREVIEW_MODE-gated. |
 | `/admin/network?tab=adoptions` | WIRED | Platform-tier adoption queue lives inside the Network hub (`AdoptionQueue` rendered embedded by `NetworkLanding` when `isPlatform`). Reads `GET /api/network/adoption-queue`; decisions go to `POST /api/network/profiles/:id/adopt`. |
 
 ---
