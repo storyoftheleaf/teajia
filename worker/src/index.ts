@@ -361,10 +361,26 @@ async function getActiveAccount(
   const claims = parseToken(token);
   if (!claims) return { error: json({ error: 'Unauthorized', reason: 'invalid' }, 401) };
 
+  // Re-verify platform_role from the DB on every request rather than trusting
+  // the embedded JWT claim. Without this, a user demoted from platform_admin
+  // would retain platform powers until their token expires (up to 30 days).
+  // Tokens are signed and tamper-resistant, but signed claims still go stale.
+  let dbPlatformRole: PlatformRole = null;
+  try {
+    const userRow = await env.DB.prepare('SELECT platform_role FROM users WHERE id = ?').bind(claims.sub).first();
+    if (!userRow) {
+      // User row missing — treat as fully unauthorized (account deleted, etc.)
+      return { error: json({ error: 'Unauthorized', reason: 'invalid' }, 401) };
+    }
+    dbPlatformRole = (userRow.platform_role as PlatformRole) ?? null;
+  } catch {
+    // Fail closed: if we cannot verify platform role, do not honor the claim.
+    return { error: json({ error: 'Auth check failed', reason: 'db_unavailable' }, 503) };
+  }
+
   // Platform owner and platform admin bypass account membership checks —
-  // they have access to every account, with all bundles. Suspension still applies:
-  // unsuspend via /api/platform/accounts/:id/reactivate, not by bypass.
-  if (claims.platform_role === 'platform_owner' || claims.platform_role === 'platform_admin') {
+  // they have access to every account, with all bundles. Suspension still applies.
+  if (dbPlatformRole === 'platform_owner' || dbPlatformRole === 'platform_admin') {
     const headerAccount = request.headers.get('X-Teajia-Account');
     const requested = headerAccount || claims.active_account_id || null;
     if (!requested) return { error: json({ error: 'Account access denied' }, 403) };
@@ -373,7 +389,10 @@ async function getActiveAccount(
       if (acct && acct.status === 'suspended') {
         return { error: json({ error: 'This account has been suspended. Reactivate via the platform admin panel.' }, 403) };
       }
-    } catch {}
+    } catch {
+      // Fail closed: if we cannot read the account status row, refuse.
+      return { error: json({ error: 'Account check failed', reason: 'db_unavailable' }, 503) };
+    }
     return {
       accountId: requested,
       userId: claims.sub,
@@ -402,6 +421,9 @@ async function getActiveAccount(
     kind: 'platform' | 'location' | 'master';
   } | null = null;
 
+  // Resolve membership from the DB. Embedded token claims are NOT consulted as
+  // a fallback — bundle revocations and role demotions take effect on the next
+  // request, not when the token expires. If the DB query fails, fail closed.
   try {
     const row = await env.DB.prepare(
       `SELECT am.role, am.permissions, a.kind
@@ -416,32 +438,23 @@ async function getActiveAccount(
         kind: ((row.kind as string) || 'location') as 'platform' | 'location' | 'master',
       };
     }
-  } catch {}
-
-  // Fallback to embedded membership if the DB lookup didn't return a row
-  // (e.g. transient DB error — preserve previous behavior of trusting the token).
-  if (!membership) {
-    const inToken = (claims.memberships || []).find(m => m.account_id === requested);
-    if (inToken) {
-      membership = {
-        role: inToken.role,
-        permissions: null,
-        kind: (inToken.account_kind as 'platform' | 'location' | 'master') || 'location',
-      };
-    }
+  } catch {
+    return { error: json({ error: 'Membership check failed', reason: 'db_unavailable' }, 503) };
   }
 
   if (!membership) {
     return { error: json({ error: 'Account access denied' }, 403) };
   }
 
-  // Block access to suspended accounts (platform roles bypass this)
+  // Block access to suspended accounts (platform roles bypass this earlier).
   try {
     const acct = await env.DB.prepare('SELECT status FROM accounts WHERE id = ?').bind(requested).first();
     if (acct && acct.status === 'suspended') {
       return { error: json({ error: 'This account has been suspended' }, 403) };
     }
-  } catch {}
+  } catch {
+    return { error: json({ error: 'Account check failed', reason: 'db_unavailable' }, 503) };
+  }
 
   const bundles = resolveBundles(membership.role, membership.kind, membership.permissions);
 
@@ -519,6 +532,19 @@ async function requireOwnerTier(
   return { error: json({ error: 'Owner-tier access required for this action' }, 403) };
 }
 
+// Resolve platform_role from the DB rather than trusting the JWT claim,
+// so a demoted user loses platform powers immediately rather than at token
+// expiry. Returns null if the user row is missing or DB is unavailable.
+async function resolveDbPlatformRole(env: Env, userId: string): Promise<PlatformRole | 'db_error'> {
+  try {
+    const row = await env.DB.prepare('SELECT platform_role FROM users WHERE id = ?').bind(userId).first();
+    if (!row) return null;
+    return (row.platform_role as PlatformRole) ?? null;
+  } catch {
+    return 'db_error';
+  }
+}
+
 // Require the caller to be the platform owner (only one user).
 async function requirePlatformOwner(request: Request, env: Env): Promise<Response | null> {
   const token = isAuthed(request);
@@ -526,7 +552,10 @@ async function requirePlatformOwner(request: Request, env: Env): Promise<Respons
   const status = await classifyToken(token, env.JWT_SECRET);
   if (status !== 'valid') return json({ error: 'Unauthorized', reason: status }, 401);
   const claims = parseToken(token);
-  if (!claims || claims.platform_role !== 'platform_owner') {
+  if (!claims) return json({ error: 'Unauthorized', reason: 'invalid' }, 401);
+  const dbRole = await resolveDbPlatformRole(env, claims.sub);
+  if (dbRole === 'db_error') return json({ error: 'Auth check failed', reason: 'db_unavailable' }, 503);
+  if (dbRole !== 'platform_owner') {
     return json({ error: 'Platform owner access required' }, 403);
   }
   return null;
@@ -539,7 +568,10 @@ async function requirePlatformAdmin(request: Request, env: Env): Promise<Respons
   const status = await classifyToken(token, env.JWT_SECRET);
   if (status !== 'valid') return json({ error: 'Unauthorized', reason: status }, 401);
   const claims = parseToken(token);
-  if (!claims || (claims.platform_role !== 'platform_owner' && claims.platform_role !== 'platform_admin')) {
+  if (!claims) return json({ error: 'Unauthorized', reason: 'invalid' }, 401);
+  const dbRole = await resolveDbPlatformRole(env, claims.sub);
+  if (dbRole === 'db_error') return json({ error: 'Auth check failed', reason: 'db_unavailable' }, 503);
+  if (dbRole !== 'platform_owner' && dbRole !== 'platform_admin') {
     return json({ error: 'Platform admin access required' }, 403);
   }
   return null;

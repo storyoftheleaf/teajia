@@ -215,6 +215,12 @@ Checks `ctx.bundles.includes(bundle)`; returns 403 if missing. Platform tier sho
 - CORS headers allow it: line 888 includes 'X-Teajia-Account'
 - Every data-mutating endpoint filters by account_id
 
+**Token trust model (residual risks):**
+- JWT signature is HMAC-SHA256 verified on every request via `classifyToken`. Forging a token without `JWT_SECRET` is computationally infeasible.
+- `platform_role`, account membership role, bundle assignments, and account suspension status are re-resolved from D1 on every request. Token claims for these fields are NOT consulted as fallbacks. Demotions, bundle revocations, and suspensions take effect on the next request, not at token expiry.
+- DB read failures during auth resolution fail closed (503), not open. A D1 outage takes down auth rather than allowing requests through with stale embedded claims.
+- `JWT_SECRET` rotation invalidates all live sessions immediately (no `kid` field). For partner onboarding rotate via `wrangler secret put JWT_SECRET` during low-traffic window; everyone signs back in.
+
 ### 2.3 Audit Logging
 
 **Table:** platform_audit_log (created in migration 047_members_access.sql)
