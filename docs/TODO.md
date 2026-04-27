@@ -80,6 +80,25 @@ promote the good ones onto product tastings.
 Loose concepts. Think through before building; some will be dropped or
 reshaped. If you want to commit one, move it up to *Committed*.
 
+### Seed mood and flavor tags on Adrian's teas (and review the loop end-to-end)
+
+The full mood/flavor system shipped 2026-04-27 (admin chip picker in
+ProductEditPanel, shop-by-mood/shop-by-flavor filter on the public
+storefront). Nothing has been seeded yet. Walk through the loop in one
+sitting:
+
+1. Open admin Inventory, pick 5 teas across different types (white, oolong,
+   shou, etc.). Open each, expand Experience, tag mood and flavor from the
+   chip picker, save.
+2. Visit /shop and confirm the "Shop by mood and flavor" toggle appears.
+3. Click a chip and verify only matching teas show.
+4. Try multi-select within a row, then both rows together.
+5. Note anything that feels off (chip ordering, search, mobile layout,
+   empty-state copy when no results match a filter combo).
+
+If the loop feels right, blow through the remaining 25+ teas in an
+afternoon. If something's off, revise before seeding everything.
+
 ### Collector-tier platform (the bigger vision)
 
 Teajia isn't just a storefront. Other tea makers / collectors have the
