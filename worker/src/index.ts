@@ -362,11 +362,18 @@ async function getActiveAccount(
   if (!claims) return { error: json({ error: 'Unauthorized', reason: 'invalid' }, 401) };
 
   // Platform owner and platform admin bypass account membership checks —
-  // they have access to every account, with all bundles.
+  // they have access to every account, with all bundles. Suspension still applies:
+  // unsuspend via /api/platform/accounts/:id/reactivate, not by bypass.
   if (claims.platform_role === 'platform_owner' || claims.platform_role === 'platform_admin') {
     const headerAccount = request.headers.get('X-Teajia-Account');
     const requested = headerAccount || claims.active_account_id || null;
     if (!requested) return { error: json({ error: 'Account access denied' }, 403) };
+    try {
+      const acct = await env.DB.prepare('SELECT status FROM accounts WHERE id = ?').bind(requested).first();
+      if (acct && acct.status === 'suspended') {
+        return { error: json({ error: 'This account has been suspended. Reactivate via the platform admin panel.' }, 403) };
+      }
+    } catch {}
     return {
       accountId: requested,
       userId: claims.sub,
@@ -1830,7 +1837,7 @@ const handleCreateProduct: Handler = async (request, env) => {
 };
 
 const handleBulkCreateProducts: Handler = async (request, env) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'catalog');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -2293,7 +2300,7 @@ const handleDeleteInvoice: Handler = async (request, env, params) => {
 
 // ── RPC: Fulfill Invoice ──
 const handleFulfillInvoice: Handler = async (request, env) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'sell');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -2472,7 +2479,7 @@ const handleFulfillInvoice: Handler = async (request, env) => {
 
 // ── RPC: Increment Stock (legacy, kept for backwards compat) ──
 const handleIncrementStock: Handler = async (request, env) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'stock');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -2487,7 +2494,7 @@ const handleIncrementStock: Handler = async (request, env) => {
 
 // ── RPC: Void Invoice (atomic server-side) ──
 const handleVoidInvoice: Handler = async (request, env) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'sell');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -2794,7 +2801,7 @@ const handleGetStockLedger: Handler = async (request, env) => {
 
 // ── RPC: Reset Stock Verification ──
 const handleResetStockVerification: Handler = async (request, env) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'stock');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -8393,7 +8400,7 @@ const handleDeleteSampleSet: Handler = async (request, env, params) => {
 // ── Stock Holds ──
 
 const handleReserveStock: Handler = async (request, env) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'stock');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
   const body = await request.json() as any;
@@ -8431,7 +8438,7 @@ const handleReserveStock: Handler = async (request, env) => {
 };
 
 const handleReleaseStock: Handler = async (request, env) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'stock');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
   const body = await request.json() as any;
@@ -8798,7 +8805,7 @@ const handleUpdateMemberBundles: Handler = async (request, env, params) => {
   await logPlatformAction(env, 'member.bundles_updated', ctx.userId, ctx.email, 'member', `${params.id}:${params.userId}`, {
     previous_bundles: previousBundles,
     new_bundles: newBundles,
-  });
+  }, params.id);
 
   return json({ success: true, bundles: newBundles });
 };
@@ -9393,6 +9400,11 @@ const handleTransferOwnership: Handler = async (request, env, params) => {
     env.DB.prepare('UPDATE account_members SET role = \'owner\' WHERE account_id = ? AND user_id = ?')
       .bind(params.id, body.new_owner_user_id),
   ]);
+
+  await logPlatformAction(env, 'account.ownership_transferred', ctx.userId, ctx.email,
+    'account', params.id,
+    { previous_owner_user_id: ctx.userId, new_owner_user_id: body.new_owner_user_id },
+    params.id);
 
   return json({ success: true, new_owner_user_id: body.new_owner_user_id });
 };
