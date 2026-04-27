@@ -150,7 +150,11 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
   memberCount,
 }) => {
   const navigate = useNavigate();
-  const tools = toolsForRole({ isOwner, isPlatform });
+  // Tools shown in the bottom tab bar are filtered out of the Bench so the
+  // panel doesn't duplicate the primary mobile nav. Keep this set in sync
+  // with src/components/BottomTabBar.tsx admin tabs.
+  const BOTTOM_BAR_TOOL_IDS = new Set(['compass', 'inventory', 'activity', 'events', 'people', 'capture']);
+  const tools = toolsForRole({ isOwner, isPlatform }).filter(t => !BOTTOM_BAR_TOOL_IDS.has(t.id));
   const grouped = groupTools(tools);
 
   const go = (route: string) => { onClose(); navigate(route); };

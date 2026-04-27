@@ -30,7 +30,7 @@ export const ADMIN_TOOLS: AdminTool[] = [
   { id: 'vendors', label: 'Vendors', group: 'source', route: '/admin/compass?tab=sourcing', addedAt: '2025-11-05' },
 
   { id: 'events', label: 'Events', group: 'gather', route: '/admin/events', addedAt: '2025-09-20' },
-  { id: 'venues', label: 'Venues', group: 'gather', route: '/admin/venues', addedAt: '2026-02-02' },
+  { id: 'venues', label: 'Venues', group: 'gather', route: '/admin/events?tab=venues', addedAt: '2026-02-02' },
   { id: 'interest-signups', label: 'Interest Signups', group: 'gather', route: '/admin/events?tab=interest', addedAt: '2026-04-20' },
 
   { id: 'magazine', label: 'Magazine', group: 'publish', route: '/admin/magazine', addedAt: '2026-01-28', requires: 'owner' },
@@ -38,8 +38,7 @@ export const ADMIN_TOOLS: AdminTool[] = [
 
   { id: 'team', label: 'Team', group: 'teach', route: '/admin/people?tab=team', addedAt: '2025-12-05', requires: 'owner' },
   { id: 'access', label: 'Members & Access', group: 'teach', route: '/admin/access', addedAt: '2026-04-26', requires: 'owner' },
-  { id: 'account-settings', label: 'Account Settings', group: 'teach', route: '/admin/account-settings', addedAt: '2025-10-01', requires: 'owner' },
-  { id: 'platform', label: 'Platform Admin', group: 'teach', route: '/admin/platform', addedAt: '2025-12-20', requires: 'platform' },
+  { id: 'settings', label: 'Settings', group: 'teach', route: '/admin/settings', addedAt: '2026-04-27', requires: 'owner' },
   { id: 'platform-access', label: 'Platform Access', group: 'teach', route: '/admin/access/platform', addedAt: '2026-04-26', requires: 'platform' },
 
   // Network — Steps 2-6 of NETWORK_ROLLOUT_PLAN. Owner-gated as a proxy for the
