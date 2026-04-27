@@ -110,7 +110,7 @@ const TastingNotesTab: React.FC<TastingNotesTabProps> = ({ notes }) => {
               type="button"
               onClick={handlePromoteAll}
               disabled={batchPromoting}
-              className="flex items-center gap-1.5 text-xs text-tea-text-sec hover:text-tea-gold border border-tea-border hover:border-tea-gold/30 px-3 py-1.5 rounded-md transition-colors disabled:opacity-40"
+              className="flex items-center gap-1.5 text-xs text-tea-text-sec hover:text-tea-gold transition-colors disabled:opacity-40"
             >
               {batchPromoting ? <Loader2 size={11} className="animate-spin" /> : <Upload size={11} />}
               Publish all as reviews
@@ -123,7 +123,7 @@ const TastingNotesTab: React.FC<TastingNotesTabProps> = ({ notes }) => {
         return (
           <div
             key={note.id}
-            className="bg-tea-surface border border-tea-border rounded-md p-4 flex items-start gap-3"
+            className="py-4 border-b border-tea-border flex items-start gap-3"
           >
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap mb-1">
@@ -164,7 +164,7 @@ const TastingNotesTab: React.FC<TastingNotesTabProps> = ({ notes }) => {
                   onClick={() => setConfirmNote(note)}
                   disabled={promoting === note.id || !note.teaName}
                   title={!note.teaName ? 'No tea linked — cannot publish' : 'Publish as tea review'}
-                  className="flex items-center gap-1 text-[10px] text-tea-text-sec hover:text-tea-gold border border-tea-border hover:border-tea-gold/30 px-2 py-1 rounded-md transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="flex items-center gap-1 text-[10px] text-tea-text-sec hover:text-tea-gold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {promoting === note.id
                     ? <Loader2 size={10} className="animate-spin" />
@@ -191,9 +191,9 @@ const TastingNotesTab: React.FC<TastingNotesTabProps> = ({ notes }) => {
               initial={{ scale: 0.95, y: 8 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.95, y: 8 }}
-              className="bg-tea-bg border border-tea-border rounded-xl p-6 w-full max-w-sm shadow-2xl"
+              className="bg-tea-bg border border-tea-border p-6 w-full max-w-sm shadow-2xl"
             >
-              <h3 className="text-sm font-medium text-tea-text mb-1">Publish as tea review</h3>
+              <h3 className="font-serif text-base text-tea-text mb-1">Publish as tea review</h3>
               <p className="text-xs text-tea-text-sec mb-4">
                 This will create a tea review from {confirmNote.attendeeName || 'Guest'}'s note
                 {confirmNote.teaName ? ` for ${confirmNote.teaName}` : ''}.
@@ -212,7 +212,7 @@ const TastingNotesTab: React.FC<TastingNotesTabProps> = ({ notes }) => {
                     />
                     <span className="text-xs text-tea-text capitalize">{v}</span>
                     <span className="text-[10px] text-tea-text-dim">
-                      {v === 'private' ? '— only you' : v === 'account' ? '— your store only' : '— visible across network'}
+                      {v === 'private' ? '(only you)' : v === 'account' ? '(your store only)' : '(visible across network)'}
                     </span>
                   </label>
                 ))}
@@ -230,7 +230,7 @@ const TastingNotesTab: React.FC<TastingNotesTabProps> = ({ notes }) => {
                   type="button"
                   onClick={() => handlePromote(confirmNote, selectedVisibility)}
                   disabled={!!promoting}
-                  className="flex items-center gap-1.5 text-xs bg-tea-gold text-tea-bg px-4 py-1.5 rounded-md hover:bg-tea-gold-lt transition-colors disabled:opacity-50"
+                  className="flex items-center gap-1.5 text-xs bg-tea-gold text-tea-bg px-4 py-1.5 hover:bg-tea-gold-lt transition-colors disabled:opacity-50"
                 >
                   {promoting ? <Loader2 size={11} className="animate-spin" /> : <Upload size={11} />}
                   Publish
@@ -247,11 +247,11 @@ const TastingNotesTab: React.FC<TastingNotesTabProps> = ({ notes }) => {
 // ── End Feature 1 ────────────────────────────────────────────────────────────
 
 const STATUS_STYLES: Record<EventStatus, string> = {
-  draft: 'bg-tea-text-sec/10 text-tea-text-sec',
-  active: 'bg-tea-gold/15 text-tea-gold',
-  closed: 'bg-tea-text-sec/10 text-tea-text-sec',
-  archived: 'bg-tea-text-sec/10 text-tea-text-dim line-through',
-  completed: 'bg-emerald-500/10 text-emerald-400',
+  draft: 'text-tea-text-sec',
+  active: 'text-tea-gold',
+  closed: 'text-tea-text-sec',
+  archived: 'text-tea-text-dim line-through',
+  completed: 'text-emerald-400',
 };
 
 function formatEventDate(dateStr: string): string {
@@ -429,37 +429,37 @@ export const EventDetail: React.FC = () => {
         <ArrowLeft size={14} /> <span>Events</span><span className="text-tea-text-dim mx-1">/</span><span className="text-tea-text truncate max-w-[200px] inline-block align-bottom">{event.title}</span>
       </button>
 
-      {/* Header card */}
-      <div className="bg-tea-surface border border-tea-border rounded-md p-5 mb-6">
-        <div className="flex items-start justify-between gap-4 mb-4">
+      {/* Header — editorial, no surface box */}
+      <div className="mb-6">
+        <div className="flex items-start justify-between gap-4 mb-3">
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <h1 className="text-xl font-serif text-tea-text">{event.title}</h1>
-              <span className={`text-[10px] uppercase tracking-[0.15em] px-2 py-0.5 rounded-full font-medium ${STATUS_STYLES[event.status]}`}>
+            <div className="flex items-baseline gap-3 flex-wrap mb-1">
+              <h1 className="font-display text-[clamp(22px,3vw,30px)] font-normal leading-[1.15] tracking-[0.01em] text-tea-text">{event.title}</h1>
+              <span className={`text-[9px] uppercase tracking-[0.2em] font-semibold shrink-0 ${STATUS_STYLES[event.status]}`}>
                 {event.status}
               </span>
               {requestedCount > 0 && (
-                <span className="flex items-center gap-1 text-[10px] bg-amber-500/15 text-amber-400 px-2 py-0.5 rounded-full font-medium">
-                  <Bell size={9} className="shrink-0" />
+                <span className="flex items-center gap-1 text-[9px] text-amber-400 shrink-0">
+                  <Bell size={8} className="shrink-0" />
                   {requestedCount} pending
                 </span>
               )}
             </div>
             {event.subtitle && (
-              <p className="text-sm text-tea-text-sec mb-2">{event.subtitle}</p>
+              <p className="font-body italic text-[15px] text-tea-text-sec mb-2 leading-snug">{event.subtitle}</p>
             )}
-            <div className="flex items-center gap-4 text-xs text-tea-text-sec flex-wrap">
+            <div className="flex items-center gap-4 text-xs text-tea-text-sec flex-wrap font-mono">
               <span className="flex items-center gap-1">
                 <Clock size={12} />
                 {formatEventDate(event.eventDate)}
               </span>
               {event.areaHint ? (
-                <span className="flex items-center gap-1">
+                <span className="flex items-center gap-1 font-sans">
                   <MapPin size={12} />
                   {event.areaHint}
                 </span>
               ) : event.locationName ? (
-                <span className="flex items-center gap-1">
+                <span className="flex items-center gap-1 font-sans">
                   <MapPin size={12} />
                   {event.locationName}
                 </span>
@@ -467,24 +467,24 @@ export const EventDetail: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap shrink-0">
+          <div className="flex items-center gap-3 flex-wrap shrink-0">
             <a
               href={`/event/${event.slug}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1.5 text-xs text-tea-text-sec hover:text-tea-gold px-3 py-1.5 border border-tea-border rounded-md hover:border-tea-gold/30 transition-colors"
+              className="flex items-center gap-1.5 text-xs text-tea-text-sec hover:text-tea-text transition-colors"
             >
               <ExternalLink size={12} /> Preview
             </a>
             <button
               onClick={() => setIsShareOpen(true)}
-              className="flex items-center gap-1.5 text-xs text-tea-text-sec hover:text-tea-text px-3 py-1.5 border border-tea-border rounded-md hover:border-tea-gold/30 transition-colors"
+              className="flex items-center gap-1.5 text-xs text-tea-text-sec hover:text-tea-text transition-colors"
             >
               <Share2 size={12} /> Share
             </button>
             <button
               onClick={() => setIsEditOpen(true)}
-              className="flex items-center gap-1.5 text-xs text-tea-text-sec hover:text-tea-text px-3 py-1.5 border border-tea-border rounded-md hover:border-tea-gold/30 transition-colors"
+              className="flex items-center gap-1.5 text-xs text-tea-text-sec hover:text-tea-text transition-colors"
             >
               <Edit3 size={12} /> Edit
             </button>
@@ -532,39 +532,42 @@ export const EventDetail: React.FC = () => {
             </div>
           </div>
           {/* Legend */}
-          <div className="flex items-center gap-4 text-[10px] text-tea-text-dim">
-            <span className="flex items-center gap-1">
-              <span className="inline-block w-2.5 h-2.5 rounded-sm bg-tea-gold" />
+          <div className="flex items-center gap-4 text-[10px] text-tea-text-dim font-mono">
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block w-6 h-px bg-tea-gold" />
               Confirmed
             </span>
-            <span className="flex items-center gap-1">
+            <span className="flex items-center gap-1.5">
               <span
-                className="inline-block w-2.5 h-2.5 rounded-sm"
+                className="inline-block w-6 h-px"
                 style={{ background: 'repeating-linear-gradient(90deg, var(--tea-gold) 0px, var(--tea-gold) 2px, transparent 2px, transparent 5px)', opacity: 0.7 }}
               />
               Pending
             </span>
-            <span className="flex items-center gap-1">
-              <span className="inline-block w-2.5 h-2.5 rounded-sm bg-tea-text-sec/25" />
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block w-6 h-px bg-tea-text-sec/40" />
               Waitlist
             </span>
           </div>
         </div>
 
         {/* Quick Actions */}
-        <div className="flex flex-wrap gap-2">
-          {event.status === 'active' && (
+        {event.status === 'active' && (
+          <div className="flex flex-wrap gap-4 pt-1">
             <button
               onClick={() => setConfirmClose(true)}
               disabled={closingRsvp}
-              className="flex items-center gap-1.5 text-[11px] px-3 py-1.5 rounded-md border border-tea-border text-tea-text-sec hover:text-tea-text hover:border-tea-gold/30 transition-colors"
+              className="flex items-center gap-1.5 text-[11px] text-tea-text-sec hover:text-tea-text transition-colors"
             >
               {closingRsvp ? <Loader2 size={11} className="animate-spin" /> : <Lock size={11} />}
               Close RSVP
             </button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
+
+      {/* Hairline divider separating header from tabs */}
+      <div className="w-full h-px bg-tea-border mb-6" />
 
       {/* Tab Navigation */}
       <div className="flex items-end gap-0.5 border-b border-tea-border mb-6">
@@ -580,10 +583,8 @@ export const EventDetail: React.FC = () => {
           >
             {tab.label}
             {tab.badge !== undefined && tab.badge > 0 && (
-              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium leading-none ${
-                activeTab === tab.key
-                  ? 'bg-tea-gold/20 text-tea-gold'
-                  : 'bg-amber-500/15 text-amber-400'
+              <span className={`text-[10px] font-mono leading-none ${
+                activeTab === tab.key ? 'text-tea-gold' : 'text-amber-400'
               }`}>
                 {tab.badge}
               </span>
@@ -622,7 +623,7 @@ export const EventDetail: React.FC = () => {
                 >
                   {tab.label}
                   {(tab as any).badge > 0 && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-400 font-medium leading-none">
+                    <span className="text-[10px] font-mono text-amber-400 leading-none">
                       {(tab as any).badge}
                     </span>
                   )}
@@ -692,7 +693,7 @@ export const EventDetail: React.FC = () => {
                   type="button"
                   onClick={handleSaveBriefing}
                   disabled={savingBriefing}
-                  className="flex items-center gap-2 bg-tea-gold text-tea-bg px-4 py-2 rounded-md text-xs font-medium hover:bg-tea-gold-lt transition-colors disabled:opacity-50"
+                  className="flex items-center gap-2 bg-tea-gold text-tea-bg px-4 py-2 text-xs font-medium hover:bg-tea-gold-lt transition-colors disabled:opacity-50"
                 >
                   {savingBriefing ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
                   Save Briefing Cards
@@ -746,7 +747,7 @@ export const EventDetail: React.FC = () => {
                   type="button"
                   onClick={handleConvertInterest}
                   disabled={convertingInterest}
-                  className="flex items-center gap-1.5 text-xs bg-tea-gold/15 text-tea-gold hover:bg-tea-gold/25 px-3 py-1.5 rounded transition-colors disabled:opacity-50"
+                  className="flex items-center gap-1.5 text-xs text-tea-gold hover:text-tea-gold-lt transition-colors disabled:opacity-50"
                 >
                   {convertingInterest ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}
                   Convert to RSVPs
@@ -765,8 +766,8 @@ export const EventDetail: React.FC = () => {
                 {interestSignups.map((s: any) => (
                   <div
                     key={s.id}
-                    className={`flex items-center justify-between gap-3 px-4 py-3 rounded-md border ${
-                      s.converted_at ? 'border-tea-border bg-tea-surface/40 opacity-60' : 'border-tea-border bg-tea-surface'
+                    className={`flex items-center justify-between gap-3 py-3 border-b border-tea-border ${
+                      s.converted_at ? 'opacity-50' : ''
                     }`}
                   >
                     <div className="min-w-0">
@@ -795,7 +796,7 @@ export const EventDetail: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsVenueManagerOpen(true)}
-                  className="flex items-center gap-1.5 text-xs text-tea-text-sec hover:text-tea-text border border-tea-border px-2.5 py-1.5 rounded-md hover:border-tea-gold/40 transition-colors"
+                  className="flex items-center gap-1.5 text-xs text-tea-gold hover:text-tea-gold-lt transition-colors"
                 >
                   <MapPin size={11} />
                   Add venue
@@ -828,7 +829,7 @@ export const EventDetail: React.FC = () => {
                     {selectedSpaceIds.length > 0 && (
                       <div className="flex flex-wrap gap-1.5">
                         {selectedVenueObj.spaces.filter(s => selectedSpaceIds.includes(s.id)).map(s => (
-                          <span key={s.id} className="inline-flex items-center gap-1 text-[11px] bg-tea-gold/10 text-tea-gold px-2 py-0.5 rounded-full">
+                          <span key={s.id} className="inline-flex items-center gap-1 text-[11px] text-tea-gold">
                             {s.name} · {s.capacity}
                           </span>
                         ))}
@@ -882,7 +883,7 @@ export const EventDetail: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setIsVenueManagerOpen(true)}
-                      className="flex items-center gap-1.5 text-xs text-tea-text-sec hover:text-tea-text border border-tea-border px-2.5 py-1.5 rounded-md hover:border-tea-gold/40 transition-colors"
+                      className="flex items-center gap-1.5 text-xs text-tea-gold hover:text-tea-gold-lt transition-colors"
                     >
                       <MapPin size={11} />
                       Add spaces
@@ -946,7 +947,7 @@ export const EventDetail: React.FC = () => {
                 type="button"
                 onClick={handleSaveVenue}
                 disabled={savingVenue}
-                className="flex items-center gap-2 bg-tea-gold text-tea-bg px-4 py-2 rounded-md text-xs font-medium hover:bg-tea-gold-lt transition-colors disabled:opacity-50"
+                className="flex items-center gap-2 bg-tea-gold text-tea-bg px-4 py-2 text-xs font-medium hover:bg-tea-gold-lt transition-colors disabled:opacity-50"
               >
                 {savingVenue ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
                 Save Venue
@@ -988,9 +989,9 @@ export const EventDetail: React.FC = () => {
               initial={{ scale: 0.95, y: 8 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.95, y: 8 }}
-              className="bg-tea-bg border border-tea-border rounded-xl p-6 w-full max-w-sm shadow-2xl"
+              className="bg-tea-bg border border-tea-border p-6 w-full max-w-sm shadow-2xl"
             >
-              <h3 className="text-sm font-medium text-tea-text mb-1">Close RSVPs?</h3>
+              <h3 className="font-serif text-base text-tea-text mb-1">Close RSVPs?</h3>
               <p className="text-xs text-tea-text-sec mb-5">Guests will no longer be able to register. Existing requests are unaffected.</p>
               <div className="flex gap-2 justify-between">
                 <button

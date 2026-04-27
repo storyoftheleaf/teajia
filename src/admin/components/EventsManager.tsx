@@ -10,11 +10,11 @@ import { EventForm } from './EventForm';
 import { TeaEvent, EventStatus } from '../../types/events';
 
 const STATUS_STYLES: Record<EventStatus, string> = {
-  draft: 'bg-tea-text-sec/10 text-tea-text-sec',
-  active: 'bg-tea-gold/15 text-tea-gold',
-  closed: 'bg-tea-text-sec/10 text-tea-text-sec',
-  archived: 'bg-tea-text-sec/10 text-tea-text-dim line-through',
-  completed: 'bg-emerald-500/10 text-emerald-400',
+  draft: 'text-tea-text-sec',
+  active: 'text-tea-gold',
+  closed: 'text-tea-text-sec',
+  archived: 'text-tea-text-dim line-through',
+  completed: 'text-emerald-400',
 };
 
 function formatEventDate(dateStr: string): string {
@@ -99,26 +99,23 @@ export const EventsManager: React.FC = () => {
       <h1 className="font-serif font-normal text-2xl lg:text-3xl text-tea-text leading-tight tracking-[0.02em]" style={{ fontFamily: 'var(--font-display)' }}>Events</h1>
       <div className="flex items-center gap-2">
         {activeMembership && (
-          <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-tea-surface border border-tea-border shrink-0">
-            <span className="w-1.5 h-1.5 rounded-full bg-tea-gold/60" />
-            <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec truncate max-w-[120px]">
-              {activeMembership.account_name}
-            </span>
-          </div>
+          <span className="hidden sm:block text-[10px] uppercase tracking-[0.15em] text-tea-text-sec truncate max-w-[120px]">
+            {activeMembership.account_name}
+          </span>
         )}
         <button
           onClick={() => navigate('/admin/venues')}
-          className="flex items-center gap-1.5 text-sm text-tea-text-sec hover:text-tea-text border border-tea-border px-3 py-2 rounded-md hover:border-tea-gold/40 transition-colors"
+          className="flex items-center gap-1.5 text-sm text-tea-text-sec hover:text-tea-text transition-colors"
         >
           <MapPin size={13} />
           Venues
         </button>
         <button
           onClick={() => setIsFormOpen(true)}
-          className="flex items-center gap-2 border border-tea-border text-tea-text-sec hover:text-tea-text hover:border-tea-gold/40 px-4 py-2 rounded-md text-sm transition-colors"
+          className="flex items-center gap-2 text-sm text-tea-text-sec hover:text-tea-text border-b border-tea-border hover:border-tea-gold/60 pb-0.5 transition-colors"
         >
           <Plus size={14} />
-          Create Event
+          New Event
         </button>
       </div>
     </div>
@@ -163,7 +160,7 @@ export const EventsManager: React.FC = () => {
         </div>
       ) : filteredEvents.length === 0 ? (
         <div className="py-12 text-center">
-          <p className="text-sm text-tea-text-sec">Nothing matched — try different words.</p>
+          <p className="text-sm text-tea-text-sec">Nothing matched. Try different words.</p>
           <button onClick={() => setSearchRaw('')} className="mt-2 text-xs text-tea-gold hover:text-tea-gold-lt transition-colors">Clear search</button>
         </div>
       ) : (
@@ -204,24 +201,24 @@ export const EventsManager: React.FC = () => {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                      <div className="flex items-center gap-2.5 flex-wrap mb-0.5">
                         <h3 className="font-serif text-base font-medium text-tea-text leading-snug">{event.title}</h3>
-                        <span className={`text-[9px] uppercase tracking-[0.2em] px-1.5 py-0.5 font-semibold ${STATUS_STYLES[event.status]}`}>
+                        <span className={`text-[9px] uppercase tracking-[0.2em] font-semibold ${STATUS_STYLES[event.status]}`}>
                           {event.status}
                         </span>
                         {requested > 0 && (
                           <button
                             onClick={(e) => { e.stopPropagation(); navigate(`/admin/events/${event.id}?tab=requests`); }}
-                            className="flex items-center gap-1 text-[9px] bg-amber-500/15 text-amber-400 px-1.5 py-0.5 font-semibold uppercase tracking-[0.15em] hover:bg-amber-500/30 transition-colors"
+                            className="flex items-center gap-1 text-[9px] text-amber-400 hover:text-amber-300 transition-colors"
                           >
                             <Bell size={8} className="shrink-0" />
-                            {requested}
+                            {requested} pending
                           </button>
                         )}
                         {interest > 0 && (
                           <button
                             onClick={(e) => { e.stopPropagation(); navigate(`/admin/events/${event.id}?tab=interest`); }}
-                            className="flex items-center gap-1 text-[9px] bg-tea-text-sec/10 text-tea-text-sec px-1.5 py-0.5 font-semibold uppercase tracking-[0.15em] hover:bg-tea-text-sec/20 transition-colors"
+                            className="flex items-center gap-1 text-[9px] text-tea-text-sec hover:text-tea-text transition-colors"
                             title="Interest signups"
                           >
                             {interest} interested
@@ -272,7 +269,7 @@ export const EventsManager: React.FC = () => {
       {/* Duplicate Slug Dialog */}
       {duplicateDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setDuplicateDialog(null)}>
-          <div className="bg-tea-surface border border-tea-border rounded-lg p-6 w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
+          <div className="bg-tea-surface border border-tea-border p-6 w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
             <h3 className="text-sm font-serif text-tea-text mb-1">Duplicate Event</h3>
             <p className="text-xs text-tea-text-sec mb-4">Choose a unique slug for the duplicated event.</p>
             <input
