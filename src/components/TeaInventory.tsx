@@ -6,7 +6,7 @@ import { X, Leaf } from 'lucide-react';
 import { AddToSampleButton } from './samples/AddToSampleButton';
 import { AlcoveModal } from './shop/AlcoveModal';
 import { TastingEditorModal } from '../admin/components/TastingEditorModal';
-import { resolveTermLabel, resolveTermIcon, TASTING_TAXONOMY, type TastingCategoryId } from '../data/tastingTaxonomy';
+import { resolveTermLabel, resolveTermIcon, TASTING_TAXONOMY, TERM_MAP, type TastingCategoryId } from '../data/tastingTaxonomy';
 import { getCommonTastingForType } from '../data/commonTastingByStyle';
 import { TeaPlaceholder } from './shop/TeaPlaceholder';
 import { PageHeader } from './shared/PageHeader';
@@ -50,6 +50,19 @@ const FEELING_TERMS = (() => {
   return cat.groups.flatMap(g => g.terms.map(t => ({ id: t.id, label: t.label })));
 })();
 
+// All mood terms (from "feeling" category) and flavor terms for profile-level filters
+const ALL_MOOD_TERMS = (() => {
+  const cat = TASTING_TAXONOMY.categories.find(c => c.id === 'feeling');
+  if (!cat) return [] as { id: string; label: string }[];
+  return cat.groups.flatMap(g => g.terms.map(t => ({ id: t.id, label: t.label })));
+})();
+
+const ALL_FLAVOR_TAG_TERMS = (() => {
+  const cat = TASTING_TAXONOMY.categories.find(c => c.id === 'flavor');
+  if (!cat) return [] as { id: string; label: string }[];
+  return cat.groups.flatMap(g => g.terms.map(t => ({ id: t.id, label: t.label })));
+})();
+
 // Sale items imported from data/curatedCollections
 
 /**
@@ -74,6 +87,10 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
   const [specialFilter, setSpecialFilter] = useState<'None' | 'Curated' | 'Sale' | 'Liked' | 'Tasted'>('None');
   const [openFilter, setOpenFilter] = useState<'type' | 'feeling' | null>(null);
   const [searchText, setSearchText] = useState<string>('');
+  // Profile-level mood/flavor tag filters (URL params: ?mood=id,id2 and ?flavorTag=id,id2)
+  const [activeMoodTags, setActiveMoodTags] = useState<string[]>([]);
+  const [activeFlavorTags, setActiveFlavorTags] = useState<string[]>([]);
+  const [moodFlavorOpen, setMoodFlavorOpen] = useState(false);
 
   // Derive tea types from actual inventory (ordered by TYPE_ORDER, then alphabetically)
   const teaTypes = useMemo(() => {
@@ -104,6 +121,24 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
     return FEELING_TERMS.filter(t => present.has(t.id));
   }, [inventory]);
 
+  // Compute which profile-level mood/flavor terms are actually used by at least
+  // one Active+public product so the filter only shows discoverable states.
+  const availableMoodTagTerms = useMemo(() => {
+    const present = new Set<string>();
+    for (const item of inventory) {
+      for (const t of item.moodTags ?? []) present.add(t);
+    }
+    return ALL_MOOD_TERMS.filter(t => present.has(t.id));
+  }, [inventory]);
+
+  const availableFlavorTagTerms = useMemo(() => {
+    const present = new Set<string>();
+    for (const item of inventory) {
+      for (const t of item.flavorTags ?? []) present.add(t);
+    }
+    return ALL_FLAVOR_TAG_TERMS.filter(t => present.has(t.id));
+  }, [inventory]);
+
   // User Interaction State — persisted via Zustand store
   const { favoriteTeas, toggleFavoriteTea, compareItems, recentlyViewed, addRecentlyViewed, shopPriceWeight, setShopPriceWeight, shopSort, setShopSort, shopSavedOnly, setShopSavedOnly } = useAppStore();
   const userFavorites = useMemo(() => new Set(favoriteTeas), [favoriteTeas]);
@@ -127,8 +162,24 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
     didHydrateFromUrl.current = true;
     const flavor = searchParams.get('flavor');
     const feel = searchParams.get('feel');
+    const mood = searchParams.get('mood');
+    const flavorTag = searchParams.get('flavorTag');
     if (flavor) setTastingFilter({ termId: flavor, categoryId: 'flavor' });
     if (feel) setActiveFeeling(feel);
+    if (mood) {
+      const ids = mood.split(',').map(s => s.trim()).filter(Boolean);
+      if (ids.length > 0) {
+        setActiveMoodTags(ids);
+        setMoodFlavorOpen(true); // auto-expand so user sees what's active
+      }
+    }
+    if (flavorTag) {
+      const ids = flavorTag.split(',').map(s => s.trim()).filter(Boolean);
+      if (ids.length > 0) {
+        setActiveFlavorTags(ids);
+        setMoodFlavorOpen(true);
+      }
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -141,11 +192,15 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
     else next.delete('flavor');
     if (activeFeeling) next.set('feel', activeFeeling);
     else next.delete('feel');
+    if (activeMoodTags.length > 0) next.set('mood', activeMoodTags.join(','));
+    else next.delete('mood');
+    if (activeFlavorTags.length > 0) next.set('flavorTag', activeFlavorTags.join(','));
+    else next.delete('flavorTag');
     if (next.toString() !== searchParams.toString()) {
       setSearchParams(next, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeFeeling, tastingFilter]);
+  }, [activeFeeling, tastingFilter, activeMoodTags, activeFlavorTags]);
 
   const handleTermClick = useCallback((termId: string, categoryId: string) => {
     setTastingFilter({ termId, categoryId });
@@ -259,12 +314,21 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
         }
       }
 
-      // 4. Saved-only shop toggle
+      // 4. Profile-level mood/flavor tag filters (AND across groups, OR within)
+      const matchMoodTags =
+        activeMoodTags.length === 0 ||
+        activeMoodTags.some(m => (item.moodTags ?? []).includes(m));
+
+      const matchFlavorTags =
+        activeFlavorTags.length === 0 ||
+        activeFlavorTags.some(f => (item.flavorTags ?? []).includes(f));
+
+      // 5. Saved-only shop toggle
       const matchSaved = !shopSavedOnly || userFavorites.has(item.id);
 
-      return matchSearch && matchType && matchFeeling && matchSpecial && matchTasting && matchSaved;
+      return matchSearch && matchType && matchFeeling && matchSpecial && matchTasting && matchMoodTags && matchFlavorTags && matchSaved;
     });
-  }, [inventory, searchText, activeType, activeFeeling, specialFilter, userFavorites, tastingFilter, shopSavedOnly]);
+  }, [inventory, searchText, activeType, activeFeeling, specialFilter, userFavorites, tastingFilter, shopSavedOnly, activeMoodTags, activeFlavorTags]);
 
   // Grouping & Sorting Logic
   const groupedInventory = useMemo(() => {
@@ -332,6 +396,8 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
     setSpecialFilter('None');
     setTastingFilter(null);
     setSearchText('');
+    setActiveMoodTags([]);
+    setActiveFlavorTags([]);
   };
 
   return (
@@ -565,6 +631,139 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                );
             })()}
          </div>
+
+         {/* Mood and flavor tag filter — collapsible, editorial chip rows */}
+         {(availableMoodTagTerms.length > 0 || availableFlavorTagTerms.length > 0) && (
+           <div className="mb-4 border-b border-tea-border pb-3">
+             <button
+               type="button"
+               onClick={() => setMoodFlavorOpen(p => !p)}
+               className={`flex items-center gap-1.5 text-[10px] uppercase tracking-[0.15em] py-1 transition-colors ${
+                 (activeMoodTags.length > 0 || activeFlavorTags.length > 0)
+                   ? 'text-tea-gold'
+                   : moodFlavorOpen
+                     ? 'text-tea-text'
+                     : 'text-tea-text-sec hover:text-tea-text'
+               }`}
+             >
+               <span>
+                 {(activeMoodTags.length > 0 || activeFlavorTags.length > 0)
+                   ? `Mood and flavor (${activeMoodTags.length + activeFlavorTags.length})`
+                   : 'Shop by mood and flavor'}
+               </span>
+               <Icons.ChevronDown className={`w-3 h-3 transition-transform ${moodFlavorOpen ? 'rotate-180' : ''}`} />
+             </button>
+
+             {moodFlavorOpen && (
+               <div className="mt-3 space-y-4 animate-[fadeIn_0.15s_ease-out]">
+                 {availableMoodTagTerms.length > 0 && (
+                   <div>
+                     <p className="text-[10px] uppercase tracking-[0.12em] text-tea-text-dim mb-2">Mood</p>
+                     <div className="flex flex-wrap gap-x-3 gap-y-1.5">
+                       {availableMoodTagTerms.map(term => {
+                         const isActive = activeMoodTags.includes(term.id);
+                         const termInfo = TERM_MAP.get(term.id);
+                         const Icon = termInfo?.icon;
+                         return (
+                           <button
+                             key={term.id}
+                             type="button"
+                             onClick={() => {
+                               if ('vibrate' in navigator) navigator.vibrate?.(10);
+                               setActiveMoodTags(prev =>
+                                 prev.includes(term.id) ? prev.filter(id => id !== term.id) : [...prev, term.id]
+                               );
+                             }}
+                             className={[
+                               'flex items-center gap-1 text-[11px] transition-colors py-0.5',
+                               'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-tea-gold/50 rounded-sm',
+                               isActive
+                                 ? 'text-tea-text border-b border-tea-gold/60'
+                                 : 'text-tea-text-dim hover:text-tea-text-sec border-b border-transparent',
+                             ].join(' ')}
+                             style={{ fontFamily: 'var(--font-body)' }}
+                           >
+                             {Icon && (
+                               <Icon
+                                 size={10}
+                                 className={isActive ? 'text-tea-gold/70' : 'text-tea-text-dim'}
+                                 aria-hidden="true"
+                               />
+                             )}
+                             <span>{term.label}</span>
+                           </button>
+                         );
+                       })}
+                     </div>
+                   </div>
+                 )}
+
+                 {availableFlavorTagTerms.length > 0 && (
+                   <div>
+                     <p className="text-[10px] uppercase tracking-[0.12em] text-tea-text-dim mb-2">Flavor</p>
+                     <div className="flex flex-wrap gap-x-3 gap-y-1.5">
+                       {availableFlavorTagTerms.map(term => {
+                         const isActive = activeFlavorTags.includes(term.id);
+                         const termInfo = TERM_MAP.get(term.id);
+                         const Icon = termInfo?.icon;
+                         return (
+                           <button
+                             key={term.id}
+                             type="button"
+                             onClick={() => {
+                               if ('vibrate' in navigator) navigator.vibrate?.(10);
+                               setActiveFlavorTags(prev =>
+                                 prev.includes(term.id) ? prev.filter(id => id !== term.id) : [...prev, term.id]
+                               );
+                             }}
+                             className={[
+                               'flex items-center gap-1 text-[11px] transition-colors py-0.5',
+                               'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-tea-gold/50 rounded-sm',
+                               isActive
+                                 ? 'text-tea-text border-b border-tea-gold/60'
+                                 : 'text-tea-text-dim hover:text-tea-text-sec border-b border-transparent',
+                             ].join(' ')}
+                             style={{ fontFamily: 'var(--font-body)' }}
+                           >
+                             {Icon && (
+                               <Icon
+                                 size={10}
+                                 className={isActive ? 'text-tea-gold/70' : 'text-tea-text-dim'}
+                                 aria-hidden="true"
+                               />
+                             )}
+                             <span>{term.label}</span>
+                           </button>
+                         );
+                       })}
+                     </div>
+                   </div>
+                 )}
+
+                 {(activeMoodTags.length > 0 || activeFlavorTags.length > 0) && (
+                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1 pt-1">
+                     <p className="text-[11px] italic text-tea-text-sec" style={{ fontFamily: 'var(--font-body)' }}>
+                       Showing {filteredInventory.length} {filteredInventory.length === 1 ? 'tea' : 'teas'}.
+                       {' '}Filtered by:{' '}
+                       {[...activeMoodTags, ...activeFlavorTags]
+                         .map(id => resolveTermLabel(id))
+                         .join(', ')}
+                       .
+                     </p>
+                     <button
+                       type="button"
+                       onClick={() => { setActiveMoodTags([]); setActiveFlavorTags([]); }}
+                       className="text-[10px] text-tea-text-sec hover:text-tea-text transition-colors underline shrink-0"
+                       style={{ fontFamily: 'var(--font-body)' }}
+                     >
+                       Clear
+                     </button>
+                   </div>
+                 )}
+               </div>
+             )}
+           </div>
+         )}
 
          {/* Main content area (full width now) */}
          <div className="w-full">

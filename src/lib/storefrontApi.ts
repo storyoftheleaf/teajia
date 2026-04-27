@@ -81,6 +81,8 @@ function normalizeProduct(p: any): PublicProduct {
       p.tasting_source === 'owner' || p.tasting_source === 'community' || p.tasting_source === 'common'
         ? p.tasting_source
         : undefined,
+    moodTags: Array.isArray(p.mood_tags) ? p.mood_tags : [],
+    flavorTags: Array.isArray(p.flavor_tags) ? p.flavor_tags : [],
   };
 }
 

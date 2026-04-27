@@ -386,6 +386,8 @@ export interface InventoryItem {
   tastingSource?: 'common' | 'owner' | 'community';
   quantityUnits?: number;
   sessionReserveGrams?: number; // When stock_g <= this, show a soft low-availability warning
+  moodTags?: string[];
+  flavorTags?: string[];
 }
 
 // Public-safe product type (no cost/vendor fields)
@@ -425,6 +427,8 @@ export interface PublicProduct {
   quantityUnits?: number;
   tasting?: TastingData;
   tastingSource?: 'common' | 'owner' | 'community';
+  moodTags?: string[];
+  flavorTags?: string[];
 }
 
 export const TEA_TYPES = ['Green', 'White', 'Oolong', 'Black', 'Puerh', 'Yellow'] as const;

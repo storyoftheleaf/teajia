@@ -1660,6 +1660,7 @@ const PUBLIC_FIELDS = [
   'image_url', 'additional_images', 'status', 'is_personal', 'can_reorder', 'is_featured', 'is_curated',
   'lore', 'show_wisdom', 'processing_notes', 'terroir', 'mood', 'experience',
   'material', 'capacity_ml', 'teaware_category', 'quantity_units', 'tasting', 'tasting_source',
+  'mood_tags', 'flavor_tags',
 ] as const;
 
 // Legacy alias: resolves to Adrian's Bali store. New callers should use
@@ -9832,6 +9833,7 @@ async function fetchPublicProductsForAccount(
               cost_amount, cost_currency, quantity_purchased,
               shipping_rate_per_kg, fixed_retail_price_usd,
               material, capacity_ml, teaware_category, quantity_units, tasting, tasting_source,
+              mood_tags, flavor_tags,
               (SELECT COUNT(*) > 0 FROM collection_items ci
                  JOIN collections c ON c.id = ci.collection_id
                  JOIN collection_publications cp ON cp.collection_id = c.id
@@ -9856,6 +9858,12 @@ async function fetchPublicProductsForAccount(
     }
     if (typeof p.tasting === 'string') {
       try { p.tasting = JSON.parse(p.tasting); } catch { p.tasting = {}; }
+    }
+    if (typeof p.mood_tags === 'string') {
+      try { p.mood_tags = JSON.parse(p.mood_tags); } catch { p.mood_tags = []; }
+    }
+    if (typeof p.flavor_tags === 'string') {
+      try { p.flavor_tags = JSON.parse(p.flavor_tags); } catch { p.flavor_tags = []; }
     }
     const withPricing = addPricingFields(p, rates);
     const safe: Record<string, unknown> = {};

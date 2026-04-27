@@ -138,9 +138,14 @@ export const Shop: React.FC<ShopProps> = ({
   // Shop-published editorial collections
   const { collections: shopCollections, isLoading: collectionsLoading, isError: collectionsError } = usePublicShopCollections();
 
-  // URL filter params: when ?flavor= or ?feel= are active the user is filtering —
+  // URL filter params: when any active filter param is set the user is filtering —
   // hide discovery bands so they don't distract from the filtered result.
-  const hasUrlFilter = !!(searchParams.get('flavor') || searchParams.get('feel'));
+  const hasUrlFilter = !!(
+    searchParams.get('flavor') ||
+    searchParams.get('feel') ||
+    searchParams.get('mood') ||
+    searchParams.get('flavorTag')
+  );
 
   // Bands are visible only on the tea tab and when no URL filter is active.
   const showBands = activeTab === 'tea' && !hasUrlFilter && !collectionsLoading && !collectionsError && shopCollections.length > 0;
