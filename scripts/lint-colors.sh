@@ -125,6 +125,22 @@ if [ -n "$HEX_BRACKET_VIOLATIONS" ]; then
   ERRORS=$((ERRORS + 1))
 fi
 
+# 7. text-[Npx] for values that have a defined UI text scale stop — BLOCKING.
+#    Phase C1 established the ui-N scale (8/9/10/11/12/13/14/15/16/17/20/26/28).
+#    Any new occurrence of the old arbitrary form for these px values must
+#    use the named class (text-ui-N) instead. Long-tail values (e.g. text-[18px])
+#    are allowed since they don't have a scale stop.
+TEXT_PX_VIOLATIONS=$(grep -rnE 'text-\[(8|9|10|11|12|13|14|15|16|17|20|26|28)px\]' \
+  --include='*.tsx' --include='*.ts' "$SRC_DIR" 2>/dev/null \
+  | grep -vE '^[[:space:]]*//' \
+  || true)
+if [ -n "$TEXT_PX_VIOLATIONS" ]; then
+  echo ""
+  echo "COLOR RULE VIOLATION: Use the UI text scale (text-ui-N) instead of text-[Npx] — see designTokens.ts UI_TEXT_SCALE."
+  echo "$TEXT_PX_VIOLATIONS"
+  ERRORS=$((ERRORS + 1))
+fi
+
 if [ "$ERRORS" -gt 0 ]; then
   echo ""
   echo "=== $ERRORS color rule violation(s) found ==="
