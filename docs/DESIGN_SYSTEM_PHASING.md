@@ -134,41 +134,50 @@ Until this is done, every other phase is fighting the build system. **Do this fi
 
 ---
 
-## Phase D — Mobile + accessibility token pass (1–2 days)
+## Phase D — Mobile + accessibility token pass ✅ MOSTLY COMPLETE (shipped 2026-04-27)
 
-**Goal:** Touch targets, contrast, and focus rings all derive from tokens, so a single edit fixes everything.
+**Goal:** Touch targets, contrast, and focus rings all derive from tokens.
 
-**Scope:**
-1. Add a `tap-target` token (44px) and refactor the 5–6 known violations: PageHeader Back, ChevronRight, cart stepper, Reader progress handle, footer admin link.
-2. Enforce contrast pairings from `COLOR_RULES.md` Rule 6: replace `text-tea-ink/40` (2.8:1) and `text-tea-text/20` with the minimum `text-tea-text-sec`. Fix the inverted CategoryPills mapping.
-3. Add a single `focus-visible:ring-2 ring-tea-gold/50` token. Apply via the existing `Button.tsx` primitive; refactor any place that bypasses Button to use it.
-4. Resolve the asymmetric light/dark backdrop opacities (e.g. `bg-white/70` light vs `bg-[#1a1a1a]/80` dark) by using `tea-bg/80` consistently.
+**Reality vs. plan:** D3 (focus rings) and D4 (backdrop opacity) were already done before D started — `Button.tsx` line 28 has the canonical `focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-2 focus-visible:ring-offset-tea-bg`, used at 171 sites; and the `bg-white/70` / `bg-[#1a1a1a]/80` asymmetry was already cleaned up in Phase B1's white migration (current backdrop scrims all use `bg-tea-bg/N`).
 
-**Done when:**
-- All touch targets pass the 44px floor (verifiable via Playwright a11y check).
-- Color contrast passes WCAG AA at standard text sizes.
-- All interactive elements have a focus ring on keyboard-tab navigation.
+**What shipped (commit 39da91f):**
 
-**Risk:** Low. These are fixes, not redesigns.
+**D2 — Contrast accessibility (25 sites):**
+- All `text-tea-text/{10,15,20}` occurrences in `src/` migrated to the readable floor (`text-tea-text-sec` for interactive affordances, `text-tea-text-dim` for decorative separators/icons).
+- Two judgment calls collapsed needless asymmetry: `TeawareCatalog` favorite toggle ghost-button pattern; `LearnOverview` mood ternary that produced two failing-contrast branches.
+- `grep` for `text-tea-text/{10..20}` in src/: **0** remaining.
 
-**Unblocks:** Nothing structural. This is the polish that makes the whole pass land.
+**Already done before D started (verified by recon):**
+- D3 — `Button.tsx` already implements the canonical focus-visible pattern; 171 call sites already follow it.
+- D4 — `bg-white/N` is gone from `src/` (no surviving asymmetric scrims after Phase B1).
+- "text-tea-ink/40" — `tea-ink` token is removed entirely (Phase B); zero references remain.
+
+**Deferred:**
+
+**D1 — Tap targets (deferred):**
+- The plan named 5–6 violations (PageHeader Back, ChevronRight, cart stepper, Reader progress handle, footer admin link) but no file paths or click-target sizes. No `tap-target` utility token exists yet. Properly closing this needs an a11y audit pass (preferably a Playwright a11y check enumerating every interactive element below 44×44) — out of scope for a one-pass migration. The Footer admin link was bumped for contrast in D2 but its tap-target remains.
+
+**Verification:**
+- `npm run lint`: clean
+- `npm run lint:colors`: clean
+- `npm run build`: ✓
+- `npm run test:mobile`: 20/20 real routes passing
 
 ---
 
-## Phase E (optional) — Performance pass (half-day)
+## Phase E (optional) — Performance pass — partially done / deferred (2026-04-27 audit)
 
-**Goal:** Strip the bloat that the audit flagged.
+**Reality vs. plan:**
 
-**Scope:**
-1. Remove the three full-screen fixed texture overlays (`feTurbulence` + `mix-blend-mode: multiply`) or load them once at build time as a CSS background-image. Drop the `transparenttextures.com` external dependency.
-2. Code-split framer-motion so it only loads on admin routes.
-3. Verify the duplicate `@keyframes shimmer` is gone (was caught in Phase A).
+**E1 — `transparenttextures.com` external dep:** Already gone. `grep -r transparenttextures` returns nothing.
 
-**Done when:**
-- Lighthouse main-thread blocking time drops measurably on `/`.
-- Initial bundle size for non-admin routes drops by the framer-motion delta.
+**E1 — `feTurbulence` overlays:** 17 files use feTurbulence (34 occurrences). The plan said "remove three full-screen fixed overlays" but recon shows these are intentional editorial textures embedded in component-level recipes, not bloat. Removing them is a design decision (loses the warm grain that defines the brand) rather than a perf optimization. No action.
 
-**Risk:** Low. Pure perf work.
+**E2 — framer-motion code-split:** 97 files import `framer-motion`. 20 in `src/admin/`, 77 in public components/pages. Code-splitting it to admin-only would require refactoring 77 files to use CSS animations or a lighter library. This is a multi-week refactor, not a half-day perf pass. Deferred until there's evidence framer-motion is actually a Lighthouse bottleneck (the production bundle splits framer-motion into its own chunk via Vite's automatic chunking, so the practical impact may already be minimal).
+
+**E3 — duplicate `@keyframes shimmer`:** Already gone. The only `shimmer` keyframe is in `designTokens.ts` `KEYFRAMES`; no CSS-file duplicate.
+
+**Net:** Phase E as written is mostly N/A or out-of-scope. If a real perf pass is wanted, it should start with a Lighthouse run against the live site, not the audit's pre-Phase-A snapshot.
 
 ---
 
