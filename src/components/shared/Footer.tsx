@@ -66,7 +66,7 @@ export default function Footer() {
           </span>
           <Link
             to="/admin"
-            className="text-ui-11 text-tea-text-dim hover:text-tea-gold tracking-wide transition-colors duration-300 font-sans"
+            className="tap-target text-ui-11 text-tea-text-dim hover:text-tea-gold tracking-wide transition-colors duration-300 font-sans"
           >
             Admin
           </Link>

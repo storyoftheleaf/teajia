@@ -59,7 +59,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
           <div className="px-4 pt-3 md:px-6 lg:px-10">
             <button
               onClick={onBack}
-              className="flex items-center gap-1.5 group min-h-[36px] rounded-md hover:bg-tea-text/5 px-2 py-1 -ml-2 transition-colors"
+              className="tap-target !justify-start gap-1.5 group rounded-md hover:bg-tea-text/5 px-2 py-1 -ml-2 transition-colors"
             >
               <Icons.Back className="w-3.5 h-3.5 text-tea-text-sec group-hover:-translate-x-0.5 transition-transform" />
               <span className="text-xs text-tea-text-sec tracking-wide">

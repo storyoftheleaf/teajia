@@ -65,7 +65,7 @@ export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQ
           <div className={`flex items-center ${showVariant ? 'mt-3' : 'mt-2'}`}>
             <button
               onClick={() => onUpdateQuantity(item.id, Math.max(1, item.quantityGrams - step))}
-              className="w-9 h-9 -ml-2 rounded-sm flex items-center justify-center text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub transition-colors text-base leading-none"
+              className="tap-target -ml-2 rounded-sm text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub transition-colors text-base leading-none"
               aria-label="Decrease quantity"
             >−</button>
             <div className="flex items-baseline">
@@ -90,7 +90,7 @@ export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQ
             </div>
             <button
               onClick={() => onUpdateQuantity(item.id, Math.min(9999, item.quantityGrams + step))}
-              className="w-9 h-9 rounded-sm flex items-center justify-center text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub transition-colors text-base leading-none"
+              className="tap-target rounded-sm text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub transition-colors text-base leading-none"
               aria-label="Increase quantity"
             >+</button>
 

@@ -2087,6 +2087,19 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 
 /* ============================================
+   Tap target floor — 44×44 minimum per WCAG 2.5.5 / Apple HIG / Material Design.
+   Apply to any interactive button or icon-only control. Doesn't change visual
+   size of the element's content; just adds invisible padding around the click area.
+   ============================================ */
+.tap-target {
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ============================================
    Bottom Nav Clearance Utilities
    The mobile bottom nav is 44px + safe-area-inset-bottom,
    visible below the `lg` breakpoint (1024px).
