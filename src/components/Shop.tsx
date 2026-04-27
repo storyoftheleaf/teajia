@@ -6,6 +6,8 @@ import { useQuery } from '@tanstack/react-query';
 import { Check, Loader2, ChevronDown } from 'lucide-react';
 import { InventoryItem, Account } from '../types';
 import { CollectionTab } from './shop/CollectionTab';
+import { ShopCollectionBand } from './shop/ShopCollectionBand';
+import { usePublicShopCollections } from '../hooks/usePublicShopCollections';
 import { TeaInventory } from './TeaInventory';
 import { TeawareCatalog } from './TeawareCatalog';
 import { PageHeader } from './shared/PageHeader';
@@ -132,6 +134,16 @@ export const Shop: React.FC<ShopProps> = ({
       document.removeEventListener('keydown', handleKey);
     };
   }, [storePickerOpen]);
+
+  // Shop-published editorial collections
+  const { collections: shopCollections, isLoading: collectionsLoading, isError: collectionsError } = usePublicShopCollections();
+
+  // URL filter params: when ?flavor= or ?feel= are active the user is filtering —
+  // hide discovery bands so they don't distract from the filtered result.
+  const hasUrlFilter = !!(searchParams.get('flavor') || searchParams.get('feel'));
+
+  // Bands are visible only on the tea tab and when no URL filter is active.
+  const showBands = activeTab === 'tea' && !hasUrlFilter && !collectionsLoading && !collectionsError && shopCollections.length > 0;
 
   // Admin overlay state
   const { isAdmin, productMap, refetchProducts } = useAdminOverlay();
@@ -445,6 +457,15 @@ export const Shop: React.FC<ShopProps> = ({
             inventory={collectionInventory}
             onAddToCart={onAddToCart}
           />
+        )}
+
+        {/* Editorial collection bands — visible on tea tab when no URL filter is active */}
+        {showBands && (
+          <div className="overflow-hidden border-b border-tea-border">
+            {shopCollections.map(entry => (
+              <ShopCollectionBand key={entry.publication_id} entry={entry} />
+            ))}
+          </div>
         )}
 
         {!isError && !(isLoading && teaInventory.length === 0) && activeTab === 'tea' && (
