@@ -1006,7 +1006,7 @@ export const PartnerListingEdit: React.FC = () => {
           onClick={() => setDrawerOpen(true)}
           className="mt-2 text-[12px] text-tea-text-sec hover:text-tea-gold transition-colors group"
         >
-          View {profile.curated_by_name ?? 'curator'}'s full canonical content{' '}
+          See {profile.curated_by_name ?? 'curator'}'s full description, photos and notes{' '}
           <span className="inline-block transition-transform group-hover:translate-x-0.5">→</span>
         </button>
 

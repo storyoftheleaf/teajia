@@ -96,10 +96,10 @@ export const AdoptionQueue: React.FC = () => {
       {!error && entries && entries.length === 0 && (
         <p className="font-body italic text-[14px] text-tea-text-sec leading-[1.7]">
           {filter === 'pending'
-            ? 'No teas are waiting for review.'
+            ? 'Nothing is waiting. Tea Masters will appear here when they offer a profile up for the network.'
             : filter === 'adopted'
-            ? 'No teas have been adopted yet.'
-            : 'No teas have been declined.'}
+            ? 'No profiles have been adopted yet. Adopted teas appear in every partner\'s catalog.'
+            : 'No profiles have been declined. Declined originators can revise and re-suggest.'}
         </p>
       )}
 

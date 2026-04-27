@@ -248,7 +248,8 @@ export const WholesaleOrdersList: React.FC = () => {
       {/* Empty state */}
       {!loading && orders !== null && orders.length === 0 && (
         <p className="text-tea-text-sec italic text-[15px] leading-[1.65]">
-          No wholesale orders yet. Start one from a tea you carry, or from the Network catalog.
+          No wholesale orders yet. Start one from a tea you carry, or from
+          the network catalog. The supplier sees it on submit.
         </p>
       )}
 
