@@ -82,26 +82,55 @@ Until this is done, every other phase is fighting the build system. **Do this fi
 
 ---
 
-## Phase C — Scale rationalization (2–3 days)
+## Phase C — Scale rationalization ✅ MOSTLY COMPLETE (shipped 2026-04-27)
 
 **Goal:** Every visual property has one scale. No more arbitrary values.
 
-**Scope:**
-1. **Typography:** delete the dead `--font-size-*` CSS custom properties. Standardize on `TYPOGRAPHY_CLASSES` from `designTokens.ts`; refactor the ~30 sites with arbitrary `text-[9px|10px|11px]` / mixed `font-light|font-normal` to use the tokens. Remove 5 of the 8 Google Fonts (keep Lora, Inter, Vollkorn). Add `font-display: swap` and `unicode-range` for CJK.
-2. **Spacing:** delete non-grid increments in `card-utilities.css` (`0.625rem`, `0.875rem`). Standardize card padding to `p-4` / `p-6` per density.
-3. **Border radius:** define a 4-stop scale (`sm` 2px, `md` 6px, `lg` 12px, `2xl` 16px). Migrate the ~12 inconsistent sites.
-4. **Shadows:** define a 4-stop scale tied to elevation tokens. Replace inline `shadow-[...]` with classes.
-5. **Transitions:** define a 3-stop duration scale (`fast` 150ms, `base` 250ms, `slow` 400ms). Migrate the ~10 inconsistent sites.
-6. **Z-index:** define a named scale (`z-base` 0, `z-sticky` 10, `z-drawer` 30, `z-modal` 40, `z-toast` 50, `z-overlay` 60). Migrate the ~50 sites with arbitrary values. Resolve the `z-[9999]` collision between theme overlay and skip link.
-7. **Backdrop blur:** standardize on a 2-stop scale (`sm`, `xl`). Remove `saturate-150` outliers or add it to the token if it's the intended look.
+**Reality vs. plan:** The audit's per-item counts were wildly off in both directions. C1 (typography) is an order of magnitude bigger than estimated; C2/C5/C6/C7 are smaller. Recon-then-ship rather than blanket-migration.
 
-**Done when:**
-- `grep -E 'text-\[[0-9]+px\]|rounded-\[[0-9]+px\]|z-\[[0-9]+\]'` returns near-zero hits in `src/`.
-- A new contributor adding a heading uses `TYPOGRAPHY_CLASSES.h2`, not raw classes.
+**What shipped (commit 02fd02b):**
 
-**Risk:** Visual drift on individual screens. Mitigate by walking the top 20 routes after each scale migration. Take screenshots before/after.
+**C4 — Shadows (4 of 12 sites migrated):**
+- `shadow-[0_1px_3px_rgba(0,0,0,0.3)]` → `shadow-base` (exact match in scale).
+- Three gold halo glows tokenized: `rgba(184,146,78,0.08)` → `var(--tea-accent-sub)` (visually identical).
+- 8 sites kept: directional drops (no scale equivalent), heavier-alpha shadows, already-tokenized glows.
 
-**Unblocks:** Phase D — once scales are tight, the touch-target + contrast fixes become trivial.
+**C5 — Transitions (2 dead sites removed):**
+- MediaViewer's `duration-[10s]` and `duration-[8s]` on `animate-pulse` were dead code — Tailwind's `duration-` utility only affects `transition-`, not `animate-` keyframes. Removed.
+- The 421 `duration-{100/150/200/300/500/700}` uses are Tailwind defaults, not arbitrary.
+
+**C6 — Z-index (7 of 27 sites migrated, plus `z-[9999]` collision resolved):**
+- `SinglePageRenderer.tsx` video lightbox: `z-[9999]` → `z-panel-modal` (70). Skip link in `index.html` keeps its inline `z-index:9999` (above everything else, document-level).
+- `z-[150]` (2 sites) → `z-modal`. `z-[200]` (3 sites) → `z-toast`. `z-[9000]` → `z-priority`.
+- 20 sites kept: `z-[1]` and `z-[5]` are tight local stacks with no semantic meaning; mapping them to named tokens would obscure intent. Comments added where the local stack constraint is non-obvious.
+
+**C7 — Backdrop blur (1 site cleaned):**
+- `Card.tsx` `backdrop-blur-[0px]` → `backdrop-blur-none`. The hover `backdrop-blur-[1px]` kept as intentional micro-detail (no scale equivalent at 1px; `backdrop-blur-sm` is 4px, too strong).
+- `saturate-150` is not arbitrary — it's a Tailwind default, kept as-is.
+
+**Deferred / not shipped:**
+
+**C1 — Typography (deferred):**
+- Recon found **~2,733 `text-[Npx]` sites in `src/`**, dominated by `text-[10px]` (980×), `text-[11px]` (637×), `text-[13px]` (260×), `text-[12px]` (232×), `text-[9px]` (222×). The plan estimated ~30 sites — off by two orders of magnitude.
+- Migrating this requires a separate multi-session initiative: define a UI typography scale (`text-ui-9` / `text-ui-10` / etc.) or codemod by exact value, then walk every screen for visual drift. Risk of regression is high without per-component review.
+- The Google Fonts loadout in `index.html` is already 6 fonts (Cormorant Garamond, Lora, Plus Jakarta Sans, IBM Plex Mono, Noto Serif SC, Ma Shan Zheng), not 8. The plan's "drop 5 of 8" is stale. Subsetting (e.g. Noto Serif SC's `&text=` parameter) is already in place.
+- The `--font-size-*` CSS custom properties the plan said to delete don't exist in current `src/`. Already done.
+
+**C2 — Spacing (deferred as intentional):**
+- The two `0.875rem` and one `0.625rem` sites in `card-utilities.css` are intentional micro-stops (an intermediate responsive ramp at md, an asymmetric pill-tag padding). Not violations. Replacing with grid increments would break the visual.
+- Standardizing card padding to `p-4`/`p-6` across the app is a Phase D-scale UX pass, not a one-pass cleanup.
+
+**C3 — Border radius (deferred as intentional):**
+- 68 arbitrary `rounded-[Npx]` sites, dominated by `rounded-[2px]` (32×) and `rounded-[1px]` (19×). These are part of the editorial / brutalist micro-radius aesthetic. The design tokens already define `borderRadius.sm = 0.125rem = 2px`, but using the class `rounded-sm` vs `rounded-[2px]` is purely stylistic. No semantic gain from a sweep.
+
+**Verification:**
+- `npm run lint`: clean
+- `npm run lint:colors`: clean (0 errors / 0 notices)
+- `npm run build`: ✓
+- `npm run test:mobile`: 20/20 real routes passing
+- `grep z-\\[9999\\] src/`: returns nothing (collision resolved)
+
+**Unblocks:** Phase D (mobile + a11y) is now trivial — z-index is named, scales exist, lint has teeth.
 
 ---
 
