@@ -171,7 +171,7 @@ const CanonicalDrawer: React.FC<CanonicalDrawerProps> = ({ profile, onClose }) =
       <div
         role="dialog"
         aria-modal="true"
-        aria-label={`${profile.name} canonical content`}
+        aria-label={`${profile.name} curator's content`}
         className="fixed inset-0 md:inset-auto md:right-0 md:top-0 md:bottom-0 md:w-[480px] z-modal bg-tea-surface flex flex-col overflow-hidden shadow-xl surface-warm"
       >
         {/* Header */}
@@ -190,7 +190,7 @@ const CanonicalDrawer: React.FC<CanonicalDrawerProps> = ({ profile, onClose }) =
               Sourced from Teajia · curated by {profile.curated_by_name}
             </p>
           )}
-          <p className="text-tea-text-sec text-[12px] italic mt-1">Read-only view of all canonical content.</p>
+          <p className="text-tea-text-sec text-[12px] italic mt-1">Read-only view of the curator's full record.</p>
         </div>
 
         {/* Scrollable body */}
@@ -529,7 +529,7 @@ const ListingFields: React.FC<ListingFieldsProps> = ({ listing, profile, callerC
         {/* Canonical retail context */}
         {profile.curated_by_name && (
           <p className="text-tea-text-sec italic text-[12px] leading-[1.6] mt-2 pl-44">
-            {profile.curated_by_name}'s canonical retail is shown on the detail drawer above.
+            {profile.curated_by_name}'s retail is shown on the detail drawer above.
           </p>
         )}
       </div>
@@ -541,12 +541,12 @@ const ListingFields: React.FC<ListingFieldsProps> = ({ listing, profile, callerC
           value={storeNote}
           onChange={e => setStoreNote(e.target.value)}
           rows={4}
-          placeholder="Your voice on this tea. Shown above the canonical description on your storefront."
+          placeholder="Your voice on this tea. Shown above the curator's description on your storefront."
           className="w-full bg-transparent border border-tea-border focus:border-tea-gold/40 outline-none font-body text-[15px] leading-[1.7] text-tea-text px-3 py-2 rounded-[2px] resize-none transition-colors placeholder:text-tea-text-dim placeholder:italic"
         />
         <div className="flex items-center justify-between mt-1">
           <p className="text-tea-text-dim italic text-[12px] leading-[1.6]">
-            Your note shows above Adrian's canonical description on your storefront.
+            Your note shows above Adrian's description on your storefront.
           </p>
           <button
             type="button"
@@ -585,7 +585,7 @@ const ListingFields: React.FC<ListingFieldsProps> = ({ listing, profile, callerC
           </>
         ) : (
           <p className="text-tea-text-dim italic text-[13px]">
-            No photos yet. Customer-facing storefront falls back to canonical photos.
+            No photos yet. Your storefront falls back to the curator's photos.
           </p>
         )}
       </div>
@@ -1074,7 +1074,7 @@ export const PartnerListingEdit: React.FC = () => {
         <section className="mb-10">
           <div className="flex items-baseline justify-between mb-1">
             <p className="text-[11px] uppercase tracking-[0.1em] text-tea-text-dim">
-              {profile.curated_by_name ? `${profile.curated_by_name}'s canonical` : 'Canonical content'}
+              {profile.curated_by_name ? `${profile.curated_by_name}'s record` : 'Curator\'s record'}
             </p>
             {!hasEdits && (
               <p className="text-[12px] italic text-tea-text-dim">

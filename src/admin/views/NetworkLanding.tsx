@@ -74,17 +74,17 @@ export const NetworkLanding: React.FC = () => {
 
         <div className="space-y-4 font-body text-[15px] text-tea-text leading-[1.75]">
           <p>
-            A tea on the network has one canonical record (origin, varietal,
-            harvest year, description, photos). That record lives with the
-            curator who sources it. Other houses can <em>carry</em> the tea,
-            setting their own stock, retail price, and store note, while the
-            canonical content stays anchored.
+            Each tea has one original record (origin, varietal, harvest
+            year, description, photos), kept by the curator who sources
+            it. Other houses can <em>carry</em> the tea, setting their own
+            stock, retail price, and store note. The original stays
+            anchored to the curator.
           </p>
           <p>
             When a partner sees a typo or a clearer way to describe a tea,
-            they edit the canonical content in place on the card. The change
-            goes to the curator's queue. The curator decides, field by field.
-            Accepted changes apply everywhere immediately.
+            they edit the curator's text in place on the card. The change
+            goes to the curator's queue. The curator decides, field by
+            field. Accepted changes update everywhere immediately.
           </p>
         </div>
       </header>
