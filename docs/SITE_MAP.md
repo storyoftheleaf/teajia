@@ -209,7 +209,7 @@ Bundles (per NETWORK_ROLLOUT_PLAN): Catalog, Stock, Publish, Gather, Sell, Membe
 - Location Owner and Tea Master register (future: sub-counts: Locations, Masters, Pending)
 - Roster by account kind; tap account → sub-frame with that account's roster
 - Hidden Platform tab: application queue, trust tier management
-- **Status:** PARTIAL (API WIRED; UI: roster shows, adoption queue tab TODO)
+- **Status:** WIRED (roster live; adoption queue surfaces in `/admin/network?tab=adoptions`)
 
 ### /admin/activity
 - Cross-account audit log viewer (platform tier only)
@@ -259,7 +259,7 @@ All public (no auth required).
 | `/for-your-space` | PARTIAL (PREVIEW_MODE) | Seasonal/contextual curation UI exists, but PREVIEW_MODE-gated. |
 | `/spaces` | PARTIAL (PREVIEW_MODE) | Network location showcase UI exists, but PREVIEW_MODE-gated. |
 | `/start` | PARTIAL (PREVIEW_MODE) | Welcome + intro flows UI exists, but PREVIEW_MODE-gated. |
-| `/admin/network?tab=adoptions` | STUB (API only) | POST /api/network/profiles/:id/adopt wired (platform tier only), but UI tab missing from PlatformAccessView. |
+| `/admin/network?tab=adoptions` | WIRED | Platform-tier adoption queue lives inside the Network hub (`AdoptionQueue` rendered embedded by `NetworkLanding` when `isPlatform`). Reads `GET /api/network/adoption-queue`; decisions go to `POST /api/network/profiles/:id/adopt`. |
 
 ---
 

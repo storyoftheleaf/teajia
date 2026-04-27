@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { api } from '../../lib/api';
+import { api, getTokenClaims } from '../../lib/api';
 import { useAppStore, selectIsOwnerTier } from '../../lib/store';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { ALL_BUNDLES, BUNDLE_DESCRIPTIONS, BUNDLE_LABELS } from '../../types';
@@ -28,13 +28,13 @@ interface EditorSheetProps {
   member: AccountMember;
   isViewerOwner: boolean;
   onClose: () => void;
-  onSaved: () => void;
+  onSave: (next: Bundle[]) => Promise<void>;
   onRemove: () => Promise<void> | void;
   accountId: string;
   accountName: string;
 }
 
-const EditorSheet: React.FC<EditorSheetProps> = ({ member, isViewerOwner, onClose, onSaved, onRemove, accountId, accountName }) => {
+const EditorSheet: React.FC<EditorSheetProps> = ({ member, isViewerOwner, onClose, onSave, onRemove, accountId: _accountId, accountName }) => {
   const initialBundles = useMemo(() => member.bundles || [], [member.bundles]);
   const [working, setWorking] = useState<Set<Bundle>>(() => new Set(initialBundles));
   const [saving, setSaving] = useState(false);
@@ -66,8 +66,7 @@ const EditorSheet: React.FC<EditorSheetProps> = ({ member, isViewerOwner, onClos
     setError(null);
     try {
       const next = ALL_BUNDLES.filter(b => working.has(b));
-      await api.accounts.setMemberBundles(accountId, member.user_id, next);
-      onSaved();
+      await onSave(next);
     } catch (err: any) {
       setError(err?.message || 'Could not save. Try again.');
     } finally {
@@ -219,6 +218,10 @@ export const AccessView: React.FC = () => {
   const activeAccount = useAppStore(s => s.activeAccount);
   const activeAccountId = useAppStore(s => s.activeAccountId);
   const isOwnerTier = useAppStore(selectIsOwnerTier);
+  // Identify the viewer so we never let them edit their own bundles via this
+  // surface — an owner toggling away their own `members` would lock themselves
+  // out of the only screen that can grant it back.
+  const currentUserId = useMemo(() => getTokenClaims()?.sub || null, []);
 
   const [members, setMembers] = useState<AccountMember[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -261,6 +264,32 @@ export const AccessView: React.FC = () => {
       setError(err?.message || 'Could not add this person. Check the email and try again.');
     } finally {
       setAddBusy(false);
+    }
+  };
+
+  // Optimistic save — patch the row in place while the network call flies,
+  // roll back if it rejects. Errors bubble back into EditorSheet so the inline
+  // error message appears next to the toggles.
+  const handleSaveBundles = async (next: Bundle[]) => {
+    if (!editing || !activeAccountId) return;
+    const userId = editing.user_id;
+    const previous = editing.bundles || [];
+    setMembers(prev => prev
+      ? prev.map(m => m.user_id === userId ? { ...m, bundles: next } : m)
+      : prev
+    );
+    try {
+      await api.accounts.setMemberBundles(activeAccountId, userId, next);
+      setEditing(null);
+      // Re-fetch in the background to reconcile any server-side derivations.
+      load();
+    } catch (err) {
+      // Roll back the row on failure so what's on screen matches the server.
+      setMembers(prev => prev
+        ? prev.map(m => m.user_id === userId ? { ...m, bundles: previous } : m)
+        : prev
+      );
+      throw err;
     }
   };
 
@@ -319,7 +348,8 @@ export const AccessView: React.FC = () => {
             <RosterRow
               key={m.user_id}
               member={m}
-              onClick={isOwnerTier ? () => setEditing(m) : undefined}
+              onClick={isOwnerTier && m.user_id !== currentUserId ? () => setEditing(m) : undefined}
+              isSelf={m.user_id === currentUserId}
             />
           ))}
         </section>
@@ -336,7 +366,8 @@ export const AccessView: React.FC = () => {
             <RosterRow
               key={m.user_id}
               member={m}
-              onClick={isOwnerTier ? () => setEditing(m) : undefined}
+              onClick={isOwnerTier && m.user_id !== currentUserId ? () => setEditing(m) : undefined}
+              isSelf={m.user_id === currentUserId}
             />
           ))}
         </section>
@@ -389,12 +420,12 @@ export const AccessView: React.FC = () => {
         </div>
       )}
 
-      {editing && (
+      {editing && editing.user_id !== currentUserId && (
         <EditorSheet
           member={editing}
           isViewerOwner={isOwnerTier}
           onClose={() => setEditing(null)}
-          onSaved={async () => { setEditing(null); await load(); }}
+          onSave={handleSaveBundles}
           onRemove={handleRemove}
           accountId={activeAccountId}
           accountName={activeAccount?.name || 'this account'}
@@ -407,9 +438,10 @@ export const AccessView: React.FC = () => {
 interface RosterRowProps {
   member: AccountMember;
   onClick?: () => void;
+  isSelf?: boolean;
 }
 
-const RosterRow: React.FC<RosterRowProps> = ({ member, onClick }) => {
+const RosterRow: React.FC<RosterRowProps> = ({ member, onClick, isSelf }) => {
   const displayName = member.name || member.email;
   const tierLabel =
     member.role === 'owner' ? 'Owner'
@@ -436,6 +468,9 @@ const RosterRow: React.FC<RosterRowProps> = ({ member, onClick }) => {
             <div className="text-tea-text-sec text-[11px] uppercase tracking-[0.1em]">{tierLabel}</div>
             {isInvited && (
               <div className="text-tea-text-sec italic text-[12px]">Not yet accepted</div>
+            )}
+            {isSelf && (
+              <div className="text-tea-text-sec italic text-[12px]">You</div>
             )}
           </div>
           <div className="text-tea-text-sec text-[13px] mt-1.5 leading-[1.5]">

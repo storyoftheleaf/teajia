@@ -7,8 +7,9 @@
 // transfers to Teajia, profile becomes visible in every partner's catalog)
 // or declines with an optional note returned to the originator.
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { api } from '../../lib/api';
 import type { AdoptionQueueEntry, AdoptionDecision } from '../../types';
@@ -29,21 +30,23 @@ export const AdoptionQueue: React.FC<AdoptionQueueProps> = ({ embedded = false }
   const outerClass = embedded
     ? 'px-4 md:px-8 max-w-3xl mx-auto'
     : 'px-4 md:px-8 pt-8 pb-nav-gap-lg max-w-3xl mx-auto';
-  const [entries, setEntries] = useState<AdoptionQueueEntry[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setEntries(null);
-    setError(null);
-    try {
-      const { profiles } = await api.network.adoptionQueue(filter);
-      setEntries(profiles);
-    } catch (err: any) {
-      setError(err?.message || "Couldn't load the adoption queue.");
-    }
-  }, [filter]);
+  const queryClient = useQueryClient();
+  const queryKey = ['network', 'adoption-queue', filter] as const;
+  const {
+    data,
+    isLoading,
+    error: queryError,
+  } = useQuery({
+    queryKey,
+    queryFn: () => api.network.adoptionQueue(filter),
+    staleTime: 30_000,
+  });
+  const entries: AdoptionQueueEntry[] | null = data?.profiles ?? null;
+  const error = queryError ? ((queryError as Error).message || "Couldn't load the adoption queue.") : null;
 
-  useEffect(() => { load(); }, [load]);
+  const refetchAll = () =>
+    queryClient.invalidateQueries({ queryKey: ['network', 'adoption-queue'] });
 
   return (
     <div className={outerClass}>
@@ -90,7 +93,7 @@ export const AdoptionQueue: React.FC<AdoptionQueueProps> = ({ embedded = false }
         <p className="font-body italic text-[14px] text-tea-text-sec">{error}</p>
       )}
 
-      {!error && entries === null && (
+      {!error && (entries === null || isLoading) && (
         <p className="font-body italic text-[14px] text-tea-text-sec">Loading…</p>
       )}
 
@@ -108,7 +111,7 @@ export const AdoptionQueue: React.FC<AdoptionQueueProps> = ({ embedded = false }
         <ul className="space-y-8">
           {entries.map(entry => (
             <li key={entry.id}>
-              <AdoptionRow entry={entry} onChange={load} />
+              <AdoptionRow entry={entry} onChange={refetchAll} />
             </li>
           ))}
         </ul>
@@ -125,35 +128,33 @@ interface AdoptionRowProps {
 }
 
 const AdoptionRow: React.FC<AdoptionRowProps> = ({ entry, onChange }) => {
-  const [busy, setBusy] = useState<'adopted' | 'declined' | null>(null);
   const [showDecline, setShowDecline] = useState(false);
   const [declineNote, setDeclineNote] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   const isPending = entry.adoption_decision === 'pending';
 
-  const handleAdopt = async () => {
-    setBusy('adopted');
+  const decideMutation = useMutation({
+    mutationFn: (input: { decision: 'adopted' | 'declined'; note?: string }) =>
+      api.network.decideAdoption(entry.id, input.decision, input.note),
+    onSuccess: async () => { await onChange(); },
+    onError: (err: any) => {
+      setError(err?.message || "Couldn't save the decision. Try again.");
+    },
+  });
+
+  const busy: 'adopted' | 'declined' | null = decideMutation.isPending
+    ? (decideMutation.variables?.decision ?? null)
+    : null;
+
+  const handleAdopt = () => {
     setError(null);
-    try {
-      await api.network.decideAdoption(entry.id, 'adopted');
-      await onChange();
-    } catch (err: any) {
-      setError(err?.message || "Couldn't adopt. Try again.");
-      setBusy(null);
-    }
+    decideMutation.mutate({ decision: 'adopted' });
   };
 
-  const handleDecline = async () => {
-    setBusy('declined');
+  const handleDecline = () => {
     setError(null);
-    try {
-      await api.network.decideAdoption(entry.id, 'declined', declineNote.trim() || undefined);
-      await onChange();
-    } catch (err: any) {
-      setError(err?.message || "Couldn't decline. Try again.");
-      setBusy(null);
-    }
+    decideMutation.mutate({ decision: 'declined', note: declineNote.trim() || undefined });
   };
 
   // Build a concise origin line from country/region/varietal/year.
