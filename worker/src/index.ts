@@ -11427,6 +11427,244 @@ const handleUnpublish: Handler = async (request, env, params) => {
   return json({ ok: true });
 };
 
+// ── Shop-audience publications (Phase 3) ──────────────────────────────────────
+// Publishing a collection to the shop makes it publicly visible on the
+// storefront via GET /api/collections/shop (no auth). The collection itself
+// remains owned by the originating account; the publication row carries
+// target_type='shop' and target_id=NULL.
+
+// POST /api/collections/:id/publish-shop
+// Idempotent: returns 200 with the existing row if already active.
+const handlePublishToShop: Handler = async (request, env, params) => {
+  const ctx = await getActiveAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const found = await loadCollectionOr404(env, params.id, ctx.accountId);
+  if ('error' in found) return found.error;
+
+  const isOwner = ctx.role === 'owner';
+  if (!isOwner && found.row.curator_user_id !== ctx.userId) {
+    return json({ error: 'Forbidden' }, 403);
+  }
+
+  // Require at least one item before publishing.
+  const itemCount = await env.DB.prepare(
+    `SELECT COUNT(*) AS n FROM collection_items WHERE collection_id = ?`
+  ).bind(params.id).first();
+  if (!itemCount || (itemCount.n as number) === 0) {
+    return json({ error: 'Collection must contain at least one item before publishing' }, 400);
+  }
+
+  // Idempotent: return existing active shop publication if one exists.
+  const existing = await env.DB.prepare(
+    `SELECT id, collection_id, target_type, target_id, slug,
+            published_at, unpublished_at, view_count
+       FROM collection_publications
+      WHERE collection_id = ?
+        AND target_type = 'shop'
+        AND unpublished_at IS NULL
+      LIMIT 1`
+  ).bind(params.id).first();
+  if (existing) {
+    return json({ publication: existing, created: false });
+  }
+
+  // Generate a slug for consistency with other audiences.
+  const coll = found.row as { title: string };
+  let slug = '';
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const candidate = buildCollectionSlug(coll.title);
+    const taken = await env.DB.prepare(
+      `SELECT 1 FROM collection_publications WHERE slug = ?`
+    ).bind(candidate).first();
+    if (!taken) { slug = candidate; break; }
+  }
+  if (!slug) return json({ error: 'Slug generation failed' }, 500);
+
+  const pubId = newId('pub');
+  const now = new Date().toISOString();
+  await env.DB.prepare(
+    `INSERT INTO collection_publications
+       (id, collection_id, target_type, target_id, slug, recipients_json, created_by_user_id)
+     VALUES (?, ?, 'shop', NULL, ?, NULL, ?)`
+  ).bind(pubId, params.id, slug, ctx.userId).run();
+
+  // Auto-promote draft -> active on first publish.
+  await env.DB.prepare(
+    `UPDATE collections SET status = CASE WHEN status = 'draft' THEN 'active' ELSE status END,
+                            updated_at = ?
+      WHERE id = ?`
+  ).bind(now, params.id).run();
+
+  await logPlatformAction(env, 'collection.published_to_shop', ctx.userId, ctx.email, 'collection', params.id, {
+    publication_id: pubId,
+    slug,
+    collection_title: coll.title,
+    account_id: ctx.accountId,
+  });
+
+  const row = await env.DB.prepare(
+    `SELECT id, collection_id, target_type, target_id, slug,
+            published_at, unpublished_at, view_count
+       FROM collection_publications WHERE id = ?`
+  ).bind(pubId).first();
+
+  return json({ publication: row, created: true }, 201);
+};
+
+// POST /api/collections/:id/unpublish-shop
+// Sets unpublished_at on the active shop publication for this collection.
+const handleUnpublishFromShop: Handler = async (request, env, params) => {
+  const ctx = await getActiveAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const found = await loadCollectionOr404(env, params.id, ctx.accountId);
+  if ('error' in found) return found.error;
+
+  const isOwner = ctx.role === 'owner';
+  if (!isOwner && found.row.curator_user_id !== ctx.userId) {
+    return json({ error: 'Forbidden' }, 403);
+  }
+
+  const pub = await env.DB.prepare(
+    `SELECT id FROM collection_publications
+      WHERE collection_id = ?
+        AND target_type = 'shop'
+        AND unpublished_at IS NULL
+      LIMIT 1`
+  ).bind(params.id).first();
+
+  if (!pub) {
+    return json({ error: 'No active shop publication for this collection' }, 404);
+  }
+
+  await env.DB.prepare(
+    `UPDATE collection_publications SET unpublished_at = ? WHERE id = ?`
+  ).bind(new Date().toISOString(), pub.id).run();
+
+  await logPlatformAction(env, 'collection.unpublished_from_shop', ctx.userId, ctx.email, 'collection', params.id, {
+    publication_id: pub.id,
+    account_id: ctx.accountId,
+  });
+
+  return json({ ok: true });
+};
+
+// GET /api/collections/shop
+// Public, no auth. Returns the 20 most recently published active shop
+// collections, each with full collection metadata, curator attribution,
+// and in-stock active items.
+const handleGetShopCollections: Handler = async (_request, env) => {
+  // Fetch active shop publications, newest first, capped at 20.
+  const { results: pubs } = await env.DB.prepare(
+    `SELECT cp.id AS publication_id,
+            cp.slug,
+            cp.published_at,
+            cp.view_count,
+            c.id AS collection_id,
+            c.account_id,
+            c.title,
+            c.note,
+            c.hero_image_url,
+            c.status AS collection_status,
+            c.curator_user_id,
+            c.curator_display_name,
+            u.name AS curator_user_name
+       FROM collection_publications cp
+       JOIN collections c ON c.id = cp.collection_id
+       LEFT JOIN users u ON u.id = c.curator_user_id
+      WHERE cp.target_type = 'shop'
+        AND cp.unpublished_at IS NULL
+        AND c.status = 'active'
+      ORDER BY cp.published_at DESC
+      LIMIT 20`
+  ).all();
+
+  if (!pubs || pubs.length === 0) {
+    return json({ collections: [] });
+  }
+
+  // Batch-fetch items for all returned collections.
+  const collectionIds = (pubs as any[]).map((p: any) => p.collection_id);
+  const placeholders = collectionIds.map(() => '?').join(',');
+
+  const { results: allItems } = await env.DB.prepare(
+    `SELECT ci.collection_id,
+            ci.id AS item_id,
+            ci.position,
+            ci.item_note,
+            p.id AS product_id,
+            p.type AS product_type,
+            COALESCE(p.given_name, p.product_name) AS product_name,
+            p.chinese_name,
+            p.year,
+            p.origin_country,
+            p.origin_region,
+            p.image_url,
+            p.description,
+            p.tasting_notes,
+            p.stock_grams,
+            p.quantity_units
+       FROM collection_items ci
+       JOIN products p ON p.id = ci.product_id
+      WHERE ci.collection_id IN (${placeholders})
+        AND p.status = 'Active'
+      ORDER BY ci.collection_id, ci.position ASC`
+  ).bind(...collectionIds).all();
+
+  // Group items by collection.
+  const itemsByCollection = new Map<string, any[]>();
+  for (const item of (allItems ?? []) as any[]) {
+    const list = itemsByCollection.get(item.collection_id) ?? [];
+    const outOfStock = item.product_type === 'Teaware'
+      ? (item.quantity_units ?? 0) <= 0
+      : (item.stock_grams ?? 0) <= 0;
+    if (!outOfStock) {
+      list.push({
+        item_id: item.item_id,
+        position: item.position,
+        item_note: item.item_note,
+        product_id: item.product_id,
+        product_type: item.product_type,
+        product_name: item.product_name,
+        chinese_name: item.chinese_name,
+        year: item.year,
+        origin_country: item.origin_country,
+        origin_region: item.origin_region,
+        image_url: item.image_url,
+        description: item.description,
+        tasting_notes: (() => {
+          if (!item.tasting_notes) return null;
+          if (typeof item.tasting_notes === 'string') {
+            try { return JSON.parse(item.tasting_notes); } catch { return null; }
+          }
+          return item.tasting_notes;
+        })(),
+      });
+    }
+    itemsByCollection.set(item.collection_id, list);
+  }
+
+  const collections = (pubs as any[]).map((p: any) => ({
+    publication_id: p.publication_id,
+    slug: p.slug,
+    published_at: p.published_at,
+    view_count: p.view_count,
+    collection: {
+      id: p.collection_id,
+      account_id: p.account_id,
+      title: p.title,
+      note: p.note,
+      hero_image_url: p.hero_image_url,
+      status: p.collection_status,
+      curator_display_name: p.curator_user_id
+        ? (p.curator_display_name || p.curator_user_name || null)
+        : null,
+    },
+    items: itemsByCollection.get(p.collection_id) ?? [],
+  }));
+
+  return json({ collections });
+};
+
 const handleNeedsAttention: Handler = async (request, env) => {
   const ctx = await getActiveAccount(request, env);
   if ('error' in ctx) return ctx.error;
@@ -12543,7 +12781,7 @@ const handleListProfileSuggestions: Handler = async (request, env, params) => {
     return json({ error: 'Only the curator can list suggestions for this profile.' }, 403);
   }
 
-  const { results } = await env.DB.batch([
+  const [bundlesResult, fieldsResult] = await env.DB.batch([
     env.DB.prepare(`
       SELECT s.id, s.profile_id, s.status, s.created_at, s.updated_at,
              s.suggested_by_account_id, a.name AS suggested_by_account_name,
@@ -12565,9 +12803,9 @@ const handleListProfileSuggestions: Handler = async (request, env, params) => {
   ]) as [{ results: any[] }, { results: any[] }];
 
   // Group fields under their bundles
-  const bundles = (results[0].results as any[]).map((b: any) => ({
+  const bundles = (bundlesResult.results as any[]).map((b: any) => ({
     ...b,
-    fields: (results[1].results as any[]).filter((f: any) => f.suggestion_id === b.id),
+    fields: (fieldsResult.results as any[]).filter((f: any) => f.suggestion_id === b.id),
   }));
 
   return json({ suggestions: bundles });
@@ -12591,7 +12829,7 @@ const handleIncomingSuggestions: Handler = async (request, env) => {
   const params = [accountId];
   if (statusFilter) params.push(statusFilter);
 
-  const { results } = await env.DB.batch([
+  const [bundlesResult, fieldsResult] = await env.DB.batch([
     env.DB.prepare(`
       SELECT s.id, s.profile_id, s.status, s.created_at, s.updated_at,
              p.name AS profile_name, p.slug AS profile_slug,
@@ -12617,9 +12855,9 @@ const handleIncomingSuggestions: Handler = async (request, env) => {
     `).bind(...params),
   ]) as [{ results: any[] }, { results: any[] }];
 
-  const bundles = (results[0].results as any[]).map((b: any) => ({
+  const bundles = (bundlesResult.results as any[]).map((b: any) => ({
     ...b,
-    fields: (results[1].results as any[]).filter((f: any) => f.suggestion_id === b.id),
+    fields: (fieldsResult.results as any[]).filter((f: any) => f.suggestion_id === b.id),
   }));
 
   return json({ suggestions: bundles });
@@ -13789,13 +14027,15 @@ const routes: [string, string, Handler][] = [
   ['PUT',    '/api/customer-tags/:tag', handleRenameOrDeleteCustomerTag],
   ['GET',    '/api/collection-publications/recent-recipients', handleRecentRecipients],
 
-  // Collections (Phase 1: Person audience; Phase 2: Store audience)
+  // Collections (Phase 1: Person audience; Phase 2: Store audience; Phase 3: Shop audience)
   ['GET',    '/api/collections', handleListCollections],
   ['POST',   '/api/collections', handleCreateCollection],
   ['GET',    '/api/collections/needs-attention', handleNeedsAttention],
   ['GET',    '/api/collections/inbound', handleListInboundCollections],
   ['GET',    '/api/collections/inbound/:pubId', handleGetInboundCollection],
   ['POST',   '/api/collections/inbound/:pubId/import', handleImportInboundItems],
+  // Public shop index (no auth) — must be before /:id to avoid :id matching 'shop'.
+  ['GET',    '/api/collections/shop', handleGetShopCollections],
   ['GET',    '/api/collections/:id', handleGetCollection],
   ['PUT',    '/api/collections/:id', handlePatchCollection],
   ['POST',   '/api/collections/:id/items', handleAddCollectionItems],
@@ -13803,6 +14043,8 @@ const routes: [string, string, Handler][] = [
   ['DELETE', '/api/collections/:id/items/:itemId', handleRemoveCollectionItem],
   ['POST',   '/api/collections/:id/publications', handlePublishCollection],
   ['DELETE', '/api/collections/:id/publications/:pubId', handleUnpublish],
+  ['POST',   '/api/collections/:id/publish-shop', handlePublishToShop],
+  ['POST',   '/api/collections/:id/unpublish-shop', handleUnpublishFromShop],
 
   // Public collection pages — no auth, link-gated by slug.
   ['GET',  '/api/public/c/:slug', handleGetPublicCollection],

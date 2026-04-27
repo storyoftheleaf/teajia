@@ -2357,6 +2357,29 @@ export const api = {
     trackPublicView: async (slug: string): Promise<void> => {
       await fetchWithTimeout(`${API_URL}/api/public/c/${slug}/view`, { method: 'POST' });
     },
+    /** Publish a collection to the shop audience. Idempotent. */
+    publishToShop: async (collectionId: string): Promise<{ publication: import('../types').CollectionPublication; created: boolean }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/collections/${collectionId}/publish-shop`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({}),
+      });
+      return handleResponse(res);
+    },
+    /** Remove a collection from the shop audience. */
+    unpublishFromShop: async (collectionId: string): Promise<{ ok: true }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/collections/${collectionId}/unpublish-shop`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({}),
+      });
+      return handleResponse(res);
+    },
+    /** Public — no auth. Returns the 20 most recently shop-published collections. */
+    publicShop: async (): Promise<import('../types').PublicShopCollectionsResponse> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/collections/shop`, {});
+      return handleResponse(res);
+    },
   },
 
   platform: {

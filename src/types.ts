@@ -1057,3 +1057,43 @@ export interface NeedsAttentionItem {
   product_status?: string;
   issue: 'out_of_stock' | 'archived';
 }
+
+// Item shape returned by GET /api/collections/shop (in-stock active products only).
+export interface ShopCollectionItem {
+  item_id: string;
+  position: number;
+  item_note?: string | null;
+  product_id: string;
+  product_type?: string;
+  product_name?: string;
+  chinese_name?: string | null;
+  year?: number | null;
+  origin_country?: string | null;
+  origin_region?: string | null;
+  image_url?: string | null;
+  description?: string | null;
+  tasting_notes?: string[] | null;
+}
+
+// One entry in the GET /api/collections/shop response.
+export interface ShopCollectionEntry {
+  publication_id: string;
+  slug: string;
+  published_at: string;
+  view_count: number;
+  collection: {
+    id: string;
+    account_id: string;
+    title: string;
+    note?: string | null;
+    hero_image_url?: string | null;
+    status: CollectionStatus;
+    curator_display_name?: string | null;
+  };
+  items: ShopCollectionItem[];
+}
+
+// Response shape for GET /api/collections/shop.
+export interface PublicShopCollectionsResponse {
+  collections: ShopCollectionEntry[];
+}
