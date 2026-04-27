@@ -1,9 +1,9 @@
 # State of the Site
 
-> Comprehensive snapshot of the Teajia platform: what works, what doesn't, where the gaps are. Merges March 2026 audit shards with April 2026 Layer 1/2 audit synthesis. For technical architecture see ARCHITECTURE.md. For roadmap see ROADMAP.md.
+> Comprehensive snapshot of the Teajia platform: what works, what doesn't, where the gaps are. Merges March 2026 audit shards with April 2026 Layer 1/2 audit synthesis. For technical architecture see ARCHITECTURE.md. For what's next see POST_AUDIT_ROADMAP.md.
 
 **Audit period:** March–April 2026
-**Last updated:** 2026-04-27
+**Last updated:** 2026-04-27 (post-audit close)
 
 ---
 
@@ -41,63 +41,43 @@
 
 ### What Doesn't Work
 
-**Critical Gaps (P0/P1 Security & Wiring):**
-- 6 high-severity authorization gaps: RPC handlers (fulfill-invoice, void-invoice, increment-stock) lack ANY checks; 31 actions have client-side gates but NO server-side enforcement
-- 12 wiring gaps: bundle systems inconsistently enforced; member bundle-gated flows missing public UI; personal collection & compass sync incomplete; pull-to-refresh visual but logic incomplete; global search stub-level; cart checkout lacks fallback validation
-- Multi-tenancy audit trail gaps: bundle grants NOT logged; ownership transfers NOT logged
+**Audit findings:** As of 2026-04-27 the audit is closed. 36 of 37 findings shipped or verified. The one remaining (#36, design system) is scoped into 4 phases in `DESIGN_SYSTEM_PHASING.md`. Track the close-out in `_audit/FINDINGS.md` and the commit history (`1c57099`, `c653dde`, `39d730e`, `da98cd6`, `3433059`, `3d6507c`, `78d5f44`, `6961b34`).
 
-**Design System Chaos (169 Documented Inconsistencies):**
-- **Triple-config drift:** values defined in designTokens.ts diverge from index.html inline config (CDN Tailwind has final say)
-- **8 Google Fonts loaded in single request** — only 3–4 used per page; no `font-display: swap` = invisible text (FOIT)
-- **328 hardcoded rgba() values** in inline styles; violate COLOR_RULES.md; break theme changes
-- **49 files still use banned legacy tokens** (tea-ink, tea-paper, tea-seal, tea-charcoal) — misleading names create invisible-text bugs
-- **169 specific design issues:** spacing inconsistencies (648 padding instances across 124 files), typography (8 font families, 14 different text sizes for "heading level 2"), color drift (triple gold: #b8882d, #C9943A, #a07830), arbitrary z-index (10 to 9999 with no scale), missing token scales
+**Design system debt (the one open audit finding, #36):**
+- **Triple-config drift:** designTokens.ts / tailwind.config.ts / inline index.html script all carry overlapping definitions; CDN Tailwind makes the inline config win at runtime
+- **Tailwind CDN in production** (~500KB JS) blocks rendering and prevents tree-shaking
+- **328 hardcoded rgba()** + 65 hex bracket instances + 49 files using banned legacy tokens (tea-ink, tea-paper, tea-seal, tea-charcoal)
+- **Triple gold drift:** #b8882d, #C9943A, #a07830 used interchangeably
+- **8 Google Fonts** loaded in one blocking request, 3–4 used per page
+- **Missing scales:** lineHeight, transitionDuration, letterSpacing, zIndex, backdropBlur
+- **648 padding instances** across 124 files with no enforced spacing scale
+- See `DESIGN_SYSTEM_PHASING.md` for the 6–10 day phased fix plan.
 
-**Performance Red Flags:**
-- **Tailwind CDN in production** (~500KB JS) blocks rendering 0.5–1.5s on every page; prevents CSS tree-shaking
-- **355-line inline style block** in `<head>` (7.5KB); full Tailwind config in script tag; SVG texture filters with expensive feTurbulence
-- **3 full-screen texture overlays** on every page; mix-blend-mode multiply forces expensive calculations
-- **Eager content loading:** all 40+ stories, 6 photo essays, community members in initial bundle
-- **No debounce on localStorage writes** — 10–50ms main thread blocks per write
-- **ImagePreloader wraps entire app** with 40MB global cache; no route-based cleanup
+**Conversion gaps (deliberately deferred — out of audit scope):**
+- **No on-site checkout** — purchase flow exits to WhatsApp/email by design (per VISION.md, "WhatsApp checkout is intentional"). Not a gap to close; a design choice to keep.
+- **Product detail pages exist as overlays/modals**, not URL-addressable. Worth revisiting if SEO + deep-link sharing become priorities.
+- **Newsletter signup stores locally only** — backend delivery is a Body C item in `POST_AUDIT_ROADMAP.md`.
 
-**Commerce & Conversion Issues:**
-- **No on-site checkout** — purchase flow exits to WhatsApp/email; 30–50% drop-off per off-site redirect
-- **No product detail pages with URLs** — products only in card overlays/modals; no SEO, no sharing, no deep linking
-- **Homepage doesn't sell** — rotating tea philosophy quote above fold; seasonal tea pick below fold; no "shop now" CTA
-- **Checkout labeled incorrectly** — users expect payment form, get messaging app; must set expectations upfront
-- **Cart flow 11+ steps minimum** with mandatory app switch
-- **Newsletter signup goes nowhere** — stores locally only; no backend delivery
+**Architecture silos (the next big project, Body B in POST_AUDIT_ROADMAP.md):**
+- **Magazine ↔ Shop, Learn ↔ Shop, Consult ↔ Shop:** sections don't link to each other's content. Highest-leverage change post-audit.
+- **No personal timeline:** member's tasting / favorites / Compass / orders / reading scattered across six places. No unified "My Tea Life" view.
+- **Events ↔ Magazine:** events generate photos but no content production loop into the magazine.
 
-**Architecture Silos:**
-- **Magazine ↔ Shop disconnected:** articles about Wuyi oolong don't tell readers Teajia carries it
-- **Learn ↔ Shop disconnected:** "Vessel Selection" module doesn't show available teaware
-- **Consult ↔ Everything disconnected:** portfolio projects don't name vessels/teas used
-- **Home page decorative, not alive:** no live content previews; static section buttons
-- **Events ↔ Magazine:** no post-event storytelling or photo essay workflow
-- **Global search** returns siloed results; no cross-section connections shown
+**Mobile & accessibility issues fixable by the design system pass (#36, Phase D):**
+- 5–6 touch targets below the 44px floor (PageHeader Back, ChevronRight, cart stepper, Reader progress handle)
+- Color contrast failures on `text-tea-ink/40` on `tea-paper` (2.8:1, fails WCAG AA)
+- 25+ `text-white` instances that don't adapt to light mode
+- Asymmetric backdrop opacities (light vs dark)
+- Inconsistent focus rings across buttons
+- These don't require their own project — they're Phase D of #36.
 
-**Mobile & Accessibility Issues:**
-- **56px bottom tab bar** too tight for 5 targets + safe area (Apple HIG recommends 49px minimum)
-- **Insufficient bottom padding:** content clipped behind tab bar on notched phones (should use `env(safe-area-inset-bottom)`)
-- **Cart on top-right:** requires full arm extension; should be in bottom nav
-- **No swipe between Shop tabs** — mobile users expect swipe; requires tap
-- **Reader doesn't support pinch-to-zoom**
-- **Long-press for theme toggle** completely undiscoverable
-- **Color contrast failures:** text-tea-ink/40 on tea-paper = 2.8:1 (fails WCAG AA 4.5:1)
-- **Cart quantity stepper:** 28×28px buttons below 44px minimum
-- **Images lack meaningful alt text**
-- **Modals don't trap focus** (except CartDrawer)
-- **No `aria-current="page"` on navigation**
-- **Escape key doesn't close all modals**
-
-**Documentation Debt:**
-- **8 overlapping audit shards** (AUDIT.md, FUNCTIONAL_AUDIT.md, ARCHITECTURE_AUDIT.md, UI_UX_AUDIT.md, DESIGN_SYSTEM_AUDIT.md, WEBSITE_TEARDOWN.md, VISION_AUDIT_0–3): same problems viewed 8 different ways
-- **46-file docs folder** heavily redundant; 2 superseded briefs, 2 duplicate strategies; no clear single source of truth
+**Documentation debt:** Closed in commit `46aa5ee`. 46-file docs folder consolidated into a navigable structure. 8 overlapping audit shards archived. 2 superseded briefs archived. 2 duplicate strategy docs archived.
 
 ### Bottom Line
 
-**April 2026 platform assessment:** The site has extraordinary editorial quality and commerce infrastructure. 240 user flows mapped; 31 server-enforcement gaps identified; 18 redundant docs. Platform breadth (Shop, Magazine, Learn, Events, Compass, Admin) is best-in-class for tea space. Core coherence gaps are authorization (server-side enforcement missing), design system (triple-config drift + 328 hardcoded colors), performance (CDN Tailwind + texture overlays), and conversion (no on-site checkout, no product URLs). The hallways between sections—cross-linking, content surfacing, activity streams—are the active work. With 4–5 days of P0+P1 fixes and 2 weeks of design system consolidation, Teajia becomes a cohesive platform rather than six siloed products.
+**Post-audit (2026-04-27):** Authorization is consistent and DB-verified. Bundle enforcement is uniform. Audit logging is complete. Wiring gaps are closed. Documentation matches reality. The site can be confidently handed to another developer or partner today.
+
+**The next 6–10 days of work** is design system phasing (#36) — quality debt that doesn't add features but makes everything built on top of it stable. After that, the next strategic project is "coherence" (cross-section linking + personal timeline), the body of work that turns six well-built tools into one Tea Practice OS. See `POST_AUDIT_ROADMAP.md` for the three-body forward plan.
 
 ---
 

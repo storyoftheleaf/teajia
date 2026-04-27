@@ -14,6 +14,9 @@
 | **ROADMAP.md** | What's being built next, by phase | Want to know what's coming |
 | **STATE_OF_THE_SITE.md** | Current state: what works, what doesn't | Prioritizing work or fixing something broken |
 | **CHANGELOG.md** | What shipped, by date | Need to know when something went live |
+| **POST_AUDIT_ROADMAP.md** | Three-body forward plan after audit close | Picking the next project |
+| **DESIGN_SYSTEM_PHASING.md** | 4-phase plan for closing finding #36 | Touching tokens, themes, or visual scales |
+| **IA_REVIEW.md** | Scoping doc for the information architecture project | Considering route renames, navigation moves, or section restructuring |
 | **OPERATIONAL_NOTES.md** | Intentional tradeoffs, residual risks, things to revisit | Onboarding to the codebase; before changing auth or infra |
 
 ## For product / design

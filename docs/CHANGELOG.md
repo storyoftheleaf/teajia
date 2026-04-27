@@ -4,6 +4,13 @@
 
 ## 2026-04
 
+- 2026-04-27 — **Audit closed.** 36 of 37 findings shipped or verified; #36 (design system) phased into 4 stages in `DESIGN_SYSTEM_PHASING.md` for future pickup. Forward plan written in `POST_AUDIT_ROADMAP.md`; IA project scoped in `IA_REVIEW.md`; tradeoffs and revisit-if flags captured in `OPERATIONAL_NOTES.md`. State-of-the-site rewritten to reflect post-audit reality. Commits in this session: `1c57099`, `c653dde`, `39d730e`, `da98cd6`, `3433059`, `3d6507c`, `78d5f44`, `6961b34`.
+- 2026-04-27 — PREVIEW_MODE machinery removed; /community route + page deleted (cut, not built) [git: 6961b34]
+- 2026-04-27 — Auth re-verifies platform_role + membership from DB on every request; fail-closed on DB errors [git: 3d6507c]
+- 2026-04-27 — Adoption queue + AccessView editor sheet shipped (#18 + #34) [git: 3433059]
+- 2026-04-27 — Wave 2: bundle enforcement closure, audit-log columns, frontend wiring fixes, currency admin UI, multi-store tests [git: da98cd6]
+- 2026-04-27 — Wave 1: bundle gates on events/venues/collections, silent-failure validation in cart + email handlers [git: 39d730e]
+- 2026-04-27 — Bundle-aware StaffView + activity-log/stock-ledger auth tightening [git: c653dde]
 - 2026-04-27 — Documentation consolidated: CHANGELOG.md, ACTIVE_BRIEFS.md, INDEX.md created; Layer 1/2 audit completed (240 flows mapped, 37 ranked findings, 18 redundant docs identified)
 - 2026-04-27 — Mood and flavor filters on public storefront (Shop by Mood, Shop by Flavor) [git: 91de75a]
 - 2026-04-27 — Platform-owner cross-account "acting as" with audit trail [git: f7df119]
