@@ -2,10 +2,11 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Loader2, Search, X as XIcon, Check, BookOpen, Plus,
-  Copy, MessageCircle, ArrowRight, CheckCircle2,
+  Copy, MessageCircle, ArrowRight, CheckCircle2, Store,
 } from 'lucide-react';
 import { api } from '../../../lib/api';
 import { buildWhatsAppUrl } from '../../../lib/whatsapp';
+import { useAppStore } from '../../../lib/store';
 import type { CollectionListRow, CollectionRecipient } from '../../../types';
 import { RecipientTypeahead } from './RecipientTypeahead';
 
@@ -19,8 +20,18 @@ interface CollectionShareSheetProps {
   onSuccess: (args: { collectionId: string; collectionTitle: string; addedCount: number; publicationSlug?: string }) => void;
 }
 
-type FormMode = 'new' | 'existing';
+type FormMode = 'new' | 'existing' | 'tea-house';
 type Phase = 'form' | 'success';
+
+interface TeaHouseStore {
+  id: string;
+  slug: string;
+  name: string;
+  tagline?: string;
+  logo_url?: string;
+  location_city?: string;
+  location_country?: string;
+}
 
 interface SuccessState {
   collectionId: string;
@@ -30,6 +41,8 @@ interface SuccessState {
   publicationSlug?: string;
   recipients: CollectionRecipient[];
   addedCount: number;
+  target_kind: 'person' | 'tea-house';
+  teaHouseName?: string;
 }
 
 export const CollectionShareSheet: React.FC<CollectionShareSheetProps> = ({
@@ -52,9 +65,18 @@ export const CollectionShareSheet: React.FC<CollectionShareSheetProps> = ({
   const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null);
   const [publishAfterAdd, setPublishAfterAdd] = useState(false);
 
+  // Tea-house state
+  const [teaHouses, setTeaHouses] = useState<TeaHouseStore[]>([]);
+  const [teaHousesLoading, setTeaHousesLoading] = useState(false);
+  const [teaHouseSearch, setTeaHouseSearch] = useState('');
+  const [selectedTeaHouseId, setSelectedTeaHouseId] = useState<string | null>(null);
+  const [teaHouseNote, setTeaHouseNote] = useState('');
+
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const activeAccount = useAppStore(s => s.activeAccount);
+  const activeAccountId = useAppStore(s => s.activeAccountId);
   const count = productIds.length;
 
   useEffect(() => {
@@ -68,6 +90,9 @@ export const CollectionShareSheet: React.FC<CollectionShareSheetProps> = ({
       setSearch('');
       setSelectedCollectionId(null);
       setPublishAfterAdd(false);
+      setTeaHouseSearch('');
+      setSelectedTeaHouseId(null);
+      setTeaHouseNote('');
       setError(null);
       return;
     }
@@ -79,6 +104,24 @@ export const CollectionShareSheet: React.FC<CollectionShareSheetProps> = ({
       .finally(() => { if (!cancelled) setCollectionsLoading(false); });
     return () => { cancelled = true; };
   }, [open]);
+
+  // Fetch tea houses when that tab is first activated
+  useEffect(() => {
+    if (!open || mode !== 'tea-house') return;
+    if (teaHouses.length > 0 || teaHousesLoading) return;
+    let cancelled = false;
+    setTeaHousesLoading(true);
+    api.network.getStores()
+      .then(stores => {
+        if (!cancelled) {
+          // Filter out the active account so they can't send to themselves
+          setTeaHouses(stores.filter(s => s.id !== activeAccountId));
+        }
+      })
+      .catch(() => { if (!cancelled) setTeaHouses([]); })
+      .finally(() => { if (!cancelled) setTeaHousesLoading(false); });
+    return () => { cancelled = true; };
+  }, [open, mode, activeAccountId, teaHouses.length, teaHousesLoading]);
 
   useEffect(() => {
     if (!open) return;
@@ -108,10 +151,18 @@ export const CollectionShareSheet: React.FC<CollectionShareSheetProps> = ({
     return eligible.filter(c => c.title.toLowerCase().includes(q));
   }, [collections, search]);
 
+  const filteredTeaHouses = useMemo(() => {
+    if (!teaHouseSearch.trim()) return teaHouses;
+    const q = teaHouseSearch.toLowerCase();
+    return teaHouses.filter(h => h.name.toLowerCase().includes(q));
+  }, [teaHouses, teaHouseSearch]);
+
   const selectedCollection = filteredCollections.find(c => c.id === selectedCollectionId);
+  const selectedTeaHouse = teaHouses.find(h => h.id === selectedTeaHouseId);
 
   const canSubmitNew = title.trim().length > 0 && recipients.length > 0 && count > 0;
   const canSubmitExisting = !!selectedCollectionId && count > 0 && (!publishAfterAdd || recipients.length > 0);
+  const canSubmitTeaHouse = !!selectedTeaHouseId && count > 0;
 
   const handleSubmitNew = async () => {
     if (!canSubmitNew || submitting) return;
@@ -131,6 +182,7 @@ export const CollectionShareSheet: React.FC<CollectionShareSheetProps> = ({
         publicationSlug: slug,
         recipients,
         addedCount: count,
+        target_kind: 'person',
       });
       setPhase('success');
     } catch (err: any) {
@@ -157,10 +209,51 @@ export const CollectionShareSheet: React.FC<CollectionShareSheetProps> = ({
         publicationSlug: pubSlug,
         recipients: publishAfterAdd ? recipients : [],
         addedCount: result.added,
+        target_kind: 'person',
       });
       setPhase('success');
     } catch (err: any) {
       setError(err?.message || 'Failed to add to collection');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleSubmitTeaHouse = async () => {
+    if (!canSubmitTeaHouse || !selectedTeaHouse || submitting) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      const senderName = activeAccount?.name || 'Tea House';
+      const date = new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+      const autoTitle = `${senderName} · ${date}`;
+
+      const { id } = await api.collections.create({
+        title: autoTitle,
+        note: teaHouseNote.trim() || undefined,
+        initial_product_ids: productIds,
+      });
+
+      try {
+        await api.collections.publishToStore(id, selectedTeaHouseId!);
+      } catch (pubErr: any) {
+        setError(pubErr?.message || 'Collection created but sending to the tea house failed. Find it in /admin/collections to retry.');
+        return;
+      }
+
+      setSuccess({
+        collectionId: id,
+        collectionTitle: autoTitle,
+        collectionNote: teaHouseNote.trim() || undefined,
+        publicationSlug: undefined,
+        recipients: [],
+        addedCount: count,
+        target_kind: 'tea-house',
+        teaHouseName: selectedTeaHouse.name,
+      });
+      setPhase('success');
+    } catch (err: any) {
+      setError(err?.message || 'Failed to send to tea house');
     } finally {
       setSubmitting(false);
     }
@@ -208,13 +301,23 @@ export const CollectionShareSheet: React.FC<CollectionShareSheetProps> = ({
             setSelectedCollectionId={setSelectedCollectionId}
             publishAfterAdd={publishAfterAdd}
             setPublishAfterAdd={setPublishAfterAdd}
+            teaHousesLoading={teaHousesLoading}
+            filteredTeaHouses={filteredTeaHouses}
+            teaHouseSearch={teaHouseSearch}
+            setTeaHouseSearch={setTeaHouseSearch}
+            selectedTeaHouseId={selectedTeaHouseId}
+            setSelectedTeaHouseId={setSelectedTeaHouseId}
+            teaHouseNote={teaHouseNote}
+            setTeaHouseNote={setTeaHouseNote}
             error={error}
             submitting={submitting}
             canSubmitNew={canSubmitNew}
             canSubmitExisting={canSubmitExisting}
+            canSubmitTeaHouse={canSubmitTeaHouse}
             onClose={onClose}
             onSubmitNew={handleSubmitNew}
             onSubmitExisting={handleSubmitExisting}
+            onSubmitTeaHouse={handleSubmitTeaHouse}
           />
         ) : success ? (
           <SuccessPhase success={success} onDone={handleDone} />
@@ -245,13 +348,23 @@ interface FormPhaseProps {
   setSelectedCollectionId: (id: string | null) => void;
   publishAfterAdd: boolean;
   setPublishAfterAdd: (b: boolean) => void;
+  teaHousesLoading: boolean;
+  filteredTeaHouses: TeaHouseStore[];
+  teaHouseSearch: string;
+  setTeaHouseSearch: (s: string) => void;
+  selectedTeaHouseId: string | null;
+  setSelectedTeaHouseId: (id: string | null) => void;
+  teaHouseNote: string;
+  setTeaHouseNote: (s: string) => void;
   error: string | null;
   submitting: boolean;
   canSubmitNew: boolean;
   canSubmitExisting: boolean;
+  canSubmitTeaHouse: boolean;
   onClose: () => void;
   onSubmitNew: () => void;
   onSubmitExisting: () => void;
+  onSubmitTeaHouse: () => void;
 }
 
 const FormPhase: React.FC<FormPhaseProps> = ({
@@ -259,8 +372,12 @@ const FormPhase: React.FC<FormPhaseProps> = ({
   recipients, setRecipients, search, setSearch,
   collectionsLoading, filteredCollections, selectedCollection,
   selectedCollectionId, setSelectedCollectionId,
-  publishAfterAdd, setPublishAfterAdd, error, submitting,
-  canSubmitNew, canSubmitExisting, onClose, onSubmitNew, onSubmitExisting,
+  publishAfterAdd, setPublishAfterAdd,
+  teaHousesLoading, filteredTeaHouses, teaHouseSearch, setTeaHouseSearch,
+  selectedTeaHouseId, setSelectedTeaHouseId, teaHouseNote, setTeaHouseNote,
+  error, submitting,
+  canSubmitNew, canSubmitExisting, canSubmitTeaHouse,
+  onClose, onSubmitNew, onSubmitExisting, onSubmitTeaHouse,
 }) => (
   <>
     <header className="flex items-start justify-between gap-3 px-5 pt-5 pb-3">
@@ -289,7 +406,7 @@ const FormPhase: React.FC<FormPhaseProps> = ({
     </header>
 
     <div className="px-5 pb-1 flex-shrink-0">
-      <div role="tablist" className="grid grid-cols-2 gap-1 p-1 bg-tea-bg border border-tea-border rounded-lg">
+      <div role="tablist" className="grid grid-cols-3 gap-1 p-1 bg-tea-bg border border-tea-border rounded-lg">
         <button
           type="button"
           role="tab"
@@ -311,6 +428,17 @@ const FormPhase: React.FC<FormPhaseProps> = ({
           }`}
         >
           <BookOpen size={11} /> Add to existing
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mode === 'tea-house'}
+          onClick={() => setMode('tea-house')}
+          className={`flex items-center justify-center gap-1.5 py-2 text-[11px] uppercase tracking-wide rounded-md transition-colors ${
+            mode === 'tea-house' ? 'bg-tea-surface text-tea-text' : 'text-tea-text-sec hover:text-tea-text'
+          }`}
+        >
+          <Store size={11} /> Send to tea house
         </button>
       </div>
     </div>
@@ -373,7 +501,7 @@ const FormPhase: React.FC<FormPhaseProps> = ({
             </p>
           </div>
         </form>
-      ) : (
+      ) : mode === 'existing' ? (
         <div className="flex flex-col gap-3">
           <div className="relative">
             <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-text-dim pointer-events-none" />
@@ -460,6 +588,87 @@ const FormPhase: React.FC<FormPhaseProps> = ({
             </div>
           )}
         </div>
+      ) : (
+        // Tea-house tab
+        <div className="flex flex-col gap-3">
+          <div className="relative">
+            <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-text-dim pointer-events-none" />
+            <input
+              type="text"
+              value={teaHouseSearch}
+              onChange={e => setTeaHouseSearch(e.target.value)}
+              placeholder="Search tea houses…"
+              autoFocus
+              autoComplete="off"
+              spellCheck={false}
+              name="tea-house-search"
+              className="w-full pl-8 pr-3 py-2 text-xs bg-tea-bg border border-tea-border rounded-lg outline-none text-tea-text placeholder:text-tea-text-dim focus:ring-1 focus:ring-tea-gold/40"
+            />
+          </div>
+
+          <div className="min-h-[100px]">
+            {teaHousesLoading ? (
+              <div className="flex items-center justify-center gap-2 py-8 text-tea-text-dim text-xs">
+                <Loader2 size={13} className="animate-spin" /> Loading tea houses…
+              </div>
+            ) : filteredTeaHouses.length === 0 ? (
+              <p className="py-8 text-xs text-tea-text-dim text-center">
+                {teaHouseSearch ? 'No tea houses match that search.' : 'No other tea houses on the network yet.'}
+              </p>
+            ) : (
+              <ul className="space-y-1">
+                {filteredTeaHouses.map(h => {
+                  const isSelected = h.id === selectedTeaHouseId;
+                  return (
+                    <li key={h.id}>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedTeaHouseId(h.id)}
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+                          isSelected ? 'bg-tea-gold-lt' : 'bg-tea-bg hover:bg-tea-elevated'
+                        }`}
+                      >
+                        <div className={`w-4 h-4 rounded-full flex-shrink-0 flex items-center justify-center transition-colors ${
+                          isSelected ? 'bg-tea-gold' : 'bg-tea-surface'
+                        }`}>
+                          {isSelected && <Check size={10} className="text-tea-bg" strokeWidth={3} />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-tea-text truncate">{h.name}</p>
+                          {h.location_city && (
+                            <p className="text-[11px] text-tea-text-dim truncate">{h.location_city}</p>
+                          )}
+                        </div>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-[10px] uppercase tracking-[1.2px] text-tea-text-dim mb-1">
+              Optional note for the tea house
+            </label>
+            <textarea
+              value={teaHouseNote}
+              onChange={e => setTeaHouseNote(e.target.value)}
+              placeholder="A short note that travels with these teas…"
+              rows={2}
+              autoComplete="off"
+              spellCheck
+              name="tea-house-note"
+              className="w-full px-3 py-2 text-sm bg-tea-bg border border-tea-border rounded-lg outline-none text-tea-text placeholder:text-tea-text-dim focus:ring-1 focus:ring-tea-gold/40 resize-none"
+            />
+          </div>
+
+          <div className="px-3 py-2.5 bg-tea-bg rounded-lg">
+            <p className="text-[11px] text-tea-text-sec">
+              Sending {count} product{count !== 1 ? 's' : ''} to their inbound queue.
+            </p>
+          </div>
+        </div>
       )}
 
       {error && <p className="mt-3 text-xs text-red-400">{error}</p>}
@@ -486,7 +695,7 @@ const FormPhase: React.FC<FormPhaseProps> = ({
             : <>Create &amp; share</>
           }
         </button>
-      ) : (
+      ) : mode === 'existing' ? (
         <button
           type="button"
           onClick={onSubmitExisting}
@@ -496,6 +705,18 @@ const FormPhase: React.FC<FormPhaseProps> = ({
           {submitting
             ? <><Loader2 size={12} className="animate-spin" /> Adding…</>
             : publishAfterAdd ? <>Add &amp; share</> : <>Add to collection</>
+          }
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={onSubmitTeaHouse}
+          disabled={!canSubmitTeaHouse || submitting}
+          className="flex items-center gap-2 px-4 py-2 bg-tea-gold text-tea-bg rounded-lg text-xs font-semibold tracking-wide hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          {submitting
+            ? <><Loader2 size={12} className="animate-spin" /> Sending…</>
+            : <>Send</>
           }
         </button>
       )}
@@ -534,6 +755,65 @@ const SuccessPhase: React.FC<{ success: SuccessState; onDone: () => void }> = ({
     return `${greeting}${intro}${link}`;
   };
 
+  // Tea-house success view
+  if (success.target_kind === 'tea-house') {
+    return (
+      <>
+        <header className="flex items-start justify-between gap-3 px-5 pt-5 pb-2">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-lg bg-tea-gold-lt flex items-center justify-center flex-shrink-0">
+              <CheckCircle2 size={15} className="text-tea-gold" />
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-sm font-medium text-tea-text tracking-wide truncate">
+                Sent to {success.teaHouseName || 'the tea house'}.
+              </h2>
+              <p className="text-[11px] text-tea-text-dim mt-0.5 truncate">
+                {success.addedCount} product{success.addedCount !== 1 ? 's' : ''}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onDone}
+            className="text-tea-text-sec hover:text-tea-text transition-colors p-1 -mr-1"
+            aria-label="Close"
+          >
+            <XIcon size={15} />
+          </button>
+        </header>
+
+        <div className="flex-1 min-h-0 overflow-y-auto px-5 pb-4 pt-2 flex flex-col gap-4">
+          <div className="px-3 py-3 bg-tea-bg rounded-lg">
+            <p className="text-[12px] text-tea-text-sec italic">
+              They'll see this in their inbound queue at /admin/collections.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => { navigate(`/admin/collections/${success.collectionId}`); onDone(); }}
+            className="flex items-center justify-between px-3 py-2.5 bg-tea-bg border border-tea-border rounded-lg hover:border-tea-gold/40 hover:bg-tea-elevated transition-colors group"
+          >
+            <span className="text-[12px] text-tea-text">View collection</span>
+            <ArrowRight size={13} className="text-tea-text-sec group-hover:text-tea-gold transition-colors" />
+          </button>
+        </div>
+
+        <footer className="flex items-center justify-end gap-3 px-5 py-4 border-t border-tea-border flex-shrink-0">
+          <button
+            type="button"
+            onClick={onDone}
+            className="px-4 py-2 bg-tea-gold text-tea-bg rounded-lg text-xs font-semibold tracking-wide hover:bg-tea-gold/90 transition-colors"
+          >
+            Done
+          </button>
+        </footer>
+      </>
+    );
+  }
+
+  // Standard person-share success view
   return (
     <>
       <header className="flex items-start justify-between gap-3 px-5 pt-5 pb-2">
