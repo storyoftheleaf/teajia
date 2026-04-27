@@ -195,6 +195,36 @@ export const LINE_HEIGHTS = {
   reading: '1.7',     // Body / article text
 } as const;
 
+/**
+ * Letter-spacing scale. Editorial typography lives in the 0.01em–0.04em range
+ * for headings; uppercase labels and nav use wider tracking (0.1em–0.2em).
+ * Phase C will migrate the ~30 arbitrary `tracking-[Xem]` sites onto this scale.
+ */
+export const LETTER_SPACING = {
+  tighter: '-0.02em',  // Display headlines that need optical tightening
+  tight:   '-0.01em',  // Large display, slightly tightened
+  normal:  '0',        // Body default
+  wide:    '0.01em',   // Headings (h1, h2, h3)
+  wider:   '0.04em',   // Sidebar nav, account meta
+  widest:  '0.1em',    // Uppercase labels (loose)
+  caps:    '0.15em',   // Uppercase eyebrow labels
+  display: '0.2em',    // Spaced caps for editorial display
+} as const;
+
+/**
+ * Backdrop-blur scale. Tailwind's defaults cover most cases; this is here so
+ * future audits don't re-introduce the missing-scale finding when components
+ * reach for arbitrary `backdrop-blur-[Xpx]` values.
+ */
+export const BACKDROP_BLUR = {
+  none: '0',
+  sm:   '4px',
+  base: '8px',
+  md:   '12px',
+  lg:   '16px',
+  xl:   '24px',
+} as const;
+
 
 // ─────────────────────────────────────────────────────────────
 // 1b. Z-INDEX SCALE
@@ -857,6 +887,9 @@ export const DESIGN_TOKENS = {
   fontSize:        FONT_SIZES,
   fontWeight:      FONT_WEIGHTS,
   lineHeight:      LINE_HEIGHTS,
+  letterSpacing:   LETTER_SPACING,
+  backdropBlur:    BACKDROP_BLUR,
+  transitionDuration: TIMING,
   colors:          COLORS,
   teaTypeColors:   TEA_TYPE_COLORS,
   alcoveColors:    ALCOVE_COLORS,
