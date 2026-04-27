@@ -55,6 +55,8 @@ export interface Product {
   capacityMl?: number; // Vessel capacity in ml
   teawareCategory?: 'pot' | 'cup' | 'tray' | 'storage' | 'accessory' | 'decorative';
   quantityUnits?: number; // Unit count (used instead of stockGrams for teaware)
+  moodTags?: string[];       // structured feeling/state term ids from taxonomy
+  flavorTags?: string[];     // structured flavor term ids from taxonomy
   tasting?: TastingData;
   tastingSource?: 'common' | 'owner' | 'community';
   sourceCompassEntryId?: string; // Persistent link to the Tea Compass entry that sourced this product

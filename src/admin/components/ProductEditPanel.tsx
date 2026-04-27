@@ -12,6 +12,7 @@ import { useToast } from './Toast';
 import { TastingEditorModal } from './TastingEditorModal';
 import { QrCodeModal } from './QrCodeModal';
 import { ProductCollectionsSection } from './collections/ProductCollectionsSection';
+import { TaxonomyChipPicker } from './tasting/TaxonomyChipPicker';
 import { StockLedgerPanel } from './StockLedgerPanel';
 import { AutocompleteInput } from '../../components/TeaCompass/AutocompleteInput';
 import { buildVarietyDataMap, getTeaVarietySuggestions } from '../../data/teaVarieties';
@@ -411,6 +412,8 @@ export function buildProductUpdatePayload(field: keyof Product, value: any): Rec
     case 'experience': return { experience: value };
     case 'description': return { description: value };
     case 'mood': return { mood: value };
+    case 'moodTags': return { mood_tags: JSON.stringify(value || []) };
+    case 'flavorTags': return { flavor_tags: JSON.stringify(value || []) };
     case 'tastingNotes': return { tasting_notes: JSON.stringify(value) };
     case 'lore': return { lore: value };
     case 'givenName': return { given_name: value };
@@ -1143,6 +1146,23 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                 <span className="text-[10px] text-tea-text-dim italic">How it drinks — body, session, lingering impression</span>
               </div>
               <GhostTextarea ariaLabel="Experience" value={product.experience || ''} placeholder="How this tea feels in the body. The session it creates. What stays with you after the last cup." rows={4} onSave={(val) => handleUpdate(product.id, 'experience', val)} className="text-tea-text font-serif" />
+
+              <div className="mt-5 pt-4 border-t border-tea-accent-sub space-y-5">
+                <TaxonomyChipPicker
+                  category="mood"
+                  label="State"
+                  value={product.moodTags ?? []}
+                  onChange={(next) => handleUpdate(product.id, 'moodTags', next)}
+                />
+                <div className="pt-3 border-t border-tea-accent-sub">
+                  <TaxonomyChipPicker
+                    category="flavor"
+                    label="Flavor"
+                    value={product.flavorTags ?? []}
+                    onChange={(next) => handleUpdate(product.id, 'flavorTags', next)}
+                  />
+                </div>
+              </div>
             </CollapsibleSection>
 
             {/* 7. Story & Background */}

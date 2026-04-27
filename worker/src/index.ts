@@ -1641,6 +1641,12 @@ const handleGetProducts: Handler = async (request, env) => {
     if (typeof p.tasting === 'string') {
       try { p.tasting = JSON.parse(p.tasting); } catch { p.tasting = {}; }
     }
+    if (typeof p.mood_tags === 'string') {
+      try { p.mood_tags = JSON.parse(p.mood_tags); } catch { p.mood_tags = []; }
+    }
+    if (typeof p.flavor_tags === 'string') {
+      try { p.flavor_tags = JSON.parse(p.flavor_tags); } catch { p.flavor_tags = []; }
+    }
     return addPricingFields(p, rates);
   });
   return json(products);
@@ -1815,6 +1821,10 @@ const handleCreateProduct: Handler = async (request, env) => {
     ).run();
   }
 
+  await auditPlatformActingWrite(env, ctx, 'product.created', 'product', id, {
+    product_name: body.product_name, year: body.year ?? null,
+  });
+
   return json({ id }, 201);
 };
 
@@ -1918,6 +1928,8 @@ const handleUpdateProduct: Handler = async (request, env, params) => {
   delete body.account_id;
   if (Array.isArray(body.tasting_notes)) body.tasting_notes = JSON.stringify(body.tasting_notes);
   if (Array.isArray(body.additional_images)) body.additional_images = JSON.stringify(body.additional_images);
+  if (Array.isArray(body.mood_tags)) body.mood_tags = JSON.stringify(body.mood_tags);
+  if (Array.isArray(body.flavor_tags)) body.flavor_tags = JSON.stringify(body.flavor_tags);
   // Any admin-authenticated write that mutates the tasting profile is, by
   // default, the owner's voice. Explicit callers (community aggregation,
   // seed scripts) can override by passing tasting_source themselves.
@@ -2002,6 +2014,7 @@ const handleUpdateProduct: Handler = async (request, env, params) => {
     'updated_at', 'last_synced_at', 'tea_key', 'vendor_url',
     'wholesale_price', 'catalog_visible', 'price_per_gram_usd',
     'session_reserve_grams',
+    'mood_tags', 'flavor_tags',
   ]);
   const cols = Object.keys(body).filter(k => ALLOWED_UPDATE_COLUMNS.has(k));
   if (cols.length === 0) return json({ success: true });
@@ -2021,6 +2034,10 @@ const handleUpdateProduct: Handler = async (request, env, params) => {
     await updateStmt.run();
   }
 
+  await auditPlatformActingWrite(env, ctx, 'product.updated', 'product', params.id, {
+    fields: Object.keys(body).slice(0, 20),
+  });
+
   return json({ success: true });
 };
 
@@ -2031,6 +2048,9 @@ const handleDeleteProduct: Handler = async (request, env, params) => {
 
   await env.DB.prepare('DELETE FROM products WHERE id = ? AND account_id = ?')
     .bind(params.id, accountId).run();
+
+  await auditPlatformActingWrite(env, ctx, 'product.deleted', 'product', params.id, {});
+
   return json({ success: true });
 };
 
@@ -8489,13 +8509,24 @@ const handleSwitchAccount: Handler = async (request, env) => {
 
   const memberships = await loadMemberships(env, claims.sub);
   const isMember = memberships.some(m => m.account_id === body.account_id);
-  if (!isMember) return json({ error: 'Account access denied' }, 403);
+  const isPlatform = claims.platform_role === 'platform_owner' || claims.platform_role === 'platform_admin';
+  if (!isMember && !isPlatform) return json({ error: 'Account access denied' }, 403);
+
+  // Platform owners switching into a non-member account: verify the target exists.
+  if (!isMember && isPlatform) {
+    const exists = await env.DB.prepare('SELECT id FROM accounts WHERE id = ?')
+      .bind(body.account_id).first();
+    if (!exists) return json({ error: 'Account not found' }, 404);
+    await logPlatformAction(env, 'platform.acting_as.entered', claims.sub, claims.email,
+      'account', body.account_id, {});
+  }
 
   const newToken = await createToken(env.JWT_SECRET, {
     sub: claims.sub,
     email: claims.email,
     name: claims.name,
     role: claims.role,
+    platform_role: claims.platform_role,
     memberships,
     active_account_id: body.account_id,
   });
@@ -8771,6 +8802,44 @@ const handleUpdateMemberBundles: Handler = async (request, env, params) => {
   return json({ success: true, bundles: newBundles });
 };
 
+// GET /api/accounts/:id/activity — per-account audit log.
+// Visible to: any active member of the account, plus platform owners/admins.
+// Returns platform_audit_log rows where account_id = :id, newest first.
+const handleGetAccountActivity: Handler = async (request, env, params) => {
+  const ctx = await getActiveAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+
+  // Membership check: if not platform-acting, must be a member of the requested account.
+  if (!ctx.isPlatform && params.id !== ctx.accountId) {
+    return json({ error: 'Account access denied' }, 403);
+  }
+  if (!ctx.isPlatform) {
+    const row = await env.DB.prepare(
+      `SELECT 1 FROM account_members WHERE user_id = ? AND account_id = ? AND status = 'active'`
+    ).bind(ctx.userId, params.id).first();
+    if (!row) return json({ error: 'Account access denied' }, 403);
+  }
+
+  const url = new URL(request.url);
+  const limit = Math.min(parseInt(url.searchParams.get('limit') || '100'), 500);
+  const offset = parseInt(url.searchParams.get('offset') || '0');
+
+  const { results } = await env.DB.prepare(
+    `SELECT id, action, actor_id, actor_email, target_type, target_id, details, created_at
+     FROM platform_audit_log
+     WHERE account_id = ?
+     ORDER BY created_at DESC
+     LIMIT ? OFFSET ?`
+  ).bind(params.id, limit, offset).all();
+
+  const entries = (results as any[]).map(r => ({
+    ...r,
+    details: (() => { try { return JSON.parse(r.details as string); } catch { return r.details; } })(),
+  }));
+
+  return json({ entries, limit, offset });
+};
+
 // ── Platform Audit Log Helper ─────────────────────────────────────────────────
 
 async function logPlatformAction(
@@ -8780,16 +8849,43 @@ async function logPlatformAction(
   actorEmail: string,
   targetType: string,
   targetId: string,
-  details: Record<string, any> = {}
+  details: Record<string, any> = {},
+  accountId?: string | null
 ): Promise<void> {
   try {
+    // Default account_id to target_id when the target is an account, so legacy
+    // call sites (which don't pass accountId) still produce per-account-filterable rows.
+    const acct = accountId ?? (targetType === 'account' ? targetId : null);
     await env.DB.prepare(
-      `INSERT INTO platform_audit_log (action, actor_id, actor_email, target_type, target_id, details)
-       VALUES (?, ?, ?, ?, ?, ?)`
-    ).bind(action, actorId, actorEmail, targetType, targetId, JSON.stringify(details)).run();
+      `INSERT INTO platform_audit_log (action, actor_id, actor_email, target_type, target_id, details, account_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
+    ).bind(action, actorId, actorEmail, targetType, targetId, JSON.stringify(details), acct).run();
   } catch {
     // Non-critical — never let logging failure break the actual operation
   }
+}
+
+// Auto-log a platform owner/admin acting inside an account that isn't theirs.
+// No-op when the actor is editing their own account, so normal admin work
+// doesn't pollute the per-account audit log.
+async function auditPlatformActingWrite(
+  env: Env,
+  ctx: { userId: string; email: string; accountId: string; isPlatform: boolean },
+  action: string,
+  targetType: string,
+  targetId: string,
+  details: Record<string, any> = {}
+): Promise<void> {
+  if (!ctx.isPlatform) return;
+  // Determine if the active account is one the user actually owns/staffs.
+  // We do this lazily here; if they're a member of ctx.accountId, skip the log.
+  try {
+    const row = await env.DB.prepare(
+      `SELECT 1 FROM account_members WHERE user_id = ? AND account_id = ? AND status = 'active'`
+    ).bind(ctx.userId, ctx.accountId).first();
+    if (row) return; // acting in own account — not cross-account
+  } catch {}
+  await logPlatformAction(env, action, ctx.userId, ctx.email, targetType, targetId, details, ctx.accountId);
 }
 
 // ── Email Helper (Resend — optional) ──────────────────────────────────────────
@@ -14056,6 +14152,7 @@ const routes: [string, string, Handler][] = [
   ['PUT', '/api/accounts/:id/members/:userId', handleUpdateAccountMember],
   ['DELETE', '/api/accounts/:id/members/:userId', handleDeleteAccountMember],
   ['GET', '/api/accounts/:id/access', handleGetAccountAccess],
+  ['GET', '/api/accounts/:id/activity', handleGetAccountActivity],
   ['PUT', '/api/accounts/:id/members/:userId/bundles', handleUpdateMemberBundles],
 
   // Platform admin

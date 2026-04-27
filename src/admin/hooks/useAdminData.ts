@@ -51,6 +51,8 @@ export const useProducts = (options?: { enabled?: boolean }) => {
         processingNotes: p.processing_notes || '',
         terroir: p.terroir || '',
         mood: p.mood || '',
+        moodTags: Array.isArray(p.mood_tags) ? p.mood_tags : (() => { try { return JSON.parse(p.mood_tags || '[]'); } catch { return []; } })(),
+        flavorTags: Array.isArray(p.flavor_tags) ? p.flavor_tags : (() => { try { return JSON.parse(p.flavor_tags || '[]'); } catch { return []; } })(),
         experience: p.experience || '',
         recheckStock: !!p.recheck_stock,
         stockVerifiedAt: p.stock_verified_at || null,
