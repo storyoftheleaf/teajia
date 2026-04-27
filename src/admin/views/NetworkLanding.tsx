@@ -1,35 +1,29 @@
-import React, { useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useShallow } from 'zustand/react/shallow';
 
 import { useAppStore, selectHasBundle } from '../../lib/store';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
+import { CatalogBrowse } from './CatalogBrowse';
+import { SuggestionsInbox } from './SuggestionsInbox';
+import { WholesaleOrdersList } from './WholesaleOrdersList';
+import { AdoptionQueue } from './AdoptionQueue';
 
-// Marker the sidebar reads to shortcut the Network parent link straight to
-// the catalog after a partner has visited the landing once. Per-account, so
-// switching accounts shows the landing again on first visit.
-export const NETWORK_LANDING_SEEN_KEY = 'teajia.network.landingSeen';
+// ─────────────────────────────────────────────────────────────────────────────
+// Network hub — single page that holds the four working surfaces as tabs.
+//
+// One sidebar entry, one URL, one place. Catalog / Suggestions / Wholesale /
+// Adoptions live here as text-link tabs. Deep sub-pages (an open wholesale
+// order, a listing edit) remain on their own routes and link back here.
+// ─────────────────────────────────────────────────────────────────────────────
 
-const seenKeyFor = (accountId: string | null | undefined): string =>
-  `${NETWORK_LANDING_SEEN_KEY}.${accountId ?? 'none'}`;
+type NetworkTab = 'catalog' | 'suggestions' | 'wholesale' | 'adoptions';
 
-export const hasSeenNetworkLanding = (accountId: string | null | undefined): boolean => {
-  if (typeof window === 'undefined') return true;
-  try {
-    return window.localStorage.getItem(seenKeyFor(accountId)) === '1';
-  } catch {
-    return true;
-  }
-};
-
-const markSeen = (accountId: string | null | undefined): void => {
-  if (typeof window === 'undefined') return;
-  try {
-    window.localStorage.setItem(seenKeyFor(accountId), '1');
-  } catch {
-    // localStorage unavailable; the sidebar shortcut just won't activate
-  }
-};
+interface TabSpec {
+  id: NetworkTab;
+  label: string;
+  visible: boolean;
+}
 
 export const NetworkLanding: React.FC = () => {
   const { memberships, activeAccountId, platformRole } = useAppStore(
@@ -44,171 +38,98 @@ export const NetworkLanding: React.FC = () => {
   const hasSell = selectHasBundle({ memberships, activeAccountId, platformRole }, 'sell');
   const isPlatform = !!platformRole;
 
-  // Mark the landing as visited so the sidebar Network parent shortcuts to
-  // the catalog on subsequent visits. Re-readable any time via the catalog
-  // header link.
-  useEffect(() => {
-    markSeen(activeAccountId);
-  }, [activeAccountId]);
+  const tabs: TabSpec[] = useMemo(() => [
+    { id: 'catalog',     label: 'Catalog',     visible: hasCatalog },
+    { id: 'suggestions', label: 'Suggestions', visible: hasCatalog },
+    { id: 'wholesale',   label: 'Wholesale',   visible: hasSell },
+    { id: 'adoptions',   label: 'Adoptions',   visible: isPlatform },
+  ], [hasCatalog, hasSell, isPlatform]);
+
+  const visibleTabs = tabs.filter(t => t.visible);
+  const fallback: NetworkTab = visibleTabs[0]?.id ?? 'catalog';
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  const rawTab = searchParams.get('tab') as NetworkTab | null;
+  const activeTab: NetworkTab =
+    rawTab && visibleTabs.find(t => t.id === rawTab) ? rawTab : fallback;
+
+  const setActiveTab = (tab: NetworkTab) => {
+    setSearchParams({ tab }, { replace: true });
+  };
 
   return (
-    <div className="px-4 md:px-8 pt-10 pb-nav-gap-lg max-w-2xl mx-auto">
+    <div className="pt-8 pb-nav-gap-lg">
 
-      {/* Page heading */}
-      <header className="mb-10">
+      {/* Orientation header — page-level intro that frames all four tabs at once */}
+      <header className="px-4 md:px-8 max-w-2xl mx-auto mb-8">
         <p className={`${TYPOGRAPHY_CLASSES.label} text-tea-text-sec mb-3`}>
           The network
         </p>
         <h1 className={`${TYPOGRAPHY_CLASSES.h1} text-tea-text mb-5`}>
           One catalog, many houses.
         </h1>
-        <p className="font-body text-[17px] text-tea-text-sec leading-[1.7] italic">
+        <p className="font-body italic text-[17px] text-tea-text-sec leading-[1.6] mb-6">
           Teajia is the shared root. Each house carries the teas it knows.
         </p>
+
+        <div className="space-y-4 font-body text-[15px] text-tea-text leading-[1.75]">
+          <p>
+            A tea on the network has one canonical record (origin, varietal,
+            harvest year, description, photos). That record lives with the
+            curator who sources it. Other houses can <em>carry</em> the tea,
+            setting their own stock, retail price, and store note, while the
+            canonical content stays anchored.
+          </p>
+          <p>
+            When a partner sees a typo or a clearer way to describe a tea,
+            they edit the canonical content in place on the card. The change
+            goes to the curator's queue. The curator decides, field by field.
+            Accepted changes apply everywhere immediately.
+          </p>
+        </div>
       </header>
 
-      {/* Role-adaptive editorial body */}
-      <section className="space-y-6 font-body text-[16px] text-tea-text leading-[1.75] mb-12">
+      {/* Tab strip — text-link tabs in the editorial register */}
+      {visibleTabs.length > 0 && (
+        <nav
+          className="px-4 md:px-8 max-w-3xl mx-auto mb-8 border-b border-tea-border pb-3 flex flex-wrap items-baseline gap-x-6 gap-y-2"
+          aria-label="Network sections"
+        >
+          {visibleTabs.map(tab => {
+            const isActive = tab.id === activeTab;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                className={`font-display text-[16px] tracking-[0.02em] transition-colors ${
+                  isActive
+                    ? 'text-tea-gold'
+                    : 'text-tea-text-sec hover:text-tea-text'
+                }`}
+                aria-current={isActive ? 'page' : undefined}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </nav>
+      )}
 
-        {/* Universal opening: the model */}
-        <p>
-          A tea on the network has one canonical record. Origin, varietal,
-          harvest year, description, photos. That record lives with the
-          curator who sources it. Other houses can <em>carry</em> the tea,
-          setting their own stock, retail price, and store note, while the
-          canonical content stays anchored.
-        </p>
-
-        <p>
-          When a partner sees a typo, an outdated note, or a clearer way to
-          describe a tea, they edit the canonical content in place on the
-          card. The change goes to the curator's queue. The curator decides,
-          field by field. Accepted changes apply everywhere immediately.
-        </p>
-
-        {/* Platform / curator perspective */}
-        {isPlatform && (
-          <p>
-            You are the curator behind most of the canonical content here.
-            Partners carrying your teas will surface edits in your
-            suggestions queue. Tea Masters who originated profiles can offer
-            their teas up for the wider network. Those land in your
-            adoption queue. Wholesale runs the other direction: partners
-            order from you when they need stock.
+      {/* Active tab content — each surface rendered embedded so its own header
+          padding doesn't double up with the hub container's. */}
+      <div>
+        {visibleTabs.length === 0 && (
+          <p className="px-4 md:px-8 max-w-2xl mx-auto font-body italic text-[15px] text-tea-text-sec leading-[1.7]">
+            Your account doesn't yet have the bundles that open the network's
+            working surfaces. Ask your owner about Catalog or Sell.
           </p>
         )}
-
-        {/* Partner perspective: Catalog bundle, not platform */}
-        {hasCatalog && !isPlatform && (
-          <p>
-            For your house, the network means two things. You can carry
-            anything Adrian curates without re-entering the canonical
-            content yourself. Pick a tea, set your stock and price, and
-            your shop has it. You can also propose edits to any canonical
-            field on any tea you carry. Adrian sees them, decides per field,
-            and accepted changes update on your storefront automatically.
-          </p>
-        )}
-
-        {/* Wholesale perspective: Sell bundle */}
-        {hasSell && !isPlatform && (
-          <p>
-            Wholesale orders move stock between houses. Draft an order from
-            the catalog, submit it, the supplier confirms and ships. When
-            received, your stock and theirs adjust together, and bilateral
-            invoices generate on both sides. The whole exchange is one
-            timeline both parties can read.
-          </p>
-        )}
-
-        {/* No-bundle fallback. Rare; sidebar usually hides this destination. */}
-        {!hasCatalog && !hasSell && !isPlatform && (
-          <p className="italic text-tea-text-sec">
-            Your account doesn't yet have the bundles that open the
-            network's working surfaces. Ask your owner about Catalog or Sell.
-          </p>
-        )}
-      </section>
-
-      {/* Destination index, woven as text-links rather than a card grid */}
-      <section className="border-t border-tea-border pt-8">
-        <p className={`${TYPOGRAPHY_CLASSES.label} text-tea-text-sec mb-5`}>
-          Where to go
-        </p>
-
-        <ul className="space-y-5">
-          {hasCatalog && (
-            <li>
-              <Link
-                to="/admin/network/catalog"
-                className="group block"
-              >
-                <span className="font-display text-[20px] text-tea-text group-hover:text-tea-gold transition-colors">
-                  Carry from network
-                  <span className="font-body text-tea-text-sec group-hover:text-tea-gold ml-1">→</span>
-                </span>
-                <p className="font-body text-[14px] text-tea-text-sec leading-[1.6] mt-1">
-                  Browse the catalog. Pick what belongs in your house.
-                </p>
-              </Link>
-            </li>
-          )}
-
-          {hasCatalog && (
-            <li>
-              <Link
-                to="/admin/network/suggestions"
-                className="group block"
-              >
-                <span className="font-display text-[20px] text-tea-text group-hover:text-tea-gold transition-colors">
-                  Suggestions
-                  <span className="font-body text-tea-text-sec group-hover:text-tea-gold ml-1">→</span>
-                </span>
-                <p className="font-body text-[14px] text-tea-text-sec leading-[1.6] mt-1">
-                  {isPlatform
-                    ? 'Edits partners have proposed to your canonical content. Decide field by field.'
-                    : 'Edits you have proposed, and edits coming back from your own canonical.'}
-                </p>
-              </Link>
-            </li>
-          )}
-
-          {hasSell && (
-            <li>
-              <Link
-                to="/admin/network/wholesale"
-                className="group block"
-              >
-                <span className="font-display text-[20px] text-tea-text group-hover:text-tea-gold transition-colors">
-                  Wholesale
-                  <span className="font-body text-tea-text-sec group-hover:text-tea-gold ml-1">→</span>
-                </span>
-                <p className="font-body text-[14px] text-tea-text-sec leading-[1.6] mt-1">
-                  Orders moving stock between houses. Drafts, in flight, received.
-                </p>
-              </Link>
-            </li>
-          )}
-
-          {isPlatform && (
-            <li>
-              <Link
-                to="/admin/network/adoptions"
-                className="group block"
-              >
-                <span className="font-display text-[20px] text-tea-text group-hover:text-tea-gold transition-colors">
-                  Adoptions
-                  <span className="font-body text-tea-text-sec group-hover:text-tea-gold ml-1">→</span>
-                </span>
-                <p className="font-body text-[14px] text-tea-text-sec leading-[1.6] mt-1">
-                  Tea Masters offering their profiles up for the wider network.
-                  Adopt to publish, decline with a note.
-                </p>
-              </Link>
-            </li>
-          )}
-        </ul>
-      </section>
+        {activeTab === 'catalog'     && hasCatalog && <CatalogBrowse embedded />}
+        {activeTab === 'suggestions' && hasCatalog && <SuggestionsInbox embedded />}
+        {activeTab === 'wholesale'   && hasSell    && <WholesaleOrdersList embedded />}
+        {activeTab === 'adoptions'   && isPlatform && <AdoptionQueue embedded />}
+      </div>
     </div>
   );
 };

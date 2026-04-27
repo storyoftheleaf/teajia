@@ -1007,7 +1007,7 @@ export const WholesaleOrderTimeline: React.FC = () => {
         </p>
         <button
           type="button"
-          onClick={() => navigate('/admin/network/wholesale')}
+          onClick={() => navigate('/admin/network?tab=wholesale')}
           className="mt-4 text-[14px] text-tea-text-sec hover:text-tea-text transition-colors font-display tracking-[0.04em]"
         >
           ← Back to wholesale orders
@@ -1060,7 +1060,7 @@ export const WholesaleOrderTimeline: React.FC = () => {
       {/* Back link */}
       <button
         type="button"
-        onClick={() => navigate('/admin/network/wholesale')}
+        onClick={() => navigate('/admin/network?tab=wholesale')}
         className="text-[13px] text-tea-text-sec hover:text-tea-text transition-colors mb-6 block font-display tracking-[0.04em]"
       >
         ← Wholesale

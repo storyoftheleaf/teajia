@@ -8,13 +8,12 @@ import { useTheme } from '../context/ThemeContext';
 import { PREVIEW_MODE } from '../constants';
 import { useAuth } from '../hooks/useAuth';
 import { useAppStore, selectHasBundle } from '../lib/store';
-import { hasSeenNetworkLanding } from '../admin/views/NetworkLanding';
 import { TYPOGRAPHY_CLASSES } from '../designTokens';
 import {
   Calendar, LayoutDashboard, Briefcase, Leaf, Coffee, Store, Users,
   FolderOpen, ChevronLeft, ChevronRight, UserCheck, MapPin,
   BookOpen, Package, ShoppingCart, Sun, Moon, Layers, Camera, Compass,
-  Settings as SettingsIcon, Globe, MessageSquare, Truck, Sprout,
+  Settings as SettingsIcon, Globe,
 } from 'lucide-react';
 import { SampleIcon } from './Icons';
 import { useSampleCartStore } from '../samples/sampleCartStore';
@@ -158,14 +157,6 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   const hasCatalog = useAppStore(s => selectHasBundle(s, 'catalog'));
   const hasSell = useAppStore(s => selectHasBundle(s, 'sell'));
   const platformRole = useAppStore(s => s.platformRole);
-  const activeAccountId = useAppStore(s => s.activeAccountId);
-  // First-visit landing shortcut: parent Network link routes to the landing
-  // until the user has seen it once for this account, then shortcuts to the
-  // catalog. The landing remains reachable via a text-link in the catalog
-  // header for re-reads.
-  const networkParentPath = hasSeenNetworkLanding(activeAccountId)
-    ? '/admin/network/catalog'
-    : '/admin/network';
   const sampleCount = useSampleCartStore(s => s.items.length);
 
   // Sync sidebar width to CSS variable for full-screen panel offsets
@@ -237,34 +228,12 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
       icon: <BookOpen size={18} strokeWidth={1.75} />,
       path: '/admin/magazine',
     },
-    // Network — only render the parent if the caller has at least one of the
-    // child capabilities. Children further filter by bundle.
+    // Network — single hub entry. Catalog, suggestions, wholesale, adoptions
+    // live inside as tabs. Render only if caller has at least one capability.
     ...(hasCatalog || hasSell || platformRole ? [{
       id: 'network', label: 'Network',
       icon: <Globe size={18} strokeWidth={1.75} />,
-      path: networkParentPath,
-      children: [
-        {
-          id: 'network-overview', path: '/admin/network', label: 'Overview',
-          icon: <Globe className="w-3.5 h-3.5" strokeWidth={1.75} />,
-        },
-        ...(hasCatalog ? [{
-          id: 'network-catalog', path: '/admin/network/catalog', label: 'Carry from network',
-          icon: <Sprout className="w-3.5 h-3.5" strokeWidth={1.75} />,
-        }] : []),
-        ...(hasCatalog ? [{
-          id: 'network-suggestions', path: '/admin/network/suggestions', label: 'Suggestions',
-          icon: <MessageSquare className="w-3.5 h-3.5" strokeWidth={1.75} />,
-        }] : []),
-        ...(hasSell ? [{
-          id: 'network-wholesale', path: '/admin/network/wholesale', label: 'Wholesale',
-          icon: <Truck className="w-3.5 h-3.5" strokeWidth={1.75} />,
-        }] : []),
-        ...(platformRole ? [{
-          id: 'network-adoptions', path: '/admin/network/adoptions', label: 'Adoptions',
-          icon: <Sprout className="w-3.5 h-3.5" strokeWidth={1.75} />,
-        }] : []),
-      ],
+      path: '/admin/network',
     }] : []),
     {
       id: 'settings', label: 'Settings',

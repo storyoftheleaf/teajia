@@ -45,10 +45,10 @@ export const ADMIN_TOOLS: AdminTool[] = [
   // Network — Steps 2-6 of NETWORK_ROLLOUT_PLAN. Owner-gated as a proxy for the
   // bundles (catalog/sell/etc); the views themselves enforce the bundle gate
   // server-side and inline.
-  { id: 'network-catalog', label: 'Carry from Network', group: 'network', route: '/admin/network/catalog', addedAt: '2026-04-26', requires: 'owner' },
-  { id: 'network-suggestions', label: 'Suggestions', group: 'network', route: '/admin/network/suggestions', addedAt: '2026-04-26', requires: 'owner' },
-  { id: 'network-wholesale', label: 'Wholesale', group: 'network', route: '/admin/network/wholesale', addedAt: '2026-04-26', requires: 'owner' },
-  { id: 'network-adoptions', label: 'Adoptions', group: 'network', route: '/admin/network/adoptions', addedAt: '2026-04-26', requires: 'platform' },
+  { id: 'network-catalog', label: 'Carry from Network', group: 'network', route: '/admin/network?tab=catalog', addedAt: '2026-04-26', requires: 'owner' },
+  { id: 'network-suggestions', label: 'Suggestions', group: 'network', route: '/admin/network?tab=suggestions', addedAt: '2026-04-26', requires: 'owner' },
+  { id: 'network-wholesale', label: 'Wholesale', group: 'network', route: '/admin/network?tab=wholesale', addedAt: '2026-04-26', requires: 'owner' },
+  { id: 'network-adoptions', label: 'Adoptions', group: 'network', route: '/admin/network?tab=adoptions', addedAt: '2026-04-26', requires: 'platform' },
 ];
 
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;

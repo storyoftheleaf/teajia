@@ -11,7 +11,6 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { api } from '../../lib/api';
-import { FirstTouchNote } from '../components/FirstTouchNote';
 import type { AdoptionQueueEntry, AdoptionDecision } from '../../types';
 
 const FILTERS: Array<{ key: AdoptionDecision; label: string }> = [
@@ -20,8 +19,16 @@ const FILTERS: Array<{ key: AdoptionDecision; label: string }> = [
   { key: 'declined', label: 'Declined' },
 ];
 
-export const AdoptionQueue: React.FC = () => {
+interface AdoptionQueueProps {
+  /** When rendered inside the Network hub, drop the page-level top/bottom padding. */
+  embedded?: boolean;
+}
+
+export const AdoptionQueue: React.FC<AdoptionQueueProps> = ({ embedded = false }) => {
   const [filter, setFilter] = useState<AdoptionDecision>('pending');
+  const outerClass = embedded
+    ? 'px-4 md:px-8 max-w-3xl mx-auto'
+    : 'px-4 md:px-8 pt-8 pb-nav-gap-lg max-w-3xl mx-auto';
   const [entries, setEntries] = useState<AdoptionQueueEntry[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,15 +46,17 @@ export const AdoptionQueue: React.FC = () => {
   useEffect(() => { load(); }, [load]);
 
   return (
-    <div className="px-4 md:px-8 pt-8 pb-nav-gap-lg max-w-3xl mx-auto">
+    <div className={outerClass}>
       {/* Header */}
       <header className="mb-8">
-        <Link
-          to="/admin/access/platform"
-          className="text-tea-text-sec hover:text-tea-text transition-colors text-[13px] mb-5 inline-flex items-center gap-1"
-        >
-          ← Platform access
-        </Link>
+        {!embedded && (
+          <Link
+            to="/admin/access/platform"
+            className="text-tea-text-sec hover:text-tea-text transition-colors text-[13px] mb-5 inline-flex items-center gap-1"
+          >
+            ← Platform access
+          </Link>
+        )}
 
         <h1 className={`${TYPOGRAPHY_CLASSES.h2} text-tea-text mb-2`}>
           Adoption queue
@@ -57,14 +66,6 @@ export const AdoptionQueue: React.FC = () => {
           Adopting transfers curation to you; declining keeps it with the originator.
         </p>
       </header>
-
-      <FirstTouchNote surface="adoptions">
-        Adoption is how a Tea Master's profile joins the wider network.
-        When you adopt, curation transfers to Teajia and the profile becomes
-        visible in every partner's catalog. The originator stays attributed
-        on the canonical record. Decline returns the profile to the
-        originator with an optional note. They can re-suggest after revising.
-      </FirstTouchNote>
 
       {/* Filter tabs */}
       <div className="flex items-center gap-5 mb-8 text-[13px]">

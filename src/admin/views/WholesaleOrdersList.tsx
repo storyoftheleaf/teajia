@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { useAppStore, selectHasBundle } from '../../lib/store';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
-import { FirstTouchNote } from '../components/FirstTouchNote';
 import type { WholesaleOrderStatus, WholesaleOrderSummary } from '../../types';
 
 // ── WholesaleOrdersList — Surface 9 (index) per docs/NETWORK_UI_BRIEF.md ─────
@@ -139,10 +138,18 @@ const OrderRow: React.FC<OrderRowProps> = ({ order, callerAccountId, onClick }) 
 type RoleFilter = 'all' | 'buyer' | 'supplier';
 type StateFilter = 'open' | 'closed';
 
-export const WholesaleOrdersList: React.FC = () => {
+interface WholesaleOrdersListProps {
+  /** When rendered inside the Network hub, drop the page-level top/bottom padding. */
+  embedded?: boolean;
+}
+
+export const WholesaleOrdersList: React.FC<WholesaleOrdersListProps> = ({ embedded = false }) => {
   const hasSell = useAppStore(s => selectHasBundle(s, 'sell'));
   const accountId = useAppStore(s => s.activeAccountId ?? '');
   const navigate = useNavigate();
+  const outerClass = embedded
+    ? 'px-4 md:px-6 max-w-[640px] mx-auto'
+    : 'px-4 md:px-6 pt-6 pb-nav-gap max-w-[640px] mx-auto';
 
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('all');
   const [stateFilter, setStateFilter] = useState<StateFilter>('open');
@@ -177,7 +184,7 @@ export const WholesaleOrdersList: React.FC = () => {
   // Bundle gate
   if (!hasSell) {
     return (
-      <div className="px-4 md:px-6 pt-6 pb-nav-gap max-w-[640px] mx-auto">
+      <div className={outerClass}>
         <p className="text-tea-text-sec italic text-[15px] leading-[1.65]">
           This page requires the Sell bundle. Ask your owner.
         </p>
@@ -196,7 +203,7 @@ export const WholesaleOrdersList: React.FC = () => {
       : closedCount === 1 ? '1 closed order.' : closedCount > 0 ? `${closedCount} closed orders.` : null;
 
   return (
-    <div className="px-4 md:px-6 pt-6 pb-nav-gap max-w-[640px] mx-auto">
+    <div className={outerClass}>
       {/* Header */}
       <header className="mb-8">
         <h1 className={`${TYPOGRAPHY_CLASSES.h2} text-tea-text mb-2`}>Wholesale</h1>
@@ -204,14 +211,6 @@ export const WholesaleOrdersList: React.FC = () => {
           <p className="text-tea-text-sec italic text-[14px] leading-[1.6]">{subtitle}</p>
         )}
       </header>
-
-      <FirstTouchNote surface="wholesale">
-        Wholesale moves stock between houses. A buyer drafts an order from
-        the catalog and submits. The supplier confirms and ships. When the
-        buyer marks it received, both stocks adjust together and bilateral
-        invoices generate on each side. The exchange reads as one timeline
-        both parties can follow.
-      </FirstTouchNote>
 
       {/* Filter line */}
       <div className="flex items-baseline gap-x-3 gap-y-2 flex-wrap mb-8">

@@ -595,15 +595,18 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
               <Route path="team" element={<Navigate to="/admin/access" replace />} />
               <Route path="access" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><AccessView /></PageTransition></ProtectedRoute>} />
               <Route path="access/platform" element={<ProtectedRoute hasAccess={isAdmin && !!platformRole} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><PlatformAccessView /></PageTransition></ProtectedRoute>} />
+              {/* Network hub — single page with tabbed surfaces */}
               <Route path="network" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><NetworkLanding /></PageTransition></ProtectedRoute>} />
-              <Route path="network/catalog" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><CatalogBrowse /></PageTransition></ProtectedRoute>} />
+              {/* Legacy destination routes redirect into the hub with their tab */}
+              <Route path="network/catalog" element={<Navigate to="/admin/network?tab=catalog" replace />} />
+              <Route path="network/suggestions" element={<Navigate to="/admin/network?tab=suggestions" replace />} />
+              <Route path="network/wholesale" element={<Navigate to="/admin/network?tab=wholesale" replace />} />
+              <Route path="network/adoptions" element={<Navigate to="/admin/network?tab=adoptions" replace />} />
+              {/* Deep sub-pages keep their own URLs */}
               <Route path="network/listings/:listingId" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><PartnerListingEdit /></PageTransition></ProtectedRoute>} />
-              <Route path="network/suggestions" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><SuggestionsInbox /></PageTransition></ProtectedRoute>} />
-              <Route path="network/wholesale" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><WholesaleOrdersList /></PageTransition></ProtectedRoute>} />
               <Route path="network/wholesale/new" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><WholesaleOrderDraft /></PageTransition></ProtectedRoute>} />
               <Route path="network/wholesale/:orderId" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><WholesaleOrderDraft /></PageTransition></ProtectedRoute>} />
               <Route path="network/wholesale/:orderId/timeline" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><WholesaleOrderTimeline /></PageTransition></ProtectedRoute>} />
-              <Route path="network/adoptions" element={<ProtectedRoute hasAccess={isAdmin && !!platformRole} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><AdoptionQueue /></PageTransition></ProtectedRoute>} />
               <Route path="account-settings" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><AccountSettingsView /></PageTransition></ProtectedRoute>} />
               <Route path="platform" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><PlatformAdminView /></PageTransition></ProtectedRoute>} />
               <Route path="platform/audit-log" element={<ProtectedRoute hasAccess={isAdmin && !!platformRole} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><PlatformAuditLogPage /></PageTransition></ProtectedRoute>} />

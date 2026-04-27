@@ -2420,7 +2420,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     {/* Carry from network — gated by Catalog bundle. Step 2 of the Network Rollout. */}
                     {hasCatalogBundle && (
                       <Link
-                        to="/admin/network/catalog"
+                        to="/admin/network?tab=catalog"
                         className="font-body text-[13px] text-tea-text-sec hover:text-tea-gold transition-colors px-3 py-1.5 group"
                       >
                         Carry from network{' '}

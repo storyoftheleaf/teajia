@@ -10,7 +10,6 @@ import { useAppStore, selectHasBundle } from '../../lib/store';
 import { useShallow } from 'zustand/react/shallow';
 import { useRates } from '../hooks/useAdminData';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
-import { FirstTouchNote } from '../components/FirstTouchNote';
 import type { ProfileSuggestableField, ProfileSuggestionFieldDraft } from '../../types';
 
 // ── Partner listing edit — Surface 2 + Surface 5 per docs/NETWORK_UI_BRIEF.md ──
@@ -1023,18 +1022,6 @@ export const PartnerListingEdit: React.FC = () => {
           </button>
         )}
       </header>
-
-      {/* First-touch orientation, partner only. Curator has their own notice below. */}
-      {!isCurator && (
-        <FirstTouchNote surface="listing-edit">
-          The card is the editor. Tap any of the curator's content (name,
-          description, origin, varietal, year, photos) to propose a change.
-          Multiple edits in one session bundle into a single suggestion.
-          The footer's commerce buttons swap to editorial actions while you
-          edit; cancel any time. Your store note, stock and price stay
-          private to your house.
-        </FirstTouchNote>
-      )}
 
       {/* ── Curator notice — hides suggestion machinery ─────────────────────── */}
       {isCurator && (

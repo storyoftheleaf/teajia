@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../../lib/api';
 import { useAppStore, selectHasBundle } from '../../lib/store';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
-import { FirstTouchNote } from '../components/FirstTouchNote';
 import type { ProfileSuggestion, ProfileSuggestionDecision, ProfileSuggestionFieldStatus } from '../../types';
 
 // ── Suggestions Inbox — Surface 6 per docs/NETWORK_UI_BRIEF.md ───────────────
@@ -486,8 +485,16 @@ const BundleRow: React.FC<BundleRowProps> = ({ suggestion, onRefetch }) => {
 // Main component
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const SuggestionsInbox: React.FC = () => {
+interface SuggestionsInboxProps {
+  /** When rendered inside the Network hub, drop the page-level top/bottom padding. */
+  embedded?: boolean;
+}
+
+export const SuggestionsInbox: React.FC<SuggestionsInboxProps> = ({ embedded = false }) => {
   const hasCatalog = useAppStore(s => selectHasBundle(s, 'catalog'));
+  const outerClass = embedded
+    ? 'px-4 md:px-6 max-w-[720px] mx-auto'
+    : 'px-4 md:px-6 pt-6 pb-nav-gap max-w-[720px] mx-auto';
   const [filter, setFilter] = useState<FilterStatus>('default');
   const [suggestions, setSuggestions] = useState<ProfileSuggestion[] | null>(null);
   const [loading, setLoading] = useState(false);
@@ -520,7 +527,7 @@ export const SuggestionsInbox: React.FC = () => {
   // Permission gate
   if (!hasCatalog) {
     return (
-      <div className="px-4 md:px-6 pt-6 pb-nav-gap max-w-[720px] mx-auto">
+      <div className={outerClass}>
         <p className="text-tea-text-sec italic text-[15px] leading-[1.65]">
           This page requires the Catalog bundle. Ask your owner.
         </p>
@@ -543,7 +550,7 @@ export const SuggestionsInbox: React.FC = () => {
       : null;
 
   return (
-    <div className="px-4 md:px-6 pt-6 pb-nav-gap max-w-[720px] mx-auto">
+    <div className={outerClass}>
       {/* Header */}
       <header className="mb-8">
         <h1 className={`${TYPOGRAPHY_CLASSES.h2} text-tea-text mb-2`}>
@@ -557,14 +564,6 @@ export const SuggestionsInbox: React.FC = () => {
           </p>
         ) : null}
       </header>
-
-      <FirstTouchNote surface="suggestions">
-        Each bundle is a partner's proposed edit to your canonical content.
-        Decide field by field. Accepted writes apply to canonical
-        immediately and update on every storefront carrying the tea.
-        Rejected fields can carry a short note back to the partner. The
-        change is the argument; nobody had to write a justification.
-      </FirstTouchNote>
 
       {/* Filter line — text-link tabs, no chrome */}
       <div className="flex items-baseline gap-3 mb-8 text-[14px]">

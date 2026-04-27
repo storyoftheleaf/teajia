@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { useAppStore, selectHasBundle } from '../../lib/store';
-import { FirstTouchNote } from '../components/FirstTouchNote';
 import { useShallow } from 'zustand/react/shallow';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import type { NetworkCatalogProfile } from '../../types';
@@ -466,8 +465,16 @@ const CatalogCard: React.FC<CatalogCardProps> = ({ profile, onSelect, isHovered,
 // Main view
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const CatalogBrowse: React.FC = () => {
+interface CatalogBrowseProps {
+  /** When rendered inside the Network hub, drop the page-level top/bottom padding. */
+  embedded?: boolean;
+}
+
+export const CatalogBrowse: React.FC<CatalogBrowseProps> = ({ embedded = false }) => {
   const navigate = useNavigate();
+  const outerClass = embedded
+    ? 'px-4 md:px-8 max-w-3xl mx-auto'
+    : 'px-4 md:px-8 pt-8 pb-nav-gap max-w-3xl mx-auto';
   const { memberships, activeAccountId, platformRole } = useAppStore(
     useShallow(s => ({
       memberships: s.memberships,
@@ -531,7 +538,7 @@ export const CatalogBrowse: React.FC = () => {
   // ── Bundle gate ────────────────────────────────────────────────────────────
   if (!hasCatalog) {
     return (
-      <div className="px-4 md:px-8 pt-10 pb-nav-gap max-w-3xl mx-auto">
+      <div className={outerClass}>
         <p className="font-body italic text-[15px] text-tea-text-sec leading-[1.7]">
           This destination requires the Catalog bundle. Ask your owner.
         </p>
@@ -542,7 +549,7 @@ export const CatalogBrowse: React.FC = () => {
   // ── Loading ────────────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="px-4 md:px-8 pt-8 pb-nav-gap max-w-3xl mx-auto">
+      <div className={outerClass}>
         {[1, 2, 3].map(i => <SkeletonCard key={i} />)}
       </div>
     );
@@ -554,7 +561,7 @@ export const CatalogBrowse: React.FC = () => {
     : 'The Teajia catalog';
 
   return (
-    <div className="px-4 md:px-8 pt-8 pb-nav-gap max-w-3xl mx-auto">
+    <div className={outerClass}>
 
       {/* Network error — stale data notice */}
       {networkError && (
@@ -571,21 +578,7 @@ export const CatalogBrowse: React.FC = () => {
         <p className="font-body italic text-[17px] text-tea-text-sec leading-[1.4]">
           Pick what belongs in your house.
         </p>
-        <button
-          type="button"
-          onClick={() => navigate('/admin/network')}
-          className="mt-3 font-body text-[13px] text-tea-text-sec hover:text-tea-gold transition-colors"
-        >
-          About the network →
-        </button>
       </header>
-
-      <FirstTouchNote surface="catalog">
-        Carrying a tea is a curatorial act, not a stock order. Pick the tea,
-        set your stock and your retail price, and your shop has it. The
-        canonical content (description, origin, photos) stays anchored to
-        the curator and updates everywhere when they revise it.
-      </FirstTouchNote>
 
       {/* Filter row — comma-separated text-links */}
       {teaTypes.length > 0 && (
