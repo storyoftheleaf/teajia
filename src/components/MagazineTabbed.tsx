@@ -733,7 +733,7 @@ export const MagazineTabbed: React.FC<MagazineTabbedProps> = ({
 
   // Magazine listing now sources exclusively from DB articles.
   // The legacy code-defined Story system has been retired; see
-  // docs/ARTICLE_UNIFICATION_PLAN.md.
+  // docs/_archive/ARTICLE_UNIFICATION_PLAN.md.
   const allPublished = useMemo<FeedItem[]>(() => {
     const dbItems: FeedItem[] = dbArticles.map(dbArticleToFeedItem);
     return [...dbItems].sort((a, b) => {

@@ -1,3 +1,5 @@
+> SUPERSEDED 2026-04-27 by docs/STATE_OF_THE_SITE.md.
+
 # Teajia Website — Complete Functional Audit
 
 **Date:** 2026-03-10

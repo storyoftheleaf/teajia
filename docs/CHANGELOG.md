@@ -1,0 +1,48 @@
+# Teajia Changelog
+
+> Shipped work, newest first. For what's next see ROADMAP.md. For active in-progress briefs see ACTIVE_BRIEFS.md.
+
+## 2026-04
+
+- 2026-04-27 — Documentation consolidated: CHANGELOG.md, ACTIVE_BRIEFS.md, INDEX.md created; Layer 1/2 audit completed (240 flows mapped, 37 ranked findings, 18 redundant docs identified)
+- 2026-04-27 — Mood and flavor filters on public storefront (Shop by Mood, Shop by Flavor) [git: 91de75a]
+- 2026-04-27 — Platform-owner cross-account "acting as" with audit trail [git: f7df119]
+- 2026-04-27 — Tasting taxonomy chip picker (mood/flavor) on tea profiles [git: ab2e762]
+- 2026-04-27 — Article System unification plan finalized; Phases A–D shipped (legacy article reader deleted; DB article system operational)
+- 2026-04-27 — Featured collections UI: editorial bands, public shop publishing, curator capabilities [git: 01cacb7]
+- 2026-04-27 — Network system: orientation pages, destination consolidation, audit-identified gap closure [git: 29e8a30]
+- 2026-04-25 — Learning section redesign spec finalized (visual abundance, carousel navigation, mobile-first)
+- 2026-04-24 — Consult page redesign spec finalized (question-driven, path cards, immersive layout)
+- 2026-04-24 — Event RSVP & Capacity engine spec completed (tiered capacity, magic links, waitlist)
+- 2026-04-21 — Magazine editor spec finalized (D1 articles, Smart Paste, block editor)
+- 2026-04-20 — Magazine UI locked: 4:5 format, gallery frame, push transitions, export-to-PNG
+- 2026-04-18 — Event system v2 design locked (approval-based RSVP, flyer-first, story cards)
+- 2026-04-15 — Network rollout plan finalized; Phase 1B architecture: profiles, listings, wholesale, cross-pollination
+- 2026-04-12 — Compass social plan finalized; sharing, command center, tab restructure
+- 2026-04-06 — Refactor: Learn section renamed to Craft across nav and copy [git: 902dba3]
+- 2026-04-04 — Magazine editor shipped: admin article list, D1 block editor, Smart Paste system
+- 2026-04-03 — Featured collections UI shipped; editorial bands on public storefront [git: 9880a67]
+- 2026-04-01 — Gift sets created: 5 curated sets in Shop (Sampler, Journey, Chi, Starter, Entry)
+- 2026-04-01 — Start Here page at `/start` — 6 entry paths for new visitors
+- 2026-04-01 — Spaces page at `/spaces` — 3 Bali locations with WhatsApp inquiry
+- 2026-04-01 — B2B inquiry page at `/for-your-space` — hotels, studios, retreat centers
+- 2026-04-01 — Event post-session recap at `/event/:slug/recap` — teas served, purchase links, notes
+- 2026-04-01 — Brewing QR card component shipped with WhatsApp share
+- 2026-04-01 — Tasting journal view in AccountPanel — CustomerTasting history with sync indicator
+- 2026-04-01 — Event gathering type label on public event pages
+
+## 2026-03
+
+- 2026-03-27 — Multi-store architecture Phase 1A shipped: accounts table, multi-tenancy, X-Teajia-Account header, RBAC role model, account members roster
+- 2026-03-27 — Members & Access infrastructure shipped: tier model (Guest, Member, Staff, Manager, Owner), 6 capability bundles (Catalog, Stock, Publish, Gather, Sell, Members)
+- 2026-03-27 — Network infrastructure: platform-tier endpoints, Tea Master invite flow, account access roster, bundle updates
+- 2026-03-27 — 5 selected articles migrated to DB article system (Into the Wuyi Mountains, Laoshan Green, A Conversation with Master Lin, Tea in the Kitchen, Origin Story)
+- 2026-03 — Platform audit completed: 240 flows mapped, 37 findings ranked (P0–P3), 18 redundant docs identified
+
+## 2026-02 and earlier
+
+Pre-audit history not fully reconstructed. Refer to git history for work before 2026-03.
+
+---
+
+**Maintenance:** Append new entries at top of relevant month section. Move shipped items out of ROADMAP.md when adding here.

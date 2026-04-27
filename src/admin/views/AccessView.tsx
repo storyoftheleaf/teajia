@@ -6,7 +6,7 @@ import { ALL_BUNDLES, BUNDLE_DESCRIPTIONS, BUNDLE_LABELS } from '../../types';
 import type { AccountMember, Bundle } from '../../types';
 
 // Members & Access — Location Owner / Tea Master view at /admin/access.
-// Per docs/MEMBERS_AND_ACCESS_BRIEF.md §6-9 and docs/NETWORK_UI_BRIEF.md
+// Per docs/NETWORK_ROLLOUT_PLAN.md §6-9 and docs/NETWORK_UI_BRIEF.md
 // shared vocabulary. Wine-list rhythm. No avatars-in-circles. No role-as-pill.
 // Bundles as comma-separated capability words underneath each name.
 

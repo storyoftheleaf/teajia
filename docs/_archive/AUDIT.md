@@ -1,3 +1,5 @@
+> SUPERSEDED 2026-04-27 by docs/STATE_OF_THE_SITE.md.
+
 # Teajia Platform Audit — March 2026
 
 ## Part 1: Public-Facing Features

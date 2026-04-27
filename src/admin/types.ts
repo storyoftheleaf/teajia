@@ -161,7 +161,7 @@ export interface Customer {
 // ── ArticleBlock — paginated 4:5 article system ────────────────────────────
 // Every block renders as one page in the paginated reader at /article/:slug.
 // New variants are absorbed by `variant` discriminators rather than new types
-// to keep the union small. See docs/ARTICLE_UNIFICATION_PLAN.md.
+// to keep the union small. See docs/_archive/ARTICLE_UNIFICATION_PLAN.md.
 
 export type ParagraphVariant =
   | 'single' | 'double' | 'justified' | 'center' | 'drop_cap';

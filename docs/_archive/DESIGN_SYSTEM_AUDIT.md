@@ -1,3 +1,5 @@
+> SUPERSEDED 2026-04-27 by docs/STATE_OF_THE_SITE.md sec 3.3.
+
 # Teajia Design System Audit
 
 **Date:** 2026-03-08

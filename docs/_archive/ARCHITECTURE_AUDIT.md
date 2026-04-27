@@ -1,3 +1,5 @@
+> SUPERSEDED 2026-04-27 by docs/STATE_OF_THE_SITE.md and docs/ARCHITECTURE.md.
+
 # Architecture Audit — Teajia
 
 **Date:** 2026-04-04

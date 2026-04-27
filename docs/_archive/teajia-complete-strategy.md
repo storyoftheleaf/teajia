@@ -1,3 +1,5 @@
+> ARCHIVED 2026-04-27. Pre-VISION strategy doc; content now in docs/VISION.md and docs/brief/PERSONAS.md.
+
 # Teajiā — Complete Website & Content Strategy
 
 ## Master Planning Document

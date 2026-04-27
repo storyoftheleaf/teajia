@@ -1,3 +1,5 @@
+> CONSOLIDATED 2026-04-27 into docs/FLOWS.md sec 1.
+
 # Teajia Vision Audit — Part 1: Overview & Philosophy
 
 ## What Teajia Already Does Right

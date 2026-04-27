@@ -1,3 +1,5 @@
+> SHIPPED — phases A-D complete. See docs/CHANGELOG.md.
+
 # Article System Unification Plan
 
 **Status (2026-04-25)**: Phases A–D shipped. Phase E partial (legacy reader deleted; legacy content directory + Story type cleanup deferred). See "Shipped" section at end.

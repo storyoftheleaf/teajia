@@ -1,3 +1,5 @@
+> SUPERSEDED 2026-04-27 by docs/NETWORK_ROLLOUT_PLAN.md. Profiles, listings, wholesale, cross-pollination consolidated there.
+
 # Phase 1B — Tea Profiles, Carry-from-Network, Editorial Suggestions, Wholesale
 
 > **SUPERSEDED 2026-04-26.** This plan has been merged with the Members & Access brief into a single source of truth at **[docs/NETWORK_ROLLOUT_PLAN.md](./NETWORK_ROLLOUT_PLAN.md)**. Read that instead. This document is preserved as historical reference for the design conversation that led to the merge.

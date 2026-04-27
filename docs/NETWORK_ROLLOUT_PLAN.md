@@ -2,7 +2,7 @@
 
 *Single source of truth for the next major Teajia phase. Combines Members & Access (formerly its own brief) with the catalog/wholesale/cross-pollination work (formerly Phase 1B). Read VISION.md and MULTI_STORE_PLAN.md first.*
 
-*Supersedes: docs/MEMBERS_AND_ACCESS_BRIEF.md and docs/PHASE_1B_PLAN.md (kept as reference).*
+*Supersedes: docs/_archive/MEMBERS_AND_ACCESS_BRIEF.md and docs/_archive/PHASE_1B_PLAN.md.*
 
 ---
 

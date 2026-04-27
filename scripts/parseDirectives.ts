@@ -3,7 +3,7 @@
  * into structured ArticleBlock[] for the new DbArticle system.
  *
  * Scope: handles directives used by the 5 migration source articles.
- * See docs/ARTICLE_UNIFICATION_PLAN.md.
+ * See docs/_archive/ARTICLE_UNIFICATION_PLAN.md.
  *
  * Unknown directives throw (loud failure beats silent loss). Add a handler
  * when migrating additional articles requires it.

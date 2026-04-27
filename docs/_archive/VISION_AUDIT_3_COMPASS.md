@@ -1,3 +1,5 @@
+> CONSOLIDATED 2026-04-27 into docs/FLOWS.md sec 3 and 4.1.
+
 # Teajia Vision Audit — Part 3: Tea Compass & Personal Practice
 
 ## Current State

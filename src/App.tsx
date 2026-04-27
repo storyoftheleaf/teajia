@@ -22,7 +22,7 @@ const AdminApp = lazyWithReload(() => import('./admin/AdminApp'));
 const MediaViewer = lazy(() => import('./components/MediaViewer').then(m => ({ default: m.MediaViewer })));
 const Reader = lazy(() => import('./components/Reader').then(m => ({ default: m.Reader })));
 // Legacy MagazinePageReader removed; articles render through the unified
-// 4:5 reader at /article/:slug. See docs/ARTICLE_UNIFICATION_PLAN.md.
+// 4:5 reader at /article/:slug. See docs/_archive/ARTICLE_UNIFICATION_PLAN.md.
 const VisualFeatureViewer = lazy(() => import('./components/PhotoEssay/VisualFeatureViewer').then(m => ({ default: m.VisualFeatureViewer })));
 const Shop = lazyWithReload(() => import('./components/Shop').then(m => ({ default: m.Shop })));
 

@@ -1,3 +1,5 @@
+> SUPERSEDED 2026-04-27 by docs/NETWORK_ROLLOUT_PLAN.md and docs/ARCHITECTURE.md. Tier model and bundles fully merged.
+
 # Members & Access — Design Brief
 
 > **SUPERSEDED 2026-04-26.** This brief has been merged with the Phase 1B catalog/wholesale plan into a single source of truth at **[docs/NETWORK_ROLLOUT_PLAN.md](./NETWORK_ROLLOUT_PLAN.md)** as Step 0. Read that for current implementation guidance. This document is preserved because its design direction (§6) and key states (§8) are referenced by the merged plan and remain authoritative for the M&A destination's visual design.

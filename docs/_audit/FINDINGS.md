@@ -1,0 +1,184 @@
+# Teajia Audit — Ranked Findings
+
+*Synthesis of 4 audit files (01–04), 240+ flows, 1344 lines of inventory*
+
+---
+
+## How to read this
+
+- **Severity:** P0 (blocking), P1 (wiring/feature gaps), P2 (organization/redundancy), P3 (polish)
+- **Source:** which audit file(s) the finding came from
+- **Effort:** time estimate (10min, 1hr, half-day, day, multi-day)
+- **Action column:** fill in [ ] keep / [ ] cut / [ ] defer / [ ] fix-now
+
+---
+
+## P0 — Security & Data Integrity (fix before next partner onboards)
+
+| # | Finding | Source | Effort | Action |
+|---|---------|--------|--------|--------|
+| 1 | RPC handlers (fulfill-invoice, void-invoice, increment-stock) lack ANY authorization checks; any authenticated member can invoke | 02 | 1hr | [ ] |
+| 2 | 31 actions with client-side gates but NO server-side requireBundle enforcement (Stock 6, Gather 17, Publish 6, Sell 2) | 02 | half-day | [ ] |
+| 3 | Bundle grant audit logging missing: PUT /api/accounts/:id/members/:userId/bundles does NOT write platform_audit_log | 03 | 10min | [ ] |
+| 4 | Ownership transfer not audited: POST /api/accounts/:id/transfer-ownership does NOT log to platform_audit_log | 03 | 10min | [ ] |
+| 5 | Account suspension enforcement weak: Platform tier acting in suspended account can still write (should block all writes) | 03 | 20min | [ ] |
+| 6 | Bulk product create (POST /api/products/bulk) has zero authorization checks; any authenticated member can bulk-import | 02 | 1hr | [ ] |
+
+---
+
+## P1 — Wiring Gaps (features exist but don't work end-to-end)
+
+| # | Finding | Source | Effort | Action |
+|---|---------|--------|--------|--------|
+| 7 | Gather bundle inconsistently enforced: Wholesale orders require requireBundle('sell') but events DO NOT require requireBundle('gather') | 02 | half-day | [ ] |
+| 8 | Publish bundle invisible at server: No single handler uses requireBundle('publish'); all collection endpoints rely on implicit account scope | 02 | half-day | [ ] |
+| 9 | Stock bundle has no server implementation: No handler calls requireBundle('stock'); RPC actions have zero authorization | 02 | day | [ ] |
+| 10 | Member bundle-gated flows NOT in public Account Panel: Catalog, Stock, Sell bundles have no public UI; only admin section has partial UI | 01, 02 | multi-day | [ ] |
+| 11 | Personal Collection & Compass sync incomplete: Save handlers + backend sync are PARTIAL; member changes not persisted | 01 | half-day | [ ] |
+| 12 | Pull-to-refresh not fully wired: Visual indicator renders but refresh logic incomplete; no actual data re-fetch on pull | 01 | 2hr | [ ] |
+| 13 | Global search partially implemented: Backend search API integration is stub-level; results may be empty | 01 | half-day | [ ] |
+| 14 | Cart checkout relies on per-store WhatsApp number without validation: If store lacks whatsapp_number + fallback fails, checkout silently breaks | 01 | 30min | [ ] |
+| 15 | Share modal & social sharing incomplete: Copy-link works but Twitter/Facebook buttons are stub-level | 01 | 2hr | [ ] |
+| 16 | Tasting journal sync only on auth ready: If guest tastes without signing in, entry lost on reload | 01 | 1hr | [ ] |
+| 17 | Tea Master invite email optional: If RESEND_API_KEY missing, invite created but user never notified | 03 | 30min | [ ] |
+| 18 | Adoption decision UI unfinished: API exists (POST /api/network/profiles/:id/adopt) but no UI tab for reviewing pending adoptions | 03 | 3hr | [ ] |
+
+---
+
+## P2 — Organization & Redundancy (collapse, regroup, rename)
+
+| # | Finding | Source | Effort | Action |
+|---|---------|--------|--------|--------|
+| 19 | Owner-gated tools bypass bundle system: Magazine, Collections, Team, Access, Settings use requires:'owner' (tier-level) instead of requireBundle | 02 | 3hr | [ ] |
+| 20 | Sourcing (Tea Compass, Vendors, Quick Capture) not bundled: No server enforcement; unclear if sourcing is part of Catalog or standalone | 02 | 2hr | [ ] |
+| 21 | Purchase Orders outside Stock bundle: Account-scoped but no bundle enforcement; appears Sell-adjacent but not requireBundle('sell') | 02 | 1hr | [ ] |
+| 22 | Legacy role === 'owner' checks (13 instances) not consolidated: Mixed auth paths; harder to audit than single requireOwnerTier() helper | 03 | 2hr | [ ] |
+| 23 | Cross-tier data model assumes tokens are correct: If JWT forged or token payload tampered, bundle checks fail silently | 02, 03 | — | [ ] |
+| 24 | Activity log & audit trail unsecured: GET /api/activity-logs + GET /api/stock-ledger have no authorization; any authenticated member can read other accounts' history | 02 | 1hr | [ ] |
+| 25 | "Start Here", "For Your Space", "Spaces" in PREVIEW_MODE: Intentionally hidden behind feature flag; unclear ship date | 01 | half-day | [ ] |
+| 26 | Community page is STUB only: Placeholder with no content, feeds, or discovery | 01 | 2–3hr | [ ] |
+| 27 | Account Panel "Operator" view not fully tested in multi-store: Edge cases unclear (member of A & B, checkout from C); currency/storefront context may misalign | 01 | 1hr | [ ] |
+| 28 | 8 audit shards from March 2026 heavily overlapping: AUDIT, FUNCTIONAL_AUDIT, ARCHITECTURE_AUDIT, UI_UX_AUDIT, DESIGN_SYSTEM_AUDIT, WEBSITE_TEARDOWN, VISION_AUDIT_0–3 — same problems viewed 8 different ways | 04 | — | [ ] |
+| 29 | 2 superseded briefs still in docs: MEMBERS_AND_ACCESS_BRIEF + PHASE_1B_PLAN merged into NETWORK_ROLLOUT_PLAN but preserved for design history; needs archival + README | 04 | 30min | [ ] |
+| 30 | 2 duplicate strategy documents in docs/plan/: teajia-complete-strategy.md + teajia-strategy-expansion.md duplicate VISION.md era; candidates for archival | 04 | 1hr | [ ] |
+
+---
+
+## P3 — Polish & Copy
+
+| # | Finding | Source | Effort | Action |
+|---|---------|--------|--------|--------|
+| 31 | "Acting as" audit trail ambiguous: platform_audit_log.account_id doesn't distinguish "Adrian acting in account X" vs "Adrian's platform-wide action" | 03 | 1hr | [ ] |
+| 32 | Currency/exchange rate admin UI missing: Rates exist; no visible admin panel for platform tier to manage them | 03 | 3hr | [ ] |
+| 33 | Password reset email optional: Depends on RESEND_API_KEY env var; if unset, token created but user never notified | 03 | 30min | [ ] |
+| 34 | AccessView.tsx (bundle editor) stub/incomplete: No "editor sheet" or mobile right-side drawer UI for bundle assignment yet | 03 | 2–3hr | [ ] |
+| 35 | Location/Account switcher in AccountPanel not fully tested: Multi-location edge cases unclear | 01 | 2hr | [ ] |
+| 36 | Design system & visual audit disorganized: 169 inconsistencies across DESIGN_SYSTEM_AUDIT + UI_UX_AUDIT + TEAJIA_PALETTES + WEBSITE_TEARDOWN; consolidation plan exists but not executed | 04 | — | [ ] |
+| 37 | Adoption decision audit details incomplete: Details include decision + trust_tier but no applicant_email correlation or application.id | 03 | 30min | [ ] |
+
+---
+
+## Cross-Cutting Themes
+
+### 1. **Client-Side Gates Without Server-Side Enforcement** (THE BIGGEST SECURITY GAP)
+
+31 actions have client-side bundle checks but no server-side `requireBundle()` call. This means:
+- An authenticated member with a higher-tier JWT can perform Stock/Gather/Publish/Sell actions regardless of their actual bundle assignment.
+- RPC handlers (fulfill-invoice, increment-stock, release-stock) have ZERO authorization, making them the highest-risk attack surface.
+- Implicit account scope alone is not enough — data visibility is protected, but mutations are not.
+
+**Fix priority:** Add requireBundle enforcement to all 31 gaps. Start with RPC handlers (critical), then Gather (17 gaps), Publish (6 gaps), Stock (6 gaps).
+
+---
+
+### 2. **Bundle System Incomplete at Multiple Tiers**
+
+The bundle authorization layer exists but is inconsistently applied:
+- **Catalog bundle:** Carry, edit suggestions, network adoption all properly gated; but Tea Compass/Vendors/sourcing scope unclear.
+- **Gather bundle:** Events have NO requireBundle('gather') despite being a primary bundle feature.
+- **Publish bundle:** Collections, magazine all rely on owner-tier gate, not bundle gate; no server enforcement.
+- **Stock bundle:** No server implementation at all. Purchase orders, inventory reads, all RPC actions unprotected.
+- **Sell bundle:** Wholesale orders properly gated, but invoicing, customers, analytics all account-scoped with no bundle check.
+- **Members bundle:** Properly enforced for invite/remove/grant operations.
+
+**Fix strategy:** Systematize bundle enforcement. Define what each bundle actually gates (reads? writes? RPCs?). Add requireBundle guards to all collection, event, stock, and invoice endpoints.
+
+---
+
+### 3. **Tier vs. Bundle Mismatch in Account Panel UI**
+
+The 43 tools shown in AccountPanel.OperatorView have inconsistent gating:
+- Some use requires:'owner' (tier-level gate) → Magazine, Collections, Team, Access, Settings, Purchase Orders
+- Some use no gate at all → Compass, Capture, Vendors, Inventory, Events, Venues
+- Some are properly bundled → only 6 out of 43 have explicit bundle enforcement
+
+Meanwhile, the public Account Panel (Member view) doesn't surface bundle-gated features at all. Members with Catalog/Stock bundles have no public UI to use those capabilities.
+
+**Fix priority:** Decide: are bundle features public (in Account Panel) or admin-only? If public, migrate from admin section + add public UI. If admin-only, lock accountPanel tools to owner-tier uniformly (don't gate by bundle).
+
+---
+
+### 4. **Multi-Tenancy + Account Switcher Wiring Complete but Audit Trail Gaps**
+
+Spot-check of 5 routes confirms X-Teajia-Account header + getActiveAccount() is correctly scoped. Platform tier account-switcher ("acting as") is properly logged. BUT:
+- Bundle grant changes NOT logged → audit blind spot
+- Ownership transfers NOT logged → critical privilege change invisible
+- "Acting as" account_id column ambiguous (is it the target account or platform account?)
+
+**Fix:** Add logPlatformAction() calls to 2 handlers (bundles + ownership). Add explicit actor_account_id field to audit table. Effort: < 1 hour.
+
+---
+
+### 5. **Documentation Folder Bloated & Heavily Overlapping**
+
+46 markdown files across docs/, docs/brief/, docs/plan/, docs/_audit/:
+- 8 audit shards from March 2026 overlap heavily (same codebase, different lenses) → consolidate into STATE_OF_THE_SITE.md
+- 2 superseded briefs still in docs (merged into NETWORK_ROLLOUT_PLAN but preserved for design context) → move to _archive/
+- 2 duplicate strategy docs (pre-VISION.md era) → likely archive-worthy
+- 12 REDUNDANT files overall (overlapping audits, pre-consolidation versions)
+
+**Consolidation plan exists in 04_doc_inventory.md** but not yet executed. Executing it would unblock clarity on:
+- What's actually broken in the design system (scattered across UI_UX_AUDIT, DESIGN_SYSTEM_AUDIT, TEAJIA_PALETTES, WEBSITE_TEARDOWN)
+- What flows connect to what (scattered across 8 vision audits)
+- What's currently in-progress work (scattered across TODO, LAUNCH_CHECKLIST, plan/*, COMPASS_SOCIAL_PLAN, TASTING_JOURNAL_BRIEF)
+
+**Effort:** ~9–10 hours of consolidation work (documented in 04_doc_inventory.md). Creates 4 new hub files (STATE_OF_THE_SITE, FLOWS, ACTIVE_BRIEFS, ARCHITECTURE) + 1 _archive/ directory.
+
+---
+
+## Triage Summary
+
+**Total findings:** 37
+
+**By severity:**
+- **P0 (Security & data integrity):** 6
+- **P1 (Wiring gaps):** 12
+- **P2 (Organization & redundancy):** 12
+- **P3 (Polish & copy):** 7
+
+**Estimated effort to clear P0 + P1:** 4–5 days (if done sequentially)
+- P0 alone: ~2 days (bundle enforcement is the bulk)
+- P1 alone: ~2–3 days (wiring + UI gaps)
+
+**Quick wins (< 1 hour each):**
+- Add logPlatformAction() to bundle grants + ownership transfer (findings #3, #4)
+- Validate WhatsApp checkout fallback (finding #14)
+- Fix Tea Master invite email error handling (finding #17)
+
+**Biggest ROI fix (fixes 31 findings at once):**
+- Systematize requireBundle enforcement across all 31 gaps (finding #2, enables fixes #7–#9)
+
+---
+
+## Appendix: Cross-Reference to Audit Files
+
+- **01_guest_member.md:** 98 Guest + Member flows; 10 top concerns (cart, search, bundles, compass, PREVIEW_MODE, community, switcher, tasting sync, share)
+- **02_owner_master.md:** 127 Owner/Master actions; 31 enforcement gaps; 10 organizational concerns (RPC auth, bundle inconsistency, publish/stock/catalog server gaps, legacy role checks)
+- **03_platform_crosscutting.md:** 15 platform actions (13 WIRED, 2 PARTIAL); 7 critical security gaps (audit logging, suspension enforcement, email optionality); 9 infrastructure debt items
+- **04_doc_inventory.md:** 46-file inventory; 3 overlap clusters; consolidation plan for STATE_OF_THE_SITE + FLOWS + ACTIVE_BRIEFS + ARCHITECTURE + _archive/
+
+---
+
+**Audit conducted by:** Claude Code (Haiku 4.5)  
+**Date:** 2026-04-27  
+**Status:** Complete synthesis ready for triage

@@ -5,7 +5,7 @@ import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import type { AccountApplication, AccountKind } from '../../types';
 
 // Platform tier — Members & Access at /admin/access/platform.
-// Per docs/MEMBERS_AND_ACCESS_BRIEF.md §7-9.
+// Per docs/NETWORK_ROLLOUT_PLAN.md §7-9.
 // Two registers in one component: this is the platform-tier register
 // showing the union of all accounts. Adrian acts on the network from here.
 

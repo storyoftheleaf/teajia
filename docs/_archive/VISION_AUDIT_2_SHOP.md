@@ -1,3 +1,5 @@
+> CONSOLIDATED 2026-04-27 into docs/FLOWS.md sec 2.1.
+
 # Teajia Vision Audit — Part 2: The Shop Experience
 
 ## Current State

@@ -1,3 +1,5 @@
+> SUPERSEDED 2026-04-27 by docs/STATE_OF_THE_SITE.md sec 1 and 3.4.
+
 # Teajia Website — Exhaustive Teardown
 
 **Audit Type:** Professional design & engineering review

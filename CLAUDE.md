@@ -10,6 +10,8 @@ last_reviewed: 2026-04-27
 
 # Teajia — flagship e-commerce + content platform
 
+> **Documentation hub:** start at [docs/INDEX.md](docs/INDEX.md). Architecture in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Current state in [docs/STATE_OF_THE_SITE.md](docs/STATE_OF_THE_SITE.md). What's next in [docs/ROADMAP.md](docs/ROADMAP.md). What shipped in [docs/CHANGELOG.md](docs/CHANGELOG.md).
+
 ## What this is
 Professional tea infrastructure — sourcing, inventory, education, events, and multi-store management. This is NOT a wellness app, social network, or franchise. Adrian's curation is the engine (139 products). WhatsApp checkout is intentional — every order is a personal conversation. The app works before/after tea sessions, never during (no phone-at-the-table features).
 
