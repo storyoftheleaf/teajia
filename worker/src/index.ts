@@ -1708,12 +1708,6 @@ const handleGetProducts: Handler = async (request, env) => {
     if (typeof p.tasting === 'string') {
       try { p.tasting = JSON.parse(p.tasting); } catch { p.tasting = {}; }
     }
-    if (typeof p.mood_tags === 'string') {
-      try { p.mood_tags = JSON.parse(p.mood_tags); } catch { p.mood_tags = []; }
-    }
-    if (typeof p.flavor_tags === 'string') {
-      try { p.flavor_tags = JSON.parse(p.flavor_tags); } catch { p.flavor_tags = []; }
-    }
     return addPricingFields(p, rates);
   });
   return json(products);
@@ -1727,7 +1721,6 @@ const PUBLIC_FIELDS = [
   'image_url', 'additional_images', 'status', 'is_personal', 'can_reorder', 'is_featured', 'is_curated',
   'lore', 'show_wisdom', 'processing_notes', 'terroir', 'mood', 'experience',
   'material', 'capacity_ml', 'teaware_category', 'quantity_units', 'tasting', 'tasting_source',
-  'mood_tags', 'flavor_tags',
 ] as const;
 
 // Legacy alias: resolves to Adrian's Bali store. New callers should use
@@ -1996,8 +1989,6 @@ const handleUpdateProduct: Handler = async (request, env, params) => {
   delete body.account_id;
   if (Array.isArray(body.tasting_notes)) body.tasting_notes = JSON.stringify(body.tasting_notes);
   if (Array.isArray(body.additional_images)) body.additional_images = JSON.stringify(body.additional_images);
-  if (Array.isArray(body.mood_tags)) body.mood_tags = JSON.stringify(body.mood_tags);
-  if (Array.isArray(body.flavor_tags)) body.flavor_tags = JSON.stringify(body.flavor_tags);
   // Any admin-authenticated write that mutates the tasting profile is, by
   // default, the owner's voice. Explicit callers (community aggregation,
   // seed scripts) can override by passing tasting_source themselves.
@@ -2082,7 +2073,6 @@ const handleUpdateProduct: Handler = async (request, env, params) => {
     'updated_at', 'last_synced_at', 'tea_key', 'vendor_url',
     'wholesale_price', 'catalog_visible', 'price_per_gram_usd',
     'session_reserve_grams',
-    'mood_tags', 'flavor_tags',
   ]);
   const cols = Object.keys(body).filter(k => ALLOWED_UPDATE_COLUMNS.has(k));
   if (cols.length === 0) return json({ success: true });
@@ -5015,8 +5005,15 @@ const handleGetEvents: Handler = async (request, env) => {
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
+  // Slim list payload — omits heavy JSON columns (venue_guide, session_flow,
+  // briefing_cards, mood_hints) and large text fields (description,
+  // guidelines_text). Detail view (handleGetEvent) returns the full row.
   const result = await env.DB.prepare(`
-    SELECT e.*,
+    SELECT
+      e.id, e.slug, e.title, e.subtitle, e.flyer_image_url,
+      e.event_date, e.event_end_date, e.location_name, e.area_hint,
+      e.total_capacity, e.claim_window_minutes, e.timezone, e.status,
+      e.created_at, e.updated_at,
       COALESCE(SUM(CASE WHEN ea.status = 'confirmed' THEN 1 + ea.plus_one ELSE 0 END), 0) as confirmed_count,
       COALESCE(SUM(CASE WHEN ea.status = 'waitlist' THEN 1 ELSE 0 END), 0) as waitlist_count,
       COALESCE(SUM(CASE WHEN ea.status = 'requested' THEN 1 ELSE 0 END), 0) as requested_count,
@@ -10090,7 +10087,6 @@ async function fetchPublicProductsForAccount(
               cost_amount, cost_currency, quantity_purchased,
               shipping_rate_per_kg, fixed_retail_price_usd,
               material, capacity_ml, teaware_category, quantity_units, tasting, tasting_source,
-              mood_tags, flavor_tags,
               (SELECT COUNT(*) > 0 FROM collection_items ci
                  JOIN collections c ON c.id = ci.collection_id
                  JOIN collection_publications cp ON cp.collection_id = c.id
@@ -10115,12 +10111,6 @@ async function fetchPublicProductsForAccount(
     }
     if (typeof p.tasting === 'string') {
       try { p.tasting = JSON.parse(p.tasting); } catch { p.tasting = {}; }
-    }
-    if (typeof p.mood_tags === 'string') {
-      try { p.mood_tags = JSON.parse(p.mood_tags); } catch { p.mood_tags = []; }
-    }
-    if (typeof p.flavor_tags === 'string') {
-      try { p.flavor_tags = JSON.parse(p.flavor_tags); } catch { p.flavor_tags = []; }
     }
     const withPricing = addPricingFields(p, rates);
     const safe: Record<string, unknown> = {};

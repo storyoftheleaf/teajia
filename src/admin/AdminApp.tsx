@@ -4,7 +4,7 @@ import { ChevronDown, AlertTriangle, Search, X as XIcon, MoreHorizontal, MapPin,
 import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from '../components/shared/PullToRefreshIndicator';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   isConfigured,
   hasToken,
@@ -57,6 +57,7 @@ const OperatingAsBanner: React.FC<{
   );
 };
 import { useProducts, useRates } from './hooks/useAdminData';
+import { eventsListQueryOptions } from './hooks/useEventData';
 import { useAppStore } from './store';
 
 // Import Components
@@ -187,6 +188,15 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
   const isMember = (isAuthenticated && !!userRole) || isDevAdmin;
   const isStaff  = (isAuthenticated && (userRole === 'staff' || userRole === 'admin' || userRole === 'owner')) || isDevAdmin;
   const isAdmin  = (isAuthenticated && (userRole === 'admin' || userRole === 'owner')) || isDevAdmin;
+
+  // Warm the events list in the background as soon as the user enters admin.
+  // The persisted cache may already have a copy, but this kicks off the
+  // revalidation immediately so the data is fresh by the time they click.
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    if (!isMember) return;
+    queryClient.prefetchQuery(eventsListQueryOptions);
+  }, [isMember, activeAccountId, queryClient]);
 
   // Listen for session expiry (401 responses clear the token in api.ts)
   useEffect(() => {

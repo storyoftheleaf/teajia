@@ -54,6 +54,8 @@ const config: Config = {
         modal: '40',
         toast: '50',
         priority: '60',
+        'panel-backdrop': '65',
+        'panel-modal': '70',
       },
     },
   },

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Loader2, Calendar, Copy, Bell, Search, X, MapPin } from 'lucide-react';
+import { Plus, Calendar, Copy, Bell, Search, X, MapPin } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useEvents } from '../hooks/useEventData';
 import { useToast } from './Toast';
@@ -85,14 +85,6 @@ export const EventsManager: React.FC = () => {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="animate-spin text-tea-text-sec" size={24} />
-      </div>
-    );
-  }
-
   return (
     <>
     <div className="sticky top-0 z-dropdown bg-tea-bg/90 backdrop-blur-md border-b border-tea-border flex-shrink-0 flex items-center justify-between h-16 px-4 md:px-6 lg:px-10">
@@ -146,7 +138,24 @@ export const EventsManager: React.FC = () => {
       )}
 
       {/* Event List */}
-      {events.length === 0 ? (
+      {isLoading && events.length === 0 ? (
+        <div className="border-t border-tea-border" aria-busy="true" aria-label="Loading events">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="flex gap-5 py-5 border-b border-tea-border animate-pulse">
+              <div className="w-14 shrink-0 flex flex-col items-center gap-1.5 pt-1">
+                <div className="h-2 w-8 bg-tea-surface/60 rounded-sm" />
+                <div className="h-7 w-10 bg-tea-surface/60 rounded-sm" />
+                <div className="h-2 w-7 bg-tea-surface/60 rounded-sm" />
+              </div>
+              <div className="flex-1 min-w-0 space-y-2">
+                <div className="h-4 w-2/3 bg-tea-surface/60 rounded-sm" />
+                <div className="h-3 w-1/2 bg-tea-surface/40 rounded-sm" />
+                <div className="h-2.5 w-1/3 bg-tea-surface/40 rounded-sm mt-3" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : events.length === 0 ? (
         <div className="py-20 text-center">
           <Calendar className="mx-auto mb-4 text-tea-text-dim/30" size={28} />
           <p className="font-serif italic text-sm text-tea-text-sec mb-6">No gatherings yet.</p>

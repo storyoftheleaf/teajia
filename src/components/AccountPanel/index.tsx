@@ -794,7 +794,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
     <>
       {/* Backdrop */}
       <div
-        className={`fixed inset-0 z-drawer bg-black/80 backdrop-blur-sm ${isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+        className={`fixed inset-0 z-panel-backdrop bg-black/80 backdrop-blur-sm ${isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
         style={{ transition: isVisible ? 'opacity 300ms ease' : 'opacity 150ms ease' }}
         onClick={onClose}
       />
@@ -802,7 +802,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
       {/* Panel */}
       <div
         ref={focusTrapRef}
-        className="fixed top-0 right-0 h-full w-full md:w-[400px] bg-tea-bg z-modal shadow-2xl flex flex-col"
+        className="fixed top-0 right-0 h-full w-full md:w-[400px] bg-tea-bg z-panel-modal shadow-2xl flex flex-col"
         style={{
           opacity: isVisible ? 1 : 0,
           pointerEvents: isVisible ? undefined : 'none',

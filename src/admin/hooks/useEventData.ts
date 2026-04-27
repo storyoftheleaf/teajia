@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { TeaEvent, EventAttendee, EventNotification, TeaMenuItem, TastingNote, GuestInvite, JourneyData } from '../../types/events';
 
@@ -9,16 +9,23 @@ export interface PendingAttendee extends EventAttendee {
 
 const STALE_TIME = 1000 * 60 * 5; // 5 minutes
 
+const eventsListQueryFn = async () => {
+  const data = await api.events.listAdmin();
+  return (data || []).map(mapEvent) as TeaEvent[];
+};
+
+export const eventsListQueryOptions = {
+  queryKey: ['events'] as const,
+  staleTime: STALE_TIME,
+  queryFn: eventsListQueryFn,
+};
+
 // Fetch all events (admin)
 export const useEvents = () => {
   return useQuery({
-    queryKey: ['events'],
-    staleTime: STALE_TIME,
+    ...eventsListQueryOptions,
     refetchOnWindowFocus: false,
-    queryFn: async () => {
-      const data = await api.events.listAdmin();
-      return (data || []).map(mapEvent) as TeaEvent[];
-    },
+    placeholderData: keepPreviousData,
   });
 };
 
