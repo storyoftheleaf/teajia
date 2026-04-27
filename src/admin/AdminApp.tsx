@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
-import { ChevronDown, AlertTriangle, Search, X as XIcon, MoreHorizontal, MapPin } from 'lucide-react';
+import { ChevronDown, AlertTriangle, Search, X as XIcon, MoreHorizontal, MapPin, ShieldCheck, ArrowLeft } from 'lucide-react';
 import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from '../components/shared/PullToRefreshIndicator';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -20,6 +20,42 @@ import {
   api,
 } from '../lib/api';
 import { Product } from './types';
+
+// Banner shown across all admin views when a platform owner has switched into
+// an account they're not a member of. Reminds them every action is logged and
+// gives one-click return to their home account.
+const OperatingAsBanner: React.FC<{
+  activeAccountId: string;
+  fallbackName: string;
+  onReturn: () => void;
+  canReturn: boolean;
+}> = ({ activeAccountId, fallbackName, onReturn, canReturn }) => {
+  const [accountName, setAccountName] = useState(fallbackName);
+  useEffect(() => {
+    let cancelled = false;
+    api.accounts.get(activeAccountId)
+      .then((acc: any) => { if (!cancelled && acc?.name) setAccountName(acc.name); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [activeAccountId]);
+  return (
+    <div className="flex-none bg-tea-gold/10 border-b border-tea-gold/30 px-4 py-2 flex items-center gap-3">
+      <ShieldCheck size={14} className="text-tea-gold shrink-0" />
+      <div className="flex-1 min-w-0 text-[11px] tracking-wide text-tea-text">
+        Operating as <span className="font-semibold">{accountName}</span>
+        <span className="text-tea-text-sec"> — every action is logged and visible to the account owner.</span>
+      </div>
+      {canReturn && (
+        <button
+          onClick={onReturn}
+          className="flex items-center gap-1 text-[10px] uppercase tracking-[0.15em] text-tea-text-sec hover:text-tea-text px-2 py-1 rounded-md hover:bg-tea-gold/10 transition-colors shrink-0"
+        >
+          <ArrowLeft size={11} /> Return home
+        </button>
+      )}
+    </div>
+  );
+};
 import { useProducts, useRates } from './hooks/useAdminData';
 import { useAppStore } from './store';
 
@@ -51,6 +87,7 @@ import type { CompassMode } from '../components/TeaCompass';
 import { VendorProfileView } from './views/VendorProfileView';
 import { ProductStoryView } from './views/ProductStoryView';
 import { PlatformAuditLogPage } from './views/PlatformAuditLogPage';
+import { AccountActivityView } from './views/AccountActivityView';
 import { MagazineView } from './views/MagazineView';
 import { CollectionsView } from './views/CollectionsView';
 import { ContactTagsView } from './views/ContactTagsView';
@@ -408,9 +445,35 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
     showToast("Data refreshed", 'info');
   };
 
+  const isPlatformOwner = platformRole === 'platform_owner' || platformRole === 'platform_admin';
+  const isOperatingAs = isPlatformOwner && !!activeAccountId && !memberships.some(m => m.account_id === activeAccountId);
+  const operatingAsName = isOperatingAs
+    ? (memberships.find(m => m.account_id === activeAccountId)?.account_name || 'this account')
+    : '';
+
+  const handleReturnHome = async () => {
+    if (memberships.length === 0) return;
+    try {
+      await api.accounts.switch(memberships[0].account_id);
+      hydrateAccountStateFromToken();
+      showToast(`Returned to ${memberships[0].account_name}`, 'info');
+    } catch (err) {
+      console.error('return-home switch failed', err);
+    }
+  };
+
   return (
     <div className="flex flex-col flex-1 min-h-0 h-full bg-tea-bg text-tea-text font-sans selection:bg-tea-gold/30">
       <PullToRefreshIndicator pullDistance={pullDistance} isRefreshing={isRefreshing} progress={progress} />
+
+      {isOperatingAs && (
+        <OperatingAsBanner
+          activeAccountId={activeAccountId!}
+          fallbackName={operatingAsName}
+          onReturn={handleReturnHome}
+          canReturn={memberships.length > 0}
+        />
+      )}
 
       <main className="flex-1 relative flex flex-col min-w-0 overflow-hidden">
         {isOnInventory && <div className="z-modal bg-tea-surface/90 backdrop-blur-xl px-3 md:px-6 py-1.5 flex items-center gap-2 flex-none relative">
@@ -608,6 +671,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
               <Route path="network/wholesale/:orderId" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><WholesaleOrderDraft /></PageTransition></ProtectedRoute>} />
               <Route path="network/wholesale/:orderId/timeline" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><WholesaleOrderTimeline /></PageTransition></ProtectedRoute>} />
               <Route path="account-settings" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><AccountSettingsView /></PageTransition></ProtectedRoute>} />
+              <Route path="activity" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><AccountActivityView /></PageTransition></ProtectedRoute>} />
               <Route path="platform" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><PlatformAdminView /></PageTransition></ProtectedRoute>} />
               <Route path="platform/audit-log" element={<ProtectedRoute hasAccess={isAdmin && !!platformRole} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><PlatformAuditLogPage /></PageTransition></ProtectedRoute>} />
               <Route path="magazine" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><MagazineView /></PageTransition></ProtectedRoute>} />

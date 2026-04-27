@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ChevronDown, Check, Store } from 'lucide-react';
+import { ChevronDown, Check, Store, ShieldCheck } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAppStore } from '../store';
-import { api, hydrateAccountStateFromToken } from '../../lib/api';
+import { api, hydrateAccountStateFromToken, type PlatformAccount } from '../../lib/api';
 import type { AccountMembership, AccountRole } from '../../types';
 
 const roleLabel: Record<AccountRole, string> = {
@@ -25,11 +25,27 @@ interface Props {
 }
 
 export const AccountSwitcher: React.FC<Props> = ({ compact = false }) => {
-  const { memberships, activeAccountId } = useAppStore();
+  const { memberships, activeAccountId, platformRole } = useAppStore();
+  const isPlatformOwner = platformRole === 'platform_owner' || platformRole === 'platform_admin';
   const [open, setOpen] = useState(false);
   const [switching, setSwitching] = useState<string | null>(null);
+  const [networkAccounts, setNetworkAccounts] = useState<PlatformAccount[]>([]);
+  const [networkLoaded, setNetworkLoaded] = useState(false);
+  const [networkLoading, setNetworkLoading] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
+
+  // Lazy-fetch the full network account list when a platform owner opens the dropdown.
+  useEffect(() => {
+    if (!open || !isPlatformOwner || networkLoaded || networkLoading) return;
+    let cancelled = false;
+    setNetworkLoading(true);
+    api.platform.listAccounts()
+      .then(res => { if (!cancelled) { setNetworkAccounts(res.accounts); setNetworkLoaded(true); } })
+      .catch(err => { console.error('[AccountSwitcher] failed to load network accounts', err); if (!cancelled) setNetworkLoaded(true); })
+      .finally(() => { if (!cancelled) setNetworkLoading(false); });
+    return () => { cancelled = true; };
+  }, [open, isPlatformOwner, networkLoaded, networkLoading]);
 
   useEffect(() => {
     const onClickOutside = (e: MouseEvent) => {
@@ -65,11 +81,15 @@ export const AccountSwitcher: React.FC<Props> = ({ compact = false }) => {
     }
   };
 
-  if (memberships.length === 0) return null;
+  if (memberships.length === 0 && !isPlatformOwner) return null;
 
-  const displayName = active?.account_name ?? 'Select account';
-  const displayRole = active ? roleLabel[active.role] : '';
-  const initials = active ? initialsOf(active.account_name) : '';
+  const memberAccountIds = new Set(memberships.map(m => m.account_id));
+  const otherNetworkAccounts = networkAccounts.filter(a => !memberAccountIds.has(a.id));
+  const activeNetworkAccount = networkAccounts.find(a => a.id === activeAccountId && !memberAccountIds.has(a.id));
+
+  const displayName = active?.account_name ?? activeNetworkAccount?.name ?? 'Select account';
+  const displayRole = active ? roleLabel[active.role] : (activeNetworkAccount ? 'Operating as' : '');
+  const initials = active ? initialsOf(active.account_name) : (activeNetworkAccount ? initialsOf(activeNetworkAccount.name) : '');
 
   return (
     <div className="relative" ref={containerRef}>
@@ -164,6 +184,57 @@ export const AccountSwitcher: React.FC<Props> = ({ compact = false }) => {
               );
             })}
           </div>
+
+          {isPlatformOwner && (
+            <>
+              <div className="px-3 py-2 text-[9px] uppercase tracking-[0.2em] text-tea-text-dim border-t border-b border-tea-border flex items-center gap-1.5">
+                <ShieldCheck size={10} className="text-tea-gold" />
+                All Network Accounts
+              </div>
+              <div className="max-h-64 overflow-y-auto">
+                {networkLoading ? (
+                  <div className="px-3 py-3 text-[10px] text-tea-text-dim">Loading…</div>
+                ) : otherNetworkAccounts.length === 0 ? (
+                  <div className="px-3 py-3 text-[10px] text-tea-text-dim">
+                    {networkLoaded ? 'No other accounts.' : ''}
+                  </div>
+                ) : (
+                  otherNetworkAccounts.map(a => {
+                    const isActive = a.id === activeAccountId;
+                    const isBusy = switching === a.id;
+                    return (
+                      <button
+                        key={a.id}
+                        type="button"
+                        role="option"
+                        aria-selected={isActive}
+                        onClick={() => handleSwitch(a.id)}
+                        disabled={isBusy}
+                        className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-left transition-colors ${
+                          isActive ? 'bg-tea-gold-lt' : 'hover:bg-tea-elevated/60'
+                        }`}
+                      >
+                        <div className="w-7 h-7 rounded-md bg-tea-elevated flex items-center justify-center shrink-0">
+                          <span className="text-[10px] font-bold text-tea-gold tracking-wider">
+                            {initialsOf(a.name)}
+                          </span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-xs font-semibold text-tea-text truncate">
+                            {a.name}
+                          </div>
+                          <div className="text-[9px] uppercase tracking-[0.15em] text-tea-text-dim truncate">
+                            {a.location_city || a.slug}
+                          </div>
+                        </div>
+                        {isActive && <Check size={13} className="text-tea-gold shrink-0" />}
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>

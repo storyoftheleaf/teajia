@@ -1877,6 +1877,30 @@ export const api = {
       });
       return handleResponse(res);
     },
+    getActivity: async (
+      id: string,
+      params: { limit?: number; offset?: number } = {}
+    ): Promise<{
+      entries: Array<{
+        id: string;
+        action: string;
+        actor_id: string | null;
+        actor_email: string | null;
+        target_type: string | null;
+        target_id: string | null;
+        details: Record<string, any> | string;
+        created_at: string;
+      }>;
+      limit: number;
+      offset: number;
+    }> => {
+      const qs = new URLSearchParams();
+      if (params.limit != null) qs.set('limit', String(params.limit));
+      if (params.offset != null) qs.set('offset', String(params.offset));
+      const url = `${API_URL}/api/accounts/${id}/activity${qs.toString() ? `?${qs.toString()}` : ''}`;
+      const res = await fetchWithTimeout(url, { headers: authHeaders() });
+      return handleResponse(res);
+    },
     addMember: async (id: string, email: string, role: AccountRole): Promise<AccountMember> => {
       const res = await fetchWithTimeout(`${API_URL}/api/accounts/${id}/members`, {
         method: 'POST',

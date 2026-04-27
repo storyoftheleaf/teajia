@@ -93,6 +93,8 @@ export const CollectionShareSheet: React.FC<CollectionShareSheetProps> = ({
       setTeaHouseSearch('');
       setSelectedTeaHouseId(null);
       setTeaHouseNote('');
+      setTeaHouses([]);
+      setTeaHousesLoaded(false);
       setError(null);
       return;
     }
@@ -106,22 +108,27 @@ export const CollectionShareSheet: React.FC<CollectionShareSheetProps> = ({
   }, [open]);
 
   // Fetch tea houses when that tab is first activated
+  const [teaHousesLoaded, setTeaHousesLoaded] = useState(false);
   useEffect(() => {
     if (!open || mode !== 'tea-house') return;
-    if (teaHouses.length > 0 || teaHousesLoading) return;
+    if (teaHousesLoaded) return;
     let cancelled = false;
     setTeaHousesLoading(true);
     api.network.getStores()
       .then(stores => {
-        if (!cancelled) {
-          // Filter out the active account so they can't send to themselves
-          setTeaHouses(stores.filter(s => s.id !== activeAccountId));
-        }
+        if (cancelled) return;
+        setTeaHouses(stores.filter(s => s.id !== activeAccountId));
+        setTeaHousesLoaded(true);
       })
-      .catch(() => { if (!cancelled) setTeaHouses([]); })
+      .catch(err => {
+        if (cancelled) return;
+        console.error('[ShareSheet] Failed to load tea houses', err);
+        setTeaHouses([]);
+        setTeaHousesLoaded(true);
+      })
       .finally(() => { if (!cancelled) setTeaHousesLoading(false); });
     return () => { cancelled = true; };
-  }, [open, mode, activeAccountId, teaHouses.length, teaHousesLoading]);
+  }, [open, mode, activeAccountId, teaHousesLoaded]);
 
   useEffect(() => {
     if (!open) return;
@@ -623,7 +630,7 @@ const FormPhase: React.FC<FormPhaseProps> = ({
                     <li key={h.id}>
                       <button
                         type="button"
-                        onClick={() => setSelectedTeaHouseId(h.id)}
+                        onClick={() => setSelectedTeaHouseId(isSelected ? null : h.id)}
                         className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
                           isSelected ? 'bg-tea-gold-lt' : 'bg-tea-bg hover:bg-tea-elevated'
                         }`}
