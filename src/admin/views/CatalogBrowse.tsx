@@ -570,6 +570,13 @@ export const CatalogBrowse: React.FC = () => {
         <p className="font-body italic text-[17px] text-tea-text-sec leading-[1.4]">
           Pick what belongs in your house.
         </p>
+        <button
+          type="button"
+          onClick={() => navigate('/admin/network')}
+          className="mt-3 font-body text-[13px] text-tea-text-sec hover:text-tea-gold transition-colors"
+        >
+          About the network →
+        </button>
       </header>
 
       {/* Filter row — comma-separated text-links */}

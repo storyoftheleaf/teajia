@@ -8,6 +8,7 @@ import { useTheme } from '../context/ThemeContext';
 import { PREVIEW_MODE } from '../constants';
 import { useAuth } from '../hooks/useAuth';
 import { useAppStore, selectHasBundle } from '../lib/store';
+import { hasSeenNetworkLanding } from '../admin/views/NetworkLanding';
 import { TYPOGRAPHY_CLASSES } from '../designTokens';
 import {
   Calendar, LayoutDashboard, Briefcase, Leaf, Coffee, Store, Users,
@@ -157,6 +158,14 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   const hasCatalog = useAppStore(s => selectHasBundle(s, 'catalog'));
   const hasSell = useAppStore(s => selectHasBundle(s, 'sell'));
   const platformRole = useAppStore(s => s.platformRole);
+  const activeAccountId = useAppStore(s => s.activeAccountId);
+  // First-visit landing shortcut: parent Network link routes to the landing
+  // until the user has seen it once for this account, then shortcuts to the
+  // catalog. The landing remains reachable via a text-link in the catalog
+  // header for re-reads.
+  const networkParentPath = hasSeenNetworkLanding(activeAccountId)
+    ? '/admin/network/catalog'
+    : '/admin/network';
   const sampleCount = useSampleCartStore(s => s.items.length);
 
   // Sync sidebar width to CSS variable for full-screen panel offsets
@@ -233,8 +242,12 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
     ...(hasCatalog || hasSell || platformRole ? [{
       id: 'network', label: 'Network',
       icon: <Globe size={18} strokeWidth={1.75} />,
-      path: '/admin/network/catalog',
+      path: networkParentPath,
       children: [
+        {
+          id: 'network-overview', path: '/admin/network', label: 'Overview',
+          icon: <Globe className="w-3.5 h-3.5" strokeWidth={1.75} />,
+        },
         ...(hasCatalog ? [{
           id: 'network-catalog', path: '/admin/network/catalog', label: 'Carry from network',
           icon: <Sprout className="w-3.5 h-3.5" strokeWidth={1.75} />,
