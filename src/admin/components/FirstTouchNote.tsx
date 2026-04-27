@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../../lib/store';
 
-// First-touch orientation paragraph — appears once at the top of a network
+// First-touch orientation paragraph. Appears once at the top of a network
 // destination, dismissible, never returns. Stored per-account in localStorage
 // so each partner's first visit gets the explanation.
 //
@@ -28,7 +28,7 @@ const markDismissed = (surface: string, accountId: string | null | undefined): v
   try {
     window.localStorage.setItem(keyFor(surface, accountId), '1');
   } catch {
-    // localStorage unavailable — note will reappear next visit; acceptable
+    // localStorage unavailable. Note will reappear next visit; acceptable.
   }
 };
 

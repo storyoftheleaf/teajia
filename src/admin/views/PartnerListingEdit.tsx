@@ -1024,11 +1024,11 @@ export const PartnerListingEdit: React.FC = () => {
         )}
       </header>
 
-      {/* ── First-touch orientation (partner only — curator has their own notice below) ─ */}
+      {/* First-touch orientation, partner only. Curator has their own notice below. */}
       {!isCurator && (
         <FirstTouchNote surface="listing-edit">
-          The card is the editor. Tap any of the curator's content — name,
-          description, origin, varietal, year, photos — to propose a change.
+          The card is the editor. Tap any of the curator's content (name,
+          description, origin, varietal, year, photos) to propose a change.
           Multiple edits in one session bundle into a single suggestion.
           The footer's commerce buttons swap to editorial actions while you
           edit; cancel any time. Your store note, stock and price stay

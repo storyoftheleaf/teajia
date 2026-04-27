@@ -209,8 +209,8 @@ export const WholesaleOrdersList: React.FC = () => {
         Wholesale moves stock between houses. A buyer drafts an order from
         the catalog and submits. The supplier confirms and ships. When the
         buyer marks it received, both stocks adjust together and bilateral
-        invoices generate on each side. The whole exchange reads as one
-        timeline both parties can follow.
+        invoices generate on each side. The exchange reads as one timeline
+        both parties can follow.
       </FirstTouchNote>
 
       {/* Filter line */}

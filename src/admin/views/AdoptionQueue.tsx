@@ -61,7 +61,7 @@ export const AdoptionQueue: React.FC = () => {
       <FirstTouchNote surface="adoptions">
         Adoption is how a Tea Master's profile joins the wider network.
         When you adopt, curation transfers to Teajia and the profile becomes
-        visible in every partner's catalog — the originator stays attributed
+        visible in every partner's catalog. The originator stays attributed
         on the canonical record. Decline returns the profile to the
         originator with an optional note. They can re-suggest after revising.
       </FirstTouchNote>

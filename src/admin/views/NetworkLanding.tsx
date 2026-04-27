@@ -6,7 +6,7 @@ import { useAppStore, selectHasBundle } from '../../lib/store';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 
 // Marker the sidebar reads to shortcut the Network parent link straight to
-// the catalog after a partner has visited the landing once. Per-account so
+// the catalog after a partner has visited the landing once. Per-account, so
 // switching accounts shows the landing again on first visit.
 export const NETWORK_LANDING_SEEN_KEY = 'teajia.network.landingSeen';
 
@@ -70,13 +70,13 @@ export const NetworkLanding: React.FC = () => {
       {/* Role-adaptive editorial body */}
       <section className="space-y-6 font-body text-[16px] text-tea-text leading-[1.75] mb-12">
 
-        {/* Universal opening — the model */}
+        {/* Universal opening: the model */}
         <p>
           A tea on the network has one canonical record. Origin, varietal,
           harvest year, description, photos. That record lives with the
-          curator who sources it. Other houses can <em>carry</em> the tea —
-          set their own stock, their own retail price, their own store note —
-          while the canonical content stays anchored.
+          curator who sources it. Other houses can <em>carry</em> the tea,
+          setting their own stock, retail price, and store note, while the
+          canonical content stays anchored.
         </p>
 
         <p>
@@ -92,25 +92,25 @@ export const NetworkLanding: React.FC = () => {
             You are the curator behind most of the canonical content here.
             Partners carrying your teas will surface edits in your
             suggestions queue. Tea Masters who originated profiles can offer
-            their teas up for the wider network — those land in your
+            their teas up for the wider network. Those land in your
             adoption queue. Wholesale runs the other direction: partners
             order from you when they need stock.
           </p>
         )}
 
-        {/* Partner perspective — has Catalog bundle but not platform */}
+        {/* Partner perspective: Catalog bundle, not platform */}
         {hasCatalog && !isPlatform && (
           <p>
             For your house, the network means two things. You can carry
             anything Adrian curates without re-entering the canonical
-            content yourself — pick a tea, set your stock and price, your
-            shop has it. You can also propose edits to any canonical field
-            on any tea you carry. Adrian sees them, decides per field, and
-            accepted changes update on your storefront automatically.
+            content yourself. Pick a tea, set your stock and price, and
+            your shop has it. You can also propose edits to any canonical
+            field on any tea you carry. Adrian sees them, decides per field,
+            and accepted changes update on your storefront automatically.
           </p>
         )}
 
-        {/* Wholesale perspective — has Sell bundle */}
+        {/* Wholesale perspective: Sell bundle */}
         {hasSell && !isPlatform && (
           <p>
             Wholesale orders move stock between houses. Draft an order from
@@ -121,7 +121,7 @@ export const NetworkLanding: React.FC = () => {
           </p>
         )}
 
-        {/* No-bundle fallback (rare — sidebar usually hides this destination) */}
+        {/* No-bundle fallback. Rare; sidebar usually hides this destination. */}
         {!hasCatalog && !hasSell && !isPlatform && (
           <p className="italic text-tea-text-sec">
             Your account doesn't yet have the bundles that open the
@@ -130,7 +130,7 @@ export const NetworkLanding: React.FC = () => {
         )}
       </section>
 
-      {/* Destination index — woven as text-links, not a card grid */}
+      {/* Destination index, woven as text-links rather than a card grid */}
       <section className="border-t border-tea-border pt-8">
         <p className={`${TYPOGRAPHY_CLASSES.label} text-tea-text-sec mb-5`}>
           Where to go
