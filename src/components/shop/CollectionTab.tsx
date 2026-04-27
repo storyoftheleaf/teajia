@@ -165,7 +165,7 @@ const ItemCard: React.FC<{
                   }
                 }}
                 disabled={isSoldOut}
-                className={`text-[10px] uppercase tracking-[0.12em] font-medium py-2 px-4 rounded-sm transition-all min-h-[44px] ${
+                className={`text-ui-10 uppercase tracking-[0.12em] font-medium py-2 px-4 rounded-sm transition-all min-h-[44px] ${
                   isSoldOut
                     ? 'bg-tea-accent-sub text-tea-text-sec cursor-not-allowed opacity-60'
                     : 'bg-tea-gold hover:bg-tea-gold-lt text-tea-bg active:scale-95'

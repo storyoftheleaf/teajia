@@ -54,7 +54,7 @@ const StateZoneInner: React.FC<StateZoneProps> = ({ flow, value, onChange }) => 
           animate={{ opacity: totalCount > 0 ? 1 : 0 }}
           transition={{ duration: 0.18 }}
           style={{ pointerEvents: totalCount > 0 ? 'auto' : 'none' }}
-          className="text-[11px] text-tea-text-dim hover:text-tea-text-sec transition-colors flex items-center gap-1 px-2 py-1"
+          className="text-ui-11 text-tea-text-dim hover:text-tea-text-sec transition-colors flex items-center gap-1 px-2 py-1"
           aria-label="Clear all feeling selections"
         >
           <X size={10} />
@@ -67,7 +67,7 @@ const StateZoneInner: React.FC<StateZoneProps> = ({ flow, value, onChange }) => 
         {feelingCategory.groups.map(group => (
           <div key={group.label} className="rounded-xl p-2.5 bg-tea-surface/40">
             <div
-              className="text-[12px] text-tea-text font-medium mb-2 pb-1 border-b border-tea-border"
+              className="text-ui-12 text-tea-text font-medium mb-2 pb-1 border-b border-tea-border"
               style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.04em' }}
             >
               {group.label}
@@ -125,7 +125,7 @@ const StateZoneInner: React.FC<StateZoneProps> = ({ flow, value, onChange }) => 
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.2 }}
-            className="text-[12px] text-tea-text-sec px-1 mb-4 overflow-hidden"
+            className="text-ui-12 text-tea-text-sec px-1 mb-4 overflow-hidden"
             style={{ fontFamily: 'var(--font-body)' }}
           >
             {lastHint}
@@ -139,13 +139,13 @@ const StateZoneInner: React.FC<StateZoneProps> = ({ flow, value, onChange }) => 
       <div className="mb-5">
         <div className="flex items-center gap-2 mb-2">
           <span
-            className="text-[13px] text-tea-text font-medium"
+            className="text-ui-13 text-tea-text font-medium"
             style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.04em' }}
           >
             Quality
           </span>
           <span
-            className={`text-[11px] transition-colors ${value.quality != null ? 'text-tea-gold' : 'text-tea-text-dim'}`}
+            className={`text-ui-11 transition-colors ${value.quality != null ? 'text-tea-gold' : 'text-tea-text-dim'}`}
             style={{ fontFamily: 'var(--font-mono)' }}
           >
             {value.quality != null ? `${value.quality}/10` : '/10'}
@@ -162,7 +162,7 @@ const StateZoneInner: React.FC<StateZoneProps> = ({ flow, value, onChange }) => 
                 onClick={() => setQuality(isSelected ? undefined : v)}
                 role="radio"
                 aria-checked={isSelected}
-                className={`flex-1 py-3 text-[13px] font-medium transition-all duration-200 min-h-[48px] relative z-[1] ${
+                className={`flex-1 py-3 text-ui-13 font-medium transition-all duration-200 min-h-[48px] relative z-[1] ${
                   isSelected ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
                 }${i < 9 ? ' weight-seg-div' : ''}`}
                 style={{

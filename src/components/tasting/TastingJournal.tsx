@@ -185,7 +185,7 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
             <path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2zm20 0h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/>
           </svg>
           <h2 className="font-serif text-base font-normal text-tea-text flex-1">Tasting Journal</h2>
-          <span className="text-[10px] text-tea-text-dim tabular-nums">
+          <span className="text-ui-10 text-tea-text-dim tabular-nums">
             {tastingJournal.filter(e => !e.archived).length} {tastingJournal.filter(e => !e.archived).length === 1 ? 'tea' : 'teas'}
           </span>
         </div>
@@ -201,7 +201,7 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search teas, notes…"
-              className="w-full bg-tea-surface/60 text-tea-text text-[13px] rounded-lg pl-8 pr-8 py-2 outline-none placeholder:text-tea-text-dim focus:ring-1 focus:ring-tea-gold/40"
+              className="w-full bg-tea-surface/60 text-tea-text text-ui-13 rounded-lg pl-8 pr-8 py-2 outline-none placeholder:text-tea-text-dim focus:ring-1 focus:ring-tea-gold/40"
             />
             {searchQuery && (
               <button type="button" onClick={() => setSearchQuery('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-tea-text-dim hover:text-tea-text-sec transition-colors">
@@ -241,7 +241,7 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
       <div className="flex-1 overflow-auto px-4 py-3 space-y-2">
         {/* Stats row */}
         {stats && (
-          <div className="text-[11px] text-tea-text-dim tabular-nums mb-1 px-0.5 font-feature-settings-tnum">
+          <div className="text-ui-11 text-tea-text-dim tabular-nums mb-1 px-0.5 font-feature-settings-tnum">
             {stats.count} teas{stats.avgRating && <> · Avg {stats.avgRating}/10</>}{stats.topType && <> · Top: {stats.topType}</>}
           </div>
         )}
@@ -253,7 +253,7 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
               <BookOpen className="w-9 h-9 text-tea-gold/30" />
             </div>
             <h3 className="font-serif text-lg text-tea-text mb-1.5 tracking-wide">No teas yet</h3>
-            <p className="text-[13px] text-tea-text-sec text-center max-w-[240px] mx-auto leading-relaxed font-serif">
+            <p className="text-ui-13 text-tea-text-sec text-center max-w-[240px] mx-auto leading-relaxed font-serif">
               The teas you taste will show up here. Come back to write what you noticed.
             </p>
           </div>
@@ -270,10 +270,10 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
               {group.eventId && group.entries.length > 0 && (
                 <button onClick={() => navigate(`/event/${group.eventSlug || group.eventId}`)} className="flex items-center gap-2 mb-1.5 mt-3 first:mt-0 px-1 group w-full text-left">
                   <Calendar size={12} className="text-tea-gold shrink-0" />
-                  <span className="text-[11px] font-medium text-tea-gold font-serif group-hover:text-tea-gold-lt transition-colors truncate">
+                  <span className="text-ui-11 font-medium text-tea-gold font-serif group-hover:text-tea-gold-lt transition-colors truncate">
                     {group.eventTitle}
                   </span>
-                  {group.date && <span className="text-[10px] text-tea-text-dim shrink-0">{formatRelativeDate(group.date)}</span>}
+                  {group.date && <span className="text-ui-10 text-tea-text-dim shrink-0">{formatRelativeDate(group.date)}</span>}
                   <div className="flex-1 border-b border-tea-border ml-1" />
                 </button>
               )}
@@ -282,7 +282,7 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
               {!group.eventId && group.dateGroup && group.entries.length > 1 && (
                 <div className="flex items-center gap-2 mb-1.5 mt-3 first:mt-0 px-1">
                   <Calendar size={12} className="text-tea-text-dim shrink-0" />
-                  <span className="text-[11px] font-medium text-tea-text-dim font-serif">{group.dateGroup}</span>
+                  <span className="text-ui-11 font-medium text-tea-text-dim font-serif">{group.dateGroup}</span>
                   <div className="flex-1 border-b border-tea-border ml-1" />
                 </div>
               )}
@@ -352,7 +352,7 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
                                   <span className="truncate">{entry.productName}</span>
                                   <span
                                     aria-hidden="true"
-                                    className="text-[10px] text-tea-gold-lt shrink-0 transition-all duration-200 ease-out lg:opacity-0 lg:-translate-x-1 lg:group-hover/tealink:opacity-100 lg:group-hover/tealink:translate-x-0 lg:group-focus-visible/tealink:opacity-100 lg:group-focus-visible/tealink:translate-x-0"
+                                    className="text-ui-10 text-tea-gold-lt shrink-0 transition-all duration-200 ease-out lg:opacity-0 lg:-translate-x-1 lg:group-hover/tealink:opacity-100 lg:group-hover/tealink:translate-x-0 lg:group-focus-visible/tealink:opacity-100 lg:group-focus-visible/tealink:translate-x-0"
                                     style={{ fontFamily: 'var(--font-display)', fontWeight: 300 }}
                                   >
                                     →
@@ -361,30 +361,30 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
                               ) : (
                                 <span className="text-sm font-serif text-tea-text truncate">{entry.productName}</span>
                               )}
-                              {entry.productType && <span className="text-[9px] text-tea-text-dim shrink-0">{entry.productType}</span>}
-                              {noteData.mood && <span className="text-[9px] text-tea-text-dim/60 italic shrink-0">{noteData.mood}</span>}
+                              {entry.productType && <span className="text-ui-9 text-tea-text-dim shrink-0">{entry.productType}</span>}
+                              {noteData.mood && <span className="text-ui-9 text-tea-text-dim/60 italic shrink-0">{noteData.mood}</span>}
                             </div>
 
                             {/* Impression */}
                             {noteData.overallImpression && (
-                              <div className="text-[13px] text-tea-text-sec font-serif italic leading-snug mb-1.5">
+                              <div className="text-ui-13 text-tea-text-sec font-serif italic leading-snug mb-1.5">
                                 &ldquo;{noteData.overallImpression}&rdquo;
                               </div>
                             )}
 
                             {/* Date + rating + huiGan + tastings count row */}
                             <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                              <span className="text-[10px] text-tea-text-dim">{formatRelativeDate(entry.note.updatedAt || entry.createdAt)}</span>
+                              <span className="text-ui-10 text-tea-text-dim">{formatRelativeDate(entry.note.updatedAt || entry.createdAt)}</span>
                               {tastingsCount > 1 && (
-                                <span className="text-[9px] text-tea-text-dim/60">{tastingsCount} tastings</span>
+                                <span className="text-ui-9 text-tea-text-dim/60">{tastingsCount} tastings</span>
                               )}
                               {rating > 0 && (
-                                <span className="text-[11px] font-semibold tabular-nums" style={typeColor ? { color: typeColor } : undefined}>
+                                <span className="text-ui-11 font-semibold tabular-nums" style={typeColor ? { color: typeColor } : undefined}>
                                   {rating}/10
                                 </span>
                               )}
                               {noteData.huiGan && (
-                                <span className="text-[10px] text-tea-gold font-medium" title="Returning sweetness (回甘)">回甘</span>
+                                <span className="text-ui-10 text-tea-gold font-medium" title="Returning sweetness (回甘)">回甘</span>
                               )}
                               {ev.eventId && (
                                 <button onClick={(e) => { e.stopPropagation(); navigate(`/event/${ev.eventSlug || ev.eventId}`); }} className="badge-status badge-status-gold hover:opacity-80 transition-opacity cursor-pointer">
@@ -410,7 +410,7 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
                                 const Icon = resolveTermIcon(termId);
                                 return <span key={termId} className="tag"><Icon size={10} />{resolveTermLabel(termId)}</span>;
                               })}
-                              {allNotes.length > 3 && <span className="badge-status text-[10px]">+{allNotes.length - 3}</span>}
+                              {allNotes.length > 3 && <span className="badge-status text-ui-10">+{allNotes.length - 3}</span>}
                             </div>
                           </div>
                         </div>
@@ -439,11 +439,11 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
                                       style={{ width: `${noteData.quality * 10}%`, background: 'linear-gradient(90deg, var(--color-tea-gold-lt,#d4ac66)80, var(--color-tea-gold,#b8924e))' }}
                                     />
                                   </div>
-                                  <span className="text-[10px] text-tea-text-dim tabular-nums shrink-0">Quality {noteData.quality}</span>
+                                  <span className="text-ui-10 text-tea-text-dim tabular-nums shrink-0">Quality {noteData.quality}</span>
                                 </div>
                               )}
                               {(noteData.cleanliness != null || noteData.patience != null) && (
-                                <div className="flex items-center gap-2 text-[10px] text-tea-text-dim tabular-nums px-0.5">
+                                <div className="flex items-center gap-2 text-ui-10 text-tea-text-dim tabular-nums px-0.5">
                                   {noteData.cleanliness != null && <span>Cleanliness {noteData.cleanliness}</span>}
                                   {noteData.cleanliness != null && noteData.patience != null && <span>·</span>}
                                   {noteData.patience != null && <span>Patience {noteData.patience}</span>}
@@ -454,7 +454,7 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
                               {isPlatformPrivileged && latest.tasting.voiceNote?.trim() && (
                                 <div className="flex items-start gap-2 px-2 py-2 rounded-md bg-tea-gold/5">
                                   <Mic size={12} className="text-tea-gold shrink-0 mt-0.5" />
-                                  <div className="text-[11px] text-tea-text-sec italic leading-relaxed">
+                                  <div className="text-ui-11 text-tea-text-sec italic leading-relaxed">
                                     {latest.tasting.voiceNote}
                                   </div>
                                 </div>
@@ -462,7 +462,7 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
 
                               {/* Personal note */}
                               {entry.note.personalNote && (
-                                <div className="text-[11px] text-tea-text-dim italic px-1">
+                                <div className="text-ui-11 text-tea-text-dim italic px-1">
                                   "{entry.note.personalNote}"
                                 </div>
                               )}
@@ -470,14 +470,14 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
                               {/* Past tastings timeline. Shown when this tea has been tasted more than once. */}
                               {entry.tastings.length > 1 && (
                                 <div className="mt-2 pt-2 border-t border-tea-border space-y-1.5">
-                                  <div className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim px-1" style={{ fontFamily: 'var(--font-display)' }}>
+                                  <div className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim px-1" style={{ fontFamily: 'var(--font-display)' }}>
                                     Past tastings
                                   </div>
                                   {[...entry.tastings].reverse().map(t => (
-                                    <div key={t.id} className="px-1 py-1 text-[11px] leading-snug">
+                                    <div key={t.id} className="px-1 py-1 text-ui-11 leading-snug">
                                       <div className="flex items-baseline gap-2 text-tea-text-sec">
-                                        <span className="text-[10px] text-tea-text-dim">{formatRelativeDate(t.createdAt)}</span>
-                                        {t.eventTitle && <span className="text-[10px] italic text-tea-text-dim">at {t.eventTitle}</span>}
+                                        <span className="text-ui-10 text-tea-text-dim">{formatRelativeDate(t.createdAt)}</span>
+                                        {t.eventTitle && <span className="text-ui-10 italic text-tea-text-dim">at {t.eventTitle}</span>}
                                       </div>
                                       {t.reason && (
                                         <div className="italic text-tea-text-sec mt-0.5">
@@ -493,7 +493,7 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
                               <div className="flex border-t border-tea-border mt-1 pt-2">
                                 <button
                                   onClick={() => handleShare(entry)}
-                                  className="flex flex-1 items-center justify-center gap-1.5 py-1.5 text-[11px] font-medium text-tea-text-dim hover:text-tea-text transition-colors border-r border-tea-border"
+                                  className="flex flex-1 items-center justify-center gap-1.5 py-1.5 text-ui-11 font-medium text-tea-text-dim hover:text-tea-text transition-colors border-r border-tea-border"
                                 >
                                   <Share2 size={11} />
                                   Share card
@@ -501,7 +501,7 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
                                 {showArchived ? (
                                   <button
                                     onClick={() => handleRestore(entry.id)}
-                                    className="flex flex-1 items-center justify-center gap-1.5 py-1.5 text-[11px] font-medium text-tea-text-dim hover:text-tea-text transition-colors"
+                                    className="flex flex-1 items-center justify-center gap-1.5 py-1.5 text-ui-11 font-medium text-tea-text-dim hover:text-tea-text transition-colors"
                                   >
                                     <RotateCcw size={11} />
                                     Restore
@@ -509,7 +509,7 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
                                 ) : (
                                   <button
                                     onClick={() => handleArchive(entry.id)}
-                                    className="flex flex-1 items-center justify-center gap-1.5 py-1.5 text-[11px] font-medium text-tea-text-dim hover:text-tea-text transition-colors"
+                                    className="flex flex-1 items-center justify-center gap-1.5 py-1.5 text-ui-11 font-medium text-tea-text-dim hover:text-tea-text transition-colors"
                                   >
                                     <Archive size={11} />
                                     Archive
@@ -534,7 +534,7 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
             <button
               type="button"
               onClick={() => setShowArchived(prev => !prev)}
-              className="flex items-center gap-1.5 text-[11px] text-tea-text-dim hover:text-tea-text-sec transition-colors"
+              className="flex items-center gap-1.5 text-ui-11 text-tea-text-dim hover:text-tea-text-sec transition-colors"
               style={{ fontFamily: 'var(--font-body)' }}
             >
               <Archive size={11} />

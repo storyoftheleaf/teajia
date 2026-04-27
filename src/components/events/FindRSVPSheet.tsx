@@ -142,7 +142,7 @@ const FindRSVPSheet: React.FC<FindRSVPSheetProps> = ({ slug, onClose }) => {
               </p>
             ) : (
               <div>
-                <label className="block text-[10px] uppercase tracking-[0.25em] text-tea-text-sec mb-2">
+                <label className="block text-ui-10 uppercase tracking-[0.25em] text-tea-text-sec mb-2">
                   {method === 'phone' ? 'Phone Number' : 'Email Address'}
                 </label>
                 <input

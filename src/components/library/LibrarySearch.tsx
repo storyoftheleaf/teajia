@@ -61,7 +61,7 @@ export const LibrarySearch: React.FC<LibrarySearchProps> = ({ onNavigateToSectio
           ) : (
             Object.keys(grouped).map(label => (
               <div key={label}>
-                <p className="px-4 pt-3 pb-1 text-[10px] uppercase tracking-wider text-tea-text/40">
+                <p className="px-4 pt-3 pb-1 text-ui-10 uppercase tracking-wider text-tea-text/40">
                   {label}
                 </p>
                 {grouped[label].slice(0, 5).map(item => (

@@ -116,7 +116,7 @@ export const InboundCollectionView: React.FC = () => {
           <ArrowLeft size={14} /> Collections
         </button>
         <div className="flex-1" />
-        <span className="px-2.5 py-1 rounded-full text-[10px] uppercase tracking-[1.2px] bg-tea-elevated text-tea-text-sec">
+        <span className="px-2.5 py-1 rounded-full text-ui-10 uppercase tracking-[1.2px] bg-tea-elevated text-tea-text-sec">
           Inbound
         </span>
       </div>
@@ -125,7 +125,7 @@ export const InboundCollectionView: React.FC = () => {
         <div className="max-w-3xl mx-auto px-4 md:px-6 py-6 flex flex-col gap-6">
 
           <section className="flex flex-col gap-2">
-            <p className="flex items-center gap-1.5 text-[11px] uppercase tracking-[1.2px] text-tea-text-dim">
+            <p className="flex items-center gap-1.5 text-ui-11 uppercase tracking-[1.2px] text-tea-text-dim">
               <Building2 size={11} /> From {pub.publisher_account_name}
               {pub.curator_display_name && (
                 <span className="normal-case tracking-normal text-tea-text-dim/70">
@@ -137,11 +137,11 @@ export const InboundCollectionView: React.FC = () => {
               {pub.title}
             </h1>
             {pub.note && (
-              <p className="font-body text-[15px] leading-[1.65] text-tea-text italic">
+              <p className="font-body text-ui-15 leading-[1.65] text-tea-text italic">
                 {pub.note}
               </p>
             )}
-            <p className="text-[11px] text-tea-text-dim mt-1">
+            <p className="text-ui-11 text-tea-text-dim mt-1">
               Shared {formatWhen(pub.published_at)}
             </p>
           </section>
@@ -154,7 +154,7 @@ export const InboundCollectionView: React.FC = () => {
 
           <section className="flex flex-col gap-2">
             <div className="flex items-center justify-between gap-3">
-              <label className="text-[10px] uppercase tracking-[1.2px] text-tea-text-dim">
+              <label className="text-ui-10 uppercase tracking-[1.2px] text-tea-text-dim">
                 Products <span className="text-tea-text-dim/70">({items.length})</span>
               </label>
               <button
@@ -182,7 +182,7 @@ export const InboundCollectionView: React.FC = () => {
                       key={item.item_id}
                       className="flex items-center gap-3 px-2.5 py-2 rounded-md hover:bg-tea-surface transition-colors"
                     >
-                      <span className="w-5 text-right text-[11px] text-tea-text-dim font-mono tabular-nums">
+                      <span className="w-5 text-right text-ui-11 text-tea-text-dim font-mono tabular-nums">
                         {idx + 1}
                       </span>
                       <div className="w-10 h-10 flex-shrink-0 rounded bg-tea-elevated overflow-hidden">
@@ -195,20 +195,20 @@ export const InboundCollectionView: React.FC = () => {
                           {item.product_name || 'Untitled'}
                           {item.chinese_name && <span className="text-tea-text-dim ml-1.5 text-xs">{item.chinese_name}</span>}
                         </p>
-                        <p className="text-[11px] text-tea-text-dim truncate">
+                        <p className="text-ui-11 text-tea-text-dim truncate">
                           {[item.origin_region, item.origin_country].filter(Boolean).join(', ') || item.product_type}
                           {item.year && ` · ${item.year}`}
                         </p>
                       </div>
                       {isImported ? (
-                        <span className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-tea-elevated text-[10px] uppercase tracking-[1.2px] text-tea-text-sec">
+                        <span className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-tea-elevated text-ui-10 uppercase tracking-[1.2px] text-tea-text-sec">
                           <Check size={10} /> Imported
                         </span>
                       ) : (
                         <button
                           onClick={() => importOne(item.product_id)}
                           disabled={isImporting || bulkImporting}
-                          className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] uppercase tracking-[1.2px] text-tea-text-sec hover:text-tea-gold hover:bg-tea-gold-lt transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                          className="flex items-center gap-1 px-2.5 py-1 rounded-md text-ui-10 uppercase tracking-[1.2px] text-tea-text-sec hover:text-tea-gold hover:bg-tea-gold-lt transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                         >
                           {isImporting
                             ? <Loader2 size={10} className="animate-spin" />
@@ -222,7 +222,7 @@ export const InboundCollectionView: React.FC = () => {
               </ul>
             )}
 
-            <p className="text-[11px] text-tea-text-dim mt-2">
+            <p className="text-ui-11 text-tea-text-dim mt-2">
               Imported products land in your inventory as drafts. Edit pricing, stock, and visibility before publishing.
             </p>
           </section>

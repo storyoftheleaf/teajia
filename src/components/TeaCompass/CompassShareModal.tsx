@@ -105,8 +105,8 @@ export const CompassShareModal: React.FC<CompassShareModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <div>
-            <p className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim mb-0.5">Share</p>
-            <h2 className="font-serif text-[15px] text-tea-text leading-tight truncate max-w-[200px]">
+            <p className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim mb-0.5">Share</p>
+            <h2 className="font-serif text-ui-15 text-tea-text leading-tight truncate max-w-[200px]">
               {entryName || 'This card'}
             </h2>
           </div>
@@ -124,7 +124,7 @@ export const CompassShareModal: React.FC<CompassShareModalProps> = ({
           <button
             type="button"
             onClick={() => setTab('direct')}
-            className={`flex-1 py-1.5 rounded-[5px] text-[11px] font-medium transition-colors ${
+            className={`flex-1 py-1.5 rounded-[5px] text-ui-11 font-medium transition-colors ${
               tab === 'direct' ? 'bg-tea-surface text-tea-text shadow-sm' : 'text-tea-text-dim'
             }`}
           >
@@ -133,7 +133,7 @@ export const CompassShareModal: React.FC<CompassShareModalProps> = ({
           <button
             type="button"
             onClick={() => setTab('link')}
-            className={`flex-1 py-1.5 rounded-[5px] text-[11px] font-medium transition-colors ${
+            className={`flex-1 py-1.5 rounded-[5px] text-ui-11 font-medium transition-colors ${
               tab === 'link' ? 'bg-tea-surface text-tea-text shadow-sm' : 'text-tea-text-dim'
             }`}
           >
@@ -142,7 +142,7 @@ export const CompassShareModal: React.FC<CompassShareModalProps> = ({
           <button
             type="button"
             onClick={() => setTab('table')}
-            className={`flex-1 py-1.5 rounded-[5px] text-[11px] font-medium transition-colors ${
+            className={`flex-1 py-1.5 rounded-[5px] text-ui-11 font-medium transition-colors ${
               tab === 'table' ? 'bg-tea-surface text-tea-text shadow-sm' : 'text-tea-text-dim'
             }`}
           >
@@ -228,7 +228,7 @@ export const CompassShareModal: React.FC<CompassShareModalProps> = ({
               {inviteLink ? (
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 bg-tea-surface rounded-md px-3 py-2 border border-tea-border">
-                    <span className="flex-1 text-[11px] text-tea-text-sec font-mono truncate">{inviteLink}</span>
+                    <span className="flex-1 text-ui-11 text-tea-text-sec font-mono truncate">{inviteLink}</span>
                     <button
                       type="button"
                       onClick={handleCopyLink}

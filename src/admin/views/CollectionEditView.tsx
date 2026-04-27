@@ -224,14 +224,14 @@ export const CollectionEditView: React.FC = () => {
               onBlur={() => noteChanged && saveMeta({ note: noteDraft })}
               placeholder="A short note for whoever opens the link — this shows above the product list on the public page."
               rows={2}
-              className="w-full bg-transparent border-none outline-none resize-none font-body text-[15px] leading-[1.65] text-tea-text placeholder:text-tea-text-dim italic"
+              className="w-full bg-transparent border-none outline-none resize-none font-body text-ui-15 leading-[1.65] text-tea-text placeholder:text-tea-text-dim italic"
             />
-            {savingMeta && <p className="text-[10px] text-tea-text-dim">Saving…</p>}
+            {savingMeta && <p className="text-ui-10 text-tea-text-dim">Saving…</p>}
           </section>
 
           {/* Hero image */}
           <section className="flex flex-col gap-2">
-            <label className="text-[10px] uppercase tracking-[1.2px] text-tea-text-dim">Hero image</label>
+            <label className="text-ui-10 uppercase tracking-[1.2px] text-tea-text-dim">Hero image</label>
             {detail.collection.hero_image_url ? (
               <div className="relative group rounded-lg overflow-hidden bg-tea-elevated">
                 <img
@@ -264,12 +264,12 @@ export const CollectionEditView: React.FC = () => {
           {/* Items */}
           <section className="flex flex-col gap-2">
             <div className="flex items-center justify-between">
-              <label className="text-[10px] uppercase tracking-[1.2px] text-tea-text-dim">
+              <label className="text-ui-10 uppercase tracking-[1.2px] text-tea-text-dim">
                 Products <span className="text-tea-text-dim/70">({detail.items.length})</span>
               </label>
               <button
                 onClick={() => setAddOpen(true)}
-                className="flex items-center gap-1 px-2.5 py-1 text-[11px] text-tea-text-sec hover:text-tea-text transition-colors"
+                className="flex items-center gap-1 px-2.5 py-1 text-ui-11 text-tea-text-sec hover:text-tea-text transition-colors"
               >
                 <Plus size={11} /> Add products
               </button>
@@ -292,7 +292,7 @@ export const CollectionEditView: React.FC = () => {
                         focused ? 'bg-tea-gold-lt' : 'hover:bg-tea-surface'
                       }`}
                     >
-                      <span className="w-5 text-right text-[11px] text-tea-text-dim font-mono tabular-nums">
+                      <span className="w-5 text-right text-ui-11 text-tea-text-dim font-mono tabular-nums">
                         {item.position}
                       </span>
                       <div className="w-10 h-10 flex-shrink-0 rounded bg-tea-elevated overflow-hidden">
@@ -305,15 +305,15 @@ export const CollectionEditView: React.FC = () => {
                           {item.product_name || 'Untitled'}
                           {item.chinese_name && <span className="text-tea-text-dim ml-1.5 text-xs">{item.chinese_name}</span>}
                         </p>
-                        <p className="text-[11px] text-tea-text-dim truncate flex items-center gap-1.5">
+                        <p className="text-ui-11 text-tea-text-dim truncate flex items-center gap-1.5">
                           {[item.origin_region, item.origin_country].filter(Boolean).join(', ') || item.product_type}
                           {archived && (
-                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-tea-elevated text-tea-text-dim text-[9px] uppercase tracking-wider">
+                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-tea-elevated text-tea-text-dim text-ui-9 uppercase tracking-wider">
                               <Archive size={8} /> Archived
                             </span>
                           )}
                           {!archived && oos && (
-                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-tea-elevated text-tea-text-sec text-[9px] uppercase tracking-wider">
+                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-tea-elevated text-tea-text-sec text-ui-9 uppercase tracking-wider">
                               <AlertTriangle size={8} /> Out of stock
                             </span>
                           )}
@@ -354,7 +354,7 @@ export const CollectionEditView: React.FC = () => {
 
           {/* Shared with */}
           <section className="flex flex-col gap-3">
-            <label className="text-[10px] uppercase tracking-[1.2px] text-tea-text-dim">
+            <label className="text-ui-10 uppercase tracking-[1.2px] text-tea-text-dim">
               Shared with {detail.publications.filter(p => !p.unpublished_at).length > 0 && (
                 <span className="text-tea-text-dim/70 num">({detail.publications.filter(p => !p.unpublished_at).length})</span>
               )}
@@ -368,7 +368,7 @@ export const CollectionEditView: React.FC = () => {
                 title={!canPublish ? 'Add at least one product first' : undefined}
               >
                 <UserPlus size={14} className="text-tea-text-sec group-hover:text-tea-gold group-disabled:text-tea-text-dim transition-colors" />
-                <span className="text-[12px] text-tea-text-sec group-hover:text-tea-text group-disabled:text-tea-text-dim transition-colors">
+                <span className="text-ui-12 text-tea-text-sec group-hover:text-tea-text group-disabled:text-tea-text-dim transition-colors">
                   {canPublish ? 'Share with people' : 'Add a product before sharing'}
                 </span>
               </button>
@@ -381,7 +381,7 @@ export const CollectionEditView: React.FC = () => {
                   title={!canPublish ? 'Add at least one product first' : 'Share with new people, by tag, or with a store'}
                 >
                   <UserPlus size={13} />
-                  <span className="text-[12px] font-medium tracking-wide">Share with people</span>
+                  <span className="text-ui-12 font-medium tracking-wide">Share with people</span>
                 </button>
                 <ul className="flex flex-col gap-1.5">
                   {detail.publications.map(pub => (
@@ -436,7 +436,7 @@ const StatusPill: React.FC<{ status: CollectionStatus; onSet: (s: CollectionStat
     <div className="relative">
       <button
         onClick={() => setOpen(v => !v)}
-        className={`px-2.5 py-1 rounded-full text-[10px] uppercase tracking-[1.2px] ${cls[status]}`}
+        className={`px-2.5 py-1 rounded-full text-ui-10 uppercase tracking-[1.2px] ${cls[status]}`}
       >
         {label[status]}
       </button>
@@ -500,10 +500,10 @@ const PublicationRow: React.FC<{
         <p className="text-xs text-tea-text truncate">
           {headline}
           {isStore && (
-            <span className="ml-1.5 text-[10px] uppercase tracking-[1.2px] text-tea-text-dim">store</span>
+            <span className="ml-1.5 text-ui-10 uppercase tracking-[1.2px] text-tea-text-dim">store</span>
           )}
         </p>
-        <p className="text-[10px] text-tea-text-dim truncate mt-0.5 font-mono">
+        <p className="text-ui-10 text-tea-text-dim truncate mt-0.5 font-mono">
           {isStore
             ? `${active ? `shared ${formatWhen(pub.published_at)}` : `unpublished ${formatWhen(pub.unpublished_at)}`}`
             : `/c/${pub.slug} · ${pub.view_count} view${pub.view_count !== 1 ? 's' : ''} · ${active ? `shared ${formatWhen(pub.published_at)}` : `unpublished ${formatWhen(pub.unpublished_at)}`}`}
@@ -522,7 +522,7 @@ const PublicationRow: React.FC<{
           )}
           <button
             onClick={onUnpublish}
-            className="text-[10px] uppercase tracking-[1.2px] text-tea-text-sec hover:text-red-400 transition-colors"
+            className="text-ui-10 uppercase tracking-[1.2px] text-tea-text-sec hover:text-red-400 transition-colors"
           >
             {isStore ? 'Stop sharing' : 'Unpublish'}
           </button>
@@ -613,7 +613,7 @@ const AddProductsSheet: React.FC<{
     <button
       type="button"
       onClick={() => setTopFilter(key)}
-      className={`px-2.5 py-1 rounded-md text-[11px] tracking-wide transition-colors ${
+      className={`px-2.5 py-1 rounded-md text-ui-11 tracking-wide transition-colors ${
         topFilter === key
           ? 'bg-tea-gold/15 text-tea-text'
           : 'bg-tea-elevated/60 text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated'
@@ -634,7 +634,7 @@ const AddProductsSheet: React.FC<{
             </div>
             <div className="min-w-0">
               <h2 className="text-sm font-medium text-tea-text tracking-wide">Add to collection</h2>
-              <p className="text-[11px] text-tea-text-dim mt-0.5 num">{pool.length} available</p>
+              <p className="text-ui-11 text-tea-text-dim mt-0.5 num">{pool.length} available</p>
             </div>
           </div>
           <button onClick={onClose} disabled={submitting} className="text-tea-text-sec hover:text-tea-text transition-colors disabled:opacity-40 p-1 -mr-1" aria-label="Close">
@@ -671,7 +671,7 @@ const AddProductsSheet: React.FC<{
                     key={t}
                     type="button"
                     onClick={() => setTeaSubFilter(active ? null : t)}
-                    className={`px-2 py-0.5 rounded-md text-[11px] transition-colors ${
+                    className={`px-2 py-0.5 rounded-md text-ui-11 transition-colors ${
                       active
                         ? 'bg-tea-gold/12 text-tea-gold'
                         : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated/60'
@@ -685,7 +685,7 @@ const AddProductsSheet: React.FC<{
                 <button
                   type="button"
                   onClick={() => setTeaSubFilter(null)}
-                  className="px-2 py-0.5 rounded-md text-[11px] text-tea-text-dim hover:text-tea-text transition-colors"
+                  className="px-2 py-0.5 rounded-md text-ui-11 text-tea-text-dim hover:text-tea-text transition-colors"
                 >
                   Clear
                 </button>
@@ -723,7 +723,7 @@ const AddProductsSheet: React.FC<{
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-xs text-tea-text truncate">{p.givenName || p.productName}</p>
-                        <p className="text-[10px] text-tea-text-dim truncate">{p.type}{p.year ? ` · ${p.year}` : ''}</p>
+                        <p className="text-ui-10 text-tea-text-dim truncate">{p.type}{p.year ? ` · ${p.year}` : ''}</p>
                       </div>
                     </button>
                   </li>
@@ -850,7 +850,7 @@ const AddPublicationSheet: React.FC<{
             </div>
             <div className="min-w-0">
               <h2 className="text-sm font-medium text-tea-text tracking-wide">Share collection</h2>
-              <p className="text-[11px] text-tea-text-dim mt-0.5 truncate">{collectionTitle}</p>
+              <p className="text-ui-11 text-tea-text-dim mt-0.5 truncate">{collectionTitle}</p>
             </div>
           </div>
           <button onClick={onClose} disabled={submitting} className="text-tea-text-sec hover:text-tea-text transition-colors disabled:opacity-40 p-1 -mr-1" aria-label="Close">
@@ -865,7 +865,7 @@ const AddPublicationSheet: React.FC<{
               role="tab"
               aria-selected={mode === 'person'}
               onClick={() => { setMode('person'); setError(null); }}
-              className={`flex items-center justify-center gap-1.5 py-2 text-[11px] uppercase tracking-wide rounded-md transition-colors ${
+              className={`flex items-center justify-center gap-1.5 py-2 text-ui-11 uppercase tracking-wide rounded-md transition-colors ${
                 mode === 'person' ? 'bg-tea-surface text-tea-text' : 'text-tea-text-sec hover:text-tea-text'
               }`}
             >
@@ -876,7 +876,7 @@ const AddPublicationSheet: React.FC<{
               role="tab"
               aria-selected={mode === 'tag'}
               onClick={() => { setMode('tag'); setError(null); }}
-              className={`flex items-center justify-center gap-1.5 py-2 text-[11px] uppercase tracking-wide rounded-md transition-colors ${
+              className={`flex items-center justify-center gap-1.5 py-2 text-ui-11 uppercase tracking-wide rounded-md transition-colors ${
                 mode === 'tag' ? 'bg-tea-surface text-tea-text' : 'text-tea-text-sec hover:text-tea-text'
               }`}
             >
@@ -887,7 +887,7 @@ const AddPublicationSheet: React.FC<{
               role="tab"
               aria-selected={mode === 'store'}
               onClick={() => { setMode('store'); setError(null); }}
-              className={`flex items-center justify-center gap-1.5 py-2 text-[11px] uppercase tracking-wide rounded-md transition-colors ${
+              className={`flex items-center justify-center gap-1.5 py-2 text-ui-11 uppercase tracking-wide rounded-md transition-colors ${
                 mode === 'store' ? 'bg-tea-surface text-tea-text' : 'text-tea-text-sec hover:text-tea-text'
               }`}
             >
@@ -899,14 +899,14 @@ const AddPublicationSheet: React.FC<{
         <div className="flex-1 min-h-0 overflow-y-auto px-5 pb-3">
           {mode === 'person' ? (
             <>
-              <p className="text-[11px] text-tea-text-dim mb-3">
+              <p className="text-ui-11 text-tea-text-dim mb-3">
                 Each recipient gets the same link. Only people with the link can see the page.
               </p>
               <RecipientTypeahead value={recipients} onChange={setRecipients} collectionId={collectionId} autoFocus />
             </>
           ) : mode === 'tag' ? (
             <>
-              <p className="text-[11px] text-tea-text-dim mb-3">
+              <p className="text-ui-11 text-tea-text-dim mb-3">
                 Publishes the collection to everyone tagged with the chosen tag. Recipients are snapshotted now, so adding or removing the tag later won't change who has the link.
               </p>
               <div className="relative mb-2">
@@ -944,7 +944,7 @@ const AddPublicationSheet: React.FC<{
                           </div>
                           <div className="flex-1 min-w-0 flex items-center justify-between gap-2">
                             <p className="text-sm text-tea-text truncate">{t.tag}</p>
-                            <p className="text-[11px] text-tea-text-dim shrink-0">{t.count}</p>
+                            <p className="text-ui-11 text-tea-text-dim shrink-0">{t.count}</p>
                           </div>
                         </button>
                       </li>
@@ -955,7 +955,7 @@ const AddPublicationSheet: React.FC<{
             </>
           ) : (
             <>
-              <p className="text-[11px] text-tea-text-dim mb-3">
+              <p className="text-ui-11 text-tea-text-dim mb-3">
                 The receiving store sees this collection in their admin. They choose which products to import into their own inventory.
               </p>
               <div className="relative mb-2">
@@ -994,7 +994,7 @@ const AddPublicationSheet: React.FC<{
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm text-tea-text truncate">{s.name}</p>
-                            {locality && <p className="text-[11px] text-tea-text-dim truncate">{locality}</p>}
+                            {locality && <p className="text-ui-11 text-tea-text-dim truncate">{locality}</p>}
                           </div>
                         </button>
                       </li>

@@ -197,7 +197,7 @@ export const TastingFlow: React.FC<TastingFlowProps> = ({
               <button
                 type="button"
                 onClick={() => flow.clearCategory('flavor')}
-                className={`text-[11px] text-tea-text-sec hover:text-tea-text transition-colors flex items-center gap-1 px-2 py-1 ${flavorCount > 0 ? 'visible' : 'invisible'}`}
+                className={`text-ui-11 text-tea-text-sec hover:text-tea-text transition-colors flex items-center gap-1 px-2 py-1 ${flavorCount > 0 ? 'visible' : 'invisible'}`}
                 aria-label="Clear flavor selections"
                 tabIndex={flavorCount > 0 ? 0 : -1}
               >
@@ -245,7 +245,7 @@ export const TastingFlow: React.FC<TastingFlowProps> = ({
               className="px-4 pb-4 pt-3"
             >
               <p
-                className="text-[11px] text-tea-text-dim italic mb-3"
+                className="text-ui-11 text-tea-text-dim italic mb-3"
                 style={{ fontFamily: 'var(--font-body)' }}
               >
                 {activeSection.subtitle}

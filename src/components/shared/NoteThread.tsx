@@ -62,32 +62,32 @@ const TastingArtifact: React.FC<{ snapshot: TastingData }> = ({ snapshot }) => {
               style={{ width: `${snapshot.quality * 10}%`, background: 'linear-gradient(90deg, #d4ac6666, #b8924e)' }}
             />
           </div>
-          <span className="text-[12px] font-semibold tabular-nums text-tea-gold shrink-0" style={{ fontFamily: 'var(--font-mono)' }}>
-            {snapshot.quality}<span className="text-tea-text-dim font-normal text-[10px]">/10</span>
+          <span className="text-ui-12 font-semibold tabular-nums text-tea-gold shrink-0" style={{ fontFamily: 'var(--font-mono)' }}>
+            {snapshot.quality}<span className="text-tea-text-dim font-normal text-ui-10">/10</span>
           </span>
         </div>
       )}
       {visible.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {visible.map(({ t, color }) => (
-            <span key={t} className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] text-tea-text-sec bg-tea-bg border border-tea-border">
+            <span key={t} className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-ui-11 text-tea-text-sec bg-tea-bg border border-tea-border">
               <span className="shrink-0 rounded-full" style={{ width: 5, height: 5, background: color, display: 'inline-block', opacity: 0.85 }} />
               {t}
             </span>
           ))}
           {overflow > 0 && (
-            <span className="self-center text-[10px] text-tea-text-dim">+{overflow}</span>
+            <span className="self-center text-ui-10 text-tea-text-dim">+{overflow}</span>
           )}
         </div>
       )}
       {snapshot.huiGan && (
-        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-tea-gold/80">
+        <span className="inline-flex items-center gap-1 text-ui-11 font-medium text-tea-gold/80">
           <Sparkles size={9} />
           回甘
         </span>
       )}
       {snapshot.cleanliness && (
-        <span className="text-[10px] text-tea-text-dim capitalize">{snapshot.cleanliness}</span>
+        <span className="text-ui-10 text-tea-text-dim capitalize">{snapshot.cleanliness}</span>
       )}
     </div>
   );
@@ -184,14 +184,14 @@ const NoteCard: React.FC<{
         {/* Author + timestamp — only when multiple authors */}
         {showAuthor && (
           <div className="flex items-center gap-1.5 mb-1">
-            <span className="text-[10px] font-medium text-tea-text-dim uppercase tracking-[0.08em]">
+            <span className="text-ui-10 font-medium text-tea-text-dim uppercase tracking-[0.08em]">
               {note.authorName}
             </span>
             {isTasting && (
               <>
                 <span className="text-tea-border">·</span>
                 <Leaf size={9} className="text-tea-gold/60" />
-                <span className="text-[10px] text-tea-gold/60">Tasting</span>
+                <span className="text-ui-10 text-tea-gold/60">Tasting</span>
               </>
             )}
           </div>
@@ -208,13 +208,13 @@ const NoteCard: React.FC<{
             onBlur={commitEdit}
             onKeyDown={handleKeyDown}
             rows={2}
-            className="w-full bg-transparent text-[13px] text-tea-text resize-none outline-none focus-visible:ring-1 focus-visible:ring-tea-gold/40 rounded px-1 -mx-1"
+            className="w-full bg-transparent text-ui-13 text-tea-text resize-none outline-none focus-visible:ring-1 focus-visible:ring-tea-gold/40 rounded px-1 -mx-1"
             style={{ fontFamily: 'var(--font-body)' }}
           />
         ) : (
           <p
             onClick={startEdit}
-            className={`text-[13px] text-tea-text leading-relaxed whitespace-pre-wrap ${
+            className={`text-ui-13 text-tea-text leading-relaxed whitespace-pre-wrap ${
               isOwn && !isTasting ? 'cursor-text hover:text-tea-text' : ''
             }`}
             style={{ fontFamily: 'var(--font-body)' }}
@@ -225,7 +225,7 @@ const NoteCard: React.FC<{
 
         {/* Timestamp — only visible while editing */}
         {editing && (
-          <div className="text-[10px] text-tea-text-dim mt-1">
+          <div className="text-ui-10 text-tea-text-dim mt-1">
             {new Date(note.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
             {note.sourceType === 'voice' && ' · voice'}
           </div>
@@ -247,7 +247,7 @@ const NoteCard: React.FC<{
           </button>
         )}
         {converted && (
-          <span className="text-[9px] text-tea-gold/60 px-1">saved</span>
+          <span className="text-ui-9 text-tea-gold/60 px-1">saved</span>
         )}
         {/* Remove — own non-tasting notes only */}
         {isOwn && !isTasting && (
@@ -454,7 +454,7 @@ export const NoteThread: React.FC<NoteThreadProps> = ({
             onKeyDown={handleKeyDown}
             placeholder={notes.length > 0 ? 'Add another note…' : 'Impressions, vendor story, anything worth keeping…'}
             rows={compact ? 1 : 2}
-            className="flex-1 px-3 py-2.5 bg-transparent text-[13px] text-tea-text placeholder:text-tea-text-dim/40 focus:outline-none resize-none"
+            className="flex-1 px-3 py-2.5 bg-transparent text-ui-13 text-tea-text placeholder:text-tea-text-dim/40 focus:outline-none resize-none"
             style={{ fontFamily: 'var(--font-body)' }}
           />
         ) : (
@@ -462,7 +462,7 @@ export const NoteThread: React.FC<NoteThreadProps> = ({
             <motion.span
               animate={{ opacity: [1, 0.4, 1] }}
               transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
-              className="text-[13px] text-tea-gold/70"
+              className="text-ui-13 text-tea-gold/70"
               style={{ fontFamily: 'var(--font-body)' }}
             >
               Recording…
@@ -502,7 +502,7 @@ export const NoteThread: React.FC<NoteThreadProps> = ({
       </div>
 
       {error && (
-        <p className="text-[11px] text-red-400" style={{ fontFamily: 'var(--font-body)' }}>{error}</p>
+        <p className="text-ui-11 text-red-400" style={{ fontFamily: 'var(--font-body)' }}>{error}</p>
       )}
     </div>
   );

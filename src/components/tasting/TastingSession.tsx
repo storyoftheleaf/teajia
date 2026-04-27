@@ -435,7 +435,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
               {item.name}
             </div>
             {item.type && (
-              <div className="text-[10px] text-tea-text-dim tracking-wide">{item.type}</div>
+              <div className="text-ui-10 text-tea-text-dim tracking-wide">{item.type}</div>
             )}
           </div>
         </div>
@@ -472,13 +472,13 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
               <div className="px-4 py-2 bg-tea-surface/60 border-b border-tea-border shrink-0">
                 {!freshPromptOpen ? (
                   <div className="flex items-center justify-between gap-3">
-                    <span className="text-[11px] text-tea-text-sec italic" style={{ fontFamily: 'var(--font-body)' }}>
+                    <span className="text-ui-11 text-tea-text-sec italic" style={{ fontFamily: 'var(--font-body)' }}>
                       Adding to your note for this tea.
                     </span>
                     <button
                       type="button"
                       onClick={() => setFreshPromptOpen(true)}
-                      className="text-[10px] text-tea-text-sec hover:text-tea-text transition-colors shrink-0"
+                      className="text-ui-10 text-tea-text-sec hover:text-tea-text transition-colors shrink-0"
                       style={{ fontFamily: 'var(--font-body)' }}
                     >
                       Start a new tasting
@@ -486,7 +486,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    <div className="text-[11px] text-tea-text-sec leading-snug" style={{ fontFamily: 'var(--font-body)' }}>
+                    <div className="text-ui-11 text-tea-text-sec leading-snug" style={{ fontFamily: 'var(--font-body)' }}>
                       Use this when something changed (different brew, aged tea, new pot). Otherwise just add to your note above.
                     </div>
                     <textarea
@@ -495,14 +495,14 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                       onChange={e => setFreshReason(e.target.value)}
                       placeholder="Why are you tasting this again?"
                       rows={2}
-                      className="w-full bg-transparent text-[12px] text-tea-text placeholder:text-tea-text-dim outline-none resize-none border border-tea-border rounded px-2 py-1.5"
+                      className="w-full bg-transparent text-ui-12 text-tea-text placeholder:text-tea-text-dim outline-none resize-none border border-tea-border rounded px-2 py-1.5"
                       style={{ fontFamily: 'var(--font-body)' }}
                     />
                     <div className="flex items-center justify-end gap-3">
                       <button
                         type="button"
                         onClick={() => { setFreshPromptOpen(false); setFreshReason(''); }}
-                        className="text-[11px] text-tea-text-sec hover:text-tea-text transition-colors"
+                        className="text-ui-11 text-tea-text-sec hover:text-tea-text transition-colors"
                         style={{ fontFamily: 'var(--font-body)' }}
                       >
                         Cancel
@@ -511,7 +511,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                         type="button"
                         disabled={freshReason.trim().length < 10}
                         onClick={() => { setTastingData({}); setIsContinuing(false); }}
-                        className="text-[11px] text-tea-gold hover:text-tea-gold-lt disabled:text-tea-text-dim disabled:cursor-not-allowed transition-colors"
+                        className="text-ui-11 text-tea-gold hover:text-tea-gold-lt disabled:text-tea-text-dim disabled:cursor-not-allowed transition-colors"
                         style={{ fontFamily: 'var(--font-body)' }}
                       >
                         Begin new tasting
@@ -527,7 +527,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                 user can keep their head in the new context. */}
             {isFreshTasting && (
               <div className="px-4 py-2 bg-tea-gold/8 border-b border-tea-border shrink-0">
-                <div className="text-[11px] text-tea-text-sec leading-snug" style={{ fontFamily: 'var(--font-body)' }}>
+                <div className="text-ui-11 text-tea-text-sec leading-snug" style={{ fontFamily: 'var(--font-body)' }}>
                   <span className="text-tea-gold">New tasting:</span>{' '}
                   <span className="italic">{freshReason}</span>
                 </div>
@@ -540,7 +540,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowBrewing(v => !v)}
-                  className="w-full flex items-center gap-2 px-4 py-2 text-[11px] text-tea-text-sec hover:text-tea-text transition-colors"
+                  className="w-full flex items-center gap-2 px-4 py-2 text-ui-11 text-tea-text-sec hover:text-tea-text transition-colors"
                   style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.06em' }}
                 >
                   <SampleIcon className="w-3 h-3 shrink-0 opacity-50" />
@@ -562,14 +562,14 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                       <div className="px-4 pb-3 flex flex-wrap gap-3">
                         {/* Vessel */}
                         <div className="flex flex-col gap-1">
-                          <span className="text-[10px] uppercase tracking-[0.1em] text-tea-text-dim" style={{ fontFamily: 'var(--font-display)' }}>Vessel</span>
+                          <span className="text-ui-10 uppercase tracking-[0.1em] text-tea-text-dim" style={{ fontFamily: 'var(--font-display)' }}>Vessel</span>
                           <div className="flex flex-wrap gap-1">
                             {VESSEL_OPTIONS.map(v => (
                               <button
                                 key={v}
                                 type="button"
                                 onClick={() => handleTastingChange({ ...tastingData, brewingVessel: tastingData.brewingVessel === v ? undefined : v })}
-                                className={`text-[11px] px-2.5 py-1 rounded-full transition-colors ${
+                                className={`text-ui-11 px-2.5 py-1 rounded-full transition-colors ${
                                   tastingData.brewingVessel === v
                                     ? 'bg-tea-gold/15 text-tea-gold'
                                     : 'bg-tea-surface text-tea-text-sec hover:text-tea-text'
@@ -583,7 +583,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                         </div>
                         {/* Temp */}
                         <div className="flex flex-col gap-1">
-                          <span className="text-[10px] uppercase tracking-[0.1em] text-tea-text-dim" style={{ fontFamily: 'var(--font-display)' }}>
+                          <span className="text-ui-10 uppercase tracking-[0.1em] text-tea-text-dim" style={{ fontFamily: 'var(--font-display)' }}>
                             <Thermometer size={10} className="inline mr-0.5" />Temp
                           </span>
                           <div className="flex items-center gap-1">
@@ -594,15 +594,15 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                               value={tastingData.brewingTemp ?? ''}
                               onChange={e => handleTastingChange({ ...tastingData, brewingTemp: e.target.value ? Number(e.target.value) : undefined })}
                               placeholder="95"
-                              className="w-16 px-2 py-1 bg-tea-surface border border-tea-border rounded text-[12px] text-tea-text placeholder:text-tea-text-dim/40 focus:outline-none focus:border-tea-gold/50"
+                              className="w-16 px-2 py-1 bg-tea-surface border border-tea-border rounded text-ui-12 text-tea-text placeholder:text-tea-text-dim/40 focus:outline-none focus:border-tea-gold/50"
                               style={{ fontFamily: 'var(--font-mono)' }}
                             />
-                            <span className="text-[11px] text-tea-text-dim">°C</span>
+                            <span className="text-ui-11 text-tea-text-dim">°C</span>
                           </div>
                         </div>
                         {/* Time */}
                         <div className="flex flex-col gap-1">
-                          <span className="text-[10px] uppercase tracking-[0.1em] text-tea-text-dim" style={{ fontFamily: 'var(--font-display)' }}>
+                          <span className="text-ui-10 uppercase tracking-[0.1em] text-tea-text-dim" style={{ fontFamily: 'var(--font-display)' }}>
                             <Timer size={10} className="inline mr-0.5" />Time
                           </span>
                           <input
@@ -610,7 +610,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                             value={tastingData.brewingTime ?? ''}
                             onChange={e => handleTastingChange({ ...tastingData, brewingTime: e.target.value || undefined })}
                             placeholder="30s"
-                            className="w-16 px-2 py-1 bg-tea-surface border border-tea-border rounded text-[12px] text-tea-text placeholder:text-tea-text-dim/40 focus:outline-none focus:border-tea-gold/50"
+                            className="w-16 px-2 py-1 bg-tea-surface border border-tea-border rounded text-ui-12 text-tea-text placeholder:text-tea-text-dim/40 focus:outline-none focus:border-tea-gold/50"
                             style={{ fontFamily: 'var(--font-mono)' }}
                           />
                         </div>
@@ -625,7 +625,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
             {showVerdict && !adminMode && (
               <div className="shrink-0 px-4 py-2.5 border-b border-tea-border bg-tea-surface/40">
                 <div
-                  className="text-[10px] uppercase tracking-[0.16em] text-tea-text-dim mb-2"
+                  className="text-ui-10 uppercase tracking-[0.16em] text-tea-text-dim mb-2"
                   style={{ fontFamily: 'var(--font-display)' }}
                 >
                   Sourcing verdict {!verdict && <span className="text-tea-gold/70 normal-case tracking-normal">(select before saving)</span>}
@@ -646,7 +646,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                         }`}
                       >
                         <Icon size={15} />
-                        <span className="text-[10px]" style={{ fontFamily: 'var(--font-display)' }}>{label}</span>
+                        <span className="text-ui-10" style={{ fontFamily: 'var(--font-display)' }}>{label}</span>
                       </motion.button>
                     );
                   })}
@@ -720,7 +720,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                             initial={{ scale: 0, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-                            className={`absolute z-10 flex items-center justify-center w-[16px] h-[16px] rounded-full text-[10px] font-bold ${
+                            className={`absolute z-10 flex items-center justify-center w-[16px] h-[16px] rounded-full text-ui-10 font-bold ${
                               isActive ? 'bg-tea-gold' : 'bg-tea-text/20'
                             }`}
                             style={{
@@ -831,7 +831,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                         initial={{ scale: 0, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                         transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-                        className="absolute z-10 flex items-center justify-center w-[16px] h-[16px] rounded-full bg-tea-text/20 text-[10px] font-bold"
+                        className="absolute z-10 flex items-center justify-center w-[16px] h-[16px] rounded-full bg-tea-text/20 text-ui-10 font-bold"
                         style={{ top: -8, left: '50%', x: '-50%', color: 'var(--tea-text)', fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif", lineHeight: '16px', letterSpacing: 0, textTransform: 'none' }}
                       >
                         {tastingData.notes!.length}
@@ -861,7 +861,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                   className="px-4 pt-1.5 flex items-center gap-1.5"
                 >
                   <Check size={11} className="text-tea-gold shrink-0" />
-                  <span className="text-[10px] text-tea-text-sec" style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.08em' }}>
+                  <span className="text-ui-10 text-tea-text-sec" style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.08em' }}>
                     Profile complete
                   </span>
                 </motion.div>
@@ -870,7 +870,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
               {/* Save */}
               <div className="px-3 pb-3 pt-1.5">
                 {saveState === 'error' && (
-                  <p className="text-[11px] text-red-400 text-center mb-1.5" style={{ fontFamily: 'var(--font-body)' }}>
+                  <p className="text-ui-11 text-red-400 text-center mb-1.5" style={{ fontFamily: 'var(--font-body)' }}>
                     Save failed — check your connection and try again
                   </p>
                 )}
@@ -967,7 +967,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
 
               {/* Brewing context summary */}
               {(tastingData.brewingVessel || tastingData.brewingTemp || tastingData.brewingTime) && (
-                <div className="mt-2 flex items-center justify-center gap-2 text-[11px] text-tea-text-dim" style={{ fontFamily: 'var(--font-body)' }}>
+                <div className="mt-2 flex items-center justify-center gap-2 text-ui-11 text-tea-text-dim" style={{ fontFamily: 'var(--font-body)' }}>
                   <SampleIcon className="w-[11px] h-[11px] opacity-50" />
                   {[tastingData.brewingVessel, tastingData.brewingTemp ? `${tastingData.brewingTemp}°C` : null, tastingData.brewingTime].filter(Boolean).join(' · ')}
                 </div>
@@ -988,7 +988,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
 
             {(tastingData.flavor?.length ?? 0) > 0 && (
               <div className="rounded-xl p-4 mb-3 bg-tea-surface/50">
-                <div className="text-[9px] uppercase tracking-[0.12em] text-tea-text-dim font-medium mb-1.5" style={{ fontFamily: 'var(--font-display)' }}>
+                <div className="text-ui-9 uppercase tracking-[0.12em] text-tea-text-dim font-medium mb-1.5" style={{ fontFamily: 'var(--font-display)' }}>
                   Taste
                 </div>
                 <div className="flex flex-wrap gap-1.5">
@@ -1026,12 +1026,12 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                 <div className="text-xs font-medium text-tea-text mb-0.5" style={{ fontFamily: 'var(--font-display)' }}>
                   Keep your tastings
                 </div>
-                <div className="text-[11px] text-tea-text-dim mb-2.5" style={{ fontFamily: 'var(--font-body)' }}>
+                <div className="text-ui-11 text-tea-text-dim mb-2.5" style={{ fontFamily: 'var(--font-body)' }}>
                   You have {tastingJournal.length} tastings saved locally. Create a free account to sync them across devices and never lose them.
                 </div>
                 <button
                   onClick={() => window.dispatchEvent(new Event('open-account-panel'))}
-                  className="text-[11px] font-semibold text-tea-gold hover:opacity-80 transition-opacity"
+                  className="text-ui-11 font-semibold text-tea-gold hover:opacity-80 transition-opacity"
                   style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.06em' }}
                 >
                   Create account →
@@ -1048,7 +1048,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                 className="mt-2 mb-4"
               >
                 <div
-                  className="text-[10px] uppercase tracking-[0.18em] text-tea-text-dim font-medium mb-3"
+                  className="text-ui-10 uppercase tracking-[0.18em] text-tea-text-dim font-medium mb-3"
                   style={{ fontFamily: 'var(--font-display)' }}
                 >
                   Would you stock this?
@@ -1069,7 +1069,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                         }`}
                       >
                         <Icon size={18} />
-                        <span className="text-[11px] font-medium" style={{ fontFamily: 'var(--font-display)' }}>
+                        <span className="text-ui-11 font-medium" style={{ fontFamily: 'var(--font-display)' }}>
                           {label}
                         </span>
                       </motion.button>
@@ -1099,7 +1099,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                 className="mt-3 mb-2"
               >
                 <div
-                  className="text-[10px] uppercase tracking-[0.18em] text-tea-text-dim mb-2"
+                  className="text-ui-10 uppercase tracking-[0.18em] text-tea-text-dim mb-2"
                   style={{ fontFamily: 'var(--font-display)' }}
                 >
                   Product Description

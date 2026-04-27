@@ -191,7 +191,7 @@ export const PopupModal: React.FC<PopupModalProps> = ({
         <>
           <div className="flex items-center gap-4 px-1 mb-4">
             <div className="flex flex-col min-w-[60px] text-left">
-              <span className="text-[10px] uppercase tracking-[0.15em] text-tea-bg/60">Qty</span>
+              <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-bg/60">Qty</span>
               <span className="num text-sm text-tea-bg">{currentQuantity}g</span>
             </div>
             <HapticSlider
@@ -214,7 +214,7 @@ export const PopupModal: React.FC<PopupModalProps> = ({
       ) : (
         <>
           <div className="flex items-center gap-4 px-1 mb-4">
-            <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text/60">Quantity</span>
+            <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-text/60">Quantity</span>
             <div className="flex items-center rounded-lg bg-tea-text/25 ml-auto" style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub)' }}>
               <button
                 onClick={() => setSelectedQuantities(prev => ({ ...prev, [item.id]: Math.max(1, (prev[item.id] || defaultQuantity) - 1) }))}

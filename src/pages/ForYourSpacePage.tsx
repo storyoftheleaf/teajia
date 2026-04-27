@@ -88,7 +88,7 @@ const FloatingField: React.FC<FloatingFieldProps> = ({
     <div className="relative mb-7">
       <label
         className={`absolute left-0 font-sans pointer-events-none transition-all duration-200 ${
-          isActive ? 'top-0 text-[11px] tracking-wide text-tea-gold' : 'top-5 text-base text-tea-text/40'
+          isActive ? 'top-0 text-ui-11 tracking-wide text-tea-gold' : 'top-5 text-base text-tea-text/40'
         }`}
       >
         {label}
@@ -200,7 +200,7 @@ export const ForYourSpacePage: React.FC = () => {
           style={{ fontFamily: 'var(--font-sans)' }}
         >
           <Icons.ChevronLeft className="w-4 h-4" />
-          <span className="text-[13px]">Advise</span>
+          <span className="text-ui-13">Advise</span>
         </button>
       </div>
 
@@ -221,7 +221,7 @@ export const ForYourSpacePage: React.FC = () => {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
-            className="text-[15px] text-tea-text-sec leading-[1.9]"
+            className="text-ui-15 text-tea-text-sec leading-[1.9]"
             style={{ fontFamily: 'var(--font-body)' }}
           >
             For boutique hotels, yoga studios, retreat centers, and teams who want something more considered than a kettle in the corner. We work with the space, not against it.
@@ -248,7 +248,7 @@ export const ForYourSpacePage: React.FC = () => {
                     {uc.label}
                   </h3>
                   <p
-                    className="text-[14px] text-tea-text/75 leading-[1.85]"
+                    className="text-ui-14 text-tea-text/75 leading-[1.85]"
                     style={{ fontFamily: 'var(--font-body)' }}
                   >
                     {uc.desc}
@@ -271,7 +271,7 @@ export const ForYourSpacePage: React.FC = () => {
           className="py-20 md:py-28 max-w-[560px]"
         >
           <p
-            className="text-[11px] uppercase tracking-[0.14em] text-tea-text-sec mb-8"
+            className="text-ui-11 uppercase tracking-[0.14em] text-tea-text-sec mb-8"
             style={{ fontFamily: 'var(--font-sans)' }}
           >
             What to expect
@@ -280,13 +280,13 @@ export const ForYourSpacePage: React.FC = () => {
             {PROCESS_STEPS.map((step, i) => (
               <li key={i} className="flex gap-4 items-start">
                 <span
-                  className="shrink-0 text-[10px] uppercase tracking-[0.12em] text-tea-gold/60 pt-[3px]"
+                  className="shrink-0 text-ui-10 uppercase tracking-[0.12em] text-tea-gold/60 pt-[3px]"
                   style={{ fontFamily: 'var(--font-sans)' }}
                 >
                   {String(i + 1).padStart(2, '0')}
                 </span>
                 <span
-                  className="text-[14px] text-tea-text-sec leading-[1.85]"
+                  className="text-ui-14 text-tea-text-sec leading-[1.85]"
                   style={{ fontFamily: 'var(--font-body)' }}
                 >
                   {step}
@@ -317,7 +317,7 @@ export const ForYourSpacePage: React.FC = () => {
                 Opening WhatsApp…
               </p>
               <p
-                className="text-[13px] text-tea-text-sec leading-[1.8] mb-8"
+                className="text-ui-13 text-tea-text-sec leading-[1.8] mb-8"
                 style={{ fontFamily: 'var(--font-body)' }}
               >
                 Your message has been composed. Send it to start the conversation. If WhatsApp didn't open, you can reach us at{' '}
@@ -331,7 +331,7 @@ export const ForYourSpacePage: React.FC = () => {
               </p>
               <button
                 onClick={() => setSubmitted(false)}
-                className="text-[11px] uppercase tracking-[0.1em] text-tea-text-sec hover:text-tea-text transition-colors duration-200 min-h-[44px]"
+                className="text-ui-11 uppercase tracking-[0.1em] text-tea-text-sec hover:text-tea-text transition-colors duration-200 min-h-[44px]"
                 style={{ fontFamily: 'var(--font-sans)' }}
               >
                 Edit inquiry
@@ -367,7 +367,7 @@ export const ForYourSpacePage: React.FC = () => {
                 {/* Type of inquiry — select */}
                 <div className="relative mb-7">
                   <label
-                    className={`block font-sans text-[11px] uppercase tracking-[0.12em] mb-2 ${
+                    className={`block font-sans text-ui-11 uppercase tracking-[0.12em] mb-2 ${
                       form.inquiryType ? 'text-tea-gold' : 'text-tea-text/40'
                     }`}
                   >
@@ -410,7 +410,7 @@ export const ForYourSpacePage: React.FC = () => {
                 {/* Contact method */}
                 <div className="mb-7">
                   <p
-                    className="font-sans text-[11px] uppercase tracking-[0.12em] text-tea-text/40 mb-4"
+                    className="font-sans text-ui-11 uppercase tracking-[0.12em] text-tea-text/40 mb-4"
                   >
                     How should we reach you?
                   </p>
@@ -423,7 +423,7 @@ export const ForYourSpacePage: React.FC = () => {
                           set('contactMethod')(method);
                           set('contactValue')('');
                         }}
-                        className={`flex-1 py-2.5 px-4 text-[11px] uppercase tracking-[0.1em] border transition-all duration-200 min-h-[44px]
+                        className={`flex-1 py-2.5 px-4 text-ui-11 uppercase tracking-[0.1em] border transition-all duration-200 min-h-[44px]
                           ${form.contactMethod === method
                             ? 'border-tea-gold bg-tea-gold/8 text-tea-gold'
                             : 'border-tea-border text-tea-text-sec hover:border-tea-gold/40'
@@ -448,7 +448,7 @@ export const ForYourSpacePage: React.FC = () => {
                 <div className="mt-8">
                   <button
                     type="submit"
-                    className="w-full bg-tea-gold text-tea-bg text-[11px] uppercase tracking-[0.15em] font-medium
+                    className="w-full bg-tea-gold text-tea-bg text-ui-11 uppercase tracking-[0.15em] font-medium
                                py-3 px-6 hover:bg-tea-gold/90 transition-colors duration-300
                                active:scale-[0.98] min-h-[44px]
                                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50"
@@ -459,7 +459,7 @@ export const ForYourSpacePage: React.FC = () => {
                 </div>
 
                 <p
-                  className="text-[11px] text-tea-text-sec mt-4 text-center leading-relaxed"
+                  className="text-ui-11 text-tea-text-sec mt-4 text-center leading-relaxed"
                   style={{ fontFamily: 'var(--font-sans)' }}
                 >
                   This opens a pre-filled WhatsApp message. No account needed.

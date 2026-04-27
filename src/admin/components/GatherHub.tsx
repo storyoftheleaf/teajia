@@ -25,7 +25,7 @@ export const GatherHub: React.FC = () => {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-[10px] uppercase tracking-[0.15em] rounded-md whitespace-nowrap transition-colors ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-ui-10 uppercase tracking-[0.15em] rounded-md whitespace-nowrap transition-colors ${
                 activeTab === tab.id
                   ? 'bg-tea-bg text-tea-text shadow-sm'
                   : 'text-tea-text-sec hover:text-tea-text'

@@ -42,7 +42,7 @@ export const TagFilter: React.FC<TagFilterProps> = ({
         </svg>
         Filter
         {hasSelection && (
-          <span className="bg-tea-gold text-tea-text text-[10px] w-4 h-4 flex items-center justify-center rounded-full">
+          <span className="bg-tea-gold text-tea-text text-ui-10 w-4 h-4 flex items-center justify-center rounded-full">
             {selectedTags.length}
           </span>
         )}
@@ -67,7 +67,7 @@ export const TagFilter: React.FC<TagFilterProps> = ({
               {hasSelection && (
                 <button
                   onClick={onClear}
-                  className="text-[10px] uppercase tracking-wider font-sans text-tea-gold hover:text-tea-gold/80 transition-colors"
+                  className="text-ui-10 uppercase tracking-wider font-sans text-tea-gold hover:text-tea-gold/80 transition-colors"
                 >
                   Clear all
                 </button>
@@ -79,7 +79,7 @@ export const TagFilter: React.FC<TagFilterProps> = ({
               {(Object.entries(TAG_SECTIONS) as [TagSection, typeof TAG_SECTIONS[TagSection]][]).map(
                 ([sectionKey, section]) => (
                   <div key={sectionKey}>
-                    <h4 className="text-[10px] uppercase tracking-[0.2em] font-sans text-tea-text/40 mb-2">
+                    <h4 className="text-ui-10 uppercase tracking-[0.2em] font-sans text-tea-text/40 mb-2">
                       {section.label}
                     </h4>
                     <div className="flex flex-wrap gap-1.5">
@@ -89,7 +89,7 @@ export const TagFilter: React.FC<TagFilterProps> = ({
                           <button
                             key={tag}
                             onClick={() => onTagToggle(tag)}
-                            className={`px-2.5 py-1 text-[11px] font-sans transition-all duration-150 ${
+                            className={`px-2.5 py-1 text-ui-11 font-sans transition-all duration-150 ${
                               isSelected
                                 ? 'bg-tea-gold text-tea-text'
                                 : 'bg-tea-text/5/5 text-tea-text/70 hover:bg-tea-text/10 dark:hover:bg-tea-bg/10'

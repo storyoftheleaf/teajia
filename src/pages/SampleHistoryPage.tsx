@@ -13,7 +13,7 @@ export default function SampleHistoryPage() {
       </p>
       <button
         onClick={() => navigate(-1)}
-        className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec hover:text-tea-gold transition-colors"
+        className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec hover:text-tea-gold transition-colors"
       >
         ← Back
       </button>

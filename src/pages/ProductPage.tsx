@@ -56,7 +56,7 @@ const PublicReviewsSection: React.FC<{ productId: string; teaKey?: string }> = (
   if (networkReviews.length === 0) {
     return (
       <div className="mt-10 pt-6 border-t border-tea-border">
-        <h3 className="text-[11px] uppercase tracking-[0.15em] text-tea-text-sec mb-3">Reviews</h3>
+        <h3 className="text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec mb-3">Reviews</h3>
         <p className="text-xs text-tea-text-dim italic">No reviews yet.</p>
       </div>
     );
@@ -64,7 +64,7 @@ const PublicReviewsSection: React.FC<{ productId: string; teaKey?: string }> = (
 
   return (
     <div className="mt-10 pt-6 border-t border-tea-border">
-      <h3 className="text-[11px] uppercase tracking-[0.15em] text-tea-text-sec mb-4">
+      <h3 className="text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec mb-4">
         Reviews <span className="text-tea-text-dim font-sans normal-case tracking-normal">({networkReviews.length})</span>
       </h3>
       <div className="space-y-4">
@@ -77,15 +77,15 @@ const PublicReviewsSection: React.FC<{ productId: string; teaKey?: string }> = (
                   {r.author_name ? r.author_name.charAt(0) + '.' : 'Anonymous'}
                 </span>
                 {r.author_account_name && (
-                  <span className="text-[10px] text-tea-text-dim">· {r.author_account_name}</span>
+                  <span className="text-ui-10 text-tea-text-dim">· {r.author_account_name}</span>
                 )}
                 {r.rating != null && (
-                  <span className="font-mono text-[11px] text-tea-gold">{r.rating}/10</span>
+                  <span className="font-mono text-ui-11 text-tea-gold">{r.rating}/10</span>
                 )}
                 {r.verdict && (
-                  <span className="text-[10px] text-tea-text-dim capitalize">{r.verdict}</span>
+                  <span className="text-ui-10 text-tea-text-dim capitalize">{r.verdict}</span>
                 )}
-                <span className="ml-auto text-[10px] text-tea-text-dim">
+                <span className="ml-auto text-ui-10 text-tea-text-dim">
                   {(r.session_date || r.created_at).slice(0, 10)}
                 </span>
               </div>
@@ -95,7 +95,7 @@ const PublicReviewsSection: React.FC<{ productId: string; teaKey?: string }> = (
                   {flavorTerms.slice(0, 6).map(termId => (
                     <span
                       key={termId}
-                      className="text-[10px] px-2 py-0.5 rounded-full bg-tea-accent-sub text-tea-text-sec"
+                      className="text-ui-10 px-2 py-0.5 rounded-full bg-tea-accent-sub text-tea-text-sec"
                     >
                       {resolveTermLabel(termId)}
                     </span>
@@ -116,7 +116,7 @@ const PublicReviewsSection: React.FC<{ productId: string; teaKey?: string }> = (
               )}
 
               {r.tasting?.brewingTemp && (
-                <p className="text-[10px] text-tea-text-dim">
+                <p className="text-ui-10 text-tea-text-dim">
                   Brewed at {r.tasting.brewingTemp}°C
                   {r.tasting.brewingTime ? ` · ${r.tasting.brewingTime}` : ''}
                   {r.tasting.brewingVessel ? ` · ${r.tasting.brewingVessel}` : ''}
@@ -326,7 +326,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
                   <TeaPlaceholder type={item.type} style={{ width: '32%', height: '32%', opacity: 0.2 }} />
                 )}
                 <span
-                  className="font-sans text-[10px] uppercase tracking-[0.2em]"
+                  className="font-sans text-ui-10 uppercase tracking-[0.2em]"
                   style={{ color: typeColor, opacity: 0.4 }}
                 >
                   {item.origin || item.type}
@@ -367,16 +367,16 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
 
           {/* Tea type · origin · year — filterable metadata pills */}
           <div className="flex flex-wrap items-center gap-2 mb-4">
-            <span className="font-sans text-[10px] uppercase tracking-widest text-tea-text-sec bg-tea-accent-sub px-2.5 py-1 rounded-sm">
+            <span className="font-sans text-ui-10 uppercase tracking-widest text-tea-text-sec bg-tea-accent-sub px-2.5 py-1 rounded-sm">
               {item.type}
             </span>
             {item.origin && (
-              <span className="font-sans text-[10px] uppercase tracking-widest text-tea-text-sec bg-tea-accent-sub px-2.5 py-1 rounded-sm">
+              <span className="font-sans text-ui-10 uppercase tracking-widest text-tea-text-sec bg-tea-accent-sub px-2.5 py-1 rounded-sm">
                 {item.origin}
               </span>
             )}
             {item.year && (
-              <span className="font-sans text-[10px] uppercase tracking-widest text-tea-text-sec bg-tea-accent-sub px-2.5 py-1 rounded-sm">
+              <span className="font-sans text-ui-10 uppercase tracking-widest text-tea-text-sec bg-tea-accent-sub px-2.5 py-1 rounded-sm">
                 {item.year}
               </span>
             )}
@@ -403,7 +403,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
             <button
               type="button"
               onClick={() => setTastingEditorOpen(true)}
-              className="mb-6 flex items-center gap-1.5 text-[10px] uppercase tracking-[0.18em] text-tea-text-dim hover:text-tea-gold transition-colors"
+              className="mb-6 flex items-center gap-1.5 text-ui-10 uppercase tracking-[0.18em] text-tea-text-dim hover:text-tea-gold transition-colors"
               style={{ fontFamily: 'var(--font-display)' }}
             >
               <Pencil size={11} strokeWidth={1.5} />
@@ -427,7 +427,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
           {/* About — character and description */}
           {(item.experience || introduction) && (
             <div className="mb-5">
-              <span className="font-sans text-[10px] uppercase tracking-[0.15em] text-tea-text-dim block mb-2">About</span>
+              <span className="font-sans text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim block mb-2">About</span>
               {item.experience && (
                 <p className="text-sm text-tea-text-sec leading-relaxed whitespace-pre-line mb-2">
                   {item.experience}
@@ -444,7 +444,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
           {/* Story — historical/cultural context */}
           {mainStory && (
             <div className="mb-5">
-              <span className="font-sans text-[10px] uppercase tracking-[0.15em] text-tea-text-dim block mb-2">History</span>
+              <span className="font-sans text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim block mb-2">History</span>
               <p className="text-sm text-tea-text-sec leading-relaxed whitespace-pre-line">
                 {mainStory}
               </p>
@@ -452,13 +452,13 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
           )}
           {terroir && (
             <div className="mb-5">
-              <h3 className="text-[11px] uppercase tracking-[0.12em] text-tea-gold mb-1.5">Terroir</h3>
+              <h3 className="text-ui-11 uppercase tracking-[0.12em] text-tea-gold mb-1.5">Terroir</h3>
               <p className="text-sm text-tea-text-sec leading-relaxed whitespace-pre-line">{terroir}</p>
             </div>
           )}
           {processing && (
             <div className="mb-5">
-              <h3 className="text-[11px] uppercase tracking-[0.12em] text-tea-gold mb-1.5">Processing</h3>
+              <h3 className="text-ui-11 uppercase tracking-[0.12em] text-tea-gold mb-1.5">Processing</h3>
               <p className="text-sm text-tea-text-sec leading-relaxed whitespace-pre-line">{processing}</p>
             </div>
           )}
@@ -470,7 +470,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <div className={`w-2 h-2 rounded-full ${stockStatus.dotClass}`} />
-              <span className={`text-[11px] uppercase tracking-[0.08em] ${stockStatus.colorClass}`}>
+              <span className={`text-ui-11 uppercase tracking-[0.08em] ${stockStatus.colorClass}`}>
                 {stockStatus.label}
               </span>
             </div>
@@ -478,7 +478,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
               <span className="font-mono text-sm text-tea-text-sec block">
                 {fmtShopPricePerGram(pricePerGram)}
               </span>
-              <span className="font-mono text-[11px] text-tea-text-dim">
+              <span className="font-mono text-ui-11 text-tea-text-dim">
                 from {fmtShopPrice(pricePerGram * 25)} / 25g
               </span>
             </div>
@@ -537,7 +537,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
               }`}
             >
               <Icons.Heart filled={isFavorited} className="w-4 h-4" />
-              <span className="text-[11px] uppercase tracking-[0.08em]">
+              <span className="text-ui-11 uppercase tracking-[0.08em]">
                 {isFavorited ? 'Saved' : 'Save'}
               </span>
             </button>
@@ -587,7 +587,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
                 <MessageCircle className="w-4 h-4" strokeWidth={1.5} />
                 Order via WhatsApp
               </button>
-              <p className="font-body text-[11px] text-tea-text-dim text-center leading-relaxed mt-2.5">
+              <p className="font-body text-ui-11 text-tea-text-dim text-center leading-relaxed mt-2.5">
                 Personal conversation · Adrian confirms within 24 hours
               </p>
             </div>
@@ -605,7 +605,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
       {relatedTeas.length > 0 && (
         <div className="mt-16 mb-8">
           <div className="border-t border-tea-border pt-8 mb-4">
-            <p className="font-sans text-[10px] uppercase tracking-widest text-tea-text-dim mb-3">
+            <p className="font-sans text-ui-10 uppercase tracking-widest text-tea-text-dim mb-3">
               You might also like
             </p>
           </div>

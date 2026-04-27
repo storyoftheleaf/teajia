@@ -75,7 +75,7 @@ export const ActivityView: React.FC<ActivityViewProps> = ({ products }) => {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-[10px] uppercase tracking-[0.15em] rounded-md whitespace-nowrap transition-colors ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-ui-10 uppercase tracking-[0.15em] rounded-md whitespace-nowrap transition-colors ${
                 activeTab === tab.id
                   ? 'bg-tea-bg text-tea-text shadow-sm'
                   : 'text-tea-text-sec hover:text-tea-text'
@@ -84,7 +84,7 @@ export const ActivityView: React.FC<ActivityViewProps> = ({ products }) => {
               {tab.icon}
               {tab.label}
               {tab.badge != null && tab.badge > 0 && (
-                <span className="ml-0.5 text-[9px] bg-amber-400/20 text-amber-600 dark:text-amber-400 px-1 py-0 rounded-full num leading-4">
+                <span className="ml-0.5 text-ui-9 bg-amber-400/20 text-amber-600 dark:text-amber-400 px-1 py-0 rounded-full num leading-4">
                   {tab.badge}
                 </span>
               )}
@@ -155,7 +155,7 @@ function InquiriesView() {
             <button
               key={s}
               onClick={() => setFilter(s)}
-              className={`px-2.5 py-1 text-[10px] uppercase tracking-wider rounded transition-colors ${
+              className={`px-2.5 py-1 text-ui-10 uppercase tracking-wider rounded transition-colors ${
                 filter === s
                   ? 'bg-tea-gold/20 text-tea-gold font-semibold'
                   : 'bg-tea-surface text-tea-text-sec hover:text-tea-text'
@@ -186,17 +186,17 @@ function InquiriesView() {
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
                 {inq.source && inq.source !== 'cart' && (
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-tea-gold/15 text-tea-gold uppercase tracking-wider">
+                  <span className="text-ui-10 px-2 py-0.5 rounded-full bg-tea-gold/15 text-tea-gold uppercase tracking-wider">
                     {inq.source}
                   </span>
                 )}
-                <span className={`text-[10px] px-2 py-0.5 rounded-full ${STATUS_COLORS[inq.status] ?? STATUS_COLORS.seen}`}>
+                <span className={`text-ui-10 px-2 py-0.5 rounded-full ${STATUS_COLORS[inq.status] ?? STATUS_COLORS.seen}`}>
                   {STATUS_LABELS[inq.status] ?? inq.status}
                 </span>
                 <select
                   value={inq.status}
                   onChange={e => updateStatus.mutate({ id: inq.id, status: e.target.value as any })}
-                  className="text-[10px] bg-tea-bg border border-tea-border rounded px-1.5 py-0.5 text-tea-text-sec"
+                  className="text-ui-10 bg-tea-bg border border-tea-border rounded px-1.5 py-0.5 text-tea-text-sec"
                 >
                   {Object.entries(STATUS_LABELS).map(([val, label]) => (
                     <option key={val} value={val}>{label}</option>
@@ -226,7 +226,7 @@ function InquiriesView() {
               <p className="text-tea-text-sec text-xs border-t border-tea-border pt-2">{inq.message}</p>
             )}
 
-            <p className="text-tea-text-dim text-[10px]">{new Date(inq.created_at).toLocaleString()}</p>
+            <p className="text-tea-text-dim text-ui-10">{new Date(inq.created_at).toLocaleString()}</p>
           </div>
         ))}
       </div>

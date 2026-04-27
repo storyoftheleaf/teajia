@@ -52,7 +52,7 @@ export const ContributorProfile: React.FC<ContributorProfileProps> = ({ person, 
 
         {/* Info */}
         <div className="relative z-10 max-w-sm">
-            <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-light/60 block mb-3">
+            <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-light/60 block mb-3">
               {person.role}
             </span>
             <h2 className="text-3xl text-tea-text mb-6 leading-tight" style={{ fontFamily: 'var(--font-display)' }}>

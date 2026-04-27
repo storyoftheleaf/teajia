@@ -400,7 +400,7 @@ export const Shop: React.FC<ShopProps> = ({
                       <div className="flex-1 min-w-0">
                         <div className="truncate font-medium text-xs">{store.location_city || store.name}</div>
                         {store.location_country && (
-                          <div className="text-[10px] text-tea-text-dim truncate">{store.location_country}</div>
+                          <div className="text-ui-10 text-tea-text-dim truncate">{store.location_country}</div>
                         )}
                       </div>
                       {isActive && <Check className="w-3.5 h-3.5 text-tea-gold shrink-0" aria-hidden="true" />}
@@ -506,7 +506,7 @@ export const Shop: React.FC<ShopProps> = ({
           if (recentItems.length === 0) return null;
           return (
             <div className="px-3 md:px-4 lg:px-6 pb-8 pt-6">
-              <p className="text-[11px] uppercase tracking-[0.15em] text-tea-text-dim mb-3 font-sans">Recently Viewed</p>
+              <p className="text-ui-11 uppercase tracking-[0.15em] text-tea-text-dim mb-3 font-sans">Recently Viewed</p>
               <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none snap-x snap-mandatory">
                 {recentItems.map(item => {
                   const isTea = item.category === 'tea';
@@ -530,7 +530,7 @@ export const Shop: React.FC<ShopProps> = ({
                         )}
                       </div>
                       <p className="text-xs text-tea-text leading-snug line-clamp-2" style={{ fontFamily: 'var(--font-display)' }}>{item.name}</p>
-                      <p className="text-[10px] text-tea-text-sec mt-0.5 font-mono tabular-nums">
+                      <p className="text-ui-10 text-tea-text-sec mt-0.5 font-mono tabular-nums">
                         {isTea
                           ? fmtShopPricePerGram(unitPrice)
                           : `${fmtShopPrice(unitPrice)} each`}

@@ -79,14 +79,14 @@ export const ProductCollectionsSection: React.FC<ProductCollectionsSectionProps>
   return (
     <div className="flex flex-col gap-2">
       {loadingIn ? (
-        <p className="text-[11px] text-tea-text-dim">Loading…</p>
+        <p className="text-ui-11 text-tea-text-dim">Loading…</p>
       ) : (inCollections ?? []).length === 0 ? (
-        <p className="text-[11px] text-tea-text-dim italic">Not in any collection yet.</p>
+        <p className="text-ui-11 text-tea-text-dim italic">Not in any collection yet.</p>
       ) : (
         <ul className="flex flex-wrap gap-1.5">
           {(inCollections ?? []).map(c => (
             <li key={c.id}>
-              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-tea-elevated text-[11px] text-tea-text">
+              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-tea-elevated text-ui-11 text-tea-text">
                 <BookOpen size={10} className="text-tea-gold" />
                 <button
                   type="button"
@@ -114,7 +114,7 @@ export const ProductCollectionsSection: React.FC<ProductCollectionsSectionProps>
         <button
           type="button"
           onClick={() => setPicker(v => !v)}
-          className="inline-flex items-center gap-1 text-[11px] text-tea-gold hover:text-tea-gold-lt transition-colors"
+          className="inline-flex items-center gap-1 text-ui-11 text-tea-gold hover:text-tea-gold-lt transition-colors"
         >
           <Plus size={11} /> Add to collection
         </button>
@@ -123,7 +123,7 @@ export const ProductCollectionsSection: React.FC<ProductCollectionsSectionProps>
       {picker && (
         <div className="border border-tea-border rounded-md p-3 mt-1 flex flex-col gap-2 bg-tea-bg">
           {loadingAll ? (
-            <div className="flex items-center gap-2 text-[11px] text-tea-text-dim">
+            <div className="flex items-center gap-2 text-ui-11 text-tea-text-dim">
               <Loader2 size={11} className="animate-spin" /> Loading collections…
             </div>
           ) : (
@@ -136,10 +136,10 @@ export const ProductCollectionsSection: React.FC<ProductCollectionsSectionProps>
                         type="button"
                         onClick={() => addToExisting(c.id)}
                         disabled={busy}
-                        className="w-full text-left px-2 py-1.5 rounded text-[12px] text-tea-text hover:bg-tea-elevated transition-colors disabled:opacity-40"
+                        className="w-full text-left px-2 py-1.5 rounded text-ui-12 text-tea-text hover:bg-tea-elevated transition-colors disabled:opacity-40"
                       >
                         {c.title}
-                        <span className="text-tea-text-dim ml-2 text-[10px]">
+                        <span className="text-tea-text-dim ml-2 text-ui-10">
                           · {c.status === 'draft' ? 'draft' : `${c.active_publication_count} link${c.active_publication_count !== 1 ? 's' : ''}`}
                         </span>
                       </button>
@@ -162,7 +162,7 @@ export const ProductCollectionsSection: React.FC<ProductCollectionsSectionProps>
                     type="button"
                     onClick={createAndAdd}
                     disabled={!newTitle.trim() || busy}
-                    className="px-3 py-1.5 bg-tea-gold text-tea-bg rounded text-[11px] font-medium hover:bg-tea-gold/90 transition-colors disabled:opacity-40"
+                    className="px-3 py-1.5 bg-tea-gold text-tea-bg rounded text-ui-11 font-medium hover:bg-tea-gold/90 transition-colors disabled:opacity-40"
                   >
                     {busy ? <Loader2 size={11} className="animate-spin" /> : 'Create'}
                   </button>
@@ -179,7 +179,7 @@ export const ProductCollectionsSection: React.FC<ProductCollectionsSectionProps>
                 <button
                   type="button"
                   onClick={() => setCreating(true)}
-                  className="text-left text-[11px] text-tea-gold hover:text-tea-gold-lt transition-colors pt-1 border-t border-tea-border"
+                  className="text-left text-ui-11 text-tea-gold hover:text-tea-gold-lt transition-colors pt-1 border-t border-tea-border"
                 >
                   + Create new collection with this product
                 </button>

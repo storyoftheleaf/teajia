@@ -17,7 +17,7 @@ export const AdminMiniDashboard: React.FC<{ onClose?: () => void }> = ({ onClose
 
   return (
     <div className="space-y-3">
-      <span className="text-[10px] uppercase tracking-widest text-tea-text-sec block">
+      <span className="text-ui-10 uppercase tracking-widest text-tea-text-sec block">
         Quick Overview
       </span>
 
@@ -30,7 +30,7 @@ export const AdminMiniDashboard: React.FC<{ onClose?: () => void }> = ({ onClose
           <span className={`font-mono text-xl ${stats.pendingOrders > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-tea-text'}`}>
             {stats.pendingOrders}
           </span>
-          <span className="text-[9px] uppercase tracking-widest text-tea-text-sec/60">
+          <span className="text-ui-9 uppercase tracking-widest text-tea-text-sec/60">
             Pending
           </span>
         </button>
@@ -42,7 +42,7 @@ export const AdminMiniDashboard: React.FC<{ onClose?: () => void }> = ({ onClose
           <span className={`font-mono text-xl ${stats.lowStockItems > 0 ? 'text-red-600 dark:text-red-400' : 'text-tea-text'}`}>
             {stats.lowStockItems}
           </span>
-          <span className="text-[9px] uppercase tracking-widest text-tea-text-sec/60">
+          <span className="text-ui-9 uppercase tracking-widest text-tea-text-sec/60">
             Low Stock
           </span>
         </button>
@@ -54,7 +54,7 @@ export const AdminMiniDashboard: React.FC<{ onClose?: () => void }> = ({ onClose
           <span className="num text-xl text-tea-text">
             {fmtDollars(stats.revenueThisWeek)}
           </span>
-          <span className="text-[9px] uppercase tracking-widest text-tea-text-sec/60">
+          <span className="text-ui-9 uppercase tracking-widest text-tea-text-sec/60">
             This Week
           </span>
         </button>
@@ -63,7 +63,7 @@ export const AdminMiniDashboard: React.FC<{ onClose?: () => void }> = ({ onClose
       {/* Low stock alerts */}
       {stats.lowStockProducts.length > 0 && (
         <div className="bg-red-50/50 dark:bg-red-900/10 border border-red-200/30 dark:border-red-800/20 p-3">
-          <span className="text-[10px] uppercase tracking-widest text-red-600/60 dark:text-red-400/60 block mb-2">
+          <span className="text-ui-10 uppercase tracking-widest text-red-600/60 dark:text-red-400/60 block mb-2">
             Low Stock Alerts
           </span>
           <div className="space-y-1.5">
@@ -78,7 +78,7 @@ export const AdminMiniDashboard: React.FC<{ onClose?: () => void }> = ({ onClose
               </div>
             ))}
             {stats.lowStockProducts.length > 4 && (
-              <span className="text-[10px] text-red-500/50">
+              <span className="text-ui-10 text-red-500/50">
                 +{stats.lowStockProducts.length - 4} more
               </span>
             )}
@@ -87,7 +87,7 @@ export const AdminMiniDashboard: React.FC<{ onClose?: () => void }> = ({ onClose
       )}
 
       {/* Catalog summary */}
-      <div className="flex items-center justify-between text-[10px] text-tea-text/30 uppercase tracking-widest px-1">
+      <div className="flex items-center justify-between text-ui-10 text-tea-text/30 uppercase tracking-widest px-1">
         <span>{stats.activeProducts} active / {stats.totalProducts} total</span>
       </div>
     </div>

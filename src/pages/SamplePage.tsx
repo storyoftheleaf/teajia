@@ -438,7 +438,7 @@ const SamplePage: React.FC = () => {
                     {t.personalNote && (
                       <p className="text-xs text-tea-text-sec mt-1">{t.personalNote}</p>
                     )}
-                    <p className="text-[10px] text-tea-text-dim mt-1">
+                    <p className="text-ui-10 text-tea-text-dim mt-1">
                       {new Date(t.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                     </p>
                   </div>

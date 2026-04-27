@@ -119,7 +119,7 @@ const MemberSettingsModal: React.FC<MemberSettingsModalProps> = ({
             <h2 className="text-base text-tea-text" style={{ fontFamily: 'var(--font-display)' }}>
               {member.name || member.email}
             </h2>
-            <p className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim mt-0.5">
+            <p className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim mt-0.5">
               {roleLabel[member.role]}
             </p>
           </div>
@@ -136,7 +136,7 @@ const MemberSettingsModal: React.FC<MemberSettingsModalProps> = ({
         <div className="p-5 space-y-5">
           {/* Feature Permissions */}
           <div>
-            <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec mb-3">
+            <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-3">
               Feature Access
             </p>
             <div className="space-y-3">
@@ -170,7 +170,7 @@ const MemberSettingsModal: React.FC<MemberSettingsModalProps> = ({
                   </div>
                   <div>
                     <p className="text-xs text-tea-text leading-tight">{label}</p>
-                    <p className="text-[10px] text-tea-text-dim mt-0.5 leading-relaxed">{description}</p>
+                    <p className="text-ui-10 text-tea-text-dim mt-0.5 leading-relaxed">{description}</p>
                   </div>
                 </label>
               ))}
@@ -179,7 +179,7 @@ const MemberSettingsModal: React.FC<MemberSettingsModalProps> = ({
 
           {/* Curator Access */}
           <div className="pt-2 border-t border-tea-border">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec mb-3">
+            <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-3">
               Curator Access
             </p>
             <label className="flex items-start gap-3 cursor-pointer group">
@@ -208,7 +208,7 @@ const MemberSettingsModal: React.FC<MemberSettingsModalProps> = ({
               </div>
               <div>
                 <p className="text-xs text-tea-text leading-tight">Can create collections</p>
-                <p className="text-[10px] text-tea-text-dim mt-0.5 leading-relaxed">
+                <p className="text-ui-10 text-tea-text-dim mt-0.5 leading-relaxed">
                   Member can create and publish their own collections. Requests still route to you.
                 </p>
               </div>
@@ -224,7 +224,7 @@ const MemberSettingsModal: React.FC<MemberSettingsModalProps> = ({
           {/* Transfer Ownership — only for non-self members who aren't already the only owner */}
           {!isSelf && !isLastOwner && (
             <div className="pt-2 border-t border-tea-border">
-              <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec mb-2">
+              <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-2">
                 Ownership
               </p>
               <button
@@ -409,7 +409,7 @@ export const TeamView: React.FC = () => {
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-[9px] uppercase tracking-[0.15em] text-tea-text-dim">
+              <tr className="text-ui-9 uppercase tracking-[0.15em] text-tea-text-dim">
                 <th className="text-left font-medium px-4 py-3 border-b border-tea-border">Name</th>
                 <th className="text-left font-medium px-4 py-3 border-b border-tea-border">Email</th>
                 <th className="text-left font-medium px-4 py-3 border-b border-tea-border">Role</th>
@@ -429,7 +429,7 @@ export const TeamView: React.FC = () => {
                       <div className="flex items-center gap-2 flex-wrap">
                         {m.name || '—'}
                         {isSelf && (
-                          <span className="text-[9px] uppercase tracking-[0.15em] text-tea-text-dim">you</span>
+                          <span className="text-ui-9 uppercase tracking-[0.15em] text-tea-text-dim">you</span>
                         )}
                         {m.platform_role === 'platform_owner' && (
                           <span className="badge-status badge-status-gold flex items-center gap-0.5">
@@ -529,7 +529,7 @@ export const TeamView: React.FC = () => {
             </div>
             <form onSubmit={handleInvite} className="p-5 space-y-4">
               <div>
-                <label className="block text-[10px] uppercase tracking-[0.2em] text-tea-text-sec mb-2">
+                <label className="block text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-2">
                   Email
                 </label>
                 <input
@@ -542,7 +542,7 @@ export const TeamView: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block text-[10px] uppercase tracking-[0.2em] text-tea-text-sec mb-2">
+                <label className="block text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-2">
                   Role
                 </label>
                 <select

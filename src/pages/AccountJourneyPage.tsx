@@ -75,8 +75,8 @@ const SealGrid: React.FC<{ seals: JourneySeal[]; onSealClick: (s: JourneySeal) =
               <span className="text-lg font-serif text-tea-gold/40 group-hover:text-tea-gold/70 transition-colors">茶</span>
             )}
           </div>
-          <p className="text-[9px] text-tea-text-dim text-center leading-tight max-w-[3.5rem] line-clamp-2">{seal.title}</p>
-          <p className="text-[9px] text-tea-text-dim/60">
+          <p className="text-ui-9 text-tea-text-dim text-center leading-tight max-w-[3.5rem] line-clamp-2">{seal.title}</p>
+          <p className="text-ui-9 text-tea-text-dim/60">
             {new Date(seal.date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
           </p>
         </motion.button>
@@ -166,7 +166,7 @@ const MilestoneMarks: React.FC<{ milestones: string[] }> = ({ milestones }) => {
           <div className="w-10 h-10 rounded-full border border-tea-border flex items-center justify-center">
             <span className="font-serif text-lg text-tea-gold/70 group-hover:text-tea-gold transition-colors">{mark}</span>
           </div>
-          {meta[mark]?.hint && <p className="text-[9px] text-tea-text-dim text-center max-w-[3rem] leading-tight">{meta[mark].hint}</p>}
+          {meta[mark]?.hint && <p className="text-ui-9 text-tea-text-dim text-center max-w-[3rem] leading-tight">{meta[mark].hint}</p>}
         </motion.div>
       ))}
     </div>
@@ -198,11 +198,11 @@ const SampleCard: React.FC<{ sample: SampleEntry; index: number }> = ({ sample, 
         </p>
       </div>
       <div className="flex flex-col items-end gap-1.5 ml-4 shrink-0">
-        <span className={`text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full ${VERDICT_STYLES[sample.verdict] || VERDICT_STYLES.neutral}`}>
+        <span className={`text-ui-10 uppercase tracking-wide px-2 py-0.5 rounded-full ${VERDICT_STYLES[sample.verdict] || VERDICT_STYLES.neutral}`}>
           {sample.verdict}
         </span>
         {sample.wouldBuy && (
-          <span className="text-[9px] text-tea-text-dim">would buy</span>
+          <span className="text-ui-9 text-tea-text-dim">would buy</span>
         )}
       </div>
     </div>
@@ -264,7 +264,7 @@ const CompassThread: React.FC<{ entries: CompassEntry[] }> = ({ entries }) => {
                 <span className="text-xs text-tea-text-dim ml-2">{entry.chineseName}</span>
               )}
             </div>
-            <span className="text-[10px] text-tea-text-dim shrink-0">
+            <span className="text-ui-10 text-tea-text-dim shrink-0">
               {STATUS_LABEL[entry.status] || entry.status}
             </span>
           </div>
@@ -423,7 +423,7 @@ const AccountJourneyPage: React.FC = () => {
             <ArrowLeft size={14} />
             Back
           </button>
-          <p className="text-[10px] uppercase tracking-[0.3em] text-tea-text-sec mb-4">Your Journey</p>
+          <p className="text-ui-10 uppercase tracking-[0.3em] text-tea-text-sec mb-4">Your Journey</p>
           <h1 className="font-serif text-3xl text-tea-text mb-4">It begins at the table</h1>
           <div className="w-10 h-[1px] bg-tea-gold mb-8" />
           <p className="text-tea-text-sec leading-relaxed mb-4">
@@ -486,7 +486,7 @@ const AccountJourneyPage: React.FC = () => {
 
           {/* Header */}
           <div className="mb-12">
-            <p className="text-[10px] uppercase tracking-[0.3em] text-tea-text-sec mb-3">Your Journey</p>
+            <p className="text-ui-10 uppercase tracking-[0.3em] text-tea-text-sec mb-3">Your Journey</p>
             <h1 className="font-serif text-3xl text-tea-text mb-2">
               {journey.sessionsAttended} gathering{journey.sessionsAttended !== 1 ? 's' : ''}
             </h1>
@@ -549,7 +549,7 @@ const AccountJourneyPage: React.FC = () => {
 
           <section className="mb-16">
             <div className="mb-6">
-              <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-dim mb-2">At Home</p>
+              <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim mb-2">At Home</p>
               <h2 className="font-serif text-xl text-tea-text mb-1">What You've Explored</h2>
               <p className="text-xs text-tea-text-sec">Samples tasted outside the session.</p>
             </div>
@@ -568,7 +568,7 @@ const AccountJourneyPage: React.FC = () => {
             <section className="mb-16">
               <div className="flex items-baseline justify-between mb-6">
                 <div>
-                  <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-dim mb-2">Your Collection</p>
+                  <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim mb-2">Your Collection</p>
                   <h2 className="font-serif text-xl text-tea-text mb-1">The Compass</h2>
                   <p className="text-xs text-tea-text-sec">Teas you've chosen to keep.</p>
                 </div>

@@ -74,11 +74,11 @@ const NavButton: React.FC<{
 
   const badgeEl = item.badge !== undefined && item.badge > 0 && (
     collapsed ? (
-      <span className="absolute -top-1 -right-1 w-4 h-4 bg-tea-gold text-tea-bg text-[10px] font-bold rounded-full flex items-center justify-center leading-none">
+      <span className="absolute -top-1 -right-1 w-4 h-4 bg-tea-gold text-tea-bg text-ui-10 font-bold rounded-full flex items-center justify-center leading-none">
         {item.badge > 9 ? '9+' : item.badge}
       </span>
     ) : (
-      <span className="ml-auto w-5 h-5 bg-tea-gold text-tea-bg text-[10px] font-bold rounded-full flex items-center justify-center shrink-0 leading-none">
+      <span className="ml-auto w-5 h-5 bg-tea-gold text-tea-bg text-ui-10 font-bold rounded-full flex items-center justify-center shrink-0 leading-none">
         {item.badge > 9 ? '9+' : item.badge}
       </span>
     )
@@ -298,7 +298,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
               />
               {!collapsed && (
                 <span
-                  className="text-[16px] text-tea-text tracking-[0.1em] transition-colors duration-200"
+                  className="text-ui-16 text-tea-text tracking-[0.1em] transition-colors duration-200"
                   style={{ fontFamily: 'var(--font-display)', fontWeight: 300 }}
                 >
                   Teajia
@@ -377,7 +377,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                   </span>
                 )}
                 {!auth.isAuthenticated && (
-                  <span className="font-display text-[13px] italic tracking-[0.02em] leading-[1.3] text-tea-text-sec block mt-1">
+                  <span className="font-display text-ui-13 italic tracking-[0.02em] leading-[1.3] text-tea-text-sec block mt-1">
                     your practice, kept
                   </span>
                 )}
@@ -400,7 +400,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                   <span className={`${TYPOGRAPHY_CLASSES.accountMeta} text-tea-text-sec group-hover:text-tea-text transition-colors flex-1 text-left`}>
                     Search
                   </span>
-                  <kbd className="text-[11px] text-tea-text-sec border border-tea-border rounded px-1.5 py-0.5 font-mono shrink-0">
+                  <kbd className="text-ui-11 text-tea-text-sec border border-tea-border rounded px-1.5 py-0.5 font-mono shrink-0">
                     ⌘K
                   </kbd>
                 </>
@@ -453,7 +453,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                       />
                       {cartItemCount > 0 && (
                         <div
-                          className={`absolute -top-2 -right-2.5 w-4 h-4 bg-tea-gold text-tea-bg text-[10px] font-bold rounded-full flex items-center justify-center leading-none ${
+                          className={`absolute -top-2 -right-2.5 w-4 h-4 bg-tea-gold text-tea-bg text-ui-10 font-bold rounded-full flex items-center justify-center leading-none ${
                             badgeAnimating ? 'cart-badge-pulse' : ''
                           }`}
                           aria-hidden="true"
@@ -473,7 +473,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                       </span>
                       {cartItemCount > 0 && (
                         <span
-                          className={`ml-auto w-5 h-5 bg-tea-gold text-tea-bg text-[10px] font-bold rounded-full flex items-center justify-center shrink-0 leading-none ${
+                          className={`ml-auto w-5 h-5 bg-tea-gold text-tea-bg text-ui-10 font-bold rounded-full flex items-center justify-center shrink-0 leading-none ${
                             badgeAnimating ? 'cart-badge-pulse' : ''
                           }`}
                           aria-hidden="true"
@@ -482,7 +482,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                         </span>
                       )}
                       {sampleCount > 0 && (
-                        <span className={`${cartItemCount > 0 ? 'ml-2' : 'ml-auto'} flex items-center gap-1 text-[10px] text-tea-gold/70`}>
+                        <span className={`${cartItemCount > 0 ? 'ml-2' : 'ml-auto'} flex items-center gap-1 text-ui-10 text-tea-gold/70`}>
                           <SampleIcon className="w-[10px] h-[10px]" />
                           {sampleCount}
                         </span>

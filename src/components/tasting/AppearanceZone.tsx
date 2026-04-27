@@ -37,7 +37,7 @@ const AppearanceZoneInner: React.FC<AppearanceZoneProps> = ({ flow, value, onCha
       {/* Clarity */}
       <div className="mb-4">
         <div
-          className="text-[13px] text-tea-text font-medium mb-2"
+          className="text-ui-13 text-tea-text font-medium mb-2"
           style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.04em' }}
         >
           Clarity
@@ -74,7 +74,7 @@ const AppearanceZoneInner: React.FC<AppearanceZoneProps> = ({ flow, value, onCha
       {/* Vessel — primary brewing field */}
       <div>
         <div
-          className="text-[13px] text-tea-text font-medium mb-2"
+          className="text-ui-13 text-tea-text font-medium mb-2"
           style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.04em' }}
         >
           Vessel
@@ -127,7 +127,7 @@ const AppearanceZoneInner: React.FC<AppearanceZoneProps> = ({ flow, value, onCha
         <div className="flex items-center gap-3">
           <div className="flex flex-col gap-0.5">
             <span
-              className="text-[10px] uppercase tracking-[0.12em] text-tea-text-dim"
+              className="text-ui-10 uppercase tracking-[0.12em] text-tea-text-dim"
               style={{ fontFamily: 'var(--font-display)' }}
             >
               Temp
@@ -138,12 +138,12 @@ const AppearanceZoneInner: React.FC<AppearanceZoneProps> = ({ flow, value, onCha
               placeholder="°C"
               value={value.brewingTemp ?? ''}
               onChange={(e) => onChange({ ...value, brewingTemp: e.target.value ? Number(e.target.value) : undefined })}
-              className="w-14 bg-tea-elevated text-tea-text text-[12px] px-2 py-1.5 rounded-lg border border-tea-border outline-none focus:border-tea-gold/40 tabular-nums placeholder:text-tea-text-dim [&::-webkit-inner-spin-button]:appearance-none"
+              className="w-14 bg-tea-elevated text-tea-text text-ui-12 px-2 py-1.5 rounded-lg border border-tea-border outline-none focus:border-tea-gold/40 tabular-nums placeholder:text-tea-text-dim [&::-webkit-inner-spin-button]:appearance-none"
             />
           </div>
           <div className="flex flex-col gap-0.5">
             <span
-              className="text-[10px] uppercase tracking-[0.12em] text-tea-text-dim"
+              className="text-ui-10 uppercase tracking-[0.12em] text-tea-text-dim"
               style={{ fontFamily: 'var(--font-display)' }}
             >
               Time
@@ -153,7 +153,7 @@ const AppearanceZoneInner: React.FC<AppearanceZoneProps> = ({ flow, value, onCha
               placeholder="30s"
               value={value.brewingTime ?? ''}
               onChange={(e) => onChange({ ...value, brewingTime: e.target.value || undefined })}
-              className="w-16 bg-tea-elevated text-tea-text text-[12px] px-2 py-1.5 rounded-lg border border-tea-border outline-none focus:border-tea-gold/40 placeholder:text-tea-text-dim"
+              className="w-16 bg-tea-elevated text-tea-text text-ui-12 px-2 py-1.5 rounded-lg border border-tea-border outline-none focus:border-tea-gold/40 placeholder:text-tea-text-dim"
             />
           </div>
         </div>

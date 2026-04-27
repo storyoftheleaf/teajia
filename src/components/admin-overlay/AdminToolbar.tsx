@@ -50,7 +50,7 @@ export const AdminToolbar: React.FC<AdminToolbarProps> = ({ collapsed: controlle
           title="Pending orders"
         >
           <span className={`w-1.5 h-1.5 rounded-full ${stats.pendingOrders > 0 ? 'bg-amber-400 animate-pulse' : 'bg-tea-text/20'}`} />
-          <span className="text-[10px] uppercase tracking-widest text-tea-text/50 group-hover:text-tea-text/80 transition-colors">
+          <span className="text-ui-10 uppercase tracking-widest text-tea-text/50 group-hover:text-tea-text/80 transition-colors">
             {stats.pendingOrders} pending
           </span>
         </button>
@@ -63,7 +63,7 @@ export const AdminToolbar: React.FC<AdminToolbarProps> = ({ collapsed: controlle
           title="Low stock items"
         >
           <span className={`w-1.5 h-1.5 rounded-full ${stats.lowStockItems > 0 ? 'bg-red-400' : 'bg-tea-text/20'}`} />
-          <span className="text-[10px] uppercase tracking-widest text-tea-text/50 group-hover:text-tea-text/80 transition-colors">
+          <span className="text-ui-10 uppercase tracking-widest text-tea-text/50 group-hover:text-tea-text/80 transition-colors">
             {stats.lowStockItems} low stock
           </span>
         </button>
@@ -75,14 +75,14 @@ export const AdminToolbar: React.FC<AdminToolbarProps> = ({ collapsed: controlle
           className="flex items-center gap-1.5 shrink-0 group"
           title="Revenue this week"
         >
-          <span className="text-[10px] uppercase tracking-widest text-tea-text/50 group-hover:text-tea-text/80 transition-colors num">
+          <span className="text-ui-10 uppercase tracking-widest text-tea-text/50 group-hover:text-tea-text/80 transition-colors num">
             {fmtDollars(stats.revenueThisWeek)} <span className="font-sans opacity-60">this week</span>
           </span>
         </button>
 
         <span className="w-px h-3 bg-tea-text/10 shrink-0" />
 
-        <span className="text-[10px] uppercase tracking-widest text-tea-text/30 shrink-0">
+        <span className="text-ui-10 uppercase tracking-widest text-tea-text/30 shrink-0">
           {stats.activeProducts}/{stats.totalProducts} active
         </span>
       </div>
@@ -91,7 +91,7 @@ export const AdminToolbar: React.FC<AdminToolbarProps> = ({ collapsed: controlle
       <div className="flex items-center gap-2 shrink-0 ml-3">
         <button
           onClick={() => navigate('/admin')}
-          className="text-[10px] uppercase tracking-widest text-tea-gold hover:text-tea-gold/80 transition-colors font-medium flex items-center gap-1"
+          className="text-ui-10 uppercase tracking-widest text-tea-gold hover:text-tea-gold/80 transition-colors font-medium flex items-center gap-1"
         >
           Admin
           <Icons.ChevronRight className="w-3 h-3" />

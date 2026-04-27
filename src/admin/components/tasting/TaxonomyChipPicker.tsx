@@ -83,11 +83,11 @@ export const TaxonomyChipPicker: React.FC<TaxonomyChipPickerProps> = ({
   return (
     <div className="space-y-2">
       <div className="flex items-baseline justify-between gap-2">
-        <span className="text-[10px] text-tea-text-sec uppercase tracking-[0.1em]">
+        <span className="text-ui-10 text-tea-text-sec uppercase tracking-[0.1em]">
           {sectionLabel}
         </span>
         {selectedCount > 0 && (
-          <span className="text-[10px] text-tea-gold/80 tabular-nums">
+          <span className="text-ui-10 text-tea-gold/80 tabular-nums">
             {selectedCount} selected
           </span>
         )}
@@ -99,20 +99,20 @@ export const TaxonomyChipPicker: React.FC<TaxonomyChipPickerProps> = ({
         onChange={e => setQuery(e.target.value)}
         placeholder="Filter…"
         disabled={disabled}
-        className="w-full bg-transparent text-[11px] text-tea-text placeholder:text-tea-text-dim border-b border-tea-accent-sub focus:border-tea-gold/40 outline-none pb-1 transition-colors"
+        className="w-full bg-transparent text-ui-11 text-tea-text placeholder:text-tea-text-dim border-b border-tea-accent-sub focus:border-tea-gold/40 outline-none pb-1 transition-colors"
       />
 
-      <p className="text-[10px] text-tea-text-dim italic">
+      <p className="text-ui-10 text-tea-text-dim italic">
         Pick the ones that fit. Multi-select.
       </p>
 
       {groups.size === 0 ? (
-        <p className="text-[10px] text-tea-text-dim italic py-1">No matches.</p>
+        <p className="text-ui-10 text-tea-text-dim italic py-1">No matches.</p>
       ) : (
         <div className="space-y-3">
           {Array.from(groups.entries()).map(([groupLabel, terms]) => (
             <div key={groupLabel}>
-              <div className="text-[9px] text-tea-text-dim uppercase tracking-[0.12em] mb-1.5">
+              <div className="text-ui-9 text-tea-text-dim uppercase tracking-[0.12em] mb-1.5">
                 {groupLabel}
               </div>
               <div className="flex flex-wrap gap-x-3 gap-y-1.5">
@@ -128,7 +128,7 @@ export const TaxonomyChipPicker: React.FC<TaxonomyChipPickerProps> = ({
                       disabled={disabled}
                       title={term.hint}
                       className={[
-                        'flex items-center gap-1 text-[11px] transition-colors py-0.5',
+                        'flex items-center gap-1 text-ui-11 transition-colors py-0.5',
                         'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-tea-gold/50 rounded-sm',
                         isSelected
                           ? 'text-tea-text border-b border-tea-gold/60'

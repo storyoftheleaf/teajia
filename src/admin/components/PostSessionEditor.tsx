@@ -121,7 +121,7 @@ export const PostSessionEditor: React.FC<PostSessionEditorProps> = ({ eventId })
     <div className="space-y-6">
       {/* Tea Ledger */}
       <div>
-        <label className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec block mb-2 flex items-center gap-1.5">
+        <label className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec block mb-2 flex items-center gap-1.5">
           <FileText size={10} /> Tea Ledger (JSON)
         </label>
         <textarea
@@ -135,7 +135,7 @@ export const PostSessionEditor: React.FC<PostSessionEditorProps> = ({ eventId })
 
       {/* Playlist URL */}
       <div>
-        <label className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec block mb-2 flex items-center gap-1.5">
+        <label className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec block mb-2 flex items-center gap-1.5">
           <Music size={10} /> Playlist URL
         </label>
         <input
@@ -161,7 +161,7 @@ export const PostSessionEditor: React.FC<PostSessionEditorProps> = ({ eventId })
 
       {/* Gallery */}
       <div>
-        <label className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec block mb-2 flex items-center gap-1.5">
+        <label className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec block mb-2 flex items-center gap-1.5">
           <ImageIcon size={10} /> Gallery
         </label>
 
@@ -176,7 +176,7 @@ export const PostSessionEditor: React.FC<PostSessionEditorProps> = ({ eventId })
                 >
                   <X size={10} />
                 </button>
-                <div className="absolute bottom-1 left-1 bg-tea-bg/60 text-tea-text-sec text-[9px] px-1 rounded">
+                <div className="absolute bottom-1 left-1 bg-tea-bg/60 text-tea-text-sec text-ui-9 px-1 rounded">
                   {idx + 1}
                 </div>
               </div>
@@ -204,7 +204,7 @@ export const PostSessionEditor: React.FC<PostSessionEditorProps> = ({ eventId })
 
       {/* Session Notes */}
       <div>
-        <label className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec block mb-2">Session Notes</label>
+        <label className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec block mb-2">Session Notes</label>
         <textarea
           value={sessionNotes}
           onChange={(e) => setSessionNotes(e.target.value)}
@@ -228,17 +228,17 @@ export const PostSessionEditor: React.FC<PostSessionEditorProps> = ({ eventId })
       {/* Tasting Notes (read-only) */}
       {tastingNotes.length > 0 && (
         <div className="pt-4 border-t border-tea-border">
-          <h3 className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec mb-3 flex items-center gap-1.5">
+          <h3 className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-3 flex items-center gap-1.5">
             <Leaf size={10} /> Submitted Tasting Notes
           </h3>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-tea-border">
-                  <th className="text-left text-[10px] uppercase tracking-[0.15em] text-tea-text-sec font-medium py-2 px-2">Guest</th>
-                  <th className="text-left text-[10px] uppercase tracking-[0.15em] text-tea-text-sec font-medium py-2 px-2">Tea</th>
-                  <th className="text-left text-[10px] uppercase tracking-[0.15em] text-tea-text-sec font-medium py-2 px-2">Rating</th>
-                  <th className="text-left text-[10px] uppercase tracking-[0.15em] text-tea-text-sec font-medium py-2 px-2">Impression</th>
+                  <th className="text-left text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec font-medium py-2 px-2">Guest</th>
+                  <th className="text-left text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec font-medium py-2 px-2">Tea</th>
+                  <th className="text-left text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec font-medium py-2 px-2">Rating</th>
+                  <th className="text-left text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec font-medium py-2 px-2">Impression</th>
                 </tr>
               </thead>
               <tbody>

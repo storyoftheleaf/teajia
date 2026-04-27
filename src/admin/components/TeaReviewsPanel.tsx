@@ -189,7 +189,7 @@ export const TeaReviewsPanel: React.FC<TeaReviewsPanelProps> = ({
             exit={{ opacity: 0 }}
             className="rounded-xl border border-tea-gold/20 bg-tea-gold/5 p-4 space-y-2"
           >
-            <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.12em] text-tea-gold font-medium mb-2">
+            <div className="flex items-center gap-1.5 text-ui-10 uppercase tracking-[0.12em] text-tea-gold font-medium mb-2">
               <Sparkles size={10} />
               Synthesized from {submittedCount} reviews
             </div>
@@ -199,12 +199,12 @@ export const TeaReviewsPanel: React.FC<TeaReviewsPanelProps> = ({
               </p>
             )}
             {(synthesis.mood as string) && (
-              <p className="text-[11px] text-tea-gold/70 italic">{synthesis.mood as string}</p>
+              <p className="text-ui-11 text-tea-gold/70 italic">{synthesis.mood as string}</p>
             )}
             <button
               type="button"
               onClick={() => setSynthesis(null)}
-              className="text-[11px] text-tea-text-dim hover:text-tea-text transition-colors"
+              className="text-ui-11 text-tea-text-dim hover:text-tea-text transition-colors"
             >
               Dismiss
             </button>
@@ -252,18 +252,18 @@ const ReviewCard: React.FC<{ review: TeaReview; onDelete: () => void }> = ({ rev
             {r.author_name || 'Unknown'}
           </span>
           {r.author_account_name && (
-            <span className="text-[10px] text-tea-text-dim">· {r.author_account_name}</span>
+            <span className="text-ui-10 text-tea-text-dim">· {r.author_account_name}</span>
           )}
           {r.rating != null && (
-            <span className="text-[11px] text-tea-gold font-mono">{r.rating}/10</span>
+            <span className="text-ui-11 text-tea-gold font-mono">{r.rating}/10</span>
           )}
           {r.verdict && (
-            <span className={`text-[10px] capitalize ${VERDICT_COLORS[r.verdict] || 'text-tea-text-dim'}`}>
+            <span className={`text-ui-10 capitalize ${VERDICT_COLORS[r.verdict] || 'text-tea-text-dim'}`}>
               {r.verdict}
             </span>
           )}
           {isDraft && (
-            <span className="flex items-center gap-1 text-[9px] uppercase tracking-[0.12em] text-tea-gold/60 font-medium">
+            <span className="flex items-center gap-1 text-ui-9 uppercase tracking-[0.12em] text-tea-gold/60 font-medium">
               <motion.span
                 animate={{ opacity: [1, 0.3, 1] }}
                 transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
@@ -275,11 +275,11 @@ const ReviewCard: React.FC<{ review: TeaReview; onDelete: () => void }> = ({ rev
           )}
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <span className="pill text-tea-text-dim text-[10px]">{VISIBILITY_LABELS[r.visibility] || r.visibility}</span>
+          <span className="pill text-tea-text-dim text-ui-10">{VISIBILITY_LABELS[r.visibility] || r.visibility}</span>
           <button
             type="button"
             onClick={onDelete}
-            className="text-[10px] text-tea-text-dim hover:text-red-400 transition-colors"
+            className="text-ui-10 text-tea-text-dim hover:text-red-400 transition-colors"
             title="Delete review"
           >
             ✕
@@ -295,7 +295,7 @@ const ReviewCard: React.FC<{ review: TeaReview; onDelete: () => void }> = ({ rev
             return (
               <span
                 key={termId}
-                className="inline-flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded-full bg-tea-gold/10 text-tea-gold"
+                className="inline-flex items-center gap-1 text-ui-11 px-1.5 py-0.5 rounded-full bg-tea-gold/10 text-tea-gold"
               >
                 <Icon size={10} />
                 {resolveTermLabel(termId)}
@@ -309,7 +309,7 @@ const ReviewCard: React.FC<{ review: TeaReview; onDelete: () => void }> = ({ rev
       {r.voice_notes && r.voice_notes.length > 0 && (
         <div className="space-y-1">
           {r.voice_notes.map((note, i) => (
-            <p key={i} className="text-[12px] text-tea-text-sec italic leading-relaxed" style={{ fontFamily: 'var(--font-body)' }}>
+            <p key={i} className="text-ui-12 text-tea-text-sec italic leading-relaxed" style={{ fontFamily: 'var(--font-body)' }}>
               &ldquo;{note}&rdquo;
             </p>
           ))}
@@ -323,7 +323,7 @@ const ReviewCard: React.FC<{ review: TeaReview; onDelete: () => void }> = ({ rev
         </p>
       )}
 
-      <p className="text-[10px] text-tea-text-dim">
+      <p className="text-ui-10 text-tea-text-dim">
         {r.session_date || r.updated_at.slice(0, 10)}
       </p>
     </motion.div>

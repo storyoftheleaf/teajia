@@ -6,7 +6,7 @@ import { Icons } from '../components/Icons';
 
 const inputClass = "w-full bg-tea-surface border border-tea-border p-3.5 text-tea-text rounded outline-none focus:border-tea-gold focus:ring-0 transition-colors duration-150 placeholder-tea-text-dim font-sans text-sm";
 const inputStyle = { boxShadow: 'inset 0 1px 0 var(--tea-accent-sub), inset 0 -1px 0 var(--tea-accent-sub)' };
-const labelClass = "block text-[10px] font-bold uppercase tracking-[0.2em] text-tea-text-sec mb-2";
+const labelClass = "block text-ui-10 font-bold uppercase tracking-[0.2em] text-tea-text-sec mb-2";
 
 function FormError({ error }: { error: string }) {
   if (!error) return null;
@@ -180,7 +180,7 @@ export default function AccountSettingsPage() {
               style={inputStyle}
               placeholder={auth.user?.username || 'Pick a username'}
             />
-            <p className="text-[11px] text-tea-text/40 mt-1.5">Leave blank to remove. Sign in with email or username.</p>
+            <p className="text-ui-11 text-tea-text/40 mt-1.5">Leave blank to remove. Sign in with email or username.</p>
           </div>
           <div>
             <label className={labelClass}>Email</label>
@@ -206,7 +206,7 @@ export default function AccountSettingsPage() {
               placeholder="+886 912 345 678"
               autoComplete="tel"
             />
-            <p className="text-[11px] text-tea-text/40 mt-1.5">Include country code. Used to pre-fill RSVP forms.</p>
+            <p className="text-ui-11 text-tea-text/40 mt-1.5">Include country code. Used to pre-fill RSVP forms.</p>
           </div>
           <FormError error={profileError} />
           {profileSaved && <p className="text-sm text-green-600">Profile updated.</p>}

@@ -214,7 +214,7 @@ export const ResourcesPage: React.FC<ResourcesPageProps> = ({ resources }) => {
 
                     {/* Expertise Badge */}
                     <div className="flex justify-center mb-4">
-                      <span className={`text-[10px] uppercase tracking-wider px-3 py-1 rounded-sm ${
+                      <span className={`text-ui-10 uppercase tracking-wider px-3 py-1 rounded-sm ${
                         member.expertise === 'Advanced' ? 'bg-tea-gold/20 text-tea-gold border border-tea-border' :
                         member.expertise === 'Intermediate' ? 'bg-blue-500/20 text-blue-300 border border-blue-400/40' :
                         'bg-tea-green/20 text-tea-green border border-tea-green/40'
@@ -225,7 +225,7 @@ export const ResourcesPage: React.FC<ResourcesPageProps> = ({ resources }) => {
 
                     {/* Interests */}
                     <div className="flex-1 mb-4">
-                      <p className="text-[11px] uppercase tracking-[0.15em] text-tea-text/50 mb-2">Interests</p>
+                      <p className="text-ui-11 uppercase tracking-[0.15em] text-tea-text/50 mb-2">Interests</p>
                       <div className="flex flex-wrap gap-2">
                         {member.interests.map((interest: string) => (
                           <span

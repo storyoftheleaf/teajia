@@ -166,7 +166,7 @@ export const ContentLinksEditor: React.FC<ContentLinksEditorProps> = ({ products
 
         {/* Entity picker */}
         <div className="px-5 pt-4 shrink-0">
-          <label className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim block mb-1.5">
+          <label className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim block mb-1.5">
             Select {ENTITY_LABELS[entityType]}
           </label>
           <div className="relative">
@@ -195,7 +195,7 @@ export const ContentLinksEditor: React.FC<ContentLinksEditorProps> = ({ products
             </div>
           ) : (
             <>
-              <p className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim mb-3">
+              <p className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim mb-3">
                 {linkedProducts.length === 0 ? 'No products linked' : `${linkedProducts.length} linked product${linkedProducts.length === 1 ? '' : 's'}`}
               </p>
 
@@ -205,7 +205,7 @@ export const ContentLinksEditor: React.FC<ContentLinksEditorProps> = ({ products
                     <li key={p.id} className="flex items-center gap-3 py-2 px-3 bg-tea-elevated rounded border border-tea-border">
                       <div className="flex-1 min-w-0">
                         <span className="font-serif text-sm text-tea-text italic block truncate">{p.productName}</span>
-                        <span className="text-[11px] text-tea-text-sec">{p.type}</span>
+                        <span className="text-ui-11 text-tea-text-sec">{p.type}</span>
                       </div>
                       <button
                         onClick={() => handleUnlink(p.id)}
@@ -258,7 +258,7 @@ export const ContentLinksEditor: React.FC<ContentLinksEditorProps> = ({ products
                               <Plus className="w-3 h-3 text-tea-gold shrink-0" />
                             )}
                             <span className="font-serif text-sm text-tea-text italic truncate">{p.productName}</span>
-                            <span className="text-[11px] text-tea-text-sec shrink-0">{p.type}</span>
+                            <span className="text-ui-11 text-tea-text-sec shrink-0">{p.type}</span>
                           </button>
                         </li>
                       ))}
@@ -282,7 +282,7 @@ export const ContentLinksEditor: React.FC<ContentLinksEditorProps> = ({ products
         {/* Footer summary */}
         {selectedEntity && (
           <div className="px-5 py-3 border-t border-tea-border shrink-0">
-            <p className="text-[11px] text-tea-text-dim truncate">
+            <p className="text-ui-11 text-tea-text-dim truncate">
               <span className="text-tea-text-sec">{selectedEntity.label}</span>
               {' '}· {linkedProducts.length} product{linkedProducts.length === 1 ? '' : 's'} linked
             </p>

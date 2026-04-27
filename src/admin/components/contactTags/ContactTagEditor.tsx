@@ -122,13 +122,13 @@ export const ContactTagEditor: React.FC<ContactTagEditorProps> = ({
     }
   };
 
-  const sizeChip = compact ? 'text-[11px]' : 'text-[12px]';
-  const sizeInput = compact ? 'text-[11px] w-36' : 'text-[12px] w-44';
+  const sizeChip = compact ? 'text-ui-11' : 'text-ui-12';
+  const sizeInput = compact ? 'text-ui-11 w-36' : 'text-ui-12 w-44';
 
   return (
     <div>
       {!compact && (
-        <p className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec mb-3">
+        <p className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec mb-3">
           Tags
           {tags.length > 0 && <span className="ml-1 normal-case text-tea-text-dim">({tags.length})</span>}
         </p>
@@ -178,10 +178,10 @@ export const ContactTagEditor: React.FC<ContactTagEditorProps> = ({
                     <button
                       type="button"
                       onMouseDown={e => { e.preventDefault(); commit(s.tag); }}
-                      className="w-full flex items-center justify-between gap-3 px-2.5 py-1.5 text-left text-[12px] text-tea-text hover:bg-tea-elevated transition-colors"
+                      className="w-full flex items-center justify-between gap-3 px-2.5 py-1.5 text-left text-ui-12 text-tea-text hover:bg-tea-elevated transition-colors"
                     >
                       <span className="truncate">{s.tag}</span>
-                      <span className="text-[10px] text-tea-text-dim shrink-0">{s.count}</span>
+                      <span className="text-ui-10 text-tea-text-dim shrink-0">{s.count}</span>
                     </button>
                   </li>
                 ))}
@@ -201,7 +201,7 @@ export const ContactTagEditor: React.FC<ContactTagEditorProps> = ({
       </div>
 
       {!compact && tags.length === 0 && !adding && (
-        <p className="text-[11px] text-tea-text-dim mt-2">No tags yet.</p>
+        <p className="text-ui-11 text-tea-text-dim mt-2">No tags yet.</p>
       )}
     </div>
   );

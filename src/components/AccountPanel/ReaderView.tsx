@@ -19,12 +19,12 @@ const LinkCluster: React.FC<{
   links: { label: string; onClick: () => void }[];
 }> = ({ hint, icon, links }) => (
   <div className="px-6 py-6 border-t border-tea-border">
-    <div className="flex items-center gap-2 text-[12px] uppercase tracking-[0.22em] text-tea-text font-medium">
+    <div className="flex items-center gap-2 text-ui-12 uppercase tracking-[0.22em] text-tea-text font-medium">
       {icon && <span className="text-tea-gold/70 shrink-0 flex items-center" aria-hidden="true">{icon}</span>}
       <span>{hint}</span>
     </div>
     <div className="w-8 h-px bg-tea-gold/40 mt-2 mb-3.5 ml-[22px]" aria-hidden="true" />
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[14px] text-tea-text-sec tracking-[0.01em]">
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-ui-14 text-tea-text-sec tracking-[0.01em]">
       {links.map((link, i) => (
         <React.Fragment key={link.label}>
           {i > 0 && <span className="text-tea-text-sec" aria-hidden="true">·</span>}
@@ -54,7 +54,7 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
     <div>
       {/* ── Hero — the invitation ───────────────────────────────────── */}
       <div className="px-6 pt-8 pb-6">
-        <p className="text-[11px] uppercase tracking-[0.28em] text-tea-text-sec font-medium mb-3">Teajia</p>
+        <p className="text-ui-11 uppercase tracking-[0.28em] text-tea-text-sec font-medium mb-3">Teajia</p>
         <h2
           className="text-[30px] font-normal text-tea-text leading-[1.05] tracking-[-0.5px]"
           style={{ fontFamily: 'var(--font-display)' }}
@@ -62,7 +62,7 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
           Gather <em className="text-tea-gold italic">around tea.</em>
         </h2>
         <p
-          className="italic text-[15px] text-tea-text-sec mt-3 leading-relaxed"
+          className="italic text-ui-15 text-tea-text-sec mt-3 leading-relaxed"
           style={{ fontFamily: 'var(--font-display)' }}
         >
           A home for practitioners, readers, and those just beginning.
@@ -73,14 +73,14 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
       <div className="px-6 pb-6">
         <button
           onClick={onOpenSignIn}
-          className="w-full py-3.5 bg-tea-gold text-tea-bg text-[12px] uppercase tracking-[0.22em] font-semibold rounded-sm hover:bg-tea-gold-lt transition-colors"
+          className="w-full py-3.5 bg-tea-gold text-tea-bg text-ui-12 uppercase tracking-[0.22em] font-semibold rounded-sm hover:bg-tea-gold-lt transition-colors"
           style={{ WebkitTapHighlightColor: 'transparent' }}
         >
           Sign In
         </button>
         <button
           onClick={onOpenSignUp}
-          className="w-full mt-2 py-3 text-[12px] uppercase tracking-[0.18em] text-tea-text-sec hover:text-tea-text transition-colors"
+          className="w-full mt-2 py-3 text-ui-12 uppercase tracking-[0.18em] text-tea-text-sec hover:text-tea-text transition-colors"
           style={{ WebkitTapHighlightColor: 'transparent' }}
         >
           Create an account

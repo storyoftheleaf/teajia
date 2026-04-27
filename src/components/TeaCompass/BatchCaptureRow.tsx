@@ -59,14 +59,14 @@ export const BatchCaptureRow: React.FC<BatchCaptureRowProps> = ({ onAdded }) => 
           onChange={(e) => setName(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Quick add tea name…"
-          className="flex-1 min-w-0 bg-tea-surface/60 text-tea-text text-[13px] rounded-lg px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none placeholder:text-tea-text-dim"
+          className="flex-1 min-w-0 bg-tea-surface/60 text-tea-text text-ui-13 rounded-lg px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none placeholder:text-tea-text-dim"
         />
 
         {/* Type picker */}
         <select
           value={type}
           onChange={(e) => setType(e.target.value as TeaType | '')}
-          className="shrink-0 bg-tea-surface/60 text-[12px] rounded-lg px-2 py-2 border border-tea-border outline-none focus:border-tea-gold/40 appearance-none cursor-pointer"
+          className="shrink-0 bg-tea-surface/60 text-ui-12 rounded-lg px-2 py-2 border border-tea-border outline-none focus:border-tea-gold/40 appearance-none cursor-pointer"
           style={typeColor ? { color: typeColor, borderColor: `${typeColor}40` } : { color: 'var(--tea-text-dim)' }}
         >
           <option value="">Type</option>
@@ -87,7 +87,7 @@ export const BatchCaptureRow: React.FC<BatchCaptureRowProps> = ({ onAdded }) => 
       </div>
 
       {feedback && (
-        <p className="text-[10px] text-tea-gold/70 px-1">
+        <p className="text-ui-10 text-tea-gold/70 px-1">
           + {feedback} added
         </p>
       )}

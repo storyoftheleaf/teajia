@@ -61,7 +61,7 @@ export const ContributorDrawer: React.FC<ContributorDrawerProps> = ({
               {person.name}
             </h2>
             {person.role && (
-              <p className="text-[10px] uppercase tracking-[0.2em] text-tea-gold mb-2">
+              <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-gold mb-2">
                 {person.role}
               </p>
             )}
@@ -83,7 +83,7 @@ export const ContributorDrawer: React.FC<ContributorDrawerProps> = ({
         {/* Articles by author */}
         {authorStories.length > 0 && (
           <div className="flex-1 overflow-y-auto overscroll-contain">
-            <p className="text-[9px] uppercase tracking-[0.25em] text-tea-text-dim px-6 pt-5 pb-3">
+            <p className="text-ui-9 uppercase tracking-[0.25em] text-tea-text-dim px-6 pt-5 pb-3">
               Articles by {person.name}
             </p>
             <ul className="divide-y divide-tea-border/50">
@@ -102,7 +102,7 @@ export const ContributorDrawer: React.FC<ContributorDrawerProps> = ({
                       />
                     )}
                     <span
-                      className="text-[15px] text-tea-text group-hover:text-tea-gold transition-colors leading-snug line-clamp-2"
+                      className="text-ui-15 text-tea-text group-hover:text-tea-gold transition-colors leading-snug line-clamp-2"
                       style={{ fontFamily: 'var(--font-display)' }}
                     >
                       {story.title}

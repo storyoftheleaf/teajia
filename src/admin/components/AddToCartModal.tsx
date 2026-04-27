@@ -45,7 +45,7 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
 
         <div className="space-y-6">
           <div>
-            <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-tea-text-sec mb-2">Quantity ({product.type === 'Teaware' ? 'Units' : 'Grams'})</label>
+            <label className="block text-ui-10 font-bold uppercase tracking-[0.2em] text-tea-text-sec mb-2">Quantity ({product.type === 'Teaware' ? 'Units' : 'Grams'})</label>
             <input
               type="number" autoFocus value={quantity} onChange={(e) => setQuantity(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter' && Number(quantity) > 0) onConfirm(Number(quantity)); }}

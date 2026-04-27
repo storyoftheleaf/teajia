@@ -328,7 +328,7 @@ export const TastingCardModal: React.FC<TastingCardModalProps> = ({ entry, onClo
             <div className="text-sm font-medium text-tea-text" style={{ fontFamily: 'var(--font-display)' }}>
               Share tasting card
             </div>
-            <div className="text-[11px] text-tea-text-dim mt-0.5" style={{ fontFamily: 'var(--font-body)' }}>
+            <div className="text-ui-11 text-tea-text-dim mt-0.5" style={{ fontFamily: 'var(--font-body)' }}>
               {entry.productName}
             </div>
           </div>
@@ -362,7 +362,7 @@ export const TastingCardModal: React.FC<TastingCardModalProps> = ({ entry, onClo
             type="button"
             onClick={handleDownload}
             disabled={exporting}
-            className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl bg-tea-surface border border-tea-border text-tea-text text-[13px] font-medium transition-opacity disabled:opacity-50"
+            className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl bg-tea-surface border border-tea-border text-tea-text text-ui-13 font-medium transition-opacity disabled:opacity-50"
             style={{ fontFamily: 'var(--font-display)' }}
           >
             <Download size={15} />
@@ -372,7 +372,7 @@ export const TastingCardModal: React.FC<TastingCardModalProps> = ({ entry, onClo
             type="button"
             onClick={handleShare}
             disabled={exporting}
-            className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl bg-tea-gold text-[13px] font-semibold transition-opacity disabled:opacity-50"
+            className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl bg-tea-gold text-ui-13 font-semibold transition-opacity disabled:opacity-50"
             style={{ fontFamily: 'var(--font-display)', color: '#171410' }}
           >
             <Share2 size={15} />
@@ -405,44 +405,44 @@ const PreviewCard: React.FC<{ entry: CustomerTasting }> = ({ entry }) => {
       )}
       <div className="px-6 py-5">
         <div className="flex items-center justify-between mb-4">
-          <span className="text-[11px] tracking-[0.22em] uppercase" style={{ color: '#c8a84b', fontFamily: 'Georgia, serif' }}>Teajia</span>
+          <span className="text-ui-11 tracking-[0.22em] uppercase" style={{ color: '#c8a84b', fontFamily: 'Georgia, serif' }}>Teajia</span>
           {liquorHex && (
             <div className="flex items-center gap-1.5">
               <div className="w-2.5 h-2.5 rounded-full" style={{ background: liquorHex }} />
-              <span className="text-[9px]" style={{ color: '#8a7f74', fontFamily: 'Georgia, serif' }}>{liquorColorId?.replace(/-/g, ' ')}</span>
+              <span className="text-ui-9" style={{ color: '#8a7f74', fontFamily: 'Georgia, serif' }}>{liquorColorId?.replace(/-/g, ' ')}</span>
             </div>
           )}
         </div>
         <div className="text-[22px] leading-snug mb-1" style={{ color: '#f0ebe3', fontFamily: 'Georgia, serif' }}>{entry.productName}</div>
-        {entry.productType && <div className="text-[9px] tracking-[0.18em] uppercase mb-4" style={{ color: '#8a7f74', fontFamily: 'Georgia, serif' }}>{entry.productType}</div>}
+        {entry.productType && <div className="text-ui-9 tracking-[0.18em] uppercase mb-4" style={{ color: '#8a7f74', fontFamily: 'Georgia, serif' }}>{entry.productType}</div>}
         <div className="border-b mb-4" style={{ borderColor: '#2e2820' }} />
         {flavorTerms.length > 0 && (
           <div className="mb-3">
-            <div className="text-[8px] tracking-[0.2em] uppercase mb-2" style={{ color: '#8a7f74', fontFamily: 'Georgia, serif' }}>Flavor</div>
+            <div className="text-ui-8 tracking-[0.2em] uppercase mb-2" style={{ color: '#8a7f74', fontFamily: 'Georgia, serif' }}>Flavor</div>
             <div className="flex flex-wrap gap-1.5">
               {flavorTerms.map((t, i) => (
-                <span key={i} className="text-[11px] rounded-full px-2.5 py-0.5" style={{ color: '#f0ebe3', background: 'rgba(200,168,75,0.12)', border: '1px solid rgba(200,168,75,0.2)', fontFamily: 'Georgia, serif' }}>{t}</span>
+                <span key={i} className="text-ui-11 rounded-full px-2.5 py-0.5" style={{ color: '#f0ebe3', background: 'rgba(200,168,75,0.12)', border: '1px solid rgba(200,168,75,0.2)', fontFamily: 'Georgia, serif' }}>{t}</span>
               ))}
             </div>
           </div>
         )}
-        {word && <div className="text-[15px] mb-3" style={{ color: '#c8a84b', fontFamily: 'Georgia, serif' }}>{word}</div>}
+        {word && <div className="text-ui-15 mb-3" style={{ color: '#c8a84b', fontFamily: 'Georgia, serif' }}>{word}</div>}
         {chineseMarkers.length > 0 && (
           <div className="flex gap-2 mb-3">
             {chineseMarkers.map((c, i) => (
-              <span key={i} className="text-[14px]" style={{ color: 'rgba(200,168,75,0.7)', fontFamily: 'serif' }}>{c}</span>
+              <span key={i} className="text-ui-14" style={{ color: 'rgba(200,168,75,0.7)', fontFamily: 'serif' }}>{c}</span>
             ))}
           </div>
         )}
         {entry.note.personalNote && (
-          <p className="text-[11px] italic mb-3 pl-3" style={{ color: '#8a7f74', fontFamily: 'Georgia, serif', borderLeft: '2px solid rgba(200,168,75,0.3)', lineHeight: 1.6 }}>
+          <p className="text-ui-11 italic mb-3 pl-3" style={{ color: '#8a7f74', fontFamily: 'Georgia, serif', borderLeft: '2px solid rgba(200,168,75,0.3)', lineHeight: 1.6 }}>
             "{entry.note.personalNote}"
           </p>
         )}
         <div className="border-b mb-3" style={{ borderColor: '#2e2820' }} />
         <div className="flex items-center justify-between">
-          <span className="text-[9px]" style={{ color: '#8a7f74', fontFamily: 'Georgia, serif' }}>{formatCardDate(entry.createdAt)}</span>
-          <span className="text-[9px] tracking-[0.1em]" style={{ color: 'rgba(200,168,75,0.4)', fontFamily: 'Georgia, serif' }}>teajia.com</span>
+          <span className="text-ui-9" style={{ color: '#8a7f74', fontFamily: 'Georgia, serif' }}>{formatCardDate(entry.createdAt)}</span>
+          <span className="text-ui-9 tracking-[0.1em]" style={{ color: 'rgba(200,168,75,0.4)', fontFamily: 'Georgia, serif' }}>teajia.com</span>
         </div>
       </div>
     </div>

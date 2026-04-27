@@ -60,7 +60,7 @@ export const VisualGuides: React.FC<VisualGuidesProps> = ({ onBack }) => {
                 </p>
               </div>
               <div className="flex items-center gap-2 shrink-0">
-                <span className={`text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm hidden sm:inline ${TYPE_COLORS.guide}`}>
+                <span className={`text-ui-9 uppercase tracking-wider px-1.5 py-0.5 rounded-sm hidden sm:inline ${TYPE_COLORS.guide}`}>
                   PDF
                 </span>
                 <Icons.Next className="w-4 h-4 text-tea-text-sec group-hover:text-tea-gold transition-colors" />

@@ -64,16 +64,16 @@ export const PendingView: React.FC = () => {
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <ClipboardList size={14} className="text-tea-text-sec" />
-            <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec">Pending Orders</span>
+            <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec">Pending Orders</span>
             {orders.length > 0 && (
-              <span className="text-[10px] bg-amber-400/15 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded-full num">
+              <span className="text-ui-10 bg-amber-400/15 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded-full num">
                 {orders.length}
               </span>
             )}
           </div>
           <button
             onClick={() => navigate('/admin/activity?tab=orders')}
-            className="flex items-center gap-1 text-[11px] text-tea-text-sec hover:text-tea-text transition-colors"
+            className="flex items-center gap-1 text-ui-11 text-tea-text-sec hover:text-tea-text transition-colors"
           >
             View all <ArrowRight size={12} />
           </button>
@@ -94,14 +94,14 @@ export const PendingView: React.FC = () => {
                 <div key={order.id} className="flex items-center justify-between px-3 py-2.5 bg-tea-surface hover:bg-tea-elevated transition-colors">
                   <div className="flex flex-col min-w-0">
                     <span className="text-sm text-tea-text truncate">{order.customer_name || '—'}</span>
-                    <span className="text-[11px] text-tea-text-sec num">{order.invoice_number}</span>
+                    <span className="text-ui-11 text-tea-text-sec num">{order.invoice_number}</span>
                   </div>
                   <div className="flex items-center gap-3 shrink-0">
                     {age >= 7 && (
-                      <span className="text-[10px] text-amber-600 dark:text-amber-400 num">{age}d</span>
+                      <span className="text-ui-10 text-amber-600 dark:text-amber-400 num">{age}d</span>
                     )}
                     {total > 0 && (
-                      <span className="text-[12px] text-tea-text num">
+                      <span className="text-ui-12 text-tea-text num">
                         ${total.toFixed(2)}
                       </span>
                     )}
@@ -118,9 +118,9 @@ export const PendingView: React.FC = () => {
       <section>
         <div className="flex items-center gap-2 mb-3">
           <CalendarDays size={14} className="text-tea-text-sec" />
-          <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec">Pending Event RSVPs</span>
+          <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec">Pending Event RSVPs</span>
           {pendingAttendees.length > 0 && (
-            <span className="text-[10px] bg-amber-400/15 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded-full num">
+            <span className="text-ui-10 bg-amber-400/15 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded-full num">
               {pendingAttendees.length}
             </span>
           )}
@@ -139,11 +139,11 @@ export const PendingView: React.FC = () => {
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium text-tea-text">{group.title}</span>
-                    <span className="text-[11px] text-tea-text-sec">{formatEventDate(group.date)}</span>
+                    <span className="text-ui-11 text-tea-text-sec">{formatEventDate(group.date)}</span>
                   </div>
                   <button
                     onClick={() => navigate(`/admin/events/${group.eventId}?tab=requests`)}
-                    className="flex items-center gap-1 text-[11px] text-tea-text-sec hover:text-tea-text transition-colors"
+                    className="flex items-center gap-1 text-ui-11 text-tea-text-sec hover:text-tea-text transition-colors"
                   >
                     Open event <ExternalLink size={11} />
                   </button>

@@ -11,7 +11,7 @@ interface CompassEntryDetailPanelProps {
   onClose: () => void;
 }
 
-const SECTION_LABEL = 'text-[10px] uppercase tracking-[0.12em] text-tea-text-dim font-medium mb-2';
+const SECTION_LABEL = 'text-ui-10 uppercase tracking-[0.12em] text-tea-text-dim font-medium mb-2';
 
 export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = ({
   entryId,
@@ -112,7 +112,7 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
         {metaParts.length > 0 && (
           <div>
             <p className={SECTION_LABEL}>Details</p>
-            <p className="text-[12px] text-tea-text-sec">
+            <p className="text-ui-12 text-tea-text-sec">
               {metaParts.map((part, i) => (
                 <span key={i}>
                   {i > 0 && <span className="mx-1 text-tea-text-dim">·</span>}
@@ -127,11 +127,11 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
         {entry.vendorName && (
           <div>
             <p className={SECTION_LABEL}>Source</p>
-            <div className="flex items-center gap-2 text-[13px] text-tea-text-sec">
+            <div className="flex items-center gap-2 text-ui-13 text-tea-text-sec">
               <Store size={12} className="text-tea-text-dim shrink-0" />
               <span className="flex-1 min-w-0 truncate">{entry.vendorName}</span>
               {pricePerGram && (
-                <span className="text-[12px] text-tea-text-dim ml-auto tabular-nums shrink-0">{pricePerGram}</span>
+                <span className="text-ui-12 text-tea-text-dim ml-auto tabular-nums shrink-0">{pricePerGram}</span>
               )}
             </div>
           </div>
@@ -167,7 +167,7 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
         {hasNotes && (
           <div>
             <p className={SECTION_LABEL}>Notes</p>
-            <p className="text-[13px] text-tea-text-sec leading-relaxed whitespace-pre-wrap">
+            <p className="text-ui-13 text-tea-text-sec leading-relaxed whitespace-pre-wrap">
               {entry.notes}
             </p>
           </div>
@@ -185,18 +185,18 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
                 const flavorSnippet = h.data.flavor?.slice(0, 3).join(', ');
                 return (
                   <div key={i} className="flex items-start gap-2">
-                    <span className="text-[11px] text-tea-text-dim shrink-0 tabular-nums mt-px">
+                    <span className="text-ui-11 text-tea-text-dim shrink-0 tabular-nums mt-px">
                       {getDateGroup(h.date)}
                     </span>
                     <div className="flex-1 min-w-0">
                       {q != null && (
-                        <span className="text-[12px] text-tea-text-sec font-medium tabular-nums">
+                        <span className="text-ui-12 text-tea-text-sec font-medium tabular-nums">
                           {q}/10
                           {flavorSnippet ? ' · ' : ''}
                         </span>
                       )}
                       {flavorSnippet && (
-                        <span className="text-[12px] text-tea-text-sec truncate">{flavorSnippet}</span>
+                        <span className="text-ui-12 text-tea-text-sec truncate">{flavorSnippet}</span>
                       )}
                     </div>
                   </div>
@@ -213,7 +213,7 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
         <button
           type="button"
           onClick={() => onEdit(entryId)}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-tea-gold/10 text-tea-gold text-[12px] font-semibold hover:bg-tea-gold/15 transition-colors"
+          className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-tea-gold/10 text-tea-gold text-ui-12 font-semibold hover:bg-tea-gold/15 transition-colors"
         >
           Edit Entry
           <ArrowRight size={13} />

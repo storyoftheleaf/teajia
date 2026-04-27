@@ -234,7 +234,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                 </div>
               ) : showLoginForm ? (
                 <div className="border border-tea-border rounded-sm p-4 space-y-3 animate-[fadeIn_0.2s_ease-out]">
-                  <p className="text-[10px] uppercase tracking-[0.25em] text-tea-text-sec">Sign in to your account</p>
+                  <p className="text-ui-10 uppercase tracking-[0.25em] text-tea-text-sec">Sign in to your account</p>
                   <input
                     type="text"
                     value={loginIdentifier}
@@ -287,7 +287,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
               <div>
                 <label
                   htmlFor="rsvp-name"
-                  className="block text-[10px] uppercase tracking-[0.25em] text-tea-text-sec mb-2"
+                  className="block text-ui-10 uppercase tracking-[0.25em] text-tea-text-sec mb-2"
                 >
                   Your name
                 </label>
@@ -315,14 +315,14 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                   <button
                     type="button"
                     onClick={() => setOverrideContact(true)}
-                    className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec hover:text-tea-gold transition-colors shrink-0"
+                    className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec hover:text-tea-gold transition-colors shrink-0"
                   >
                     Change
                   </button>
                 </div>
               ) : (
                 <div>
-                  <label className="block text-[10px] uppercase tracking-[0.25em] text-tea-text-sec mb-2">
+                  <label className="block text-ui-10 uppercase tracking-[0.25em] text-tea-text-sec mb-2">
                     How should we reach you?
                   </label>
                   <div className="flex gap-2 mb-3">
@@ -398,7 +398,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
 
               {/* Guest Requests */}
               <div>
-                <label className="block text-[10px] uppercase tracking-[0.25em] text-tea-text-sec mb-3">
+                <label className="block text-ui-10 uppercase tracking-[0.25em] text-tea-text-sec mb-3">
                   Bringing anyone?
                 </label>
                 <div className="space-y-3">
@@ -408,7 +408,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                       className="border border-tea-border rounded-sm p-3 space-y-2 animate-[fadeIn_0.25s_ease-out]"
                     >
                       <div className="flex items-center gap-2">
-                        <span className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec shrink-0">
+                        <span className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec shrink-0">
                           Guest {idx + 1}
                         </span>
                         <input
@@ -458,7 +458,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
               <div>
                 <label
                   htmlFor="rsvp-notes"
-                  className="block text-[10px] uppercase tracking-[0.25em] text-tea-text-sec mb-2"
+                  className="block text-ui-10 uppercase tracking-[0.25em] text-tea-text-sec mb-2"
                 >
                   Anything we should know?{' '}
                   <span className="normal-case tracking-normal text-tea-text-sec/70">(optional)</span>
@@ -483,7 +483,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                 />
                 <span className="text-xs text-tea-text-sec leading-relaxed group-hover:text-tea-text transition-colors">
                   Show my first name to other confirmed guests
-                  <span className="block text-[10px] text-tea-text-dim mt-0.5">So people can see who's coming</span>
+                  <span className="block text-ui-10 text-tea-text-dim mt-0.5">So people can see who's coming</span>
                 </span>
               </label>
 

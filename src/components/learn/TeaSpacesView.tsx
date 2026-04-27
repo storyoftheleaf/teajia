@@ -39,7 +39,7 @@ export const TeaSpacesView: React.FC<TeaSpacesViewProps> = ({ onBack, onNavigate
               <CardContainer className={`transition-all h-full ${expandedSpace === space.id ? 'shadow-md' : 'hover:-translate-y-0.5'}`}>
                 <div className="p-4">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-tea-gold/8 text-tea-gold border border-tea-border">
+                    <span className="text-ui-9 uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-tea-gold/8 text-tea-gold border border-tea-border">
                       {SPACE_TYPE_LABELS[space.spaceType]}
                     </span>
                     <div
@@ -52,7 +52,7 @@ export const TeaSpacesView: React.FC<TeaSpacesViewProps> = ({ onBack, onNavigate
                   <h4 className="font-serif text-sm text-tea-text mb-1 leading-snug">
                     {space.title}
                   </h4>
-                  <p className="text-[11px] text-tea-text/50 line-clamp-2">
+                  <p className="text-ui-11 text-tea-text/50 line-clamp-2">
                     {space.description}
                   </p>
                 </div>
@@ -93,7 +93,7 @@ export const TeaSpacesView: React.FC<TeaSpacesViewProps> = ({ onBack, onNavigate
               <span className="text-sm font-medium text-tea-text">
                 Want a Custom Tea Space?
               </span>
-              <p className="text-[11px] text-tea-text/50">
+              <p className="text-ui-11 text-tea-text/50">
                 Explore our design consultation services
               </p>
             </div>

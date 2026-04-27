@@ -283,7 +283,7 @@ const GuestManagement: React.FC = () => {
         <div className="fixed inset-0 sidebar-inset z-50 bg-tea-bg overflow-y-auto animate-[fadeIn_0.4s_ease-out]">
           <div className="max-w-xl mx-auto px-6 py-10 pb-[calc(44px+env(safe-area-inset-bottom,0px)+2.5rem)]">
             <div className="text-center mb-8">
-              <p className="text-[10px] uppercase tracking-[0.3em] text-tea-text-sec mb-2">
+              <p className="text-ui-10 uppercase tracking-[0.3em] text-tea-text-sec mb-2">
                 {formatEventDate(event.eventDate)}
               </p>
               <h1 className="font-serif text-2xl text-tea-text">{event.title}</h1>
@@ -333,7 +333,7 @@ const GuestManagement: React.FC = () => {
       <div className="min-h-screen bg-tea-bg animate-[fadeIn_0.5s_ease-out]">
         <div className="max-w-xl mx-auto px-6 py-10">
           <div className="text-center mb-10">
-            <p className="text-[10px] uppercase tracking-[0.3em] text-tea-text-sec mb-4">
+            <p className="text-ui-10 uppercase tracking-[0.3em] text-tea-text-sec mb-4">
               {formatEventDate(event.eventDate)}
             </p>
             <h1 className="font-serif text-3xl text-tea-text mb-2">{event.title}</h1>
@@ -347,7 +347,7 @@ const GuestManagement: React.FC = () => {
                 <>
                   {/* Recap header */}
                   <div className="mb-6">
-                    <p className="text-[10px] uppercase tracking-[0.3em] text-tea-gold mb-2">Session Recap</p>
+                    <p className="text-ui-10 uppercase tracking-[0.3em] text-tea-gold mb-2">Session Recap</p>
                     {tastingNotesCount > 0 && (
                       <p className="text-xs text-tea-text-sec">
                         {tastingNotesCount} tasting {tastingNotesCount === 1 ? 'note' : 'notes'} collected from this session.
@@ -417,7 +417,7 @@ const GuestManagement: React.FC = () => {
           </div>
 
           <div className="text-center pt-10 pb-12">
-            <p className="text-[10px] uppercase tracking-[0.3em] text-tea-text-sec/50">
+            <p className="text-ui-10 uppercase tracking-[0.3em] text-tea-text-sec/50">
               Thank you for attending
             </p>
           </div>
@@ -454,7 +454,7 @@ const GuestManagement: React.FC = () => {
             </div>
           )}
           <div className="text-center mb-8">
-            <p className="text-[10px] uppercase tracking-[0.3em] text-tea-text-sec mb-3">
+            <p className="text-ui-10 uppercase tracking-[0.3em] text-tea-text-sec mb-3">
               {formatEventDate(event.eventDate)}
             </p>
             <h1 className="font-serif text-2xl text-tea-text mb-2">{event.title}</h1>
@@ -477,7 +477,7 @@ const GuestManagement: React.FC = () => {
 
           {/* Submission summary */}
           <div className="mt-6 p-5 bg-tea-surface border border-tea-border rounded-md space-y-3">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec">What you submitted</p>
+            <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec">What you submitted</p>
             <div className="flex items-center gap-2 text-sm text-tea-text">
               <span className="text-tea-text-sec text-xs w-16 shrink-0">Name</span>
               <span>{attendee.fullName}</span>
@@ -488,7 +488,7 @@ const GuestManagement: React.FC = () => {
             </div>
             {attendee.guestRequests && attendee.guestRequests.length > 0 && (
               <div>
-                <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec mb-2 mt-1">
+                <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-2 mt-1">
                   Guest request{attendee.guestRequests.length > 1 ? 's' : ''}
                 </p>
                 <ul className="space-y-1.5">
@@ -513,7 +513,7 @@ const GuestManagement: React.FC = () => {
           </div>
 
           <div className="text-center pt-8 pb-12">
-            <p className="text-[10px] uppercase tracking-[0.3em] text-tea-text-sec/50">
+            <p className="text-ui-10 uppercase tracking-[0.3em] text-tea-text-sec/50">
               Hosted by Teajia
             </p>
           </div>
@@ -530,7 +530,7 @@ const GuestManagement: React.FC = () => {
         <div className="max-w-md mx-auto px-6 py-16">
           {/* Event context */}
           <div className="text-center mb-10">
-            <p className="text-[10px] uppercase tracking-[0.3em] text-tea-text-sec mb-3">
+            <p className="text-ui-10 uppercase tracking-[0.3em] text-tea-text-sec mb-3">
               {formatEventDate(event.eventDate)}
             </p>
             <h1 className="font-serif text-2xl text-tea-text mb-1">{event.title}</h1>
@@ -578,7 +578,7 @@ const GuestManagement: React.FC = () => {
           </div>
 
           <div className="text-center pt-10 pb-4">
-            <p className="text-[10px] uppercase tracking-[0.3em] text-tea-text-sec/40">
+            <p className="text-ui-10 uppercase tracking-[0.3em] text-tea-text-sec/40">
               Hosted by Teajia
             </p>
           </div>
@@ -598,7 +598,7 @@ const GuestManagement: React.FC = () => {
         <div className="min-h-screen bg-tea-bg animate-[fadeIn_0.5s_ease-out]">
           <div className="max-w-xl mx-auto px-6 py-10">
             <div className="text-center mb-8">
-              <p className="text-[10px] uppercase tracking-[0.3em] text-tea-gold mb-4 animate-pulse">
+              <p className="text-ui-10 uppercase tracking-[0.3em] text-tea-gold mb-4 animate-pulse">
                 A seat has opened
               </p>
               <h1 className="font-serif text-3xl text-tea-text mb-3">{event.title}</h1>
@@ -663,7 +663,7 @@ const GuestManagement: React.FC = () => {
           </div>
 
           <div className="p-6 bg-tea-surface border border-tea-border rounded-md mb-8 text-center">
-            <p className="text-[10px] uppercase tracking-[0.3em] text-tea-text-sec mb-3">
+            <p className="text-ui-10 uppercase tracking-[0.3em] text-tea-text-sec mb-3">
               Your Status
             </p>
             <h2 className="font-serif text-xl text-tea-text-sec mb-2">
@@ -744,7 +744,7 @@ const GuestManagement: React.FC = () => {
             />
           )}
           <div className="p-6 text-center bg-tea-surface">
-            <p className="text-[10px] uppercase tracking-[0.3em] text-tea-gold mb-3">
+            <p className="text-ui-10 uppercase tracking-[0.3em] text-tea-gold mb-3">
               Your seat is confirmed
             </p>
             <h1 className="font-serif text-2xl md:text-3xl text-tea-text mb-2">
@@ -773,7 +773,7 @@ const GuestManagement: React.FC = () => {
         {/* Guest invite links */}
         {approvedGuests.length > 0 && (
           <div className="mb-10 p-5 bg-tea-surface border border-tea-border rounded-md">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec mb-4">
+            <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-4">
               Your guests
             </p>
             <div className="space-y-3">
@@ -829,7 +829,7 @@ const GuestManagement: React.FC = () => {
         {/* Venue photos — only shown to confirmed attendees */}
         {event.venuePhotos && event.venuePhotos.length > 0 && (
           <div className="mb-10">
-            <p className="text-[10px] uppercase tracking-[0.3em] text-tea-text-sec mb-4">The Space</p>
+            <p className="text-ui-10 uppercase tracking-[0.3em] text-tea-text-sec mb-4">The Space</p>
             <div className={`grid gap-2 ${event.venuePhotos.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
               {event.venuePhotos.slice(0, 2).map((url, idx) => (
                 <div key={idx} className="rounded-sm overflow-hidden border border-tea-border aspect-[4/3]">
@@ -897,7 +897,7 @@ const GuestManagement: React.FC = () => {
         {/* Guest count toggle (plus one) */}
         {status === 'confirmed' && (
           <div className="mb-8 p-5 bg-tea-surface border border-tea-border rounded-md">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec mb-3">
+            <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-3">
               Bringing a guest?
             </p>
             <div className="flex items-center gap-3">
@@ -937,7 +937,7 @@ const GuestManagement: React.FC = () => {
         {/* Dietary requirements / notes */}
         {status === 'confirmed' && (
           <div className="mb-8 p-5 bg-tea-surface border border-tea-border rounded-md">
-            <label className="block text-[10px] uppercase tracking-[0.2em] text-tea-text-sec mb-3">
+            <label className="block text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-3">
               Dietary notes or special requests
             </label>
             <textarea
@@ -979,7 +979,7 @@ const GuestManagement: React.FC = () => {
         {/* Guest list opt-in toggle */}
         {status === 'confirmed' && (
           <div className="mb-8 p-5 bg-tea-surface border border-tea-border rounded-md">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec mb-3">
+            <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-3">
               Guest list
             </p>
             <label className="flex items-start gap-3 cursor-pointer group">
@@ -992,7 +992,7 @@ const GuestManagement: React.FC = () => {
               />
               <span className="text-xs text-tea-text-sec leading-relaxed group-hover:text-tea-text transition-colors">
                 Show my first name to other confirmed guests
-                <span className="block text-[10px] text-tea-text-dim mt-0.5">
+                <span className="block text-ui-10 text-tea-text-dim mt-0.5">
                   {(attendee as any).showInGuestList ? 'Your name is visible to other guests' : 'Only the host can see your name'}
                 </span>
               </span>

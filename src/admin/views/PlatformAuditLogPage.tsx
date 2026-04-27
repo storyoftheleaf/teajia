@@ -158,7 +158,7 @@ export const PlatformAuditLogPage: React.FC = () => {
         </button>
         <div>
           <h1 className="text-lg text-tea-text font-serif">Platform Audit Log</h1>
-          <p className="text-[11px] text-tea-text-dim uppercase tracking-[0.12em]">
+          <p className="text-ui-11 text-tea-text-dim uppercase tracking-[0.12em]">
             All platform-level actions
           </p>
         </div>
@@ -204,7 +204,7 @@ export const PlatformAuditLogPage: React.FC = () => {
         {/* Date range */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-[9px] uppercase tracking-[0.2em] text-tea-text-dim mb-1">From</label>
+            <label className="block text-ui-9 uppercase tracking-[0.2em] text-tea-text-dim mb-1">From</label>
             <input
               type="date"
               value={dateFrom}
@@ -213,7 +213,7 @@ export const PlatformAuditLogPage: React.FC = () => {
             />
           </div>
           <div>
-            <label className="block text-[9px] uppercase tracking-[0.2em] text-tea-text-dim mb-1">To</label>
+            <label className="block text-ui-9 uppercase tracking-[0.2em] text-tea-text-dim mb-1">To</label>
             <input
               type="date"
               value={dateTo}
@@ -265,10 +265,10 @@ export const PlatformAuditLogPage: React.FC = () => {
               <div key={entry.id} className="inset-panel px-3 py-2.5">
                 <div className="flex items-start gap-3">
                   <div className="flex-1 min-w-0">
-                    <p className="text-tea-text text-[13px] font-medium">
+                    <p className="text-tea-text text-ui-13 font-medium">
                       {ACTION_LABELS[entry.action] || entry.action}
                     </p>
-                    <p className="text-tea-text-dim text-[11px] truncate">
+                    <p className="text-tea-text-dim text-ui-11 truncate">
                       <span className="text-tea-text-sec">{entry.actor_email}</span>
                       {showActingAs && actingAsName && (
                         <span className="text-tea-text-sec"> · operating as {actingAsName}</span>
@@ -277,11 +277,11 @@ export const PlatformAuditLogPage: React.FC = () => {
                       {details.from != null && details.to != null ? ` · ${String(details.from) || 'none'} → ${String(details.to) || 'none'}` : ''}
                       {typeof details.feature === 'string' && details.feature ? ` · ${details.feature} ${details.enabled ? 'on' : 'off'}` : ''}
                     </p>
-                    <p className="text-[10px] text-tea-text-dim mt-0.5 font-mono">
+                    <p className="text-ui-10 text-tea-text-dim mt-0.5 font-mono">
                       target: {entry.target_type} · {entry.target_id}
                     </p>
                   </div>
-                  <span className="text-[10px] text-tea-text-dim shrink-0 tabular-nums">
+                  <span className="text-ui-10 text-tea-text-dim shrink-0 tabular-nums">
                     {formatDate(entry.created_at)}
                   </span>
                 </div>

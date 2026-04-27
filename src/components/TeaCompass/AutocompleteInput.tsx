@@ -222,7 +222,7 @@ export const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
                   <div>
                     <div className="text-sm text-tea-text">{renderHighlighted(suggestion)}</div>
                     {subtitle && (
-                      <div className="text-[11px] text-tea-text-dim">{subtitle}</div>
+                      <div className="text-ui-11 text-tea-text-dim">{subtitle}</div>
                     )}
                   </div>
                   <button
@@ -243,14 +243,14 @@ export const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
       {/* Hint chips — shown on empty focus when a type is selected */}
       {showHints && (
         <div className="absolute left-0 right-0 top-full mt-1 z-30 bg-tea-surface border border-tea-border rounded-lg shadow-lg p-2">
-          <p className="text-[10px] text-tea-text-dim uppercase tracking-[0.1em] mb-1.5 px-1">Examples</p>
+          <p className="text-ui-10 text-tea-text-dim uppercase tracking-[0.1em] mb-1.5 px-1">Examples</p>
           <div className="flex flex-wrap gap-1.5">
             {hintSuggestions.map((hint) => (
               <button
                 key={hint}
                 type="button"
                 onMouseDown={(e) => { e.preventDefault(); handleSelect(hint); }}
-                className="text-[12px] text-tea-text-sec bg-tea-elevated px-2.5 py-1 rounded-full hover:text-tea-text transition-colors"
+                className="text-ui-12 text-tea-text-sec bg-tea-elevated px-2.5 py-1 rounded-full hover:text-tea-text transition-colors"
               >
                 {hint}
               </button>

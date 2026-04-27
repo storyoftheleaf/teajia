@@ -93,7 +93,7 @@ const PublicCollectionPage: React.FC = () => {
           <p className="font-display text-[clamp(24px,3.5vw,32px)] leading-[1.2] text-tea-text mb-3" style={{ fontWeight: 500 }}>
             {status === 'gone' ? 'This collection has been put away.' : 'Not found.'}
           </p>
-          <p className="font-body text-[15px] leading-[1.65] text-tea-text-sec italic">
+          <p className="font-body text-ui-15 leading-[1.65] text-tea-text-sec italic">
             {status === 'gone'
               ? 'The link may have been taken down. Ask Adrian directly for a new one.'
               : "The link you followed doesn’t lead anywhere. Check it with whoever shared it."}
@@ -173,7 +173,7 @@ const CollectionCatalog: React.FC<{ data: PublicCollectionResponse }> = ({ data 
       {/* Masthead — editorial; small label, big title, italic note */}
       <header className="border-b border-tea-border">
         <div className="max-w-[720px] mx-auto px-5 sm:px-8 pt-12 pb-10 md:pt-20 md:pb-14">
-          <p className="font-sans text-[11px] uppercase tracking-[1.5px] text-tea-text-dim mb-5">
+          <p className="font-sans text-ui-11 uppercase tracking-[1.5px] text-tea-text-dim mb-5">
             A collection from <span className="text-tea-text-sec">{storeName}</span>
           </p>
           <h1
@@ -183,12 +183,12 @@ const CollectionCatalog: React.FC<{ data: PublicCollectionResponse }> = ({ data 
             {collection.title}
           </h1>
           {collection.note && (
-            <p className="font-body text-[17px] leading-[1.7] text-tea-text-sec italic max-w-[55ch]">
+            <p className="font-body text-ui-17 leading-[1.7] text-tea-text-sec italic max-w-[55ch]">
               {collection.note}
             </p>
           )}
           {curatorName && (
-            <p className="font-body text-[14px] leading-[1.65] text-tea-text-sec italic mt-4">
+            <p className="font-body text-ui-14 leading-[1.65] text-tea-text-sec italic mt-4">
               Curated by {curatorName}.
             </p>
           )}
@@ -208,7 +208,7 @@ const CollectionCatalog: React.FC<{ data: PublicCollectionResponse }> = ({ data 
       {/* Catalog body */}
       <section className={`max-w-[720px] mx-auto px-5 sm:px-8 py-10 md:py-16 ${selectedCount > 0 ? 'pb-nav-gap-lg' : 'pb-nav-gap'}`}>
         {visible.length === 0 ? (
-          <p className="font-body text-[15px] leading-[1.65] text-tea-text-sec italic py-10 text-center">
+          <p className="font-body text-ui-15 leading-[1.65] text-tea-text-sec italic py-10 text-center">
             The teas in this collection are currently unavailable.
           </p>
         ) : (
@@ -227,7 +227,7 @@ const CollectionCatalog: React.FC<{ data: PublicCollectionResponse }> = ({ data 
       </section>
 
       <footer className="border-t border-tea-border py-10 text-center">
-        <p className="font-sans text-[10px] uppercase tracking-[1.8px] text-tea-text-dim">
+        <p className="font-sans text-ui-10 uppercase tracking-[1.8px] text-tea-text-dim">
           {storeName} · Curated for you
         </p>
       </footer>
@@ -235,13 +235,13 @@ const CollectionCatalog: React.FC<{ data: PublicCollectionResponse }> = ({ data 
       {/* Sticky basket footer — only visible when ≥1 item selected */}
       {selectedCount > 0 && (
         <div className="fixed left-0 right-0 bottom-nav bg-tea-surface border-t border-tea-border z-40 px-5 sm:px-8 py-3 flex items-center justify-between gap-4">
-          <p className="font-sans text-[12px] text-tea-text-sec">
+          <p className="font-sans text-ui-12 text-tea-text-sec">
             <span className="text-tea-gold font-medium">{selectedCount}</span>{' '}
             {selectedCount === 1 ? 'item' : 'items'} selected
           </p>
           <button
             onClick={handleSendPicks}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-tea-gold text-tea-bg rounded-md text-[12px] font-medium tracking-[0.3px] hover:bg-tea-gold-lt transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-tea-gold text-tea-bg rounded-md text-ui-12 font-medium tracking-[0.3px] hover:bg-tea-gold-lt transition-colors"
           >
             <MessageCircle size={13} />
             Send my picks
@@ -321,7 +321,7 @@ const CatalogEntry: React.FC<{
   return (
     <li className="flex flex-col gap-5">
       <div className="flex items-baseline gap-4">
-        <span className="font-display text-[17px] tabular-nums tracking-[0.05em] text-tea-gold" style={{ fontWeight: 500 }}>
+        <span className="font-display text-ui-17 tabular-nums tracking-[0.05em] text-tea-gold" style={{ fontWeight: 500 }}>
           {toRoman(index)}.
         </span>
         <div className="flex-1 min-w-0">
@@ -331,13 +331,13 @@ const CatalogEntry: React.FC<{
           >
             {item.product_name}
             {item.chinese_name && (
-              <span className="block sm:inline font-body italic text-[15px] sm:ml-3 text-tea-text-sec mt-1 sm:mt-0" style={{ fontWeight: 300 }}>
+              <span className="block sm:inline font-body italic text-ui-15 sm:ml-3 text-tea-text-sec mt-1 sm:mt-0" style={{ fontWeight: 300 }}>
                 {item.chinese_name}
               </span>
             )}
           </h2>
           {(origin || item.year) && (
-            <p className="font-sans text-[10px] uppercase tracking-[1.5px] text-tea-text-dim mt-2">
+            <p className="font-sans text-ui-10 uppercase tracking-[1.5px] text-tea-text-dim mt-2">
               {[origin, item.year].filter(Boolean).join(' · ')}
               {oos && (
                 <span className="ml-3 inline-flex items-center gap-1 text-tea-text-sec">
@@ -362,13 +362,13 @@ const CatalogEntry: React.FC<{
 
       <div className="pl-[42px] max-w-[60ch]">
         {item.description && (
-          <p className="font-body text-[15px] leading-[1.75] text-tea-text mb-4">
+          <p className="font-body text-ui-15 leading-[1.75] text-tea-text mb-4">
             {item.description}
           </p>
         )}
 
         {tastingList.length > 0 && (
-          <p className="font-sans text-[11px] uppercase tracking-[1.3px] text-tea-text-sec mb-5">
+          <p className="font-sans text-ui-11 uppercase tracking-[1.3px] text-tea-text-sec mb-5">
             {tastingList.slice(0, 6).join(' · ')}
           </p>
         )}
@@ -376,7 +376,7 @@ const CatalogEntry: React.FC<{
         {/* Want this toggle */}
         <button
           onClick={toggle}
-          className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-md text-[12px] font-medium tracking-[0.3px] transition-colors ${
+          className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-md text-ui-12 font-medium tracking-[0.3px] transition-colors ${
             isSelected
               ? 'border border-tea-gold text-tea-gold bg-tea-gold/[0.06]'
               : 'border border-tea-border text-tea-text-sec hover:text-tea-text hover:border-tea-gold/[0.4]'
@@ -391,7 +391,7 @@ const CatalogEntry: React.FC<{
           <div className="mt-4 flex flex-col gap-3">
             {/* OOS note */}
             {oos && (
-              <p className="font-sans text-[11px] text-tea-text-dim italic">
+              <p className="font-sans text-ui-11 text-tea-text-dim italic">
                 Currently out of stock. Requesting availability.
               </p>
             )}
@@ -405,7 +405,7 @@ const CatalogEntry: React.FC<{
                       <button
                         key={g}
                         onClick={() => setQuantity(g)}
-                        className={`px-3 py-1.5 rounded text-[11px] font-medium transition-colors ${
+                        className={`px-3 py-1.5 rounded text-ui-11 font-medium transition-colors ${
                           qty === g
                             ? 'bg-tea-gold/[0.15] text-tea-gold'
                             : 'bg-tea-surface text-tea-text-sec hover:text-tea-text'
@@ -426,7 +426,7 @@ const CatalogEntry: React.FC<{
                     >
                       <Minus size={11} />
                     </button>
-                    <span className="font-mono text-[13px] text-tea-text w-8 text-center tabular-nums">
+                    <span className="font-mono text-ui-13 text-tea-text w-8 text-center tabular-nums">
                       {qty}
                     </span>
                     <button
@@ -436,7 +436,7 @@ const CatalogEntry: React.FC<{
                     >
                       <Plus size={11} />
                     </button>
-                    <span className="font-sans text-[11px] text-tea-text-dim">
+                    <span className="font-sans text-ui-11 text-tea-text-dim">
                       {pickerMode === 'cake-brick'
                         ? (Number(qty) === 1 ? 'cake' : 'cakes')
                         : (Number(qty) === 1 ? 'unit' : 'units')}
@@ -452,7 +452,7 @@ const CatalogEntry: React.FC<{
               value={entry?.note ?? ''}
               onChange={e => setNote(e.target.value)}
               placeholder="Anything to add?"
-              className="input-warm w-full max-w-[300px] px-3 py-2 text-[13px] leading-[1.5]"
+              className="input-warm w-full max-w-[300px] px-3 py-2 text-ui-13 leading-[1.5]"
             />
           </div>
         )}

@@ -30,7 +30,7 @@ export const TermPreviewList: React.FC<TermPreviewListProps> = ({
               <h4 className="font-serif text-base text-tea-text leading-snug font-medium">
                 {term.term}
               </h4>
-              <span className="flex-shrink-0 text-[10px] tracking-wider text-tea-gold-dark/70 font-sans border border-tea-border px-2 py-0.5 rounded-sm">
+              <span className="flex-shrink-0 text-ui-10 tracking-wider text-tea-gold-dark/70 font-sans border border-tea-border px-2 py-0.5 rounded-sm">
                 {term.categoryLabel}
               </span>
             </div>

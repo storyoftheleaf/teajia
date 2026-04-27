@@ -100,7 +100,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
         {(title || subtitle) && (
           <div className="flex items-baseline gap-2 mb-1">
             {title && <span className="text-xs text-tea-text truncate font-medium">{title}</span>}
-            {subtitle && <span className="text-[10px] text-tea-text-sec truncate">{subtitle}</span>}
+            {subtitle && <span className="text-ui-10 text-tea-text-sec truncate">{subtitle}</span>}
           </div>
         )}
 
@@ -119,10 +119,10 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
 
         {/* Time */}
         <div className="flex justify-between mt-0.5">
-          <span className="text-[9px] text-tea-text-dim num">
+          <span className="text-ui-9 text-tea-text-dim num">
             {formatTime(progress * duration)}
           </span>
-          <span className="text-[9px] text-tea-text-dim num">
+          <span className="text-ui-9 text-tea-text-dim num">
             {formatTime(duration)}
           </span>
         </div>

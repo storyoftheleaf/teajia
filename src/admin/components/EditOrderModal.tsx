@@ -144,7 +144,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
             {/* Customer & Shipping */}
             <div className="grid grid-cols-2 gap-3 mb-5">
               <div>
-                <label className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec mb-1 block">Customer</label>
+                <label className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec mb-1 block">Customer</label>
                 <input
                   type="text"
                   value={customerName}
@@ -153,7 +153,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
                 />
               </div>
               <div>
-                <label className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec mb-1 block">Shipping (USD)</label>
+                <label className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec mb-1 block">Shipping (USD)</label>
                 <input
                   type="number"
                   min={0}
@@ -167,7 +167,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
 
             {/* Notes */}
             <div className="mb-5">
-              <label className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec mb-1 block">Notes</label>
+              <label className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec mb-1 block">Notes</label>
               <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
@@ -180,7 +180,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
             {/* Line Items */}
             <div className="mb-5">
               <div className="flex items-center justify-between mb-2">
-                <label className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec">Items</label>
+                <label className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec">Items</label>
                 <button
                   onClick={() => setAddingProduct(!addingProduct)}
                   className="text-xs text-tea-gold hover:text-tea-gold/80 flex items-center gap-1 transition-colors"
@@ -211,7 +211,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
                         className="w-full text-left px-2 py-1.5 rounded-lg text-xs hover:bg-tea-elevated/50 transition-colors flex justify-between items-center"
                       >
                         <span className="text-tea-text truncate">{product.givenName || product.productName}</span>
-                        <span className="text-tea-text-sec text-[10px] shrink-0 ml-2">${product.pricePerGramUSD.toFixed(2)}/g</span>
+                        <span className="text-tea-text-sec text-ui-10 shrink-0 ml-2">${product.pricePerGramUSD.toFixed(2)}/g</span>
                       </button>
                     ))}
                   </div>
@@ -233,7 +233,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
                     </div>
                     <div className="flex gap-3">
                       <div className="flex-1">
-                        <label className="text-[9px] text-tea-text-sec">Qty (g/u)</label>
+                        <label className="text-ui-9 text-tea-text-sec">Qty (g/u)</label>
                         <input
                           type="number"
                           min={0}
@@ -243,7 +243,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
                         />
                       </div>
                       <div className="flex-1">
-                        <label className="text-[9px] text-tea-text-sec">Price/unit (USD)</label>
+                        <label className="text-ui-9 text-tea-text-sec">Price/unit (USD)</label>
                         <input
                           type="number"
                           min={0}
@@ -254,7 +254,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
                         />
                       </div>
                       <div className="w-16 text-right">
-                        <label className="text-[9px] text-tea-text-sec">Subtotal</label>
+                        <label className="text-ui-9 text-tea-text-sec">Subtotal</label>
                         <div className="text-xs text-tea-text num pt-1">${(item.quantity * item.price_at_sale).toFixed(2)}</div>
                       </div>
                     </div>

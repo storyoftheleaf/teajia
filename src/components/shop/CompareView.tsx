@@ -52,7 +52,7 @@ export const CompareView: React.FC<CompareViewProps> = ({ items, onClose }) => {
             {item.tags.map((tag) => (
               <span
                 key={tag}
-                className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-sm bg-tea-accent-sub text-tea-text-sec border border-tea-border"
+                className="text-ui-10 uppercase tracking-wider px-2 py-0.5 rounded-sm bg-tea-accent-sub text-tea-text-sec border border-tea-border"
               >
                 {tag}
               </span>
@@ -160,7 +160,7 @@ export const CompareView: React.FC<CompareViewProps> = ({ items, onClose }) => {
                 {rows.map((row) => (
                   <tr key={row.label} className="border-t border-tea-border">
                     <td className="p-3 align-top">
-                      <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec">
+                      <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec">
                         {row.label}
                       </span>
                     </td>
@@ -213,7 +213,7 @@ export const CompareView: React.FC<CompareViewProps> = ({ items, onClose }) => {
                 <div className="divide-y divide-tea-border">
                   {rows.map((row) => (
                     <div key={row.label} className="px-4 py-2.5 flex items-start gap-3">
-                      <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec w-20 shrink-0 pt-0.5">
+                      <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec w-20 shrink-0 pt-0.5">
                         {row.label}
                       </span>
                       <div className="flex-1">{row.render(item)}</div>

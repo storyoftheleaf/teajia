@@ -62,13 +62,13 @@ export const DesignPortfolio: React.FC<DesignPortfolioProps> = ({
 
               {/* Status Badge */}
               {project.status === 'in-progress' && (
-                <span className="absolute top-3 left-3 px-2 py-1 bg-amber-500/90 text-tea-bg text-[10px] uppercase tracking-wider rounded">
+                <span className="absolute top-3 left-3 px-2 py-1 bg-amber-500/90 text-tea-bg text-ui-10 uppercase tracking-wider rounded">
                   In Progress
                 </span>
               )}
 
               {/* Project Type Badge */}
-              <span className="absolute top-3 right-3 px-2 py-1 bg-tea-gold/60/90 text-tea-text text-[10px] uppercase tracking-wider rounded">
+              <span className="absolute top-3 right-3 px-2 py-1 bg-tea-gold/60/90 text-tea-text text-ui-10 uppercase tracking-wider rounded">
                 {PROJECT_TYPE_LABELS[project.projectType]}
               </span>
 
@@ -143,7 +143,7 @@ export const DesignPortfolio: React.FC<DesignPortfolioProps> = ({
               />
               <div className="absolute inset-0 bg-gradient-to-t from-tea-bg/80 to-transparent" />
               <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8">
-                <span className="inline-block px-2 py-1 bg-tea-gold text-tea-bg text-[10px] uppercase tracking-wider rounded mb-3">
+                <span className="inline-block px-2 py-1 bg-tea-gold text-tea-bg text-ui-10 uppercase tracking-wider rounded mb-3">
                   {PROJECT_TYPE_LABELS[selectedProject.projectType]}
                 </span>
                 <h2 className="font-serif text-3xl md:text-4xl text-tea-text mb-2">

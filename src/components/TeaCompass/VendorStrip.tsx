@@ -97,7 +97,7 @@ const PhotoButton: React.FC<{
         type="button"
         onClick={() => inputRef.current?.click()}
         disabled={state === 'loading'}
-        className={`flex items-center gap-1.5 text-[11px] px-2 py-1 rounded-md bg-tea-surface transition-colors shrink-0 ${
+        className={`flex items-center gap-1.5 text-ui-11 px-2 py-1 rounded-md bg-tea-surface transition-colors shrink-0 ${
           state === 'loading' ? 'animate-pulse text-tea-text-dim' :
           state === 'done' ? 'text-tea-gold' :
           'text-tea-text-dim hover:text-tea-text-sec'
@@ -409,7 +409,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                     className="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-md text-left text-tea-text-sec hover:bg-tea-bg hover:text-tea-text transition-colors"
                   >
                     <Camera size={14} strokeWidth={1.5} />
-                    <span className="text-[13px]">{vendorDetails?.businessCardUrl ? 'Update business card' : 'Business card'}</span>
+                    <span className="text-ui-13">{vendorDetails?.businessCardUrl ? 'Update business card' : 'Business card'}</span>
                     {vendorDetails?.businessCardUrl && <Check size={12} className="ml-auto text-tea-gold" />}
                   </button>
                   <button
@@ -418,7 +418,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                     className="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-md text-left text-tea-text-sec hover:bg-tea-bg hover:text-tea-text transition-colors"
                   >
                     <Image size={14} strokeWidth={1.5} />
-                    <span className="text-[13px]">{vendorDetails?.storefrontUrl ? 'Update storefront' : 'Storefront photo'}</span>
+                    <span className="text-ui-13">{vendorDetails?.storefrontUrl ? 'Update storefront' : 'Storefront photo'}</span>
                     {vendorDetails?.storefrontUrl && <Check size={12} className="ml-auto text-tea-gold" />}
                   </button>
                   <button
@@ -427,7 +427,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                     className="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-md text-left text-tea-text-sec hover:bg-tea-bg hover:text-tea-text transition-colors"
                   >
                     <MapPin size={14} strokeWidth={1.5} />
-                    <span className="text-[13px]">{vendorDetails?.lat != null ? 'Update location' : 'Drop pin'}</span>
+                    <span className="text-ui-13">{vendorDetails?.lat != null ? 'Update location' : 'Drop pin'}</span>
                     {vendorDetails?.lat != null && <Check size={12} className="ml-auto text-tea-gold" />}
                   </button>
                   <div className="h-px bg-tea-border my-1" />
@@ -437,7 +437,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                     className="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-md text-left text-tea-text-sec hover:bg-tea-bg hover:text-tea-text transition-colors"
                   >
                     <Phone size={14} strokeWidth={1.5} />
-                    <span className="text-[13px]">Contact details</span>
+                    <span className="text-ui-13">Contact details</span>
                     {(vendorDetails?.phone || vendorDetails?.whatsapp || vendorDetails?.wechat || vendorDetails?.line) && (
                       <Check size={12} className="ml-auto text-tea-gold" />
                     )}
@@ -507,7 +507,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                       }
                       setSearchOpen(false);
                     }}
-                    className="flex items-center gap-2 w-full px-3 py-2 text-left text-[13px] text-tea-gold hover:bg-tea-gold/[0.08] transition-colors"
+                    className="flex items-center gap-2 w-full px-3 py-2 text-left text-ui-13 text-tea-gold hover:bg-tea-gold/[0.08] transition-colors"
                   >
                     <Plus size={12} strokeWidth={2.5} />
                     {searchQuery.trim() ? `New vendor "${searchQuery.trim()}"` : 'New vendor…'}
@@ -545,10 +545,10 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                               setSearchQuery('');
                               setSearchOpen(false);
                             }}
-                            className="flex items-center justify-between w-full px-3 py-2 text-left text-[13px] text-tea-text-sec hover:bg-tea-gold/[0.06] hover:text-tea-text transition-colors"
+                            className="flex items-center justify-between w-full px-3 py-2 text-left text-ui-13 text-tea-text-sec hover:bg-tea-gold/[0.06] hover:text-tea-text transition-colors"
                           >
                             <span>{v.name}</span>
-                            {v.isRecent && <span className="text-[10px] text-tea-text-dim shrink-0 ml-2">recent</span>}
+                            {v.isRecent && <span className="text-ui-10 text-tea-text-dim shrink-0 ml-2">recent</span>}
                           </button>
                         ))}
                       </div>
@@ -611,7 +611,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
               key="linked"
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               transition={{ duration: 0.15 }}
-              className="flex items-center gap-1.5 mt-1 text-[11px] text-tea-text-dim"
+              className="flex items-center gap-1.5 mt-1 text-ui-11 text-tea-text-dim"
             >
               <Link size={10} className="shrink-0" />
               <a
@@ -636,7 +636,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
               key="suggest"
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               transition={{ duration: 0.15 }}
-              className="flex items-center gap-2 mt-1 text-[11px]"
+              className="flex items-center gap-2 mt-1 text-ui-11"
             >
               <span className="flex-1 text-tea-text-dim truncate">
                 Matches <span className="text-tea-text-sec">{suggestedCustomer.name}</span>
@@ -664,7 +664,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
               transition={{ duration: 0.15 }}
               type="button"
               onClick={() => onLinkedCustomerChange(vendorId)}
-              className="mt-1 flex items-center gap-1 text-[11px] text-tea-text-dim/50 hover:text-tea-text-dim transition-colors"
+              className="mt-1 flex items-center gap-1 text-ui-11 text-tea-text-dim/50 hover:text-tea-text-dim transition-colors"
             >
               <Link size={10} />
               Link supplier profile
@@ -699,7 +699,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                         href={`https://maps.google.com/?q=${vendorDetails.lat},${vendorDetails.lng}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 text-[11px] text-tea-text-dim hover:text-tea-gold transition-colors"
+                        className="flex items-center gap-1.5 text-ui-11 text-tea-text-dim hover:text-tea-gold transition-colors"
                       >
                         <MapPin size={12} />
                         <span className="num">{vendorDetails.lat.toFixed(4)}, {vendorDetails.lng.toFixed(4)}</span>

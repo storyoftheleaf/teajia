@@ -21,7 +21,7 @@ export const ServiceBadge: React.FC<ServiceBadgeProps> = ({ type }) => {
   const IconComponent = config.icon;
 
   return (
-    <span className={`inline-flex items-center gap-1 text-[10px] uppercase tracking-wider ${config.className}`}>
+    <span className={`inline-flex items-center gap-1 text-ui-10 uppercase tracking-wider ${config.className}`}>
       <IconComponent className="w-3 h-3" />
       {config.label}
     </span>

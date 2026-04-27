@@ -41,12 +41,12 @@ function hasTastingData(e: TeaCompassEntry): boolean {
 
 const SectionHeader: React.FC<{ label: React.ReactNode; count: number; right?: React.ReactNode }> = ({ label, count, right }) => (
   <div className="flex items-center justify-between mb-2.5">
-    <span className="text-[11px] uppercase tracking-[0.15em] text-tea-text-sec font-medium font-serif">
+    <span className="text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec font-medium font-serif">
       {label}
     </span>
     <span className="flex items-center gap-2">
       {right}
-      <span className="text-[10px] text-tea-text-dim num">{count}</span>
+      <span className="text-ui-10 text-tea-text-dim num">{count}</span>
     </span>
   </div>
 );
@@ -217,8 +217,8 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
     if (result.length === 0) {
       return (
         <div className="py-10 text-center space-y-1">
-          <p className="text-[13px] text-tea-text font-serif">Nothing in stock yet</p>
-          <p className="text-[12px] text-tea-text-dim">Buy a tea from Capture to add it here.</p>
+          <p className="text-ui-13 text-tea-text font-serif">Nothing in stock yet</p>
+          <p className="text-ui-12 text-tea-text-dim">Buy a tea from Capture to add it here.</p>
         </div>
       );
     }
@@ -272,8 +272,8 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
     if (result.length === 0) {
       return (
         <div className="py-10 text-center space-y-1">
-          <p className="text-[13px] text-tea-text font-serif">All caught up</p>
-          <p className="text-[12px] text-tea-text-dim">Every tea in your collection has tasting notes.</p>
+          <p className="text-ui-13 text-tea-text font-serif">All caught up</p>
+          <p className="text-ui-12 text-tea-text-dim">Every tea in your collection has tasting notes.</p>
         </div>
       );
     }
@@ -318,7 +318,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
                 }
                 count={setEntries.length}
                 right={
-                  <span className={`text-[10px] num font-medium ${allTasted ? 'text-tea-gold/70' : 'text-tea-text-dim'}`}>
+                  <span className={`text-ui-10 num font-medium ${allTasted ? 'text-tea-gold/70' : 'text-tea-text-dim'}`}>
                     {tastedCount}/{setEntries.length} tasted
                   </span>
                 }
@@ -329,25 +329,25 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
               {allTasted && verdictCounts && (
                 <div className="mt-2 rounded-lg bg-tea-surface/60 border border-tea-border px-3 py-2.5 space-y-2">
                   <div className="flex items-center gap-3">
-                    <span className="text-[10px] uppercase tracking-[0.12em] text-tea-text-dim font-serif">Set verdict</span>
+                    <span className="text-ui-10 uppercase tracking-[0.12em] text-tea-text-dim font-serif">Set verdict</span>
                     <div className="flex items-center gap-2.5">
                       {verdictCounts['love'] && (
-                        <span className="flex items-center gap-1 text-[11px] text-tea-text-sec">
+                        <span className="flex items-center gap-1 text-ui-11 text-tea-text-sec">
                           <Heart size={10} className="text-red-400/70" fill="currentColor" /> {verdictCounts['love']}
                         </span>
                       )}
                       {verdictCounts['like'] && (
-                        <span className="flex items-center gap-1 text-[11px] text-tea-text-sec">
+                        <span className="flex items-center gap-1 text-ui-11 text-tea-text-sec">
                           <ThumbsUp size={10} className="text-tea-gold/60" /> {verdictCounts['like']}
                         </span>
                       )}
                       {verdictCounts['neutral'] && (
-                        <span className="flex items-center gap-1 text-[11px] text-tea-text-dim">
+                        <span className="flex items-center gap-1 text-ui-11 text-tea-text-dim">
                           <Minus size={10} /> {verdictCounts['neutral']}
                         </span>
                       )}
                       {verdictCounts['pass'] && (
-                        <span className="flex items-center gap-1 text-[11px] text-tea-text-dim">
+                        <span className="flex items-center gap-1 text-ui-11 text-tea-text-dim">
                           <ThumbsDown size={10} /> {verdictCounts['pass']}
                         </span>
                       )}
@@ -357,7 +357,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
                     <button
                       type="button"
                       onClick={() => loveList.forEach((e) => updateEntry(e.id, { status: 'want' }))}
-                      className="w-full py-1.5 rounded-md bg-tea-gold/10 text-tea-gold text-[11px] font-medium hover:bg-tea-gold/15 transition-colors"
+                      className="w-full py-1.5 rounded-md bg-tea-gold/10 text-tea-gold text-ui-11 font-medium hover:bg-tea-gold/15 transition-colors"
                     >
                       Order {loveList.length} tea{loveList.length !== 1 ? 's' : ''}? → Mark as Want
                     </button>
@@ -385,7 +385,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
     if (result.length === 0) {
       return (
         <div className="py-10 text-center">
-          <p className="text-[13px] text-tea-text-dim font-serif">{emptyMessage}</p>
+          <p className="text-ui-13 text-tea-text-dim font-serif">{emptyMessage}</p>
         </div>
       );
     }
@@ -433,12 +433,12 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
           <CompassIcon className="w-9 h-9 text-tea-gold/30" />
         </div>
         <h3 className="font-serif text-lg text-tea-text mb-1.5 tracking-wide">No tea encounters yet</h3>
-        <p className="text-[13px] text-tea-text-sec text-center max-w-[240px] leading-relaxed mb-8 font-serif">
+        <p className="text-ui-13 text-tea-text-sec text-center max-w-[240px] leading-relaxed mb-8 font-serif">
           Every tea has a story. Start capturing the ones you taste, want, and buy.
         </p>
         <button
           onClick={onNewCapture}
-          className="px-8 py-3 bg-tea-gold text-tea-bg text-[10px] font-semibold uppercase tracking-[0.25em] hover:bg-tea-gold/90 transition-colors rounded-sm"
+          className="px-8 py-3 bg-tea-gold text-tea-bg text-ui-10 font-semibold uppercase tracking-[0.25em] hover:bg-tea-gold/90 transition-colors rounded-sm"
         >
           Begin
         </button>
@@ -459,7 +459,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
             value={internalSearchQuery}
             onChange={(e) => setInternalSearchQuery(e.target.value)}
             placeholder="Search by name, region, vendor…"
-            className="w-full bg-tea-surface/60 text-tea-text text-[13px] rounded-lg pl-8 pr-8 py-2
+            className="w-full bg-tea-surface/60 text-tea-text text-ui-13 rounded-lg pl-8 pr-8 py-2
                        outline-none placeholder:text-tea-text-dim focus:ring-1 focus:ring-tea-gold/40"
           />
           {internalSearchQuery && (
@@ -481,7 +481,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
             key={opt.value}
             type="button"
             onClick={() => setBrowseFilter(opt.value)}
-            className={`px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-colors whitespace-nowrap shrink-0 ${
+            className={`px-2.5 py-1.5 rounded-lg text-ui-11 font-medium transition-colors whitespace-nowrap shrink-0 ${
               browseFilter === opt.value
                 ? 'bg-tea-gold/15 text-tea-gold font-semibold'
                 : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-surface/60'
@@ -504,7 +504,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
         <button
           type="button"
           onClick={onNewCapture}
-          className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-tea-gold/10 text-tea-gold text-[11px] font-semibold transition-colors hover:bg-tea-gold/15 border border-tea-gold/20 shrink-0"
+          className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-tea-gold/10 text-tea-gold text-ui-11 font-semibold transition-colors hover:bg-tea-gold/15 border border-tea-gold/20 shrink-0"
         >
           <Plus size={11} />
           New
@@ -520,7 +520,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
             exit={{ opacity: 0, height: 0 }}
             className="overflow-hidden"
           >
-            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-tea-surface border border-tea-gold/20 text-[12px]">
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-tea-surface border border-tea-gold/20 text-ui-12">
               <SplitSquareHorizontal size={11} className="text-tea-gold shrink-0" />
               <span className="flex-1 text-tea-text-sec">{compareIds.size} selected</span>
               {compareIds.size >= 2 && (
@@ -532,7 +532,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
                   Compare →
                 </button>
               )}
-              <span className="text-tea-text-dim text-[10px]">tap cards to select</span>
+              <span className="text-tea-text-dim text-ui-10">tap cards to select</span>
               <button
                 type="button"
                 onClick={() => setCompareIds(new Set())}
@@ -555,7 +555,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-tea-surface text-[12px]">
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-tea-surface text-ui-12">
               <Trash2 size={12} className="text-tea-text-dim shrink-0" />
               <span className="flex-1 text-tea-text-sec">
                 {emptyEntries.length} entries have no name, notes, or tasting data
@@ -582,7 +582,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
       {/* Search empty state */}
       {searchQuery && filteredForView.length === 0 && (
         <div className="py-10 text-center">
-          <p className="text-[13px] text-tea-text-dim">Nothing matched — try different words.</p>
+          <p className="text-ui-13 text-tea-text-dim">Nothing matched — try different words.</p>
         </div>
       )}
 

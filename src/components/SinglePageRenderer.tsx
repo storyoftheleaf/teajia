@@ -52,17 +52,17 @@ const TYPE = {
   // Headlines — Cormorant Garamond, medium weight
   headline: 'text-[40px] font-display leading-[1.15] font-normal',
   subtitle: 'text-[30px] font-display leading-[1.25] font-light italic',
-  headlineSm: 'text-[28px] font-display leading-[1.3] font-normal',
+  headlineSm: 'text-ui-28 font-display leading-[1.3] font-normal',
   // Body — Lora, optimized for reading (sizes increased for ~47% mobile scale)
-  subhead: 'text-[26px] font-body leading-[1.4]',
+  subhead: 'text-ui-26 font-body leading-[1.4]',
   bodyLarge: 'text-[27px] font-body leading-[1.6]',
   body: 'text-[25px] font-body leading-[1.65]',         // was 21px → renders ~12px on mobile
   bodySm: 'text-[23px] font-body leading-[1.55]',
   bodyDense: 'text-[24px] font-body leading-[36px]',    // Multi-column, locked leading
   // Captions — Plus Jakarta Sans, small-caps, letterspaced (increased for legibility)
-  caption: 'text-[15px] font-caption leading-[1.4] tracking-[0.12em]',
-  folio: 'text-[13px] font-caption leading-[1.3] tracking-[0.18em]',
-  micro: 'text-[12px] font-caption leading-[1.2]',
+  caption: 'text-ui-15 font-caption leading-[1.4] tracking-[0.12em]',
+  folio: 'text-ui-13 font-caption leading-[1.3] tracking-[0.18em]',
+  micro: 'text-ui-12 font-caption leading-[1.2]',
 } as const;
 
 // --- Line Height Semantic Constants ---
@@ -878,7 +878,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                     <div className={`${paperBase} ${PAD.spacious} flex flex-col justify-start pt-20 pl-16 relative`} data-page-type="text">
                         {/* Vertical CJK accent strip */}
                         <div className="vertical-cjk absolute right-3 top-0 bottom-0 flex items-center justify-center pointer-events-none select-none" style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}>
-                            <span className="text-[20px] font-display tracking-[0.4em] opacity-[0.08]">{chineseName || '茶茶茶茶茶'}</span>
+                            <span className="text-ui-20 font-display tracking-[0.4em] opacity-[0.08]">{chineseName || '茶茶茶茶茶'}</span>
                         </div>
                         <div className="relative z-10">
                             {/* Chapter number — display font, light weight */}
@@ -1025,7 +1025,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                          </div>
                          {/* Vertical CJK accent strip */}
                          <div className="vertical-cjk absolute left-3 top-0 bottom-0 flex items-center justify-center pointer-events-none select-none" style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}>
-                             <span className="text-[20px] font-display tracking-[0.4em] opacity-15">{chineseNameSplit || '茶茶茶茶茶'}</span>
+                             <span className="text-ui-20 font-display tracking-[0.4em] opacity-15">{chineseNameSplit || '茶茶茶茶茶'}</span>
                          </div>
                     </div>
                 );
@@ -1035,7 +1035,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                 const chapters = content.split('|');
                 return (
                     <div className={`${paperBase} ${PAD.spacious} flex flex-col justify-center`}>
-                         <h2 className={`font-display font-light tracking-[0.1em] text-[28px] mb-16 text-center border-b border-current/8 pb-6 mx-8`}>Contents</h2>
+                         <h2 className={`font-display font-light tracking-[0.1em] text-ui-28 mb-16 text-center border-b border-current/8 pb-6 mx-8`}>Contents</h2>
                          <div className="space-y-8 px-6">
                              {isEditable ? (
                                  <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${TYPE.body} leading-loose`} placeholder="Chapter 1|Chapter 2..." tag="div" readOnly={readOnly} />
@@ -2087,7 +2087,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                             {/* Annotation circles */}
                             {annotations.map((ann, i) => (
                                 <div key={i} className="absolute z-20 pointer-events-none" style={{ left: `${ann.x}%`, top: `${ann.y}%`, transform: 'translate(-50%, -50%)' }}>
-                                    <div className="w-8 h-8 rounded-full bg-tea-gold text-tea-bg flex items-center justify-center text-[14px] font-bold shadow-lg border-2 border-tea-bg">
+                                    <div className="w-8 h-8 rounded-full bg-tea-gold text-tea-bg flex items-center justify-center text-ui-14 font-bold shadow-lg border-2 border-tea-bg">
                                         {i + 1}
                                     </div>
                                 </div>
@@ -2098,7 +2098,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                                 <div className="space-y-2">
                                     {annotations.map((ann, i) => (
                                         <div key={i} className="flex items-start gap-3">
-                                            <span className="w-5 h-5 rounded-full bg-tea-gold/20 text-tea-gold flex items-center justify-center text-[12px] font-bold shrink-0">{i + 1}</span>
+                                            <span className="w-5 h-5 rounded-full bg-tea-gold/20 text-tea-gold flex items-center justify-center text-ui-12 font-bold shrink-0">{i + 1}</span>
                                             <span className={`${TYPE.caption} ${LH.tight} opacity-70`}>{ann.label}</span>
                                         </div>
                                     ))}
@@ -2133,7 +2133,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                                     const initials = speaker.trim().split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
                                     return (
                                         <div key={i} className={`flex items-end gap-3 ${isFirst ? 'flex-row' : 'flex-row-reverse'}`}>
-                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-bold shrink-0 ${isFirst ? 'bg-tea-gold/20 text-tea-gold' : 'bg-tea-text/10 text-tea-text-sec'}`}>
+                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-ui-12 font-bold shrink-0 ${isFirst ? 'bg-tea-gold/20 text-tea-gold' : 'bg-tea-text/10 text-tea-text-sec'}`}>
                                                 {initials}
                                             </div>
                                             <div className={`max-w-[70%] px-5 py-3 ${isFirst ? 'bg-tea-gold/8 text-tea-text' : 'bg-tea-surface text-tea-text-sec'}`}>

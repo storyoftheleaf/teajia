@@ -57,13 +57,13 @@ export const JourneysView: React.FC<JourneysViewProps> = ({ onBack }) => {
                         </div>
                       </div>
                       <div className="flex items-center gap-3 mb-2">
-                        <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-sm ${DIFFICULTY_COLORS[collection.difficulty]}`}>
+                        <span className={`text-ui-10 uppercase tracking-wider px-2 py-0.5 rounded-sm ${DIFFICULTY_COLORS[collection.difficulty]}`}>
                           {collection.difficulty}
                         </span>
-                        <span className="text-[11px] text-tea-text/40">
+                        <span className="text-ui-11 text-tea-text/40">
                           {collection.estimatedDuration}
                         </span>
-                        <span className="text-[11px] text-tea-text/40">
+                        <span className="text-ui-11 text-tea-text/40">
                           {collection.guideSteps.length} steps
                         </span>
                       </div>
@@ -87,7 +87,7 @@ export const JourneysView: React.FC<JourneysViewProps> = ({ onBack }) => {
                           <div className="absolute left-[11px] top-6 bottom-0 w-px bg-tea-gold/20" />
                         )}
                         <div className="absolute left-0 top-0 w-6 h-6 rounded-full bg-tea-gold/10 flex items-center justify-center">
-                          <span className="text-[10px] font-medium text-tea-gold">{step.order}</span>
+                          <span className="text-ui-10 font-medium text-tea-gold">{step.order}</span>
                         </div>
                         <div>
                           <h4 className="font-serif text-base text-tea-text mb-1">
@@ -103,7 +103,7 @@ export const JourneysView: React.FC<JourneysViewProps> = ({ onBack }) => {
                   {collection.tags.length > 0 && (
                     <div className="flex flex-wrap gap-2 mt-5 pt-4" style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub)' }}>
                       {collection.tags.map(tag => (
-                        <span key={tag} className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-sm bg-tea-text/5 text-tea-text/50">
+                        <span key={tag} className="text-ui-10 uppercase tracking-wider px-2 py-0.5 rounded-sm bg-tea-text/5 text-tea-text/50">
                           {tag}
                         </span>
                       ))}

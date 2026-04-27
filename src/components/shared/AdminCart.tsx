@@ -569,7 +569,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
               {isPurchase ? 'Purchase Order' : 'Registry Manifest'}
             </h2>
           </div>
-          <p className="text-[10px] text-tea-text-sec uppercase tracking-widest mt-0.5">
+          <p className="text-ui-10 text-tea-text-sec uppercase tracking-widest mt-0.5">
             {customerName.trim()
               ? <>{isPurchase ? 'From' : 'For'} <span className="text-tea-gold/80 normal-case tracking-normal">{customerName}</span></>
               : isPurchase ? 'Ordering from vendor' : 'Pending Items'}
@@ -580,7 +580,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
           {isEmpty && (
             <button
               onClick={() => setCartDirection(isPurchase ? 'sale' : 'purchase')}
-              className="text-[10px] text-tea-text-sec hover:text-tea-gold transition-colors flex items-center gap-1 px-2 py-1.5 hover:bg-tea-surface rounded border border-tea-border"
+              className="text-ui-10 text-tea-text-sec hover:text-tea-gold transition-colors flex items-center gap-1 px-2 py-1.5 hover:bg-tea-surface rounded border border-tea-border"
               title={isPurchase ? 'Switch to Sale' : 'Switch to Purchase'}
             >
               {isPurchase ? <ArrowUpRight size={12} /> : <ArrowDownLeft size={12} />}
@@ -589,7 +589,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
           )}
           {!isEmpty && (
             <button onClick={onClearCart}
-              className="text-[10px] text-tea-text-sec hover:text-tea-gold transition-colors flex items-center gap-1 px-2 py-1 hover:bg-tea-surface rounded">
+              className="text-ui-10 text-tea-text-sec hover:text-tea-gold transition-colors flex items-center gap-1 px-2 py-1 hover:bg-tea-surface rounded">
               <Trash2 size={12} /> Clear
             </button>
           )}
@@ -618,7 +618,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
               placeholder={isPurchase ? 'Vendor Name *' : 'Client Name *'}
             />
             {selectedCustomerId && (
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] text-green-400 uppercase tracking-wider">Linked</span>
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-ui-9 text-green-400 uppercase tracking-wider">Linked</span>
             )}
 
             {showSuggestions && (
@@ -635,7 +635,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
                       {c.company && <span className="text-tea-text-sec text-xs ml-2">{c.company}</span>}
                     </div>
                     {c.tags?.length > 0 && (
-                      <span className="text-[9px] text-tea-text-sec uppercase">{c.tags[0]}</span>
+                      <span className="text-ui-9 text-tea-text-sec uppercase">{c.tags[0]}</span>
                     )}
                   </button>
                 ))}
@@ -658,7 +658,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
                   selectCustomer(allCustomers.find(c => c.id === dedupSuggestion.id)!);
                   setDedupSuggestion(null);
                 }}
-                className="text-tea-gold font-semibold uppercase tracking-wider text-[10px] ml-2 hover:text-tea-gold/80"
+                className="text-tea-gold font-semibold uppercase tracking-wider text-ui-10 ml-2 hover:text-tea-gold/80"
               >
                 Use This
               </button>
@@ -701,7 +701,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
             )}
             <div className="text-center">
               <p className="font-serif italic text-base mb-1">{isPurchase ? 'Purchase Order Empty' : 'Registry Empty'}</p>
-              <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec/70 mb-4">{isPurchase ? 'Add items to order from vendor' : 'Select items from catalog'}</p>
+              <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec/70 mb-4">{isPurchase ? 'Add items to order from vendor' : 'Select items from catalog'}</p>
               <button
                 onClick={() => { onClose(); navigate('/admin/inventory'); }}
                 className="text-xs text-tea-gold hover:text-tea-gold/80 transition-colors flex items-center gap-1.5 mx-auto px-3 py-1.5 rounded-lg hover:bg-tea-surface border border-tea-border"
@@ -730,7 +730,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
                       <Trash2 size={12} />
                     </button>
                   </div>
-                  <p className="text-[10px] text-tea-text-sec truncate mb-2 font-serif italic">{item.product.productName}</p>
+                  <p className="text-ui-10 text-tea-text-sec truncate mb-2 font-serif italic">{item.product.productName}</p>
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-2 bg-tea-bg rounded-lg border border-tea-border px-1.5 py-0.5">
                       <input
@@ -739,7 +739,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
                         onChange={(e) => updateQuantity(idx, Number(e.target.value))}
                         className="w-8 bg-transparent text-center text-xs outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg num text-tea-text"
                       />
-                      <span className="text-[9px] text-tea-text-sec border-l border-tea-border pl-1.5 uppercase tracking-[0.2em]">
+                      <span className="text-ui-9 text-tea-text-sec border-l border-tea-border pl-1.5 uppercase tracking-[0.2em]">
                         {item.product.type === 'Teaware' ? 'u' : 'g'}
                       </span>
                     </div>
@@ -750,7 +750,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
                   {/* Stock availability — only relevant for sales */}
                   {!isPurchase && (
                     <div className="flex items-center justify-between mt-1">
-                      <span className={`text-[9px] num ${item.quantity > item.product.stockGrams ? 'text-tea-gold' : 'text-tea-text-sec/50'}`}>
+                      <span className={`text-ui-9 num ${item.quantity > item.product.stockGrams ? 'text-tea-gold' : 'text-tea-text-sec/50'}`}>
                         {item.quantity}{item.product.type === 'Teaware' ? 'u' : 'g'} / {item.product.stockGrams}{item.product.type === 'Teaware' ? 'u' : 'g'} avail.
                         {item.quantity > item.product.stockGrams && ' — exceeds stock'}
                       </span>
@@ -767,7 +767,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
       <div className="bg-tea-surface border-t border-tea-border p-6 space-y-4 z-20 flex-shrink-0" style={{ boxShadow: '0 -10px 40px var(--tea-accent-sub)' }}>
         <div className="flex gap-4">
           <div className="flex-1">
-            <label className="text-[9px] text-tea-text-sec uppercase block mb-1">Currency</label>
+            <label className="text-ui-9 text-tea-text-sec uppercase block mb-1">Currency</label>
             <div className="relative bg-tea-bg border border-tea-border rounded-lg px-2">
               <select
                 value={displayCurrency}
@@ -779,7 +779,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
             </div>
           </div>
           <div className="flex-1">
-            <label className="text-[9px] text-tea-text-sec uppercase block mb-1">Shipping (USD)</label>
+            <label className="text-ui-9 text-tea-text-sec uppercase block mb-1">Shipping (USD)</label>
             <div className="relative bg-tea-bg border border-tea-border rounded-lg px-2">
               <input
                 type="number"
@@ -794,7 +794,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
         {/* Source Event (sales only) */}
         {!isPurchase && allEvents.length > 0 && (
           <div>
-            <label className="text-[9px] text-tea-text-sec uppercase block mb-1">Source Event (Optional)</label>
+            <label className="text-ui-9 text-tea-text-sec uppercase block mb-1">Source Event (Optional)</label>
             <div className="relative bg-tea-bg border border-tea-border rounded-lg px-2">
               <select
                 value={sourceEventId || ''}

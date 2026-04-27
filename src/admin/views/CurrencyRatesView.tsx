@@ -53,7 +53,7 @@ export const CurrencyRatesView: React.FC = () => {
     <div className="px-4 md:px-6 pt-6 pb-nav-gap max-w-3xl mx-auto">
       <header className="mb-10">
         <h1 className={`${TYPOGRAPHY_CLASSES.h2} text-tea-text mb-2`}>Exchange rates</h1>
-        <p className="text-tea-text-sec text-[14px] leading-[1.6] max-w-xl">
+        <p className="text-tea-text-sec text-ui-14 leading-[1.6] max-w-xl">
           USD is the base currency. Each rate is the number of foreign units that
           equal one US dollar (e.g. NT 32.3 means 32.3 NT per 1 USD). All product
           costs, invoice totals, and wholesale lines convert through this table.
@@ -61,16 +61,16 @@ export const CurrencyRatesView: React.FC = () => {
       </header>
 
       {error && (
-        <div className="mb-6 text-tea-text-sec italic text-[14px]">{error}</div>
+        <div className="mb-6 text-tea-text-sec italic text-ui-14">{error}</div>
       )}
 
       {rates === null && !error && (
-        <div className="text-tea-text-sec italic text-[14px]">Loading rates.</div>
+        <div className="text-tea-text-sec italic text-ui-14">Loading rates.</div>
       )}
 
       {rates !== null && (
         <div>
-          <div className="text-tea-text-sec text-[11px] uppercase tracking-[0.12em] mb-4">
+          <div className="text-tea-text-sec text-ui-11 uppercase tracking-[0.12em] mb-4">
             Currencies
           </div>
           <div>
@@ -84,7 +84,7 @@ export const CurrencyRatesView: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setAdding(true)}
-                className="text-tea-text-sec hover:text-tea-gold transition-colors text-[14px] font-display"
+                className="text-tea-text-sec hover:text-tea-gold transition-colors text-ui-14 font-display"
               >
                 Add a currency
               </button>
@@ -150,15 +150,15 @@ const RateRowView: React.FC<RateRowViewProps> = ({ row, onChange }) => {
   return (
     <div className="py-4 border-b border-tea-border last:border-b-0">
       <div className="flex items-baseline gap-4 flex-wrap">
-        <div className="font-display text-[17px] text-tea-text min-w-[80px]">
+        <div className="font-display text-ui-17 text-tea-text min-w-[80px]">
           {row.currency}
           {isUSD && (
-            <span className="ml-2 text-tea-text-sec text-[11px] uppercase tracking-[0.1em]">Base</span>
+            <span className="ml-2 text-tea-text-sec text-ui-11 uppercase tracking-[0.1em]">Base</span>
           )}
         </div>
 
-        <label className="flex items-baseline gap-2 text-[14px]">
-          <span className="text-tea-text-sec text-[12px] uppercase tracking-[0.08em]">per 1 USD</span>
+        <label className="flex items-baseline gap-2 text-ui-14">
+          <span className="text-tea-text-sec text-ui-12 uppercase tracking-[0.08em]">per 1 USD</span>
           <input
             type="number"
             inputMode="decimal"
@@ -167,16 +167,16 @@ const RateRowView: React.FC<RateRowViewProps> = ({ row, onChange }) => {
             value={draft}
             onChange={e => setDraft(e.target.value)}
             disabled={isUSD || busy !== null}
-            className="bg-transparent border-b border-tea-border focus:border-tea-gold outline-none text-tea-text font-body text-[15px] py-1 w-28 transition-colors disabled:text-tea-text-sec"
+            className="bg-transparent border-b border-tea-border focus:border-tea-gold outline-none text-tea-text font-body text-ui-15 py-1 w-28 transition-colors disabled:text-tea-text-sec"
             aria-label={`${row.currency} rate`}
           />
         </label>
 
-        <div className="text-tea-text-sec text-[12px]">
+        <div className="text-tea-text-sec text-ui-12">
           {inUse ? `${row.usage_count} in use` : 'Unused'}
         </div>
 
-        <div className="ml-auto flex items-baseline gap-5 text-[13px]">
+        <div className="ml-auto flex items-baseline gap-5 text-ui-13">
           {dirty && (
             <button
               type="button"
@@ -202,17 +202,17 @@ const RateRowView: React.FC<RateRowViewProps> = ({ row, onChange }) => {
       </div>
 
       {row.last_updated && (
-        <div className="mt-1 text-tea-text-sec text-[12px]">
+        <div className="mt-1 text-tea-text-sec text-ui-12">
           Last updated {formatDate(row.last_updated)}
         </div>
       )}
 
       {confirmingDelete && (
         <div className="mt-3 flex items-center justify-between gap-4">
-          <p className="text-tea-text-sec italic text-[13px]">
+          <p className="text-tea-text-sec italic text-ui-13">
             Delete {row.currency}? This cannot be undone.
           </p>
-          <div className="flex items-baseline gap-5 text-[13px] shrink-0">
+          <div className="flex items-baseline gap-5 text-ui-13 shrink-0">
             <button
               type="button"
               onClick={() => setConfirmingDelete(false)}
@@ -234,7 +234,7 @@ const RateRowView: React.FC<RateRowViewProps> = ({ row, onChange }) => {
       )}
 
       {error && (
-        <p className="mt-2 text-tea-text-sec italic text-[13px]">{error}</p>
+        <p className="mt-2 text-tea-text-sec italic text-ui-13">{error}</p>
       )}
     </div>
   );
@@ -276,7 +276,7 @@ const AddRateForm: React.FC<AddRateFormProps> = ({ onCancel, onSaved }) => {
 
   return (
     <div className="space-y-4 max-w-md">
-      <div className="text-tea-text-sec text-[11px] uppercase tracking-[0.12em]">
+      <div className="text-tea-text-sec text-ui-11 uppercase tracking-[0.12em]">
         New currency
       </div>
       <input
@@ -286,7 +286,7 @@ const AddRateForm: React.FC<AddRateFormProps> = ({ onCancel, onSaved }) => {
         placeholder="Code (e.g. EUR, GBP)"
         autoFocus
         maxLength={12}
-        className="w-full bg-transparent border-b border-tea-border focus:border-tea-gold outline-none text-tea-text font-body text-[15px] py-2 transition-colors"
+        className="w-full bg-transparent border-b border-tea-border focus:border-tea-gold outline-none text-tea-text font-body text-ui-15 py-2 transition-colors"
       />
       <input
         type="number"
@@ -296,9 +296,9 @@ const AddRateForm: React.FC<AddRateFormProps> = ({ onCancel, onSaved }) => {
         value={rate}
         onChange={e => setRate(e.target.value)}
         placeholder="Rate per 1 USD (e.g. 0.92)"
-        className="w-full bg-transparent border-b border-tea-border focus:border-tea-gold outline-none text-tea-text font-body text-[15px] py-2 transition-colors"
+        className="w-full bg-transparent border-b border-tea-border focus:border-tea-gold outline-none text-tea-text font-body text-ui-15 py-2 transition-colors"
       />
-      <div className="flex items-center justify-between text-[13px] pt-1">
+      <div className="flex items-center justify-between text-ui-13 pt-1">
         <button
           type="button"
           onClick={onCancel}
@@ -317,7 +317,7 @@ const AddRateForm: React.FC<AddRateFormProps> = ({ onCancel, onSaved }) => {
         </button>
       </div>
       {error && (
-        <p className="text-tea-text-sec italic text-[13px]">{error}</p>
+        <p className="text-tea-text-sec italic text-ui-13">{error}</p>
       )}
     </div>
   );

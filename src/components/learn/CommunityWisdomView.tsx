@@ -85,11 +85,11 @@ export const CommunityWisdomView: React.FC<CommunityWisdomViewProps> = ({ onBack
                 <div className="p-5">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-sm ${WISDOM_TYPE_COLORS[entry.type] || ''}`}>
+                      <span className={`text-ui-10 uppercase tracking-wider px-2 py-0.5 rounded-sm ${WISDOM_TYPE_COLORS[entry.type] || ''}`}>
                         {WISDOM_TYPE_LABELS[entry.type]}
                       </span>
                       {entry.teaReferenced && (
-                        <span className="text-[10px] text-tea-text/40 italic">
+                        <span className="text-ui-10 text-tea-text/40 italic">
                           {entry.teaReferenced}
                         </span>
                       )}
@@ -119,7 +119,7 @@ export const CommunityWisdomView: React.FC<CommunityWisdomViewProps> = ({ onBack
                     {entry.tags.length > 0 && (
                       <div className="flex flex-wrap gap-1.5">
                         {entry.tags.map(tag => (
-                          <span key={tag} className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-sm bg-tea-text/5 text-tea-text/50">
+                          <span key={tag} className="text-ui-10 uppercase tracking-wider px-2 py-0.5 rounded-sm bg-tea-text/5 text-tea-text/50">
                             {tag}
                           </span>
                         ))}
@@ -130,7 +130,7 @@ export const CommunityWisdomView: React.FC<CommunityWisdomViewProps> = ({ onBack
                     <div className="w-5 h-5 rounded-full bg-tea-gold/20 flex items-center justify-center">
                       <Icons.User className="w-3 h-3 text-tea-gold" />
                     </div>
-                    <span className="text-[11px] text-tea-text/50">
+                    <span className="text-ui-11 text-tea-text/50">
                       {entry.authorName}
                     </span>
                   </div>

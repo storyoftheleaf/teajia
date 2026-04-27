@@ -132,7 +132,7 @@ const VenueGuide: React.FC<VenueGuideProps> = ({ venueGuide, mapLink, className 
             <div className="flex items-start gap-3 p-4 bg-tea-surface border border-tea-border rounded-md">
               <Car className="w-4 h-4 text-tea-gold mt-0.5 shrink-0" />
               <div>
-                <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec mb-1">Parking</p>
+                <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-1">Parking</p>
                 <p className="text-sm text-tea-text-sec leading-relaxed">{venueGuide.parking_notes}</p>
               </div>
             </div>
@@ -141,7 +141,7 @@ const VenueGuide: React.FC<VenueGuideProps> = ({ venueGuide, mapLink, className 
             <div className="flex items-start gap-3 p-4 bg-tea-surface border border-tea-border rounded-md">
               <Train className="w-4 h-4 text-tea-gold mt-0.5 shrink-0" />
               <div>
-                <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec mb-1">Transit</p>
+                <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-1">Transit</p>
                 <p className="text-sm text-tea-text-sec leading-relaxed">{venueGuide.transit_notes}</p>
               </div>
             </div>
@@ -150,7 +150,7 @@ const VenueGuide: React.FC<VenueGuideProps> = ({ venueGuide, mapLink, className 
             <div className="flex items-start gap-3 p-4 bg-tea-surface border border-tea-border rounded-md">
               <DoorOpen className="w-4 h-4 text-tea-gold mt-0.5 shrink-0" />
               <div>
-                <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec mb-1">On Arrival</p>
+                <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-1">On Arrival</p>
                 <p className="text-sm text-tea-text-sec leading-relaxed">{venueGuide.arrival_notes}</p>
               </div>
             </div>

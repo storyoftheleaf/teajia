@@ -68,10 +68,10 @@ export const BriefingCardsEditor: React.FC<BriefingCardsEditorProps> = ({
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-[11px] uppercase tracking-[0.18em] text-tea-text-sec font-medium">
+          <h3 className="text-ui-11 uppercase tracking-[0.18em] text-tea-text-sec font-medium">
             Guest Briefing
           </h3>
-          <p className="text-[11px] text-tea-text-dim mt-0.5">
+          <p className="text-ui-11 text-tea-text-dim mt-0.5">
             Cards shown to guests after approval.
           </p>
         </div>
@@ -90,7 +90,7 @@ export const BriefingCardsEditor: React.FC<BriefingCardsEditorProps> = ({
           >
             {/* Card header */}
             <div className="flex items-center justify-between">
-              <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim">
+              <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim">
                 Card {idx + 1}
               </span>
               <div className="flex items-center gap-1">
@@ -183,7 +183,7 @@ export const BriefingCardsEditor: React.FC<BriefingCardsEditorProps> = ({
           <Plus size={12} /> Add Card
         </button>
         {cards.length > 0 && (
-          <span className="text-[10px] text-tea-text-dim">
+          <span className="text-ui-10 text-tea-text-dim">
             Keep each card to 1–2 sentences.
           </span>
         )}

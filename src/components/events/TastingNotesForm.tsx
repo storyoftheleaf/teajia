@@ -187,7 +187,7 @@ const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, cla
             />
           ))}
         </div>
-        <span className="text-[11px] text-tea-text-dim ml-1" style={{ fontFamily: 'var(--font-mono)' }}>
+        <span className="text-ui-11 text-tea-text-dim ml-1" style={{ fontFamily: 'var(--font-mono)' }}>
           {currentStep + 1} / {sortedMenu.length}
         </span>
       </div>
@@ -198,7 +198,7 @@ const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, cla
         <div className="mb-4">
           <div className="flex items-center gap-2 mb-1">
             {currentItem.productType && (
-              <span className="text-[10px] uppercase tracking-[0.2em] text-tea-gold">
+              <span className="text-ui-10 uppercase tracking-[0.2em] text-tea-gold">
                 {currentItem.productType}
               </span>
             )}
@@ -213,7 +213,7 @@ const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, cla
 
         {/* Rating: 5 tea leaves */}
         <div className="mb-4">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec mb-2" style={{ fontFamily: 'var(--font-display)' }}>
+          <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-2" style={{ fontFamily: 'var(--font-display)' }}>
             Rating
           </p>
           <div className="flex gap-2">

@@ -297,11 +297,11 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
             >
               <X size={18} />
             </button>
-            <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-dim">{today}</p>
+            <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim">{today}</p>
           </div>
 
           <div className="mt-4 mb-5">
-            <h2 className="font-serif text-[26px] leading-tight text-tea-text">New Invoice</h2>
+            <h2 className="font-serif text-ui-26 leading-tight text-tea-text">New Invoice</h2>
             <p className="text-xs text-tea-text-sec mt-1 tracking-wide">Teajia · Draft</p>
           </div>
 
@@ -315,7 +315,7 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
 
             {/* Customer — labeled "For" */}
             <div ref={customerRef} className="relative">
-              <label className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec mb-2 block">For</label>
+              <label className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-2 block">For</label>
               <div className="relative">
                 <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-text-sec pointer-events-none" />
                 <input
@@ -342,7 +342,7 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
                       <span className="text-xs text-tea-text-sec">· {customerInfo.company}</span>
                     )}
                     {customerInfo.preferredCurrency && customerInfo.preferredCurrency !== 'UNK' && (
-                      <span className="text-[10px] text-tea-gold bg-tea-gold/10 px-2 py-0.5 rounded-full">
+                      <span className="text-ui-10 text-tea-gold bg-tea-gold/10 px-2 py-0.5 rounded-full">
                         prefers {customerInfo.preferredCurrency}
                       </span>
                     )}
@@ -363,7 +363,7 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
                           const Icon = CONTACT_ICONS[c.channel] ?? Hash;
                           const label = CONTACT_LABELS[c.channel] ?? 'Other';
                           return (
-                            <span key={i} className="flex items-center gap-1 text-[10px] text-tea-text-sec bg-tea-surface border border-tea-border rounded-full px-2 py-0.5">
+                            <span key={i} className="flex items-center gap-1 text-ui-10 text-tea-text-sec bg-tea-surface border border-tea-border rounded-full px-2 py-0.5">
                               <Icon size={10} className="shrink-0" />
                               <span className="text-tea-text-dim">{label}</span>
                               <span className="text-tea-text">{c.handle}</span>
@@ -391,7 +391,7 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
                         )}
                       </div>
                       {c.preferredCurrency && c.preferredCurrency !== 'UNK' && (
-                        <span className="text-[10px] text-tea-text-dim shrink-0">{c.preferredCurrency}</span>
+                        <span className="text-ui-10 text-tea-text-dim shrink-0">{c.preferredCurrency}</span>
                       )}
                     </button>
                   ))}
@@ -401,7 +401,7 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
 
             {/* Currency — pill tabs, no dropdown */}
             <div>
-              <label className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec mb-2.5 block">Currency</label>
+              <label className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-2.5 block">Currency</label>
               <div className="flex flex-wrap gap-1.5">
                 {CURRENCIES.map(c => (
                   <button
@@ -422,7 +422,7 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
             {/* Line Items — numbered like a tea menu */}
             <div>
               <div className="flex items-center justify-between mb-4">
-                <label className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec">Items</label>
+                <label className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec">Items</label>
                 <button
                   onClick={addItem}
                   className="flex items-center gap-1 text-xs text-tea-gold hover:text-tea-gold/70 transition-colors"
@@ -441,7 +441,7 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
 
                       {/* Ordinal number — editorial gold numeral */}
                       <span
-                        className="font-serif text-[26px] leading-none text-tea-gold/25 shrink-0 select-none tabular-nums"
+                        className="font-serif text-ui-26 leading-none text-tea-gold/25 shrink-0 select-none tabular-nums"
                         style={{ minWidth: '2rem', textAlign: 'right' }}
                       >
                         {ordinal(index + 1)}
@@ -552,7 +552,7 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
 
             {/* Notes — minimal underline style */}
             <div>
-              <label className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec mb-2 block">Notes</label>
+              <label className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-2 block">Notes</label>
               <textarea
                 value={notes}
                 onChange={e => setNotes(e.target.value)}
@@ -593,14 +593,14 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
 
           {/* Total — large editorial display */}
           <div className="flex items-baseline justify-between py-3.5 border-t border-tea-border">
-            <span className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec">Total</span>
+            <span className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec">Total</span>
             <div className="text-right">
               <span className="font-serif text-[22px] leading-none text-tea-text tabular-nums">
                 {formatCurrency(total, currency, rates)}
               </span>
               <span className="text-xs text-tea-text-sec ml-1.5">{currency}</span>
               {currency !== 'USD' && (
-                <p className="text-[10px] text-tea-text-dim tabular-nums mt-1">${total.toFixed(2)} USD</p>
+                <p className="text-ui-10 text-tea-text-dim tabular-nums mt-1">${total.toFixed(2)} USD</p>
               )}
             </div>
           </div>

@@ -64,7 +64,7 @@ const Field = ({
   className?: string;
 }) => (
   <div className={className}>
-    <label className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec block mb-1.5">{label}</label>
+    <label className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec block mb-1.5">{label}</label>
     {children}
   </div>
 );
@@ -198,7 +198,7 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
 
             {/* Identity */}
             <section className="space-y-5 pb-8">
-              <h3 className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec font-medium">Event Details</h3>
+              <h3 className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec font-medium">Event Details</h3>
               <Field label="Title *">
                 <input
                   type="text"
@@ -232,7 +232,7 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
 
             {/* Scheduling */}
             <section className="space-y-5 py-8">
-              <h3 className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec font-medium">Scheduling</h3>
+              <h3 className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec font-medium">Scheduling</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Field label="Start Date & Time *">
                   <input
@@ -264,12 +264,12 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
               {/* Repeat dates */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec">Repeats</span>
+                  <span className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec">Repeats</span>
                   <div className="flex gap-3">
                     <button
                       type="button"
                       onClick={() => setRepeatDates([])}
-                      className={`text-[11px] font-medium transition-colors pb-0.5 ${
+                      className={`text-ui-11 font-medium transition-colors pb-0.5 ${
                         repeatDates.length === 0
                           ? 'text-tea-gold border-b border-tea-gold'
                           : 'text-tea-text-sec hover:text-tea-text'
@@ -280,7 +280,7 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
                     <button
                       type="button"
                       onClick={() => { if (repeatDates.length === 0) setRepeatDates(['']); }}
-                      className={`text-[11px] font-medium transition-colors pb-0.5 ${
+                      className={`text-ui-11 font-medium transition-colors pb-0.5 ${
                         repeatDates.length > 0
                           ? 'text-tea-gold border-b border-tea-gold'
                           : 'text-tea-text-sec hover:text-tea-text'
@@ -292,7 +292,7 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
                 </div>
                 {repeatDates.length > 0 && (
                   <div className="space-y-2 pl-1">
-                    <p className="text-[10px] text-tea-text-dim">Additional occurrences. Same duration applies to each.</p>
+                    <p className="text-ui-10 text-tea-text-dim">Additional occurrences. Same duration applies to each.</p>
                     {repeatDates.map((d, i) => (
                       <div key={i} className="flex items-center gap-2">
                         <input
@@ -350,16 +350,16 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
 
             {/* Format */}
             <section className="space-y-5 py-8">
-              <h3 className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec font-medium">Format</h3>
+              <h3 className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec font-medium">Format</h3>
               <Field label="Gathering Type">
-                <p className="text-[11px] text-tea-text-dim mb-2">Intimacy &amp; access level</p>
+                <p className="text-ui-11 text-tea-text-dim mb-2">Intimacy &amp; access level</p>
                 <div className="flex gap-4 pt-1">
                   {(['private', 'semi-private', 'open', 'bespoke'] as GatheringType[]).map((opt) => (
                     <button
                       key={opt}
                       type="button"
                       onClick={() => setGatheringType(opt)}
-                      className={`text-[11px] font-medium capitalize transition-colors pb-0.5 ${
+                      className={`text-ui-11 font-medium capitalize transition-colors pb-0.5 ${
                         gatheringType === opt
                           ? 'text-tea-gold border-b border-tea-gold'
                           : 'text-tea-text-sec hover:text-tea-text'
@@ -388,7 +388,7 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
 
             {/* Location */}
             <section className="space-y-4 pt-8">
-              <h3 className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec font-medium">Location</h3>
+              <h3 className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec font-medium">Location</h3>
 
               {venues.length === 0 ? (
                 <div className="flex items-center justify-between py-1">
@@ -421,7 +421,7 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
                       <ChevronDown size={12} className="absolute right-0 top-1/2 -translate-y-1/2 text-tea-text-sec pointer-events-none" />
                     </div>
                     {selectedVenueId && (
-                      <p className="text-[11px] text-tea-text-dim mt-1.5">
+                      <p className="text-ui-11 text-tea-text-dim mt-1.5">
                         Select the spaces within this venue where the event will be held
                       </p>
                     )}
@@ -431,16 +431,16 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
                   {selectedVenue && selectedVenue.spaces.length > 0 && (
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec">Spaces</p>
+                        <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec">Spaces</p>
                         {selectedSpaceIds.length === 0 && (
-                          <p className="text-[11px] text-amber-400">No spaces selected. Capacity defaults to 12.</p>
+                          <p className="text-ui-11 text-amber-400">No spaces selected. Capacity defaults to 12.</p>
                         )}
                       </div>
                       {/* Selected space chips */}
                       {selectedSpaceIds.length > 0 && (
                         <div className="flex flex-wrap gap-1.5">
                           {selectedVenue.spaces.filter(s => selectedSpaceIds.includes(s.id)).map(s => (
-                            <span key={s.id} className="inline-flex items-center gap-1 text-[11px] text-tea-gold">
+                            <span key={s.id} className="inline-flex items-center gap-1 text-ui-11 text-tea-gold">
                               {s.name} · {s.capacity}
                             </span>
                           ))}
@@ -472,22 +472,22 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
                               )}
                               <div className="flex-1 min-w-0">
                                 <p className={`text-sm font-medium ${active ? 'text-tea-text' : 'text-tea-text-sec'}`}>{space.name}</p>
-                                <p className="text-[11px] text-tea-text-dim mt-0.5">{space.capacity} seats</p>
+                                <p className="text-ui-11 text-tea-text-dim mt-0.5">{space.capacity} seats</p>
                                 {space.description && (
-                                  <p className="text-[11px] text-tea-text-dim mt-1 line-clamp-1">{space.description}</p>
+                                  <p className="text-ui-11 text-tea-text-dim mt-1 line-clamp-1">{space.description}</p>
                                 )}
                               </div>
                               <div className={`w-4 h-4 rounded-sm border flex-shrink-0 mt-0.5 flex items-center justify-center transition-colors ${
                                 active ? 'bg-tea-gold border-tea-gold' : 'border-tea-border'
                               }`}>
-                                {active && <span className="text-tea-bg text-[10px] font-bold leading-none">✓</span>}
+                                {active && <span className="text-tea-bg text-ui-10 font-bold leading-none">✓</span>}
                               </div>
                             </button>
                           );
                         })}
                       </div>
                       {selectedSpaceIds.length > 1 && (
-                        <p className="text-[11px] text-tea-text-sec">
+                        <p className="text-ui-11 text-tea-text-sec">
                           Combined capacity: {selectedVenue.spaces.filter(s => selectedSpaceIds.includes(s.id)).reduce((sum, s) => sum + s.capacity, 0)} seats
                         </p>
                       )}
@@ -514,7 +514,7 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
 
           {/* ── Right column: flyer ── */}
           <div className="space-y-4">
-            <h3 className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec font-medium">Flyer</h3>
+            <h3 className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec font-medium">Flyer</h3>
             {flyerImageUrl ? (
               <div className="relative w-full rounded-md overflow-hidden border border-tea-border">
                 <img src={flyerImageUrl} alt="Flyer" className="w-full object-cover" loading="lazy" />
@@ -541,7 +541,7 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
                 <span className="text-xs tracking-wide">
                   {uploading ? 'Uploading flyer...' : 'Upload flyer image'}
                 </span>
-                <span className="text-[10px] text-tea-text-dim">JPG, PNG, WebP</span>
+                <span className="text-ui-10 text-tea-text-dim">JPG, PNG, WebP</span>
               </button>
             )}
             <input
@@ -893,9 +893,9 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
       className="w-full flex items-center justify-between py-3 text-sm text-tea-text-sec hover:text-tea-text transition-colors"
     >
       <span className="flex items-center gap-2.5">
-        <span className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec font-medium">{label}</span>
+        <span className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec font-medium">{label}</span>
         {count !== undefined && count > 0 && (
-          <span className="text-[10px] font-mono text-tea-text-dim">{count}</span>
+          <span className="text-ui-10 font-mono text-tea-text-dim">{count}</span>
         )}
       </span>
       {openSections.has(sectionKey) ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
@@ -923,7 +923,7 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
                     className={inputClass}
                     placeholder="auto-generated-from-title"
                   />
-                  <p className="text-[10px] text-tea-text-dim mt-1">Must be unique. Used in public event URLs.</p>
+                  <p className="text-ui-10 text-tea-text-dim mt-1">Must be unique. Used in public event URLs.</p>
                 </Field>
                 <Field label="Title *">
                   <input
@@ -935,7 +935,7 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
                     required
                     maxLength={80}
                   />
-                  <div className={`text-right text-[10px] mt-0.5 ${(form.title || '').length > 70 ? 'text-amber-400' : 'text-tea-text-dim'}`}>
+                  <div className={`text-right text-ui-10 mt-0.5 ${(form.title || '').length > 70 ? 'text-amber-400' : 'text-tea-text-dim'}`}>
                     {(form.title || '').length}/80
                   </div>
                 </Field>
@@ -948,7 +948,7 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
                     placeholder="A journey through Wuyi oolongs"
                     maxLength={120}
                   />
-                  <div className={`text-right text-[10px] mt-0.5 ${(form.subtitle || '').length > 100 ? 'text-amber-400' : 'text-tea-text-dim'}`}>
+                  <div className={`text-right text-ui-10 mt-0.5 ${(form.subtitle || '').length > 100 ? 'text-amber-400' : 'text-tea-text-dim'}`}>
                     {(form.subtitle || '').length}/120
                   </div>
                 </Field>
@@ -961,7 +961,7 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
                     rows={3}
                     maxLength={500}
                   />
-                  <div className={`text-right text-[10px] mt-0.5 ${(form.description || '').length > 450 ? 'text-amber-400' : 'text-tea-text-dim'}`}>
+                  <div className={`text-right text-ui-10 mt-0.5 ${(form.description || '').length > 450 ? 'text-amber-400' : 'text-tea-text-dim'}`}>
                     {(form.description || '').length}/500
                   </div>
                 </Field>
@@ -996,12 +996,12 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
                 {/* Repeat dates */}
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec">Repeats</span>
+                    <span className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec">Repeats</span>
                     <div className="flex gap-3">
                       <button
                         type="button"
                         onClick={() => setRepeatDates([])}
-                        className={`text-[11px] font-medium transition-colors pb-0.5 ${
+                        className={`text-ui-11 font-medium transition-colors pb-0.5 ${
                           repeatDates.length === 0
                             ? 'text-tea-gold border-b border-tea-gold'
                             : 'text-tea-text-sec hover:text-tea-text'
@@ -1012,7 +1012,7 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
                       <button
                         type="button"
                         onClick={() => { if (repeatDates.length === 0) setRepeatDates(['']); }}
-                        className={`text-[11px] font-medium transition-colors pb-0.5 ${
+                        className={`text-ui-11 font-medium transition-colors pb-0.5 ${
                           repeatDates.length > 0
                             ? 'text-tea-gold border-b border-tea-gold'
                             : 'text-tea-text-sec hover:text-tea-text'
@@ -1024,7 +1024,7 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
                   </div>
                   {repeatDates.length > 0 && (
                     <div className="space-y-2 pl-1">
-                      <p className="text-[10px] text-tea-text-dim">Additional occurrences. Same duration applies to each.</p>
+                      <p className="text-ui-10 text-tea-text-dim">Additional occurrences. Same duration applies to each.</p>
                       {repeatDates.map((d, i) => (
                         <div key={i} className="flex items-center gap-2">
                           <input
@@ -1101,14 +1101,14 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
                   </select>
                 </Field>
                 <Field label="Gathering Type">
-                  <p className="text-[11px] text-tea-text-dim mb-2">Intimacy &amp; access level</p>
+                  <p className="text-ui-11 text-tea-text-dim mb-2">Intimacy &amp; access level</p>
                   <div className="flex gap-4 pt-1">
                     {(['private', 'semi-private', 'open', 'bespoke'] as GatheringType[]).map((opt) => (
                       <button
                         key={opt}
                         type="button"
                         onClick={() => updateField('gatheringType', opt)}
-                        className={`text-[11px] font-medium capitalize transition-colors pb-0.5 ${
+                        className={`text-ui-11 font-medium capitalize transition-colors pb-0.5 ${
                           (form.gatheringType || 'private') === opt
                             ? 'text-tea-gold border-b border-tea-gold'
                             : 'text-tea-text-sec hover:text-tea-text'
@@ -1172,11 +1172,11 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
             {/* ── Venue picker ── */}
             <div className="pt-1 space-y-3">
               <div className="flex items-center justify-between">
-                <label className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec">Venue</label>
+                <label className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec">Venue</label>
                 <button
                   type="button"
                   onClick={() => setIsVenueManagerOpen(true)}
-                  className="flex items-center gap-1 text-[10px] text-tea-gold hover:text-tea-gold-lt transition-colors uppercase tracking-[0.15em]"
+                  className="flex items-center gap-1 text-ui-10 text-tea-gold hover:text-tea-gold-lt transition-colors uppercase tracking-[0.15em]"
                 >
                   <MapPin size={10} /> Manage venues
                 </button>
@@ -1213,15 +1213,15 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
                   {editVenueObj && editVenueObj.spaces.length > 0 && (
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec">Spaces</p>
+                        <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec">Spaces</p>
                         {editSpaceIds.length === 0 && (
-                          <p className="text-[11px] text-amber-400">No spaces selected</p>
+                          <p className="text-ui-11 text-amber-400">No spaces selected</p>
                         )}
                       </div>
                       {editSpaceIds.length > 0 && (
                         <div className="flex flex-wrap gap-1.5">
                           {editVenueObj.spaces.filter(s => editSpaceIds.includes(s.id)).map(s => (
-                            <span key={s.id} className="inline-flex items-center gap-1 text-[11px] text-tea-gold">
+                            <span key={s.id} className="inline-flex items-center gap-1 text-ui-11 text-tea-gold">
                               {s.name} · {s.capacity}
                             </span>
                           ))}
@@ -1250,22 +1250,22 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
                               )}
                               <div className="flex-1 min-w-0">
                                 <p className={`text-sm font-medium ${active ? 'text-tea-text' : 'text-tea-text-sec'}`}>{space.name}</p>
-                                <p className="text-[11px] text-tea-text-dim mt-0.5">{space.capacity} seats</p>
+                                <p className="text-ui-11 text-tea-text-dim mt-0.5">{space.capacity} seats</p>
                                 {space.description && (
-                                  <p className="text-[11px] text-tea-text-dim mt-1 line-clamp-1">{space.description}</p>
+                                  <p className="text-ui-11 text-tea-text-dim mt-1 line-clamp-1">{space.description}</p>
                                 )}
                               </div>
                               <div className={`w-4 h-4 rounded-sm border flex-shrink-0 mt-0.5 flex items-center justify-center transition-colors ${
                                 active ? 'bg-tea-gold border-tea-gold' : 'border-tea-border'
                               }`}>
-                                {active && <span className="text-tea-bg text-[10px] font-bold leading-none">✓</span>}
+                                {active && <span className="text-tea-bg text-ui-10 font-bold leading-none">✓</span>}
                               </div>
                             </button>
                           );
                         })}
                       </div>
                       {editSpaceIds.length > 1 && (
-                        <p className="text-[11px] text-tea-text-sec">
+                        <p className="text-ui-11 text-tea-text-sec">
                           Combined capacity: {editVenueObj.spaces.filter(s => editSpaceIds.includes(s.id)).reduce((sum, s) => sum + s.capacity, 0)} seats
                         </p>
                       )}
@@ -1289,12 +1289,12 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
             </div>
 
             <div className="flex items-center justify-between pt-1">
-              <label className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec">Manual Location</label>
+              <label className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec">Manual Location</label>
               {form.locationName?.trim() && form.addressText?.trim() && !selectedLocationId && (
                 <button
                   type="button"
                   onClick={() => setShowSaveLocation(true)}
-                  className="flex items-center gap-1 text-[10px] text-tea-gold hover:text-tea-gold-lt transition-colors uppercase tracking-[0.15em]"
+                  className="flex items-center gap-1 text-ui-10 text-tea-gold hover:text-tea-gold-lt transition-colors uppercase tracking-[0.15em]"
                 >
                   <Bookmark size={10} /> Save Location
                 </button>
@@ -1385,7 +1385,7 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
           <div className="pb-6 space-y-4">
             {venueGuide.steps.map((step, idx) => (
               <div key={idx} className="flex gap-3 items-start">
-                <span className="text-[10px] text-tea-text-sec mt-2 w-4 shrink-0">{idx + 1}.</span>
+                <span className="text-ui-10 text-tea-text-sec mt-2 w-4 shrink-0">{idx + 1}.</span>
                 <div className="flex-1 space-y-2">
                   <input
                     type="text"
@@ -1515,7 +1515,7 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
                     min={0}
                     title="Minutes"
                   />
-                  <span className="text-[9px] text-tea-text-sec block text-center">min</span>
+                  <span className="text-ui-9 text-tea-text-sec block text-center">min</span>
                 </div>
                 <button type="button" onClick={() => removeFlowItem(idx)} className="text-tea-text-sec hover:text-tea-text p-1 mt-1">
                   <Trash2 size={12} />

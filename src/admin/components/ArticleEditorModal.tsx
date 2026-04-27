@@ -81,7 +81,7 @@ const selectClass =
 
 const Field = ({ label, children, className = '' }: { label: string; children: React.ReactNode; className?: string }) => (
   <div className={className}>
-    <label className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec block mb-1.5">{label}</label>
+    <label className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec block mb-1.5">{label}</label>
     {children}
   </div>
 );
@@ -118,7 +118,7 @@ const BlockEditor: React.FC<BlockEditorProps> = ({ block, index, total, onChange
             value={block.text}
             onChange={e => onChange({ ...block, text: e.target.value })}
             placeholder="Introductory paragraph…"
-            className={`${textareaClass} min-h-[80px] text-[15px] leading-relaxed italic`}
+            className={`${textareaClass} min-h-[80px] text-ui-15 leading-relaxed italic`}
             rows={4}
           />
         );
@@ -201,7 +201,7 @@ const BlockEditor: React.FC<BlockEditorProps> = ({ block, index, total, onChange
     <div className="group relative bg-tea-elevated/40 border border-tea-border rounded-lg p-3 space-y-2">
       {/* Block header row */}
       <div className="flex items-center justify-between">
-        <span className="text-[9px] uppercase tracking-[0.2em] text-tea-text-dim font-medium">
+        <span className="text-ui-9 uppercase tracking-[0.2em] text-tea-text-dim font-medium">
           {BLOCK_TYPE_LABELS[block.type] ?? block.type}
         </span>
         <div className="flex items-center gap-0.5">
@@ -470,12 +470,12 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
         />
 
         {/* Status badge */}
-        <span className={`text-[9px] uppercase tracking-[0.15em] px-2 py-0.5 rounded-full font-medium shrink-0 ${STATUS_BADGE_STYLES[status] ?? STATUS_BADGE_STYLES.draft}`}>
+        <span className={`text-ui-9 uppercase tracking-[0.15em] px-2 py-0.5 rounded-full font-medium shrink-0 ${STATUS_BADGE_STYLES[status] ?? STATUS_BADGE_STYLES.draft}`}>
           {status}
         </span>
 
         {/* Save state */}
-        <span className="text-[10px] text-tea-text-dim shrink-0 hidden sm:block">
+        <span className="text-ui-10 text-tea-text-dim shrink-0 hidden sm:block">
           {saveState === 'saving' ? 'Saving…' : saveState === 'saved' ? 'Saved' : ''}
         </span>
 
@@ -580,7 +580,7 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
 
             {/* ── Metadata ── */}
             <section>
-              <h3 className="text-[10px] uppercase tracking-[0.2em] text-tea-text-dim font-medium mb-3">Metadata</h3>
+              <h3 className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim font-medium mb-3">Metadata</h3>
               <div className="space-y-4">
                 <Field label="Subtitle">
                   <input
@@ -630,7 +630,7 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
                   {tagsInput.trim() && (
                     <div className="flex flex-wrap gap-1 mt-2">
                       {tagsInput.split(',').map(t => t.trim()).filter(Boolean).map(tag => (
-                        <span key={tag} className="text-[10px] px-2 py-0.5 rounded-full bg-tea-elevated text-tea-text-sec">{tag}</span>
+                        <span key={tag} className="text-ui-10 px-2 py-0.5 rounded-full bg-tea-elevated text-tea-text-sec">{tag}</span>
                       ))}
                     </div>
                   )}
@@ -677,7 +677,7 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
                 onClick={() => setPasteOpen(v => !v)}
                 className="flex items-center gap-2 w-full text-left"
               >
-                <h3 className="text-[10px] uppercase tracking-[0.2em] text-tea-text-dim font-medium flex-1">Paste from Claude</h3>
+                <h3 className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim font-medium flex-1">Paste from Claude</h3>
                 {pasteOpen ? <ChevronUp size={13} className="text-tea-text-dim" /> : <ChevronDown size={13} className="text-tea-text-dim" />}
               </button>
 
@@ -690,7 +690,7 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
                     className="overflow-hidden"
                   >
                     <div className="pt-3 space-y-3">
-                      <p className="text-[10px] text-tea-text-dim leading-relaxed">
+                      <p className="text-ui-10 text-tea-text-dim leading-relaxed">
                         Structure with AI first, then paste here. Use the block format:
                         <code className="ml-1 px-1 bg-tea-elevated rounded text-tea-text-sec">INTRO</code>,{' '}
                         <code className="px-1 bg-tea-elevated rounded text-tea-text-sec">SECTION:</code>,{' '}
@@ -728,7 +728,7 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
       {/* Mobile metadata panel (shown below blocks on mobile) */}
       <div className="lg:hidden border-t border-tea-border bg-tea-surface/80">
         <details className="px-4">
-          <summary className="py-3 text-[10px] uppercase tracking-[0.2em] text-tea-text-sec font-medium cursor-pointer list-none flex items-center justify-between">
+          <summary className="py-3 text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec font-medium cursor-pointer list-none flex items-center justify-between">
             Article Metadata
             <ChevronDown size={13} className="text-tea-text-dim" />
           </summary>
@@ -756,7 +756,7 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
           </div>
         </details>
         <details className="px-4 border-t border-tea-border">
-          <summary className="py-3 text-[10px] uppercase tracking-[0.2em] text-tea-text-sec font-medium cursor-pointer list-none flex items-center justify-between">
+          <summary className="py-3 text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec font-medium cursor-pointer list-none flex items-center justify-between">
             Paste from Claude
             <ChevronDown size={13} className="text-tea-text-dim" />
           </summary>

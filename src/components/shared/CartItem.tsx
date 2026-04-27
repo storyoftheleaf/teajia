@@ -56,7 +56,7 @@ export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQ
 
           {/* Variant — only when it adds information */}
           {showVariant && (
-            <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec mt-1">
+            <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mt-1">
               {item.variant}
             </p>
           )}
@@ -103,7 +103,7 @@ export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQ
                     <button
                       key={g}
                       onClick={() => onUpdateQuantity(item.id, g)}
-                      className="text-[11px] num text-tea-text-sec/80 hover:text-tea-text transition-colors py-1 shrink-0"
+                      className="text-ui-11 num text-tea-text-sec/80 hover:text-tea-text transition-colors py-1 shrink-0"
                     >
                       {g}
                     </button>

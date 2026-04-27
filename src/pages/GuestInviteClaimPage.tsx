@@ -197,7 +197,7 @@ const GuestInviteClaimPage: React.FC = () => {
           <div>
             <label
               htmlFor="invite-name"
-              className="block text-[10px] uppercase tracking-[0.25em] text-tea-text-sec mb-2"
+              className="block text-ui-10 uppercase tracking-[0.25em] text-tea-text-sec mb-2"
             >
               Your name
             </label>
@@ -214,7 +214,7 @@ const GuestInviteClaimPage: React.FC = () => {
 
           {/* Contact method toggle */}
           <div>
-            <label className="block text-[10px] uppercase tracking-[0.25em] text-tea-text-sec mb-2">
+            <label className="block text-ui-10 uppercase tracking-[0.25em] text-tea-text-sec mb-2">
               How should we reach you?
             </label>
             <div className="flex gap-2 mb-3">
@@ -289,7 +289,7 @@ const GuestInviteClaimPage: React.FC = () => {
 
         {/* Footer */}
         <div className="text-center pt-10 pb-8">
-          <p className="text-[10px] uppercase tracking-[0.3em] text-tea-text-sec/40">
+          <p className="text-ui-10 uppercase tracking-[0.3em] text-tea-text-sec/40">
             Hosted by Teajia
           </p>
         </div>

@@ -40,7 +40,7 @@ export const BackToTop: React.FC = () => {
             />
           </svg>
           <span
-            className="text-[8px] tracking-[0.2em] uppercase text-tea-text-dim/50 group-hover:text-tea-text-dim/80 transition-colors duration-300"
+            className="text-ui-8 tracking-[0.2em] uppercase text-tea-text-dim/50 group-hover:text-tea-text-dim/80 transition-colors duration-300"
             style={{ fontFamily: 'var(--font-sans)' }}
           >
             top

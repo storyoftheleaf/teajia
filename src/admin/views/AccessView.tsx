@@ -96,7 +96,7 @@ const EditorSheet: React.FC<EditorSheetProps> = ({ member, isViewerOwner, onClos
           >
             ✕
           </button>
-          <div className="text-tea-text-sec text-[11px] uppercase tracking-[0.1em]">
+          <div className="text-tea-text-sec text-ui-11 uppercase tracking-[0.1em]">
             {isOwner ? 'Owner' : member.role === 'staff' ? 'Member' : 'Viewer'}
           </div>
         </div>
@@ -104,17 +104,17 @@ const EditorSheet: React.FC<EditorSheetProps> = ({ member, isViewerOwner, onClos
         <div className="flex-1 overflow-y-auto px-5 pt-6 pb-nav-gap">
           <h2 className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text mb-1`}>{member.name || member.email}</h2>
           {member.name && (
-            <p className="text-tea-text-sec text-[12px] mb-6">{member.email}</p>
+            <p className="text-tea-text-sec text-ui-12 mb-6">{member.email}</p>
           )}
           {!member.name && <div className="mb-6" />}
 
           {isOwner ? (
-            <div className="text-tea-text-sec italic text-[15px] leading-[1.6] mb-8">
+            <div className="text-tea-text-sec italic text-ui-15 leading-[1.6] mb-8">
               Owners always have access to everything.
             </div>
           ) : (
             <>
-              <div className="text-tea-text-sec italic text-[13px] mb-5">
+              <div className="text-tea-text-sec italic text-ui-13 mb-5">
                 Tap a capability to grant or revoke it.
               </div>
               <div className="space-y-1">
@@ -129,8 +129,8 @@ const EditorSheet: React.FC<EditorSheetProps> = ({ member, isViewerOwner, onClos
                         active ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
                       }`}
                     >
-                      <div className="font-display text-[17px]">{BUNDLE_LABELS[bundle]}</div>
-                      <div className="text-[12px] text-tea-text-dim mt-0.5 leading-[1.5]">
+                      <div className="font-display text-ui-17">{BUNDLE_LABELS[bundle]}</div>
+                      <div className="text-ui-12 text-tea-text-dim mt-0.5 leading-[1.5]">
                         {BUNDLE_DESCRIPTIONS[bundle]}
                       </div>
                     </button>
@@ -147,17 +147,17 @@ const EditorSheet: React.FC<EditorSheetProps> = ({ member, isViewerOwner, onClos
                 <button
                   type="button"
                   onClick={() => setConfirmingRemove(true)}
-                  className="text-tea-text-sec hover:text-tea-text transition-colors text-[14px] py-2"
+                  className="text-tea-text-sec hover:text-tea-text transition-colors text-ui-14 py-2"
                 >
                   Remove from this account
                 </button>
               ) : (
                 <div className="space-y-3">
-                  <p className="text-tea-text-sec italic text-[14px] leading-[1.6]">
+                  <p className="text-tea-text-sec italic text-ui-14 leading-[1.6]">
                     Remove {member.name || member.email} from {accountName}?
                     They will lose access immediately. They can be re-invited.
                   </p>
-                  <div className="flex items-center gap-6 text-[13px]">
+                  <div className="flex items-center gap-6 text-ui-13">
                     <button
                       type="button"
                       onClick={() => setConfirmingRemove(false)}
@@ -185,7 +185,7 @@ const EditorSheet: React.FC<EditorSheetProps> = ({ member, isViewerOwner, onClos
           )}
 
           {error && (
-            <div className="mt-6 text-tea-text-sec italic text-[13px] leading-[1.5]">
+            <div className="mt-6 text-tea-text-sec italic text-ui-13 leading-[1.5]">
               {error}
             </div>
           )}
@@ -196,7 +196,7 @@ const EditorSheet: React.FC<EditorSheetProps> = ({ member, isViewerOwner, onClos
           <button
             type="button"
             onClick={onClose}
-            className="text-tea-text-sec hover:text-tea-text transition-colors text-[14px]"
+            className="text-tea-text-sec hover:text-tea-text transition-colors text-ui-14"
           >
             Cancel
           </button>
@@ -204,7 +204,7 @@ const EditorSheet: React.FC<EditorSheetProps> = ({ member, isViewerOwner, onClos
             type="button"
             onClick={handleSave}
             disabled={!dirty || saving || isOwner}
-            className="text-[14px] font-display tracking-[0.04em] py-1 px-1 transition-colors disabled:text-tea-text-dim disabled:cursor-not-allowed text-tea-gold hover:text-tea-gold-lt"
+            className="text-ui-14 font-display tracking-[0.04em] py-1 px-1 transition-colors disabled:text-tea-text-dim disabled:cursor-not-allowed text-tea-gold hover:text-tea-gold-lt"
           >
             {saving ? 'Saving…' : 'Save'}
           </button>
@@ -321,22 +321,22 @@ export const AccessView: React.FC = () => {
           {activeAccount?.name || 'Access'}
         </h1>
         {members && (
-          <p className="text-tea-text-sec italic text-[15px]">
+          <p className="text-tea-text-sec italic text-ui-15">
             {sentenceForCount(totalCount, fullAccessCount)}
           </p>
         )}
       </header>
 
       {error && (
-        <div className="mb-6 text-tea-text-sec italic text-[14px]">{error}</div>
+        <div className="mb-6 text-tea-text-sec italic text-ui-14">{error}</div>
       )}
 
       {members === null && !error && (
-        <div className="text-tea-text-sec italic text-[14px]">Loading roster…</div>
+        <div className="text-tea-text-sec italic text-ui-14">Loading roster…</div>
       )}
 
       {members && members.length === 0 && (
-        <div className="text-tea-text-sec italic text-[15px] leading-[1.7] mb-8">
+        <div className="text-tea-text-sec italic text-ui-15 leading-[1.7] mb-8">
           You haven't invited anyone to help run this place yet.
         </div>
       )}
@@ -380,7 +380,7 @@ export const AccessView: React.FC = () => {
             <button
               type="button"
               onClick={() => setAdding(true)}
-              className="text-tea-text-sec hover:text-tea-gold transition-colors text-[14px] font-display"
+              className="text-tea-text-sec hover:text-tea-gold transition-colors text-ui-14 font-display"
             >
               Add a member
             </button>
@@ -392,13 +392,13 @@ export const AccessView: React.FC = () => {
                 onChange={e => setAddEmail(e.target.value)}
                 placeholder="email@example.com"
                 autoFocus
-                className="w-full bg-transparent border-b border-tea-border focus:border-tea-gold outline-none text-tea-text font-body text-[15px] py-2 transition-colors"
+                className="w-full bg-transparent border-b border-tea-border focus:border-tea-gold outline-none text-tea-text font-body text-ui-15 py-2 transition-colors"
                 onKeyDown={e => {
                   if (e.key === 'Enter') handleAddMember();
                   if (e.key === 'Escape') { setAdding(false); setAddEmail(''); }
                 }}
               />
-              <div className="flex items-center justify-between text-[13px]">
+              <div className="flex items-center justify-between text-ui-13">
                 <button
                   type="button"
                   onClick={() => { setAdding(false); setAddEmail(''); }}
@@ -464,21 +464,21 @@ const RosterRow: React.FC<RosterRowProps> = ({ member, onClick, isSelf }) => {
       <div className="flex items-baseline justify-between gap-4">
         <div className="min-w-0 flex-1">
           <div className="flex items-baseline gap-3 flex-wrap">
-            <div className="font-display text-[17px] text-tea-text">{displayName}</div>
-            <div className="text-tea-text-sec text-[11px] uppercase tracking-[0.1em]">{tierLabel}</div>
+            <div className="font-display text-ui-17 text-tea-text">{displayName}</div>
+            <div className="text-tea-text-sec text-ui-11 uppercase tracking-[0.1em]">{tierLabel}</div>
             {isInvited && (
-              <div className="text-tea-text-sec italic text-[12px]">Not yet accepted</div>
+              <div className="text-tea-text-sec italic text-ui-12">Not yet accepted</div>
             )}
             {isSelf && (
-              <div className="text-tea-text-sec italic text-[12px]">You</div>
+              <div className="text-tea-text-sec italic text-ui-12">You</div>
             )}
           </div>
-          <div className="text-tea-text-sec text-[13px] mt-1.5 leading-[1.5]">
+          <div className="text-tea-text-sec text-ui-13 mt-1.5 leading-[1.5]">
             {bundlesText}
           </div>
         </div>
         {onClick && (
-          <span className="text-tea-text-sec group-hover:text-tea-gold text-[13px] transition-colors shrink-0">
+          <span className="text-tea-text-sec group-hover:text-tea-gold text-ui-13 transition-colors shrink-0">
             Edit
           </span>
         )}

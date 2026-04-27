@@ -68,11 +68,11 @@ export const NetworkLanding: React.FC = () => {
         <h1 className={`${TYPOGRAPHY_CLASSES.h1} text-tea-text mb-5`}>
           One catalog, many houses.
         </h1>
-        <p className="font-body italic text-[17px] text-tea-text-sec leading-[1.6] mb-6">
+        <p className="font-body italic text-ui-17 text-tea-text-sec leading-[1.6] mb-6">
           Teajia is the shared root. Each house carries the teas it knows.
         </p>
 
-        <div className="space-y-4 font-body text-[15px] text-tea-text leading-[1.75]">
+        <div className="space-y-4 font-body text-ui-15 text-tea-text leading-[1.75]">
           <p>
             Each tea has one original record (origin, varietal, harvest
             year, description, photos), kept by the curator who sources
@@ -102,7 +102,7 @@ export const NetworkLanding: React.FC = () => {
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
-                className={`font-display text-[16px] tracking-[0.02em] transition-colors ${
+                className={`font-display text-ui-16 tracking-[0.02em] transition-colors ${
                   isActive
                     ? 'text-tea-gold'
                     : 'text-tea-text-sec hover:text-tea-text'
@@ -120,7 +120,7 @@ export const NetworkLanding: React.FC = () => {
           padding doesn't double up with the hub container's. */}
       <div>
         {visibleTabs.length === 0 && (
-          <p className="px-4 md:px-8 max-w-2xl mx-auto font-body italic text-[15px] text-tea-text-sec leading-[1.7]">
+          <p className="px-4 md:px-8 max-w-2xl mx-auto font-body italic text-ui-15 text-tea-text-sec leading-[1.7]">
             Your account doesn't yet have the bundles that open the network's
             working surfaces. Ask your owner about Catalog or Sell.
           </p>

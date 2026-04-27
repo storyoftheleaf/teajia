@@ -48,7 +48,7 @@ export const Playlists: React.FC<PlaylistsProps> = ({ onBack }) => {
                 <h3 className="font-serif text-sm text-tea-text truncate">
                   {item.title}
                 </h3>
-                <span className={`text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm shrink-0 hidden sm:inline ${PLATFORM_COLORS[item.platform] || ''}`}>
+                <span className={`text-ui-9 uppercase tracking-wider px-1.5 py-0.5 rounded-sm shrink-0 hidden sm:inline ${PLATFORM_COLORS[item.platform] || ''}`}>
                   {item.platform.replace('-', ' ')}
                 </span>
               </div>
@@ -58,7 +58,7 @@ export const Playlists: React.FC<PlaylistsProps> = ({ onBack }) => {
             </div>
 
             <div className="flex items-center gap-2 shrink-0 mt-1">
-              <span className="text-[10px] text-tea-text/30 hidden sm:inline">
+              <span className="text-ui-10 text-tea-text/30 hidden sm:inline">
                 {item.duration}
               </span>
               <Icons.Next className="w-4 h-4 text-tea-text-sec group-hover:text-tea-gold transition-colors" />

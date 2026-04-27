@@ -58,25 +58,25 @@ const AttendeeActions: React.FC<{
     <>
       {attendee.status === 'waitlist' && (
         <button onClick={() => onUpdate(attendee, 'confirmed')} disabled={!!loadingId}
-          className={`text-[10px] ${px} py-1 rounded bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-colors disabled:opacity-50`}>
+          className={`text-ui-10 ${px} py-1 rounded bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-colors disabled:opacity-50`}>
           Promote
         </button>
       )}
       {(attendee.status === 'confirmed' || attendee.status === 'waitlist') && (
         <button onClick={() => onUpdate(attendee, 'cancelled')} disabled={!!loadingId}
-          className={`text-[10px] ${px} py-1 rounded bg-tea-text-sec/10 text-tea-text-sec hover:bg-tea-text-sec/20 transition-colors disabled:opacity-50`}>
+          className={`text-ui-10 ${px} py-1 rounded bg-tea-text-sec/10 text-tea-text-sec hover:bg-tea-text-sec/20 transition-colors disabled:opacity-50`}>
           Cancel
         </button>
       )}
       {attendee.status === 'cancelled' && (
         <button onClick={() => onUpdate(attendee, 'confirmed')} disabled={!!loadingId}
-          className={`text-[10px] ${px} py-1 rounded bg-tea-gold/10 text-tea-gold hover:bg-tea-gold/20 transition-colors disabled:opacity-50`}>
+          className={`text-ui-10 ${px} py-1 rounded bg-tea-gold/10 text-tea-gold hover:bg-tea-gold/20 transition-colors disabled:opacity-50`}>
           Restore
         </button>
       )}
       {attendee.status === 'denied' && (
         <button onClick={() => onUpdate(attendee, 'waitlist')} disabled={!!loadingId}
-          className={`text-[10px] ${px} py-1 rounded bg-tea-elevated text-tea-text-dim hover:text-tea-text-sec transition-colors disabled:opacity-50`}>
+          className={`text-ui-10 ${px} py-1 rounded bg-tea-elevated text-tea-text-dim hover:text-tea-text-sec transition-colors disabled:opacity-50`}>
           Reconsider
         </button>
       )}
@@ -90,13 +90,13 @@ const AttendeeHoverCard: React.FC<{
   pos: { x: number; y: number };
 }> = ({ attendee, pos }) => (
   <div
-    className="fixed z-50 pointer-events-none bg-tea-surface border border-tea-border rounded-xl shadow-2xl p-3 w-56 text-[11px] space-y-2"
+    className="fixed z-50 pointer-events-none bg-tea-surface border border-tea-border rounded-xl shadow-2xl p-3 w-56 text-ui-11 space-y-2"
     style={{ top: pos.y + 8, left: pos.x }}
   >
     <div className="flex items-center justify-between gap-2">
       <span className="font-medium text-tea-text leading-snug">{attendee.fullName}</span>
       {attendee.accessTier === 'golden' && (
-        <span className="flex items-center gap-0.5 text-tea-gold text-[10px]">
+        <span className="flex items-center gap-0.5 text-tea-gold text-ui-10">
           <Star size={9} fill="currentColor" />Golden
         </span>
       )}
@@ -114,7 +114,7 @@ const AttendeeHoverCard: React.FC<{
     {attendee.favoriteTypes && attendee.favoriteTypes.length > 0 && (
       <div className="flex flex-wrap gap-1">
         {attendee.favoriteTypes.map(t => (
-          <span key={t} className="bg-tea-elevated text-tea-text-sec px-1.5 py-0.5 rounded text-[10px]">{t}</span>
+          <span key={t} className="bg-tea-elevated text-tea-text-sec px-1.5 py-0.5 rounded text-ui-10">{t}</span>
         ))}
       </div>
     )}
@@ -127,7 +127,7 @@ const AttendeeHoverCard: React.FC<{
       <p className="text-tea-text-dim leading-snug line-clamp-2">{attendee.notes}</p>
     )}
     {attendee.customerId && (
-      <p className="text-tea-gold text-[10px] pt-0.5">Click to view full profile →</p>
+      <p className="text-tea-gold text-ui-10 pt-0.5">Click to view full profile →</p>
     )}
   </div>
 );
@@ -429,7 +429,7 @@ export const AttendeeTable: React.FC<AttendeeTableProps> = ({ attendees, eventId
           onMouseEnter={(e) => handleNameMouseEnter(e, attendee)}
           onMouseLeave={handleNameMouseLeave}
           className={`inline-flex items-center gap-1.5 text-left transition-colors ${
-            compact ? 'text-[14px] font-medium' : 'text-sm font-medium'
+            compact ? 'text-ui-14 font-medium' : 'text-sm font-medium'
           } text-tea-text hover:text-tea-gold group`}
         >
           <span className="group-hover:underline underline-offset-2 decoration-tea-gold/50">{attendee.fullName}</span>
@@ -437,7 +437,7 @@ export const AttendeeTable: React.FC<AttendeeTableProps> = ({ attendees, eventId
       );
     }
     return (
-      <span className={`inline-flex items-center gap-1.5 ${compact ? 'text-[14px] font-medium' : 'text-sm font-medium'} text-tea-text`}>
+      <span className={`inline-flex items-center gap-1.5 ${compact ? 'text-ui-14 font-medium' : 'text-sm font-medium'} text-tea-text`}>
         {attendee.fullName}
         <button
           onClick={() => setLinkModalAttendee(attendee)}
@@ -485,7 +485,7 @@ export const AttendeeTable: React.FC<AttendeeTableProps> = ({ attendees, eventId
             >
               {tab.label}
               {count > 0 && (
-                <span className={`text-[9px] px-1.5 py-0.5 rounded-full leading-none ${
+                <span className={`text-ui-9 px-1.5 py-0.5 rounded-full leading-none ${
                   filter === tab.key ? 'bg-tea-gold/15 text-tea-gold' : 'bg-tea-elevated text-tea-text-dim'
                 }`}>
                   {count}
@@ -506,12 +506,12 @@ export const AttendeeTable: React.FC<AttendeeTableProps> = ({ attendees, eventId
               <div key={attendee.id} className={`py-3 px-1 ${attendee.isDenied ? 'opacity-50' : ''}`}>
                 <div className="flex items-center justify-between gap-2 mb-1.5">
                   <AttendeeName attendee={attendee} compact />
-                  <span className={`text-[10px] uppercase tracking-[0.1em] px-2 py-0.5 rounded-full shrink-0 ${STATUS_CHIPS[attendee.status]}`}>
+                  <span className={`text-ui-10 uppercase tracking-[0.1em] px-2 py-0.5 rounded-full shrink-0 ${STATUS_CHIPS[attendee.status]}`}>
                     {STATUS_LABELS[attendee.status]}
                   </span>
                 </div>
 
-                <div className="flex items-center gap-3 text-[11px] text-tea-text-sec mb-2.5 flex-wrap">
+                <div className="flex items-center gap-3 text-ui-11 text-tea-text-sec mb-2.5 flex-wrap">
                   {attendee.phoneNumber && (
                     <span className="flex items-center gap-1"><Phone size={10} />{attendee.phoneNumber}</span>
                   )}
@@ -536,7 +536,7 @@ export const AttendeeTable: React.FC<AttendeeTableProps> = ({ attendees, eventId
                   <button
                     onClick={() => toggleAttended(attendee)}
                     disabled={loadingId === attendee.id || attendee.isDenied}
-                    className={`flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded transition-colors disabled:opacity-30 ${
+                    className={`flex items-center gap-1.5 text-ui-11 px-2.5 py-1 rounded transition-colors disabled:opacity-30 ${
                       attendee.attended
                         ? 'bg-tea-gold/15 text-tea-gold'
                         : 'bg-tea-elevated text-tea-text-sec hover:text-tea-text'
@@ -575,7 +575,7 @@ export const AttendeeTable: React.FC<AttendeeTableProps> = ({ attendees, eventId
                     { field: null, label: 'Attended' },
                     { field: null, label: 'Actions' },
                   ].map((col, i) => (
-                    <th key={i} className="text-left text-[10px] uppercase tracking-[0.15em] text-tea-text-sec font-medium py-2 px-2">
+                    <th key={i} className="text-left text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec font-medium py-2 px-2">
                       {col.field ? (
                         <button onClick={() => toggleSort(col.field!)} className="flex items-center gap-1 hover:text-tea-text transition-colors">
                           {col.label}
@@ -598,7 +598,7 @@ export const AttendeeTable: React.FC<AttendeeTableProps> = ({ attendees, eventId
                       ) : <span className="text-tea-text-sec">—</span>}
                     </td>
                     <td className="py-2.5 px-2">
-                      <span className={`text-[10px] uppercase tracking-[0.1em] px-2 py-0.5 rounded-full ${STATUS_CHIPS[attendee.status]}`}>
+                      <span className={`text-ui-10 uppercase tracking-[0.1em] px-2 py-0.5 rounded-full ${STATUS_CHIPS[attendee.status]}`}>
                         {STATUS_LABELS[attendee.status]}
                       </span>
                     </td>
@@ -621,7 +621,7 @@ export const AttendeeTable: React.FC<AttendeeTableProps> = ({ attendees, eventId
                           {attendee.guestRequests && attendee.guestRequests.length > 0 && (
                             <div className="flex flex-wrap gap-1 mt-1">
                               {attendee.guestRequests.map((gr, i) => (
-                                <span key={i} className={`text-[9px] px-1.5 py-0.5 rounded-sm ${
+                                <span key={i} className={`text-ui-9 px-1.5 py-0.5 rounded-sm ${
                                   gr.approved === true ? 'bg-green-500/10 text-green-400'
                                   : gr.approved === false ? 'bg-tea-text-sec/10 text-tea-text-dim'
                                   : 'bg-amber-500/10 text-amber-400'
@@ -639,14 +639,14 @@ export const AttendeeTable: React.FC<AttendeeTableProps> = ({ attendees, eventId
                         <div>
                           <span className="text-tea-text-sec">{attendee.sessionsAttended}×</span>
                           {attendee.favoriteTypes && attendee.favoriteTypes.length > 0 && (
-                            <span className="text-tea-text-dim ml-1 text-[10px]">{attendee.favoriteTypes.slice(0, 2).join(', ')}</span>
+                            <span className="text-tea-text-dim ml-1 text-ui-10">{attendee.favoriteTypes.slice(0, 2).join(', ')}</span>
                           )}
                         </div>
-                      ) : <span className="text-tea-text-dim text-[10px]">new</span>}
+                      ) : <span className="text-tea-text-dim text-ui-10">new</span>}
                     </td>
                     <td className="py-2.5 px-2">
                       {attendee.teaPreference ? (
-                        <span className="inline-flex items-center gap-1 text-[10px] bg-tea-elevated/50 text-tea-text-sec px-1.5 py-0.5 rounded">
+                        <span className="inline-flex items-center gap-1 text-ui-10 bg-tea-elevated/50 text-tea-text-sec px-1.5 py-0.5 rounded">
                           <Leaf size={9} />{attendee.teaPreference}
                         </span>
                       ) : <span className="text-tea-text-sec text-xs">—</span>}

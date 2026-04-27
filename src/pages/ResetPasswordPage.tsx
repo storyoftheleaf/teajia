@@ -98,7 +98,7 @@ const ResetPasswordPage: React.FC = () => {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-tea-text-sec mb-2">New Password</label>
+            <label className="block text-ui-10 font-bold uppercase tracking-[0.2em] text-tea-text-sec mb-2">New Password</label>
             <input
               type="password"
               value={newPassword}
@@ -110,7 +110,7 @@ const ResetPasswordPage: React.FC = () => {
             />
           </div>
           <div>
-            <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-tea-text-sec mb-2">Confirm New Password</label>
+            <label className="block text-ui-10 font-bold uppercase tracking-[0.2em] text-tea-text-sec mb-2">Confirm New Password</label>
             <input
               type="password"
               value={confirmPassword}

@@ -63,7 +63,7 @@ const ColorSwatchesInner: React.FC<ColorSwatchesProps> = ({ flow, compact = fals
         {/* Label row */}
         <div className="flex items-center justify-between mb-2.5">
           <span
-            className="text-[13px] text-tea-text font-medium"
+            className="text-ui-13 text-tea-text font-medium"
             style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.04em' }}
           >
             Liquor color
@@ -75,7 +75,7 @@ const ColorSwatchesInner: React.FC<ColorSwatchesProps> = ({ flow, compact = fals
               transition={{ duration: 0.15 }}
               className="flex items-center gap-2"
             >
-              <span className="text-[11px] text-tea-text-sec" style={{ fontFamily: 'var(--font-body)' }}>
+              <span className="text-ui-11 text-tea-text-sec" style={{ fontFamily: 'var(--font-body)' }}>
                 {colorTerms.find(t => t.id === selectedId)?.label}
               </span>
               <span className="text-tea-text-dim">
@@ -142,7 +142,7 @@ const ColorSwatchesInner: React.FC<ColorSwatchesProps> = ({ flow, compact = fals
     <div role="radiogroup" aria-label="Liquor color">
       <div className="flex items-center justify-between mb-2">
         <div
-          className="text-[11px] uppercase tracking-[0.15em] text-tea-text-dim font-medium"
+          className="text-ui-11 uppercase tracking-[0.15em] text-tea-text-dim font-medium"
           style={{ fontFamily: 'var(--font-display)' }}
         >
           Liquor Color
@@ -195,7 +195,7 @@ const ColorSwatchesInner: React.FC<ColorSwatchesProps> = ({ flow, compact = fals
                 style={{ width: 44, height: 44, borderRadius: '50%', background: hex }}
               />
               <span
-                className={`text-[11px] leading-tight text-center transition-colors duration-150 ${
+                className={`text-ui-11 leading-tight text-center transition-colors duration-150 ${
                   isSelected ? 'text-tea-gold' : 'text-tea-text-dim'
                 }`}
                 style={{ fontFamily: 'var(--font-body)' }}

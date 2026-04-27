@@ -165,24 +165,24 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
           <div className="absolute top-0 right-0 p-4 md:p-6 opacity-5 group-hover:opacity-10 transition-opacity text-tea-gold">
              <DollarSign size={60} strokeWidth={1} className="md:w-20 md:h-20" />
           </div>
-          <p className="text-tea-text-sec text-[10px] md:text-xs uppercase tracking-[0.2em] mb-2 md:mb-4 font-bold">Total Asset Cost</p>
+          <p className="text-tea-text-sec text-ui-10 md:text-xs uppercase tracking-[0.2em] mb-2 md:mb-4 font-bold">Total Asset Cost</p>
           <h3 className="text-2xl md:text-5xl font-serif font-light text-tea-text num">{fmtDollars(metrics.totalCostUSD)}</h3>
-          <p className="text-[10px] md:text-xs text-tea-text-sec/70 mt-2 md:mt-4 num">Capital deployed</p>
+          <p className="text-ui-10 md:text-xs text-tea-text-sec/70 mt-2 md:mt-4 num">Capital deployed</p>
         </div>
 
         <div className="bg-tea-surface border border-tea-border p-5 md:p-8 rounded-lg relative overflow-hidden group hover:border-tea-gold/30 transition-colors duration-200 min-w-[260px] md:min-w-0 snap-center flex-shrink-0 md:flex-shrink">
           <div className="absolute top-0 right-0 p-4 md:p-6 opacity-5 group-hover:opacity-10 transition-opacity text-tea-gold">
              <PieIcon size={60} strokeWidth={1} className="md:w-20 md:h-20" />
           </div>
-          <p className="text-tea-text-sec text-[10px] md:text-xs uppercase tracking-[0.2em] mb-2 md:mb-4 font-bold">Retail Valuation</p>
+          <p className="text-tea-text-sec text-ui-10 md:text-xs uppercase tracking-[0.2em] mb-2 md:mb-4 font-bold">Retail Valuation</p>
           <h3 className="text-2xl md:text-5xl font-serif font-light text-tea-text num">{fmtDollars(metrics.totalRetailUSD)}</h3>
-          <p className="text-[10px] md:text-xs text-tea-text-sec/70 mt-2 md:mt-4 num">At current prices</p>
+          <p className="text-ui-10 md:text-xs text-tea-text-sec/70 mt-2 md:mt-4 num">At current prices</p>
         </div>
 
         <div className="bg-tea-surface border border-tea-border p-5 md:p-8 rounded-lg relative overflow-hidden group hover:border-tea-gold/30 transition-colors duration-200 min-w-[260px] md:min-w-0 snap-center flex-shrink-0 md:flex-shrink">
-          <p className="text-tea-text-sec text-[10px] md:text-xs uppercase tracking-[0.2em] mb-2 md:mb-4 font-bold">Unrealized P&L</p>
+          <p className="text-tea-text-sec text-ui-10 md:text-xs uppercase tracking-[0.2em] mb-2 md:mb-4 font-bold">Unrealized P&L</p>
           <h3 className="text-2xl md:text-5xl font-serif font-light text-tea-gold num">+{fmtDollars(metrics.potentialProfit)}</h3>
-          <p className="text-[10px] md:text-xs text-tea-text-sec/70 mt-2 md:mt-4 num">Margin: {fmtPct(metrics.totalCostUSD > 0 ? (metrics.potentialProfit / metrics.totalCostUSD) * 100 : 0)}</p>
+          <p className="text-ui-10 md:text-xs text-tea-text-sec/70 mt-2 md:mt-4 num">Margin: {fmtPct(metrics.totalCostUSD > 0 ? (metrics.potentialProfit / metrics.totalCostUSD) * 100 : 0)}</p>
         </div>
       </div>
 
@@ -192,7 +192,7 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
         <div className="bg-tea-surface border border-tea-border p-5 md:p-8 rounded-lg h-72 md:h-96">
           <div className="flex justify-between items-center mb-4 md:mb-6">
             <h4 className="text-sm font-medium text-tea-text font-serif">Capital Exposure by Currency</h4>
-            <div className="text-[10px] md:text-xs text-tea-text-sec uppercase tracking-wider">USD Equiv.</div>
+            <div className="text-ui-10 md:text-xs text-tea-text-sec uppercase tracking-wider">USD Equiv.</div>
           </div>
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
@@ -231,9 +231,9 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
           <div className="flex justify-between items-center mb-4 md:mb-6">
             <div>
               <h4 className="text-sm font-medium text-tea-text font-serif">Live Exchange Rates</h4>
-              <div className="text-[10px] md:text-xs text-tea-text-sec uppercase tracking-wider">Base: 1 USD</div>
+              <div className="text-ui-10 md:text-xs text-tea-text-sec uppercase tracking-wider">Base: 1 USD</div>
             </div>
-            <div className="text-[10px] md:text-xs text-tea-gold bg-tea-gold/10 px-2 py-1 rounded-full flex items-center gap-1 border border-tea-border">
+            <div className="text-ui-10 md:text-xs text-tea-gold bg-tea-gold/10 px-2 py-1 rounded-full flex items-center gap-1 border border-tea-border">
               <span className="w-1.5 h-1.5 rounded-full bg-tea-gold animate-pulse"></span>
               Live
             </div>
@@ -242,7 +242,7 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
             {rates.filter(r => r.currency !== 'USD' && r.currency !== 'UNK').map(rate => (
               <div key={rate.currency} className="flex justify-between items-center p-2.5 md:p-3 bg-tea-bg/50 border border-tea-border rounded-lg">
                 <div className="flex items-center gap-2 md:gap-3">
-                  <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-tea-surface border border-tea-border flex items-center justify-center text-[10px] md:text-xs font-bold text-tea-text-sec">
+                  <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-tea-surface border border-tea-border flex items-center justify-center text-ui-10 md:text-xs font-bold text-tea-text-sec">
                     {rate.currency}
                   </div>
                   <span className="text-xs md:text-sm text-tea-text font-medium">
@@ -262,7 +262,7 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
                 </div>
                 <div className="text-right">
                   <div className="num text-tea-text text-sm md:text-base">{fmtNum(rate.rateToUSD)}</div>
-                  <div className="text-[10px] md:text-xs text-tea-text-sec">per USD</div>
+                  <div className="text-ui-10 md:text-xs text-tea-text-sec">per USD</div>
                 </div>
               </div>
             ))}
@@ -359,7 +359,7 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
                     <span className="text-sm text-tea-text group-hover:text-tea-gold transition-colors truncate">{p.product_name}</span>
                     <div className="flex items-center gap-3 shrink-0 ml-3">
                       <span className="text-xs text-tea-text-dim num">{p.stock_grams}g in stock</span>
-                      <span className="text-[10px] text-amber-500/70">{p.last_sold_at ? 'stale' : 'never sold'}</span>
+                      <span className="text-ui-10 text-amber-500/70">{p.last_sold_at ? 'stale' : 'never sold'}</span>
                     </div>
                   </button>
                 ))}
@@ -411,7 +411,7 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
                     <button key={c.id} onClick={() => navigate(`/admin/people?search=${encodeURIComponent(c.name)}`)}
                       className="flex items-center justify-between w-full px-1 py-1 rounded hover:bg-tea-accent-sub transition-colors text-left group">
                       <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-[10px] font-mono text-tea-text-dim w-4 shrink-0">{i + 1}</span>
+                        <span className="text-ui-10 font-mono text-tea-text-dim w-4 shrink-0">{i + 1}</span>
                         <span className="text-sm text-tea-text group-hover:text-tea-gold transition-colors truncate">{c.name}</span>
                       </div>
                       <span className="text-sm font-mono text-tea-gold shrink-0 ml-2">${c.lifetime_usd.toFixed(0)}</span>
@@ -433,7 +433,7 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
                     <button key={c.id} onClick={() => navigate(`/admin/people?search=${encodeURIComponent(c.name)}`)}
                       className="flex items-center justify-between w-full px-1 py-1 rounded hover:bg-tea-accent-sub transition-colors text-left group">
                       <span className="text-sm text-tea-text group-hover:text-tea-gold transition-colors truncate">{c.name}</span>
-                      <span className="text-[10px] text-tea-text-dim shrink-0 ml-2">
+                      <span className="text-ui-10 text-tea-text-dim shrink-0 ml-2">
                         {c.last_order_at ? new Date(c.last_order_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}
                       </span>
                     </button>
@@ -454,7 +454,7 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
                     <button key={c.id} onClick={() => navigate(`/admin/people?search=${encodeURIComponent(c.name)}`)}
                       className="flex items-center justify-between w-full px-1 py-1 rounded hover:bg-tea-accent-sub transition-colors text-left group">
                       <span className="text-sm text-tea-text group-hover:text-tea-gold transition-colors truncate">{c.name}</span>
-                      <span className="text-[10px] text-tea-gold/70 shrink-0 ml-2">${c.lifetime_usd.toFixed(0)}</span>
+                      <span className="text-ui-10 text-tea-gold/70 shrink-0 ml-2">${c.lifetime_usd.toFixed(0)}</span>
                     </button>
                   ))}
                 </div>

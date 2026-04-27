@@ -54,7 +54,7 @@ export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
             {t.action && (
               <button
                 onClick={() => { t.action!.onClick(); setToasts((prev) => prev.filter((x) => x.id !== t.id)); }}
-                className="ml-auto text-[10px] font-bold uppercase tracking-[0.15em] text-tea-gold hover:text-tea-text transition-colors px-2 py-0.5"
+                className="ml-auto text-ui-10 font-bold uppercase tracking-[0.15em] text-tea-gold hover:text-tea-text transition-colors px-2 py-0.5"
               >
                 {t.action.label}
               </button>

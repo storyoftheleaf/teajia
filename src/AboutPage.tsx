@@ -13,7 +13,7 @@ export default function AboutPage() {
       </Helmet>
       {/* Header */}
       <header className="pt-16 md:pt-24 mb-12 md:mb-16">
-        <p className="font-sans text-[10px] uppercase tracking-widest text-tea-gold mb-4">About Teajia</p>
+        <p className="font-sans text-ui-10 uppercase tracking-widest text-tea-gold mb-4">About Teajia</p>
         <h1 className="font-display text-5xl md:text-6xl font-light text-tea-text leading-tight mb-4">
           139 teas. One curator.
         </h1>
@@ -64,7 +64,7 @@ export default function AboutPage() {
 
       {/* Founder story */}
       <section className="mb-16 md:mb-20 border-t border-tea-border pt-12 md:pt-16">
-        <p className="font-sans text-[10px] uppercase tracking-widest text-tea-gold mb-3">
+        <p className="font-sans text-ui-10 uppercase tracking-widest text-tea-gold mb-3">
           The Founder
         </p>
         <h2 className="font-display text-2xl md:text-3xl text-tea-text mb-4">
@@ -119,7 +119,7 @@ export default function AboutPage() {
 
       {/* Brand philosophy */}
       <section className="mb-16 md:mb-20 bg-tea-surface border border-tea-border p-8 md:p-12 rounded-lg">
-        <p className="font-sans text-[10px] uppercase tracking-widest text-tea-gold mb-3">
+        <p className="font-sans text-ui-10 uppercase tracking-widest text-tea-gold mb-3">
           Philosophy
         </p>
         <h2 className="font-display text-2xl md:text-3xl text-tea-text mb-4">

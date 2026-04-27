@@ -105,7 +105,7 @@ export const CollectionsView: React.FC = () => {
       <div className="flex items-center gap-1 px-4 md:px-6 pt-3 pb-2 border-b border-tea-border flex-shrink-0">
         <button
           onClick={() => setMode('mine')}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] uppercase tracking-wide transition-colors ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-ui-11 uppercase tracking-wide transition-colors ${
             mode === 'mine' ? 'bg-tea-elevated text-tea-text' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'
           }`}
         >
@@ -114,14 +114,14 @@ export const CollectionsView: React.FC = () => {
         </button>
         <button
           onClick={() => setMode('inbound')}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] uppercase tracking-wide transition-colors ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-ui-11 uppercase tracking-wide transition-colors ${
             mode === 'inbound' ? 'bg-tea-elevated text-tea-text' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'
           }`}
         >
           <Inbox size={11} /> Inbound
           <span className="text-tea-text-dim">{inbound.length}</span>
           {unreadCount > 0 && (
-            <span className="ml-0.5 inline-flex items-center justify-center min-w-[16px] h-[16px] px-1 rounded-full bg-tea-gold text-tea-bg text-[9px] font-semibold tabular-nums">
+            <span className="ml-0.5 inline-flex items-center justify-center min-w-[16px] h-[16px] px-1 rounded-full bg-tea-gold text-tea-bg text-ui-9 font-semibold tabular-nums">
               {unreadCount}
             </span>
           )}
@@ -134,7 +134,7 @@ export const CollectionsView: React.FC = () => {
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
-            className={`px-3 py-1.5 rounded-md text-[11px] uppercase tracking-wide transition-colors ${
+            className={`px-3 py-1.5 rounded-md text-ui-11 uppercase tracking-wide transition-colors ${
               tab === t.id
                 ? 'bg-tea-elevated text-tea-text'
                 : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'
@@ -163,7 +163,7 @@ export const CollectionsView: React.FC = () => {
             <div className="py-20 text-center max-w-sm mx-auto px-6">
               <Inbox size={28} className="text-tea-text-dim mx-auto mb-4" strokeWidth={1.25} />
               <p className="text-sm text-tea-text mb-1.5">No inbound collections</p>
-              <p className="text-[12px] text-tea-text-dim leading-relaxed">
+              <p className="text-ui-12 text-tea-text-dim leading-relaxed">
                 When another store shares a collection with you, it appears here.
               </p>
             </div>
@@ -182,12 +182,12 @@ export const CollectionsView: React.FC = () => {
                           {row.title}
                         </h3>
                         {!row.recipient_seen_at && (
-                          <span className="px-2 py-0.5 rounded-full text-[9px] uppercase tracking-[1.2px] bg-tea-gold/10 text-tea-text ring-1 ring-inset ring-tea-gold/40">
+                          <span className="px-2 py-0.5 rounded-full text-ui-9 uppercase tracking-[1.2px] bg-tea-gold/10 text-tea-text ring-1 ring-inset ring-tea-gold/40">
                             New
                           </span>
                         )}
                       </div>
-                      <p className="text-[11px] text-tea-text-dim mt-1 flex items-center gap-1">
+                      <p className="text-ui-11 text-tea-text-dim mt-1 flex items-center gap-1">
                         <Building2 size={10} className="opacity-70" />
                         From {row.publisher_account_name}
                         {' · '}
@@ -213,7 +213,7 @@ export const CollectionsView: React.FC = () => {
             <p className="text-sm text-tea-text mb-1.5">
               {tab === 'all' ? 'No collections yet' : `No ${STATUS_LABEL[tab as CollectionStatus].toLowerCase()} collections`}
             </p>
-            <p className="text-[12px] text-tea-text-dim leading-relaxed">
+            <p className="text-ui-12 text-tea-text-dim leading-relaxed">
               {tab === 'all'
                 ? 'Collections are curated sets of products. Start one from the inventory list or create an empty draft.'
                 : 'Switch to "All" to see your other collections.'}
@@ -233,11 +233,11 @@ export const CollectionsView: React.FC = () => {
                       <h3 className="text-sm text-tea-text truncate font-display" style={{ fontWeight: 400 }}>
                         {c.title}
                       </h3>
-                      <span className={`px-2 py-0.5 rounded-full text-[9px] uppercase tracking-[1.2px] ${STATUS_STYLES[c.status]}`}>
+                      <span className={`px-2 py-0.5 rounded-full text-ui-9 uppercase tracking-[1.2px] ${STATUS_STYLES[c.status]}`}>
                         {STATUS_LABEL[c.status]}
                       </span>
                     </div>
-                    <p className="text-[11px] text-tea-text-dim mt-1">
+                    <p className="text-ui-11 text-tea-text-dim mt-1">
                       {c.item_count} product{c.item_count !== 1 ? 's' : ''}
                       {' · '}
                       {c.active_publication_count > 0
@@ -245,7 +245,7 @@ export const CollectionsView: React.FC = () => {
                         : 'no active links'}
                       {c.last_published_at && ` · last shared ${formatDate(c.last_published_at)}`}
                       {(c as any).curator_display_name && (
-                        <span className="ml-1 text-[11px] text-tea-text-dim">
+                        <span className="ml-1 text-ui-11 text-tea-text-dim">
                           {' · '}Curated by {(c as any).curator_display_name}
                         </span>
                       )}

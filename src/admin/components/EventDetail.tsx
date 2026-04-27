@@ -129,7 +129,7 @@ const TastingNotesTab: React.FC<TastingNotesTabProps> = ({ notes }) => {
               <div className="flex items-center gap-2 flex-wrap mb-1">
                 <span className="text-xs font-medium text-tea-text">{note.attendeeName || 'Guest'}</span>
                 {note.teaName && (
-                  <span className="text-[10px] text-tea-text-dim">· {note.teaName}</span>
+                  <span className="text-ui-10 text-tea-text-dim">· {note.teaName}</span>
                 )}
                 {note.rating != null && (
                   <div className="flex items-center gap-0.5">
@@ -144,7 +144,7 @@ const TastingNotesTab: React.FC<TastingNotesTabProps> = ({ notes }) => {
                   </div>
                 )}
                 {note.isFavorite && (
-                  <span className="text-[9px] text-tea-gold/70 uppercase tracking-[0.1em]">Favorite</span>
+                  <span className="text-ui-9 text-tea-gold/70 uppercase tracking-[0.1em]">Favorite</span>
                 )}
               </div>
               {note.impression && (
@@ -155,7 +155,7 @@ const TastingNotesTab: React.FC<TastingNotesTabProps> = ({ notes }) => {
             {/* Promote action */}
             <div className="shrink-0">
               {isDone ? (
-                <span className="flex items-center gap-1 text-[10px] text-emerald-400">
+                <span className="flex items-center gap-1 text-ui-10 text-emerald-400">
                   <Check size={10} /> Published
                 </span>
               ) : (
@@ -164,7 +164,7 @@ const TastingNotesTab: React.FC<TastingNotesTabProps> = ({ notes }) => {
                   onClick={() => setConfirmNote(note)}
                   disabled={promoting === note.id || !note.teaName}
                   title={!note.teaName ? 'No tea linked — cannot publish' : 'Publish as tea review'}
-                  className="flex items-center gap-1 text-[10px] text-tea-text-sec hover:text-tea-gold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="flex items-center gap-1 text-ui-10 text-tea-text-sec hover:text-tea-gold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {promoting === note.id
                     ? <Loader2 size={10} className="animate-spin" />
@@ -211,7 +211,7 @@ const TastingNotesTab: React.FC<TastingNotesTabProps> = ({ notes }) => {
                       className="accent-tea-gold"
                     />
                     <span className="text-xs text-tea-text capitalize">{v}</span>
-                    <span className="text-[10px] text-tea-text-dim">
+                    <span className="text-ui-10 text-tea-text-dim">
                       {v === 'private' ? '(only you)' : v === 'account' ? '(your store only)' : '(visible across network)'}
                     </span>
                   </label>
@@ -435,18 +435,18 @@ export const EventDetail: React.FC = () => {
           <div className="flex-1 min-w-0">
             <div className="flex items-baseline gap-3 flex-wrap mb-1">
               <h1 className="font-display text-[clamp(22px,3vw,30px)] font-normal leading-[1.15] tracking-[0.01em] text-tea-text">{event.title}</h1>
-              <span className={`text-[9px] uppercase tracking-[0.2em] font-semibold shrink-0 ${STATUS_STYLES[event.status]}`}>
+              <span className={`text-ui-9 uppercase tracking-[0.2em] font-semibold shrink-0 ${STATUS_STYLES[event.status]}`}>
                 {event.status}
               </span>
               {requestedCount > 0 && (
-                <span className="flex items-center gap-1 text-[9px] text-amber-400 shrink-0">
+                <span className="flex items-center gap-1 text-ui-9 text-amber-400 shrink-0">
                   <Bell size={8} className="shrink-0" />
                   {requestedCount} pending
                 </span>
               )}
             </div>
             {event.subtitle && (
-              <p className="font-body italic text-[15px] text-tea-text-sec mb-2 leading-snug">{event.subtitle}</p>
+              <p className="font-body italic text-ui-15 text-tea-text-sec mb-2 leading-snug">{event.subtitle}</p>
             )}
             <div className="flex items-center gap-4 text-xs text-tea-text-sec flex-wrap font-mono">
               <span className="flex items-center gap-1">
@@ -532,7 +532,7 @@ export const EventDetail: React.FC = () => {
             </div>
           </div>
           {/* Legend */}
-          <div className="flex items-center gap-4 text-[10px] text-tea-text-dim font-mono">
+          <div className="flex items-center gap-4 text-ui-10 text-tea-text-dim font-mono">
             <span className="flex items-center gap-1.5">
               <span className="inline-block w-6 h-px bg-tea-gold" />
               Confirmed
@@ -557,7 +557,7 @@ export const EventDetail: React.FC = () => {
             <button
               onClick={() => setConfirmClose(true)}
               disabled={closingRsvp}
-              className="flex items-center gap-1.5 text-[11px] text-tea-text-sec hover:text-tea-text transition-colors"
+              className="flex items-center gap-1.5 text-ui-11 text-tea-text-sec hover:text-tea-text transition-colors"
             >
               {closingRsvp ? <Loader2 size={11} className="animate-spin" /> : <Lock size={11} />}
               Close RSVP
@@ -583,7 +583,7 @@ export const EventDetail: React.FC = () => {
           >
             {tab.label}
             {tab.badge !== undefined && tab.badge > 0 && (
-              <span className={`text-[10px] font-mono leading-none ${
+              <span className={`text-ui-10 font-mono leading-none ${
                 activeTab === tab.key ? 'text-tea-gold' : 'text-amber-400'
               }`}>
                 {tab.badge}
@@ -604,7 +604,7 @@ export const EventDetail: React.FC = () => {
           >
             <MoreHorizontal size={14} />
             {overflowActive && (
-              <span className="text-[10px]">
+              <span className="text-ui-10">
                 {OVERFLOW_TABS.find(t => t.key === activeTab)?.label}
               </span>
             )}
@@ -623,7 +623,7 @@ export const EventDetail: React.FC = () => {
                 >
                   {tab.label}
                   {(tab as any).badge > 0 && (
-                    <span className="text-[10px] font-mono text-amber-400 leading-none">
+                    <span className="text-ui-10 font-mono text-amber-400 leading-none">
                       {(tab as any).badge}
                     </span>
                   )}
@@ -775,9 +775,9 @@ export const EventDetail: React.FC = () => {
                       <p className="text-xs text-tea-text-sec mt-0.5">{s.phone || s.email || '—'}</p>
                     </div>
                     {s.converted_at ? (
-                      <span className="text-[10px] text-tea-text-dim uppercase tracking-[0.15em] shrink-0">Converted</span>
+                      <span className="text-ui-10 text-tea-text-dim uppercase tracking-[0.15em] shrink-0">Converted</span>
                     ) : (
-                      <span className="text-[10px] text-amber-400 uppercase tracking-[0.15em] shrink-0">Pending</span>
+                      <span className="text-ui-10 text-amber-400 uppercase tracking-[0.15em] shrink-0">Pending</span>
                     )}
                   </div>
                 ))}
@@ -805,7 +805,7 @@ export const EventDetail: React.FC = () => {
             ) : (
               <>
                 <div>
-                  <label className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec block mb-1.5">Venue</label>
+                  <label className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec block mb-1.5">Venue</label>
                   <div className="relative">
                     <MapPin size={12} className="absolute left-0 top-1/2 -translate-y-1/2 text-tea-text-sec" />
                     <select
@@ -825,11 +825,11 @@ export const EventDetail: React.FC = () => {
                 {/* Space picker */}
                 {selectedVenueObj && selectedVenueObj.spaces.length > 0 && (
                   <div className="space-y-2">
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec">Spaces</p>
+                    <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec">Spaces</p>
                     {selectedSpaceIds.length > 0 && (
                       <div className="flex flex-wrap gap-1.5">
                         {selectedVenueObj.spaces.filter(s => selectedSpaceIds.includes(s.id)).map(s => (
-                          <span key={s.id} className="inline-flex items-center gap-1 text-[11px] text-tea-gold">
+                          <span key={s.id} className="inline-flex items-center gap-1 text-ui-11 text-tea-gold">
                             {s.name} · {s.capacity}
                           </span>
                         ))}
@@ -860,15 +860,15 @@ export const EventDetail: React.FC = () => {
                             )}
                             <div className="flex-1 min-w-0">
                               <p className={`text-sm font-medium ${active ? 'text-tea-text' : 'text-tea-text-sec'}`}>{space.name}</p>
-                              <p className="text-[11px] text-tea-text-dim mt-0.5">{space.capacity} seats</p>
+                              <p className="text-ui-11 text-tea-text-dim mt-0.5">{space.capacity} seats</p>
                               {space.description && (
-                                <p className="text-[11px] text-tea-text-dim mt-1 line-clamp-1">{space.description}</p>
+                                <p className="text-ui-11 text-tea-text-dim mt-1 line-clamp-1">{space.description}</p>
                               )}
                             </div>
                             <div className={`w-4 h-4 rounded-sm border flex-shrink-0 mt-0.5 flex items-center justify-center transition-colors ${
                               active ? 'bg-tea-gold border-tea-gold' : 'border-tea-border'
                             }`}>
-                              {active && <span className="text-tea-bg text-[10px] font-bold leading-none">✓</span>}
+                              {active && <span className="text-tea-bg text-ui-10 font-bold leading-none">✓</span>}
                             </div>
                           </button>
                         );
@@ -896,7 +896,7 @@ export const EventDetail: React.FC = () => {
             {/* Venue profile: photos + links */}
             {selectedVenueObj && (selectedVenueObj.photos.length > 0 || selectedVenueObj.website || selectedVenueObj.instagram) && (
               <div className="space-y-3 pt-2">
-                <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec">Venue Profile</p>
+                <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec">Venue Profile</p>
                 {/* Profile links */}
                 {(selectedVenueObj.website || selectedVenueObj.instagram) && (
                   <div className="flex items-center gap-4 flex-wrap">

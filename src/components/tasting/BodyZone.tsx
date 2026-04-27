@@ -56,7 +56,7 @@ const BodyZoneInner: React.FC<BodyZoneProps> = ({ flow, value, onChange }) => {
           animate={{ opacity: totalCount > 0 ? 1 : 0 }}
           transition={{ duration: 0.18 }}
           style={{ pointerEvents: totalCount > 0 ? 'auto' : 'none' }}
-          className="text-[11px] text-tea-text-dim hover:text-tea-text-sec transition-colors flex items-center gap-1 px-2 py-1"
+          className="text-ui-11 text-tea-text-dim hover:text-tea-text-sec transition-colors flex items-center gap-1 px-2 py-1"
           aria-label="Clear all sensation selections"
         >
           <X size={10} />
@@ -68,12 +68,12 @@ const BodyZoneInner: React.FC<BodyZoneProps> = ({ flow, value, onChange }) => {
       <div className="mb-4">
         <div className="mb-2">
           <div
-            className="text-[12px] uppercase tracking-[0.12em] text-tea-text-dim font-medium"
+            className="text-ui-12 uppercase tracking-[0.12em] text-tea-text-dim font-medium"
             style={{ fontFamily: 'var(--font-display)' }}
           >
             Weight
           </div>
-          <p className="text-[11px] text-tea-text-sec mt-0.5" style={{ fontFamily: 'var(--font-body)' }}>
+          <p className="text-ui-11 text-tea-text-sec mt-0.5" style={{ fontFamily: 'var(--font-body)' }}>
             How heavy does the liquor feel sitting on your tongue?
           </p>
         </div>
@@ -88,8 +88,8 @@ const BodyZoneInner: React.FC<BodyZoneProps> = ({ flow, value, onChange }) => {
               aria-checked={selectedWeight === w.id}
               className={`flex-1 py-2.5 transition-all duration-200 min-h-[44px] relative z-[1] ${
                 selectedWeight === w.id
-                  ? 'text-tea-gold font-semibold text-[15px]'
-                  : 'text-tea-text-sec hover:text-tea-text font-medium text-[15px]'
+                  ? 'text-tea-gold font-semibold text-ui-15'
+                  : 'text-tea-text-sec hover:text-tea-text font-medium text-ui-15'
               }${i < WEIGHTS.length - 1 ? ' weight-seg-div' : ''}`}
               style={{
                 fontFamily: 'var(--font-body)',
@@ -108,12 +108,12 @@ const BodyZoneInner: React.FC<BodyZoneProps> = ({ flow, value, onChange }) => {
       <div>
         <div className="mb-2">
           <div
-            className="text-[12px] uppercase tracking-[0.12em] text-tea-text-dim font-medium"
+            className="text-ui-12 uppercase tracking-[0.12em] text-tea-text-dim font-medium"
             style={{ fontFamily: 'var(--font-display)' }}
           >
             Texture
           </div>
-          <p className="text-[11px] text-tea-text-sec mt-0.5" style={{ fontFamily: 'var(--font-body)' }}>
+          <p className="text-ui-11 text-tea-text-sec mt-0.5" style={{ fontFamily: 'var(--font-body)' }}>
             What physical sensation moves through your mouth?
           </p>
         </div>
@@ -149,7 +149,7 @@ const BodyZoneInner: React.FC<BodyZoneProps> = ({ flow, value, onChange }) => {
           className="overflow-hidden"
         >
           {lastHint && (
-            <p className="text-[12px] text-tea-text-sec mt-2 px-0.5" style={{ fontFamily: 'var(--font-body)' }}>
+            <p className="text-ui-12 text-tea-text-sec mt-2 px-0.5" style={{ fontFamily: 'var(--font-body)' }}>
               {lastHint}
             </p>
           )}

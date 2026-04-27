@@ -25,7 +25,7 @@ export const NoMembershipGate: React.FC<Props> = ({ onLogout }) => {
           <button
             type="button"
             onClick={onLogout}
-            className="text-[10px] uppercase tracking-[0.2em] text-tea-text-dim hover:text-tea-text transition-colors"
+            className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim hover:text-tea-text transition-colors"
           >
             Sign out
           </button>

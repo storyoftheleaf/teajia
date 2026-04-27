@@ -100,7 +100,7 @@ export const TeaTable: React.FC<TeaTableProps> = ({
 
   const SortHeader = ({ colKey, label, align = 'left' }: { colKey: keyof Product, label: string, align?: 'left' | 'right' | 'center' }) => (
       <th
-        className={`px-4 py-2 cursor-pointer hover:text-tea-text transition-colors select-none border-b border-tea-border group text-[10px] uppercase tracking-wider font-serif text-tea-text-sec text-${align} truncate`}
+        className={`px-4 py-2 cursor-pointer hover:text-tea-text transition-colors select-none border-b border-tea-border group text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec text-${align} truncate`}
         onClick={() => handleSort(colKey)}
       >
         <div className={`flex items-center gap-1 ${align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : ''}`}>
@@ -189,7 +189,7 @@ export const TeaTable: React.FC<TeaTableProps> = ({
               onClick={() => setFilter('All')}
               role="tab"
               aria-selected={filter === 'All'}
-              className={`px-1 pb-1 text-[11px] tracking-[0.08em] transition-colors border-b ${filter === 'All' ? 'text-tea-text border-tea-gold' : 'text-tea-text-sec border-transparent hover:text-tea-text hover:border-tea-border'}`}
+              className={`px-1 pb-1 text-ui-11 tracking-[0.08em] transition-colors border-b ${filter === 'All' ? 'text-tea-text border-tea-gold' : 'text-tea-text-sec border-transparent hover:text-tea-text hover:border-tea-border'}`}
           >
               All
           </button>
@@ -198,7 +198,7 @@ export const TeaTable: React.FC<TeaTableProps> = ({
                   onClick={() => setFilter('Featured')}
                   role="tab"
                   aria-selected={filter === 'Featured'}
-                  className={`px-1 pb-1 text-[11px] tracking-[0.08em] transition-colors border-b flex items-center gap-1.5 ${filter === 'Featured' ? 'text-tea-text border-tea-gold' : 'text-tea-text-sec border-transparent hover:text-tea-text hover:border-tea-border'}`}
+                  className={`px-1 pb-1 text-ui-11 tracking-[0.08em] transition-colors border-b flex items-center gap-1.5 ${filter === 'Featured' ? 'text-tea-text border-tea-gold' : 'text-tea-text-sec border-transparent hover:text-tea-text hover:border-tea-border'}`}
               >
                   <Star className={`w-3 h-3 ${filter === 'Featured' ? 'fill-tea-gold text-tea-gold' : 'fill-tea-gold/40 text-tea-gold/40'}`} aria-hidden="true" />
                   Featured
@@ -214,7 +214,7 @@ export const TeaTable: React.FC<TeaTableProps> = ({
                   onClick={() => setFilter(type)}
                   role="tab"
                   aria-selected={isActive}
-                  className={`px-1 pb-1 text-[11px] tracking-[0.08em] transition-colors border-b ${isActive ? 'text-tea-text border-tea-gold' : 'text-tea-text-sec border-transparent hover:text-tea-text hover:border-tea-border'}`}
+                  className={`px-1 pb-1 text-ui-11 tracking-[0.08em] transition-colors border-b ${isActive ? 'text-tea-text border-tea-gold' : 'text-tea-text-sec border-transparent hover:text-tea-text hover:border-tea-border'}`}
               >
                   {type}
               </button>
@@ -251,7 +251,7 @@ export const TeaTable: React.FC<TeaTableProps> = ({
                         {product.isFeatured && <Star size={10} className="flex-shrink-0 text-tea-gold fill-tea-gold" />}
                         {!product.isPublic && <EyeOff size={10} className="flex-shrink-0 text-tea-text-sec/40" />}
                       </div>
-                      <div className="flex items-center gap-1.5 text-[10px] text-tea-text-sec/70 mt-0.5">
+                      <div className="flex items-center gap-1.5 text-ui-10 text-tea-text-sec/70 mt-0.5">
                         <span>{product.type}</span>
                         {product.originRegion && (
                           <>
@@ -269,7 +269,7 @@ export const TeaTable: React.FC<TeaTableProps> = ({
                     </div>
                     <div className="flex-shrink-0 text-right">
                       <div className="text-xs text-tea-text/80 tabular-nums">{formatCurrency(product.pricePerGramUSD, currency, rates)}</div>
-                      {isAdmin && <div className="text-[10px] text-tea-text-sec/60 tabular-nums flex items-center gap-0.5 justify-end">{product.inTransit && <Package size={9} className="text-tea-gold" />}{Math.round(product.stockGrams)}g</div>}
+                      {isAdmin && <div className="text-ui-10 text-tea-text-sec/60 tabular-nums flex items-center gap-0.5 justify-end">{product.inTransit && <Package size={9} className="text-tea-gold" />}{Math.round(product.stockGrams)}g</div>}
                     </div>
                   </button>
                 );
@@ -337,7 +337,7 @@ export const TeaTable: React.FC<TeaTableProps> = ({
                                                 )}
                                             </span>
                                             {product.givenName && (
-                                                <span className="text-[10px] text-tea-text-sec font-sans mt-0.5 truncate block">
+                                                <span className="text-ui-10 text-tea-text-sec font-sans mt-0.5 truncate block">
                                                     {product.givenName}
                                                 </span>
                                             )}
@@ -365,7 +365,7 @@ export const TeaTable: React.FC<TeaTableProps> = ({
                                                 {Math.round(product.stockGrams)}g
                                             </span>
                                             {product.inTransit && (product as any).inTransitGrams > 0 && (
-                                                <span className="block text-[10px] text-tea-gold/70 tabular-nums text-right">
+                                                <span className="block text-ui-10 text-tea-gold/70 tabular-nums text-right">
                                                     +{(product as any).inTransitGrams}g
                                                     {(product as any).inTransitEta && (
                                                         <span className="text-tea-text-dim"> {new Date((product as any).inTransitEta).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>

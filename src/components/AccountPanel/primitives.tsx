@@ -31,9 +31,9 @@ export function truncate(s: string, max: number): string {
 // system sits at 17px body / 11px label; the panel runs slightly tighter
 // because it is a 400px drawer, but never below WCAG-safe sizes.
 
-export const HINT_CLASS = 'text-[11px] uppercase tracking-[0.24em] text-tea-text-sec font-medium';
-export const META_CLASS = 'text-[12px] text-tea-text-sec tracking-[0.02em]';
-export const META_DIM_CLASS = 'text-[12px] text-tea-text-dim tracking-[0.02em]';
+export const HINT_CLASS = 'text-ui-11 uppercase tracking-[0.24em] text-tea-text-sec font-medium';
+export const META_CLASS = 'text-ui-12 text-tea-text-sec tracking-[0.02em]';
+export const META_DIM_CLASS = 'text-ui-12 text-tea-text-dim tracking-[0.02em]';
 export const FOOTER_LINK_CLASS = 'py-2 -my-2 hover:text-tea-gold transition-colors';
 
 // ── Building blocks ────────────────────────────────────────────────────────
@@ -56,7 +56,7 @@ export const Hint: React.FC<{ children: React.ReactNode; icon?: React.ReactNode 
 export const SectionHeader: React.FC<{ children: React.ReactNode; meta?: React.ReactNode }> = ({ children, meta }) => (
   <div className="flex items-baseline justify-between px-6 pt-6 pb-2">
     <span className={HINT_CLASS}>{children}</span>
-    {meta && <span className="text-[11px] text-tea-text-sec">{meta}</span>}
+    {meta && <span className="text-ui-11 text-tea-text-sec">{meta}</span>}
   </div>
 );
 
@@ -78,11 +78,11 @@ export const Row: React.FC<RowProps> = ({ label, onClick, meta, isNew, trailing,
     style={{ WebkitTapHighlightColor: 'transparent' }}
   >
     <span className="flex-1 min-w-0 flex items-center gap-2">
-      <span className="font-serif text-[15px] text-tea-text leading-tight truncate">{label}</span>
+      <span className="font-serif text-ui-15 text-tea-text leading-tight truncate">{label}</span>
       {isNew && <NewDot />}
     </span>
     {meta != null && (
-      <span className="text-[12px] text-tea-text-sec tabular-nums shrink-0 font-sans">{meta}</span>
+      <span className="text-ui-12 text-tea-text-sec tabular-nums shrink-0 font-sans">{meta}</span>
     )}
     {trailing}
   </button>
@@ -111,11 +111,11 @@ export const NeedsAttention: React.FC<{ items: AttentionItem[] }> = ({ items }) 
             className={`w-1.5 h-1.5 rounded-full shrink-0 ${item.urgent ? 'bg-tea-gold' : 'bg-tea-text-sec'}`}
             aria-hidden="true"
           />
-          <span className="flex-1 min-w-0 font-serif text-[14px] text-tea-text leading-snug truncate">
+          <span className="flex-1 min-w-0 font-serif text-ui-14 text-tea-text leading-snug truncate">
             {item.label}
           </span>
           {item.meta && (
-            <span className="text-[11px] uppercase tracking-[0.15em] text-tea-text-sec shrink-0">
+            <span className="text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec shrink-0">
               {item.meta}
             </span>
           )}
@@ -181,7 +181,7 @@ export const Instrument: React.FC<InstrumentProps> = ({
       <span
         className={[
           'font-mono tabular-nums leading-none',
-          isHero ? 'text-[44px]' : 'text-[26px]',
+          isHero ? 'text-[44px]' : 'text-ui-26',
           urgent
             ? 'text-tea-gold'
             : isQuiet
@@ -197,8 +197,8 @@ export const Instrument: React.FC<InstrumentProps> = ({
           className={[
             'uppercase font-medium leading-tight',
             isHero
-              ? 'text-[11px] tracking-[0.24em] text-tea-text'
-              : 'text-[10px] tracking-[0.22em] text-tea-text-sec',
+              ? 'text-ui-11 tracking-[0.24em] text-tea-text'
+              : 'text-ui-10 tracking-[0.22em] text-tea-text-sec',
           ].join(' ')}
         >
           {label}
@@ -207,7 +207,7 @@ export const Instrument: React.FC<InstrumentProps> = ({
           <div
             className={[
               'leading-tight italic mt-0.5',
-              isHero ? 'text-[13px] text-tea-text-sec' : 'text-[11px] text-tea-text-dim',
+              isHero ? 'text-ui-13 text-tea-text-sec' : 'text-ui-11 text-tea-text-dim',
             ].join(' ')}
             style={{ fontFamily: 'var(--font-display)' }}
           >
@@ -253,7 +253,7 @@ export const PrimaryVerb: React.FC<PrimaryVerbProps> = ({ label, onClick, varian
       className={[
         'w-full min-h-[52px] px-5',
         'flex items-center justify-center gap-2',
-        'text-[13px] uppercase tracking-[0.22em] font-medium',
+        'text-ui-13 uppercase tracking-[0.22em] font-medium',
         'transition-[background-color,border-color,transform] duration-150',
         'active:translate-y-[0.5px]',
         'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-tea-gold focus-visible:ring-offset-2 focus-visible:ring-offset-tea-bg',

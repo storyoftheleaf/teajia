@@ -206,7 +206,7 @@ export const VendorInfoPanel: React.FC<VendorInfoPanelProps> = ({
               href={`https://maps.google.com/?q=${d.lat},${d.lng}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1 text-[11px] text-tea-text-sec hover:text-tea-gold transition-colors"
+              className="flex items-center gap-1 text-ui-11 text-tea-text-sec hover:text-tea-gold transition-colors"
             >
               <MapPin size={11} />
               <span className="num">{d.lat!.toFixed(4)}, {d.lng!.toFixed(4)}</span>
@@ -215,27 +215,27 @@ export const VendorInfoPanel: React.FC<VendorInfoPanelProps> = ({
           )}
 
           {d.phone && (
-            <a href={`tel:${d.phone}`} className="flex items-center gap-1 text-[11px] text-tea-text-sec hover:text-tea-gold transition-colors">
+            <a href={`tel:${d.phone}`} className="flex items-center gap-1 text-ui-11 text-tea-text-sec hover:text-tea-gold transition-colors">
               <Phone size={11} />
               <span>{d.phone}</span>
             </a>
           )}
 
           {d.whatsapp && (
-            <span className="flex items-center gap-1 text-[11px] text-tea-text-dim">
+            <span className="flex items-center gap-1 text-ui-11 text-tea-text-dim">
               <MessageCircle size={11} />
               WA: {d.whatsapp}
             </span>
           )}
 
           {d.wechat && (
-            <span className="flex items-center gap-1 text-[11px] text-tea-text-dim">
+            <span className="flex items-center gap-1 text-ui-11 text-tea-text-dim">
               WeChat: {d.wechat}
             </span>
           )}
 
           {d.line && (
-            <span className="flex items-center gap-1 text-[11px] text-tea-text-dim">
+            <span className="flex items-center gap-1 text-ui-11 text-tea-text-dim">
               LINE: {d.line}
             </span>
           )}
@@ -243,7 +243,7 @@ export const VendorInfoPanel: React.FC<VendorInfoPanelProps> = ({
           <button
             type="button"
             onClick={() => setEditing(true)}
-            className="ml-auto flex items-center gap-1 text-[11px] text-tea-text-dim hover:text-tea-text-sec transition-colors"
+            className="ml-auto flex items-center gap-1 text-ui-11 text-tea-text-dim hover:text-tea-text-sec transition-colors"
           >
             <Pencil size={10} />
             Edit

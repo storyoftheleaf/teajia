@@ -224,13 +224,13 @@ export const LearnExplore: React.FC<LearnExploreProps> = ({ watchedStories, onNa
                           </div>
                         </div>
                         <div className="flex items-center gap-3 mb-2">
-                          <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-sm ${DIFFICULTY_COLORS[collection.difficulty]}`}>
+                          <span className={`text-ui-10 uppercase tracking-wider px-2 py-0.5 rounded-sm ${DIFFICULTY_COLORS[collection.difficulty]}`}>
                             {collection.difficulty}
                           </span>
-                          <span className="text-[11px] text-tea-text/40">
+                          <span className="text-ui-11 text-tea-text/40">
                             {collection.estimatedDuration}
                           </span>
-                          <span className="text-[11px] text-tea-text/40">
+                          <span className="text-ui-11 text-tea-text/40">
                             {collection.guideSteps.length} steps
                           </span>
                         </div>
@@ -253,7 +253,7 @@ export const LearnExplore: React.FC<LearnExploreProps> = ({ watchedStories, onNa
                               <div className="absolute left-[11px] top-6 bottom-0 w-px bg-tea-gold/20" />
                             )}
                             <div className="absolute left-0 top-0 w-6 h-6 rounded-full bg-tea-gold/10 flex items-center justify-center">
-                              <span className="text-[10px] font-medium text-tea-gold">{step.order}</span>
+                              <span className="text-ui-10 font-medium text-tea-gold">{step.order}</span>
                             </div>
                             <div>
                               <h4 className="font-serif text-base text-tea-text mb-1">
@@ -269,7 +269,7 @@ export const LearnExplore: React.FC<LearnExploreProps> = ({ watchedStories, onNa
                       {collection.tags.length > 0 && (
                         <div className="flex flex-wrap gap-2 mt-5 pt-4 border-t border-tea-border">
                           {collection.tags.map(tag => (
-                            <span key={tag} className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-sm bg-tea-text/5 text-tea-text/50">
+                            <span key={tag} className="text-ui-10 uppercase tracking-wider px-2 py-0.5 rounded-sm bg-tea-text/5 text-tea-text/50">
                               {tag}
                             </span>
                           ))}
@@ -322,11 +322,11 @@ export const LearnExplore: React.FC<LearnExploreProps> = ({ watchedStories, onNa
                     <div className="p-5">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
-                          <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-sm ${WISDOM_TYPE_COLORS[entry.type] || ''}`}>
+                          <span className={`text-ui-10 uppercase tracking-wider px-2 py-0.5 rounded-sm ${WISDOM_TYPE_COLORS[entry.type] || ''}`}>
                             {WISDOM_TYPE_LABELS[entry.type]}
                           </span>
                           {entry.teaReferenced && (
-                            <span className="text-[10px] text-tea-text/40 italic">
+                            <span className="text-ui-10 text-tea-text/40 italic">
                               {entry.teaReferenced}
                             </span>
                           )}
@@ -356,7 +356,7 @@ export const LearnExplore: React.FC<LearnExploreProps> = ({ watchedStories, onNa
                         {entry.tags.length > 0 && (
                           <div className="flex flex-wrap gap-1.5">
                             {entry.tags.map(tag => (
-                              <span key={tag} className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-sm bg-tea-text/5 text-tea-text/50">
+                              <span key={tag} className="text-ui-10 uppercase tracking-wider px-2 py-0.5 rounded-sm bg-tea-text/5 text-tea-text/50">
                                 {tag}
                               </span>
                             ))}
@@ -367,7 +367,7 @@ export const LearnExplore: React.FC<LearnExploreProps> = ({ watchedStories, onNa
                         <div className="w-5 h-5 rounded-full bg-tea-gold/20 flex items-center justify-center">
                           <Icons.User className="w-3 h-3 text-tea-gold" />
                         </div>
-                        <span className="text-[11px] text-tea-text/50">
+                        <span className="text-ui-11 text-tea-text/50">
                           {entry.authorName}
                         </span>
                       </div>
@@ -434,7 +434,7 @@ export const LearnExplore: React.FC<LearnExploreProps> = ({ watchedStories, onNa
                   <Icons.Download className="w-4 h-4 text-tea-green" />
                 </div>
                 <span className="font-serif text-sm text-tea-text flex-1">{item.title}</span>
-                <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-sm hidden sm:inline ${getTypeColor(item.type)}`}>{item.type}</span>
+                <span className={`text-ui-10 uppercase tracking-wider px-2 py-0.5 rounded-sm hidden sm:inline ${getTypeColor(item.type)}`}>{item.type}</span>
                 <Icons.Next className="w-4 h-4 text-tea-text/30 group-hover:text-tea-gold transition-colors shrink-0" />
               </button>
             ))}
@@ -460,7 +460,7 @@ export const LearnExplore: React.FC<LearnExploreProps> = ({ watchedStories, onNa
                       </span>
                     </div>
                     <h4 className="font-serif text-sm text-tea-text mb-1">{item.title}</h4>
-                    <p className="text-[11px] text-tea-text/50 line-clamp-2">{item.description}</p>
+                    <p className="text-ui-11 text-tea-text/50 line-clamp-2">{item.description}</p>
                   </div>
                 </CardContainer>
               </div>
@@ -486,7 +486,7 @@ export const LearnExplore: React.FC<LearnExploreProps> = ({ watchedStories, onNa
                   <CardContainer className={`transition-all h-full ${expandedSpace === space.id ? 'shadow-md' : 'hover:-translate-y-0.5'}`}>
                     <div className="p-4">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-tea-gold/10 text-tea-gold border border-tea-border">
+                        <span className="text-ui-9 uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-tea-gold/10 text-tea-gold border border-tea-border">
                           {SPACE_TYPE_LABELS[space.spaceType]}
                         </span>
                         <div
@@ -499,7 +499,7 @@ export const LearnExplore: React.FC<LearnExploreProps> = ({ watchedStories, onNa
                       <h4 className="font-serif text-sm text-tea-text mb-1 leading-snug">
                         {space.title}
                       </h4>
-                      <p className="text-[11px] text-tea-text/50 line-clamp-2">
+                      <p className="text-ui-11 text-tea-text/50 line-clamp-2">
                         {space.description}
                       </p>
                     </div>
@@ -540,7 +540,7 @@ export const LearnExplore: React.FC<LearnExploreProps> = ({ watchedStories, onNa
                   <span className="text-sm font-medium text-tea-text">
                     Want a Custom Tea Space?
                   </span>
-                  <p className="text-[11px] text-tea-text/50">
+                  <p className="text-ui-11 text-tea-text/50">
                     Explore our design consultation services
                   </p>
                 </div>

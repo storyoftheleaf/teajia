@@ -30,7 +30,7 @@ const Threshold = ({ children }: { children: string }) => (
 /** CTA — uppercase sans-serif, visually distinct from body text */
 const ServiceCTA = ({ label, onClick, variant = 'primary' }: { label: string; onClick: () => void; variant?: 'primary' | 'secondary' }) => (
   <button onClick={onClick}
-    className={`text-[11px] uppercase tracking-[0.1em] transition-colors duration-300 min-h-[44px]
+    className={`text-ui-11 uppercase tracking-[0.1em] transition-colors duration-300 min-h-[44px]
                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 rounded-sm
                ${variant === 'primary'
                  ? 'text-tea-gold hover:text-tea-gold/70 font-medium'
@@ -78,7 +78,7 @@ export const DesignSection = forwardRef<HTMLElement, ServiceSectionProps>(
 
     return (
       <section ref={combinedRef} className={`pb-4 ${reveal.className}`} style={reveal.style}>
-        <p className="text-[11px] uppercase tracking-[0.08em] text-tea-gold mb-4"
+        <p className="text-ui-11 uppercase tracking-[0.08em] text-tea-gold mb-4"
            style={{ fontFamily: 'var(--font-sans)' }}>
           Space Design
         </p>
@@ -87,7 +87,7 @@ export const DesignSection = forwardRef<HTMLElement, ServiceSectionProps>(
           Tea House Design<br className="sm:hidden" /> & Curation
         </h3>
 
-        <p className="text-[15px] leading-[1.85] text-tea-text-sec max-w-[520px] mb-12"
+        <p className="text-ui-15 leading-[1.85] text-tea-text-sec max-w-[520px] mb-12"
            style={{ fontFamily: 'var(--font-body)' }}>
           From concept through opening — design, curation, tea selection, training, and operations.
         </p>
@@ -101,7 +101,7 @@ export const DesignSection = forwardRef<HTMLElement, ServiceSectionProps>(
                     style={{ fontFamily: 'var(--font-display)' }}>
                 {step}
               </span>
-              <span className="text-[15px] font-light text-tea-text"
+              <span className="text-ui-15 font-light text-tea-text"
                     style={{ fontFamily: 'var(--font-display)' }}>
                 {title}
               </span>
@@ -116,7 +116,7 @@ export const DesignSection = forwardRef<HTMLElement, ServiceSectionProps>(
           <span className="text-tea-text-dim mx-2">–</span>
           <span className="text-tea-gold">$100,000+</span>
         </p>
-        <p className="text-[12px] text-tea-text-dim mb-12"
+        <p className="text-ui-12 text-tea-text-dim mb-12"
            style={{ fontFamily: 'var(--font-sans)' }}>
           Every project is scoped through conversation.
         </p>
@@ -158,7 +158,7 @@ export const SessionsSection = forwardRef<HTMLElement, ServiceSectionProps>(
 
     return (
       <section ref={combinedRef} className={`ml-6 md:ml-16 pb-4 ${reveal.className}`} style={reveal.style}>
-        <p className="text-[11px] uppercase tracking-[0.08em] text-tea-gold mb-4"
+        <p className="text-ui-11 uppercase tracking-[0.08em] text-tea-gold mb-4"
            style={{ fontFamily: 'var(--font-sans)' }}>
           Sessions
         </p>
@@ -167,7 +167,7 @@ export const SessionsSection = forwardRef<HTMLElement, ServiceSectionProps>(
           Sessions & Guidance
         </h3>
 
-        <p className="text-[15px] leading-[1.85] text-tea-text-sec max-w-[480px] mb-12"
+        <p className="text-ui-15 leading-[1.85] text-tea-text-sec max-w-[480px] mb-12"
            style={{ fontFamily: 'var(--font-body)' }}>
           Tea experiences and practice support — in the Bali studio or wherever you are.
         </p>
@@ -182,12 +182,12 @@ export const SessionsSection = forwardRef<HTMLElement, ServiceSectionProps>(
                     style={{ fontFamily: 'var(--font-display)' }}>
                   {name}
                 </h4>
-                <span className="text-[12px] text-tea-gold shrink-0 uppercase tracking-[0.04em]"
+                <span className="text-ui-12 text-tea-gold shrink-0 uppercase tracking-[0.04em]"
                       style={{ fontFamily: 'var(--font-sans)' }}>
                   {price}
                 </span>
               </div>
-              <p className="text-[12px] text-tea-text-dim mt-1.5 leading-relaxed tracking-[0.01em]"
+              <p className="text-ui-12 text-tea-text-dim mt-1.5 leading-relaxed tracking-[0.01em]"
                  style={{ fontFamily: 'var(--font-sans)' }}>
                 {desc}
               </p>
@@ -196,13 +196,13 @@ export const SessionsSection = forwardRef<HTMLElement, ServiceSectionProps>(
         </div>
 
         {/* Walk-away — sans-serif, distinct from body copy */}
-        <p className="text-[11px] uppercase tracking-[0.08em] text-tea-text-dim mb-5"
+        <p className="text-ui-11 uppercase tracking-[0.08em] text-tea-text-dim mb-5"
            style={{ fontFamily: 'var(--font-sans)' }}>
           You walk away with
         </p>
         <ul className="space-y-3 mb-12 max-w-[480px]">
           {WALKAWAY.map(item => (
-            <li key={item} className="flex items-start gap-3 text-[13px] text-tea-text-sec tracking-[0.01em]"
+            <li key={item} className="flex items-start gap-3 text-ui-13 text-tea-text-sec tracking-[0.01em]"
                 style={{ fontFamily: 'var(--font-sans)' }}>
               <span className="text-tea-gold/30 mt-[1px]">&mdash;</span>
               {item}
@@ -282,12 +282,12 @@ export const AlsoSection: React.FC<AlsoSectionProps> = ({
                 style={{ fontFamily: 'var(--font-display)' }}>
               {svc.heading}
             </h4>
-            <p className="text-[14px] leading-[1.75] text-tea-text-sec mb-1"
+            <p className="text-ui-14 leading-[1.75] text-tea-text-sec mb-1"
                style={{ fontFamily: 'var(--font-body)' }}>
               {svc.body}
             </p>
             {svc.note && (
-              <p className="text-[11px] text-tea-text-dim italic tracking-[0.02em] mb-3"
+              <p className="text-ui-11 text-tea-text-dim italic tracking-[0.02em] mb-3"
                  style={{ fontFamily: 'var(--font-body)' }}>
                 {svc.note}
               </p>

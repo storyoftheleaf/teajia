@@ -45,7 +45,7 @@ export const ProductTastingEditorial: React.FC<ProductTastingEditorialProps> = (
   return (
     <div className="mb-6">
       <div
-        className={`flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] mb-2 ${SOURCE_LABEL_TONE[source]}`}
+        className={`flex items-center gap-2 text-ui-10 uppercase tracking-[0.18em] mb-2 ${SOURCE_LABEL_TONE[source]}`}
         style={{ fontFamily: 'var(--font-display)' }}
       >
         <span>{SOURCE_LABEL[source]}</span>
@@ -63,7 +63,7 @@ export const ProductTastingEditorial: React.FC<ProductTastingEditorialProps> = (
 
       {feelingTerms.length > 0 && (
         <p
-          className="mb-3 text-[15px] leading-snug text-tea-text-sec"
+          className="mb-3 text-ui-15 leading-snug text-tea-text-sec"
           style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic' }}
         >
           <span className="text-tea-text-dim select-none">— </span>

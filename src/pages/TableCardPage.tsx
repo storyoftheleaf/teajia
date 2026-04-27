@@ -191,7 +191,7 @@ const TableCardPage: React.FC = () => {
 
           {/* Verdict section */}
           <div>
-            <h2 className="text-[11px] uppercase tracking-[0.2em] text-tea-text-sec mb-5">
+            <h2 className="text-ui-11 uppercase tracking-[0.2em] text-tea-text-sec mb-5">
               How does this tea feel to you?
             </h2>
 
@@ -226,7 +226,7 @@ const TableCardPage: React.FC = () => {
                     >
                       {label}
                     </span>
-                    <span className="block text-[11px] text-tea-text-dim">
+                    <span className="block text-ui-11 text-tea-text-dim">
                       {description}
                     </span>
                   </button>
@@ -238,7 +238,7 @@ const TableCardPage: React.FC = () => {
           {/* Notes — shown only after voting */}
           {selectedVerdict && (
             <div className="space-y-3">
-              <label className="block text-[11px] uppercase tracking-[0.15em] text-tea-text-sec">
+              <label className="block text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec">
                 Leave a note
               </label>
               <textarea
@@ -262,7 +262,7 @@ const TableCardPage: React.FC = () => {
           {/* Live verdict counts */}
           {totalVotes > 0 && (
             <div>
-              <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-dim mb-3">
+              <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim mb-3">
                 {totalVotes} {totalVotes === 1 ? 'response' : 'responses'}
               </p>
               <div className="space-y-2">
@@ -271,14 +271,14 @@ const TableCardPage: React.FC = () => {
                   const pct = totalVotes > 0 ? (count / totalVotes) * 100 : 0;
                   return (
                     <div key={value} className="flex items-center gap-3">
-                      <span className="w-14 text-[11px] text-tea-text-sec">{label}</span>
+                      <span className="w-14 text-ui-11 text-tea-text-sec">{label}</span>
                       <div className="flex-1 h-1 bg-tea-surface rounded-full overflow-hidden">
                         <div
                           className="h-full bg-tea-gold/60 rounded-full transition-all duration-500"
                           style={{ width: `${pct}%` }}
                         />
                       </div>
-                      <span className="w-5 text-[11px] text-tea-text-dim text-right num">
+                      <span className="w-5 text-ui-11 text-tea-text-dim text-right num">
                         {count}
                       </span>
                     </div>

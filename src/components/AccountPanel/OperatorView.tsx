@@ -224,11 +224,11 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
       {/* ── Identity — small corner mark with role + account/location ── */}
       <div className="px-6 pt-5 pb-0 flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <div className="text-[11px] uppercase tracking-[0.24em] text-tea-text-sec font-medium">
+          <div className="text-ui-11 uppercase tracking-[0.24em] text-tea-text-sec font-medium">
             {todayLabel}
           </div>
           {accountName && (
-            <div className="text-[12px] text-tea-text-sec truncate mt-1.5 tracking-[0.02em]">
+            <div className="text-ui-12 text-tea-text-sec truncate mt-1.5 tracking-[0.02em]">
               {accountName}{locationLabel ? ` · ${locationLabel}` : ''}
             </div>
           )}
@@ -243,7 +243,7 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
           {avatarDataUrl ? (
             <img src={avatarDataUrl} alt="" className="w-full h-full object-cover" loading="lazy" />
           ) : (
-            <span className="text-[13px] font-serif text-tea-gold">
+            <span className="text-ui-13 font-serif text-tea-gold">
               {user ? getInitials(user.name || user.email) : '茶'}
             </span>
           )}
@@ -261,7 +261,7 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
       {/* ── Frontispiece — one editorial line synthesizing current state ── */}
       <div className="px-6 pt-3 pb-2">
         <p
-          className="text-[20px] leading-snug text-tea-text italic"
+          className="text-ui-20 leading-snug text-tea-text italic"
           style={{ fontFamily: 'var(--font-display)', fontWeight: 400 }}
         >
           {frontispiece}
@@ -370,13 +370,13 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
           <>
             {journalLastExcerpt && (
               <p
-                className="text-[15px] leading-snug text-tea-text italic mb-2"
+                className="text-ui-15 leading-snug text-tea-text italic mb-2"
                 style={{ fontFamily: 'var(--font-display)' }}
               >
                 “{truncate(journalLastExcerpt, 120)}”
               </p>
             )}
-            <div className="text-[12px] text-tea-text-sec tracking-[0.02em]">
+            <div className="text-ui-12 text-tea-text-sec tracking-[0.02em]">
               {journalLastTea && <span className="text-tea-text">{journalLastTea}</span>}
               {journalLastTea && journalLastAt && <span className="text-tea-text-sec"> · </span>}
               {journalLastAt && <span>{formatDaysAgo(daysSince(journalLastAt))}</span>}
@@ -386,7 +386,7 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
             </div>
           </>
         ) : (
-          <p className="text-[15px] italic text-tea-text-sec" style={{ fontFamily: 'var(--font-display)' }}>
+          <p className="text-ui-15 italic text-tea-text-sec" style={{ fontFamily: 'var(--font-display)' }}>
             begin a note
           </p>
         )}
@@ -405,12 +405,12 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
                 {s.flyerUrl ? (
                   <img src={s.flyerUrl} alt="" className="w-full h-full object-cover opacity-90" loading="lazy" />
                 ) : (
-                  <span className="flex items-center justify-center w-full h-full text-[10px] font-serif text-tea-gold/70">茶</span>
+                  <span className="flex items-center justify-center w-full h-full text-ui-10 font-serif text-tea-gold/70">茶</span>
                 )}
               </div>
             ))}
           </div>
-          <div className="text-[12px] text-tea-text-sec tracking-[0.02em]">
+          <div className="text-ui-12 text-tea-text-sec tracking-[0.02em]">
             <span className="text-tea-text">{journey.sessionsAttended}</span> gathering{journey.sessionsAttended !== 1 ? 's' : ''}
             {journey.totalTeas > 0 && <span className="text-tea-text-sec"> · {journey.totalTeas} teas past</span>}
           </div>
@@ -421,7 +421,7 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
       {compassProfile && (
         <PreviewBlock hint="Compass" icon={<Compass {...ICON_PROPS} />} onClick={() => go('/compass')}>
           <p
-            className="text-[16px] leading-snug text-tea-text italic"
+            className="text-ui-16 leading-snug text-tea-text italic"
             style={{ fontFamily: 'var(--font-display)' }}
           >
             “{compassProfile}”
@@ -447,7 +447,7 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
                 <span className="text-tea-text-dim shrink-0 flex items-center" aria-hidden="true">
                   {GROUP_ICONS[group.id]}
                 </span>
-                <span className="text-[10px] uppercase tracking-[0.28em] text-tea-text-sec font-medium">
+                <span className="text-ui-10 uppercase tracking-[0.28em] text-tea-text-sec font-medium">
                   {group.label}
                 </span>
               </header>
@@ -459,7 +459,7 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
                       className={[
                         'w-full text-left px-6 py-2.5',
                         'flex items-center gap-2',
-                        'text-[15px] text-tea-text leading-tight',
+                        'text-ui-15 text-tea-text leading-tight',
                         'hover:bg-tea-surface/60 active:bg-tea-surface',
                         'transition-colors',
                       ].join(' ')}
@@ -486,7 +486,7 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
           row that's tied into the same rhythm rather than orphaned. */}
       <section className="mt-6 border-t border-tea-border">
         <header className="px-6 pt-5 pb-2 flex items-center gap-2">
-          <span className="text-[10px] uppercase tracking-[0.28em] text-tea-text-sec font-medium">
+          <span className="text-ui-10 uppercase tracking-[0.28em] text-tea-text-sec font-medium">
             Account
           </span>
         </header>
@@ -494,7 +494,7 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
           <li>
             <button
               onClick={() => go('/account/orders')}
-              className="w-full text-left px-6 py-2.5 text-[15px] text-tea-text leading-tight hover:bg-tea-surface/60 active:bg-tea-surface transition-colors"
+              className="w-full text-left px-6 py-2.5 text-ui-15 text-tea-text leading-tight hover:bg-tea-surface/60 active:bg-tea-surface transition-colors"
               style={{ fontFamily: 'var(--font-display)', WebkitTapHighlightColor: 'transparent' }}
             >
               Orders
@@ -503,7 +503,7 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
           <li>
             <button
               onClick={onOpenEvents}
-              className="w-full text-left px-6 py-2.5 text-[15px] text-tea-text leading-tight hover:bg-tea-surface/60 active:bg-tea-surface transition-colors"
+              className="w-full text-left px-6 py-2.5 text-ui-15 text-tea-text leading-tight hover:bg-tea-surface/60 active:bg-tea-surface transition-colors"
               style={{ fontFamily: 'var(--font-display)', WebkitTapHighlightColor: 'transparent' }}
             >
               Events attending
@@ -513,11 +513,11 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
             <li>
               <button
                 onClick={onOpenLocationSwitcher}
-                className="w-full text-left px-6 py-2.5 text-[15px] text-tea-text leading-tight hover:bg-tea-surface/60 active:bg-tea-surface transition-colors flex items-center gap-2"
+                className="w-full text-left px-6 py-2.5 text-ui-15 text-tea-text leading-tight hover:bg-tea-surface/60 active:bg-tea-surface transition-colors flex items-center gap-2"
                 style={{ fontFamily: 'var(--font-display)', WebkitTapHighlightColor: 'transparent' }}
               >
                 <span className="flex-1">Switch location</span>
-                <span className="text-[12px] text-tea-text-sec font-mono tabular-nums" style={{ fontFamily: 'var(--font-mono)' }}>
+                <span className="text-ui-12 text-tea-text-sec font-mono tabular-nums" style={{ fontFamily: 'var(--font-mono)' }}>
                   {memberCount}
                 </span>
               </button>
@@ -526,7 +526,7 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
           <li>
             <button
               onClick={() => go('/account/settings')}
-              className="w-full text-left px-6 py-2.5 text-[15px] text-tea-text leading-tight hover:bg-tea-surface/60 active:bg-tea-surface transition-colors"
+              className="w-full text-left px-6 py-2.5 text-ui-15 text-tea-text leading-tight hover:bg-tea-surface/60 active:bg-tea-surface transition-colors"
               style={{ fontFamily: 'var(--font-display)', WebkitTapHighlightColor: 'transparent' }}
             >
               Settings
@@ -536,7 +536,7 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
         <div className="px-6 pt-5 pb-[calc(44px+env(safe-area-inset-bottom,0px))] lg:pb-8">
           <button
             onClick={onSignOut}
-            className="text-[12px] uppercase tracking-[0.22em] text-tea-text-sec hover:text-tea-gold transition-colors py-2 -my-2 font-medium"
+            className="text-ui-12 uppercase tracking-[0.22em] text-tea-text-sec hover:text-tea-gold transition-colors py-2 -my-2 font-medium"
             style={{ WebkitTapHighlightColor: 'transparent' }}
           >
             Sign Out

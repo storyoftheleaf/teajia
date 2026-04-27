@@ -91,7 +91,7 @@ export const EventsManager: React.FC = () => {
       <h1 className="font-serif font-normal text-2xl lg:text-3xl text-tea-text leading-tight tracking-[0.02em]" style={{ fontFamily: 'var(--font-display)' }}>Events</h1>
       <div className="flex items-center gap-2">
         {activeMembership && (
-          <span className="hidden sm:block text-[10px] uppercase tracking-[0.15em] text-tea-text-sec truncate max-w-[120px]">
+          <span className="hidden sm:block text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec truncate max-w-[120px]">
             {activeMembership.account_name}
           </span>
         )}
@@ -201,9 +201,9 @@ export const EventsManager: React.FC = () => {
               >
                 {/* Date column */}
                 <div className="w-14 shrink-0 text-center pt-0.5">
-                  <div className="text-[9px] tracking-[0.25em] text-tea-text-dim uppercase">{dayName}</div>
+                  <div className="text-ui-9 tracking-[0.25em] text-tea-text-dim uppercase">{dayName}</div>
                   <div className={`font-serif text-[30px] font-normal leading-none mt-0.5 ${isPast ? 'text-tea-text-sec' : 'text-tea-text'}`}>{dateNum}</div>
-                  <div className="text-[9px] tracking-[0.2em] text-tea-text-dim mt-0.5">{monthName}</div>
+                  <div className="text-ui-9 tracking-[0.2em] text-tea-text-dim mt-0.5">{monthName}</div>
                 </div>
 
                 {/* Content */}
@@ -212,13 +212,13 @@ export const EventsManager: React.FC = () => {
                     <div className="min-w-0">
                       <div className="flex items-center gap-2.5 flex-wrap mb-0.5">
                         <h3 className="font-serif text-base font-medium text-tea-text leading-snug">{event.title}</h3>
-                        <span className={`text-[9px] uppercase tracking-[0.2em] font-semibold ${STATUS_STYLES[event.status]}`}>
+                        <span className={`text-ui-9 uppercase tracking-[0.2em] font-semibold ${STATUS_STYLES[event.status]}`}>
                           {event.status}
                         </span>
                         {requested > 0 && (
                           <button
                             onClick={(e) => { e.stopPropagation(); navigate(`/admin/events/${event.id}?tab=requests`); }}
-                            className="flex items-center gap-1 text-[9px] text-amber-400 hover:text-amber-300 transition-colors"
+                            className="flex items-center gap-1 text-ui-9 text-amber-400 hover:text-amber-300 transition-colors"
                           >
                             <Bell size={8} className="shrink-0" />
                             {requested} pending
@@ -227,7 +227,7 @@ export const EventsManager: React.FC = () => {
                         {interest > 0 && (
                           <button
                             onClick={(e) => { e.stopPropagation(); navigate(`/admin/events/${event.id}?tab=interest`); }}
-                            className="flex items-center gap-1 text-[9px] text-tea-text-sec hover:text-tea-text transition-colors"
+                            className="flex items-center gap-1 text-ui-9 text-tea-text-sec hover:text-tea-text transition-colors"
                             title="Interest signups"
                           >
                             {interest} interested
@@ -235,9 +235,9 @@ export const EventsManager: React.FC = () => {
                         )}
                       </div>
                       {event.subtitle && (
-                        <p className="font-serif italic text-[13px] text-tea-text-sec leading-snug">{event.subtitle}</p>
+                        <p className="font-serif italic text-ui-13 text-tea-text-sec leading-snug">{event.subtitle}</p>
                       )}
-                      <div className="flex items-center gap-2 mt-2 text-[11px] text-tea-text-dim flex-wrap">
+                      <div className="flex items-center gap-2 mt-2 text-ui-11 text-tea-text-dim flex-wrap">
                         <span>{timeStr}</span>
                         {(event.areaHint || event.locationName) && (
                           <>

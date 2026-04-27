@@ -319,7 +319,7 @@ export const VisualFeatureViewer: React.FC<VisualFeatureViewerProps> = ({
                   {/* Caption with left accent */}
                   {group.items[0].image.caption && (
                     <div className="px-5 md:px-8 lg:px-12 mt-4 mb-2">
-                      <p className="border-l-2 border-tea-border pl-4 text-[13px] md:text-sm text-tea-text/50 italic leading-relaxed">
+                      <p className="border-l-2 border-tea-border pl-4 text-ui-13 md:text-sm text-tea-text/50 italic leading-relaxed">
                         {group.items[0].image.caption}
                       </p>
                     </div>
@@ -359,7 +359,7 @@ export const VisualFeatureViewer: React.FC<VisualFeatureViewerProps> = ({
                         />
                       </div>
                       {image.caption && (
-                        <p className="px-1 mt-3 text-[11px] md:text-xs text-tea-text/45 italic">
+                        <p className="px-1 mt-3 text-ui-11 md:text-xs text-tea-text/45 italic">
                           {image.caption}
                         </p>
                       )}
@@ -402,7 +402,7 @@ export const VisualFeatureViewer: React.FC<VisualFeatureViewerProps> = ({
                     <h3 className="font-serif text-xl md:text-2xl text-tea-text mb-1">
                       {story.author.name}
                     </h3>
-                    <p className="text-[10px] uppercase tracking-[0.15em] text-tea-text/50 mb-3">
+                    <p className="text-ui-10 uppercase tracking-[0.15em] text-tea-text/50 mb-3">
                       {story.author.role}
                     </p>
                   </button>

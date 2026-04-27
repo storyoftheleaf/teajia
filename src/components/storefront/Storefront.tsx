@@ -139,7 +139,7 @@ export const Storefront: React.FC<StorefrontProps> = ({
               className="w-16 h-16 md:w-20 md:h-20 object-contain mb-5"
             />
           )}
-          <p className="text-[11px] uppercase tracking-[0.3em] text-tea-text-dim mb-3">
+          <p className="text-ui-11 uppercase tracking-[0.3em] text-tea-text-dim mb-3">
             A Teajia table
           </p>
           <h1
@@ -208,7 +208,7 @@ export const Storefront: React.FC<StorefrontProps> = ({
 
       {/* Network footer */}
       <footer className="border-t border-tea-border mt-8 pt-8 pb-6 text-center">
-        <p className="text-[11px] uppercase tracking-[0.3em] text-tea-text-dim mb-2">
+        <p className="text-ui-11 uppercase tracking-[0.3em] text-tea-text-dim mb-2">
           Part of the Teajia network
         </p>
         <Link
@@ -358,7 +358,7 @@ const StorefrontEventsSection: React.FC<{ events: TeaEvent[] }> = ({ events }) =
     <div className="max-w-xl mx-auto px-6 pt-4 pb-10">
       {/* Header */}
       <div className="mb-6">
-        <p className="text-[10px] uppercase tracking-[0.3em] text-tea-text-dim mb-2">
+        <p className="text-ui-10 uppercase tracking-[0.3em] text-tea-text-dim mb-2">
           Sessions · {monthLabel}
         </p>
         <h2 className="font-serif text-4xl font-normal text-tea-text leading-[1.05] tracking-[-0.5px]">
@@ -409,17 +409,17 @@ const StorefrontEventsSection: React.FC<{ events: TeaEvent[] }> = ({ events }) =
               >
                 {/* Date column */}
                 <div className="w-12 shrink-0 text-center pt-0.5">
-                  <div className="text-[9px] tracking-[0.25em] text-tea-text-dim uppercase">{day}</div>
+                  <div className="text-ui-9 tracking-[0.25em] text-tea-text-dim uppercase">{day}</div>
                   <div className="font-serif text-[32px] font-normal text-tea-text leading-none mt-0.5">{dateNum}</div>
-                  <div className="text-[9px] tracking-[0.2em] text-tea-text-dim mt-0.5">{month}</div>
+                  <div className="text-ui-9 tracking-[0.2em] text-tea-text-dim mt-0.5">{month}</div>
                 </div>
                 {/* Content */}
                 <div className="flex-1 min-w-0">
                   <h3 className="font-serif text-base font-medium text-tea-text leading-snug">{ev.title}</h3>
                   {ev.subtitle && (
-                    <p className="font-serif italic text-[13px] text-tea-text-sec mt-0.5">{ev.subtitle}</p>
+                    <p className="font-serif italic text-ui-13 text-tea-text-sec mt-0.5">{ev.subtitle}</p>
                   )}
-                  <div className="flex items-center gap-2.5 mt-2 text-[11px] text-tea-text-dim flex-wrap">
+                  <div className="flex items-center gap-2.5 mt-2 text-ui-11 text-tea-text-dim flex-wrap">
                     <span>{time}</span>
                     {(ev.areaHint || ev.locationName) && (
                       <>
@@ -491,7 +491,7 @@ const StoreNetworkReviews: React.FC<{ storeId: string }> = ({ storeId }) => {
 
   return (
     <div className="max-w-2xl mx-auto px-6 py-6">
-      <h3 className="text-[10px] uppercase tracking-[0.25em] text-tea-text-dim mb-4">
+      <h3 className="text-ui-10 uppercase tracking-[0.25em] text-tea-text-dim mb-4">
         Network Reviews
       </h3>
       <ul className="space-y-3">
@@ -507,7 +507,7 @@ const StoreNetworkReviews: React.FC<{ storeId: string }> = ({ storeId }) => {
                   </span>
                 )}
               </div>
-              <p className="text-[11px] text-tea-text-dim">
+              <p className="text-ui-11 text-tea-text-dim">
                 {reviews.length} {reviews.length === 1 ? 'review' : 'reviews'}
               </p>
             </li>
@@ -552,14 +552,14 @@ const StorefrontContactSection: React.FC<{ store: Account }> = ({ store }) => {
     <div className="max-w-lg mx-auto px-6 py-8 space-y-6 text-center">
       {location && (
         <div>
-          <p className="text-[11px] uppercase tracking-[0.25em] text-tea-text-dim mb-1">Location</p>
+          <p className="text-ui-11 uppercase tracking-[0.25em] text-tea-text-dim mb-1">Location</p>
           <p className="text-base text-tea-text">{location}</p>
         </div>
       )}
 
       {waHref && (
         <div>
-          <p className="text-[11px] uppercase tracking-[0.25em] text-tea-text-dim mb-1">WhatsApp</p>
+          <p className="text-ui-11 uppercase tracking-[0.25em] text-tea-text-dim mb-1">WhatsApp</p>
           <a
             href={waHref}
             target="_blank"
@@ -573,7 +573,7 @@ const StorefrontContactSection: React.FC<{ store: Account }> = ({ store }) => {
 
       {store.contact_email && (
         <div>
-          <p className="text-[11px] uppercase tracking-[0.25em] text-tea-text-dim mb-1">Email</p>
+          <p className="text-ui-11 uppercase tracking-[0.25em] text-tea-text-dim mb-1">Email</p>
           <a
             href={`mailto:${store.contact_email}`}
             className="text-base text-tea-gold hover:text-tea-gold-lt transition-colors"

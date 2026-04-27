@@ -41,7 +41,7 @@ interface CompareViewProps {
 
 function TastingCell({ entry }: { entry: TeaCompassEntry }) {
   const t = entry.tasting;
-  if (!t) return <span className="text-[11px] text-tea-text-dim italic">No tasting</span>;
+  if (!t) return <span className="text-ui-11 text-tea-text-dim italic">No tasting</span>;
 
   const quality = t.quality ?? t.rating;
   const color = entry.type ? getTeaColor(entry.type) : null;
@@ -56,23 +56,23 @@ function TastingCell({ entry }: { entry: TeaCompassEntry }) {
           >
             {quality}
           </span>
-          <span className="text-[10px] text-tea-text-dim">/10</span>
+          <span className="text-ui-10 text-tea-text-dim">/10</span>
         </div>
       )}
       {t.flavor && t.flavor.length > 0 && (
         <div className="flex flex-wrap gap-1">
           {t.flavor.slice(0, 4).map((f) => (
-            <span key={f} className="text-[10px] text-tea-text-sec bg-tea-surface/60 px-1.5 py-0.5 rounded">
+            <span key={f} className="text-ui-10 text-tea-text-sec bg-tea-surface/60 px-1.5 py-0.5 rounded">
               {f}
             </span>
           ))}
         </div>
       )}
       {t.body && t.body.length > 0 && (
-        <p className="text-[10px] text-tea-text-dim">{t.body.slice(0, 2).join(', ')}</p>
+        <p className="text-ui-10 text-tea-text-dim">{t.body.slice(0, 2).join(', ')}</p>
       )}
       {t.feeling && t.feeling.length > 0 && (
-        <p className="text-[10px] text-tea-text-dim italic">{t.feeling.slice(0, 2).join(', ')}</p>
+        <p className="text-ui-10 text-tea-text-dim italic">{t.feeling.slice(0, 2).join(', ')}</p>
       )}
     </div>
   );
@@ -97,7 +97,7 @@ export const CompareView: React.FC<CompareViewProps> = ({ entries, onClose, onRe
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-tea-border shrink-0">
           <span
-            className="text-[11px] uppercase tracking-[0.15em] text-tea-text-sec font-medium"
+            className="text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec font-medium"
             style={{ fontFamily: 'var(--font-display)' }}
           >
             Compare — {entries.length} teas
@@ -150,11 +150,11 @@ export const CompareView: React.FC<CompareViewProps> = ({ entries, onClose, onRe
                         {entry.name || 'Untitled'}
                       </p>
                       {entry.chineseName && (
-                        <p className="text-[11px] text-tea-text-sec font-chinese mb-0.5">{entry.chineseName}</p>
+                        <p className="text-ui-11 text-tea-text-sec font-chinese mb-0.5">{entry.chineseName}</p>
                       )}
 
                       {/* Type · Year · Age */}
-                      <p className="text-[10px] text-tea-text-dim">
+                      <p className="text-ui-10 text-tea-text-dim">
                         {[
                           entry.type,
                           entry.year,
@@ -172,7 +172,7 @@ export const CompareView: React.FC<CompareViewProps> = ({ entries, onClose, onRe
               <tr className="border-b border-tea-border">
                 {entries.map((entry) => (
                   <td key={entry.id} className="px-3 py-2 align-top">
-                    <span className="text-[12px] font-medium text-tea-text-sec tabular-nums">{formatPPG(entry)}</span>
+                    <span className="text-ui-12 font-medium text-tea-text-sec tabular-nums">{formatPPG(entry)}</span>
                   </td>
                 ))}
               </tr>
@@ -181,7 +181,7 @@ export const CompareView: React.FC<CompareViewProps> = ({ entries, onClose, onRe
               <tr className="border-b border-tea-border">
                 {entries.map((entry) => (
                   <td key={entry.id} className="px-3 py-2 align-top">
-                    <span className="text-[11px] text-tea-text-dim">{entry.vendorName || '—'}</span>
+                    <span className="text-ui-11 text-tea-text-dim">{entry.vendorName || '—'}</span>
                   </td>
                 ))}
               </tr>
@@ -190,7 +190,7 @@ export const CompareView: React.FC<CompareViewProps> = ({ entries, onClose, onRe
               <tr className="border-b border-tea-border">
                 {entries.map((entry) => (
                   <td key={entry.id} className="px-3 py-2 align-top">
-                    <span className="text-[11px] text-tea-text-dim">{entry.originRegion || '—'}</span>
+                    <span className="text-ui-11 text-tea-text-dim">{entry.originRegion || '—'}</span>
                   </td>
                 ))}
               </tr>
@@ -209,11 +209,11 @@ export const CompareView: React.FC<CompareViewProps> = ({ entries, onClose, onRe
                 {entries.map((entry) => (
                   <td key={entry.id} className="px-3 py-2 align-top">
                     {entry.notes.trim() ? (
-                      <p className="text-[11px] text-tea-text-sec leading-relaxed line-clamp-4">
+                      <p className="text-ui-11 text-tea-text-sec leading-relaxed line-clamp-4">
                         {entry.notes.trim()}
                       </p>
                     ) : (
-                      <span className="text-[11px] text-tea-text-dim italic">No notes</span>
+                      <span className="text-ui-11 text-tea-text-dim italic">No notes</span>
                     )}
                   </td>
                 ))}

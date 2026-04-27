@@ -98,7 +98,7 @@ export const ContributorBioPage: React.FC<ContributorBioPageProps> = ({
                     <h4 className="font-serif text-tea-text mb-1">{offering.title}</h4>
                     <p className="text-sm text-tea-text/70 mb-2">{offering.description}</p>
                     {offering.category && (
-                      <span className="text-[8px] uppercase tracking-wider px-2 py-1 rounded-sm bg-tea-gold/30 text-tea-gold border border-tea-border">
+                      <span className="text-ui-8 uppercase tracking-wider px-2 py-1 rounded-sm bg-tea-gold/30 text-tea-gold border border-tea-border">
                         {offering.category}
                       </span>
                     )}

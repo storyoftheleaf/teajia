@@ -242,7 +242,7 @@ export const OrdersView = () => {
                 <button
                   key={id}
                   onClick={() => setStatusFilter(id)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 text-[10px] uppercase tracking-[0.15em] rounded-md whitespace-nowrap transition-colors shrink-0 ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 text-ui-10 uppercase tracking-[0.15em] rounded-md whitespace-nowrap transition-colors shrink-0 ${
                     statusFilter === id
                       ? 'bg-tea-bg text-tea-text shadow-sm'
                       : 'text-tea-text-sec hover:text-tea-text'
@@ -250,21 +250,21 @@ export const OrdersView = () => {
                 >
                   {dot && <span className={`w-1.5 h-1.5 rounded-full ${dot} opacity-70`} />}
                   {label}
-                  <span className={`text-[9px] tabular-nums ${statusFilter === id ? 'text-tea-text-dim' : 'text-tea-text-dim/60'}`}>{count}</span>
+                  <span className={`text-ui-9 tabular-nums ${statusFilter === id ? 'text-tea-text-dim' : 'text-tea-text-dim/60'}`}>{count}</span>
                 </button>
               );
             })}
           </div>
 
           {summary.filledTotal > 0 && (
-            <span className="text-[10px] text-tea-text-sec num hidden md:inline shrink-0">
+            <span className="text-ui-10 text-tea-text-sec num hidden md:inline shrink-0">
               Revenue: ${summary.filledTotal.toFixed(0)}
             </span>
           )}
 
           <button
             onClick={() => setShowQuickInvoice(true)}
-            className="ml-auto shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-[10px] uppercase tracking-[0.15em] text-tea-text border border-tea-border rounded-lg hover:border-tea-gold/50 hover:text-tea-gold transition-colors"
+            className="ml-auto shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-ui-10 uppercase tracking-[0.15em] text-tea-text border border-tea-border rounded-lg hover:border-tea-gold/50 hover:text-tea-gold transition-colors"
           >
             <Plus size={11} /> Invoice
           </button>
@@ -317,12 +317,12 @@ export const OrdersView = () => {
             </colgroup>
             <thead className="sticky top-0 z-20 bg-tea-bg shadow-sm">
               <tr>
-                <th className="px-4 py-2 border-b border-tea-border text-[10px] uppercase tracking-wider font-serif text-tea-text-sec text-left">Date</th>
-                <th className="px-4 py-2 border-b border-tea-border text-[10px] uppercase tracking-wider font-serif text-tea-text-sec text-left">Invoice #</th>
-                <th className="px-4 py-2 border-b border-tea-border text-[10px] uppercase tracking-wider font-serif text-tea-text-sec text-left">Customer</th>
-                <th className="px-4 py-2 border-b border-tea-border text-[10px] uppercase tracking-wider font-serif text-tea-text-sec text-right">Total</th>
-                <th className="px-4 py-2 border-b border-tea-border text-[10px] uppercase tracking-wider font-serif text-tea-text-sec text-center">Status</th>
-                <th className="px-4 py-2 border-b border-tea-border text-[10px] uppercase tracking-wider font-serif text-tea-text-sec text-center">Actions</th>
+                <th className="px-4 py-2 border-b border-tea-border text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec text-left">Date</th>
+                <th className="px-4 py-2 border-b border-tea-border text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec text-left">Invoice #</th>
+                <th className="px-4 py-2 border-b border-tea-border text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec text-left">Customer</th>
+                <th className="px-4 py-2 border-b border-tea-border text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec text-right">Total</th>
+                <th className="px-4 py-2 border-b border-tea-border text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec text-center">Status</th>
+                <th className="px-4 py-2 border-b border-tea-border text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec text-center">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -369,10 +369,10 @@ export const OrdersView = () => {
                       <td className="px-4 align-middle overflow-hidden text-right">
                         <div>
                           <span className="num text-xs text-tea-text">${total.toFixed(2)}</span>
-                          <span className="text-[9px] text-tea-text-sec ml-1">{order.display_currency}</span>
+                          <span className="text-ui-9 text-tea-text-sec ml-1">{order.display_currency}</span>
                         </div>
                         {Number(order.shipping_cost_usd) > 0 && (
-                          <div className="text-[9px] text-tea-text-sec/60 num">+${Number(order.shipping_cost_usd).toFixed(0)} ship</div>
+                          <div className="text-ui-9 text-tea-text-sec/60 num">+${Number(order.shipping_cost_usd).toFixed(0)} ship</div>
                         )}
                       </td>
                       <td className="px-4 align-middle text-center">
@@ -385,7 +385,7 @@ export const OrdersView = () => {
                             {order.status}
                           </span>
                           {isPending && daysAge >= 7 && (
-                            <span className="text-[9px] text-tea-gold/80 num">{daysAge}d</span>
+                            <span className="text-ui-9 text-tea-gold/80 num">{daysAge}d</span>
                           )}
                           {order.notes && (
                             <span className="text-tea-text-dim" title={order.notes}><StickyNote size={10} /></span>
@@ -461,7 +461,7 @@ export const OrdersView = () => {
                   className={`px-4 py-2.5 ${idx % 2 === 0 ? 'bg-transparent' : 'bg-tea-surface/20'}`}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] text-tea-text-sec">{new Date(order.created_at).toLocaleDateString()}</span>
+                    <span className="text-ui-10 text-tea-text-sec">{new Date(order.created_at).toLocaleDateString()}</span>
                     <span className="text-xs text-tea-text num cursor-pointer hover:text-tea-gold transition-colors" onClick={() => handleView(order)}>{order.invoice_number}</span>
                   </div>
                   <div className="flex items-center justify-between mt-1">
@@ -475,7 +475,7 @@ export const OrdersView = () => {
                         {order.status}
                       </span>
                       {isPending && daysAge >= 7 && (
-                        <span className="text-[9px] text-tea-gold/80 num">{daysAge}d</span>
+                        <span className="text-ui-9 text-tea-gold/80 num">{daysAge}d</span>
                       )}
                       {order.source_event_title && (
                         <button
@@ -598,7 +598,7 @@ export const OrdersView = () => {
                                     ) : (
                                       <span className="text-tea-text font-medium">{item.custom_name || item.given_name || 'Custom Item'}</span>
                                     )}
-                                    {item.product_name && item.product_id && <div className="text-[10px] text-tea-text-sec">{item.product_name}</div>}
+                                    {item.product_name && item.product_id && <div className="text-ui-10 text-tea-text-sec">{item.product_name}</div>}
                                     {!item.product_id && (
                                       <div className="mt-1">
                                         {linkState?.itemIndex === i ? (
@@ -632,7 +632,7 @@ export const OrdersView = () => {
                                         ) : (
                                           <button
                                             onClick={() => setLinkState({ itemIndex: i, query: item.custom_name || item.given_name || '' })}
-                                            className="flex items-center gap-1 text-[10px] text-tea-text-dim hover:text-tea-gold transition-colors"
+                                            className="flex items-center gap-1 text-ui-10 text-tea-text-dim hover:text-tea-gold transition-colors"
                                           >
                                             <Link2 size={9} /> Link to inventory
                                           </button>
@@ -671,7 +671,7 @@ export const OrdersView = () => {
                           <div className="pb-3">
                             <div className="text-xs text-tea-gold font-mono uppercase">{log.action}</div>
                             <div className="text-xs text-tea-text-sec">{log.details}</div>
-                            <div className="text-[10px] text-tea-text-sec/50 mt-0.5">
+                            <div className="text-ui-10 text-tea-text-sec/50 mt-0.5">
                               {new Date(log.created_at).toLocaleString()}
                               {log.user_email && ` · ${log.user_email}`}
                             </div>
@@ -749,7 +749,7 @@ export const OrdersView = () => {
         {/* Stock Impact Preview for Fulfillment */}
         {confirmState?.type === 'fulfill' && confirmState.stockImpact && (
           <div className="bg-tea-surface border border-tea-border rounded-xl p-4">
-            <h4 className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec mb-3">Stock Impact</h4>
+            <h4 className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-3">Stock Impact</h4>
             <div className="space-y-2">
               {confirmState.stockImpact.map((item, i) => (
                 <div key={i} className="flex justify-between text-xs">
@@ -760,7 +760,7 @@ export const OrdersView = () => {
                     <span className={`num font-medium ${item.after <= 0 ? 'text-tea-gold' : 'text-tea-text'}`}>
                       {item.after}g
                     </span>
-                    {item.after <= 0 && <span className="text-[9px] text-tea-gold">(archive)</span>}
+                    {item.after <= 0 && <span className="text-ui-9 text-tea-gold">(archive)</span>}
                   </div>
                 </div>
               ))}

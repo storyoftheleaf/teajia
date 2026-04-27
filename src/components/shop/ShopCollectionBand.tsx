@@ -21,7 +21,7 @@ const BandItemCard: React.FC<{ item: ShopCollectionItem }> = ({ item }) => {
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <span className="font-display text-[28px] text-tea-text-dim" style={{ fontWeight: 300 }}>茶</span>
+            <span className="font-display text-ui-28 text-tea-text-dim" style={{ fontWeight: 300 }}>茶</span>
           </div>
         )}
       </div>
@@ -29,18 +29,18 @@ const BandItemCard: React.FC<{ item: ShopCollectionItem }> = ({ item }) => {
       {/* Name */}
       <div className="flex flex-col gap-0.5">
         <p
-          className="font-display text-[14px] leading-[1.25] text-tea-text line-clamp-2"
+          className="font-display text-ui-14 leading-[1.25] text-tea-text line-clamp-2"
           style={{ fontWeight: 400 }}
         >
           {item.product_name}
         </p>
         {item.chinese_name && (
-          <p className="font-body text-[12px] text-tea-text-sec italic leading-[1.3]" style={{ fontWeight: 300 }}>
+          <p className="font-body text-ui-12 text-tea-text-sec italic leading-[1.3]" style={{ fontWeight: 300 }}>
             {item.chinese_name}
           </p>
         )}
         {(origin || item.year) && (
-          <p className="font-sans text-[10px] uppercase tracking-[1.2px] text-tea-text-dim leading-[1.4] mt-0.5">
+          <p className="font-sans text-ui-10 uppercase tracking-[1.2px] text-tea-text-dim leading-[1.4] mt-0.5">
             {[origin, item.year].filter(Boolean).join(' · ')}
           </p>
         )}
@@ -66,7 +66,7 @@ export const ShopCollectionBand: React.FC<ShopCollectionBandProps> = ({ entry })
       {/* Band header */}
       <div className="px-3 md:px-4 lg:px-6 mb-8">
         {/* Eyebrow label */}
-        <p className="font-sans text-[11px] uppercase tracking-[1.5px] text-tea-text-dim mb-4">
+        <p className="font-sans text-ui-11 uppercase tracking-[1.5px] text-tea-text-dim mb-4">
           Editorial Collection
         </p>
 
@@ -81,7 +81,7 @@ export const ShopCollectionBand: React.FC<ShopCollectionBandProps> = ({ entry })
 
           <Link
             to={`/c/${slug}`}
-            className="flex-shrink-0 flex items-center gap-1.5 font-sans text-[12px] text-tea-text-sec hover:text-tea-text transition-colors group"
+            className="flex-shrink-0 flex items-center gap-1.5 font-sans text-ui-12 text-tea-text-sec hover:text-tea-text transition-colors group"
             aria-label={`See all items in ${collection.title}`}
           >
             <span className="tracking-[0.2px]">See all</span>
@@ -94,7 +94,7 @@ export const ShopCollectionBand: React.FC<ShopCollectionBandProps> = ({ entry })
 
         {/* Note */}
         {collection.note && (
-          <p className="font-body text-[15px] leading-[1.65] text-tea-text-sec italic mt-3 max-w-[52ch]"
+          <p className="font-body text-ui-15 leading-[1.65] text-tea-text-sec italic mt-3 max-w-[52ch]"
              style={{ fontWeight: 400 }}>
             {collection.note}
           </p>
@@ -102,7 +102,7 @@ export const ShopCollectionBand: React.FC<ShopCollectionBandProps> = ({ entry })
 
         {/* Curator attribution */}
         {collection.curator_display_name && (
-          <p className="font-body text-[13px] leading-[1.5] text-tea-text-dim italic mt-2"
+          <p className="font-body text-ui-13 leading-[1.5] text-tea-text-dim italic mt-2"
              style={{ fontWeight: 400 }}>
             Curated by {collection.curator_display_name}
           </p>

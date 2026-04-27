@@ -112,7 +112,7 @@ const TastingProfileStripInner: React.FC<TastingProfileStripProps> = ({ value, t
         {activeCats.length > 1 && (
           <div className="flex flex-wrap gap-x-3 gap-y-1">
             {activeCats.map(group => (
-              <span key={group.categoryId} className="inline-flex items-center gap-1 text-[9px] text-tea-text-dim tracking-wide uppercase">
+              <span key={group.categoryId} className="inline-flex items-center gap-1 text-ui-9 text-tea-text-dim tracking-wide uppercase">
                 <span className="shrink-0 rounded-full" style={{ width: 5, height: 5, background: CATEGORY_DOT_COLORS[group.categoryId] ?? '#8a8a80', display: 'inline-block', opacity: 0.9 }} />
                 {CATEGORY_LABELS[group.categoryId] ?? group.categoryId}
               </span>
@@ -152,7 +152,7 @@ const TastingProfileStripInner: React.FC<TastingProfileStripProps> = ({ value, t
                 type="button"
                 title={label}
                 onClick={() => onRemove?.('liquor-color', termId)}
-                className="group inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] text-tea-text-dim hover:text-tea-text transition-colors"
+                className="group inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-ui-10 text-tea-text-dim hover:text-tea-text transition-colors"
                 style={{ background: `${hex}22`, border: `1px solid ${hex}55` }}
               >
                 <span className="shrink-0 rounded-full" style={{ width: 10, height: 10, background: hex, display: 'inline-block', boxShadow: `0 0 0 1px ${hex}80` }} />
@@ -200,7 +200,7 @@ const TastingProfileStripInner: React.FC<TastingProfileStripProps> = ({ value, t
           onClick={() => setExpanded(false)}
           aria-expanded={true}
           aria-label="Show fewer tasting notes"
-          className="flex items-center gap-1 text-[10px] text-tea-text-dim hover:text-tea-text-sec transition-colors ml-0.5 min-h-[44px]"
+          className="flex items-center gap-1 text-ui-10 text-tea-text-dim hover:text-tea-text-sec transition-colors ml-0.5 min-h-[44px]"
           style={{ fontFamily: 'var(--font-body)' }}
         >
           <ChevronDown size={10} className="rotate-180" />
@@ -244,7 +244,7 @@ const TastingProfileStripInner: React.FC<TastingProfileStripProps> = ({ value, t
                   <HeaderIcon size={9} className="shrink-0 text-tea-text-dim" />
                 )}
                 <span
-                  className={`text-[10px] uppercase tracking-[0.12em] ${labelClass}`}
+                  className={`text-ui-10 uppercase tracking-[0.12em] ${labelClass}`}
                   style={{ fontFamily: 'var(--font-display)' }}
                 >
                   {group.label}
@@ -262,7 +262,7 @@ const TastingProfileStripInner: React.FC<TastingProfileStripProps> = ({ value, t
                   ) : Icon ? (
                     <Icon size={11} className="shrink-0 text-tea-text-sec" />
                   ) : null}
-                  <span className="text-[10px] text-tea-text-sec">{termLabel}</span>
+                  <span className="text-ui-10 text-tea-text-sec">{termLabel}</span>
                   <X
                     size={9}
                     className="shrink-0 opacity-0 group-hover:opacity-60 transition-opacity"
@@ -283,7 +283,7 @@ const TastingProfileStripInner: React.FC<TastingProfileStripProps> = ({ value, t
             >
               {/* Category label with icon */}
               <div
-                className={`flex items-center gap-1 text-[11px] uppercase tracking-[0.15em] ${labelClass} mb-1 ml-0.5`}
+                className={`flex items-center gap-1 text-ui-11 uppercase tracking-[0.15em] ${labelClass} mb-1 ml-0.5`}
                 style={{ fontFamily: 'var(--font-display)' }}
               >
                 {HeaderIcon && <HeaderIcon size={9} className="shrink-0" />}
@@ -374,7 +374,7 @@ const TastingProfileStripInner: React.FC<TastingProfileStripProps> = ({ value, t
           onClick={() => setExpanded(true)}
           aria-expanded={false}
           aria-label={`Show ${totalTerms - COLLAPSED_SHOW} more tasting notes`}
-          className="flex items-center gap-1 text-[10px] text-tea-text-dim hover:text-tea-text-sec transition-colors mt-1 ml-0.5 min-h-[44px]"
+          className="flex items-center gap-1 text-ui-10 text-tea-text-dim hover:text-tea-text-sec transition-colors mt-1 ml-0.5 min-h-[44px]"
           style={{ fontFamily: 'var(--font-body)' }}
         >
           <span>{expandHint}</span>

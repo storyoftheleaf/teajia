@@ -59,7 +59,7 @@ export const PersonalCollectionView = ({ products, isLoading, onRefresh }: { pro
 
   const SortHeader = ({ colKey, label, align = 'left' }: { colKey: keyof Product, label: string, align?: 'left' | 'right' | 'center' }) => (
       <th
-        className={`px-4 py-2 cursor-pointer hover:text-tea-text transition-colors select-none border-b border-tea-border group text-[10px] uppercase tracking-wider font-serif text-tea-text-sec text-${align} truncate`}
+        className={`px-4 py-2 cursor-pointer hover:text-tea-text transition-colors select-none border-b border-tea-border group text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec text-${align} truncate`}
         onClick={() => handleSort(colKey)}
       >
         <div className={`flex items-center gap-1 ${align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : ''}`}>
@@ -130,7 +130,7 @@ export const PersonalCollectionView = ({ products, isLoading, onRefresh }: { pro
                       <div className="flex items-center gap-1.5">
                         <span className="text-tea-text text-sm font-serif truncate">{product.productName}</span>
                       </div>
-                      <div className="flex items-center gap-1.5 text-[10px] text-tea-text-sec/70 mt-0.5">
+                      <div className="flex items-center gap-1.5 text-ui-10 text-tea-text-sec/70 mt-0.5">
                         <span>{product.type}</span>
                         {product.vendor && (
                           <>
@@ -142,7 +142,7 @@ export const PersonalCollectionView = ({ products, isLoading, onRefresh }: { pro
                     </div>
                     <div className="flex-shrink-0 text-right">
                       <div className="text-xs text-tea-text/80 tabular-nums">{Math.round(product.stockGrams)}g</div>
-                      <div className="text-[10px] text-tea-text-sec/60 tabular-nums">{formatCurrency(estValue, 'USD', rates)}</div>
+                      <div className="text-ui-10 text-tea-text-sec/60 tabular-nums">{formatCurrency(estValue, 'USD', rates)}</div>
                     </div>
                   </button>
                 );
@@ -170,7 +170,7 @@ export const PersonalCollectionView = ({ products, isLoading, onRefresh }: { pro
                             <SortHeader colKey="vendor" label="Source" />
                             <SortHeader colKey="stockGrams" label="Stock" align="right" />
                             <SortHeader colKey="costAmount" label="Batch Cost" align="right" />
-                            <th className="px-4 py-2 border-b border-tea-border text-right text-[10px] uppercase tracking-wider font-serif text-tea-text-sec">Asset Value</th>
+                            <th className="px-4 py-2 border-b border-tea-border text-right text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec">Asset Value</th>
                             <th className="px-4 py-2 border-b border-tea-border"></th>
                         </tr>
                     </thead>
@@ -201,7 +201,7 @@ export const PersonalCollectionView = ({ products, isLoading, onRefresh }: { pro
                                                 )}
                                             </span>
                                             {product.givenName && (
-                                                <span className="text-[10px] text-tea-text-sec font-sans mt-0.5 truncate block">
+                                                <span className="text-ui-10 text-tea-text-sec font-sans mt-0.5 truncate block">
                                                     {product.givenName}
                                                 </span>
                                             )}

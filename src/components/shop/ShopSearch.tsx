@@ -131,7 +131,7 @@ export const ShopSearch: React.FC<ShopSearchProps> = ({
                 )}
                 <div className="flex-1 min-w-0">
                   <p className="text-sm text-tea-text truncate">{item.name}</p>
-                  <p className="text-[10px] text-tea-text-sec truncate">{[item.variant, item.type, item.origin].filter(Boolean).join(' · ')}</p>
+                  <p className="text-ui-10 text-tea-text-sec truncate">{[item.variant, item.type, item.origin].filter(Boolean).join(' · ')}</p>
                 </div>
                 {item.price_per_gram && (
                   <span className="text-xs text-tea-text-sec num shrink-0">${parseFloat(item.price_per_gram).toFixed(2)}/g</span>

@@ -130,7 +130,7 @@ export const ShareSheet: React.FC<ShareSheetProps> = ({ isOpen, onClose, event }
 
             {/* ── WhatsApp ── */}
             <section className="space-y-2">
-              <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.18em] text-tea-text-sec font-medium">
+              <div className="flex items-center gap-1.5 text-ui-10 uppercase tracking-[0.18em] text-tea-text-sec font-medium">
                 <MessageCircle size={11} />
                 WhatsApp
               </div>
@@ -171,10 +171,10 @@ export const ShareSheet: React.FC<ShareSheetProps> = ({ isOpen, onClose, event }
 
             {/* ── Email ── */}
             <section className="space-y-2">
-              <div className="text-[10px] uppercase tracking-[0.18em] text-tea-text-sec font-medium">
+              <div className="text-ui-10 uppercase tracking-[0.18em] text-tea-text-sec font-medium">
                 Email
               </div>
-              <p className="text-[11px] text-tea-text-dim">
+              <p className="text-ui-11 text-tea-text-dim">
                 Send an invite to all customers in your list.
               </p>
               <button
@@ -236,7 +236,7 @@ export const ShareSheet: React.FC<ShareSheetProps> = ({ isOpen, onClose, event }
                   fgColor="#1a1510"
                 />
               </div>
-              <p className="text-[10px] text-tea-text-dim truncate">{eventUrl}</p>
+              <p className="text-ui-10 text-tea-text-dim truncate">{eventUrl}</p>
             </section>
           </div>
         </motion.div>

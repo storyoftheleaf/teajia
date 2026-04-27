@@ -59,33 +59,33 @@ const SourceModal = ({
         </div>
         <div className="p-6 space-y-4">
           <div>
-            <label className="block text-[10px] uppercase tracking-wider text-tea-gold/70 font-bold mb-1">Name *</label>
+            <label className="block text-ui-10 uppercase tracking-wider text-tea-gold/70 font-bold mb-1">Name *</label>
             <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className={inputStyle} placeholder="Vendor name" autoFocus />
           </div>
           <div>
-            <label className="block text-[10px] uppercase tracking-wider text-tea-gold/70 font-bold mb-1">Company</label>
+            <label className="block text-ui-10 uppercase tracking-wider text-tea-gold/70 font-bold mb-1">Company</label>
             <input value={form.company} onChange={e => setForm(f => ({ ...f, company: e.target.value }))} className={inputStyle} placeholder="Company or shop name" />
           </div>
           <div>
-            <label className="block text-[10px] uppercase tracking-wider text-tea-gold/70 font-bold mb-1">Country</label>
+            <label className="block text-ui-10 uppercase tracking-wider text-tea-gold/70 font-bold mb-1">Country</label>
             <input value={form.country} onChange={e => setForm(f => ({ ...f, country: e.target.value }))} className={inputStyle} placeholder="Country of origin" />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-[10px] uppercase tracking-wider text-tea-gold/70 font-bold mb-1">Phone</label>
+              <label className="block text-ui-10 uppercase tracking-wider text-tea-gold/70 font-bold mb-1">Phone</label>
               <input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} className={inputStyle} placeholder="Phone" />
             </div>
             <div>
-              <label className="block text-[10px] uppercase tracking-wider text-tea-gold/70 font-bold mb-1">WhatsApp</label>
+              <label className="block text-ui-10 uppercase tracking-wider text-tea-gold/70 font-bold mb-1">WhatsApp</label>
               <input value={form.whatsapp} onChange={e => setForm(f => ({ ...f, whatsapp: e.target.value }))} className={inputStyle} placeholder="WhatsApp" />
             </div>
           </div>
           <div>
-            <label className="block text-[10px] uppercase tracking-wider text-tea-gold/70 font-bold mb-1">Email</label>
+            <label className="block text-ui-10 uppercase tracking-wider text-tea-gold/70 font-bold mb-1">Email</label>
             <input value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} className={inputStyle} placeholder="Email" />
           </div>
           <div>
-            <label className="block text-[10px] uppercase tracking-wider text-tea-gold/70 font-bold mb-1">Notes</label>
+            <label className="block text-ui-10 uppercase tracking-wider text-tea-gold/70 font-bold mb-1">Notes</label>
             <textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} className={`${inputStyle} min-h-[60px] resize-none`} placeholder="Notes about this source..." />
           </div>
         </div>
@@ -203,7 +203,7 @@ const CollapsibleSection = ({ title, defaultOpen = true, children }: {
   return (
     <div className="mx-3 mb-2 rounded-lg bg-tea-surface">
       <button onClick={() => setOpen(!open)} className="w-full flex items-center justify-between px-4 py-3 group">
-        <span className="text-[12px] text-tea-gold uppercase tracking-[0.15em] font-bold">{title}</span>
+        <span className="text-ui-12 text-tea-gold uppercase tracking-[0.15em] font-bold">{title}</span>
         <ChevronRight size={14} className={`text-tea-text-dim transition-transform duration-200 ${open ? 'rotate-90' : ''}`} />
       </button>
       {open && <div className="px-4 pb-4">{children}</div>}
@@ -530,7 +530,7 @@ export const SourcesView = () => {
     const showBadge = sortConfig.length > 1 && sortEntry;
     return (
       <th
-        className={`px-4 py-2 cursor-pointer hover:text-tea-text transition-colors select-none border-b border-tea-border group text-[10px] uppercase tracking-wider font-serif text-tea-text-sec text-${align} truncate`}
+        className={`px-4 py-2 cursor-pointer hover:text-tea-text transition-colors select-none border-b border-tea-border group text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec text-${align} truncate`}
         onClick={() => handleSort(colKey)}
       >
         <div className={`flex items-center gap-1 ${align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : ''}`}>
@@ -539,7 +539,7 @@ export const SourcesView = () => {
             {sortEntry ? (
               <span className="flex items-center">
                 {sortEntry.direction === 'asc' ? <ArrowUp size={10} className="ml-1 text-tea-text-sec" /> : <ArrowDown size={10} className="ml-1 text-tea-text-sec" />}
-                {showBadge && <span className="ml-0.5 text-[8px] text-tea-gold font-bold">{sortIndex + 1}</span>}
+                {showBadge && <span className="ml-0.5 text-ui-8 text-tea-gold font-bold">{sortIndex + 1}</span>}
               </span>
             ) : <ArrowUpDown size={10} className="opacity-0 group-hover:opacity-100 text-tea-text-sec/50 ml-1 transition-opacity" />}
           </div>
@@ -696,7 +696,7 @@ export const SourcesView = () => {
               if (vendorBatches.length === 0) return null;
               return (
                 <div className="mt-4 pt-3 mx-4" style={{ borderTop: '1px solid var(--tea-accent-sub)' }}>
-                  <p className="text-[10px] uppercase tracking-wider text-tea-text-dim mb-2 font-medium">
+                  <p className="text-ui-10 uppercase tracking-wider text-tea-text-dim mb-2 font-medium">
                     Sample Batches · {vendorBatches.length}
                   </p>
                   <div className="space-y-1">
@@ -711,13 +711,13 @@ export const SourcesView = () => {
                         >
                           <div className="flex-1 min-w-0">
                             <div className="text-tea-text truncate">{batch.name || 'Untitled Batch'}</div>
-                            <div className="text-[10px] text-tea-text-dim">
+                            <div className="text-ui-10 text-tea-text-dim">
                               {batchSamples.length} sample{batchSamples.length !== 1 ? 's' : ''} ·{' '}
                               {tasted}/{batchSamples.length} tasted
                               {graduated > 0 && ` · ${graduated} in inventory`}
                             </div>
                           </div>
-                          <span className="text-[10px] text-tea-text-dim shrink-0">
+                          <span className="text-ui-10 text-tea-text-dim shrink-0">
                             {new Date(batch.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
                           </span>
                         </div>
@@ -753,7 +753,7 @@ export const SourcesView = () => {
               setSortConfig(view.sortConfig);
               setGroupBy(view.groupBy);
             }}
-            className={`flex items-center gap-1.5 px-3 py-1 text-[10px] uppercase tracking-[0.15em] rounded-md whitespace-nowrap transition-colors ${
+            className={`flex items-center gap-1.5 px-3 py-1 text-ui-10 uppercase tracking-[0.15em] rounded-md whitespace-nowrap transition-colors ${
               activeViewId === view.id
                 ? 'bg-tea-gold/15 text-tea-gold border border-tea-accent-sub'
                 : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface border border-transparent'
@@ -790,14 +790,14 @@ export const SourcesView = () => {
                 }
               }}
               placeholder="View name..."
-              className="bg-transparent border-b border-tea-border text-[10px] text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg w-24 py-0.5 px-1"
+              className="bg-transparent border-b border-tea-border text-ui-10 text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg w-24 py-0.5 px-1"
             />
             <button onClick={() => { setShowSaveViewPrompt(false); setNewViewName(''); }} className="text-tea-text-sec/40 hover:text-tea-text-sec"><XIcon size={10} /></button>
           </div>
         ) : (
           <button
             onClick={() => setShowSaveViewPrompt(true)}
-            className="flex items-center gap-1 px-2 py-1 text-[10px] text-tea-text-sec/50 hover:text-tea-text-sec uppercase tracking-[0.15em] transition-colors"
+            className="flex items-center gap-1 px-2 py-1 text-ui-10 text-tea-text-sec/50 hover:text-tea-text-sec uppercase tracking-[0.15em] transition-colors"
           >
             <Save size={10} /> Save View
           </button>
@@ -808,7 +808,7 @@ export const SourcesView = () => {
       <div className={`md:hidden sticky top-0 z-30 transition-colors flex-shrink-0 ${isEditMode ? 'bg-tea-surface/95' : 'bg-tea-bg/95 backdrop-blur-md'}`}>
         <div className="flex items-center px-2 py-1.5 gap-1">
           <Users size={14} className="text-tea-gold shrink-0 ml-1" />
-          <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.08em] shrink-0">
+          <span className="text-ui-11 text-tea-text-sec uppercase tracking-[0.08em] shrink-0">
             {processedSources.length}
           </span>
 
@@ -858,7 +858,7 @@ export const SourcesView = () => {
                           }
                           setShowMobileSort(false);
                         }}
-                        className={`w-full px-3 py-2 text-left text-[11px] flex items-center gap-2 hover:bg-tea-bg transition-colors ${isActive ? 'text-tea-gold' : 'text-tea-text-sec'}`}
+                        className={`w-full px-3 py-2 text-left text-ui-11 flex items-center gap-2 hover:bg-tea-bg transition-colors ${isActive ? 'text-tea-gold' : 'text-tea-text-sec'}`}
                       >
                         {opt.label}
                         {isActive && (
@@ -887,7 +887,7 @@ export const SourcesView = () => {
                 <div className="fixed inset-0 z-40" onClick={() => setShowOptions(false)} />
                 <div className="absolute right-0 top-9 w-48 bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-50 py-1 max-h-[calc(100dvh-100px)] overflow-y-auto">
                   {/* Saved views */}
-                  <div className="px-3 py-1.5 text-[9px] text-tea-text-sec/60 uppercase tracking-[0.2em]">Views</div>
+                  <div className="px-3 py-1.5 text-ui-9 text-tea-text-sec/60 uppercase tracking-[0.2em]">Views</div>
                   {savedViews.map(view => (
                     <button
                       key={view.id}
@@ -898,21 +898,21 @@ export const SourcesView = () => {
                         setGroupBy(view.groupBy);
                         setShowOptions(false);
                       }}
-                      className={`w-full px-3 py-2 text-left text-[11px] flex items-center gap-2 hover:bg-tea-bg transition-colors ${activeViewId === view.id ? 'text-tea-gold' : 'text-tea-text-sec'}`}
+                      className={`w-full px-3 py-2 text-left text-ui-11 flex items-center gap-2 hover:bg-tea-bg transition-colors ${activeViewId === view.id ? 'text-tea-gold' : 'text-tea-text-sec'}`}
                     >
                       {view.name}
                       {activeViewId === view.id && <Check size={11} className="ml-auto" />}
                     </button>
                   ))}
                   <div className="h-px bg-tea-border/30 my-1" />
-                  <button onClick={() => { setEditingSource(null); setIsModalOpen(true); setShowOptions(false); }} className="w-full px-3 py-2 text-left text-[11px] flex items-center gap-2 hover:bg-tea-bg text-tea-text-sec transition-colors">
+                  <button onClick={() => { setEditingSource(null); setIsModalOpen(true); setShowOptions(false); }} className="w-full px-3 py-2 text-left text-ui-11 flex items-center gap-2 hover:bg-tea-bg text-tea-text-sec transition-colors">
                     <Plus size={13} /> New Source
                   </button>
-                  <button onClick={() => { setIsEditMode(!isEditMode); setShowOptions(false); }} className="w-full px-3 py-2 text-left text-[11px] flex items-center gap-2 hover:bg-tea-bg text-tea-text-sec transition-colors">
+                  <button onClick={() => { setIsEditMode(!isEditMode); setShowOptions(false); }} className="w-full px-3 py-2 text-left text-ui-11 flex items-center gap-2 hover:bg-tea-bg text-tea-text-sec transition-colors">
                     {isEditMode ? <Check size={13} /> : <Pencil size={13} />}
                     {isEditMode ? 'Done Editing' : 'Edit Mode'}
                   </button>
-                  <button onClick={() => { handleExport(); setShowOptions(false); }} className="w-full px-3 py-2 text-left text-[11px] flex items-center gap-2 hover:bg-tea-bg text-tea-text-sec transition-colors">
+                  <button onClick={() => { handleExport(); setShowOptions(false); }} className="w-full px-3 py-2 text-left text-ui-11 flex items-center gap-2 hover:bg-tea-bg text-tea-text-sec transition-colors">
                     <Download size={13} /> Export CSV
                   </button>
                 </div>
@@ -988,7 +988,7 @@ export const SourcesView = () => {
                   <>
                     <div className="fixed inset-0 z-40" onClick={() => setShowColumnsPopover(false)} />
                     <div className="absolute right-0 top-full mt-2 w-44 bg-tea-surface border border-tea-border shadow-xl rounded-xl z-50 py-2">
-                      <div className="px-3 pb-1.5 text-[9px] text-tea-text-sec/60 uppercase tracking-[0.2em]">Visible Columns</div>
+                      <div className="px-3 pb-1.5 text-ui-9 text-tea-text-sec/60 uppercase tracking-[0.2em]">Visible Columns</div>
                       {SOURCE_COLUMN_DEFS.map(col => (
                         <label key={col.key} className={`flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-tea-bg transition-colors cursor-pointer ${'alwaysVisible' in col && col.alwaysVisible ? 'opacity-50 cursor-not-allowed' : ''}`}>
                           <input
@@ -1079,7 +1079,7 @@ export const SourcesView = () => {
                     <div className="flex items-center gap-1.5">
                       <span className="text-tea-text text-sm font-serif truncate">{source.name}</span>
                     </div>
-                    <div className="flex items-center gap-1.5 text-[10px] text-tea-text-sec/70 mt-0.5">
+                    <div className="flex items-center gap-1.5 text-ui-10 text-tea-text-sec/70 mt-0.5">
                       {source.company && <span className="truncate">{source.company}</span>}
                       {source.company && source.country && <span className="opacity-40">·</span>}
                       {source.country && (
@@ -1104,29 +1104,29 @@ export const SourcesView = () => {
                     <div className="grid grid-cols-3 gap-x-4 gap-y-2 py-2">
                       {source.company && (
                         <div>
-                          <div className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">Company</div>
+                          <div className="text-ui-9 text-tea-text-sec/50 uppercase tracking-wider">Company</div>
                           <div className="text-sm text-tea-text">{source.company}</div>
                         </div>
                       )}
                       {source.country && (
                         <div>
-                          <div className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">Country</div>
+                          <div className="text-ui-9 text-tea-text-sec/50 uppercase tracking-wider">Country</div>
                           <div className="text-sm text-tea-text">{source.country}</div>
                         </div>
                       )}
                       <div>
-                        <div className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">Teas</div>
+                        <div className="text-ui-9 text-tea-text-sec/50 uppercase tracking-wider">Teas</div>
                         <div className="text-sm text-tea-text tabular-nums">{source.teaCount}</div>
                       </div>
                       {source.email && (
                         <div className="col-span-2">
-                          <div className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">Email</div>
+                          <div className="text-ui-9 text-tea-text-sec/50 uppercase tracking-wider">Email</div>
                           <div className="text-sm text-tea-text truncate">{source.email}</div>
                         </div>
                       )}
                       {source.phone && (
                         <div>
-                          <div className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">Phone</div>
+                          <div className="text-ui-9 text-tea-text-sec/50 uppercase tracking-wider">Phone</div>
                           <div className="text-sm text-tea-text">{source.phone}</div>
                         </div>
                       )}
@@ -1141,13 +1141,13 @@ export const SourcesView = () => {
                       <div className="ml-auto flex items-center gap-2">
                         <button
                           onClick={() => { setEditingSource(source); setIsModalOpen(true); }}
-                          className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] uppercase tracking-[0.15em] text-tea-text-sec hover:text-tea-text bg-tea-bg/60 hover:bg-tea-bg rounded-md transition-colors"
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec hover:text-tea-text bg-tea-bg/60 hover:bg-tea-bg rounded-md transition-colors"
                         >
                           <Pencil size={12} /> Edit
                         </button>
                         <button
                           onClick={() => handleDelete(source)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] uppercase tracking-[0.15em] text-tea-text-sec hover:text-red-400 bg-tea-bg/60 hover:bg-tea-bg rounded-md transition-colors"
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec hover:text-red-400 bg-tea-bg/60 hover:bg-tea-bg rounded-md transition-colors"
                         >
                           <Trash2 size={12} /> Delete
                         </button>
@@ -1224,8 +1224,8 @@ export const SourcesView = () => {
                     >
                       {isCollapsed ? <ChevronRight size={14} className="text-tea-text-sec" /> : <ChevronDown size={14} className="text-tea-text-sec" />}
                       <span className="text-sm font-serif text-tea-text">{groupKey}</span>
-                      <span className="text-[10px] text-tea-text-sec uppercase tracking-[0.15em]">{items.length} source{items.length !== 1 ? 's' : ''}</span>
-                      <span className="text-[10px] text-tea-text-sec tabular-nums ml-auto">{totalTeas} tea{totalTeas !== 1 ? 's' : ''} total</span>
+                      <span className="text-ui-10 text-tea-text-sec uppercase tracking-[0.15em]">{items.length} source{items.length !== 1 ? 's' : ''}</span>
+                      <span className="text-ui-10 text-tea-text-sec tabular-nums ml-auto">{totalTeas} tea{totalTeas !== 1 ? 's' : ''} total</span>
                     </button>
                     {!isCollapsed && (
                       <table className="w-full table-fixed border-collapse">
@@ -1288,7 +1288,7 @@ export const SourcesView = () => {
             <div className="flex items-center gap-3 px-5 py-3 border-b border-tea-accent-sub bg-tea-surface/30">
               <div className="flex-1 min-w-0">
                 <h3 className="text-sm font-serif text-tea-text truncate">{panelSource.name}</h3>
-                <span className="text-[10px] text-tea-text-dim">
+                <span className="text-ui-10 text-tea-text-dim">
                   {panelSource.company || 'Vendor'}{panelSource.country ? ` · ${panelSource.country}` : ''}
                 </span>
               </div>
@@ -1320,7 +1320,7 @@ export const SourcesView = () => {
               <CollapsibleSection title="Details">
                 <div className="space-y-3">
                   <div>
-                    <label className="text-[10px] text-tea-text-sec uppercase tracking-[0.15em] block mb-1">Name</label>
+                    <label className="text-ui-10 text-tea-text-sec uppercase tracking-[0.15em] block mb-1">Name</label>
                     <GhostInput
                       value={panelSource.name}
                       onSave={(val) => handleSourceUpdate(panelSource.id, 'name', val)}
@@ -1328,7 +1328,7 @@ export const SourcesView = () => {
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] text-tea-text-sec uppercase tracking-[0.15em] block mb-1">Company</label>
+                    <label className="text-ui-10 text-tea-text-sec uppercase tracking-[0.15em] block mb-1">Company</label>
                     <GhostInput
                       value={panelSource.company || ''}
                       onSave={(val) => handleSourceUpdate(panelSource.id, 'company', val)}
@@ -1337,7 +1337,7 @@ export const SourcesView = () => {
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] text-tea-text-sec uppercase tracking-[0.15em] block mb-1">Country</label>
+                    <label className="text-ui-10 text-tea-text-sec uppercase tracking-[0.15em] block mb-1">Country</label>
                     <GhostInput
                       value={panelSource.country || ''}
                       onSave={(val) => handleSourceUpdate(panelSource.id, 'country', val)}
@@ -1347,7 +1347,7 @@ export const SourcesView = () => {
                   </div>
                   {panelSource.notes && (
                     <div>
-                      <label className="text-[10px] text-tea-text-sec uppercase tracking-[0.15em] block mb-1">Notes</label>
+                      <label className="text-ui-10 text-tea-text-sec uppercase tracking-[0.15em] block mb-1">Notes</label>
                       <p className="text-xs text-tea-text-sec/70 font-serif italic leading-relaxed whitespace-pre-line">{panelSource.notes}</p>
                     </div>
                   )}
@@ -1358,7 +1358,7 @@ export const SourcesView = () => {
               <CollapsibleSection title="Contact">
                 <div className="space-y-3">
                   <div>
-                    <label className="text-[10px] text-tea-text-sec uppercase tracking-[0.15em] block mb-1">Email</label>
+                    <label className="text-ui-10 text-tea-text-sec uppercase tracking-[0.15em] block mb-1">Email</label>
                     <GhostInput
                       value={panelSource.email || ''}
                       onSave={(val) => handleSourceUpdate(panelSource.id, 'email', val)}
@@ -1368,7 +1368,7 @@ export const SourcesView = () => {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-[10px] text-tea-text-sec uppercase tracking-[0.15em] block mb-1">Phone</label>
+                      <label className="text-ui-10 text-tea-text-sec uppercase tracking-[0.15em] block mb-1">Phone</label>
                       <GhostInput
                         value={panelSource.phone || ''}
                         onSave={(val) => handleSourceUpdate(panelSource.id, 'phone', val)}
@@ -1377,7 +1377,7 @@ export const SourcesView = () => {
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] text-tea-text-sec uppercase tracking-[0.15em] block mb-1">WhatsApp</label>
+                      <label className="text-ui-10 text-tea-text-sec uppercase tracking-[0.15em] block mb-1">WhatsApp</label>
                       <GhostInput
                         value={panelSource.whatsapp || ''}
                         onSave={(val) => handleSourceUpdate(panelSource.id, 'whatsapp', val)}
@@ -1495,7 +1495,7 @@ export const SourcesView = () => {
                                   className="w-full text-left px-3 py-1.5 text-xs hover:bg-tea-surface transition-colors flex items-center gap-2"
                                 >
                                   <span className="text-tea-text">{p.givenName || p.productName}</span>
-                                  <span className="text-[9px] text-tea-text-sec uppercase">{p.type}</span>
+                                  <span className="text-ui-9 text-tea-text-sec uppercase">{p.type}</span>
                                 </button>
                               ))}
                           </div>
@@ -1557,10 +1557,10 @@ export const SourcesView = () => {
                                     ) : (
                                       <ArrowUp size={12} className="text-tea-text-sec" />
                                     )}
-                                    <span className="text-[10px] text-tea-text-sec uppercase tracking-wider">
+                                    <span className="text-ui-10 text-tea-text-sec uppercase tracking-wider">
                                       {tx.direction} · {tx.items.length} item{tx.items.length !== 1 ? 's' : ''}
                                     </span>
-                                    <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${tx.status === 'confirmed' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'}`}>
+                                    <span className={`text-ui-9 px-1.5 py-0.5 rounded-full ${tx.status === 'confirmed' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'}`}>
                                       {tx.status}
                                     </span>
                                   </div>
@@ -1572,10 +1572,10 @@ export const SourcesView = () => {
                                 {/* Items preview */}
                                 <div className="space-y-0.5">
                                   {tx.items.slice(0, 3).map((item) => (
-                                    <div key={item.id} className="flex items-center justify-between text-[11px]">
+                                    <div key={item.id} className="flex items-center justify-between text-ui-11">
                                       <span className="text-tea-text-sec truncate flex-1 mr-2">
                                         {item.chineseName || item.name}
-                                        {item.type && <span className="text-tea-text-dim ml-1 uppercase text-[9px]">{item.type}</span>}
+                                        {item.type && <span className="text-tea-text-dim ml-1 uppercase text-ui-9">{item.type}</span>}
                                       </span>
                                       <span className="text-tea-text-sec tabular-nums flex-shrink-0">
                                         {item.priceIsPerGram ? `${item.quantityGrams}g` : `×${item.quantityUnits ?? 1}`}
@@ -1583,7 +1583,7 @@ export const SourcesView = () => {
                                     </div>
                                   ))}
                                   {tx.items.length > 3 && (
-                                    <div className="text-[10px] text-tea-text-dim">+{tx.items.length - 3} more</div>
+                                    <div className="text-ui-10 text-tea-text-dim">+{tx.items.length - 3} more</div>
                                   )}
                                 </div>
 
@@ -1594,21 +1594,21 @@ export const SourcesView = () => {
                                       <img key={i} src={url} alt="" className="w-10 h-10 rounded object-cover border border-tea-border" loading="lazy" />
                                     ))}
                                     {tx.photos.length > 4 && (
-                                      <div className="w-10 h-10 rounded bg-tea-surface flex items-center justify-center text-[10px] text-tea-text-dim border border-tea-border">
+                                      <div className="w-10 h-10 rounded bg-tea-surface flex items-center justify-center text-ui-10 text-tea-text-dim border border-tea-border">
                                         +{tx.photos.length - 4}
                                       </div>
                                     )}
                                   </div>
                                 )}
 
-                                <div className="text-[10px] text-tea-text-dim mt-1.5">
+                                <div className="text-ui-10 text-tea-text-dim mt-1.5">
                                   {new Date(tx.createdAt).toLocaleDateString()}
                                 </div>
                               </div>
                             );
                           })}
                           {vendorTxs.length > 10 && (
-                            <p className="text-[10px] text-tea-text-dim text-center">+{vendorTxs.length - 10} more transactions</p>
+                            <p className="text-ui-10 text-tea-text-dim text-center">+{vendorTxs.length - 10} more transactions</p>
                           )}
                         </div>
                       </>
@@ -1640,13 +1640,13 @@ export const SourcesView = () => {
                           <div className="flex gap-2">
                             {vendorDetails.storefrontUrl && (
                               <div className="flex-1">
-                                <div className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider mb-1">Storefront</div>
+                                <div className="text-ui-9 text-tea-text-sec/50 uppercase tracking-wider mb-1">Storefront</div>
                                 <img src={vendorDetails.storefrontUrl} alt="Storefront" className="w-full h-24 rounded-lg object-cover border border-tea-border" loading="lazy" />
                               </div>
                             )}
                             {vendorDetails.businessCardUrl && (
                               <div className="flex-1">
-                                <div className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider mb-1">Business Card</div>
+                                <div className="text-ui-9 text-tea-text-sec/50 uppercase tracking-wider mb-1">Business Card</div>
                                 <img src={vendorDetails.businessCardUrl} alt="Business card" className="w-full h-24 rounded-lg object-cover border border-tea-border" loading="lazy" />
                               </div>
                             )}
@@ -1657,13 +1657,13 @@ export const SourcesView = () => {
                         <div className="grid grid-cols-2 gap-2 text-xs">
                           {vendorDetails.wechat && (
                             <div>
-                              <div className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">WeChat</div>
+                              <div className="text-ui-9 text-tea-text-sec/50 uppercase tracking-wider">WeChat</div>
                               <div className="text-tea-text">{vendorDetails.wechat}</div>
                             </div>
                           )}
                           {vendorDetails.line && (
                             <div>
-                              <div className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">LINE</div>
+                              <div className="text-ui-9 text-tea-text-sec/50 uppercase tracking-wider">LINE</div>
                               <div className="text-tea-text">{vendorDetails.line}</div>
                             </div>
                           )}
@@ -1672,7 +1672,7 @@ export const SourcesView = () => {
                         {/* Location */}
                         {vendorDetails.lat != null && vendorDetails.lng != null && (
                           <div>
-                            <div className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider mb-1">Location</div>
+                            <div className="text-ui-9 text-tea-text-sec/50 uppercase tracking-wider mb-1">Location</div>
                             <a
                               href={`https://maps.google.com/?q=${vendorDetails.lat},${vendorDetails.lng}`}
                               target="_blank"
@@ -1691,7 +1691,7 @@ export const SourcesView = () => {
                     {/* Recent compass entries from this vendor */}
                     {vendorEntries.length > 0 && (
                       <div className="space-y-1.5">
-                        <div className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">Field Notes</div>
+                        <div className="text-ui-9 text-tea-text-sec/50 uppercase tracking-wider">Field Notes</div>
                         {vendorEntries.slice(0, 8).map((entry) => (
                           <button
                             key={entry.id}
@@ -1706,21 +1706,21 @@ export const SourcesView = () => {
                               <div className="text-tea-text truncate font-serif">
                                 {entry.chineseName || entry.name || 'Unnamed'}
                               </div>
-                              <div className="text-[10px] text-tea-text-dim flex items-center gap-1">
+                              <div className="text-ui-10 text-tea-text-dim flex items-center gap-1">
                                 {entry.type && <span className="uppercase">{entry.type}</span>}
                                 {entry.status === 'in_stock' && <span className="text-emerald-400">in stock</span>}
                                 {entry.status === 'want' && <span className="text-amber-400">want</span>}
                               </div>
                             </div>
                             {entry.priceAmount != null && entry.priceAmount > 0 && (
-                              <span className="text-[10px] text-tea-text-sec tabular-nums flex-shrink-0">
+                              <span className="text-ui-10 text-tea-text-sec tabular-nums flex-shrink-0">
                                 {fmtPrice(entry.priceAmount, entry.priceCurrency)}
                               </span>
                             )}
                           </button>
                         ))}
                         {vendorEntries.length > 8 && (
-                          <p className="text-[10px] text-tea-text-dim">+{vendorEntries.length - 8} more entries</p>
+                          <p className="text-ui-10 text-tea-text-dim">+{vendorEntries.length - 8} more entries</p>
                         )}
                       </div>
                     )}
@@ -1812,7 +1812,7 @@ export const SourcesView = () => {
                       {topTerms.map(([term, count]) => (
                         <span
                           key={term}
-                          className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] bg-tea-surface rounded-full text-tea-text-sec"
+                          className="inline-flex items-center gap-1 px-2 py-0.5 text-ui-10 bg-tea-surface rounded-full text-tea-text-sec"
                           title={`Appears in ${count} tasting${count > 1 ? 's' : ''}`}
                         >
                           {resolveTermLabel(term)}
@@ -1823,7 +1823,7 @@ export const SourcesView = () => {
 
                     {/* Moods */}
                     {uniqueMoods.length > 0 && (
-                      <div className="text-[10px] text-tea-text-dim">
+                      <div className="text-ui-10 text-tea-text-dim">
                         <span className="uppercase tracking-wider text-tea-text-sec/50 mr-1.5">Moods:</span>
                         {uniqueMoods.join(' · ')}
                       </div>
@@ -1868,19 +1868,19 @@ export const SourcesView = () => {
                     {/* Summary stats */}
                     <div className="grid grid-cols-3 gap-3 mb-3">
                       <div>
-                        <div className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">Total Spend</div>
+                        <div className="text-ui-9 text-tea-text-sec/50 uppercase tracking-wider">Total Spend</div>
                         <div className="text-sm text-tea-text tabular-nums font-medium">
                           {fmtPrice(totalSpend, primaryCurrency)}
                         </div>
                       </div>
                       <div>
-                        <div className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">Avg / Gram</div>
+                        <div className="text-ui-9 text-tea-text-sec/50 uppercase tracking-wider">Avg / Gram</div>
                         <div className="text-sm text-tea-text tabular-nums font-medium">
                           {avgCostPerGram > 0 ? fmtPrice(avgCostPerGram, primaryCurrency) : '—'}
                         </div>
                       </div>
                       <div>
-                        <div className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">Total Stock</div>
+                        <div className="text-ui-9 text-tea-text-sec/50 uppercase tracking-wider">Total Stock</div>
                         <div className="text-sm text-tea-text tabular-nums font-medium">
                           {totalGrams > 0 ? `${totalGrams.toLocaleString()}g` : '—'}
                         </div>
@@ -1892,7 +1892,7 @@ export const SourcesView = () => {
                       {Object.entries(typeBreakdown)
                         .sort((a, b) => b[1].count - a[1].count)
                         .map(([type, data]) => (
-                          <div key={type} className="flex items-center justify-between text-[11px]">
+                          <div key={type} className="flex items-center justify-between text-ui-11">
                             <span className="text-tea-text-sec uppercase tracking-wider">{type}</span>
                             <div className="flex items-center gap-3">
                               <span className="text-tea-text tabular-nums">{data.count}</span>
@@ -1907,9 +1907,9 @@ export const SourcesView = () => {
                     {/* Best value */}
                     {valueRanked.length > 0 && (
                       <div>
-                        <div className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider mb-1.5">Best Value</div>
+                        <div className="text-ui-9 text-tea-text-sec/50 uppercase tracking-wider mb-1.5">Best Value</div>
                         {valueRanked.slice(0, 3).map((p) => (
-                          <div key={p.id} className="flex items-center justify-between text-[11px] py-0.5">
+                          <div key={p.id} className="flex items-center justify-between text-ui-11 py-0.5">
                             <button
                               onClick={() => navigate(`/admin/inventory?panel=${encodeURIComponent(p.id)}`)}
                               className="text-tea-text hover:text-tea-gold transition-colors truncate flex-1 mr-2 text-left"
@@ -1943,7 +1943,7 @@ export const SourcesView = () => {
                   <CollapsibleSection title={`Pipeline (${pipeline.length})`}>
                     {wants.length > 0 && (
                       <div className="mb-2">
-                        <div className="text-[9px] text-amber-400/70 uppercase tracking-wider mb-1 flex items-center gap-1">
+                        <div className="text-ui-9 text-amber-400/70 uppercase tracking-wider mb-1 flex items-center gap-1">
                           <Star size={9} /> Want List
                         </div>
                         {wants.map((e) => (
@@ -1955,7 +1955,7 @@ export const SourcesView = () => {
                               <span className="text-tea-text font-serif truncate block">{e.chineseName || e.name || 'Unnamed'}</span>
                             </div>
                             {e.priceAmount != null && e.priceAmount > 0 && (
-                              <span className="text-[10px] text-tea-text-sec tabular-nums">{fmtPrice(e.priceAmount, e.priceCurrency)}</span>
+                              <span className="text-ui-10 text-tea-text-sec tabular-nums">{fmtPrice(e.priceAmount, e.priceCurrency)}</span>
                             )}
                           </div>
                         ))}
@@ -1963,7 +1963,7 @@ export const SourcesView = () => {
                     )}
                     {logged.length > 0 && (
                       <div>
-                        <div className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider mb-1 flex items-center gap-1">
+                        <div className="text-ui-9 text-tea-text-sec/50 uppercase tracking-wider mb-1 flex items-center gap-1">
                           <Eye size={9} /> Sampled / Noted
                         </div>
                         {logged.map((e) => (
@@ -1974,7 +1974,7 @@ export const SourcesView = () => {
                             <div className="flex-1 min-w-0">
                               <span className="text-tea-text font-serif truncate block">{e.chineseName || e.name || 'Unnamed'}</span>
                             </div>
-                            {e.type && <span className="text-[9px] text-tea-text-dim uppercase">{e.type}</span>}
+                            {e.type && <span className="text-ui-9 text-tea-text-dim uppercase">{e.type}</span>}
                           </div>
                         ))}
                       </div>
@@ -2059,7 +2059,7 @@ export const SourcesView = () => {
                             {/* Dot */}
                             <div className={`absolute -left-4 top-1 w-[10px] h-[10px] rounded-full border-2 border-tea-bg ${typeColors[evt.type]}`} />
                             <div className="flex-1 min-w-0">
-                              <div className="text-[11px] text-tea-text leading-tight">
+                              <div className="text-ui-11 text-tea-text leading-tight">
                                 {evt.id ? (
                                   <button
                                     onClick={() => navigate(`/admin/inventory?panel=${encodeURIComponent(evt.id!)}`)}
@@ -2069,7 +2069,7 @@ export const SourcesView = () => {
                                   </button>
                                 ) : evt.label}
                               </div>
-                              <div className="flex items-center gap-2 text-[9px] text-tea-text-dim mt-0.5">
+                              <div className="flex items-center gap-2 text-ui-9 text-tea-text-dim mt-0.5">
                                 {evt.date && <span>{new Date(evt.date).toLocaleDateString()}</span>}
                                 {evt.detail && <span>{evt.detail}</span>}
                               </div>
@@ -2079,7 +2079,7 @@ export const SourcesView = () => {
                       </div>
 
                       {events.length > 15 && (
-                        <p className="text-[10px] text-tea-text-dim mt-2 pl-1">+{events.length - 15} more events</p>
+                        <p className="text-ui-10 text-tea-text-dim mt-2 pl-1">+{events.length - 15} more events</p>
                       )}
                     </div>
                   </CollapsibleSection>
@@ -2091,13 +2091,13 @@ export const SourcesView = () => {
             <div className="px-5 py-3 border-t border-tea-accent-sub bg-tea-surface/30 flex items-center justify-between">
               <button
                 onClick={() => { setEditingSource(panelSource); setIsModalOpen(true); }}
-                className="flex items-center gap-1.5 text-[10px] text-tea-text-sec hover:text-tea-text uppercase tracking-[0.2em] transition-colors"
+                className="flex items-center gap-1.5 text-ui-10 text-tea-text-sec hover:text-tea-text uppercase tracking-[0.2em] transition-colors"
               >
                 <Edit3 size={11} /> Full Edit
               </button>
               <button
                 onClick={() => handleDelete(panelSource)}
-                className="flex items-center gap-1.5 text-[10px] text-tea-text-sec hover:text-red-400 uppercase tracking-[0.2em] transition-colors"
+                className="flex items-center gap-1.5 text-ui-10 text-tea-text-sec hover:text-red-400 uppercase tracking-[0.2em] transition-colors"
               >
                 <Trash2 size={11} /> Delete
               </button>

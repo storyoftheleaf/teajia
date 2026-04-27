@@ -120,7 +120,7 @@ const ReadPage: React.FC<ReadPageProps> = ({
         {/* ===== START HERE ===== */}
         {startHereArticles.length > 0 && (
           <section className="px-4 md:px-6 mb-10 md:mb-14">
-            <p className="text-[10px] uppercase tracking-[0.25em] text-tea-text/30 font-sans mb-4">
+            <p className="text-ui-10 uppercase tracking-[0.25em] text-tea-text/30 font-sans mb-4">
               Start here
             </p>
             <div className="grid grid-cols-2 gap-3 md:gap-5 max-w-2xl">
@@ -142,7 +142,7 @@ const ReadPage: React.FC<ReadPageProps> = ({
         {/* ===== FEATURES ===== */}
         {featureArticles.length > 0 && (
           <section className="px-4 md:px-6 mb-10 md:mb-14">
-            <p className="text-[10px] uppercase tracking-[0.25em] text-tea-text/30 font-sans mb-4">
+            <p className="text-ui-10 uppercase tracking-[0.25em] text-tea-text/30 font-sans mb-4">
               Features
             </p>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-5">
@@ -164,7 +164,7 @@ const ReadPage: React.FC<ReadPageProps> = ({
         {/* ===== PHOTO ESSAYS ===== */}
         {photoEssays.length > 0 && (
           <section className="mb-10 md:mb-14">
-            <p className="text-[10px] uppercase tracking-[0.25em] text-tea-text/30 font-sans mb-4 px-4 md:px-6">
+            <p className="text-ui-10 uppercase tracking-[0.25em] text-tea-text/30 font-sans mb-4 px-4 md:px-6">
               Visual stories
             </p>
             <div

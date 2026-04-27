@@ -309,7 +309,7 @@ export const SampleLabelSheet: React.FC<SampleLabelSheetProps> = ({
         {/* Info row */}
         <div className="px-5 pt-4 pb-2">
           {showSetName && (
-            <p className="text-[10px] font-medium uppercase tracking-widest text-tea-text-dim mb-1">
+            <p className="text-ui-10 font-medium uppercase tracking-widest text-tea-text-dim mb-1">
               {showSetName}
             </p>
           )}
@@ -325,7 +325,7 @@ export const SampleLabelSheet: React.FC<SampleLabelSheetProps> = ({
               <span className="text-xs text-tea-gold/50">— select labels to print</span>
             )}
           </div>
-          <p className="text-[10px] text-tea-text-dim mt-1 leading-relaxed">
+          <p className="text-ui-10 text-tea-text-dim mt-1 leading-relaxed">
             QR links to <span className="font-mono text-tea-text-sec">teajia.co/s/</span>
             {' · '}Format: <span className="text-tea-text-sec">Avery 5160</span> · 8.5 × 11in, 30 per sheet
           </p>
@@ -334,7 +334,7 @@ export const SampleLabelSheet: React.FC<SampleLabelSheetProps> = ({
         {/* Controls + Print button row */}
         <div className="px-5 pb-3 flex items-center gap-4 flex-wrap">
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-medium uppercase tracking-widest text-tea-text-dim">
+            <span className="text-ui-10 font-medium uppercase tracking-widest text-tea-text-dim">
               Columns
             </span>
             <div className="flex rounded-md border border-tea-border overflow-hidden">
@@ -358,7 +358,7 @@ export const SampleLabelSheet: React.FC<SampleLabelSheetProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-medium uppercase tracking-widest text-tea-text-dim">
+            <span className="text-ui-10 font-medium uppercase tracking-widest text-tea-text-dim">
               Size
             </span>
             <div className="flex rounded-md border border-tea-border overflow-hidden">
@@ -402,22 +402,22 @@ export const SampleLabelSheet: React.FC<SampleLabelSheetProps> = ({
       {/* Label selection list */}
       <div className="print-hide px-5 py-3 border-b border-tea-border">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-[10px] font-medium uppercase tracking-widest text-tea-text-dim">
+          <span className="text-ui-10 font-medium uppercase tracking-widest text-tea-text-dim">
             Select labels
           </span>
           <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={() => setSelectedIds(new Set(samples.map(s => s.id)))}
-              className="text-[10px] font-medium uppercase tracking-widest text-tea-text-sec hover:text-tea-gold transition-colors"
+              className="text-ui-10 font-medium uppercase tracking-widest text-tea-text-sec hover:text-tea-gold transition-colors"
             >
               All
             </button>
-            <span className="text-tea-text-dim text-[10px]">·</span>
+            <span className="text-tea-text-dim text-ui-10">·</span>
             <button
               type="button"
               onClick={() => setSelectedIds(new Set())}
-              className="text-[10px] font-medium uppercase tracking-widest text-tea-text-sec hover:text-tea-gold transition-colors"
+              className="text-ui-10 font-medium uppercase tracking-widest text-tea-text-sec hover:text-tea-gold transition-colors"
             >
               None
             </button>
@@ -450,7 +450,7 @@ export const SampleLabelSheet: React.FC<SampleLabelSheetProps> = ({
                 {s.name || 'Unnamed'}
               </span>
               {s.type && (
-                <span className="text-[10px] text-tea-text-dim shrink-0">{s.type}</span>
+                <span className="text-ui-10 text-tea-text-dim shrink-0">{s.type}</span>
               )}
             </label>
           ))}
@@ -459,7 +459,7 @@ export const SampleLabelSheet: React.FC<SampleLabelSheetProps> = ({
 
       {/* Preview heading */}
       <div className="print-hide px-5 pt-3">
-        <span className="text-[10px] font-medium uppercase tracking-widest text-tea-text-dim">
+        <span className="text-ui-10 font-medium uppercase tracking-widest text-tea-text-dim">
           Preview
         </span>
       </div>

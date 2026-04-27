@@ -46,7 +46,7 @@ const TeawareCard: React.FC<{
                 <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${product.isCustomWisdom ? 'bg-tea-gold' : 'bg-tea-text-sec/30'}`} title={product.isCustomWisdom ? "Edited lore" : "AI generated lore"} />
             )}
         </h3>
-        <p className="text-[10px] text-tea-text-sec uppercase tracking-[0.2em] mt-2">{product.originRegion}</p>
+        <p className="text-ui-10 text-tea-text-sec uppercase tracking-[0.2em] mt-2">{product.originRegion}</p>
       </div>
       <div className="mt-6 pt-6 border-t border-tea-border flex justify-between items-end">
         <p className="text-sm text-tea-text-sec line-clamp-2 pr-4 font-light leading-relaxed">{product.description}</p>
@@ -106,7 +106,7 @@ export const TeawareCatalog = ({ products, currency, rates, onAdd, loading, isAd
 
   const SortHeader = ({ colKey, label, align = 'left' }: { colKey: keyof Product, label: string, align?: 'left' | 'right' | 'center' }) => (
     <th
-      className={`px-4 py-2 cursor-pointer hover:text-tea-text transition-colors select-none border-b border-tea-border group text-[10px] uppercase tracking-wider font-serif text-tea-text-sec text-${align} truncate`}
+      className={`px-4 py-2 cursor-pointer hover:text-tea-text transition-colors select-none border-b border-tea-border group text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec text-${align} truncate`}
       onClick={() => handleSort(colKey)}
     >
       <div className={`flex items-center gap-1 ${align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : ''}`}>
@@ -222,7 +222,7 @@ export const TeawareCatalog = ({ products, currency, rates, onAdd, loading, isAd
                       <span className="text-tea-text text-sm font-serif truncate">{product.productName}</span>
                       {!product.isPublic && <EyeOff size={10} className="flex-shrink-0 text-tea-text-sec/40" />}
                     </div>
-                    <div className="flex items-center gap-1.5 text-[10px] text-tea-text-sec/70 mt-0.5">
+                    <div className="flex items-center gap-1.5 text-ui-10 text-tea-text-sec/70 mt-0.5">
                       {product.teawareCategory && <span className="capitalize">{product.teawareCategory}</span>}
                       {product.material && (
                         <>
@@ -236,7 +236,7 @@ export const TeawareCatalog = ({ products, currency, rates, onAdd, loading, isAd
                     <div className="text-xs text-tea-text/80 tabular-nums">
                       {product.quantityUnits ?? '-'} units
                     </div>
-                    <div className="text-[10px] text-tea-text-sec/60 tabular-nums">
+                    <div className="text-ui-10 text-tea-text-sec/60 tabular-nums">
                       {product.pricePerGramUSD != null ? `$${fmtNum(product.pricePerGramUSD)}` : '-'}
                     </div>
                   </div>
@@ -289,7 +289,7 @@ export const TeawareCatalog = ({ products, currency, rates, onAdd, loading, isAd
                             )}
                           </span>
                           {product.givenName && (
-                            <span className="text-[10px] text-tea-text-sec font-sans mt-0.5 truncate block">
+                            <span className="text-ui-10 text-tea-text-sec font-sans mt-0.5 truncate block">
                               {product.givenName}
                             </span>
                           )}

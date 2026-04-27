@@ -88,13 +88,13 @@ export const Card: React.FC<CardProps> = ({ story, onClick, isSaved, isWatched, 
                        <h3 className="text-[clamp(24px,3.5vw,32px)] text-tea-text mb-2 leading-[1.2] tracking-[0.01em] group-hover:text-tea-gold transition-colors duration-500" style={{ fontFamily: 'var(--font-display)' }}>
                            {story.title}
                        </h3>
-                       <p className="text-[10px] text-tea-text-sec font-sans uppercase tracking-[0.15em] mb-4">
+                       <p className="text-ui-10 text-tea-text-sec font-sans uppercase tracking-[0.15em] mb-4">
                            {story.subtitle}
                        </p>
 
                        <div className="w-6 h-[1px] bg-tea-gold/10 mb-4"></div>
 
-                       <span className="text-[9px] font-mono tabular-nums text-tea-text-sec">{story.durationOrTime}</span>
+                       <span className="text-ui-9 font-mono tabular-nums text-tea-text-sec">{story.durationOrTime}</span>
                    </div>
                 ) : (
                   <div className="absolute inset-0 z-10 flex flex-col items-center justify-center p-6 text-center">
@@ -102,7 +102,7 @@ export const Card: React.FC<CardProps> = ({ story, onClick, isSaved, isWatched, 
                            {story.title}
                         </h3>
                         <div className="flex flex-col gap-1.5 items-center">
-                             <p className="text-[10px] text-tea-text-sec font-sans uppercase tracking-[0.15em]">
+                             <p className="text-ui-10 text-tea-text-sec font-sans uppercase tracking-[0.15em]">
                                 {story.subtitle}
                              </p>
                              <div className="flex items-start gap-3 mt-2 w-full justify-center">
@@ -195,11 +195,11 @@ export const Card: React.FC<CardProps> = ({ story, onClick, isSaved, isWatched, 
         {!isTextOnly && (
             <div className="pt-3 pb-1 px-0.5 flex justify-between items-start gap-3">
                 <div className="text-left min-w-0 flex-1">
-                    <h3 className="text-[17px] text-tea-text leading-[1.2] mb-1.5 group-hover:text-tea-gold transition-colors duration-500 truncate" style={{ fontFamily: 'var(--font-display)' }}>
+                    <h3 className="text-ui-17 text-tea-text leading-[1.2] mb-1.5 group-hover:text-tea-gold transition-colors duration-500 truncate" style={{ fontFamily: 'var(--font-display)' }}>
                         {story.title}
                     </h3>
                     <div className="flex items-center gap-2">
-                        <p className="text-[10px] text-tea-text-sec uppercase tracking-[0.15em] font-sans truncate">
+                        <p className="text-ui-10 text-tea-text-sec uppercase tracking-[0.15em] font-sans truncate">
                             {story.subtitle}
                         </p>
                     </div>

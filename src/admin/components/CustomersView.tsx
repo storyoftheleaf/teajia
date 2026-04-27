@@ -265,7 +265,7 @@ const CustomerModal = ({
                 return (
                   <div key={i} className="flex items-center gap-2 bg-tea-surface border border-tea-border rounded-lg px-3 py-2">
                     <Icon size={13} className="text-tea-text-sec shrink-0" />
-                    <span className="text-[10px] uppercase tracking-wider text-tea-text-dim w-16 shrink-0">{label}</span>
+                    <span className="text-ui-10 uppercase tracking-wider text-tea-text-dim w-16 shrink-0">{label}</span>
                     <span className="text-sm text-tea-text flex-1 min-w-0 truncate">{c.handle}</span>
                     <button
                       type="button"
@@ -572,16 +572,16 @@ export const CustomerDetail = ({
               title="View orders for this customer"
             >
               <div className="text-2xl font-serif text-tea-gold group-hover:text-tea-gold transition-colors">{customer.orderCount || 0}</div>
-              <div className="text-[10px] text-tea-text-sec uppercase tracking-wider mt-1">Orders</div>
+              <div className="text-ui-10 text-tea-text-sec uppercase tracking-wider mt-1">Orders</div>
             </button>
             <div className="bg-tea-surface border border-tea-border rounded-xl p-4 text-center">
               <div className="text-lg font-serif text-tea-gold leading-tight">{formatUSD(customer.totalSpentUSD)}</div>
-              <div className="text-[10px] text-tea-text-sec uppercase tracking-wider mt-1">Total Spent</div>
+              <div className="text-ui-10 text-tea-text-sec uppercase tracking-wider mt-1">Total Spent</div>
             </div>
             {(customer.eventCount || 0) > 0 && (
               <div className="bg-tea-surface border border-tea-border rounded-xl p-4 text-center">
                 <div className="text-2xl font-serif text-tea-gold">{customer.eventCount}</div>
-                <div className="text-[10px] text-tea-text-sec uppercase tracking-wider mt-1">Events</div>
+                <div className="text-ui-10 text-tea-text-sec uppercase tracking-wider mt-1">Events</div>
               </div>
             )}
             <div className="bg-tea-surface border border-tea-border rounded-xl p-4 text-center">
@@ -589,9 +589,9 @@ export const CustomerDetail = ({
                 {relativeTime(customer.lastOrderDate)}
               </div>
               {customer.lastOrderDate && (
-                <div className="text-[9px] text-tea-text-dim mt-0.5">{new Date(customer.lastOrderDate).toLocaleDateString()}</div>
+                <div className="text-ui-9 text-tea-text-dim mt-0.5">{new Date(customer.lastOrderDate).toLocaleDateString()}</div>
               )}
-              <div className="text-[10px] text-tea-text-sec uppercase tracking-wider mt-1">Last Order</div>
+              <div className="text-ui-10 text-tea-text-sec uppercase tracking-wider mt-1">Last Order</div>
             </div>
           </div>
 
@@ -624,15 +624,15 @@ export const CustomerDetail = ({
                           <div className="grid grid-cols-3 gap-3 mb-4">
                             <div className="bg-tea-bg rounded-lg p-3 text-center">
                               <div className="text-lg font-serif text-tea-gold">{suppliedProducts.length}</div>
-                              <div className="text-[9px] uppercase tracking-[0.15em] text-tea-text-sec mt-0.5">Products</div>
+                              <div className="text-ui-9 uppercase tracking-[0.15em] text-tea-text-sec mt-0.5">Products</div>
                             </div>
                             <div className="bg-tea-bg rounded-lg p-3 text-center">
                               <div className="text-sm font-serif text-tea-gold">{formatUSD(totalValue)}</div>
-                              <div className="text-[9px] uppercase tracking-[0.15em] text-tea-text-sec mt-0.5">Total Value</div>
+                              <div className="text-ui-9 uppercase tracking-[0.15em] text-tea-text-sec mt-0.5">Total Value</div>
                             </div>
                             <div className="bg-tea-bg rounded-lg p-3 text-center">
                               <div className="text-sm font-serif text-tea-text">{avgCostPerGram != null ? `$${avgCostPerGram.toFixed(3)}/g` : '—'}</div>
-                              <div className="text-[9px] uppercase tracking-[0.15em] text-tea-text-sec mt-0.5">Avg Cost/g</div>
+                              <div className="text-ui-9 uppercase tracking-[0.15em] text-tea-text-sec mt-0.5">Avg Cost/g</div>
                             </div>
                           </div>
                         );
@@ -665,7 +665,7 @@ export const CustomerDetail = ({
                                   {p.cost_per_gram != null && <span className="text-tea-text-dim">· ${Number(p.cost_per_gram).toFixed(3)}/g</span>}
                                 </div>
                                 {p.last_ordered_date && (
-                                  <div className="text-[10px] text-tea-text-dim mt-0.5">
+                                  <div className="text-ui-10 text-tea-text-dim mt-0.5">
                                     Last ordered {relativeTime(p.last_ordered_date)}
                                   </div>
                                 )}
@@ -731,7 +731,7 @@ export const CustomerDetail = ({
                                   className="w-full text-left px-3 py-2 text-sm hover:bg-tea-surface transition-colors flex items-center gap-2"
                                 >
                                   <span className="text-tea-text">{p.givenName || p.productName}</span>
-                                  <span className="text-[10px] text-tea-text-sec uppercase">{p.type}</span>
+                                  <span className="text-ui-10 text-tea-text-sec uppercase">{p.type}</span>
                                 </button>
                               ))}
                           </div>
@@ -746,7 +746,7 @@ export const CustomerDetail = ({
 
           {/* ── Contact ────────────────────────────────── */}
           <div className="flex items-center gap-3 pt-1">
-            <span className="text-[9px] uppercase tracking-[0.2em] text-tea-gold/40 font-sans font-medium">Contact</span>
+            <span className="text-ui-9 uppercase tracking-[0.2em] text-tea-gold/40 font-sans font-medium">Contact</span>
             <div className="flex-1 h-px bg-tea-accent-sub"></div>
           </div>
 
@@ -790,7 +790,7 @@ export const CustomerDetail = ({
 
           {/* ── History ────────────────────────────────── */}
           <div className="flex items-center gap-3 pt-1">
-            <span className="text-[9px] uppercase tracking-[0.2em] text-tea-gold/40 font-sans font-medium">History</span>
+            <span className="text-ui-9 uppercase tracking-[0.2em] text-tea-gold/40 font-sans font-medium">History</span>
             <div className="flex-1 h-px bg-tea-accent-sub"></div>
           </div>
 
@@ -873,19 +873,19 @@ export const CustomerDetail = ({
                         {journey.sessionsAttended > 0 && (
                           <div className="bg-tea-accent-sub/30 rounded px-2.5 py-1.5">
                             <p className="text-lg font-mono text-tea-gold">{journey.sessionsAttended}</p>
-                            <p className="text-[10px] font-sans text-tea-text-dim uppercase">Sessions</p>
+                            <p className="text-ui-10 font-sans text-tea-text-dim uppercase">Sessions</p>
                           </div>
                         )}
                         {journey.totalTeas > 0 && (
                           <div className="bg-tea-accent-sub/30 rounded px-2.5 py-1.5">
                             <p className="text-lg font-mono text-tea-gold">{journey.totalTeas}</p>
-                            <p className="text-[10px] font-sans text-tea-text-dim uppercase">Teas Tasted</p>
+                            <p className="text-ui-10 font-sans text-tea-text-dim uppercase">Teas Tasted</p>
                           </div>
                         )}
                         {journey.milestones?.length > 0 && (
                           <div className="bg-tea-accent-sub/30 rounded px-2.5 py-1.5">
                             <p className="text-lg font-display text-tea-gold">{journey.milestones[journey.milestones.length - 1]}</p>
-                            <p className="text-[10px] font-sans text-tea-text-dim uppercase">Milestone</p>
+                            <p className="text-ui-10 font-sans text-tea-text-dim uppercase">Milestone</p>
                           </div>
                         )}
                       </div>
@@ -894,7 +894,7 @@ export const CustomerDetail = ({
                     {/* Tea type preferences */}
                     {journey.teaTypeMap && Object.keys(journey.teaTypeMap).length > 0 && (
                       <div>
-                        <p className="text-[10px] font-sans text-tea-text-dim uppercase tracking-wider mb-1.5">Preferences</p>
+                        <p className="text-ui-10 font-sans text-tea-text-dim uppercase tracking-wider mb-1.5">Preferences</p>
                         <div className="flex flex-wrap gap-1.5">
                           {Object.entries(journey.teaTypeMap)
                             .sort(([, a], [, b]) => b - a)
@@ -911,7 +911,7 @@ export const CustomerDetail = ({
                     {/* Favorite teas */}
                     {journey.favorites?.length > 0 && (
                       <div>
-                        <p className="text-[10px] font-sans text-tea-text-dim uppercase tracking-wider mb-1.5">Favorites</p>
+                        <p className="text-ui-10 font-sans text-tea-text-dim uppercase tracking-wider mb-1.5">Favorites</p>
                         <div className="space-y-1">
                           {journey.favorites.map((name: string, i: number) => (
                             <p key={i} className="text-xs font-sans text-tea-text-sec">{name}</p>
@@ -923,7 +923,7 @@ export const CustomerDetail = ({
                     {/* Recent impressions */}
                     {journey.impressions?.length > 0 && (
                       <div>
-                        <p className="text-[10px] font-sans text-tea-text-dim uppercase tracking-wider mb-1.5">Impressions</p>
+                        <p className="text-ui-10 font-sans text-tea-text-dim uppercase tracking-wider mb-1.5">Impressions</p>
                         <div className="space-y-1.5">
                           {journey.impressions.slice(0, 3).map((imp: any, i: number) => (
                             <div key={i} className="text-xs">
@@ -939,7 +939,7 @@ export const CustomerDetail = ({
 
                     {/* Member since */}
                     {journey.memberSince && (
-                      <p className="text-[10px] font-sans text-tea-text-dim">
+                      <p className="text-ui-10 font-sans text-tea-text-dim">
                         Member since {new Date(journey.memberSince).toLocaleDateString()}
                       </p>
                     )}
@@ -975,7 +975,7 @@ export const CustomerDetail = ({
                     {teas.length > 0 && (
                       <>
                         {events.filter((e) => e.attended === 1).length > 0 && (
-                          <p className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim">Purchased</p>
+                          <p className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim">Purchased</p>
                         )}
                         {teas.map((tea) => (
                           <div key={tea.id} className="flex items-center gap-3 py-2 border-b border-tea-border last:border-0">
@@ -1001,7 +1001,7 @@ export const CustomerDetail = ({
                             </button>
                             <div className="text-right flex-shrink-0">
                               <div className="text-sm text-tea-text">{tea.total_quantity}g</div>
-                              <div className="text-[10px] text-tea-text-sec">
+                              <div className="text-ui-10 text-tea-text-sec">
                                 {tea.order_count} order{tea.order_count !== 1 ? 's' : ''}
                               </div>
                             </div>
@@ -1011,7 +1011,7 @@ export const CustomerDetail = ({
                     )}
                     {events.filter((e) => e.attended === 1).length > 0 && (
                       <>
-                        <p className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim mt-2">Tasted at Events</p>
+                        <p className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim mt-2">Tasted at Events</p>
                         {events.filter((e) => e.attended === 1).map((evt) => (
                           <div key={evt.id + '-tasting'} className="flex items-center gap-3 py-2 border-b border-tea-border last:border-0">
                             <div className="w-10 h-10 rounded-lg bg-tea-gold-lt flex items-center justify-center flex-shrink-0">
@@ -1065,18 +1065,18 @@ export const CustomerDetail = ({
                     <div key={i} className="flex items-center gap-3 py-2 border-b border-tea-border last:border-0">
                       <div className="flex-1 min-w-0">
                         <div className="text-sm text-tea-text font-medium truncate">{t.sampleName}</div>
-                        <div className="text-[11px] text-tea-text-sec">
+                        <div className="text-ui-11 text-tea-text-sec">
                           {new Date(t.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                         </div>
                       </div>
                       <div className="text-right flex-shrink-0">
-                        <div className={`text-[11px] font-medium capitalize ${
+                        <div className={`text-ui-11 font-medium capitalize ${
                           t.verdict === 'love' ? 'text-tea-gold' :
                           t.verdict === 'like' ? 'text-tea-text' :
                           t.verdict === 'pass' ? 'text-tea-text-dim' :
                           'text-tea-text-sec'
                         }`}>{t.verdict}</div>
-                        {t.rating && <div className="text-[10px] text-tea-text-dim num">{t.rating}/10</div>}
+                        {t.rating && <div className="text-ui-10 text-tea-text-dim num">{t.rating}/10</div>}
                       </div>
                     </div>
                   ))
@@ -1144,14 +1144,14 @@ export const CustomerDetail = ({
                     showToast('Account unlinked', 'info');
                     onClose();
                   }}
-                  className="text-[10px] text-tea-text-sec hover:text-red-400 transition-colors uppercase tracking-wider"
+                  className="text-ui-10 text-tea-text-sec hover:text-red-400 transition-colors uppercase tracking-wider"
                 >
                   Unlink
                 </button>
               ) : (
                 <button
                   onClick={() => setShowLinkAccount(!showLinkAccount)}
-                  className="text-[10px] text-tea-text-sec hover:text-tea-text transition-colors uppercase tracking-wider"
+                  className="text-ui-10 text-tea-text-sec hover:text-tea-text transition-colors uppercase tracking-wider"
                 >
                   {showLinkAccount ? 'Cancel' : 'Link'}
                 </button>
@@ -1162,7 +1162,7 @@ export const CustomerDetail = ({
               <div className="mt-2">
                 <p className="text-sm text-tea-text font-mono">{customer.userId}</p>
                 {customer.userLinkedAt && (
-                  <p className="text-[10px] text-tea-text-sec mt-0.5">
+                  <p className="text-ui-10 text-tea-text-sec mt-0.5">
                     Linked {new Date(customer.userLinkedAt).toLocaleDateString()}
                   </p>
                 )}
@@ -1424,7 +1424,7 @@ export const CustomersView = () => {
     const showBadge = sortConfig.length > 1 && sortEntry;
     return (
       <th
-        className={`px-4 py-2 cursor-pointer hover:text-tea-text transition-colors select-none border-b border-tea-border group text-[10px] uppercase tracking-wider font-serif text-tea-text-sec text-${align} truncate`}
+        className={`px-4 py-2 cursor-pointer hover:text-tea-text transition-colors select-none border-b border-tea-border group text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec text-${align} truncate`}
         onClick={() => handleSort(colKey)}
       >
         <div className={`flex items-center gap-1 ${align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : ''}`}>
@@ -1433,7 +1433,7 @@ export const CustomersView = () => {
             {sortEntry ? (
               <span className="flex items-center">
                 {sortEntry.direction === 'asc' ? <ArrowUp size={10} className="ml-1 text-tea-text-sec" /> : <ArrowDown size={10} className="ml-1 text-tea-text-sec" />}
-                {showBadge && <span className="ml-0.5 text-[8px] text-tea-gold font-bold">{sortIndex + 1}</span>}
+                {showBadge && <span className="ml-0.5 text-ui-8 text-tea-gold font-bold">{sortIndex + 1}</span>}
               </span>
             ) : <ArrowUpDown size={10} className="opacity-0 group-hover:opacity-100 text-tea-text-sec/50 ml-1 transition-opacity" />}
           </div>
@@ -1476,12 +1476,12 @@ export const CustomersView = () => {
           <td key="tags" className="px-4 align-middle overflow-hidden">
             <div className="flex items-center gap-1 flex-wrap">
               {legacyShown.map(tag => (
-                <span key={`l-${tag}`} className={`text-[9px] px-1.5 py-0.5 rounded-full ${TAG_COLORS[tag as CustomerTag] || 'bg-tea-elevated text-tea-text-sec'}`}>{tag}</span>
+                <span key={`l-${tag}`} className={`text-ui-9 px-1.5 py-0.5 rounded-full ${TAG_COLORS[tag as CustomerTag] || 'bg-tea-elevated text-tea-text-sec'}`}>{tag}</span>
               ))}
               {contactShown.map(tag => (
-                <span key={`c-${tag}`} className="text-[9px] px-1.5 py-0.5 rounded-md bg-tea-elevated text-tea-text-sec truncate max-w-[120px]">{tag}</span>
+                <span key={`c-${tag}`} className="text-ui-9 px-1.5 py-0.5 rounded-md bg-tea-elevated text-tea-text-sec truncate max-w-[120px]">{tag}</span>
               ))}
-              {extra > 0 && <span className="text-[9px] text-tea-text-dim">+{extra}</span>}
+              {extra > 0 && <span className="text-ui-9 text-tea-text-dim">+{extra}</span>}
               {empty && <span className="text-xs text-tea-text-dim">—</span>}
             </div>
           </td>
@@ -1503,7 +1503,7 @@ export const CustomersView = () => {
                 return <Icon key={i} size={11} />;
               })}
               {(customer.contacts?.length === 0 && !customer.phone && !customer.whatsapp && !customer.email) && (
-                <span className="text-[10px] text-tea-text-dim">—</span>
+                <span className="text-ui-10 text-tea-text-dim">—</span>
               )}
             </div>
           </td>
@@ -1520,7 +1520,7 @@ export const CustomersView = () => {
             <span className={`text-xs tabular-nums ${(customer.orderCount || 0) > 0 ? 'text-tea-text' : 'text-tea-text-dim'}`}>
               {customer.orderCount || 0}
               {(customer.eventCount || 0) > 0 && (
-                <span className="ml-1 text-tea-gold text-[9px]">+{customer.eventCount}e</span>
+                <span className="ml-1 text-tea-gold text-ui-9">+{customer.eventCount}e</span>
               )}
             </span>
           </td>
@@ -1584,7 +1584,7 @@ export const CustomersView = () => {
             {/* Customer / Supplier segment */}
             <button onClick={() => setTypeFilter('all')} className={typeFilter === 'all' ? 'pill-active' : 'pill'}>
               All
-              <span className="text-[9px] opacity-70 ml-0.5">{nonVendorCustomers.length}</span>
+              <span className="text-ui-9 opacity-70 ml-0.5">{nonVendorCustomers.length}</span>
             </button>
             {(['customer', 'supplier'] as const).map(t => {
               const count = nonVendorCustomers.filter(c => (c.type || 'customer') === t).length;
@@ -1592,7 +1592,7 @@ export const CustomersView = () => {
               return (
                 <button key={t} onClick={() => setTypeFilter(t)} className={typeFilter === t ? 'pill-active' : 'pill'}>
                   {t === 'customer' ? 'Customers' : 'Suppliers'}
-                  <span className="text-[9px] opacity-70 ml-0.5">{count}</span>
+                  <span className="text-ui-9 opacity-70 ml-0.5">{count}</span>
                 </button>
               );
             })}
@@ -1610,7 +1610,7 @@ export const CustomersView = () => {
                   className={isActive ? 'pill-active' : 'pill'}
                 >
                   {tag}
-                  <span className="text-[9px] opacity-70 ml-0.5">{count}</span>
+                  <span className="text-ui-9 opacity-70 ml-0.5">{count}</span>
                 </button>
               );
             })}
@@ -1628,7 +1628,7 @@ export const CustomersView = () => {
                   >
                     <Calendar size={11} className="mr-0.5 -ml-0.5" />
                     Events
-                    <span className="text-[9px] opacity-70 ml-0.5">{attendedCount}</span>
+                    <span className="text-ui-9 opacity-70 ml-0.5">{attendedCount}</span>
                   </button>
                 </>
               );
@@ -1664,7 +1664,7 @@ export const CustomersView = () => {
                             setSortConfig([{ key: opt.key, direction: isActive && current.direction === 'asc' ? 'desc' : 'asc' }]);
                             setShowMobileSort(false);
                           }}
-                          className={`w-full px-3 py-2 text-left text-[11px] flex items-center gap-2 hover:bg-tea-bg transition-colors ${isActive ? 'text-tea-gold' : 'text-tea-text-sec'}`}
+                          className={`w-full px-3 py-2 text-left text-ui-11 flex items-center gap-2 hover:bg-tea-bg transition-colors ${isActive ? 'text-tea-gold' : 'text-tea-text-sec'}`}
                         >
                           {opt.label}
                           {isActive && (current.direction === 'asc' ? <ArrowUp size={12} className="ml-auto" /> : <ArrowDown size={12} className="ml-auto" />)}
@@ -1702,7 +1702,7 @@ export const CustomersView = () => {
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setShowColumnsPopover(false)} />
                   <div className="absolute right-0 top-full mt-2 w-44 bg-tea-surface border border-tea-border shadow-xl rounded-xl z-50 py-2">
-                    <div className="px-3 pb-1.5 text-[9px] text-tea-text-sec/60 uppercase tracking-[0.2em]">Visible Columns</div>
+                    <div className="px-3 pb-1.5 text-ui-9 text-tea-text-sec/60 uppercase tracking-[0.2em]">Visible Columns</div>
                     {CUSTOMER_COLUMN_DEFS.map(col => (
                       <label
                         key={col.key}
@@ -1800,12 +1800,12 @@ export const CustomersView = () => {
                     <div className="flex items-center gap-1.5">
                       <span className="text-tea-text text-sm font-serif truncate">{customer.name}</span>
                       {customer.tags.length > 0 && (
-                        <span className={`text-[9px] px-1.5 py-0 rounded-full ${TAG_COLORS[customer.tags[0]]}`}>
+                        <span className={`text-ui-9 px-1.5 py-0 rounded-full ${TAG_COLORS[customer.tags[0]]}`}>
                           {customer.tags[0]}
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center gap-1.5 text-[10px] text-tea-text-sec/70 mt-0.5">
+                    <div className="flex items-center gap-1.5 text-ui-10 text-tea-text-sec/70 mt-0.5">
                       {customer.company && <span className="truncate">{customer.company}</span>}
                       {customer.company && customer.country && <span className="opacity-40">·</span>}
                       {customer.country && (
@@ -1817,7 +1817,7 @@ export const CustomersView = () => {
                   {/* Stats */}
                   <div className="flex-shrink-0 text-right">
                     <div className="text-xs text-tea-text tabular-nums">{formatUSD(customer.totalSpentUSD)}</div>
-                    <div className="text-[10px] text-tea-text-sec/60 tabular-nums flex items-center justify-end gap-1.5">
+                    <div className="text-ui-10 text-tea-text-sec/60 tabular-nums flex items-center justify-end gap-1.5">
                       <span>{customer.orderCount || 0} order{(customer.orderCount || 0) !== 1 ? 's' : ''}</span>
                       {(customer.eventCount || 0) > 0 && (
                         <span className="flex items-center gap-0.5 text-tea-gold">
@@ -1861,7 +1861,7 @@ export const CustomersView = () => {
                       const SORTABLE = new Set<string>(['name', 'company', 'country', 'spent', 'orders', 'added']);
                       if (!SORTABLE.has(col.key)) {
                         return (
-                          <th key={col.key} className="px-4 py-2 border-b border-tea-border text-[10px] uppercase tracking-wider font-serif text-tea-text-sec text-left truncate">
+                          <th key={col.key} className="px-4 py-2 border-b border-tea-border text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec text-left truncate">
                             {col.label}
                           </th>
                         );

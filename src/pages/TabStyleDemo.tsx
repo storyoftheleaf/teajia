@@ -13,7 +13,7 @@ function Style1({ tabs }: { tabs: string[] }) {
           <button
             key={tab}
             onClick={() => setActive(tab)}
-            className="relative px-3 py-1.5 text-[13px] tracking-widest uppercase"
+            className="relative px-3 py-1.5 text-ui-13 tracking-widest uppercase"
             style={{ fontFamily: 'var(--font-display)' }}
           >
             {active === tab && (
@@ -51,7 +51,7 @@ function Style2({ tabs }: { tabs: string[] }) {
           <button
             key={tab}
             onClick={() => setActive(tab)}
-            className="relative pb-2 text-[13px] tracking-widest uppercase"
+            className="relative pb-2 text-ui-13 tracking-widest uppercase"
             style={{ fontFamily: 'var(--font-display)' }}
           >
             <span
@@ -87,7 +87,7 @@ function Style3({ tabs }: { tabs: string[] }) {
           <button
             key={tab}
             onClick={() => setActive(tab)}
-            className="relative px-3 py-1.5 text-[13px] tracking-widest uppercase"
+            className="relative px-3 py-1.5 text-ui-13 tracking-widest uppercase"
             style={{ fontFamily: 'var(--font-display)' }}
           >
             {active === tab && (
@@ -126,7 +126,7 @@ function Style4({ tabs }: { tabs: string[] }) {
           <button
             key={tab}
             onClick={() => setActive(tab)}
-            className="relative px-2 py-1.5 text-[13px] tracking-widest uppercase"
+            className="relative px-2 py-1.5 text-ui-13 tracking-widest uppercase"
             style={{ fontFamily: 'var(--font-display)' }}
           >
             {active === tab && (
@@ -170,7 +170,7 @@ function Style5({ tabs }: { tabs: string[] }) {
         <button
           key={tab}
           onClick={() => setActive(tab)}
-          className="relative pb-2 text-[13px] uppercase"
+          className="relative pb-2 text-ui-13 uppercase"
           style={{ fontFamily: 'var(--font-display)' }}
         >
           <motion.span
@@ -250,7 +250,7 @@ export default function TabStyleDemo() {
     >
       <div className="text-center space-y-2">
         <p
-          className="text-[10px] uppercase tracking-[0.3em] opacity-40"
+          className="text-ui-10 uppercase tracking-[0.3em] opacity-40"
           style={{ fontFamily: 'var(--font-display)' }}
         >
           Tab Style Exploration
@@ -268,7 +268,7 @@ export default function TabStyleDemo() {
           <div key={id} className="flex flex-col gap-5">
             <div className="space-y-1">
               <p
-                className="text-[10px] uppercase tracking-[0.25em] opacity-50"
+                className="text-ui-10 uppercase tracking-[0.25em] opacity-50"
                 style={{ fontFamily: 'var(--font-display)' }}
               >
                 {id} / {VARIANTS.length}
@@ -279,7 +279,7 @@ export default function TabStyleDemo() {
               >
                 {name}
               </h2>
-              <p className="text-[12px] leading-relaxed opacity-50">{desc}</p>
+              <p className="text-ui-12 leading-relaxed opacity-50">{desc}</p>
             </div>
 
             {/* Preview bar — mimics the bottom nav width */}
@@ -297,7 +297,7 @@ export default function TabStyleDemo() {
       </div>
 
       <p
-        className="text-[10px] uppercase tracking-[0.25em] opacity-25 pb-8"
+        className="text-ui-10 uppercase tracking-[0.25em] opacity-25 pb-8"
         style={{ fontFamily: 'var(--font-display)' }}
       >
         tap any tab to see the animation

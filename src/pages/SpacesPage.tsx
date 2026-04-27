@@ -71,7 +71,7 @@ const StatusBadge: React.FC<{ status: SpaceStatus }> = ({ status }) => {
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.15em] ${colorClass}`}
+      className={`inline-flex items-center gap-1.5 text-ui-10 uppercase tracking-[0.15em] ${colorClass}`}
       style={{ fontFamily: 'var(--font-sans)' }}
     >
       <span
@@ -122,7 +122,7 @@ export const SpacesPage: React.FC = () => {
           style={{ fontFamily: 'var(--font-sans)' }}
         >
           <Icons.ChevronLeft className="w-4 h-4" />
-          <span className="text-[13px]">Back</span>
+          <span className="text-ui-13">Back</span>
         </button>
       </div>
 
@@ -132,7 +132,7 @@ export const SpacesPage: React.FC = () => {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          className="text-[11px] uppercase tracking-[0.3em] text-tea-text-dim mb-4"
+          className="text-ui-11 uppercase tracking-[0.3em] text-tea-text-dim mb-4"
           style={{ fontFamily: 'var(--font-sans)' }}
         >
           The Teajia network
@@ -150,7 +150,7 @@ export const SpacesPage: React.FC = () => {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
-          className="text-[15px] text-tea-text-sec leading-[1.85]"
+          className="text-ui-15 text-tea-text-sec leading-[1.85]"
           style={{ fontFamily: 'var(--font-body)' }}
         >
           Tea spaces connected to the Teajia network. Each one is a real room — not a venue, not a
@@ -181,7 +181,7 @@ export const SpacesPage: React.FC = () => {
                     </h2>
                     {/* Type badge */}
                     <span
-                      className="text-[10px] uppercase tracking-[0.18em] text-tea-text-dim"
+                      className="text-ui-10 uppercase tracking-[0.18em] text-tea-text-dim"
                       style={{ fontFamily: 'var(--font-sans)' }}
                     >
                       {space.type}
@@ -194,7 +194,7 @@ export const SpacesPage: React.FC = () => {
                 <div className="flex items-center gap-1.5 mb-4">
                   <Icons.Location className="w-3 h-3 text-tea-gold shrink-0" />
                   <span
-                    className="text-[11px] uppercase tracking-[0.18em] text-tea-text-dim"
+                    className="text-ui-11 uppercase tracking-[0.18em] text-tea-text-dim"
                     style={{ fontFamily: 'var(--font-sans)' }}
                   >
                     {space.location}
@@ -203,7 +203,7 @@ export const SpacesPage: React.FC = () => {
 
                 {/* Description */}
                 <p
-                  className="text-[14px] text-tea-text-sec leading-[1.85] mb-5 max-w-[520px]"
+                  className="text-ui-14 text-tea-text-sec leading-[1.85] mb-5 max-w-[520px]"
                   style={{ fontFamily: 'var(--font-body)' }}
                 >
                   {space.description}
@@ -214,7 +214,7 @@ export const SpacesPage: React.FC = () => {
                   <div className="flex items-center gap-2 mb-5">
                     <Icons.Lock className="w-3 h-3 text-tea-text-dim shrink-0" />
                     <span
-                      className="text-[11px] text-tea-text-dim tracking-[0.04em]"
+                      className="text-ui-11 text-tea-text-dim tracking-[0.04em]"
                       style={{ fontFamily: 'var(--font-sans)' }}
                     >
                       Private — by invitation or inquiry
@@ -227,7 +227,7 @@ export const SpacesPage: React.FC = () => {
                   href={buildInquiryUrl(space.name)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 text-[12px] uppercase tracking-[0.12em] text-tea-text-sec hover:text-tea-text transition-colors duration-200 min-h-[44px]"
+                  className="inline-flex items-center gap-2 text-ui-12 uppercase tracking-[0.12em] text-tea-text-sec hover:text-tea-text transition-colors duration-200 min-h-[44px]"
                   style={{ fontFamily: 'var(--font-sans)' }}
                 >
                   <span>Inquire via WhatsApp</span>
@@ -245,14 +245,14 @@ export const SpacesPage: React.FC = () => {
       {/* Operator prompt */}
       <div className="py-12 md:py-16 max-w-[560px]">
         <p
-          className="text-[13px] text-tea-text-dim leading-[1.7] mb-3"
+          className="text-ui-13 text-tea-text-dim leading-[1.7] mb-3"
           style={{ fontFamily: 'var(--font-body)' }}
         >
           Operate a tea space?
         </p>
         <Link
           to="/for-your-space"
-          className="inline-flex items-center gap-2 text-[12px] uppercase tracking-[0.12em] text-tea-text-sec hover:text-tea-text transition-colors duration-200 min-h-[44px]"
+          className="inline-flex items-center gap-2 text-ui-12 uppercase tracking-[0.12em] text-tea-text-sec hover:text-tea-text transition-colors duration-200 min-h-[44px]"
           style={{ fontFamily: 'var(--font-sans)' }}
         >
           <span>Get in touch</span>

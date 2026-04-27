@@ -104,7 +104,7 @@ const LoadingState: React.FC = () => (
 const ErrorState: React.FC<{ message: string }> = ({ message }) => (
   <div className="min-h-screen bg-tea-bg flex items-center justify-center px-6">
     <div className="text-center max-w-sm">
-      <p className="text-[10px] uppercase tracking-[0.3em] text-tea-text-sec mb-4">
+      <p className="text-ui-10 uppercase tracking-[0.3em] text-tea-text-sec mb-4">
         Tea Passport
       </p>
       <h1 className="font-serif text-2xl text-tea-text mb-3">
@@ -167,7 +167,7 @@ const TeaChapter: React.FC<{
                   </p>
                 )}
                 {item.productType && (
-                  <p className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim mt-1">
+                  <p className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim mt-1">
                     {item.productType}
                   </p>
                 )}
@@ -179,11 +179,11 @@ const TeaChapter: React.FC<{
 
       {guestNotes.length > 0 && (
         <div className="mt-5 space-y-4">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-dim">Your notes</p>
+          <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim">Your notes</p>
           {guestNotes.map((note, i) => (
             <div key={i} className="border-l-2 border-tea-gold/30 pl-4">
               {note.teaName && (
-                <p className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec mb-1">
+                <p className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec mb-1">
                   {note.teaName}
                 </p>
               )}
@@ -195,7 +195,7 @@ const TeaChapter: React.FC<{
                   {Array.from({ length: 5 }).map((_, j) => (
                     <span
                       key={j}
-                      className={`text-[10px] ${j < note.rating! ? 'text-tea-gold' : 'text-tea-border'}`}
+                      className={`text-ui-10 ${j < note.rating! ? 'text-tea-gold' : 'text-tea-border'}`}
                     >
                       ●
                     </span>
@@ -214,7 +214,7 @@ const FlavorProfile: React.FC<{ words: string[] }> = ({ words }) => {
   if (words.length === 0) return null;
   return (
     <section className="mb-16">
-      <p className="text-[10px] uppercase tracking-[0.3em] text-tea-text-sec mb-2">
+      <p className="text-ui-10 uppercase tracking-[0.3em] text-tea-text-sec mb-2">
         Your flavor profile
       </p>
       <p className="font-serif text-sm text-tea-text-sec mb-6 leading-relaxed">
@@ -293,7 +293,7 @@ const PassportPage: React.FC = () => {
           transition={{ duration: 0.5 }}
           className="mb-14"
         >
-          <p className="text-[10px] uppercase tracking-[0.4em] text-tea-text-sec mb-5">
+          <p className="text-ui-10 uppercase tracking-[0.4em] text-tea-text-sec mb-5">
             Tea Passport
           </p>
           <h1 className="font-serif text-4xl md:text-5xl text-tea-text font-light leading-tight mb-4">
@@ -337,7 +337,7 @@ const PassportPage: React.FC = () => {
                   />
                 </div>
               )}
-              <p className="text-[10px] uppercase tracking-[0.25em] text-tea-text-sec mb-1">
+              <p className="text-ui-10 uppercase tracking-[0.25em] text-tea-text-sec mb-1">
                 {formatLongDate(event.eventDate)}
               </p>
               <h2 className="font-serif text-2xl text-tea-text mb-1">
@@ -361,7 +361,7 @@ const PassportPage: React.FC = () => {
           {/* Teas tasted at this event */}
           {(teaMenu.length > 0 || tastingNotes.length > 0) ? (
             <div className="ml-7 pl-4 border-l border-tea-border">
-              <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec mb-5">
+              <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-5">
                 Teas at this gathering
               </p>
               <TeaChapter
@@ -384,7 +384,7 @@ const PassportPage: React.FC = () => {
         {/* Host notes from post-session (if shared) */}
         {postSession?.sessionNotes && (
           <section className="mb-16 border-t border-tea-border pt-10">
-            <p className="text-[10px] uppercase tracking-[0.3em] text-tea-text-sec mb-4">
+            <p className="text-ui-10 uppercase tracking-[0.3em] text-tea-text-sec mb-4">
               Host notes
             </p>
             <p className="font-serif italic text-tea-text-sec leading-relaxed text-sm">
@@ -395,10 +395,10 @@ const PassportPage: React.FC = () => {
 
         {/* Footer mark */}
         <div className="border-t border-tea-border pt-10 text-center">
-          <p className="text-[10px] uppercase tracking-[0.3em] text-tea-text-sec/30">
+          <p className="text-ui-10 uppercase tracking-[0.3em] text-tea-text-sec/30">
             Teajia
           </p>
-          <p className="text-[10px] text-tea-text-dim/40 mt-2">
+          <p className="text-ui-10 text-tea-text-dim/40 mt-2">
             {formatShortDate(new Date().toISOString())}
           </p>
         </div>

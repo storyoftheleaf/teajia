@@ -63,7 +63,7 @@ const FilterTab: React.FC<TabProps> = ({ active, onClick, children }) => (
   <button
     type="button"
     onClick={onClick}
-    className={`text-[14px] transition-colors ${
+    className={`text-ui-14 transition-colors ${
       active ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
     }`}
   >
@@ -108,22 +108,22 @@ const OrderRow: React.FC<OrderRowProps> = ({ order, callerAccountId, onClick }) 
       className="w-full text-left py-5 border-b border-tea-border hover:bg-tea-surface/30 transition-colors group last:border-b-0"
     >
       {/* Tea name preview */}
-      <div className="font-display text-[17px] text-tea-text leading-[1.3] mb-1">
+      <div className="font-display text-ui-17 text-tea-text leading-[1.3] mb-1">
         {order.item_count === 1
           ? `${order.item_count} tea`
           : `${order.item_count} teas`}
       </div>
 
       {/* Role + partner + date */}
-      <div className="text-tea-text-sec text-[12px] mb-1.5 leading-[1.5]">{partnerLine}</div>
+      <div className="text-tea-text-sec text-ui-12 mb-1.5 leading-[1.5]">{partnerLine}</div>
 
       {/* Total + status */}
       {(totalLine || order.status) && (
-        <div className="flex items-baseline gap-2 flex-wrap text-[13px] text-tea-text-sec">
+        <div className="flex items-baseline gap-2 flex-wrap text-ui-13 text-tea-text-sec">
           {totalLine && <span className="font-mono">{totalLine}</span>}
           {totalLine && order.status && <span aria-hidden>·</span>}
           {order.status && (
-            <span className="text-[13px] text-tea-text-sec">{statusLabel(order.status)}</span>
+            <span className="text-ui-13 text-tea-text-sec">{statusLabel(order.status)}</span>
           )}
         </div>
       )}
@@ -185,7 +185,7 @@ export const WholesaleOrdersList: React.FC<WholesaleOrdersListProps> = ({ embedd
   if (!hasSell) {
     return (
       <div className={outerClass}>
-        <p className="text-tea-text-sec italic text-[15px] leading-[1.65]">
+        <p className="text-tea-text-sec italic text-ui-15 leading-[1.65]">
           This page requires the Sell bundle. Ask your owner.
         </p>
       </div>
@@ -208,7 +208,7 @@ export const WholesaleOrdersList: React.FC<WholesaleOrdersListProps> = ({ embedd
       <header className="mb-8">
         <h1 className={`${TYPOGRAPHY_CLASSES.h2} text-tea-text mb-2`}>Wholesale</h1>
         {subtitle && (
-          <p className="text-tea-text-sec italic text-[14px] leading-[1.6]">{subtitle}</p>
+          <p className="text-tea-text-sec italic text-ui-14 leading-[1.6]">{subtitle}</p>
         )}
       </header>
 
@@ -232,7 +232,7 @@ export const WholesaleOrdersList: React.FC<WholesaleOrdersListProps> = ({ embedd
 
       {/* Error */}
       {error && (
-        <p className="text-tea-text-sec italic text-[14px] mb-6 leading-[1.6]">{error}</p>
+        <p className="text-tea-text-sec italic text-ui-14 mb-6 leading-[1.6]">{error}</p>
       )}
 
       {/* Skeletons */}
@@ -246,7 +246,7 @@ export const WholesaleOrdersList: React.FC<WholesaleOrdersListProps> = ({ embedd
 
       {/* Empty state */}
       {!loading && orders !== null && orders.length === 0 && (
-        <p className="text-tea-text-sec italic text-[15px] leading-[1.65]">
+        <p className="text-tea-text-sec italic text-ui-15 leading-[1.65]">
           No wholesale orders yet. Start one from a tea you carry, or from
           the network catalog. The supplier sees it on submit.
         </p>
@@ -271,7 +271,7 @@ export const WholesaleOrdersList: React.FC<WholesaleOrdersListProps> = ({ embedd
         <button
           type="button"
           onClick={() => navigate('/admin/network/wholesale/new')}
-          className="text-[14px] text-tea-text-sec hover:text-tea-gold transition-colors font-display tracking-[0.04em]"
+          className="text-ui-14 text-tea-text-sec hover:text-tea-gold transition-colors font-display tracking-[0.04em]"
         >
           Start a new order →
         </button>

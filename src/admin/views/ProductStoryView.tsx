@@ -175,7 +175,7 @@ const Divider: React.FC = () => (
 );
 
 const SectionLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <p className="text-[10px] uppercase tracking-[0.3em] text-tea-text-sec mb-4">
+  <p className="text-ui-10 uppercase tracking-[0.3em] text-tea-text-sec mb-4">
     {children}
   </p>
 );
@@ -198,7 +198,7 @@ const TimelineEntry: React.FC<{
       <div className="w-[1px] bg-tea-border flex-1 mt-1" />
     </div>
     <div className="pb-6 min-w-0 flex-1">
-      <p className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim mb-0.5">
+      <p className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim mb-0.5">
         {date}
       </p>
       <p className="text-sm text-tea-text">{label}</p>
@@ -369,7 +369,7 @@ export const ProductStoryView: React.FC = () => {
           transition={{ duration: 0.45 }}
           className="mb-12"
         >
-          <p className="text-[10px] uppercase tracking-[0.4em] text-tea-text-sec mb-4">
+          <p className="text-ui-10 uppercase tracking-[0.4em] text-tea-text-sec mb-4">
             The full story
           </p>
 
@@ -441,7 +441,7 @@ export const ProductStoryView: React.FC = () => {
                       {Array.from({ length: 5 }).map((_, i) => (
                         <span
                           key={i}
-                          className={`text-[11px] ${i < (compass.fieldQuality ?? 0) ? 'text-tea-gold' : 'text-tea-border'}`}
+                          className={`text-ui-11 ${i < (compass.fieldQuality ?? 0) ? 'text-tea-gold' : 'text-tea-border'}`}
                         >
                           ●
                         </span>
@@ -572,7 +572,7 @@ export const ProductStoryView: React.FC = () => {
                           {Array.from({ length: 5 }).map((_, j) => (
                             <span
                               key={j}
-                              className={`text-[10px] ${j < note.rating! ? 'text-tea-gold' : 'text-tea-border'}`}
+                              className={`text-ui-10 ${j < note.rating! ? 'text-tea-gold' : 'text-tea-border'}`}
                             >
                               ●
                             </span>
@@ -654,7 +654,7 @@ export const ProductStoryView: React.FC = () => {
 
         {/* Footer */}
         <div className="border-t border-tea-border pt-8 text-center">
-          <p className="text-[10px] uppercase tracking-[0.3em] text-tea-text-sec/30">
+          <p className="text-ui-10 uppercase tracking-[0.3em] text-tea-text-sec/30">
             Teajia · Product Archive
           </p>
         </div>

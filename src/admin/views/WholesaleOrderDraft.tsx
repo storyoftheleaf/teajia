@@ -229,13 +229,13 @@ const CatalogPicker: React.FC<CatalogPickerProps> = ({
     <div className="border-t border-tea-border mt-4 pt-6">
       {/* Picker header */}
       <div className="flex items-baseline justify-between mb-4">
-        <p className="font-body text-[14px] text-tea-text-sec">
+        <p className="font-body text-ui-14 text-tea-text-sec">
           Pick a tea to add.
         </p>
         <button
           type="button"
           onClick={onClose}
-          className="text-tea-text-sec hover:text-tea-text transition-colors text-[13px]"
+          className="text-tea-text-sec hover:text-tea-text transition-colors text-ui-13"
         >
           Close
         </button>
@@ -248,7 +248,7 @@ const CatalogPicker: React.FC<CatalogPickerProps> = ({
         placeholder="Search by name, origin, or type…"
         value={query}
         onChange={e => setQuery(e.target.value)}
-        className="w-full bg-transparent border-b border-tea-border focus:border-tea-gold outline-none text-tea-text font-body text-[14px] py-1.5 mb-4 transition-colors placeholder:italic placeholder:text-tea-text-sec"
+        className="w-full bg-transparent border-b border-tea-border focus:border-tea-gold outline-none text-tea-text font-body text-ui-14 py-1.5 mb-4 transition-colors placeholder:italic placeholder:text-tea-text-sec"
       />
 
       {loading && (
@@ -260,7 +260,7 @@ const CatalogPicker: React.FC<CatalogPickerProps> = ({
       )}
 
       {!loading && filtered.length === 0 && (
-        <p className="font-body italic text-[13px] text-tea-text-sec leading-[1.6]">
+        <p className="font-body italic text-ui-13 text-tea-text-sec leading-[1.6]">
           {profiles?.length === 0
             ? 'No teas available in the catalog right now.'
             : 'No matching teas. Try a different search.'}
@@ -281,13 +281,13 @@ const CatalogPicker: React.FC<CatalogPickerProps> = ({
                   disabled={noSupplierListing}
                   className={`w-full text-left py-3 group ${noSupplierListing ? 'cursor-not-allowed opacity-60' : ''}`}
                 >
-                  <div className={`font-display text-[16px] leading-[1.2] ${noSupplierListing ? 'text-tea-text-dim' : 'text-tea-text group-hover:text-tea-gold transition-colors'}`}>
+                  <div className={`font-display text-ui-16 leading-[1.2] ${noSupplierListing ? 'text-tea-text-dim' : 'text-tea-text group-hover:text-tea-gold transition-colors'}`}>
                     {profile.name}
                   </div>
-                  <div className="font-body text-[12px] text-tea-text-sec mt-0.5 leading-[1.4]">
+                  <div className="font-body text-ui-12 text-tea-text-sec mt-0.5 leading-[1.4]">
                     {joinParts(profile.origin_region || profile.origin_country, profile.chinese_name, profile.varietal)}
                     {profile.wholesale_price_per_gram_caller != null ? (
-                      <span className="font-mono ml-2 text-[11px]">
+                      <span className="font-mono ml-2 text-ui-11">
                         {formatMoney(profile.wholesale_price_per_gram_caller * 100, profile.wholesale_currency_caller, 2)}/100g
                       </span>
                     ) : null}
@@ -351,7 +351,7 @@ const LineItemRow: React.FC<LineItemRowProps> = ({
 
       {/* Origin line */}
       {item.origin_line && (
-        <p className="font-body text-[14px] text-tea-text-sec leading-[1.5] mb-4">
+        <p className="font-body text-ui-14 text-tea-text-sec leading-[1.5] mb-4">
           {item.origin_line}
         </p>
       )}
@@ -359,15 +359,15 @@ const LineItemRow: React.FC<LineItemRowProps> = ({
       {/* Wholesale pricing block */}
       <div className="mb-4 space-y-1">
         {item.fx_unavailable ? (
-          <p className="font-body italic text-[13px] text-tea-text-sec leading-[1.5]">
+          <p className="font-body italic text-ui-13 text-tea-text-sec leading-[1.5]">
             Wholesale shown in supplier currency only. AUD conversion paused.
           </p>
         ) : (
           <>
             {item.retail_amount != null && item.retail_currency && (
               <div className="flex items-baseline gap-3">
-                <span className="font-body text-[13px] text-tea-text-sec w-24 shrink-0">Wholesale</span>
-                <span className="font-mono text-[13px] text-tea-text-sec">
+                <span className="font-body text-ui-13 text-tea-text-sec w-24 shrink-0">Wholesale</span>
+                <span className="font-mono text-ui-13 text-tea-text-sec">
                   {item.retail_currency}&nbsp;
                   {(item.retail_amount / 100 * item.grams).toLocaleString(undefined, { maximumFractionDigits: 0 })}/100g
                   {item.wholesale_margin_pct != null
@@ -378,10 +378,10 @@ const LineItemRow: React.FC<LineItemRowProps> = ({
             )}
             {item.unit_price_amount > 0 && (
               <div className="flex items-baseline gap-3">
-                <span className="font-body text-[13px] text-tea-text-sec w-24 shrink-0 invisible" aria-hidden="true">
+                <span className="font-body text-ui-13 text-tea-text-sec w-24 shrink-0 invisible" aria-hidden="true">
                   Wholesale
                 </span>
-                <span className="font-body italic text-[13px] text-tea-text-sec">
+                <span className="font-body italic text-ui-13 text-tea-text-sec">
                   {'≈ '}{formatMoney(item.unit_price_amount, item.unit_price_currency, 2)}/100g at today's FX
                 </span>
               </div>
@@ -393,7 +393,7 @@ const LineItemRow: React.FC<LineItemRowProps> = ({
       {/* Quantity + line total */}
       <div className="space-y-2">
         <div className="flex items-baseline gap-3">
-          <span className="font-body text-[13px] text-tea-text-sec w-24 shrink-0">Quantity</span>
+          <span className="font-body text-ui-13 text-tea-text-sec w-24 shrink-0">Quantity</span>
           {editable ? (
             <label className="flex items-baseline gap-2">
               <input
@@ -404,20 +404,20 @@ const LineItemRow: React.FC<LineItemRowProps> = ({
                 onChange={e => setLocalGrams(e.target.value)}
                 onBlur={handleBlur}
                 aria-label={`Quantity in grams for ${item.profile_name}`}
-                className="w-20 bg-transparent border-b border-tea-border focus:border-tea-gold outline-none text-tea-text font-mono text-[14px] py-0.5 text-right transition-colors"
+                className="w-20 bg-transparent border-b border-tea-border focus:border-tea-gold outline-none text-tea-text font-mono text-ui-14 py-0.5 text-right transition-colors"
               />
-              <span className="font-body text-[13px] text-tea-text-sec">g</span>
+              <span className="font-body text-ui-13 text-tea-text-sec">g</span>
             </label>
           ) : (
-            <span className="font-mono text-[13px] text-tea-text">
+            <span className="font-mono text-ui-13 text-tea-text">
               {item.grams.toLocaleString()} g
             </span>
           )}
         </div>
 
         <div className="flex items-baseline gap-3">
-          <span className="font-body text-[13px] text-tea-text-sec w-24 shrink-0">Line</span>
-          <span className="font-mono text-[14px] text-tea-text">
+          <span className="font-body text-ui-13 text-tea-text-sec w-24 shrink-0">Line</span>
+          <span className="font-mono text-ui-14 text-tea-text">
             {lineTotal != null
               ? formatMoney(lineTotal, item.unit_price_currency)
               : `${item.unit_price_currency} 0.00`}
@@ -431,7 +431,7 @@ const LineItemRow: React.FC<LineItemRowProps> = ({
           <button
             type="button"
             onClick={() => onRemove(item.key)}
-            className="font-body text-[13px] text-tea-text-sec hover:text-tea-text transition-colors"
+            className="font-body text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors"
           >
             Remove
           </button>
@@ -704,7 +704,7 @@ export const WholesaleOrderDraft: React.FC = () => {
   if (!hasSell) {
     return (
       <div className="px-4 md:px-8 pt-10 pb-nav-gap max-w-[640px] mx-auto">
-        <p className="font-body italic text-[15px] text-tea-text-sec leading-[1.7]">
+        <p className="font-body italic text-ui-15 text-tea-text-sec leading-[1.7]">
           This page requires the Sell bundle. Ask your owner.
         </p>
       </div>
@@ -722,7 +722,7 @@ export const WholesaleOrderDraft: React.FC = () => {
   if (loadError) {
     return (
       <div className="px-4 md:px-8 pt-10 pb-nav-gap max-w-[640px] mx-auto">
-        <p className="font-body italic text-[15px] text-tea-text-sec leading-[1.7]">
+        <p className="font-body italic text-ui-15 text-tea-text-sec leading-[1.7]">
           Order not found or not yours.
         </p>
       </div>
@@ -742,7 +742,7 @@ export const WholesaleOrderDraft: React.FC = () => {
         <div className="mb-6">
           <a
             href={`/admin/network/wholesale/${persistedOrderId}/timeline`}
-            className="font-body text-[13px] text-tea-text-sec hover:text-tea-text transition-colors"
+            className="font-body text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors"
             onClick={e => {
               e.preventDefault();
               navigate(`/admin/network/wholesale/${persistedOrderId}/timeline`);
@@ -756,7 +756,7 @@ export const WholesaleOrderDraft: React.FC = () => {
       {/* Supplier's reply note — shown when status is 'replied' */}
       {orderStatus === 'replied' && orderDetail?.order.supplier_notes && (
         <div className="mb-6 border-b border-tea-border pb-6">
-          <p className="font-body italic text-[15px] text-tea-text-sec leading-[1.7]">
+          <p className="font-body italic text-ui-15 text-tea-text-sec leading-[1.7]">
             {supplierName ?? 'Adrian'} replied:{' '}
             &ldquo;{orderDetail.order.supplier_notes}&rdquo;
           </p>
@@ -774,7 +774,7 @@ export const WholesaleOrderDraft: React.FC = () => {
         </h1>
 
         {/* Temporal metadata */}
-        <p className="font-body text-[12px] text-tea-text-sec leading-[1.5] mb-4">
+        <p className="font-body text-ui-12 text-tea-text-sec leading-[1.5] mb-4">
           {orderDetail?.order.created_at
             ? `Started ${formatDate(orderDetail.order.created_at)}`
             : 'New'}
@@ -787,16 +787,16 @@ export const WholesaleOrderDraft: React.FC = () => {
         {/* People */}
         <div className="space-y-1.5">
           <div className="flex gap-6">
-            <span className="font-body text-[14px] text-tea-text-sec w-20 shrink-0">Supplier</span>
-            <span className="font-body text-[14px] text-tea-text">
+            <span className="font-body text-ui-14 text-tea-text-sec w-20 shrink-0">Supplier</span>
+            <span className="font-body text-ui-14 text-tea-text">
               {supplierName ?? (
                 <span className="italic text-tea-text-sec">Adrian · Teajia Bali</span>
               )}
             </span>
           </div>
           <div className="flex gap-6">
-            <span className="font-body text-[14px] text-tea-text-sec w-20 shrink-0">Buyer</span>
-            <span className="font-body text-[14px] text-tea-text">
+            <span className="font-body text-ui-14 text-tea-text-sec w-20 shrink-0">Buyer</span>
+            <span className="font-body text-ui-14 text-tea-text">
               {orderDetail?.buyer.name ?? 'You'}
             </span>
           </div>
@@ -807,7 +807,7 @@ export const WholesaleOrderDraft: React.FC = () => {
 
       <section className="mb-8">
         {items.length === 0 && (
-          <p className="font-body italic text-[15px] text-tea-text-sec leading-[1.7] py-6 border-t border-b border-tea-border">
+          <p className="font-body italic text-ui-15 text-tea-text-sec leading-[1.7] py-6 border-t border-b border-tea-border">
             No teas added yet.
           </p>
         )}
@@ -829,7 +829,7 @@ export const WholesaleOrderDraft: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setPickerOpen(true)}
-                className="font-body text-[14px] text-tea-text-sec hover:text-tea-gold transition-colors group"
+                className="font-body text-ui-14 text-tea-text-sec hover:text-tea-gold transition-colors group"
               >
                 {'+ Add a tea'}
                 <span className="inline-block transition-transform group-hover:translate-x-0.5 ml-0.5">
@@ -866,11 +866,11 @@ export const WholesaleOrderDraft: React.FC = () => {
               rows={4}
               placeholder="Your delivery address"
               aria-label="Shipping address"
-              className="w-full bg-transparent border-b border-tea-border focus:border-tea-gold outline-none text-tea-text font-body text-[14px] leading-[1.7] py-1 resize-none transition-colors placeholder:italic placeholder:text-tea-text-sec"
+              className="w-full bg-transparent border-b border-tea-border focus:border-tea-gold outline-none text-tea-text font-body text-ui-14 leading-[1.7] py-1 resize-none transition-colors placeholder:italic placeholder:text-tea-text-sec"
             />
           </>
         ) : (
-          <p className="font-body text-[14px] text-tea-text leading-[1.7] whitespace-pre-wrap">
+          <p className="font-body text-ui-14 text-tea-text leading-[1.7] whitespace-pre-wrap">
             {shippingAddress || (
               <span className="italic text-tea-text-sec">No address provided.</span>
             )}
@@ -892,15 +892,15 @@ export const WholesaleOrderDraft: React.FC = () => {
             rows={5}
             placeholder="Anything Adrian should know? Timing, packaging, sample requests."
             aria-label="Note to supplier"
-            className="w-full bg-transparent border-b border-tea-border focus:border-tea-gold outline-none text-tea-text font-body italic text-[15px] leading-[1.7] py-1 resize-none transition-colors placeholder:text-tea-text-sec"
+            className="w-full bg-transparent border-b border-tea-border focus:border-tea-gold outline-none text-tea-text font-body italic text-ui-15 leading-[1.7] py-1 resize-none transition-colors placeholder:text-tea-text-sec"
           />
         ) : (
           buyerNotes ? (
-            <p className="font-body italic text-[15px] text-tea-text leading-[1.7]">
+            <p className="font-body italic text-ui-15 text-tea-text leading-[1.7]">
               &ldquo;{buyerNotes}&rdquo;
             </p>
           ) : (
-            <p className="font-body italic text-[14px] text-tea-text-sec">
+            <p className="font-body italic text-ui-14 text-tea-text-sec">
               No note.
             </p>
           )
@@ -912,7 +912,7 @@ export const WholesaleOrderDraft: React.FC = () => {
       <section className="mb-8 border-t border-tea-border pt-6">
         {/* FX stale warning */}
         {fxStale && isEditable && (
-          <p className="font-body italic text-[13px] text-tea-text-sec leading-[1.6] mb-4">
+          <p className="font-body italic text-ui-13 text-tea-text-sec leading-[1.6] mb-4">
             Currency rate is from yesterday. Refresh to lock today's rate.{' '}
             <button
               type="button"
@@ -929,7 +929,7 @@ export const WholesaleOrderDraft: React.FC = () => {
           <span className={`${TYPOGRAPHY_CLASSES.label} text-tea-text-sec`}>
             SUBTOTAL
           </span>
-          <span className="font-mono text-[14px] text-tea-text">
+          <span className="font-mono text-ui-14 text-tea-text">
             {items.length > 0
               ? formatMoney(subtotal, orderCurrency)
               : '—'}
@@ -942,11 +942,11 @@ export const WholesaleOrderDraft: React.FC = () => {
             SHIPPING
           </span>
           {orderDetail?.order.shipping_amount != null ? (
-            <span className="font-mono text-[14px] text-tea-text">
+            <span className="font-mono text-ui-14 text-tea-text">
               {formatMoney(orderDetail.order.shipping_amount, orderCurrency)}
             </span>
           ) : (
-            <span className="font-body italic text-[13px] text-tea-text-sec">
+            <span className="font-body italic text-ui-13 text-tea-text-sec">
               Estimated by{' '}
               {supplierName ?? 'Adrian'} on confirm
             </span>
@@ -961,7 +961,7 @@ export const WholesaleOrderDraft: React.FC = () => {
           <span className={`${TYPOGRAPHY_CLASSES.label} text-tea-text-sec`}>
             TOTAL
           </span>
-          <span className="font-mono text-[14px] text-tea-text">
+          <span className="font-mono text-ui-14 text-tea-text">
             {orderDetail?.order.total_amount != null
               ? formatMoney(orderDetail.order.total_amount, orderCurrency)
               : items.length > 0
@@ -972,13 +972,13 @@ export const WholesaleOrderDraft: React.FC = () => {
 
         {/* FX snapshot prose */}
         {fxSnapshot && (
-          <p className="font-body italic text-[11px] text-tea-text-sec leading-[1.6]">
+          <p className="font-body italic text-ui-11 text-tea-text-sec leading-[1.6]">
             {fxSnapshot}. This rate is locked when you submit. Adrian's
             confirmation keeps it.
           </p>
         )}
         {!fxSnapshot && items.length > 0 && (
-          <p className="font-body italic text-[11px] text-tea-text-sec leading-[1.6]">
+          <p className="font-body italic text-ui-11 text-tea-text-sec leading-[1.6]">
             Currency snapshot: rates are locked when you submit. Adrian's
             confirmation keeps them.
           </p>
@@ -991,13 +991,13 @@ export const WholesaleOrderDraft: React.FC = () => {
         <div className="border-t border-tea-border pt-6">
           {/* Inline save feedback */}
           {saveStatus === 'saved' && saveTime && (
-            <p className="font-body text-[12px] text-tea-text-sec mb-4">
+            <p className="font-body text-ui-12 text-tea-text-sec mb-4">
               Saved{' '}
-              <span className="font-mono text-[11px]">{saveTime}</span>
+              <span className="font-mono text-ui-11">{saveTime}</span>
             </p>
           )}
           {saveStatus === 'error' && (
-            <p className="font-body italic text-[13px] text-tea-text-sec leading-[1.6] mb-4">
+            <p className="font-body italic text-ui-13 text-tea-text-sec leading-[1.6] mb-4">
               Couldn't reach the server. Your edits are held{' '}
               {'—'} try again.
             </p>
@@ -1006,7 +1006,7 @@ export const WholesaleOrderDraft: React.FC = () => {
           {/* Submit inline confirmation */}
           {submitConfirming && (
             <div className="mb-4">
-              <p className="font-body text-[14px] text-tea-text leading-[1.6] mb-3">
+              <p className="font-body text-ui-14 text-tea-text leading-[1.6] mb-3">
                 Submit this order to{' '}
                 {supplierName ?? 'Adrian'} for{' '}
                 {formatMoney(subtotal, orderCurrency)} + shipping?
@@ -1016,7 +1016,7 @@ export const WholesaleOrderDraft: React.FC = () => {
                   type="button"
                   onClick={() => setSubmitConfirming(false)}
                   disabled={submitting}
-                  className="font-body text-[13px] text-tea-text-sec hover:text-tea-text transition-colors disabled:opacity-50"
+                  className="font-body text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors disabled:opacity-50"
                 >
                   Cancel
                 </button>
@@ -1024,7 +1024,7 @@ export const WholesaleOrderDraft: React.FC = () => {
                   type="button"
                   onClick={handleSubmitConfirm}
                   disabled={submitting}
-                  className="font-body text-[14px] text-tea-text hover:text-tea-gold transition-colors disabled:text-tea-text-sec group"
+                  className="font-body text-ui-14 text-tea-text hover:text-tea-gold transition-colors disabled:text-tea-text-sec group"
                 >
                   {submitting ? 'Submitting…' : 'Confirm'}
                   {!submitting && (
@@ -1039,14 +1039,14 @@ export const WholesaleOrderDraft: React.FC = () => {
 
           {/* Submit inline error */}
           {submitError && (
-            <p className="font-body italic text-[13px] text-tea-text-sec leading-[1.6] mb-4">
+            <p className="font-body italic text-ui-13 text-tea-text-sec leading-[1.6] mb-4">
               {submitError}
             </p>
           )}
 
           {/* Submit block reason */}
           {!submitConfirming && !canSubmit && submitBlockReason && items.length > 0 && (
-            <p className="font-body italic text-[13px] text-tea-text-sec leading-[1.5] mb-4">
+            <p className="font-body italic text-ui-13 text-tea-text-sec leading-[1.5] mb-4">
               {submitBlockReason}
             </p>
           )}
@@ -1058,7 +1058,7 @@ export const WholesaleOrderDraft: React.FC = () => {
                 type="button"
                 onClick={saveDraft}
                 disabled={saveStatus === 'saving'}
-                className="font-body text-[14px] text-tea-text-sec hover:text-tea-text transition-colors disabled:opacity-50"
+                className="font-body text-ui-14 text-tea-text-sec hover:text-tea-text transition-colors disabled:opacity-50"
               >
                 {saveStatus === 'saving' ? 'Saving…' : 'Save draft'}
               </button>
@@ -1069,7 +1069,7 @@ export const WholesaleOrderDraft: React.FC = () => {
                   setSubmitError(null);
                   setSubmitConfirming(true);
                 }}
-                className="font-body text-[14px] text-tea-text hover:text-tea-gold transition-colors disabled:text-tea-text-sec disabled:cursor-not-allowed group"
+                className="font-body text-ui-14 text-tea-text hover:text-tea-gold transition-colors disabled:text-tea-text-sec disabled:cursor-not-allowed group"
               >
                 Submit to {supplierName ?? 'Adrian'}
                 <span className="inline-block transition-transform group-hover:translate-x-0.5 ml-0.5">

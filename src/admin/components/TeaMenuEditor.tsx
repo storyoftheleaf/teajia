@@ -178,7 +178,7 @@ export const TeaMenuEditor: React.FC<TeaMenuEditorProps> = ({ eventId }) => {
               </div>
 
               {/* Brew order badge */}
-              <div className="w-6 h-6 rounded-full bg-tea-gold/10 text-tea-gold text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">
+              <div className="w-6 h-6 rounded-full bg-tea-gold/10 text-tea-gold text-ui-10 font-bold flex items-center justify-center shrink-0 mt-0.5">
                 {idx + 1}
               </div>
 
@@ -206,12 +206,12 @@ export const TeaMenuEditor: React.FC<TeaMenuEditorProps> = ({ eventId }) => {
 
                 {/* Reveal date */}
                 <div className="mt-2 flex items-center gap-2">
-                  <label className="text-[9px] uppercase tracking-[0.15em] text-tea-text-sec">Reveal</label>
+                  <label className="text-ui-9 uppercase tracking-[0.15em] text-tea-text-sec">Reveal</label>
                   <input
                     type="datetime-local"
                     value={item.revealDate ? item.revealDate.slice(0, 16) : ''}
                     onChange={(e) => handleUpdateRevealDate(item, e.target.value)}
-                    className="border-b border-tea-border bg-transparent focus:border-tea-gold outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg text-[11px] text-tea-text-sec py-0.5"
+                    className="border-b border-tea-border bg-transparent focus:border-tea-gold outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg text-ui-11 text-tea-text-sec py-0.5"
                   />
                 </div>
               </div>
@@ -279,7 +279,7 @@ export const TeaMenuEditor: React.FC<TeaMenuEditorProps> = ({ eventId }) => {
                     <span className="text-xs text-tea-text-sec ml-2">{product.givenName}</span>
                   )}
                 </div>
-                <span className="text-[10px] text-tea-text-sec">{product.type}</span>
+                <span className="text-ui-10 text-tea-text-sec">{product.type}</span>
               </button>
             ))}
             {teaProducts.length === 0 && (
@@ -293,7 +293,7 @@ export const TeaMenuEditor: React.FC<TeaMenuEditorProps> = ({ eventId }) => {
       {showCustom && (
         <div className="mt-3 bg-tea-bg border border-tea-border rounded-md p-3 space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec">Custom Tea</span>
+            <span className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec">Custom Tea</span>
             <button onClick={() => setShowCustom(false)} className="text-tea-text-sec hover:text-tea-text p-1">
               <X size={14} />
             </button>

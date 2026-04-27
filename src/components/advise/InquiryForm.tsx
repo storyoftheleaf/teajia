@@ -387,7 +387,7 @@ const FloatingField: React.FC<FloatingFieldProps> = ({ label, type, value, onCha
           absolute left-0 font-sans pointer-events-none
           transition-all duration-200
           ${isActive
-            ? 'top-0 text-[11px] tracking-wide text-tea-gold'
+            ? 'top-0 text-ui-11 tracking-wide text-tea-gold'
             : 'top-5 text-base text-tea-text-dim'
           }
         `}

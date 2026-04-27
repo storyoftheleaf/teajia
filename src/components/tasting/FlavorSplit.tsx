@@ -78,7 +78,7 @@ const FlavorSplitInner: React.FC<FlavorSplitProps> = ({ selected, onToggle, teaT
   return (
     <div>
     {suggestedFamilyNames && (
-      <p className="text-[11px] text-tea-text-dim italic mb-3" style={{ fontFamily: 'var(--font-body)' }}>
+      <p className="text-ui-11 text-tea-text-dim italic mb-3" style={{ fontFamily: 'var(--font-body)' }}>
         {teaType} teas often show up in {suggestedFamilyNames}.
       </p>
     )}
@@ -136,7 +136,7 @@ const FlavorSplitInner: React.FC<FlavorSplitProps> = ({ selected, onToggle, teaT
                   initial={{ scale: 0, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-                  className="absolute z-10 flex items-center justify-center w-[16px] h-[16px] rounded-full bg-tea-gold text-[10px] font-bold"
+                  className="absolute z-10 flex items-center justify-center w-[16px] h-[16px] rounded-full bg-tea-gold text-ui-10 font-bold"
                   style={{ right: -16, top: '50%', marginTop: -8, color: 'var(--tea-bg)', fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif", lineHeight: 1 }}
                 >
                   {count}

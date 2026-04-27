@@ -131,11 +131,11 @@ export const TeaInspireGallery: React.FC = () => {
             <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8">
               <div className="flex items-center gap-3 mb-3">
                 {featuredMoment.designedByTeajia && (
-                  <span className="px-2 py-1 bg-tea-gold text-tea-bg text-[10px] uppercase tracking-[0.15em] rounded">
+                  <span className="px-2 py-1 bg-tea-gold text-tea-bg text-ui-10 uppercase tracking-[0.15em] rounded">
                     Designed by Teajia
                   </span>
                 )}
-                <span className="px-2 py-1 bg-tea-gold/15 text-tea-text text-[10px] uppercase tracking-[0.15em] rounded backdrop-blur-sm">
+                <span className="px-2 py-1 bg-tea-gold/15 text-tea-text text-ui-10 uppercase tracking-[0.15em] rounded backdrop-blur-sm">
                   {CATEGORY_CONFIG[featuredMoment.category].label}
                 </span>
               </div>
@@ -176,12 +176,12 @@ export const TeaInspireGallery: React.FC = () => {
 
                 {/* Category Badge */}
                 <div className="absolute top-3 left-3 flex gap-2">
-                  <span className="px-2 py-1 bg-tea-gold/15 text-tea-text text-[10px] uppercase tracking-[0.15em] rounded backdrop-blur-sm flex items-center gap-1.5">
+                  <span className="px-2 py-1 bg-tea-gold/15 text-tea-text text-ui-10 uppercase tracking-[0.15em] rounded backdrop-blur-sm flex items-center gap-1.5">
                     {CATEGORY_CONFIG[image.category].icon}
                     {CATEGORY_CONFIG[image.category].label}
                   </span>
                   {image.designedByTeajia && (
-                    <span className="px-2 py-1 bg-tea-gold text-tea-bg text-[10px] uppercase tracking-[0.15em] rounded">
+                    <span className="px-2 py-1 bg-tea-gold text-tea-bg text-ui-10 uppercase tracking-[0.15em] rounded">
                       Teajia Design
                     </span>
                   )}

@@ -49,7 +49,7 @@ export const ProjectPlaceholder: React.FC<ProjectPlaceholderProps> = ({ project,
           {initial}
         </span>
         <span
-          className={`mt-3 uppercase tracking-[0.35em] text-tea-text-dim ${isHero ? 'text-xs md:text-sm' : 'text-[10px]'}`}
+          className={`mt-3 uppercase tracking-[0.35em] text-tea-text-dim ${isHero ? 'text-xs md:text-sm' : 'text-ui-10'}`}
           style={{ fontFamily: 'var(--font-sans)' }}
         >
           {label}

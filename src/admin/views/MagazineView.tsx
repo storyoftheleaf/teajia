@@ -94,7 +94,7 @@ export const MagazineView: React.FC = () => {
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
-            className={`px-3 py-1 text-[10px] uppercase tracking-[0.15em] rounded-md transition-colors ${
+            className={`px-3 py-1 text-ui-10 uppercase tracking-[0.15em] rounded-md transition-colors ${
               tab === t.id
                 ? 'text-tea-gold font-medium'
                 : 'text-tea-text-sec hover:text-tea-text'
@@ -152,11 +152,11 @@ export const MagazineView: React.FC = () => {
                       <span className="text-sm font-medium text-tea-text leading-snug group-hover:text-tea-gold transition-colors">
                         {article.title || <span className="italic text-tea-text-sec">Untitled</span>}
                       </span>
-                      <span className={`text-[9px] uppercase tracking-[0.15em] px-2 py-0.5 rounded-full font-medium ${STATUS_STYLES[article.status] ?? STATUS_STYLES.draft}`}>
+                      <span className={`text-ui-9 uppercase tracking-[0.15em] px-2 py-0.5 rounded-full font-medium ${STATUS_STYLES[article.status] ?? STATUS_STYLES.draft}`}>
                         {article.status}
                       </span>
                       {article.category && (
-                        <span className="text-[9px] uppercase tracking-[0.12em] text-tea-text-dim">
+                        <span className="text-ui-9 uppercase tracking-[0.12em] text-tea-text-dim">
                           {article.category}
                         </span>
                       )}
@@ -170,12 +170,12 @@ export const MagazineView: React.FC = () => {
                   </div>
                   <div className="flex flex-col items-end gap-1 shrink-0 text-right">
                     {article.published_at ? (
-                      <span className="text-[10px] text-tea-text-dim">{formatDate(article.published_at)}</span>
+                      <span className="text-ui-10 text-tea-text-dim">{formatDate(article.published_at)}</span>
                     ) : (
-                      <span className="text-[10px] text-tea-text-dim italic">Draft</span>
+                      <span className="text-ui-10 text-tea-text-dim italic">Draft</span>
                     )}
                     {article.reading_time_mins && (
-                      <span className="text-[10px] text-tea-text-dim">{article.reading_time_mins} min read</span>
+                      <span className="text-ui-10 text-tea-text-dim">{article.reading_time_mins} min read</span>
                     )}
                   </div>
                 </div>

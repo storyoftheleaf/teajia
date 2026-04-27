@@ -79,7 +79,7 @@ export const SharedCollection: React.FC = () => {
               <h3 className="text-base text-tea-text group-hover:text-tea-gold transition-colors truncate" style={{ fontFamily: 'var(--font-display)' }}>
                 {item.name}
               </h3>
-              <div className="flex items-center gap-2 text-[11px] text-tea-text/50 mt-0.5">
+              <div className="flex items-center gap-2 text-ui-11 text-tea-text/50 mt-0.5">
                 <span>{item.type}</span>
                 {item.origin && (
                   <>
@@ -95,7 +95,7 @@ export const SharedCollection: React.FC = () => {
                 )}
               </div>
               {item.mood && (
-                <p className="text-[11px] italic text-tea-text/40 mt-1 truncate" style={{ fontFamily: 'var(--font-body)' }}>{item.mood}</p>
+                <p className="text-ui-11 italic text-tea-text/40 mt-1 truncate" style={{ fontFamily: 'var(--font-body)' }}>{item.mood}</p>
               )}
             </div>
 

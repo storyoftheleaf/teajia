@@ -157,7 +157,7 @@ export const ContactTagsView: React.FC<ContactTagsViewProps> = ({ embedded = fal
                         className="flex-1 px-2 py-1 text-sm bg-tea-bg border border-tea-border rounded-md outline-none text-tea-text focus:border-tea-gold/40"
                       />
                       {targetExists && (
-                        <span className="text-[10px] uppercase tracking-wide text-tea-gold">Will merge</span>
+                        <span className="text-ui-10 uppercase tracking-wide text-tea-gold">Will merge</span>
                       )}
                       <button
                         type="button"
@@ -179,7 +179,7 @@ export const ContactTagsView: React.FC<ContactTagsViewProps> = ({ embedded = fal
                     <>
                       <div className="flex-1 flex items-center gap-3 min-w-0">
                         <span className="text-sm text-tea-text truncate">{t.tag}</span>
-                        <span className="text-[11px] text-tea-text-dim shrink-0">{t.count}</span>
+                        <span className="text-ui-11 text-tea-text-dim shrink-0">{t.count}</span>
                       </div>
                       <button
                         type="button"

@@ -106,7 +106,7 @@ const ShareCardPage: React.FC = () => {
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-2 mb-3">
             <Leaf size={14} className="text-tea-gold" strokeWidth={1.5} />
-            <span className="text-[10px] uppercase tracking-[0.3em] text-tea-text-sec">Tea Compass</span>
+            <span className="text-ui-10 uppercase tracking-[0.3em] text-tea-text-sec">Tea Compass</span>
           </div>
           <p className="text-sm text-tea-text-sec mb-1">
             <span className="text-tea-text font-medium">{fromName}</span> shared a capture card
@@ -135,7 +135,7 @@ const ShareCardPage: React.FC = () => {
             {metaFields.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
                 {metaFields.map((f) => (
-                  <span key={f.label} className="pill text-[11px]">
+                  <span key={f.label} className="pill text-ui-11">
                     {f.value}
                   </span>
                 ))}
@@ -176,7 +176,7 @@ const ShareCardPage: React.FC = () => {
             >
               Sign in
             </Link>
-            <p className="text-[11px] text-tea-text-dim">
+            <p className="text-ui-11 text-tea-text-dim">
               No account?{' '}
               <Link to="/admin" className="text-tea-gold hover:underline">
                 Register free
@@ -187,7 +187,7 @@ const ShareCardPage: React.FC = () => {
 
         {/* Footer */}
         <div className="text-center pt-10">
-          <p className="text-[10px] uppercase tracking-[0.3em] text-tea-text-sec/40">
+          <p className="text-ui-10 uppercase tracking-[0.3em] text-tea-text-sec/40">
             Teajia · Tea Infrastructure
           </p>
         </div>

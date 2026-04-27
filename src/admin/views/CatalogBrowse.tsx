@@ -100,7 +100,7 @@ const CarryForm: React.FC<CarryFormProps> = ({ profile, callerCurrency, onCarrie
       {/* Stock field */}
       <div>
         <label className="flex items-baseline justify-between gap-4">
-          <span className="text-tea-text-sec text-[13px] w-44 shrink-0">Stock to start with</span>
+          <span className="text-tea-text-sec text-ui-13 w-44 shrink-0">Stock to start with</span>
           <div className="flex items-baseline gap-2 flex-1">
             <input
               type="number"
@@ -110,9 +110,9 @@ const CarryForm: React.FC<CarryFormProps> = ({ profile, callerCurrency, onCarrie
               onChange={e => setStockGrams(e.target.value)}
               placeholder="0"
               autoFocus
-              className="w-24 bg-transparent border-b border-tea-border focus:border-tea-gold outline-none text-tea-text font-mono text-[14px] py-1 text-right transition-colors"
+              className="w-24 bg-transparent border-b border-tea-border focus:border-tea-gold outline-none text-tea-text font-mono text-ui-14 py-1 text-right transition-colors"
             />
-            <span className="text-tea-text-sec text-[13px]">g</span>
+            <span className="text-tea-text-sec text-ui-13">g</span>
           </div>
         </label>
       </div>
@@ -120,9 +120,9 @@ const CarryForm: React.FC<CarryFormProps> = ({ profile, callerCurrency, onCarrie
       {/* Retail price field */}
       <div>
         <label className="flex items-baseline justify-between gap-4">
-          <span className="text-tea-text-sec text-[13px] w-44 shrink-0">Your retail price</span>
+          <span className="text-tea-text-sec text-ui-13 w-44 shrink-0">Your retail price</span>
           <div className="flex items-baseline gap-2 flex-1">
-            <span className="text-tea-text-sec text-[13px] font-mono shrink-0">{callerCurrency}</span>
+            <span className="text-tea-text-sec text-ui-13 font-mono shrink-0">{callerCurrency}</span>
             <input
               type="number"
               min="0"
@@ -130,14 +130,14 @@ const CarryForm: React.FC<CarryFormProps> = ({ profile, callerCurrency, onCarrie
               value={retailPrice}
               onChange={e => setRetailPrice(e.target.value)}
               placeholder="0"
-              className="w-24 bg-transparent border-b border-tea-border focus:border-tea-gold outline-none text-tea-text font-mono text-[14px] py-1 text-right transition-colors"
+              className="w-24 bg-transparent border-b border-tea-border focus:border-tea-gold outline-none text-tea-text font-mono text-ui-14 py-1 text-right transition-colors"
             />
-            <span className="text-tea-text-sec text-[13px]">/100g</span>
+            <span className="text-tea-text-sec text-ui-13">/100g</span>
           </div>
         </label>
         {/* Suggested price helper */}
         {suggestedRetail != null && (
-          <p className="text-tea-text-sec italic text-[12px] leading-[1.6] mt-2 pl-0 md:pl-48">
+          <p className="text-tea-text-sec italic text-ui-12 leading-[1.6] mt-2 pl-0 md:pl-48">
             Suggested {callerCurrency} {suggestedRetail.toLocaleString()} — Adrian's{' '}
             {profile.retail_price_per_gram_curator != null && profile.retail_currency
               ? `${profile.retail_currency} ${(profile.retail_price_per_gram_curator * 100).toLocaleString()}/100g × FX`
@@ -147,10 +147,10 @@ const CarryForm: React.FC<CarryFormProps> = ({ profile, callerCurrency, onCarrie
       </div>
 
       {error && (
-        <p className="text-tea-text-sec italic text-[13px]">{error}</p>
+        <p className="text-tea-text-sec italic text-ui-13">{error}</p>
       )}
 
-      <div className="flex items-center justify-end gap-6 pt-1 text-[13px]">
+      <div className="flex items-center justify-end gap-6 pt-1 text-ui-13">
         <button
           type="button"
           onClick={onCancel}
@@ -219,14 +219,14 @@ const ProfileDrawer: React.FC<DrawerProps> = ({ profile, callerCurrency, onClose
           <button
             type="button"
             onClick={onClose}
-            className="text-tea-text-sec hover:text-tea-text transition-colors text-[13px] mb-4 block"
+            className="text-tea-text-sec hover:text-tea-text transition-colors text-ui-13 mb-4 block"
             aria-label="Close"
           >
             ← Back
           </button>
           <h2 className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text`}>{profile.name}</h2>
           {profile.curator_account_name && (
-            <p className="text-tea-text-sec text-[11px] tracking-[0.04em] mt-1">
+            <p className="text-tea-text-sec text-ui-11 tracking-[0.04em] mt-1">
               Sourced from Teajia · curated by {profile.curator_account_name}
               {profile.originator_account_name && profile.originator_account_name !== profile.curator_account_name
                 ? ` · originated by ${profile.originator_account_name}`
@@ -269,13 +269,13 @@ const ProfileDrawer: React.FC<DrawerProps> = ({ profile, callerCurrency, onClose
           )}
 
           {/* Meta */}
-          <div className="font-body text-[14px] leading-[1.6] text-tea-text-sec mb-4">
+          <div className="font-body text-ui-14 leading-[1.6] text-tea-text-sec mb-4">
             {joinParts(profile.origin_region || profile.origin_country, profile.chinese_name, profile.varietal, profile.harvest_year)}
           </div>
 
           {/* Description */}
           {profile.description && (
-            <p className="font-body text-[15px] leading-[1.7] text-tea-text mb-6">
+            <p className="font-body text-ui-15 leading-[1.7] text-tea-text mb-6">
               {profile.description}
             </p>
           )}
@@ -288,17 +288,17 @@ const ProfileDrawer: React.FC<DrawerProps> = ({ profile, callerCurrency, onClose
           {/* Pricing block */}
           <div className="space-y-1 mb-6">
             {profile.retail_price_per_gram_curator != null && profile.retail_currency && (
-              <div className="font-mono text-[13px] text-tea-text-sec">
+              <div className="font-mono text-ui-13 text-tea-text-sec">
                 Adrian's retail · {formatMoney(profile.retail_price_per_gram_curator * 100, profile.retail_currency)}/100g
               </div>
             )}
             {profile.fx_unavailable ? (
-              <div className="font-body italic text-[13px] text-tea-text-sec">
+              <div className="font-body italic text-ui-13 text-tea-text-sec">
                 Wholesale will calculate when prices reload
               </div>
             ) : (
               profile.wholesale_price_per_gram_caller != null && (
-                <div className="font-mono text-[13px] text-tea-text-sec">
+                <div className="font-mono text-ui-13 text-tea-text-sec">
                   Your wholesale · {formatMoney(profile.wholesale_price_per_gram_caller * 100, profile.wholesale_currency_caller)}/100g
                   {' '}({profile.wholesale_margin_pct_for_caller}%)
                 </div>
@@ -332,7 +332,7 @@ const ProfileDrawer: React.FC<DrawerProps> = ({ profile, callerCurrency, onClose
             <button
               type="button"
               onClick={() => setCarryMode('carry')}
-              className="text-tea-text hover:text-tea-gold transition-colors font-display text-[15px] tracking-[0.04em] group"
+              className="text-tea-text hover:text-tea-gold transition-colors font-display text-ui-15 tracking-[0.04em] group"
             >
               Carry this tea{' '}
               <span className="inline-block transition-transform group-hover:translate-x-0.5">→</span>
@@ -340,7 +340,7 @@ const ProfileDrawer: React.FC<DrawerProps> = ({ profile, callerCurrency, onClose
             <button
               type="button"
               onClick={() => setCarryMode('sample')}
-              className="text-tea-text-sec hover:text-tea-text transition-colors text-[13px]"
+              className="text-tea-text-sec hover:text-tea-text transition-colors text-ui-13"
             >
               Carry as sample only
             </button>
@@ -390,7 +390,7 @@ const CatalogCard: React.FC<CatalogCardProps> = ({ profile, onSelect, isHovered,
               loading="lazy"
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-tea-text-dim text-[11px] tracking-[0.1em] uppercase">
+            <div className="w-full h-full flex items-center justify-center text-tea-text-dim text-ui-11 tracking-[0.1em] uppercase">
               No photo
             </div>
           )}
@@ -408,7 +408,7 @@ const CatalogCard: React.FC<CatalogCardProps> = ({ profile, onSelect, isHovered,
 
           {/* Origin / chinese / form */}
           {(profile.origin_region || profile.origin_country || profile.chinese_name || profile.varietal || profile.type) && (
-            <p className="font-body text-[14px] leading-[1.6] text-tea-text-sec">
+            <p className="font-body text-ui-14 leading-[1.6] text-tea-text-sec">
               {joinParts(profile.origin_region || profile.origin_country, profile.chinese_name, profile.varietal || profile.type)}
             </p>
           )}
@@ -421,17 +421,17 @@ const CatalogCard: React.FC<CatalogCardProps> = ({ profile, onSelect, isHovered,
           {/* Prices */}
           <div className="space-y-1">
             {profile.retail_price_per_gram_curator != null && profile.retail_currency && (
-              <p className="num text-[13px] text-tea-text-sec">
+              <p className="num text-ui-13 text-tea-text-sec">
                 Adrian's retail · {formatMoney(profile.retail_price_per_gram_curator * 100, profile.retail_currency)}/100g
               </p>
             )}
             {profile.fx_unavailable ? (
-              <p className="font-body italic text-[13px] text-tea-text-sec">
+              <p className="font-body italic text-ui-13 text-tea-text-sec">
                 Wholesale will calculate when prices reload
               </p>
             ) : (
               profile.wholesale_price_per_gram_caller != null && (
-                <p className="num text-[13px] text-tea-text-sec">
+                <p className="num text-ui-13 text-tea-text-sec">
                   Your wholesale · {formatMoney(profile.wholesale_price_per_gram_caller * 100, profile.wholesale_currency_caller)}/100g
                   {' '}({profile.wholesale_margin_pct_for_caller}%)
                 </p>
@@ -445,7 +445,7 @@ const CatalogCard: React.FC<CatalogCardProps> = ({ profile, onSelect, isHovered,
           {/* CTA — bronze only on hover */}
           <div className="self-start">
             <span
-              className={`font-body text-[14px] tracking-[0.02em] transition-colors group ${
+              className={`font-body text-ui-14 tracking-[0.02em] transition-colors group ${
                 isHovered ? 'text-tea-gold' : 'text-tea-text-sec'
               }`}
             >
@@ -539,7 +539,7 @@ export const CatalogBrowse: React.FC<CatalogBrowseProps> = ({ embedded = false }
   if (!hasCatalog) {
     return (
       <div className={outerClass}>
-        <p className="font-body italic text-[15px] text-tea-text-sec leading-[1.7]">
+        <p className="font-body italic text-ui-15 text-tea-text-sec leading-[1.7]">
           This destination requires the Catalog bundle. Ask your owner.
         </p>
       </div>
@@ -565,7 +565,7 @@ export const CatalogBrowse: React.FC<CatalogBrowseProps> = ({ embedded = false }
 
       {/* Network error — stale data notice */}
       {networkError && (
-        <p className="font-body italic text-[14px] text-tea-text-sec leading-[1.6] mb-6">
+        <p className="font-body italic text-ui-14 text-tea-text-sec leading-[1.6] mb-6">
           Couldn't reach the catalog. Showing the last known state.
         </p>
       )}
@@ -575,14 +575,14 @@ export const CatalogBrowse: React.FC<CatalogBrowseProps> = ({ embedded = false }
         <h1 className={`${TYPOGRAPHY_CLASSES.h2} text-tea-text mb-2`}>
           {countSentence}
         </h1>
-        <p className="font-body italic text-[17px] text-tea-text-sec leading-[1.4]">
+        <p className="font-body italic text-ui-17 text-tea-text-sec leading-[1.4]">
           Pick what belongs in your house.
         </p>
       </header>
 
       {/* Filter row — comma-separated text-links */}
       {teaTypes.length > 0 && (
-        <nav className="mb-8 flex flex-wrap gap-x-0 gap-y-1 font-body text-[14px]" aria-label="Filter by type">
+        <nav className="mb-8 flex flex-wrap gap-x-0 gap-y-1 font-body text-ui-14" aria-label="Filter by type">
           <button
             type="button"
             onClick={() => setActiveFilter(null)}
@@ -607,7 +607,7 @@ export const CatalogBrowse: React.FC<CatalogBrowseProps> = ({ embedded = false }
 
       {/* Empty — carries everything */}
       {!networkError && profiles?.length === 0 && (
-        <p className="font-body italic text-[16px] text-tea-text-sec leading-[1.7]">
+        <p className="font-body italic text-ui-16 text-tea-text-sec leading-[1.7]">
           You carry everything Adrian curates. New harvests appear here as Adrian publishes them.
         </p>
       )}
@@ -625,7 +625,7 @@ export const CatalogBrowse: React.FC<CatalogBrowseProps> = ({ embedded = false }
 
       {/* Empty filtered state */}
       {profiles && profiles.length > 0 && filtered.length === 0 && (
-        <p className="font-body italic text-[15px] text-tea-text-sec mt-6">
+        <p className="font-body italic text-ui-15 text-tea-text-sec mt-6">
           No {activeFilter} teas in the catalog right now.
         </p>
       )}

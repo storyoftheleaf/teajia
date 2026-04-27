@@ -96,7 +96,7 @@ export const ProductReferences: React.FC<ProductReferencesProps> = ({
 
   return (
     <div className={`border-t border-tea-border pt-5 mt-8 max-w-xl mx-auto px-6 ${className}`}>
-      <p className="text-[10px] uppercase tracking-[0.18em] text-tea-text-dim mb-3">
+      <p className="text-ui-10 uppercase tracking-[0.18em] text-tea-text-dim mb-3">
         {label}
       </p>
       <ul className="space-y-1.5">
@@ -109,7 +109,7 @@ export const ProductReferences: React.FC<ProductReferencesProps> = ({
               <a
                 href={`/shop?product=${encodeURIComponent(product.id)}`}
                 onClick={e => e.stopPropagation()}
-                className="group inline-flex flex-wrap items-baseline gap-x-2 font-serif text-[13px] leading-snug text-tea-text hover:text-tea-gold transition-colors"
+                className="group inline-flex flex-wrap items-baseline gap-x-2 font-serif text-ui-13 leading-snug text-tea-text hover:text-tea-gold transition-colors"
               >
                 <span className="italic">{product.name}</span>
                 {descriptor && (

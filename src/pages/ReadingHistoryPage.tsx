@@ -68,7 +68,7 @@ export default function ReadingHistoryPage() {
                 <span className="font-serif text-sm text-tea-text group-hover:text-tea-gold transition-colors truncate block">
                   Story #{entry.storyId}
                 </span>
-                <span className="text-[10px] text-tea-text-sec">Page {entry.page + 1}</span>
+                <span className="text-ui-10 text-tea-text-sec">Page {entry.page + 1}</span>
               </div>
               <Icons.ChevronRight className="w-3.5 h-3.5 text-tea-text-sec shrink-0" />
             </button>

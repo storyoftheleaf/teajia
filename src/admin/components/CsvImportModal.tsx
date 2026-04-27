@@ -434,7 +434,7 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
 
               {/* Mobile card list */}
               <div className="block md:hidden flex-1 overflow-auto pb-24">
-                <div className="text-[10px] text-tea-text-sec uppercase tracking-[0.2em] px-1 pb-2">
+                <div className="text-ui-10 text-tea-text-sec uppercase tracking-[0.2em] px-1 pb-2">
                   Reviewing {stagingData.length} item{stagingData.length !== 1 ? 's' : ''}
                 </div>
                 {stagingData.map((row, idx) => {
@@ -452,9 +452,9 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
                           {hasErrors ? (
                             <AlertTriangle size={14} className="text-tea-gold" aria-label={row.errors.join(', ')} />
                           ) : row.status === 'Draft' ? (
-                            <span className="text-[9px] font-mono text-tea-text-sec bg-tea-text-sec/10 px-1.5 py-0.5 rounded-sm">DRAFT</span>
+                            <span className="text-ui-9 font-mono text-tea-text-sec bg-tea-text-sec/10 px-1.5 py-0.5 rounded-sm">DRAFT</span>
                           ) : (
-                            <span className="text-[9px] font-mono text-tea-text bg-tea-text/10 px-1.5 py-0.5 rounded-sm">ACTIVE</span>
+                            <span className="text-ui-9 font-mono text-tea-text bg-tea-text/10 px-1.5 py-0.5 rounded-sm">ACTIVE</span>
                           )}
                         </span>
 
@@ -463,7 +463,7 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
                           <div className="text-sm font-medium text-tea-text truncate">
                             {row.givenName || row.productName || <span className="text-tea-text-sec/50 italic">Unnamed</span>}
                           </div>
-                          <div className="flex items-center gap-1.5 text-[10px] text-tea-text-sec/70 mt-0.5">
+                          <div className="flex items-center gap-1.5 text-ui-10 text-tea-text-sec/70 mt-0.5">
                             <span className={isMissingOrUnknown(row.type) ? 'text-tea-gold/80 italic' : ''}>{row.type || 'No type'}</span>
                             {row.costAmount && !isMissingOrUnknown(row.costAmount) && (
                               <>
@@ -493,47 +493,47 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
                           )}
                           <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
                             <div>
-                              <dt className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">Product Name</dt>
+                              <dt className="text-ui-9 text-tea-text-sec/50 uppercase tracking-wider">Product Name</dt>
                               <dd className="text-tea-text font-serif mt-0.5">{row.productName || '—'}</dd>
                             </div>
                             <div>
-                              <dt className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">Type</dt>
+                              <dt className="text-ui-9 text-tea-text-sec/50 uppercase tracking-wider">Type</dt>
                               <dd className={`mt-0.5 ${isMissingOrUnknown(row.type) ? 'text-tea-gold/80 italic' : 'text-tea-text'}`}>{row.type || '—'}</dd>
                             </div>
                             {row.year && (
                               <div>
-                                <dt className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">Year</dt>
+                                <dt className="text-ui-9 text-tea-text-sec/50 uppercase tracking-wider">Year</dt>
                                 <dd className="text-tea-text-sec font-serif italic mt-0.5">{row.year}</dd>
                               </div>
                             )}
                             <div>
-                              <dt className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">Grams Purchased</dt>
+                              <dt className="text-ui-9 text-tea-text-sec/50 uppercase tracking-wider">Grams Purchased</dt>
                               <dd className={`font-mono mt-0.5 ${isMissingOrUnknown(row.grams) ? 'text-tea-text-sec/50 italic' : 'text-tea-text'}`}>{row.grams || '—'}</dd>
                             </div>
                             <div>
-                              <dt className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">Stock</dt>
+                              <dt className="text-ui-9 text-tea-text-sec/50 uppercase tracking-wider">Stock</dt>
                               <dd className={`font-mono mt-0.5 ${isMissingOrUnknown(row.stockAmount) ? 'text-tea-text-sec/50 italic' : 'text-tea-text'}`}>{row.stockAmount || '—'}</dd>
                             </div>
                             <div>
-                              <dt className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">Cost</dt>
+                              <dt className="text-ui-9 text-tea-text-sec/50 uppercase tracking-wider">Cost</dt>
                               <dd className={`font-mono mt-0.5 ${isMissingOrUnknown(row.costAmount) ? 'text-tea-text-sec/50 italic' : 'text-tea-text'}`}>{row.costAmount || '—'}</dd>
                             </div>
                             <div>
-                              <dt className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">Currency</dt>
+                              <dt className="text-ui-9 text-tea-text-sec/50 uppercase tracking-wider">Currency</dt>
                               <dd className={`font-mono mt-0.5 ${isMissingOrUnknown(row.currency) ? 'text-tea-text-sec/50 italic' : 'text-tea-text'}`}>{row.currency || '—'}</dd>
                             </div>
                             {row.vendor && (
                               <div>
-                                <dt className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">Vendor</dt>
+                                <dt className="text-ui-9 text-tea-text-sec/50 uppercase tracking-wider">Vendor</dt>
                                 <dd className="text-tea-text-sec mt-0.5">{row.vendor}</dd>
                               </div>
                             )}
                             <div>
-                              <dt className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">Restock</dt>
+                              <dt className="text-ui-9 text-tea-text-sec/50 uppercase tracking-wider">Restock</dt>
                               <dd className="mt-0.5">{row.canReorder ? <span className="text-tea-text font-serif italic">Yes</span> : <span className="text-tea-text-sec/50">—</span>}</dd>
                             </div>
                             <div>
-                              <dt className="text-[9px] text-tea-text-sec/50 uppercase tracking-wider">Personal</dt>
+                              <dt className="text-ui-9 text-tea-text-sec/50 uppercase tracking-wider">Personal</dt>
                               <dd className="mt-0.5">{row.isPersonal ? <span className="text-tea-text font-serif italic">Yes</span> : <span className="text-tea-text-sec/50">—</span>}</dd>
                             </div>
                           </dl>
@@ -555,7 +555,7 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
               {/* Desktop table */}
               <div className="hidden md:block flex-1 overflow-auto border border-tea-border rounded-xl bg-tea-surface">
                 <table className="w-full text-left text-xs whitespace-nowrap">
-                  <thead className="bg-tea-bg text-tea-text-sec font-serif uppercase tracking-[0.2em] text-[10px] sticky top-0 z-10">
+                  <thead className="bg-tea-bg text-tea-text-sec font-serif uppercase tracking-[0.2em] text-ui-10 sticky top-0 z-10">
                     <tr>
                       <th className="p-3 border-b border-tea-border">State</th>
                       <th className="p-3 border-b border-tea-border">Type</th>
@@ -581,9 +581,9 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
                                     <AlertTriangle size={14} className="text-tea-gold" />
                                 </div>
                             ) : row.status === 'Draft' ? (
-                                <span className="px-1.5 py-0.5 rounded-sm bg-tea-text-sec/10 text-tea-text-sec border border-tea-text-sec/20 text-[10px] font-mono">DRAFT</span>
+                                <span className="px-1.5 py-0.5 rounded-sm bg-tea-text-sec/10 text-tea-text-sec border border-tea-text-sec/20 text-ui-10 font-mono">DRAFT</span>
                             ) : (
-                                <span className="px-1.5 py-0.5 rounded-sm bg-tea-text/10 text-tea-text border border-tea-text/20 text-[10px] font-mono">ACTIVE</span>
+                                <span className="px-1.5 py-0.5 rounded-sm bg-tea-text/10 text-tea-text border border-tea-text/20 text-ui-10 font-mono">ACTIVE</span>
                             )}
                         </td>
                         <td className={`p-2 text-tea-text-sec ${isMissingOrUnknown(row.type) ? 'bg-tea-gold/10' : ''}`}>{row.type}</td>

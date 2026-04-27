@@ -57,7 +57,7 @@ export const TeaMap: React.FC<TeaMapProps> = ({ onBack }) => {
                     <h3 className="font-serif text-base text-tea-text font-medium">
                       {pin.name}
                     </h3>
-                    <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-sm ${style.color}`}>
+                    <span className={`text-ui-10 uppercase tracking-wider px-2 py-0.5 rounded-sm ${style.color}`}>
                       {style.label}
                     </span>
                   </div>

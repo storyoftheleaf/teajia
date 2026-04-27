@@ -157,7 +157,7 @@ export const MemberView: React.FC<MemberViewProps> = ({
           {avatarDataUrl ? (
             <img src={avatarDataUrl} alt="" className="w-full h-full object-cover" loading="lazy" />
           ) : (
-            <span className="text-[13px] font-serif text-tea-gold">
+            <span className="text-ui-13 font-serif text-tea-gold">
               {user ? getInitials(user.name || user.email) : '茶'}
             </span>
           )}
@@ -165,12 +165,12 @@ export const MemberView: React.FC<MemberViewProps> = ({
         {user && (
           <div className="flex-1 min-w-0">
             <div
-              className="text-[15px] text-tea-text leading-tight truncate"
+              className="text-ui-15 text-tea-text leading-tight truncate"
               style={{ fontFamily: 'var(--font-display)', fontWeight: 400 }}
             >
               {user.name || user.email}
             </div>
-            <div className="text-[11px] uppercase tracking-[0.12em] text-tea-gold mt-0.5">
+            <div className="text-ui-11 uppercase tracking-[0.12em] text-tea-gold mt-0.5">
               {roleBadgeLabel || 'Member'}
             </div>
           </div>
@@ -180,7 +180,7 @@ export const MemberView: React.FC<MemberViewProps> = ({
       {/* ── Frontispiece — one editorial line of current state ────────── */}
       <div className="px-6 pt-3 pb-2">
         <p
-          className="text-[20px] leading-snug text-tea-text italic"
+          className="text-ui-20 leading-snug text-tea-text italic"
           style={{ fontFamily: 'var(--font-display)', fontWeight: 400 }}
         >
           {frontispiece}
@@ -196,13 +196,13 @@ export const MemberView: React.FC<MemberViewProps> = ({
           <>
             {journalLastExcerpt && (
               <p
-                className="text-[15px] leading-snug text-tea-text italic mb-2"
+                className="text-ui-15 leading-snug text-tea-text italic mb-2"
                 style={{ fontFamily: 'var(--font-display)' }}
               >
                 “{truncate(journalLastExcerpt, 120)}”
               </p>
             )}
-            <div className="text-[12px] text-tea-text-sec tracking-[0.02em]">
+            <div className="text-ui-12 text-tea-text-sec tracking-[0.02em]">
               {journalLastTea && <span className="text-tea-text">{journalLastTea}</span>}
               {journalLastTea && journalLastAt && <span className="text-tea-text-sec"> · </span>}
               {journalLastAt && <span>{capitalize(daysWord(daysSince(journalLastAt)))} days past</span>}
@@ -213,7 +213,7 @@ export const MemberView: React.FC<MemberViewProps> = ({
           </>
         ) : (
           <p
-            className="text-[15px] italic text-tea-text-sec"
+            className="text-ui-15 italic text-tea-text-sec"
             style={{ fontFamily: 'var(--font-display)' }}
           >
             begin a note
@@ -236,19 +236,19 @@ export const MemberView: React.FC<MemberViewProps> = ({
                     {s.flyerUrl ? (
                       <img src={s.flyerUrl} alt="" className="w-full h-full object-cover opacity-90" loading="lazy" />
                     ) : (
-                      <span className="flex items-center justify-center w-full h-full text-[10px] font-serif text-tea-gold/70">茶</span>
+                      <span className="flex items-center justify-center w-full h-full text-ui-10 font-serif text-tea-gold/70">茶</span>
                     )}
                   </div>
                 ))}
               </div>
-              <div className="text-[12px] text-tea-text-sec tracking-[0.02em]">
+              <div className="text-ui-12 text-tea-text-sec tracking-[0.02em]">
                 <span className="text-tea-text">{journey.sessionsAttended}</span> gathering{journey.sessionsAttended !== 1 ? 's' : ''}
                 {journey.totalTeas > 0 && <span className="text-tea-text-sec"> · {journey.totalTeas} teas past</span>}
               </div>
             </>
           ) : (
             <p
-              className="text-[15px] italic text-tea-text-sec"
+              className="text-ui-15 italic text-tea-text-sec"
               style={{ fontFamily: 'var(--font-display)' }}
             >
               no gatherings yet
@@ -261,14 +261,14 @@ export const MemberView: React.FC<MemberViewProps> = ({
       <PreviewBlock hint="Compass" icon={<Compass {...ICON_PROPS} />} onClick={() => go('/compass')}>
         {compassProfile ? (
           <p
-            className="text-[16px] leading-snug text-tea-text italic"
+            className="text-ui-16 leading-snug text-tea-text italic"
             style={{ fontFamily: 'var(--font-display)' }}
           >
             “{compassProfile}”
           </p>
         ) : (
           <p
-            className="text-[15px] italic text-tea-text-sec"
+            className="text-ui-15 italic text-tea-text-sec"
             style={{ fontFamily: 'var(--font-display)' }}
           >
             find yours
@@ -280,14 +280,14 @@ export const MemberView: React.FC<MemberViewProps> = ({
       <PreviewBlock hint="Collection" icon={<Bookmark {...ICON_PROPS} />} onClick={() => go('/account/collection')}>
         {collectionCount > 0 ? (
           <p
-            className="text-[15px] text-tea-text"
+            className="text-ui-15 text-tea-text"
             style={{ fontFamily: 'var(--font-display)' }}
           >
             {collectionCount} tea{collectionCount !== 1 ? 's' : ''} kept.
           </p>
         ) : (
           <p
-            className="text-[15px] italic text-tea-text-sec"
+            className="text-ui-15 italic text-tea-text-sec"
             style={{ fontFamily: 'var(--font-display)' }}
           >
             no tins yet
@@ -298,7 +298,7 @@ export const MemberView: React.FC<MemberViewProps> = ({
       {/* ── Utility footer — all remaining paths, text links only ─────── */}
       <div className="px-6 pt-7 pb-[calc(44px+env(safe-area-inset-bottom,0px))] lg:pb-8 border-t border-tea-border mt-3">
         <div
-          className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-tea-text-sec tracking-[0.03em]"
+          className="flex flex-wrap items-center gap-x-3 gap-y-1 text-ui-12 text-tea-text-sec tracking-[0.03em]"
         >
           <button
             onClick={onOpenEvents}
@@ -343,7 +343,7 @@ export const MemberView: React.FC<MemberViewProps> = ({
 
         <button
           onClick={onSignOut}
-          className="mt-6 py-2 -my-2 text-tea-text-sec hover:text-tea-gold transition-colors text-[12px] uppercase tracking-[0.2em] font-medium"
+          className="mt-6 py-2 -my-2 text-tea-text-sec hover:text-tea-gold transition-colors text-ui-12 uppercase tracking-[0.2em] font-medium"
           style={{ WebkitTapHighlightColor: 'transparent' }}
         >
           Sign Out

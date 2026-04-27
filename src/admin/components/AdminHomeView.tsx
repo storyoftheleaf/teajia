@@ -64,11 +64,11 @@ const SmallTile: React.FC<{ tile: TileData; onClick: () => void; badge?: number 
     >
       <Icon size={16} strokeWidth={1.7} className="text-tea-gold shrink-0" />
       <div className="min-w-0">
-        <div className="text-[13px] font-medium text-tea-text leading-tight truncate">{tile.label}</div>
-        <div className="text-[11px] text-tea-text-dim mt-0.5 leading-tight truncate">{tile.sub}</div>
+        <div className="text-ui-13 font-medium text-tea-text leading-tight truncate">{tile.label}</div>
+        <div className="text-ui-11 text-tea-text-dim mt-0.5 leading-tight truncate">{tile.sub}</div>
       </div>
       {badge != null && badge > 0 && (
-        <span className="absolute top-2 right-2 min-w-[16px] h-4 px-1 flex items-center justify-center text-[9px] font-semibold bg-amber-400/20 text-amber-600 dark:text-amber-400 rounded-full num">
+        <span className="absolute top-2 right-2 min-w-[16px] h-4 px-1 flex items-center justify-center text-ui-9 font-semibold bg-amber-400/20 text-amber-600 dark:text-amber-400 rounded-full num">
           {badge}
         </span>
       )}
@@ -77,7 +77,7 @@ const SmallTile: React.FC<{ tile: TileData; onClick: () => void; badge?: number 
 };
 
 const SectionLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="text-[9px] uppercase tracking-[0.25em] text-tea-text-dim font-medium mb-2.5 px-0.5">
+  <div className="text-ui-9 uppercase tracking-[0.25em] text-tea-text-dim font-medium mb-2.5 px-0.5">
     {children}
   </div>
 );
@@ -145,7 +145,7 @@ export const AdminHomeView: React.FC<{
         <div className="relative flex flex-col items-center pt-4 pb-3 gap-3">
           <LogoEmblem size={72} color="var(--tea-text)" />
           <span
-            className="text-[9px] uppercase font-medium"
+            className="text-ui-9 uppercase font-medium"
             style={{ letterSpacing: '0.35em', color: 'var(--tea-gold)', opacity: 0.55 }}
           >
             {hubLabel}
@@ -161,8 +161,8 @@ export const AdminHomeView: React.FC<{
           >
             <Package size={20} strokeWidth={1.6} className="text-tea-gold shrink-0" />
             <div className="flex-1 min-w-0">
-              <div className="text-[15px] font-semibold text-tea-text leading-tight">Inventory</div>
-              <div className="text-[12px] text-tea-text-sec mt-0.5">Tea & Teaware</div>
+              <div className="text-ui-15 font-semibold text-tea-text leading-tight">Inventory</div>
+              <div className="text-ui-12 text-tea-text-sec mt-0.5">Tea & Teaware</div>
             </div>
             <ArrowRight size={15} className="text-tea-text-dim shrink-0" />
           </button>
@@ -180,21 +180,21 @@ export const AdminHomeView: React.FC<{
                     className="w-full flex items-center gap-3 px-2.5 py-2 rounded-lg text-left hover:bg-tea-elevated transition-colors"
                   >
                     <div className="flex-1 min-w-0">
-                      <p className="text-[13px] text-tea-text truncate">
+                      <p className="text-ui-13 text-tea-text truncate">
                         {item.product_name}
                       </p>
-                      <p className="text-[11px] text-tea-text-dim truncate">
+                      <p className="text-ui-11 text-tea-text-dim truncate">
                         {item.issue === 'archived' ? 'Archived' : 'Out of stock'}
                         {' in '}
                         <span className="text-tea-text-sec">{item.collection_title}</span>
                       </p>
                     </div>
-                    <span className="text-[10px] uppercase tracking-[1.2px] text-tea-gold">Review</span>
+                    <span className="text-ui-10 uppercase tracking-[1.2px] text-tea-gold">Review</span>
                   </button>
                 </li>
               ))}
               {attentionItems.length > 5 && (
-                <li className="px-3 py-1.5 text-[10px] text-tea-text-dim text-center">
+                <li className="px-3 py-1.5 text-ui-10 text-tea-text-dim text-center">
                   + {attentionItems.length - 5} more
                 </li>
               )}

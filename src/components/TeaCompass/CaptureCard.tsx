@@ -98,7 +98,7 @@ function RetailPricePreview({
   const fmtGram = (v: number) => v < 1 ? v.toFixed(2) : v < 10 ? v.toFixed(1) : Math.round(v).toString();
 
   return (
-    <div className="flex items-center gap-2 px-1 text-[11px] text-tea-text-dim">
+    <div className="flex items-center gap-2 px-1 text-ui-11 text-tea-text-dim">
       <span className="tabular-nums">{sym}{fmtGram(costPerGram)}/g cost</span>
       <span className="text-tea-border">→</span>
       <span className="tabular-nums text-tea-text-sec font-medium">≈ {sym}{fmtGram(retailPerGram)}/g retail</span>
@@ -124,7 +124,7 @@ function RetailPricePreview({
                 setEditingShipping(false);
               }
             }}
-            className="w-16 bg-tea-elevated text-tea-text text-[11px] px-1.5 py-0.5 rounded border border-tea-border outline-none focus:border-tea-gold/40 tabular-nums [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+            className="w-16 bg-tea-elevated text-tea-text text-ui-11 px-1.5 py-0.5 rounded border border-tea-border outline-none focus:border-tea-gold/40 tabular-nums [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
           />
           <span className="text-tea-text-dim">/kg</span>
         </span>
@@ -668,7 +668,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           />
           {entry.type && chipStyle && (
             <span
-              className="shrink-0 text-[11px] font-medium px-2.5 py-1 rounded-lg"
+              className="shrink-0 text-ui-11 font-medium px-2.5 py-1 rounded-lg"
               style={{ backgroundColor: chipStyle.bg, color: chipStyle.text }}
             >
               {entry.type}
@@ -1043,7 +1043,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           >
             <Plus size={12} />
           </button>
-          <span className="text-[11px] text-tea-text-dim ml-1">qty</span>
+          <span className="text-ui-11 text-tea-text-dim ml-1">qty</span>
         </div>
 
         <div className="border-t border-tea-border my-1" />
@@ -1119,7 +1119,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
         <button
           type="button"
           onClick={onReturnToLibrary}
-          className="flex items-center gap-1.5 text-[11px] text-tea-text-sec hover:text-tea-text transition-colors -mt-1 mb-1"
+          className="flex items-center gap-1.5 text-ui-11 text-tea-text-sec hover:text-tea-text transition-colors -mt-1 mb-1"
         >
           <ArrowLeft size={12} />
           Library
@@ -1205,7 +1205,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
                               {type}
                             </span>
                             {TEA_TYPE_DESCRIPTIONS[type] && (
-                              <span className="block text-[10px] text-tea-text-dim leading-tight mt-0.5">
+                              <span className="block text-ui-10 text-tea-text-dim leading-tight mt-0.5">
                                 {TEA_TYPE_DESCRIPTIONS[type]}
                               </span>
                             )}
@@ -1300,7 +1300,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
             transition={{ duration: 0.2 }}
             className="overflow-hidden -mt-2"
           >
-            <p className="text-[11px] text-tea-gold tracking-wide truncate">
+            <p className="text-ui-11 text-tea-gold tracking-wide truncate">
               {extractionSummary}
             </p>
           </motion.div>
@@ -1313,15 +1313,15 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
         <>
           <div className="flex items-center gap-2">
             <div className="flex-1 h-px bg-tea-border" />
-            <span className="text-[9px] text-tea-text-dim tracking-[0.2em] uppercase shrink-0">Profile</span>
+            <span className="text-ui-9 text-tea-text-dim tracking-[0.2em] uppercase shrink-0">Profile</span>
             <div className="flex-1 h-px bg-tea-border" />
           </div>
           <div className="space-y-2.5">
             {/* Quality 1–10 — same segment toggle as TastingSession */}
             <div>
               <div className="flex items-center gap-2 mb-1.5">
-                <span className="text-[11px] text-tea-text-sec" style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.04em' }}>Quality</span>
-                <span className="text-[11px] text-tea-gold tabular-nums" style={{ fontFamily: 'var(--font-mono)' }}>
+                <span className="text-ui-11 text-tea-text-sec" style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.04em' }}>Quality</span>
+                <span className="text-ui-11 text-tea-gold tabular-nums" style={{ fontFamily: 'var(--font-mono)' }}>
                   {entry.tasting.quality != null ? `${entry.tasting.quality}/10` : '/10'}
                 </span>
               </div>
@@ -1335,7 +1335,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
                       onClick={() => handleQualityChange(v)}
                       role="radio"
                       aria-checked={isSelected}
-                      className={`flex-1 py-2.5 text-[12px] font-medium transition-all duration-150 min-h-[44px] relative z-[1] ${
+                      className={`flex-1 py-2.5 text-ui-12 font-medium transition-all duration-150 min-h-[44px] relative z-[1] ${
                         isSelected ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
                       }${i < 9 ? ' weight-seg-div' : ''}`}
                       style={{
@@ -1353,7 +1353,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
             </div>
             {/* Brewing metadata */}
             {(entry.tasting.brewingVessel || entry.tasting.brewingTemp || entry.tasting.brewingTime) && (
-              <div className="flex items-center gap-2 flex-wrap text-[11px] text-tea-text-dim">
+              <div className="flex items-center gap-2 flex-wrap text-ui-11 text-tea-text-dim">
                 {entry.tasting.brewingVessel && <span>{entry.tasting.brewingVessel}</span>}
                 {entry.tasting.brewingTemp && <><span className="text-tea-border">·</span><span>{entry.tasting.brewingTemp}°C</span></>}
                 {entry.tasting.brewingTime && <><span className="text-tea-border">·</span><span>{entry.tasting.brewingTime}</span></>}
@@ -1372,7 +1372,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
       {/* ─── Notes zone ─── */}
       <div className="flex items-center gap-2">
         <div className="flex-1 h-px bg-tea-border" />
-        <span className="text-[9px] text-tea-text-dim tracking-[0.2em] uppercase shrink-0">Notes</span>
+        <span className="text-ui-9 text-tea-text-dim tracking-[0.2em] uppercase shrink-0">Notes</span>
         <div className="flex-1 h-px bg-tea-border" />
       </div>
       <NoteThread
@@ -1411,7 +1411,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
           <button
             type="button"
             onClick={onSwitchToLedger}
-            className="flex items-center gap-1.5 text-[11px] text-tea-text-dim hover:text-tea-text-sec transition-colors"
+            className="flex items-center gap-1.5 text-ui-11 text-tea-text-dim hover:text-tea-text-sec transition-colors"
           >
             <BookOpen size={11} />
             View purchases in ledger
@@ -1445,7 +1445,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
                         onChange={(e) => setBuyingQty(Math.max(1, parseInt(e.target.value) || 1))}
                         className="w-11 text-center text-tea-text text-sm font-semibold bg-transparent border-none outline-none"
                       />
-                      <span className="text-tea-text-dim text-[11px]">
+                      <span className="text-tea-text-dim text-ui-11">
                         {unitBased ? (buyingQty === 1 ? 'unit' : 'units') : 'g'}
                       </span>
                     </div>
@@ -1475,7 +1475,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
                         key={g}
                         type="button"
                         onClick={() => setBuyingQty(g)}
-                        className={`py-0.5 px-2 rounded text-[10px] transition-colors ${
+                        className={`py-0.5 px-2 rounded text-ui-10 transition-colors ${
                           buyingQty === g ? 'bg-tea-gold/15 text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'
                         }`}
                       >
@@ -1488,7 +1488,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
                 <button
                   type="button"
                   onClick={handleAddToLedger}
-                  className="w-full py-1.5 rounded-md bg-tea-gold text-tea-bg font-semibold text-[11px] uppercase tracking-[0.08em] transition-opacity active:opacity-80"
+                  className="w-full py-1.5 rounded-md bg-tea-gold text-tea-bg font-semibold text-ui-11 uppercase tracking-[0.08em] transition-opacity active:opacity-80"
                 >
                   Add to Ledger
                 </button>

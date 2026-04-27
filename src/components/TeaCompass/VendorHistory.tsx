@@ -192,11 +192,11 @@ export const VendorHistory: React.FC<VendorHistoryProps> = ({
     <div className="space-y-1.5 mb-3">
       {/* Label */}
       <div className="flex items-center justify-between">
-        <span className="text-[10px] text-tea-text-sec uppercase tracking-[0.15em] font-serif">
+        <span className="text-ui-10 text-tea-text-sec uppercase tracking-[0.15em] font-serif">
           From {vendorName || 'this vendor'}
         </span>
         {items.length > 3 && (
-          <span className="text-[11px] text-tea-text-dim flex items-center gap-0.5">
+          <span className="text-ui-11 text-tea-text-dim flex items-center gap-0.5">
             See all <ChevronRight size={10} />
           </span>
         )}
@@ -222,7 +222,7 @@ export const VendorHistory: React.FC<VendorHistoryProps> = ({
                 style={typeColor ? { borderTop: `2px solid ${typeColor}35` } : undefined}
               >
                 {/* Name */}
-                <p className="text-tea-text text-[12px] font-serif truncate leading-tight">
+                <p className="text-tea-text text-ui-12 font-serif truncate leading-tight">
                   {item.name}
                 </p>
 
@@ -230,13 +230,13 @@ export const VendorHistory: React.FC<VendorHistoryProps> = ({
                 <div className="flex items-center gap-1.5 mt-2">
                   {item.type && (
                     <span
-                      className="text-[8px] font-medium px-1.5 py-0.5 rounded-full uppercase tracking-wider"
+                      className="text-ui-8 font-medium px-1.5 py-0.5 rounded-full uppercase tracking-wider"
                       style={getTypeBadgeStyle(item.type)}
                     >
                       {item.type}
                     </span>
                   )}
-                  <span className="flex items-center gap-1 text-[9px] text-tea-text-dim ml-auto">
+                  <span className="flex items-center gap-1 text-ui-9 text-tea-text-dim ml-auto">
                     <span
                       className="w-1.5 h-1.5 rounded-full shrink-0"
                       style={{ backgroundColor: cfg.dotColor }}
@@ -250,19 +250,19 @@ export const VendorHistory: React.FC<VendorHistoryProps> = ({
               {isExpanded && (
                 <div className="bg-tea-surface rounded-b-lg px-2.5 pb-2.5 -mt-1 pt-1.5 space-y-1.5">
                   {item.priceAmount != null && (
-                    <p className="text-[10px] text-tea-text-sec num">
+                    <p className="text-ui-10 text-tea-text-sec num">
                       {item.priceCurrency === 'USD' ? '$' : item.priceCurrency + ' '}
                       {item.priceAmount}
                       {item.pricePerUnitGrams ? ` / ${item.pricePerUnitGrams}g` : ''}
                     </p>
                   )}
                   {item.form && (
-                    <p className="text-[10px] text-tea-text-dim">{item.form}</p>
+                    <p className="text-ui-10 text-tea-text-dim">{item.form}</p>
                   )}
                   <button
                     type="button"
                     onClick={() => handleBuyAgain(item)}
-                    className="pill-active flex items-center gap-1 text-[10px] w-full justify-center py-1.5"
+                    className="pill-active flex items-center gap-1 text-ui-10 w-full justify-center py-1.5"
                   >
                     <RotateCcw size={10} />
                     Add to order

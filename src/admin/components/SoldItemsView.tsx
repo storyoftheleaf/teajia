@@ -142,7 +142,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
               )}
               {activeTab === 'archive' && (
                 <div className="ml-auto">
-                  <button onClick={handleExportArchive} disabled={soldOutProducts.length === 0} className="flex items-center gap-1 md:gap-2 text-[10px] md:text-xs uppercase tracking-[0.15em] md:tracking-[0.2em] font-bold text-tea-text-sec hover:text-tea-text transition-colors px-2 md:px-3 py-1.5 border border-transparent hover:border-tea-border rounded-lg disabled:opacity-50">
+                  <button onClick={handleExportArchive} disabled={soldOutProducts.length === 0} className="flex items-center gap-1 md:gap-2 text-ui-10 md:text-xs uppercase tracking-[0.15em] md:tracking-[0.2em] font-bold text-tea-text-sec hover:text-tea-text transition-colors px-2 md:px-3 py-1.5 border border-transparent hover:border-tea-border rounded-lg disabled:opacity-50">
                     <Download size={14} /> <span className="hidden md:inline">Export CSV</span><span className="md:hidden">CSV</span>
                   </button>
                 </div>
@@ -164,19 +164,19 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
             <div className="flex items-center bg-tea-surface rounded-lg border border-tea-border p-0.5 md:ml-4">
               <button
                 onClick={() => setActiveTab('archive')}
-                className={`px-2 md:px-3 py-1.5 rounded-md text-[10px] md:text-xs uppercase tracking-wider font-bold transition-colors flex items-center gap-1 md:gap-1.5 ${activeTab === 'archive' ? 'bg-tea-bg text-tea-text shadow-sm' : 'text-tea-text-sec hover:text-tea-text'}`}
+                className={`px-2 md:px-3 py-1.5 rounded-md text-ui-10 md:text-xs uppercase tracking-wider font-bold transition-colors flex items-center gap-1 md:gap-1.5 ${activeTab === 'archive' ? 'bg-tea-bg text-tea-text shadow-sm' : 'text-tea-text-sec hover:text-tea-text'}`}
               >
                 <Archive size={12} /> <span className="hidden md:inline">Archive</span><span className="md:hidden">Arch</span>
               </button>
               <button
                 onClick={() => setActiveTab('logs')}
-                className={`px-2 md:px-3 py-1.5 rounded-md text-[10px] md:text-xs uppercase tracking-wider font-bold transition-colors flex items-center gap-1 md:gap-1.5 ${activeTab === 'logs' ? 'bg-tea-bg text-tea-text shadow-sm' : 'text-tea-text-sec hover:text-tea-text'}`}
+                className={`px-2 md:px-3 py-1.5 rounded-md text-ui-10 md:text-xs uppercase tracking-wider font-bold transition-colors flex items-center gap-1 md:gap-1.5 ${activeTab === 'logs' ? 'bg-tea-bg text-tea-text shadow-sm' : 'text-tea-text-sec hover:text-tea-text'}`}
               >
                 <ScrollText size={12} /> Log
               </button>
               <button
                 onClick={() => setActiveTab('ledger')}
-                className={`px-2 md:px-3 py-1.5 rounded-md text-[10px] md:text-xs uppercase tracking-wider font-bold transition-colors flex items-center gap-1 md:gap-1.5 ${activeTab === 'ledger' ? 'bg-tea-bg text-tea-text shadow-sm' : 'text-tea-text-sec hover:text-tea-text'}`}
+                className={`px-2 md:px-3 py-1.5 rounded-md text-ui-10 md:text-xs uppercase tracking-wider font-bold transition-colors flex items-center gap-1 md:gap-1.5 ${activeTab === 'ledger' ? 'bg-tea-bg text-tea-text shadow-sm' : 'text-tea-text-sec hover:text-tea-text'}`}
               >
                 <BarChart3 size={12} /> <span className="hidden md:inline">Stock Ledger</span><span className="md:hidden">Ledger</span>
               </button>
@@ -184,7 +184,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
 
             <div className="ml-auto flex items-center gap-2 shrink-0">
               {activeTab === 'archive' && (
-                <button onClick={handleExportArchive} disabled={soldOutProducts.length === 0} className="flex items-center gap-1 md:gap-2 text-[10px] md:text-xs uppercase tracking-[0.15em] md:tracking-[0.2em] font-bold text-tea-text-sec hover:text-tea-text transition-colors px-2 md:px-3 py-1.5 border border-transparent hover:border-tea-border rounded-lg disabled:opacity-50">
+                <button onClick={handleExportArchive} disabled={soldOutProducts.length === 0} className="flex items-center gap-1 md:gap-2 text-ui-10 md:text-xs uppercase tracking-[0.15em] md:tracking-[0.2em] font-bold text-tea-text-sec hover:text-tea-text transition-colors px-2 md:px-3 py-1.5 border border-transparent hover:border-tea-border rounded-lg disabled:opacity-50">
                   <Download size={14} /> <span className="hidden md:inline">Export CSV</span><span className="md:hidden">CSV</span>
                 </button>
               )}
@@ -237,13 +237,13 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
               </colgroup>
               <thead className="sticky top-0 z-20 bg-tea-bg shadow-sm">
                 <tr>
-                  <th className="px-4 py-2 border-b border-tea-border text-[10px] uppercase tracking-wider font-serif text-tea-text-sec text-left">Product</th>
-                  <th className="px-4 py-2 border-b border-tea-border text-[10px] uppercase tracking-wider font-serif text-tea-text-sec text-left">Type</th>
-                  <th className="px-4 py-2 border-b border-tea-border text-[10px] uppercase tracking-wider font-serif text-tea-text-sec text-left">Vendor</th>
-                  <th className="px-4 py-2 border-b border-tea-border text-[10px] uppercase tracking-wider font-serif text-tea-text-sec text-right">Cost</th>
-                  <th className="px-4 py-2 border-b border-tea-border text-[10px] uppercase tracking-wider font-serif text-tea-text-sec text-right">Retail</th>
-                  <th className="px-4 py-2 border-b border-tea-border text-[10px] uppercase tracking-wider font-serif text-tea-text-sec text-center">Sold Out</th>
-                  <th className="px-4 py-2 border-b border-tea-border text-[10px] uppercase tracking-wider font-serif text-tea-text-sec text-center">Actions</th>
+                  <th className="px-4 py-2 border-b border-tea-border text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec text-left">Product</th>
+                  <th className="px-4 py-2 border-b border-tea-border text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec text-left">Type</th>
+                  <th className="px-4 py-2 border-b border-tea-border text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec text-left">Vendor</th>
+                  <th className="px-4 py-2 border-b border-tea-border text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec text-right">Cost</th>
+                  <th className="px-4 py-2 border-b border-tea-border text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec text-right">Retail</th>
+                  <th className="px-4 py-2 border-b border-tea-border text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec text-center">Sold Out</th>
+                  <th className="px-4 py-2 border-b border-tea-border text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec text-center">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -266,7 +266,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
                             {product.givenName || product.productName}
                           </button>
                           {product.givenName && (
-                            <span className="text-[10px] text-tea-text-sec font-sans mt-0.5 truncate block">{product.productName}</span>
+                            <span className="text-ui-10 text-tea-text-sec font-sans mt-0.5 truncate block">{product.productName}</span>
                           )}
                         </div>
                       </td>
@@ -283,7 +283,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
                         <span className="num text-xs text-tea-text">{product.pricePerGramUSD != null ? `$${fmtNum(product.pricePerGramUSD)}` : '-'}</span>
                       </td>
                       <td className="px-4 align-middle text-center">
-                        <span className="text-[10px] text-tea-text-sec/60">
+                        <span className="text-ui-10 text-tea-text-sec/60">
                           {(product as any).soldOutAt ? new Date((product as any).soldOutAt).toLocaleDateString() : '—'}
                         </span>
                       </td>
@@ -325,12 +325,12 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
                 >
                   <div className="flex-1 min-w-0">
                     <div className="text-tea-text text-sm font-serif truncate">{product.givenName || product.productName}</div>
-                    <div className="text-[10px] text-tea-text-sec/70 mt-0.5">{product.type} · {product.vendor || '—'}</div>
+                    <div className="text-ui-10 text-tea-text-sec/70 mt-0.5">{product.type} · {product.vendor || '—'}</div>
                   </div>
                   <button
                     onClick={() => handleReactivate(product)}
                     disabled={reactivating === product.id}
-                    className="text-[10px] text-tea-gold hover:text-tea-gold/80 transition-colors shrink-0 disabled:opacity-50"
+                    className="text-ui-10 text-tea-gold hover:text-tea-gold/80 transition-colors shrink-0 disabled:opacity-50"
                   >
                     {reactivating === product.id ? <Loader2 size={10} className="animate-spin" /> : 'Reactivate'}
                   </button>
@@ -356,10 +356,10 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
                   </colgroup>
                   <thead className="sticky top-0 z-20 bg-tea-bg shadow-sm">
                     <tr>
-                      <th className="px-4 py-2 border-b border-tea-border text-[10px] uppercase tracking-wider font-serif text-tea-text-sec text-left">Timestamp</th>
-                      <th className="px-4 py-2 border-b border-tea-border text-[10px] uppercase tracking-wider font-serif text-tea-text-sec text-left">User</th>
-                      <th className="px-4 py-2 border-b border-tea-border text-[10px] uppercase tracking-wider font-serif text-tea-text-sec text-left">Action</th>
-                      <th className="px-4 py-2 border-b border-tea-border text-[10px] uppercase tracking-wider font-serif text-tea-text-sec text-left">Details</th>
+                      <th className="px-4 py-2 border-b border-tea-border text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec text-left">Timestamp</th>
+                      <th className="px-4 py-2 border-b border-tea-border text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec text-left">User</th>
+                      <th className="px-4 py-2 border-b border-tea-border text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec text-left">Action</th>
+                      <th className="px-4 py-2 border-b border-tea-border text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec text-left">Details</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -388,7 +388,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
                             <span className="text-xs text-tea-text">{log.user_email || 'System'}</span>
                           </td>
                           <td className="px-4 align-middle overflow-hidden">
-                            <span className="badge-status badge-status-default text-[9px]">{log.action}</span>
+                            <span className="badge-status badge-status-default text-ui-9">{log.action}</span>
                           </td>
                           <td className="px-4 align-middle overflow-hidden">
                             <span className="text-xs text-tea-text-sec truncate block">{log.details}</span>
@@ -402,7 +402,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
                 {/* Pagination */}
                 {logsTotal > PAGE_SIZE && (
                   <div className="flex items-center justify-between px-4 py-3 border-t border-tea-border bg-tea-bg">
-                    <span className="text-[10px] text-tea-text-sec">{logOffset + 1}–{Math.min(logOffset + PAGE_SIZE, logsTotal)} of {logsTotal}</span>
+                    <span className="text-ui-10 text-tea-text-sec">{logOffset + 1}–{Math.min(logOffset + PAGE_SIZE, logsTotal)} of {logsTotal}</span>
                     <div className="flex gap-1">
                       <button
                         onClick={() => setLogOffset(Math.max(0, logOffset - PAGE_SIZE))}
@@ -436,13 +436,13 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
                         key={log.id}
                         className={`px-4 py-2.5 ${idx % 2 === 0 ? 'bg-transparent' : 'bg-tea-surface/20'}`}
                       >
-                        <div className="flex items-center gap-2 text-[10px] text-tea-text-sec/70">
+                        <div className="flex items-center gap-2 text-ui-10 text-tea-text-sec/70">
                           <span className="font-mono">{new Date(log.created_at).toLocaleString()}</span>
                           <span className="opacity-40">·</span>
                           <span>{log.user_email || 'System'}</span>
                         </div>
                         <div className="flex items-center gap-2 mt-0.5">
-                          <span className="badge-status badge-status-default text-[9px]">{log.action}</span>
+                          <span className="badge-status badge-status-default text-ui-9">{log.action}</span>
                           <span className="text-xs text-tea-text-sec truncate">{log.details}</span>
                         </div>
                       </div>
@@ -450,7 +450,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
                     {/* Mobile pagination */}
                     {logsTotal > PAGE_SIZE && (
                       <div className="flex items-center justify-between px-4 py-3 border-t border-tea-border">
-                        <span className="text-[10px] text-tea-text-sec">{logOffset + 1}–{Math.min(logOffset + PAGE_SIZE, logsTotal)} of {logsTotal}</span>
+                        <span className="text-ui-10 text-tea-text-sec">{logOffset + 1}–{Math.min(logOffset + PAGE_SIZE, logsTotal)} of {logsTotal}</span>
                         <div className="flex gap-1">
                           <button onClick={() => setLogOffset(Math.max(0, logOffset - PAGE_SIZE))} disabled={logOffset === 0} className="p-1 min-h-[36px] min-w-[36px] flex items-center justify-center text-tea-text-sec hover:text-tea-text disabled:opacity-30 transition-colors"><ChevronLeft size={14} /></button>
                           <button onClick={() => setLogOffset(logOffset + PAGE_SIZE)} disabled={logOffset + PAGE_SIZE >= logsTotal} className="p-1 min-h-[36px] min-w-[36px] flex items-center justify-center text-tea-text-sec hover:text-tea-text disabled:opacity-30 transition-colors"><ChevronRight size={14} /></button>
@@ -483,13 +483,13 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
                   </colgroup>
                   <thead className="sticky top-0 z-20 bg-tea-bg shadow-sm">
                     <tr>
-                      <th className="px-4 py-2 border-b border-tea-border text-[10px] uppercase tracking-wider font-serif text-tea-text-sec text-left">Timestamp</th>
-                      <th className="px-4 py-2 border-b border-tea-border text-[10px] uppercase tracking-wider font-serif text-tea-text-sec text-left">Product</th>
-                      <th className="px-4 py-2 border-b border-tea-border text-[10px] uppercase tracking-wider font-serif text-tea-text-sec text-right">Delta</th>
-                      <th className="px-4 py-2 border-b border-tea-border text-[10px] uppercase tracking-wider font-serif text-tea-text-sec text-right">Balance</th>
-                      <th className="px-4 py-2 border-b border-tea-border text-[10px] uppercase tracking-wider font-serif text-tea-text-sec text-center">Reason</th>
-                      <th className="px-4 py-2 border-b border-tea-border text-[10px] uppercase tracking-wider font-serif text-tea-text-sec text-left">Invoice</th>
-                      <th className="px-4 py-2 border-b border-tea-border text-[10px] uppercase tracking-wider font-serif text-tea-text-sec text-left">User</th>
+                      <th className="px-4 py-2 border-b border-tea-border text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec text-left">Timestamp</th>
+                      <th className="px-4 py-2 border-b border-tea-border text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec text-left">Product</th>
+                      <th className="px-4 py-2 border-b border-tea-border text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec text-right">Delta</th>
+                      <th className="px-4 py-2 border-b border-tea-border text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec text-right">Balance</th>
+                      <th className="px-4 py-2 border-b border-tea-border text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec text-center">Reason</th>
+                      <th className="px-4 py-2 border-b border-tea-border text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec text-left">Invoice</th>
+                      <th className="px-4 py-2 border-b border-tea-border text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec text-left">User</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -526,7 +526,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
                               <span className="text-xs text-tea-text-sec num">{entry.balance_after}g</span>
                             </td>
                             <td className="px-4 align-middle text-center">
-                              <span className="badge-status badge-status-default text-[9px]">
+                              <span className="badge-status badge-status-default text-ui-9">
                                 {REASON_LABELS[entry.reason] || entry.reason}
                               </span>
                             </td>
@@ -555,7 +555,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
                 {/* Pagination */}
                 {ledgerTotal > PAGE_SIZE && (
                   <div className="flex items-center justify-between px-4 py-3 border-t border-tea-border bg-tea-bg">
-                    <span className="text-[10px] text-tea-text-sec">{ledgerOffset + 1}–{Math.min(ledgerOffset + PAGE_SIZE, ledgerTotal)} of {ledgerTotal}</span>
+                    <span className="text-ui-10 text-tea-text-sec">{ledgerOffset + 1}–{Math.min(ledgerOffset + PAGE_SIZE, ledgerTotal)} of {ledgerTotal}</span>
                     <div className="flex gap-1">
                       <button onClick={() => setLedgerOffset(Math.max(0, ledgerOffset - PAGE_SIZE))} disabled={ledgerOffset === 0} className="p-1 min-h-[36px] min-w-[36px] flex items-center justify-center text-tea-text-sec hover:text-tea-text disabled:opacity-30 transition-colors"><ChevronLeft size={14} /></button>
                       <button onClick={() => setLedgerOffset(ledgerOffset + PAGE_SIZE)} disabled={ledgerOffset + PAGE_SIZE >= ledgerTotal} className="p-1 min-h-[36px] min-w-[36px] flex items-center justify-center text-tea-text-sec hover:text-tea-text disabled:opacity-30 transition-colors"><ChevronRight size={14} /></button>
@@ -580,8 +580,8 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
                       return (
                         <div key={entry.id} className={`px-4 py-2.5 ${idx % 2 === 0 ? 'bg-transparent' : 'bg-tea-surface/20'}`}>
                           <div className="flex items-center justify-between">
-                            <span className="text-[10px] text-tea-text-sec/70 font-mono">{new Date(entry.created_at).toLocaleDateString()}</span>
-                            <span className="badge-status badge-status-default text-[9px]">{REASON_LABELS[entry.reason] || entry.reason}</span>
+                            <span className="text-ui-10 text-tea-text-sec/70 font-mono">{new Date(entry.created_at).toLocaleDateString()}</span>
+                            <span className="badge-status badge-status-default text-ui-9">{REASON_LABELS[entry.reason] || entry.reason}</span>
                           </div>
                           <div className="flex items-center justify-between mt-0.5">
                             <span className="text-sm text-tea-text font-serif truncate">{entry.product_name || 'Unknown'}</span>
@@ -590,14 +590,14 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
                             </span>
                           </div>
                           {entry.source_invoice_number && (
-                            <div className="text-[10px] text-tea-text-sec/60 mt-0.5 num">{entry.source_invoice_number}</div>
+                            <div className="text-ui-10 text-tea-text-sec/60 mt-0.5 num">{entry.source_invoice_number}</div>
                           )}
                         </div>
                       );
                     })}
                     {ledgerTotal > PAGE_SIZE && (
                       <div className="flex items-center justify-between px-4 py-3 border-t border-tea-border">
-                        <span className="text-[10px] text-tea-text-sec">{ledgerOffset + 1}–{Math.min(ledgerOffset + PAGE_SIZE, ledgerTotal)} of {ledgerTotal}</span>
+                        <span className="text-ui-10 text-tea-text-sec">{ledgerOffset + 1}–{Math.min(ledgerOffset + PAGE_SIZE, ledgerTotal)} of {ledgerTotal}</span>
                         <div className="flex gap-1">
                           <button onClick={() => setLedgerOffset(Math.max(0, ledgerOffset - PAGE_SIZE))} disabled={ledgerOffset === 0} className="p-1 min-h-[36px] min-w-[36px] flex items-center justify-center text-tea-text-sec hover:text-tea-text disabled:opacity-30 transition-colors"><ChevronLeft size={14} /></button>
                           <button onClick={() => setLedgerOffset(ledgerOffset + PAGE_SIZE)} disabled={ledgerOffset + PAGE_SIZE >= ledgerTotal} className="p-1 min-h-[36px] min-w-[36px] flex items-center justify-center text-tea-text-sec hover:text-tea-text disabled:opacity-30 transition-colors"><ChevronRight size={14} /></button>

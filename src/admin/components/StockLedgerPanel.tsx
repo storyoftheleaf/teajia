@@ -42,7 +42,7 @@ export const StockLedgerPanel: React.FC<StockLedgerPanelProps> = ({
         {onClose && (
           <button onClick={onClose} className="text-xs text-tea-text-sec active:text-tea-text transition-colors py-1.5 px-3 -ml-3 rounded-lg">Close</button>
         )}
-        <h4 className="text-[13px] uppercase tracking-[0.1em] text-tea-text-sec font-medium">Stock History</h4>
+        <h4 className="text-ui-13 uppercase tracking-[0.1em] text-tea-text-sec font-medium">Stock History</h4>
         {onClose && <div className="w-12" />}
       </div>
       <p className="text-sm text-tea-text font-serif mb-3">{productName}</p>
@@ -60,23 +60,23 @@ export const StockLedgerPanel: React.FC<StockLedgerPanelProps> = ({
                 <div key={entry.id} className="flex items-center gap-2 py-1.5 border-b border-tea-border last:border-0">
                   <div className={`flex items-center gap-0.5 w-16 shrink-0 ${isPositive ? 'text-tea-gold' : 'text-tea-text-sec'}`}>
                     {isPositive ? <ArrowUpRight size={10} /> : <ArrowDownRight size={10} />}
-                    <span className="text-[11px] num font-medium">
+                    <span className="text-ui-11 num font-medium">
                       {isPositive ? '+' : ''}{entry.delta}g
                     </span>
                   </div>
-                  <span className="text-[11px] text-tea-text-sec num w-14 shrink-0">{entry.balance_after}g</span>
-                  <span className="badge-status badge-status-default text-[11px]">
+                  <span className="text-ui-11 text-tea-text-sec num w-14 shrink-0">{entry.balance_after}g</span>
+                  <span className="badge-status badge-status-default text-ui-11">
                     {REASON_LABELS[entry.reason] || entry.reason}
                   </span>
                   {entry.source_invoice_number && (
                     <button
                       onClick={() => navigate(`/admin/orders?search=${encodeURIComponent(entry.source_invoice_number)}`)}
-                      className="text-[10px] text-tea-text-sec hover:text-tea-gold num truncate transition-colors"
+                      className="text-ui-10 text-tea-text-sec hover:text-tea-gold num truncate transition-colors"
                     >
                       {entry.source_invoice_number}
                     </button>
                   )}
-                  <span className="text-[11px] text-tea-text-sec/50 ml-auto shrink-0">
+                  <span className="text-ui-11 text-tea-text-sec/50 ml-auto shrink-0">
                     {new Date(entry.created_at).toLocaleDateString()}
                   </span>
                 </div>

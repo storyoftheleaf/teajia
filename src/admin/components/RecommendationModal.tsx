@@ -147,8 +147,8 @@ export const RecommendationModal: React.FC<RecommendationModalProps> = ({
                         <span className="text-sm font-medium text-tea-text truncate">{p.givenName || p.productName}</span>
                         {isMatch && <Leaf size={9} className="text-tea-gold shrink-0" />}
                       </div>
-                      <p className="text-[11px] text-tea-text-sec">{[p.type, p.originRegion].filter(Boolean).join(' · ')}</p>
-                      {isTried && <p className="text-[10px] text-tea-text-dim">already tried</p>}
+                      <p className="text-ui-11 text-tea-text-sec">{[p.type, p.originRegion].filter(Boolean).join(' · ')}</p>
+                      {isTried && <p className="text-ui-10 text-tea-text-dim">already tried</p>}
                     </div>
                     <div className={`w-5 h-5 rounded border flex items-center justify-center shrink-0 transition-colors ${
                       isSelected ? 'bg-tea-gold border-tea-gold text-tea-bg' : 'border-tea-border'
@@ -167,7 +167,7 @@ export const RecommendationModal: React.FC<RecommendationModalProps> = ({
           {/* Message panel */}
           <div className="md:w-68 border-t md:border-t-0 md:border-l border-tea-border flex flex-col p-4 gap-3 flex-shrink-0 overflow-y-auto" style={{ minWidth: '260px' }}>
             <div>
-              <p className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec mb-1.5">Personal note</p>
+              <p className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec mb-1.5">Personal note</p>
               <textarea
                 value={note}
                 onChange={e => setNote(e.target.value)}
@@ -177,11 +177,11 @@ export const RecommendationModal: React.FC<RecommendationModalProps> = ({
               />
             </div>
             <div className="flex-1 flex flex-col min-h-0">
-              <p className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec mb-1.5">
+              <p className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec mb-1.5">
                 Message preview
                 {selected.length > 0 && <span className="ml-2 normal-case text-tea-text-dim">{selected.length} tea{selected.length !== 1 ? 's' : ''}</span>}
               </p>
-              <pre className="flex-1 text-[11px] text-tea-text-sec leading-relaxed whitespace-pre-wrap bg-tea-surface rounded-lg p-2.5 overflow-y-auto font-sans min-h-[100px]">
+              <pre className="flex-1 text-ui-11 text-tea-text-sec leading-relaxed whitespace-pre-wrap bg-tea-surface rounded-lg p-2.5 overflow-y-auto font-sans min-h-[100px]">
                 {selected.length === 0
                   ? <span className="text-tea-text-dim">Select teas above to build the message</span>
                   : message}

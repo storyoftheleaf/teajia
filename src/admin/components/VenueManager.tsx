@@ -18,7 +18,7 @@ const textareaClass = 'w-full border border-tea-border bg-transparent focus:bord
 
 const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
   <div>
-    <label className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec block mb-1.5">{label}</label>
+    <label className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec block mb-1.5">{label}</label>
     {children}
   </div>
 );
@@ -61,7 +61,7 @@ const PhotoStrip: React.FC<PhotoStripProps> = ({ photos, onAdd, onRemove, upload
         className="w-24 h-24 border border-dashed border-tea-border rounded-md flex flex-col items-center justify-center gap-1.5 text-tea-text-dim hover:border-tea-gold/40 hover:text-tea-text-sec transition-colors flex-shrink-0"
       >
         {uploading ? <Loader2 size={16} className="animate-spin text-tea-gold" /> : <Upload size={16} />}
-        <span className="text-[9px] tracking-wide">{uploading ? 'Uploading…' : 'Add photo'}</span>
+        <span className="text-ui-9 tracking-wide">{uploading ? 'Uploading…' : 'Add photo'}</span>
       </button>
       <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} className="hidden" />
     </div>
@@ -145,7 +145,7 @@ const SpaceForm: React.FC<SpaceFormProps> = ({ venueId, space, onSaved, onCancel
                 key={style}
                 type="button"
                 onClick={() => setTeaStyles(prev => active ? prev.filter(s => s !== style) : [...prev, style])}
-                className={`px-2.5 py-1 rounded-full text-[11px] transition-colors ${
+                className={`px-2.5 py-1 rounded-full text-ui-11 transition-colors ${
                   active ? 'bg-tea-gold/15 text-tea-gold' : 'bg-tea-elevated text-tea-text-sec hover:text-tea-text'
                 }`}
               >
@@ -308,23 +308,23 @@ const VenueCard: React.FC<VenueCardProps> = ({ venue, onRefresh }) => {
               <h3 className="text-sm font-medium text-tea-text">{venue.name}</h3>
               <p className="text-xs text-tea-text-sec mt-0.5">{venue.address}</p>
               {venue.spaces.length > 0 && (
-                <p className="text-[11px] text-tea-text-dim mt-1">
+                <p className="text-ui-11 text-tea-text-dim mt-1">
                   {venue.spaces.length} space{venue.spaces.length !== 1 ? 's' : ''} · {totalCapacity} seats total
                 </p>
               )}
               <div className="flex items-center gap-3 mt-1.5 flex-wrap">
                 {venue.website && (
-                  <a href={venue.website} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="text-[11px] text-tea-gold hover:text-tea-gold-lt transition-colors truncate max-w-[180px]">
+                  <a href={venue.website} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="text-ui-11 text-tea-gold hover:text-tea-gold-lt transition-colors truncate max-w-[180px]">
                     {venue.website.replace(/^https?:\/\//, '')}
                   </a>
                 )}
                 {venue.instagram && (
-                  <span className="text-[11px] text-tea-text-dim">{venue.instagram.startsWith('@') ? venue.instagram : `@${venue.instagram}`}</span>
+                  <span className="text-ui-11 text-tea-text-dim">{venue.instagram.startsWith('@') ? venue.instagram : `@${venue.instagram}`}</span>
                 )}
               </div>
             </div>
             <div className="flex items-center gap-1 flex-shrink-0">
-              <button onClick={() => { setEditing(e => !e); if (!expanded) handleToggleExpand(); }} className="text-[11px] text-tea-text-sec hover:text-tea-text px-2 py-1 transition-colors">
+              <button onClick={() => { setEditing(e => !e); if (!expanded) handleToggleExpand(); }} className="text-ui-11 text-tea-text-sec hover:text-tea-text px-2 py-1 transition-colors">
                 Edit
               </button>
               <button onClick={handleToggleExpand} className="text-tea-text-sec hover:text-tea-text p-1 transition-colors">
@@ -367,8 +367,8 @@ const VenueCard: React.FC<VenueCardProps> = ({ venue, onRefresh }) => {
                 </Field>
               </div>
               <div>
-                <label className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec block mb-1">Venue Photos</label>
-                <p className="text-[10px] text-tea-text-dim mb-2">First photo is the hero. Add more to show the vibe from past events.</p>
+                <label className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec block mb-1">Venue Photos</label>
+                <p className="text-ui-10 text-tea-text-dim mb-2">First photo is the hero. Add more to show the vibe from past events.</p>
                 <PhotoStrip photos={photos} onAdd={handleUpload} onRemove={handleRemovePhoto} uploading={uploading} />
               </div>
               <div className="flex items-center justify-between pt-1">
@@ -391,7 +391,7 @@ const VenueCard: React.FC<VenueCardProps> = ({ venue, onRefresh }) => {
 
           {/* Spaces list */}
           <div className="p-4 space-y-3">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-dim">Spaces</p>
+            <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim">Spaces</p>
 
             {venue.spaces.length === 0 && !addingSpace && (
               <p className="text-xs text-tea-text-dim py-2">No spaces yet — add a tea table or room below.</p>
@@ -427,7 +427,7 @@ const VenueCard: React.FC<VenueCardProps> = ({ venue, onRefresh }) => {
                       <div className="flex items-start justify-between">
                         <div>
                           <p className="text-sm text-tea-text font-medium">{space.name}</p>
-                          <p className="text-[11px] text-tea-text-sec flex items-center gap-1 mt-0.5">
+                          <p className="text-ui-11 text-tea-text-sec flex items-center gap-1 mt-0.5">
                             <Users size={10} /> {space.capacity} seats
                           </p>
                           {space.description && (
@@ -436,13 +436,13 @@ const VenueCard: React.FC<VenueCardProps> = ({ venue, onRefresh }) => {
                           {space.teaStyles && space.teaStyles.length > 0 && (
                             <div className="flex flex-wrap gap-1 mt-1.5">
                               {space.teaStyles.map(s => (
-                                <span key={s} className="px-2 py-0.5 rounded-full text-[10px] bg-tea-elevated text-tea-text-sec">{s}</span>
+                                <span key={s} className="px-2 py-0.5 rounded-full text-ui-10 bg-tea-elevated text-tea-text-sec">{s}</span>
                               ))}
                             </div>
                           )}
                         </div>
                         <div className="flex items-center gap-1 flex-shrink-0">
-                          <button onClick={() => setEditingSpaceId(space.id)} className="text-[11px] text-tea-text-sec hover:text-tea-text px-2 py-0.5 transition-colors">
+                          <button onClick={() => setEditingSpaceId(space.id)} className="text-ui-11 text-tea-text-sec hover:text-tea-text px-2 py-0.5 transition-colors">
                             Edit
                           </button>
                           <button onClick={() => handleDeleteSpace(space)} className="text-tea-text-dim hover:text-red-400 p-0.5 transition-colors">
@@ -480,7 +480,7 @@ const VenueCard: React.FC<VenueCardProps> = ({ venue, onRefresh }) => {
           <div className="p-4 border-t border-tea-border space-y-2">
             <div className="flex items-center gap-2">
               <Calendar size={12} className="text-tea-text-dim" />
-              <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-dim">Events Hosted Here</p>
+              <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim">Events Hosted Here</p>
             </div>
             {loadingEvents ? (
               <Loader2 size={14} className="animate-spin text-tea-text-dim" />
@@ -496,7 +496,7 @@ const VenueCard: React.FC<VenueCardProps> = ({ venue, onRefresh }) => {
                   >
                     <div className="min-w-0">
                       <p className="text-xs text-tea-text group-hover:text-tea-gold transition-colors truncate">{ev.title}</p>
-                      <p className="text-[10px] text-tea-text-dim mt-0.5">
+                      <p className="text-ui-10 text-tea-text-dim mt-0.5">
                         {new Date(ev.event_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                         {' · '}{ev.confirmed_count ?? 0}/{ev.total_capacity} confirmed
                       </p>

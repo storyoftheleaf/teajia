@@ -79,7 +79,7 @@ const StatCard: React.FC<{
   >
     <div className="flex items-center gap-2 text-tea-text-dim">
       {icon}
-      <span className="text-[10px] uppercase tracking-[0.2em]">{label}</span>
+      <span className="text-ui-10 uppercase tracking-[0.2em]">{label}</span>
     </div>
     <p className="font-serif text-2xl text-tea-text num leading-none">{value}</p>
     {sub && <p className="text-xs text-tea-text-dim">{sub}</p>}
@@ -208,7 +208,7 @@ export const VendorProfileView: React.FC = () => {
           transition={{ duration: 0.4 }}
           className="mb-10"
         >
-          <p className="text-[10px] uppercase tracking-[0.35em] text-tea-text-sec mb-3">
+          <p className="text-ui-10 uppercase tracking-[0.35em] text-tea-text-sec mb-3">
             Vendor profile
           </p>
           <h1 className="font-serif text-4xl md:text-5xl text-tea-text font-light mb-3">
@@ -232,7 +232,7 @@ export const VendorProfileView: React.FC = () => {
               {vendor.tags.map(tag => (
                 <span
                   key={tag}
-                  className="text-[10px] uppercase tracking-[0.15em] px-2.5 py-1 bg-tea-surface text-tea-text-sec rounded-sm"
+                  className="text-ui-10 uppercase tracking-[0.15em] px-2.5 py-1 bg-tea-surface text-tea-text-sec rounded-sm"
                 >
                   {tag}
                 </span>
@@ -291,10 +291,10 @@ export const VendorProfileView: React.FC = () => {
             <div className="border border-tea-border rounded-sm overflow-hidden">
               {/* Table header */}
               <div className="grid grid-cols-[1fr_80px_80px_80px] gap-4 px-5 py-3 bg-tea-surface border-b border-tea-border">
-                <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim">Tea</span>
-                <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim text-right">Stock</span>
-                <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim text-right">Cost/g</span>
-                <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim text-right">Status</span>
+                <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim">Tea</span>
+                <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim text-right">Stock</span>
+                <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim text-right">Cost/g</span>
+                <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim text-right">Status</span>
               </div>
 
               {products.map((p, i) => {
@@ -311,7 +311,7 @@ export const VendorProfileView: React.FC = () => {
                       <p className="text-sm font-serif text-tea-text truncate">
                         {p.givenName || p.productName}
                       </p>
-                      <p className="text-[10px] text-tea-text-dim mt-0.5">
+                      <p className="text-ui-10 text-tea-text-dim mt-0.5">
                         {[p.type, p.year].filter(Boolean).join(' · ')}
                       </p>
                     </div>
@@ -359,7 +359,7 @@ export const VendorProfileView: React.FC = () => {
                   </div>
                   <div className="text-right">
                     <span
-                      className={`text-[10px] uppercase tracking-[0.1em] px-2 py-0.5 rounded-sm ${
+                      className={`text-ui-10 uppercase tracking-[0.1em] px-2 py-0.5 rounded-sm ${
                         inv.status === 'Filled'
                           ? 'bg-tea-gold/15 text-tea-gold'
                           : 'bg-tea-surface text-tea-text-sec border border-tea-border'
@@ -376,7 +376,7 @@ export const VendorProfileView: React.FC = () => {
 
         {/* Footer mark */}
         <div className="border-t border-tea-border pt-8 text-center">
-          <p className="text-[10px] uppercase tracking-[0.3em] text-tea-text-sec/30">
+          <p className="text-ui-10 uppercase tracking-[0.3em] text-tea-text-sec/30">
             Teajia · Vendor Intelligence
           </p>
         </div>

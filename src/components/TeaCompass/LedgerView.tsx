@@ -80,24 +80,24 @@ const LineItemRow: React.FC<{
           {item.compassEntryId && onOpenEntry ? (
             <button
               onClick={() => onOpenEntry(item.compassEntryId!)}
-              className="text-tea-text hover:text-tea-gold font-serif text-[13px] text-left transition-colors truncate block w-full"
+              className="text-tea-text hover:text-tea-gold font-serif text-ui-13 text-left transition-colors truncate block w-full"
             >
               {item.name || 'Unnamed'}
             </button>
           ) : item.productId ? (
             <button
               onClick={() => navigate(`/admin/inventory?panel=${encodeURIComponent(item.productId!)}`)}
-              className="text-tea-text hover:text-tea-gold font-serif text-[13px] text-left transition-colors truncate block w-full"
+              className="text-tea-text hover:text-tea-gold font-serif text-ui-13 text-left transition-colors truncate block w-full"
             >
               {item.name || 'Unnamed'}
             </button>
           ) : (
-            <p className="text-tea-text font-serif text-[13px] truncate">
+            <p className="text-tea-text font-serif text-ui-13 truncate">
               {item.name || 'Unnamed'}
             </p>
           )}
           {(item.type || item.form || item.year) && (
-            <p className="text-tea-text-dim text-[10px] num mt-0.5">
+            <p className="text-tea-text-dim text-ui-10 num mt-0.5">
               {[item.type, item.form, item.year].filter(Boolean).join(' · ')}
             </p>
           )}
@@ -120,7 +120,7 @@ const LineItemRow: React.FC<{
               onWheel={(e) => (e.target as HTMLElement).blur()}
               className="w-10 text-center text-tea-text text-xs font-medium bg-transparent num border-none outline-none"
             />
-            <span className="text-tea-text-dim text-[10px] num">{isUnitBased ? '×' : 'g'}</span>
+            <span className="text-tea-text-dim text-ui-10 num">{isUnitBased ? '×' : 'g'}</span>
           </div>
           <button
             type="button"
@@ -133,11 +133,11 @@ const LineItemRow: React.FC<{
 
         {/* Price + remove */}
         <div className="shrink-0 text-right">
-          <p className="text-tea-text text-[13px] font-serif num">{fmtPrice(total, item.currency)}</p>
+          <p className="text-tea-text text-ui-13 font-serif num">{fmtPrice(total, item.currency)}</p>
           <button
             type="button"
             onClick={onRemove}
-            className="text-tea-text-dim hover:text-tea-text-sec text-[10px] uppercase tracking-wide transition-colors mt-0.5"
+            className="text-tea-text-dim hover:text-tea-text-sec text-ui-10 uppercase tracking-wide transition-colors mt-0.5"
           >
             remove
           </button>
@@ -223,7 +223,7 @@ const TransactionPhotos: React.FC<{ txId: string; photos: string[] }> = ({ txId,
               }`}
             >
               <Plus size={16} className="text-tea-text-dim" />
-              <span className="text-[9px] text-tea-text-dim mt-0.5">
+              <span className="text-ui-9 text-tea-text-dim mt-0.5">
                 {uploading ? '...' : 'Add'}
               </span>
             </button>
@@ -233,7 +233,7 @@ const TransactionPhotos: React.FC<{ txId: string; photos: string[] }> = ({ txId,
             type="button"
             onClick={handleCapture}
             disabled={uploading}
-            className={`flex items-center gap-1.5 py-2 px-3 rounded-lg bg-tea-surface text-tea-text-dim text-[11px] transition-colors active:text-tea-text-sec ${
+            className={`flex items-center gap-1.5 py-2 px-3 rounded-lg bg-tea-surface text-tea-text-dim text-ui-11 transition-colors active:text-tea-text-sec ${
               uploading ? 'animate-pulse' : ''
             }`}
           >
@@ -477,7 +477,7 @@ const TransactionCard: React.FC<{
           <p className="text-tea-text text-sm font-serif truncate">
             {tx.counterpartyName || 'Unnamed'}
           </p>
-          <p className="text-tea-text-sec text-[11px] uppercase tracking-[0.08em]">
+          <p className="text-tea-text-sec text-ui-11 uppercase tracking-[0.08em]">
             {directionLabel} · {tx.items.length} {tx.items.length === 1 ? 'item' : 'items'}
             {(tx.photos?.length ?? 0) > 0 && ` · ${tx.photos.length} photo${tx.photos.length === 1 ? '' : 's'}`}
           </p>
@@ -534,7 +534,7 @@ const TransactionCard: React.FC<{
               {/* Grand total */}
               {tx.items.length > 0 && (
                 <div className="flex items-baseline justify-between pt-3 border-t border-tea-border" aria-label="Grand total">
-                  <span className="text-tea-text-sec text-[11px] uppercase tracking-[0.15em]">Total</span>
+                  <span className="text-tea-text-sec text-ui-11 uppercase tracking-[0.15em]">Total</span>
                   <span className="text-tea-text text-sm font-serif num">
                     {fmtPrice(total, tx.currency)}
                   </span>
@@ -614,7 +614,7 @@ const TransactionCard: React.FC<{
                         // Status update failed silently
                       }
                     }}
-                    className="flex items-center gap-1.5 px-3 py-2.5 rounded-lg bg-tea-surface text-tea-text text-[11px] font-medium uppercase tracking-[0.08em] active:bg-tea-elevated transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-2.5 rounded-lg bg-tea-surface text-tea-text text-ui-11 font-medium uppercase tracking-[0.08em] active:bg-tea-elevated transition-colors"
                   >
                     <Check size={14} /> {poSaved ? 'Sent' : 'Mark as Sent'}
                   </button>
@@ -697,13 +697,13 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ embedded, onOpenEntry, s
           <ShoppingBag className="w-8 h-8 text-tea-gold/40" />
         </div>
         <h3 className="font-serif text-lg text-tea-text mb-1.5 tracking-wide">No transactions yet</h3>
-        <p className="text-[13px] text-tea-text-sec font-serif text-center max-w-[240px] leading-relaxed mb-8">
+        <p className="text-ui-13 text-tea-text-sec font-serif text-center max-w-[240px] leading-relaxed mb-8">
           Mark items as "Buy" in the Compass, or start a new purchase or sale here.
         </p>
         <div className="flex flex-col gap-2 w-full max-w-xs">
           <button
             onClick={() => openPurchaseOrder()}
-            className="w-full px-5 py-3 bg-tea-gold text-tea-bg text-[10px] font-semibold uppercase tracking-[0.08em] transition-colors flex items-center justify-center gap-2"
+            className="w-full px-5 py-3 bg-tea-gold text-tea-bg text-ui-10 font-semibold uppercase tracking-[0.08em] transition-colors flex items-center justify-center gap-2"
           >
             <ShoppingBag size={14} />
             Purchase Order Builder
@@ -711,13 +711,13 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ embedded, onOpenEntry, s
           <div className="flex gap-2">
             <button
               onClick={() => createTransaction('purchase', '', 'NT')}
-              className="flex-1 px-4 py-2.5 bg-tea-surface text-tea-text-sec text-[10px] font-semibold uppercase tracking-[0.08em] transition-colors active:text-tea-text"
+              className="flex-1 px-4 py-2.5 bg-tea-surface text-tea-text-sec text-ui-10 font-semibold uppercase tracking-[0.08em] transition-colors active:text-tea-text"
             >
               Quick Note
             </button>
             <button
               onClick={() => createTransaction('sale', '', 'USD')}
-              className="flex-1 px-4 py-2.5 bg-tea-surface text-tea-text-sec text-[10px] font-semibold uppercase tracking-[0.08em] transition-colors active:text-tea-text"
+              className="flex-1 px-4 py-2.5 bg-tea-surface text-tea-text-sec text-ui-10 font-semibold uppercase tracking-[0.08em] transition-colors active:text-tea-text"
             >
               Quick Sale
             </button>
@@ -779,7 +779,7 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ embedded, onOpenEntry, s
             onClick={() => {
               createTransaction('purchase', '', 'NT');
             }}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-tea-gold/5 text-tea-text-sec text-[11px] font-semibold uppercase tracking-[0.08em] active:text-tea-text transition-colors"
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-tea-gold/5 text-tea-text-sec text-ui-11 font-semibold uppercase tracking-[0.08em] active:text-tea-text transition-colors"
           >
             <ArrowDownLeft size={14} />
             Quick Note
@@ -788,7 +788,7 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ embedded, onOpenEntry, s
             onClick={() => {
               createTransaction('sale', '', 'USD');
             }}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-tea-surface text-tea-text-sec text-[11px] font-semibold uppercase tracking-[0.08em] active:text-tea-text transition-colors"
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-tea-surface text-tea-text-sec text-ui-11 font-semibold uppercase tracking-[0.08em] active:text-tea-text transition-colors"
           >
             <ArrowUpRight size={14} />
             Quick Sale
@@ -796,7 +796,7 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ embedded, onOpenEntry, s
         </div>
         <button
           onClick={() => openPurchaseOrder()}
-          className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-tea-gold text-tea-bg text-[11px] font-semibold uppercase tracking-[0.08em] transition-colors"
+          className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-tea-gold text-tea-bg text-ui-11 font-semibold uppercase tracking-[0.08em] transition-colors"
         >
           <ShoppingBag size={14} />
           Full Purchase Order Builder

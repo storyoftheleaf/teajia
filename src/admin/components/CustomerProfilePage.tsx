@@ -121,7 +121,7 @@ const SampleOfferModal: React.FC<{
                 {p.imageUrl && <img src={p.imageUrl} alt="" className="w-8 h-8 rounded-lg object-cover shrink-0" />}
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-tea-text truncate">{p.givenName || p.productName}</p>
-                  <p className="text-[11px] text-tea-text-sec">{[p.type, p.originRegion].filter(Boolean).join(' · ')}</p>
+                  <p className="text-ui-11 text-tea-text-sec">{[p.type, p.originRegion].filter(Boolean).join(' · ')}</p>
                 </div>
                 {selectedId === p.id && <Check size={14} className="text-tea-gold shrink-0" />}
               </button>
@@ -136,7 +136,7 @@ const SampleOfferModal: React.FC<{
                 rows={2}
                 className="w-full bg-tea-surface border border-tea-border rounded-lg p-2.5 text-sm text-tea-text resize-none focus:outline-none focus:border-tea-gold/50 placeholder:text-tea-text-dim"
               />
-              <pre className="text-[11px] text-tea-text-sec leading-relaxed whitespace-pre-wrap bg-tea-surface rounded-lg p-3 font-sans">
+              <pre className="text-ui-11 text-tea-text-sec leading-relaxed whitespace-pre-wrap bg-tea-surface rounded-lg p-3 font-sans">
                 {message}
               </pre>
               <div className="flex gap-2">
@@ -271,7 +271,7 @@ export const CustomerProfilePage: React.FC = () => {
               <div className="flex items-center gap-1.5 mt-2 flex-wrap">
                 <Leaf size={11} className="text-tea-text-dim" />
                 {preferredTypes.map(t => (
-                  <span key={t} className="text-[11px] bg-tea-elevated text-tea-text-sec px-2 py-0.5 rounded">{t}</span>
+                  <span key={t} className="text-ui-11 bg-tea-elevated text-tea-text-sec px-2 py-0.5 rounded">{t}</span>
                 ))}
               </div>
             )}
@@ -290,7 +290,7 @@ export const CustomerProfilePage: React.FC = () => {
             ].map(({ value, label }) => (
               <div key={label} className="bg-tea-surface border border-tea-border rounded-xl p-4 text-center">
                 <div className="text-2xl font-serif text-tea-text leading-tight">{value}</div>
-                <div className="text-[10px] text-tea-text-sec uppercase tracking-wider mt-1">{label}</div>
+                <div className="text-ui-10 text-tea-text-sec uppercase tracking-wider mt-1">{label}</div>
               </div>
             ))}
           </div>
@@ -301,7 +301,7 @@ export const CustomerProfilePage: React.FC = () => {
               {journey.milestones.map((m) => (
                 <span
                   key={m}
-                  className="text-[10px] uppercase tracking-[0.12em] bg-tea-gold/10 text-tea-gold px-2.5 py-1 rounded-full"
+                  className="text-ui-10 uppercase tracking-[0.12em] bg-tea-gold/10 text-tea-gold px-2.5 py-1 rounded-full"
                 >
                   {m}
                 </span>
@@ -348,7 +348,7 @@ export const CustomerProfilePage: React.FC = () => {
           {/* Last session context */}
           {lastEvent && (
             <div className="bg-tea-surface border border-tea-border rounded-xl p-5">
-              <p className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec mb-3">Last session</p>
+              <p className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec mb-3">Last session</p>
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="font-medium text-tea-text">{lastEvent.title}</p>
@@ -367,7 +367,7 @@ export const CustomerProfilePage: React.FC = () => {
                 </button>
               </div>
               {attendedEvents.length > 1 && (
-                <p className="text-[11px] text-tea-text-dim mt-3">
+                <p className="text-ui-11 text-tea-text-dim mt-3">
                   +{attendedEvents.length - 1} earlier session{attendedEvents.length > 2 ? 's' : ''} — see Event history below
                 </p>
               )}
@@ -377,7 +377,7 @@ export const CustomerProfilePage: React.FC = () => {
           {/* Teas tried */}
           {teas.length > 0 && (
             <div>
-              <p className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec mb-3">
+              <p className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec mb-3">
                 Teas tried <span className="ml-1 normal-case text-tea-text-dim">({teas.length})</span>
               </p>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
@@ -390,9 +390,9 @@ export const CustomerProfilePage: React.FC = () => {
                     )}
                     <div className="min-w-0">
                       <p className="text-xs font-medium text-tea-text truncate">{tea.given_name || tea.product_name}</p>
-                      <p className="text-[10px] text-tea-text-sec">{[tea.type, tea.origin_region].filter(Boolean).join(' · ')}</p>
+                      <p className="text-ui-10 text-tea-text-sec">{[tea.type, tea.origin_region].filter(Boolean).join(' · ')}</p>
                       {tea.source === 'tasted_at_event' && (
-                        <p className="text-[9px] text-tea-text-dim">at session</p>
+                        <p className="text-ui-9 text-tea-text-dim">at session</p>
                       )}
                     </div>
                   </div>
@@ -404,7 +404,7 @@ export const CustomerProfilePage: React.FC = () => {
           {/* Event history */}
           {events.length > 0 && (
             <div>
-              <p className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec mb-3">
+              <p className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec mb-3">
                 Event history <span className="ml-1 normal-case text-tea-text-dim">({events.length})</span>
               </p>
               <div className="space-y-1.5">
@@ -419,12 +419,12 @@ export const CustomerProfilePage: React.FC = () => {
                         <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${evt.attended === 1 ? 'bg-green-400' : 'bg-tea-text-dim'}`} />
                         <span className="text-sm text-tea-text truncate">{evt.title}</span>
                         {evt.attendee_status && evt.attendee_status !== 'confirmed' && (
-                          <span className="text-[10px] text-tea-text-dim shrink-0">({evt.attendee_status})</span>
+                          <span className="text-ui-10 text-tea-text-dim shrink-0">({evt.attendee_status})</span>
                         )}
                       </div>
                       <div className="flex items-center gap-3 shrink-0">
                         {evt.event_date && (
-                          <span className="text-[11px] text-tea-text-sec">
+                          <span className="text-ui-11 text-tea-text-sec">
                             {new Date(evt.event_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                           </span>
                         )}
@@ -444,7 +444,7 @@ export const CustomerProfilePage: React.FC = () => {
           {/* Impressions */}
           {journey?.impressions && journey.impressions.length > 0 && (
             <div>
-              <p className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec mb-3">
+              <p className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec mb-3">
                 Tasting notes <span className="ml-1 normal-case text-tea-text-dim">({journey.impressions.length})</span>
               </p>
               <div className="space-y-2">
@@ -452,7 +452,7 @@ export const CustomerProfilePage: React.FC = () => {
                   <div key={i} className="bg-tea-surface border border-tea-border rounded-lg px-4 py-3">
                     <p className="text-sm text-tea-text italic leading-relaxed">"{imp.text}"</p>
                     <div className="flex items-center justify-between mt-1.5">
-                      <p className="text-[10px] text-tea-text-sec">
+                      <p className="text-ui-10 text-tea-text-sec">
                         {imp.teaName} · {imp.eventTitle} ·{' '}
                         {new Date(imp.date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
                       </p>
@@ -474,7 +474,7 @@ export const CustomerProfilePage: React.FC = () => {
           {/* Orders */}
           {orders.length > 0 && (
             <div>
-              <p className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec mb-3">
+              <p className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec mb-3">
                 Orders <span className="ml-1 normal-case text-tea-text-dim">({orders.length})</span>
               </p>
               <div className="space-y-1.5">
@@ -485,13 +485,13 @@ export const CustomerProfilePage: React.FC = () => {
                     <span className="text-tea-text">
                       #{order.invoice_number}
                       {order.source_event_title && (
-                        <span className="text-tea-text-dim ml-2 text-[11px]">· {order.source_event_title}</span>
+                        <span className="text-tea-text-dim ml-2 text-ui-11">· {order.source_event_title}</span>
                       )}
                     </span>
                     <div className="flex items-center gap-3">
-                      <span className="text-[11px] text-tea-text-sec">{order.status}</span>
+                      <span className="text-ui-11 text-tea-text-sec">{order.status}</span>
                       {order.payment_status && (
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded ${
+                        <span className={`text-ui-10 px-1.5 py-0.5 rounded ${
                           order.payment_status === 'paid' ? 'bg-green-500/10 text-green-400'
                           : order.payment_status === 'partial' ? 'bg-amber-500/10 text-amber-400'
                           : 'bg-tea-elevated text-tea-text-dim'
@@ -509,7 +509,7 @@ export const CustomerProfilePage: React.FC = () => {
           {/* Notes */}
           {customer.notes && (
             <div>
-              <p className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec mb-2">Notes</p>
+              <p className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec mb-2">Notes</p>
               <p className="text-sm text-tea-text-sec leading-relaxed">{customer.notes}</p>
             </div>
           )}

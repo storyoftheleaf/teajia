@@ -15,7 +15,7 @@ const AvailabilityBadge: React.FC<AvailabilityBadgeProps> = ({ slug, className =
     );
   }
 
-  const base = `inline-flex items-center px-4 py-2 text-[10px] uppercase tracking-[0.25em] rounded-full border ${className}`;
+  const base = `inline-flex items-center px-4 py-2 text-ui-10 uppercase tracking-[0.25em] rounded-full border ${className}`;
 
   if (data.isFull) {
     return (

@@ -41,14 +41,14 @@ const OperatingAsBanner: React.FC<{
   return (
     <div className="flex-none bg-tea-gold/10 border-b border-tea-gold/30 px-4 py-2 flex items-center gap-3">
       <ShieldCheck size={14} className="text-tea-gold shrink-0" />
-      <div className="flex-1 min-w-0 text-[11px] tracking-wide text-tea-text">
+      <div className="flex-1 min-w-0 text-ui-11 tracking-wide text-tea-text">
         Operating as <span className="font-semibold">{accountName}</span>
         <span className="text-tea-text-sec"> — every action is logged and visible to the account owner.</span>
       </div>
       {canReturn && (
         <button
           onClick={onReturn}
-          className="flex items-center gap-1 text-[10px] uppercase tracking-[0.15em] text-tea-text-sec hover:text-tea-text px-2 py-1 rounded-md hover:bg-tea-gold/10 transition-colors shrink-0"
+          className="flex items-center gap-1 text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec hover:text-tea-text px-2 py-1 rounded-md hover:bg-tea-gold/10 transition-colors shrink-0"
         >
           <ArrowLeft size={11} /> Return home
         </button>
@@ -493,7 +493,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
                <div className="flex items-center p-0.5 shrink-0">
                  <button
                    onClick={() => { setInventoryCategory('tea'); setInventorySearchQuery(''); }}
-                   className={`px-3 py-1 text-[10px] uppercase tracking-[0.15em] rounded-md transition-colors ${
+                   className={`px-3 py-1 text-ui-10 uppercase tracking-[0.15em] rounded-md transition-colors ${
                      inventoryCategory === 'tea'
                        ? 'text-tea-gold font-medium'
                        : 'text-tea-text-sec hover:text-tea-text'
@@ -503,7 +503,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
                  </button>
                  <button
                    onClick={() => { setInventoryCategory('teaware'); setInventorySearchQuery(''); }}
-                   className={`px-3 py-1 text-[10px] uppercase tracking-[0.15em] rounded-md transition-colors ${
+                   className={`px-3 py-1 text-ui-10 uppercase tracking-[0.15em] rounded-md transition-colors ${
                      inventoryCategory === 'teaware'
                        ? 'text-tea-gold font-medium'
                        : 'text-tea-text-sec hover:text-tea-text'
@@ -533,7 +533,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
                  {/* Source/vendor suggestions dropdown */}
                  {showSourceSuggestions && matchingVendors.length > 0 && (
                    <div className="absolute top-full left-0 right-0 mt-1 bg-tea-surface border border-tea-border rounded-lg shadow-lg overflow-hidden z-priority">
-                     <div className="px-3 py-1.5 text-[9px] uppercase tracking-[0.15em] text-tea-text-dim border-b border-tea-border">
+                     <div className="px-3 py-1.5 text-ui-9 uppercase tracking-[0.15em] text-tea-text-dim border-b border-tea-border">
                        Sources
                      </div>
                      {matchingVendors.map(v => (
@@ -548,7 +548,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
                        >
                          <MapPin size={12} className="text-tea-text-sec flex-shrink-0" />
                          <span className="text-xs text-tea-text font-serif truncate">{v.name}</span>
-                         <span className="text-[10px] text-tea-text-dim ml-auto flex-shrink-0">{v.count} tea{v.count !== 1 ? 's' : ''}</span>
+                         <span className="text-ui-10 text-tea-text-dim ml-auto flex-shrink-0">{v.count} tea{v.count !== 1 ? 's' : ''}</span>
                        </button>
                      ))}
                    </div>
@@ -569,7 +569,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
                title={`Active account: ${activeMembership?.account_name}`}
              >
                <span className="w-1.5 h-1.5 rounded-full bg-tea-gold" />
-               <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text font-semibold truncate max-w-[140px]">
+               <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-text font-semibold truncate max-w-[140px]">
                  {activeMembership?.account_name}
                </span>
              </div>
@@ -580,7 +580,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
              <select
                value={currency}
                onChange={(e) => setCurrency(e.target.value as any)}
-               className="appearance-none bg-transparent text-[10px] text-tea-text-dim uppercase tracking-[0.1em] px-2 py-1 pr-4 cursor-pointer hover:text-tea-text-sec transition-colors outline-none"
+               className="appearance-none bg-transparent text-ui-10 text-tea-text-dim uppercase tracking-[0.1em] px-2 py-1 pr-4 cursor-pointer hover:text-tea-text-sec transition-colors outline-none"
              >
                {rates.map(rate => (
                  <option key={rate.currency} value={rate.currency} className="bg-tea-surface text-tea-text">

@@ -904,7 +904,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                  <div className="pt-2.5 border-t border-dashed border-tea-border">
                     <div className="flex justify-between items-center mb-1.5">
                        <label className="text-xs uppercase tracking-[0.2em] text-tea-gold font-bold">Retail (USD/g)</label>
-                       <span className="text-[9px] text-tea-text-sec num">3x Markup: ${calc.suggestedRetailUSD.toFixed(2)}</span>
+                       <span className="text-ui-9 text-tea-text-sec num">3x Markup: ${calc.suggestedRetailUSD.toFixed(2)}</span>
                     </div>
                     <div className="flex items-center gap-2 bg-tea-surface border border-tea-border rounded-lg px-3 py-2">
                        <span className="text-base text-tea-text-sec font-serif">$</span>
@@ -928,7 +928,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                  {/* WHOLESALE PRICE — platform accounts only */}
                  {isPlatformAccount && (
                    <div className="pt-2.5 border-t border-dashed border-tea-border">
-                     <label className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec block mb-1.5">Wholesale Price (USD/g)</label>
+                     <label className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec block mb-1.5">Wholesale Price (USD/g)</label>
                      <input
                        type="number"
                        step="0.0001"
@@ -953,7 +953,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
 
                       {/* Low-stock alert threshold */}
                       <div className="flex justify-between items-center mt-2">
-                          <label className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim">Alert below (g)</label>
+                          <label className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim">Alert below (g)</label>
                           <input
                               name="lowStockThreshold" type="number" value={formData.lowStockThreshold} onChange={handleChange}
                               className="w-24 bg-transparent text-right text-tea-text-sec border-b border-tea-border hover:border-tea-gold/20 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg placeholder-tea-text-sec transition-colors tabular-nums text-sm" placeholder="0"
@@ -964,7 +964,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                       {/* Session reserve threshold — tea only */}
                       {formData.type !== 'Teaware' && (
                         <div className="flex justify-between items-center mt-2">
-                            <label className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim" title="Stock below this amount shows a low-availability warning on the shop.">Session reserve (g)</label>
+                            <label className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim" title="Stock below this amount shows a low-availability warning on the shop.">Session reserve (g)</label>
                             <input
                                 name="sessionReserveGrams" type="number" value={formData.sessionReserveGrams} onChange={handleChange}
                                 className="w-24 bg-transparent text-right text-tea-text-sec border-b border-tea-border hover:border-tea-gold/20 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg placeholder-tea-text-sec transition-colors tabular-nums text-sm" placeholder="0"
@@ -996,7 +996,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                       {formData.inTransit && (
                         <div className="mt-2 pl-5 space-y-1.5 border-l border-tea-border">
                           <div className="flex justify-between items-center">
-                            <label className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim">Qty in transit (g)</label>
+                            <label className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim">Qty in transit (g)</label>
                             <input
                               name="inTransitGrams" type="number" value={formData.inTransitGrams} onChange={handleChange}
                               className="w-20 bg-transparent text-right text-tea-gold border-b border-tea-border hover:border-tea-gold/20 outline-none text-sm tabular-nums placeholder-tea-text-sec"
@@ -1004,7 +1004,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                             />
                           </div>
                           <div className="flex justify-between items-center">
-                            <label className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim">Expected arrival</label>
+                            <label className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim">Expected arrival</label>
                             <input
                               name="inTransitEta" type="date" value={formData.inTransitEta} onChange={handleChange}
                               className="bg-transparent text-right text-tea-text-sec border-b border-tea-border hover:border-tea-gold/20 outline-none text-xs"
@@ -1117,7 +1117,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                         <Star size={12} className="text-tea-gold" />
                         <span className="text-sm font-serif italic text-tea-text group-hover:text-tea-gold transition-colors">Wisdom & Lore</span>
                         {!wisdomOpen && formData.lore && (
-                            <span className="text-[9px] text-tea-gold/70 uppercase tracking-wider ml-2">has content</span>
+                            <span className="text-ui-9 text-tea-gold/70 uppercase tracking-wider ml-2">has content</span>
                         )}
                     </button>
                     {wisdomOpen && (
@@ -1126,7 +1126,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                                 type="button"
                                 onClick={handleGenerateWisdom}
                                 disabled={generatingWisdom || !formData.productName}
-                                className="flex items-center gap-1.5 px-2.5 py-1 bg-tea-gold/10 text-tea-gold hover:bg-tea-gold/20 rounded text-[10px] uppercase tracking-wider font-bold transition-colors disabled:opacity-50"
+                                className="flex items-center gap-1.5 px-2.5 py-1 bg-tea-gold/10 text-tea-gold hover:bg-tea-gold/20 rounded text-ui-10 uppercase tracking-wider font-bold transition-colors disabled:opacity-50"
                             >
                                 {generatingWisdom ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
                                 Generate with AI
@@ -1137,7 +1137,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                                     <div className={`block w-7 h-3.5 rounded-full transition-colors ${formData.showWisdom ? 'bg-tea-gold/30' : 'bg-tea-border'}`}></div>
                                     <div className={`absolute left-0.5 top-0.5 bg-tea-text w-2.5 h-2.5 rounded-full transition-transform ${formData.showWisdom ? 'translate-x-3.5 bg-tea-gold' : ''}`}></div>
                                 </div>
-                                <span className="text-[10px] uppercase tracking-wider text-tea-text-sec group-hover/toggle:text-tea-text transition-colors">Show Publicly</span>
+                                <span className="text-ui-10 uppercase tracking-wider text-tea-text-sec group-hover/toggle:text-tea-text transition-colors">Show Publicly</span>
                             </label>
                         </div>
                     )}
@@ -1170,7 +1170,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                 {showWisdomSaveHint && !pendingWisdom && (
                     <div className="mx-1 mb-3 px-3 py-2 bg-tea-accent-sub/30 border border-tea-border rounded-lg flex items-center justify-between gap-2">
                         <span className="text-xs text-tea-text-sec">Wisdom populated — save the product to persist it.</span>
-                        <button type="button" onClick={() => setShowWisdomSaveHint(false)} className="text-[10px] text-tea-text-dim hover:text-tea-text-sec">✕</button>
+                        <button type="button" onClick={() => setShowWisdomSaveHint(false)} className="text-ui-10 text-tea-text-dim hover:text-tea-text-sec">✕</button>
                     </div>
                 )}
 
@@ -1181,9 +1181,9 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                             <div className="flex justify-between items-center mb-1.5">
                                 <label className={labelStyle}>Lore (History & Terroir)</label>
                                 {formData.isCustomWisdom ? (
-                                    <span className="text-[10px] text-tea-gold uppercase tracking-wider flex items-center gap-1"><Edit size={9} /> Handcrafted</span>
+                                    <span className="text-ui-10 text-tea-gold uppercase tracking-wider flex items-center gap-1"><Edit size={9} /> Handcrafted</span>
                                 ) : formData.lore ? (
-                                    <span className="text-[10px] text-tea-text-sec uppercase tracking-wider flex items-center gap-1"><Star size={9} /> AI Generated</span>
+                                    <span className="text-ui-10 text-tea-text-sec uppercase tracking-wider flex items-center gap-1"><Star size={9} /> AI Generated</span>
                                 ) : null}
                             </div>
                             <textarea
@@ -1194,7 +1194,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                                 placeholder="Legend says these bushes were draped in imperial red robes..."
                             />
                             {formData.lore && (
-                                <div className="text-[9px] text-tea-text-dim text-right mt-0.5">{formData.lore.length} chars</div>
+                                <div className="text-ui-9 text-tea-text-dim text-right mt-0.5">{formData.lore.length} chars</div>
                             )}
                         </div>
 
@@ -1207,11 +1207,11 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                                     const isOwner = initialData?.tastingSource === 'owner';
                                     if (!hasTerms) return null;
                                     return isOwner ? (
-                                        <span className="text-[10px] uppercase tracking-[0.15em] text-tea-gold" style={{ fontFamily: 'var(--font-display)' }}>
+                                        <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-gold" style={{ fontFamily: 'var(--font-display)' }}>
                                             Tasted
                                         </span>
                                     ) : (
-                                        <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim italic" style={{ fontFamily: 'var(--font-display)' }}>
+                                        <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim italic" style={{ fontFamily: 'var(--font-display)' }}>
                                             Draft — not yet confirmed
                                         </span>
                                     );
@@ -1234,14 +1234,14 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                                     {flattenTastingNotes(tastingData).slice(0, 6).map(termId => {
                                         const Icon = resolveTermIcon(termId);
                                         return (
-                                            <span key={termId} className="inline-flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded-full bg-tea-gold/10 text-tea-gold">
+                                            <span key={termId} className="inline-flex items-center gap-1 text-ui-11 px-1.5 py-0.5 rounded-full bg-tea-gold/10 text-tea-gold">
                                                 <Icon size={10} />
                                                 {resolveTermLabel(termId)}
                                             </span>
                                         );
                                     })}
                                     {flattenTastingNotes(tastingData).length > 6 && (
-                                        <span className="text-[11px] px-1.5 py-0.5 text-tea-text-dim">
+                                        <span className="text-ui-11 px-1.5 py-0.5 text-tea-text-dim">
                                             +{flattenTastingNotes(tastingData).length - 6} more
                                         </span>
                                     )}
@@ -1360,7 +1360,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                 <span>Loading sourcing data…</span>
               </div>
             ) : compassSource ? (
-              <div className="bg-tea-bg/50 border border-tea-border rounded-lg p-3 space-y-2 text-[12px]">
+              <div className="bg-tea-bg/50 border border-tea-border rounded-lg p-3 space-y-2 text-ui-12">
                 {compassSource.vendorName && (
                   <div className="flex gap-2">
                     <span className="text-tea-text-dim w-20 shrink-0">Vendor</span>
@@ -1388,7 +1388,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                 <div className="pt-1">
                   <a
                     href={`/admin/compass?entry=${initialData.sourceCompassEntryId}`}
-                    className="inline-flex items-center gap-1 text-tea-gold text-[11px] hover:underline"
+                    className="inline-flex items-center gap-1 text-tea-gold text-ui-11 hover:underline"
                   >
                     <ExternalLink size={10} />
                     View full compass entry

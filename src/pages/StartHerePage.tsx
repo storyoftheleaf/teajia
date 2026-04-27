@@ -60,7 +60,7 @@ export const StartHerePage: React.FC = () => {
           className="opacity-70 mb-6"
         />
         <h1
-          className="text-tea-text text-[22px] md:text-[26px] font-normal leading-snug tracking-[0.01em]"
+          className="text-tea-text text-[22px] md:text-ui-26 font-normal leading-snug tracking-[0.01em]"
           style={{ fontFamily: 'var(--font-display)', fontWeight: 300 }}
         >
           Where would you like to begin?
@@ -78,13 +78,13 @@ export const StartHerePage: React.FC = () => {
           >
             <div className="flex-1">
               <p
-                className="text-tea-text text-[15px] md:text-[16px] leading-snug mb-1.5"
+                className="text-tea-text text-ui-15 md:text-ui-16 leading-snug mb-1.5"
                 style={{ fontFamily: 'var(--font-display)', fontWeight: 300 }}
               >
                 {path.label}
               </p>
               <p
-                className="text-tea-text-sec text-[12px] md:text-[13px] leading-relaxed"
+                className="text-tea-text-sec text-ui-12 md:text-ui-13 leading-relaxed"
                 style={{ fontFamily: 'var(--font-body)' }}
               >
                 {path.desc}

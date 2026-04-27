@@ -53,13 +53,13 @@ const CompassRightEmptyState: React.FC<{
   return (
     <div className="flex flex-col items-center justify-center h-full min-h-[300px] py-20 text-center">
       <CompassIcon className="w-8 h-8 text-tea-gold/20 mb-4" />
-      <p className="font-serif text-[15px] text-tea-text/50 mb-1.5 tracking-wide">{content.title}</p>
-      <p className="text-[12px] text-tea-text-dim max-w-[220px] leading-relaxed mb-6">{content.body}</p>
+      <p className="font-serif text-ui-15 text-tea-text/50 mb-1.5 tracking-wide">{content.title}</p>
+      <p className="text-ui-12 text-tea-text-dim max-w-[220px] leading-relaxed mb-6">{content.body}</p>
       {mode !== 'sourcing' && (
         <button
           type="button"
           onClick={onNewCapture}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-full border border-tea-gold/40 text-tea-gold text-[12px] font-semibold hover:bg-tea-gold/10 transition-colors"
+          className="flex items-center gap-1.5 px-4 py-2 rounded-full border border-tea-gold/40 text-tea-gold text-ui-12 font-semibold hover:bg-tea-gold/10 transition-colors"
           style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.06em' }}
         >
           <Plus size={12} strokeWidth={2} />
@@ -436,13 +436,13 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
               onClick={() => handleSwitchMode(tab.id)}
               role="tab"
               aria-selected={active}
-              className={`relative shrink-0 px-2.5 text-[11px] font-semibold tracking-[0.08em] uppercase transition-colors ${
+              className={`relative shrink-0 px-2.5 text-ui-11 font-semibold tracking-[0.08em] uppercase transition-colors ${
                 active ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'
               }`}
             >
               {tab.label}
               {tab.badge != null && (
-                <span className="ml-1 text-[9px] px-[5px] py-px rounded-full bg-tea-gold/20 text-tea-gold">{tab.badge}</span>
+                <span className="ml-1 text-ui-9 px-[5px] py-px rounded-full bg-tea-gold/20 text-tea-gold">{tab.badge}</span>
               )}
               {active && (
                 <motion.div
@@ -460,7 +460,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
             <button
               type="button"
               onClick={() => handleNewCapture()}
-              className="pill pill-active flex items-center gap-1 text-[10px]"
+              className="pill pill-active flex items-center gap-1 text-ui-10"
               style={{ fontFamily: 'var(--font-display)' }}
             >
               <Plus size={11} strokeWidth={2} />
@@ -496,7 +496,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                       ? 'Search by name, region, vendor…'
                       : 'Search transactions…'
                   }
-                  className="w-full bg-tea-surface border border-tea-border text-tea-text text-[13px] rounded-lg pl-8 pr-8 py-2 outline-none placeholder:text-tea-text-dim focus:ring-1 focus:ring-tea-gold/40 transition-colors"
+                  className="w-full bg-tea-surface border border-tea-border text-tea-text text-ui-13 rounded-lg pl-8 pr-8 py-2 outline-none placeholder:text-tea-text-dim focus:ring-1 focus:ring-tea-gold/40 transition-colors"
                 />
                 {tabSearchQuery && (
                   <button
@@ -520,7 +520,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                   key={entry.id}
                   type="button"
                   onClick={() => handleSelectEntry(entry.id)}
-                  className={`group relative flex items-center gap-1.5 whitespace-nowrap px-3 py-1 rounded-full text-[11px] border transition-colors shrink-0 ${
+                  className={`group relative flex items-center gap-1.5 whitespace-nowrap px-3 py-1 rounded-full text-ui-11 border transition-colors shrink-0 ${
                     entry.id === activeEntryId
                       ? 'bg-tea-gold/15 text-tea-gold border-tea-gold/40 font-semibold'
                       : 'bg-transparent text-tea-text-dim border-tea-border hover:text-tea-text-sec'
@@ -540,7 +540,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
               <button
                 type="button"
                 onClick={() => handleNewCapture()}
-                className="whitespace-nowrap px-2.5 py-1 rounded-full text-[11px] text-tea-text-dim border border-tea-border hover:text-tea-text-sec hover:border-tea-gold/40 transition-colors shrink-0"
+                className="whitespace-nowrap px-2.5 py-1 rounded-full text-ui-11 text-tea-text-dim border border-tea-border hover:text-tea-text-sec hover:border-tea-gold/40 transition-colors shrink-0"
               >
                 +
               </button>
@@ -581,16 +581,16 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                       transition={{ duration: 0.1, ease: 'easeOut' }}
                     />
                     <button type="button" onClick={() => handleCaptureOption('tea')}
-                      className={`flex-1 text-center py-1.5 text-[12px] font-medium rounded-[5px] transition-colors relative z-[1] ${captureOption === 'tea' ? 'text-tea-text' : 'text-tea-text-dim hover:text-tea-text-sec'}`}>
+                      className={`flex-1 text-center py-1.5 text-ui-12 font-medium rounded-[5px] transition-colors relative z-[1] ${captureOption === 'tea' ? 'text-tea-text' : 'text-tea-text-dim hover:text-tea-text-sec'}`}>
                       Tea
                     </button>
                     <button type="button" onClick={() => handleCaptureOption('teaware')}
-                      className={`flex-1 text-center py-1.5 text-[12px] font-medium rounded-[5px] transition-colors relative z-[1] ${captureOption === 'teaware' ? 'text-tea-text' : 'text-tea-text-dim hover:text-tea-text-sec'}`}>
+                      className={`flex-1 text-center py-1.5 text-ui-12 font-medium rounded-[5px] transition-colors relative z-[1] ${captureOption === 'teaware' ? 'text-tea-text' : 'text-tea-text-dim hover:text-tea-text-sec'}`}>
                       Teaware
                     </button>
                     <button type="button" onClick={() => handleCaptureOption('samples')}
-                      className={`flex-1 text-center py-1.5 text-[12px] font-medium rounded-[5px] transition-colors relative z-[1] ${captureOption === 'samples' ? 'text-tea-text' : 'text-tea-text-dim hover:text-tea-text-sec'}`}>
-                      Samples{sampleCartCount > 0 && <span className="ml-1 text-[10px] text-tea-gold tabular-nums">({sampleCartCount})</span>}
+                      className={`flex-1 text-center py-1.5 text-ui-12 font-medium rounded-[5px] transition-colors relative z-[1] ${captureOption === 'samples' ? 'text-tea-text' : 'text-tea-text-dim hover:text-tea-text-sec'}`}>
+                      Samples{sampleCartCount > 0 && <span className="ml-1 text-ui-10 text-tea-gold tabular-nums">({sampleCartCount})</span>}
                     </button>
                   </div>
 
@@ -650,7 +650,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                     <div className="mb-4 space-y-2">
                       {/* Header row: count + bulk actions */}
                       <div className="flex items-center gap-2 px-0.5">
-                        <p className="text-[10px] uppercase tracking-[0.12em] text-tea-text-dim font-medium flex-1">
+                        <p className="text-ui-10 uppercase tracking-[0.12em] text-tea-text-dim font-medium flex-1">
                           {visibleShares.length} pending {visibleShares.length === 1 ? 'share' : 'shares'}
                         </p>
                         {visibleShares.length > 1 && (
@@ -659,16 +659,16 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                               type="button"
                               onClick={() => visibleShares.forEach((s) => acceptShareMutation.mutate(s.id))}
                               disabled={acceptShareMutation.isPending || declineShareMutation.isPending}
-                              className="text-[11px] text-tea-gold font-semibold hover:text-tea-gold/80 disabled:opacity-40 transition-colors"
+                              className="text-ui-11 text-tea-gold font-semibold hover:text-tea-gold/80 disabled:opacity-40 transition-colors"
                             >
                               Accept all
                             </button>
-                            <span className="text-tea-border text-[10px]">·</span>
+                            <span className="text-tea-border text-ui-10">·</span>
                             <button
                               type="button"
                               onClick={() => visibleShares.forEach((s) => declineShareMutation.mutate(s.id))}
                               disabled={acceptShareMutation.isPending || declineShareMutation.isPending}
-                              className="text-[11px] text-tea-text-dim font-medium hover:text-tea-text-sec disabled:opacity-40 transition-colors"
+                              className="text-ui-11 text-tea-text-dim font-medium hover:text-tea-text-sec disabled:opacity-40 transition-colors"
                             >
                               Decline all
                             </button>
@@ -694,12 +694,12 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                             {/* Card header — always visible */}
                             <div className="flex items-start justify-between gap-2">
                               <div className="min-w-0 flex-1">
-                                <p className="text-[11px] text-tea-text-sec mb-0.5">From {from}</p>
+                                <p className="text-ui-11 text-tea-text-sec mb-0.5">From {from}</p>
                                 <p className="text-sm font-medium text-tea-text truncate">
                                   {meta.name || 'Unnamed card'}
                                 </p>
                                 {(meta.type || meta.year) && (
-                                  <p className="text-[11px] text-tea-text-dim">
+                                  <p className="text-ui-11 text-tea-text-dim">
                                     {[meta.type, meta.year].filter(Boolean).join(' · ')}
                                   </p>
                                 )}
@@ -734,7 +734,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                                   transition={{ duration: 0.18 }}
                                   className="overflow-hidden"
                                 >
-                                  <div className="pt-1 pb-0.5 border-t border-tea-border space-y-1.5 text-[12px]">
+                                  <div className="pt-1 pb-0.5 border-t border-tea-border space-y-1.5 text-ui-12">
                                     {meta.originRegion && (
                                       <div className="flex gap-2">
                                         <span className="text-tea-text-dim w-14 shrink-0">Origin</span>
@@ -782,7 +782,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                                 type="button"
                                 disabled={isActing}
                                 onClick={() => acceptShareMutation.mutate(share.id)}
-                                className="flex-1 py-1.5 rounded-md bg-tea-gold/10 text-tea-gold text-[11px] font-semibold uppercase tracking-[0.08em] hover:bg-tea-gold/15 disabled:opacity-50 transition-colors"
+                                className="flex-1 py-1.5 rounded-md bg-tea-gold/10 text-tea-gold text-ui-11 font-semibold uppercase tracking-[0.08em] hover:bg-tea-gold/15 disabled:opacity-50 transition-colors"
                               >
                                 {isActing ? '…' : 'Accept'}
                               </button>
@@ -790,7 +790,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                                 type="button"
                                 disabled={isActing}
                                 onClick={() => declineShareMutation.mutate(share.id)}
-                                className="flex-1 py-1.5 rounded-md bg-tea-surface text-tea-text-dim text-[11px] font-medium hover:text-tea-text-sec disabled:opacity-50 transition-colors border border-tea-border"
+                                className="flex-1 py-1.5 rounded-md bg-tea-surface text-tea-text-dim text-ui-11 font-medium hover:text-tea-text-sec disabled:opacity-50 transition-colors border border-tea-border"
                               >
                                 Decline
                               </button>
@@ -805,8 +805,8 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                   {hasToken() && (
                     <div className="mb-4 rounded-lg bg-tea-surface/40 border border-tea-border px-3 py-2.5 flex items-center gap-3">
                       <div className="flex-1 min-w-0">
-                        <p className="text-[11px] text-tea-text-sec font-medium">Co-Tasting</p>
-                        <p className="text-[11px] text-tea-text-dim mt-0.5">Taste with others and compare notes</p>
+                        <p className="text-ui-11 text-tea-text-sec font-medium">Co-Tasting</p>
+                        <p className="text-ui-11 text-tea-text-dim mt-0.5">Taste with others and compare notes</p>
                       </div>
                       <button
                         type="button"
@@ -816,7 +816,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                             if (result?.session?.id) navigate(`/session/${result.session.id}`);
                           } catch { /* ignore */ }
                         }}
-                        className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold/10 text-tea-gold text-[11px] font-semibold hover:bg-tea-gold/15 transition-colors"
+                        className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold/10 text-tea-gold text-ui-11 font-semibold hover:bg-tea-gold/15 transition-colors"
                       >
                         <Plus size={11} strokeWidth={2.5} />
                         Start
@@ -861,7 +861,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                     initial={{ opacity: 0, y: 4 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 4 }}
-                    className="text-[11px] text-red-400 text-center px-4 py-1.5 border-t border-tea-border bg-tea-bg"
+                    className="text-ui-11 text-red-400 text-center px-4 py-1.5 border-t border-tea-border bg-tea-bg"
                   >
                     {voiceError}
                   </motion.p>
@@ -878,7 +878,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                     <button
                       type="button"
                       onClick={() => captureCardActionsRef.current?.openTasting()}
-                      className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-[10px] font-medium transition-colors ${
+                      className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-10 font-medium transition-colors ${
                         hasTasting ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'
                       }`}
                     >
@@ -888,7 +888,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                     <button
                       type="button"
                       onClick={() => activeEntryId && updateEntry(activeEntryId, { status: isWantEntry ? 'noted' : 'want' })}
-                      className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-[10px] font-medium transition-colors ${
+                      className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-10 font-medium transition-colors ${
                         isWantEntry ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'
                       }`}
                     >
@@ -898,7 +898,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                     <button
                       type="button"
                       onClick={() => captureCardActionsRef.current?.toggleBuy()}
-                      className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-[10px] font-medium text-tea-text-dim hover:text-tea-text-sec transition-colors"
+                      className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-10 font-medium text-tea-text-dim hover:text-tea-text-sec transition-colors"
                     >
                       <ShoppingCart size={14} />
                       Buy
@@ -920,7 +920,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                           });
                         }
                       }}
-                      className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-[10px] font-medium transition-colors ${
+                      className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-10 font-medium transition-colors ${
                         captureEntryInCart ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'
                       }`}
                     >
@@ -938,7 +938,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                       type="button"
                       onClick={handleVoicePress}
                       disabled={voiceState === 'transcribing'}
-                      className={`relative flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-[10px] font-medium transition-colors ${
+                      className={`relative flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-10 font-medium transition-colors ${
                         voiceState === 'recording'
                           ? 'text-tea-gold'
                           : voiceState === 'transcribing'
@@ -975,7 +975,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                 <button
                   type="button"
                   onClick={() => setBatchMode((v) => !v)}
-                  className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-[10px] font-medium transition-colors ${
+                  className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-10 font-medium transition-colors ${
                     batchMode ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'
                   }`}
                   aria-label="Batch entry"
@@ -989,7 +989,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                   <button
                     type="button"
                     onClick={() => setShareModalOpen(true)}
-                    className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-[10px] font-medium text-tea-text-dim hover:text-tea-text-sec transition-colors"
+                    className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-10 font-medium text-tea-text-dim hover:text-tea-text-sec transition-colors"
                     aria-label="Share"
                   >
                     <Share2 size={14} strokeWidth={1.5} />
@@ -1008,7 +1008,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                     handleCommitEntry();
                   }}
                   disabled={!activeEntryId || captureOption === 'samples'}
-                  className="flex-[1.4] flex items-center justify-center py-2.5 text-tea-gold font-bold text-[13px] disabled:opacity-30 transition-opacity"
+                  className="flex-[1.4] flex items-center justify-center py-2.5 text-tea-gold font-bold text-ui-13 disabled:opacity-30 transition-opacity"
                   style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.1em' }}
                   aria-label="Done"
                 >
@@ -1042,7 +1042,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                     : mode === 'tasting' ? 'Search by name, region, vendor…'
                     : 'Search transactions…'
                   }
-                  className="w-full bg-tea-surface border border-tea-border text-tea-text text-[13px] rounded-lg pl-8 pr-8 py-2 outline-none placeholder:text-tea-text-dim focus:ring-1 focus:ring-tea-gold/40 transition-colors"
+                  className="w-full bg-tea-surface border border-tea-border text-tea-text text-ui-13 rounded-lg pl-8 pr-8 py-2 outline-none placeholder:text-tea-text-dim focus:ring-1 focus:ring-tea-gold/40 transition-colors"
                 />
                 {tabSearchQuery && (
                   <button
@@ -1085,15 +1085,15 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                         transition={{ duration: 0.1, ease: 'easeOut' }}
                       />
                       <button type="button" onClick={() => handleCaptureOption('tea')}
-                        className={`flex-1 text-center py-1.5 text-[12px] font-medium rounded-[5px] transition-colors relative z-[1] ${captureOption === 'tea' ? 'text-tea-text' : 'text-tea-text-dim hover:text-tea-text-sec'}`}>
+                        className={`flex-1 text-center py-1.5 text-ui-12 font-medium rounded-[5px] transition-colors relative z-[1] ${captureOption === 'tea' ? 'text-tea-text' : 'text-tea-text-dim hover:text-tea-text-sec'}`}>
                         Tea
                       </button>
                       <button type="button" onClick={() => handleCaptureOption('teaware')}
-                        className={`flex-1 text-center py-1.5 text-[12px] font-medium rounded-[5px] transition-colors relative z-[1] ${captureOption === 'teaware' ? 'text-tea-text' : 'text-tea-text-dim hover:text-tea-text-sec'}`}>
+                        className={`flex-1 text-center py-1.5 text-ui-12 font-medium rounded-[5px] transition-colors relative z-[1] ${captureOption === 'teaware' ? 'text-tea-text' : 'text-tea-text-dim hover:text-tea-text-sec'}`}>
                         Teaware
                       </button>
                       <button type="button" onClick={() => handleCaptureOption('samples')}
-                        className={`flex-1 text-center py-1.5 text-[12px] font-medium rounded-[5px] transition-colors relative z-[1] ${captureOption === 'samples' ? 'text-tea-text' : 'text-tea-text-dim hover:text-tea-text-sec'}`}>
+                        className={`flex-1 text-center py-1.5 text-ui-12 font-medium rounded-[5px] transition-colors relative z-[1] ${captureOption === 'samples' ? 'text-tea-text' : 'text-tea-text-dim hover:text-tea-text-sec'}`}>
                         Samples
                       </button>
                     </div>
@@ -1142,7 +1142,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                       <button
                         type="button"
                         onClick={() => handleNewCapture()}
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-md border border-dashed border-tea-border text-tea-text-dim hover:text-tea-text-sec hover:border-tea-gold/40 text-[12px] transition-colors"
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-md border border-dashed border-tea-border text-tea-text-dim hover:text-tea-text-sec hover:border-tea-gold/40 text-ui-12 transition-colors"
                       >
                         <Plus size={12} />
                         New Entry
@@ -1165,7 +1165,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                       <div className="mb-4 space-y-2">
                         {/* Header row: count + bulk actions */}
                         <div className="flex items-center gap-2 px-0.5">
-                          <p className="text-[10px] uppercase tracking-[0.12em] text-tea-text-dim font-medium flex-1">
+                          <p className="text-ui-10 uppercase tracking-[0.12em] text-tea-text-dim font-medium flex-1">
                             {visibleShares.length} pending {visibleShares.length === 1 ? 'share' : 'shares'}
                           </p>
                           {visibleShares.length > 1 && (
@@ -1174,16 +1174,16 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                                 type="button"
                                 onClick={() => visibleShares.forEach((s) => acceptShareMutation.mutate(s.id))}
                                 disabled={acceptShareMutation.isPending || declineShareMutation.isPending}
-                                className="text-[11px] text-tea-gold font-semibold hover:text-tea-gold/80 disabled:opacity-40 transition-colors"
+                                className="text-ui-11 text-tea-gold font-semibold hover:text-tea-gold/80 disabled:opacity-40 transition-colors"
                               >
                                 Accept all
                               </button>
-                              <span className="text-tea-border text-[10px]">·</span>
+                              <span className="text-tea-border text-ui-10">·</span>
                               <button
                                 type="button"
                                 onClick={() => visibleShares.forEach((s) => declineShareMutation.mutate(s.id))}
                                 disabled={acceptShareMutation.isPending || declineShareMutation.isPending}
-                                className="text-[11px] text-tea-text-dim font-medium hover:text-tea-text-sec disabled:opacity-40 transition-colors"
+                                className="text-ui-11 text-tea-text-dim font-medium hover:text-tea-text-sec disabled:opacity-40 transition-colors"
                               >
                                 Decline all
                               </button>
@@ -1209,12 +1209,12 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                               {/* Card header — always visible */}
                               <div className="flex items-start justify-between gap-2">
                                 <div className="min-w-0 flex-1">
-                                  <p className="text-[11px] text-tea-text-sec mb-0.5">From {from}</p>
+                                  <p className="text-ui-11 text-tea-text-sec mb-0.5">From {from}</p>
                                   <p className="text-sm font-medium text-tea-text truncate">
                                     {meta.name || 'Unnamed card'}
                                   </p>
                                   {(meta.type || meta.year) && (
-                                    <p className="text-[11px] text-tea-text-dim">
+                                    <p className="text-ui-11 text-tea-text-dim">
                                       {[meta.type, meta.year].filter(Boolean).join(' · ')}
                                     </p>
                                   )}
@@ -1248,7 +1248,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                                     transition={{ duration: 0.18 }}
                                     className="overflow-hidden"
                                   >
-                                    <div className="pt-1 pb-0.5 border-t border-tea-border space-y-1.5 text-[12px]">
+                                    <div className="pt-1 pb-0.5 border-t border-tea-border space-y-1.5 text-ui-12">
                                       {meta.originRegion && (
                                         <div className="flex gap-2">
                                           <span className="text-tea-text-dim w-14 shrink-0">Origin</span>
@@ -1296,7 +1296,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                                   type="button"
                                   disabled={isActing}
                                   onClick={() => acceptShareMutation.mutate(share.id)}
-                                  className="flex-1 py-1.5 rounded-md bg-tea-gold/10 text-tea-gold text-[11px] font-semibold uppercase tracking-[0.08em] hover:bg-tea-gold/15 disabled:opacity-50 transition-colors"
+                                  className="flex-1 py-1.5 rounded-md bg-tea-gold/10 text-tea-gold text-ui-11 font-semibold uppercase tracking-[0.08em] hover:bg-tea-gold/15 disabled:opacity-50 transition-colors"
                                 >
                                   {isActing ? '…' : 'Accept'}
                                 </button>
@@ -1304,7 +1304,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                                   type="button"
                                   disabled={isActing}
                                   onClick={() => declineShareMutation.mutate(share.id)}
-                                  className="flex-1 py-1.5 rounded-md bg-tea-surface text-tea-text-dim text-[11px] font-medium hover:text-tea-text-sec disabled:opacity-50 transition-colors border border-tea-border"
+                                  className="flex-1 py-1.5 rounded-md bg-tea-surface text-tea-text-dim text-ui-11 font-medium hover:text-tea-text-sec disabled:opacity-50 transition-colors border border-tea-border"
                                 >
                                   Decline
                                 </button>
@@ -1319,8 +1319,8 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                     {hasToken() && (
                       <div className="mb-4 rounded-lg bg-tea-surface/40 border border-tea-border px-3 py-2.5 flex items-center gap-3">
                         <div className="flex-1 min-w-0">
-                          <p className="text-[11px] text-tea-text-sec font-medium">Co-Tasting</p>
-                          <p className="text-[11px] text-tea-text-dim mt-0.5">Taste with others and compare notes</p>
+                          <p className="text-ui-11 text-tea-text-sec font-medium">Co-Tasting</p>
+                          <p className="text-ui-11 text-tea-text-dim mt-0.5">Taste with others and compare notes</p>
                         </div>
                         <button
                           type="button"
@@ -1330,7 +1330,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                               if (result?.session?.id) navigate(`/session/${result.session.id}`);
                             } catch { /* ignore */ }
                           }}
-                          className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold/10 text-tea-gold text-[11px] font-semibold hover:bg-tea-gold/15 transition-colors"
+                          className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold/10 text-tea-gold text-ui-11 font-semibold hover:bg-tea-gold/15 transition-colors"
                         >
                           <Plus size={11} strokeWidth={2.5} />
                           Start
@@ -1377,7 +1377,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                 <button
                   type="button"
                   onClick={() => handleNewCapture()}
-                  className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-lg border border-tea-gold/40 text-tea-gold bg-tea-gold/5 hover:bg-tea-gold/10 text-[12px] font-semibold tracking-[0.06em] transition-colors"
+                  className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-lg border border-tea-gold/40 text-tea-gold bg-tea-gold/5 hover:bg-tea-gold/10 text-ui-12 font-semibold tracking-[0.06em] transition-colors"
                   style={{ fontFamily: 'var(--font-display)' }}
                 >
                   <Plus size={13} strokeWidth={2} />
@@ -1414,8 +1414,8 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                     {captureOption === 'samples' ? (
                       <div className="flex flex-col items-center justify-center h-full min-h-[300px] py-20 text-center">
                         <FlaskConical size={28} className="text-tea-gold/20 mb-4" />
-                        <p className="font-serif text-[15px] text-tea-text/50 mb-1.5 tracking-wide">Build your sample list</p>
-                        <p className="text-[12px] text-tea-text-dim max-w-[220px] leading-relaxed">
+                        <p className="font-serif text-ui-15 text-tea-text/50 mb-1.5 tracking-wide">Build your sample list</p>
+                        <p className="text-ui-12 text-tea-text-dim max-w-[220px] leading-relaxed">
                           Use the flask icon on any tea card or the Sample button while capturing to add to your list.
                         </p>
                       </div>
@@ -1484,7 +1484,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                       initial={{ opacity: 0, y: 4 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: 4 }}
-                      className="text-[11px] text-red-400 text-center px-4 py-1.5 border-b border-tea-border bg-tea-bg"
+                      className="text-ui-11 text-red-400 text-center px-4 py-1.5 border-b border-tea-border bg-tea-bg"
                     >
                       {voiceError}
                     </motion.p>
@@ -1498,7 +1498,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                       <button
                         type="button"
                         onClick={() => captureCardActionsRef.current?.openTasting()}
-                        className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-[10px] font-medium transition-colors ${
+                        className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-10 font-medium transition-colors ${
                           hasTasting ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'
                         }`}
                       >
@@ -1508,7 +1508,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                       <button
                         type="button"
                         onClick={() => activeEntryId && updateEntry(activeEntryId, { status: isWantEntry ? 'noted' : 'want' })}
-                        className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-[10px] font-medium transition-colors ${
+                        className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-10 font-medium transition-colors ${
                           isWantEntry ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'
                         }`}
                       >
@@ -1518,7 +1518,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                       <button
                         type="button"
                         onClick={() => captureCardActionsRef.current?.toggleBuy()}
-                        className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-[10px] font-medium text-tea-text-dim hover:text-tea-text-sec transition-colors"
+                        className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-10 font-medium text-tea-text-dim hover:text-tea-text-sec transition-colors"
                       >
                         <ShoppingCart size={14} />
                         Buy
@@ -1540,7 +1540,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                             });
                           }
                         }}
-                        className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-[10px] font-medium transition-colors ${
+                        className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-10 font-medium transition-colors ${
                           captureEntryInCart ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'
                         }`}
                       >
@@ -1557,7 +1557,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                       type="button"
                       onClick={handleVoicePress}
                       disabled={voiceState === 'transcribing'}
-                      className={`relative flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-[10px] font-medium transition-colors ${
+                      className={`relative flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-10 font-medium transition-colors ${
                         voiceState === 'recording' ? 'text-tea-gold'
                         : voiceState === 'transcribing' ? 'text-tea-text-dim cursor-wait'
                         : 'text-tea-text-dim hover:text-tea-text-sec'
@@ -1588,7 +1588,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                   <button
                     type="button"
                     onClick={() => setBatchMode((v) => !v)}
-                    className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-[10px] font-medium transition-colors ${
+                    className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-10 font-medium transition-colors ${
                       batchMode ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'
                     }`}
                     aria-label="Batch entry"
@@ -1602,7 +1602,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                     <button
                       type="button"
                       onClick={() => setShareModalOpen(true)}
-                      className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-[10px] font-medium text-tea-text-dim hover:text-tea-text-sec transition-colors"
+                      className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-10 font-medium text-tea-text-dim hover:text-tea-text-sec transition-colors"
                       aria-label="Share"
                     >
                       <Share2 size={14} strokeWidth={1.5} />
@@ -1621,7 +1621,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                       handleCommitEntry();
                     }}
                     disabled={!activeEntryId || captureOption === 'samples'}
-                    className="flex-[1.4] flex items-center justify-center py-2.5 text-tea-gold font-bold text-[13px] disabled:opacity-30 transition-opacity"
+                    className="flex-[1.4] flex items-center justify-center py-2.5 text-tea-gold font-bold text-ui-13 disabled:opacity-30 transition-opacity"
                     style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.1em' }}
                     aria-label="Done"
                   >

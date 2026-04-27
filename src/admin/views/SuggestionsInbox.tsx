@@ -73,7 +73,7 @@ const FilterTab: React.FC<FilterTabProps> = ({ active, onClick, children }) => (
   <button
     type="button"
     onClick={onClick}
-    className={`text-[14px] transition-colors ${
+    className={`text-ui-14 transition-colors ${
       active ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
     }`}
   >
@@ -124,23 +124,23 @@ const FieldRow: React.FC<FieldRowProps> = ({
     return (
       <div className="py-4 border-b border-tea-border last:border-b-0">
         <div className="flex items-baseline gap-3 mb-3">
-          <span className="text-tea-text-sec text-[11px] uppercase tracking-[0.1em]">
+          <span className="text-tea-text-sec text-ui-11 uppercase tracking-[0.1em]">
             {fieldLabel(fieldName)}
           </span>
-          <span className="text-tea-text-sec italic text-[12px]">
+          <span className="text-tea-text-sec italic text-ui-12">
             {serverStatus === 'accepted' ? 'accepted' : 'rejected'}
           </span>
         </div>
         <div className="space-y-1.5 pl-0">
           <div>
-            <span className="text-tea-text-sec text-[12px] mr-2">Currently</span>
-            <span className="text-tea-text-sec italic text-[14px]">
+            <span className="text-tea-text-sec text-ui-12 mr-2">Currently</span>
+            <span className="text-tea-text-sec italic text-ui-14">
               {currentValue ?? <em className="text-tea-text-dim">none</em>}
             </span>
           </div>
           <div>
-            <span className="text-tea-text-sec text-[12px] mr-2">Proposed</span>
-            <span className="text-tea-text text-[14px]">{proposedValue}</span>
+            <span className="text-tea-text-sec text-ui-12 mr-2">Proposed</span>
+            <span className="text-tea-text text-ui-14">{proposedValue}</span>
           </div>
         </div>
       </div>
@@ -167,16 +167,16 @@ const FieldRow: React.FC<FieldRowProps> = ({
   return (
     <div className="py-4 border-b border-tea-border last:border-b-0">
       {/* Field label */}
-      <div className="text-tea-text-sec text-[11px] uppercase tracking-[0.1em] mb-3">
+      <div className="text-tea-text-sec text-ui-11 uppercase tracking-[0.1em] mb-3">
         {fieldLabel(fieldName)}
       </div>
 
       {/* Current / proposed values */}
       <div className="space-y-2 mb-3">
         <div className="flex items-baseline gap-3 flex-wrap">
-          <span className="text-tea-text-sec text-[12px] shrink-0 w-16">Currently</span>
+          <span className="text-tea-text-sec text-ui-12 shrink-0 w-16">Currently</span>
           <span
-            className={`text-[14px] leading-[1.6] ${
+            className={`text-ui-14 leading-[1.6] ${
               currentValue ? 'text-tea-text-sec italic' : 'text-tea-text-dim italic'
             }`}
           >
@@ -184,9 +184,9 @@ const FieldRow: React.FC<FieldRowProps> = ({
           </span>
         </div>
         <div className="flex items-baseline gap-3 flex-wrap">
-          <span className="text-tea-text-sec text-[12px] shrink-0 w-16">Proposed</span>
+          <span className="text-tea-text-sec text-ui-12 shrink-0 w-16">Proposed</span>
           <span
-            className={`text-[14px] leading-[1.6] ${
+            className={`text-ui-14 leading-[1.6] ${
               status === 'accepted'
                 ? 'text-tea-text underline decoration-tea-gold decoration-1 underline-offset-2'
                 : 'text-tea-text'
@@ -199,7 +199,7 @@ const FieldRow: React.FC<FieldRowProps> = ({
 
       {/* Decision row */}
       {status === 'accepted' ? (
-        <div className="flex items-baseline gap-4 text-[13px]">
+        <div className="flex items-baseline gap-4 text-ui-13">
           <span className="text-tea-text-sec italic">Accepted just now</span>
           <button
             type="button"
@@ -212,7 +212,7 @@ const FieldRow: React.FC<FieldRowProps> = ({
         </div>
       ) : status === 'rejected' ? (
         <div className="space-y-2">
-          <div className="flex items-baseline gap-4 text-[13px]">
+          <div className="flex items-baseline gap-4 text-ui-13">
             <span className="text-tea-text-sec italic">
               Rejected{rejectNote ? ': ' + rejectNote : ''}
             </span>
@@ -234,9 +234,9 @@ const FieldRow: React.FC<FieldRowProps> = ({
                 placeholder="Optional note for the partner"
                 rows={2}
                 disabled={submitted}
-                className="w-full bg-transparent border-b border-tea-border focus:border-tea-gold outline-none text-tea-text font-body text-[14px] py-1.5 italic transition-colors resize-none placeholder:text-tea-text-dim"
+                className="w-full bg-transparent border-b border-tea-border focus:border-tea-gold outline-none text-tea-text font-body text-ui-14 py-1.5 italic transition-colors resize-none placeholder:text-tea-text-dim"
               />
-              <div className="flex gap-4 text-[13px]">
+              <div className="flex gap-4 text-ui-13">
                 <button
                   type="button"
                   onClick={() => onChange(fieldId, { rejectNoteOpen: false })}
@@ -258,7 +258,7 @@ const FieldRow: React.FC<FieldRowProps> = ({
           )}
         </div>
       ) : (
-        <div className="flex items-baseline gap-6 text-[13px]">
+        <div className="flex items-baseline gap-6 text-ui-13">
           <button
             type="button"
             onClick={handleAccept}
@@ -396,14 +396,14 @@ const BundleRow: React.FC<BundleRowProps> = ({ suggestion, onRefetch }) => {
       {/* Collapsed row */}
       <div className="py-5">
         {successLine && (
-          <p className="text-tea-text-sec italic text-[13px] mb-3 leading-[1.6]">{successLine}</p>
+          <p className="text-tea-text-sec italic text-ui-13 mb-3 leading-[1.6]">{successLine}</p>
         )}
-        <div className="font-display text-[17px] text-tea-text leading-[1.3] mb-1">
+        <div className="font-display text-ui-17 text-tea-text leading-[1.3] mb-1">
           {suggestion.profile_name || suggestion.profile_id}
         </div>
-        <div className="text-tea-text-sec text-[12px] mb-2 leading-[1.5]">{suggestedByLine}</div>
+        <div className="text-tea-text-sec text-ui-12 mb-2 leading-[1.5]">{suggestedByLine}</div>
         <div className="flex items-baseline justify-between gap-4 flex-wrap">
-          <div className="text-tea-text-sec text-[13px]">
+          <div className="text-tea-text-sec text-ui-13">
             {suggestion.fields.length === 1
               ? `1 field proposed: ${fieldNames}`
               : `${suggestion.fields.length} fields proposed: ${fieldNames}`}
@@ -412,7 +412,7 @@ const BundleRow: React.FC<BundleRowProps> = ({ suggestion, onRefetch }) => {
             <button
               type="button"
               onClick={() => setExpanded(true)}
-              className="text-tea-text-sec hover:text-tea-text transition-colors text-[13px] shrink-0 font-display tracking-[0.04em]"
+              className="text-tea-text-sec hover:text-tea-text transition-colors text-ui-13 shrink-0 font-display tracking-[0.04em]"
             >
               Review
             </button>
@@ -423,12 +423,12 @@ const BundleRow: React.FC<BundleRowProps> = ({ suggestion, onRefetch }) => {
       {/* Expanded inline review */}
       {expanded && (
         <div className="pb-6">
-          <div className="text-tea-text-sec text-[12px] uppercase tracking-[0.08em] mb-4">
+          <div className="text-tea-text-sec text-ui-12 uppercase tracking-[0.08em] mb-4">
             Field-by-field review for {suggestion.profile_name || suggestion.profile_id}
           </div>
 
           {submitError && (
-            <p className="text-tea-text-sec italic text-[13px] mb-4 leading-[1.6]">{submitError}</p>
+            <p className="text-tea-text-sec italic text-ui-13 mb-4 leading-[1.6]">{submitError}</p>
           )}
 
           {/* Field rows */}
@@ -450,10 +450,10 @@ const BundleRow: React.FC<BundleRowProps> = ({ suggestion, onRefetch }) => {
 
           {/* Footer */}
           <div className="mt-5 flex items-baseline justify-between gap-4 flex-wrap">
-            <span className="text-tea-text-sec text-[13px] italic">
+            <span className="text-tea-text-sec text-ui-13 italic">
               {totalDecided} of {totalFields} decided.
             </span>
-            <div className="flex items-baseline gap-6 text-[13px]">
+            <div className="flex items-baseline gap-6 text-ui-13">
               <button
                 type="button"
                 onClick={() => setExpanded(false)}
@@ -528,7 +528,7 @@ export const SuggestionsInbox: React.FC<SuggestionsInboxProps> = ({ embedded = f
   if (!hasCatalog) {
     return (
       <div className={outerClass}>
-        <p className="text-tea-text-sec italic text-[15px] leading-[1.65]">
+        <p className="text-tea-text-sec italic text-ui-15 leading-[1.65]">
           This page requires the Catalog bundle. Ask your owner.
         </p>
       </div>
@@ -557,16 +557,16 @@ export const SuggestionsInbox: React.FC<SuggestionsInboxProps> = ({ embedded = f
           Suggestions waiting for you
         </h1>
         {loading && suggestions === null ? null : countLine ? (
-          <p className="text-tea-text-sec italic text-[14px] leading-[1.6]">{countLine}</p>
+          <p className="text-tea-text-sec italic text-ui-14 leading-[1.6]">{countLine}</p>
         ) : filter === 'default' && !loading ? (
-          <p className="text-tea-text-sec italic text-[14px] leading-[1.6]">
+          <p className="text-tea-text-sec italic text-ui-14 leading-[1.6]">
             Quiet for now. Partners haven't proposed any edits.
           </p>
         ) : null}
       </header>
 
       {/* Filter line — text-link tabs, no chrome */}
-      <div className="flex items-baseline gap-3 mb-8 text-[14px]">
+      <div className="flex items-baseline gap-3 mb-8 text-ui-14">
         <FilterTab active={filter === 'default'} onClick={() => setFilter('default')}>
           Pending
         </FilterTab>
@@ -586,7 +586,7 @@ export const SuggestionsInbox: React.FC<SuggestionsInboxProps> = ({ embedded = f
 
       {/* Error prose */}
       {error && (
-        <p className="text-tea-text-sec italic text-[14px] mb-6 leading-[1.6]">{error}</p>
+        <p className="text-tea-text-sec italic text-ui-14 mb-6 leading-[1.6]">{error}</p>
       )}
 
       {/* Loading skeletons */}
@@ -600,7 +600,7 @@ export const SuggestionsInbox: React.FC<SuggestionsInboxProps> = ({ embedded = f
 
       {/* Bundle list */}
       {suggestions !== null && suggestions.length === 0 && !loading && (
-        <p className="text-tea-text-sec italic text-[15px] leading-[1.65]">
+        <p className="text-tea-text-sec italic text-ui-15 leading-[1.65]">
           {filter === 'resolved'
             ? 'No resolved suggestions.'
             : filter === 'withdrawn'

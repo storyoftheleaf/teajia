@@ -249,11 +249,11 @@ const SupplierConfirmArea: React.FC<SupplierConfirmAreaProps> = ({ orderId, onTr
     <div>
       <Divider />
       {error && (
-        <p className="text-tea-text-sec italic text-[13px] mb-4 leading-[1.6]">{error}</p>
+        <p className="text-tea-text-sec italic text-ui-13 mb-4 leading-[1.6]">{error}</p>
       )}
 
       {mode === 'idle' && (
-        <div className="flex items-baseline gap-6 text-[14px]">
+        <div className="flex items-baseline gap-6 text-ui-14">
           <button
             type="button"
             onClick={() => setMode('confirm')}
@@ -273,10 +273,10 @@ const SupplierConfirmArea: React.FC<SupplierConfirmAreaProps> = ({ orderId, onTr
 
       {mode === 'confirm' && (
         <div className="space-y-5">
-          <div className="text-tea-text-sec text-[12px] uppercase tracking-[0.1em]">Confirm this order</div>
+          <div className="text-tea-text-sec text-ui-12 uppercase tracking-[0.1em]">Confirm this order</div>
           <div className="space-y-4">
             <div>
-              <label className="text-tea-text-sec text-[12px] block mb-1.5" htmlFor="shipping-amount">
+              <label className="text-tea-text-sec text-ui-12 block mb-1.5" htmlFor="shipping-amount">
                 Shipping amount
               </label>
               <input
@@ -287,12 +287,12 @@ const SupplierConfirmArea: React.FC<SupplierConfirmAreaProps> = ({ orderId, onTr
                 value={shippingAmount}
                 onChange={e => setShippingAmount(e.target.value)}
                 placeholder="0.00"
-                className="bg-transparent border-b border-tea-border focus:border-tea-gold outline-none font-mono text-[14px] text-tea-text py-1 w-40 transition-colors placeholder:text-tea-text-dim"
+                className="bg-transparent border-b border-tea-border focus:border-tea-gold outline-none font-mono text-ui-14 text-tea-text py-1 w-40 transition-colors placeholder:text-tea-text-dim"
                 disabled={submitting}
               />
             </div>
             <div>
-              <label className="text-tea-text-sec text-[12px] block mb-1.5" htmlFor="confirm-notes">
+              <label className="text-tea-text-sec text-ui-12 block mb-1.5" htmlFor="confirm-notes">
                 Note (optional)
               </label>
               <textarea
@@ -302,7 +302,7 @@ const SupplierConfirmArea: React.FC<SupplierConfirmAreaProps> = ({ orderId, onTr
                 placeholder="Anything the buyer should know about the confirmation?"
                 rows={2}
                 disabled={submitting}
-                className="w-full bg-transparent border-b border-tea-border focus:border-tea-gold outline-none text-tea-text font-body text-[14px] py-1.5 italic transition-colors resize-none placeholder:text-tea-text-dim"
+                className="w-full bg-transparent border-b border-tea-border focus:border-tea-gold outline-none text-tea-text font-body text-ui-14 py-1.5 italic transition-colors resize-none placeholder:text-tea-text-dim"
               />
             </div>
           </div>
@@ -311,7 +311,7 @@ const SupplierConfirmArea: React.FC<SupplierConfirmAreaProps> = ({ orderId, onTr
               type="button"
               onClick={() => setMode('idle')}
               disabled={submitting}
-              className="text-[13px] text-tea-text-sec hover:text-tea-text transition-colors"
+              className="text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors"
             >
               Cancel
             </button>
@@ -319,7 +319,7 @@ const SupplierConfirmArea: React.FC<SupplierConfirmAreaProps> = ({ orderId, onTr
               type="button"
               onClick={handleConfirm}
               disabled={submitting}
-              className="font-display tracking-[0.04em] text-[14px] text-tea-text-sec hover:text-tea-gold transition-colors disabled:text-tea-text-dim"
+              className="font-display tracking-[0.04em] text-ui-14 text-tea-text-sec hover:text-tea-gold transition-colors disabled:text-tea-text-dim"
             >
               {submitting ? 'Confirming…' : 'Confirm order'}
             </button>
@@ -329,9 +329,9 @@ const SupplierConfirmArea: React.FC<SupplierConfirmAreaProps> = ({ orderId, onTr
 
       {mode === 'reply' && (
         <div className="space-y-5">
-          <div className="text-tea-text-sec text-[12px] uppercase tracking-[0.1em]">Reply with adjustments</div>
+          <div className="text-tea-text-sec text-ui-12 uppercase tracking-[0.1em]">Reply with adjustments</div>
           <div>
-            <label className="text-tea-text-sec text-[12px] block mb-1.5" htmlFor="reply-notes">
+            <label className="text-tea-text-sec text-ui-12 block mb-1.5" htmlFor="reply-notes">
               Your note
             </label>
             <textarea
@@ -341,7 +341,7 @@ const SupplierConfirmArea: React.FC<SupplierConfirmAreaProps> = ({ orderId, onTr
               placeholder="What needs adjusting? The buyer will see this and can resubmit."
               rows={3}
               disabled={submitting}
-              className="w-full bg-transparent border-b border-tea-border focus:border-tea-gold outline-none text-tea-text font-body text-[14px] py-1.5 italic transition-colors resize-none placeholder:text-tea-text-dim"
+              className="w-full bg-transparent border-b border-tea-border focus:border-tea-gold outline-none text-tea-text font-body text-ui-14 py-1.5 italic transition-colors resize-none placeholder:text-tea-text-dim"
             />
           </div>
           <div className="flex items-baseline justify-between gap-4">
@@ -349,7 +349,7 @@ const SupplierConfirmArea: React.FC<SupplierConfirmAreaProps> = ({ orderId, onTr
               type="button"
               onClick={() => setMode('idle')}
               disabled={submitting}
-              className="text-[13px] text-tea-text-sec hover:text-tea-text transition-colors"
+              className="text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors"
             >
               Cancel
             </button>
@@ -357,7 +357,7 @@ const SupplierConfirmArea: React.FC<SupplierConfirmAreaProps> = ({ orderId, onTr
               type="button"
               onClick={handleReply}
               disabled={submitting || !replyNotes.trim()}
-              className="font-display tracking-[0.04em] text-[14px] text-tea-text-sec hover:text-tea-gold transition-colors disabled:text-tea-text-dim"
+              className="font-display tracking-[0.04em] text-ui-14 text-tea-text-sec hover:text-tea-gold transition-colors disabled:text-tea-text-dim"
             >
               {submitting ? 'Sending…' : 'Send reply'}
             </button>
@@ -408,13 +408,13 @@ const SupplierShipArea: React.FC<SupplierShipAreaProps> = ({ orderId, onTransiti
   return (
     <div>
       <Divider />
-      <div className="text-tea-text-sec text-[12px] uppercase tracking-[0.1em] mb-5">Update tracking</div>
+      <div className="text-tea-text-sec text-ui-12 uppercase tracking-[0.1em] mb-5">Update tracking</div>
       {error && (
-        <p className="text-tea-text-sec italic text-[13px] mb-4 leading-[1.6]">{error}</p>
+        <p className="text-tea-text-sec italic text-ui-13 mb-4 leading-[1.6]">{error}</p>
       )}
       <div className="space-y-4">
         <div className="flex items-baseline gap-4 flex-wrap">
-          <label className="text-tea-text-sec text-[13px] w-28 shrink-0" htmlFor="carrier-input">
+          <label className="text-tea-text-sec text-ui-13 w-28 shrink-0" htmlFor="carrier-input">
             Carrier
           </label>
           <input
@@ -424,11 +424,11 @@ const SupplierShipArea: React.FC<SupplierShipAreaProps> = ({ orderId, onTransiti
             onChange={e => setCarrier(e.target.value)}
             placeholder="Pos Indonesia, DHL, …"
             disabled={submitting}
-            className="bg-transparent border-b border-tea-border focus:border-tea-gold outline-none text-tea-text text-[14px] py-1 flex-1 min-w-[160px] transition-colors placeholder:text-tea-text-dim"
+            className="bg-transparent border-b border-tea-border focus:border-tea-gold outline-none text-tea-text text-ui-14 py-1 flex-1 min-w-[160px] transition-colors placeholder:text-tea-text-dim"
           />
         </div>
         <div className="flex items-baseline gap-4 flex-wrap">
-          <label className="text-tea-text-sec text-[13px] w-28 shrink-0" htmlFor="tracking-input">
+          <label className="text-tea-text-sec text-ui-13 w-28 shrink-0" htmlFor="tracking-input">
             Tracking #
           </label>
           <input
@@ -438,11 +438,11 @@ const SupplierShipArea: React.FC<SupplierShipAreaProps> = ({ orderId, onTransiti
             onChange={e => setTrackingNumber(e.target.value)}
             placeholder="JT9482-AU"
             disabled={submitting}
-            className="bg-transparent border-b border-tea-border focus:border-tea-gold outline-none font-mono text-[14px] text-tea-text py-1 flex-1 min-w-[160px] transition-colors placeholder:text-tea-text-dim"
+            className="bg-transparent border-b border-tea-border focus:border-tea-gold outline-none font-mono text-ui-14 text-tea-text py-1 flex-1 min-w-[160px] transition-colors placeholder:text-tea-text-dim"
           />
         </div>
         <div className="flex items-baseline gap-4 flex-wrap">
-          <label className="text-tea-text-sec text-[13px] w-28 shrink-0" htmlFor="ship-notes">
+          <label className="text-tea-text-sec text-ui-13 w-28 shrink-0" htmlFor="ship-notes">
             Note
           </label>
           <input
@@ -452,7 +452,7 @@ const SupplierShipArea: React.FC<SupplierShipAreaProps> = ({ orderId, onTransiti
             onChange={e => setShipNotes(e.target.value)}
             placeholder="Optional"
             disabled={submitting}
-            className="bg-transparent border-b border-tea-border focus:border-tea-gold outline-none text-tea-text text-[14px] italic py-1 flex-1 min-w-[160px] transition-colors placeholder:text-tea-text-dim"
+            className="bg-transparent border-b border-tea-border focus:border-tea-gold outline-none text-tea-text text-ui-14 italic py-1 flex-1 min-w-[160px] transition-colors placeholder:text-tea-text-dim"
           />
         </div>
       </div>
@@ -462,7 +462,7 @@ const SupplierShipArea: React.FC<SupplierShipAreaProps> = ({ orderId, onTransiti
           {/* Inline validation hint when fields are empty — surfaces the requirement
               before the user clicks Confirm and gets a generic 400 from the worker. */}
           {(!carrier.trim() || !trackingNumber.trim()) && (
-            <p className="text-tea-text-sec italic text-[13px] leading-[1.6] mb-3">
+            <p className="text-tea-text-sec italic text-ui-13 leading-[1.6] mb-3">
               {!carrier.trim() && !trackingNumber.trim()
                 ? 'Carrier and tracking number are required to mark shipped.'
                 : !carrier.trim()
@@ -475,7 +475,7 @@ const SupplierShipArea: React.FC<SupplierShipAreaProps> = ({ orderId, onTransiti
               type="button"
               onClick={() => setConfirmOpen(true)}
               disabled={!carrier.trim() || !trackingNumber.trim()}
-              className="font-display tracking-[0.04em] text-[14px] text-tea-text-sec hover:text-tea-gold transition-colors disabled:text-tea-text-dim disabled:cursor-not-allowed"
+              className="font-display tracking-[0.04em] text-ui-14 text-tea-text-sec hover:text-tea-gold transition-colors disabled:text-tea-text-dim disabled:cursor-not-allowed"
             >
               Mark as shipped
             </button>
@@ -483,7 +483,7 @@ const SupplierShipArea: React.FC<SupplierShipAreaProps> = ({ orderId, onTransiti
         </div>
       ) : (
         <div className="mt-5 space-y-3">
-          <p className="text-tea-text-sec italic text-[13px] leading-[1.6]">
+          <p className="text-tea-text-sec italic text-ui-13 leading-[1.6]">
             Confirm: mark as shipped
             {trackingNumber ? ` with tracking ${trackingNumber} via ${carrier}` : ''}?
           </p>
@@ -492,7 +492,7 @@ const SupplierShipArea: React.FC<SupplierShipAreaProps> = ({ orderId, onTransiti
               type="button"
               onClick={() => setConfirmOpen(false)}
               disabled={submitting}
-              className="text-[13px] text-tea-text-sec hover:text-tea-text transition-colors"
+              className="text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors"
             >
               Cancel
             </button>
@@ -500,7 +500,7 @@ const SupplierShipArea: React.FC<SupplierShipAreaProps> = ({ orderId, onTransiti
               type="button"
               onClick={handleShip}
               disabled={submitting}
-              className="font-display tracking-[0.04em] text-[14px] text-tea-text-sec hover:text-tea-gold transition-colors disabled:text-tea-text-dim"
+              className="font-display tracking-[0.04em] text-ui-14 text-tea-text-sec hover:text-tea-gold transition-colors disabled:text-tea-text-dim"
             >
               {submitting ? 'Marking…' : 'Confirm'}
             </button>
@@ -542,9 +542,9 @@ const BuyerReceiveArea: React.FC<BuyerReceiveAreaProps> = ({ orderId, onTransiti
     <div>
       <Divider />
       {error && (
-        <p className="text-tea-text-sec italic text-[13px] mb-4 leading-[1.6]">{error}</p>
+        <p className="text-tea-text-sec italic text-ui-13 mb-4 leading-[1.6]">{error}</p>
       )}
-      <p className="text-tea-text-sec text-[14px] leading-[1.6] mb-5 italic">
+      <p className="text-tea-text-sec text-ui-14 leading-[1.6] mb-5 italic">
         Mark as received when it arrives.
       </p>
       {!confirmOpen ? (
@@ -552,14 +552,14 @@ const BuyerReceiveArea: React.FC<BuyerReceiveAreaProps> = ({ orderId, onTransiti
           <button
             type="button"
             onClick={() => setConfirmOpen(true)}
-            className="font-display tracking-[0.04em] text-[14px] text-tea-text-sec hover:text-tea-gold transition-colors"
+            className="font-display tracking-[0.04em] text-ui-14 text-tea-text-sec hover:text-tea-gold transition-colors"
           >
             Mark as received
           </button>
         </div>
       ) : (
         <div className="space-y-3">
-          <p className="text-tea-text-sec italic text-[13px] leading-[1.6]">
+          <p className="text-tea-text-sec italic text-ui-13 leading-[1.6]">
             Confirm: mark as received? Stock will be in your inventory.
           </p>
           <div className="flex items-baseline justify-between gap-4">
@@ -567,7 +567,7 @@ const BuyerReceiveArea: React.FC<BuyerReceiveAreaProps> = ({ orderId, onTransiti
               type="button"
               onClick={() => setConfirmOpen(false)}
               disabled={submitting}
-              className="text-[13px] text-tea-text-sec hover:text-tea-text transition-colors"
+              className="text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors"
             >
               Cancel
             </button>
@@ -575,7 +575,7 @@ const BuyerReceiveArea: React.FC<BuyerReceiveAreaProps> = ({ orderId, onTransiti
               type="button"
               onClick={handleReceive}
               disabled={submitting}
-              className="font-display tracking-[0.04em] text-[14px] text-tea-text-sec hover:text-tea-gold transition-colors disabled:text-tea-text-dim"
+              className="font-display tracking-[0.04em] text-ui-14 text-tea-text-sec hover:text-tea-gold transition-colors disabled:text-tea-text-dim"
             >
               {submitting ? 'Marking…' : 'Confirm'}
             </button>
@@ -642,17 +642,17 @@ const BuyerStuckArea: React.FC<BuyerStuckAreaProps> = ({ orderId, supplierName, 
     <div>
       <Divider />
       {nudgeMsg && (
-        <p className="text-tea-text-sec italic text-[13px] mb-4 leading-[1.6]">{nudgeMsg}</p>
+        <p className="text-tea-text-sec italic text-ui-13 mb-4 leading-[1.6]">{nudgeMsg}</p>
       )}
       {error && (
-        <p className="text-tea-text-sec italic text-[13px] mb-4 leading-[1.6]">{error}</p>
+        <p className="text-tea-text-sec italic text-ui-13 mb-4 leading-[1.6]">{error}</p>
       )}
       {!cancelOpen ? (
         <div>
-          <p className="text-tea-text-sec italic text-[14px] mb-4 leading-[1.6]">
+          <p className="text-tea-text-sec italic text-ui-14 mb-4 leading-[1.6]">
             It's been 7 days. You can nudge {supplierName} or cancel and start over.
           </p>
-          <div className="flex items-baseline gap-6 text-[14px]">
+          <div className="flex items-baseline gap-6 text-ui-14">
             {!nudgeMsg && (
               <button
                 type="button"
@@ -674,11 +674,11 @@ const BuyerStuckArea: React.FC<BuyerStuckAreaProps> = ({ orderId, supplierName, 
         </div>
       ) : (
         <div className="space-y-4">
-          <p className="text-tea-text-sec italic text-[13px] leading-[1.6]">
+          <p className="text-tea-text-sec italic text-ui-13 leading-[1.6]">
             Cancel this order?
           </p>
           <div>
-            <label className="text-tea-text-sec text-[12px] block mb-1.5" htmlFor="cancel-reason">
+            <label className="text-tea-text-sec text-ui-12 block mb-1.5" htmlFor="cancel-reason">
               Reason (optional)
             </label>
             <textarea
@@ -688,7 +688,7 @@ const BuyerStuckArea: React.FC<BuyerStuckAreaProps> = ({ orderId, supplierName, 
               placeholder="Let the supplier know why."
               rows={2}
               disabled={cancelLoading}
-              className="w-full bg-transparent border-b border-tea-border focus:border-tea-gold outline-none text-tea-text font-body text-[14px] py-1.5 italic transition-colors resize-none placeholder:text-tea-text-dim"
+              className="w-full bg-transparent border-b border-tea-border focus:border-tea-gold outline-none text-tea-text font-body text-ui-14 py-1.5 italic transition-colors resize-none placeholder:text-tea-text-dim"
             />
           </div>
           <div className="flex items-baseline justify-between gap-4">
@@ -696,7 +696,7 @@ const BuyerStuckArea: React.FC<BuyerStuckAreaProps> = ({ orderId, supplierName, 
               type="button"
               onClick={() => setCancelOpen(false)}
               disabled={cancelLoading}
-              className="text-[13px] text-tea-text-sec hover:text-tea-text transition-colors"
+              className="text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors"
             >
               Cancel
             </button>
@@ -704,7 +704,7 @@ const BuyerStuckArea: React.FC<BuyerStuckAreaProps> = ({ orderId, supplierName, 
               type="button"
               onClick={handleCancel}
               disabled={cancelLoading}
-              className="font-display tracking-[0.04em] text-[14px] text-tea-text-sec hover:text-tea-gold transition-colors disabled:text-tea-text-dim"
+              className="font-display tracking-[0.04em] text-ui-14 text-tea-text-sec hover:text-tea-gold transition-colors disabled:text-tea-text-dim"
             >
               {cancelLoading ? 'Cancelling…' : 'Confirm cancel'}
             </button>
@@ -751,7 +751,7 @@ const CancelLink: React.FC<CancelLinkProps> = ({ orderId, onTransitioned }) => {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="text-[13px] text-tea-text-sec hover:text-tea-text transition-colors"
+        className="text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors"
       >
         Cancel order
       </button>
@@ -761,11 +761,11 @@ const CancelLink: React.FC<CancelLinkProps> = ({ orderId, onTransitioned }) => {
   return (
     <div className="space-y-4">
       {error && (
-        <p className="text-tea-text-sec italic text-[13px] leading-[1.6]">{error}</p>
+        <p className="text-tea-text-sec italic text-ui-13 leading-[1.6]">{error}</p>
       )}
-      <p className="text-tea-text-sec italic text-[13px] leading-[1.6]">Cancel this order?</p>
+      <p className="text-tea-text-sec italic text-ui-13 leading-[1.6]">Cancel this order?</p>
       <div>
-        <label className="text-tea-text-sec text-[12px] block mb-1.5" htmlFor="cancel-link-reason">
+        <label className="text-tea-text-sec text-ui-12 block mb-1.5" htmlFor="cancel-link-reason">
           Reason (optional)
         </label>
         <textarea
@@ -775,7 +775,7 @@ const CancelLink: React.FC<CancelLinkProps> = ({ orderId, onTransitioned }) => {
           placeholder="A brief note helps the other party."
           rows={2}
           disabled={loading}
-          className="w-full bg-transparent border-b border-tea-border focus:border-tea-gold outline-none text-tea-text font-body text-[14px] py-1.5 italic transition-colors resize-none placeholder:text-tea-text-dim"
+          className="w-full bg-transparent border-b border-tea-border focus:border-tea-gold outline-none text-tea-text font-body text-ui-14 py-1.5 italic transition-colors resize-none placeholder:text-tea-text-dim"
         />
       </div>
       <div className="flex items-baseline justify-between gap-4">
@@ -783,7 +783,7 @@ const CancelLink: React.FC<CancelLinkProps> = ({ orderId, onTransitioned }) => {
           type="button"
           onClick={() => setOpen(false)}
           disabled={loading}
-          className="text-[13px] text-tea-text-sec hover:text-tea-text transition-colors"
+          className="text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors"
         >
           Cancel
         </button>
@@ -791,7 +791,7 @@ const CancelLink: React.FC<CancelLinkProps> = ({ orderId, onTransitioned }) => {
           type="button"
           onClick={handleCancel}
           disabled={loading}
-          className="font-display tracking-[0.04em] text-[14px] text-tea-text-sec hover:text-tea-gold transition-colors disabled:text-tea-text-dim"
+          className="font-display tracking-[0.04em] text-ui-14 text-tea-text-sec hover:text-tea-gold transition-colors disabled:text-tea-text-dim"
         >
           {loading ? 'Cancelling…' : 'Confirm cancel'}
         </button>
@@ -903,14 +903,14 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({ items, order }) => {
         {items.map(item => (
           <div key={item.id} className="flex items-baseline justify-between gap-4 flex-wrap">
             <div className="flex items-baseline gap-4 flex-1 min-w-0">
-              <span className="font-sans text-[11px] uppercase tracking-[0.1em] text-tea-text leading-[1.4] min-w-0">
+              <span className="font-sans text-ui-11 uppercase tracking-[0.1em] text-tea-text leading-[1.4] min-w-0">
                 {item.profile_name?.toUpperCase() ?? 'TEA'}
               </span>
-              <span className="font-mono text-[12px] text-tea-text-sec shrink-0">
+              <span className="font-mono text-ui-12 text-tea-text-sec shrink-0">
                 {item.grams.toLocaleString()} g
               </span>
             </div>
-            <span className="font-mono text-[13px] text-tea-text shrink-0">
+            <span className="font-mono text-ui-13 text-tea-text shrink-0">
               {formatAmount(item.line_total, item.unit_price_currency || currency)}
             </span>
           </div>
@@ -922,27 +922,27 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({ items, order }) => {
       <div className="space-y-1.5">
         {subtotal_amount != null && (
           <div className="flex items-baseline justify-between gap-4">
-            <span className="font-sans text-[11px] uppercase tracking-[0.1em] text-tea-text-sec">Subtotal</span>
-            <span className="font-mono text-[13px] text-tea-text">{formatAmount(subtotal_amount, currency)}</span>
+            <span className="font-sans text-ui-11 uppercase tracking-[0.1em] text-tea-text-sec">Subtotal</span>
+            <span className="font-mono text-ui-13 text-tea-text">{formatAmount(subtotal_amount, currency)}</span>
           </div>
         )}
         <div className="flex items-baseline justify-between gap-4">
-          <span className="font-sans text-[11px] uppercase tracking-[0.1em] text-tea-text-sec">
+          <span className="font-sans text-ui-11 uppercase tracking-[0.1em] text-tea-text-sec">
             {shipping_amount != null ? 'Shipping (added on confirm)' : 'Shipping'}
           </span>
-          <span className="font-mono text-[13px] text-tea-text">
+          <span className="font-mono text-ui-13 text-tea-text">
             {shipping_amount != null ? formatAmount(shipping_amount, currency) : 'Estimated by supplier on confirm'}
           </span>
         </div>
         {total_amount != null && (
           <div className="flex items-baseline justify-between gap-4 pt-1">
-            <span className="font-sans text-[11px] uppercase tracking-[0.1em] text-tea-text">Total</span>
-            <span className="font-mono text-[13px] text-tea-text font-medium">{formatAmount(total_amount, currency)}</span>
+            <span className="font-sans text-ui-11 uppercase tracking-[0.1em] text-tea-text">Total</span>
+            <span className="font-mono text-ui-13 text-tea-text font-medium">{formatAmount(total_amount, currency)}</span>
           </div>
         )}
       </div>
 
-      <p className="text-tea-text-sec italic text-[11px] mt-4 leading-[1.5]">
+      <p className="text-tea-text-sec italic text-ui-11 mt-4 leading-[1.5]">
         Currency snapshot at submission: {currency}.
       </p>
     </div>
@@ -990,7 +990,7 @@ export const WholesaleOrderTimeline: React.FC = () => {
   if (!hasSell) {
     return (
       <div className="px-4 md:px-6 pt-6 pb-nav-gap max-w-[640px] mx-auto">
-        <p className="text-tea-text-sec italic text-[15px] leading-[1.65]">
+        <p className="text-tea-text-sec italic text-ui-15 leading-[1.65]">
           This page requires the Sell bundle. Ask your owner.
         </p>
       </div>
@@ -1002,13 +1002,13 @@ export const WholesaleOrderTimeline: React.FC = () => {
   if (notFound) {
     return (
       <div className="px-4 md:px-6 pt-6 pb-nav-gap max-w-[640px] mx-auto">
-        <p className="text-tea-text-sec italic text-[15px] leading-[1.65]">
+        <p className="text-tea-text-sec italic text-ui-15 leading-[1.65]">
           This order doesn't exist or you don't have access.
         </p>
         <button
           type="button"
           onClick={() => navigate('/admin/network?tab=wholesale')}
-          className="mt-4 text-[14px] text-tea-text-sec hover:text-tea-text transition-colors font-display tracking-[0.04em]"
+          className="mt-4 text-ui-14 text-tea-text-sec hover:text-tea-text transition-colors font-display tracking-[0.04em]"
         >
           ← Back to wholesale orders
         </button>
@@ -1019,7 +1019,7 @@ export const WholesaleOrderTimeline: React.FC = () => {
   if (error && !detail) {
     return (
       <div className="px-4 md:px-6 pt-6 pb-nav-gap max-w-[640px] mx-auto">
-        <p className="text-tea-text-sec italic text-[15px] leading-[1.65]">{error}</p>
+        <p className="text-tea-text-sec italic text-ui-15 leading-[1.65]">{error}</p>
       </div>
     );
   }
@@ -1061,7 +1061,7 @@ export const WholesaleOrderTimeline: React.FC = () => {
       <button
         type="button"
         onClick={() => navigate('/admin/network?tab=wholesale')}
-        className="text-[13px] text-tea-text-sec hover:text-tea-text transition-colors mb-6 block font-display tracking-[0.04em]"
+        className="text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors mb-6 block font-display tracking-[0.04em]"
       >
         ← Wholesale
       </button>
@@ -1072,11 +1072,11 @@ export const WholesaleOrderTimeline: React.FC = () => {
           WHOLESALE ORDER · {statusWord(status)}
         </h1>
         {timestampParts.length > 0 && (
-          <p className="text-tea-text-sec text-[12px] mb-4 leading-[1.5]">
+          <p className="text-tea-text-sec text-ui-12 mb-4 leading-[1.5]">
             {timestampParts.join(' · ')}
           </p>
         )}
-        <div className="space-y-1 text-[14px]">
+        <div className="space-y-1 text-ui-14">
           <div className="flex gap-6">
             <span className="text-tea-text-sec w-20 shrink-0">Supplier</span>
             <span className="text-tea-text">{supplier.name}</span>
@@ -1089,7 +1089,7 @@ export const WholesaleOrderTimeline: React.FC = () => {
       </header>
 
       {/* Current state block — most prominent thing after the header */}
-      <p className="font-body text-[17px] text-tea-text leading-[1.7] mb-2">
+      <p className="font-body text-ui-17 text-tea-text leading-[1.7] mb-2">
         {currentStateSentence(status, role, order, supplier, buyer)}
       </p>
 
@@ -1098,7 +1098,7 @@ export const WholesaleOrderTimeline: React.FC = () => {
         <button
           type="button"
           onClick={() => navigate(`/admin/network/wholesale/${orderId}`)}
-          className="text-[14px] text-tea-text-sec hover:text-tea-gold transition-colors font-display tracking-[0.04em]"
+          className="text-ui-14 text-tea-text-sec hover:text-tea-gold transition-colors font-display tracking-[0.04em]"
         >
           Edit this draft →
         </button>
@@ -1109,7 +1109,7 @@ export const WholesaleOrderTimeline: React.FC = () => {
         <button
           type="button"
           onClick={() => navigate(`/admin/network/wholesale/${orderId}`)}
-          className="text-[14px] text-tea-text-sec hover:text-tea-gold transition-colors font-display tracking-[0.04em] mt-2 block"
+          className="text-ui-14 text-tea-text-sec hover:text-tea-gold transition-colors font-display tracking-[0.04em] mt-2 block"
         >
           Review and resubmit →
         </button>
@@ -1146,8 +1146,8 @@ export const WholesaleOrderTimeline: React.FC = () => {
       {order.shipping_address && (
         <>
           <Divider />
-          <div className="text-tea-text-sec text-[11px] uppercase tracking-[0.1em] mb-3">Shipping to</div>
-          <p className="text-tea-text text-[14px] leading-[1.65] whitespace-pre-line">{order.shipping_address}</p>
+          <div className="text-tea-text-sec text-ui-11 uppercase tracking-[0.1em] mb-3">Shipping to</div>
+          <p className="text-tea-text text-ui-14 leading-[1.65] whitespace-pre-line">{order.shipping_address}</p>
         </>
       )}
 
@@ -1155,10 +1155,10 @@ export const WholesaleOrderTimeline: React.FC = () => {
       {order.buyer_notes && (
         <>
           <Divider />
-          <div className="text-tea-text-sec text-[11px] uppercase tracking-[0.1em] mb-3">
+          <div className="text-tea-text-sec text-ui-11 uppercase tracking-[0.1em] mb-3">
             Note to {supplier.name}
           </div>
-          <p className="font-body italic text-tea-text text-[15px] leading-[1.65]">
+          <p className="font-body italic text-tea-text text-ui-15 leading-[1.65]">
             "{order.buyer_notes}"
           </p>
         </>
@@ -1168,10 +1168,10 @@ export const WholesaleOrderTimeline: React.FC = () => {
       {order.supplier_notes && (
         <>
           <Divider />
-          <div className="text-tea-text-sec text-[11px] uppercase tracking-[0.1em] mb-3">
+          <div className="text-tea-text-sec text-ui-11 uppercase tracking-[0.1em] mb-3">
             {supplier.name}'s note
           </div>
-          <p className="font-body italic text-tea-text text-[15px] leading-[1.65]">
+          <p className="font-body italic text-tea-text text-ui-15 leading-[1.65]">
             "{order.supplier_notes}"
           </p>
         </>
@@ -1181,16 +1181,16 @@ export const WholesaleOrderTimeline: React.FC = () => {
       {timelineEvents.length > 0 && (
         <>
           <Divider />
-          <div className="text-tea-text-sec text-[11px] uppercase tracking-[0.1em] mb-5">Timeline</div>
+          <div className="text-tea-text-sec text-ui-11 uppercase tracking-[0.1em] mb-5">Timeline</div>
           <div className="space-y-6">
             {timelineEvents.map((ev, i) => (
               <div key={i}>
-                <div className="font-mono text-[12px] text-tea-text-sec mb-1">
+                <div className="font-mono text-ui-12 text-tea-text-sec mb-1">
                   {formatDateTime(ev.iso)}
                 </div>
-                <p className="text-tea-text text-[14px] leading-[1.6]">{ev.sentence}</p>
+                <p className="text-tea-text text-ui-14 leading-[1.6]">{ev.sentence}</p>
                 {ev.note && (
-                  <p className="font-body italic text-tea-text-sec text-[13px] mt-1 leading-[1.6]">
+                  <p className="font-body italic text-tea-text-sec text-ui-13 mt-1 leading-[1.6]">
                     "{ev.note}"
                   </p>
                 )}
@@ -1204,19 +1204,19 @@ export const WholesaleOrderTimeline: React.FC = () => {
       {status === 'received' && (order.invoice_id_supplier || order.invoice_id_buyer) && (
         <>
           <Divider />
-          <div className="text-tea-text-sec text-[11px] uppercase tracking-[0.1em] mb-5">Invoices</div>
+          <div className="text-tea-text-sec text-ui-11 uppercase tracking-[0.1em] mb-5">Invoices</div>
           <div className="space-y-3">
             {order.invoice_id_supplier && (
               <div className="flex items-baseline justify-between gap-4">
-                <span className="text-tea-text-sec text-[13px]">{supplier.name}'s outgoing invoice</span>
+                <span className="text-tea-text-sec text-ui-13">{supplier.name}'s outgoing invoice</span>
                 <div className="flex items-baseline gap-4">
-                  <span className="font-mono text-[12px] text-tea-text-sec">{order.invoice_id_supplier}</span>
+                  <span className="font-mono text-ui-12 text-tea-text-sec">{order.invoice_id_supplier}</span>
                   {/* No /admin/invoices/:id route yet — land in the orders list with the
                       invoice id as the search query so the user can find it. */}
                   <button
                     type="button"
                     onClick={() => navigate(`/admin/activity?tab=orders&search=${encodeURIComponent(order.invoice_id_supplier!)}`)}
-                    className="text-tea-text-sec hover:text-tea-gold text-[13px] transition-colors"
+                    className="text-tea-text-sec hover:text-tea-gold text-ui-13 transition-colors"
                   >
                     Open →
                   </button>
@@ -1225,13 +1225,13 @@ export const WholesaleOrderTimeline: React.FC = () => {
             )}
             {order.invoice_id_buyer && (
               <div className="flex items-baseline justify-between gap-4">
-                <span className="text-tea-text-sec text-[13px]">Your incoming invoice</span>
+                <span className="text-tea-text-sec text-ui-13">Your incoming invoice</span>
                 <div className="flex items-baseline gap-4">
-                  <span className="font-mono text-[12px] text-tea-text-sec">{order.invoice_id_buyer}</span>
+                  <span className="font-mono text-ui-12 text-tea-text-sec">{order.invoice_id_buyer}</span>
                   <button
                     type="button"
                     onClick={() => navigate(`/admin/activity?tab=orders&search=${encodeURIComponent(order.invoice_id_buyer!)}`)}
-                    className="text-tea-text-sec hover:text-tea-gold text-[13px] transition-colors"
+                    className="text-tea-text-sec hover:text-tea-gold text-ui-13 transition-colors"
                   >
                     Open →
                   </button>

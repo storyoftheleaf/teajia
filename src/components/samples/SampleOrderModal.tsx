@@ -143,7 +143,7 @@ export const SampleOrderModal: React.FC<SampleOrderModalProps> = ({
                 <div className="space-y-4">
                   {/* Tea name */}
                   <div>
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec mb-0.5" style={{ fontFamily: 'var(--font-display)' }}>
+                    <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-0.5" style={{ fontFamily: 'var(--font-display)' }}>
                       Tea
                     </p>
                     <p className="text-sm text-tea-text" style={{ fontFamily: 'var(--font-body)' }}>
@@ -154,7 +154,7 @@ export const SampleOrderModal: React.FC<SampleOrderModalProps> = ({
 
                   {/* Quantity */}
                   <div>
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec mb-2" style={{ fontFamily: 'var(--font-display)' }}>
+                    <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-2" style={{ fontFamily: 'var(--font-display)' }}>
                       Quantity
                     </p>
                     <div className="flex gap-2 flex-wrap">
@@ -199,7 +199,7 @@ export const SampleOrderModal: React.FC<SampleOrderModalProps> = ({
 
                   {/* Contact fields */}
                   <div className="space-y-2">
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec" style={{ fontFamily: 'var(--font-display)' }}>
+                    <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec" style={{ fontFamily: 'var(--font-display)' }}>
                       Your Details
                     </p>
                     <input
@@ -266,8 +266,8 @@ export const SampleOrderModal: React.FC<SampleOrderModalProps> = ({
                   <p className="text-xs text-tea-text-sec mb-1">
                     {sampleName} · {resolvedQty}
                   </p>
-                  <p className="text-[11px] text-tea-text-dim font-mono mb-1">{refNumber}</p>
-                  <p className="text-[11px] text-tea-text-dim mb-6">Send the message to complete your request.</p>
+                  <p className="text-ui-11 text-tea-text-dim font-mono mb-1">{refNumber}</p>
+                  <p className="text-ui-11 text-tea-text-dim mb-6">Send the message to complete your request.</p>
 
                   <div className="flex flex-col gap-2">
                     <button

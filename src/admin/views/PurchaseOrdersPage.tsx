@@ -87,7 +87,7 @@ const NewPoForm: React.FC<{ onClose: () => void; onSubmit: (data: Parameters<typ
   const sectionLabel = (label: string) => (
     <div className="flex items-center gap-2">
       <div className="flex-1 h-px bg-tea-border" />
-      <span className="text-[9px] uppercase tracking-[0.2em] text-tea-text-dim shrink-0">{label}</span>
+      <span className="text-ui-9 uppercase tracking-[0.2em] text-tea-text-dim shrink-0">{label}</span>
       <div className="flex-1 h-px bg-tea-border" />
     </div>
   );
@@ -110,7 +110,7 @@ const NewPoForm: React.FC<{ onClose: () => void; onSubmit: (data: Parameters<typ
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-tea-border flex-shrink-0">
-          <span className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec">New Purchase Order</span>
+          <span className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec">New Purchase Order</span>
           <button onClick={onClose} className="p-1.5 text-tea-text-sec hover:text-tea-text transition-colors rounded-md" aria-label="Close">
             <X size={15} />
           </button>
@@ -160,7 +160,7 @@ const NewPoForm: React.FC<{ onClose: () => void; onSubmit: (data: Parameters<typ
                     className="w-12 bg-transparent text-sm text-right text-tea-text outline-none tabular-nums placeholder:text-tea-text-dim [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                     style={{ MozAppearance: 'textfield' } as React.CSSProperties}
                   />
-                  <span className="text-[11px] text-tea-text-dim">g</span>
+                  <span className="text-ui-11 text-tea-text-dim">g</span>
                 </div>
                 {items.length > 1 && (
                   <button type="button" onClick={() => removeItem(idx)} className="p-1.5 text-tea-text-sec hover:text-tea-text transition-colors shrink-0">
@@ -256,13 +256,13 @@ const ReceiveStockPrompt: React.FC<{
         onClick={e => e.stopPropagation()}
       >
         <div className="px-5 py-4 border-b border-tea-border flex items-center justify-between">
-          <span className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec">Receive Stock</span>
+          <span className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec">Receive Stock</span>
           <button onClick={onClose} className="p-1.5 text-tea-text-sec hover:text-tea-text transition-colors" aria-label="Close"><X size={15} /></button>
         </div>
         <div className="px-5 py-4 space-y-1">
           <div className="flex items-center gap-2 mb-3">
             <div className="flex-1 h-px bg-tea-border" />
-            <span className="text-[9px] uppercase tracking-[0.2em] text-tea-text-dim shrink-0">Add to inventory?</span>
+            <span className="text-ui-9 uppercase tracking-[0.2em] text-tea-text-dim shrink-0">Add to inventory?</span>
             <div className="flex-1 h-px bg-tea-border" />
           </div>
           {items.map((item, idx) => (
@@ -387,7 +387,7 @@ export const PurchaseOrdersPage: React.FC = () => {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-sm font-serif text-tea-text">{order.vendor_name}</span>
-                        <span className={`text-[10px] uppercase tracking-[0.12em] px-2 py-0.5 rounded-full font-medium ${STATUS_STYLES[order.status] || STATUS_STYLES.pending}`}>
+                        <span className={`text-ui-10 uppercase tracking-[0.12em] px-2 py-0.5 rounded-full font-medium ${STATUS_STYLES[order.status] || STATUS_STYLES.pending}`}>
                           {STATUS_LABELS[order.status] || order.status}
                         </span>
                       </div>
@@ -406,7 +406,7 @@ export const PurchaseOrdersPage: React.FC = () => {
                         <p className="mt-1 text-xs text-tea-text-dim line-clamp-1">{order.notes}</p>
                       )}
 
-                      <span className="text-[10px] text-tea-text-dim mt-1 block">{formatDate(order.created_at)}</span>
+                      <span className="text-ui-10 text-tea-text-dim mt-1 block">{formatDate(order.created_at)}</span>
                     </div>
 
                     {/* Status selector */}

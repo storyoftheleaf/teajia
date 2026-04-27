@@ -66,7 +66,7 @@ const InkWashPlaceholder: React.FC<{ label?: string; aspectRatio?: string; class
       </svg>
       {label && (
         <div className="absolute bottom-0 left-0 right-0 p-3 text-tea-text-dim">
-          <span className="text-[8px] font-mono tracking-[0.25em] uppercase">{label}</span>
+          <span className="text-ui-8 font-mono tracking-[0.25em] uppercase">{label}</span>
         </div>
       )}
     </div>
@@ -185,7 +185,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
             <p className="font-light italic text-tea-gold leading-[1.4] max-w-md" style={{ fontSize: 'clamp(14px, 1.5vw + 6px, 18px)', fontFamily: 'var(--font-body)' }}>
               "Everything I wish someone had given me when I started. Take what you need."
             </p>
-            <span className="block mt-2 text-[10px] font-sans uppercase tracking-[0.15em] text-tea-text-sec">
+            <span className="block mt-2 text-ui-10 font-sans uppercase tracking-[0.15em] text-tea-text-sec">
               Adrian
             </span>
           </div>
@@ -206,7 +206,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
             <Icons.Leaf className="w-4 h-4" />
           </span>
           <div className="flex-1 min-w-0">
-            <p className="text-[10px] uppercase tracking-[0.18em] text-tea-gold/70 mb-1">New here?</p>
+            <p className="text-ui-10 uppercase tracking-[0.18em] text-tea-gold/70 mb-1">New here?</p>
             <p className="text-xs text-tea-text-sec leading-relaxed">
               Start with{' '}
               <button onClick={() => onNavigateTo('course')} className="text-tea-text underline underline-offset-2 hover:text-tea-gold transition-colors">Go Deeper</button>
@@ -252,7 +252,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
           <div className="mt-4 bg-tea-surface border border-transparent rounded-[1px] p-5 space-y-4">
             {searchResults.courses.length > 0 && (
               <div>
-                <span className="text-[10px] uppercase tracking-[0.15em] text-tea-gold font-sans block mb-2">Courses</span>
+                <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-gold font-sans block mb-2">Courses</span>
                 {searchResults.courses.map(mod => (
                   <button
                     key={mod.id}
@@ -266,7 +266,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
             )}
             {searchResults.terms.length > 0 && (
               <div>
-                <span className="text-[10px] uppercase tracking-[0.15em] text-tea-gold font-sans block mb-2">Terms</span>
+                <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-gold font-sans block mb-2">Terms</span>
                 {searchResults.terms.map(term => (
                   <button
                     key={term.id}
@@ -318,7 +318,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
               <div className="relative" style={{ padding: 'clamp(24px, 4vw, 48px)' }}>
                 {/* Category + badge */}
                 <div className="flex items-center gap-3 mb-6">
-                  <span className="text-[10px] uppercase tracking-[0.15em] text-tea-gold font-sans border border-tea-border px-2.5 py-1 rounded-sm">
+                  <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-gold font-sans border border-tea-border px-2.5 py-1 rounded-sm">
                     {GLOSSARY_CATEGORIES[spotlightTerm.category].label}
                   </span>
                 </div>
@@ -329,7 +329,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
                 </h3>
 
                 {spotlightTerm.pronunciation && (
-                  <p className="font-mono tabular-nums text-[9px] text-tea-text-sec mb-6 md:mb-8">
+                  <p className="font-mono tabular-nums text-ui-9 text-tea-text-sec mb-6 md:mb-8">
                     /{spotlightTerm.pronunciation}/
                   </p>
                 )}
@@ -342,10 +342,10 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
                 {/* Try This */}
                 {spotlightTerm.deepDive?.tryThis?.[0] && (
                   <div className="border-l-2 border-tea-border pl-4 mb-8 max-w-md">
-                    <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec font-sans block mb-1.5">
+                    <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec font-sans block mb-1.5">
                       Try this
                     </span>
-                    <p className="text-[15px] text-tea-text-sec leading-[1.8] font-light italic" style={{ fontFamily: 'var(--font-body)' }}>
+                    <p className="text-ui-15 text-tea-text-sec leading-[1.8] font-light italic" style={{ fontFamily: 'var(--font-body)' }}>
                       {spotlightTerm.deepDive.tryThis[0].description}
                     </p>
                   </div>
@@ -357,7 +357,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
                     Explore full glossary
                     <Icons.ChevronRight className="w-4 h-4" />
                   </span>
-                  <span className="text-tea-text-sec text-[9px] font-mono tabular-nums">
+                  <span className="text-tea-text-sec text-ui-9 font-mono tabular-nums">
                     {counts.glossary} terms
                   </span>
                 </div>
@@ -521,13 +521,13 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
                 <InkWashPlaceholder label={pin.name} aspectRatio="4/3" mood={i % 2 === 0 ? 'warm' : 'cool'} />
 
                 <div className="p-4 bg-tea-bg">
-                  <span className="inline-block text-[9px] uppercase tracking-[0.15em] text-tea-gold/70 font-sans mb-2">
+                  <span className="inline-block text-ui-9 uppercase tracking-[0.15em] text-tea-gold/70 font-sans mb-2">
                     {PIN_TYPE_LABELS[pin.type] || pin.type}
                   </span>
                   <h4 className="text-sm text-tea-text leading-tight mb-0.5 group-hover:text-tea-gold transition-colors" style={{ fontFamily: 'var(--font-display)' }}>
                     {pin.name}
                   </h4>
-                  <p className="text-[11px] text-tea-text/60 font-sans">
+                  <p className="text-ui-11 text-tea-text/60 font-sans">
                     {pin.location}
                   </p>
                 </div>
@@ -560,7 +560,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
 
             {/* Content below image */}
             <div className="bg-tea-bg" style={{ padding: 'clamp(16px, 2.5vw, 28px)' }}>
-              <span className="inline-block text-[9px] uppercase tracking-[0.15em] text-tea-gold/70 font-sans mb-3">
+              <span className="inline-block text-ui-9 uppercase tracking-[0.15em] text-tea-gold/70 font-sans mb-3">
                 {SPACE_TYPE_LABELS[featuredSpace.spaceType]}
               </span>
               <h4 className="text-tea-text mb-2 group-hover:text-tea-gold transition-colors tracking-tight" style={{ fontSize: 'clamp(16px, 1.5vw + 8px, 20px)', fontFamily: 'var(--font-display)' }}>
@@ -592,7 +592,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
 
         <div className="inset-panel" style={{ padding: 'clamp(28px, 4vw, 48px)' }}>
           <div className="text-center max-w-sm mx-auto">
-            <p className="text-[15px] md:text-[17px] text-tea-text/70 leading-[1.85] mb-5" style={{ fontFamily: 'var(--font-body)' }}>
+            <p className="text-ui-15 md:text-ui-17 text-tea-text/70 leading-[1.85] mb-5" style={{ fontFamily: 'var(--font-body)' }}>
               This archive grows with every session, every conversation, every cup.
             </p>
             {onNavigateToAdvise ? (
@@ -603,12 +603,12 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
                 Share something <Icons.ChevronRight className="w-3.5 h-3.5" />
               </button>
             ) : (
-              <span className="text-tea-gold/50 text-[13px] font-sans">reach out</span>
+              <span className="text-tea-gold/50 text-ui-13 font-sans">reach out</span>
             )}
 
             <div className="mt-8 flex items-center justify-center gap-2.5">
               <div className="w-6 h-px bg-tea-gold/15" />
-              <span className="text-[9px] font-sans uppercase tracking-[0.25em] text-tea-text/40">
+              <span className="text-ui-9 font-sans uppercase tracking-[0.25em] text-tea-text/40">
                 Teajia
               </span>
               <div className="w-6 h-px bg-tea-gold/15" />

@@ -140,9 +140,9 @@ export const SampleCartPanel: React.FC<SampleCartPanelProps> = ({ onClose }) => 
       <div className="shrink-0 flex items-center justify-between px-4 pt-4 pb-3 border-b border-tea-border">
         <div className="flex items-center gap-2">
           <FlaskConical size={15} className="text-tea-gold" />
-          <span className="font-serif text-[15px] text-tea-text">Sample List</span>
+          <span className="font-serif text-ui-15 text-tea-text">Sample List</span>
           {!isEmpty && (
-            <span className="text-[11px] text-tea-text-dim tabular-nums">
+            <span className="text-ui-11 text-tea-text-dim tabular-nums">
               {items.length} tea{items.length !== 1 ? 's' : ''} · {totalGrams}g
             </span>
           )}
@@ -176,8 +176,8 @@ export const SampleCartPanel: React.FC<SampleCartPanelProps> = ({ onClose }) => 
         {isEmpty ? (
           <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
             <FlaskConical size={28} className="text-tea-gold/20 mb-4" />
-            <p className="font-serif text-[14px] text-tea-text/50 mb-1">Your sample list is empty</p>
-            <p className="text-[12px] text-tea-text-dim max-w-[200px] leading-relaxed">
+            <p className="font-serif text-ui-14 text-tea-text/50 mb-1">Your sample list is empty</p>
+            <p className="text-ui-12 text-tea-text-dim max-w-[200px] leading-relaxed">
               Tap the flask icon on any tea to add it here.
             </p>
           </div>
@@ -186,7 +186,7 @@ export const SampleCartPanel: React.FC<SampleCartPanelProps> = ({ onClose }) => 
             {grouped.map(([vendor, vendorItems]) => (
               <div key={vendor}>
                 <div className="px-4 py-2 bg-tea-elevated/50">
-                  <span className="text-[10px] uppercase tracking-[0.12em] text-tea-text-dim font-medium">
+                  <span className="text-ui-10 uppercase tracking-[0.12em] text-tea-text-dim font-medium">
                     {vendor}
                   </span>
                 </div>
@@ -195,12 +195,12 @@ export const SampleCartPanel: React.FC<SampleCartPanelProps> = ({ onClose }) => 
                     <div key={item.id} className="px-4 py-3">
                       <div className="flex items-start justify-between gap-2 mb-2">
                         <div className="min-w-0">
-                          <p className="text-[13px] text-tea-text font-serif truncate">{item.name || 'Unnamed'}</p>
+                          <p className="text-ui-13 text-tea-text font-serif truncate">{item.name || 'Unnamed'}</p>
                           {item.chineseName && (
-                            <p className="text-[11px] text-tea-text-dim font-chinese leading-snug">{item.chineseName}</p>
+                            <p className="text-ui-11 text-tea-text-dim font-chinese leading-snug">{item.chineseName}</p>
                           )}
                           {item.type && (
-                            <p className="text-[10px] text-tea-text-dim mt-0.5">{item.type}</p>
+                            <p className="text-ui-10 text-tea-text-dim mt-0.5">{item.type}</p>
                           )}
                         </div>
                         <button
@@ -220,7 +220,7 @@ export const SampleCartPanel: React.FC<SampleCartPanelProps> = ({ onClose }) => 
                             key={g}
                             type="button"
                             onClick={() => updateGrams(item.id, g)}
-                            className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors ${
+                            className={`px-2.5 py-1 rounded-md text-ui-11 font-medium transition-colors ${
                               item.grams === g
                                 ? 'bg-tea-gold/15 text-tea-gold'
                                 : 'bg-tea-elevated text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-surface'
@@ -244,7 +244,7 @@ export const SampleCartPanel: React.FC<SampleCartPanelProps> = ({ onClose }) => 
         <div className="shrink-0 px-4 py-3 border-t border-tea-border space-y-2">
 
           {savedConfirm ? (
-            <div className="flex items-center justify-center gap-2 py-2 text-[12px] text-tea-gold">
+            <div className="flex items-center justify-center gap-2 py-2 text-ui-12 text-tea-gold">
               <Check size={13} />
               Saved as Sample Set — cart cleared
             </div>
@@ -252,7 +252,7 @@ export const SampleCartPanel: React.FC<SampleCartPanelProps> = ({ onClose }) => 
             <button
               type="button"
               onClick={handleSaveAsSet}
-              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-tea-gold/10 text-tea-gold text-[12px] font-semibold hover:bg-tea-gold/15 transition-colors"
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-tea-gold/10 text-tea-gold text-ui-12 font-semibold hover:bg-tea-gold/15 transition-colors"
             >
               <BookOpen size={13} />
               Save as Sample Set
@@ -263,7 +263,7 @@ export const SampleCartPanel: React.FC<SampleCartPanelProps> = ({ onClose }) => 
             <button
               type="button"
               onClick={handlePrint}
-              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border border-tea-border text-tea-text-sec text-[12px] hover:bg-tea-surface transition-colors"
+              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border border-tea-border text-tea-text-sec text-ui-12 hover:bg-tea-surface transition-colors"
             >
               <Printer size={13} />
               Print
@@ -271,7 +271,7 @@ export const SampleCartPanel: React.FC<SampleCartPanelProps> = ({ onClose }) => 
             <button
               type="button"
               onClick={handleWhatsApp}
-              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border border-tea-border text-tea-text-sec text-[12px] hover:bg-tea-surface transition-colors"
+              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border border-tea-border text-tea-text-sec text-ui-12 hover:bg-tea-surface transition-colors"
             >
               <MessageCircle size={13} />
               WhatsApp

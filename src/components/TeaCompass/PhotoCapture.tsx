@@ -236,7 +236,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
       <div className="flex items-center justify-between px-4 pt-4 pb-3 shrink-0">
         <div className="flex items-center gap-2">
           <Sparkles size={14} className="text-tea-gold/80" />
-          <span className="text-[12px] uppercase tracking-[0.14em] text-tea-gold/80 font-medium">
+          <span className="text-ui-12 uppercase tracking-[0.14em] text-tea-gold/80 font-medium">
             {scanStep === 'camera'   && 'Point at label'}
             {scanStep === 'scanning' && 'Reading label…'}
             {scanStep === 'result'   && (extractedPreview ? 'Found this' : 'Nothing found')}
@@ -308,7 +308,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
                   }}
                 />
               ))}
-              <p className="absolute -bottom-6 left-0 right-0 text-center text-[11px] text-tea-text/50">
+              <p className="absolute -bottom-6 left-0 right-0 text-center text-ui-11 text-tea-text/50">
                 Align the tea label within the frame
               </p>
             </div>
@@ -318,14 +318,14 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
         {/* Denied state */}
         {scanStep === 'denied' && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-8 text-center">
-            <p className="text-tea-text/80 text-[14px] font-medium">Camera access denied</p>
-            <p className="text-tea-text/50 text-[12px] leading-relaxed">
+            <p className="text-tea-text/80 text-ui-14 font-medium">Camera access denied</p>
+            <p className="text-tea-text/50 text-ui-12 leading-relaxed">
               Allow camera access in your browser's address bar or site settings, then try again.
             </p>
             <button
               type="button"
               onClick={closeScanner}
-              className="mt-2 px-4 py-2 rounded-lg border border-tea-border/20 text-tea-text/70 text-[12px] hover:bg-tea-text/10 transition-colors"
+              className="mt-2 px-4 py-2 rounded-lg border border-tea-border/20 text-tea-text/70 text-ui-12 hover:bg-tea-text/10 transition-colors"
             >
               Close
             </button>
@@ -346,18 +346,18 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
             <div className="w-8 h-1 rounded-full bg-tea-border mx-auto mb-4" />
             <div className="space-y-1 mb-4">
               {extractedPreview.name && (
-                <p className="text-[16px] text-tea-text font-serif leading-snug">{extractedPreview.name}</p>
+                <p className="text-ui-16 text-tea-text font-serif leading-snug">{extractedPreview.name}</p>
               )}
               {extractedPreview.chineseName && (
-                <p className="text-[13px] text-tea-text-sec font-chinese">{extractedPreview.chineseName}</p>
+                <p className="text-ui-13 text-tea-text-sec font-chinese">{extractedPreview.chineseName}</p>
               )}
               {(extractedPreview.type || extractedPreview.year || extractedPreview.season || extractedPreview.region) && (
-                <p className="text-[12px] text-tea-text-dim">
+                <p className="text-ui-12 text-tea-text-dim">
                   {[extractedPreview.type, extractedPreview.year, extractedPreview.season, extractedPreview.region].filter(Boolean).join(' · ')}
                 </p>
               )}
               {(extractedPreview.price != null || extractedPreview.grams != null) && (
-                <p className="text-[12px] text-tea-text-dim tabular-nums">
+                <p className="text-ui-12 text-tea-text-dim tabular-nums">
                   {[
                     extractedPreview.price != null && `NT$${extractedPreview.price}`,
                     extractedPreview.grams != null && `${extractedPreview.grams}g`,
@@ -365,14 +365,14 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
                 </p>
               )}
               {extractedPreview.extraNotes && (
-                <p className="text-[11px] text-tea-text-dim leading-relaxed line-clamp-2 pt-0.5">{extractedPreview.extraNotes}</p>
+                <p className="text-ui-11 text-tea-text-dim leading-relaxed line-clamp-2 pt-0.5">{extractedPreview.extraNotes}</p>
               )}
             </div>
             <div className="flex gap-2">
               <button
                 type="button"
                 onClick={handleRetake}
-                className="flex items-center justify-center gap-1.5 flex-1 py-3 rounded-xl border border-tea-border text-tea-text-sec text-[13px] font-medium hover:bg-tea-elevated transition-colors"
+                className="flex items-center justify-center gap-1.5 flex-1 py-3 rounded-xl border border-tea-border text-tea-text-sec text-ui-13 font-medium hover:bg-tea-elevated transition-colors"
               >
                 <RefreshCw size={13} />
                 Retake
@@ -380,7 +380,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
               <button
                 type="button"
                 onClick={handleApply}
-                className="flex-[2] py-3 rounded-xl bg-tea-gold text-tea-bg text-[13px] font-semibold hover:bg-tea-gold/90 transition-colors"
+                className="flex-[2] py-3 rounded-xl bg-tea-gold text-tea-bg text-ui-13 font-semibold hover:bg-tea-gold/90 transition-colors"
               >
                 Apply to form
               </button>
@@ -397,12 +397,12 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
             className="shrink-0 bg-tea-surface rounded-t-2xl px-4 pt-4 pb-6 text-center space-y-3"
           >
             <div className="w-8 h-1 rounded-full bg-tea-border mx-auto mb-2" />
-            <p className="text-[13px] text-tea-text-sec">Couldn't read the label.</p>
-            <p className="text-[12px] text-tea-text-dim">Try moving closer, better lighting, or a flatter angle.</p>
+            <p className="text-ui-13 text-tea-text-sec">Couldn't read the label.</p>
+            <p className="text-ui-12 text-tea-text-dim">Try moving closer, better lighting, or a flatter angle.</p>
             <button
               type="button"
               onClick={handleRetake}
-              className="flex items-center justify-center gap-1.5 w-full py-3 rounded-xl border border-tea-border text-tea-text-sec text-[13px] font-medium hover:bg-tea-elevated transition-colors"
+              className="flex items-center justify-center gap-1.5 w-full py-3 rounded-xl border border-tea-border text-tea-text-sec text-ui-13 font-medium hover:bg-tea-elevated transition-colors"
             >
               <RefreshCw size={13} />
               Try again

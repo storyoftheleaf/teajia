@@ -20,7 +20,7 @@ export default function Footer() {
               </span>
             </div>
             <p
-              className="text-[13px] text-tea-text-sec leading-relaxed max-w-[240px]"
+              className="text-ui-13 text-tea-text-sec leading-relaxed max-w-[240px]"
               style={{ fontFamily: 'var(--font-body)' }}
             >
               Fine tea &amp; teaware. Every culture brings wisdom to the table.
@@ -30,43 +30,43 @@ export default function Footer() {
           {/* Navigation columns */}
           <div className="flex gap-12 sm:gap-16">
             <div className="flex flex-col gap-2.5">
-              <span className="text-[10px] uppercase tracking-[0.2em] text-tea-gold/70 font-sans font-semibold mb-1">Explore</span>
-              <Link to="/magazine" className="text-[13px] text-tea-text-sec hover:text-tea-gold transition-colors duration-300" style={{ fontFamily: 'var(--font-body)' }}>Magazine</Link>
-              <Link to="/craft" className="text-[13px] text-tea-text-sec hover:text-tea-gold transition-colors duration-300" style={{ fontFamily: 'var(--font-body)' }}>Craft</Link>
-              <Link to="/shop" className="text-[13px] text-tea-text-sec hover:text-tea-gold transition-colors duration-300" style={{ fontFamily: 'var(--font-body)' }}>Shop</Link>
-              <Link to="/advise" className="text-[13px] text-tea-text-sec hover:text-tea-gold transition-colors duration-300" style={{ fontFamily: 'var(--font-body)' }}>Advise</Link>
+              <span className="text-ui-10 uppercase tracking-[0.2em] text-tea-gold/70 font-sans font-semibold mb-1">Explore</span>
+              <Link to="/magazine" className="text-ui-13 text-tea-text-sec hover:text-tea-gold transition-colors duration-300" style={{ fontFamily: 'var(--font-body)' }}>Magazine</Link>
+              <Link to="/craft" className="text-ui-13 text-tea-text-sec hover:text-tea-gold transition-colors duration-300" style={{ fontFamily: 'var(--font-body)' }}>Craft</Link>
+              <Link to="/shop" className="text-ui-13 text-tea-text-sec hover:text-tea-gold transition-colors duration-300" style={{ fontFamily: 'var(--font-body)' }}>Shop</Link>
+              <Link to="/advise" className="text-ui-13 text-tea-text-sec hover:text-tea-gold transition-colors duration-300" style={{ fontFamily: 'var(--font-body)' }}>Advise</Link>
             </div>
             <div className="flex flex-col gap-2.5">
-              <span className="text-[10px] uppercase tracking-[0.2em] text-tea-gold/70 font-sans font-semibold mb-1">Connect</span>
+              <span className="text-ui-10 uppercase tracking-[0.2em] text-tea-gold/70 font-sans font-semibold mb-1">Connect</span>
               <a
                 href="https://instagram.com/teajia.journal"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-[13px] text-tea-text-sec hover:text-tea-gold transition-colors duration-300"
+                className="text-ui-13 text-tea-text-sec hover:text-tea-gold transition-colors duration-300"
                 style={{ fontFamily: 'var(--font-body)' }}
               >
                 Instagram
               </a>
               <a
                 href="mailto:hello@teajia.com"
-                className="text-[13px] text-tea-text-sec hover:text-tea-gold transition-colors duration-300"
+                className="text-ui-13 text-tea-text-sec hover:text-tea-gold transition-colors duration-300"
                 style={{ fontFamily: 'var(--font-body)' }}
               >
                 Contact
               </a>
-              <Link to="/about" className="text-[13px] text-tea-text-sec hover:text-tea-gold transition-colors duration-300" style={{ fontFamily: 'var(--font-body)' }}>About</Link>
+              <Link to="/about" className="text-ui-13 text-tea-text-sec hover:text-tea-gold transition-colors duration-300" style={{ fontFamily: 'var(--font-body)' }}>About</Link>
             </div>
           </div>
         </div>
 
         {/* Bottom row — copyright */}
         <div className="flex items-center justify-between border-t border-tea-border pt-5 pb-14 md:pb-2">
-          <span className="text-[12px] text-tea-text-sec/60 font-sans tracking-wide">
+          <span className="text-ui-12 text-tea-text-sec/60 font-sans tracking-wide">
             &copy; {new Date().getFullYear()} Teajia
           </span>
           <Link
             to="/admin"
-            className="text-[11px] text-tea-text-dim hover:text-tea-gold tracking-wide transition-colors duration-300 font-sans"
+            className="text-ui-11 text-tea-text-dim hover:text-tea-gold tracking-wide transition-colors duration-300 font-sans"
           >
             Admin
           </Link>

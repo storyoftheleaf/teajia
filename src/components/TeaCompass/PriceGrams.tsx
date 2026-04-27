@@ -120,7 +120,7 @@ export const PriceGrams: React.FC<PriceGramsProps> = ({
             <button
               type="button"
               onClick={() => setFormPopoverOpen(!formPopoverOpen)}
-              className={`py-1.5 px-2.5 rounded-lg text-[11px] transition-colors ${
+              className={`py-1.5 px-2.5 rounded-lg text-ui-11 transition-colors ${
                 form
                   ? 'bg-tea-gold/15 text-tea-gold'
                   : 'text-tea-text-sec hover:text-tea-text'
@@ -159,7 +159,7 @@ export const PriceGrams: React.FC<PriceGramsProps> = ({
             key={g}
             type="button"
             onClick={() => onGramsChange(g)}
-            className={`py-1.5 px-2.5 rounded-lg text-[11px] transition-colors ${
+            className={`py-1.5 px-2.5 rounded-lg text-ui-11 transition-colors ${
               pricePerUnitGrams === g
                 ? 'bg-tea-gold/15 text-tea-gold'
                 : 'text-tea-text-sec hover:text-tea-text'

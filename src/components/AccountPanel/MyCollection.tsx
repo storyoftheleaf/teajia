@@ -65,7 +65,7 @@ export const MyCollection: React.FC<MyCollectionProps> = ({ onBack, onViewItem }
           className="flex items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors mb-6"
         >
           <Icons.Back className="w-4 h-4" />
-          <span className="text-[12px] uppercase tracking-[0.18em]">Back</span>
+          <span className="text-ui-12 uppercase tracking-[0.18em]">Back</span>
         </button>
 
         <div className="flex flex-col items-center justify-center py-16">
@@ -88,14 +88,14 @@ export const MyCollection: React.FC<MyCollectionProps> = ({ onBack, onViewItem }
         className="flex items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors mb-4"
       >
         <Icons.Back className="w-4 h-4" />
-        <span className="text-[12px] uppercase tracking-[0.18em]">Back</span>
+        <span className="text-ui-12 uppercase tracking-[0.18em]">Back</span>
       </button>
 
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h3 className="font-serif text-lg text-tea-text">My Collection</h3>
-          <span className="text-[12px] uppercase tracking-[0.15em] text-tea-text-sec">
+          <span className="text-ui-12 uppercase tracking-[0.15em] text-tea-text-sec">
             {favoriteItems.length} {favoriteItems.length === 1 ? 'tea' : 'teas'}
           </span>
         </div>
@@ -106,12 +106,12 @@ export const MyCollection: React.FC<MyCollectionProps> = ({ onBack, onViewItem }
           {copied ? (
             <>
               <Icons.Check className="w-3.5 h-3.5 text-green-600" />
-              <span className="text-[11px] uppercase tracking-[0.15em] text-green-600 font-medium">Copied!</span>
+              <span className="text-ui-11 uppercase tracking-[0.15em] text-green-600 font-medium">Copied!</span>
             </>
           ) : (
             <>
               <Icons.Share className="w-3.5 h-3.5 text-tea-gold" />
-              <span className="text-[11px] uppercase tracking-[0.15em] text-tea-gold font-medium">Share</span>
+              <span className="text-ui-11 uppercase tracking-[0.15em] text-tea-gold font-medium">Share</span>
             </>
           )}
         </button>
@@ -123,7 +123,7 @@ export const MyCollection: React.FC<MyCollectionProps> = ({ onBack, onViewItem }
         className="w-full flex items-center gap-3 px-3 py-3 mb-4 bg-tea-elevated border border-tea-border hover:bg-tea-elevated/80 transition-colors group"
       >
         <Icons.Link className="w-3.5 h-3.5 text-tea-text-sec group-hover:text-tea-gold transition-colors" />
-        <span className="text-[12px] text-tea-text-sec truncate flex-1 text-left">
+        <span className="text-ui-12 text-tea-text-sec truncate flex-1 text-left">
           {copied ? 'Link copied to clipboard!' : 'Copy shareable link'}
         </span>
         <Icons.Copy className="w-3.5 h-3.5 text-tea-text-sec" />
@@ -161,8 +161,8 @@ export const MyCollection: React.FC<MyCollectionProps> = ({ onBack, onViewItem }
 
             {/* Info */}
             <div className="flex-1 min-w-0 cursor-pointer" onClick={() => onViewItem?.(item)}>
-              <h4 className="font-serif text-[15px] text-tea-text truncate">{item.name}</h4>
-              <div className="flex items-center gap-1.5 text-[12px] text-tea-text-sec mt-0.5">
+              <h4 className="font-serif text-ui-15 text-tea-text truncate">{item.name}</h4>
+              <div className="flex items-center gap-1.5 text-ui-12 text-tea-text-sec mt-0.5">
                 <span>{item.type}</span>
                 {item.origin && (
                   <>
@@ -175,7 +175,7 @@ export const MyCollection: React.FC<MyCollectionProps> = ({ onBack, onViewItem }
 
             {/* Actions */}
             <div className="flex items-center gap-2 shrink-0">
-              <span className="num text-[12px] text-tea-text-sec">
+              <span className="num text-ui-12 text-tea-text-sec">
                 {fmtPricePerGram(parseFloat(item.price_per_gram || '0'))}
               </span>
               <button

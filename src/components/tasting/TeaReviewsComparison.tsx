@@ -59,7 +59,7 @@ export const TeaReviewsComparison: React.FC<TeaReviewsComparisonProps> = ({ teaK
 
   return (
     <div className={className}>
-      <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec mb-3" style={{ fontFamily: 'var(--font-display)' }}>
+      <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-3" style={{ fontFamily: 'var(--font-display)' }}>
         Tasting Panel · {submitted.length} {submitted.length === 1 ? 'review' : 'reviews'}
       </p>
 
@@ -81,7 +81,7 @@ export const TeaReviewsComparison: React.FC<TeaReviewsComparisonProps> = ({ teaK
                     {review.author_name || review.author_account_name || 'Anonymous'}
                   </span>
                   {review.author_account_name && review.author_name && (
-                    <span className="text-[10px] text-tea-text-dim">· {review.author_account_name}</span>
+                    <span className="text-ui-10 text-tea-text-dim">· {review.author_account_name}</span>
                   )}
                 </div>
 
@@ -90,7 +90,7 @@ export const TeaReviewsComparison: React.FC<TeaReviewsComparisonProps> = ({ teaK
                     {flavors.map((f) => (
                       <span
                         key={f}
-                        className="text-[10px] text-tea-text-sec bg-tea-elevated px-1.5 py-0.5 rounded-sm"
+                        className="text-ui-10 text-tea-text-sec bg-tea-elevated px-1.5 py-0.5 rounded-sm"
                         style={{ fontFamily: 'var(--font-body)' }}
                       >
                         {f}

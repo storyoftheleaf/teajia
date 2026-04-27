@@ -40,7 +40,7 @@ function getPrevMonth(): string {
   return d.toISOString().slice(0, 7);
 }
 
-const SECTION_LABEL = 'text-[10px] uppercase tracking-[0.12em] text-tea-text-dim font-medium mb-3';
+const SECTION_LABEL = 'text-ui-10 uppercase tracking-[0.12em] text-tea-text-dim font-medium mb-3';
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
@@ -132,19 +132,19 @@ export const LedgerOverviewPanel: React.FC = () => {
             <p className="font-serif text-3xl text-tea-gold tabular-nums leading-none">
               {fmtAmount(stats.totalAllTime, activeCurrency)}
             </p>
-            <p className="text-[12px] text-tea-text-dim mt-1">
+            <p className="text-ui-12 text-tea-text-dim mt-1">
               {stats.totalPurchases} purchase{stats.totalPurchases !== 1 ? 's' : ''} in {activeCurrency}
             </p>
 
             {/* This month */}
             <div className="mt-5">
-              <p className="text-[10px] uppercase tracking-[0.12em] text-tea-text-dim font-medium mb-1.5">This Month</p>
+              <p className="text-ui-10 uppercase tracking-[0.12em] text-tea-text-dim font-medium mb-1.5">This Month</p>
               <div className="flex items-baseline gap-2">
                 <span className="text-xl font-serif text-tea-text tabular-nums">
                   {fmtAmount(stats.thisMonth, activeCurrency)}
                 </span>
                 {stats.lastMonth > 0 && (
-                  <span className="text-[11px] text-tea-text-dim tabular-nums">
+                  <span className="text-ui-11 text-tea-text-dim tabular-nums">
                     {stats.delta >= 0 ? '+' : ''}
                     {fmtAmount(stats.delta, activeCurrency)} vs last month
                   </span>
@@ -155,15 +155,15 @@ export const LedgerOverviewPanel: React.FC = () => {
             {/* Top vendors */}
             {stats.topVendors.length > 0 && (
               <div className="mt-5">
-                <p className="text-[10px] uppercase tracking-[0.12em] text-tea-text-dim font-medium mb-3">Top Vendors</p>
+                <p className="text-ui-10 uppercase tracking-[0.12em] text-tea-text-dim font-medium mb-3">Top Vendors</p>
                 <div className="space-y-3">
                   {stats.topVendors.map(([vendor, amount]) => {
                     const pct = Math.round((amount / stats.maxVendorAmount) * 100);
                     return (
                       <div key={vendor}>
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="text-[12px] text-tea-text-sec flex-1 truncate">{vendor}</span>
-                          <span className="text-[12px] text-tea-text-dim tabular-nums shrink-0">
+                          <span className="text-ui-12 text-tea-text-sec flex-1 truncate">{vendor}</span>
+                          <span className="text-ui-12 text-tea-text-dim tabular-nums shrink-0">
                             {fmtAmount(amount, activeCurrency)}
                           </span>
                         </div>
@@ -183,7 +183,7 @@ export const LedgerOverviewPanel: React.FC = () => {
             {/* By category */}
             {Object.values(stats.categoryCountMap).some((c) => c > 0) && (
               <div className="mt-5">
-                <p className="text-[10px] uppercase tracking-[0.12em] text-tea-text-dim font-medium mb-2">By Category</p>
+                <p className="text-ui-10 uppercase tracking-[0.12em] text-tea-text-dim font-medium mb-2">By Category</p>
                 <div className="divide-y divide-tea-border/50">
                   {(['Tea', 'Teaware', 'Samples', 'Other'] as const).map((cat) => {
                     const count = stats.categoryCountMap[cat];
@@ -192,8 +192,8 @@ export const LedgerOverviewPanel: React.FC = () => {
                     const pct = total > 0 ? Math.round((count / total) * 100) : 0;
                     return (
                       <div key={cat} className="flex items-center justify-between py-1.5">
-                        <span className="text-[12px] text-tea-text-sec">{cat}</span>
-                        <span className="text-[12px] text-tea-text-dim tabular-nums">
+                        <span className="text-ui-12 text-tea-text-sec">{cat}</span>
+                        <span className="text-ui-12 text-tea-text-dim tabular-nums">
                           {count} · {pct}%
                         </span>
                       </div>
@@ -207,8 +207,8 @@ export const LedgerOverviewPanel: React.FC = () => {
           /* Empty state */
           <div className="flex flex-col items-center justify-center py-10 text-center">
             <CompassIcon className="w-8 h-8 text-tea-gold/20 mb-4" />
-            <p className="font-serif text-[14px] text-tea-text/50 mb-1">No purchases recorded yet</p>
-            <p className="text-[12px] text-tea-text-dim max-w-[200px] leading-relaxed">
+            <p className="font-serif text-ui-14 text-tea-text/50 mb-1">No purchases recorded yet</p>
+            <p className="text-ui-12 text-tea-text-dim max-w-[200px] leading-relaxed">
               Confirm a purchase order to start tracking your tea spending.
             </p>
           </div>
@@ -222,7 +222,7 @@ export const LedgerOverviewPanel: React.FC = () => {
         <button
           type="button"
           onClick={() => openPurchaseOrder()}
-          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-tea-gold/10 text-tea-gold text-[12px] font-semibold hover:bg-tea-gold/15 transition-colors mb-2"
+          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-tea-gold/10 text-tea-gold text-ui-12 font-semibold hover:bg-tea-gold/15 transition-colors mb-2"
         >
           <ShoppingBag size={13} />
           Purchase Order Builder
@@ -232,7 +232,7 @@ export const LedgerOverviewPanel: React.FC = () => {
           <button
             type="button"
             onClick={() => createTransaction('purchase', '', 'NT')}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border border-tea-border text-tea-text-sec text-[12px] hover:bg-tea-surface transition-colors"
+            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border border-tea-border text-tea-text-sec text-ui-12 hover:bg-tea-surface transition-colors"
           >
             <ArrowDownLeft size={13} />
             Quick Note
@@ -240,7 +240,7 @@ export const LedgerOverviewPanel: React.FC = () => {
           <button
             type="button"
             onClick={() => createTransaction('sale', '', 'USD')}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border border-tea-border text-tea-text-sec text-[12px] hover:bg-tea-surface transition-colors"
+            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border border-tea-border text-tea-text-sec text-ui-12 hover:bg-tea-surface transition-colors"
           >
             <ArrowUpRight size={13} />
             Quick Sale

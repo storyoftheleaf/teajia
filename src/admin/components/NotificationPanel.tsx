@@ -122,7 +122,7 @@ const SendConfirmModal: React.FC<SendConfirmModalProps> = ({
 
         {showPreview && (
           <div className="mb-4 p-4 bg-tea-surface border border-tea-border rounded-sm">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec mb-2">
+            <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-2">
               Message template (sent to each attendee)
             </p>
             <pre className="text-xs text-tea-text-sec whitespace-pre-wrap font-sans leading-relaxed max-h-40 overflow-y-auto">
@@ -196,7 +196,7 @@ const InviteStatusBlock: React.FC<InviteStatusBlockProps> = ({
           </div>
           <button
             onClick={onSend}
-            className="text-[10px] text-tea-text-dim hover:text-tea-text-sec uppercase tracking-[0.1em] transition-colors shrink-0"
+            className="text-ui-10 text-tea-text-dim hover:text-tea-text-sec uppercase tracking-[0.1em] transition-colors shrink-0"
           >
             Resend
           </button>
@@ -227,7 +227,7 @@ const InviteStatusBlock: React.FC<InviteStatusBlockProps> = ({
             Send Invites
           </button>
           {approvedCount === 0 && (
-            <p className="text-[10px] text-tea-text-dim mt-1">
+            <p className="text-ui-10 text-tea-text-dim mt-1">
               No approved attendees yet.
             </p>
           )}
@@ -377,7 +377,7 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({ eventId, e
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-sm text-tea-text font-medium">{notif.attendeeName || 'Guest'}</span>
-                      <span className={`inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.1em] px-1.5 py-0.5 rounded-full ${statusStyle.className}`}>
+                      <span className={`inline-flex items-center gap-1 text-ui-10 uppercase tracking-[0.1em] px-1.5 py-0.5 rounded-full ${statusStyle.className}`}>
                         {statusStyle.icon}
                         {notif.status}
                       </span>
@@ -386,7 +386,7 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({ eventId, e
                       {notif.messageTemplate}
                     </pre>
                     {notif.sentAt && (
-                      <span className="text-[10px] text-tea-text-sec mt-1 block">
+                      <span className="text-ui-10 text-tea-text-sec mt-1 block">
                         Sent: {new Date(notif.sentAt).toLocaleString()}
                       </span>
                     )}
@@ -395,7 +395,7 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({ eventId, e
                   <div className="flex flex-col gap-1 shrink-0">
                     <button
                       onClick={() => copyMessage(notif)}
-                      className="flex items-center gap-1 text-[10px] px-2 py-1 rounded border border-tea-border text-tea-text-sec hover:text-tea-text hover:border-tea-gold/30 transition-colors"
+                      className="flex items-center gap-1 text-ui-10 px-2 py-1 rounded border border-tea-border text-tea-text-sec hover:text-tea-text hover:border-tea-gold/30 transition-colors"
                     >
                       {copiedId === notif.id ? <Check size={10} className="text-tea-text-sec" /> : <Copy size={10} />}
                       {copiedId === notif.id ? 'Copied' : 'Copy'}

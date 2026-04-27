@@ -17,7 +17,7 @@ export const ShippingBadge: React.FC<ShippingBadgeProps> = ({ type, size = 'sm' 
   const config = BADGE_CONFIG[type];
   const IconComponent = config.icon;
   const iconSize = size === 'sm' ? 'w-3 h-3' : 'w-4 h-4';
-  const textSize = size === 'sm' ? 'text-[10px]' : 'text-xs';
+  const textSize = size === 'sm' ? 'text-ui-10' : 'text-xs';
 
   return (
     <span className={`inline-flex items-center gap-1 ${textSize} uppercase tracking-wider ${config.className}`}>

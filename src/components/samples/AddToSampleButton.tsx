@@ -33,7 +33,7 @@ export const AddToSampleButton: React.FC<AddToSampleButtonProps> = ({
       <button
         type="button"
         onClick={handleClick}
-        className={`px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors ${
+        className={`px-3 py-1.5 rounded-lg text-ui-12 font-medium transition-colors ${
           inCart
             ? 'bg-tea-gold/15 text-tea-gold'
             : 'bg-tea-surface text-tea-text-sec hover:bg-tea-gold/10 hover:text-tea-gold'
@@ -49,7 +49,7 @@ export const AddToSampleButton: React.FC<AddToSampleButtonProps> = ({
     <button
       type="button"
       onClick={handleClick}
-      className={`text-[10px] uppercase tracking-[0.08em] transition-colors ${
+      className={`text-ui-10 uppercase tracking-[0.08em] transition-colors ${
         inCart
           ? 'text-tea-gold'
           : 'text-tea-text-sec hover:text-tea-gold'

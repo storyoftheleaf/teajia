@@ -161,7 +161,7 @@ export const StatusActions: React.FC<StatusActionsProps> = ({
               onStatusChange('pass');
               setTimeout(() => onAddedToLedger?.(), 50);
             }}
-            className="w-full text-center text-[11px] text-tea-text-dim hover:text-tea-text-sec transition-colors py-1"
+            className="w-full text-center text-ui-11 text-tea-text-dim hover:text-tea-text-sec transition-colors py-1"
           >
             Not for me
           </motion.button>
@@ -173,7 +173,7 @@ export const StatusActions: React.FC<StatusActionsProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => onStatusChange('noted')}
-            className="w-full text-center text-[11px] text-tea-text-dim hover:text-tea-text-sec transition-colors py-1"
+            className="w-full text-center text-ui-11 text-tea-text-dim hover:text-tea-text-sec transition-colors py-1"
           >
             Passed · tap to undo
           </motion.button>
@@ -190,7 +190,7 @@ export const StatusActions: React.FC<StatusActionsProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => onStatusChange(status === 'incoming' ? 'noted' : 'incoming')}
-            className={`w-full text-center text-[11px] transition-colors py-1 ${
+            className={`w-full text-center text-ui-11 transition-colors py-1 ${
               status === 'incoming'
                 ? 'text-tea-gold/70 hover:text-tea-text-sec'
                 : 'text-tea-text-dim hover:text-tea-text-sec'
@@ -255,7 +255,7 @@ export const StatusActions: React.FC<StatusActionsProps> = ({
                       key={g}
                       type="button"
                       onClick={() => setQuantity(g)}
-                      className={`${quantity === g ? 'tag-selectable-active' : 'tag-selectable'} text-[11px]`}
+                      className={`${quantity === g ? 'tag-selectable-active' : 'tag-selectable'} text-ui-11`}
                     >
                       {g}g
                     </button>

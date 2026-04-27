@@ -93,13 +93,13 @@ export const ReminderTimeline: React.FC<ReminderTimelineProps> = ({ event }) => 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-[11px] uppercase tracking-[0.18em] text-tea-text-sec font-medium">
+        <h3 className="text-ui-11 uppercase tracking-[0.18em] text-tea-text-sec font-medium">
           Reminder Timeline
         </h3>
         <button
           type="button"
           onClick={handleCopyAll}
-          className={`flex items-center gap-1.5 text-[11px] transition-colors ${
+          className={`flex items-center gap-1.5 text-ui-11 transition-colors ${
             copiedAll ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
           }`}
         >
@@ -123,7 +123,7 @@ export const ReminderTimeline: React.FC<ReminderTimelineProps> = ({ event }) => 
               <div className="flex items-center justify-between gap-2 mb-1">
                 <div>
                   <span className="text-xs text-tea-text">{milestone.label}</span>
-                  <span className="text-[10px] text-tea-text-dim ml-2">
+                  <span className="text-ui-10 text-tea-text-dim ml-2">
                     ({formatScheduledDate(new Date(milestone.scheduledAt))})
                   </span>
                 </div>
@@ -133,14 +133,14 @@ export const ReminderTimeline: React.FC<ReminderTimelineProps> = ({ event }) => 
                     onClick={() =>
                       setEditingKey(editingKey === milestone.key ? null : milestone.key)
                     }
-                    className="flex items-center gap-1 text-[11px] text-tea-text-sec hover:text-tea-text transition-colors"
+                    className="flex items-center gap-1 text-ui-11 text-tea-text-sec hover:text-tea-text transition-colors"
                   >
                     <Edit3 size={10} /> Edit
                   </button>
                   <button
                     type="button"
                     onClick={() => handleSendWhatsApp(milestone)}
-                    className="flex items-center gap-1 text-[11px] text-tea-gold hover:text-tea-gold-lt transition-colors"
+                    className="flex items-center gap-1 text-ui-11 text-tea-gold hover:text-tea-gold-lt transition-colors"
                   >
                     <Send size={10} /> Send →
                   </button>
@@ -165,7 +165,7 @@ export const ReminderTimeline: React.FC<ReminderTimelineProps> = ({ event }) => 
                     <button
                       type="button"
                       onClick={() => setEditingKey(null)}
-                      className="text-[11px] text-tea-text-sec hover:text-tea-text transition-colors mt-1"
+                      className="text-ui-11 text-tea-text-sec hover:text-tea-text transition-colors mt-1"
                     >
                       Done
                     </button>
@@ -174,7 +174,7 @@ export const ReminderTimeline: React.FC<ReminderTimelineProps> = ({ event }) => 
               </AnimatePresence>
 
               {editingKey !== milestone.key && (
-                <p className="text-[11px] text-tea-text-dim line-clamp-2 whitespace-pre-line">
+                <p className="text-ui-11 text-tea-text-dim line-clamp-2 whitespace-pre-line">
                   {milestone.messageTemplate}
                 </p>
               )}

@@ -36,7 +36,7 @@ export const ContributorPicks: React.FC<ContributorPicksProps> = ({
           <h3 className="text-sm font-medium text-tea-text" style={{ fontFamily: 'var(--font-display)' }}>
             {collection.title}
           </h3>
-          <p className="text-[10px] text-tea-text-sec">
+          <p className="text-ui-10 text-tea-text-sec">
             Curated by {contributor.name}
             {collection.theme && <span className="ml-1.5 text-tea-text-dim">· {collection.theme}</span>}
           </p>
@@ -70,7 +70,7 @@ export const ContributorPicks: React.FC<ContributorPicksProps> = ({
               )}
             </div>
             <p className="text-xs text-tea-text truncate font-medium">{item.name}</p>
-            <p className="text-[10px] text-tea-text-sec truncate">{item.type}</p>
+            <p className="text-ui-10 text-tea-text-sec truncate">{item.type}</p>
           </button>
         ))}
       </div>

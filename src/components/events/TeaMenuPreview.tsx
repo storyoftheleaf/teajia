@@ -51,7 +51,7 @@ const TeaMenuPreview: React.FC<TeaMenuPreviewProps> = ({ teaMenu, eventDate, cla
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-[10px] uppercase tracking-[0.2em] text-tea-gold">
+                        <span className="text-ui-10 uppercase tracking-[0.2em] text-tea-gold">
                           {item.productType || `Tea ${index + 1}`}
                         </span>
                       </div>

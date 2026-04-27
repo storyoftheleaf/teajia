@@ -195,7 +195,7 @@ function QuickAddSheet({ setId, sourceName, sourceId, onClose }: QuickAddSheetPr
                 initial={{ opacity: 0, x: 4 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0 }}
-                className="text-[11px] text-tea-gold"
+                className="text-ui-11 text-tea-gold"
               >
                 Added ✓
               </motion.span>
@@ -216,7 +216,7 @@ function QuickAddSheet({ setId, sourceName, sourceId, onClose }: QuickAddSheetPr
 
           {/* Name — outside any overflow container so autocomplete dropdown isn't clipped */}
           <div>
-            <label className="text-[10px] uppercase tracking-wider text-tea-text-dim block mb-1.5">
+            <label className="text-ui-10 uppercase tracking-wider text-tea-text-dim block mb-1.5">
               Tea Name <span className="text-tea-text-dim normal-case tracking-normal">— required</span>
             </label>
             <AutocompleteInput
@@ -230,7 +230,7 @@ function QuickAddSheet({ setId, sourceName, sourceId, onClose }: QuickAddSheetPr
               className={inputCls}
             />
             {duplicateProduct && (
-              <div className="text-[11px] text-tea-gold mt-1.5 flex items-center gap-1.5">
+              <div className="text-ui-11 text-tea-gold mt-1.5 flex items-center gap-1.5">
                 <span>Already in stock:</span>
                 <span className="font-medium">{(duplicateProduct as any).givenName || (duplicateProduct as any).productName}</span>
                 {(duplicateProduct as any).stockGrams > 0 && (
@@ -243,7 +243,7 @@ function QuickAddSheet({ setId, sourceName, sourceId, onClose }: QuickAddSheetPr
           {/* Type + Year on one row */}
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="text-[10px] uppercase tracking-wider text-tea-text-dim block mb-1.5">Type</label>
+              <label className="text-ui-10 uppercase tracking-wider text-tea-text-dim block mb-1.5">Type</label>
               <select
                 value={type || ''}
                 onChange={(e) => setType((e.target.value as TeaType) || undefined)}
@@ -257,7 +257,7 @@ function QuickAddSheet({ setId, sourceName, sourceId, onClose }: QuickAddSheetPr
               </select>
             </div>
             <div>
-              <label className="text-[10px] uppercase tracking-wider text-tea-text-dim block mb-1.5">Year</label>
+              <label className="text-ui-10 uppercase tracking-wider text-tea-text-dim block mb-1.5">Year</label>
               <input
                 type="number"
                 value={year}
@@ -271,7 +271,7 @@ function QuickAddSheet({ setId, sourceName, sourceId, onClose }: QuickAddSheetPr
 
           {/* Region */}
           <div>
-            <label className="text-[10px] uppercase tracking-wider text-tea-text-dim block mb-1.5">Region</label>
+            <label className="text-ui-10 uppercase tracking-wider text-tea-text-dim block mb-1.5">Region</label>
             <input
               type="text"
               value={region}
@@ -284,7 +284,7 @@ function QuickAddSheet({ setId, sourceName, sourceId, onClose }: QuickAddSheetPr
 
           {/* Grams */}
           <div>
-            <label className="text-[10px] uppercase tracking-wider text-tea-text-dim block mb-1.5">Grams</label>
+            <label className="text-ui-10 uppercase tracking-wider text-tea-text-dim block mb-1.5">Grams</label>
             <div className="flex flex-wrap gap-1 items-center">
               {SAMPLE_GRAM_PRESETS.map((g) => (
                 <button
@@ -363,33 +363,33 @@ function SampleCard({ sample, onEdit, onDelete, onStatusChange, onTaste, onGradu
           className="shrink-0 w-5 h-5 rounded-full border border-tea-border flex items-center justify-center"
           style={isSelected ? { background: 'var(--tea-gold)', borderColor: 'var(--tea-gold)' } : {}}
         >
-          {isSelected && <span className="text-tea-bg text-[10px]">✓</span>}
+          {isSelected && <span className="text-tea-bg text-ui-10">✓</span>}
         </button>
       )}
 
-      <span className="badge-status badge-status-gold text-[10px] shrink-0 w-8 text-center">
+      <span className="badge-status badge-status-gold text-ui-10 shrink-0 w-8 text-center">
         {sample.type ? TYPE_SHORT[sample.type] || sample.type.slice(0, 3).toUpperCase() : '---'}
       </span>
 
       <div className="flex-1 min-w-0">
         <div className="text-sm text-tea-text truncate">{sample.name || 'Unnamed'}</div>
-        <div className="flex items-center gap-2 text-[11px] text-tea-text-dim">
+        <div className="flex items-center gap-2 text-ui-11 text-tea-text-dim">
           {sample.year && <span className="num">{sample.year}</span>}
           <span className="num">{sample.grams}g</span>
           {sample.originRegion && <span className="truncate">{sample.originRegion}</span>}
         </div>
         {sample.tastings && sample.tastings.length > 0 && (
-          <div className="text-[10px] text-tea-gold">
+          <div className="text-ui-10 text-tea-gold">
             {sample.tastings.length} tasting{sample.tastings.length !== 1 ? 's' : ''}
           </div>
         )}
         {noteCount != null && noteCount > 0 && (
-          <div className="text-[10px] text-tea-text-dim">
+          <div className="text-ui-10 text-tea-text-dim">
             {noteCount} note{noteCount !== 1 ? 's' : ''}
           </div>
         )}
         {sample.notes && (
-          <div className="text-[10px] text-tea-text-dim truncate mt-0.5 italic">
+          <div className="text-ui-10 text-tea-text-dim truncate mt-0.5 italic">
             {sample.notes.slice(0, 60)}{sample.notes.length > 60 ? '…' : ''}
           </div>
         )}
@@ -402,7 +402,7 @@ function SampleCard({ sample, onEdit, onDelete, onStatusChange, onTaste, onGradu
           const next = order[(idx + 1) % order.length];
           onStatusChange(sample.id, next);
         }}
-        className={`badge-status text-[10px] shrink-0 cursor-pointer hover:opacity-80 transition-opacity ${statusCfg.color}`}
+        className={`badge-status text-ui-10 shrink-0 cursor-pointer hover:opacity-80 transition-opacity ${statusCfg.color}`}
         title="Click to change status"
       >
         {statusCfg.label}
@@ -435,7 +435,7 @@ function SampleCard({ sample, onEdit, onDelete, onStatusChange, onTaste, onGradu
         </button>
       )}
       {sample.productId && (
-        <span className="text-[9px] text-tea-gold shrink-0 px-1">In stock</span>
+        <span className="text-ui-9 text-tea-gold shrink-0 px-1">In stock</span>
       )}
 
       {confirmDelete ? (
@@ -491,26 +491,26 @@ function BatchCard({ sampleSet, tastedCount, totalCount, favoriteCount, graduate
             {sampleSet.name || 'Untitled Batch'}
           </div>
           {sampleSet.sourceName && (
-            <div className="text-[11px] text-tea-text-dim truncate mt-0.5">{sampleSet.sourceName}</div>
+            <div className="text-ui-11 text-tea-text-dim truncate mt-0.5">{sampleSet.sourceName}</div>
           )}
         </div>
-        <span className="shrink-0 text-[10px] px-2 py-0.5 rounded-full bg-tea-accent-sub text-tea-gold">
+        <span className="shrink-0 text-ui-10 px-2 py-0.5 rounded-full bg-tea-accent-sub text-tea-gold">
           {purposeLabel}
         </span>
       </div>
-      <div className="text-[11px] text-tea-text-sec mt-1.5">
+      <div className="text-ui-11 text-tea-text-sec mt-1.5">
         <span className="num">{tastedCount}</span> / <span className="num">{totalCount}</span> tasted
       </div>
       {(favoriteCount > 0 || graduatedCount > 0 || passedCount > 0) && (
         <div className="flex items-center gap-3 mt-1">
           {favoriteCount > 0 && (
-            <span className="text-[10px] text-tea-text-dim num">{favoriteCount} fav</span>
+            <span className="text-ui-10 text-tea-text-dim num">{favoriteCount} fav</span>
           )}
           {graduatedCount > 0 && (
-            <span className="text-[10px] text-tea-gold num">{graduatedCount} in stock</span>
+            <span className="text-ui-10 text-tea-gold num">{graduatedCount} in stock</span>
           )}
           {passedCount > 0 && (
-            <span className="text-[10px] text-tea-text-dim num">{passedCount} passed</span>
+            <span className="text-ui-10 text-tea-text-dim num">{passedCount} passed</span>
           )}
         </div>
       )}
@@ -593,7 +593,7 @@ function CompassImportModal({ setId, onClose, defaultVendorId, defaultVendorName
           {defaultVendorId && (
             <button
               onClick={() => setVendorOnly(!vendorOnly)}
-              className={`pill text-[10px] ${vendorOnly ? 'pill-active' : ''}`}
+              className={`pill text-ui-10 ${vendorOnly ? 'pill-active' : ''}`}
             >
               {vendorOnly ? 'From this vendor' : 'All entries'}
             </button>
@@ -625,17 +625,17 @@ function CompassImportModal({ setId, onClose, defaultVendorId, defaultVendorName
                 />
                 <div className="flex-1 min-w-0">
                   <div className="text-sm text-tea-text truncate">{e.name || 'Unnamed'}</div>
-                  <div className="text-[10px] text-tea-text-dim">
+                  <div className="text-ui-10 text-tea-text-dim">
                     {[e.type, e.year, e.originRegion].filter(Boolean).join(' · ')}
                   </div>
                 </div>
-                {e.isSample && <span className="text-[9px] text-tea-gold shrink-0">Sample</span>}
+                {e.isSample && <span className="text-ui-9 text-tea-gold shrink-0">Sample</span>}
               </label>
             ))
           )}
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-[11px] text-tea-text-dim">{selected.size} selected</span>
+          <span className="text-ui-11 text-tea-text-dim">{selected.size} selected</span>
           <button
             onClick={handleImport}
             disabled={selected.size === 0}
@@ -891,11 +891,11 @@ export default function SampleSetCreator({ embeddedMode }: { embeddedMode?: 'lis
         <div className="flex items-center gap-2">
           <Package size={20} className="text-tea-gold" />
           <h1 className="text-lg font-semibold text-tea-text">Samples</h1>
-          <span className="text-[11px] text-tea-text-dim num ml-1">{visibleSets.length} batch{visibleSets.length !== 1 ? 'es' : ''}</span>
+          <span className="text-ui-11 text-tea-text-dim num ml-1">{visibleSets.length} batch{visibleSets.length !== 1 ? 'es' : ''}</span>
           {!embeddedMode && (
             <button
               onClick={() => { setView('all'); setStatusFilter('all'); setSearchQuery(''); }}
-              className="text-[11px] text-tea-gold hover:opacity-80 transition-opacity ml-0.5"
+              className="text-ui-11 text-tea-gold hover:opacity-80 transition-opacity ml-0.5"
             >
               · All →
             </button>
@@ -910,12 +910,12 @@ export default function SampleSetCreator({ embeddedMode }: { embeddedMode?: 'lis
       {ledgerPromptName && !embeddedMode && (
         <div className="flex items-center gap-3 px-4 py-2.5 text-sm"
              style={{ background: 'color-mix(in srgb, var(--tea-gold) 6%, var(--tea-bg))', borderBottom: '1px solid var(--tea-accent-sub)' }}>
-          <span className="flex-1 text-[12px] text-tea-text-sec truncate">
+          <span className="flex-1 text-ui-12 text-tea-text-sec truncate">
             <span className="text-tea-text font-medium">{ledgerPromptName}</span> marked as ordered
           </span>
           <button
             onClick={() => { navigate('/admin/compass?tab=buying'); setLedgerPromptName(null); }}
-            className="pill pill-active text-[11px] shrink-0"
+            className="pill pill-active text-ui-11 shrink-0"
           >
             Open Ledger
           </button>
@@ -1020,11 +1020,11 @@ export default function SampleSetCreator({ embeddedMode }: { embeddedMode?: 'lis
             <div className="w-px h-4 bg-tea-border mx-0.5" />
             <button
               onClick={() => { setBulkMode(!bulkMode); setSelectedIds(new Set()); }}
-              className={`pill text-[10px] ${bulkMode ? 'pill-active' : ''}`}
+              className={`pill text-ui-10 ${bulkMode ? 'pill-active' : ''}`}
             >
               {bulkMode ? 'Cancel' : 'Select'}
             </button>
-            <button onClick={() => setShowQuickAdd(true)} className="pill pill-active flex items-center gap-1 text-[10px]">
+            <button onClick={() => setShowQuickAdd(true)} className="pill pill-active flex items-center gap-1 text-ui-10">
               <Plus size={11} />
               Add
             </button>
@@ -1034,12 +1034,12 @@ export default function SampleSetCreator({ embeddedMode }: { embeddedMode?: 'lis
         {ledgerPromptName && (
           <div className="flex items-center gap-3 px-4 py-2.5 text-sm"
                style={{ background: 'color-mix(in srgb, var(--tea-gold) 6%, var(--tea-bg))', borderBottom: '1px solid var(--tea-accent-sub)' }}>
-            <span className="flex-1 text-[12px] text-tea-text-sec truncate">
+            <span className="flex-1 text-ui-12 text-tea-text-sec truncate">
               <span className="text-tea-text font-medium">{ledgerPromptName}</span> marked as ordered
             </span>
             <button
               onClick={() => { navigate('/admin/compass?tab=buying'); setLedgerPromptName(null); }}
-              className="pill pill-active text-[11px] shrink-0"
+              className="pill pill-active text-ui-11 shrink-0"
             >
               Open Ledger
             </button>
@@ -1066,7 +1066,7 @@ export default function SampleSetCreator({ embeddedMode }: { embeddedMode?: 'lis
         <div style={{ borderBottom: '1px solid var(--tea-accent-sub)' }}>
           <button
             onClick={() => setBatchDetailsOpen(!batchDetailsOpen)}
-            className="w-full flex items-center justify-between px-4 py-2 text-[11px] text-tea-text-dim hover:text-tea-text transition-colors"
+            className="w-full flex items-center justify-between px-4 py-2 text-ui-11 text-tea-text-dim hover:text-tea-text transition-colors"
           >
             <span>Batch details</span>
             {batchDetailsOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
@@ -1084,7 +1084,7 @@ export default function SampleSetCreator({ embeddedMode }: { embeddedMode?: 'lis
                 <div className="px-4 pb-3 space-y-3">
                   {/* Purpose pills */}
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-[10px] uppercase tracking-wider text-tea-text-dim">Purpose</span>
+                    <span className="text-ui-10 uppercase tracking-wider text-tea-text-dim">Purpose</span>
                     {PURPOSE_OPTIONS.map((p) => (
                       <button
                         key={p.value}
@@ -1099,7 +1099,7 @@ export default function SampleSetCreator({ embeddedMode }: { embeddedMode?: 'lis
                   {/* Customer picker — customer-gifted only */}
                   {activeSet.purpose === 'customer-gifted' && (
                     <div className="flex items-center gap-2 relative">
-                      <span className="text-[10px] uppercase tracking-wider text-tea-text-dim shrink-0">Customer</span>
+                      <span className="text-ui-10 uppercase tracking-wider text-tea-text-dim shrink-0">Customer</span>
                       <div className="flex-1 relative">
                         <input
                           type="text"
@@ -1116,7 +1116,7 @@ export default function SampleSetCreator({ embeddedMode }: { embeddedMode?: 'lis
                                      placeholder:text-tea-text-dim focus:outline-none focus:ring-1 focus:ring-tea-gold/30"
                         />
                         {activeSet.customerId && (
-                          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-tea-gold">✓ linked</span>
+                          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-ui-10 text-tea-gold">✓ linked</span>
                         )}
                         {customerSearchOpen && (
                           <div className="absolute top-full left-0 right-0 z-50 bg-tea-elevated rounded shadow-lg mt-0.5 max-h-40 overflow-y-auto"
@@ -1137,12 +1137,12 @@ export default function SampleSetCreator({ embeddedMode }: { embeddedMode?: 'lis
                                   }}
                                 >
                                   <div>{c.name}</div>
-                                  {c.company && <div className="text-[10px] text-tea-text-dim">{c.company}</div>}
+                                  {c.company && <div className="text-ui-10 text-tea-text-dim">{c.company}</div>}
                                 </button>
                               ))
                             }
                             {customerQuery && !allCustomers.find(c => c.name.toLowerCase() === customerQuery.toLowerCase()) && (
-                              <div className="px-3 py-2 text-[11px] text-tea-text-dim italic">Type to search or enter a name</div>
+                              <div className="px-3 py-2 text-ui-11 text-tea-text-dim italic">Type to search or enter a name</div>
                             )}
                           </div>
                         )}
@@ -1171,7 +1171,7 @@ export default function SampleSetCreator({ embeddedMode }: { embeddedMode?: 'lis
                           if (embeddedMode) { setStoreActiveSet(next?.id ?? null); } else { setView('batches'); }
                         }
                       }}
-                      className="flex items-center gap-1.5 text-[11px] text-tea-text-dim hover:text-tea-text-sec transition-colors"
+                      className="flex items-center gap-1.5 text-ui-11 text-tea-text-dim hover:text-tea-text-sec transition-colors"
                     >
                       <Archive size={12} />
                       Archive batch
@@ -1183,7 +1183,7 @@ export default function SampleSetCreator({ embeddedMode }: { embeddedMode?: 'lis
                           if (!embeddedMode) setView('batches');
                         }
                       }}
-                      className="flex items-center gap-1.5 text-[11px] text-tea-text-dim hover:text-red-400 transition-colors"
+                      className="flex items-center gap-1.5 text-ui-11 text-tea-text-dim hover:text-red-400 transition-colors"
                     >
                       <Trash2 size={12} />
                       Delete batch
@@ -1202,7 +1202,7 @@ export default function SampleSetCreator({ embeddedMode }: { embeddedMode?: 'lis
             style={batchComplete ? { background: 'color-mix(in srgb, var(--tea-gold) 8%, var(--tea-surface))' } : { borderBottom: '1px solid var(--tea-accent-sub)' }}
           >
             {batchComplete && (
-              <span className="text-[10px] uppercase tracking-wider text-tea-gold font-medium w-full">Batch complete</span>
+              <span className="text-ui-10 uppercase tracking-wider text-tea-gold font-medium w-full">Batch complete</span>
             )}
             {[
               { label: 'untasted', count: statusCounts.untasted },
@@ -1214,7 +1214,7 @@ export default function SampleSetCreator({ embeddedMode }: { embeddedMode?: 'lis
             ].map(({ label, count }) => (
               <span
                 key={label}
-                className={`text-[11px] num ${count > 0 ? 'text-tea-gold' : 'text-tea-text-dim'}`}
+                className={`text-ui-11 num ${count > 0 ? 'text-tea-gold' : 'text-tea-text-dim'}`}
               >
                 {count} {label}
               </span>
@@ -1242,7 +1242,7 @@ export default function SampleSetCreator({ embeddedMode }: { embeddedMode?: 'lis
               <button
                 key={s}
                 onClick={() => setStatusFilter(s)}
-                className={`pill text-[10px] ${statusFilter === s ? 'pill-active' : ''}`}
+                className={`pill text-ui-10 ${statusFilter === s ? 'pill-active' : ''}`}
               >
                 {s === 'all' ? 'All' : SAMPLE_STATUS_CONFIG[s].label}
               </button>
@@ -1319,7 +1319,7 @@ export default function SampleSetCreator({ embeddedMode }: { embeddedMode?: 'lis
             <button
               key={s}
               onClick={() => setStatusFilter(s)}
-              className={`pill text-[10px] ${statusFilter === s ? 'pill-active' : ''}`}
+              className={`pill text-ui-10 ${statusFilter === s ? 'pill-active' : ''}`}
             >
               {s === 'all' ? 'All' : SAMPLE_STATUS_CONFIG[s].label}
             </button>
@@ -1386,7 +1386,7 @@ export default function SampleSetCreator({ embeddedMode }: { embeddedMode?: 'lis
                 setSelectedIds(new Set());
                 setBulkMode(false);
               }}
-              className="pill text-[11px]"
+              className="pill text-ui-11"
             >
               → {SAMPLE_STATUS_CONFIG[s].label}
             </button>
@@ -1510,7 +1510,7 @@ function SampleEditModal({ sampleId, onClose }: { sampleId: string; onClose: () 
 
         <div className="space-y-3 overflow-y-auto" style={{ maxHeight: '60vh' }}>
           <div>
-            <label className="text-[10px] uppercase tracking-wider text-tea-text-dim block mb-1">Name</label>
+            <label className="text-ui-10 uppercase tracking-wider text-tea-text-dim block mb-1">Name</label>
             <AutocompleteInput
               value={sample.name}
               onChange={(val) => updateSample(sampleId, { name: val })}
@@ -1524,7 +1524,7 @@ function SampleEditModal({ sampleId, onClose }: { sampleId: string; onClose: () 
           </div>
 
           <div>
-            <label className="text-[10px] uppercase tracking-wider text-tea-text-dim block mb-1">Chinese Name</label>
+            <label className="text-ui-10 uppercase tracking-wider text-tea-text-dim block mb-1">Chinese Name</label>
             <input
               type="text"
               value={sample.chineseName || ''}
@@ -1535,7 +1535,7 @@ function SampleEditModal({ sampleId, onClose }: { sampleId: string; onClose: () 
           </div>
 
           <div>
-            <label className="text-[10px] uppercase tracking-wider text-tea-text-dim block mb-1">Type</label>
+            <label className="text-ui-10 uppercase tracking-wider text-tea-text-dim block mb-1">Type</label>
             <div className="flex flex-wrap gap-1">
               {TEA_TYPES.map((t) => (
                 <button
@@ -1551,7 +1551,7 @@ function SampleEditModal({ sampleId, onClose }: { sampleId: string; onClose: () 
 
           <div className="flex gap-3">
             <div className="flex-1">
-              <label className="text-[10px] uppercase tracking-wider text-tea-text-dim block mb-1">Year</label>
+              <label className="text-ui-10 uppercase tracking-wider text-tea-text-dim block mb-1">Year</label>
               <input
                 type="number"
                 value={sample.year || ''}
@@ -1561,7 +1561,7 @@ function SampleEditModal({ sampleId, onClose }: { sampleId: string; onClose: () 
               />
             </div>
             <div className="flex-1">
-              <label className="text-[10px] uppercase tracking-wider text-tea-text-dim block mb-1">Grams</label>
+              <label className="text-ui-10 uppercase tracking-wider text-tea-text-dim block mb-1">Grams</label>
               <div className="flex flex-wrap gap-1">
                 {SAMPLE_GRAM_PRESETS.map((g) => (
                   <button
@@ -1590,7 +1590,7 @@ function SampleEditModal({ sampleId, onClose }: { sampleId: string; onClose: () 
           </div>
 
           <div>
-            <label className="text-[10px] uppercase tracking-wider text-tea-text-dim block mb-1">Region</label>
+            <label className="text-ui-10 uppercase tracking-wider text-tea-text-dim block mb-1">Region</label>
             <input
               type="text"
               value={sample.originRegion || ''}
@@ -1602,10 +1602,10 @@ function SampleEditModal({ sampleId, onClose }: { sampleId: string; onClose: () 
 
           <div>
             <div className="flex items-center gap-1 mb-1">
-              <label className="text-[10px] uppercase tracking-wider text-tea-text-dim">Status</label>
+              <label className="text-ui-10 uppercase tracking-wider text-tea-text-dim">Status</label>
               <div className="group relative">
                 <Info size={11} className="text-tea-text-dim cursor-help" />
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 w-52 bg-tea-elevated text-tea-text-sec text-[10px] rounded p-2 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-10 leading-relaxed">
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 w-52 bg-tea-elevated text-tea-text-sec text-ui-10 rounded p-2 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-10 leading-relaxed">
                   Untasted → Tasted → Favorite / To Order → Ordered → Passed
                 </div>
               </div>
@@ -1627,7 +1627,7 @@ function SampleEditModal({ sampleId, onClose }: { sampleId: string; onClose: () 
           </div>
 
           <div>
-            <label className="text-[10px] uppercase tracking-wider text-tea-text-dim block mb-1">Notes</label>
+            <label className="text-ui-10 uppercase tracking-wider text-tea-text-dim block mb-1">Notes</label>
             <textarea
               value={sample.notes || ''}
               onChange={(e) => updateSample(sampleId, { notes: e.target.value || undefined })}

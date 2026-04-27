@@ -396,7 +396,7 @@ const FormPhase: React.FC<FormPhaseProps> = ({
           <h2 id="collection-share-title" className="text-sm font-medium text-tea-text tracking-wide">
             Share as Collection
           </h2>
-          <p className="text-[11px] text-tea-text-dim mt-0.5">
+          <p className="text-ui-11 text-tea-text-dim mt-0.5">
             {count} product{count !== 1 ? 's' : ''} selected
           </p>
         </div>
@@ -419,7 +419,7 @@ const FormPhase: React.FC<FormPhaseProps> = ({
           role="tab"
           aria-selected={mode === 'new'}
           onClick={() => setMode('new')}
-          className={`flex items-center justify-center gap-1.5 py-2 text-[11px] uppercase tracking-wide rounded-md transition-colors ${
+          className={`flex items-center justify-center gap-1.5 py-2 text-ui-11 uppercase tracking-wide rounded-md transition-colors ${
             mode === 'new' ? 'bg-tea-surface text-tea-text' : 'text-tea-text-sec hover:text-tea-text'
           }`}
         >
@@ -430,7 +430,7 @@ const FormPhase: React.FC<FormPhaseProps> = ({
           role="tab"
           aria-selected={mode === 'existing'}
           onClick={() => setMode('existing')}
-          className={`flex items-center justify-center gap-1.5 py-2 text-[11px] uppercase tracking-wide rounded-md transition-colors ${
+          className={`flex items-center justify-center gap-1.5 py-2 text-ui-11 uppercase tracking-wide rounded-md transition-colors ${
             mode === 'existing' ? 'bg-tea-surface text-tea-text' : 'text-tea-text-sec hover:text-tea-text'
           }`}
         >
@@ -441,7 +441,7 @@ const FormPhase: React.FC<FormPhaseProps> = ({
           role="tab"
           aria-selected={mode === 'tea-house'}
           onClick={() => setMode('tea-house')}
-          className={`flex items-center justify-center gap-1.5 py-2 text-[11px] uppercase tracking-wide rounded-md transition-colors ${
+          className={`flex items-center justify-center gap-1.5 py-2 text-ui-11 uppercase tracking-wide rounded-md transition-colors ${
             mode === 'tea-house' ? 'bg-tea-surface text-tea-text' : 'text-tea-text-sec hover:text-tea-text'
           }`}
         >
@@ -463,7 +463,7 @@ const FormPhase: React.FC<FormPhaseProps> = ({
           data-form-purpose="collection-share"
         >
           <div>
-            <label className="block text-[10px] uppercase tracking-[1.2px] text-tea-text-dim mb-1">
+            <label className="block text-ui-10 uppercase tracking-[1.2px] text-tea-text-dim mb-1">
               Title
             </label>
             <input
@@ -483,7 +483,7 @@ const FormPhase: React.FC<FormPhaseProps> = ({
           </div>
 
           <div>
-            <label className="block text-[10px] uppercase tracking-[1.2px] text-tea-text-dim mb-1">
+            <label className="block text-ui-10 uppercase tracking-[1.2px] text-tea-text-dim mb-1">
               Note <span className="text-tea-text-dim/70 normal-case tracking-normal">(optional — shown above the list)</span>
             </label>
             <textarea
@@ -499,11 +499,11 @@ const FormPhase: React.FC<FormPhaseProps> = ({
           </div>
 
           <div>
-            <label className="block text-[10px] uppercase tracking-[1.2px] text-tea-text-dim mb-1.5">
+            <label className="block text-ui-10 uppercase tracking-[1.2px] text-tea-text-dim mb-1.5">
               Recipients
             </label>
             <RecipientTypeahead value={recipients} onChange={setRecipients} collectionId={null} />
-            <p className="text-[10px] text-tea-text-dim mt-2">
+            <p className="text-ui-10 text-tea-text-dim mt-2">
               Each recipient gets the same link. Pick from your contacts or add a new name.
             </p>
           </div>
@@ -554,7 +554,7 @@ const FormPhase: React.FC<FormPhaseProps> = ({
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm text-tea-text truncate">{c.title}</p>
-                          <p className="text-[11px] text-tea-text-dim truncate">
+                          <p className="text-ui-11 text-tea-text-dim truncate">
                             {c.item_count} product{c.item_count !== 1 ? 's' : ''} ·
                             {' '}{c.active_publication_count > 0
                               ? `${c.active_publication_count} active share${c.active_publication_count !== 1 ? 's' : ''}`
@@ -580,7 +580,7 @@ const FormPhase: React.FC<FormPhaseProps> = ({
                 />
                 <span className="text-xs text-tea-text">
                   Also share to new recipient(s)
-                  <span className="block text-[10px] text-tea-text-dim mt-0.5">
+                  <span className="block text-ui-10 text-tea-text-dim mt-0.5">
                     Creates another link on the same collection.
                   </span>
                 </span>
@@ -643,7 +643,7 @@ const FormPhase: React.FC<FormPhaseProps> = ({
                         <div className="flex-1 min-w-0">
                           <p className="text-sm text-tea-text truncate">{h.name}</p>
                           {h.location_city && (
-                            <p className="text-[11px] text-tea-text-dim truncate">{h.location_city}</p>
+                            <p className="text-ui-11 text-tea-text-dim truncate">{h.location_city}</p>
                           )}
                         </div>
                       </button>
@@ -655,7 +655,7 @@ const FormPhase: React.FC<FormPhaseProps> = ({
           </div>
 
           <div>
-            <label className="block text-[10px] uppercase tracking-[1.2px] text-tea-text-dim mb-1">
+            <label className="block text-ui-10 uppercase tracking-[1.2px] text-tea-text-dim mb-1">
               Optional note for the tea house
             </label>
             <textarea
@@ -671,7 +671,7 @@ const FormPhase: React.FC<FormPhaseProps> = ({
           </div>
 
           <div className="px-3 py-2.5 bg-tea-bg rounded-lg">
-            <p className="text-[11px] text-tea-text-sec">
+            <p className="text-ui-11 text-tea-text-sec">
               Sending {count} product{count !== 1 ? 's' : ''} to their inbound queue.
             </p>
           </div>
@@ -775,7 +775,7 @@ const SuccessPhase: React.FC<{ success: SuccessState; onDone: () => void }> = ({
               <h2 className="text-sm font-medium text-tea-text tracking-wide truncate">
                 Sent to {success.teaHouseName || 'the tea house'}.
               </h2>
-              <p className="text-[11px] text-tea-text-dim mt-0.5 truncate">
+              <p className="text-ui-11 text-tea-text-dim mt-0.5 truncate">
                 {success.addedCount} product{success.addedCount !== 1 ? 's' : ''}
               </p>
             </div>
@@ -792,7 +792,7 @@ const SuccessPhase: React.FC<{ success: SuccessState; onDone: () => void }> = ({
 
         <div className="flex-1 min-h-0 overflow-y-auto px-5 pb-4 pt-2 flex flex-col gap-4">
           <div className="px-3 py-3 bg-tea-bg rounded-lg">
-            <p className="text-[12px] text-tea-text-sec italic">
+            <p className="text-ui-12 text-tea-text-sec italic">
               They'll see this in their inbound queue at /admin/collections.
             </p>
           </div>
@@ -802,7 +802,7 @@ const SuccessPhase: React.FC<{ success: SuccessState; onDone: () => void }> = ({
             onClick={() => { navigate(`/admin/collections/${success.collectionId}`); onDone(); }}
             className="flex items-center justify-between px-3 py-2.5 bg-tea-bg border border-tea-border rounded-lg hover:border-tea-gold/40 hover:bg-tea-elevated transition-colors group"
           >
-            <span className="text-[12px] text-tea-text">View collection</span>
+            <span className="text-ui-12 text-tea-text">View collection</span>
             <ArrowRight size={13} className="text-tea-text-sec group-hover:text-tea-gold transition-colors" />
           </button>
         </div>
@@ -832,7 +832,7 @@ const SuccessPhase: React.FC<{ success: SuccessState; onDone: () => void }> = ({
             <h2 className="text-sm font-medium text-tea-text tracking-wide truncate">
               {url ? 'Shared.' : 'Added.'}
             </h2>
-            <p className="text-[11px] text-tea-text-dim mt-0.5 truncate">
+            <p className="text-ui-11 text-tea-text-dim mt-0.5 truncate">
               {success.collectionTitle}
             </p>
           </div>
@@ -851,17 +851,17 @@ const SuccessPhase: React.FC<{ success: SuccessState; onDone: () => void }> = ({
 
         {url && (
           <div>
-            <label className="block text-[10px] uppercase tracking-[1.2px] text-tea-text-dim mb-1.5">
+            <label className="block text-ui-10 uppercase tracking-[1.2px] text-tea-text-dim mb-1.5">
               Shareable link
             </label>
             <div className="flex items-stretch gap-2">
               <div className="flex-1 min-w-0 px-3 py-2 bg-tea-bg border border-tea-border rounded-lg overflow-hidden">
-                <p className="text-[12px] text-tea-text font-mono truncate">{url}</p>
+                <p className="text-ui-12 text-tea-text font-mono truncate">{url}</p>
               </div>
               <button
                 type="button"
                 onClick={copyUrl}
-                className="flex items-center gap-1.5 px-3 py-2 bg-tea-elevated text-tea-text rounded-lg text-[11px] uppercase tracking-wide hover:bg-tea-gold-lt hover:text-tea-gold transition-colors"
+                className="flex items-center gap-1.5 px-3 py-2 bg-tea-elevated text-tea-text rounded-lg text-ui-11 uppercase tracking-wide hover:bg-tea-gold-lt hover:text-tea-gold transition-colors"
               >
                 {copied
                   ? <><Check size={11} /> Copied</>
@@ -874,7 +874,7 @@ const SuccessPhase: React.FC<{ success: SuccessState; onDone: () => void }> = ({
 
         {recipientsWithPhone.length > 0 && url && (
           <div>
-            <label className="block text-[10px] uppercase tracking-[1.2px] text-tea-text-dim mb-1.5">
+            <label className="block text-ui-10 uppercase tracking-[1.2px] text-tea-text-dim mb-1.5">
               Send via WhatsApp
             </label>
             <ul className="flex flex-col gap-1.5">
@@ -888,10 +888,10 @@ const SuccessPhase: React.FC<{ success: SuccessState; onDone: () => void }> = ({
                   >
                     <MessageCircle size={13} className="text-tea-gold flex-shrink-0" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-[13px] text-tea-text truncate">{r.name}</p>
-                      <p className="text-[10px] text-tea-text-dim truncate font-mono">{r.phone}</p>
+                      <p className="text-ui-13 text-tea-text truncate">{r.name}</p>
+                      <p className="text-ui-10 text-tea-text-dim truncate font-mono">{r.phone}</p>
                     </div>
-                    <span className="text-[10px] uppercase tracking-[1.2px] text-tea-text-sec group-hover:text-tea-gold transition-colors">
+                    <span className="text-ui-10 uppercase tracking-[1.2px] text-tea-text-sec group-hover:text-tea-gold transition-colors">
                       Send
                     </span>
                   </a>
@@ -903,10 +903,10 @@ const SuccessPhase: React.FC<{ success: SuccessState; onDone: () => void }> = ({
 
         {recipientsWithoutPhone.length > 0 && url && (
           <div className="px-3 py-2.5 bg-tea-bg rounded-lg">
-            <p className="text-[10px] uppercase tracking-[1.2px] text-tea-text-dim mb-1">
+            <p className="text-ui-10 uppercase tracking-[1.2px] text-tea-text-dim mb-1">
               No phone on file
             </p>
-            <p className="text-[11px] text-tea-text-sec">
+            <p className="text-ui-11 text-tea-text-sec">
               Copy the link and send it to{' '}
               {recipientsWithoutPhone.map((r, i) => (
                 <React.Fragment key={i}>
@@ -921,10 +921,10 @@ const SuccessPhase: React.FC<{ success: SuccessState; onDone: () => void }> = ({
 
         {!url && (
           <div className="px-3 py-3 bg-tea-bg rounded-lg">
-            <p className="text-[12px] text-tea-text">
+            <p className="text-ui-12 text-tea-text">
               Added {success.addedCount} product{success.addedCount !== 1 ? 's' : ''} to this collection.
             </p>
-            <p className="text-[11px] text-tea-text-dim mt-1">
+            <p className="text-ui-11 text-tea-text-dim mt-1">
               Open the collection to share, edit, or publish.
             </p>
           </div>
@@ -935,7 +935,7 @@ const SuccessPhase: React.FC<{ success: SuccessState; onDone: () => void }> = ({
           onClick={() => { navigate(`/admin/collections/${success.collectionId}`); onDone(); }}
           className="flex items-center justify-between px-3 py-2.5 bg-tea-bg border border-tea-border rounded-lg hover:border-tea-gold/40 hover:bg-tea-elevated transition-colors group"
         >
-          <span className="text-[12px] text-tea-text">View collection</span>
+          <span className="text-ui-12 text-tea-text">View collection</span>
           <ArrowRight size={13} className="text-tea-text-sec group-hover:text-tea-gold transition-colors" />
         </button>
       </div>

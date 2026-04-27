@@ -154,7 +154,7 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({
                             <span className="text-sm text-tea-text group-hover:text-tea-gold transition-colors" style={{ fontFamily: 'var(--font-display)' }}>
                               {result.title}
                             </span>
-                            <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-tea-text/5 text-tea-text/40">
+                            <span className="text-ui-10 uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-tea-text/5 text-tea-text/40">
                               {RESULT_SECTION_LABELS[result.section] || result.sectionLabel}
                             </span>
                           </div>

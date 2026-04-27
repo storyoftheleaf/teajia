@@ -242,14 +242,14 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
                   className="w-14 h-14 rounded-md object-cover"
                 />
                 {validPhotos.length > 1 && (
-                  <span className="absolute bottom-0.5 right-0.5 text-[9px] font-semibold text-tea-text bg-black/50 rounded px-0.5 leading-tight">
+                  <span className="absolute bottom-0.5 right-0.5 text-ui-9 font-semibold text-tea-text bg-black/50 rounded px-0.5 leading-tight">
                     +{validPhotos.length - 1}
                   </span>
                 )}
               </button>
             ) : typeColor ? (
               <div
-                className="shrink-0 mt-0.5 w-14 h-14 rounded-md flex items-center justify-center text-[9px] font-semibold tracking-[0.1em] uppercase"
+                className="shrink-0 mt-0.5 w-14 h-14 rounded-md flex items-center justify-center text-ui-9 font-semibold tracking-[0.1em] uppercase"
                 style={{ background: `${typeColor}18`, color: typeColor }}
                 aria-hidden="true"
               >
@@ -265,7 +265,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
                   {hasName ? entry.name : 'Untitled'}
                 </span>
                 {entry.originRegion && (
-                  <span className="text-[11px] text-tea-text-sec truncate shrink-0">· {entry.originRegion}</span>
+                  <span className="text-ui-11 text-tea-text-sec truncate shrink-0">· {entry.originRegion}</span>
                 )}
                 {liquorColorHex && (
                   <span
@@ -278,19 +278,19 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
 
               {/* Chinese name */}
               {entry.chineseName && (
-                <p className="text-[12px] text-tea-text-sec font-chinese leading-tight truncate">{entry.chineseName}</p>
+                <p className="text-ui-12 text-tea-text-sec font-chinese leading-tight truncate">{entry.chineseName}</p>
               )}
 
               {/* Vendor — provenance group, right after Chinese name */}
               {entry.vendorName && (
-                <div className="flex items-center gap-1 text-[10px] text-tea-text-dim">
+                <div className="flex items-center gap-1 text-ui-10 text-tea-text-dim">
                   <Store size={10} />
                   <span className="truncate">{entry.vendorName}</span>
                 </div>
               )}
 
               {/* Type · Year · Age · Price/gram */}
-              <p className="text-[10px] text-tea-text-dim tabular-nums">
+              <p className="text-ui-10 text-tea-text-dim tabular-nums">
                 {[
                   getTypeLabel(entry),
                   entry.year && String(entry.year),
@@ -303,21 +303,21 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
               {(rating != null || isBought || isWishlisted || isIncoming || isPassed) && (
                 <div className="flex items-center gap-2">
                   {rating != null && (
-                    <span className="text-[11px] font-semibold tabular-nums" style={typeColor ? { color: typeColor } : undefined}>
+                    <span className="text-ui-11 font-semibold tabular-nums" style={typeColor ? { color: typeColor } : undefined}>
                       {rating}/10
                     </span>
                   )}
                   {isBought && (
-                    <span className="text-[10px] text-tea-gold/70 font-medium">In Stock</span>
+                    <span className="text-ui-10 text-tea-gold/70 font-medium">In Stock</span>
                   )}
                   {isPassed && (
-                    <span className="text-[10px] text-tea-text-dim font-medium">Passed</span>
+                    <span className="text-ui-10 text-tea-text-dim font-medium">Passed</span>
                   )}
                   {isWishlisted && !isBought && (
-                    <span className="text-[10px] text-tea-text-dim font-medium">Wishlist</span>
+                    <span className="text-ui-10 text-tea-text-dim font-medium">Wishlist</span>
                   )}
                   {isIncoming && (
-                    <span className="text-[10px] text-tea-accent-sub font-medium">Incoming</span>
+                    <span className="text-ui-10 text-tea-accent-sub font-medium">Incoming</span>
                   )}
                 </div>
               )}
@@ -326,7 +326,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
               {!expanded && summaryTags.length > 0 && (
                 <div className="flex gap-1 flex-wrap">
                   {summaryTags.map((tag) => (
-                    <span key={tag} className="tag text-[10px]">{tag}</span>
+                    <span key={tag} className="tag text-ui-10">{tag}</span>
                   ))}
                 </div>
               )}
@@ -369,7 +369,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
                     type="button"
                     onClick={() => photoInputRef.current?.click()}
                     disabled={photoUploading}
-                    className="shrink-0 flex items-center gap-1 text-[10px] text-tea-text-dim hover:text-tea-text-sec transition-colors px-2 py-1.5"
+                    className="shrink-0 flex items-center gap-1 text-ui-10 text-tea-text-dim hover:text-tea-text-sec transition-colors px-2 py-1.5"
                   >
                     {photoUploading
                       ? <Loader2 size={11} className="animate-spin" />
@@ -388,12 +388,12 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
 
                 {/* Full notes */}
                 {entry.notes.trim().length > 0 && (
-                  <p className="text-[12px] text-tea-text-sec leading-relaxed whitespace-pre-wrap">{entry.notes}</p>
+                  <p className="text-ui-12 text-tea-text-sec leading-relaxed whitespace-pre-wrap">{entry.notes}</p>
                 )}
 
                 {/* Brew parameters */}
                 {(entry.tasting?.brewingTemp || entry.tasting?.brewingTime || entry.tasting?.brewingVessel) && (
-                  <div className="flex items-center gap-2 flex-wrap text-[11px] text-tea-text-dim">
+                  <div className="flex items-center gap-2 flex-wrap text-ui-11 text-tea-text-dim">
                     {entry.tasting.brewingVessel && <span>{entry.tasting.brewingVessel}</span>}
                     {entry.tasting.brewingTemp && <span>{entry.tasting.brewingTemp}°C</span>}
                     {entry.tasting.brewingTime && <span>{entry.tasting.brewingTime}</span>}
@@ -408,14 +408,14 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
                 {/* Tasting history timeline */}
                 {entry.tastingHistory && entry.tastingHistory.length > 0 && (
                   <div className="space-y-1">
-                    <p className="text-[10px] uppercase tracking-[0.12em] text-tea-text-dim font-serif">
+                    <p className="text-ui-10 uppercase tracking-[0.12em] text-tea-text-dim font-serif">
                       {entry.tastingHistory.length === 1 ? '1 tasting' : `${entry.tastingHistory.length} tastings`}
                     </p>
                     {entry.tastingHistory.slice().reverse().map((h, i) => {
                       const q = h.data.quality ?? h.data.rating;
                       const dateLabel = getDateGroup(h.date);
                       return (
-                        <div key={i} className="flex items-center gap-2 text-[11px] text-tea-text-sec">
+                        <div key={i} className="flex items-center gap-2 text-ui-11 text-tea-text-sec">
                           <span className="tabular-nums text-tea-text-dim shrink-0">{dateLabel}</span>
                           {q != null && (
                             <span className="font-medium tabular-nums" style={typeColor ? { color: typeColor } : undefined}>
@@ -433,7 +433,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
 
                 {/* Audio clips */}
                 {entry.audioClips.length > 0 && (
-                  <div className="flex items-center gap-1 text-[11px] text-tea-text-dim">
+                  <div className="flex items-center gap-1 text-ui-11 text-tea-text-dim">
                     <Mic size={11} />
                     {entry.audioClips.length} voice note{entry.audioClips.length > 1 ? 's' : ''}
                   </div>
@@ -442,7 +442,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
                 {/* Price detail + pipeline actions */}
                 <div className="flex items-center gap-2 flex-wrap">
                   {entry.priceAmount != null && entry.priceAmount > 0 && (
-                    <span className="text-[11px] text-tea-text-dim tabular-nums">
+                    <span className="text-ui-11 text-tea-text-dim tabular-nums">
                       {formatPrice(entry.priceAmount, entry.priceCurrency)}
                       {pricePerGram && ` · ${pricePerGram}`}
                     </span>
@@ -473,7 +473,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
           <button
             type="button"
             onClick={() => updateEntry(entry.id, { status: isWishlisted ? 'noted' : 'want' })}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors ${
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-ui-11 font-medium transition-colors ${
               isWishlisted
                 ? 'bg-tea-gold/10 text-tea-gold'
                 : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-elevated'
@@ -487,7 +487,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
           <button
             type="button"
             onClick={() => { if (isBought) handleUnbuy(); }}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors ${
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-ui-11 font-medium transition-colors ${
               isBought
                 ? 'bg-tea-gold/10 text-tea-gold'
                 : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-elevated'
@@ -504,7 +504,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
           <button
             type="button"
             onClick={() => setTastingOpen(true)}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors ${
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-ui-11 font-medium transition-colors ${
               hasTasting
                 ? 'text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated'
                 : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-elevated'
@@ -524,7 +524,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
             <button
               type="button"
               onClick={handleReorder}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-medium text-tea-text-dim hover:text-tea-accent-sub hover:bg-tea-elevated transition-colors"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-ui-11 font-medium text-tea-text-dim hover:text-tea-accent-sub hover:bg-tea-elevated transition-colors"
               title="Add to ledger to reorder"
             >
               <RefreshCw size={12} />
@@ -539,7 +539,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
               onClick={() => updateEntry(entry.id, {
                 tasteOrder: entry.tasteOrder ? undefined : Date.now(),
               })}
-              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors ${
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-md text-ui-11 font-medium transition-colors ${
                 entry.tasteOrder
                   ? 'bg-tea-gold/10 text-tea-gold'
                   : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-elevated'
@@ -584,7 +584,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
             <button
               type="button"
               onClick={() => { removeEntry(entry.id); setConfirmDelete(false); }}
-              className="flex items-center gap-1 px-2 py-1.5 rounded-md text-[11px] font-medium bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors ml-1"
+              className="flex items-center gap-1 px-2 py-1.5 rounded-md text-ui-11 font-medium bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors ml-1"
             >
               <AlertTriangle size={11} />
               Delete?

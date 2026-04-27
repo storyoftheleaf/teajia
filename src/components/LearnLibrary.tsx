@@ -166,7 +166,7 @@ export const LearnLibrary: React.FC<LearnLibraryProps> = ({ watchedStories }) =>
             <div key={item.id} className="min-w-[200px] max-w-[240px] shrink-0 cursor-pointer">
               <CardContainer className="hover:-translate-y-0.5 transition-all h-full">
                 <div className="p-4">
-                  <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-sm ${getTypeColor(item.type)}`}>
+                  <span className={`text-ui-10 uppercase tracking-wider px-2 py-0.5 rounded-sm ${getTypeColor(item.type)}`}>
                     {item.type}
                   </span>
                   <h4 className="text-base text-tea-text mt-2 mb-1" style={{ fontFamily: 'var(--font-display)' }}>{item.title}</h4>
@@ -210,7 +210,7 @@ export const LearnLibrary: React.FC<LearnLibraryProps> = ({ watchedStories }) =>
                 <Icons.Download className="w-4 h-4 text-tea-green" />
               </div>
               <span className="text-sm text-tea-text flex-1" style={{ fontFamily: 'var(--font-display)' }}>{item.title}</span>
-              <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-sm hidden sm:inline ${getTypeColor(item.type)}`}>{item.type}</span>
+              <span className={`text-ui-10 uppercase tracking-wider px-2 py-0.5 rounded-sm hidden sm:inline ${getTypeColor(item.type)}`}>{item.type}</span>
               <Icons.Next className="w-4 h-4 text-tea-text/30 group-hover:text-tea-gold transition-colors shrink-0" />
             </button>
           ))}
@@ -307,7 +307,7 @@ export const LearnLibrary: React.FC<LearnLibraryProps> = ({ watchedStories }) =>
                     </span>
                   </div>
                   <h4 className="text-sm text-tea-text mb-1" style={{ fontFamily: 'var(--font-display)' }}>{item.title}</h4>
-                  <p className="text-[11px] text-tea-text/50 line-clamp-2">{item.description}</p>
+                  <p className="text-ui-11 text-tea-text/50 line-clamp-2">{item.description}</p>
                 </div>
               </CardContainer>
             </div>

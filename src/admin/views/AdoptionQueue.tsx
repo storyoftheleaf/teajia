@@ -55,7 +55,7 @@ export const AdoptionQueue: React.FC<AdoptionQueueProps> = ({ embedded = false }
         {!embedded && (
           <Link
             to="/admin/access/platform"
-            className="text-tea-text-sec hover:text-tea-text transition-colors text-[13px] mb-5 inline-flex items-center gap-1"
+            className="text-tea-text-sec hover:text-tea-text transition-colors text-ui-13 mb-5 inline-flex items-center gap-1"
           >
             ← Platform access
           </Link>
@@ -64,14 +64,14 @@ export const AdoptionQueue: React.FC<AdoptionQueueProps> = ({ embedded = false }
         <h1 className={`${TYPOGRAPHY_CLASSES.h2} text-tea-text mb-2`}>
           Adoption queue
         </h1>
-        <p className="font-body italic text-[15px] text-tea-text-sec leading-[1.7]">
+        <p className="font-body italic text-ui-15 text-tea-text-sec leading-[1.7]">
           Partners can flag teas they originated for the Teajia network catalog.
           Adopting transfers curation to you; declining keeps it with the originator.
         </p>
       </header>
 
       {/* Filter tabs */}
-      <div className="flex items-center gap-5 mb-8 text-[13px]">
+      <div className="flex items-center gap-5 mb-8 text-ui-13">
         {FILTERS.map(f => (
           <button
             key={f.key}
@@ -90,15 +90,15 @@ export const AdoptionQueue: React.FC<AdoptionQueueProps> = ({ embedded = false }
 
       {/* Content */}
       {error && (
-        <p className="font-body italic text-[14px] text-tea-text-sec">{error}</p>
+        <p className="font-body italic text-ui-14 text-tea-text-sec">{error}</p>
       )}
 
       {!error && (entries === null || isLoading) && (
-        <p className="font-body italic text-[14px] text-tea-text-sec">Loading…</p>
+        <p className="font-body italic text-ui-14 text-tea-text-sec">Loading…</p>
       )}
 
       {!error && entries && entries.length === 0 && (
-        <p className="font-body italic text-[14px] text-tea-text-sec leading-[1.7]">
+        <p className="font-body italic text-ui-14 text-tea-text-sec leading-[1.7]">
           {filter === 'pending'
             ? 'Nothing is waiting. Tea Masters will appear here when they offer a profile up for the network.'
             : filter === 'adopted'
@@ -178,14 +178,14 @@ const AdoptionRow: React.FC<AdoptionRowProps> = ({ entry, onChange }) => {
         {entry.name}
       </h2>
       {entry.chinese_name && (
-        <p className="font-body text-[14px] text-tea-text-sec mb-2">{entry.chinese_name}</p>
+        <p className="font-body text-ui-14 text-tea-text-sec mb-2">{entry.chinese_name}</p>
       )}
 
       {/* Origin line + originator attribution */}
       {originLine && (
-        <p className="font-body text-[13px] text-tea-text-sec mb-1">{originLine}</p>
+        <p className="font-body text-ui-13 text-tea-text-sec mb-1">{originLine}</p>
       )}
-      <p className="text-[11px] text-tea-text-dim tracking-[0.04em] mb-4">
+      <p className="text-ui-11 text-tea-text-dim tracking-[0.04em] mb-4">
         Originated by {entry.originator_account_name}
         {entry.suggested_by_user_name && ` · suggested by ${entry.suggested_by_user_name}`}
         {suggestedDate && ` · ${suggestedDate}`}
@@ -193,21 +193,21 @@ const AdoptionRow: React.FC<AdoptionRowProps> = ({ entry, onChange }) => {
 
       {/* Description */}
       {entry.description && (
-        <p className="font-body text-[15px] text-tea-text leading-[1.7] mb-4">
+        <p className="font-body text-ui-15 text-tea-text leading-[1.7] mb-4">
           {entry.description}
         </p>
       )}
 
       {/* Originator note */}
       {entry.suggested_for_network_note && (
-        <blockquote className="font-body italic text-[14px] text-tea-text-sec leading-[1.7] mb-5 pl-4 border-l border-tea-border">
+        <blockquote className="font-body italic text-ui-14 text-tea-text-sec leading-[1.7] mb-5 pl-4 border-l border-tea-border">
           "{entry.suggested_for_network_note}"
         </blockquote>
       )}
 
       {/* Already-decided state */}
       {!isPending && (
-        <div className="text-[13px] text-tea-text-sec">
+        <div className="text-ui-13 text-tea-text-sec">
           {entry.adoption_decision === 'adopted' ? (
             <span>Adopted{entry.adoption_decided_at ? ` on ${new Date(entry.adoption_decided_at).toLocaleDateString(undefined, { day: 'numeric', month: 'long' })}` : ''}.</span>
           ) : (
@@ -223,7 +223,7 @@ const AdoptionRow: React.FC<AdoptionRowProps> = ({ entry, onChange }) => {
 
       {/* Pending — actions */}
       {isPending && !showDecline && (
-        <div className="flex items-center gap-5 text-[13px]">
+        <div className="flex items-center gap-5 text-ui-13">
           <button
             type="button"
             onClick={handleAdopt}
@@ -251,10 +251,10 @@ const AdoptionRow: React.FC<AdoptionRowProps> = ({ entry, onChange }) => {
             onChange={e => setDeclineNote(e.target.value.slice(0, 1000))}
             placeholder={`Optional note for ${entry.originator_account_name}`}
             rows={2}
-            className="w-full px-3 py-2 bg-tea-bg border border-tea-border rounded-sm text-[14px] text-tea-text font-body placeholder:text-tea-text-dim placeholder:italic focus:outline-none focus:border-tea-gold/40"
+            className="w-full px-3 py-2 bg-tea-bg border border-tea-border rounded-sm text-ui-14 text-tea-text font-body placeholder:text-tea-text-dim placeholder:italic focus:outline-none focus:border-tea-gold/40"
             maxLength={1000}
           />
-          <div className="flex items-center gap-5 text-[13px]">
+          <div className="flex items-center gap-5 text-ui-13">
             <button
               type="button"
               onClick={() => { setShowDecline(false); setDeclineNote(''); setError(null); }}
@@ -276,7 +276,7 @@ const AdoptionRow: React.FC<AdoptionRowProps> = ({ entry, onChange }) => {
       )}
 
       {error && (
-        <p className="font-body italic text-[13px] text-tea-text-sec mt-3">{error}</p>
+        <p className="font-body italic text-ui-13 text-tea-text-sec mt-3">{error}</p>
       )}
     </article>
   );

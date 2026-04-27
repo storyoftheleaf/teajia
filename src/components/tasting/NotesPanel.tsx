@@ -90,12 +90,12 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ notes, onChange }) => {
       {/* Header — intent */}
       <div className="px-4 pt-4 pb-3">
         <h3
-          className="text-[11px] uppercase tracking-[0.18em] text-tea-gold"
+          className="text-ui-11 uppercase tracking-[0.18em] text-tea-gold"
           style={{ fontFamily: 'var(--font-display)' }}
         >
           Notes
         </h3>
-        <p className="text-[11px] text-tea-text-dim mt-1" style={{ fontFamily: 'var(--font-body)' }}>
+        <p className="text-ui-11 text-tea-text-dim mt-1" style={{ fontFamily: 'var(--font-body)' }}>
           Star what you want readers to see. Edits save as you go; unstar keeps it private.
         </p>
       </div>
@@ -104,7 +104,7 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ notes, onChange }) => {
       <div className="flex-1 min-h-0 overflow-y-auto px-3 space-y-2 pb-2">
         <AnimatePresence initial={false}>
           {notes.length === 0 ? (
-            <p className="text-center text-[12px] text-tea-text-dim py-8" style={{ fontFamily: 'var(--font-body)' }}>
+            <p className="text-center text-ui-12 text-tea-text-dim py-8" style={{ fontFamily: 'var(--font-body)' }}>
               No notes yet. Record or type below.
             </p>
           ) : (
@@ -125,7 +125,7 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ notes, onChange }) => {
                       el.style.height = `${el.scrollHeight}px`;
                     }}
                     rows={1}
-                    className="flex-1 bg-transparent border-none outline-none resize-none text-[14px] text-tea-text leading-[1.45] placeholder-tea-text-dim focus:ring-0 py-1.5"
+                    className="flex-1 bg-transparent border-none outline-none resize-none text-ui-14 text-tea-text leading-[1.45] placeholder-tea-text-dim focus:ring-0 py-1.5"
                     style={{ fontFamily: 'var(--font-body)', fieldSizing: 'content' as any, minHeight: '24px' }}
                   />
                   <div className="flex items-center shrink-0 py-1">
@@ -169,7 +169,7 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ notes, onChange }) => {
               <motion.span
                 animate={{ opacity: [1, 0.4, 1] }}
                 transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
-                className="text-[13px] text-tea-gold/70"
+                className="text-ui-13 text-tea-gold/70"
                 style={{ fontFamily: 'var(--font-body)' }}
               >
                 Recording…
@@ -182,7 +182,7 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ notes, onChange }) => {
               onKeyDown={handleDraftKey}
               placeholder={notes.length > 0 ? 'Add another note…' : 'Type a note, or tap the mic to record…'}
               rows={1}
-              className="flex-1 px-3 py-2.5 bg-transparent text-[13px] text-tea-text placeholder:text-tea-text-dim/40 focus:outline-none resize-none"
+              className="flex-1 px-3 py-2.5 bg-transparent text-ui-13 text-tea-text placeholder:text-tea-text-dim/40 focus:outline-none resize-none"
               style={{ fontFamily: 'var(--font-body)' }}
             />
           )}
@@ -218,7 +218,7 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ notes, onChange }) => {
         </div>
 
         {error && (
-          <p className="px-3 pb-2 text-[11px] text-red-400" style={{ fontFamily: 'var(--font-body)' }}>
+          <p className="px-3 pb-2 text-ui-11 text-red-400" style={{ fontFamily: 'var(--font-body)' }}>
             {error}
           </p>
         )}

@@ -205,7 +205,7 @@ export const TeaGlossary: React.FC<TeaGlossaryProps> = ({
                               {term.term}
                             </h3>
                             {term.chineseCharacters && (
-                              <span className="text-tea-gold/50 text-[13px] font-serif">
+                              <span className="text-tea-gold/50 text-ui-13 font-serif">
                                 {term.chineseCharacters}
                               </span>
                             )}
@@ -216,13 +216,13 @@ export const TeaGlossary: React.FC<TeaGlossaryProps> = ({
                             </p>
                           )}
                         </div>
-                        <span className="text-[9px] uppercase tracking-[0.15em] text-tea-text-sec font-sans flex-shrink-0 mt-1">
+                        <span className="text-ui-9 uppercase tracking-[0.15em] text-tea-text-sec font-sans flex-shrink-0 mt-1">
                           {GLOSSARY_CATEGORIES[term.category].label}
                         </span>
                       </div>
 
                       {/* Definition */}
-                      <p className={`text-tea-text-sec text-[13px] leading-relaxed
+                      <p className={`text-tea-text-sec text-ui-13 leading-relaxed
                         ${expandedTermId === term.id ? '' : 'line-clamp-2'}`}
                       >
                         {term.definition}
@@ -248,7 +248,7 @@ export const TeaGlossary: React.FC<TeaGlossaryProps> = ({
 
                           {/* Extended Description */}
                           {term.deepDive?.extendedDescription && (
-                            <p className="text-tea-text-sec text-[13px] leading-relaxed">
+                            <p className="text-tea-text-sec text-ui-13 leading-relaxed">
                               {term.deepDive.extendedDescription}
                             </p>
                           )}
@@ -256,7 +256,7 @@ export const TeaGlossary: React.FC<TeaGlossaryProps> = ({
                           {/* Cultural Context */}
                           {term.deepDive?.culturalContext && (
                             <div className="pl-3" style={{ boxShadow: 'inset 2px 0 0 var(--tea-border)' }}>
-                              <p className="text-tea-text-sec text-[13px] leading-relaxed italic font-serif">
+                              <p className="text-tea-text-sec text-ui-13 leading-relaxed italic font-serif">
                                 {term.deepDive.culturalContext}
                               </p>
                             </div>
@@ -264,7 +264,7 @@ export const TeaGlossary: React.FC<TeaGlossaryProps> = ({
 
                           {/* Example Usage */}
                           {term.exampleUsage && (
-                            <p className="text-tea-text/60 text-[13px] italic">
+                            <p className="text-tea-text/60 text-ui-13 italic">
                               "{term.exampleUsage}"
                             </p>
                           )}
@@ -284,7 +284,7 @@ export const TeaGlossary: React.FC<TeaGlossaryProps> = ({
                                       setActiveCategory('all');
                                       setActiveLetter(null);
                                     }}
-                                    className="px-2 py-1 text-tea-gold/80 text-[11px] font-sans bg-tea-gold/[0.06] rounded-lg cursor-pointer hover:bg-tea-gold/[0.12] transition-colors"
+                                    className="px-2 py-1 text-tea-gold/80 text-ui-11 font-sans bg-tea-gold/[0.06] rounded-lg cursor-pointer hover:bg-tea-gold/[0.12] transition-colors"
                                   >
                                     {related.term}
                                     {related.chineseCharacters && (
@@ -341,7 +341,7 @@ export const TeaGlossary: React.FC<TeaGlossaryProps> = ({
             View Full Glossary
             <Icons.ChevronRight className="w-3.5 h-3.5" />
           </button>
-          <p className="mt-2 text-tea-text-sec text-[10px] font-mono">
+          <p className="mt-2 text-tea-text-sec text-ui-10 font-mono">
             {GLOSSARY_TERMS.length} terms
           </p>
         </div>

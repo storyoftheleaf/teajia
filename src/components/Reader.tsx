@@ -641,7 +641,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, isSav
             </div>
           </div>
         </div>
-        <span className="num text-[11px] text-tea-text-sec/80 w-4">{pages.length}</span>
+        <span className="num text-ui-11 text-tea-text-sec/80 w-4">{pages.length}</span>
       </div>
     );
   };
@@ -667,7 +667,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, isSav
               </div>
               <div className="flex-1">
                 <div className="flex justify-between items-start">
-                  <span className="text-[11px] uppercase tracking-[0.15em] text-tea-text-dim mb-1 block">{s.type}</span>
+                  <span className="text-ui-11 uppercase tracking-[0.15em] text-tea-text-dim mb-1 block">{s.type}</span>
                   {watchedStories?.[s.id] && <Icons.Check className="w-3 h-3 text-tea-green opacity-70" />}
                 </div>
                 <h4 className="text-tea-text font-serif text-lg leading-tight group-hover:text-tea-gold transition-colors mb-1">{s.title}</h4>
@@ -716,7 +716,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, isSav
                   onClick={() => { goToPage(ch.pageIndex); setShowChapterDrawer(false); }}
                   className="w-full text-left px-4 py-3 rounded-lg hover:bg-tea-accent-sub transition-colors"
                 >
-                  <span className="text-tea-text-dim text-[10px] uppercase tracking-[0.15em] mr-3">{String(i + 1).padStart(2, '0')}</span>
+                  <span className="text-tea-text-dim text-ui-10 uppercase tracking-[0.15em] mr-3">{String(i + 1).padStart(2, '0')}</span>
                   <span className="text-tea-text text-sm">{ch.title}</span>
                 </button>
               ))}
@@ -740,7 +740,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, isSav
           style={{ zIndex: 200 }}
         >
           <div className="reader-keyboard-hint-card">
-            <div className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim mb-4">Keyboard Shortcuts</div>
+            <div className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim mb-4">Keyboard Shortcuts</div>
             {[
               { key: '→ / Space', label: 'Next page' },
               { key: '←', label: 'Previous page' },
@@ -894,7 +894,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, isSav
             className="hidden lg:flex flex-col justify-between h-full py-20 px-8 pointer-events-none shrink-0"
             style={{ opacity: marginOpacity, transition: 'opacity 0.6s ease' }}
           >
-            <span className="text-[11px] uppercase tracking-[0.2em] text-tea-text-dim" style={{ fontFamily: 'var(--font-sans)' }}>
+            <span className="text-ui-11 uppercase tracking-[0.2em] text-tea-text-dim" style={{ fontFamily: 'var(--font-sans)' }}>
               {story.title}
             </span>
           </div>
@@ -947,7 +947,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, isSav
             className="hidden lg:flex flex-col justify-end h-full py-20 px-8 pointer-events-none shrink-0"
             style={{ opacity: marginOpacity, transition: 'opacity 0.6s ease' }}
           >
-            <span className="font-mono text-[11px] text-tea-text-dim tabular-nums">
+            <span className="font-mono text-ui-11 text-tea-text-dim tabular-nums">
               {currentPageIndex + 1} / {pages.length}
             </span>
           </div>

@@ -801,7 +801,7 @@ export const MagazineTabbed: React.FC<MagazineTabbedProps> = ({
             >
               <Icons.Bag className="w-4 h-4" />
               {cartItemCount > 0 && (
-                <span className="absolute top-1.5 right-1.5 w-3.5 h-3.5 bg-tea-gold rounded-full text-[8px] font-sans font-semibold text-tea-bg flex items-center justify-center leading-none">
+                <span className="absolute top-1.5 right-1.5 w-3.5 h-3.5 bg-tea-gold rounded-full text-ui-8 font-sans font-semibold text-tea-bg flex items-center justify-center leading-none">
                   {cartItemCount}
                 </span>
               )}

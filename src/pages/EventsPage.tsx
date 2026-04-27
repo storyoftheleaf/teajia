@@ -75,11 +75,11 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
         {/* Availability badge */}
         <div className="absolute top-3 right-3">
           {isFull ? (
-            <span className="px-2.5 py-1 text-[10px] uppercase tracking-[0.2em] bg-tea-bg/80 text-tea-text-dim backdrop-blur-sm rounded-full border border-tea-border">
+            <span className="px-2.5 py-1 text-ui-10 uppercase tracking-[0.2em] bg-tea-bg/80 text-tea-text-dim backdrop-blur-sm rounded-full border border-tea-border">
               Full
             </span>
           ) : (
-            <span className="px-2.5 py-1 text-[10px] uppercase tracking-[0.2em] bg-tea-bg/80 text-tea-gold backdrop-blur-sm rounded-full border border-tea-gold/20">
+            <span className="px-2.5 py-1 text-ui-10 uppercase tracking-[0.2em] bg-tea-bg/80 text-tea-gold backdrop-blur-sm rounded-full border border-tea-gold/20">
               {seats} {seats === 1 ? 'seat' : 'seats'} open
             </span>
           )}
@@ -89,9 +89,9 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
         <div className="px-4 pb-4 pt-2 relative">
           {/* Date row */}
           <div className="flex items-baseline gap-2 mb-2">
-            <span className="text-[10px] uppercase tracking-[0.25em] text-tea-text-dim">{day}</span>
-            <span className="font-serif text-[13px] text-tea-text-sec">{num} {month}</span>
-            <span className="text-[10px] text-tea-text-dim ml-auto">{time}</span>
+            <span className="text-ui-10 uppercase tracking-[0.25em] text-tea-text-dim">{day}</span>
+            <span className="font-serif text-ui-13 text-tea-text-sec">{num} {month}</span>
+            <span className="text-ui-10 text-tea-text-dim ml-auto">{time}</span>
           </div>
 
           {/* Title */}
@@ -102,7 +102,7 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
 
           {/* Location hint */}
           {(event.areaHint || event.locationName) && (
-            <p className="text-[11px] text-tea-text-dim mt-2 flex items-center gap-1.5">
+            <p className="text-ui-11 text-tea-text-dim mt-2 flex items-center gap-1.5">
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 opacity-60">
                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 1 1 18 0z"/><circle cx="12" cy="10" r="3"/>
               </svg>
@@ -112,7 +112,7 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
 
           {/* Mood hints */}
           {event.moodHints && event.moodHints.length > 0 && (
-            <p className="text-[11px] text-tea-text-dim mt-2.5">
+            <p className="text-ui-11 text-tea-text-dim mt-2.5">
               {event.moodHints.join(' · ')}
             </p>
           )}

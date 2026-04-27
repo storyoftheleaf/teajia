@@ -111,15 +111,15 @@ export const ApprovalCard: React.FC<ApprovalCardProps> = ({ attendee, onRefresh 
               <span className="text-sm font-medium text-tea-text">{attendee.fullName}</span>
             )}
             {isGolden && (
-              <span className="flex items-center gap-0.5 text-[10px] text-tea-gold uppercase tracking-[0.12em]">
+              <span className="flex items-center gap-0.5 text-ui-10 text-tea-gold uppercase tracking-[0.12em]">
                 <Star size={9} fill="currentColor" /> Golden
               </span>
             )}
             {requestedGuests > 0 && (
-              <span className="text-[11px] text-tea-text-sec">+{requestedGuests} guest{requestedGuests !== 1 ? 's' : ''}</span>
+              <span className="text-ui-11 text-tea-text-sec">+{requestedGuests} guest{requestedGuests !== 1 ? 's' : ''}</span>
             )}
           </div>
-          <div className="flex items-center gap-3 mt-0.5 text-[11px] text-tea-text-sec">
+          <div className="flex items-center gap-3 mt-0.5 text-ui-11 text-tea-text-sec">
             {attendee.phoneNumber && <span>{attendee.phoneNumber}</span>}
             <span>{timeAgo(attendee.createdAt)}</span>
           </div>
@@ -132,7 +132,7 @@ export const ApprovalCard: React.FC<ApprovalCardProps> = ({ attendee, onRefresh 
           {attendee.guestRequests.map((gr, i) => (
             <span
               key={i}
-              className="text-[11px] text-tea-text-dim bg-tea-elevated/40 px-2 py-0.5 rounded-sm"
+              className="text-ui-11 text-tea-text-dim bg-tea-elevated/40 px-2 py-0.5 rounded-sm"
             >
               "{gr.nameHint}"
             </span>
@@ -142,7 +142,7 @@ export const ApprovalCard: React.FC<ApprovalCardProps> = ({ attendee, onRefresh 
 
       {/* Row 3: Journey preview */}
       {isReturning && (
-        <div className="border-t border-tea-border pt-2.5 text-[11px] text-tea-text-sec">
+        <div className="border-t border-tea-border pt-2.5 text-ui-11 text-tea-text-sec">
           {attendee.sessionsAttended} session{attendee.sessionsAttended !== 1 ? 's' : ''} attended
           {attendee.favoriteTypes && attendee.favoriteTypes.length > 0 && (
             <span> · fav: {attendee.favoriteTypes.join(', ')}</span>
@@ -153,7 +153,7 @@ export const ApprovalCard: React.FC<ApprovalCardProps> = ({ attendee, onRefresh 
       {/* Row 4: Guest count stepper (only if they brought guests) */}
       {requestedGuests > 0 && (
         <div className="flex items-center gap-2 pt-1">
-          <span className="text-[11px] text-tea-text-sec">Guest slots:</span>
+          <span className="text-ui-11 text-tea-text-sec">Guest slots:</span>
           <div className="flex items-center gap-1">
             <button
               type="button"
@@ -173,7 +173,7 @@ export const ApprovalCard: React.FC<ApprovalCardProps> = ({ attendee, onRefresh 
               <Plus size={10} />
             </button>
           </div>
-          <span className="text-[10px] text-tea-text-dim">of {requestedGuests} requested</span>
+          <span className="text-ui-10 text-tea-text-dim">of {requestedGuests} requested</span>
         </div>
       )}
 
@@ -189,7 +189,7 @@ export const ApprovalCard: React.FC<ApprovalCardProps> = ({ attendee, onRefresh 
             <Check size={11} />
             Notify via WhatsApp
           </a>
-          <span className="text-[10px] text-tea-text-dim">Approved</span>
+          <span className="text-ui-10 text-tea-text-dim">Approved</span>
         </div>
       ) : (
         <div className="flex items-center gap-2 flex-wrap pt-1">

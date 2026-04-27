@@ -6,7 +6,7 @@ import { LogoEmblem } from '../components/Logos';
 
 const inputClass = "w-full bg-tea-surface border border-tea-border p-3.5 text-tea-text rounded outline-none focus:border-tea-gold focus:ring-0 transition-colors duration-150 placeholder-tea-text-dim font-sans text-sm";
 const inputStyle = { boxShadow: 'inset 0 1px 0 var(--tea-accent-sub), inset 0 -1px 0 var(--tea-accent-sub)' };
-const labelClass = "block text-[10px] font-bold uppercase tracking-[0.2em] text-tea-text-sec mb-2";
+const labelClass = "block text-ui-10 font-bold uppercase tracking-[0.2em] text-tea-text-sec mb-2";
 
 type ContactPlatform = 'whatsapp' | 'telegram';
 
@@ -55,14 +55,14 @@ export default function SignUpPage() {
         <button
           type="button"
           onClick={() => setWhatOpen(v => !v)}
-          className="mt-3 flex items-center gap-1 text-[11px] text-tea-text-dim hover:text-tea-text-sec transition-colors"
+          className="mt-3 flex items-center gap-1 text-ui-11 text-tea-text-dim hover:text-tea-text-sec transition-colors"
         >
           <Icons.Info className="w-3.5 h-3.5" />
           What is Teajia?
           <Icons.ChevronDown className={`w-3 h-3 transition-transform duration-200 ${whatOpen ? 'rotate-180' : ''}`} />
         </button>
         {whatOpen && (
-          <div className="mt-2 max-w-xs text-center text-[12px] text-tea-text-sec leading-relaxed px-2 font-body italic">
+          <div className="mt-2 max-w-xs text-center text-ui-12 text-tea-text-sec leading-relaxed px-2 font-body italic">
             A curated tea platform — sourcing, education, and private sessions. Every order is a personal conversation; every cup has a story.
           </div>
         )}
@@ -96,7 +96,7 @@ export default function SignUpPage() {
             style={inputStyle}
             placeholder="Letters, numbers, . _ -"
           />
-          <p className="text-[11px] text-tea-text-dim mt-1.5">Sign in with either your email or username.</p>
+          <p className="text-ui-11 text-tea-text-dim mt-1.5">Sign in with either your email or username.</p>
         </div>
         <div>
           <label className={labelClass}>Email</label>
@@ -130,13 +130,13 @@ export default function SignUpPage() {
               {showPassword ? <Icons.EyeSlash className="w-4 h-4" /> : <Icons.Eye className="w-4 h-4" />}
             </button>
           </div>
-          <p className="text-[11px] text-tea-text-dim mt-1.5">Must be at least 6 characters</p>
+          <p className="text-ui-11 text-tea-text-dim mt-1.5">Must be at least 6 characters</p>
         </div>
 
         {/* Event & order contact opt-in */}
         <div className="pt-1 border-t border-tea-border/40">
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-tea-text-sec mt-3 mb-2.5">Contact for events & orders</p>
-          <p className="text-[12px] text-tea-text-dim mb-3 leading-relaxed">
+          <p className="text-ui-10 font-bold uppercase tracking-[0.18em] text-tea-text-sec mt-3 mb-2.5">Contact for events & orders</p>
+          <p className="text-ui-12 text-tea-text-dim mb-3 leading-relaxed">
             Reserve spots at tea events, receive orders and invoices directly to your phone.
           </p>
 
@@ -150,7 +150,7 @@ export default function SignUpPage() {
                   setContactPlatform(prev => prev === platform ? null : platform);
                   setContactPhone('');
                 }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-[12px] font-medium border transition-colors ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-ui-12 font-medium border transition-colors ${
                   contactPlatform === platform
                     ? 'border-tea-gold bg-tea-gold/10 text-tea-text'
                     : 'border-tea-border bg-tea-surface text-tea-text-sec hover:text-tea-text'
@@ -164,7 +164,7 @@ export default function SignUpPage() {
                 {platform === 'whatsapp' ? 'WhatsApp' : 'Telegram'}
               </button>
             ))}
-            <span className="self-center text-[11px] text-tea-text-dim ml-1">Optional</span>
+            <span className="self-center text-ui-11 text-tea-text-dim ml-1">Optional</span>
           </div>
 
           {/* Phone input — shown once a platform is selected */}
@@ -182,7 +182,7 @@ export default function SignUpPage() {
                 placeholder="+1 234 567 8900"
                 autoFocus
               />
-              <p className="text-[11px] text-tea-text-dim mt-1.5">Include country code, e.g. +1, +44, +86</p>
+              <p className="text-ui-11 text-tea-text-dim mt-1.5">Include country code, e.g. +1, +44, +86</p>
             </div>
           )}
         </div>

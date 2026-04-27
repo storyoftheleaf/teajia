@@ -32,23 +32,23 @@ const TIMEZONES  = ['UTC','Asia/Taipei','Asia/Singapore','Asia/Jakarta','Austral
 
 /** Eyebrow: the ONE uppercase micro-label role. Use it for section headers only. */
 const Eyebrow: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = '' }) => (
-  <p className={`text-[10px] uppercase tracking-[0.12em] text-tea-text-dim ${className}`}>{children}</p>
+  <p className={`text-ui-10 uppercase tracking-[0.12em] text-tea-text-dim ${className}`}>{children}</p>
 );
 
 const Field: React.FC<{ label: string; value: string; onChange: (v: string) => void; placeholder?: string; required?: boolean; hint?: string; type?: string }> =
   ({ label, value, onChange, placeholder, required, hint, type = 'text' }) => (
     <label className="block space-y-1">
-      <span className="text-[12px] text-tea-text-sec">{label}{required && <span className="text-tea-gold ml-0.5">*</span>}</span>
+      <span className="text-ui-12 text-tea-text-sec">{label}{required && <span className="text-tea-gold ml-0.5">*</span>}</span>
       <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} required={required}
         className="w-full bg-tea-bg border border-tea-border rounded-md px-3 py-2 text-tea-text text-sm outline-none focus:ring-2 focus:ring-tea-gold/40" />
-      {hint && <p className="text-[11px] text-tea-text-dim">{hint}</p>}
+      {hint && <p className="text-ui-11 text-tea-text-dim">{hint}</p>}
     </label>
   );
 
 const SelectField: React.FC<{ label: string; value: string; onChange: (v: string) => void; options: string[] }> =
   ({ label, value, onChange, options }) => (
     <label className="block space-y-1">
-      <span className="text-[12px] text-tea-text-sec">{label}</span>
+      <span className="text-ui-12 text-tea-text-sec">{label}</span>
       <select value={value} onChange={e => onChange(e.target.value)}
         className="w-full bg-tea-bg border border-tea-border rounded-md px-3 py-2 text-tea-text text-sm outline-none focus:ring-2 focus:ring-tea-gold/40">
         {options.map(o => <option key={o} value={o}>{o}</option>)}
@@ -177,15 +177,15 @@ const UsersPanel: React.FC<{ isPlatformOwner: boolean }> = ({ isPlatformOwner })
     <div className="space-y-2">
       {inviteResult && (
         <div className="inset-panel p-3 space-y-2">
-          <p className="text-[12px] text-tea-text-sec">Invite link — email not configured, copy manually:</p>
+          <p className="text-ui-12 text-tea-text-sec">Invite link — email not configured, copy manually:</p>
           <div className="flex gap-2">
-            <code className="flex-1 text-[11px] font-mono bg-tea-bg border border-tea-border rounded px-2 py-1.5 text-tea-text-sec truncate">{inviteResult.link}</code>
+            <code className="flex-1 text-ui-11 font-mono bg-tea-bg border border-tea-border rounded px-2 py-1.5 text-tea-text-sec truncate">{inviteResult.link}</code>
             <button type="button" onClick={copyInvite} className="pill flex items-center gap-1 shrink-0">
               {inviteResult.copied ? <Check size={10} /> : <Copy size={10} />}
               {inviteResult.copied ? 'Copied' : 'Copy'}
             </button>
           </div>
-          <button type="button" onClick={() => setInviteResult(null)} className="text-[11px] text-tea-text-sec hover:text-tea-text transition-colors">Dismiss</button>
+          <button type="button" onClick={() => setInviteResult(null)} className="text-ui-11 text-tea-text-sec hover:text-tea-text transition-colors">Dismiss</button>
         </div>
       )}
 
@@ -195,16 +195,16 @@ const UsersPanel: React.FC<{ isPlatformOwner: boolean }> = ({ isPlatformOwner })
         return (
           <div key={user.id} className="inset-panel px-3 py-2.5 flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-tea-gold/10 flex items-center justify-center shrink-0">
-              <span className="text-tea-gold text-[11px] font-semibold uppercase">{(user.name || user.email).slice(0, 2)}</span>
+              <span className="text-tea-gold text-ui-11 font-semibold uppercase">{(user.name || user.email).slice(0, 2)}</span>
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <p className="text-tea-text text-sm font-medium truncate">{user.name || '—'}</p>
                 <PlatformRoleBadge role={user.platform_role} />
               </div>
-              <p className="text-tea-text-sec text-[12px] truncate">{user.email}</p>
+              <p className="text-tea-text-sec text-ui-12 truncate">{user.email}</p>
               {user.memberships.length > 0 && (
-                <p className="text-tea-text-dim text-[11px] mt-0.5 truncate">
+                <p className="text-tea-text-dim text-ui-11 mt-0.5 truncate">
                   {user.memberships.map(m => `${m.account_id} · ${m.role}`).join('  ·  ')}
                 </p>
               )}
@@ -341,7 +341,7 @@ const AccountsPanel: React.FC = () => {
           placeholder="Search accounts…"
           className="flex-1 bg-tea-bg border border-tea-border rounded-md px-3 py-2 text-tea-text text-sm outline-none focus:ring-2 focus:ring-tea-gold/40"
         />
-        <span className="text-[11px] text-tea-text-dim tabular-nums shrink-0">{visible.length}/{accounts.length}</span>
+        <span className="text-ui-11 text-tea-text-dim tabular-nums shrink-0">{visible.length}/{accounts.length}</span>
       </div>
 
       <div className="space-y-1.5">
@@ -363,7 +363,7 @@ const AccountsPanel: React.FC = () => {
                   {account.is_platform_owner && <span className="badge-status badge-status-gold">Primary</span>}
                   {isSuspended && <span className="badge-status badge-status-default flex items-center gap-0.5"><AlertTriangle size={9} />Suspended</span>}
                 </div>
-                <p className="text-tea-text-sec text-[12px]">
+                <p className="text-tea-text-sec text-ui-12">
                   /{account.slug} · {account.member_count} {account.member_count === 1 ? 'member' : 'members'}
                   {account.location_city ? ` · ${account.location_city}` : ''}
                 </p>
@@ -391,7 +391,7 @@ const AccountsPanel: React.FC = () => {
                       <Field label="Country" value={editDraft.location_country || ''} onChange={v => setEditDraft(d => ({ ...d, location_country: v }))} />
                     </div>
                     <div className="flex items-center justify-between">
-                      <button type="button" onClick={() => setEditing(null)} className="text-[12px] text-tea-text-sec hover:text-tea-text transition-colors">Cancel</button>
+                      <button type="button" onClick={() => setEditing(null)} className="text-ui-12 text-tea-text-sec hover:text-tea-text transition-colors">Cancel</button>
                       <button type="button" onClick={() => handleSaveEdit(account.id)} disabled={saveBusy} className="pill pill-primary flex items-center gap-1">
                         {saveBusy ? <Loader2 size={10} className="animate-spin" /> : <Check size={10} />}Save
                       </button>
@@ -399,11 +399,11 @@ const AccountsPanel: React.FC = () => {
                   </div>
                 ) : (
                   <div className="flex items-center justify-between">
-                    <div className="text-[12px] text-tea-text-sec space-y-0.5">
-                      <p>ID <span className="font-mono text-[11px] text-tea-text-dim">{account.id}</span></p>
+                    <div className="text-ui-12 text-tea-text-sec space-y-0.5">
+                      <p>ID <span className="font-mono text-ui-11 text-tea-text-dim">{account.id}</span></p>
                       {account.location_city && <p>{account.location_city}{account.location_country ? `, ${account.location_country}` : ''}</p>}
                     </div>
-                    <button type="button" onClick={() => startEdit(account)} className="pill text-[11px]">Edit profile</button>
+                    <button type="button" onClick={() => startEdit(account)} className="pill text-ui-11">Edit profile</button>
                   </div>
                 )}
 
@@ -422,7 +422,7 @@ const AccountsPanel: React.FC = () => {
                       </button>
                     ))}
                   </div>
-                  <p className="text-[12px] text-tea-text-sec">{tierInfo?.description}</p>
+                  <p className="text-ui-12 text-tea-text-sec">{tierInfo?.description}</p>
                 </div>
 
                 {/* Features */}
@@ -438,12 +438,12 @@ const AccountsPanel: React.FC = () => {
                       <div key={feat.id} className="flex items-center gap-3">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-1.5">
-                            <p className="text-tea-text text-[13px] font-medium">{feat.label}</p>
+                            <p className="text-tea-text text-ui-13 font-medium">{feat.label}</p>
                             {isPlanDefault && (
-                              <span className="text-[10px] text-tea-gold/70" title={`Included by default on ${feat.planDefault.join(' / ')} tier`}>included</span>
+                              <span className="text-ui-10 text-tea-gold/70" title={`Included by default on ${feat.planDefault.join(' / ')} tier`}>included</span>
                             )}
                           </div>
-                          <p className="text-tea-text-sec text-[12px]">{feat.description}</p>
+                          <p className="text-tea-text-sec text-ui-12">{feat.description}</p>
                         </div>
                         <Toggle enabled={enabled} busy={busyFeature === `${account.id}:${feat.id}`}
                           onChange={() => handleToggleFeature(account.id, feat.id, enabled)} />
@@ -479,7 +479,7 @@ const AccountsPanel: React.FC = () => {
         );
       })}
       {visible.length === 0 && (
-        <p className="text-center py-8 text-[12px] text-tea-text-sec">No accounts match "{query}".</p>
+        <p className="text-center py-8 text-ui-12 text-tea-text-sec">No accounts match "{query}".</p>
       )}
       </div>
     </div>
@@ -533,11 +533,11 @@ const AuditPanel: React.FC = () => {
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between mb-1">
-        <p className="text-[12px] text-tea-text-sec">Recent platform actions</p>
+        <p className="text-ui-12 text-tea-text-sec">Recent platform actions</p>
         <button
           type="button"
           onClick={() => navigate('/admin/platform/audit-log')}
-          className="text-[11px] text-tea-gold hover:text-tea-gold-lt transition-colors"
+          className="text-ui-11 text-tea-gold hover:text-tea-gold-lt transition-colors"
         >
           Full log with filters →
         </button>
@@ -550,17 +550,17 @@ const AuditPanel: React.FC = () => {
           <div key={entry.id} className="inset-panel px-3 py-2.5">
             <div className="flex items-start gap-2">
               <div className="flex-1 min-w-0">
-                <p className="text-tea-text text-[13px] font-medium">
+                <p className="text-tea-text text-ui-13 font-medium">
                   {ACTION_LABELS[entry.action] || entry.action}
                 </p>
-                <p className="text-tea-text-sec text-[12px] truncate">
+                <p className="text-tea-text-sec text-ui-12 truncate">
                   {entry.actor_email}
                   {details.name ? ` → ${details.name}` : details.email ? ` → ${details.email}` : ''}
                   {details.from != null && details.to != null ? ` · ${details.from || 'none'} → ${details.to || 'none'}` : ''}
                   {details.feature ? ` · ${details.feature} ${details.enabled ? 'on' : 'off'}` : ''}
                 </p>
               </div>
-              <span className="text-[11px] text-tea-text-dim shrink-0 tabular-nums">
+              <span className="text-ui-11 text-tea-text-dim shrink-0 tabular-nums">
                 {new Date(entry.created_at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
               </span>
             </div>
@@ -639,26 +639,26 @@ const NewAccountPanel: React.FC<{ onCreated: () => void }> = ({ onCreated }) => 
           </div>
           <div>
             <p className="text-tea-text font-medium text-sm">Account created</p>
-            <p className="text-tea-text-sec text-[12px] font-mono">/{result.slug}</p>
+            <p className="text-tea-text-sec text-ui-12 font-mono">/{result.slug}</p>
           </div>
         </div>
         {result.invite_link && !result.email_sent && (
           <div className="space-y-2">
             <Eyebrow>Owner invite link</Eyebrow>
             <div className="flex gap-2">
-              <code className="flex-1 text-[11px] bg-tea-bg border border-tea-border rounded px-2 py-1.5 text-tea-text-sec truncate font-mono">
+              <code className="flex-1 text-ui-11 bg-tea-bg border border-tea-border rounded px-2 py-1.5 text-tea-text-sec truncate font-mono">
                 {window.location.origin}{result.invite_link}
               </code>
               <button type="button" onClick={copyLink} className="pill flex items-center gap-1 shrink-0">
                 {copied ? <Check size={10} /> : <Copy size={10} />}{copied ? 'Copied' : 'Copy'}
               </button>
             </div>
-            <p className="text-[12px] text-tea-text-sec">
+            <p className="text-ui-12 text-tea-text-sec">
               Send this to the owner. Expires {expiry.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}.
             </p>
           </div>
         )}
-        {result.email_sent && <p className="text-[12px] text-tea-text-sec">Invite email sent to the owner.</p>}
+        {result.email_sent && <p className="text-ui-12 text-tea-text-sec">Invite email sent to the owner.</p>}
         <button type="button" onClick={() => { setResult(null); setForm({ ...EMPTY_FORM }); }} className="pill flex items-center gap-1">
           <Plus size={10} />Create another
         </button>
@@ -671,7 +671,7 @@ const NewAccountPanel: React.FC<{ onCreated: () => void }> = ({ onCreated }) => 
       {error && (
         <div className="px-3 py-2.5 rounded-lg bg-red-500/10 border border-red-500/30 flex items-start gap-2">
           <AlertTriangle size={14} className="text-red-400 shrink-0 mt-0.5" />
-          <p className="text-[12px] text-red-300 flex-1">{error}</p>
+          <p className="text-ui-12 text-red-300 flex-1">{error}</p>
           <button type="button" onClick={() => setError(null)} className="text-red-300 hover:text-red-200"><X size={12} /></button>
         </div>
       )}
@@ -714,12 +714,12 @@ const NewAccountPanel: React.FC<{ onCreated: () => void }> = ({ onCreated }) => 
           className="w-4 h-4 rounded accent-[var(--tea-gold)]" />
         <div>
           <p className="text-tea-text text-sm">Public storefront enabled</p>
-          <p className="text-tea-text-sec text-[12px]">Visible at /find-a-table and in the network directory</p>
+          <p className="text-tea-text-sec text-ui-12">Visible at /find-a-table and in the network directory</p>
         </div>
       </label>
 
       <button type="submit" disabled={busy || !form.name || !form.slug || !form.invoice_prefix}
-        className="w-full py-3 bg-tea-gold text-tea-bg text-[11px] font-semibold uppercase tracking-[0.08em] rounded-lg disabled:opacity-40 flex items-center justify-center gap-2 hover:bg-tea-gold-lt transition-colors">
+        className="w-full py-3 bg-tea-gold text-tea-bg text-ui-11 font-semibold uppercase tracking-[0.08em] rounded-lg disabled:opacity-40 flex items-center justify-center gap-2 hover:bg-tea-gold-lt transition-colors">
         {busy ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
         Create Account
       </button>
@@ -754,7 +754,7 @@ export const PlatformAdminView: React.FC<PlatformAdminViewProps> = ({ embedded =
           <ShieldCheck size={18} className="text-tea-gold shrink-0" />
           <div>
             <h1 className="text-tea-text font-serif text-lg">Platform Admin</h1>
-            <p className="text-tea-text-sec text-[12px]">
+            <p className="text-tea-text-sec text-ui-12">
               {isPlatformOwner ? 'Super Owner' : 'Platform Admin'} · Full network access
             </p>
           </div>

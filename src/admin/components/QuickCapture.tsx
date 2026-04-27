@@ -351,7 +351,7 @@ export const QuickCapture: React.FC<QuickCaptureProps> = ({
                               {item.extracted.givenName || item.extracted.productName || (item.status === 'extracting' ? 'Analyzing...' : 'Unknown Tea')}
                             </span>
                           </div>
-                          <div className="text-[11px] text-tea-text-sec mt-0.5 truncate">
+                          <div className="text-ui-11 text-tea-text-sec mt-0.5 truncate">
                             {item.status === 'extracting' && 'Reading label...'}
                             {item.status === 'review' && [item.extracted.type, item.extracted.originCountry, item.extracted.vendor].filter(Boolean).join(' · ')}
                             {item.status === 'saving' && 'Saving draft...'}
@@ -388,7 +388,7 @@ export const QuickCapture: React.FC<QuickCaptureProps> = ({
                               </div>
 
                               {(item.extracted.description || item.extracted.notes) && (
-                                <div className="text-[11px] text-tea-text-sec bg-tea-bg/50 rounded-md p-2.5 space-y-1">
+                                <div className="text-ui-11 text-tea-text-sec bg-tea-bg/50 rounded-md p-2.5 space-y-1">
                                   {item.extracted.description && <p>{item.extracted.description}</p>}
                                   {item.extracted.notes && <p className="italic">{item.extracted.notes}</p>}
                                 </div>
@@ -426,7 +426,7 @@ export const QuickCapture: React.FC<QuickCaptureProps> = ({
         <div className="flex items-center gap-1 px-4 md:px-6 py-2 border-b border-tea-border bg-tea-bg/30">
           <button
             onClick={() => setActiveQueue('review')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-[10px] uppercase tracking-[0.15em] rounded-md whitespace-nowrap transition-colors ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-ui-10 uppercase tracking-[0.15em] rounded-md whitespace-nowrap transition-colors ${
               activeQueue === 'review'
                 ? 'bg-tea-gold/15 text-tea-gold'
                 : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'
@@ -435,14 +435,14 @@ export const QuickCapture: React.FC<QuickCaptureProps> = ({
             <AlertTriangle size={11} />
             To Review
             {toReview.length > 0 && (
-              <span className="ml-1 min-w-[18px] h-[18px] bg-amber-500/20 text-amber-400 text-[9px] font-bold rounded-full flex items-center justify-center px-1">
+              <span className="ml-1 min-w-[18px] h-[18px] bg-amber-500/20 text-amber-400 text-ui-9 font-bold rounded-full flex items-center justify-center px-1">
                 {toReview.length}
               </span>
             )}
           </button>
           <button
             onClick={() => setActiveQueue('approve')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-[10px] uppercase tracking-[0.15em] rounded-md whitespace-nowrap transition-colors ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-ui-10 uppercase tracking-[0.15em] rounded-md whitespace-nowrap transition-colors ${
               activeQueue === 'approve'
                 ? 'bg-tea-gold/15 text-tea-gold'
                 : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'
@@ -451,7 +451,7 @@ export const QuickCapture: React.FC<QuickCaptureProps> = ({
             <CheckCircle2 size={11} />
             Ready to Approve
             {readyToApprove.length > 0 && (
-              <span className="ml-1 min-w-[18px] h-[18px] bg-green-500/20 text-green-400 text-[9px] font-bold rounded-full flex items-center justify-center px-1">
+              <span className="ml-1 min-w-[18px] h-[18px] bg-green-500/20 text-green-400 text-ui-9 font-bold rounded-full flex items-center justify-center px-1">
                 {readyToApprove.length}
               </span>
             )}
@@ -462,7 +462,7 @@ export const QuickCapture: React.FC<QuickCaptureProps> = ({
             <button
               onClick={bulkApprove}
               disabled={approving}
-              className="ml-auto pill-active text-[10px] px-3 py-1.5 flex items-center gap-1.5"
+              className="ml-auto pill-active text-ui-10 px-3 py-1.5 flex items-center gap-1.5"
             >
               {approving ? (
                 <><Loader2 size={11} className="animate-spin" /> Approving...</>
@@ -537,7 +537,7 @@ const Field: React.FC<{
   type?: string;
 }> = ({ label, value, onChange, type = 'text' }) => (
   <div>
-    <label className="text-[10px] uppercase tracking-wider text-tea-text-dim font-sans">{label}</label>
+    <label className="text-ui-10 uppercase tracking-wider text-tea-text-dim font-sans">{label}</label>
     <input
       type={type}
       value={value}
@@ -554,7 +554,7 @@ const SelectField: React.FC<{
   onChange: (v: string) => void;
 }> = ({ label, value, options, onChange }) => (
   <div>
-    <label className="text-[10px] uppercase tracking-wider text-tea-text-dim font-sans">{label}</label>
+    <label className="text-ui-10 uppercase tracking-wider text-tea-text-dim font-sans">{label}</label>
     <select
       value={value}
       onChange={e => onChange(e.target.value)}

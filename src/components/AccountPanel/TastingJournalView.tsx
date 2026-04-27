@@ -57,7 +57,7 @@ function DescriptorPills({ entry, max = 6 }: { entry: CustomerTasting; max?: num
       {descriptors.map((tag) => (
         <span
           key={tag}
-          className="inline-block px-2 py-0.5 text-[11px] uppercase tracking-[0.08em] bg-tea-elevated text-tea-text-sec rounded-sm"
+          className="inline-block px-2 py-0.5 text-ui-11 uppercase tracking-[0.08em] bg-tea-elevated text-tea-text-sec rounded-sm"
         >
           {tag}
         </span>
@@ -132,7 +132,7 @@ const EntryDetail: React.FC<{
         className="flex items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors mb-4"
       >
         <Icons.Back className="w-4 h-4" />
-        <span className="text-[12px] uppercase tracking-[0.18em]">Tasting Journal</span>
+        <span className="text-ui-12 uppercase tracking-[0.18em]">Tasting Journal</span>
       </button>
 
       {/* Tea identity */}
@@ -148,13 +148,13 @@ const EntryDetail: React.FC<{
           <div className="min-w-0 flex-1">
             <h3 className="font-serif text-lg text-tea-text leading-tight">{entry.productName}</h3>
             {entry.productType && (
-              <div className="text-[11px] uppercase tracking-[0.15em] text-tea-text-sec mt-1">
+              <div className="text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec mt-1">
                 {entry.productType}
               </div>
             )}
             <div className="flex items-center gap-2 mt-1.5">
               {rating > 0 && <StarRating rating={rating} />}
-              <span className="text-[11px] text-tea-text-sec">
+              <span className="text-ui-11 text-tea-text-sec">
                 Last touched {formatDate(entry.note.updatedAt || entry.createdAt)}
               </span>
             </div>
@@ -179,7 +179,7 @@ const EntryDetail: React.FC<{
             }}
             placeholder="Write your note here."
             rows={6}
-            className="w-full bg-tea-surface/60 text-tea-text font-serif italic text-[14px] leading-relaxed rounded-md p-3 outline-none border border-tea-border focus:border-tea-gold transition-colors resize-y"
+            className="w-full bg-tea-surface/60 text-tea-text font-serif italic text-ui-14 leading-relaxed rounded-md p-3 outline-none border border-tea-border focus:border-tea-gold transition-colors resize-y"
           />
         ) : (
           <button
@@ -188,17 +188,17 @@ const EntryDetail: React.FC<{
             className="w-full text-left rounded-md p-3 -mx-3 hover:bg-tea-surface/40 transition-colors"
           >
             {entry.note.personalNote ? (
-              <p className="font-serif italic text-[14px] leading-relaxed text-tea-text">
+              <p className="font-serif italic text-ui-14 leading-relaxed text-tea-text">
                 {entry.note.personalNote}
               </p>
             ) : (
-              <p className="font-serif italic text-[13px] leading-relaxed text-tea-text-sec">
+              <p className="font-serif italic text-ui-13 leading-relaxed text-tea-text-sec">
                 Write your note here.
               </p>
             )}
           </button>
         )}
-        <div className="mt-1 flex items-center gap-3 text-[11px] text-tea-text-sec h-4">
+        <div className="mt-1 flex items-center gap-3 text-ui-11 text-tea-text-sec h-4">
           {editing && (
             <>
               <button onClick={commit} className="text-tea-gold hover:text-tea-gold-lt transition-colors">Save</button>
@@ -215,15 +215,15 @@ const EntryDetail: React.FC<{
       {/* Past tastings list */}
       {entry.tastings.length > 1 && (
         <div className="mt-6">
-          <div className="text-[10px] uppercase tracking-[0.18em] text-tea-text-sec mb-3" style={{ fontFamily: 'var(--font-display)' }}>
+          <div className="text-ui-10 uppercase tracking-[0.18em] text-tea-text-sec mb-3" style={{ fontFamily: 'var(--font-display)' }}>
             Past tastings
           </div>
           <div className="space-y-3 pl-3 border-l border-tea-border">
             {[...entry.tastings].reverse().map(t => (
-              <div key={t.id} className="text-[12px] leading-snug">
+              <div key={t.id} className="text-ui-12 leading-snug">
                 <div className="flex items-baseline gap-2 text-tea-text-sec">
-                  <span className="text-[11px] text-tea-text-sec">{formatDate(t.createdAt)}</span>
-                  {t.eventTitle && <span className="text-[11px] italic text-tea-text-sec">at {t.eventTitle}</span>}
+                  <span className="text-ui-11 text-tea-text-sec">{formatDate(t.createdAt)}</span>
+                  {t.eventTitle && <span className="text-ui-11 italic text-tea-text-sec">at {t.eventTitle}</span>}
                 </div>
                 {t.reason && (
                   <div className="font-serif italic text-tea-text mt-0.5">
@@ -237,7 +237,7 @@ const EntryDetail: React.FC<{
       )}
 
       {/* Actions footer */}
-      <div className="mt-8 pt-4 border-t border-tea-border flex items-center gap-5 text-[12px]">
+      <div className="mt-8 pt-4 border-t border-tea-border flex items-center gap-5 text-ui-12">
         <button
           onClick={() => setTastingItem({
             id: entry.productId,
@@ -311,7 +311,7 @@ export const TastingJournalView: React.FC<TastingJournalViewProps> = ({ onBack, 
           className="flex items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors mb-6"
         >
           <Icons.Back className="w-4 h-4" />
-          <span className="text-[12px] uppercase tracking-[0.18em]">Back</span>
+          <span className="text-ui-12 uppercase tracking-[0.18em]">Back</span>
         </button>
 
         <div className="flex flex-col items-center justify-center py-16">
@@ -342,19 +342,19 @@ export const TastingJournalView: React.FC<TastingJournalViewProps> = ({ onBack, 
           className="flex items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors mb-4"
         >
           <Icons.Back className="w-4 h-4" />
-          <span className="text-[12px] uppercase tracking-[0.18em]">Back</span>
+          <span className="text-ui-12 uppercase tracking-[0.18em]">Back</span>
         </button>
 
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
             <h3 className="font-serif text-lg text-tea-text">Tasting Journal</h3>
-            <span className="text-[12px] uppercase tracking-[0.15em] text-tea-text-sec">
+            <span className="text-ui-12 uppercase tracking-[0.15em] text-tea-text-sec">
               {entries.length} {entries.length === 1 ? 'tea' : 'teas'}
             </span>
           </div>
           {unsyncedCount > 0 && (
-            <span className="inline-flex items-center gap-1.5 px-2 py-1 text-[11px] uppercase tracking-[0.1em] bg-tea-gold/10 text-tea-gold border border-tea-gold/20 rounded">
+            <span className="inline-flex items-center gap-1.5 px-2 py-1 text-ui-11 uppercase tracking-[0.1em] bg-tea-gold/10 text-tea-gold border border-tea-gold/20 rounded">
               <span className="w-1.5 h-1.5 rounded-full bg-tea-gold animate-pulse shrink-0" />
               {unsyncedCount} unsynced
             </span>
@@ -385,7 +385,7 @@ export const TastingJournalView: React.FC<TastingJournalViewProps> = ({ onBack, 
                     <h4 className="font-serif text-sm truncate text-tea-text group-hover/entry:text-tea-gold transition-colors">
                       {displayName}
                     </h4>
-                    <div className="flex items-center gap-1.5 text-[12px] text-tea-text-sec mt-1">
+                    <div className="flex items-center gap-1.5 text-ui-12 text-tea-text-sec mt-1">
                       {entry.productType && <span>{entry.productType}</span>}
                       {tastingsCount > 1 && (
                         <>
@@ -403,7 +403,7 @@ export const TastingJournalView: React.FC<TastingJournalViewProps> = ({ onBack, 
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <div className="flex flex-col items-end gap-1">
-                      <span className="text-[12px] text-tea-text-sec whitespace-nowrap">
+                      <span className="text-ui-12 text-tea-text-sec whitespace-nowrap">
                         {formatDate(entry.note.updatedAt || entry.createdAt)}
                       </span>
                       {rating > 0 && (
@@ -419,7 +419,7 @@ export const TastingJournalView: React.FC<TastingJournalViewProps> = ({ onBack, 
 
                 {/* Personal note preview */}
                 {noteText && (
-                  <p className="text-[13px] text-tea-text-sec mt-2 leading-relaxed line-clamp-2 italic">
+                  <p className="text-ui-13 text-tea-text-sec mt-2 leading-relaxed line-clamp-2 italic">
                     "{noteText}"
                   </p>
                 )}

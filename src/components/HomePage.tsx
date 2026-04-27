@@ -190,10 +190,10 @@ const CharacterRevealCapture: React.FC = () => {
               opacity: teaserP,
             }}
           >
-            <p className="text-[15px] md:text-[16px] tracking-[0.06em] italic text-tea-text-sec" style={{ fontFamily: 'var(--font-body)' }}>
+            <p className="text-ui-15 md:text-ui-16 tracking-[0.06em] italic text-tea-text-sec" style={{ fontFamily: 'var(--font-body)' }}>
               <span className="font-semibold not-italic text-tea-gold">tea</span> &middot; leaf and water
             </p>
-            <p className="text-[14px] md:text-[15px] tracking-[0.06em] italic mt-[1px] text-tea-text-sec" style={{ fontFamily: 'var(--font-body)' }}>
+            <p className="text-ui-14 md:text-ui-15 tracking-[0.06em] italic mt-[1px] text-tea-text-sec" style={{ fontFamily: 'var(--font-body)' }}>
               <span className="font-semibold not-italic text-tea-gold">jiā</span> &middot; one sound, three pillars&hellip;
             </p>
           </div>
@@ -202,19 +202,19 @@ const CharacterRevealCapture: React.FC = () => {
           <div className="flex items-end justify-center gap-5 md:gap-8">
             <div className="flex flex-col items-center" style={{ opacity: leftP, transform: `translateX(${(1 - leftP) * -60}px)` }}>
               <span className="text-[48px] sm:text-[69px] leading-none" style={{ fontFamily: "'Ma Shan Zheng', cursive", color: 'var(--tea-gold)' }}>佳</span>
-              <p className="flex flex-col items-center text-[14px] md:text-[15px] tracking-[0.04em] font-light mt-3 leading-[1.4] text-tea-text-sec" style={{ fontFamily: 'var(--font-display)' }}>
+              <p className="flex flex-col items-center text-ui-14 md:text-ui-15 tracking-[0.04em] font-light mt-3 leading-[1.4] text-tea-text-sec" style={{ fontFamily: 'var(--font-display)' }}>
                 <span>beauty</span><span>excellence</span>
               </p>
             </div>
             <div className="flex flex-col items-center" style={{ opacity: centerP, transform: `scale(${centerP})` }}>
               <span className="text-[48px] sm:text-[69px] leading-none" style={{ fontFamily: "'Ma Shan Zheng', cursive", color: 'var(--tea-gold)' }}>家</span>
-              <p className="flex flex-col items-center text-[14px] md:text-[15px] tracking-[0.04em] font-light mt-3 leading-[1.4] text-tea-text-sec" style={{ fontFamily: 'var(--font-display)' }}>
+              <p className="flex flex-col items-center text-ui-14 md:text-ui-15 tracking-[0.04em] font-light mt-3 leading-[1.4] text-tea-text-sec" style={{ fontFamily: 'var(--font-display)' }}>
                 <span>home</span><span>devotion</span>
               </p>
             </div>
             <div className="flex flex-col items-center" style={{ opacity: rightP, transform: `translateX(${(1 - rightP) * 60}px)` }}>
               <span className="text-[48px] sm:text-[69px] leading-none" style={{ fontFamily: "'Ma Shan Zheng', cursive", color: 'var(--tea-gold)' }}>嘉</span>
-              <p className="flex flex-col items-center text-[14px] md:text-[15px] tracking-[0.04em] font-light mt-3 leading-[1.4] text-tea-text-sec" style={{ fontFamily: 'var(--font-display)' }}>
+              <p className="flex flex-col items-center text-ui-14 md:text-ui-15 tracking-[0.04em] font-light mt-3 leading-[1.4] text-tea-text-sec" style={{ fontFamily: 'var(--font-display)' }}>
                 <span>praise</span><span>celebration</span>
               </p>
             </div>
@@ -226,14 +226,14 @@ const CharacterRevealCapture: React.FC = () => {
             style={{ opacity: spiritP, transform: `translateY(${(1 - spiritP) * 12}px)` }}
           >
             <p
-              className="text-[14px] md:text-[15px] leading-[1.7] text-tea-text-sec font-light"
+              className="text-ui-14 md:text-ui-15 leading-[1.7] text-tea-text-sec font-light"
               style={{ fontFamily: 'var(--font-body)' }}
             >
               A home for fine tea. A place to source it, study it, and share it
               with those who gather around the cup.
             </p>
             <p
-              className="mt-3 text-[13px] italic text-tea-text-dim"
+              className="mt-3 text-ui-13 italic text-tea-text-dim"
               style={{ fontFamily: 'var(--font-body)', letterSpacing: '0.04em' }}
             >
               Honor the past. Live in the present. Build for the future.
@@ -250,7 +250,7 @@ const CharacterRevealCapture: React.FC = () => {
             <div className="mt-3 w-full">
               <EmailCapture />
             </div>
-            <p className="mt-5 text-[12px] text-tea-text-dim" style={{ fontFamily: 'var(--font-body)' }}>
+            <p className="mt-5 text-ui-12 text-tea-text-dim" style={{ fontFamily: 'var(--font-body)' }}>
               <Link to="/signup" className="text-tea-gold/80 hover:text-tea-gold transition-colors duration-300 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/40 focus-visible:ring-offset-2 focus-visible:ring-offset-tea-bg">
                 Create an account
               </Link>
@@ -382,7 +382,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           </motion.div>
 
           <motion.h1
-            className="text-tea-text max-w-[380px] lg:max-w-[560px] text-[28px] md:text-[34px] lg:text-[48px] leading-[1.35] tracking-[0.01em] font-normal mt-8 sm:mt-12"
+            className="text-tea-text max-w-[380px] lg:max-w-[560px] text-ui-28 md:text-[34px] lg:text-[48px] leading-[1.35] tracking-[0.01em] font-normal mt-8 sm:mt-12"
             style={{ fontFamily: 'var(--font-display)', textWrap: 'balance' }}
             initial={initial({ opacity: 0, y: 10 })}
             animate={{ opacity: 1, y: 0 }}
@@ -406,7 +406,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               <button
                 key={item.section}
                 onClick={() => onNavigateToSection(item.section)}
-                className="group text-tea-text-sec/90 hover:text-tea-text transition-colors duration-300 cursor-pointer bg-transparent border-none text-[15px] md:text-[16px] lg:text-[17px] leading-[1.8] tracking-[0.005em] flex items-center gap-1.5 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/40 focus-visible:ring-offset-2 focus-visible:ring-offset-tea-bg"
+                className="group text-tea-text-sec/90 hover:text-tea-text transition-colors duration-300 cursor-pointer bg-transparent border-none text-ui-15 md:text-ui-16 lg:text-ui-17 leading-[1.8] tracking-[0.005em] flex items-center gap-1.5 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/40 focus-visible:ring-offset-2 focus-visible:ring-offset-tea-bg"
                 style={{ fontFamily: 'var(--font-body)' }}
               >
                 <span className="font-semibold text-tea-gold">{item.accent}</span>
@@ -425,7 +425,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           >
             <button
               onClick={scrollToBrandStory}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-tea-border text-[13px] tracking-[0.06em] text-tea-text-sec hover:text-tea-text hover:border-tea-gold/30 active:scale-[0.98] transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/40 focus-visible:ring-offset-2 focus-visible:ring-offset-tea-bg"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-tea-border text-ui-13 tracking-[0.06em] text-tea-text-sec hover:text-tea-text hover:border-tea-gold/30 active:scale-[0.98] transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/40 focus-visible:ring-offset-2 focus-visible:ring-offset-tea-bg"
               style={{ fontFamily: 'var(--font-body)' }}
             >
               New here? Start here →

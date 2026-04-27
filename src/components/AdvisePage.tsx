@@ -170,17 +170,17 @@ export const AdvisePage: React.FC<AdvisePageProps> = ({ onCartClick, onAccountCl
               Twenty years in tea culture.<br className="hidden md:block" />
               Taiwan, China, Japan, Bali, and beyond.
             </p>
-            <p className="text-[14px] text-tea-text-sec leading-[1.85] mb-4"
+            <p className="text-ui-14 text-tea-text-sec leading-[1.85] mb-4"
                style={{ fontFamily: 'var(--font-body)' }}>
               We work with individuals deepening their personal tea practice, with collectors seeking rare and aged teas, and with retreat centers, hotels, and private residences ready to bring tea culture into their spaces. For larger projects, that means everything from room design and teaware curation to tea sourcing and staff training.
             </p>
-            <p className="text-[14px] text-tea-text-sec leading-[1.85]"
+            <p className="text-ui-14 text-tea-text-sec leading-[1.85]"
                style={{ fontFamily: 'var(--font-body)' }}>
               A background in design and visual art shapes every detail. Two decades of sourcing relationships across Asia ground every recommendation. An international practice rooted in Bali.
             </p>
             <button
               onClick={() => openInquiry('')}
-              className="text-[11px] uppercase tracking-[0.1em] text-tea-gold hover:text-tea-gold/70
+              className="text-ui-11 uppercase tracking-[0.1em] text-tea-gold hover:text-tea-gold/70
                          font-medium transition-colors duration-300 text-left mt-8 min-h-[44px]"
               style={{ fontFamily: 'var(--font-sans)' }}
             >
@@ -202,7 +202,7 @@ export const AdvisePage: React.FC<AdvisePageProps> = ({ onCartClick, onAccountCl
         <div className="mt-10 mb-2 max-w-[560px]">
           <Link
             to="/for-your-space"
-            className="inline-flex items-center gap-2 text-[12px] text-tea-text-sec hover:text-tea-text
+            className="inline-flex items-center gap-2 text-ui-12 text-tea-text-sec hover:text-tea-text
                        transition-colors duration-200 group min-h-[44px]"
             style={{ fontFamily: 'var(--font-sans)' }}
           >
@@ -270,7 +270,7 @@ const FloatingInquiryCTA: React.FC<{ onOpenInquiry: () => void }> = ({ onOpenInq
                   transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]
                   ${visible ? 'translate-y-0 opacity-100 scale-100' : 'translate-y-4 opacity-0 scale-95 pointer-events-none'}
                   bg-tea-bg/80 backdrop-blur-md text-tea-gold
-                  text-[11px] uppercase tracking-[0.08em] font-medium
+                  text-ui-11 uppercase tracking-[0.08em] font-medium
                   px-5 py-3 rounded-full
                   shadow-[0_2px_12px_rgb(var(--tea-bg-rgb)/0.25),0_0_0_1px_rgb(var(--tea-gold-rgb)/0.12)]
                   hover:bg-tea-bg/95 active:scale-[0.97]
@@ -307,13 +307,13 @@ const Services: React.FC = () => (
                 style={{ fontFamily: 'var(--font-display)' }}>
               {svc.label}
             </h3>
-            <span className="text-[11px] uppercase tracking-[0.1em] text-tea-gold/70 shrink-0"
+            <span className="text-ui-11 uppercase tracking-[0.1em] text-tea-gold/70 shrink-0"
                   style={{ fontFamily: 'var(--font-sans)' }}>
               {svc.price}
             </span>
           </div>
 
-          <p className="text-[14px] text-tea-text-sec leading-[1.8]"
+          <p className="text-ui-14 text-tea-text-sec leading-[1.8]"
              style={{ fontFamily: 'var(--font-body)' }}>
             {svc.desc}
           </p>
@@ -324,17 +324,17 @@ const Services: React.FC = () => (
                 <div key={o.name}
                      className="flex flex-col py-4 hover:bg-tea-surface/50 transition-colors duration-200 -mx-2 px-2 rounded-sm">
                   <div className="flex items-baseline justify-between gap-4">
-                    <span className="text-[15px] font-light text-tea-text"
+                    <span className="text-ui-15 font-light text-tea-text"
                           style={{ fontFamily: 'var(--font-display)' }}>
                       {o.name}
                     </span>
-                    <span className="text-[11px] text-tea-gold/70 shrink-0 uppercase tracking-[0.1em] tabular-nums"
+                    <span className="text-ui-11 text-tea-gold/70 shrink-0 uppercase tracking-[0.1em] tabular-nums"
                           style={{ fontFamily: 'var(--font-mono, var(--font-sans))' }}>
                       {o.price}
                     </span>
                   </div>
                   {'desc' in o && (
-                    <p className="text-[12px] text-tea-text-sec mt-1.5 leading-relaxed"
+                    <p className="text-ui-12 text-tea-text-sec mt-1.5 leading-relaxed"
                        style={{ fontFamily: 'var(--font-sans)' }}>
                       {o.desc}
                     </p>
@@ -372,7 +372,7 @@ const ProjectsPreview: React.FC<ProjectsPreviewProps> = ({ onSelectProject, onVi
       transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
       className="mt-20 md:mt-28 ml-8 md:ml-16"
     >
-      <p className="text-[14px] italic text-tea-text-sec mb-6"
+      <p className="text-ui-14 italic text-tea-text-sec mb-6"
          style={{ fontFamily: 'var(--font-body)' }}>
         Selected projects
       </p>
@@ -386,11 +386,11 @@ const ProjectsPreview: React.FC<ProjectsPreviewProps> = ({ onSelectProject, onVi
                        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 rounded-sm"
             style={{ borderBottom: i < projects.length - 1 ? '1px solid var(--tea-border)' : undefined }}
           >
-            <span className="text-[14px] text-tea-text group-hover:text-tea-gold transition-colors duration-300"
+            <span className="text-ui-14 text-tea-text group-hover:text-tea-gold transition-colors duration-300"
                   style={{ fontFamily: 'var(--font-body)' }}>
               {project.name}
             </span>
-            <span className="text-[11px] text-tea-text-sec shrink-0"
+            <span className="text-ui-11 text-tea-text-sec shrink-0"
                   style={{ fontFamily: 'var(--font-sans)' }}>
               {project.location}
             </span>
@@ -400,7 +400,7 @@ const ProjectsPreview: React.FC<ProjectsPreviewProps> = ({ onSelectProject, onVi
 
       <button
         onClick={onViewAll}
-        className="text-[11px] uppercase tracking-[0.1em] text-tea-gold/60 hover:text-tea-gold
+        className="text-ui-11 uppercase tracking-[0.1em] text-tea-gold/60 hover:text-tea-gold
                    transition-colors duration-300 min-h-[44px] mt-3
                    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 rounded-sm"
         style={{ fontFamily: 'var(--font-sans)' }}
@@ -431,7 +431,7 @@ const Testimonial: React.FC = () => {
          style={{ fontFamily: 'var(--font-display)' }}>
         "{testimonial.quote}"
       </p>
-      <p className="text-[11px] text-tea-text-sec mt-6 tracking-[0.1em]"
+      <p className="text-ui-11 text-tea-text-sec mt-6 tracking-[0.1em]"
          style={{ fontFamily: 'var(--font-sans)' }}>
         {testimonial.name}<span className="text-tea-text-dim mx-2">&middot;</span>{testimonial.title}
       </p>

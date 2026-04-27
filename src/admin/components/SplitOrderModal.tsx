@@ -89,7 +89,7 @@ export const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-sm text-tea-text font-medium truncate">{item.given_name || item.product_name || 'Unknown'}</div>
-                    <div className="text-[10px] text-tea-text-sec">{item.quantity}g/u @ ${Number(item.price_at_sale).toFixed(2)}</div>
+                    <div className="text-ui-10 text-tea-text-sec">{item.quantity}g/u @ ${Number(item.price_at_sale).toFixed(2)}</div>
                   </div>
                 </button>
               );

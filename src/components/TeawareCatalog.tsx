@@ -128,7 +128,7 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
         {/* Category filter chips — matching tea's type chips */}
         <div className="mb-4 space-y-3">
           <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar pb-1">
-            <span className="text-[10px] uppercase tracking-[0.15em] text-tea-text-dim shrink-0 mr-1">Category</span>
+            <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim shrink-0 mr-1">Category</span>
             <button
               onClick={() => { if ('vibrate' in navigator) navigator.vibrate?.(10); setActiveCategory('All'); }}
               className={`shrink-0 pill ${activeCategory === 'All' ? 'pill-active' : ''}`}
@@ -154,7 +154,7 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
             {activeCategory !== 'All' && (
               <button
                 onClick={clearFilters}
-                className="text-[11px] text-tea-gold hover:text-tea-gold/80 transition-colors uppercase tracking-wider flex items-center gap-1.5"
+                className="text-ui-11 text-tea-gold hover:text-tea-gold/80 transition-colors uppercase tracking-wider flex items-center gap-1.5"
               >
                 <Icons.Close className="w-3 h-3" />
                 Clear filters
@@ -188,7 +188,7 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
                   <div key={group.id}>
                     {/* Category label — matching tea's style */}
                     <div className="pt-8 pb-2 first:pt-4 pl-2 border-b border-tea-border">
-                      <span className="font-sans text-[10px] uppercase tracking-[2px] text-tea-text-sec">{group.label}</span>
+                      <span className="font-sans text-ui-10 uppercase tracking-[2px] text-tea-text-sec">{group.label}</span>
                     </div>
                     <ShopGridLayout>
                       {group.items.map(item => (
@@ -208,14 +208,14 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
                             <div className="flex items-center gap-1.5">
                               <span className="card-grid-badge">{item.variant}</span>
                               {item.origin && (
-                                <span className="text-[10px] text-tea-text-sec italic">{item.origin}</span>
+                                <span className="text-ui-10 text-tea-text-sec italic">{item.origin}</span>
                               )}
                             </div>
                           }
                           priceDisplay={
                             <span className="card-grid-price">
                               <span className="num">{fmtShopPrice(parseFloat(item.price_50g))}</span>
-                              <span className="text-tea-text-sec text-[10px] ml-1">each</span>
+                              <span className="text-tea-text-sec text-ui-10 ml-1">each</span>
                             </span>
                           }
                         />
@@ -243,14 +243,14 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
                       <div className="flex items-center gap-1.5">
                         <span className="card-grid-badge">{item.variant}</span>
                         {item.origin && (
-                          <span className="text-[10px] text-tea-text-sec italic">{item.origin}</span>
+                          <span className="text-ui-10 text-tea-text-sec italic">{item.origin}</span>
                         )}
                       </div>
                     }
                     priceDisplay={
                       <span className="card-grid-price">
                         <span className="num">{fmtShopPrice(parseFloat(item.price_50g))}</span>
-                        <span className="text-tea-text-sec text-[10px] ml-1">each</span>
+                        <span className="text-tea-text-sec text-ui-10 ml-1">each</span>
                       </span>
                     }
                   />
@@ -268,7 +268,7 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
                   {/* Category label — same style as tea type headers */}
                   {activeCategory === 'All' && (
                     <div className="pt-8 pb-2 first:pt-4 pl-2 border-b border-tea-border">
-                      <span className="font-sans text-[10px] uppercase tracking-[2px] text-tea-text-sec">{group.label}</span>
+                      <span className="font-sans text-ui-10 uppercase tracking-[2px] text-tea-text-sec">{group.label}</span>
                     </div>
                   )}
 
@@ -299,15 +299,15 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
                                 {item.name}
                               </h3>
                             </div>
-                            <div className="text-[13px] mt-1 truncate flex items-center gap-2">
-                              <span className="text-[10px] uppercase tracking-wider text-tea-text-sec">{item.variant}</span>
+                            <div className="text-ui-13 mt-1 truncate flex items-center gap-2">
+                              <span className="text-ui-10 uppercase tracking-wider text-tea-text-sec">{item.variant}</span>
                               {item.origin && (
                                 <><span className="text-tea-text-dim">·</span>
                                 <span className="font-body italic text-tea-text/40">{item.origin}</span></>
                               )}
                               {item.year && (
                                 <><span className="text-tea-text-dim">·</span>
-                                <span className="font-mono num text-[11px] text-tea-gold/60">{item.year}</span></>
+                                <span className="font-mono num text-ui-11 text-tea-gold/60">{item.year}</span></>
                               )}
                             </div>
                           </div>
@@ -329,7 +329,7 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
                               return (
                                 <span className="hidden md:flex items-center gap-1.5" title={`${ap.stockGrams} in stock`}>
                                   <span className={`w-1.5 h-1.5 rounded-full ${stockColor}`} />
-                                  <span className="text-[10px] num text-tea-text/40">{ap.stockGrams}</span>
+                                  <span className="text-ui-10 num text-tea-text/40">{ap.stockGrams}</span>
                                 </span>
                               );
                             })()}
@@ -345,7 +345,7 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
                             )}
                             <div className="text-right">
                               <span className="num text-sm text-tea-gold">{fmtShopPrice(unitPrice)}</span>
-                              <span className="text-tea-text-sec text-[10px] ml-1">each</span>
+                              <span className="text-tea-text-sec text-ui-10 ml-1">each</span>
                             </div>
                             <Icons.Next className="w-4 h-4 text-tea-text-sec shrink-0" />
                           </div>

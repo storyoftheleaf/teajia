@@ -172,7 +172,7 @@ export const ForYourPractice: React.FC<ForYourPracticeProps> = ({
                     <span className="card-grid-badge">{item.variant}</span>
                   </div>
                 }
-                priceDisplay={<span className="card-grid-price">${parseFloat(item.price_50g || '0')} <span className="text-tea-text-sec text-[10px]">each</span></span>}
+                priceDisplay={<span className="card-grid-price">${parseFloat(item.price_50g || '0')} <span className="text-tea-text-sec text-ui-10">each</span></span>}
                 descriptionComponent={<p className="card-grid-description">{item.description}</p>}
               />
             ))}
@@ -192,7 +192,7 @@ export const ForYourPractice: React.FC<ForYourPracticeProps> = ({
                     <span className="card-grid-badge">{item.variant}</span>
                   </div>
                 }
-                priceDisplay={<span className="card-grid-price">${parseFloat(item.price_50g || '0')} <span className="text-tea-text-sec text-[10px]">each</span></span>}
+                priceDisplay={<span className="card-grid-price">${parseFloat(item.price_50g || '0')} <span className="text-tea-text-sec text-ui-10">each</span></span>}
                 descriptionComponent={<p className="card-grid-description">{item.description}</p>}
               />
             ))}

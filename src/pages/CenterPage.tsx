@@ -31,7 +31,7 @@ function membershipLabel(role?: string): string {
 
 function SectionHeading({ children }: { children: React.ReactNode }) {
   return (
-    <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-tea-text-sec mb-4">
+    <h2 className="text-ui-10 font-bold uppercase tracking-[0.2em] text-tea-text-sec mb-4">
       {children}
     </h2>
   );
@@ -60,13 +60,13 @@ function QueueCard({ entry }: { entry: TeaCompassEntry }) {
         <img src={photo} alt={entry.name} className="w-full h-24 object-cover" loading="lazy" />
       ) : (
         <div className="w-full h-24 bg-tea-elevated flex items-center justify-center">
-          <span className="text-[10px] uppercase tracking-[0.12em] text-tea-text-dim">No photo</span>
+          <span className="text-ui-10 uppercase tracking-[0.12em] text-tea-text-dim">No photo</span>
         </div>
       )}
       <div className="p-2.5">
-        <p className="text-[13px] font-medium text-tea-text leading-tight line-clamp-2">{entry.name}</p>
+        <p className="text-ui-13 font-medium text-tea-text leading-tight line-clamp-2">{entry.name}</p>
         {entry.type && (
-          <p className="text-[10px] uppercase tracking-[0.1em] text-tea-text-sec mt-0.5">{entry.type}</p>
+          <p className="text-ui-10 uppercase tracking-[0.1em] text-tea-text-sec mt-0.5">{entry.type}</p>
         )}
 
         {open ? (
@@ -76,7 +76,7 @@ function QueueCard({ entry }: { entry: TeaCompassEntry }) {
                 key={v}
                 onClick={() => { setVerdict(v); setOpen(false); }}
                 className={[
-                  'text-[10px] px-2 py-0.5 rounded-sm transition-colors duration-100',
+                  'text-ui-10 px-2 py-0.5 rounded-sm transition-colors duration-100',
                   verdict === v
                     ? 'bg-tea-gold text-tea-bg'
                     : 'bg-tea-elevated text-tea-text-sec hover:text-tea-text',
@@ -89,7 +89,7 @@ function QueueCard({ entry }: { entry: TeaCompassEntry }) {
         ) : (
           <button
             onClick={() => setOpen(true)}
-            className="mt-2 text-[10px] uppercase tracking-[0.12em] text-tea-gold hover:text-tea-gold-lt transition-colors"
+            className="mt-2 text-ui-10 uppercase tracking-[0.12em] text-tea-gold hover:text-tea-gold-lt transition-colors"
           >
             {verdict ? VERDICT_LABELS[verdict] : 'Rate'}
           </button>
@@ -102,16 +102,16 @@ function QueueCard({ entry }: { entry: TeaCompassEntry }) {
 function WishlistCard({ entry }: { entry: TeaCompassEntry }) {
   return (
     <div className="py-3 border-b border-tea-border last:border-b-0">
-      <p className="text-[14px] text-tea-text leading-snug">{entry.name}</p>
+      <p className="text-ui-14 text-tea-text leading-snug">{entry.name}</p>
       <div className="flex items-center gap-2 mt-0.5">
         {entry.type && (
-          <span className="text-[10px] uppercase tracking-[0.1em] text-tea-text-sec">{entry.type}</span>
+          <span className="text-ui-10 uppercase tracking-[0.1em] text-tea-text-sec">{entry.type}</span>
         )}
         {entry.type && entry.vendorName && (
-          <span className="text-tea-text-dim text-[10px]">&middot;</span>
+          <span className="text-tea-text-dim text-ui-10">&middot;</span>
         )}
         {entry.vendorName && (
-          <span className="text-[10px] text-tea-text-dim">{entry.vendorName}</span>
+          <span className="text-ui-10 text-tea-text-dim">{entry.vendorName}</span>
         )}
       </div>
     </div>
@@ -132,7 +132,7 @@ function StatCard({
   const inner = (
     <div className="flex-1 min-w-[88px] bg-tea-surface px-4 py-4 rounded-sm text-center">
       <p className="text-2xl font-display text-tea-text">{value}</p>
-      <p className="text-[10px] uppercase tracking-[0.15em] text-tea-text-sec mt-1">{label}</p>
+      <p className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec mt-1">{label}</p>
     </div>
   );
 
@@ -164,7 +164,7 @@ function NavRow({
   if (to) {
     return (
       <Link to={to} className={cls}>
-        <span className="text-[14px]">{label}</span>
+        <span className="text-ui-14">{label}</span>
         <ChevronRight className="w-4 h-4 text-tea-text-dim shrink-0" />
       </Link>
     );
@@ -172,7 +172,7 @@ function NavRow({
 
   return (
     <button onClick={onClick} className={`${cls} w-full text-left`}>
-      <span className="text-[14px]">{label}</span>
+      <span className="text-ui-14">{label}</span>
       <ChevronRight className="w-4 h-4 text-tea-text-dim shrink-0" />
     </button>
   );
@@ -277,12 +277,12 @@ export default function CenterPage() {
           className="flex items-center gap-1.5 text-tea-text-sec hover:text-tea-text transition-colors mb-8"
         >
           <ChevronLeft className="w-4 h-4" />
-          <span className="text-[11px] uppercase tracking-[0.15em]">Back</span>
+          <span className="text-ui-11 uppercase tracking-[0.15em]">Back</span>
         </button>
 
         {/* Identity */}
         <div className="mb-8">
-          <div className="inline-block text-[10px] uppercase tracking-[0.2em] text-tea-gold bg-tea-gold/8 px-2.5 py-1 rounded-sm mb-3">
+          <div className="inline-block text-ui-10 uppercase tracking-[0.2em] text-tea-gold bg-tea-gold/8 px-2.5 py-1 rounded-sm mb-3">
             {tier}
           </div>
           <h1 className="font-display text-4xl text-tea-text leading-tight">
@@ -343,12 +343,12 @@ export default function CenterPage() {
               {connections.map((c) => (
                 <div key={c.id} className="flex items-center justify-between py-3 border-b border-tea-border last:border-b-0">
                   <div>
-                    <p className="text-[14px] text-tea-text">{c.name}</p>
+                    <p className="text-ui-14 text-tea-text">{c.name}</p>
                     {c.username && (
-                      <p className="text-[11px] text-tea-text-dim mt-0.5">@{c.username}</p>
+                      <p className="text-ui-11 text-tea-text-dim mt-0.5">@{c.username}</p>
                     )}
                   </div>
-                  <span className="text-[10px] uppercase tracking-[0.12em] text-tea-text-dim">
+                  <span className="text-ui-10 uppercase tracking-[0.12em] text-tea-text-dim">
                     {membershipLabel(c.role)}
                   </span>
                 </div>
@@ -380,7 +380,7 @@ export default function CenterPage() {
                 >
                   <span>{m.name}</span>
                   {m.username && (
-                    <span className="ml-2 text-tea-text-dim text-[12px]">@{m.username}</span>
+                    <span className="ml-2 text-tea-text-dim text-ui-12">@{m.username}</span>
                   )}
                 </div>
               ))}

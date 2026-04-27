@@ -75,10 +75,10 @@ const SealGrid: React.FC<{ seals: JourneySeal[]; onSealClick: (seal: JourneySeal
               </span>
             )}
           </div>
-          <p className="text-[9px] text-tea-text-dim text-center leading-tight max-w-[3.5rem] line-clamp-2">
+          <p className="text-ui-9 text-tea-text-dim text-center leading-tight max-w-[3.5rem] line-clamp-2">
             {seal.title}
           </p>
-          <p className="text-[9px] text-tea-text-dim/60">{formatSealDate(seal.date)}</p>
+          <p className="text-ui-9 text-tea-text-dim/60">{formatSealDate(seal.date)}</p>
         </motion.button>
       ))}
 
@@ -180,7 +180,7 @@ const MilestoneMarks: React.FC<{ milestones: string[] }> = ({ milestones }) => {
               </span>
             </div>
             {meta?.hint && (
-              <p className="text-[9px] text-tea-text-dim text-center max-w-[3rem] leading-tight">
+              <p className="text-ui-9 text-tea-text-dim text-center max-w-[3rem] leading-tight">
                 {meta.hint}
               </p>
             )}
@@ -208,7 +208,7 @@ const JourneyEditorial: React.FC<{ onVerify: () => void }> = ({ onVerify }) => (
   <div className="max-w-2xl mx-auto px-6 py-16 md:py-24">
 
     {/* Eyebrow */}
-    <p className="text-[10px] uppercase tracking-[0.3em] text-tea-text-sec mb-4">
+    <p className="text-ui-10 uppercase tracking-[0.3em] text-tea-text-sec mb-4">
       The Journey
     </p>
 
@@ -315,7 +315,7 @@ const JourneyEditorial: React.FC<{ onVerify: () => void }> = ({ onVerify }) => (
 
     {/* Footer mark */}
     <div className="pt-12 text-center">
-      <p className="text-[10px] uppercase tracking-[0.3em] text-tea-text-sec/30">TeajiA</p>
+      <p className="text-ui-10 uppercase tracking-[0.3em] text-tea-text-sec/30">TeajiA</p>
     </div>
   </div>
 );
@@ -401,7 +401,7 @@ const JourneyPage: React.FC = () => {
 
         {/* Header */}
         <div className="mb-12">
-          <p className="text-[10px] uppercase tracking-[0.3em] text-tea-text-sec mb-3">
+          <p className="text-ui-10 uppercase tracking-[0.3em] text-tea-text-sec mb-3">
             Your Journey
           </p>
           <h1 className="font-serif text-3xl text-tea-text mb-2">
@@ -472,7 +472,7 @@ const JourneyPage: React.FC = () => {
 
         {/* Footer */}
         <div className="text-center pb-16">
-          <p className="text-[10px] uppercase tracking-[0.3em] text-tea-text-sec/40">
+          <p className="text-ui-10 uppercase tracking-[0.3em] text-tea-text-sec/40">
             Teajia
           </p>
         </div>

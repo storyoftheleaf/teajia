@@ -89,7 +89,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
         aria-label={tab.label}
       >
         <motion.span
-          className="text-[15px] tracking-normal lowercase font-medium pointer-events-none select-none whitespace-nowrap"
+          className="text-ui-15 tracking-normal lowercase font-medium pointer-events-none select-none whitespace-nowrap"
           style={{ fontFamily: 'var(--font-display)', WebkitUserSelect: 'none', userSelect: 'none' }}
           animate={
             isActive
@@ -159,7 +159,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
         aria-label={section.label}
       >
         <motion.span
-          className="text-[15px] tracking-normal lowercase font-medium pointer-events-none select-none whitespace-nowrap"
+          className="text-ui-15 tracking-normal lowercase font-medium pointer-events-none select-none whitespace-nowrap"
           style={{ fontFamily: 'var(--font-display)', WebkitUserSelect: 'none', userSelect: 'none' }}
           animate={
             isActive

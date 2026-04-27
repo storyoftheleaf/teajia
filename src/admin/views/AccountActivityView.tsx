@@ -63,7 +63,7 @@ export const AccountActivityView: React.FC = () => {
         </button>
         <div className="flex-1 min-w-0">
           <h1 className="text-sm font-serif uppercase tracking-[0.18em] text-tea-text">Activity Log</h1>
-          <p className="text-[11px] text-tea-text-sec mt-0.5">
+          <p className="text-ui-11 text-tea-text-sec mt-0.5">
             Platform-admin actions taken inside this account, newest first.
           </p>
         </div>
@@ -81,7 +81,7 @@ export const AccountActivityView: React.FC = () => {
             <div className="py-16 text-center">
               <ShieldCheck size={20} className="text-tea-text-dim mx-auto mb-2" />
               <p className="text-sm text-tea-text">No platform-admin activity yet.</p>
-              <p className="text-[11px] text-tea-text-dim mt-1">
+              <p className="text-ui-11 text-tea-text-dim mt-1">
                 When the platform admin operates inside your account, every action will appear here.
               </p>
             </div>
@@ -95,11 +95,11 @@ export const AccountActivityView: React.FC = () => {
                   <li key={e.id} className="bg-tea-surface rounded-lg border border-tea-border px-3 py-2.5">
                     <div className="flex items-baseline justify-between gap-3">
                       <span className="text-sm text-tea-text">{label}</span>
-                      <span className="text-[10px] uppercase tracking-[0.12em] text-tea-text-dim shrink-0">
+                      <span className="text-ui-10 uppercase tracking-[0.12em] text-tea-text-dim shrink-0">
                         {formatDate(e.created_at)}
                       </span>
                     </div>
-                    <div className="text-[11px] text-tea-text-sec mt-1">
+                    <div className="text-ui-11 text-tea-text-sec mt-1">
                       by {e.actor_email || 'unknown'}
                       {e.target_type && e.target_id && (
                         <span className="text-tea-text-dim">
@@ -108,7 +108,7 @@ export const AccountActivityView: React.FC = () => {
                       )}
                     </div>
                     {detailKeys.length > 0 && (
-                      <div className="text-[11px] text-tea-text-dim mt-1 truncate">
+                      <div className="text-ui-11 text-tea-text-dim mt-1 truncate">
                         {detailKeys.map(k => `${k}: ${JSON.stringify(details[k])}`).join('  ·  ')}
                       </div>
                     )}

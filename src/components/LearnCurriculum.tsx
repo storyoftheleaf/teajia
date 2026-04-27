@@ -205,7 +205,7 @@ export const LearnCurriculum: React.FC<LearnCurriculumProps> = ({ onStoryClick, 
                   <div className="text-tea-text-sec">{getPathIcon(path.icon)}</div>
                   <h3 className="font-display text-base text-tea-text">{path.title}</h3>
                   <p className="text-xs text-tea-text/50 leading-relaxed">{path.description}</p>
-                  <div className="text-[11px] uppercase tracking-wider text-tea-text/40 mt-2">
+                  <div className="text-ui-11 uppercase tracking-wider text-tea-text/40 mt-2">
                     {path.modules.length} modules
                   </div>
                 </div>
@@ -263,7 +263,7 @@ export const LearnCurriculum: React.FC<LearnCurriculumProps> = ({ onStoryClick, 
 
                         <div className="p-5">
                             {/* Level badge */}
-                            <span className="font-sans text-[10px] uppercase tracking-widest text-tea-text-dim block mb-3">
+                            <span className="font-sans text-ui-10 uppercase tracking-widest text-tea-text-dim block mb-3">
                                 Module {moduleIndex + 1} &middot; {module.subtitle || (moduleIndex === 0 ? 'Foundation' : moduleIndex === 1 ? 'Intermediate' : 'Advanced')}
                             </span>
 
@@ -286,7 +286,7 @@ export const LearnCurriculum: React.FC<LearnCurriculumProps> = ({ onStoryClick, 
                                     {module.lessons.length} lessons
                                 </span>
                                 {completedCount > 0 && (
-                                    <span className="font-sans text-[10px] uppercase tracking-widest bg-tea-accent-sub text-tea-gold px-2 py-0.5 rounded-full">
+                                    <span className="font-sans text-ui-10 uppercase tracking-widest bg-tea-accent-sub text-tea-gold px-2 py-0.5 rounded-full">
                                         {completedCount}/{totalCount} done
                                     </span>
                                 )}
@@ -329,17 +329,17 @@ export const LearnCurriculum: React.FC<LearnCurriculumProps> = ({ onStoryClick, 
                                                      </h4>
                                                      {/* Secondary: Subtitle + Duration */}
                                                      <div className="flex items-center gap-2">
-                                                         <span className="text-[11px] uppercase tracking-wider text-tea-text/60">{lesson.subtitle}</span>
+                                                         <span className="text-ui-11 uppercase tracking-wider text-tea-text/60">{lesson.subtitle}</span>
                                                          <span className="w-1 h-1 rounded-full bg-tea-text/30/30"></span>
-                                                         <span className="font-mono text-[11px] text-tea-text/50">{lesson.durationOrTime}</span>
+                                                         <span className="font-mono text-ui-11 text-tea-text/50">{lesson.durationOrTime}</span>
                                                      </div>
                                                      {/* Tertiary: Badges */}
                                                      <div className="flex items-center gap-1.5 mt-0.5">
-                                                         <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-sm ${getDifficultyColor(getDifficultyLevel(lessonIndex))}`}>
+                                                         <span className={`text-ui-10 uppercase tracking-wider px-2 py-0.5 rounded-sm ${getDifficultyColor(getDifficultyLevel(lessonIndex))}`}>
                                                            {getDifficultyLevel(lessonIndex)}
                                                          </span>
                                                          {isWatched && (
-                                                           <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-sm bg-tea-green/20 text-emerald-300 border border-tea-green/40 shadow-sm">
+                                                           <span className="text-ui-10 uppercase tracking-wider px-2 py-0.5 rounded-sm bg-tea-green/20 text-emerald-300 border border-tea-green/40 shadow-sm">
                                                              ✓ Completed
                                                            </span>
                                                          )}

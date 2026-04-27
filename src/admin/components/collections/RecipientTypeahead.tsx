@@ -329,7 +329,7 @@ export const RecipientTypeahead: React.FC<RecipientTypeaheadProps> = ({
             data-1p-ignore
             data-lpignore="true"
             name="recipient-typeahead"
-            className="w-full pl-9 pr-9 py-2.5 text-[13px] bg-transparent border-0 rounded-t-xl outline-none text-tea-text placeholder:text-tea-text-dim focus:bg-tea-bg/60 transition-colors"
+            className="w-full pl-9 pr-9 py-2.5 text-ui-13 bg-transparent border-0 rounded-t-xl outline-none text-tea-text placeholder:text-tea-text-dim focus:bg-tea-bg/60 transition-colors"
           />
           {customersLoading && (
             <Loader2 size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-tea-text-dim animate-spin" />
@@ -347,8 +347,8 @@ export const RecipientTypeahead: React.FC<RecipientTypeaheadProps> = ({
                     }}
                     className="w-full flex items-center justify-between gap-3 px-3 py-1.5 text-left hover:bg-tea-elevated transition-colors"
                   >
-                    <span className="text-[13px] text-tea-text truncate">{c.name}</span>
-                    {c.phone && <span className="text-[10px] text-tea-text-dim shrink-0 num">{c.phone}</span>}
+                    <span className="text-ui-13 text-tea-text truncate">{c.name}</span>
+                    {c.phone && <span className="text-ui-10 text-tea-text-dim shrink-0 num">{c.phone}</span>}
                   </button>
                 </li>
               ))}
@@ -361,7 +361,7 @@ export const RecipientTypeahead: React.FC<RecipientTypeaheadProps> = ({
                       addFreeform(query);
                       setQuery('');
                     }}
-                    className="w-full flex items-center gap-2 px-3 py-1.5 text-left text-[12px] text-tea-text-sec hover:bg-tea-elevated hover:text-tea-text transition-colors"
+                    className="w-full flex items-center gap-2 px-3 py-1.5 text-left text-ui-12 text-tea-text-sec hover:bg-tea-elevated hover:text-tea-text transition-colors"
                   >
                     <Plus size={11} />
                     Add "{query.trim()}" as a new name
@@ -377,7 +377,7 @@ export const RecipientTypeahead: React.FC<RecipientTypeaheadProps> = ({
           <div className="px-3 pb-2.5 pt-1 flex flex-col gap-2">
             {visibleRecents.length > 0 && (
               <div className="flex items-center gap-2">
-                <span className="text-[10px] uppercase tracking-[0.12em] text-tea-text-dim shrink-0 w-14">
+                <span className="text-ui-10 uppercase tracking-[0.12em] text-tea-text-dim shrink-0 w-14">
                   Recent
                 </span>
                 <div className="flex flex-wrap gap-1">
@@ -387,7 +387,7 @@ export const RecipientTypeahead: React.FC<RecipientTypeaheadProps> = ({
                       type="button"
                       onClick={() => addCustomer(c)}
                       whileTap={{ scale: 0.96 }}
-                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-tea-elevated/70 text-tea-text text-[12px] hover:bg-tea-gold/10 transition-colors"
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-tea-elevated/70 text-tea-text text-ui-12 hover:bg-tea-gold/10 transition-colors"
                     >
                       <Plus size={10} className="text-tea-text-dim" />
                       <span className="truncate max-w-[140px]">{c.name}</span>
@@ -399,7 +399,7 @@ export const RecipientTypeahead: React.FC<RecipientTypeaheadProps> = ({
 
             {tags.length > 0 && (
               <div className="relative flex items-start gap-2">
-                <span className="text-[10px] uppercase tracking-[0.12em] text-tea-text-dim shrink-0 w-14 pt-0.5">
+                <span className="text-ui-10 uppercase tracking-[0.12em] text-tea-text-dim shrink-0 w-14 pt-0.5">
                   Tags
                 </span>
                 <div className="flex flex-wrap gap-1">
@@ -409,17 +409,17 @@ export const RecipientTypeahead: React.FC<RecipientTypeaheadProps> = ({
                       type="button"
                       onClick={() => addByTag(t.tag)}
                       whileTap={{ scale: 0.96 }}
-                      className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-tea-elevated/70 text-tea-text text-[12px] hover:bg-tea-gold/10 transition-colors"
+                      className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-tea-elevated/70 text-tea-text text-ui-12 hover:bg-tea-gold/10 transition-colors"
                     >
                       <span className="truncate max-w-[160px]">{t.tag}</span>
-                      <span className="text-[10px] text-tea-text-dim num">{t.count}</span>
+                      <span className="text-ui-10 text-tea-text-dim num">{t.count}</span>
                     </motion.button>
                   ))}
                   {overflowTags.length > 0 && (
                     <button
                       type="button"
                       onClick={() => setTagsExpanded(v => !v)}
-                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[12px] text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated/70 transition-colors"
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-ui-12 text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated/70 transition-colors"
                     >
                       +{overflowTags.length} more
                     </button>
@@ -439,12 +439,12 @@ export const RecipientTypeahead: React.FC<RecipientTypeaheadProps> = ({
                         onChange={e => setTagFilter(e.target.value)}
                         placeholder="Filter tags…"
                         autoFocus
-                        className="w-full pl-7 pr-3 py-1.5 text-[12px] bg-transparent border-none outline-none text-tea-text placeholder:text-tea-text-dim"
+                        className="w-full pl-7 pr-3 py-1.5 text-ui-12 bg-transparent border-none outline-none text-tea-text placeholder:text-tea-text-dim"
                       />
                     </div>
                     <ul className="max-h-64 overflow-y-auto py-1">
                       {filteredOverflowTags.length === 0 ? (
-                        <li className="px-3 py-2 text-[11px] text-tea-text-dim italic">No tags match.</li>
+                        <li className="px-3 py-2 text-ui-11 text-tea-text-dim italic">No tags match.</li>
                       ) : filteredOverflowTags.map(t => (
                         <li key={t.tag}>
                           <button
@@ -452,8 +452,8 @@ export const RecipientTypeahead: React.FC<RecipientTypeaheadProps> = ({
                             onClick={() => { addByTag(t.tag); setTagsExpanded(false); setTagFilter(''); }}
                             className="w-full flex items-center justify-between gap-3 px-3 py-1.5 text-left hover:bg-tea-elevated transition-colors"
                           >
-                            <span className="text-[12px] text-tea-text truncate">{t.tag}</span>
-                            <span className="text-[10px] text-tea-text-dim shrink-0 num">{t.count}</span>
+                            <span className="text-ui-12 text-tea-text truncate">{t.tag}</span>
+                            <span className="text-ui-10 text-tea-text-dim shrink-0 num">{t.count}</span>
                           </button>
                         </li>
                       ))}
@@ -473,7 +473,7 @@ export const RecipientTypeahead: React.FC<RecipientTypeaheadProps> = ({
             initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            className="text-[11px] text-tea-text-dim italic"
+            className="text-ui-11 text-tea-text-dim italic"
           >
             {skipNote}
           </motion.p>
@@ -483,17 +483,17 @@ export const RecipientTypeahead: React.FC<RecipientTypeaheadProps> = ({
       {/* Guest list */}
       <div>
         <div className="flex items-baseline justify-between mb-1.5">
-          <p className="text-[10px] uppercase tracking-[0.12em] text-tea-text-dim">
+          <p className="text-ui-10 uppercase tracking-[0.12em] text-tea-text-dim">
             Guest list
           </p>
           {value.length > 0 && (
-            <span className="text-[10px] text-tea-text-dim num">{value.length}</span>
+            <span className="text-ui-10 text-tea-text-dim num">{value.length}</span>
           )}
         </div>
 
         {value.length === 0 ? (
           <div className="py-8 text-center">
-            <p className="text-[12px] text-tea-text-dim italic">
+            <p className="text-ui-12 text-tea-text-dim italic">
               No one yet. Pick from recents or type a name above.
             </p>
           </div>
@@ -515,7 +515,7 @@ export const RecipientTypeahead: React.FC<RecipientTypeaheadProps> = ({
                   >
                     {/* Monogram avatar */}
                     <div
-                      className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 bg-tea-gold/10 text-tea-gold text-[12px] font-medium tracking-wide"
+                      className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 bg-tea-gold/10 text-tea-gold text-ui-12 font-medium tracking-wide"
                       aria-hidden
                     >
                       {initialOf(r.name)}
@@ -523,19 +523,19 @@ export const RecipientTypeahead: React.FC<RecipientTypeaheadProps> = ({
 
                     {/* Identity */}
                     <div className="flex-1 min-w-0 flex items-baseline gap-2">
-                      <span className="text-[13px] text-tea-text truncate">
+                      <span className="text-ui-13 text-tea-text truncate">
                         {r.name}
                       </span>
                       {r.phone ? (
-                        <span className="text-[11px] text-tea-text-dim num truncate">
+                        <span className="text-ui-11 text-tea-text-dim num truncate">
                           {r.phone}
                         </span>
                       ) : !r.customer_id ? (
-                        <span className="text-[10px] text-tea-text-dim italic">
+                        <span className="text-ui-10 text-tea-text-dim italic">
                           new contact
                         </span>
                       ) : (
-                        <span className="text-[10px] text-tea-text-dim italic">
+                        <span className="text-ui-10 text-tea-text-dim italic">
                           no phone
                         </span>
                       )}
@@ -569,7 +569,7 @@ export const RecipientTypeahead: React.FC<RecipientTypeaheadProps> = ({
                         ref={tagEditorRef}
                         className="absolute z-30 top-full right-0 mt-1 w-[280px] max-w-[calc(100vw-2rem)] rounded-lg bg-tea-surface border border-tea-border shadow-xl p-3"
                       >
-                        <p className="text-[10px] uppercase tracking-[0.12em] text-tea-text-dim mb-2 truncate">
+                        <p className="text-ui-10 uppercase tracking-[0.12em] text-tea-text-dim mb-2 truncate">
                           Tags for {r.name}
                         </p>
                         <ContactTagEditor

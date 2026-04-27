@@ -98,7 +98,7 @@ export const CatalogView: React.FC = () => {
                 key={t}
                 type="button"
                 onClick={() => setTypeFilter(t)}
-                className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors whitespace-nowrap ${
+                className={`px-2.5 py-1 rounded-md text-ui-11 font-medium transition-colors whitespace-nowrap ${
                   typeFilter === t
                     ? 'bg-tea-gold/15 text-tea-gold font-semibold'
                     : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-surface/60'
@@ -140,7 +140,7 @@ export const CatalogView: React.FC = () => {
                         <div className="w-full h-full bg-tea-bg" />
                       )}
                       {product.type && (
-                        <span className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-tea-bg/80 text-[10px] text-tea-text-sec backdrop-blur-sm">
+                        <span className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-tea-bg/80 text-ui-10 text-tea-text-sec backdrop-blur-sm">
                           {product.type}
                         </span>
                       )}

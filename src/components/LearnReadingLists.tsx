@@ -72,12 +72,12 @@ export const LearnReadingLists: React.FC = () => {
                     <h4 className="font-serif text-sm text-tea-text truncate">
                       {item.title}
                     </h4>
-                    <span className={`text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm shrink-0 hidden sm:inline ${FORMAT_COLORS[item.format]}`}>
+                    <span className={`text-ui-9 uppercase tracking-wider px-1.5 py-0.5 rounded-sm shrink-0 hidden sm:inline ${FORMAT_COLORS[item.format]}`}>
                       {item.format}
                     </span>
                   </div>
                   {item.author && (
-                    <p className="text-[11px] text-tea-text/40 mb-0.5">
+                    <p className="text-ui-11 text-tea-text/40 mb-0.5">
                       {item.author}
                     </p>
                   )}
@@ -89,7 +89,7 @@ export const LearnReadingLists: React.FC = () => {
                 {/* Duration & arrow */}
                 <div className="flex items-center gap-2 shrink-0 mt-1">
                   {item.duration && (
-                    <span className="text-[10px] text-tea-text/30 hidden sm:inline">
+                    <span className="text-ui-10 text-tea-text/30 hidden sm:inline">
                       {item.duration}
                     </span>
                   )}

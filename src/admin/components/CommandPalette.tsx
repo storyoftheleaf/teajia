@@ -127,7 +127,7 @@ export const CommandPalette = ({ onAddProduct, externalOpen, onOpenChange }: { o
             {searchQuery.trim() && (
               <>
                 {filteredProducts.length > 0 && (
-                  <Command.Group heading="Products" className="text-[10px] uppercase tracking-[0.2em] font-bold text-tea-text-sec px-2 py-2">
+                  <Command.Group heading="Products" className="text-ui-10 uppercase tracking-[0.2em] font-bold text-tea-text-sec px-2 py-2">
                     {filteredProducts.map((p: any) => (
                       <Command.Item
                         key={`product-${p.id}`}
@@ -146,7 +146,7 @@ export const CommandPalette = ({ onAddProduct, externalOpen, onOpenChange }: { o
                 )}
 
                 {filteredCustomers.length > 0 && (
-                  <Command.Group heading="People" className="text-[10px] uppercase tracking-[0.2em] font-bold text-tea-text-sec px-2 py-2">
+                  <Command.Group heading="People" className="text-ui-10 uppercase tracking-[0.2em] font-bold text-tea-text-sec px-2 py-2">
                     {filteredCustomers.map((c: any) => (
                       <Command.Item
                         key={`customer-${c.id}`}
@@ -165,7 +165,7 @@ export const CommandPalette = ({ onAddProduct, externalOpen, onOpenChange }: { o
                 )}
 
                 {filteredEvents.length > 0 && (
-                  <Command.Group heading="Events" className="text-[10px] uppercase tracking-[0.2em] font-bold text-tea-text-sec px-2 py-2">
+                  <Command.Group heading="Events" className="text-ui-10 uppercase tracking-[0.2em] font-bold text-tea-text-sec px-2 py-2">
                     {filteredEvents.map((e: any) => (
                       <Command.Item
                         key={`event-${e.id}`}
@@ -187,7 +187,7 @@ export const CommandPalette = ({ onAddProduct, externalOpen, onOpenChange }: { o
               </>
             )}
 
-            <Command.Group heading="Navigation" className="text-[10px] uppercase tracking-[0.2em] font-bold text-tea-text-sec px-2 py-2">
+            <Command.Group heading="Navigation" className="text-ui-10 uppercase tracking-[0.2em] font-bold text-tea-text-sec px-2 py-2">
               <Command.Item onSelect={() => runCommand(() => navigate('/admin/inventory'))} className="flex items-center gap-3 px-3 py-3.5 rounded-lg hover:bg-tea-surface cursor-pointer text-tea-text aria-selected:bg-tea-surface aria-selected:text-tea-gold transition-colors font-serif">
                 <Leaf size={16} className="text-tea-text-sec" /> Tea Glossary
               </Command.Item>
@@ -197,7 +197,7 @@ export const CommandPalette = ({ onAddProduct, externalOpen, onOpenChange }: { o
             </Command.Group>
 
             {isDevAdmin && (
-              <Command.Group heading="Admin" className="text-[10px] uppercase tracking-[0.2em] font-bold text-tea-text-sec px-2 py-2 mt-2 border-t border-tea-border">
+              <Command.Group heading="Admin" className="text-ui-10 uppercase tracking-[0.2em] font-bold text-tea-text-sec px-2 py-2 mt-2 border-t border-tea-border">
                 <Command.Item onSelect={() => runCommand(() => navigate('/admin/inventory'))} className="flex items-center gap-3 px-3 py-3.5 rounded-lg hover:bg-tea-surface cursor-pointer text-tea-text aria-selected:bg-tea-surface aria-selected:text-tea-gold transition-colors font-serif">
                   <Settings size={16} className="text-tea-text-sec" /> Master Inventory
                 </Command.Item>
