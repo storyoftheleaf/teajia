@@ -48,17 +48,14 @@ check_pattern_ere() {
 check_pattern_notice() {
   local pattern="$1"
   local message="$2"
-  local exclude="${3:-}"  # optional grep -v pattern to exclude false positives
+  shift 2
   local matches
 
-  # Use grep -E (POSIX extended regex, works on macOS BSD grep).
-  # Notice checks intentionally do NOT use -P (PCRE) since macOS grep lacks it
-  # and we don't need lookbehinds here — exclusions are handled via pipe instead.
-  if [ -n "$exclude" ]; then
-    matches=$(grep -rn --include='*.tsx' --include='*.ts' -E "$pattern" "$SRC_DIR" 2>/dev/null \
-              | grep -v "$exclude" || true)
-  else
-    matches=$(grep -rn --include='*.tsx' --include='*.ts' -E "$pattern" "$SRC_DIR" 2>/dev/null || true)
+  # Remaining args are passed through to a chain of `grep -v` exclusions.
+  # Pass them as `-e PATTERN` pairs (one `-e PATTERN` per exclusion).
+  matches=$(grep -rn --include='*.tsx' --include='*.ts' -E "$pattern" "$SRC_DIR" 2>/dev/null || true)
+  if [ -n "$matches" ] && [ "$#" -gt 0 ]; then
+    matches=$(printf '%s\n' "$matches" | grep -v "$@" || true)
   fi
   if [ -n "$matches" ]; then
     echo ""
@@ -100,23 +97,33 @@ check_pattern_ere 'bg-tea-gold(-lt)?[[:space:]][^"'"'"'`{}:]*text-tea-gold(-lt)?
 check_pattern_ere 'text-tea-gold(-lt)?[[:space:]][^"'"'"'`{}:]*bg-tea-gold(-lt)?([[:space:]"'"'"'`]|$)' \
   "Gold-on-gold combo detected (text-tea-gold[-lt] + bg-tea-gold[-lt]). Unreadable in both modes — see COLOR_RULES.md."
 
-# ── Progressive checks (non-blocking) ─────────────────────────────────────────
-# These catch existing violations that are too numerous to fix at once.
-# They print a NOTICE but do NOT increment $ERRORS or fail the build.
-# Track the NOTICES count and reduce it to zero over time.
+# ── Progressive checks ────────────────────────────────────────────────────────
 
-# 5. Hardcoded rgba() inside className attributes
-#    Lines where rgba( appears only after style= are excluded (intentional).
-#    Comment-only lines (//) are excluded via the exclude argument.
+# 5. Hardcoded rgba() in className utility brackets — non-blocking notice.
+#    Most legitimate uses (shadow-[...], style={{ boxShadow: rgba(...) }}, decorative
+#    multi-stop gradients per COLOR_RULES.md Rule 2 exception) are excluded; what
+#    remains is the long tail Phase C will address. Stays as a NOTICE.
+#    Excludes: comment-only lines, `shadow-[` arbitrary shadows (Rule 2 exception),
+#    `style=` blocks (boxShadow / inline gradients are inspected per-rule).
 check_pattern_notice 'className=.*rgba\(' \
   "Hardcoded rgba() in className — use a semantic token instead. (non-blocking)" \
-  '^\s*//'
+  -e '^[[:space:]]*//' -e 'shadow-\[' -e 'style='
 
-# 6. Hardcoded hex colors in Tailwind bracket notation
-#    e.g. text-[#4a3728], bg-[#fff], border-[#333]
-check_pattern_notice '(text|bg|border|ring|from|to|via|fill|stroke)-\[#[0-9a-fA-F]' \
-  "Hardcoded hex in Tailwind bracket notation — use a semantic token instead. (non-blocking)" \
-  '^\s*//'
+# 6. Hardcoded hex colors in Tailwind bracket notation — BLOCKING.
+#    e.g. text-[#4a3728], bg-[#fff], border-[#333]. New violations fail the commit.
+#    Documented brand-color literals (WhatsApp #25D366) live in
+#    src/components/samples/SampleOrderModal.tsx and are excluded by path.
+HEX_BRACKET_VIOLATIONS=$(grep -rn --include='*.tsx' --include='*.ts' \
+  -E '(text|bg|border|ring|from|to|via|fill|stroke)-\[#[0-9a-fA-F]' "$SRC_DIR" 2>/dev/null \
+  | grep -vE '^\s*//' \
+  | grep -v 'src/components/samples/SampleOrderModal.tsx' \
+  || true)
+if [ -n "$HEX_BRACKET_VIOLATIONS" ]; then
+  echo ""
+  echo "COLOR RULE VIOLATION: Hardcoded hex in Tailwind bracket notation — use a semantic token."
+  echo "$HEX_BRACKET_VIOLATIONS"
+  ERRORS=$((ERRORS + 1))
+fi
 
 if [ "$ERRORS" -gt 0 ]; then
   echo ""
