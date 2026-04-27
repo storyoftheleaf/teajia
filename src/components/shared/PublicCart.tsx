@@ -47,6 +47,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [successMessage, setSuccessMessage] = useState<{ show: boolean; type: 'whatsapp' | 'email' | 'copy' } | null>(null);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [preferredChannel, setPreferredChannel] = useState<'whatsapp' | 'email'>('whatsapp');
   const [recoveredCart, setRecoveredCart] = useState(false);
 
@@ -105,6 +106,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
       const t = setTimeout(() => {
         setStep('CART');
         setSuccessMessage(null);
+        setCheckoutError(null);
         setRecoveredCart(false);
       }, 500);
       return () => clearTimeout(t);
@@ -197,6 +199,15 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
   };
 
   const handleWhatsApp = () => {
+    // Validate the resolved phone before opening WhatsApp. buildWhatsAppUrl
+    // silently falls back to a recipient-less wa.me link when digits < 7,
+    // which sends nothing — surface a clear error and offer email instead.
+    const digits = String(effectiveWhatsAppNumber || '').replace(/\D/g, '');
+    if (digits.length < 7) {
+      setCheckoutError("This store doesn't have WhatsApp ordering set up. Please use Email or Copy text below to send your order.");
+      return;
+    }
+    setCheckoutError(null);
     window.open(buildWhatsAppUrl(String(effectiveWhatsAppNumber), orderMessage));
     showSuccess('whatsapp');
     persistInquiry('whatsapp');
@@ -527,6 +538,25 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
                 <div className="text-center">
                   <p className="text-xs text-tea-text-sec mb-1">Track your order</p>
                   <a href={`/order/${orderRef}`} className="text-sm text-tea-text underline underline-offset-4 decoration-tea-border hover:decoration-tea-gold transition-colors font-mono">{orderRef}</a>
+                </div>
+              )}
+
+              {checkoutError && (
+                <div
+                  className="cart-fade-in border border-tea-border rounded-sm px-4 py-3 flex items-start justify-between gap-2 bg-tea-elevated"
+                  role="alert"
+                >
+                  <div className="flex items-start gap-3">
+                    <Icons.AlertCircle className="w-4 h-4 text-tea-text-sec shrink-0 mt-0.5" />
+                    <span className="text-xs text-tea-text leading-relaxed">{checkoutError}</span>
+                  </div>
+                  <button
+                    onClick={() => setCheckoutError(null)}
+                    className="text-tea-text-sec hover:text-tea-text min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0"
+                    aria-label="Dismiss"
+                  >
+                    <Icons.Close className="w-3 h-3" />
+                  </button>
                 </div>
               )}
 

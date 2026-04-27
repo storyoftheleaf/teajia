@@ -30,17 +30,17 @@
 
 | # | Finding | Source | Effort | Action |
 |---|---------|--------|--------|--------|
-| 7 | Gather bundle inconsistently enforced: Wholesale orders require requireBundle('sell') but events DO NOT require requireBundle('gather') | 02 | half-day | [ ] |
-| 8 | Publish bundle invisible at server: No single handler uses requireBundle('publish'); all collection endpoints rely on implicit account scope | 02 | half-day | [ ] |
-| 9 | Stock bundle has no server implementation: No handler calls requireBundle('stock'); RPC actions have zero authorization | 02 | day | [ ] |
+| 7 | ~~Gather bundle inconsistently enforced~~ — FIXED 2026-04-27: All /api/admin/events/* and /api/admin/venues/* handlers (33 total) now use requireBundle('gather'). Public event/venue reads (/api/events, /api/events/:slug/public, /api/venues/public, /api/s/:slug/events, /api/products/:id/events, /api/customers/:id/events) intentionally remain ungated. | 02 | — | [x] done |
+| 8 | ~~Publish bundle invisible at server~~ — FIXED 2026-04-27: All /api/collections/* admin reads + writes (16 handlers) now use requireBundle('publish'). Public reads ungated by design: GET /api/collections/shop, GET /api/public/c/:slug, POST /api/public/c/:slug/view (customer-facing storefront + share links). | 02 | — | [x] done |
+| 9 | ~~Stock bundle has no server implementation~~ — FIXED 2026-04-27: All stock-touching RPCs gated. requireBundle('stock'): increment-stock, reset-stock-verification, reserve-stock, release-stock (commit 1c57099) plus stock-ledger reads (commit c653dde). fulfill-invoice + void-invoice kept on requireBundle('sell') — primary semantic is invoice lifecycle; stock deduction is a side-effect, and 'sell' callers are operationally the right population. | 02 | — | [x] done |
 | 10 | ~~Member bundle-gated flows NOT in public Account Panel~~ — PARTIAL FIX 2026-04-27: AdminTool.bundle field added; toolsForRole now bundle-aware; StaffView shift toolbar is now bundle-driven instead of hardcoded Inventory/Quick invoice/Quick capture. Remaining work: build first-class public Account Panel sub-views for bundle-holders (out of scope for Your Table coherence pass). | 01, 02 | (partial) | [~] |
 | 11 | ~~Personal Collection & Compass sync incomplete~~ — VERIFIED SHIPPED 2026-04-27: useFavoritesSync + useCompassSync + useTastingJournalSync + useNotesSync all wired in App.tsx:160-164; worker endpoints /api/user/favorites and /api/compass/* implemented. Audit detail was stale. | 01 | — | [x] done |
 | 12 | Pull-to-refresh not fully wired: Visual indicator renders but refresh logic incomplete; no actual data re-fetch on pull | 01 | 2hr | [ ] |
 | 13 | Global search partially implemented: Backend search API integration is stub-level; results may be empty | 01 | half-day | [ ] |
-| 14 | Cart checkout relies on per-store WhatsApp number without validation: If store lacks whatsapp_number + fallback fails, checkout silently breaks | 01 | 30min | [ ] |
+| 14 | ~~Cart checkout relies on per-store WhatsApp number without validation~~ — FIXED 2026-04-27: PublicCart.handleWhatsApp now validates the resolved phone digits (>=7) before opening wa.me; on failure shows an inline error ("This store doesn't have WhatsApp ordering set up. Please use Email or Copy text below to send your order.") instead of silently opening a recipient-less link. | 01 | — | [x] done |
 | 15 | Share modal & social sharing incomplete: Copy-link works but Twitter/Facebook buttons are stub-level | 01 | 2hr | [ ] |
 | 16 | Tasting journal sync only on auth ready: If guest tastes without signing in, entry lost on reload | 01 | 1hr | [ ] |
-| 17 | Tea Master invite email optional: If RESEND_API_KEY missing, invite created but user never notified | 03 | 30min | [ ] |
+| 17 | ~~Tea Master invite email optional~~ — FIXED 2026-04-27: handlePlatformInviteTeaMaster now attempts a Resend send and returns `email_sent` in the response payload. PlatformAccessView surfaces "Invite created, but email could not be sent. Share this link manually:" with the claim link when `email_sent: false`. Audit log entry includes the same flag. | 03 | — | [x] done |
 | 18 | Adoption decision UI unfinished: API exists (POST /api/network/profiles/:id/adopt) but no UI tab for reviewing pending adoptions | 03 | 3hr | [ ] |
 
 ---
@@ -58,9 +58,9 @@
 | 25 | "Start Here", "For Your Space", "Spaces" in PREVIEW_MODE: Intentionally hidden behind feature flag; unclear ship date | 01 | half-day | [ ] |
 | 26 | Community page is STUB only: Placeholder with no content, feeds, or discovery | 01 | 2–3hr | [ ] |
 | 27 | Account Panel "Operator" view not fully tested in multi-store: Edge cases unclear (member of A & B, checkout from C); currency/storefront context may misalign | 01 | 1hr | [ ] |
-| 28 | 8 audit shards from March 2026 heavily overlapping: AUDIT, FUNCTIONAL_AUDIT, ARCHITECTURE_AUDIT, UI_UX_AUDIT, DESIGN_SYSTEM_AUDIT, WEBSITE_TEARDOWN, VISION_AUDIT_0–3 — same problems viewed 8 different ways | 04 | — | [ ] |
-| 29 | 2 superseded briefs still in docs: MEMBERS_AND_ACCESS_BRIEF + PHASE_1B_PLAN merged into NETWORK_ROLLOUT_PLAN but preserved for design history; needs archival + README | 04 | 30min | [ ] |
-| 30 | 2 duplicate strategy documents in docs/plan/: teajia-complete-strategy.md + teajia-strategy-expansion.md duplicate VISION.md era; candidates for archival | 04 | 1hr | [ ] |
+| 28 | ~~8 audit shards from March 2026 heavily overlapping~~ — FIXED 2026-04-27: All 13 shards (AUDIT, FUNCTIONAL_AUDIT, ARCHITECTURE_AUDIT, UI_UX_AUDIT, DESIGN_SYSTEM_AUDIT, WEBSITE_TEARDOWN, VISION_AUDIT_0–3) archived in docs/_archive/ with SUPERSEDED stamps pointing at STATE_OF_THE_SITE.md / FLOWS.md. Verified during commit 46aa5ee. | 04 | — | [x] done |
+| 29 | ~~2 superseded briefs still in docs~~ — FIXED 2026-04-27: MEMBERS_AND_ACCESS_BRIEF.md and PHASE_1B_PLAN.md archived in docs/_archive/ with stamps pointing at NETWORK_ROLLOUT_PLAN.md. | 04 | — | [x] done |
+| 30 | ~~2 duplicate strategy documents in docs/plan/~~ — FIXED 2026-04-27: teajia-complete-strategy.md and teajia-strategy-expansion.md archived in docs/_archive/ with stamps pointing at VISION.md and brief/PERSONAS.md. | 04 | — | [x] done |
 
 ---
 
@@ -70,7 +70,7 @@
 |---|---------|--------|--------|--------|
 | 31 | "Acting as" audit trail ambiguous: platform_audit_log.account_id doesn't distinguish "Adrian acting in account X" vs "Adrian's platform-wide action" | 03 | 1hr | [ ] |
 | 32 | Currency/exchange rate admin UI missing: Rates exist; no visible admin panel for platform tier to manage them | 03 | 3hr | [ ] |
-| 33 | Password reset email optional: Depends on RESEND_API_KEY env var; if unset, token created but user never notified | 03 | 30min | [ ] |
+| 33 | ~~Password reset email optional~~ — FIXED 2026-04-27: handleForgotPassword now attempts a Resend send. When email succeeds, the response is `{ ok: true, email_sent: true }` and the token is NOT returned (token belongs in the email only). When email is unavailable or fails, response is `{ ok: true, email_sent: false, token }` to keep the in-app recovery flow working in single-tenant mode. AuthModal handles both branches: success shows "Check your email…", failure surfaces "We couldn't send a reset email. Use this token here…". | 03 | — | [x] done |
 | 34 | AccessView.tsx (bundle editor) stub/incomplete: No "editor sheet" or mobile right-side drawer UI for bundle assignment yet | 03 | 2–3hr | [ ] |
 | 35 | Location/Account switcher in AccountPanel not fully tested: Multi-location edge cases unclear | 01 | 2hr | [ ] |
 | 36 | Design system & visual audit disorganized: 169 inconsistencies across DESIGN_SYSTEM_AUDIT + UI_UX_AUDIT + TEAJIA_PALETTES + WEBSITE_TEARDOWN; consolidation plan exists but not executed | 04 | — | [ ] |

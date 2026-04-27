@@ -463,7 +463,7 @@ const PlatformRegister: React.FC<{ onChange: () => Promise<void> | void }> = ({ 
   const [name, setName] = useState('');
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
-  const [result, setResult] = useState<{ claim_link: string | null; email: string } | null>(null);
+  const [result, setResult] = useState<{ claim_link: string | null; email: string; email_sent: boolean } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const [auditEntries, setAuditEntries] = useState<any[] | null>(null);
@@ -484,7 +484,7 @@ const PlatformRegister: React.FC<{ onChange: () => Promise<void> | void }> = ({ 
         name: name.trim() || undefined,
         note: note.trim() || undefined,
       });
-      setResult({ claim_link: res.claim_link, email: email.trim() });
+      setResult({ claim_link: res.claim_link, email: email.trim(), email_sent: res.email_sent });
       setEmail(''); setName(''); setNote('');
       setInviting(false);
       await onChange();
@@ -555,11 +555,15 @@ const PlatformRegister: React.FC<{ onChange: () => Promise<void> | void }> = ({ 
         {result && (
           <div className="mt-4 text-tea-text-sec text-[13px] leading-[1.6]">
             <div>Tea Master account created for {result.email}.</div>
-            {result.claim_link && (
-              <div className="mt-1">
-                Claim link to share manually:{' '}
-                <code className="font-mono text-[12px] text-tea-text bg-tea-elevated px-2 py-0.5 rounded-[2px]">{result.claim_link}</code>
-              </div>
+            {result.email_sent ? (
+              <div className="mt-1">Invite email sent.</div>
+            ) : (
+              result.claim_link && (
+                <div className="mt-1 text-tea-text">
+                  Invite created, but email could not be sent. Share this link manually:{' '}
+                  <code className="font-mono text-[12px] text-tea-text bg-tea-elevated px-2 py-0.5 rounded-[2px]">{result.claim_link}</code>
+                </div>
+              )
             )}
           </div>
         )}

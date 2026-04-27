@@ -2521,7 +2521,7 @@ export const api = {
     },
     inviteTeaMaster: async (
       data: { email: string; name?: string; note?: string }
-    ): Promise<{ success: true; account_id: string; user_id: string; claim_link: string | null }> => {
+    ): Promise<{ success: true; account_id: string; user_id: string; claim_link: string | null; email_sent: boolean }> => {
       const res = await fetchWithTimeout(`${API_URL}/api/platform/tea-masters/invite`, {
         method: 'POST', headers: authHeaders(),
         body: JSON.stringify(data),

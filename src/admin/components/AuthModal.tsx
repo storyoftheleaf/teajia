@@ -64,12 +64,16 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: { isOpen: boolean;
     try {
       if (mode === 'forgot') {
         const result = await api.auth.forgotPassword(email);
-        if (result?.token) {
+        if (result?.email_sent) {
+          // Email succeeded — token is intentionally not returned.
+          setInfo(result?.message || 'Check your email for a link to reset your password.');
+        } else if (result?.token) {
+          // Email not configured or send failed — fall back to in-app recovery.
           setResetToken(result.token);
           setMode('reset');
-          setInfo('Reset token generated. Choose a new password to complete recovery.');
+          setInfo("We couldn't send a reset email. Use this token here to choose a new password, or contact support.");
         } else {
-          setInfo(result?.message || 'If an account exists for that email, a reset token has been prepared.');
+          setInfo(result?.message || 'If an account exists for that email, a reset has been prepared.');
         }
       } else if (mode === 'reset') {
         if (newPassword.length < 6) {
