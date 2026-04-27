@@ -12,7 +12,11 @@ function useCurrentRole(): AccountRole | null {
   );
 }
 
-export const AccountSettingsView: React.FC = () => {
+interface AccountSettingsViewProps {
+  embedded?: boolean;
+}
+
+export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({ embedded = false }) => {
   const { activeAccountId, setActiveAccount } = useAppStore();
   const currentRole = useCurrentRole();
   const canEdit = currentRole === 'owner';
@@ -110,14 +114,16 @@ export const AccountSettingsView: React.FC = () => {
   return (
     <div className="h-full overflow-y-auto">
     <div className="p-6 md:p-10 max-w-3xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-2xl text-tea-text mb-1" style={{ fontFamily: 'var(--font-display)' }}>
-          Account Settings
-        </h1>
-        <p className="text-xs text-tea-text-dim uppercase tracking-[0.15em]">
-          {account.name}
-        </p>
-      </div>
+      {!embedded && (
+        <div className="mb-6">
+          <h1 className="text-2xl text-tea-text mb-1" style={{ fontFamily: 'var(--font-display)' }}>
+            Account Settings
+          </h1>
+          <p className="text-xs text-tea-text-dim uppercase tracking-[0.15em]">
+            {account.name}
+          </p>
+        </div>
+      )}
 
       {!canEdit && (
         <div className="mb-4 px-4 py-3 rounded-md bg-tea-elevated text-xs text-tea-text-sec">

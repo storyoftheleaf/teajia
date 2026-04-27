@@ -13,7 +13,11 @@ interface TagRow {
   count: number;
 }
 
-export const ContactTagsView: React.FC = () => {
+interface ContactTagsViewProps {
+  embedded?: boolean;
+}
+
+export const ContactTagsView: React.FC<ContactTagsViewProps> = ({ embedded = false }) => {
   const navigate = useNavigate();
   const { showToast } = useToast();
   const [tags, setTags] = useState<TagRow[]>([]);
@@ -88,22 +92,26 @@ export const ContactTagsView: React.FC = () => {
 
   return (
     <div className="h-full overflow-y-auto bg-tea-bg pb-nav-gap">
-      <div className="sticky top-0 z-10 bg-tea-bg/95 backdrop-blur-sm border-b border-tea-border px-4 md:px-8 py-3 flex items-center justify-between">
-        <button
-          onClick={() => navigate(-1)}
-          className="flex items-center gap-1.5 text-tea-text-sec hover:text-tea-text transition-colors text-sm"
-        >
-          <ArrowLeft size={15} /> Back
-        </button>
-      </div>
+      {!embedded && (
+        <div className="sticky top-0 z-10 bg-tea-bg/95 backdrop-blur-sm border-b border-tea-border px-4 md:px-8 py-3 flex items-center justify-between">
+          <button
+            onClick={() => navigate(-1)}
+            className="flex items-center gap-1.5 text-tea-text-sec hover:text-tea-text transition-colors text-sm"
+          >
+            <ArrowLeft size={15} /> Back
+          </button>
+        </div>
+      )}
 
       <div className="max-w-3xl mx-auto px-4 md:px-8 py-8 space-y-6">
-        <header>
-          <h1 className="font-serif text-3xl text-tea-text">Contact tags</h1>
-          <p className="text-tea-text-sec text-sm mt-1">
-            Rename, merge, or delete tags across every contact at once.
-          </p>
-        </header>
+        {!embedded && (
+          <header>
+            <h1 className="font-serif text-3xl text-tea-text">Contact tags</h1>
+            <p className="text-tea-text-sec text-sm mt-1">
+              Rename, merge, or delete tags across every contact at once.
+            </p>
+          </header>
+        )}
 
         <div className="relative">
           <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-text-dim pointer-events-none" />

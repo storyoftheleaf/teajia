@@ -729,7 +729,11 @@ const NewAccountPanel: React.FC<{ onCreated: () => void }> = ({ onCreated }) => 
 
 // ── Main view ─────────────────────────────────────────────────────────────────
 
-export const PlatformAdminView: React.FC = () => {
+interface PlatformAdminViewProps {
+  embedded?: boolean;
+}
+
+export const PlatformAdminView: React.FC<PlatformAdminViewProps> = ({ embedded = false }) => {
   const { platformRole } = useAppStore();
   const [tab, setTab] = useState<'accounts' | 'users' | 'audit' | 'new'>('accounts');
   const [accountsKey, setAccountsKey] = useState(0);
@@ -745,15 +749,17 @@ export const PlatformAdminView: React.FC = () => {
 
   return (
     <div className="px-4 md:px-6 pt-4 pb-10 max-w-5xl mx-auto space-y-5">
-      <div className="flex items-center gap-3">
-        <ShieldCheck size={18} className="text-tea-gold shrink-0" />
-        <div>
-          <h1 className="text-tea-text font-serif text-lg">Platform Admin</h1>
-          <p className="text-tea-text-sec text-[12px]">
-            {isPlatformOwner ? 'Super Owner' : 'Platform Admin'} · Full network access
-          </p>
+      {!embedded && (
+        <div className="flex items-center gap-3">
+          <ShieldCheck size={18} className="text-tea-gold shrink-0" />
+          <div>
+            <h1 className="text-tea-text font-serif text-lg">Platform Admin</h1>
+            <p className="text-tea-text-sec text-[12px]">
+              {isPlatformOwner ? 'Super Owner' : 'Platform Admin'} · Full network access
+            </p>
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="flex gap-1.5 flex-wrap">
         {([

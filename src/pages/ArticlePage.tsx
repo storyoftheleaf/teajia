@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api';
-import type { DbArticle, ArticleBlock } from '../admin/types';
+import type { DbArticle } from '../admin/types';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Article Pages Reader — 4:5 paginated, Instagram + book ready.
@@ -27,26 +27,52 @@ const T = {
   mono: 'var(--font-mono)',
 } as const;
 
-// Page-frame dimensions — 4:5 portrait, Instagram canonical
+// Page-frame internal coordinate system. Every renderer designs against
+// these dimensions in fixed pixels (no clamp, no %, no responsive math).
+// The page is then transform:scale()'d as a single unit to fit whatever
+// physical size the viewport allows. This guarantees that what you see at
+// any viewport size is identical to a 1080x1350 PNG export.
 const PAGE_W = 1080;
 const PAGE_H = 1350;
-const FRAME_MAX_W = 540;   // desktop max width
-const FRAME_MAX_H = 675;   // desktop max height (4:5 of 540)
-
-// Content pagination tuning — tested against Cormorant Garamond + Lora
-const MAX_CHARS_PER_BODY_PAGE = 520;
+// Desktop physical ceiling. Tuned so the page sits with comfortable
+// breathing room above and below at typical laptop viewport heights.
+// Width follows the 4:5 ratio.
+const FRAME_MAX_H_DESKTOP = 1100;
+const FRAME_MAX_W_DESKTOP = 880; // 1100 * 4 / 5
 
 // ─── Page model ──────────────────────────────────────────────────────────────
 
+// Page model. Synthetic pages (cover/masthead/colophon/end) wrap the article;
+// block pages map 1:1 to ArticleBlock[] from the parser. Each ArticleBlock
+// gets its own page kind here, with shape mirroring the block but using
+// `kind` as the discriminator.
 type Page =
+  // Synthetic
   | { kind: 'cover'; title: string; subtitle?: string; coverImage?: string; category?: string; mark?: string }
   | { kind: 'masthead'; intro: string; author?: string; date?: string; readingTime?: number }
+  | { kind: 'colophon'; title: string; author?: string; date?: string; category?: string }
+  | { kind: 'end'; title: string }
+  // Original 8 (kept for the renderers we already wrote)
   | { kind: 'body'; head: string; paragraphs: string[]; pageNum: number; pageTotal: number }
   | { kind: 'section'; title: string; numeral: string }
-  | { kind: 'quote'; text: string; attribution?: string }
-  | { kind: 'image'; url: string; caption?: string; alt: string }
-  | { kind: 'colophon'; title: string; author?: string; date?: string; category?: string }
-  | { kind: 'end'; title: string };
+  | { kind: 'quote'; text: string; attribution?: string; variant?: 'big' | 'minimal' }
+  | { kind: 'image'; url: string; caption?: string; alt: string; variant?: string; images?: string[] }
+  // New block-derived kinds
+  | { kind: 'paragraph_styled'; text: string; variant: 'single' | 'double' | 'justified' | 'center' | 'drop_cap' }
+  | { kind: 'block_cover'; title: string; subtitle?: string; image?: string; kicker?: string; variant?: string }
+  | { kind: 'block_chapter'; title: string; subtitle?: string; number?: string }
+  | { kind: 'qa'; items: Array<{ q: string; a: string }>; pageNum: number; pageTotal: number }
+  | { kind: 'pull_sidebar'; side: 'left' | 'right' | 'image'; body: string; sidebar: string; image?: string }
+  | { kind: 'epilogue'; text: string; signature?: string }
+  | { kind: 'stat'; value: string; label: string; context?: string }
+  | { kind: 'definition'; term: string; body: string; etymology?: string }
+  | { kind: 'recipe'; title: string; ingredients: string[]; steps: string[]; pairing?: string }
+  | { kind: 'tasting_notes'; items: Array<{ label: string; note: string }> }
+  | { kind: 'poem'; text: string; variant: string }
+  | { kind: 'map'; caption?: string; locations: string[] }
+  | { kind: 'list'; variant: 'checklist' | 'timeline'; title?: string; items: string[] }
+  | { kind: 'embed'; platform: 'youtube' | 'instagram'; externalId: string; caption?: string; description?: string }
+  | { kind: 'back_matter'; variant: 'copyright' | 'dedication'; lines: string[] };
 
 // ─── Pagination ──────────────────────────────────────────────────────────────
 
@@ -65,127 +91,199 @@ function formatAuthor(authorId?: string): string | undefined {
   return authorId.replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
 
-function chunkParagraphs(paragraphs: string[], max: number): string[][] {
-  const out: string[][] = [];
-  let bucket: string[] = [];
-  let chars = 0;
-  for (const p of paragraphs) {
-    if (bucket.length && chars + p.length > max) {
-      out.push(bucket);
-      bucket = [];
-      chars = 0;
-    }
-    // single paragraph longer than max — split on sentence boundaries
-    if (p.length > max) {
-      const sentences = p.match(/[^.!?]+[.!?]+\s*|[^.!?]+$/g) ?? [p];
-      let sub: string[] = [];
-      let subChars = 0;
-      for (const s of sentences) {
-        if (sub.length && subChars + s.length > max) {
-          out.push([sub.join('').trim()]);
-          sub = [];
-          subChars = 0;
-        }
-        sub.push(s);
-        subChars += s.length;
-      }
-      if (sub.length) {
-        bucket = [sub.join('').trim()];
-        chars = bucket[0].length;
-      }
-      continue;
-    }
-    bucket.push(p);
-    chars += p.length;
-  }
-  if (bucket.length) out.push(bucket);
-  return out;
-}
+// (Pagination logic now lives in scripts/parseDirectives.ts; the parser
+// produces page-shaped blocks and the reader maps them 1:1.)
 
 function buildPages(article: DbArticle): Page[] {
   const pages: Page[] = [];
   const author = formatAuthor(article.author_id);
   const date = formatDate(article.published_at ?? article.created_at);
 
-  // 1. Cover
-  pages.push({
-    kind: 'cover',
-    title: article.title,
-    subtitle: article.subtitle,
-    coverImage: article.cover_image_url,
-    category: article.category,
-    mark: '茶',
-  });
+  // The first non-cover block is the intro; if a cover block exists, use it
+  // for the synthetic cover page. Otherwise synthesize one.
+  const blocks = article.blocks ?? [];
+  const firstCover = blocks.find(b => b.type === 'cover');
+  const firstIntro = blocks.find(b => b.type === 'intro');
+  let chapterCount = 0;
+  const numerals = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
 
-  // 2. Masthead — only if there is an intro to set the tone
-  const intro = article.blocks?.find(b => b.type === 'intro');
-  if (intro && 'text' in intro) {
+  // 1. Synthetic cover (uses the first cover block if present, else article meta)
+  if (firstCover && firstCover.type === 'cover') {
+    pages.push({
+      kind: 'cover',
+      title: firstCover.title,
+      subtitle: firstCover.subtitle,
+      coverImage: firstCover.image ?? article.cover_image_url,
+      category: article.category,
+      mark: '茶',
+    });
+  } else {
+    pages.push({
+      kind: 'cover',
+      title: article.title,
+      subtitle: article.subtitle,
+      coverImage: article.cover_image_url,
+      category: article.category,
+      mark: '茶',
+    });
+  }
+
+  // 2. Masthead — built from intro block
+  if (firstIntro && firstIntro.type === 'intro') {
     pages.push({
       kind: 'masthead',
-      intro: intro.text,
+      intro: firstIntro.text,
       author,
       date,
       readingTime: article.reading_time_mins,
     });
   }
 
-  // 3. Body — convert blocks into a stream, breaking on section_heading / quote / image / divider
-  let paragraphBucket: string[] = [];
-  let sectionCount = 0;
-  const numerals = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
-
-  const flushBody = () => {
-    if (!paragraphBucket.length) return;
-    const chunks = chunkParagraphs(paragraphBucket, MAX_CHARS_PER_BODY_PAGE);
-    chunks.forEach((chunk, i) => {
-      pages.push({
-        kind: 'body',
-        head: article.title,
-        paragraphs: chunk,
-        pageNum: i + 1,
-        pageTotal: chunks.length,
-      });
-    });
-    paragraphBucket = [];
-  };
-
-  (article.blocks ?? []).forEach((block: ArticleBlock) => {
+  // 3. Body — every block becomes one page (parser already shaped them this way)
+  blocks.forEach(block => {
     switch (block.type) {
       case 'intro':
-        // already used on masthead — skip from body stream
-        return;
+      case 'cover':
+        return; // already consumed for synthetic pages
+
       case 'paragraph':
-        paragraphBucket.push(block.text);
+        pages.push({
+          kind: 'paragraph_styled',
+          text: block.text,
+          variant: block.variant ?? 'single',
+        });
         return;
+
       case 'section_heading':
-        flushBody();
-        sectionCount++;
+        chapterCount++;
         pages.push({
           kind: 'section',
-          numeral: numerals[sectionCount - 1] ?? String(sectionCount),
+          numeral: numerals[chapterCount - 1] ?? String(chapterCount),
           title: block.text,
         });
         return;
-      case 'quote':
-        flushBody();
-        pages.push({ kind: 'quote', text: block.text, attribution: block.attribution });
-        return;
-      case 'image':
-        if (!block.url) return;
-        flushBody();
+
+      case 'chapter_divider':
+        chapterCount++;
         pages.push({
-          kind: 'image',
-          url: block.url,
-          caption: block.caption,
-          alt: block.description || '',
+          kind: 'block_chapter',
+          title: block.title,
+          subtitle: block.subtitle,
+          number: block.number ?? numerals[chapterCount - 1],
         });
         return;
+
+      case 'quote':
+        pages.push({
+          kind: 'quote',
+          text: block.text,
+          attribution: block.attribution,
+          variant: block.variant,
+        });
+        return;
+
+      case 'image':
+        if (!block.url && !block.images?.length) return;
+        pages.push({
+          kind: 'image',
+          url: block.url ?? block.images?.[0] ?? '',
+          caption: block.caption,
+          alt: block.description || '',
+          variant: block.variant,
+          images: block.images,
+        });
+        return;
+
       case 'divider':
-        flushBody();
+        return; // dividers are page breaks, but every block already is one
+
+      case 'qa_pair': {
+        // Paginate Q&A: try to fit ~2 short pairs or 1 longer pair per page.
+        const items = block.items;
+        const pages_qa: Array<Array<{ q: string; a: string }>> = [];
+        let bucket: Array<{ q: string; a: string }> = [];
+        let chars = 0;
+        const MAX_QA = 700;
+        for (const item of items) {
+          const len = (item.q?.length ?? 0) + (item.a?.length ?? 0);
+          if (bucket.length && chars + len > MAX_QA) {
+            pages_qa.push(bucket);
+            bucket = [];
+            chars = 0;
+          }
+          bucket.push(item);
+          chars += len;
+        }
+        if (bucket.length) pages_qa.push(bucket);
+        pages_qa.forEach((page, i) =>
+          pages.push({ kind: 'qa', items: page, pageNum: i + 1, pageTotal: pages_qa.length }),
+        );
+        return;
+      }
+
+      case 'pull_sidebar':
+        pages.push({
+          kind: 'pull_sidebar',
+          side: block.side,
+          body: block.body,
+          sidebar: block.sidebar,
+          image: block.image,
+        });
+        return;
+
+      case 'epilogue':
+        pages.push({ kind: 'epilogue', text: block.text, signature: block.signature });
+        return;
+
+      case 'stat':
+        pages.push({ kind: 'stat', value: block.value, label: block.label, context: block.context });
+        return;
+
+      case 'definition':
+        pages.push({ kind: 'definition', term: block.term, body: block.body, etymology: block.etymology });
+        return;
+
+      case 'recipe':
+        pages.push({
+          kind: 'recipe',
+          title: block.title,
+          ingredients: block.ingredients,
+          steps: block.steps,
+          pairing: block.pairing,
+        });
+        return;
+
+      case 'tasting_notes':
+        pages.push({ kind: 'tasting_notes', items: block.items });
+        return;
+
+      case 'poem':
+        pages.push({ kind: 'poem', text: block.text, variant: block.variant });
+        return;
+
+      case 'map':
+        pages.push({ kind: 'map', caption: block.caption, locations: block.locations });
+        return;
+
+      case 'list':
+        pages.push({ kind: 'list', variant: block.variant, title: block.title, items: block.items });
+        return;
+
+      case 'embed':
+        pages.push({
+          kind: 'embed',
+          platform: block.platform,
+          externalId: block.externalId,
+          caption: block.caption,
+          description: block.description,
+        });
+        return;
+
+      case 'back_matter':
+        pages.push({ kind: 'back_matter', variant: block.variant, lines: block.lines });
         return;
     }
   });
-  flushBody();
 
   // 4. Colophon
   pages.push({
@@ -207,6 +305,21 @@ function buildPages(article: DbArticle): Page[] {
 //    - Phone (≤767px): full-bleed. Page IS the screen. No shadow, no radius.
 //    - Tablet/desktop (≥768px): inset, floating sheet on grain backdrop.
 
+/* Frame architecture
+ * ─────────────────────────────────────────────────────────────────
+ * Three nested elements:
+ *
+ *   .article-page-outer   centering container, fills available space
+ *   .article-page-sizer   the visible page (responsive 4:5 box, clips overflow)
+ *   .article-page-frame   FIXED ${PAGE_W}x${PAGE_H} canvas, transform:scale'd
+ *                         to fit the sizer. Scale factor is set inline by
+ *                         JS via ResizeObserver in the React component.
+ *
+ * Why JS-driven scale: container queries (cqw) give a value but require
+ * `container-type: size` which restricts other layout behavior; pure CSS
+ * `aspect-ratio` plus `transform: scale(...)` is well-supported. JS reads
+ * sizer dimensions and writes a CSS variable for the transform.
+ */
 const FRAME_STYLES = `
   .article-page-outer {
     width: 100%;
@@ -217,7 +330,7 @@ const FRAME_STYLES = `
     box-sizing: border-box;
     padding: 0;
   }
-  .article-page-frame {
+  .article-page-sizer {
     position: relative;
     aspect-ratio: ${PAGE_W} / ${PAGE_H};
     width: 100%;
@@ -226,18 +339,33 @@ const FRAME_STYLES = `
     overflow: hidden;
     border-radius: 0;
     box-shadow: none;
+    --page-scale: 1;
+  }
+  .article-page-frame {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: ${PAGE_W}px;
+    height: ${PAGE_H}px;
+    transform-origin: top left;
+    transform: scale(var(--page-scale));
+    overflow: hidden;
+    will-change: transform;
   }
   @media (min-width: 768px) {
     .article-page-outer {
-      padding: clamp(16px, 3vw, 40px);
+      padding: clamp(16px, 2.4vw, 32px);
     }
-    .article-page-frame {
-      max-width: ${FRAME_MAX_W}px;
-      max-height: ${FRAME_MAX_H}px;
-      border-radius: 2px;
+    .article-page-sizer {
+      /* Reserve 220px of vertical chrome: ~50 header + ~80 footer +
+         70 of breathing room top/bottom (so the drop shadow is visible
+         and the page doesn't kiss either bar). */
+      max-width: min(${FRAME_MAX_W_DESKTOP}px, calc((100vh - 220px) * 4 / 5));
+      max-height: min(${FRAME_MAX_H_DESKTOP}px, calc(100vh - 220px));
+      border-radius: 3px;
       box-shadow:
-        0 20px 60px rgba(0, 0, 0, 0.5),
-        0 4px 12px rgba(0, 0, 0, 0.3),
+        0 30px 80px rgba(0, 0, 0, 0.55),
+        0 8px 24px rgba(0, 0, 0, 0.35),
         inset 0 1px 0 rgba(200, 170, 120, 0.06);
     }
   }
@@ -255,19 +383,40 @@ const FRAME_STYLES = `
 const PageFrame: React.FC<{ children: React.ReactNode; backgroundImage?: string }> = ({
   children,
   backgroundImage,
-}) => (
-  <div className="article-page-outer">
-    <div
-      className="article-page-frame"
-      style={{
-        background: backgroundImage ? `url("${backgroundImage}") center/cover` : T.bg,
-      }}
-    >
-      <div aria-hidden="true" className="article-page-grain" />
-      {children}
+}) => {
+  const sizerRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    const el = sizerRef.current;
+    if (!el) return;
+    const update = () => {
+      const w = el.clientWidth;
+      if (w > 0) {
+        el.style.setProperty('--page-scale', String(w / PAGE_W));
+      }
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  return (
+    <div className="article-page-outer">
+      <div ref={sizerRef} className="article-page-sizer">
+        <div
+          className="article-page-frame"
+          style={{
+            background: backgroundImage ? `url("${backgroundImage}") center/cover` : T.bg,
+          }}
+        >
+          <div aria-hidden="true" className="article-page-grain" />
+          {children}
+        </div>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 // ─── Page renderers ──────────────────────────────────────────────────────────
 
@@ -280,7 +429,7 @@ const PageInner: React.FC<{ children: React.ReactNode; padded?: boolean }> = ({ 
       height: '100%',
       display: 'flex',
       flexDirection: 'column',
-      padding: padded ? 'clamp(20px, 4.5%, 38px)' : 0,
+      padding: padded ? '60.8px' : 0,
       boxSizing: 'border-box',
     }}
   >
@@ -293,7 +442,7 @@ const Watermark: React.FC = () => (
     aria-hidden="true"
     style={{
       position: 'absolute',
-      bottom: 'clamp(12px, 2.4%, 22px)',
+      bottom: '32.4px',
       left: 0,
       right: 0,
       display: 'flex',
@@ -306,7 +455,7 @@ const Watermark: React.FC = () => (
       style={{
         fontFamily: T.display,
         fontWeight: 500,
-        fontSize: 'clamp(8.5px, 1.05%, 11px)',
+        fontSize: '17px',
         letterSpacing: '0.32em',
         textTransform: 'uppercase',
         color: T.textDim,
@@ -318,100 +467,343 @@ const Watermark: React.FC = () => (
   </div>
 );
 
-const CoverPage: React.FC<{ page: Extract<Page, { kind: 'cover' }> }> = ({ page }) => (
-  <PageFrame>
-    {page.coverImage && (
+// ─── Stock-image detection ───────────────────────────────────────────────────
+// Stock placeholders (Unsplash) are detected at render time and replaced with
+// typographic "plates" so the brand stays editorial. When real photography
+// arrives later, the original image renderers take over automatically.
+
+function isStockImage(url?: string | null): boolean {
+  if (!url) return false;
+  return /images\.unsplash\.com|source\.unsplash\.com/i.test(url);
+}
+
+// ─── Plate ───────────────────────────────────────────────────────────────────
+// Typographic placeholder used in place of stock photography. Renders the
+// caption (or kicker) on a warm grain surface with a generative geometric
+// ornament. The surface still reads as a "page" with content, not a missing
+// image.
+
+interface PlateProps {
+  kicker?: string;       // small label ("Plate", "Image", "Video")
+  caption?: string;      // the caption / description text from the source
+  ornament?: 'circle' | 'arch' | 'split' | 'strip' | 'scatter' | 'square';
+  index?: number;        // varies the geometric pattern across pages
+}
+
+const Plate: React.FC<PlateProps> = ({ kicker = 'Plate', caption, ornament = 'square', index = 0 }) => {
+  // Generative pattern positions, seeded by index so adjacent plates differ.
+  const seed = (n: number) => ((index * 9301 + 49297 + n * 233280) % 233280) / 233280;
+  return (
+    <div
+      style={{
+        position: 'relative',
+        zIndex: 1,
+        width: '100%',
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        padding: '60.8px',
+        boxSizing: 'border-box',
+        background: `
+          radial-gradient(ellipse 80% 60% at 30% 20%, rgba(184,146,78,0.06) 0%, transparent 65%),
+          radial-gradient(ellipse 60% 60% at 80% 90%, rgba(184,146,78,0.04) 0%, transparent 60%),
+          var(--tea-bg)
+        `,
+      }}
+    >
+      {/* Ornament panel (top half of the plate) */}
       <div
         aria-hidden="true"
         style={{
-          position: 'absolute',
-          inset: 0,
-          backgroundImage: `url("${page.coverImage}")`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          opacity: 0.55,
-          filter: 'saturate(0.85)',
-        }}
-      />
-    )}
-    {/* warm gradient veil */}
-    <div
-      aria-hidden="true"
-      style={{
-        position: 'absolute',
-        inset: 0,
-        background:
-          'linear-gradient(180deg, rgba(24,19,14,0.4) 0%, rgba(24,19,14,0.55) 50%, rgba(24,19,14,0.85) 100%)',
-      }}
-    />
-    <PageInner>
-      <div style={{ flex: 1 }} />
-      {page.category && (
-        <div
-          style={{
-            fontFamily: T.display,
-            fontWeight: 500,
-            fontSize: 'clamp(10px, 1.4%, 13px)',
-            letterSpacing: '0.36em',
-            textTransform: 'uppercase',
-            color: T.gold,
-            marginBottom: 'clamp(10px, 1.6%, 16px)',
-            opacity: 0.85,
-          }}
-        >
-          {page.category}
-        </div>
-      )}
-      <h1
-        style={{
-          fontFamily: T.display,
-          fontStyle: 'italic',
-          fontWeight: 400,
-          fontSize: 'clamp(28px, 6.4%, 56px)',
-          lineHeight: 1.04,
-          letterSpacing: '-0.012em',
-          color: T.text,
-          margin: 0,
+          flex: 1.2,
+          position: 'relative',
+          margin: '18.9px 0 43.2px',
+          overflow: 'hidden',
+          border: '1px solid rgba(184,146,78,0.12)',
+          borderRadius: 2,
+          background: `
+            linear-gradient(135deg, rgba(40,33,26,0.55) 0%, rgba(24,19,14,0.85) 100%)
+          `,
         }}
       >
-        {page.title}
-      </h1>
-      {page.subtitle && (
-        <p
-          style={{
-            fontFamily: T.body,
-            fontStyle: 'italic',
-            fontSize: 'clamp(14px, 1.95%, 19px)',
-            lineHeight: 1.4,
-            color: T.textSec,
-            marginTop: 'clamp(10px, 1.4%, 14px)',
-            marginBottom: 0,
-          }}
-        >
-          {page.subtitle}
-        </p>
-      )}
-      {page.mark && (
+        {ornament === 'circle' && (
+          <div
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: '62%',
+              aspectRatio: '1/1',
+              borderRadius: '50%',
+              border: '1px solid rgba(184,146,78,0.35)',
+              boxShadow: 'inset 0 0 60px rgba(184,146,78,0.08)',
+            }}
+          />
+        )}
+        {ornament === 'arch' && (
+          <div
+            style={{
+              position: 'absolute',
+              bottom: 0,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              width: '62%',
+              aspectRatio: '3/4',
+              borderRadius: '50% 50% 2px 2px / 35% 35% 2px 2px',
+              border: '1px solid rgba(184,146,78,0.32)',
+              borderBottom: 'none',
+              background: 'linear-gradient(180deg, rgba(184,146,78,0.06) 0%, transparent 80%)',
+            }}
+          />
+        )}
+        {ornament === 'split' && (
+          <>
+            <div style={{ position: 'absolute', inset: 0, left: '50%', borderLeft: '1px solid rgba(184,146,78,0.22)' }} />
+            <div style={{ position: 'absolute', top: '50%', left: '15%', width: '20%', aspectRatio: '1/1', borderRadius: '50%', border: '1px solid rgba(184,146,78,0.4)', transform: 'translateY(-50%)' }} />
+            <div style={{ position: 'absolute', top: '50%', right: '15%', width: '20%', aspectRatio: '1/1', border: '1px solid rgba(184,146,78,0.4)', transform: 'translateY(-50%)' }} />
+          </>
+        )}
+        {ornament === 'strip' && (
+          <div style={{ position: 'absolute', inset: '8% 12%', display: 'flex', flexDirection: 'column', gap: '4%' }}>
+            {[0, 1, 2, 3].map(i => (
+              <div
+                key={i}
+                style={{
+                  flex: 1,
+                  border: '1px solid rgba(184,146,78,0.22)',
+                  background: `linear-gradient(${90 + i * 30}deg, rgba(184,146,78,${0.04 + i * 0.02}), transparent)`,
+                }}
+              />
+            ))}
+          </div>
+        )}
+        {ornament === 'scatter' && (
+          <>
+            {[0, 1, 2, 3].map(i => {
+              const x = 10 + seed(i * 2) * 60;
+              const y = 8 + seed(i * 2 + 1) * 70;
+              const rot = (seed(i * 3) - 0.5) * 14;
+              const size = 28 + seed(i * 5) * 12;
+              return (
+                <div
+                  key={i}
+                  style={{
+                    position: 'absolute',
+                    left: `${x}%`,
+                    top: `${y}%`,
+                    width: `${size}%`,
+                    aspectRatio: '4/5',
+                    transform: `rotate(${rot}deg)`,
+                    background: 'rgba(237,228,212,0.04)',
+                    border: '1px solid rgba(184,146,78,0.22)',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.35)',
+                  }}
+                />
+              );
+            })}
+          </>
+        )}
+        {ornament === 'square' && (
+          <>
+            <div style={{ position: 'absolute', top: '14%', left: '14%', right: '14%', bottom: '14%', border: '1px solid rgba(184,146,78,0.28)' }} />
+            <div style={{ position: 'absolute', top: '24%', left: '24%', right: '24%', bottom: '24%', border: '1px solid rgba(184,146,78,0.18)' }} />
+            <div style={{ position: 'absolute', top: '44%', left: '44%', right: '44%', bottom: '44%', background: 'rgba(184,146,78,0.12)' }} />
+          </>
+        )}
+        {/* fine grain on the ornament */}
         <div
           aria-hidden="true"
           style={{
             position: 'absolute',
-            top: 'clamp(20px, 4.5%, 38px)',
-            right: 'clamp(20px, 4.5%, 38px)',
+            inset: 0,
+            opacity: 0.08,
+            mixBlendMode: 'overlay',
+            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
+            backgroundSize: '160px',
+          }}
+        />
+      </div>
+
+      {/* Caption */}
+      <div style={{ flexShrink: 0 }}>
+        <div
+          style={{
             fontFamily: T.display,
-            fontSize: 'clamp(40px, 6%, 64px)',
+            fontWeight: 500,
+            fontSize: '19px',
+            letterSpacing: '0.32em',
+            textTransform: 'uppercase',
             color: T.gold,
-            opacity: 0.35,
-            lineHeight: 1,
+            opacity: 0.85,
+            marginBottom: '16.2px',
           }}
         >
-          {page.mark}
+          {kicker}
         </div>
+        {caption && (
+          <p
+            style={{
+              fontFamily: T.body,
+              fontStyle: 'italic',
+              fontSize: '25px',
+              lineHeight: 1.5,
+              color: T.text,
+              margin: 0,
+            }}
+          >
+            {caption}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const CoverPage: React.FC<{ page: Extract<Page, { kind: 'cover' }> }> = ({ page }) => {
+  const showImage = page.coverImage && !isStockImage(page.coverImage);
+  return (
+    <PageFrame>
+      {showImage && (
+        <>
+          <div
+            aria-hidden="true"
+            style={{
+              position: 'absolute',
+              inset: 0,
+              backgroundImage: `url("${page.coverImage}")`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              opacity: 0.55,
+              filter: 'saturate(0.85)',
+            }}
+          />
+          <div
+            aria-hidden="true"
+            style={{
+              position: 'absolute',
+              inset: 0,
+              background:
+                'linear-gradient(180deg, rgba(24,19,14,0.4) 0%, rgba(24,19,14,0.55) 50%, rgba(24,19,14,0.85) 100%)',
+            }}
+          />
+        </>
       )}
-    </PageInner>
-    <Watermark />
-  </PageFrame>
-);
+
+      {/* Typographic ornament when no real photography is available */}
+      {!showImage && (
+        <>
+          <div
+            aria-hidden="true"
+            style={{
+              position: 'absolute',
+              inset: 0,
+              background: `
+                radial-gradient(ellipse 90% 60% at 20% 10%, rgba(184,146,78,0.10) 0%, transparent 65%),
+                radial-gradient(ellipse 70% 50% at 90% 95%, rgba(184,146,78,0.06) 0%, transparent 60%)
+              `,
+            }}
+          />
+          {/* Centered diamond ornament */}
+          <div
+            aria-hidden="true"
+            style={{
+              position: 'absolute',
+              top: '34%',
+              left: '50%',
+              transform: 'translate(-50%, -50%) rotate(45deg)',
+              width: '38%',
+              aspectRatio: '1/1',
+              border: '1px solid rgba(184,146,78,0.32)',
+              boxShadow: 'inset 0 0 60px rgba(184,146,78,0.05)',
+            }}
+          />
+          <div
+            aria-hidden="true"
+            style={{
+              position: 'absolute',
+              top: '34%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: '6%',
+              aspectRatio: '1/1',
+              borderRadius: '50%',
+              background: 'rgba(184,146,78,0.4)',
+            }}
+          />
+        </>
+      )}
+
+      <PageInner>
+        <div style={{ flex: showImage ? 1 : 1.7 }} />
+        {page.category && (
+          <div
+            style={{
+              fontFamily: T.display,
+              fontWeight: 500,
+              fontSize: '20px',
+              letterSpacing: '0.36em',
+              textTransform: 'uppercase',
+              color: T.gold,
+              marginBottom: '21.6px',
+              opacity: 0.85,
+            }}
+          >
+            {page.category}
+          </div>
+        )}
+        <h1
+          style={{
+            fontFamily: T.display,
+            fontStyle: 'italic',
+            fontWeight: 400,
+            fontSize: '86.4px',
+            lineHeight: 1.04,
+            letterSpacing: '-0.012em',
+            color: T.text,
+            margin: 0,
+          }}
+        >
+          {page.title}
+        </h1>
+        {page.subtitle && (
+          <p
+            style={{
+              fontFamily: T.body,
+              fontStyle: 'italic',
+              fontSize: '28px',
+              lineHeight: 1.4,
+              color: T.textSec,
+              marginTop: '20px',
+              marginBottom: 0,
+            }}
+          >
+            {page.subtitle}
+          </p>
+        )}
+        {!showImage && <div style={{ flex: 0.4 }} />}
+        {page.mark && (
+          <div
+            aria-hidden="true"
+            style={{
+              position: 'absolute',
+              top: '60.8px',
+              right: '60.8px',
+              fontFamily: T.display,
+              fontSize: '81px',
+              color: T.gold,
+              opacity: 0.35,
+              lineHeight: 1,
+            }}
+          >
+            {page.mark}
+          </div>
+        )}
+      </PageInner>
+      <Watermark />
+    </PageFrame>
+  );
+};
 
 const MastheadPage: React.FC<{ page: Extract<Page, { kind: 'masthead' }> }> = ({ page }) => (
   <PageFrame>
@@ -420,11 +812,11 @@ const MastheadPage: React.FC<{ page: Extract<Page, { kind: 'masthead' }> }> = ({
         aria-hidden="true"
         style={{
           fontFamily: T.display,
-          fontSize: 'clamp(34px, 5%, 48px)',
+          fontSize: '68px',
           color: T.gold,
           opacity: 0.5,
           lineHeight: 0.8,
-          marginBottom: 'clamp(8px, 1.2%, 12px)',
+          marginBottom: '16.2px',
         }}
       >
         &ldquo;
@@ -434,7 +826,7 @@ const MastheadPage: React.FC<{ page: Extract<Page, { kind: 'masthead' }> }> = ({
           fontFamily: T.body,
           fontWeight: 400,
           fontStyle: 'italic',
-          fontSize: 'clamp(15px, 2.05%, 20px)',
+          fontSize: '30px',
           lineHeight: 1.5,
           color: T.text,
           margin: 0,
@@ -446,7 +838,7 @@ const MastheadPage: React.FC<{ page: Extract<Page, { kind: 'masthead' }> }> = ({
       <div
         style={{
           fontFamily: T.mono,
-          fontSize: 'clamp(9.5px, 1.05%, 11px)',
+          fontSize: '19px',
           letterSpacing: '0.08em',
           color: T.textDim,
           display: 'flex',
@@ -473,11 +865,11 @@ const BodyPage: React.FC<{ page: Extract<Page, { kind: 'body' }> }> = ({ page })
           fontFamily: T.display,
           fontStyle: 'italic',
           fontWeight: 400,
-          fontSize: 'clamp(11px, 1.25%, 13px)',
+          fontSize: '22px',
           letterSpacing: '0.04em',
           color: T.textDim,
-          marginBottom: 'clamp(14px, 2.2%, 22px)',
-          paddingBottom: 'clamp(10px, 1.4%, 14px)',
+          marginBottom: '29.7px',
+          paddingBottom: '20px',
           borderBottom: `1px solid ${T.border}`,
           display: 'flex',
           justifyContent: 'space-between',
@@ -487,7 +879,7 @@ const BodyPage: React.FC<{ page: Extract<Page, { kind: 'body' }> }> = ({ page })
         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, paddingRight: 12 }}>
           {page.head}
         </span>
-        <span style={{ fontFamily: T.mono, fontStyle: 'normal', fontSize: 'clamp(9px, 1%, 10px)', flexShrink: 0 }}>
+        <span style={{ fontFamily: T.mono, fontStyle: 'normal', fontSize: '18px', flexShrink: 0 }}>
           {String(page.pageNum).padStart(2, '0')} / {String(page.pageTotal).padStart(2, '0')}
         </span>
       </div>
@@ -496,7 +888,7 @@ const BodyPage: React.FC<{ page: Extract<Page, { kind: 'body' }> }> = ({ page })
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
-          gap: 'clamp(10px, 1.6%, 16px)',
+          gap: '21.6px',
           overflow: 'hidden',
         }}
       >
@@ -506,7 +898,7 @@ const BodyPage: React.FC<{ page: Extract<Page, { kind: 'body' }> }> = ({ page })
             style={{
               fontFamily: T.body,
               fontWeight: 400,
-              fontSize: 'clamp(13.5px, 1.7%, 17px)',
+              fontSize: '27px',
               lineHeight: 1.62,
               color: T.text,
               margin: 0,
@@ -529,7 +921,7 @@ const SectionPage: React.FC<{ page: Extract<Page, { kind: 'section' }> }> = ({ p
         style={{
           fontFamily: T.display,
           fontWeight: 300,
-          fontSize: 'clamp(60px, 11%, 120px)',
+          fontSize: '148.5px',
           color: T.gold,
           opacity: 0.75,
           lineHeight: 1,
@@ -544,7 +936,7 @@ const SectionPage: React.FC<{ page: Extract<Page, { kind: 'section' }> }> = ({ p
           width: 56,
           height: 1,
           background: T.border,
-          margin: 'clamp(16px, 2.4%, 22px) 0',
+          margin: '32.4px 0',
         }}
       />
       <h2
@@ -552,7 +944,7 @@ const SectionPage: React.FC<{ page: Extract<Page, { kind: 'section' }> }> = ({ p
           fontFamily: T.display,
           fontStyle: 'italic',
           fontWeight: 400,
-          fontSize: 'clamp(22px, 3.4%, 34px)',
+          fontSize: '45.9px',
           lineHeight: 1.15,
           color: T.text,
           margin: 0,
@@ -575,11 +967,11 @@ const QuotePage: React.FC<{ page: Extract<Page, { kind: 'quote' }> }> = ({ page 
         aria-hidden="true"
         style={{
           fontFamily: T.display,
-          fontSize: 'clamp(64px, 10%, 110px)',
+          fontSize: '135px',
           color: T.gold,
           opacity: 0.4,
           lineHeight: 0.7,
-          marginBottom: 'clamp(8px, 1%, 12px)',
+          marginBottom: '16px',
         }}
       >
         &ldquo;
@@ -589,7 +981,7 @@ const QuotePage: React.FC<{ page: Extract<Page, { kind: 'quote' }> }> = ({ page 
           fontFamily: T.display,
           fontStyle: 'italic',
           fontWeight: 400,
-          fontSize: 'clamp(20px, 3%, 30px)',
+          fontSize: '40.5px',
           lineHeight: 1.32,
           color: T.text,
           margin: 0,
@@ -601,10 +993,10 @@ const QuotePage: React.FC<{ page: Extract<Page, { kind: 'quote' }> }> = ({ page 
         <div
           style={{
             fontFamily: T.mono,
-            fontSize: 'clamp(10px, 1.15%, 12px)',
+            fontSize: '20px',
             letterSpacing: '0.08em',
             color: T.textDim,
-            marginTop: 'clamp(16px, 2.4%, 22px)',
+            marginTop: '32.4px',
           }}
         >
           — {page.attribution}
@@ -616,7 +1008,21 @@ const QuotePage: React.FC<{ page: Extract<Page, { kind: 'quote' }> }> = ({ page 
   </PageFrame>
 );
 
-const ImagePage: React.FC<{ page: Extract<Page, { kind: 'image' }> }> = ({ page }) => (
+const ImagePage: React.FC<{ page: Extract<Page, { kind: 'image' }> }> = ({ page }) => {
+  // Stock placeholder → render typographic plate instead of the photo.
+  if (isStockImage(page.url)) {
+    return (
+      <PageFrame>
+        <Plate
+          kicker="Plate"
+          caption={page.caption || page.alt}
+          ornament="square"
+        />
+        <Watermark />
+      </PageFrame>
+    );
+  }
+  return (
   <PageFrame backgroundImage={page.url}>
     {/* image fills the frame; soft gradient at the foot for caption legibility */}
     {page.caption && (
@@ -635,7 +1041,7 @@ const ImagePage: React.FC<{ page: Extract<Page, { kind: 'image' }> }> = ({ page 
       {page.caption && (
         <div
           style={{
-            padding: 'clamp(16px, 3%, 26px) clamp(20px, 4.5%, 38px)',
+            padding: '40.5px 60.8px',
             position: 'relative',
             zIndex: 2,
           }}
@@ -643,7 +1049,7 @@ const ImagePage: React.FC<{ page: Extract<Page, { kind: 'image' }> }> = ({ page 
           <div
             style={{
               fontFamily: T.mono,
-              fontSize: 'clamp(10px, 1.15%, 12px)',
+              fontSize: '20px',
               letterSpacing: '0.08em',
               color: T.text,
               opacity: 0.92,
@@ -660,7 +1066,8 @@ const ImagePage: React.FC<{ page: Extract<Page, { kind: 'image' }> }> = ({ page 
       {page.alt}
     </span>
   </PageFrame>
-);
+  );
+};
 
 const ColophonPage: React.FC<{ page: Extract<Page, { kind: 'colophon' }> }> = ({ page }) => (
   <PageFrame>
@@ -670,11 +1077,11 @@ const ColophonPage: React.FC<{ page: Extract<Page, { kind: 'colophon' }> }> = ({
         style={{
           fontFamily: T.display,
           fontWeight: 500,
-          fontSize: 'clamp(10px, 1.25%, 12px)',
+          fontSize: '20px',
           letterSpacing: '0.32em',
           textTransform: 'uppercase',
           color: T.gold,
-          marginBottom: 'clamp(14px, 2.2%, 20px)',
+          marginBottom: '29.7px',
         }}
       >
         Colophon
@@ -684,11 +1091,11 @@ const ColophonPage: React.FC<{ page: Extract<Page, { kind: 'colophon' }> }> = ({
           fontFamily: T.display,
           fontStyle: 'italic',
           fontWeight: 400,
-          fontSize: 'clamp(20px, 2.8%, 28px)',
+          fontSize: '40px',
           lineHeight: 1.2,
           color: T.text,
           margin: 0,
-          marginBottom: 'clamp(20px, 3%, 28px)',
+          marginBottom: '40.5px',
         }}
       >
         {page.title}
@@ -696,7 +1103,7 @@ const ColophonPage: React.FC<{ page: Extract<Page, { kind: 'colophon' }> }> = ({
       <dl
         style={{
           fontFamily: T.body,
-          fontSize: 'clamp(12px, 1.5%, 15px)',
+          fontSize: '24px',
           lineHeight: 1.6,
           color: T.textSec,
           margin: 0,
@@ -708,23 +1115,23 @@ const ColophonPage: React.FC<{ page: Extract<Page, { kind: 'colophon' }> }> = ({
       >
         {page.author && (
           <>
-            <dt style={{ fontFamily: T.mono, fontSize: 'clamp(9.5px, 1.05%, 11px)', letterSpacing: '0.08em', color: T.textDim, textTransform: 'uppercase' as const }}>Author</dt>
+            <dt style={{ fontFamily: T.mono, fontSize: '19px', letterSpacing: '0.08em', color: T.textDim, textTransform: 'uppercase' as const }}>Author</dt>
             <dd style={{ margin: 0, color: T.text }}>{page.author}</dd>
           </>
         )}
         {page.date && (
           <>
-            <dt style={{ fontFamily: T.mono, fontSize: 'clamp(9.5px, 1.05%, 11px)', letterSpacing: '0.08em', color: T.textDim, textTransform: 'uppercase' as const }}>Published</dt>
+            <dt style={{ fontFamily: T.mono, fontSize: '19px', letterSpacing: '0.08em', color: T.textDim, textTransform: 'uppercase' as const }}>Published</dt>
             <dd style={{ margin: 0, color: T.text }}>{page.date}</dd>
           </>
         )}
         {page.category && (
           <>
-            <dt style={{ fontFamily: T.mono, fontSize: 'clamp(9.5px, 1.05%, 11px)', letterSpacing: '0.08em', color: T.textDim, textTransform: 'uppercase' as const }}>Section</dt>
+            <dt style={{ fontFamily: T.mono, fontSize: '19px', letterSpacing: '0.08em', color: T.textDim, textTransform: 'uppercase' as const }}>Section</dt>
             <dd style={{ margin: 0, color: T.text }}>{page.category}</dd>
           </>
         )}
-        <dt style={{ fontFamily: T.mono, fontSize: 'clamp(9.5px, 1.05%, 11px)', letterSpacing: '0.08em', color: T.textDim, textTransform: 'uppercase' as const }}>Set in</dt>
+        <dt style={{ fontFamily: T.mono, fontSize: '19px', letterSpacing: '0.08em', color: T.textDim, textTransform: 'uppercase' as const }}>Set in</dt>
         <dd style={{ margin: 0, color: T.text }}>Cormorant Garamond &amp; Lora</dd>
       </dl>
       <div style={{ flex: 1.2 }} />
@@ -743,7 +1150,7 @@ const EndPage: React.FC<{ page: Extract<Page, { kind: 'end' }> }> = ({ page }) =
           style={{
             fontFamily: T.display,
             fontWeight: 300,
-            fontSize: 'clamp(48px, 8%, 88px)',
+            fontSize: '108px',
             color: T.gold,
             opacity: 0.55,
             lineHeight: 1,
@@ -756,9 +1163,9 @@ const EndPage: React.FC<{ page: Extract<Page, { kind: 'end' }> }> = ({ page }) =
           style={{
             fontFamily: T.display,
             fontStyle: 'italic',
-            fontSize: 'clamp(15px, 2%, 19px)',
+            fontSize: '30px',
             color: T.textSec,
-            marginTop: 'clamp(14px, 2.2%, 20px)',
+            marginTop: '29.7px',
           }}
         >
           End of <span style={{ color: T.text }}>{page.title}</span>
@@ -766,11 +1173,11 @@ const EndPage: React.FC<{ page: Extract<Page, { kind: 'end' }> }> = ({ page }) =
         <div
           style={{
             fontFamily: T.mono,
-            fontSize: 'clamp(9.5px, 1.05%, 11px)',
+            fontSize: '19px',
             letterSpacing: '0.32em',
             textTransform: 'uppercase',
             color: T.textDim,
-            marginTop: 'clamp(28px, 4%, 38px)',
+            marginTop: '56px',
           }}
         >
           Teajia · Journal
@@ -781,16 +1188,1162 @@ const EndPage: React.FC<{ page: Extract<Page, { kind: 'end' }> }> = ({ page }) =
   </PageFrame>
 );
 
+// ─── New page renderers (block-derived) ──────────────────────────────────────
+
+// Single paragraph rendered with variant-specific typography.
+const ParagraphStyledPage: React.FC<{ page: Extract<Page, { kind: 'paragraph_styled' }> }> = ({ page }) => {
+  const v = page.variant;
+  const baseStyle: React.CSSProperties = {
+    fontFamily: T.body,
+    fontSize: '27px',
+    lineHeight: 1.62,
+    color: T.text,
+    margin: 0,
+  };
+  let extra: React.CSSProperties = {};
+  let firstChar: React.ReactNode = null;
+  let textForRender = page.text;
+
+  if (v === 'justified') extra.textAlign = 'justify';
+  else if (v === 'center') extra.textAlign = 'center';
+
+  if (v === 'drop_cap') {
+    const first = page.text.charAt(0);
+    const rest = page.text.slice(1);
+    textForRender = rest;
+    firstChar = (
+      <span
+        style={{
+          fontFamily: T.display,
+          fontStyle: 'italic',
+          fontWeight: 400,
+          fontSize: '96px',
+          lineHeight: 0.85,
+          color: T.gold,
+          float: 'left',
+          marginRight: '12px',
+          marginTop: '4.1px',
+          opacity: 0.85,
+        }}
+      >
+        {first}
+      </span>
+    );
+  }
+
+  return (
+    <PageFrame>
+      <PageInner>
+        <div
+          style={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: v === 'center' ? 'center' : 'flex-start',
+            paddingTop: v === 'center' ? 0 : '32.4px',
+          }}
+        >
+          <div style={{ maxWidth: v === 'justified' ? '92%' : '100%' }}>
+            <p style={{ ...baseStyle, ...extra }}>
+              {firstChar}
+              {textForRender}
+            </p>
+          </div>
+        </div>
+      </PageInner>
+      <Watermark />
+    </PageFrame>
+  );
+};
+
+// Chapter divider: large numeral, title, optional subtitle.
+const BlockChapterPage: React.FC<{ page: Extract<Page, { kind: 'block_chapter' }> }> = ({ page }) => (
+  <PageFrame>
+    <PageInner>
+      <div style={{ flex: 1 }} />
+      {page.number && (
+        <div
+          style={{
+            fontFamily: T.display,
+            fontWeight: 300,
+            fontSize: '189px',
+            color: T.gold,
+            opacity: 0.55,
+            lineHeight: 1,
+            letterSpacing: '0.04em',
+          }}
+        >
+          {page.number}
+        </div>
+      )}
+      <div aria-hidden="true" style={{ width: 64, height: 1, background: T.border, margin: '36px 0' }} />
+      <h2
+        style={{
+          fontFamily: T.display,
+          fontStyle: 'italic',
+          fontWeight: 400,
+          fontSize: '45.9px',
+          lineHeight: 1.15,
+          color: T.text,
+          margin: 0,
+          maxWidth: '85%',
+        }}
+      >
+        {page.title}
+      </h2>
+      {page.subtitle && (
+        <p
+          style={{
+            fontFamily: T.body,
+            fontStyle: 'italic',
+            fontSize: '26px',
+            color: T.textSec,
+            margin: '20px 0 0',
+            maxWidth: '78%',
+          }}
+        >
+          {page.subtitle}
+        </p>
+      )}
+      <div style={{ flex: 1.4 }} />
+    </PageInner>
+    <Watermark />
+  </PageFrame>
+);
+
+// Q&A page: typically 1-2 question/answer pairs per page.
+const QAPage: React.FC<{ page: Extract<Page, { kind: 'qa' }> }> = ({ page }) => (
+  <PageFrame>
+    <PageInner>
+      <div
+        style={{
+          fontFamily: T.display,
+          fontStyle: 'italic',
+          fontWeight: 400,
+          fontSize: '22px',
+          letterSpacing: '0.04em',
+          color: T.textDim,
+          marginBottom: '29.7px',
+          paddingBottom: '20px',
+          borderBottom: `1px solid ${T.border}`,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'baseline',
+        }}
+      >
+        <span>In Conversation</span>
+        {page.pageTotal > 1 && (
+          <span style={{ fontFamily: T.mono, fontStyle: 'normal', fontSize: '18px' }}>
+            {String(page.pageNum).padStart(2, '0')} / {String(page.pageTotal).padStart(2, '0')}
+          </span>
+        )}
+      </div>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '32.4px', overflow: 'hidden' }}>
+        {page.items.map((item, i) => (
+          <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '13.5px' }}>
+            <div
+              style={{
+                fontFamily: T.display,
+                fontStyle: 'italic',
+                fontSize: '27px',
+                color: T.gold,
+                lineHeight: 1.35,
+                margin: 0,
+              }}
+            >
+              {item.q}
+            </div>
+            <div
+              style={{
+                fontFamily: T.body,
+                fontSize: '26px',
+                color: T.text,
+                lineHeight: 1.6,
+                margin: 0,
+              }}
+            >
+              {item.a}
+            </div>
+          </div>
+        ))}
+      </div>
+    </PageInner>
+    <Watermark />
+  </PageFrame>
+);
+
+// Pull sidebar: title and aside text. Layout flips for left/right; image variant
+// shows a small image above the title.
+const PullSidebarPage: React.FC<{ page: Extract<Page, { kind: 'pull_sidebar' }> }> = ({ page }) => (
+  <PageFrame>
+    <PageInner>
+      {page.side === 'image' && page.image && !isStockImage(page.image) && (
+        <div
+          style={{
+            width: '100%',
+            aspectRatio: '16/9',
+            backgroundImage: `url("${page.image}")`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            marginBottom: '29.7px',
+            borderRadius: 2,
+          }}
+          aria-hidden="true"
+        />
+      )}
+      {page.side === 'image' && page.image && isStockImage(page.image) && (
+        <div
+          aria-hidden="true"
+          style={{
+            width: '100%',
+            aspectRatio: '16/9',
+            marginBottom: '29.7px',
+            borderRadius: 2,
+            border: '1px solid rgba(184,146,78,0.18)',
+            background: 'linear-gradient(135deg, rgba(40,33,26,0.55) 0%, rgba(24,19,14,0.85) 100%)',
+            position: 'relative',
+            overflow: 'hidden',
+          }}
+        >
+          <div
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: '38%',
+              aspectRatio: '1/1',
+              borderRadius: '50%',
+              border: '1px solid rgba(184,146,78,0.32)',
+            }}
+          />
+        </div>
+      )}
+      <div
+        style={{
+          fontFamily: T.display,
+          fontWeight: 500,
+          fontSize: '20px',
+          letterSpacing: '0.32em',
+          textTransform: 'uppercase',
+          color: T.gold,
+          marginBottom: '20px',
+        }}
+      >
+        Aside
+      </div>
+      <h2
+        style={{
+          fontFamily: T.display,
+          fontStyle: 'italic',
+          fontWeight: 400,
+          fontSize: '40px',
+          lineHeight: 1.18,
+          color: T.text,
+          margin: '0 0 24.3px',
+        }}
+      >
+        {page.body}
+      </h2>
+      <p
+        style={{
+          fontFamily: T.body,
+          fontSize: '25px',
+          lineHeight: 1.6,
+          color: T.textSec,
+          margin: 0,
+          flex: 1,
+          overflow: 'hidden',
+        }}
+      >
+        {page.sidebar}
+      </p>
+    </PageInner>
+    <Watermark />
+  </PageFrame>
+);
+
+const EpiloguePage: React.FC<{ page: Extract<Page, { kind: 'epilogue' }> }> = ({ page }) => (
+  <PageFrame>
+    <PageInner>
+      <div style={{ flex: 1 }} />
+      <div
+        aria-hidden="true"
+        style={{
+          fontFamily: T.display,
+          fontSize: '68px',
+          color: T.gold,
+          opacity: 0.45,
+          lineHeight: 0.8,
+          marginBottom: '20px',
+          textAlign: 'center',
+        }}
+      >
+        ⁕
+      </div>
+      <p
+        style={{
+          fontFamily: T.body,
+          fontStyle: 'italic',
+          fontSize: '28px',
+          lineHeight: 1.55,
+          color: T.text,
+          margin: 0,
+          textAlign: 'center',
+          maxWidth: '88%',
+          alignSelf: 'center',
+        }}
+      >
+        {page.text}
+      </p>
+      {page.signature && (
+        <div
+          style={{
+            fontFamily: T.mono,
+            fontSize: '20px',
+            letterSpacing: '0.2em',
+            textTransform: 'uppercase',
+            color: T.textDim,
+            textAlign: 'center',
+            marginTop: '40.5px',
+          }}
+        >
+          {page.signature}
+        </div>
+      )}
+      <div style={{ flex: 1.2 }} />
+    </PageInner>
+    <Watermark />
+  </PageFrame>
+);
+
+const StatPage: React.FC<{ page: Extract<Page, { kind: 'stat' }> }> = ({ page }) => (
+  <PageFrame>
+    <PageInner>
+      <div style={{ flex: 1 }} />
+      <div
+        style={{
+          fontFamily: T.display,
+          fontWeight: 300,
+          fontSize: '189px',
+          color: T.text,
+          lineHeight: 1,
+          letterSpacing: '-0.02em',
+        }}
+      >
+        {page.value}
+      </div>
+      <div
+        style={{
+          fontFamily: T.display,
+          fontStyle: 'italic',
+          fontSize: '32px',
+          color: T.gold,
+          marginTop: '20px',
+          maxWidth: '80%',
+        }}
+      >
+        {page.label}
+      </div>
+      {page.context && (
+        <div
+          style={{
+            fontFamily: T.body,
+            fontSize: '26px',
+            lineHeight: 1.55,
+            color: T.textSec,
+            marginTop: '32.4px',
+            maxWidth: '85%',
+          }}
+        >
+          {page.context}
+        </div>
+      )}
+      <div style={{ flex: 1.4 }} />
+    </PageInner>
+    <Watermark />
+  </PageFrame>
+);
+
+const DefinitionPage: React.FC<{ page: Extract<Page, { kind: 'definition' }> }> = ({ page }) => (
+  <PageFrame>
+    <PageInner>
+      <div style={{ flex: 1 }} />
+      <div
+        style={{
+          fontFamily: T.display,
+          fontWeight: 500,
+          fontSize: '20px',
+          letterSpacing: '0.32em',
+          textTransform: 'uppercase',
+          color: T.gold,
+          marginBottom: '16.2px',
+        }}
+      >
+        Term
+      </div>
+      <h2
+        style={{
+          fontFamily: T.display,
+          fontStyle: 'italic',
+          fontWeight: 400,
+          fontSize: '64.8px',
+          lineHeight: 1.05,
+          color: T.text,
+          margin: 0,
+        }}
+      >
+        {page.term}
+      </h2>
+      {page.etymology && (
+        <div
+          style={{
+            fontFamily: T.mono,
+            fontSize: '20px',
+            color: T.textDim,
+            marginTop: '16.2px',
+            letterSpacing: '0.05em',
+          }}
+        >
+          {page.etymology}
+        </div>
+      )}
+      <div aria-hidden="true" style={{ width: 56, height: 1, background: T.border, margin: '36px 0' }} />
+      <p
+        style={{
+          fontFamily: T.body,
+          fontSize: '27px',
+          lineHeight: 1.6,
+          color: T.text,
+          margin: 0,
+        }}
+      >
+        {page.body}
+      </p>
+      <div style={{ flex: 1.2 }} />
+    </PageInner>
+    <Watermark />
+  </PageFrame>
+);
+
+const RecipePage: React.FC<{ page: Extract<Page, { kind: 'recipe' }> }> = ({ page }) => (
+  <PageFrame>
+    <PageInner>
+      <div
+        style={{
+          fontFamily: T.display,
+          fontWeight: 500,
+          fontSize: '20px',
+          letterSpacing: '0.32em',
+          textTransform: 'uppercase',
+          color: T.gold,
+          marginBottom: '16.2px',
+        }}
+      >
+        Method
+      </div>
+      <h2
+        style={{
+          fontFamily: T.display,
+          fontStyle: 'italic',
+          fontWeight: 400,
+          fontSize: '40px',
+          lineHeight: 1.15,
+          color: T.text,
+          margin: '0 0 28px',
+        }}
+      >
+        {page.title}
+      </h2>
+      <ol
+        style={{
+          fontFamily: T.body,
+          fontSize: '24px',
+          lineHeight: 1.55,
+          color: T.text,
+          margin: 0,
+          padding: 0,
+          listStyle: 'none',
+          flex: 1,
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '14px',
+        }}
+      >
+        {page.steps.map((step, i) => (
+          <li key={i} style={{ display: 'flex', gap: '16.2px', alignItems: 'baseline' }}>
+            <span
+              style={{
+                fontFamily: T.mono,
+                fontSize: '18px',
+                color: T.gold,
+                opacity: 0.7,
+                flexShrink: 0,
+                minWidth: '1.5em',
+                letterSpacing: '0.04em',
+              }}
+            >
+              {String(i + 1).padStart(2, '0')}
+            </span>
+            <span>{step}</span>
+          </li>
+        ))}
+      </ol>
+      {page.pairing && (
+        <div
+          style={{
+            fontFamily: T.body,
+            fontStyle: 'italic',
+            fontSize: '22px',
+            color: T.textDim,
+            marginTop: '24.3px',
+            paddingTop: '20px',
+            borderTop: `1px solid ${T.border}`,
+          }}
+        >
+          Pairs with {page.pairing}
+        </div>
+      )}
+    </PageInner>
+    <Watermark />
+  </PageFrame>
+);
+
+const TastingNotesPage: React.FC<{ page: Extract<Page, { kind: 'tasting_notes' }> }> = ({ page }) => (
+  <PageFrame>
+    <PageInner>
+      <div
+        style={{
+          fontFamily: T.display,
+          fontWeight: 500,
+          fontSize: '20px',
+          letterSpacing: '0.32em',
+          textTransform: 'uppercase',
+          color: T.gold,
+          marginBottom: '28px',
+        }}
+      >
+        Tasting Notes
+      </div>
+      <dl
+        style={{
+          flex: 1,
+          margin: 0,
+          display: 'grid',
+          gridTemplateColumns: '1fr 2fr',
+          columnGap: '28px',
+          rowGap: '24.3px',
+          alignContent: 'flex-start',
+          overflow: 'hidden',
+        }}
+      >
+        {page.items.map((item, i) => (
+          <React.Fragment key={i}>
+            <dt
+              style={{
+                fontFamily: T.display,
+                fontStyle: 'italic',
+                fontSize: '26px',
+                color: T.gold,
+                margin: 0,
+                lineHeight: 1.3,
+              }}
+            >
+              {item.label}
+            </dt>
+            <dd
+              style={{
+                fontFamily: T.body,
+                fontSize: '24px',
+                lineHeight: 1.55,
+                color: T.text,
+                margin: 0,
+              }}
+            >
+              {item.note}
+            </dd>
+          </React.Fragment>
+        ))}
+      </dl>
+    </PageInner>
+    <Watermark />
+  </PageFrame>
+);
+
+const PoemPage: React.FC<{ page: Extract<Page, { kind: 'poem' }> }> = ({ page }) => (
+  <PageFrame>
+    <PageInner>
+      <div style={{ flex: 1 }} />
+      <p
+        style={{
+          fontFamily: T.display,
+          fontStyle: 'italic',
+          fontSize: '30px',
+          lineHeight: 1.55,
+          color: T.text,
+          margin: 0,
+          textAlign: 'center',
+          maxWidth: '85%',
+          alignSelf: 'center',
+          whiteSpace: 'pre-wrap',
+        }}
+      >
+        {page.text}
+      </p>
+      <div style={{ flex: 1.2 }} />
+    </PageInner>
+    <Watermark />
+  </PageFrame>
+);
+
+const MapPage: React.FC<{ page: Extract<Page, { kind: 'map' }> }> = ({ page }) => (
+  <PageFrame>
+    <PageInner>
+      <div style={{ flex: 1 }} />
+      <div
+        style={{
+          fontFamily: T.display,
+          fontWeight: 500,
+          fontSize: '20px',
+          letterSpacing: '0.32em',
+          textTransform: 'uppercase',
+          color: T.gold,
+          marginBottom: '20px',
+        }}
+      >
+        Region
+      </div>
+      {page.caption && (
+        <h2
+          style={{
+            fontFamily: T.display,
+            fontStyle: 'italic',
+            fontWeight: 400,
+            fontSize: '40px',
+            lineHeight: 1.15,
+            color: T.text,
+            margin: '0 0 36px',
+          }}
+        >
+          {page.caption}
+        </h2>
+      )}
+      <ul
+        style={{
+          fontFamily: T.body,
+          fontSize: '27px',
+          lineHeight: 1.7,
+          color: T.text,
+          margin: 0,
+          padding: 0,
+          listStyle: 'none',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '8.1px',
+        }}
+      >
+        {page.locations.map((loc, i) => (
+          <li key={i} style={{ display: 'flex', alignItems: 'baseline', gap: '20px' }}>
+            <span style={{ fontFamily: T.mono, fontSize: '18px', color: T.gold, opacity: 0.7, minWidth: '1.6em', letterSpacing: '0.05em' }}>
+              {String(i + 1).padStart(2, '0')}
+            </span>
+            <span>{loc}</span>
+          </li>
+        ))}
+      </ul>
+      <div style={{ flex: 1.6 }} />
+    </PageInner>
+    <Watermark />
+  </PageFrame>
+);
+
+const ListPage: React.FC<{ page: Extract<Page, { kind: 'list' }> }> = ({ page }) => (
+  <PageFrame>
+    <PageInner>
+      <div
+        style={{
+          fontFamily: T.display,
+          fontWeight: 500,
+          fontSize: '20px',
+          letterSpacing: '0.32em',
+          textTransform: 'uppercase',
+          color: T.gold,
+          marginBottom: '16.2px',
+        }}
+      >
+        {page.variant === 'timeline' ? 'Timeline' : 'Checklist'}
+      </div>
+      {page.title && (
+        <h2
+          style={{
+            fontFamily: T.display,
+            fontStyle: 'italic',
+            fontWeight: 400,
+            fontSize: '40px',
+            lineHeight: 1.15,
+            color: T.text,
+            margin: '0 0 32.4px',
+          }}
+        >
+          {page.title}
+        </h2>
+      )}
+      <ul
+        style={{
+          fontFamily: T.body,
+          fontSize: '26px',
+          lineHeight: 1.55,
+          color: T.text,
+          margin: 0,
+          padding: 0,
+          listStyle: 'none',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '16.2px',
+          flex: 1,
+          overflow: 'hidden',
+        }}
+      >
+        {page.items.map((item, i) => (
+          <li key={i} style={{ display: 'flex', alignItems: 'baseline', gap: '20px' }}>
+            <span
+              aria-hidden="true"
+              style={{
+                width: 12,
+                height: 12,
+                border: `1px solid ${T.gold}`,
+                borderRadius: page.variant === 'timeline' ? '50%' : 0,
+                opacity: 0.5,
+                flexShrink: 0,
+                marginTop: 4,
+              }}
+            />
+            <span>{item}</span>
+          </li>
+        ))}
+      </ul>
+    </PageInner>
+    <Watermark />
+  </PageFrame>
+);
+
+// Embed page: shows a static thumbnail + caption. Embed rendering on Instagram
+// shares becomes a still image with a play-icon overlay; on the live reader we
+// could lazy-load the actual iframe but for shareability the still is correct.
+const EmbedPage: React.FC<{ page: Extract<Page, { kind: 'embed' }> }> = ({ page }) => {
+  // Real video thumbnails will go here once Cloudinary/real externalIds are
+  // wired in. For now: typographic plate with a play affordance — no stock
+  // YouTube thumbnail.
+  return (
+    <PageFrame>
+      <div
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          inset: 0,
+          background: `
+            radial-gradient(ellipse 80% 60% at 50% 30%, rgba(184,146,78,0.08) 0%, transparent 65%),
+            linear-gradient(180deg, rgba(40,33,26,0.4) 0%, rgba(24,19,14,0.85) 100%)
+          `,
+        }}
+      />
+      {/* concentric ring ornament behind the play icon */}
+      <div
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          top: '38%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: '52%',
+          aspectRatio: '1/1',
+          borderRadius: '50%',
+          border: '1px solid rgba(184,146,78,0.18)',
+        }}
+      />
+      <div
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          top: '38%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: '34%',
+          aspectRatio: '1/1',
+          borderRadius: '50%',
+          border: '1px solid rgba(184,146,78,0.28)',
+        }}
+      />
+      <PageInner>
+        <div style={{ flex: 1 }} />
+        <div
+          aria-hidden="true"
+          style={{
+            alignSelf: 'center',
+            width: '96px',
+            height: '96px',
+            borderRadius: '50%',
+            border: `1.5px solid ${T.gold}`,
+            background: 'rgba(24,19,14,0.4)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            position: 'relative',
+            zIndex: 2,
+          }}
+        >
+          <span style={{ marginLeft: 4, color: T.gold, fontSize: '36px', lineHeight: 1 }}>▶</span>
+        </div>
+        <div style={{ flex: 1 }} />
+        <div style={{ position: 'relative', zIndex: 2 }}>
+          {page.caption && (
+            <div
+              style={{
+                fontFamily: T.display,
+                fontStyle: 'italic',
+                fontSize: '32px',
+                lineHeight: 1.25,
+                color: T.text,
+                margin: 0,
+                marginBottom: '16px',
+              }}
+            >
+              {page.caption}
+            </div>
+          )}
+          {page.description && (
+            <div
+              style={{
+                fontFamily: T.body,
+                fontSize: '24px',
+                lineHeight: 1.5,
+                color: T.textSec,
+              }}
+            >
+              {page.description}
+            </div>
+          )}
+          <div
+            style={{
+              fontFamily: T.mono,
+              fontSize: '19px',
+              letterSpacing: '0.2em',
+              textTransform: 'uppercase',
+              color: T.textDim,
+              marginTop: '20px',
+            }}
+          >
+            {page.platform === 'youtube' ? 'Video on YouTube' : 'Video on Instagram'}
+          </div>
+        </div>
+      </PageInner>
+      <Watermark />
+    </PageFrame>
+  );
+};
+
+const BackMatterPage: React.FC<{ page: Extract<Page, { kind: 'back_matter' }> }> = ({ page }) => (
+  <PageFrame>
+    <PageInner>
+      <div style={{ flex: 1 }} />
+      <div
+        style={{
+          fontFamily: T.display,
+          fontWeight: 500,
+          fontSize: '20px',
+          letterSpacing: '0.32em',
+          textTransform: 'uppercase',
+          color: T.gold,
+          marginBottom: '28px',
+          textAlign: 'center',
+        }}
+      >
+        {page.variant === 'dedication' ? 'Dedication' : 'Colophon'}
+      </div>
+      <div
+        style={{
+          fontFamily: T.body,
+          fontStyle: page.variant === 'dedication' ? 'italic' : 'normal',
+          fontSize: '24px',
+          lineHeight: 1.7,
+          color: T.textSec,
+          textAlign: 'center',
+          alignSelf: 'center',
+          maxWidth: '88%',
+        }}
+      >
+        {page.lines.map((line, i) => (
+          <div key={i}>{line}</div>
+        ))}
+      </div>
+      <div style={{ flex: 1.4 }} />
+    </PageInner>
+    <Watermark />
+  </PageFrame>
+);
+
+// ─── Image variants — extend ImagePage to handle multi-image layouts ─────────
+const MultiImagePage: React.FC<{ page: Extract<Page, { kind: 'image' }> }> = ({ page }) => {
+  const variant = page.variant;
+  const imgs = page.images ?? (page.url ? [page.url] : []);
+  if (!imgs.length) return null;
+
+  // Stock placeholder → render typographic plate with the variant's geometric
+  // ornament. Real photography (non-Unsplash URLs) takes the original path.
+  const allStock = imgs.every(isStockImage);
+  if (allStock) {
+    const ornamentMap: Record<string, PlateProps['ornament']> = {
+      split_vertical: 'split',
+      film_strip: 'strip',
+      polaroid_scatter: 'scatter',
+      circle_mask: 'circle',
+      arch_mask: 'arch',
+      full_bleed: 'square',
+      caption_bottom: 'square',
+    };
+    const ornament = ornamentMap[variant ?? ''] ?? 'square';
+    return (
+      <PageFrame>
+        <Plate
+          kicker="Plate"
+          caption={page.caption || page.alt}
+          ornament={ornament}
+          index={imgs[0]?.length ?? 0}
+        />
+        <Watermark />
+      </PageFrame>
+    );
+  }
+
+  // split_vertical: two images side-by-side
+  if (variant === 'split_vertical') {
+    return (
+      <PageFrame>
+        <PageInner padded={false}>
+          <div style={{ flex: 1, display: 'flex' }}>
+            {imgs.slice(0, 2).map((url, i) => (
+              <div
+                key={i}
+                style={{
+                  flex: 1,
+                  backgroundImage: `url("${url}")`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  borderRight: i === 0 ? `1px solid ${T.bg}` : 'none',
+                }}
+                aria-hidden="true"
+              />
+            ))}
+          </div>
+          {page.caption && (
+            <div
+              style={{
+                padding: '27px 60.8px',
+                fontFamily: T.mono,
+                fontSize: '20px',
+                color: T.textDim,
+                background: T.bg,
+                borderTop: `1px solid ${T.border}`,
+              }}
+            >
+              {page.caption}
+            </div>
+          )}
+        </PageInner>
+        <Watermark />
+      </PageFrame>
+    );
+  }
+
+  // film_strip: vertical sequence of images with thin gaps
+  if (variant === 'film_strip') {
+    return (
+      <PageFrame>
+        <PageInner padded={false}>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 1, padding: '27px' }}>
+            {imgs.slice(0, 4).map((url, i) => (
+              <div
+                key={i}
+                style={{
+                  flex: 1,
+                  backgroundImage: `url("${url}")`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  filter: 'saturate(0.85) brightness(0.92)',
+                }}
+                aria-hidden="true"
+              />
+            ))}
+          </div>
+        </PageInner>
+        <Watermark />
+      </PageFrame>
+    );
+  }
+
+  // polaroid_scatter: 3-4 images at slight rotations
+  if (variant === 'polaroid_scatter') {
+    const rotations = ['-3deg', '2deg', '-1.5deg', '4deg'];
+    return (
+      <PageFrame>
+        <PageInner>
+          <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+            {imgs.slice(0, 4).map((url, i) => {
+              const positions: React.CSSProperties[] = [
+                { top: '8%', left: '6%' },
+                { top: '12%', right: '6%' },
+                { bottom: '14%', left: '10%' },
+                { bottom: '8%', right: '8%' },
+              ];
+              return (
+                <div
+                  key={i}
+                  aria-hidden="true"
+                  style={{
+                    position: 'absolute',
+                    width: '46%',
+                    aspectRatio: '4/5',
+                    background: '#fff',
+                    padding: '13.5px 13.5px 40.5px',
+                    boxShadow: '0 6px 16px rgba(0,0,0,0.5)',
+                    transform: `rotate(${rotations[i]})`,
+                    ...positions[i],
+                  }}
+                >
+                  <div
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      backgroundImage: `url("${url}")`,
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                    }}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </PageInner>
+        <Watermark />
+      </PageFrame>
+    );
+  }
+
+  // circle_mask: image rendered inside a circle, centered
+  if (variant === 'circle_mask') {
+    return (
+      <PageFrame>
+        <PageInner>
+          <div style={{ flex: 1 }} />
+          <div
+            aria-hidden="true"
+            style={{
+              alignSelf: 'center',
+              width: '72%',
+              aspectRatio: '1/1',
+              borderRadius: '50%',
+              backgroundImage: `url("${imgs[0]}")`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              boxShadow: '0 12px 32px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(200,170,120,0.15)',
+            }}
+          />
+          {page.caption && (
+            <div
+              style={{
+                fontFamily: T.mono,
+                fontSize: '20px',
+                color: T.textDim,
+                textAlign: 'center',
+                marginTop: '36px',
+                letterSpacing: '0.04em',
+              }}
+            >
+              {page.caption}
+            </div>
+          )}
+          <div style={{ flex: 1 }} />
+        </PageInner>
+        <Watermark />
+      </PageFrame>
+    );
+  }
+
+  // arch_mask: image inside arched (top-rounded) frame
+  if (variant === 'arch_mask') {
+    return (
+      <PageFrame>
+        <PageInner>
+          <div style={{ flex: 1 }} />
+          <div
+            aria-hidden="true"
+            style={{
+              alignSelf: 'center',
+              width: '78%',
+              aspectRatio: '3/4',
+              borderRadius: '50% 50% 4px 4px / 30% 30% 4px 4px',
+              backgroundImage: `url("${imgs[0]}")`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              boxShadow: '0 12px 32px rgba(0,0,0,0.4)',
+            }}
+          />
+          {page.caption && (
+            <div
+              style={{
+                fontFamily: T.mono,
+                fontSize: '20px',
+                color: T.textDim,
+                textAlign: 'center',
+                marginTop: '28px',
+                letterSpacing: '0.04em',
+              }}
+            >
+              {page.caption}
+            </div>
+          )}
+          <div style={{ flex: 0.6 }} />
+        </PageInner>
+        <Watermark />
+      </PageFrame>
+    );
+  }
+
+  // Default: full-bleed (existing ImagePage handles this)
+  return <ImagePage page={page} />;
+};
+
+// ─── Dispatcher ──────────────────────────────────────────────────────────────
+
 const PageDispatch: React.FC<{ page: Page }> = ({ page }) => {
   switch (page.kind) {
-    case 'cover':    return <CoverPage page={page} />;
-    case 'masthead': return <MastheadPage page={page} />;
-    case 'body':     return <BodyPage page={page} />;
-    case 'section':  return <SectionPage page={page} />;
-    case 'quote':    return <QuotePage page={page} />;
-    case 'image':    return <ImagePage page={page} />;
-    case 'colophon': return <ColophonPage page={page} />;
-    case 'end':      return <EndPage page={page} />;
+    // Synthetic
+    case 'cover':           return <CoverPage page={page} />;
+    case 'masthead':        return <MastheadPage page={page} />;
+    case 'colophon':        return <ColophonPage page={page} />;
+    case 'end':             return <EndPage page={page} />;
+    // Original kinds, kept as fallbacks (synthetic body never created now)
+    case 'body':            return <BodyPage page={page} />;
+    case 'section':         return <SectionPage page={page} />;
+    case 'quote':           return <QuotePage page={page} />;
+    case 'image':           return <MultiImagePage page={page} />;
+    // New block-derived kinds
+    case 'paragraph_styled':return <ParagraphStyledPage page={page} />;
+    case 'block_cover':     return <CoverPage page={{ kind: 'cover', title: page.title, subtitle: page.subtitle, coverImage: page.image, mark: '茶' }} />;
+    case 'block_chapter':   return <BlockChapterPage page={page} />;
+    case 'qa':              return <QAPage page={page} />;
+    case 'pull_sidebar':    return <PullSidebarPage page={page} />;
+    case 'epilogue':        return <EpiloguePage page={page} />;
+    case 'stat':            return <StatPage page={page} />;
+    case 'definition':      return <DefinitionPage page={page} />;
+    case 'recipe':          return <RecipePage page={page} />;
+    case 'tasting_notes':   return <TastingNotesPage page={page} />;
+    case 'poem':            return <PoemPage page={page} />;
+    case 'map':             return <MapPage page={page} />;
+    case 'list':            return <ListPage page={page} />;
+    case 'embed':           return <EmbedPage page={page} />;
+    case 'back_matter':     return <BackMatterPage page={page} />;
   }
 };
 
@@ -852,31 +2405,54 @@ export default function ArticlePage() {
   const pages = useMemo(() => (article ? buildPages(article) : []), [article]);
   const total = pages.length;
 
-  const [current, setCurrent] = useState(0);
-  const trackRef = useRef<HTMLDivElement>(null);
+  // Read the restored page index synchronously so we don't start at 0 and
+  // then jump (which causes the scroll-snap engine to animate across pages).
+  const initialPage = useMemo(() => {
+    if (!article) return 0;
+    const saved = localStorage.getItem(`teajia_article_${article.id}`);
+    if (!saved) return 0;
+    const n = parseInt(saved, 10);
+    return isNaN(n) || n <= 0 ? 0 : n;
+  }, [article]);
 
-  // Restore reading progress
+  const [current, setCurrent] = useState(initialPage);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const restoredRef = useRef(false);
+
+  // Sync state with the restored value when the article first loads.
   useEffect(() => {
     if (!article) return;
-    const saved = localStorage.getItem(`teajia_article_${article.id}`);
-    if (saved) {
-      const n = parseInt(saved, 10);
-      if (!isNaN(n) && n > 0 && n < total) setCurrent(n);
-    }
-  }, [article, total]);
+    setCurrent(initialPage);
+    restoredRef.current = false;
+  }, [article, initialPage]);
 
   useEffect(() => {
     if (!article) return;
     localStorage.setItem(`teajia_article_${article.id}`, String(current));
   }, [current, article]);
 
-  // After pages mount, snap track to restored position (no smooth scroll on first paint)
-  useEffect(() => {
+  // Restore scroll position synchronously, BEFORE the browser paints, with
+  // scroll-snap temporarily disabled so the jump is instant and silent.
+  // Runs once per article load (guarded by restoredRef).
+  useLayoutEffect(() => {
     const el = trackRef.current;
-    if (!el || total === 0) return;
-    el.scrollTo({ left: current * el.clientWidth, behavior: 'auto' });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [total]);
+    if (!el || total === 0 || restoredRef.current) return;
+    if (initialPage <= 0 || initialPage >= total) {
+      restoredRef.current = true;
+      return;
+    }
+    const prevSnap = el.style.scrollSnapType;
+    const prevBehavior = el.style.scrollBehavior;
+    el.style.scrollSnapType = 'none';
+    el.style.scrollBehavior = 'auto';
+    el.scrollLeft = initialPage * el.clientWidth;
+    // Re-enable snap on the next frame so the user's subsequent swipes work.
+    requestAnimationFrame(() => {
+      el.style.scrollSnapType = prevSnap || 'x mandatory';
+      el.style.scrollBehavior = prevBehavior;
+      restoredRef.current = true;
+    });
+  }, [total, initialPage]);
 
   const scrollTo = useCallback((n: number) => {
     const el = trackRef.current;

@@ -122,11 +122,110 @@ interface StoryImageProps {
   style?: React.CSSProperties;
 }
 
+// Stock placeholders (Unsplash) are detected here too; they get replaced
+// with a typographic card surface so previews stay on-brand. When real
+// photography arrives, the original image path renders normally.
+function isStockImage(url?: string | null): boolean {
+  if (!url) return false;
+  return /images\.unsplash\.com|source\.unsplash\.com/i.test(url);
+}
+
+// Small ornamental surface used in card previews when no real photo exists.
+// Lighter than the full-page Plate component used inside articles; tuned
+// for thumbnail scale.
+function CardOrnament({ seed = 0 }: { seed?: number }) {
+  const variant = seed % 4;
+  return (
+    <div
+      aria-hidden="true"
+      className="absolute inset-0"
+      style={{
+        background: `
+          radial-gradient(ellipse 90% 60% at 30% 20%, rgba(184,146,78,0.08) 0%, transparent 65%),
+          linear-gradient(135deg, rgba(40,33,26,0.7) 0%, rgba(24,19,14,0.92) 100%)
+        `,
+      }}
+    >
+      {variant === 0 && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: '54%',
+            aspectRatio: '1/1',
+            borderRadius: '50%',
+            border: '1px solid rgba(184,146,78,0.32)',
+          }}
+        />
+      )}
+      {variant === 1 && (
+        <>
+          <div style={{ position: 'absolute', top: '18%', left: '18%', right: '18%', bottom: '18%', border: '1px solid rgba(184,146,78,0.28)' }} />
+          <div style={{ position: 'absolute', top: '42%', left: '42%', right: '42%', bottom: '42%', background: 'rgba(184,146,78,0.18)' }} />
+        </>
+      )}
+      {variant === 2 && (
+        <div
+          style={{
+            position: 'absolute',
+            bottom: '12%',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: '54%',
+            aspectRatio: '3/4',
+            borderRadius: '50% 50% 2px 2px / 35% 35% 2px 2px',
+            border: '1px solid rgba(184,146,78,0.32)',
+            borderBottom: 'none',
+          }}
+        />
+      )}
+      {variant === 3 && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%) rotate(45deg)',
+            width: '44%',
+            aspectRatio: '1/1',
+            border: '1px solid rgba(184,146,78,0.32)',
+          }}
+        />
+      )}
+      {/* fine grain */}
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          opacity: 0.06,
+          mixBlendMode: 'overlay',
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
+          backgroundSize: '120px',
+        }}
+      />
+    </div>
+  );
+}
+
 function StoryImage({ src, aspectRatio = '3/4', className = '', style }: StoryImageProps) {
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState(false);
-  const hasImg = src && !error;
 
+  // Stock placeholder → render an ornament instead of fetching the photo.
+  // Pseudo-stable seed from the URL string so the same card always shows
+  // the same ornament variant (no shuffle on re-renders).
+  if (isStockImage(src)) {
+    const seed = src ? src.split('').reduce((a, c) => a + c.charCodeAt(0), 0) : 0;
+    return (
+      <div className={`relative overflow-hidden ${className}`} style={{ aspectRatio, ...style }}>
+        <CardOrnament seed={seed} />
+      </div>
+    );
+  }
+
+  const hasImg = src && !error;
   return (
     <div className={`relative overflow-hidden ${className}`} style={{ aspectRatio, ...style }}>
       {hasImg ? (
@@ -402,8 +501,11 @@ function OffsetInset({ stories, onCardClick }: { stories: FeedItem[]; onCardClic
           {/* Floated image inset */}
           <div style={{ float: 'right', width: 100, height: 130, marginLeft: 18, marginBottom: 8, position: 'relative' }}>
             <div className="w-full h-full relative overflow-hidden rounded-sm" style={{ background: PH_GRADIENT }}>
-              {story.thumbnailUrl && (
+              {story.thumbnailUrl && !isStockImage(story.thumbnailUrl) && (
                 <img src={story.thumbnailUrl} alt="" loading="lazy" className="w-full h-full object-cover" />
+              )}
+              {story.thumbnailUrl && isStockImage(story.thumbnailUrl) && (
+                <CardOrnament seed={story.thumbnailUrl.length} />
               )}
             </div>
             <div
@@ -629,48 +731,17 @@ export const MagazineTabbed: React.FC<MagazineTabbedProps> = ({
     localStorage.setItem('teajia.browse.style', s);
   };
 
-  // Merge DB articles (newest first) + code articles into a unified FeedItem list.
-  // DB articles appear first when present; code articles follow.
-  const allPublished = useMemo(() => {
-    const codeItems: FeedItem[] = stories
-      .filter(s => s.status === 'published')
-      .map(s => ({
-        id: s.id,
-        title: s.title,
-        subtitle: s.subtitle,
-        thumbnailUrl: s.thumbnailUrl,
-        durationOrTime: s.durationOrTime,
-        category: s.category,
-        type: s.type,
-        status: 'published' as const,
-        author: s.author,
-        publishedDate: s.publishedDate,
-      }));
-
+  // Magazine listing now sources exclusively from DB articles.
+  // The legacy code-defined Story system has been retired; see
+  // docs/ARTICLE_UNIFICATION_PLAN.md.
+  const allPublished = useMemo<FeedItem[]>(() => {
     const dbItems: FeedItem[] = dbArticles.map(dbArticleToFeedItem);
-
-    // Sort DB articles newest-first, then append code articles (already ordered externally)
-    const sortedDb = [...dbItems].sort((a, b) => {
+    return [...dbItems].sort((a, b) => {
       if (a.publishedDate && b.publishedDate)
         return new Date(b.publishedDate).getTime() - new Date(a.publishedDate).getTime();
       return 0;
     });
-
-    // Deduplicate: skip code items whose id clashes with a DB article id
-    const dbIds = new Set(dbItems.map(i => i.id));
-    const filteredCode = codeItems.filter(i => !dbIds.has(i.id));
-
-    // Sort code items newest-first as well
-    const sortedCode = filteredCode.sort((a, b) => {
-      if (a.publishedDate && b.publishedDate)
-        return new Date(b.publishedDate).getTime() - new Date(a.publishedDate).getTime();
-      if (a.publishedDate) return -1;
-      if (b.publishedDate) return 1;
-      return 0;
-    });
-
-    return [...sortedDb, ...sortedCode];
-  }, [stories, dbArticles]);
+  }, [dbArticles]);
 
   // Unique filter pill labels derived from content
   const filterTypes = useMemo(() => {
@@ -685,20 +756,7 @@ export const MagazineTabbed: React.FC<MagazineTabbedProps> = ({
   }, [allPublished, filter]);
 
   const handleCardClick = (item: FeedItem) => {
-    if (item.isDbArticle && item.slug) {
-      // DB articles navigate to a dedicated page — no overlay
-      navigate(`/article/${item.slug}`);
-      return;
-    }
-    // Code-defined stories go through the existing overlay viewer.
-    // Look up the full original Story (with content/gallery) — FeedItem strips those fields.
-    const original = stories.find(s => s.id === item.id);
-    if (!original) return;
-    setTransitioning(true);
-    setTimeout(() => {
-      setTransitioning(false);
-      onCardClick(original);
-    }, 350);
+    if (item.slug) navigate(`/article/${item.slug}`);
   };
 
   const FEEDS: Record<CardStyle, React.FC<{ stories: FeedItem[]; onCardClick: (s: FeedItem) => void }>> = {

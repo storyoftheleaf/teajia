@@ -19,6 +19,7 @@ interface MemberViewProps {
   user: { name?: string; email: string } | null;
   avatarDataUrl: string | null;
   onAvatarClick: () => void;
+  roleBadgeLabel?: string | null;
 
   journey?: {
     hasLinkedCustomer: boolean;
@@ -93,6 +94,7 @@ export const MemberView: React.FC<MemberViewProps> = ({
   user,
   avatarDataUrl,
   onAvatarClick,
+  roleBadgeLabel,
   journey,
   journalLastAt,
   journalLastTea,
@@ -143,11 +145,11 @@ export const MemberView: React.FC<MemberViewProps> = ({
 
   return (
     <div>
-      {/* ── Identity — demoted to a small corner mark ─────────────────── */}
-      <div className="px-6 pt-5 pb-0 flex justify-end">
+      {/* ── Identity — name + role so the member sees they're in their own account ── */}
+      <div className="px-6 pt-5 pb-0 flex items-center gap-3">
         <button
           onClick={onAvatarClick}
-          className="w-11 h-11 rounded-full bg-tea-gold/10 flex items-center justify-center border border-tea-border overflow-hidden"
+          className="w-11 h-11 rounded-full bg-tea-gold/10 flex items-center justify-center border border-tea-border overflow-hidden shrink-0"
           title={user?.name || user?.email || 'Change photo'}
           aria-label="Change photo"
           style={{ WebkitTapHighlightColor: 'transparent' }}
@@ -160,6 +162,19 @@ export const MemberView: React.FC<MemberViewProps> = ({
             </span>
           )}
         </button>
+        {user && (
+          <div className="flex-1 min-w-0">
+            <div
+              className="text-[15px] text-tea-text leading-tight truncate"
+              style={{ fontFamily: 'var(--font-display)', fontWeight: 400 }}
+            >
+              {user.name || user.email}
+            </div>
+            <div className="text-[11px] uppercase tracking-[0.12em] text-tea-gold mt-0.5">
+              {roleBadgeLabel || 'Member'}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── Frontispiece — one editorial line of current state ────────── */}

@@ -30,13 +30,14 @@ import {
 /* ------------------------------------------------------------------ */
 
 export const GhostTextarea = ({
-  value, onSave, className = '', placeholder = '', rows = 3,
+  value, onSave, className = '', placeholder = '', rows = 3, ariaLabel,
 }: {
   value: string;
   onSave: (val: string) => void;
   className?: string;
   placeholder?: string;
   rows?: number;
+  ariaLabel?: string;
 }) => {
   const [localValue, setLocalValue] = useState(value);
   const [justSaved, setJustSaved] = useState(false);
@@ -56,12 +57,18 @@ export const GhostTextarea = ({
   return (
     <textarea
       ref={textareaRef}
+      aria-label={ariaLabel}
       value={localValue || ''}
       onChange={(e) => setLocalValue(e.target.value)}
       onBlur={handleBlur}
       placeholder={placeholder}
       rows={rows}
-      className={`w-full bg-transparent border border-dashed border-tea-accent-sub focus:border-solid focus:border-tea-accent-sub focus:bg-tea-gold/[0.06] rounded-md py-1.5 px-2 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-all resize-none text-xs leading-relaxed whitespace-pre-line placeholder-tea-text-dim/70 min-h-[80px] overflow-hidden ${justSaved ? '!text-tea-gold' : ''} ${className}`}
+      autoComplete="off"
+      autoCorrect="off"
+      spellCheck={false}
+      data-1p-ignore
+      data-lpignore="true"
+      className={`w-full bg-transparent border border-dashed border-tea-accent-sub focus:border-solid focus:border-tea-accent-sub focus:bg-tea-gold/[0.06] rounded-md py-1.5 px-2 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-all resize-none text-xs leading-relaxed whitespace-pre-line placeholder-tea-text-dim min-h-[80px] overflow-hidden ${justSaved ? '!text-tea-gold' : ''} ${className}`}
     />
   );
 };
@@ -103,7 +110,13 @@ export const GhostInput = ({
       onKeyDown={handleKeyDown}
       placeholder={placeholder}
       inputMode={inputMode || (type === 'number' ? 'decimal' : undefined) as any}
-      className={`w-full bg-transparent border-b border-dashed border-tea-accent-sub focus:border-solid focus:border-tea-accent-sub focus:bg-tea-gold/[0.06] rounded-none py-0 px-0 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-all text-${align} placeholder-tea-text-dim/70 leading-none ${justSaved ? '!text-tea-gold' : ''} ${className}`}
+      autoComplete="off"
+      autoCorrect="off"
+      autoCapitalize="off"
+      spellCheck={false}
+      data-1p-ignore
+      data-lpignore="true"
+      className={`w-full bg-transparent border-b border-dashed border-tea-accent-sub focus:border-solid focus:border-tea-accent-sub focus:bg-tea-gold/[0.06] rounded-none py-0 px-0 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-all text-${align} placeholder-tea-text-dim leading-none ${justSaved ? '!text-tea-gold' : ''} ${className}`}
     />
   );
 };
@@ -147,17 +160,18 @@ export const GhostAutocompleteInput = ({
         itemData={itemData}
         onSelect={handleSelect}
         placeholder={placeholder}
-        className={`w-full bg-transparent border-b border-dashed border-tea-accent-sub focus:border-solid focus:border-tea-accent-sub focus:bg-tea-gold/[0.06] rounded-none py-0 px-0 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-all text-right placeholder-tea-text-dim/70 leading-none ${justSaved ? '!text-tea-gold' : ''} ${className}`}
+        className={`w-full bg-transparent border-b border-dashed border-tea-accent-sub focus:border-solid focus:border-tea-accent-sub focus:bg-tea-gold/[0.06] rounded-none py-0 px-0 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-all text-right placeholder-tea-text-dim leading-none ${justSaved ? '!text-tea-gold' : ''} ${className}`}
       />
     </div>
   );
 };
 
-export const GhostSelect = ({ value, onSave, options, className = '' }: {
-  value: string; onSave: (val: string) => void; options: string[]; className?: string;
+export const GhostSelect = ({ value, onSave, options, className = '', ariaLabel }: {
+  value: string; onSave: (val: string) => void; options: string[]; className?: string; ariaLabel?: string;
 }) => (
   <div className="relative flex-1">
     <select
+      aria-label={ariaLabel}
       value={value}
       onChange={(e) => onSave(e.target.value)}
       className={`w-full bg-transparent border-b border-dashed border-tea-accent-sub focus:border-solid focus:border-tea-accent-sub focus:bg-tea-gold/[0.06] rounded-none py-0 px-0 pr-4 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-all text-right appearance-none cursor-pointer leading-none ${className}`}
@@ -166,7 +180,7 @@ export const GhostSelect = ({ value, onSave, options, className = '' }: {
         <option key={opt} value={opt} className="bg-tea-surface text-tea-text">{opt}</option>
       ))}
     </select>
-    <ChevronRight size={10} className="absolute right-0 top-1/2 -translate-y-1/2 rotate-90 text-tea-text-sec pointer-events-none" />
+    <ChevronRight size={10} aria-hidden="true" className="absolute right-0 top-1/2 -translate-y-1/2 rotate-90 text-tea-text-sec pointer-events-none" />
   </div>
 );
 
@@ -237,6 +251,12 @@ export const VendorPicker = ({ value, onChange, productId, className }: {
         onFocus={() => setOpen(true)}
         onBlur={() => { setTimeout(() => handleSelectVendor(query.trim()), 150); }}
         onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleSelectVendor(query.trim()); } }}
+        autoComplete="off"
+        autoCorrect="off"
+        autoCapitalize="off"
+        spellCheck={false}
+        data-1p-ignore
+        data-lpignore="true"
         className={className}
         placeholder="Type or pick a source..."
       />
@@ -271,9 +291,9 @@ export const CollapsibleSection = ({ title, defaultOpen = true, mobileDefault, c
   });
   return (
     <div className="mx-3 mb-3 rounded-lg bg-tea-surface">
-      <button onClick={() => setOpen(!open)} className="w-full flex items-center justify-between px-4 py-3 group">
-        <span className="text-[10px] text-tea-text-sec uppercase tracking-[0.12em] font-bold">{title}</span>
-        <ChevronRight size={13} className={`text-tea-text-dim/60 transition-transform duration-200 group-hover:text-tea-text-sec ${open ? 'rotate-90' : ''}`} />
+      <button onClick={() => setOpen(!open)} aria-expanded={open} className="w-full flex items-center justify-between px-4 py-3 group">
+        <span className="text-xs font-serif italic text-tea-text-sec group-hover:text-tea-text transition-colors">{title}</span>
+        <ChevronRight size={13} aria-hidden="true" className={`text-tea-text-dim transition-transform duration-200 group-hover:text-tea-text-sec ${open ? 'rotate-90' : ''}`} />
       </button>
       <div className="grid transition-[grid-template-rows] duration-200 ease-out" style={{ gridTemplateRows: open ? '1fr' : '0fr' }}>
         <div className="overflow-hidden">
@@ -322,29 +342,29 @@ export const ImageManager = ({ product, onUpdate }: {
     }
   };
 
-  const slotLabels = ['Primary', '2nd', '3rd'];
+  const slotLabels = ['Primary', 'Second', 'Third'];
   return (
-    <div className="flex gap-3">
+    <div className="flex gap-2">
       {images.map((img, i) => (
-        <div key={i} className="flex flex-col items-center gap-1.5">
+        <div key={i} className="flex-1 aspect-square relative group">
           {img ? (
-            <div className="w-24 h-24 rounded-lg overflow-hidden relative group">
-              <img src={img} alt={slotLabels[i]} className="w-full h-full object-cover" loading="lazy" />
+            <>
+              <img src={img} alt={slotLabels[i]} className="w-full h-full object-cover rounded-md" loading="lazy" />
+              <span aria-hidden="true" className="absolute top-1 left-1 w-4 h-4 rounded-full bg-tea-bg/80 text-tea-text-dim text-[10px] font-serif tabular-nums flex items-center justify-center">{i + 1}</span>
               {justUploadedSlot === i ? (
-                <div className="absolute inset-0 bg-tea-bg/70 flex items-center justify-center pointer-events-none">
-                  <Check size={22} className="text-tea-gold" />
+                <div className="absolute inset-0 rounded-md bg-tea-bg/70 flex items-center justify-center pointer-events-none">
+                  <Check size={20} className="text-tea-gold" aria-hidden="true" />
                 </div>
               ) : (
-                <button onClick={() => handleRemove(i)}
+                <button
+                  onClick={() => handleRemove(i)}
                   aria-label={`Remove ${slotLabels[i].toLowerCase()} image`}
-                  className="absolute inset-0 bg-tea-bg/70 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity flex items-center justify-center">
+                  className="absolute inset-0 rounded-md bg-tea-bg/70 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity flex items-center justify-center"
+                >
                   <XIcon size={16} className="text-tea-text" aria-hidden="true" />
                 </button>
               )}
-              {i === 0 && (
-                <div className="absolute bottom-0 left-0 right-0 bg-tea-bg/60 text-[8px] text-tea-text-dim text-center py-0.5 uppercase tracking-[0.1em]">Primary</div>
-              )}
-            </div>
+            </>
           ) : (
             <button
               onClick={() => {
@@ -354,17 +374,13 @@ export const ImageManager = ({ product, onUpdate }: {
                 document.body.appendChild(input); input.click(); input.remove();
               }}
               disabled={uploadingSlot !== null}
-              className="w-24 h-24 rounded-lg bg-tea-surface/50 hover:bg-tea-surface border border-dashed border-tea-accent-sub hover:border-tea-gold/30 transition-colors flex flex-col items-center justify-center gap-1.5 cursor-pointer"
+              aria-label={`Add ${slotLabels[i].toLowerCase()} image`}
+              className="w-full h-full rounded-md bg-tea-surface/50 hover:bg-tea-surface border border-dashed border-tea-accent-sub hover:border-tea-gold/30 transition-colors flex items-center justify-center cursor-pointer relative"
             >
-              {uploadingSlot === i ? <Loader2 size={16} className="text-tea-text-dim animate-spin" /> : (
-                <>
-                  <Plus size={16} className="text-tea-text-dim" />
-                  {i === 0 && <span className="text-[9px] text-tea-text-dim/60 uppercase tracking-[0.1em]">Primary</span>}
-                </>
-              )}
+              <span aria-hidden="true" className="absolute top-1 left-1 text-[10px] font-serif tabular-nums text-tea-text-dim">{i + 1}</span>
+              {uploadingSlot === i ? <Loader2 size={16} className="text-tea-text-dim animate-spin" aria-hidden="true" /> : <Plus size={16} className="text-tea-text-dim" aria-hidden="true" />}
             </button>
           )}
-          {i > 0 && <span className="text-[9px] text-tea-text-dim/50 uppercase tracking-[0.1em]">{slotLabels[i]}</span>}
         </div>
       ))}
     </div>
@@ -456,10 +472,10 @@ const STATUS_COLORS: Record<string, string> = {
   Active: 'var(--tea-gold)',
   Draft: 'var(--tea-text-dim)',
   Archived: 'var(--tea-text-sec)',
-  'Sold Out': '#a65d4e',
+  'Sold Out': 'var(--tea-error)',
 };
 
-export const ProductEditPanel: React.FC<ProductEditPanelProps> = ({
+const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
   product,
   rates,
   onClose,
@@ -591,27 +607,104 @@ export const ProductEditPanel: React.FC<ProductEditPanelProps> = ({
     return () => window.removeEventListener('keydown', handler);
   }, [product, prevProduct, nextProduct, onNavigate, onClose]);
 
+  // Focus management: trap tab inside the panel, set initial focus, return on close.
+  const panelRef = useRef<HTMLDivElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const restoreFocusToRef = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    if (!product) return;
+    // Remember the element to return focus to after close
+    restoreFocusToRef.current = (document.activeElement as HTMLElement) ?? null;
+    // Move focus into the panel on open
+    const t = setTimeout(() => closeButtonRef.current?.focus(), 50);
+    return () => {
+      clearTimeout(t);
+      // Return focus on unmount/close
+      const el = restoreFocusToRef.current;
+      if (el && typeof el.focus === 'function') el.focus();
+    };
+  }, [product?.id]);
+  // Tab key trap
+  useEffect(() => {
+    if (!product) return;
+    const node = panelRef.current;
+    if (!node) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab') return;
+      const focusables = node.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const active = document.activeElement as HTMLElement;
+      if (e.shiftKey && active === first) { last.focus(); e.preventDefault(); }
+      else if (!e.shiftKey && active === last) { first.focus(); e.preventDefault(); }
+    };
+    node.addEventListener('keydown', onKeyDown);
+    return () => node.removeEventListener('keydown', onKeyDown);
+  }, [product?.id]);
+
+  const titleId = product ? `panel-title-${product.id}` : undefined;
+
+  // Memoize pricing calc — only recompute when relevant fields change
+  const pricingCalc = useMemo(() => {
+    if (!product) return null;
+    return calculatePricing(
+      product.costAmount || 0,
+      product.shippingRatePerKg || 13,
+      product.quantityPurchased || 0,
+      (product.costCurrency || 'USD') as Currency,
+      rates,
+      product.type === 'Teaware'
+    );
+  }, [
+    product?.costAmount,
+    product?.shippingRatePerKg,
+    product?.quantityPurchased,
+    product?.costCurrency,
+    product?.type,
+    rates,
+  ]);
+
+  // Memoize tasting flatten — only recompute when product.tasting changes
+  const flattenedTastingCount = useMemo(() => {
+    const tasting = (product as any)?.tasting;
+    return tasting ? flattenTastingNotes(tasting).length : 0;
+  }, [(product as any)?.tasting]);
+
   const statusColor = product ? (STATUS_COLORS[product.status] || 'var(--tea-text-sec)') : 'var(--tea-text-sec)';
   const inventoryCategory: 'tea' | 'teaware' = product?.type === 'Teaware' ? 'teaware' : 'tea';
 
   return (
     <>
       <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        aria-hidden={!product}
         style={{ willChange: 'transform' }}
-        className={`fixed inset-0 bottom-[calc(44px+env(safe-area-inset-bottom))] md:inset-auto md:right-0 md:top-0 md:bottom-0 md:w-[420px] z-30 bg-tea-bg flex flex-col panel-sidebar transition-transform duration-300 ease-out ${product ? 'translate-x-0' : 'translate-x-full'}`}
+        className={`fixed inset-0 bottom-[calc(44px+env(safe-area-inset-bottom))] md:inset-auto md:right-0 md:top-0 md:bottom-0 md:w-[360px] lg:w-[420px] xl:w-[440px] z-30 bg-tea-bg flex flex-col panel-sidebar transition-transform duration-300 ease-out ${product ? 'translate-x-0' : 'translate-x-full'}`}
       >
         {product && (<>
           {/* Header — Row 1: Nav */}
           <div className="flex items-center justify-between px-3 pt-2.5 pb-1 bg-tea-surface/30">
-            <button onClick={onClose} className="p-2 -ml-0.5 text-tea-text-sec hover:text-tea-text transition-colors rounded-lg active:bg-tea-surface" title="Close (Esc)">
-              <XIcon size={17} />
+            <button
+              ref={closeButtonRef}
+              onClick={onClose}
+              aria-label="Close product panel"
+              title="Close (Esc)"
+              className="p-2 -ml-0.5 text-tea-text-sec hover:text-tea-text transition-colors rounded-lg active:bg-tea-surface"
+            >
+              <XIcon size={17} aria-hidden="true" />
             </button>
             <div className="flex flex-col items-center gap-0">
               <span className="text-[10px] text-tea-text-dim tabular-nums leading-none">
                 {productIndex >= 0 ? `${productIndex + 1} / ${totalCount}` : ''}
               </span>
               {filterLabel && (
-                <span className="text-[9px] text-tea-text-dim/60 uppercase tracking-[0.1em] leading-none mt-0.5">
+                <span className="text-[9px] text-tea-text-dim uppercase tracking-[0.1em] leading-none mt-0.5">
                   {filterLabel}
                 </span>
               )}
@@ -619,34 +712,36 @@ export const ProductEditPanel: React.FC<ProductEditPanelProps> = ({
             <div className="flex items-center gap-0">
               <button
                 onClick={() => prevProduct && onNavigate?.(prevProduct)}
-                className="p-2 text-tea-text-sec hover:text-tea-text transition-colors rounded-lg active:bg-tea-surface disabled:opacity-30"
+                aria-label="Previous product"
                 title="Previous (←)"
+                className="p-2 text-tea-text-sec hover:text-tea-text transition-colors rounded-lg active:bg-tea-surface disabled:opacity-30"
                 disabled={!prevProduct || !onNavigate}
-              ><ChevronLeft size={17} /></button>
+              ><ChevronLeft size={17} aria-hidden="true" /></button>
               <button
                 onClick={() => nextProduct && onNavigate?.(nextProduct)}
-                className="p-2 text-tea-text-sec hover:text-tea-text transition-colors rounded-lg active:bg-tea-surface disabled:opacity-30"
+                aria-label="Next product"
                 title="Next (→)"
+                className="p-2 text-tea-text-sec hover:text-tea-text transition-colors rounded-lg active:bg-tea-surface disabled:opacity-30"
                 disabled={!nextProduct || !onNavigate}
-              ><ChevronRight size={17} /></button>
+              ><ChevronRight size={17} aria-hidden="true" /></button>
             </div>
           </div>
 
           {/* Keyboard hint bar */}
           {onNavigate && (
             <div className="hidden md:flex items-center justify-center gap-3 px-4 pb-1 bg-tea-surface/30">
-              <span className="text-[9px] text-tea-text-dim/40 uppercase tracking-[0.15em]">Esc close</span>
-              <span className="text-[9px] text-tea-text-dim/20">·</span>
-              <span className="text-[9px] text-tea-text-dim/40 uppercase tracking-[0.15em]">← → navigate</span>
+              <span className="text-[9px] text-tea-text-dim uppercase tracking-[0.15em]">Esc close</span>
+              <span className="text-[9px] text-tea-text-dim">·</span>
+              <span className="text-[9px] text-tea-text-dim uppercase tracking-[0.15em]">← → navigate</span>
             </div>
           )}
 
           {/* Header — Row 2: Identity */}
           <div className="flex items-start justify-between gap-3 px-4 pb-3 border-b border-tea-accent-sub bg-tea-surface/30">
             <div className="flex items-start gap-2.5 min-w-0 flex-1">
-              <span className="w-2.5 h-2.5 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: getThemeColor(product.type) }} />
+              <span aria-hidden="true" className="w-2.5 h-2.5 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: getThemeColor(product.type) }} />
               <div className="min-w-0">
-                <h3 className="text-lg font-serif text-tea-text leading-snug" title={product.productName}>{product.productName}</h3>
+                <h3 id={titleId} className="text-lg font-serif text-tea-text leading-snug" title={product.productName}>{product.productName}</h3>
                 {product.givenName && <div className="text-xs text-tea-text-sec font-serif italic leading-tight">{product.givenName}</div>}
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <span className="text-xs text-tea-text-sec">{product.type}</span>
@@ -657,7 +752,9 @@ export const ProductEditPanel: React.FC<ProductEditPanelProps> = ({
             </div>
             <div className="flex flex-col items-end gap-2 shrink-0 pt-0.5">
               <div className="relative">
+                <label className="sr-only" htmlFor={`panel-status-${product.id}`}>Product status</label>
                 <select
+                  id={`panel-status-${product.id}`}
                   value={product.status}
                   onChange={e => handleUpdate(product.id, 'status', e.target.value)}
                   className="text-[11px] uppercase tracking-[0.08em] pl-2.5 pr-6 py-1.5 rounded-md bg-tea-surface cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg appearance-none"
@@ -665,10 +762,10 @@ export const ProductEditPanel: React.FC<ProductEditPanelProps> = ({
                 >
                   {['Active', 'Draft', 'Archived', 'Sold Out'].map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
-                <ChevronDown size={10} className="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: statusColor }} />
+                <ChevronDown size={10} className="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: statusColor }} aria-hidden="true" />
               </div>
-              <button onClick={() => setQrProduct(product)} className="flex items-center gap-1 text-[10px] text-tea-text-dim hover:text-tea-text-sec transition-colors rounded px-1 py-0.5" title="Generate QR Code">
-                <QrCode size={12} /> QR
+              <button onClick={() => setQrProduct(product)} aria-label="Generate QR code" title="Generate QR Code" className="flex items-center gap-1 text-[10px] text-tea-text-dim hover:text-tea-text-sec transition-colors rounded px-1 py-0.5">
+                <QrCode size={12} aria-hidden="true" /> QR
               </button>
             </div>
           </div>
@@ -722,11 +819,11 @@ export const ProductEditPanel: React.FC<ProductEditPanelProps> = ({
                   <>
                     <div className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
                       <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.06em] shrink-0 w-20 md:w-24">Type</span>
-                      <GhostSelect value={product.type} onSave={(val) => handleUpdate(product.id, 'type', val)} options={['Green', 'Yellow', 'White', 'Oolong', 'Red', 'Dark', 'Sheng', 'Shou', 'Herbal', 'Misc']} className="text-xs text-tea-text" />
+                      <GhostSelect ariaLabel="Type" value={product.type} onSave={(val) => handleUpdate(product.id, 'type', val)} options={['Green', 'Yellow', 'White', 'Oolong', 'Red', 'Dark', 'Sheng', 'Shou', 'Herbal', 'Misc']} className="text-xs text-tea-text" />
                     </div>
                     <div className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
                       <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.06em] shrink-0 w-20 md:w-24">Form</span>
-                      <GhostSelect value={product.form || ''} onSave={(val) => handleUpdate(product.id, 'form', val)} options={['Loose Leaf', 'Cake', 'Tuo', 'Brick', 'Rolled', 'Ball', 'Powder', 'Bag', 'Other']} className="text-xs text-tea-text" />
+                      <GhostSelect ariaLabel="Form" value={product.form || ''} onSave={(val) => handleUpdate(product.id, 'form', val)} options={['Loose Leaf', 'Cake', 'Tuo', 'Brick', 'Rolled', 'Ball', 'Powder', 'Bag', 'Other']} className="text-xs text-tea-text" />
                     </div>
                   </>
                 )}
@@ -737,7 +834,7 @@ export const ProductEditPanel: React.FC<ProductEditPanelProps> = ({
 
                 {/* Origin */}
                 <div className="mt-3 pt-3 border-t border-tea-accent-sub">
-                  <div className="text-[9px] text-tea-text-dim/60 uppercase tracking-[0.18em] mb-2">Origin</div>
+                  <div className="text-[9px] text-tea-text-dim uppercase tracking-[0.18em] mb-2">Origin</div>
                   {[
                     { label: 'Country', field: 'originCountry' as const, value: product.originCountry || '' },
                     { label: 'Region', field: 'originRegion' as const, value: product.originRegion || '' },
@@ -760,13 +857,13 @@ export const ProductEditPanel: React.FC<ProductEditPanelProps> = ({
                       value={product.vendor || ''}
                       productId={product.id}
                       onChange={(val) => handleUpdate(product.id, 'vendor', val)}
-                      className="w-full bg-transparent border-b border-dashed border-tea-accent-sub focus:border-solid focus:border-tea-accent-sub focus:bg-tea-gold/[0.06] rounded-none py-0 px-0 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-all text-right text-xs text-tea-text placeholder-tea-text-dim/70 leading-none"
+                      className="w-full bg-transparent border-b border-dashed border-tea-accent-sub focus:border-solid focus:border-tea-accent-sub focus:bg-tea-gold/[0.06] rounded-none py-0 px-0 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-all text-right text-xs text-tea-text placeholder-tea-text-dim leading-none"
                     />
                   </div>
 
                   {/* Links */}
                   <div className="mt-3 pt-3 border-t border-tea-accent-sub">
-                    <div className="text-[9px] text-tea-text-dim/60 uppercase tracking-[0.18em] mb-1">Links</div>
+                    <div className="text-[9px] text-tea-text-dim uppercase tracking-[0.18em] mb-1">Links</div>
                   </div>
                   {(() => {
                     const compassEntryId = product.sourceCompassEntryId;
@@ -782,7 +879,7 @@ export const ProductEditPanel: React.FC<ProductEditPanelProps> = ({
                           <Globe size={10} />
                           {compassEntry?.vendorName || 'Encounters Entry'}
                           {compassEntry && <span className="text-tea-text-dim">· {new Date(compassEntry.createdAt).toLocaleDateString()}</span>}
-                          <ChevronRight size={11} className="text-tea-text-dim/60 shrink-0" />
+                          <ChevronRight size={11} className="text-tea-text-dim shrink-0" />
                         </button>
                       </div>
                     );
@@ -792,7 +889,7 @@ export const ProductEditPanel: React.FC<ProductEditPanelProps> = ({
                     <button onClick={() => navigate(`/admin/activity?tab=orders&search=${encodeURIComponent(product.givenName || product.productName)}`)} className="text-xs text-tea-gold hover:text-tea-text transition-colors text-right flex items-center gap-1.5">
                       <Receipt size={10} />
                       View order history
-                      <ChevronRight size={11} className="text-tea-text-dim/60 shrink-0" />
+                      <ChevronRight size={11} className="text-tea-text-dim shrink-0" />
                     </button>
                   </div>
                   <div className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
@@ -800,7 +897,7 @@ export const ProductEditPanel: React.FC<ProductEditPanelProps> = ({
                     <button onClick={() => navigate(`/admin/products/${product.id}/story`)} className="text-xs text-tea-gold hover:text-tea-text transition-colors text-right flex items-center gap-1.5">
                       <BookOpen size={10} />
                       View full story
-                      <ChevronRight size={11} className="text-tea-text-dim/60 shrink-0" />
+                      <ChevronRight size={11} className="text-tea-text-dim shrink-0" />
                     </button>
                   </div>
                 </div>
@@ -808,7 +905,7 @@ export const ProductEditPanel: React.FC<ProductEditPanelProps> = ({
                 {/* Toggles */}
                 <div className="mt-3 pt-3 border-t border-tea-accent-sub space-y-2.5">
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-[9px] text-tea-text-dim/50 uppercase tracking-[0.15em] w-14 shrink-0">Visibility</span>
+                    <span className="text-[9px] text-tea-text-dim uppercase tracking-[0.15em] w-14 shrink-0">Visibility</span>
                     {([
                       { field: 'isPublic' as const, label: 'In Shop', icon: product.isPublic ? <Eye size={10} /> : <EyeOff size={10} />, active: product.isPublic },
                     ] as const).map(toggle => (
@@ -818,7 +915,7 @@ export const ProductEditPanel: React.FC<ProductEditPanelProps> = ({
                     ))}
                   </div>
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-[9px] text-tea-text-dim/50 uppercase tracking-[0.15em] w-14 shrink-0">Promote</span>
+                    <span className="text-[9px] text-tea-text-dim uppercase tracking-[0.15em] w-14 shrink-0">Promote</span>
                     {([
                       { field: 'isFeatured' as const, label: 'Starred', icon: <Star size={10} className={product.isFeatured ? 'fill-tea-gold' : ''} />, active: product.isFeatured },
                       { field: 'isCurated' as const, label: 'Top Pick', icon: <Sparkles size={10} />, active: product.isCurated },
@@ -829,7 +926,7 @@ export const ProductEditPanel: React.FC<ProductEditPanelProps> = ({
                     ))}
                   </div>
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-[9px] text-tea-text-dim/50 uppercase tracking-[0.15em] w-14 shrink-0">Classify</span>
+                    <span className="text-[9px] text-tea-text-dim uppercase tracking-[0.15em] w-14 shrink-0">Classify</span>
                     {([
                       { field: 'isSample' as const, label: 'Sample', icon: <FlaskConical size={10} />, active: product.isSample },
                       { field: 'canReorder' as const, label: 'Restockable', icon: <RefreshCw size={10} />, active: product.canReorder },
@@ -844,75 +941,34 @@ export const ProductEditPanel: React.FC<ProductEditPanelProps> = ({
               </div>
             </CollapsibleSection>
 
-            {/* 2. Images */}
-            <CollapsibleSection title="Images" defaultOpen={false}>
+            {/* 2. Images — flat, no section header */}
+            <div className="px-3 mb-3">
               <ImageManager product={product} onUpdate={(field, value) => handleUpdate(product.id, field, value)} />
-            </CollapsibleSection>
+            </div>
 
-            {/* 3. Tasting Profile */}
-            <CollapsibleSection title="Tasting Profile" defaultOpen={false}>
-              {(() => {
-                const tasting = product.tasting;
-                const hasTasting = tasting && flattenTastingNotes(tasting).length > 0;
-                const categoryLabels: Record<string, string> = {
-                  'brewing': 'Brewing', 'liquor-color': 'Color', 'flavor': 'Flavor',
-                  'body': 'Body', 'finish': 'Finish', 'feeling': 'Feeling',
-                };
-                if (!hasTasting) {
-                  return (
-                    <button onClick={() => setTastingEditorProduct(product)} className="w-full flex items-center justify-center gap-2 py-4 rounded-lg text-xs text-tea-text-dim hover:text-tea-gold hover:bg-tea-gold/5 transition-colors active:scale-[0.98]">
-                      <Sparkles size={14} />
-                      <span>Add tasting profile</span>
-                    </button>
-                  );
-                }
-                const moodText = product.mood;
-                return (
-                  <div className="space-y-0">
-                    <div className={`flex items-baseline gap-2 pb-3 mb-1 border-b border-tea-accent-sub ${!moodText ? 'opacity-40' : ''}`}>
-                      <span className="text-[9px] text-tea-text-dim/60 uppercase tracking-[0.15em] shrink-0 w-10">Mood</span>
-                      <span className="text-[13px] text-tea-gold italic font-serif leading-snug">{moodText || '—'}</span>
-                    </div>
-                    <div className="text-[9px] text-tea-text-dim/50 uppercase tracking-[0.15em] pt-1 pb-1.5">Tap any row to edit</div>
-                    {TASTING_CATEGORY_ORDER.map(catId => {
-                      const raw = tasting?.[catId];
-                      const terms: string[] = Array.isArray(raw) ? raw as string[] : [];
-                      const SectionIcon = SECTION_ICONS[catId];
-                      const label = categoryLabels[catId] || catId;
-                      const isColor = catId === 'liquor-color';
-                      return (
-                        <button key={catId} onClick={() => setTastingEditorProduct(product)} className={`w-full flex items-center gap-2.5 py-2 transition-colors hover:bg-tea-gold/5 active:bg-tea-gold/10 rounded ${terms.length === 0 ? 'opacity-25' : ''}`}>
-                          {SectionIcon && <SectionIcon size={12} className="text-tea-text-dim shrink-0" />}
-                          <span className="text-[10px] text-tea-text-sec uppercase tracking-[0.06em] w-14 shrink-0 text-left">{label}</span>
-                          <div className="flex-1 flex items-center gap-1 overflow-hidden min-w-0">
-                            {terms.length === 0 ? <span className="text-[10px] text-tea-text-dim">—</span>
-                              : isColor ? (
-                                <div className="flex items-center gap-1.5">
-                                  {terms.map(termId => {
-                                    const hex = LIQUOR_COLORS[termId];
-                                    return (
-                                      <span key={termId} className="flex items-center gap-1">
-                                        {hex && <span className="w-3 h-3 rounded-full shrink-0" style={{ background: hex }} />}
-                                        <span className="text-[10px] text-tea-text-sec">{resolveTermLabel(termId)}</span>
-                                      </span>
-                                    );
-                                  })}
-                                </div>
-                              ) : (
-                                <span className="text-xs text-tea-text truncate">{terms.map(id => resolveTermLabel(id)).join(', ')}</span>
-                              )}
-                          </div>
-                          {terms.length > 0 && <span className="text-[9px] text-tea-text-dim tabular-nums shrink-0">{terms.length}</span>}
-                        </button>
-                      );
-                    })}
-                    <button onClick={() => setTastingEditorProduct(product)} className="w-full mt-2 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[10px] text-tea-text-dim hover:text-tea-gold hover:bg-tea-gold/5 transition-colors uppercase tracking-[0.1em]">
-                      <Pencil size={11} /> Edit Tasting Profile
-                    </button>
-                  </div>
-                );
-              })()}
-            </CollapsibleSection>
+            {/* 3. Tasting Profile — tap-to-open */}
+            <button
+              onClick={() => setTastingEditorProduct(product)}
+              aria-label={flattenedTastingCount > 0 ? `Edit tasting profile (${flattenedTastingCount} notes)` : 'Add tasting profile'}
+              className="w-full mx-3 mb-3 rounded-lg bg-tea-surface px-4 py-3 flex items-center justify-between gap-3 hover:bg-tea-gold/5 active:bg-tea-gold/10 transition-colors group"
+              style={{ width: 'calc(100% - 1.5rem)' }}
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <Sparkles size={14} className="text-tea-text-dim group-hover:text-tea-gold transition-colors shrink-0" aria-hidden="true" />
+                <span className="text-xs font-serif italic text-tea-text-sec group-hover:text-tea-text transition-colors">Tasting Profile</span>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                {flattenedTastingCount > 0 ? (
+                  <>
+                    {product.mood && <span className="text-[11px] text-tea-gold italic font-serif truncate max-w-[140px]">{product.mood}</span>}
+                    <span className="text-[10px] text-tea-text-dim tabular-nums">{flattenedTastingCount}</span>
+                  </>
+                ) : (
+                  <span className="text-[10px] text-tea-text-dim italic">add</span>
+                )}
+                <ChevronRight size={13} aria-hidden="true" className="text-tea-text-dim group-hover:text-tea-text-sec transition-colors" />
+              </div>
+            </button>
 
             {/* 4. Pricing */}
             <CollapsibleSection title="Pricing" defaultOpen={false}>
@@ -929,14 +985,7 @@ export const ProductEditPanel: React.FC<ProductEditPanelProps> = ({
                   ))}
                 </div>
               ) : (() => {
-                const calc = calculatePricing(
-                  product.costAmount || 0,
-                  product.shippingRatePerKg || 13,
-                  product.quantityPurchased || 0,
-                  (product.costCurrency || 'USD') as Currency,
-                  rates,
-                  false
-                );
+                const calc = pricingCalc!;
                 return (
                   <div className="space-y-0">
                     <div className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
@@ -968,7 +1017,7 @@ export const ProductEditPanel: React.FC<ProductEditPanelProps> = ({
                     <div className="flex items-center justify-between gap-3 py-2 mt-2 rounded-md bg-tea-bg px-2 -mx-2">
                       <div className="flex items-center gap-1.5">
                         <span className="text-[10px] text-tea-text-dim uppercase tracking-[0.06em] shrink-0">Calculated Retail</span>
-                        <span className="text-[9px] text-tea-text-dim/50 uppercase tracking-[0.08em]">(3× markup)</span>
+                        <span className="text-[9px] text-tea-text-dim uppercase tracking-[0.08em]">(3× markup)</span>
                       </div>
                       <span className="text-xs text-tea-text-sec tabular-nums font-medium">${calc.suggestedRetailUSD.toFixed(2)}/g</span>
                     </div>
@@ -1035,7 +1084,7 @@ export const ProductEditPanel: React.FC<ProductEditPanelProps> = ({
                       <div className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
                         <div className="flex items-center gap-1.5 shrink-0 w-20 md:w-24">
                           <span className="text-[11px] text-tea-text-sec uppercase tracking-[0.06em]">Current</span>
-                          <span className="text-[9px] text-tea-text-dim/60 uppercase tracking-[0.08em]">(g)</span>
+                          <span className="text-[9px] text-tea-text-dim uppercase tracking-[0.08em]">(g)</span>
                         </div>
                         <div className="flex items-center gap-2 flex-1 justify-end">
                           {isLow && !isOut && <span className="text-[10px] text-tea-gold/80 italic">Low</span>}
@@ -1048,7 +1097,7 @@ export const ProductEditPanel: React.FC<ProductEditPanelProps> = ({
                           <div className="flex-1 h-1 bg-tea-bg rounded-full overflow-hidden">
                             <div className={`h-full rounded-full origin-left transition-transform duration-500 ${barColor}`} style={{ transform: `scaleX(${pct})` }} />
                           </div>
-                          <span className="text-[9px] text-tea-text-dim/60 tabular-nums w-10 text-right">
+                          <span className="text-[9px] text-tea-text-dim tabular-nums w-10 text-right">
                             {threshold > 0 ? `${Math.round((stock / threshold) * 10) / 10}× min` : ''}
                           </span>
                         </div>
@@ -1091,9 +1140,9 @@ export const ProductEditPanel: React.FC<ProductEditPanelProps> = ({
             {/* 6. Experience */}
             <CollapsibleSection title="Experience" defaultOpen={false}>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] text-tea-text-dim/50 italic">How it drinks — body, session, lingering impression</span>
+                <span className="text-[10px] text-tea-text-dim italic">How it drinks — body, session, lingering impression</span>
               </div>
-              <GhostTextarea value={product.experience || ''} placeholder="How this tea feels in the body. The session it creates. What stays with you after the last cup." rows={4} onSave={(val) => handleUpdate(product.id, 'experience', val)} className="text-tea-text font-serif" />
+              <GhostTextarea ariaLabel="Experience" value={product.experience || ''} placeholder="How this tea feels in the body. The session it creates. What stays with you after the last cup." rows={4} onSave={(val) => handleUpdate(product.id, 'experience', val)} className="text-tea-text font-serif" />
             </CollapsibleSection>
 
             {/* 7. Story & Background */}
@@ -1102,32 +1151,33 @@ export const ProductEditPanel: React.FC<ProductEditPanelProps> = ({
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-xs font-medium text-tea-text-sec">Introduction</span>
-                    <span className="text-[10px] text-tea-text-dim/50 italic">Personal voice</span>
+                    <span className="text-[10px] text-tea-text-dim italic">Personal voice</span>
                   </div>
-                  <GhostTextarea value={product.description || ''} placeholder="Your personal introduction to this tea..." rows={4} onSave={(val) => handleUpdate(product.id, 'description', val)} className="text-tea-text font-serif" />
+                  <GhostTextarea ariaLabel="Introduction" value={product.description || ''} placeholder="Your personal introduction to this tea..." rows={4} onSave={(val) => handleUpdate(product.id, 'description', val)} className="text-tea-text font-serif" />
                 </div>
                 <div className="pt-1 border-t border-tea-accent-sub">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-xs font-medium text-tea-text-sec">Terroir</span>
-                    <span className="text-[10px] text-tea-text-dim/50 italic">Soil, altitude, climate</span>
+                    <span className="text-[10px] text-tea-text-dim italic">Soil, altitude, climate</span>
                   </div>
-                  <GhostTextarea value={product.terroir || ''} placeholder="Where this tea grew and why it matters..." rows={3} onSave={(val) => handleUpdate(product.id, 'terroir', val)} className="text-tea-text font-serif" />
+                  <GhostTextarea ariaLabel="Terroir" value={product.terroir || ''} placeholder="Where this tea grew and why it matters..." rows={3} onSave={(val) => handleUpdate(product.id, 'terroir', val)} className="text-tea-text font-serif" />
                 </div>
                 <div className="pt-1 border-t border-tea-accent-sub">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-xs font-medium text-tea-text-sec">Processing</span>
-                    <span className="text-[10px] text-tea-text-dim/50 italic">Craft & method</span>
+                    <span className="text-[10px] text-tea-text-dim italic">Craft & method</span>
                   </div>
-                  <GhostTextarea value={product.processingNotes || ''} placeholder="How this tea was made..." rows={3} onSave={(val) => handleUpdate(product.id, 'processingNotes', val)} className="text-tea-text font-serif" />
+                  <GhostTextarea ariaLabel="Processing notes" value={product.processingNotes || ''} placeholder="How this tea was made..." rows={3} onSave={(val) => handleUpdate(product.id, 'processingNotes', val)} className="text-tea-text font-serif" />
                 </div>
                 <div className="pt-1 border-t border-tea-accent-sub">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-xs font-medium text-tea-text-sec">Lore & History</span>
                     {product.isCustomWisdom
                       ? <span className="flex items-center gap-1 text-[10px] text-tea-gold/70 italic"><Pencil size={10} /> hand-edited</span>
-                      : <span className="text-[10px] text-tea-text-dim/50 italic">AI generated</span>}
+                      : <span className="text-[10px] text-tea-text-dim italic">AI generated</span>}
                   </div>
                   <GhostTextarea
+                    ariaLabel="Lore and history"
                     value={product.lore || ''}
                     placeholder="History, story, or lore..."
                     rows={3}
@@ -1157,7 +1207,7 @@ export const ProductEditPanel: React.FC<ProductEditPanelProps> = ({
                       <div className="flex items-center gap-4 px-4 py-3 border-b border-tea-accent-sub">
                         <div className="flex items-baseline gap-1">
                           <span className="text-2xl font-serif text-tea-gold leading-none">{productTastingAgg.avgRating.toFixed(1)}</span>
-                          <span className="text-[10px] text-tea-text-dim/60">/5</span>
+                          <span className="text-[10px] text-tea-text-dim">/5</span>
                         </div>
                         <div className="flex flex-col gap-0.5">
                           <span className="text-xs text-tea-text-sec">
@@ -1172,7 +1222,7 @@ export const ProductEditPanel: React.FC<ProductEditPanelProps> = ({
                       </div>
                       {productTastingAgg.impressions.length > 0 && (
                         <div className="px-4 py-3 space-y-2.5">
-                          <div className="text-[9px] text-tea-text-dim/50 uppercase tracking-[0.15em]">Guest Impressions</div>
+                          <div className="text-[9px] text-tea-text-dim uppercase tracking-[0.15em]">Guest Impressions</div>
                           {productTastingAgg.impressions.map((imp, i) => (
                             <p key={i} className="text-xs font-serif italic text-tea-text leading-relaxed">"{imp}"</p>
                           ))}
@@ -1180,7 +1230,7 @@ export const ProductEditPanel: React.FC<ProductEditPanelProps> = ({
                       )}
                     </div>
                   )}
-                  <div className="text-[9px] text-tea-text-dim/50 uppercase tracking-[0.15em] mb-2">Appeared at</div>
+                  <div className="text-[9px] text-tea-text-dim uppercase tracking-[0.15em] mb-2">Appeared at</div>
                   <div className="space-y-2">
                     {productEvents.map((event: any) => (
                       <div key={event.id} className="flex items-center justify-between gap-3 py-1">
@@ -1227,3 +1277,5 @@ export const ProductEditPanel: React.FC<ProductEditPanelProps> = ({
     </>
   );
 };
+
+export const ProductEditPanel = React.memo(ProductEditPanelImpl);

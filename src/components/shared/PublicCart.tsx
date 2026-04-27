@@ -244,16 +244,20 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
           {STEPS.map((s, i) => {
             const isActive = step === s.key;
             const isPast = currentStepIndex > i;
+            const canJump = isPast;
             return (
               <React.Fragment key={s.key}>
-                <span
-                  className={`text-[11px] uppercase tracking-[0.15em] transition-colors duration-300 whitespace-nowrap ${
-                    isActive ? 'text-tea-gold' : isPast ? 'text-tea-text-sec' : 'text-tea-text-sec/70'
+                <button
+                  type="button"
+                  onClick={() => canJump && setStep(s.key)}
+                  disabled={!canJump}
+                  className={`text-[11px] uppercase tracking-[0.15em] transition-colors duration-300 whitespace-nowrap min-h-[44px] py-3 ${
+                    isActive ? 'text-tea-gold' : isPast ? 'text-tea-text-sec hover:text-tea-text cursor-pointer' : 'text-tea-text-sec/70 cursor-default'
                   }`}
                   aria-current={isActive ? 'step' : undefined}
                 >
                   {s.label}
-                </span>
+                </button>
                 {i < STEPS.length - 1 && (
                   <span className="block w-4 h-px bg-tea-border" aria-hidden="true" />
                 )}
@@ -296,12 +300,20 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
 
           {/* Step 1: Cart items */}
           {step === 'CART' && (
-            <div className="space-y-4 relative z-[1]">
+            <div className="relative z-[1]">
               {isEmpty ? (
                 <div className="text-center py-20">
                   <span className="block w-8 h-px mx-auto mb-6 bg-tea-border" aria-hidden="true" />
-                  <p className="font-serif italic text-base text-tea-text-sec">Nothing added yet.</p>
-                  <p className="text-xs text-tea-text-sec mt-2">Browse the shop and add teas to begin.</p>
+                  <p className="font-serif italic text-base text-tea-text leading-snug max-w-[24ch] mx-auto">
+                    The cart is quiet. The kettle is patient.
+                  </p>
+                  <a
+                    href="/shop"
+                    onClick={onClose}
+                    className="inline-block mt-6 text-[11px] uppercase tracking-[0.2em] text-tea-text-sec hover:text-tea-gold underline underline-offset-[6px] decoration-tea-border hover:decoration-tea-gold transition-colors min-h-[44px] py-3"
+                  >
+                    Browse the shop
+                  </a>
                 </div>
               ) : (
                 cart.map(item => (
@@ -440,45 +452,51 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
                 <p className="text-xs text-tea-text-sec">Please review before sending.</p>
               </div>
 
-              {/* Customer details summary — type + rule, not gold-tinted card */}
-              <dl className="border border-tea-border rounded-sm p-4 space-y-2.5">
-                <div className="flex justify-between gap-4">
-                  <dt className="text-[11px] uppercase tracking-[0.15em] text-tea-text-sec">Name</dt>
-                  <dd className="text-sm text-tea-text">{details.name}</dd>
-                </div>
-                <div className="flex justify-between gap-4">
-                  <dt className="text-[11px] uppercase tracking-[0.15em] text-tea-text-sec">Contact</dt>
-                  <dd className="text-sm text-tea-text">{details.contact}</dd>
-                </div>
-                <div className="flex justify-between gap-4">
-                  <dt className="text-[11px] uppercase tracking-[0.15em] text-tea-text-sec">Location</dt>
-                  <dd className="text-sm text-tea-text">{details.location}</dd>
-                </div>
-                {details.notes && (
+              {/* Single editorial block — top + bottom hairline rules, internal sections divided by rules only */}
+              <div className="border-y border-tea-border divide-y divide-tea-border">
+                {/* Customer details */}
+                <dl className="py-4 space-y-2.5">
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec mb-3">Recipient</p>
                   <div className="flex justify-between gap-4">
-                    <dt className="text-[11px] uppercase tracking-[0.15em] text-tea-text-sec">Notes</dt>
-                    <dd className="text-sm text-tea-text text-right max-w-[60%]">{details.notes}</dd>
+                    <dt className="text-[11px] uppercase tracking-[0.15em] text-tea-text-sec">Name</dt>
+                    <dd className="text-sm text-tea-text">{details.name}</dd>
                   </div>
-                )}
-              </dl>
-
-              {/* Order items summary */}
-              <div className="border border-tea-border rounded-sm p-4 space-y-3">
-                <p className="text-[11px] uppercase tracking-[0.15em] text-tea-text-sec mb-2">Items</p>
-                {cart.map(item => (
-                  <div key={item.id} className="flex justify-between items-center text-sm border-b border-tea-border pb-2 last:border-0 last:pb-0">
-                    <div>
-                      <span className="text-tea-text">{item.name}</span>
-                      <span className="text-tea-text-sec text-xs ml-2">
-                        {item.category === 'tea' ? `${item.quantityGrams}g` : `×${item.quantityGrams}`}
-                      </span>
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-[11px] uppercase tracking-[0.15em] text-tea-text-sec">Contact</dt>
+                    <dd className="text-sm text-tea-text">{details.contact}</dd>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-[11px] uppercase tracking-[0.15em] text-tea-text-sec">Location</dt>
+                    <dd className="text-sm text-tea-text">{details.location}</dd>
+                  </div>
+                  {details.notes && (
+                    <div className="flex justify-between gap-4">
+                      <dt className="text-[11px] uppercase tracking-[0.15em] text-tea-text-sec">Notes</dt>
+                      <dd className="text-sm text-tea-text text-right max-w-[60%]">{details.notes}</dd>
                     </div>
-                    <span className="num text-tea-text">{displayPrice(item.totalPrice)}</span>
-                  </div>
-                ))}
-                <div className="flex justify-between items-center pt-2 border-t border-tea-border">
-                  <span className="text-sm text-tea-text">Total estimate</span>
-                  <span className="num text-lg font-serif text-tea-gold">{displayPrice(subtotal)}</span>
+                  )}
+                </dl>
+
+                {/* Order items */}
+                <div className="py-4 space-y-3">
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-tea-text-sec">Order</p>
+                  {cart.map(item => (
+                    <div key={item.id} className="flex justify-between items-baseline text-sm gap-4">
+                      <div className="min-w-0">
+                        <span className="text-tea-text font-serif">{item.name}</span>
+                        <span className="text-tea-text-sec text-[11px] ml-2 num">
+                          {item.category === 'tea' ? `${item.quantityGrams}g` : `×${item.quantityGrams}`}
+                        </span>
+                      </div>
+                      <span className="num text-tea-text shrink-0">{displayPrice(item.totalPrice)}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Total */}
+                <div className="py-4 flex justify-between items-baseline">
+                  <span className="text-[11px] uppercase tracking-[0.2em] text-tea-text-sec">Total estimate</span>
+                  <span className="num text-xl font-serif text-tea-gold">{displayPrice(subtotal)}</span>
                 </div>
               </div>
 
@@ -512,21 +530,32 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
                 </div>
               )}
 
-              {/* Send actions — neutral surfaces, no green/recommended labels */}
-              <div className="grid grid-cols-1 gap-3">
-                <button onClick={handleWhatsApp}
-                  className="flex items-center justify-center gap-2 py-3 border border-tea-border hover:border-tea-gold text-tea-text transition-colors min-h-[44px] rounded-sm">
-                  <Icons.Message className="w-4 h-4 text-tea-text-sec" />
-                  <span className="text-[11px] uppercase tracking-[0.15em]">Send via WhatsApp</span>
-                </button>
-                <button onClick={handleEmail}
-                  className="flex items-center justify-center gap-2 py-3 border border-tea-border hover:border-tea-gold text-tea-text transition-colors min-h-[44px] rounded-sm">
-                  <span className="text-[11px] uppercase tracking-[0.15em]">Send via Email</span>
-                </button>
-                <button onClick={handleCopy}
-                  className="flex items-center justify-center gap-2 py-3 border border-tea-border hover:border-tea-gold text-tea-text transition-colors min-h-[44px] rounded-sm">
-                  <span className="text-[11px] uppercase tracking-[0.15em]">Copy to clipboard</span>
-                </button>
+              {/* Send actions — WhatsApp is the intentional primary channel; alternatives step down to text links */}
+              <div className="flex flex-col gap-3">
+                <Button
+                  onClick={handleWhatsApp}
+                  variant="primary"
+                  fullWidth
+                  icon={<Icons.Message className="w-4 h-4" />}
+                  className="py-4 uppercase tracking-[0.2em] text-xs rounded-none"
+                >
+                  Send via WhatsApp
+                </Button>
+                <div className="flex items-center justify-center gap-6 pt-1">
+                  <button
+                    onClick={handleEmail}
+                    className="text-[11px] uppercase tracking-[0.15em] text-tea-text-sec hover:text-tea-text underline underline-offset-[6px] decoration-tea-border hover:decoration-tea-gold transition-colors min-h-[44px]"
+                  >
+                    Email
+                  </button>
+                  <span className="block w-px h-3 bg-tea-border" aria-hidden="true" />
+                  <button
+                    onClick={handleCopy}
+                    className="text-[11px] uppercase tracking-[0.15em] text-tea-text-sec hover:text-tea-text underline underline-offset-[6px] decoration-tea-border hover:decoration-tea-gold transition-colors min-h-[44px]"
+                  >
+                    Copy text
+                  </button>
+                </div>
               </div>
 
               <p className="text-center text-xs text-tea-text-sec italic">
@@ -538,7 +567,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
       </div>
 
       {/* Footer */}
-      <div className="p-6 border-t border-tea-border bg-tea-surface relative z-20">
+      <div className="p-6 border-t border-tea-border bg-tea-surface relative z-20 shrink-0">
         {step === 'CART' && (
           <div className="flex flex-col gap-4">
             {!isEmpty && (
@@ -546,10 +575,18 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
                 We confirm every order personally. Availability, pricing, and shipping are settled by message. This is a service, not a checkout.
               </p>
             )}
-            <div className="flex justify-between items-center font-serif text-xl text-tea-text">
-              <span>Total</span>
-              <span className="num">{displayPrice(subtotal)}</span>
+            <div className="flex justify-between items-baseline font-serif text-tea-text">
+              <span className="text-xl">Total</span>
+              <span className="num text-xl">{displayPrice(subtotal)}</span>
             </div>
+            {!isEmpty && (
+              <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.15em] text-tea-text-sec -mt-2">
+                <span>{cart.length} {cart.length === 1 ? 'item' : 'items'}</span>
+                <span className="num">
+                  {cart.filter(i => i.category === 'tea').reduce((g, i) => g + i.quantityGrams, 0)}g
+                </span>
+              </div>
+            )}
             <Button
               onClick={() => !isEmpty && setStep('INQUIRY')}
               disabled={isEmpty}

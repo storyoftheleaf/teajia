@@ -1229,6 +1229,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                 user={auth.user}
                 avatarDataUrl={avatarDataUrl}
                 onAvatarClick={handleAvatarClick}
+                roleBadgeLabel={roleBadgeLabel}
                 journey={myJourney}
                 journalLastAt={tastingJournal[0]?.createdAt ?? null}
                 journalLastTea={tastingJournal[0]?.productName ?? null}

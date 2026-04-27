@@ -21,7 +21,8 @@ function lazyWithReload<T extends { default: React.ComponentType<unknown> }>(
 const AdminApp = lazyWithReload(() => import('./admin/AdminApp'));
 const MediaViewer = lazy(() => import('./components/MediaViewer').then(m => ({ default: m.MediaViewer })));
 const Reader = lazy(() => import('./components/Reader').then(m => ({ default: m.Reader })));
-const MagazinePageReader = lazy(() => import('./components/MagazinePageReader').then(m => ({ default: m.MagazinePageReader })));
+// Legacy MagazinePageReader removed; articles render through the unified
+// 4:5 reader at /article/:slug. See docs/ARTICLE_UNIFICATION_PLAN.md.
 const VisualFeatureViewer = lazy(() => import('./components/PhotoEssay/VisualFeatureViewer').then(m => ({ default: m.VisualFeatureViewer })));
 const Shop = lazyWithReload(() => import('./components/Shop').then(m => ({ default: m.Shop })));
 
@@ -782,16 +783,7 @@ const AppContent = () => {
 
       {/* --- Full Screen Views --- */}
 
-      {viewState === 'PAGE_READER' && selectedStory && (
-        <Suspense fallback={<SectionSkeleton variant="grid" />}>
-          <MagazinePageReader
-            story={selectedStory}
-            onBack={handleBackToBrowse}
-            isSaved={savedStoryIds[selectedStory.id]}
-            onToggleSave={() => toggleSave(selectedStory.id)}
-          />
-        </Suspense>
-      )}
+      {/* Legacy 'PAGE_READER' overlay removed — articles route through /article/:slug. */}
 
       {viewState === 'READER' && selectedStory && (
          <ImagePreloaderProvider>

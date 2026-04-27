@@ -156,13 +156,52 @@ export interface Customer {
   eventCount?: number;
 }
 
+// ── ArticleBlock — paginated 4:5 article system ────────────────────────────
+// Every block renders as one page in the paginated reader at /article/:slug.
+// New variants are absorbed by `variant` discriminators rather than new types
+// to keep the union small. See docs/ARTICLE_UNIFICATION_PLAN.md.
+
+export type ParagraphVariant =
+  | 'single' | 'double' | 'justified' | 'center' | 'drop_cap';
+
+export type ImageVariant =
+  | 'full_bleed' | 'caption_bottom' | 'split_vertical' | 'film_strip'
+  | 'polaroid_scatter' | 'circle_mask' | 'arch_mask';
+
+export type QuoteVariant = 'big' | 'minimal';
+
+export type CoverVariant =
+  | 'main' | 'photo_inset' | 'minimal' | 'masthead';
+
+export type ChapterVariant = 'minimal';
+
+export type PoemVariant = 'centered';
+
+export type BackMatterVariant = 'copyright' | 'dedication';
+
 export type ArticleBlock =
+  // Original 6 (extended):
   | { type: 'intro'; text: string }
-  | { type: 'paragraph'; text: string }
+  | { type: 'paragraph'; variant?: ParagraphVariant; text: string }
   | { type: 'section_heading'; text: string }
-  | { type: 'quote'; text: string; attribution?: string }
-  | { type: 'image'; url?: string; description: string; caption?: string }
-  | { type: 'divider' };
+  | { type: 'quote'; variant?: QuoteVariant; text: string; attribution?: string }
+  | { type: 'image'; variant?: ImageVariant; url?: string; images?: string[]; description: string; caption?: string }
+  | { type: 'divider' }
+  // New page kinds:
+  | { type: 'cover'; variant?: CoverVariant; title: string; subtitle?: string; image?: string; kicker?: string }
+  | { type: 'chapter_divider'; variant?: ChapterVariant; number?: string; title: string; subtitle?: string }
+  | { type: 'qa_pair'; items: Array<{ q: string; a: string }> }
+  | { type: 'pull_sidebar'; side: 'left' | 'right' | 'image'; body: string; sidebar: string; image?: string }
+  | { type: 'epilogue'; text: string; signature?: string }
+  | { type: 'stat'; value: string; label: string; context?: string }
+  | { type: 'definition'; term: string; body: string; etymology?: string }
+  | { type: 'recipe'; title: string; ingredients: string[]; steps: string[]; pairing?: string }
+  | { type: 'tasting_notes'; items: Array<{ label: string; note: string }> }
+  | { type: 'poem'; variant: PoemVariant; text: string }
+  | { type: 'map'; caption?: string; locations: string[] }
+  | { type: 'list'; variant: 'checklist' | 'timeline'; title?: string; items: string[] }
+  | { type: 'embed'; platform: 'youtube' | 'instagram'; externalId: string; caption?: string; description?: string }
+  | { type: 'back_matter'; variant: BackMatterVariant; lines: string[] };
 
 export interface DbArticle {
   id: string;

@@ -1,15 +1,16 @@
 import React, { useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { Users, Store, Shield, ShoppingBag } from 'lucide-react';
+import { Users, Store, Shield, ShoppingBag, Tag } from 'lucide-react';
 import { CustomersView } from './CustomersView';
 import { SourcesView } from './SourcesView';
 import { TeamView } from '../views/TeamView';
 import { PurchaseOrdersPage } from '../views/PurchaseOrdersPage';
+import { ContactTagsView } from '../views/ContactTagsView';
 import { useAppStore } from '../store';
 import { api } from '../../lib/api';
 
-type PeopleTab = 'customers' | 'sources' | 'purchase-orders' | 'team';
+type PeopleTab = 'customers' | 'sources' | 'purchase-orders' | 'team' | 'tags';
 
 interface PeopleViewProps {
   userRole: string;
@@ -33,6 +34,7 @@ export const PeopleView: React.FC<PeopleViewProps> = ({
     { id: 'sources', label: 'Sources', icon: <Store size={15} />, visible: canSeeSources },
     { id: 'purchase-orders', label: 'Purchase Orders', icon: <ShoppingBag size={15} />, visible: canSeeSources },
     { id: 'team', label: 'Team', icon: <Shield size={15} />, visible: canSeeTeam },
+    { id: 'tags', label: 'Tags', icon: <Tag size={15} />, visible: true },
   ];
 
   const visibleTabs = tabs.filter(t => t.visible);
@@ -93,6 +95,7 @@ export const PeopleView: React.FC<PeopleViewProps> = ({
         {activeTab === 'sources' && canSeeSources && <SourcesView />}
         {activeTab === 'purchase-orders' && canSeeSources && <PurchaseOrdersPage />}
         {activeTab === 'team' && canSeeTeam && <TeamView />}
+        {activeTab === 'tags' && <ContactTagsView embedded />}
       </div>
     </div>
   );

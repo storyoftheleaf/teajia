@@ -191,6 +191,12 @@ export const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
         onBlur={handleBlur}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
+        autoComplete="off"
+        autoCorrect="off"
+        autoCapitalize="off"
+        spellCheck={false}
+        data-1p-ignore
+        data-lpignore="true"
         className={`text-base ${className ?? ''}`}
       />
 
