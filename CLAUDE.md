@@ -5,7 +5,7 @@ stack: [Vite 6, React 19, TypeScript, Tailwind v3, Zustand, React Query, Framer 
 deploy: https://teajia.pages.dev
 family: tea
 supersedes: [tea-dev-inital, teajia-grid]
-last_reviewed: 2026-04-25
+last_reviewed: 2026-04-27
 ---
 
 # Teajia — flagship e-commerce + content platform
@@ -57,6 +57,26 @@ Read `docs/COLOR_RULES.md` before writing any component styles.
 - **Typography**: use `TYPOGRAPHY_CLASSES` from `src/designTokens.ts` for new headings/body text (`h1`–`h3`, `body`, `label`, `nav`, etc.) — do not hardcode raw font/size/leading combos
 - Run `npm run lint:colors` before every commit. No exceptions.
 
+## InventoryView height chain — DO NOT BREAK
+The inventory page (`src/admin/components/InventoryView.tsx`) scrolls via an internal `flex-1 overflow-auto` container, NOT via the document. That container only works if every ancestor passes a definite height down. The chain is:
+
+1. `App.tsx` outer wrapper: `h-screen overflow-hidden flex flex-col lg:flex-row` (when `isAdminRoute`)
+2. `App.tsx` main content area: `flex-1 min-w-0 flex flex-col`
+3. `AdminApp.tsx` AdminContent root (line ~412): `flex flex-col flex-1 min-h-0 h-full`
+4. `AdminApp.tsx` `<main>` (line ~415): `flex-1 relative flex flex-col min-w-0 overflow-hidden`
+5. `AdminApp.tsx` routes wrapper (line ~530): `flex-1 relative min-h-0 overflow-hidden` (for inventory)
+6. `PageTransition` motion.div (line ~94): `h-full`
+7. `InventoryView.tsx` root (line ~2010): `h-full flex flex-col overflow-hidden`
+8. Scroll container (`[data-testid="inventory-scroll"]`): `flex-1 overflow-auto`
+
+**If you insert any wrapper into this chain** (a new provider, an `<AnimatePresence>`, a debug div, an auth gate, etc.) it MUST preserve the height contract: a flex item needs `flex-1 min-h-0` (or `h-full`), a non-flex wrapper needs `h-full`. Failing to do so silently collapses the scroll container to 0 — no error, page just stops scrolling on every device.
+
+Guards in place:
+- Dev-mode runtime check in `InventoryView` logs a `console.error` if the scroll container's `clientHeight < 100px`.
+- `tests/inventory-scroll.spec.ts` runs on Desktop + Mobile Chrome and asserts the container is sized and scrollable. Run with `npm run test:mobile`.
+
+If either fires, fix the ancestor chain — do not paper over with `h-dvh` on the scroll container, since that would conflict with the sticky header bars above it.
+
 ## Deploy
 ```bash
 npm run dev          # dev server port 7777 (exclusively reserved — see project_port_7777 memory)
@@ -79,8 +99,11 @@ Requires dev server already running (`npm run dev`). Takes ~90 seconds.
 - `src/pages/` — any account route page
 - Any routing or navigation change in `src/App.tsx`
 
-**Test file:** `tests/account-panel-mobile.spec.ts`
-**Screenshots saved to:** `test-results/account-panel-mobile/` (not committed)
+**Test files:**
+- `tests/account-panel-mobile.spec.ts` — AccountPanel + linked routes
+- `tests/inventory-scroll.spec.ts` — InventoryView scroll regression guard (Desktop + Mobile)
+
+**Screenshots saved to:** `test-results/<spec-name>/` (not committed)
 
 ### Known stub/incomplete pages — do not add links to these without building them first
 | Route | Status |

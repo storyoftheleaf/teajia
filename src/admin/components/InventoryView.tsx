@@ -1082,13 +1082,36 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       const el = scrollContainerRef.current;
       if (!el) return;
       setContainerHeight(el.clientHeight);
+
+      // Dev-only guard: the scroll container relies on a chain of ancestor heights
+      // (h-full / flex-1 / min-h-0) up through PageTransition, the routes wrapper,
+      // <main>, AdminContent root, and App.tsx's outer h-screen container. If any
+      // of those lose their height contract (a wrapper inserted without h-full,
+      // a flex parent missing min-h-0, etc.) this element collapses to 0 and the
+      // page silently stops scrolling. Warn loudly the moment that happens.
+      const warnIfCollapsed = () => {
+          if (!import.meta.env.DEV) return;
+          if (!el.isConnected) return;
+          if (el.clientHeight < 100) {
+              console.error(
+                  '[InventoryView] Scroll container collapsed to ' + el.clientHeight + 'px. ' +
+                  'The h-full / flex-1 / min-h-0 chain from App.tsx down to InventoryView is broken. ' +
+                  'See CLAUDE.md > "InventoryView height chain".',
+                  el
+              );
+          }
+      };
+      // Check after layout settles
+      const t = setTimeout(warnIfCollapsed, 500);
+
       const ro = new ResizeObserver((entries) => {
           for (const entry of entries) {
               setContainerHeight(entry.contentRect.height);
           }
+          warnIfCollapsed();
       });
       ro.observe(el);
-      return () => ro.disconnect();
+      return () => { clearTimeout(t); ro.disconnect(); };
   }, []);
 
   // Context-anchored action drawer — the row the drawer docks beneath.
@@ -2635,6 +2658,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       {/* --- SCROLL CONTAINER --- */}
       <div
         ref={scrollContainerRef}
+        data-testid="inventory-scroll"
         className="flex-1 overflow-auto custom-scrollbar bg-tea-bg md:px-6 pb-nav-gap"
         onScroll={(e) => {
           if (filterType === 'Pending') return;
