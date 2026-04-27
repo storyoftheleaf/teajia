@@ -579,7 +579,7 @@ const VideoPosterFrame: React.FC<{
 
       {/* Full-screen player overlay */}
       {showPlayer && videoId && createPortal(
-        <div className="fixed inset-0 z-[9999] bg-black flex items-center justify-center" onClick={() => setShowPlayer(false)}>
+        <div className="fixed inset-0 z-panel-modal bg-black flex items-center justify-center" onClick={() => setShowPlayer(false)}>
           <button
             className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-tea-text/10 flex items-center justify-center hover:bg-tea-text/20 transition-colors"
             onClick={() => setShowPlayer(false)}
@@ -636,7 +636,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
       <div key={page.index} className="w-full h-full relative group/page overflow-hidden">
         <style>{ANIMATION_STYLES}</style>
         {isEditable && !readOnly && (<button onClick={toggleColor} onMouseDown={(e) => e.stopPropagation()} className="absolute top-4 right-4 z-modal p-3 bg-tea-text/40 hover:bg-tea-text/60 backdrop-blur-md rounded-full text-tea-text border border-tea-border opacity-0 group-hover/page:opacity-100 transition-all"><Icons.Sun className="w-5 h-5" /></button>)}
-        {/* Paper texture — hidden on full-bleed image pages */}
+        {/* Paper texture, hidden on full-bleed image pages. z-[5] keeps it above z-0 image, below z-10 page content (local stack). */}
         {![LayoutVariant.IMG_FULL_BLEED, LayoutVariant.IMG_FULL_BLEED_TITLE, LayoutVariant.IMG_OVERLAY_TEXT, LayoutVariant.QUOTE_IMAGE_BG, LayoutVariant.IMG_VIGNETTE_SOFT, LayoutVariant.CHAPTER_IMAGE_BG].includes(variant) && (
           <div className="absolute inset-0 pointer-events-none z-[5] opacity-[0.06] mix-blend-overlay"><div className="w-full h-full" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")` }}></div></div>
         )}
@@ -919,6 +919,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                     <div className={`${paperBase} bg-black`} data-page-type="image">
                         <div className="absolute inset-0 z-0 reader-image-reveal"><SafeImage index={0} className="w-full h-full" /></div>
                         {/* Gradient overlay for caption readability */}
+                        {/* z-[5]: caption gradient above z-0 image, below z-10 caption (local stack) */}
                         <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-tea-bg/30 to-transparent z-[5] pointer-events-none"></div>
                         {/* Caption — bottom-left, no bg container, sits over gradient */}
                         <div className="absolute bottom-0 left-0 px-6 py-4 z-10 pointer-events-none">
@@ -2021,6 +2022,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                             />
                         </div>
                         {/* Gradient overlay for readability */}
+                        {/* z-[5]: readability overlay above panoramic image, below z-20 swipe hint (local stack) */}
                         <div className="absolute inset-0 bg-gradient-to-b from-tea-bg/10 to-tea-bg/20 z-[5] pointer-events-none"></div>
                         {/* Swipe hint arrow */}
                         <div className="absolute right-4 top-1/2 -translate-y-1/2 z-20 pointer-events-none">

@@ -693,7 +693,7 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ embedded, onOpenEntry, s
   if (transactions.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-14 animate-[fadeIn_0.4s_ease-out]">
-        <div className="w-20 h-20 rounded-full bg-tea-gold/8 flex items-center justify-center mb-5 shadow-[0_0_30px_rgba(184,146,78,0.08)]">
+        <div className="w-20 h-20 rounded-full bg-tea-gold/8 flex items-center justify-center mb-5 shadow-[0_0_30px_var(--tea-accent-sub)]">
           <ShoppingBag className="w-8 h-8 text-tea-gold/40" />
         </div>
         <h3 className="font-serif text-lg text-tea-text mb-1.5 tracking-wide">No transactions yet</h3>

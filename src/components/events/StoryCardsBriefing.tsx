@@ -77,7 +77,7 @@ const StoryCardsBriefing: React.FC<StoryCardsBriefingProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-[9000] bg-black"
+      className="fixed inset-0 z-priority bg-black"
       onClick={advance}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}

@@ -94,7 +94,7 @@ export const ForYourPractice: React.FC<ForYourPracticeProps> = ({
         className="group cursor-pointer relative break-inside-avoid md:hover:-translate-y-1 md:hover:shadow-lg md:transition-all md:duration-300"
         onClick={() => handleAddStarterSet(set)}
       >
-        <div className="p-2 md:p-3 bg-tea-elevated border border-tea-border rounded-[1px] shadow-[0_1px_3px_rgba(0,0,0,0.3)]">
+        <div className="p-2 md:p-3 bg-tea-elevated border border-tea-border rounded-[1px] shadow-base">
           <CardImage src={set.image} alt={set.name} aspect="square" />
           <div className="px-1 mt-3">
             <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-1 mb-1.5">

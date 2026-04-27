@@ -398,8 +398,8 @@ const AudioLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => voi
          
          {/* Background Ambience */}
          <div className="absolute inset-0 opacity-10 pointer-events-none">
-            <div className="absolute top-1/4 right-1/4 w-[600px] h-[600px] bg-tea-gold rounded-full blur-[150px] opacity-20 animate-pulse duration-[10s]"></div>
-            <div className="absolute bottom-1/4 left-1/4 w-[500px] h-[500px] bg-tea-green rounded-full blur-[120px] opacity-20 animate-pulse duration-[8s]"></div>
+            <div className="absolute top-1/4 right-1/4 w-[600px] h-[600px] bg-tea-gold rounded-full blur-[150px] opacity-20 animate-pulse"></div>
+            <div className="absolute bottom-1/4 left-1/4 w-[500px] h-[500px] bg-tea-green rounded-full blur-[120px] opacity-20 animate-pulse"></div>
          </div>
 
          <div className="w-full max-w-6xl px-12 flex items-center justify-center gap-[clamp(2rem,5vw,5rem)] z-10">

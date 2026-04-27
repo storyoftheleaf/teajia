@@ -306,7 +306,7 @@ export const TastingCardModal: React.FC<TastingCardModalProps> = ({ entry, onClo
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[200] flex flex-col items-center justify-end"
+      className="fixed inset-0 z-toast flex flex-col items-center justify-end"
       style={{ background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(4px)' }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >

@@ -249,7 +249,7 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
         {/* Empty states */}
         {tastingJournal.length === 0 ? (
           <div className="text-center py-20 animate-[fadeIn_0.4s_ease-out]">
-            <div className="w-20 h-20 rounded-full bg-tea-gold/8 flex items-center justify-center mx-auto mb-5 shadow-[0_0_30px_rgba(184,146,78,0.08)]">
+            <div className="w-20 h-20 rounded-full bg-tea-gold/8 flex items-center justify-center mx-auto mb-5 shadow-[0_0_30px_var(--tea-accent-sub)]">
               <BookOpen className="w-9 h-9 text-tea-gold/30" />
             </div>
             <h3 className="font-serif text-lg text-tea-text mb-1.5 tracking-wide">No teas yet</h3>

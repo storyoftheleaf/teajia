@@ -183,7 +183,7 @@ export const Card: React.FC<CardProps> = ({ story, onClick, isSaved, isWatched, 
 
                {isVideo && (
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <div className="w-10 h-10 rounded-full border-[0.5px] border-tea-border flex items-center justify-center backdrop-blur-[0px] group-hover:backdrop-blur-[1px] group-hover:bg-tea-gold/5 group-hover:scale-105 transition-all duration-700">
+                    <div className="w-10 h-10 rounded-full border-[0.5px] border-tea-border flex items-center justify-center backdrop-blur-none group-hover:backdrop-blur-[1px] group-hover:bg-tea-gold/5 group-hover:scale-105 transition-all duration-700">
                         <Icons.Play className="w-3 h-3 text-tea-text/90 fill-tea-text/80 ml-0.5 opacity-80 group-hover:opacity-100" />
                     </div>
                 </div>

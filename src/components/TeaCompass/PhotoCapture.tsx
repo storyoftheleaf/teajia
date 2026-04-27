@@ -230,7 +230,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
 
   // ── Scanner modal ──────────────────────────────────────────────────────────
   const scannerModal = scannerOpen ? createPortal(
-    <div className="fixed inset-0 z-[150] flex flex-col bg-black">
+    <div className="fixed inset-0 z-modal flex flex-col bg-black">
 
       {/* Header */}
       <div className="flex items-center justify-between px-4 pt-4 pb-3 shrink-0">
@@ -437,7 +437,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.15 }}
-          className="fixed inset-0 z-[200] flex items-center justify-center"
+          className="fixed inset-0 z-toast flex items-center justify-center"
           style={{ background: 'rgba(0,0,0,0.88)' }}
           onClick={() => setLightboxIndex(null)}
         >

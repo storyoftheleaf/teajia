@@ -88,7 +88,7 @@ export const CompareView: React.FC<CompareViewProps> = ({ entries, onClose, onRe
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 40 }}
         transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
-        className="fixed inset-0 sidebar-inset z-[150] bg-tea-bg flex flex-col"
+        className="fixed inset-0 sidebar-inset z-modal bg-tea-bg flex flex-col"
         style={{
           paddingTop: 'env(safe-area-inset-top, 0px)',
           paddingBottom: 'env(safe-area-inset-bottom, 0px)',
