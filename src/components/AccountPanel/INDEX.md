@@ -29,8 +29,9 @@
 ## toolRegistry.ts (/admin/)
 
 51 tools across 6 groups: Sell, Source, Gather, Publish, Teach, Network.
-- Each tool has: id, label, group, route, addedAt, requires (optional: 'owner' or 'platform')
-- `toolsForRole()` filters by role; `isRecentlyAdded()` marks new tools (< 30 days)
+- Each tool has: id, label, group, route, addedAt, requires (optional: 'owner' or 'platform'), bundle (optional: Bundle for staff visibility)
+- `toolsForRole({ isOwner, isPlatform, bundles })` filters by role + bundles; `isRecentlyAdded()` marks new tools (< 30 days)
+- StaffView reads active membership bundles from useAppStore and renders only the tools the staff member can actually use
 - OperatorView renders OperatorView renders grouped tiles; layout driven by GROUP_ICONS map
 
 ## Z-index & rendering invariants

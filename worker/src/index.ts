@@ -2759,7 +2759,7 @@ const handleLinkLineItem: Handler = async (request, env) => {
 
 // ── Stock Ledger ──
 const handleGetStockLedger: Handler = async (request, env) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'stock');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -3914,7 +3914,7 @@ Return arrays of matching term IDs for each category. Only include terms that ar
 
 // ── Activity Logs ──
 const handleGetActivityLogs: Handler = async (request, env) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireOwnerTier(request, env);
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 

@@ -33,8 +33,8 @@
 | 7 | Gather bundle inconsistently enforced: Wholesale orders require requireBundle('sell') but events DO NOT require requireBundle('gather') | 02 | half-day | [ ] |
 | 8 | Publish bundle invisible at server: No single handler uses requireBundle('publish'); all collection endpoints rely on implicit account scope | 02 | half-day | [ ] |
 | 9 | Stock bundle has no server implementation: No handler calls requireBundle('stock'); RPC actions have zero authorization | 02 | day | [ ] |
-| 10 | Member bundle-gated flows NOT in public Account Panel: Catalog, Stock, Sell bundles have no public UI; only admin section has partial UI | 01, 02 | multi-day | [ ] |
-| 11 | Personal Collection & Compass sync incomplete: Save handlers + backend sync are PARTIAL; member changes not persisted | 01 | half-day | [ ] |
+| 10 | ~~Member bundle-gated flows NOT in public Account Panel~~ — PARTIAL FIX 2026-04-27: AdminTool.bundle field added; toolsForRole now bundle-aware; StaffView shift toolbar is now bundle-driven instead of hardcoded Inventory/Quick invoice/Quick capture. Remaining work: build first-class public Account Panel sub-views for bundle-holders (out of scope for Your Table coherence pass). | 01, 02 | (partial) | [~] |
+| 11 | ~~Personal Collection & Compass sync incomplete~~ — VERIFIED SHIPPED 2026-04-27: useFavoritesSync + useCompassSync + useTastingJournalSync + useNotesSync all wired in App.tsx:160-164; worker endpoints /api/user/favorites and /api/compass/* implemented. Audit detail was stale. | 01 | — | [x] done |
 | 12 | Pull-to-refresh not fully wired: Visual indicator renders but refresh logic incomplete; no actual data re-fetch on pull | 01 | 2hr | [ ] |
 | 13 | Global search partially implemented: Backend search API integration is stub-level; results may be empty | 01 | half-day | [ ] |
 | 14 | Cart checkout relies on per-store WhatsApp number without validation: If store lacks whatsapp_number + fallback fails, checkout silently breaks | 01 | 30min | [ ] |
@@ -54,7 +54,7 @@
 | 21 | Purchase Orders outside Stock bundle: Account-scoped but no bundle enforcement; appears Sell-adjacent but not requireBundle('sell') | 02 | 1hr | [ ] |
 | 22 | Legacy role === 'owner' checks (13 instances) not consolidated: Mixed auth paths; harder to audit than single requireOwnerTier() helper | 03 | 2hr | [ ] |
 | 23 | Cross-tier data model assumes tokens are correct: If JWT forged or token payload tampered, bundle checks fail silently | 02, 03 | — | [ ] |
-| 24 | Activity log & audit trail unsecured: GET /api/activity-logs + GET /api/stock-ledger have no authorization; any authenticated member can read other accounts' history | 02 | 1hr | [ ] |
+| 24 | ~~Activity log & audit trail unsecured~~ — FIXED 2026-04-27: activity-logs now requireOwnerTier, stock-ledger now requireBundle('stock'). Note: handlers were already account-scoped, so this closed an in-account privilege gap, not cross-tenant. | 02 | — | [x] done |
 | 25 | "Start Here", "For Your Space", "Spaces" in PREVIEW_MODE: Intentionally hidden behind feature flag; unclear ship date | 01 | half-day | [ ] |
 | 26 | Community page is STUB only: Placeholder with no content, feeds, or discovery | 01 | 2–3hr | [ ] |
 | 27 | Account Panel "Operator" view not fully tested in multi-store: Edge cases unclear (member of A & B, checkout from C); currency/storefront context may misalign | 01 | 1hr | [ ] |

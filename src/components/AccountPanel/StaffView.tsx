@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, Wrench, BookOpen } from 'lucide-react';
 import {
@@ -9,6 +9,8 @@ import {
   daysWord,
   getInitials,
 } from './primitives';
+import { useAppStore } from '../../lib/store';
+import { toolsForRole, type AdminTool } from '../../admin/toolRegistry';
 
 const ICON_PROPS = { size: 13, strokeWidth: 1.5 } as const;
 
@@ -54,6 +56,20 @@ export const StaffView: React.FC<StaffViewProps> = ({
 }) => {
   const navigate = useNavigate();
   const go = (route: string) => { onClose(); navigate(route); };
+
+  // Bundle-aware shift toolbar. The same set of admin tools shown to the
+  // operator is filtered down to the bundles this staff member actually holds.
+  // Bottom-bar tools (rendered as primary mobile nav) are excluded so the
+  // panel doesn't duplicate them.
+  const memberships = useAppStore((s) => s.memberships);
+  const activeAccountId = useAppStore((s) => s.activeAccountId);
+  const activeMembership = memberships.find(m => m.account_id === activeAccountId);
+  const bundles = activeMembership?.bundles ?? [];
+  const BOTTOM_BAR_TOOL_IDS = new Set(['compass', 'inventory', 'activity', 'events', 'people', 'capture']);
+  const shiftTools = useMemo(() => {
+    return toolsForRole({ isOwner: false, isPlatform: false, bundles })
+      .filter(t => !BOTTOM_BAR_TOOL_IDS.has(t.id));
+  }, [bundles]);
 
   const attention = todayEventCount > 0 ? [{
     id: 'today',
@@ -124,39 +140,30 @@ export const StaffView: React.FC<StaffViewProps> = ({
         </PreviewBlock>
       )}
 
-      {/* ── Shift tools — compact text-link cluster ─────────────────── */}
-      <div className="border-t border-tea-border px-6 pt-7 pb-5">
-        <div className="flex items-center gap-2 text-[12px] uppercase tracking-[0.22em] text-tea-text font-medium">
-          <span className="text-tea-gold/70 shrink-0 flex items-center" aria-hidden="true"><Wrench size={14} strokeWidth={1.5} /></span>
-          <span>Shift</span>
+      {/* ── Shift tools — bundle-aware text-link cluster ────────────── */}
+      {shiftTools.length > 0 && (
+        <div className="border-t border-tea-border px-6 pt-7 pb-5">
+          <div className="flex items-center gap-2 text-[12px] uppercase tracking-[0.22em] text-tea-text font-medium">
+            <span className="text-tea-gold/70 shrink-0 flex items-center" aria-hidden="true"><Wrench size={14} strokeWidth={1.5} /></span>
+            <span>Shift</span>
+          </div>
+          <div className="w-8 h-px bg-tea-gold/40 mt-2 mb-3.5 ml-[22px]" aria-hidden="true" />
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[14px] text-tea-text-sec tracking-[0.01em]">
+            {shiftTools.map((tool: AdminTool, i: number) => (
+              <React.Fragment key={tool.id}>
+                {i > 0 && <span className="text-tea-text-sec" aria-hidden="true">·</span>}
+                <button
+                  onClick={() => go(tool.route)}
+                  className="py-1 -my-1 hover:text-tea-gold transition-colors"
+                  style={{ fontFamily: 'var(--font-display)', WebkitTapHighlightColor: 'transparent' }}
+                >
+                  {tool.label}
+                </button>
+              </React.Fragment>
+            ))}
+          </div>
         </div>
-        <div className="w-8 h-px bg-tea-gold/40 mt-2 mb-3.5 ml-[22px]" aria-hidden="true" />
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[14px] text-tea-text-sec tracking-[0.01em]">
-          <button
-            onClick={() => go('/admin/inventory')}
-            className="py-1 -my-1 hover:text-tea-gold transition-colors"
-            style={{ fontFamily: 'var(--font-display)', WebkitTapHighlightColor: 'transparent' }}
-          >
-            Inventory
-          </button>
-          <span className="text-tea-text-sec" aria-hidden="true">·</span>
-          <button
-            onClick={() => go('/admin/activity?qi=1')}
-            className="py-1 -my-1 hover:text-tea-gold transition-colors"
-            style={{ fontFamily: 'var(--font-display)', WebkitTapHighlightColor: 'transparent' }}
-          >
-            Quick invoice
-          </button>
-          <span className="text-tea-text-sec" aria-hidden="true">·</span>
-          <button
-            onClick={() => go('/admin/capture')}
-            className="py-1 -my-1 hover:text-tea-gold transition-colors"
-            style={{ fontFamily: 'var(--font-display)', WebkitTapHighlightColor: 'transparent' }}
-          >
-            Quick capture
-          </button>
-        </div>
-      </div>
+      )}
 
       {/* ── Learn — quiet text links ────────────────────────────────── */}
       <div className="border-t border-tea-border px-6 pt-7 pb-5">

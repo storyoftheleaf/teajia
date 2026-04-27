@@ -1,3 +1,5 @@
+import type { Bundle } from '../types';
+
 export type AdminToolGroup = 'sell' | 'source' | 'gather' | 'publish' | 'teach' | 'network';
 
 export interface AdminTool {
@@ -6,7 +8,16 @@ export interface AdminTool {
   group: AdminToolGroup;
   route: string;
   addedAt: string;
+  // Tier gate. 'owner' = the active membership is owner (or platform tier).
+  // 'platform' = caller is platform_owner/platform_admin.
   requires?: 'owner' | 'platform';
+  // Bundle gate for staff/non-owner members. If set, the tool is visible to
+  // any caller who holds the bundle (owners and platform tier always pass via
+  // selectHasBundle short-circuit). Owners see all owner-tier tools regardless
+  // of this field. If a tool has BOTH `requires: 'owner'` and `bundle`, it
+  // remains owner-restricted (the bundle field is ignored — used only when
+  // owner tools are also exposed to a bundle-holding staff member).
+  bundle?: Bundle;
 }
 
 export const ADMIN_TOOL_GROUPS: { id: AdminToolGroup; label: string }[] = [
@@ -19,22 +30,22 @@ export const ADMIN_TOOL_GROUPS: { id: AdminToolGroup; label: string }[] = [
 ];
 
 export const ADMIN_TOOLS: AdminTool[] = [
-  { id: 'activity', label: 'Activity', group: 'sell', route: '/admin/activity', addedAt: '2025-10-01' },
-  { id: 'quick-invoice', label: 'Quick Invoice', group: 'sell', route: '/admin/activity?qi=1', addedAt: '2025-11-10' },
-  { id: 'people', label: 'Customers', group: 'sell', route: '/admin/people', addedAt: '2025-10-01' },
-  { id: 'inventory', label: 'Inventory', group: 'sell', route: '/admin/inventory', addedAt: '2025-09-15' },
+  { id: 'activity', label: 'Activity', group: 'sell', route: '/admin/activity', addedAt: '2025-10-01', bundle: 'sell' },
+  { id: 'quick-invoice', label: 'Quick Invoice', group: 'sell', route: '/admin/activity?qi=1', addedAt: '2025-11-10', bundle: 'sell' },
+  { id: 'people', label: 'Customers', group: 'sell', route: '/admin/people', addedAt: '2025-10-01', bundle: 'sell' },
+  { id: 'inventory', label: 'Inventory', group: 'sell', route: '/admin/inventory', addedAt: '2025-09-15', bundle: 'stock' },
   { id: 'purchase-orders', label: 'Purchase Orders', group: 'sell', route: '/admin/purchase-orders', addedAt: '2026-02-20', requires: 'owner' },
 
-  { id: 'compass', label: 'Tea Compass', group: 'source', route: '/admin/compass', addedAt: '2025-09-01' },
-  { id: 'capture', label: 'Quick Capture', group: 'source', route: '/admin/capture', addedAt: '2026-01-12' },
-  { id: 'vendors', label: 'Vendors', group: 'source', route: '/admin/compass?tab=sourcing', addedAt: '2025-11-05' },
+  { id: 'compass', label: 'Tea Compass', group: 'source', route: '/admin/compass', addedAt: '2025-09-01', bundle: 'catalog' },
+  { id: 'capture', label: 'Quick Capture', group: 'source', route: '/admin/capture', addedAt: '2026-01-12', bundle: 'catalog' },
+  { id: 'vendors', label: 'Vendors', group: 'source', route: '/admin/compass?tab=sourcing', addedAt: '2025-11-05', bundle: 'catalog' },
 
-  { id: 'events', label: 'Events', group: 'gather', route: '/admin/events', addedAt: '2025-09-20' },
-  { id: 'venues', label: 'Venues', group: 'gather', route: '/admin/events?tab=venues', addedAt: '2026-02-02' },
-  { id: 'interest-signups', label: 'Interest Signups', group: 'gather', route: '/admin/events?tab=interest', addedAt: '2026-04-20' },
+  { id: 'events', label: 'Events', group: 'gather', route: '/admin/events', addedAt: '2025-09-20', bundle: 'gather' },
+  { id: 'venues', label: 'Venues', group: 'gather', route: '/admin/events?tab=venues', addedAt: '2026-02-02', bundle: 'gather' },
+  { id: 'interest-signups', label: 'Interest Signups', group: 'gather', route: '/admin/events?tab=interest', addedAt: '2026-04-20', bundle: 'gather' },
 
-  { id: 'magazine', label: 'Magazine', group: 'publish', route: '/admin/magazine', addedAt: '2026-01-28', requires: 'owner' },
-  { id: 'collections', label: 'Collections', group: 'publish', route: '/admin/collections', addedAt: '2026-04-24', requires: 'owner' },
+  { id: 'magazine', label: 'Magazine', group: 'publish', route: '/admin/magazine', addedAt: '2026-01-28', requires: 'owner', bundle: 'publish' },
+  { id: 'collections', label: 'Collections', group: 'publish', route: '/admin/collections', addedAt: '2026-04-24', requires: 'owner', bundle: 'publish' },
 
   { id: 'team', label: 'Team', group: 'teach', route: '/admin/people?tab=team', addedAt: '2025-12-05', requires: 'owner' },
   { id: 'access', label: 'Members & Access', group: 'teach', route: '/admin/access', addedAt: '2026-04-26', requires: 'owner' },
@@ -58,12 +69,19 @@ export function isRecentlyAdded(tool: AdminTool, now: number = Date.now()): bool
   return now - added < THIRTY_DAYS_MS;
 }
 
-export function toolsForRole(opts: { isOwner: boolean; isPlatform: boolean }): AdminTool[] {
+export function toolsForRole(opts: { isOwner: boolean; isPlatform: boolean; bundles?: Bundle[] }): AdminTool[] {
+  const bundles = new Set(opts.bundles ?? []);
   return ADMIN_TOOLS.filter(t => {
-    if (!t.requires) return true;
+    // Platform tier sees everything.
+    if (opts.isPlatform) return true;
+    // Tier-restricted tools.
+    if (t.requires === 'platform') return false;
     if (t.requires === 'owner') return opts.isOwner;
-    if (t.requires === 'platform') return opts.isPlatform;
-    return true;
+    // Owners see all non-restricted tools regardless of bundle.
+    if (opts.isOwner) return true;
+    // Staff: a tool is visible if it has no gate, or if the staff holds its bundle.
+    if (!t.bundle) return true;
+    return bundles.has(t.bundle);
   });
 }
 
