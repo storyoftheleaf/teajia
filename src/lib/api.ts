@@ -524,6 +524,14 @@ export const api = {
       });
       return handleResponse(res);
     },
+    setFeatured: async (id: string, featured: boolean) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/products/${id}/featured`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ featured }),
+      });
+      return handleResponse(res);
+    },
   },
 
   rates: {

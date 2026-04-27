@@ -581,7 +581,8 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
             is_personal: formData.isPersonal,
             can_reorder: formData.canReorder,
             is_public: formData.isPublic,
-            is_featured: formData.isFeatured,
+            // is_featured is no longer set at creation time; star the tea after
+            // creation to add it to the Featured shop collection instead.
             is_curated: formData.isCurated,
             lore: formData.lore,
             tasting_notes: formData.tastingNotes.split(',').map(n => n.trim()).filter(n => n),

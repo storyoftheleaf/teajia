@@ -1310,7 +1310,17 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     else if (field === 'productName') dbPayload = { product_name: value };
     else if (field === 'originRegion') dbPayload = { origin_region: value };
     else if (field === 'year') dbPayload = { year: Number(value) };
-    else if (field === 'isFeatured') dbPayload = { is_featured: value };
+    else if (field === 'isFeatured') {
+      // Route through the Featured collection endpoint instead of writing the
+      // legacy is_featured column. Optimistic local state is already updated above.
+      try {
+        await api.products.setFeatured(id, Boolean(value));
+      } catch (err: any) {
+        showToast(`Update failed: ${err.message}`, 'error');
+        onRefresh();
+      }
+      return;
+    }
     else if (field === 'isPublic') dbPayload = { is_public: value };
     else if (field === 'showWisdom') dbPayload = { show_wisdom: value };
     else if (field === 'recheckStock') dbPayload = { recheck_stock: value ? 1 : 0 };

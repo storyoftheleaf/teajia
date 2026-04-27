@@ -1603,10 +1603,22 @@ const handleGetProducts: Handler = async (request, env) => {
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
-  // Batch rates + products in a single D1 round-trip
+  // Batch rates + products in a single D1 round-trip.
+  // is_featured is derived from active shop-published Collections so the column
+  // value (legacy) is never used for reads. The EXISTS subquery returns 1/0
+  // which the client maps to isFeatured via the normal snake->camel transform.
   const [ratesResult, result] = await env.DB.batch([
     env.DB.prepare('SELECT currency, rate_to_usd FROM exchange_rates'),
-    env.DB.prepare('SELECT * FROM products WHERE account_id = ? ORDER BY created_at DESC').bind(accountId),
+    env.DB.prepare(`SELECT p.*,
+      (SELECT COUNT(*) > 0 FROM collection_items ci
+         JOIN collections c ON c.id = ci.collection_id
+         JOIN collection_publications cp ON cp.collection_id = c.id
+        WHERE ci.product_id = p.id
+          AND cp.target_type = 'shop'
+          AND cp.unpublished_at IS NULL) AS is_featured
+      FROM products p
+      WHERE p.account_id = ?
+      ORDER BY p.created_at DESC`).bind(accountId),
   ]);
   const rates = new Map<string, number>();
   for (const r of ratesResult.results as any[]) {
@@ -2033,13 +2045,21 @@ const handleGetCatalog: Handler = async (request, env) => {
   if (accountId === platformId) return json({ error: 'Platform account uses inventory directly' }, 403);
 
   const result = await env.DB.prepare(
-    `SELECT id, type, form, given_name, chinese_name, product_name, year, origin_country, origin_region,
-            description, tasting_notes, image_url, additional_images, lore, show_wisdom, processing_notes,
-            terroir, mood, experience, tea_key, tasting, status, is_featured, is_curated, material,
-            capacity_ml, teaware_category, quantity_units, stock_grams, wholesale_price
-     FROM products
-     WHERE account_id = ? AND catalog_visible = 1 AND status != 'Archived'
-     ORDER BY type, given_name`
+    `SELECT p.id, p.type, p.form, p.given_name, p.chinese_name, p.product_name, p.year,
+            p.origin_country, p.origin_region,
+            p.description, p.tasting_notes, p.image_url, p.additional_images, p.lore,
+            p.show_wisdom, p.processing_notes, p.terroir, p.mood, p.experience,
+            p.tea_key, p.tasting, p.status, p.is_curated, p.material,
+            p.capacity_ml, p.teaware_category, p.quantity_units, p.stock_grams, p.wholesale_price,
+            (SELECT COUNT(*) > 0 FROM collection_items ci
+               JOIN collections c ON c.id = ci.collection_id
+               JOIN collection_publications cp ON cp.collection_id = c.id
+              WHERE ci.product_id = p.id
+                AND cp.target_type = 'shop'
+                AND cp.unpublished_at IS NULL) AS is_featured
+     FROM products p
+     WHERE p.account_id = ? AND p.catalog_visible = 1 AND p.status != 'Archived'
+     ORDER BY p.type, p.given_name`
   ).bind(platformId).all();
 
   const products = (result.results as any[]).map(p => {
@@ -3455,11 +3475,17 @@ function makePublicXrefHandler(tableName: string, fkColumn: string): Handler {
         `SELECT p.id, p.type, p.given_name, p.chinese_name, p.product_name, p.year,
                 p.origin_country, p.origin_region, p.stock_grams, p.description,
                 p.tasting_notes, p.image_url, p.additional_images, p.status,
-                p.is_personal, p.can_reorder, p.is_featured, p.is_curated, p.lore,
+                p.is_personal, p.can_reorder, p.is_curated, p.lore,
                 p.show_wisdom, p.processing_notes, p.terroir, p.mood, p.experience,
                 p.cost_amount, p.cost_currency, p.quantity_purchased,
                 p.shipping_rate_per_kg, p.fixed_retail_price_usd,
-                p.material, p.capacity_ml, p.teaware_category, p.quantity_units, p.tasting, p.tasting_source
+                p.material, p.capacity_ml, p.teaware_category, p.quantity_units, p.tasting, p.tasting_source,
+                (SELECT COUNT(*) > 0 FROM collection_items ci2
+                   JOIN collections c2 ON c2.id = ci2.collection_id
+                   JOIN collection_publications cp2 ON cp2.collection_id = c2.id
+                  WHERE ci2.product_id = p.id
+                    AND cp2.target_type = 'shop'
+                    AND cp2.unpublished_at IS NULL) AS is_featured
          FROM ${tableName} xr
          JOIN products p ON xr.product_id = p.id
          WHERE xr.${fkColumn} = ?
@@ -9700,14 +9726,20 @@ async function fetchPublicProductsForAccount(
       `SELECT id, type, given_name, chinese_name, product_name, year,
               origin_country, origin_region, stock_grams, description,
               tasting_notes, image_url, additional_images, status,
-              is_personal, can_reorder, is_featured, is_curated, lore, show_wisdom,
+              is_personal, can_reorder, is_curated, lore, show_wisdom,
               processing_notes, terroir, mood, experience,
               cost_amount, cost_currency, quantity_purchased,
               shipping_rate_per_kg, fixed_retail_price_usd,
-              material, capacity_ml, teaware_category, quantity_units, tasting, tasting_source
-       FROM products
-       WHERE is_public = 1 AND status = 'Active' AND account_id = ?
-       ORDER BY created_at DESC`
+              material, capacity_ml, teaware_category, quantity_units, tasting, tasting_source,
+              (SELECT COUNT(*) > 0 FROM collection_items ci
+                 JOIN collections c ON c.id = ci.collection_id
+                 JOIN collection_publications cp ON cp.collection_id = c.id
+                WHERE ci.product_id = p.id
+                  AND cp.target_type = 'shop'
+                  AND cp.unpublished_at IS NULL) AS is_featured
+       FROM products p
+       WHERE p.is_public = 1 AND p.status = 'Active' AND p.account_id = ?
+       ORDER BY p.created_at DESC`
     ).bind(accountId),
   ]);
   const rates = new Map<string, number>();
@@ -11546,6 +11578,113 @@ const handleUnpublishFromShop: Handler = async (request, env, params) => {
   });
 
   return json({ ok: true });
+};
+
+// POST /api/products/:id/featured
+// Sets or clears the "Featured" shop-published collection membership for a product.
+// Body: { featured: boolean }
+// The handler finds-or-creates a per-account system collection identified by
+// is_featured_collection=1 (added in migration 054). It then adds/removes the
+// product and publishes/unpublishes the collection to the shop audience as needed.
+const handleSetProductFeatured: Handler = async (request, env, params) => {
+  const ctx = await getActiveAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId, userId, email } = ctx;
+
+  const body = await request.json() as { featured?: boolean };
+  const featured = Boolean(body.featured);
+
+  // Verify the product belongs to this account.
+  const product = await env.DB.prepare(
+    `SELECT id FROM products WHERE id = ? AND account_id = ?`
+  ).bind(params.id, accountId).first();
+  if (!product) return json({ error: 'Product not found' }, 404);
+
+  // Find or create the account's system Featured collection.
+  let collectionRow = await env.DB.prepare(
+    `SELECT id FROM collections WHERE account_id = ? AND is_featured_collection = 1 LIMIT 1`
+  ).bind(accountId).first();
+
+  if (!collectionRow) {
+    const collId = newId('col');
+    const now = new Date().toISOString();
+    await env.DB.prepare(
+      `INSERT INTO collections (id, account_id, title, status, is_featured_collection, created_by_user_id, created_at, updated_at)
+       VALUES (?, ?, 'Featured', 'active', 1, ?, ?, ?)`
+    ).bind(collId, accountId, userId, now, now).run();
+    collectionRow = { id: collId };
+  }
+
+  const collectionId = collectionRow.id as string;
+
+  if (featured) {
+    // Add product to the collection (idempotent via UNIQUE constraint).
+    const existingItem = await env.DB.prepare(
+      `SELECT id FROM collection_items WHERE collection_id = ? AND product_id = ?`
+    ).bind(collectionId, params.id).first();
+
+    if (!existingItem) {
+      const maxPos = await env.DB.prepare(
+        `SELECT COALESCE(MAX(position), 0) AS max_pos FROM collection_items WHERE collection_id = ?`
+      ).bind(collectionId).first();
+      const position = ((maxPos?.max_pos as number) || 0) + 1;
+      await env.DB.prepare(
+        `INSERT INTO collection_items (id, collection_id, product_id, position) VALUES (?, ?, ?, ?)`
+      ).bind(newId('ci'), collectionId, params.id, position).run();
+    }
+
+    // Publish to shop if not already active.
+    const activePub = await env.DB.prepare(
+      `SELECT id FROM collection_publications
+        WHERE collection_id = ? AND target_type = 'shop' AND unpublished_at IS NULL
+        LIMIT 1`
+    ).bind(collectionId).first();
+
+    if (!activePub) {
+      let slug = '';
+      for (let attempt = 0; attempt < 5; attempt++) {
+        const candidate = buildCollectionSlug('Featured');
+        const taken = await env.DB.prepare(
+          `SELECT 1 FROM collection_publications WHERE slug = ?`
+        ).bind(candidate).first();
+        if (!taken) { slug = candidate; break; }
+      }
+      if (!slug) return json({ error: 'Slug generation failed' }, 500);
+      const pubId = newId('pub');
+      await env.DB.prepare(
+        `INSERT INTO collection_publications
+           (id, collection_id, target_type, target_id, slug, recipients_json, created_by_user_id)
+         VALUES (?, ?, 'shop', NULL, ?, NULL, ?)`
+      ).bind(pubId, collectionId, slug, userId).run();
+
+      await logPlatformAction(env, 'product.featured.published_collection', userId, email, 'collection', collectionId, {
+        publication_id: pubId, product_id: params.id, account_id: accountId,
+      });
+    }
+  } else {
+    // Remove product from the collection.
+    await env.DB.prepare(
+      `DELETE FROM collection_items WHERE collection_id = ? AND product_id = ?`
+    ).bind(collectionId, params.id).run();
+
+    // If the collection is now empty, unpublish it.
+    const remaining = await env.DB.prepare(
+      `SELECT COUNT(*) AS n FROM collection_items WHERE collection_id = ?`
+    ).bind(collectionId).first();
+
+    if ((remaining?.n as number) === 0) {
+      await env.DB.prepare(
+        `UPDATE collection_publications SET unpublished_at = ?
+          WHERE collection_id = ? AND target_type = 'shop' AND unpublished_at IS NULL`
+      ).bind(new Date().toISOString(), collectionId).run();
+    }
+  }
+
+  await logPlatformAction(env, featured ? 'product.featured' : 'product.unfeatured', userId, email, 'product', params.id, {
+    collection_id: collectionId, account_id: accountId,
+  });
+
+  return json({ ok: true, featured });
 };
 
 // GET /api/collections/shop
@@ -13988,6 +14127,7 @@ const routes: [string, string, Handler][] = [
   ['POST', '/api/products/bulk', handleBulkCreateProducts],
   ['PUT', '/api/products/:id', handleUpdateProduct],
   ['DELETE', '/api/products/:id', handleDeleteProduct],
+  ['POST', '/api/products/:id/featured', handleSetProductFeatured],
   ['GET', '/api/products/:id/events', handleGetProductEvents],
 
   // Wholesale Catalog
