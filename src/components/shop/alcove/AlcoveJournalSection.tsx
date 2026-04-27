@@ -178,7 +178,7 @@ export const AlcoveJournalSection: React.FC<AlcoveJournalSectionProps> = ({
 
             {item.category === 'tea' && (
               <button
-                onClick={() => navigate('/learn')}
+                onClick={() => navigate('/craft')}
                 style={{
                   display: "flex", alignItems: "center", gap: "6px",
                   background: "none", border: "none",

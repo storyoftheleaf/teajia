@@ -16,7 +16,7 @@ import { PEOPLE } from './content/people';
 // Navigation Configuration
 export const MAIN_NAV_ITEMS = [
   { id: 'MAGAZINE', label: 'Read', icon: 'Book', hint: 'Editorial space: interviews, visual stories, contributor pieces' },
-  { id: 'LEARN', label: 'Learn', icon: 'School', hint: 'Education hub: structured courses and reference library' },
+  { id: 'LEARN', label: 'Craft', icon: 'School', hint: 'A practitioner toolkit: courses, glossary, videos, journeys, and shared wisdom' },
   { id: 'OFFERINGS', label: 'Partner', icon: 'Sparkles', hint: 'For-hire services: tea sessions, design curation, circles' },
   { id: 'SHOP', label: 'Shop', icon: 'Bag', hint: 'Product store: teas, teaware, and curated collections' },
 ] as const;
@@ -33,7 +33,7 @@ export const CENTER_NAV = {
 
 export const NAV_ONBOARDING_MESSAGES = {
   magazine: 'Read interviews, visual stories, and tea house building.',
-  learn: 'Take courses or browse our reference library.',
+  learn: 'A toolkit for your tea practice — courses, glossary, videos, journeys, and shared wisdom.',
   offerings: 'Book sessions, design services, or join circles.',
   shop: 'Browse and purchase teas, teaware, and starter sets.',
   center: 'Return to home and discover featured content.',

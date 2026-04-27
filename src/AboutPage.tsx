@@ -146,9 +146,9 @@ export default function AboutPage() {
           </p>
         </div>
         <div className="bg-tea-surface rounded-xl p-6 hover:bg-tea-elevated transition-colors duration-150">
-          <h3 className="font-display text-lg text-tea-text mb-2">Learn</h3>
+          <h3 className="font-display text-lg text-tea-text mb-2">Craft</h3>
           <p className="font-body text-sm text-tea-text-sec leading-relaxed">
-            Structured courses and a living glossary built from real experience. Not internet summaries — knowledge passed down through practice.
+            A practitioner toolkit. Courses, glossary, videos, journeys, and shared wisdom built from real experience. Not internet summaries, knowledge passed down through practice.
           </p>
         </div>
         <div className="bg-tea-surface rounded-xl p-6 hover:bg-tea-elevated transition-colors duration-150">

@@ -3,7 +3,7 @@ import { Section } from '../types';
 export const SECTION_TO_PATH: Record<Section, string> = {
   HOME: '/',
   MAGAZINE: '/magazine',
-  LEARN: '/learn',
+  LEARN: '/craft',
   SHOP: '/shop',
   OFFERINGS: '/advise',
   EVENTS: '/events',

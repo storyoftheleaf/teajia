@@ -13,7 +13,7 @@ const PATHS: Path[] = [
   {
     label: 'New to tea',
     desc: 'Discover what tea really is',
-    route: '/learn',
+    route: '/craft',
   },
   {
     label: 'I have a practice',

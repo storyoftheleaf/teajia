@@ -9,7 +9,6 @@ import { Glossary } from './library/Glossary';
 import { Playlists } from './library/Playlists';
 import { Videos } from './library/Videos';
 import { VisualGuides } from './library/VisualGuides';
-import { ReadingList } from './library/ReadingList';
 import { JourneysView } from './learn/JourneysView';
 import { CommunityWisdomView } from './learn/CommunityWisdomView';
 import { TeaSpacesView } from './learn/TeaSpacesView';
@@ -17,7 +16,7 @@ import { useSubViewNavigation } from '../hooks/useSubViewNavigation';
 import { useScrollRestoration } from '../hooks/useScrollRestoration';
 import { Breadcrumb } from './shared/Breadcrumb';
 
-type LearnView = 'overview' | 'course' | 'glossary' | 'playlists' | 'videos' | 'visual-guides' | 'reading' | 'journeys' | 'wisdom' | 'spaces';
+type LearnView = 'overview' | 'course' | 'glossary' | 'playlists' | 'videos' | 'visual-guides' | 'journeys' | 'wisdom' | 'spaces';
 
 const VIEW_LABELS: Record<LearnView, string> = {
   overview: 'Overview',
@@ -26,7 +25,6 @@ const VIEW_LABELS: Record<LearnView, string> = {
   playlists: 'Playlists',
   videos: 'Videos',
   'visual-guides': 'Visual Guides',
-  reading: 'Reading',
   journeys: 'Journeys',
   wisdom: 'Community Wisdom',
   spaces: 'Tea Spaces',
@@ -83,7 +81,7 @@ export const LearnHub: React.FC<LearnHubProps> = ({
 
   const breadcrumbSegments = isSubView
     ? [
-        { label: 'Learn', onClick: navigateBack },
+        { label: 'Craft', onClick: navigateBack },
         { label: VIEW_LABELS[currentView] || currentView },
       ]
     : [];
@@ -104,8 +102,6 @@ export const LearnHub: React.FC<LearnHubProps> = ({
         return <Videos onBack={navigateBack} />;
       case 'visual-guides':
         return <VisualGuides onBack={navigateBack} />;
-      case 'reading':
-        return <ReadingList onBack={navigateBack} />;
       case 'journeys':
         return <JourneysView onBack={navigateBack} />;
       case 'wisdom':
@@ -120,11 +116,11 @@ export const LearnHub: React.FC<LearnHubProps> = ({
   return (
     <div className="w-full animate-[fadeIn_0.5s_ease-out]">
       <Helmet>
-        <title>Learn — Teajia</title>
-        <meta name="description" content="A structured curriculum for understanding tea — from leaf to cup. Courses, glossary, visual guides, and community wisdom." />
+        <title>Craft — Teajia</title>
+        <meta name="description" content="A practitioner toolkit for your tea practice. Courses, glossary, videos, journeys, visual guides, and shared wisdom." />
       </Helmet>
       {!isSubView && (
-        <PageHeader title="Learn" onCartClick={onCartClick} onAccountClick={onAccountClick} cartItemCount={cartItemCount} />
+        <PageHeader title="Craft" onCartClick={onCartClick} onAccountClick={onAccountClick} cartItemCount={cartItemCount} />
       )}
 
       {/* Always reserve breadcrumb height to prevent layout shift */}

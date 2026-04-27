@@ -228,7 +228,7 @@ const AppContent = () => {
     const titles: Record<Section, string> = {
       HOME: 'Teajia | Tea Journal',
       MAGAZINE: 'Magazine — Teajia',
-      LEARN: 'Learn — Teajia',
+      LEARN: 'Craft — Teajia',
       SHOP: 'Shop — Teajia',
       OFFERINGS: 'Advise — Teajia',
       EVENTS: 'Sessions — Teajia',
@@ -650,11 +650,13 @@ const AppContent = () => {
                     </Suspense>
                   </ErrorBoundary>
                 } />
-                <Route path="/learn" element={
+                <Route path="/craft" element={
                   <ErrorBoundary>
                     <LearnHub onStoryClick={handleCardClick} watchedStories={watchedStoryIds} onCartClick={handleOpenCart} onAccountClick={handleOpenAccount} cartItemCount={cart.length} onNavigateToAdvise={() => setActiveSection('OFFERINGS')} />
                   </ErrorBoundary>
                 } />
+                {/* Legacy route — old links to /learn keep working. */}
+                <Route path="/learn" element={<Navigate to="/craft" replace />} />
                 <Route path="/shop" element={
                   <ErrorBoundary>
                     <Suspense fallback={<SectionSkeleton variant="list" />}>

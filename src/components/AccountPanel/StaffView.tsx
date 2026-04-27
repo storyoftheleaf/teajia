@@ -175,11 +175,11 @@ export const StaffView: React.FC<StaffViewProps> = ({
           </button>
           <span className="text-tea-text-sec" aria-hidden="true">·</span>
           <button
-            onClick={() => go('/learn')}
+            onClick={() => go('/craft')}
             className="py-1 -my-1 hover:text-tea-gold transition-colors"
             style={{ fontFamily: 'var(--font-display)', WebkitTapHighlightColor: 'transparent' }}
           >
-            Learn
+            Craft
           </button>
         </div>
       </div>

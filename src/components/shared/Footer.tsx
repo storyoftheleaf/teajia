@@ -32,7 +32,7 @@ export default function Footer() {
             <div className="flex flex-col gap-2.5">
               <span className="text-[10px] uppercase tracking-[0.2em] text-tea-gold/70 font-sans font-semibold mb-1">Explore</span>
               <Link to="/magazine" className="text-[13px] text-tea-text-sec hover:text-tea-gold transition-colors duration-300" style={{ fontFamily: 'var(--font-body)' }}>Magazine</Link>
-              <Link to="/learn" className="text-[13px] text-tea-text-sec hover:text-tea-gold transition-colors duration-300" style={{ fontFamily: 'var(--font-body)' }}>Learn</Link>
+              <Link to="/craft" className="text-[13px] text-tea-text-sec hover:text-tea-gold transition-colors duration-300" style={{ fontFamily: 'var(--font-body)' }}>Craft</Link>
               <Link to="/shop" className="text-[13px] text-tea-text-sec hover:text-tea-gold transition-colors duration-300" style={{ fontFamily: 'var(--font-body)' }}>Shop</Link>
               <Link to="/advise" className="text-[13px] text-tea-text-sec hover:text-tea-gold transition-colors duration-300" style={{ fontFamily: 'var(--font-body)' }}>Advise</Link>
             </div>

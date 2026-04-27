@@ -11,7 +11,7 @@ import { CURATED_COLLECTIONS } from '../data/curatedCollections';
 import { TEA_SPACES, SPACE_TYPE_LABELS } from '../data/teaSpaces';
 import { teaMapPins } from '../data/teaMapPins';
 
-type LearnView = 'overview' | 'course' | 'glossary' | 'playlists' | 'videos' | 'visual-guides' | 'reading' | 'journeys' | 'wisdom' | 'spaces';
+type LearnView = 'overview' | 'course' | 'glossary' | 'playlists' | 'videos' | 'visual-guides' | 'journeys' | 'wisdom' | 'spaces';
 
 const CTA_FOCUS = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-2 rounded-sm';
 
@@ -225,7 +225,6 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
             { id: 'journeys' as LearnView, label: 'Journeys', sub: 'Guided tastings to shape your palate', icon: <Icons.MapPin className="w-5 h-5" />, iconColor: 'text-tea-gold/40' },
             { id: 'playlists' as LearnView, label: 'Playlists', sub: 'Music for tea time', icon: <Icons.Music className="w-5 h-5" />, iconColor: 'text-tea-gold/35' },
             { id: 'videos' as LearnView, label: 'Videos', sub: 'Watch & learn', icon: <Icons.Film className="w-5 h-5" />, iconColor: 'text-tea-gold/40' },
-            { id: 'reading' as LearnView, label: 'Reading', sub: 'Books & articles', icon: <Icons.Book className="w-5 h-5" />, iconColor: 'text-tea-gold/35' },
             { id: 'visual-guides' as LearnView, label: 'Guides', sub: 'Charts & references', icon: <Icons.Download className="w-5 h-5" />, iconColor: 'text-tea-gold/35' },
             { id: 'spaces' as LearnView, label: 'Spaces', sub: 'Inspiration for your tea room', icon: <Icons.Home className="w-5 h-5" />, iconColor: 'text-tea-gold/40' },
           ].map(tile => (
@@ -465,7 +464,6 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
             { id: 'playlists' as LearnView, label: 'Playlists', subtitle: 'Music for tea time', icon: <Icons.Music className="w-5 h-5" /> },
             { id: 'videos' as LearnView, label: 'Videos', subtitle: 'Watch & learn', icon: <Icons.Film className="w-5 h-5" /> },
             { id: 'visual-guides' as LearnView, label: 'Visual Guides', subtitle: 'Charts & references', icon: <Icons.Download className="w-5 h-5" /> },
-            { id: 'reading' as LearnView, label: 'Reading', subtitle: 'Books & articles', icon: <Icons.Book className="w-5 h-5" /> },
             { id: 'spaces' as LearnView, label: 'Tea Spaces', subtitle: 'Design inspiration', icon: <Icons.Home className="w-5 h-5" /> },
             { id: 'glossary' as LearnView, label: 'Glossary', subtitle: `${counts.glossary} terms`, icon: <Icons.BookOpen className="w-5 h-5" /> },
           ].map(tile => (

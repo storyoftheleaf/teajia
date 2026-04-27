@@ -45,7 +45,7 @@ export const BrewingQRCard: React.FC<BrewingQRCardProps> = ({
   compact = false,
 }) => {
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://teajia.com';
-  const guideUrl = `${baseUrl}/learn/brew/${teaType}`;
+  const guideUrl = `${baseUrl}/craft/brew/${teaType}`;
 
   const { tempC, steepSeconds, leafGrams, waterMl, vessel, infusions } = brewParams;
 
