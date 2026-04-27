@@ -246,7 +246,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
         <button
           type="button"
           onClick={closeScanner}
-          className="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
+          className="w-8 h-8 flex items-center justify-center rounded-full bg-tea-text/10 text-tea-text hover:bg-tea-text/20 transition-colors"
         >
           <X size={16} />
         </button>
@@ -300,7 +300,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
                   key={corner}
                   className={`absolute w-8 h-8 ${corner}`}
                   style={{
-                    borderColor: 'rgba(184,146,78,0.8)',
+                    borderColor: 'var(--tea-gold)',
                     borderTopWidth: i === 0 || i === 1 ? 2 : 0,
                     borderBottomWidth: i === 2 || i === 3 ? 2 : 0,
                     borderLeftWidth: i === 0 || i === 3 ? 2 : 0,
@@ -308,7 +308,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
                   }}
                 />
               ))}
-              <p className="absolute -bottom-6 left-0 right-0 text-center text-[11px] text-white/50">
+              <p className="absolute -bottom-6 left-0 right-0 text-center text-[11px] text-tea-text/50">
                 Align the tea label within the frame
               </p>
             </div>
@@ -318,14 +318,14 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
         {/* Denied state */}
         {scanStep === 'denied' && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-8 text-center">
-            <p className="text-white/80 text-[14px] font-medium">Camera access denied</p>
-            <p className="text-white/50 text-[12px] leading-relaxed">
+            <p className="text-tea-text/80 text-[14px] font-medium">Camera access denied</p>
+            <p className="text-tea-text/50 text-[12px] leading-relaxed">
               Allow camera access in your browser's address bar or site settings, then try again.
             </p>
             <button
               type="button"
               onClick={closeScanner}
-              className="mt-2 px-4 py-2 rounded-lg border border-white/20 text-white/70 text-[12px] hover:bg-white/10 transition-colors"
+              className="mt-2 px-4 py-2 rounded-lg border border-tea-border/20 text-tea-text/70 text-[12px] hover:bg-tea-text/10 transition-colors"
             >
               Close
             </button>
@@ -417,10 +417,10 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
           <button
             type="button"
             onClick={handleCapture}
-            className="w-16 h-16 rounded-full border-4 border-white/80 bg-white/20 hover:bg-white/30 active:scale-95 transition-all flex items-center justify-center"
+            className="w-16 h-16 rounded-full border-4 border-tea-border/80 bg-tea-text/20 hover:bg-tea-text/30 active:scale-95 transition-all flex items-center justify-center"
             aria-label="Capture"
           >
-            <div className="w-10 h-10 rounded-full bg-white/90" />
+            <div className="w-10 h-10 rounded-full bg-tea-text/90" />
           </button>
         </div>
       )}
@@ -444,7 +444,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
           <button
             type="button"
             onClick={() => setLightboxIndex(null)}
-            className="absolute top-4 right-4 w-9 h-9 flex items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
+            className="absolute top-4 right-4 w-9 h-9 flex items-center justify-center rounded-full bg-tea-text/10 text-tea-text hover:bg-tea-text/20 transition-colors"
           >
             <X size={18} />
           </button>
@@ -452,7 +452,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); setLightboxIndex(lightboxIndex - 1); }}
-              className="absolute left-4 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
+              className="absolute left-4 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center rounded-full bg-tea-text/10 text-tea-text hover:bg-tea-text/20 transition-colors"
             >
               <ChevronLeft size={20} />
             </button>
@@ -471,7 +471,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); setLightboxIndex(lightboxIndex + 1); }}
-              className="absolute right-4 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
+              className="absolute right-4 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center rounded-full bg-tea-text/10 text-tea-text hover:bg-tea-text/20 transition-colors"
             >
               <ChevronRight size={20} />
             </button>
@@ -483,7 +483,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
                   key={i}
                   type="button"
                   onClick={(e) => { e.stopPropagation(); setLightboxIndex(i); }}
-                  className={`w-1.5 h-1.5 rounded-full transition-colors ${i === lightboxIndex ? 'bg-white' : 'bg-white/30'}`}
+                  className={`w-1.5 h-1.5 rounded-full transition-colors ${i === lightboxIndex ? 'bg-tea-text' : 'bg-tea-text/30'}`}
                 />
               ))}
             </div>
@@ -535,7 +535,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
             />
             {preview.uploading && (
               <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-black/20">
-                <div className="w-4 h-4 border border-white/60 border-t-transparent rounded-full animate-spin" />
+                <div className="w-4 h-4 border border-tea-border/60 border-t-transparent rounded-full animate-spin" />
               </div>
             )}
             {preview.failed && (

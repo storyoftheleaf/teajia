@@ -31,7 +31,7 @@ const OrderStatusPage: React.FC = () => {
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-6">
         <h1 className="text-2xl font-serif text-tea-text mb-4">Order Not Found</h1>
         <p className="text-sm text-tea-text-sec mb-8">This order reference doesn't exist or hasn't been submitted yet.</p>
-        <Link to="/shop" className="px-8 py-3 bg-tea-gold text-white text-xs uppercase tracking-[0.2em]">Browse Shop</Link>
+        <Link to="/shop" className="px-8 py-3 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.2em]">Browse Shop</Link>
       </div>
     );
   }

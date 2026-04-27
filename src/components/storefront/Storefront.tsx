@@ -99,7 +99,7 @@ export const Storefront: React.FC<StorefrontProps> = ({
         </p>
         <Link
           to="/find-a-table"
-          className="px-8 py-3 bg-tea-gold text-white text-xs uppercase tracking-[0.2em] hover:bg-tea-gold/90 transition-colors"
+          className="px-8 py-3 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.2em] hover:bg-tea-gold/90 transition-colors"
         >
           Browse the network
         </Link>

@@ -118,7 +118,7 @@ const ANIMATION_STYLES = `
   /* Hanging punctuation for quotes */
   .hang-punct { text-indent: -0.4em; }
   /* Column rules — subtle 1px */
-  .col-rule { column-rule: 1px solid rgba(128,128,128,0.18); }
+  .col-rule { column-rule: 1px solid var(--tea-border); }
   /* Highlight effect */
   .text-highlight mark { background: linear-gradient(to bottom, transparent 55%, var(--tea-gold-lt, rgba(184,146,78,0.15)) 55%); padding: 0 2px; }
   /* Reader image reveal animation */
@@ -564,7 +564,7 @@ const VideoPosterFrame: React.FC<{
         {/* Play button overlay */}
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="w-12 h-12 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center group-hover:bg-black/60 transition-colors">
-            <svg className="w-5 h-5 text-white ml-0.5" viewBox="0 0 24 24" fill="currentColor">
+            <svg className="w-5 h-5 text-tea-text ml-0.5" viewBox="0 0 24 24" fill="currentColor">
               <path d="M8 5v14l11-7z" />
             </svg>
           </div>
@@ -572,7 +572,7 @@ const VideoPosterFrame: React.FC<{
 
         {caption && (
           <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/60 to-transparent">
-            <p className="text-white/70 text-xs">{caption}</p>
+            <p className="text-tea-text/70 text-xs">{caption}</p>
           </div>
         )}
       </div>
@@ -581,10 +581,10 @@ const VideoPosterFrame: React.FC<{
       {showPlayer && videoId && createPortal(
         <div className="fixed inset-0 z-[9999] bg-black flex items-center justify-center" onClick={() => setShowPlayer(false)}>
           <button
-            className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
+            className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-tea-text/10 flex items-center justify-center hover:bg-tea-text/20 transition-colors"
             onClick={() => setShowPlayer(false)}
           >
-            <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg className="w-5 h-5 text-tea-text" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M18 6L6 18M6 6l12 12" />
             </svg>
           </button>
@@ -1522,7 +1522,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                         {[0,1,2,3,4,5,6,7,8].map(i => (
                             <div key={i} className="relative bg-black">
                                 <SafeImage index={i} className="w-full h-full" />
-                                <span className={`absolute top-2 left-2 ${TYPE.micro} font-mono text-white/50`}>{i+1}</span>
+                                <span className={`absolute top-2 left-2 ${TYPE.micro} font-mono text-tea-text/50`}>{i+1}</span>
                             </div>
                         ))}
                     </div>
@@ -1686,7 +1686,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                         <div className="absolute inset-0 z-20 flex flex-col items-center justify-center text-center pointer-events-none">
                             <div className={readOnly ? '' : 'pointer-events-auto'}>
                                 <div style={{ textShadow: '0 2px 30px rgba(0,0,0,0.8)' }}>
-                                    <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${TYPE.display} font-display text-white leading-none mb-4`} placeholder="01" tag="h1" readOnly={readOnly} />
+                                    <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${TYPE.display} font-display text-tea-text leading-none mb-4`} placeholder="01" tag="h1" readOnly={readOnly} />
                                 </div>
                             </div>
                         </div>
@@ -1802,10 +1802,10 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                         <div className={`absolute inset-0 z-20 flex flex-col items-center justify-center text-center ${PAD.spacious} pointer-events-none`}>
                             <div className={readOnly ? '' : 'pointer-events-auto'}>
                                 <div style={{ textShadow: '0 2px 20px rgba(0,0,0,0.5)' }}>
-                                    <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${TYPE.headline} font-display tracking-wide font-light italic text-white leading-[1.3] mb-8 hang-punct`} placeholder="Quote..." tag="p" readOnly={readOnly} />
+                                    <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${TYPE.headline} font-display tracking-wide font-light italic text-tea-text leading-[1.3] mb-8 hang-punct`} placeholder="Quote..." tag="p" readOnly={readOnly} />
                                 </div>
                             </div>
-                            <span className={`${TYPE.caption} font-caption text-white/50`}>— Attribution</span>
+                            <span className={`${TYPE.caption} font-caption text-tea-text/50`}>— Attribution</span>
                         </div>
                     </div>
                 );
@@ -2024,7 +2024,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                         <div className="absolute inset-0 bg-gradient-to-b from-tea-bg/10 to-tea-bg/20 z-[5] pointer-events-none"></div>
                         {/* Swipe hint arrow */}
                         <div className="absolute right-4 top-1/2 -translate-y-1/2 z-20 pointer-events-none">
-                            <span className="text-white/40 text-[32px] font-light">→</span>
+                            <span className="text-tea-text/40 text-[32px] font-light">→</span>
                         </div>
                     </div>
                 );
@@ -2243,7 +2243,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                             <EditableText
                                 value={fbText || (isEditable ? '' : '')}
                                 onChange={isEditable ? (v) => updateContent(`${fbImageUrl}||${v}||${fbPosition}`) : undefined}
-                                className={`${TYPE.display} font-display text-white leading-none font-bold`}
+                                className={`${TYPE.display} font-display text-tea-text leading-none font-bold`}
                                 style={{ textShadow: '0 4px 40px rgba(0,0,0,0.8), 0 2px 10px rgba(0,0,0,0.6)', marginLeft: '-2px' }}
                                 placeholder="Display text"
                                 tag="h2"

@@ -1065,7 +1065,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                         }))}
                         className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
                       >
-                        <Trash2 size={12} className="text-white" />
+                        <Trash2 size={12} className="text-tea-text" />
                       </button>
                     </div>
                   ))}

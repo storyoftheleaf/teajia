@@ -66,7 +66,7 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
         >
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 z-10 p-2 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
+            className="absolute top-4 right-4 z-10 p-2 rounded-full bg-tea-text/10 text-tea-text hover:bg-tea-text/20 transition-colors"
             aria-label="Close lightbox"
           >
             <X className="w-6 h-6" />
@@ -103,7 +103,7 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="absolute bottom-6 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-full bg-white/10 text-white text-xs"
+              className="absolute bottom-6 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-full bg-tea-text/10 text-tea-text text-xs"
             >
               {Math.round(scale * 100)}%
             </motion.div>

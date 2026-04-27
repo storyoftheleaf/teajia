@@ -121,7 +121,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
           <button
             onClick={handleConfirm}
             disabled={!isTypingValid}
-            className={`px-6 py-2 ${confirmButtonClass} text-white text-sm uppercase tracking-wider font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
+            className={`px-6 py-2 ${confirmButtonClass} text-tea-bg text-sm uppercase tracking-wider font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
           >
             {confirmText}
           </button>

@@ -25,7 +25,7 @@ export const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({
     >
       {/* Shimmer animation overlay */}
       <div
-        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent"
+        className="absolute inset-0 bg-gradient-to-r from-transparent via-tea-text/10 to-transparent"
         style={{
           animation: 'shimmer 2s infinite',
           backgroundSize: '200% 100%',

@@ -85,6 +85,7 @@ export const TeaTagSheet: React.FC<TeaTagSheetProps> = ({ transaction, entries, 
         }
       `}</style>
 
+      {/* bg-white kept literal — this sheet is designed for printing tea tags; the screen view mirrors the print output */}
       <div
         id="tea-tag-sheet-root"
         className="fixed inset-0 z-50 bg-white flex flex-col"
@@ -108,7 +109,7 @@ export const TeaTagSheet: React.FC<TeaTagSheetProps> = ({ transaction, entries, 
             <button
               type="button"
               onClick={() => window.print()}
-              className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-tea-gold text-tea-bg text-sm font-medium rounded-lg hover:bg-tea-gold/90 transition-colors"
             >
               <Printer size={14} />
               Print

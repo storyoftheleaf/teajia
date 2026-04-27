@@ -62,7 +62,7 @@ export const DesignPortfolio: React.FC<DesignPortfolioProps> = ({
 
               {/* Status Badge */}
               {project.status === 'in-progress' && (
-                <span className="absolute top-3 left-3 px-2 py-1 bg-amber-500/90 text-white text-[10px] uppercase tracking-wider rounded">
+                <span className="absolute top-3 left-3 px-2 py-1 bg-amber-500/90 text-tea-bg text-[10px] uppercase tracking-wider rounded">
                   In Progress
                 </span>
               )}
@@ -74,7 +74,7 @@ export const DesignPortfolio: React.FC<DesignPortfolioProps> = ({
 
               {/* View Details Overlay */}
               <div className="absolute bottom-3 left-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                <span className="inline-flex items-center gap-2 text-white text-sm font-medium">
+                <span className="inline-flex items-center gap-2 text-tea-text text-sm font-medium">
                   View Project <Icons.ChevronRight className="w-4 h-4" />
                 </span>
               </div>
@@ -109,7 +109,7 @@ export const DesignPortfolio: React.FC<DesignPortfolioProps> = ({
         {onInquiryClick && (
           <button
             onClick={onInquiryClick}
-            className="px-6 py-2 bg-tea-gold text-white rounded-lg hover:bg-tea-gold/90 transition-colors text-sm font-medium"
+            className="px-6 py-2 bg-tea-gold text-tea-bg rounded-lg hover:bg-tea-gold/90 transition-colors text-sm font-medium"
           >
             Start Your Project
           </button>
@@ -129,7 +129,7 @@ export const DesignPortfolio: React.FC<DesignPortfolioProps> = ({
             {/* Close Button */}
             <button
               onClick={closeModal}
-              className="absolute top-4 right-4 z-10 p-2 bg-tea-gold/10 hover:bg-tea-gold/15 rounded-full text-white transition-colors"
+              className="absolute top-4 right-4 z-10 p-2 bg-tea-gold/10 hover:bg-tea-gold/15 rounded-full text-tea-text transition-colors"
             >
               <Icons.Close className="w-5 h-5" />
             </button>
@@ -143,13 +143,13 @@ export const DesignPortfolio: React.FC<DesignPortfolioProps> = ({
               />
               <div className="absolute inset-0 bg-gradient-to-t from-tea-bg/80 to-transparent" />
               <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8">
-                <span className="inline-block px-2 py-1 bg-tea-gold text-white text-[10px] uppercase tracking-wider rounded mb-3">
+                <span className="inline-block px-2 py-1 bg-tea-gold text-tea-bg text-[10px] uppercase tracking-wider rounded mb-3">
                   {PROJECT_TYPE_LABELS[selectedProject.projectType]}
                 </span>
-                <h2 className="font-serif text-3xl md:text-4xl text-white mb-2">
+                <h2 className="font-serif text-3xl md:text-4xl text-tea-text mb-2">
                   {selectedProject.title}
                 </h2>
-                <p className="text-white/80 text-lg">{selectedProject.subtitle}</p>
+                <p className="text-tea-text/80 text-lg">{selectedProject.subtitle}</p>
               </div>
             </div>
 
@@ -236,7 +236,7 @@ export const DesignPortfolio: React.FC<DesignPortfolioProps> = ({
                     closeModal();
                     onInquiryClick?.();
                   }}
-                  className="px-8 py-3 bg-tea-gold text-white rounded-lg hover:bg-tea-gold/90 transition-colors font-medium"
+                  className="px-8 py-3 bg-tea-gold text-tea-bg rounded-lg hover:bg-tea-gold/90 transition-colors font-medium"
                 >
                   Start a Project Like This
                 </button>

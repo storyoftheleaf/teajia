@@ -44,7 +44,7 @@ export const ContributorBioPage: React.FC<ContributorBioPageProps> = ({
             )}
             <div className="flex-1">
               <p className="text-lg text-tea-gold font-medium mb-4">{contributor.role}</p>
-              <p className="text-base text-white/80 leading-relaxed mb-6">
+              <p className="text-base text-tea-text/80 leading-relaxed mb-6">
                 {contributor.bio}
               </p>
 
@@ -96,7 +96,7 @@ export const ContributorBioPage: React.FC<ContributorBioPageProps> = ({
                     className="p-4 border border-tea-border bg-tea-gold/10 rounded-lg hover:bg-tea-gold/20 cursor-pointer transition-colors"
                   >
                     <h4 className="font-serif text-tea-text mb-1">{offering.title}</h4>
-                    <p className="text-sm text-white/70 mb-2">{offering.description}</p>
+                    <p className="text-sm text-tea-text/70 mb-2">{offering.description}</p>
                     {offering.category && (
                       <span className="text-[8px] uppercase tracking-wider px-2 py-1 rounded-sm bg-tea-gold/30 text-tea-gold border border-tea-border">
                         {offering.category}

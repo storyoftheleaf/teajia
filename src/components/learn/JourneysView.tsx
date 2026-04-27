@@ -41,7 +41,7 @@ export const JourneysView: React.FC<JourneysViewProps> = ({ onBack }) => {
                   className={`cursor-pointer overflow-hidden transition-all duration-500 ease-out ${isExpanded ? 'shadow-lg' : 'shadow-sm hover:shadow-md'}`}
                 >
                   <div className="p-5 flex items-start gap-5">
-                    <div className="font-serif text-5xl text-white/5 leading-none shrink-0 select-none">
+                    <div className="font-serif text-5xl text-tea-text/5 leading-none shrink-0 select-none">
                       0{index + 1}
                     </div>
                     <div className="flex-1 pt-1">

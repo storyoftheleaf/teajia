@@ -200,7 +200,7 @@ const CanonicalDrawer: React.FC<CanonicalDrawerProps> = ({ profile, onClose }) =
             <div className="mb-6">
               <div
                 className="w-full aspect-square rounded-[4px] overflow-hidden"
-                style={{ border: '1px solid rgba(168,135,77,0.08)' }}
+                style={{ border: '1px solid var(--tea-border)' }}
               >
                 <img
                   src={photos[photoIdx]}
@@ -324,7 +324,7 @@ const CanonicalField: React.FC<CanonicalFieldProps> = ({
             onKeyDown={handleKeyDown}
             rows={5}
             className="w-full bg-transparent font-body text-[15px] leading-[1.7] text-tea-text resize-none outline-none border-b border-tea-border focus:border-tea-gold/60 transition-colors py-1"
-            style={{ boxShadow: 'inset 0 -1px 0 rgba(168,135,77,0.15)' }}
+            style={{ boxShadow: 'inset 0 -1px 0 var(--tea-border)' }}
           />
         ) : (
           <input
@@ -335,7 +335,7 @@ const CanonicalField: React.FC<CanonicalFieldProps> = ({
             onBlur={handleBlur}
             onKeyDown={handleKeyDown}
             className="w-full bg-transparent font-body text-[15px] leading-[1.7] text-tea-text outline-none border-b border-tea-border focus:border-tea-gold/60 transition-colors py-1"
-            style={{ boxShadow: 'inset 0 -1px 0 rgba(168,135,77,0.15)' }}
+            style={{ boxShadow: 'inset 0 -1px 0 var(--tea-border)' }}
           />
         )
       ) : (
@@ -1110,7 +1110,7 @@ export const PartnerListingEdit: React.FC = () => {
                 <div
                   key={url}
                   className="w-16 h-16 rounded-[2px] overflow-hidden shrink-0"
-                  style={{ border: '1px solid rgba(168,135,77,0.08)' }}
+                  style={{ border: '1px solid var(--tea-border)' }}
                 >
                   <img src={url} alt={`Canonical photo ${i + 1}`} className="w-full h-full object-cover" loading="lazy" />
                 </div>

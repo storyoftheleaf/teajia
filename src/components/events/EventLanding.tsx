@@ -307,8 +307,8 @@ const EventLanding: React.FC = () => {
         {/* Back button */}
         <button
           onClick={() => navigate('/events')}
-          className="absolute top-3 left-4 z-10 flex items-center justify-center w-9 h-9 rounded-full"
-          style={{ background: 'rgba(24,19,14,0.6)', backdropFilter: 'blur(8px)', border: 'none' }}
+          className="absolute top-3 left-4 z-10 flex items-center justify-center w-9 h-9 rounded-full bg-tea-bg/60"
+          style={{ backdropFilter: 'blur(8px)', border: 'none' }}
           aria-label="Back"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
@@ -320,8 +320,8 @@ const EventLanding: React.FC = () => {
         {isAdmin && (
           <button
             onClick={() => navigate(`/admin/events/${event.id}`)}
-            className="absolute top-3 right-4 z-10 flex items-center gap-1.5 px-3 h-9 rounded-full text-[11px] font-medium text-tea-bg"
-            style={{ background: 'rgba(24,19,14,0.6)', backdropFilter: 'blur(8px)' }}
+            className="absolute top-3 right-4 z-10 flex items-center gap-1.5 px-3 h-9 rounded-full text-[11px] font-medium text-tea-bg bg-tea-bg/60"
+            style={{ backdropFilter: 'blur(8px)' }}
           >
             <Edit3 size={12} /> Edit
           </button>

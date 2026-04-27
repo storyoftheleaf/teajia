@@ -98,13 +98,13 @@ export const InventoryEditor: React.FC<{ item: InventoryItem; onSave: (i: Invent
                 <div className="flex gap-3">
                     <button
                         onClick={onCancel}
-                        className="px-4 py-2 text-tea-text hover:text-white transition-colors duration-200 text-sm uppercase tracking-wider font-medium"
+                        className="px-4 py-2 text-tea-text hover:text-tea-text transition-colors duration-200 text-sm uppercase tracking-wider font-medium"
                     >
                         Cancel
                     </button>
                     <button
                         onClick={() => onSave(currentItem)}
-                        className="px-6 py-2 bg-tea-gold hover:bg-tea-gold/90 text-white rounded-sm text-sm uppercase tracking-wider font-medium transition-colors duration-200 shadow-lg"
+                        className="px-6 py-2 bg-tea-gold hover:bg-tea-gold/90 text-tea-bg rounded-sm text-sm uppercase tracking-wider font-medium transition-colors duration-200 shadow-lg"
                     >
                         Save
                     </button>
@@ -122,14 +122,14 @@ export const InventoryEditor: React.FC<{ item: InventoryItem; onSave: (i: Invent
                             <div className="col-span-2">
                                 <label className="text-xs uppercase text-tea-gold block mb-2 tracking-wider font-semibold">Name</label>
                                 <input
-                                    className="w-full bg-tea-bg border border-tea-border p-2.5 text-white text-sm outline-none transition-all duration-200 focus:border-tea-gold focus:ring-1 focus:ring-tea-gold/50 rounded-sm h-9"
+                                    className="w-full bg-tea-bg border border-tea-border p-2.5 text-tea-text text-sm outline-none transition-all duration-200 focus:border-tea-gold focus:ring-1 focus:ring-tea-gold/50 rounded-sm h-9"
                                     value={currentItem.name}
                                     onChange={e => setCurrentItem({...currentItem, name: e.target.value})}
                                 />
                             </div>
                             <div>
                                 <label className="text-xs uppercase text-tea-gold block mb-2 tracking-wider font-semibold">Type</label>
-                                <select className="w-full bg-tea-bg border border-tea-border p-2 text-white text-sm outline-none transition-all duration-200 focus:border-tea-gold focus:ring-1 focus:ring-tea-gold/50 rounded-sm h-9" value={currentItem.type} onChange={e => setCurrentItem({...currentItem, type: e.target.value})}>
+                                <select className="w-full bg-tea-bg border border-tea-border p-2 text-tea-text text-sm outline-none transition-all duration-200 focus:border-tea-gold focus:ring-1 focus:ring-tea-gold/50 rounded-sm h-9" value={currentItem.type} onChange={e => setCurrentItem({...currentItem, type: e.target.value})}>
                                     <option value="">Select</option>
                                     {currentItem.category === 'tea' ? TEA_TYPES.map(t => <option key={t} value={t}>{t}</option>) : <option value={currentItem.type}>{currentItem.type}</option>}
                                 </select>
@@ -140,15 +140,15 @@ export const InventoryEditor: React.FC<{ item: InventoryItem; onSave: (i: Invent
                         <div className="grid grid-cols-5 gap-3">
                             <div className="col-span-2">
                                 <label className="text-xs uppercase text-tea-gold block mb-2 tracking-wider font-semibold">Variant</label>
-                                <input className="w-full bg-tea-bg border border-tea-border p-2 text-white text-sm outline-none transition-all duration-200 focus:border-tea-gold focus:ring-1 focus:ring-tea-gold/50 rounded-sm h-9" value={currentItem.variant} onChange={e => setCurrentItem({...currentItem, variant: e.target.value})} />
+                                <input className="w-full bg-tea-bg border border-tea-border p-2 text-tea-text text-sm outline-none transition-all duration-200 focus:border-tea-gold focus:ring-1 focus:ring-tea-gold/50 rounded-sm h-9" value={currentItem.variant} onChange={e => setCurrentItem({...currentItem, variant: e.target.value})} />
                             </div>
                             <div className="col-span-2">
                                 <label className="text-xs uppercase text-tea-gold block mb-2 tracking-wider font-semibold">Origin</label>
-                                <input className="w-full bg-tea-bg border border-tea-border p-2 text-white text-sm outline-none transition-all duration-200 focus:border-tea-gold focus:ring-1 focus:ring-tea-gold/50 rounded-sm h-9" value={currentItem.origin} onChange={e => setCurrentItem({...currentItem, origin: e.target.value})} />
+                                <input className="w-full bg-tea-bg border border-tea-border p-2 text-tea-text text-sm outline-none transition-all duration-200 focus:border-tea-gold focus:ring-1 focus:ring-tea-gold/50 rounded-sm h-9" value={currentItem.origin} onChange={e => setCurrentItem({...currentItem, origin: e.target.value})} />
                             </div>
                             <div className="col-span-1">
                                 <label className="text-xs uppercase text-tea-gold block mb-2 tracking-wider font-semibold">Year</label>
-                                <input className="w-full bg-tea-bg border border-tea-border p-2 text-white text-sm outline-none transition-all duration-200 focus:border-tea-gold focus:ring-1 focus:ring-tea-gold/50 rounded-sm h-9" value={currentItem.year} onChange={e => setCurrentItem({...currentItem, year: e.target.value})} />
+                                <input className="w-full bg-tea-bg border border-tea-border p-2 text-tea-text text-sm outline-none transition-all duration-200 focus:border-tea-gold focus:ring-1 focus:ring-tea-gold/50 rounded-sm h-9" value={currentItem.year} onChange={e => setCurrentItem({...currentItem, year: e.target.value})} />
                             </div>
                         </div>
                     </div>
@@ -159,11 +159,11 @@ export const InventoryEditor: React.FC<{ item: InventoryItem; onSave: (i: Invent
                             <div className="grid grid-cols-3 gap-3">
                                 <div className="col-span-2">
                                     <label className="text-xs uppercase text-tea-gold block mb-2 tracking-wider font-semibold">Supplier</label>
-                                    <input className="w-full bg-tea-bg border border-tea-border p-2 text-white text-sm outline-none transition-all duration-200 focus:border-tea-gold focus:ring-1 focus:ring-tea-gold/50 rounded-sm h-9" value={currentItem.supplier || ''} onChange={e => setCurrentItem({...currentItem, supplier: e.target.value})} />
+                                    <input className="w-full bg-tea-bg border border-tea-border p-2 text-tea-text text-sm outline-none transition-all duration-200 focus:border-tea-gold focus:ring-1 focus:ring-tea-gold/50 rounded-sm h-9" value={currentItem.supplier || ''} onChange={e => setCurrentItem({...currentItem, supplier: e.target.value})} />
                                 </div>
                                 <div className="col-span-1">
                                     <label className="text-xs uppercase text-tea-gold block mb-2 tracking-wider font-semibold">Location</label>
-                                    <select className="w-full bg-tea-bg border border-tea-border p-2 text-white text-sm outline-none transition-all duration-200 focus:border-tea-gold focus:ring-1 focus:ring-tea-gold/50 rounded-sm h-9" value={currentItem.supplier_location || ''} onChange={e => handleLocationChange(e.target.value)}>
+                                    <select className="w-full bg-tea-bg border border-tea-border p-2 text-tea-text text-sm outline-none transition-all duration-200 focus:border-tea-gold focus:ring-1 focus:ring-tea-gold/50 rounded-sm h-9" value={currentItem.supplier_location || ''} onChange={e => handleLocationChange(e.target.value)}>
                                         <option value="">Select</option>
                                         {SUPPLIER_LOCATIONS.map(loc => <option key={loc} value={loc}>{loc}</option>)}
                                     </select>
@@ -184,7 +184,7 @@ export const InventoryEditor: React.FC<{ item: InventoryItem; onSave: (i: Invent
                                         type="number"
                                         value={currentItem.stock_g}
                                         onChange={e => setCurrentItem({...currentItem, stock_g: parseFloat(e.target.value) || 0})}
-                                        className="flex-1 min-w-0 bg-transparent text-white text-sm outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
+                                        className="flex-1 min-w-0 bg-transparent text-tea-text text-sm outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
                                     />
                                     <span className="text-xs text-tea-text font-medium flex-shrink-0">g</span>
                                 </div>
@@ -199,7 +199,7 @@ export const InventoryEditor: React.FC<{ item: InventoryItem; onSave: (i: Invent
                                         step="0.01"
                                         value={currentItem.cost_price}
                                         onChange={e => handleCostChange(e.target.value)}
-                                        className="flex-1 min-w-0 bg-transparent text-white text-sm outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
+                                        className="flex-1 min-w-0 bg-transparent text-tea-text text-sm outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
                                     />
                                     <span className="text-xs text-tea-text font-medium whitespace-nowrap flex-shrink-0">{getDetectedCurrency()}/g</span>
                                 </div>
@@ -214,7 +214,7 @@ export const InventoryEditor: React.FC<{ item: InventoryItem; onSave: (i: Invent
                                         step="0.1"
                                         value={currentItem.multiplier || 1}
                                         onChange={e => handleMultiplierChange(e.target.value)}
-                                        className="flex-1 min-w-0 bg-transparent text-white text-sm outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
+                                        className="flex-1 min-w-0 bg-transparent text-tea-text text-sm outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
                                     />
                                     <span className="text-xs text-tea-text font-medium flex-shrink-0">×</span>
                                 </div>
@@ -225,7 +225,7 @@ export const InventoryEditor: React.FC<{ item: InventoryItem; onSave: (i: Invent
                         <div className="mt-3">
                             <label className="text-xs uppercase text-tea-gold block mb-2 tracking-wider font-semibold">Calculated Price</label>
                             <div className="bg-tea-bg border border-tea-border rounded-sm p-3 text-center">
-                                <div className="text-2xl font-semibold text-white">
+                                <div className="text-2xl font-semibold text-tea-text">
                                     {fmtPricePerGram(parseFloat(currentItem.category === 'tea' ? currentItem.price_per_gram || '0' : currentItem.price_50g || '0') || 0)}
                                 </div>
                             </div>
@@ -234,7 +234,7 @@ export const InventoryEditor: React.FC<{ item: InventoryItem; onSave: (i: Invent
                         {/* Currency Change Button */}
                         <button
                             onClick={() => setShowCurrencyOverride(!showCurrencyOverride)}
-                            className="text-xs text-tea-gold hover:text-white transition-colors mt-2 tracking-wider font-semibold"
+                            className="text-xs text-tea-gold hover:text-tea-text transition-colors mt-2 tracking-wider font-semibold"
                         >
                             Change Currency
                         </button>
@@ -243,11 +243,11 @@ export const InventoryEditor: React.FC<{ item: InventoryItem; onSave: (i: Invent
                         {showCurrencyOverride && (
                             <div className="flex gap-2 bg-tea-bg border border-tea-border p-2.5 rounded-sm mt-2 animate-[fadeIn_0.2s_ease-out]">
                                 <label className="text-xs uppercase text-tea-gold font-semibold self-center whitespace-nowrap">Override:</label>
-                                <select className="flex-1 bg-black border border-tea-border p-2 text-white text-sm outline-none transition-all duration-200 focus:border-tea-gold focus:ring-1 focus:ring-tea-gold/50 rounded-sm" onChange={e => handleManualCurrencyOverride(e.target.value as CostCurrency)}>
+                                <select className="flex-1 bg-black border border-tea-border p-2 text-tea-text text-sm outline-none transition-all duration-200 focus:border-tea-gold focus:ring-1 focus:ring-tea-gold/50 rounded-sm" onChange={e => handleManualCurrencyOverride(e.target.value as CostCurrency)}>
                                     <option value="">Select Currency</option>
                                     {(['USD', 'IDR', 'CNY', 'TWD', 'MYR', 'HKD', 'JPY'] as const).map(c => <option key={c} value={c}>{c} {CURRENCY_SYMBOLS[c]}</option>)}
                                 </select>
-                                <button onClick={() => setShowCurrencyOverride(false)} className="px-2 py-1 text-xs text-tea-text hover:text-white transition-colors duration-200 whitespace-nowrap">Done</button>
+                                <button onClick={() => setShowCurrencyOverride(false)} className="px-2 py-1 text-xs text-tea-text hover:text-tea-text transition-colors duration-200 whitespace-nowrap">Done</button>
                             </div>
                         )}
                     </div>
@@ -256,11 +256,11 @@ export const InventoryEditor: React.FC<{ item: InventoryItem; onSave: (i: Invent
                     <div className="bg-tea-surface rounded-md p-4 space-y-3 animate-[fadeIn_0.3s_ease-out]">
                         <div>
                             <label className="text-sm uppercase text-tea-gold block mb-2 tracking-wider font-semibold">Description</label>
-                            <textarea className="w-full bg-tea-bg border border-tea-border p-3 text-white text-sm outline-none transition-all duration-200 focus:border-tea-gold focus:ring-1 focus:ring-tea-gold/50 rounded-sm h-20" value={currentItem.description} onChange={e => setCurrentItem({...currentItem, description: e.target.value})} />
+                            <textarea className="w-full bg-tea-bg border border-tea-border p-3 text-tea-text text-sm outline-none transition-all duration-200 focus:border-tea-gold focus:ring-1 focus:ring-tea-gold/50 rounded-sm h-20" value={currentItem.description} onChange={e => setCurrentItem({...currentItem, description: e.target.value})} />
                         </div>
                         <div>
                             <label className="text-sm uppercase text-tea-gold block mb-2 tracking-wider font-semibold">Image URL</label>
-                            <input className="w-full bg-tea-bg border border-tea-border p-3 text-white text-sm outline-none transition-all duration-200 focus:border-tea-gold focus:ring-1 focus:ring-tea-gold/50 rounded-sm" value={currentItem.image} onChange={e => setCurrentItem({...currentItem, image: e.target.value})} />
+                            <input className="w-full bg-tea-bg border border-tea-border p-3 text-tea-text text-sm outline-none transition-all duration-200 focus:border-tea-gold focus:ring-1 focus:ring-tea-gold/50 rounded-sm" value={currentItem.image} onChange={e => setCurrentItem({...currentItem, image: e.target.value})} />
                         </div>
                     </div>
 

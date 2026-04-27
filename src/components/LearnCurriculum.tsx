@@ -147,7 +147,7 @@ export const LearnCurriculum: React.FC<LearnCurriculumProps> = ({ onStoryClick, 
             onClick={() => { setViewMode('courses'); setSelectedPath(null); }}
             className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
               viewMode === 'courses'
-                ? 'bg-tea-gold text-white'
+                ? 'bg-tea-gold text-tea-bg'
                 : 'text-tea-text/60 hover:text-tea-text'
             }`}
           >
@@ -157,7 +157,7 @@ export const LearnCurriculum: React.FC<LearnCurriculumProps> = ({ onStoryClick, 
             onClick={() => setViewMode('paths')}
             className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
               viewMode === 'paths'
-                ? 'bg-tea-gold text-white'
+                ? 'bg-tea-gold text-tea-bg'
                 : 'text-tea-text/60 hover:text-tea-text'
             }`}
           >

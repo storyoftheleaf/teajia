@@ -232,7 +232,7 @@ export const OfferingsPage: React.FC<OfferingsPageProps> = ({ onLearnMoreClick, 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 lg:gap-10">
             {HOW_IT_WORKS_STEPS.map((item) => (
               <div key={item.id} className="text-center">
-                <div className="w-12 h-12 lg:w-14 lg:h-14 bg-tea-gold text-white rounded-full flex items-center justify-center mx-auto mb-4 font-serif text-lg lg:text-xl font-bold">
+                <div className="w-12 h-12 lg:w-14 lg:h-14 bg-tea-gold text-tea-bg rounded-full flex items-center justify-center mx-auto mb-4 font-serif text-lg lg:text-xl font-bold">
                   {item.step}
                 </div>
                 <h4 className="font-serif text-lg lg:text-xl text-tea-text mb-2">
@@ -307,7 +307,7 @@ export const OfferingsPage: React.FC<OfferingsPageProps> = ({ onLearnMoreClick, 
                       {offering.price && (
                         <p className="text-sm text-tea-gold font-medium">{offering.price}</p>
                       )}
-                      <button onClick={() => handleLearnMore(offering)} className="w-full py-3 px-4 bg-tea-gold/8 text-tea-gold hover:bg-tea-gold/15 dark:hover:bg-tea-gold/25 rounded-lg font-medium transition-all duration-300 group-hover:bg-tea-gold group-hover:text-white">
+                      <button onClick={() => handleLearnMore(offering)} className="w-full py-3 px-4 bg-tea-gold/8 text-tea-gold hover:bg-tea-gold/15 dark:hover:bg-tea-gold/25 rounded-lg font-medium transition-all duration-300 group-hover:bg-tea-gold group-hover:text-tea-bg">
                         Learn More
                       </button>
                     </div>
@@ -389,7 +389,7 @@ export const OfferingsPage: React.FC<OfferingsPageProps> = ({ onLearnMoreClick, 
         </p>
         <button
           onClick={() => setInquiryModalOpen(true)}
-          className="px-8 lg:px-12 py-3 lg:py-4 bg-tea-gold text-white font-medium rounded-lg hover:bg-tea-gold/90 transition-colors"
+          className="px-8 lg:px-12 py-3 lg:py-4 bg-tea-gold text-tea-bg font-medium rounded-lg hover:bg-tea-gold/90 transition-colors"
         >
           Contact Us
         </button>

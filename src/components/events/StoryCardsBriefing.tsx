@@ -120,7 +120,7 @@ const StoryCardsBriefing: React.FC<StoryCardsBriefingProps> = ({
             <p
               className={`font-serif leading-snug max-w-xs mx-auto ${
                 card.imageUrl
-                  ? 'text-white text-xl md:text-2xl'
+                  ? 'text-tea-text text-xl md:text-2xl'
                   : 'text-tea-text text-xl md:text-2xl'
               }`}
               style={{ fontSize: 'clamp(18px, 4.5vw, 24px)' }}
@@ -132,7 +132,7 @@ const StoryCardsBriefing: React.FC<StoryCardsBriefingProps> = ({
             {card.isOutro && (
               <button
                 onClick={(e) => { e.stopPropagation(); onComplete(); }}
-                className="mt-10 flex items-center gap-2 px-6 py-3 border border-tea-gold text-tea-gold text-xs uppercase tracking-[0.2em] hover:bg-tea-gold hover:text-white transition-all duration-300"
+                className="mt-10 flex items-center gap-2 px-6 py-3 border border-tea-gold text-tea-gold text-xs uppercase tracking-[0.2em] hover:bg-tea-gold hover:text-tea-bg transition-all duration-300"
               >
                 View Your Ticket
                 <ArrowRight className="w-3.5 h-3.5" />

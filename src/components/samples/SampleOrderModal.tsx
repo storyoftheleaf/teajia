@@ -165,7 +165,7 @@ export const SampleOrderModal: React.FC<SampleOrderModalProps> = ({
                           onClick={() => { setQuantity(q); setIsCustom(false); }}
                           className={`px-3 py-1.5 text-sm rounded-full transition-all duration-150 ${
                             !isCustom && quantity === q
-                              ? 'bg-tea-gold text-white'
+                              ? 'bg-tea-gold text-tea-bg'
                               : 'bg-tea-elevated text-tea-text-sec hover:text-tea-text'
                           }`}
                         >
@@ -177,7 +177,7 @@ export const SampleOrderModal: React.FC<SampleOrderModalProps> = ({
                         onClick={() => setIsCustom(true)}
                         className={`px-3 py-1.5 text-sm rounded-full transition-all duration-150 ${
                           isCustom
-                            ? 'bg-tea-gold text-white'
+                            ? 'bg-tea-gold text-tea-bg'
                             : 'bg-tea-elevated text-tea-text-sec hover:text-tea-text'
                         }`}
                       >
@@ -241,10 +241,10 @@ export const SampleOrderModal: React.FC<SampleOrderModalProps> = ({
                       type="button"
                       onClick={handleSubmit}
                       disabled={!canSubmit || submitting}
-                      className="flex-1 flex items-center justify-center gap-2 py-3 bg-tea-gold text-white text-xs uppercase tracking-[0.2em] font-semibold rounded-sm hover:bg-tea-gold/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                      className="flex-1 flex items-center justify-center gap-2 py-3 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.2em] font-semibold rounded-sm hover:bg-tea-gold/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
                     >
                       {submitting ? (
-                        <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        <span className="w-4 h-4 border-2 border-tea-bg/30 border-t-tea-bg rounded-full animate-spin" />
                       ) : (
                         <>
                           <ShoppingCart size={14} />

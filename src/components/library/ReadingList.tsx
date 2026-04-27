@@ -45,7 +45,7 @@ export const ReadingList: React.FC<ReadingListProps> = ({ onBack }) => {
             onClick={() => setActiveCategory(cat)}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs whitespace-nowrap transition-all ${
               activeCategory === cat
-                ? 'bg-tea-gold text-white'
+                ? 'bg-tea-gold text-tea-bg'
                 : 'bg-tea-text/5 text-tea-text/60 hover:bg-tea-text/10'
             }`}
           >

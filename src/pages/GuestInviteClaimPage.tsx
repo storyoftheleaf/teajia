@@ -223,7 +223,7 @@ const GuestInviteClaimPage: React.FC = () => {
                 onClick={() => setMethod('whatsapp')}
                 className={`flex-1 py-2.5 text-xs uppercase tracking-[0.15em] rounded-sm transition-colors ${
                   method === 'whatsapp'
-                    ? 'bg-tea-gold text-white'
+                    ? 'bg-tea-gold text-tea-bg'
                     : 'bg-tea-surface text-tea-text-sec border border-tea-border hover:border-tea-gold/30'
                 }`}
               >
@@ -234,7 +234,7 @@ const GuestInviteClaimPage: React.FC = () => {
                 onClick={() => setMethod('email')}
                 className={`flex-1 py-2.5 text-xs uppercase tracking-[0.15em] rounded-sm transition-colors ${
                   method === 'email'
-                    ? 'bg-tea-gold text-white'
+                    ? 'bg-tea-gold text-tea-bg'
                     : 'bg-tea-surface text-tea-text-sec border border-tea-border hover:border-tea-gold/30'
                 }`}
               >
@@ -277,7 +277,7 @@ const GuestInviteClaimPage: React.FC = () => {
             type="button"
             disabled={!isValid || claimMutation.isPending}
             onClick={() => claimMutation.mutate()}
-            className="w-full py-4 bg-tea-gold text-white text-xs uppercase tracking-[0.25em] font-semibold rounded-sm hover:bg-tea-gold/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center"
+            className="w-full py-4 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.25em] font-semibold rounded-sm hover:bg-tea-gold/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center"
           >
             {claimMutation.isPending ? (
               <span className="inline-block w-4 h-4 border-2 border-tea-border border-t-tea-gold rounded-full animate-spin" />

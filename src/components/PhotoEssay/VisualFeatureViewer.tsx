@@ -469,7 +469,7 @@ export const VisualFeatureViewer: React.FC<VisualFeatureViewerProps> = ({
           {/* Top bar - Close button and counter */}
           <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between p-4">
             {/* Image counter */}
-            <div className="text-white/50 text-sm font-mono">
+            <div className="text-tea-text/50 text-sm font-mono">
               {selectedImageIndex + 1} / {story.gallery.length}
             </div>
             {/* Close button */}
@@ -478,7 +478,7 @@ export const VisualFeatureViewer: React.FC<VisualFeatureViewerProps> = ({
                 e.stopPropagation();
                 closeImageOverlay();
               }}
-              className="w-12 h-12 flex items-center justify-center rounded-full bg-tea-gold/10 backdrop-blur-sm text-white/80 active:bg-tea-gold/15 active:text-white transition-all"
+              className="w-12 h-12 flex items-center justify-center rounded-full bg-tea-gold/10 backdrop-blur-sm text-tea-text/80 active:bg-tea-gold/15 active:text-tea-text transition-all"
               aria-label="Close"
             >
               <Icons.Close className="w-5 h-5" />
@@ -492,7 +492,7 @@ export const VisualFeatureViewer: React.FC<VisualFeatureViewerProps> = ({
                 e.stopPropagation();
                 goToPrevImage();
               }}
-              className="absolute left-4 top-1/2 -translate-y-1/2 z-10 w-12 h-12 md:w-14 md:h-14 flex items-center justify-center rounded-full bg-tea-gold/10 backdrop-blur-sm text-white/80 active:bg-tea-gold/15 active:text-white transition-all"
+              className="absolute left-4 top-1/2 -translate-y-1/2 z-10 w-12 h-12 md:w-14 md:h-14 flex items-center justify-center rounded-full bg-tea-gold/10 backdrop-blur-sm text-tea-text/80 active:bg-tea-gold/15 active:text-tea-text transition-all"
               aria-label="Previous image"
             >
               <Icons.ChevronLeft className="w-6 h-6" />
@@ -504,7 +504,7 @@ export const VisualFeatureViewer: React.FC<VisualFeatureViewerProps> = ({
                 e.stopPropagation();
                 goToNextImage();
               }}
-              className="absolute right-4 top-1/2 -translate-y-1/2 z-10 w-12 h-12 md:w-14 md:h-14 flex items-center justify-center rounded-full bg-tea-gold/10 backdrop-blur-sm text-white/80 active:bg-tea-gold/15 active:text-white transition-all"
+              className="absolute right-4 top-1/2 -translate-y-1/2 z-10 w-12 h-12 md:w-14 md:h-14 flex items-center justify-center rounded-full bg-tea-gold/10 backdrop-blur-sm text-tea-text/80 active:bg-tea-gold/15 active:text-tea-text transition-all"
               aria-label="Next image"
             >
               <Icons.ChevronRight className="w-6 h-6" />
@@ -547,7 +547,7 @@ export const VisualFeatureViewer: React.FC<VisualFeatureViewerProps> = ({
           {/* Caption & Share - Refined styling */}
           <div className="p-5 pb-10 md:pb-12" onClick={(e) => e.stopPropagation()}>
             {story.gallery[selectedImageIndex].caption && (
-              <p className="text-white/60 text-sm text-center mb-5 italic max-w-lg mx-auto leading-relaxed">
+              <p className="text-tea-text/60 text-sm text-center mb-5 italic max-w-lg mx-auto leading-relaxed">
                 {story.gallery[selectedImageIndex].caption}
               </p>
             )}
@@ -559,7 +559,7 @@ export const VisualFeatureViewer: React.FC<VisualFeatureViewerProps> = ({
                   story.gallery![selectedImageIndex!].caption
                 );
               }}
-              className="mx-auto flex items-center gap-2 px-6 py-3 min-h-[48px] bg-tea-gold/10 backdrop-blur-md text-white text-sm rounded-full active:bg-tea-gold/15 active:scale-95 transition-all"
+              className="mx-auto flex items-center gap-2 px-6 py-3 min-h-[48px] bg-tea-gold/10 backdrop-blur-md text-tea-text text-sm rounded-full active:bg-tea-gold/15 active:scale-95 transition-all"
             >
               <Icons.Share className="w-4 h-4" />
               Share Image

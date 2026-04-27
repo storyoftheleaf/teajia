@@ -51,7 +51,7 @@ export const ContributorsDirectory: React.FC<ContributorsDirectoryProps> = ({
                 </div>
 
                 {/* Bio */}
-                <p className="text-sm text-white/70 flex-1 line-clamp-3">
+                <p className="text-sm text-tea-text/70 flex-1 line-clamp-3">
                   {contributor.bio}
                 </p>
 

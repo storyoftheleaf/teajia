@@ -310,7 +310,7 @@ export default function AccountSettingsPage() {
             disabled={deleteLoading || deleteConfirmText !== 'DELETE'}
             className="w-full py-2.5 bg-red-600 text-tea-bg font-sans font-medium rounded hover:bg-red-700 transition-colors duration-150 disabled:opacity-40 flex justify-center items-center gap-2 mt-2"
           >
-            {deleteLoading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : 'Permanently Delete Account'}
+            {deleteLoading ? <div className="w-4 h-4 border-2 border-tea-bg/30 border-t-tea-bg rounded-full animate-spin" /> : 'Permanently Delete Account'}
           </button>
         </form>
       </section>

@@ -152,7 +152,7 @@ export const PhotoEssayDetail: React.FC<PhotoEssayDetailProps> = ({
                   {/* Hover overlay with caption (optional) */}
                   {image.caption && (
                     <div className="absolute inset-0 bg-gradient-to-t from-tea-bg/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
-                      <p className="text-white text-sm font-medium">{image.caption}</p>
+                      <p className="text-tea-text text-sm font-medium">{image.caption}</p>
                     </div>
                   )}
                 </div>

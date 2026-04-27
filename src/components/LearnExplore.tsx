@@ -208,7 +208,7 @@ export const LearnExplore: React.FC<LearnExploreProps> = ({ watchedStories, onNa
                     onClick={() => toggleJourney(collection.id)}
                   >
                     <div className="p-5 flex items-start gap-5">
-                      <div className="font-serif text-5xl text-white/5 leading-none shrink-0 select-none">
+                      <div className="font-serif text-5xl text-tea-text/5 leading-none shrink-0 select-none">
                         0{index + 1}
                       </div>
                       <div className="flex-1 pt-1">
@@ -299,7 +299,7 @@ export const LearnExplore: React.FC<LearnExploreProps> = ({ watchedStories, onNa
                 onClick={() => { setWisdomFilter(filter); setShowAllWisdom(false); }}
                 className={`px-3 py-1.5 rounded-full text-xs whitespace-nowrap transition-all ${
                   wisdomFilter === filter
-                    ? 'bg-tea-gold text-white'
+                    ? 'bg-tea-gold text-tea-bg'
                     : 'bg-tea-text/5 text-tea-text/60 hover:bg-tea-text/10'
                 }`}
               >

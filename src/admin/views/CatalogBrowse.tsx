@@ -242,7 +242,7 @@ const ProfileDrawer: React.FC<DrawerProps> = ({ profile, callerCurrency, onClose
             <div className="mb-6">
               <div
                 className="w-full aspect-square rounded-[4px] overflow-hidden"
-                style={{ border: '1px solid rgba(168,135,77,0.08)' }}
+                style={{ border: '1px solid var(--tea-border)' }}
               >
                 <img
                   src={photos[photoIdx]}
@@ -380,7 +380,7 @@ const CatalogCard: React.FC<CatalogCardProps> = ({ profile, onSelect, isHovered,
         {/* Photo */}
         <div
           className="w-full md:w-[280px] md:h-[280px] h-48 shrink-0 rounded-[4px] overflow-hidden mb-4 md:mb-0 bg-tea-surface"
-          style={{ border: '1px solid rgba(168,135,77,0.08)' }}
+          style={{ border: '1px solid var(--tea-border)' }}
         >
           {photo ? (
             <img

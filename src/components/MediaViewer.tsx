@@ -36,7 +36,7 @@ const DesktopSidebar: React.FC<{ story: Story; onBack: () => void; onShare?: () 
     {/* Interaction Column - Bottom */}
     <div className="mt-8 mb-0 flex flex-col space-y-6 items-center pt-4 border-t border-tea-border w-12">
          {onToggleSave && (
-             <button onClick={onToggleSave} className={`p-2 rounded-full transition-colors ${isSaved ? 'text-tea-gold' : 'text-tea-text/40 hover:text-white'}`} aria-label="Save to collection" title="Collect">
+             <button onClick={onToggleSave} className={`p-2 rounded-full transition-colors ${isSaved ? 'text-tea-gold' : 'text-tea-text/40 hover:text-tea-text'}`} aria-label="Save to collection" title="Collect">
                <Icons.Leaf filled={isSaved} className="w-5 h-5" />
              </button>
          )}

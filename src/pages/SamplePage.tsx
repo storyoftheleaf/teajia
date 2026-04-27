@@ -195,7 +195,7 @@ const SamplePage: React.FC = () => {
         <Leaf className="w-12 h-12 text-tea-text-dim mb-4" />
         <h1 className="text-xl font-serif mb-2">Sample not found</h1>
         <p className="text-tea-text-sec text-sm mb-6">This QR code may have expired or the sample was removed.</p>
-        <button onClick={() => navigate('/')} className="px-6 py-2 bg-tea-gold text-white text-xs uppercase tracking-[0.2em]">
+        <button onClick={() => navigate('/')} className="px-6 py-2 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.2em]">
           Go Home
         </button>
       </div>
@@ -494,7 +494,7 @@ const SamplePage: React.FC = () => {
           >
             <button
               onClick={handleOrderInquiry}
-              className="w-full flex items-center justify-center gap-2 py-3 bg-tea-gold text-white text-xs uppercase tracking-[0.2em] font-bold rounded-lg hover:bg-tea-gold/90 transition-colors"
+              className="w-full flex items-center justify-center gap-2 py-3 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.2em] font-bold rounded-lg hover:bg-tea-gold/90 transition-colors"
             >
               <ShoppingCart size={16} />
               I'd like to order this
@@ -524,7 +524,7 @@ const SamplePage: React.FC = () => {
           >
             <button
               onClick={() => navigate(`/admin/compass?tab=sourcing&fromSample=${sample.id}`)}
-              className="w-full flex items-center justify-center gap-2 py-3 bg-tea-gold text-white text-xs uppercase tracking-[0.2em] font-bold rounded-lg hover:bg-tea-gold/90 transition-colors"
+              className="w-full flex items-center justify-center gap-2 py-3 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.2em] font-bold rounded-lg hover:bg-tea-gold/90 transition-colors"
             >
               <ExternalLink size={16} />
               Promote to Tea Compass

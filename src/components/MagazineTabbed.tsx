@@ -434,7 +434,7 @@ function StackedCovers({ stories, onCardClick }: { stories: FeedItem[]; onCardCl
           className="w-full text-left relative overflow-hidden active:opacity-90 transition-opacity"
           style={{
             borderRadius: 2,
-            border: '1px solid rgba(184,146,78,0.18)',
+            border: '1px solid var(--tea-border)',
             animation: `revealUp 0.5s ease-out ${i * 0.07}s both`,
           }}
         >
@@ -443,7 +443,7 @@ function StackedCovers({ stories, onCardClick }: { stories: FeedItem[]; onCardCl
           {/* Masthead bar */}
           <div
             className="absolute top-0 left-0 right-0 flex justify-between items-center"
-            style={{ padding: '14px 16px 10px', borderBottom: '1px solid rgba(184,146,78,0.2)' }}
+            style={{ padding: '14px 16px 10px', borderBottom: '1px solid var(--tea-border)' }}
           >
             <span style={{ ...MONO_STYLE, fontSize: 9.5, color: 'var(--tea-gold)', letterSpacing: '0.2em' }}>TEAJIA</span>
             <span style={MONO_STYLE}>The Journal</span>
@@ -656,7 +656,7 @@ function TweaksPanel({
           className="block w-full text-left mb-1.5 transition-colors duration-150"
           style={{
             padding: '10px 12px',
-            background: cardStyle === o.k ? 'rgba(184,146,78,0.14)' : 'transparent',
+            background: cardStyle === o.k ? 'var(--tea-accent-sub)' : 'transparent',
             border: `1px solid ${cardStyle === o.k ? 'var(--tea-gold)' : 'var(--tea-border)'}`,
             borderRadius: 2,
           }}
@@ -858,7 +858,7 @@ export const MagazineTabbed: React.FC<MagazineTabbedProps> = ({
               padding: '7px 16px',
               borderRadius: 99,
               border: `1px solid ${filter === t ? 'var(--tea-gold)' : 'var(--tea-border)'}`,
-              background: filter === t ? 'rgba(184,146,78,0.14)' : 'transparent',
+              background: filter === t ? 'var(--tea-accent-sub)' : 'transparent',
               fontFamily: 'var(--font-ui)',
               fontSize: 11,
               letterSpacing: '0.14em',

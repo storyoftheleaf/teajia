@@ -556,7 +556,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
               <span>{isSoldOut ? 'Sold Out' : added ? 'Added!' : 'Add to Cart'}</span>
               {!isSoldOut && !added && (
                 <>
-                  <span className="w-px h-3 bg-white/20" />
+                  <span className="w-px h-3 bg-tea-bg/20" />
                   <span className="font-mono">{fmtShopPrice(total)}</span>
                 </>
               )}

@@ -314,7 +314,7 @@ export const PopupModal: React.FC<PopupModalProps> = ({
               <TeaPlaceholder type={item.type || ''} style={{ width: '100%', height: '100%' }} />
             </div>
           )}
-          <div className="absolute bottom-0 left-0 w-full h-20 bg-gradient-to-t from-[#1a1a1a] to-transparent pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-full h-20 bg-gradient-to-t from-tea-bg to-transparent pointer-events-none" />
         </div>
 
         {/* Sheet content */}

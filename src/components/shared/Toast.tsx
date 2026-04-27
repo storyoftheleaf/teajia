@@ -34,7 +34,7 @@ const ToastItem: React.FC<ToastProps> = ({ toast, onDismiss }) => {
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, x: 80, scale: 0.95 }}
       transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-      className={`${bgColor} text-white px-4 py-3 rounded-sm shadow-lg flex items-center gap-3 min-w-[280px] max-w-[90vw] md:max-w-md`}
+      className={`${bgColor} text-tea-bg px-4 py-3 rounded-sm shadow-lg flex items-center gap-3 min-w-[280px] max-w-[90vw] md:max-w-md`}
       role="alert"
     >
       <div className="shrink-0">{icon}</div>

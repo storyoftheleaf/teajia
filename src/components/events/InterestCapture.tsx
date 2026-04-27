@@ -78,7 +78,7 @@ const InterestCapture: React.FC<InterestCaptureProps> = ({ slug, className = '' 
           type="button"
           disabled={!isValid || mutation.isPending}
           onClick={() => mutation.mutate()}
-          className="px-4 py-2.5 bg-tea-gold text-white text-xs uppercase tracking-[0.15em] rounded-sm hover:bg-tea-gold/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+          className="px-4 py-2.5 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.15em] rounded-sm hover:bg-tea-gold/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
         >
           {mutation.isPending ? (
             <span className="inline-block w-3.5 h-3.5 border-2 border-tea-border border-t-tea-gold rounded-full animate-spin" />

@@ -519,7 +519,7 @@ const Plate: React.FC<PlateProps> = ({ kicker = 'Plate', caption, ornament = 'sq
           position: 'relative',
           margin: '18.9px 0 43.2px',
           overflow: 'hidden',
-          border: '1px solid rgba(184,146,78,0.12)',
+          border: '1px solid var(--tea-border)',
           borderRadius: 2,
           background: `
             linear-gradient(135deg, rgba(40,33,26,0.55) 0%, rgba(24,19,14,0.85) 100%)
@@ -1399,7 +1399,7 @@ const PullSidebarPage: React.FC<{ page: Extract<Page, { kind: 'pull_sidebar' }> 
             aspectRatio: '16/9',
             marginBottom: '29.7px',
             borderRadius: 2,
-            border: '1px solid rgba(184,146,78,0.18)',
+            border: '1px solid var(--tea-border)',
             background: 'linear-gradient(135deg, rgba(40,33,26,0.55) 0%, rgba(24,19,14,0.85) 100%)',
             position: 'relative',
             overflow: 'hidden',
@@ -2709,7 +2709,7 @@ export default function ArticlePage() {
                 style={{
                   flex: 1,
                   height: 2,
-                  background: 'rgba(184,146,78,0.18)',
+                  background: 'var(--tea-accent-sub)',
                   borderRadius: 2,
                   overflow: 'hidden',
                   position: 'relative',
