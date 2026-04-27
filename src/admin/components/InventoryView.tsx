@@ -43,6 +43,18 @@ import { QuickInvoiceModal } from './QuickInvoiceModal';
 
 const MAINTENANCE_SQL = `-- Reset all data via API\n// Use the admin panel's reset function`;
 
+// Returns true when a featured product is hidden from the public shop.
+// The public GET /api/collections/shop filter requires status='Active' and
+// non-zero stock (stock_grams > 0 for tea, quantity_units > 0 for teaware).
+// Used to show a quiet "hidden" qualifier next to the filled star in the UI.
+function isFeaturedButHidden(product: Product): boolean {
+  if (!product.isFeatured) return false;
+  if (product.status !== 'Active') return true;
+  const isTeaware = product.type === 'Teaware';
+  if (isTeaware) return (product.quantityUnits ?? 0) <= 0;
+  return (product.stockGrams ?? 0) <= 0;
+}
+
 const VIEW_ICON_MAP: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
   AlertTriangle,
   EyeOff,
@@ -517,7 +529,10 @@ function InventoryRowBase(props: InventoryRowProps) {
         <div className="flex justify-end gap-0.5" onClick={(e) => e.stopPropagation()}>
           {!isEditMode && (
             <>
-              <button onClick={(e) => { e.stopPropagation(); onSelectionAwareUpdate(product, 'isFeatured', !product.isFeatured); }} className={`${product.isFeatured ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'} p-1 transition-colors`} aria-label={product.isFeatured ? 'Remove featured star' : 'Mark as featured'} aria-pressed={product.isFeatured} title={product.isFeatured ? 'Remove star' : 'Star'}><Star size={12} className={product.isFeatured ? 'fill-tea-gold' : ''} aria-hidden="true" /></button>
+              <span className="inline-flex items-center gap-0.5">
+                <button onClick={(e) => { e.stopPropagation(); onSelectionAwareUpdate(product, 'isFeatured', !product.isFeatured); }} className={`${product.isFeatured ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'} p-1 transition-colors`} aria-label={product.isFeatured ? 'Remove featured star' : 'Mark as featured'} aria-pressed={product.isFeatured} title={product.isFeatured ? 'Remove star' : 'Star'}><Star size={12} className={product.isFeatured ? 'fill-tea-gold' : ''} aria-hidden="true" /></button>
+                {isFeaturedButHidden(product) && <span className="font-body italic text-[10px] text-tea-text-sec leading-none">hidden</span>}
+              </span>
               <button onClick={(e) => { e.stopPropagation(); onSelectionAwareUpdate(product, 'isPublic', !product.isPublic); }} className={`${product.isPublic ? 'text-tea-text-sec hover:text-tea-text' : 'text-tea-text-sec/50 hover:text-tea-text-sec'} p-1 transition-colors`} aria-label={product.isPublic ? 'Hide from shop' : 'Show in shop'} aria-pressed={product.isPublic} title={product.isPublic ? 'Hide' : 'Show'}>{product.isPublic ? <Eye size={12} aria-hidden="true" /> : <EyeOff size={12} aria-hidden="true" />}</button>
               {!splitView && <button onClick={(e) => { e.stopPropagation(); onOpenPanel(product); }} className="text-tea-text-sec hover:text-tea-text p-1 transition-colors" aria-label="Edit product" title="Edit"><Pencil size={13} aria-hidden="true" /></button>}
               {!splitView && (
@@ -2416,7 +2431,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             <div className="flex items-center gap-2 shrink-0">
                 <Settings size={16} className={isEditMode ? "text-tea-text-sec" : "text-tea-gold"} />
                 <h2 className="text-sm font-serif text-tea-text uppercase tracking-[0.15em]">
-                    {isEditMode ? 'Editing' : 'Inventory'}
+                    {isEditMode ? 'Editing' : (VIEW_FILTER_LABELS[filterType] || 'Inventory')}
                 </h2>
                 <span className="text-tea-text-sec text-xs tracking-wide">
                     {isEditMode ? '— click cells to edit' : `— ${processedProducts.length} items`}
@@ -2989,7 +3004,12 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-1.5">
                                         <span className="text-tea-text text-[15px] font-sans font-medium truncate leading-tight">{product.productName}</span>
-                                        {product.isFeatured && <Star size={11} className="flex-shrink-0 text-tea-gold fill-tea-gold" />}
+                                        {product.isFeatured && (
+                          <>
+                            <Star size={11} className="flex-shrink-0 text-tea-gold fill-tea-gold" />
+                            {isFeaturedButHidden(product) && <span className="font-body italic text-[10px] text-tea-text-sec leading-none">hidden</span>}
+                          </>
+                        )}
                                         {!product.isPublic && <EyeOff size={10} className="flex-shrink-0 text-tea-text-dim" />}
                                     </div>
                                     <div className="flex items-center gap-1.5 mt-0.5 text-[12px]">
@@ -3272,13 +3292,16 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
                                 {/* Toggle actions — star, public, archive */}
                                 <div className="flex items-center gap-1 mt-2 pt-2" style={{ boxShadow: '0 -1px 0 var(--tea-accent-sub)' }}>
-                                    <button
-                                        onClick={() => handleProductUpdate(product.id, 'isFeatured', !product.isFeatured)}
-                                        className={`w-10 h-10 flex items-center justify-center rounded-lg transition-colors ${product.isFeatured ? 'text-tea-gold bg-tea-gold/10' : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-surface/50'}`}
-                                        aria-label={product.isFeatured ? 'Unfeature' : 'Feature'}
-                                    >
-                                        <Star size={16} className={product.isFeatured ? "fill-tea-gold" : ""} />
-                                    </button>
+                                    <div className="flex flex-col items-center gap-0.5">
+                                      <button
+                                          onClick={() => handleProductUpdate(product.id, 'isFeatured', !product.isFeatured)}
+                                          className={`w-10 h-10 flex items-center justify-center rounded-lg transition-colors ${product.isFeatured ? 'text-tea-gold bg-tea-gold/10' : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-surface/50'}`}
+                                          aria-label={product.isFeatured ? 'Unfeature' : 'Feature'}
+                                      >
+                                          <Star size={16} className={product.isFeatured ? "fill-tea-gold" : ""} />
+                                      </button>
+                                      {isFeaturedButHidden(product) && <span className="font-body italic text-[10px] text-tea-text-sec leading-none">hidden</span>}
+                                    </div>
                                     <button
                                         onClick={() => handleProductUpdate(product.id, 'isPublic', !product.isPublic)}
                                         className={`w-10 h-10 flex items-center justify-center rounded-lg transition-colors ${product.isPublic ? 'text-tea-text-sec bg-tea-surface/30' : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-surface/50'}`}
@@ -3944,6 +3967,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                             {toggle.icon} {toggle.label}
                           </button>
                         ))}
+                        {isFeaturedButHidden(panelProduct) && <span className="font-body italic text-[10px] text-tea-text-sec leading-none">hidden</span>}
                       </div>
                       {/* Classification */}
                       <div className="flex items-center gap-1.5 flex-wrap">
