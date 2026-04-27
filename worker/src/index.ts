@@ -1615,7 +1615,7 @@ const handleGetProducts: Handler = async (request, env) => {
          JOIN collection_publications cp ON cp.collection_id = c.id
         WHERE ci.product_id = p.id
           AND cp.target_type = 'shop'
-          AND cp.unpublished_at IS NULL) AS is_featured
+          AND cp.unpublished_at IS NULL) AS is_featured_derived
       FROM products p
       WHERE p.account_id = ?
       ORDER BY p.created_at DESC`).bind(accountId),
@@ -1626,6 +1626,11 @@ const handleGetProducts: Handler = async (request, env) => {
   }
 
   const products = (result.results as any[]).map(p => {
+    // Override the legacy is_featured column with the derived shop-collection
+    // membership value. The DB column is no longer authoritative.
+    p.is_featured = p.is_featured_derived ? 1 : 0;
+    delete p.is_featured_derived;
+
     // Parse JSON array fields
     if (typeof p.tasting_notes === 'string') {
       try { p.tasting_notes = JSON.parse(p.tasting_notes); } catch { p.tasting_notes = []; }

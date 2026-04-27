@@ -514,7 +514,7 @@ function InventoryRowBase(props: InventoryRowProps) {
         ? renderCell('productName', 0)
         : visibleCols.map((col, colIdx) => renderCell(col.key, colIdx))}
       <td className="px-1 align-middle text-right">
-        <div className={`flex justify-end gap-0.5 transition-opacity ${isDropdownOpen ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`} onClick={(e) => e.stopPropagation()}>
+        <div className="flex justify-end gap-0.5" onClick={(e) => e.stopPropagation()}>
           {!isEditMode && (
             <>
               <button onClick={(e) => { e.stopPropagation(); onSelectionAwareUpdate(product, 'isFeatured', !product.isFeatured); }} className={`${product.isFeatured ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'} p-1 transition-colors`} aria-label={product.isFeatured ? 'Remove featured star' : 'Mark as featured'} aria-pressed={product.isFeatured} title={product.isFeatured ? 'Remove star' : 'Star'}><Star size={12} className={product.isFeatured ? 'fill-tea-gold' : ''} aria-hidden="true" /></button>
@@ -1313,8 +1313,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     else if (field === 'isFeatured') {
       // Route through the Featured collection endpoint instead of writing the
       // legacy is_featured column. Optimistic local state is already updated above.
+      // Refetch on success so the derived value (computed from active shop
+      // collections) lands consistently in local state.
       try {
         await api.products.setFeatured(id, Boolean(value));
+        onRefresh();
       } catch (err: any) {
         showToast(`Update failed: ${err.message}`, 'error');
         onRefresh();
