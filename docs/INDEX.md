@@ -14,6 +14,7 @@
 | **ROADMAP.md** | What's being built next, by phase | Want to know what's coming |
 | **STATE_OF_THE_SITE.md** | Current state: what works, what doesn't | Prioritizing work or fixing something broken |
 | **CHANGELOG.md** | What shipped, by date | Need to know when something went live |
+| **OPERATIONAL_NOTES.md** | Intentional tradeoffs, residual risks, things to revisit | Onboarding to the codebase; before changing auth or infra |
 
 ## For product / design
 
