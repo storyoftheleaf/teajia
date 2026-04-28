@@ -12,39 +12,53 @@ Adrian is the proof that the tools work. Every rough edge he hits, future operat
 
 **Key blocker identified by Adrian:** Magazine templates are not at the quality level he expects. This is the editorial face of the brand and must be fixed before launch.
 
-### 0.1 Critical Fixes (bugs that break trust)
+### 0.1 Critical Fixes (bugs that break trust) — ✅ COMPLETE (verified 2026-04-28)
 
-- [ ] **Fix dead share button on AlcoveCard** — Either connect to ShareModal or remove. A non-functional button destroys trust in the interface.
-- [ ] **Connect newsletter signup to backend** — Currently stores email in localStorage and logs to console. Users think they subscribed. They didn't.
-- [ ] **Handle JWT expiration gracefully** — Show "Session expired" notification and re-auth prompt instead of silent failure on next API call.
-- [ ] **Make product modals URL-backed** — Add URL params (e.g., `/shop?product=tie-guan-yin`). Enables sharing, bookmarking, browser back-button. Without this, no one can share a link to a specific tea.
-- [ ] **Frame checkout as inquiry** — Rename "Checkout" to "Send Inquiry" or "Request Order." Add visible note: "We confirm every order personally." Show this early, not after filling the form.
-- [ ] **Add network/offline error indicator** — Show toast or banner when API calls fail. Currently fails silently.
+All six items shipped in earlier work. Status verified by code recon:
+
+- [x] **Dead share button on AlcoveCard** — `handleShare` in `AlcoveCard.tsx:258` uses Web Share API with clipboard fallback, links to `/shop/product/:id`. Wired through `AlcoveCommerceFooter.tsx:287`.
+- [x] **Newsletter signup → backend** — `EmailCapture.tsx:29` calls `api.newsletter.subscribe(email, 'website')` which hits the backend at `/api/newsletter/subscribe`.
+- [x] **JWT expiration handling** — `SESSION_EXPIRED_EVENT` dispatched from `api.ts`; consumed by `SessionExpiredNotice.tsx`, `useAuth.ts`, and `AdminApp.tsx`.
+- [x] **Product modal URL routing** — Replaced modal architecture entirely with route `/shop/product/:id` → `ProductPage.tsx`. Shareable, bookmarkable, browser-back works.
+- [x] **Checkout as inquiry** — `PublicCart.tsx` uses `CheckoutStep = 'CART' | 'INQUIRY' | 'CONFIRM'`, persists as `type: 'inquiry'`, and displays "We confirm every order personally. Availability, pricing, and shipping are settled by message. This is a service, not a checkout." (line 605).
+- [x] **Network error indicator** — `NETWORK_ERROR_EVENT` dispatched from `api.ts:236`; consumed by `NetworkErrorNotice.tsx`.
 
 ### 0.2 Magazine Quality (Adrian's stated priority)
 
-- [ ] **Audit and improve magazine templates** — The 150+ layout variants are not at the level of quality Adrian expects. This is the editorial face of the brand. Reference PLAN.md (70-point template overhaul) for the detailed spec.
-- [ ] **Fix font loading** — 8 Google Fonts loaded in a single blocking request. Implement `font-display: swap`, subset Chinese fonts with `unicode-range`, remove unused fonts.
-- [ ] **Establish consistent type scale** — Per PLAN.md: Display, Headline, Subhead, Body, Caption, Micro sizes with proper leading and tracking.
+**Status:** Mixed. Font loading and type scale are already done; template audit is the remaining work but is too judgment-heavy to ship as a single mechanical pass.
 
-### 0.3 Design System Cleanup
+- [x] **Fix font loading** — `index.html` already loads 3 stylesheets (not 8) with `&display=swap` on all of them. Noto Serif SC is subsetted via `&text=` parameter. Ma Shan Zheng deferred to async load after page paint.
+- [x] **Establish consistent type scale** — `TYPOGRAPHY_CLASSES` from `designTokens.ts` covers editorial typography (h1, h2, h3, body, label, nav, etc.). Phase C1 added the 13-stop UI text scale (`text-ui-N`).
+- [ ] **Audit and improve magazine templates** — `LayoutVariant` enum in `src/types.ts` defines 95+ layout templates rendered by `SinglePageRenderer.tsx` (2,312 lines). Quality bar varies by template. **This is design judgment work that needs Adrian's eye, not mechanical migration.** The MAGAZINE_PLAN.md decisions are locked; the work is per-template visual review against those decisions. Recommend tackling in batches of 5–10 templates at a time, per article/use case as it's authored. The "70-point template overhaul plan" referenced in the original ROADMAP doesn't exist as a single doc; treat MAGAZINE_PLAN.md as the source of truth.
 
-- [ ] **Eliminate hardcoded rgba()** — 328 instances violating COLOR_RULES.md. These don't adapt to theme changes. Migrate to semantic tokens.
-- [ ] **Remove banned legacy tokens** — 49 files still using tea-ink, tea-paper, tea-seal, tea-charcoal. Replace with approved tokens per COLOR_RULES.md.
-- [ ] **Clean up hardcoded hex colors** — 65 instances of bracket-notation hex colors that should use semantic tokens.
+### 0.3 Design System Cleanup — ✅ COMPLETE (shipped 2026-04-27 → 2026-04-28)
+
+Closed via the design-system phasing arc (Phases A → D2 + C1/C1b/D1). See `docs/DESIGN_SYSTEM_PHASING.md` for the full path.
+
+- [x] **Eliminate hardcoded rgba()** — Phase B1 migrated actionable sites onto semantic tokens. Remaining rgba uses are legitimate Rule 2 exceptions (decorative grain, multi-stop gradients, fixed-export imagery).
+- [x] **Remove banned legacy tokens** — Phase B0/B1: zero references to `tea-ink`/`tea-paper`/`tea-seal`/`tea-charcoal`/`tea-muted`/`tea-beige` in `src/`. The aliases were also removed from `tailwind.config.ts`.
+- [x] **Clean up hardcoded hex colors** — Phase B1 + B2: hex-bracket check is now blocking in `lint:colors` Rule 6. Only documented brand literals (WhatsApp `#25D366`) remain by path-allowlist.
+
+Beyond the original scope, the same arc also shipped:
+
+- Phase A: missing scales (`lineHeight`, `letterSpacing`, `transitionDuration`, `backdropBlur`) wired into Tailwind.
+- Phase C: z-index named scale + `z-[9999]` collision resolved + small shadow/transition cleanups.
+- Phase C1: 2,658 `text-[Npx]` sites mechanically renamed onto a 13-stop UI text scale; lint Rule 7 blocks regressions.
+- Phase D1: `tap-target` utility class + 13 small interactive sites bumped to 44×44 floor.
+- Phase D2: 25 contrast violations fixed (`text-tea-text/15-20` → `text-tea-text-{sec,dim}`).
 
 ### 0.4 Adrian's Daily Workflow Polish
 
-- [ ] **Post-event → purchase bridge** — After a session, guests should get a recap page: teas served, their notes (if submitted), purchase links, one prompt ("what stayed with you?"). The PostSessionArchive component exists — enhance it to be guest-facing, not just admin archival.
-- [ ] **Price-per-gram display on product cards** — Specialty tea buyers compare value. Show $/g alongside total price.
-- [ ] **Stock level indicators on shop** — "In Stock," "Low Stock," "Limited" badges. Adrian already tracks thresholds in admin.
-- [ ] **Brewing guide per product** — Lookup table by tea type + form. ~20 profiles cover the catalog. Water temp, steep time, leaf ratio, vessel, infusion count.
+- [x] **Post-event → purchase bridge** — `EventRecapPage.tsx` is mounted at the public route `/event/:slug/recap` (`App.tsx:735`), uses the `event-recap-public` query, no auth gate.
+- [x] **Price-per-gram display on product cards** — `AlcoveCard.tsx:155` calculates and surfaces `perGramDisplay` alongside the total price.
+- [x] **Stock level indicators on shop** — `AlcoveCard.tsx` + `AlcoveCommerceFooter.tsx` show stock-level dots and colored labels (Low Stock, Limited, Sold Out). `ProductPage.tsx:149` also displays stock status.
+- [ ] **Brewing guide per product** — `data/brewing-profiles.ts` defines profiles per tea type (steep time, water temp, leaf ratio, vessel, infusion count) but **the data isn't surfaced on `ProductPage.tsx`**. Wire-up required.
 
 ### 0.5 Events Simplification
 
-- [ ] **Create a "simple mode" for event creation** — Default: title, date, seat count, gathering type, share link. That's it. The full approval workflow, briefing cards, tea menu, etc. remain available as optional layers that feel like a bonus when used, not something that's lacking when unused.
-- [ ] **Gathering type indicator (core, not optional)** — Guests need to know if it's a silent meditation or a tea shopping event. This isn't an advanced feature — it's essential context even in simple mode. Simple tag/label on the event page.
-- [ ] **Guest list visibility** — When someone receives a shared link, they want to know if the right people are there. Show confirmed guests (with opt-in visibility). This is function, not social — it's "is my friend coming" not "how many followers."
+- [ ] **Create a "simple mode" for event creation** — Default: title, date, seat count, gathering type, share link. That's it. The full approval workflow, briefing cards, tea menu, etc. remain available as optional layers that feel like a bonus when used, not something that's lacking when unused. **Feature build, needs design pass before code.**
+- [x] **Gathering type indicator** — `GatheringType` defined in `types/events.ts:3` (private/semi-private/open/bespoke), surfaced on `EventLanding.tsx:368` via `GATHERING_TYPE_LABELS`.
+- [ ] **Guest list visibility** — Not yet implemented. Needs an opt-in attendee-visibility flag on event records and a public attendee list component on `EventLanding`. **Feature build, needs design pass before code.**
 
 ### 0.6 Onboard First Trusted Users
 
