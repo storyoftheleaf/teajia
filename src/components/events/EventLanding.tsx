@@ -197,14 +197,32 @@ const EventLanding: React.FC = () => {
   }, [event]);
 
   useEffect(() => {
-    if (!slug || !event || !hasToken()) return;
-    api.rsvp.findByAccount(slug).then((data: any) => {
-      const token = data?.magic_token || data?.magicToken;
+    if (!slug || !event) return;
+    if (hasToken()) {
+      api.rsvp.findByAccount(slug).then((data: any) => {
+        const token = data?.magic_token || data?.magicToken;
+        const status = data?.status;
+        if (token && status && status !== 'cancelled' && status !== 'denied') {
+          setMyAttendee(data);
+        }
+      }).catch(() => {});
+      return;
+    }
+    // Unauthenticated returning visitor: check localStorage for a magic token
+    // saved from a prior RSVP on this device.
+    let storedToken: string | null = null;
+    try { storedToken = localStorage.getItem(`teajia_rsvp_${slug}`); } catch { /* private mode */ }
+    if (!storedToken) return;
+    api.rsvp.get(storedToken).then((data: any) => {
       const status = data?.status;
-      if (token && status && status !== 'cancelled' && status !== 'denied') {
+      if (status && status !== 'cancelled' && status !== 'denied') {
         setMyAttendee(data);
+      } else {
+        try { localStorage.removeItem(`teajia_rsvp_${slug}`); } catch { /* ignore */ }
       }
-    }).catch(() => {});
+    }).catch(() => {
+      try { localStorage.removeItem(`teajia_rsvp_${slug}`); } catch { /* ignore */ }
+    });
   }, [slug, event]);
 
   if (isLoading) {
@@ -252,6 +270,9 @@ const EventLanding: React.FC = () => {
   const moodHints: string[] | undefined = ev.moodHints ?? (ev.mood_hints ? (typeof ev.mood_hints === 'string' ? JSON.parse(ev.mood_hints) : ev.mood_hints) : undefined);
   const eventFormat: import('../../types/events').EventFormat | undefined = ev.format ?? ev.event_format ?? undefined;
   const gatheringType: import('../../types/events').GatheringType | undefined = ev.gatheringType ?? ev.gathering_type ?? undefined;
+  // requires_approval: raw integer from worker (0 or 1); default true for old events without the column
+  const rawRequiresApproval = ev.requires_approval ?? ev.requiresApproval;
+  const isInstantConfirm = rawRequiresApproval === false || rawRequiresApproval === 0;
 
   const { date: formattedDate, time: formattedTime, day: formattedDay } = formatEventDate(eventDate);
   const isCompleted = event.status === 'closed';
@@ -398,6 +419,9 @@ const EventLanding: React.FC = () => {
                   <Users className="w-3.5 h-3.5" />
                   <span className="text-xs">
                     {confirmedCount} {confirmedCount === 1 ? 'seat' : 'seats'} confirmed
+                    {seatsRemaining > 0 && seatsRemaining <= 3 && !isFull && !isCompleted && !isCancelled && (
+                      <span className="text-tea-gold"> · only {seatsRemaining} {seatsRemaining === 1 ? 'seat' : 'seats'} left</span>
+                    )}
                   </span>
                 </div>
                 {confirmedNames.length > 0 && (
@@ -484,13 +508,18 @@ const EventLanding: React.FC = () => {
                   onClick={() => setShowRSVP(true)}
                   className="w-full py-[15px] bg-tea-gold text-tea-bg text-ui-11 uppercase tracking-[0.25em] font-semibold rounded-sm hover:bg-tea-gold/90 transition-all duration-300 shadow-[0_6px_20px_rgba(184,146,78,0.3)]"
                 >
-                  Request Your Seat
+                  {isInstantConfirm ? 'Reserve My Seat' : 'Request Your Seat'}
                 </button>
-                <p className="text-center text-ui-11 text-tea-text-dim">
+                {isInstantConfirm && (
+                  <p className="text-center text-ui-11 text-tea-text-dim">
+                    Confirmed instantly · subject to capacity
+                  </p>
+                )}
+                <p className="text-center text-ui-12 text-tea-text-sec py-2">
                   Already registered?{' '}
                   <button
                     onClick={() => setShowFindRSVP(true)}
-                    className="text-tea-gold hover:text-tea-gold-lt transition-colors"
+                    className="tap-target text-tea-gold hover:text-tea-gold-lt transition-colors"
                   >
                     Find my RSVP
                   </button>
@@ -622,7 +651,7 @@ const EventLanding: React.FC = () => {
       {/* RSVP Form Sheet */}
       {showRSVP && slug && (
         <Suspense fallback={null}>
-          <RSVPFormSheet slug={slug} onClose={() => setShowRSVP(false)} accountLocationCountry={(event as any).account_location_country} />
+          <RSVPFormSheet slug={slug} onClose={() => setShowRSVP(false)} accountLocationCountry={(event as any).account_location_country} requiresApproval={!isInstantConfirm} />
         </Suspense>
       )}
 

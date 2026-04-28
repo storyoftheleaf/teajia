@@ -92,6 +92,7 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
   const [status, setStatus] = useState<EventStatus>('draft');
   const [format, setFormat] = useState<EventFormat>('private_tasting');
   const [gatheringType, setGatheringType] = useState<GatheringType>('private');
+  const [requiresApproval, setRequiresApproval] = useState(true);
   const [flyerImageUrl, setFlyerImageUrl] = useState('');
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -170,6 +171,7 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
         status,
         event_format: format,
         gathering_type: gatheringType,
+        requires_approval: requiresApproval ? 1 : 0,
         flyer_image_url: flyerImageUrl || null,
         venue_id: selectedVenueId || undefined,
         active_space_ids: selectedSpaceIds.length > 0 ? JSON.stringify(selectedSpaceIds) : undefined,
@@ -545,6 +547,18 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
                       <option value="other">Other</option>
                     </select>
                   </Field>
+                  <label className="flex items-start gap-3 cursor-pointer group pt-1">
+                    <input
+                      type="checkbox"
+                      checked={requiresApproval}
+                      onChange={(e) => setRequiresApproval(e.target.checked)}
+                      className="mt-0.5 w-4 h-4 rounded-sm border border-tea-border bg-tea-surface accent-tea-gold cursor-pointer"
+                    />
+                    <span className="space-y-0.5">
+                      <span className="block text-sm text-tea-text">Requires approval before confirmed</span>
+                      <span className="block text-ui-11 text-tea-text-dim">When off, guests are confirmed instantly (subject to capacity).</span>
+                    </span>
+                  </label>
                 </section>
 
               </div>
@@ -657,6 +671,7 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
   const [openSections, setOpenSections] = useState<Set<EditSection>>(new Set(['basic']));
   const [durationHours, setDurationHours] = useState(2);
   const [repeatDates, setRepeatDates] = useState<string[]>([]);
+  const [editRequiresApproval, setEditRequiresApproval] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const venueStepFileRefs = useRef<Record<number, HTMLInputElement | null>>({});
   const [venueStepUploading, setVenueStepUploading] = useState<number | null>(null);
@@ -726,6 +741,9 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
     setRepeatDates([]);
     setEditVenueId(initialData.venueId ?? '');
     setEditSpaceIds(initialData.activeSpaceIds ?? []);
+    // requires_approval comes as raw integer from worker; default true for old events
+    const rawApproval = (initialData as any).requires_approval;
+    setEditRequiresApproval(rawApproval === undefined || rawApproval === null ? true : rawApproval !== 0);
   }, [initialData]);
 
   const updateField = (field: keyof EventFormData, value: any) => {
@@ -915,6 +933,7 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
         location_id: selectedLocationId || null,
         venue_id: editVenueId || null,
         active_space_ids: editSpaceIds.length > 0 ? JSON.stringify(editSpaceIds) : null,
+        requires_approval: editRequiresApproval ? 1 : 0,
       };
       await api.events.update(initialData.id, payload);
       showToast('Event updated', 'success');
@@ -1159,6 +1178,18 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
                     ))}
                   </div>
                 </Field>
+                <label className="flex items-start gap-3 cursor-pointer group pt-1">
+                  <input
+                    type="checkbox"
+                    checked={editRequiresApproval}
+                    onChange={(e) => setEditRequiresApproval(e.target.checked)}
+                    className="mt-0.5 w-4 h-4 rounded-sm border border-tea-border bg-tea-surface accent-tea-gold cursor-pointer"
+                  />
+                  <span className="space-y-0.5">
+                    <span className="block text-sm text-tea-text group-hover:text-tea-text transition-colors">Requires approval before confirmed</span>
+                    <span className="block text-ui-11 text-tea-text-dim">When off, guests are confirmed instantly (subject to capacity).</span>
+                  </span>
+                </label>
               </div>
               {/* Right — Flyer */}
               <div className="space-y-4">

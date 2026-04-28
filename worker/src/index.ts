@@ -4318,7 +4318,7 @@ const handleGetEventBySlug: Handler = async (_request, env, params) => {
     `SELECT e.id, e.slug, e.title, e.subtitle, e.description, e.flyer_image_url, e.event_date, e.event_end_date,
             e.location_name, e.address_text, e.map_link, e.guidelines_text, e.venue_guide, e.total_capacity, e.timezone, e.status,
             e.session_flow, e.playlist_url, e.event_format, e.gathering_type, e.area_hint, e.mood_hints, e.created_at,
-            e.venue_id,
+            e.requires_approval, e.venue_id,
             v.photos AS venue_photos,
             a.location_country AS account_location_country
      FROM events e
@@ -4469,7 +4469,7 @@ const handleRSVP: Handler = async (request, env, params) => {
   // Public RSVP — resolve the event's account so all inserts (customer,
   // attendee, activity log) are attributed to the right store.
   const event = await env.DB.prepare(
-    `SELECT id, account_id, total_capacity, claim_window_minutes FROM events WHERE slug = ? AND status = 'active'`
+    `SELECT id, account_id, total_capacity, claim_window_minutes, requires_approval FROM events WHERE slug = ? AND status = 'active'`
   ).bind(params.slug).first();
 
   if (!event) return json({ error: 'Event not found' }, 404);
@@ -4553,7 +4553,14 @@ const handleRSVP: Handler = async (request, env, params) => {
     customerId = newCustomerId;
   }
 
-  const status = 'requested';
+  // Determine attendee status: instant-confirm when requires_approval = 0 and capacity available.
+  const requiresApproval = (event.requires_approval as number) !== 0; // default true for all existing rows
+  const confirmedForCapacity = await env.DB.prepare(
+    `SELECT COALESCE(SUM(1 + plus_one), 0) as total FROM event_attendees WHERE event_id = ? AND status = 'confirmed'`
+  ).bind(event.id).first();
+  const currentConfirmed = (confirmedForCapacity?.total as number) || 0;
+  const hasCapacity = currentConfirmed < (event.total_capacity as number);
+  const status = (!requiresApproval && hasCapacity) ? 'confirmed' : 'requested';
   const magicToken = crypto.randomUUID();
 
   let guestRequestsJson: string | null = null;
@@ -4985,9 +4992,20 @@ const handleFindRSVP: Handler = async (request, env, params) => {
     }
   }
 
-  const attendee = await env.DB.prepare(
+  let attendee = await env.DB.prepare(
     `SELECT magic_token, status FROM event_attendees WHERE event_id = ? AND ${lookupField} = ?`
   ).bind(event.id, lookupValue).first();
+
+  // Phone fallback: match on last 9 digits to handle "+886 912 345 678" vs "+886912345678" vs "0912 345 678"
+  if (!attendee && lookupField === 'phone_number') {
+    const digits = lookupValue.replace(/\D/g, '');
+    if (digits.length >= 9) {
+      const suffix = digits.slice(-9);
+      attendee = await env.DB.prepare(
+        `SELECT magic_token, status FROM event_attendees WHERE event_id = ? AND phone_number LIKE ?`
+      ).bind(event.id, `%${suffix}`).first();
+    }
+  }
 
   if (!attendee) return json({ error: 'RSVP not found' }, 404);
 
@@ -5072,8 +5090,8 @@ const handleCreateEvent: Handler = async (request, env) => {
     `INSERT INTO events (id, account_id, slug, title, subtitle, description, flyer_image_url, event_date, event_end_date,
        location_name, address_text, map_link, guidelines_text, venue_guide, total_capacity, claim_window_minutes,
        timezone, status, session_flow, playlist_url, location_id, event_format,
-       venue_id, active_space_ids, gathering_type, area_hint, mood_hints, briefing_cards)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+       venue_id, active_space_ids, gathering_type, area_hint, mood_hints, briefing_cards, requires_approval)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     id,
     accountId,
@@ -5102,7 +5120,8 @@ const handleCreateEvent: Handler = async (request, env) => {
     body.gathering_type || null,
     body.area_hint || null,
     body.mood_hints ? (typeof body.mood_hints === 'string' ? body.mood_hints : JSON.stringify(body.mood_hints)) : null,
-    body.briefing_cards ? (typeof body.briefing_cards === 'string' ? body.briefing_cards : JSON.stringify(body.briefing_cards)) : null
+    body.briefing_cards ? (typeof body.briefing_cards === 'string' ? body.briefing_cards : JSON.stringify(body.briefing_cards)) : null,
+    body.requires_approval !== undefined ? (body.requires_approval ? 1 : 0) : 1
   ).run();
 
   return json({ id, slug: body.slug }, 201);
@@ -5130,7 +5149,7 @@ const handleUpdateEvent: Handler = async (request, env, params) => {
   }
   if (body.event_format === undefined) delete body.event_format;
 
-  const EVENT_ALLOWED_COLS = new Set(['title','subtitle','description','slug','status','event_date','event_end_date','end_date','location','location_name','capacity','total_capacity','price_usd','display_currency','event_format','gathering_type','notes','host_name','event_type','max_guests','booking_cutoff_hours','private','image_url','flyer_url','flyer_image_url','claim_window_minutes','venue_id','venue_space_id','active_space_ids','location_id','session_template_id','meta_json','session_flow','address_text','map_link','guidelines_text','area_hint','venue_guide','mood_hints','briefing_cards','timezone','playlist_url']);
+  const EVENT_ALLOWED_COLS = new Set(['title','subtitle','description','slug','status','event_date','event_end_date','end_date','location','location_name','capacity','total_capacity','price_usd','display_currency','event_format','gathering_type','notes','host_name','event_type','max_guests','booking_cutoff_hours','private','image_url','flyer_url','flyer_image_url','claim_window_minutes','venue_id','venue_space_id','active_space_ids','location_id','session_template_id','meta_json','session_flow','address_text','map_link','guidelines_text','area_hint','venue_guide','mood_hints','briefing_cards','timezone','playlist_url','requires_approval']);
   const cols = Object.keys(body).filter(k => EVENT_ALLOWED_COLS.has(k));
   if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
 
@@ -5465,8 +5484,8 @@ const handleDuplicateEvent: Handler = async (request, env, params) => {
     `INSERT INTO events (id, account_id, slug, title, subtitle, description, flyer_image_url, event_date, event_end_date,
        location_name, address_text, map_link, guidelines_text, venue_guide, total_capacity, claim_window_minutes,
        timezone, status, session_flow, playlist_url, event_format,
-       venue_id, active_space_ids, gathering_type, area_hint, mood_hints, briefing_cards)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+       venue_id, active_space_ids, gathering_type, area_hint, mood_hints, briefing_cards, requires_approval)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     newId,
     accountId,
@@ -5493,7 +5512,8 @@ const handleDuplicateEvent: Handler = async (request, env, params) => {
     source.gathering_type || null,
     source.area_hint || null,
     source.mood_hints || null,
-    source.briefing_cards || null
+    source.briefing_cards || null,
+    source.requires_approval !== undefined ? source.requires_approval : 1
   ).run();
 
   // F38: Clone tea menu entries (including all brewing fields)
@@ -6961,8 +6981,8 @@ const handleCreateNextEvent: Handler = async (request, env, params) => {
     `INSERT INTO events (id, account_id, slug, title, subtitle, description, flyer_image_url, event_date, event_end_date,
        location_name, address_text, map_link, guidelines_text, venue_guide, total_capacity, claim_window_minutes,
        timezone, status, session_flow, playlist_url, event_format, location_id,
-       venue_id, active_space_ids, gathering_type, area_hint, mood_hints, briefing_cards)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+       venue_id, active_space_ids, gathering_type, area_hint, mood_hints, briefing_cards, requires_approval)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     newId,
     accountId,
@@ -6990,7 +7010,8 @@ const handleCreateNextEvent: Handler = async (request, env, params) => {
     source.gathering_type || null,
     source.area_hint || null,
     source.mood_hints || null,
-    source.briefing_cards || null
+    source.briefing_cards || null,
+    source.requires_approval !== undefined ? source.requires_approval : 1
   ).run();
 
   // Clone tea menu (same as F38/duplicate pattern)

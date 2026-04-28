@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { X, Plus, Trash2, LogIn } from 'lucide-react';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { useScrollLock } from '../../hooks/useScrollLock';
 import { useAuth } from '../../hooks/useAuth';
@@ -10,10 +10,12 @@ interface RSVPFormSheetProps {
   slug: string;
   onClose: () => void;
   accountLocationCountry?: string;
+  requiresApproval?: boolean;
 }
 
-const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLocationCountry }) => {
+const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLocationCountry, requiresApproval = true }) => {
   const { user, isAuthenticated, login } = useAuth();
+  const queryClient = useQueryClient();
   useScrollLock(true);
 
   // Parse saved phone into dial code + local number
@@ -108,7 +110,15 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
 
   const submitMutation = useMutation<RSVPResponse, Error, RSVPFormData>({
     mutationFn: (data) => api.rsvp.submit(slug, data),
-    onSuccess: () => setSubmitted(true),
+    onSuccess: (response) => {
+      // Persist magic token so returning visitors are detected on EventLanding
+      // without having to re-enter their contact details.
+      const token = response?.magicToken ?? (response as { magic_token?: string })?.magic_token;
+      if (token) {
+        try { localStorage.setItem(`teajia_rsvp_${slug}`, token); } catch { /* ignore quota / private mode */ }
+      }
+      setSubmitted(true);
+    },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -176,7 +186,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
       onClick={onClose}
       role="dialog"
       aria-modal="true"
-      aria-label="Request your seat"
+      aria-label={requiresApproval === false ? 'Reserve your seat' : 'Request your seat'}
     >
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
 
@@ -199,7 +209,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
 
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-tea-border shrink-0">
-          <h2 className="font-serif text-xl text-tea-text">Request Your Seat</h2>
+          <h2 className="font-serif text-xl text-tea-text">{requiresApproval === false ? 'Reserve Your Seat' : 'Request Your Seat'}</h2>
           <button
             onClick={onClose}
             className="p-2 text-tea-text-sec hover:text-tea-gold transition-colors"
@@ -216,14 +226,38 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
               <div className="w-14 h-14 rounded-full bg-tea-gold/10 flex items-center justify-center mb-6">
                 <span className="text-2xl font-serif text-tea-gold">茶</span>
               </div>
-              <h3 className="font-serif text-2xl text-tea-text mb-3 text-center">Request received.</h3>
-              <p className="text-sm text-tea-text-sec text-center max-w-xs leading-relaxed">
-                {formData.contactMethod === 'whatsapp'
-                  ? "We'll send you a WhatsApp message once your seat is confirmed."
-                  : formData.contactMethod === 'email'
-                  ? "We'll email you once your seat is confirmed."
-                  : "We'll be in touch shortly to confirm your seat."}
+              {requiresApproval === false ? (
+                <>
+                  <h3 className="font-serif text-2xl text-tea-text mb-3 text-center">You're confirmed.</h3>
+                  <p className="text-sm text-tea-text-sec text-center max-w-xs leading-relaxed mb-2">
+                    We've reserved your seat.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <h3 className="font-serif text-2xl text-tea-text mb-3 text-center">Request received.</h3>
+                  <p className="text-sm text-tea-text-sec text-center max-w-xs leading-relaxed mb-2">
+                    {formData.contactMethod === 'whatsapp'
+                      ? "We'll send you a WhatsApp message once your seat is confirmed."
+                      : formData.contactMethod === 'email'
+                      ? "We'll email you once your seat is confirmed."
+                      : "We'll be in touch shortly to confirm your seat."}
+                  </p>
+                </>
+              )}
+              <p className="text-sm text-tea-text-sec text-center mb-6">See you at this event.</p>
+              <p className="text-xs text-tea-text-sec text-center max-w-xs leading-relaxed mb-8 px-2">
+                If your plans change, please let us know in advance. You can manage or cancel your RSVP at any time using the link in your confirmation message.
               </p>
+              <button
+                onClick={() => {
+                  queryClient.invalidateQueries({ queryKey: ['event-public', slug] });
+                  onClose();
+                }}
+                className="w-full max-w-xs py-4 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.25em] font-semibold rounded-sm hover:bg-tea-gold/90 transition-all duration-300"
+              >
+                Done
+              </button>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-6" noValidate>
@@ -360,7 +394,11 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                         <input
                           type="tel"
                           value={countryCode}
-                          onChange={(e) => setCountryCode(e.target.value)}
+                          onChange={(e) => {
+                            const cleaned = e.target.value.replace(/[^\d+]/g, '');
+                            if (cleaned.length === 0) { setCountryCode(''); return; }
+                            setCountryCode(cleaned.startsWith('+') ? cleaned : `+${cleaned}`);
+                          }}
                           placeholder="+1"
                           autoComplete="tel-country-code"
                           aria-label="Country code"
@@ -377,6 +415,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                           className="flex-1 min-w-0 px-4 py-3 bg-tea-surface text-tea-text text-sm placeholder:text-tea-text-sec/50 focus:outline-none"
                         />
                       </div>
+                      <p className="mt-1.5 text-ui-10 text-tea-text-dim">Include the country code (we'll add the + for you)</p>
                       <button
                         type="button"
                         onClick={() => setContactMethod('email')}
@@ -436,7 +475,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                           type="text"
                           value={guest.contact ?? ''}
                           onChange={(e) => updateGuest(idx, { contact: e.target.value })}
-                          placeholder="Their WhatsApp or email — we'll send them an invite"
+                          placeholder="Their WhatsApp or email (we'll reach out, or message you if we can't)"
                           className="w-full px-3 py-2 bg-tea-surface border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-sec/40 focus:outline-none focus:border-tea-gold/50 transition-colors"
                         />
                       </div>
@@ -508,6 +547,8 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
               >
                 {submitMutation.isPending ? (
                   <span className="inline-block w-4 h-4 border-2 border-tea-border border-t-tea-gold rounded-full animate-spin" />
+                ) : requiresApproval === false ? (
+                  'Reserve My Seat'
                 ) : (
                   'Request My Seat'
                 )}

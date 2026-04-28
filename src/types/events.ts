@@ -122,6 +122,9 @@ export interface TeaEvent {
   requestedCount?: number;
   interestCount?: number;
   seatsRemaining?: number;
+  // RSVP approval mode
+  requiresApproval?: boolean;       // camelCase for mapped responses
+  requires_approval?: number;       // snake_case from raw worker response (0 or 1)
   // Account context
   accountLocationCountry?: string;
 }
@@ -405,6 +408,7 @@ export interface EventFormData {
   briefingCards?: BriefingCard[];
   areaHint?: string;
   moodHints?: string[];
+  requiresApproval?: boolean;
 }
 
 export interface ApprovalAction {
