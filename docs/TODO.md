@@ -153,6 +153,21 @@ Keep all three. No consolidation needed.
 
 Not urgent, but worth resolving when convenient.
 
+- [ ] **Google Static Maps integration on EventLanding** — show a static map
+      preview below the event location (tap-to-open in Google Maps, no iframe).
+      Blocked on Adrian getting an API key. Setup steps:
+      1. Go to https://console.cloud.google.com → create project (e.g. `teajia`).
+      2. APIs & Services → Library → enable **Maps Static API**.
+      3. APIs & Services → Credentials → Create API Key.
+      4. Restrict key: API restrictions → only Maps Static API; Application
+         restrictions → HTTP referrers `*.teajia.com/*` and `localhost:7777/*`.
+      5. Billing → link account (free tier covers 28k loads/mo). Optional:
+         set a $5 budget alert under Billing → Budgets & alerts.
+      6. Paste key into `.env` as `VITE_GOOGLE_MAPS_STATIC_KEY`.
+      Implementation: a `<MapPreview lat lng />` component on EventLanding,
+      parses coords from the existing `mapLink` field on `TeaEvent` if it's a
+      Google Maps URL, otherwise leaves the current link-only behaviour.
+
 - [ ] The 3 Bali products currently stamped `tasting_source='common'` are
       all status `Draft`, so the public storefront filter hides them.
       Decide per-product: promote to Active or clear the stamp.

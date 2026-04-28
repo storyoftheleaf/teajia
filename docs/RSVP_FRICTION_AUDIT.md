@@ -1,5 +1,36 @@
 # RSVP Friction Audit — 2026-04-27
 
+## Status as of 2026-04-28
+
+**Closed via commits f4bc104 and b86d2d8:**
+
+- ✅ #1 (success screen "what happens next") — context-aware copy by contactMethod + per-event approval mode + Done button + cancellation guidance
+- ✅ #2 (iOS keyboard buries submit) — `env(keyboard-inset-height)` added to sheet padding
+- ❌ #3 (text-white in FindRSVPSheet) — false positive; already used `text-tea-bg`
+- ✅ #5 (CTA copy inconsistency — Your/My) — addressed indirectly: instant-confirm path now uses "Reserve My Seat", approval path keeps "Request Your Seat" (deliberate distinction)
+- ✅ #6 (country code freetext) — auto-prepends "+", strips non-digits, hint text added
+- ✅ #7 (Bringing anyone? reads required) — clarified by Q4 placeholder rewrite
+- ✅ #8 (guest contact placeholder misleading) — "we'll reach out, or message you if we can't"
+- ✅ #10 (find-RSVP exact-match only) — last-9-digit suffix fallback added to `handleFindRSVP`
+- ✅ #11 ("Already registered?" link too dim) — bumped to `text-ui-12 text-tea-text-sec` with `tap-target` and `py-2`, plus localStorage detection so returning visitors short-circuit into the "you're confirmed" state without needing to find the link at all
+- 🟡 (separate, not in this audit) — added `requires_approval` per-event flag end-to-end (Q3) so casual events can be instant-confirm
+
+**Still open:**
+- #4 area_hint default — admin/data hygiene, not a frontend bug
+- #9 find-RSVP "RSVP not found" copy — still dev-flavored
+- #12 capacity transparency — addressed via Q2 scarcity nudge ("only N seats left" when ≤3) but not full-capacity disclosure
+- #13–17 (back-button, native checkbox, loading timeout, footer copy, "Hosted by Teajia")
+
+**Design questions answered:**
+- A (auto-close after submit): No — kept explicit Done button instead
+- B (capacity transparency): "only N seats left" only when ≤3 (Q2 implementation)
+- C (approval model language): per-event flag with default approval-based (Q3 implementation)
+- D (guest contact auto-send): No, manual outreach with fallback to original RSVPer (Q4 copy update)
+
+**Magazine-related Q8 (Google Static Maps integration) deferred to `docs/TODO.md` — needs an API key from Adrian first.**
+
+---
+
 ## TL;DR
 The RSVP flow is structurally solid — the happy path works and most copy
 is warm and human. Three issues need fixing before invites go out: the
