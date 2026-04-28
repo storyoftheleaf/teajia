@@ -52,7 +52,7 @@ Beyond the original scope, the same arc also shipped:
 - [x] **Post-event → purchase bridge** — `EventRecapPage.tsx` is mounted at the public route `/event/:slug/recap` (`App.tsx:735`), uses the `event-recap-public` query, no auth gate.
 - [x] **Price-per-gram display on product cards** — `AlcoveCard.tsx:155` calculates and surfaces `perGramDisplay` alongside the total price.
 - [x] **Stock level indicators on shop** — `AlcoveCard.tsx` + `AlcoveCommerceFooter.tsx` show stock-level dots and colored labels (Low Stock, Limited, Sold Out). `ProductPage.tsx:149` also displays stock status.
-- [ ] **Brewing guide per product** — `data/brewing-profiles.ts` defines profiles per tea type (steep time, water temp, leaf ratio, vessel, infusion count) but **the data isn't surfaced on `ProductPage.tsx`**. Wire-up required.
+- [x] **Brewing guide per product** — Shipped 2026-04-28 (commit 24cc64f). `getBrewingProfile(item.type)` lookup wired into `ProductPage.tsx`; renders an inset "Brewing Guide" panel with water temp, steep time, leaf ratio, vessel, infusions, and the poetic note. Section is gated on `item.category === 'tea'` so teaware silently renders nothing.
 
 ### 0.5 Events Simplification
 
