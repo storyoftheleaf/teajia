@@ -142,6 +142,15 @@ const EventLanding: React.FC = () => {
   const [showRSVP, setShowRSVP] = useState(false);
   const [showFindRSVP, setShowFindRSVP] = useState(false);
   const [guidelinesExpanded, setGuidelinesExpanded] = useState(false);
+  const [loadingTooLong, setLoadingTooLong] = useState(false);
+
+  // 10s loading timeout — gives the user something to do if the worker is
+  // cold-starting and React Query's silent retries haven't completed yet.
+  useEffect(() => {
+    if (!isLoading) { setLoadingTooLong(false); return; }
+    const t = setTimeout(() => setLoadingTooLong(true), 10000);
+    return () => clearTimeout(t);
+  }, [isLoading]);
   const [myAttendee, setMyAttendee] = useState<any>(null);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [cancelling, setCancelling] = useState(false);
@@ -227,10 +236,17 @@ const EventLanding: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-tea-bg flex items-center justify-center">
-        <div className="text-center animate-pulse">
-          <div className="w-12 h-12 rounded-full bg-tea-gold/10 mx-auto mb-4" />
-          <div className="h-3 w-32 bg-tea-text-sec/10 rounded-sm mx-auto" />
+      <div className="min-h-screen bg-tea-bg flex items-center justify-center px-6">
+        <div className="text-center max-w-xs">
+          <div className="animate-pulse">
+            <div className="w-12 h-12 rounded-full bg-tea-gold/10 mx-auto mb-4" />
+            <div className="h-3 w-32 bg-tea-text-sec/10 rounded-sm mx-auto" />
+          </div>
+          {loadingTooLong && (
+            <p className="text-ui-12 text-tea-text-dim mt-8 leading-relaxed">
+              Taking a moment. If this stays stuck, try refreshing the page.
+            </p>
+          )}
         </div>
       </div>
     );
@@ -325,14 +341,17 @@ const EventLanding: React.FC = () => {
           </div>
         )}
 
-        {/* Back button */}
+        {/* Back button — history-aware: prefers in-app back, else home */}
         <button
-          onClick={() => navigate('/events')}
-          className="absolute top-3 left-4 z-10 flex items-center justify-center w-9 h-9 rounded-full bg-tea-bg/60"
+          onClick={() => {
+            if (window.history.length > 1) navigate(-1);
+            else navigate('/');
+          }}
+          className="tap-target absolute top-3 left-4 z-10 flex items-center justify-center w-9 h-9 rounded-full bg-tea-bg/60 text-tea-text"
           style={{ backdropFilter: 'blur(8px)', border: 'none' }}
           aria-label="Back"
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M19 12H5m7-7l-7 7 7 7"/>
           </svg>
         </button>
@@ -401,13 +420,15 @@ const EventLanding: React.FC = () => {
             <p className="font-serif text-ui-15 text-tea-gold mt-1">{formattedTime}</p>
           </div>
 
-          {/* Area hint (not full address) or location name */}
-          {(areaHint || locationName) && (
-            <div className="flex items-center justify-center gap-1.5 text-tea-text-sec mt-3.5 mb-5">
-              <MapPin className="w-[11px] h-[11px] shrink-0" />
-              <span className="text-xs">{areaHint ?? locationName}</span>
-            </div>
-          )}
+          {/* Area hint (not full address) or location name. Falls back to a
+              soft "shared after RSVP" line so guests are never left wondering
+              whether the event has a location at all. */}
+          <div className="flex items-center justify-center gap-1.5 text-tea-text-sec mt-3.5 mb-5">
+            <MapPin className="w-[11px] h-[11px] shrink-0" />
+            <span className="text-xs">
+              {areaHint ?? locationName ?? 'Location shared after RSVP'}
+            </span>
+          </div>
 
           {/* Confirmed seat count + opt-in guest names */}
           {confirmedCount > 0 && !isCompleted && (() => {
@@ -642,8 +663,8 @@ const EventLanding: React.FC = () => {
 
         {/* Footer */}
         <div className="text-center pt-6 pb-12">
-          <p className="text-ui-10 uppercase tracking-[0.3em] text-tea-text-sec/50">
-            Hosted by Teajia
+          <p className="text-ui-10 uppercase tracking-[0.3em] text-tea-text-dim">
+            Hosted by {ev.account_name ?? ev.accountName ?? 'Teajia'}
           </p>
         </div>
       </div>

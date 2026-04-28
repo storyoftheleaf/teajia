@@ -4320,6 +4320,7 @@ const handleGetEventBySlug: Handler = async (_request, env, params) => {
             e.session_flow, e.playlist_url, e.event_format, e.gathering_type, e.area_hint, e.mood_hints, e.created_at,
             e.requires_approval, e.venue_id,
             v.photos AS venue_photos,
+            a.name AS account_name,
             a.location_country AS account_location_country
      FROM events e
      JOIN accounts a ON a.id = e.account_id

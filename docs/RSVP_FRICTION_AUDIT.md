@@ -15,11 +15,17 @@
 - ✅ #11 ("Already registered?" link too dim) — bumped to `text-ui-12 text-tea-text-sec` with `tap-target` and `py-2`, plus localStorage detection so returning visitors short-circuit into the "you're confirmed" state without needing to find the link at all
 - 🟡 (separate, not in this audit) — added `requires_approval` per-event flag end-to-end (Q3) so casual events can be instant-confirm
 
-**Still open:**
-- #4 area_hint default — admin/data hygiene, not a frontend bug
-- #9 find-RSVP "RSVP not found" copy — still dev-flavored
-- #12 capacity transparency — addressed via Q2 scarcity nudge ("only N seats left" when ≤3) but not full-capacity disclosure
-- #13–17 (back-button, native checkbox, loading timeout, footer copy, "Hosted by Teajia")
+**Still open:** none. All actionable items closed in commits f4bc104, b86d2d8, and a final cleanup pass on 2026-04-28.
+
+**Closed in the cleanup pass:**
+- ✅ #4 area_hint hygiene — added a host-facing helper text below the Area Hint field in EventForm explicitly warning that empty area_hint + empty locationName means guests see no location at all. Public page now also falls back to "Location shared after RSVP" instead of rendering nothing, so guests are never left in the dark.
+- ✅ #9 find-RSVP error copy — friendly fallback when worker returns "not found": "We couldn't find your reservation. Try searching by your other contact method, or message the host directly." Bg color also moved from red-500/* (off-brand) to tea-gold/8 with tea-text-sec body.
+- ✅ #12 capacity transparency — design call B answered: scarcity-only via Q2 ("only N seats left" when ≤3). No full-capacity disclosure by design.
+- ✅ #13 back button — history-aware: `navigate(-1)` when there's history, else `navigate('/')`. Also got a `tap-target` class and switched the SVG `stroke="white"` to `currentColor` + `text-tea-text` className.
+- ✅ #14 tap-target on Find my RSVP — already shipped in b86d2d8.
+- 🟡 #15 native checkbox replacement — deferred. Audit itself rated this low priority; `accent-tea-gold` works adequately on iOS WebKit at our scale.
+- ✅ #16 loading skeleton timeout — 10s timer triggers a "Taking a moment. If this stays stuck, try refreshing the page." line below the skeleton in tea-text-dim.
+- ✅ #17 "Hosted by [Account Name]" — public event endpoint now joins `a.name AS account_name`; footer reads "Hosted by {account_name ?? 'Teajia'}". Also bumped footer color from `text-tea-text-sec/50` (was a D2 contrast violation) to `text-tea-text-dim`.
 
 **Design questions answered:**
 - A (auto-close after submit): No — kept explicit Done button instead

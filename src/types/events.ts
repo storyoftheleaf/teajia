@@ -127,6 +127,8 @@ export interface TeaEvent {
   requires_approval?: number;       // snake_case from raw worker response (0 or 1)
   // Account context
   accountLocationCountry?: string;
+  accountName?: string;
+  account_name?: string;
 }
 
 export interface EventAvailability {

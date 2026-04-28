@@ -156,13 +156,18 @@ const FindRSVPSheet: React.FC<FindRSVPSheetProps> = ({ slug, onClose }) => {
               </div>
             )}
 
-            {findMutation.isError && (
-              <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-sm">
-                <p className="text-sm text-red-400">
-                  {findMutation.error?.message || 'No reservation found.'}
-                </p>
-              </div>
-            )}
+            {findMutation.isError && (() => {
+              const raw = findMutation.error?.message ?? '';
+              const isNotFound = /not found|404/i.test(raw);
+              const friendly = isNotFound
+                ? "We couldn't find your reservation. Try searching by your other contact method, or message the host directly."
+                : raw || 'Something went wrong. Try again in a moment.';
+              return (
+                <div className="p-3 bg-tea-gold/8 border border-tea-gold/20 rounded-sm">
+                  <p className="text-sm text-tea-text-sec leading-relaxed">{friendly}</p>
+                </div>
+              );
+            })()}
 
             <button
               type="submit"

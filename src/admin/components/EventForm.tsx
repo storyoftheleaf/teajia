@@ -1238,6 +1238,10 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
                 className={inputClass}
                 placeholder="Da'an District, Taipei"
               />
+              <p className="text-ui-11 text-tea-text-dim mt-1.5">
+                Guests need to know roughly where they're going before they RSVP.
+                Without this (and no Location Name), they see no location at all on the public page.
+              </p>
             </Field>
 
             {/* ── Venue picker ── */}
