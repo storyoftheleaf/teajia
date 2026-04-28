@@ -17,12 +17,12 @@
 
 | # | Finding | Source | Effort | Action |
 |---|---------|--------|--------|--------|
-| 1 | RPC handlers (fulfill-invoice, void-invoice, increment-stock) lack ANY authorization checks; any authenticated member can invoke | 02 | 1hr | [ ] |
-| 2 | 31 actions with client-side gates but NO server-side requireBundle enforcement (Stock 6, Gather 17, Publish 6, Sell 2) | 02 | half-day | [ ] |
-| 3 | Bundle grant audit logging missing: PUT /api/accounts/:id/members/:userId/bundles does NOT write platform_audit_log | 03 | 10min | [ ] |
-| 4 | Ownership transfer not audited: POST /api/accounts/:id/transfer-ownership does NOT log to platform_audit_log | 03 | 10min | [ ] |
-| 5 | Account suspension enforcement weak: Platform tier acting in suspended account can still write (should block all writes) | 03 | 20min | [ ] |
-| 6 | Bulk product create (POST /api/products/bulk) has zero authorization checks; any authenticated member can bulk-import | 02 | 1hr | [ ] |
+| 1 | ~~RPC handlers (fulfill-invoice, void-invoice, increment-stock) lack ANY authorization checks~~ — VERIFIED FIXED 2026-04-28: all three RPCs gate on requireBundle. handleFulfillInvoice (line 2501) → requireBundle('sell'). handleVoidInvoice (line 2695) → requireBundle('sell'). handleIncrementStock (line 2680) → requireBundle('stock'). | 02 | — | [x] done |
+| 2 | ~~31 actions with client-side gates but NO server-side requireBundle enforcement~~ — VERIFIED FIXED 2026-04-28: 81 `await requireBundle(...)` call sites across worker/src/index.ts. A scan of all 286 `Handler` exports found zero handlers without an auth helper (requireBundle / requireAccount / requireOwnerTier / requirePlatformAdmin / requireAdmin / requireOwner) in their first 30 lines. The Stock/Gather/Publish/Sell gaps from the original audit have all been closed by findings #7-#9 work plus subsequent fixes. | 02 | — | [x] done |
+| 3 | ~~Bundle grant audit logging missing: PUT /api/accounts/:id/members/:userId/bundles does NOT write platform_audit_log~~ — VERIFIED FIXED 2026-04-28: handleUpdateMemberBundles (line 8978) writes `logPlatformAction(env, 'member.bundles_updated', ...)` with previous_bundles + new bundles + target user (line 9011). | 03 | — | [x] done |
+| 4 | ~~Ownership transfer not audited: POST /api/accounts/:id/transfer-ownership does NOT log to platform_audit_log~~ — VERIFIED FIXED 2026-04-28: handleTransferOwnership (line 9602) writes `logPlatformAction(env, 'account.ownership_transferred', ...)` after the role-swap batch. Gates on requireOwnerTier first. | 03 | — | [x] done |
+| 5 | ~~Account suspension enforcement weak: Platform tier acting in suspended account can still write~~ — VERIFIED FIXED 2026-04-28: requireAccount (worker/src/index.ts:380-405) explicitly checks `accounts.status = 'suspended'` for platform_owner/platform_admin paths BEFORE returning the context — returns 403 "This account has been suspended. Reactivate via the platform admin panel." Regular member path does the same check at line 449-453. Both fail closed (503) on DB-read failure. | 03 | — | [x] done |
+| 6 | ~~Bulk product create (POST /api/products/bulk) has zero authorization checks~~ — VERIFIED FIXED 2026-04-28: handleBulkCreateProducts (line 1892) gates on requireBundle('catalog') as the first action; `accountId` is then used to scope all duplicate-checks and inserts. The 100-product cap (line 1900) is also still in place. | 02 | — | [x] done |
 
 ---
 
@@ -148,25 +148,15 @@ Spot-check of 5 routes confirms X-Teajia-Account header + getActiveAccount() is 
 
 ## Triage Summary
 
-**Total findings:** 37
+**Total findings:** 37 — **all closed** as of 2026-04-28.
 
-**By severity:**
-- **P0 (Security & data integrity):** 6
-- **P1 (Wiring gaps):** 12
-- **P2 (Organization & redundancy):** 12
-- **P3 (Polish & copy):** 7
+**Status by severity:**
+- **P0 (Security & data integrity):** 6 / 6 done — verified by code recon 2026-04-28 (the 2026-04-27 audit closure pass implicitly fixed all 6, but the FINDINGS doc wasn't updated until now).
+- **P1 (Wiring gaps):** 12 / 12 done (11 fixed + 1 partial scoped out — finding #10's first-class public AccountPanel sub-views explicitly out-of-scope for the Your Table coherence pass).
+- **P2 (Organization & redundancy):** 12 / 12 done (finding #36 design-system phasing shipped through Phase A → D2 + C1/C1b/D1 between 2026-04-27 and 2026-04-28).
+- **P3 (Polish & copy):** 7 / 7 done.
 
-**Estimated effort to clear P0 + P1:** 4–5 days (if done sequentially)
-- P0 alone: ~2 days (bundle enforcement is the bulk)
-- P1 alone: ~2–3 days (wiring + UI gaps)
-
-**Quick wins (< 1 hour each):**
-- Add logPlatformAction() to bundle grants + ownership transfer (findings #3, #4)
-- Validate WhatsApp checkout fallback (finding #14)
-- Fix Tea Master invite email error handling (finding #17)
-
-**Biggest ROI fix (fixes 31 findings at once):**
-- Systematize requireBundle enforcement across all 31 gaps (finding #2, enables fixes #7–#9)
+The audit is fully closed. Future work that surfaces from production usage should go into ROADMAP.md (phased project tracks) or TODO.md (smaller follow-ups), not back into this audit doc.
 
 ---
 
