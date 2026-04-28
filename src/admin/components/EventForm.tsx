@@ -96,6 +96,7 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
   // Venue / space state
   const [venues, setVenues] = useState<Venue[]>([]);
@@ -196,7 +197,7 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
           {/* ── Left column: details ── */}
           <div className="divide-y divide-tea-border">
 
-            {/* Identity */}
+            {/* Identity — Title always visible */}
             <section className="space-y-5 pb-8">
               <h3 className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec font-medium">Event Details</h3>
               <Field label="Title *">
@@ -210,27 +211,9 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
                   autoFocus
                 />
               </Field>
-              <Field label="Subtitle">
-                <input
-                  type="text"
-                  value={subtitle}
-                  onChange={(e) => setSubtitle(e.target.value)}
-                  className={inputClass}
-                  placeholder="A curated afternoon of aged puerh"
-                />
-              </Field>
-              <Field label="Description">
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className={textareaClass}
-                  placeholder="Describe the experience, what guests can expect…"
-                  rows={4}
-                />
-              </Field>
             </section>
 
-            {/* Scheduling */}
+            {/* Scheduling — Date + Seats always visible */}
             <section className="space-y-5 py-8">
               <h3 className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec font-medium">Scheduling</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -243,84 +226,6 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
                     required
                   />
                 </Field>
-                <Field label="Duration">
-                  <div className="relative">
-                    <select
-                      value={durationHours}
-                      onChange={(e) => setDurationHours(parseFloat(e.target.value))}
-                      className={selectClass}
-                    >
-                      <option value="1">1 hour</option>
-                      <option value="1.5">1.5 hours</option>
-                      <option value="2">2 hours</option>
-                      <option value="2.5">2.5 hours</option>
-                      <option value="3">3 hours</option>
-                      <option value="4">4 hours</option>
-                    </select>
-                    <ChevronDown size={12} className="absolute right-0 top-1/2 -translate-y-1/2 text-tea-text-sec pointer-events-none" />
-                  </div>
-                </Field>
-              </div>
-              {/* Repeat dates */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec">Repeats</span>
-                  <div className="flex gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setRepeatDates([])}
-                      className={`text-ui-11 font-medium transition-colors pb-0.5 ${
-                        repeatDates.length === 0
-                          ? 'text-tea-gold border-b border-tea-gold'
-                          : 'text-tea-text-sec hover:text-tea-text'
-                      }`}
-                    >
-                      One-time
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => { if (repeatDates.length === 0) setRepeatDates(['']); }}
-                      className={`text-ui-11 font-medium transition-colors pb-0.5 ${
-                        repeatDates.length > 0
-                          ? 'text-tea-gold border-b border-tea-gold'
-                          : 'text-tea-text-sec hover:text-tea-text'
-                      }`}
-                    >
-                      Multiple dates
-                    </button>
-                  </div>
-                </div>
-                {repeatDates.length > 0 && (
-                  <div className="space-y-2 pl-1">
-                    <p className="text-ui-10 text-tea-text-dim">Additional occurrences. Same duration applies to each.</p>
-                    {repeatDates.map((d, i) => (
-                      <div key={i} className="flex items-center gap-2">
-                        <input
-                          type="datetime-local"
-                          value={d}
-                          onChange={(e) => setRepeatDates(prev => { const next = [...prev]; next[i] = e.target.value; return next; })}
-                          className={`${inputClass} flex-1`}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setRepeatDates(prev => prev.filter((_, j) => j !== i))}
-                          className="text-tea-text-sec hover:text-tea-text transition-colors"
-                        >
-                          <X size={12} />
-                        </button>
-                      </div>
-                    ))}
-                    <button
-                      type="button"
-                      onClick={() => setRepeatDates(prev => [...prev, ''])}
-                      className="flex items-center gap-1 text-xs text-tea-gold hover:text-tea-gold-lt transition-colors"
-                    >
-                      <Plus size={12} /> Add date
-                    </button>
-                  </div>
-                )}
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Field label="Seats">
                   <input
                     type="number"
@@ -331,24 +236,10 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
                     max={200}
                   />
                 </Field>
-                <Field label="Status">
-                  <div className="relative">
-                    <select
-                      value={status}
-                      onChange={(e) => setStatus(e.target.value as EventStatus)}
-                      className={selectClass}
-                    >
-                      {STATUS_OPTIONS.map(s => (
-                        <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
-                      ))}
-                    </select>
-                    <ChevronDown size={12} className="absolute right-0 top-1/2 -translate-y-1/2 text-tea-text-sec pointer-events-none" />
-                  </div>
-                </Field>
               </div>
             </section>
 
-            {/* Format */}
+            {/* Format — Gathering Type always visible */}
             <section className="space-y-5 py-8">
               <h3 className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec font-medium">Format</h3>
               <Field label="Gathering Type">
@@ -370,23 +261,9 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
                   ))}
                 </div>
               </Field>
-              <Field label="Format">
-                <select
-                  value={format}
-                  onChange={e => setFormat(e.target.value as EventFormat)}
-                  className={selectClass}
-                >
-                  <option value="private_tasting">Private Tasting</option>
-                  <option value="public_tasting">Public Tasting</option>
-                  <option value="workshop">Workshop</option>
-                  <option value="pop_up">Pop-up</option>
-                  <option value="wholesale_showing">Wholesale Showing</option>
-                  <option value="other">Other</option>
-                </select>
-              </Field>
             </section>
 
-            {/* Location */}
+            {/* Location — always visible */}
             <section className="space-y-4 pt-8">
               <h3 className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec font-medium">Location</h3>
 
@@ -510,6 +387,169 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
                 </>
               )}
             </section>
+
+            {/* ── Add Details disclosure ── */}
+            <div className="border-t border-tea-border pt-6 pb-2">
+              <button
+                type="button"
+                onClick={() => setDetailsOpen(prev => !prev)}
+                className="flex items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors"
+              >
+                <ChevronDown
+                  size={14}
+                  className={`transition-transform duration-200 ${detailsOpen ? 'rotate-180' : ''}`}
+                />
+                <span className="text-ui-11 uppercase tracking-[0.18em] font-medium">
+                  Add Details
+                </span>
+              </button>
+            </div>
+
+            {detailsOpen && (
+              <div className="divide-y divide-tea-border">
+
+                {/* Subtitle + Description */}
+                <section className="space-y-5 pb-8">
+                  <h3 className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec font-medium">Event Details</h3>
+                  <Field label="Subtitle">
+                    <input
+                      type="text"
+                      value={subtitle}
+                      onChange={(e) => setSubtitle(e.target.value)}
+                      className={inputClass}
+                      placeholder="A curated afternoon of aged puerh"
+                    />
+                  </Field>
+                  <Field label="Description">
+                    <textarea
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      className={textareaClass}
+                      placeholder="Describe the experience, what guests can expect…"
+                      rows={4}
+                    />
+                  </Field>
+                </section>
+
+                {/* Duration, Repeat dates, Status */}
+                <section className="space-y-5 py-8">
+                  <h3 className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec font-medium">Scheduling</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <Field label="Duration">
+                      <div className="relative">
+                        <select
+                          value={durationHours}
+                          onChange={(e) => setDurationHours(parseFloat(e.target.value))}
+                          className={selectClass}
+                        >
+                          <option value="1">1 hour</option>
+                          <option value="1.5">1.5 hours</option>
+                          <option value="2">2 hours</option>
+                          <option value="2.5">2.5 hours</option>
+                          <option value="3">3 hours</option>
+                          <option value="4">4 hours</option>
+                        </select>
+                        <ChevronDown size={12} className="absolute right-0 top-1/2 -translate-y-1/2 text-tea-text-sec pointer-events-none" />
+                      </div>
+                    </Field>
+                    <Field label="Status">
+                      <div className="relative">
+                        <select
+                          value={status}
+                          onChange={(e) => setStatus(e.target.value as EventStatus)}
+                          className={selectClass}
+                        >
+                          {STATUS_OPTIONS.map(s => (
+                            <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+                          ))}
+                        </select>
+                        <ChevronDown size={12} className="absolute right-0 top-1/2 -translate-y-1/2 text-tea-text-sec pointer-events-none" />
+                      </div>
+                    </Field>
+                  </div>
+                  {/* Repeat dates */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec">Repeats</span>
+                      <div className="flex gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setRepeatDates([])}
+                          className={`text-ui-11 font-medium transition-colors pb-0.5 ${
+                            repeatDates.length === 0
+                              ? 'text-tea-gold border-b border-tea-gold'
+                              : 'text-tea-text-sec hover:text-tea-text'
+                          }`}
+                        >
+                          One-time
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { if (repeatDates.length === 0) setRepeatDates(['']); }}
+                          className={`text-ui-11 font-medium transition-colors pb-0.5 ${
+                            repeatDates.length > 0
+                              ? 'text-tea-gold border-b border-tea-gold'
+                              : 'text-tea-text-sec hover:text-tea-text'
+                          }`}
+                        >
+                          Multiple dates
+                        </button>
+                      </div>
+                    </div>
+                    {repeatDates.length > 0 && (
+                      <div className="space-y-2 pl-1">
+                        <p className="text-ui-10 text-tea-text-dim">Additional occurrences. Same duration applies to each.</p>
+                        {repeatDates.map((d, i) => (
+                          <div key={i} className="flex items-center gap-2">
+                            <input
+                              type="datetime-local"
+                              value={d}
+                              onChange={(e) => setRepeatDates(prev => { const next = [...prev]; next[i] = e.target.value; return next; })}
+                              className={`${inputClass} flex-1`}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setRepeatDates(prev => prev.filter((_, j) => j !== i))}
+                              className="text-tea-text-sec hover:text-tea-text transition-colors"
+                            >
+                              <X size={12} />
+                            </button>
+                          </div>
+                        ))}
+                        <button
+                          type="button"
+                          onClick={() => setRepeatDates(prev => [...prev, ''])}
+                          className="flex items-center gap-1 text-xs text-tea-gold hover:text-tea-gold-lt transition-colors"
+                        >
+                          <Plus size={12} /> Add date
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </section>
+
+                {/* Format select */}
+                <section className="space-y-5 py-8">
+                  <h3 className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec font-medium">Format</h3>
+                  <Field label="Format">
+                    <select
+                      value={format}
+                      onChange={e => setFormat(e.target.value as EventFormat)}
+                      className={selectClass}
+                    >
+                      <option value="private_tasting">Private Tasting</option>
+                      <option value="public_tasting">Public Tasting</option>
+                      <option value="workshop">Workshop</option>
+                      <option value="pop_up">Pop-up</option>
+                      <option value="wholesale_showing">Wholesale Showing</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </Field>
+                </section>
+
+              </div>
+            )}
+
           </div>
 
           {/* ── Right column: flyer ── */}
