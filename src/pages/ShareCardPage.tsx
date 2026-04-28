@@ -8,7 +8,7 @@
  */
 
 import React, { useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Check, Leaf } from 'lucide-react';
 import { api, hasToken } from '../lib/api';
@@ -17,6 +17,7 @@ import { hydrateCompassEntries } from '../lib/teaCompassSync';
 const ShareCardPage: React.FC = () => {
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const [claimed, setClaimed] = useState(false);
 
   const { data: invite, isLoading, isError } = useQuery({
@@ -50,9 +51,15 @@ const ShareCardPage: React.FC = () => {
       <div className="min-h-screen bg-tea-bg flex items-center justify-center px-6">
         <div className="text-center max-w-sm">
           <h1 className="font-serif text-2xl text-tea-text mb-3">Link not found</h1>
-          <p className="text-sm text-tea-text-sec">
-            This invite link may be invalid or expired.
+          <p className="text-sm text-tea-text-sec mb-6">
+            This invite link may have expired or already been used.
           </p>
+          <Link
+            to="/"
+            className="text-xs uppercase tracking-[0.2em] text-tea-gold hover:text-tea-text transition-colors"
+          >
+            Visit Teajia
+          </Link>
         </div>
       </div>
     );
@@ -73,7 +80,7 @@ const ShareCardPage: React.FC = () => {
           </p>
           <button
             type="button"
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/compass')}
             className="text-xs uppercase tracking-[0.2em] text-tea-gold hover:text-tea-text transition-colors"
           >
             Open Compass
@@ -84,6 +91,7 @@ const ShareCardPage: React.FC = () => {
   }
   const photo = meta.photo as string | undefined;
   const fromName = invite.source_user_name || invite.source_account_name || 'A taster';
+  const returnPath = encodeURIComponent(location.pathname);
 
   const metaFields: { label: string; value: string | number | undefined }[] = [
     { label: 'Type', value: meta.type },
@@ -100,17 +108,18 @@ const ShareCardPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-tea-bg">
-      <div className="max-w-md mx-auto px-6 py-12">
+      <div className="max-w-md mx-auto px-6 py-12 pb-nav-gap">
 
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-2 mb-3">
             <Leaf size={14} className="text-tea-gold" strokeWidth={1.5} />
-            <span className="text-ui-10 uppercase tracking-[0.3em] text-tea-text-sec">Tea Compass</span>
+            <span className="text-xs uppercase tracking-[0.3em] text-tea-text-sec">Tea Compass</span>
           </div>
           <p className="text-sm text-tea-text-sec mb-1">
-            <span className="text-tea-text font-medium">{fromName}</span> shared a capture card
+            <span className="text-tea-text font-medium">{fromName}</span> is sharing a tea record with you
           </p>
+          <p className="text-xs text-tea-text-dim mt-1">Save it to your own personal tea journal</p>
         </div>
 
         {/* Card */}
@@ -128,7 +137,7 @@ const ShareCardPage: React.FC = () => {
                 {meta.name || 'Untitled'}
               </h1>
               {meta.chineseName && (
-                <p className="text-tea-text-sec mt-0.5" style={{ fontSize: '0.94rem' /* text-sm=0.875rem + ~8% for Noto Serif SC */ }}>{meta.chineseName}</p>
+                <p className="text-tea-text-sec text-base mt-0.5">{meta.chineseName}</p>
               )}
             </div>
 
@@ -168,18 +177,18 @@ const ShareCardPage: React.FC = () => {
         ) : (
           <div className="text-center space-y-4">
             <p className="text-sm text-tea-text-sec">
-              Sign in to save this card to your Tea Compass and record your tasting notes.
+              Sign in to save this card to your Tea Compass and add your own tasting notes.
             </p>
             <Link
-              to="/admin"
+              to={`/admin?redirect=${returnPath}`}
               className="block w-full py-4 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.2em] font-semibold rounded-sm hover:bg-tea-gold/90 transition-all"
             >
-              Sign in
+              Sign in to save
             </Link>
-            <p className="text-ui-11 text-tea-text-dim">
-              No account?{' '}
-              <Link to="/admin" className="text-tea-gold hover:underline">
-                Register free
+            <p className="text-xs text-tea-text-dim">
+              New to Teajia?{' '}
+              <Link to={`/admin?redirect=${returnPath}`} className="text-tea-gold hover:underline">
+                Create a free account
               </Link>
             </p>
           </div>
@@ -187,9 +196,12 @@ const ShareCardPage: React.FC = () => {
 
         {/* Footer */}
         <div className="text-center pt-10">
-          <p className="text-ui-10 uppercase tracking-[0.3em] text-tea-text-sec/40">
-            Teajia · Tea Infrastructure
-          </p>
+          <Link
+            to="/"
+            className="text-xs uppercase tracking-[0.3em] text-tea-text-dim hover:text-tea-text-sec transition-colors"
+          >
+            Teajia
+          </Link>
         </div>
       </div>
     </div>

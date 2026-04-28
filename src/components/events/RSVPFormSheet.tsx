@@ -210,7 +210,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto px-6 py-5 pb-[calc(1.25rem+44px+env(safe-area-inset-bottom,0px))] lg:pb-6">
+        <div className="flex-1 overflow-y-auto px-6 py-5 pb-[calc(1.25rem+44px+env(safe-area-inset-bottom,0px)+env(keyboard-inset-height,0px))] lg:pb-6">
           {submitted ? (
             <div className="flex flex-col items-center justify-center py-16 animate-[fadeIn_0.5s_ease-out]">
               <div className="w-14 h-14 rounded-full bg-tea-gold/10 flex items-center justify-center mb-6">
@@ -218,7 +218,11 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
               </div>
               <h3 className="font-serif text-2xl text-tea-text mb-3 text-center">Request received.</h3>
               <p className="text-sm text-tea-text-sec text-center max-w-xs leading-relaxed">
-                We'll be in touch shortly to confirm your seat.
+                {formData.contactMethod === 'whatsapp'
+                  ? "We'll send you a WhatsApp message once your seat is confirmed."
+                  : formData.contactMethod === 'email'
+                  ? "We'll email you once your seat is confirmed."
+                  : "We'll be in touch shortly to confirm your seat."}
               </p>
             </div>
           ) : (
