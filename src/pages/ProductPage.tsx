@@ -14,6 +14,7 @@ import type { InventoryItem, TastingData } from '../types';
 import { buildWhatsAppUrl, buildOrderMessage } from '../lib/whatsapp';
 import { api } from '../lib/api';
 import { resolveTermLabel, flattenTastingNotes } from '../data/tastingTaxonomy';
+import { getBrewingProfile } from '../data/brewing-profiles';
 import { getTeaColor } from '../designTokens';
 import { ProductTastingEditorial } from '../components/tasting/ProductTastingEditorial';
 import { useProductTasting } from '../hooks/useProductTasting';
@@ -216,6 +217,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
   const introduction = item.description || '';
   const terroir = item.terroir || '';
   const processing = item.processingNotes || '';
+  const brewingProfile = item.category === 'tea' ? getBrewingProfile(item.type) : undefined;
   const resolvedTasting = useProductTasting(item);
   const { isAdmin } = useAuth();
   const [tastingEditorOpen, setTastingEditorOpen] = useState(false);
@@ -460,6 +462,42 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
             <div className="mb-5">
               <h3 className="text-ui-11 uppercase tracking-[0.12em] text-tea-gold mb-1.5">Processing</h3>
               <p className="text-sm text-tea-text-sec leading-relaxed whitespace-pre-line">{processing}</p>
+            </div>
+          )}
+
+          {brewingProfile && (
+            <div className="mb-5 rounded-md border border-tea-border bg-tea-surface p-4">
+              <div className="flex items-center gap-1.5 mb-3">
+                <Icons.Leaf className="w-3.5 h-3.5 text-tea-gold" />
+                <h3 className="text-ui-11 uppercase tracking-[0.12em] text-tea-gold">Brewing Guide</h3>
+              </div>
+              <dl className="grid grid-cols-2 gap-x-4 gap-y-2.5">
+                <div>
+                  <dt className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim mb-0.5">Water</dt>
+                  <dd className="text-sm text-tea-text-sec leading-snug">{brewingProfile.waterTemp}</dd>
+                </div>
+                <div>
+                  <dt className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim mb-0.5">Steep</dt>
+                  <dd className="text-sm text-tea-text-sec leading-snug">{brewingProfile.steepTime}</dd>
+                </div>
+                <div>
+                  <dt className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim mb-0.5">Leaf</dt>
+                  <dd className="text-sm text-tea-text-sec leading-snug">{brewingProfile.leafRatio}</dd>
+                </div>
+                <div>
+                  <dt className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim mb-0.5">Vessel</dt>
+                  <dd className="text-sm text-tea-text-sec leading-snug">{brewingProfile.vessel}</dd>
+                </div>
+                <div className="col-span-2">
+                  <dt className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim mb-0.5">Infusions</dt>
+                  <dd className="text-sm text-tea-text-sec leading-snug">{brewingProfile.infusions}</dd>
+                </div>
+              </dl>
+              {brewingProfile.notes && (
+                <p className="mt-3 pt-3 border-t border-tea-border font-body text-sm italic text-tea-text-sec leading-relaxed">
+                  {brewingProfile.notes}
+                </p>
+              )}
             </div>
           )}
 
