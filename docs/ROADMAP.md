@@ -23,21 +23,13 @@ All six items shipped in earlier work. Status verified by code recon:
 - [x] **Checkout as inquiry** — `PublicCart.tsx` uses `CheckoutStep = 'CART' | 'INQUIRY' | 'CONFIRM'`, persists as `type: 'inquiry'`, and displays "We confirm every order personally. Availability, pricing, and shipping are settled by message. This is a service, not a checkout." (line 605).
 - [x] **Network error indicator** — `NETWORK_ERROR_EVENT` dispatched from `api.ts:236`; consumed by `NetworkErrorNotice.tsx`.
 
-### 0.2 Magazine Quality (Adrian's stated priority)
+### 0.2 Magazine Quality
 
-**Status:** Mixed. Font loading and type scale are already done; template audit is the remaining work but is too judgment-heavy to ship as a single mechanical pass.
+**Status:** Foundational pieces done; full template overhaul split out as a separate project track (see "Separate tracks" below).
 
-- [x] **Fix font loading** — `index.html` already loads 3 stylesheets (not 8) with `&display=swap` on all of them. Noto Serif SC is subsetted via `&text=` parameter. Ma Shan Zheng deferred to async load after page paint.
-- [x] **Establish consistent type scale** — `TYPOGRAPHY_CLASSES` from `designTokens.ts` covers editorial typography (h1, h2, h3, body, label, nav, etc.). Phase C1 added the 13-stop UI text scale (`text-ui-N`).
-- [ ] **Audit and improve magazine templates** — `LayoutVariant` enum in `src/types.ts` defines 95+ layout templates rendered by `SinglePageRenderer.tsx` (2,312 lines). Quality bar varies. **This is design judgment work that needs Adrian's eye, not mechanical migration.** Recommended approach:
-
-  **Step 1 — Curate to a print-quality core (~20 templates).** Per `docs/plan/magazine-editor-spec.md`: "Choose a layout template from the existing ~20 print-quality templates (not all 150+ — a curated subset of the best ones that are print-appropriate)." Adrian picks the keeper subset by reviewing each template against MAGAZINE_PLAN.md's locked decisions (4:5 ratio, gallery frame, tap zones, share placement). Untaxed templates stay rendered (existing articles still work) but aren't offered in the editor.
-
-  **Step 2 — Polish the keepers.** For each kept template, walk it once against the design checklist: typography uses TYPOGRAPHY_CLASSES, colors use safe tokens, spacing follows the 4:5 grid, no horizontal overflow, share/counter chrome at correct positions, print CSS clean. This is the work that can be agent-assisted once the keeper list exists.
-
-  **Step 3 — Wire to the editor.** The magazine editor spec calls for a curated dropdown of these print-quality templates. Once the keeper list is locked, this is mechanical UI work.
-
-  Treat `docs/MAGAZINE_PLAN.md` as the source of truth for design decisions. The "70-point template overhaul plan" referenced in the original ROADMAP doesn't exist as a single doc and likely never did — that line was aspirational scaffolding.
+- [x] **Fix font loading** — `index.html` already loads 3 stylesheets with `&display=swap` on all of them. Noto Serif SC is subsetted via `&text=` parameter. Ma Shan Zheng deferred to async load after page paint.
+- [x] **Establish consistent type scale** — `TYPOGRAPHY_CLASSES` from `designTokens.ts` covers editorial typography. Phase C1 added the 13-stop UI text scale (`text-ui-N`).
+- [→] **Audit and improve magazine templates** — Moved to a dedicated parallel track (Magazine Design project). 95+ `LayoutVariant` cases need design curation and per-template polish; not Phase 0 work because it needs Adrian's design pass and doesn't block daily workflow. See "Separate tracks → Magazine Design" below.
 
 ### 0.3 Design System Cleanup — ✅ COMPLETE (shipped 2026-04-27 → 2026-04-28)
 
@@ -184,6 +176,28 @@ The first external operator won't sign up for software. They'll sign up for acce
 
 - [ ] **Land preservation framework** — Define how the community gives back to tea-producing regions. Integrate into the purchasing flow (optional contribution per order, transparency reporting).
 - [ ] **Announce when ready** — The foundation is the north star. It gets formalized and announced when the community, revenue, and legal structure support it.
+
+---
+
+## Separate tracks (not Phase 0)
+
+These run in parallel to the main phase progression. They have their own pace and don't block Phase 1+ work.
+
+### Magazine Design (parallel, Adrian-led)
+
+The magazine template overhaul moved here from Phase 0.2 because it's a sustained design effort, not a single mechanical pass. 95+ `LayoutVariant` cases in `src/types.ts` rendered by `SinglePageRenderer.tsx` (2,312 lines) — quality bar varies and the work is judgment, not migration.
+
+**Approach (3 stages, Adrian-led with agent assistance where mechanical):**
+
+1. **Curate to a print-quality core (~20 templates).** Adrian reviews each template against MAGAZINE_PLAN.md's locked decisions (4:5 ratio, gallery frame, tap zones, share placement) and produces a keeper list. Existing articles using non-keeper templates still render — they just aren't offered in the magazine editor's template dropdown.
+
+2. **Polish each keeper.** For each kept template, walk against the design checklist: typography uses TYPOGRAPHY_CLASSES, colors use safe tokens, spacing follows the 4:5 grid, no horizontal overflow, share/counter chrome correct, print CSS clean. Once the keeper list is locked, an agent can do this mechanically per template — Adrian reviews each visually.
+
+3. **Wire to the editor.** Curated subset becomes the dropdown in the magazine editor. Mechanical UI work after stage 2.
+
+Source of truth: `docs/MAGAZINE_PLAN.md` for design decisions. `docs/plan/magazine-editor-spec.md` for the editor UX. The "70-point template overhaul plan" referenced in earlier roadmap drafts doesn't exist as a single doc and was aspirational scaffolding.
+
+**Status:** Stage 0 — awaiting Adrian's keeper list to begin Stage 1.
 
 ---
 
