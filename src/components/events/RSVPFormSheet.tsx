@@ -477,8 +477,8 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
               <label className="flex items-start gap-3 cursor-pointer group">
                 <input
                   type="checkbox"
-                  checked={!!(formData as any).show_in_guest_list}
-                  onChange={(e) => updateField('show_in_guest_list' as any, e.target.checked)}
+                  checked={!!formData.show_in_guest_list}
+                  onChange={(e) => updateField('show_in_guest_list', e.target.checked)}
                   className="mt-0.5 w-4 h-4 rounded-sm border border-tea-border bg-tea-surface accent-tea-gold cursor-pointer"
                 />
                 <span className="text-xs text-tea-text-sec leading-relaxed group-hover:text-tea-text transition-colors">

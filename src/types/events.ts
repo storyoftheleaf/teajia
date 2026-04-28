@@ -114,6 +114,10 @@ export interface TeaEvent {
   updatedAt: string;
   // Computed fields from API
   confirmedCount?: number;
+  confirmed_count?: number;
+  /** First names of confirmed attendees who opted in to the public guest list (capped at 20). */
+  confirmedNames?: string[];
+  confirmed_names?: string[];
   waitlistCount?: number;
   requestedCount?: number;
   interestCount?: number;
@@ -370,6 +374,8 @@ export interface RSVPFormData {
   contactMethod: ContactMethod;
   guests?: { nameHint: string; contact?: string }[];
   notes?: string;
+  /** Opt-in: show first name on the public guest list (capped at 20 names). */
+  show_in_guest_list?: boolean;
 }
 
 export interface EventFormData {

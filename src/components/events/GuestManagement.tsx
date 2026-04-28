@@ -985,7 +985,7 @@ const GuestManagement: React.FC = () => {
             <label className="flex items-start gap-3 cursor-pointer group">
               <input
                 type="checkbox"
-                checked={!!(attendee as any).showInGuestList}
+                checked={!!attendee.showInGuestList}
                 onChange={(e) => updateGuestListVisibility.mutate(e.target.checked)}
                 disabled={updateGuestListVisibility.isPending}
                 className="mt-0.5 w-4 h-4 rounded-sm border border-tea-border bg-tea-bg accent-tea-gold cursor-pointer"
@@ -993,7 +993,7 @@ const GuestManagement: React.FC = () => {
               <span className="text-xs text-tea-text-sec leading-relaxed group-hover:text-tea-text transition-colors">
                 Show my first name to other confirmed guests
                 <span className="block text-ui-10 text-tea-text-dim mt-0.5">
-                  {(attendee as any).showInGuestList ? 'Your name is visible to other guests' : 'Only the host can see your name'}
+                  {attendee.showInGuestList ? 'Your name is visible to other guests' : 'Only the host can see your name'}
                 </span>
               </span>
             </label>

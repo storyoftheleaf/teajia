@@ -390,7 +390,7 @@ const EventLanding: React.FC = () => {
 
           {/* Confirmed seat count + opt-in guest names */}
           {confirmedCount > 0 && !isCompleted && (() => {
-            const confirmedNames: string[] = (ev as any).confirmed_names ?? [];
+            const confirmedNames: string[] = ev.confirmed_names ?? ev.confirmedNames ?? [];
             const extra = confirmedCount - confirmedNames.length;
             return (
               <div className="flex flex-col items-center gap-1 mb-6">
