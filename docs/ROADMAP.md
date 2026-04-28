@@ -29,7 +29,15 @@ All six items shipped in earlier work. Status verified by code recon:
 
 - [x] **Fix font loading** — `index.html` already loads 3 stylesheets (not 8) with `&display=swap` on all of them. Noto Serif SC is subsetted via `&text=` parameter. Ma Shan Zheng deferred to async load after page paint.
 - [x] **Establish consistent type scale** — `TYPOGRAPHY_CLASSES` from `designTokens.ts` covers editorial typography (h1, h2, h3, body, label, nav, etc.). Phase C1 added the 13-stop UI text scale (`text-ui-N`).
-- [ ] **Audit and improve magazine templates** — `LayoutVariant` enum in `src/types.ts` defines 95+ layout templates rendered by `SinglePageRenderer.tsx` (2,312 lines). Quality bar varies by template. **This is design judgment work that needs Adrian's eye, not mechanical migration.** The MAGAZINE_PLAN.md decisions are locked; the work is per-template visual review against those decisions. Recommend tackling in batches of 5–10 templates at a time, per article/use case as it's authored. The "70-point template overhaul plan" referenced in the original ROADMAP doesn't exist as a single doc; treat MAGAZINE_PLAN.md as the source of truth.
+- [ ] **Audit and improve magazine templates** — `LayoutVariant` enum in `src/types.ts` defines 95+ layout templates rendered by `SinglePageRenderer.tsx` (2,312 lines). Quality bar varies. **This is design judgment work that needs Adrian's eye, not mechanical migration.** Recommended approach:
+
+  **Step 1 — Curate to a print-quality core (~20 templates).** Per `docs/plan/magazine-editor-spec.md`: "Choose a layout template from the existing ~20 print-quality templates (not all 150+ — a curated subset of the best ones that are print-appropriate)." Adrian picks the keeper subset by reviewing each template against MAGAZINE_PLAN.md's locked decisions (4:5 ratio, gallery frame, tap zones, share placement). Untaxed templates stay rendered (existing articles still work) but aren't offered in the editor.
+
+  **Step 2 — Polish the keepers.** For each kept template, walk it once against the design checklist: typography uses TYPOGRAPHY_CLASSES, colors use safe tokens, spacing follows the 4:5 grid, no horizontal overflow, share/counter chrome at correct positions, print CSS clean. This is the work that can be agent-assisted once the keeper list exists.
+
+  **Step 3 — Wire to the editor.** The magazine editor spec calls for a curated dropdown of these print-quality templates. Once the keeper list is locked, this is mechanical UI work.
+
+  Treat `docs/MAGAZINE_PLAN.md` as the source of truth for design decisions. The "70-point template overhaul plan" referenced in the original ROADMAP doesn't exist as a single doc and likely never did — that line was aspirational scaffolding.
 
 ### 0.3 Design System Cleanup — ✅ COMPLETE (shipped 2026-04-27 → 2026-04-28)
 
@@ -56,9 +64,9 @@ Beyond the original scope, the same arc also shipped:
 
 ### 0.5 Events Simplification
 
-- [ ] **Create a "simple mode" for event creation** — Default: title, date, seat count, gathering type, share link. That's it. The full approval workflow, briefing cards, tea menu, etc. remain available as optional layers that feel like a bonus when used, not something that's lacking when unused. **Feature build, needs design pass before code.**
+- [ ] **Create a "simple mode" for event creation** — On recon, the existing create flow in `EventForm.tsx:196-583` is already roughly minimal: identity, scheduling, format, location, flyer. The complex sections (briefing cards, tea menu, venue guide, session flow) only appear in the *edit* form, not create. The plan's intended cut (title/date/seats/gathering/share) is even leaner than current create. The remaining work is design judgment: which fields collapse behind a "more" disclosure, what the upgrade path looks like, whether to split create/edit further. **Needs Adrian's design pass before code; not agent-shaped.**
 - [x] **Gathering type indicator** — `GatheringType` defined in `types/events.ts:3` (private/semi-private/open/bespoke), surfaced on `EventLanding.tsx:368` via `GATHERING_TYPE_LABELS`.
-- [ ] **Guest list visibility** — Not yet implemented. Needs an opt-in attendee-visibility flag on event records and a public attendee list component on `EventLanding`. **Feature build, needs design pass before code.**
+- [x] **Guest list visibility** — End-to-end already shipped. Schema: `event_attendees.show_in_guest_list` column. Worker: public endpoint `/api/events/:slug/public` returns capped `confirmed_names` (first names of opted-in confirmed attendees, max 20, ordered by `updated_at`). Form: `RSVPFormSheet` opt-in checkbox. Self-management: `GuestManagement.tsx` toggle. Display: `EventLanding.tsx:392-409` renders names alongside the seat count. Cleanup pass on 2026-04-28 added proper types to `TeaEvent.confirmed_names`/`confirmedNames` and `RSVPFormData.show_in_guest_list`, removing 3 `as any` casts.
 
 ### 0.6 Onboard First Trusted Users
 
