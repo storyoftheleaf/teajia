@@ -205,23 +205,57 @@ onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(184,146,78,0.18)
 
 ---
 
-## Migration Checklist (215 legacy uses across 50 files)
+## Rule 9: UI Text Scale (`text-ui-N`)
 
-When touching any file, convert legacy tokens to semantic ones:
+For raw pixel font sizes, use the named UI text scale in `src/designTokens.ts` (`UI_TEXT_SCALE`):
 
-- [ ] `tea-ink` → `tea-text`
-- [ ] `tea-paper` → `tea-text` (if used for readable text) or `tea-bg` (if used for backgrounds)
-- [ ] `tea-seal` → `tea-gold`
-- [ ] `tea-charcoal` → `tea-bg`
-- [ ] `tea-muted` → `tea-text-dim`
-- [ ] `tea-beige` → `tea-elevated`
-- [ ] `tea-ink-light` / `tea-ink-secondary` → `tea-text-sec`
-- [ ] `tea-paper-secondary` → `tea-text-dim`
-- [ ] `tea-beige-dark` → `tea-text-dim`
-- [ ] `tea-seal-dark` → `tea-gold`
-- [ ] `tea-accent` → `tea-gold`
-- [ ] `tea-paper-dark` → `tea-surface`
-- [ ] Any `rgba(0,0,0,...)` background → `tea-surface` or `tea-elevated`
-- [ ] Any `rgba(184,146,78,...)` or `rgba(200,170,120,...)` border → `tea-border` or `tea-gold/N`
-- [ ] Any `border-white/...` → `tea-border`
-- [ ] Any `border-black/...` → `tea-border`
+| Class | Pixel size |
+|---|---|
+| `text-ui-8` | 8px |
+| `text-ui-9` | 9px |
+| `text-ui-10` | 10px |
+| `text-ui-11` | 11px |
+| `text-ui-12` | 12px |
+| `text-ui-13` | 13px |
+| `text-ui-14` | 14px |
+| `text-ui-15` | 15px |
+| `text-ui-16` | 16px |
+| `text-ui-17` | 17px |
+| `text-ui-20` | 20px |
+| `text-ui-26` | 26px |
+| `text-ui-28` | 28px |
+
+```tsx
+// ❌ Blocked by lint:colors Rule 7
+<span className="text-[10px]">…</span>
+
+// ✅ Use the named scale
+<span className="text-ui-10">…</span>
+```
+
+Long-tail display sizes (one-off hero text at 48px / 69px / 140px / etc.) are allowed as `text-[Npx]` arbitrary classes — they don't have scale stops because they appear once or twice.
+
+For full typography presets (font, weight, leading, tracking together), use `TYPOGRAPHY_CLASSES` from `designTokens.ts` (`h1`, `h2`, `h3`, `body`, `label`, `nav`, etc.).
+
+---
+
+## Rule 10: Tap Targets (`tap-target`)
+
+Any interactive icon or button under 44×44 must add the `tap-target` utility class (defined in `card-utilities.css`). It enforces the WCAG 2.5.5 / Apple HIG / Material Design floor by adding invisible padding around the click area without changing the visible element size.
+
+```tsx
+// ❌ 36×36 button — fails WCAG 2.5.5
+<button className="w-9 h-9 rounded-full">
+  <ChevronLeft />
+</button>
+
+// ✅ Same visual size, 44×44 click area
+<button className="tap-target w-9 h-9 rounded-full">
+  <ChevronLeft />
+</button>
+```
+
+**Don't add `tap-target` when:**
+- The element is inside a larger interactive parent (e.g. a row button) where the parent IS the click target with ample padding.
+- The element is purely decorative (no `onClick`).
+- Inline icons inside a parent button (only the parent button needs `tap-target`).
