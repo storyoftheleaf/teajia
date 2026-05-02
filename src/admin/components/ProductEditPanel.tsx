@@ -291,14 +291,14 @@ export const CollapsibleSection = ({ title, defaultOpen = true, mobileDefault, c
     return defaultOpen;
   });
   return (
-    <div className="mx-3 mb-3 rounded-lg bg-tea-surface">
+    <div className={`mx-3 mb-2 rounded-lg transition-colors ${open ? 'bg-tea-surface/70' : 'bg-tea-surface/40 hover:bg-tea-surface/60'}`}>
       <button onClick={() => setOpen(!open)} aria-expanded={open} className="w-full flex items-center justify-between px-4 py-3 group">
-        <span className="text-xs font-serif italic text-tea-text-sec group-hover:text-tea-text transition-colors">{title}</span>
-        <ChevronRight size={13} aria-hidden="true" className={`text-tea-text-dim transition-transform duration-200 group-hover:text-tea-text-sec ${open ? 'rotate-90' : ''}`} />
+        <span className={`text-xs font-serif italic transition-colors ${open ? 'text-tea-text-sec' : 'text-tea-text-dim group-hover:text-tea-text-sec'}`}>{title}</span>
+        <ChevronRight size={12} aria-hidden="true" className={`text-tea-text-dim/70 transition-transform duration-200 group-hover:text-tea-text-sec ${open ? 'rotate-90' : ''}`} />
       </button>
       <div className="grid transition-[grid-template-rows] duration-200 ease-out" style={{ gridTemplateRows: open ? '1fr' : '0fr' }}>
         <div className="overflow-hidden">
-          <div className="px-4 pb-4">{children}</div>
+          <div className="px-4 pb-4 pt-1">{children}</div>
         </div>
       </div>
     </div>
@@ -422,10 +422,16 @@ export const ImageManager = ({ product, onUpdate }: {
               }}
               disabled={uploadingSlot !== null}
               aria-label={`Add ${slotLabels[i].toLowerCase()} image`}
-              className="w-full h-full rounded-md bg-tea-surface/50 hover:bg-tea-surface border border-dashed border-tea-accent-sub hover:border-tea-gold/30 transition-colors flex items-center justify-center cursor-pointer relative"
+              className="w-full h-full rounded-md bg-tea-bg/40 hover:bg-tea-gold/[0.04] border border-tea-accent-sub/30 hover:border-tea-gold/40 transition-colors flex flex-col items-center justify-center gap-1.5 cursor-pointer group"
             >
-              <span aria-hidden="true" className="absolute top-1 left-1 text-ui-10 font-serif tabular-nums text-tea-text-dim">{i + 1}</span>
-              {uploadingSlot === i ? <Loader2 size={16} className="text-tea-text-dim animate-spin" aria-hidden="true" /> : <Plus size={16} className="text-tea-text-dim" aria-hidden="true" />}
+              {uploadingSlot === i ? (
+                <Loader2 size={16} className="text-tea-text-dim animate-spin" aria-hidden="true" />
+              ) : (
+                <>
+                  <Plus size={14} className="text-tea-text-dim/50 group-hover:text-tea-gold transition-colors" aria-hidden="true" />
+                  <span className="text-ui-9 text-tea-text-dim/70 group-hover:text-tea-gold/80 uppercase tracking-caps transition-colors">{slotLabels[i]}</span>
+                </>
+              )}
             </button>
           )}
         </div>
@@ -1041,28 +1047,25 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
               <ImageManager product={product} onUpdate={(field, value) => handleUpdate(product.id, field, value)} />
             </div>
 
-            {/* 3. Tasting Profile — tap-to-open */}
+            {/* 3. Tasting Profile. Tap to open the editor modal. Visually distinguished
+                  from passive accordions by editorial title treatment, not chrome. */}
             <button
               onClick={() => setTastingEditorProduct(product)}
               aria-label={flattenedTastingCount > 0 ? `Edit tasting profile (${flattenedTastingCount} notes)` : 'Add tasting profile'}
-              className="w-full mx-3 mb-3 rounded-lg bg-tea-surface px-4 py-3 flex items-center justify-between gap-3 hover:bg-tea-gold/5 active:bg-tea-gold/10 transition-colors group"
-              style={{ width: 'calc(100% - 1.5rem)' }}
+              className="w-[calc(100%-1.5rem)] mx-3 mb-4 px-4 py-3.5 flex items-baseline justify-between gap-3 rounded-lg bg-tea-surface/60 hover:bg-tea-surface/90 transition-colors group"
             >
-              <div className="flex items-center gap-2.5 min-w-0">
-                <Sparkles size={14} className="text-tea-text-dim group-hover:text-tea-gold transition-colors shrink-0" aria-hidden="true" />
-                <span className="text-xs font-serif italic text-tea-text-sec group-hover:text-tea-text transition-colors">Tasting Profile</span>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
+              <span className="text-sm font-serif italic text-tea-text-sec group-hover:text-tea-text-sec transition-colors">Tasting Profile</span>
+              <span className="flex items-baseline gap-2.5 shrink-0">
                 {flattenedTastingCount > 0 ? (
                   <>
-                    {product.mood && <span className="text-ui-11 text-tea-gold italic font-serif truncate max-w-[140px]">{product.mood}</span>}
-                    <span className="text-ui-10 text-tea-text-dim tabular-nums">{flattenedTastingCount}</span>
+                    {product.mood && <span className="text-ui-11 italic font-serif text-tea-text-sec truncate max-w-[160px]">{product.mood}</span>}
+                    <span className="text-ui-9 text-tea-text-dim uppercase tracking-caps tabular-nums">{flattenedTastingCount} notes</span>
                   </>
                 ) : (
-                  <span className="text-ui-10 text-tea-text-dim italic">add</span>
+                  <span className="text-ui-9 text-tea-text-dim italic font-serif normal-case">add notes</span>
                 )}
-                <ChevronRight size={13} aria-hidden="true" className="text-tea-text-dim group-hover:text-tea-text-sec transition-colors" />
-              </div>
+                <ChevronRight size={13} aria-hidden="true" className="text-tea-text-dim/70 group-hover:text-tea-text-sec transition-colors self-center" />
+              </span>
             </button>
 
             {/* 4. Pricing details. Override + breakdown only; quick fields hoisted up. */}
