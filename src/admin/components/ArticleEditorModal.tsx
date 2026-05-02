@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../../lib/api';
+import { useContributors } from '../../hooks/useContributor';
 import { useToast } from './Toast';
 import type { DbArticle, ArticleBlock } from '../../types';
 
@@ -81,7 +82,7 @@ const selectClass =
 
 const Field = ({ label, children, className = '' }: { label: string; children: React.ReactNode; className?: string }) => (
   <div className={className}>
-    <label className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec block mb-1.5">{label}</label>
+    <label className="text-ui-10 uppercase tracking-display text-tea-text-sec block mb-1.5">{label}</label>
     {children}
   </div>
 );
@@ -201,7 +202,7 @@ const BlockEditor: React.FC<BlockEditorProps> = ({ block, index, total, onChange
     <div className="group relative bg-tea-elevated/40 border border-tea-border rounded-lg p-3 space-y-2">
       {/* Block header row */}
       <div className="flex items-center justify-between">
-        <span className="text-ui-9 uppercase tracking-[0.2em] text-tea-text-dim font-medium">
+        <span className="text-ui-9 uppercase tracking-display text-tea-text-dim font-medium">
           {BLOCK_TYPE_LABELS[block.type] ?? block.type}
         </span>
         <div className="flex items-center gap-0.5">
@@ -279,6 +280,15 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
   // Metadata
   const [subtitle, setSubtitle] = useState(initialData?.subtitle ?? '');
   const [author, setAuthor] = useState(initialData?.author_id ?? '');
+  // Contributors are the editorial identities that back /people/:slug.
+  // Showing them as datalist suggestions lets Adrian pick an existing
+  // person without locking out free-text entry for new bylines.
+  const { data: contributorOptions } = useContributors();
+  // Pull-quote: a single line from this article that should surface on a
+  // contributor's profile page. Set by Adrian when an article is *about* a
+  // contributor. The slug names which profile to surface it on.
+  const [pullQuote, setPullQuote] = useState(initialData?.pull_quote ?? '');
+  const [pullQuoteSubject, setPullQuoteSubject] = useState(initialData?.pull_quote_subject ?? '');
   const [category, setCategory] = useState(initialData?.category ?? '');
   const [tagsInput, setTagsInput] = useState((initialData?.tags ?? []).join(', '));
   const [coverImageUrl, setCoverImageUrl] = useState(initialData?.cover_image_url ?? '');
@@ -324,7 +334,9 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
       if ('text' in b) return acc + b.text.split(/\s+/).length;
       return acc;
     }, 0) / 200)),
-  }), [title, subtitle, author, status, category, tagsInput, coverImageUrl, blocks, layoutTemplate]);
+    pull_quote: pullQuote.trim() || undefined,
+    pull_quote_subject: pullQuoteSubject.trim() || undefined,
+  }), [title, subtitle, author, status, category, tagsInput, coverImageUrl, blocks, layoutTemplate, pullQuote, pullQuoteSubject]);
 
   // Save (create or update)
   const save = useCallback(async () => {
@@ -435,8 +447,11 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
     archived: 'bg-tea-elevated text-tea-text-dim',
   };
 
+  // Editorial registers — what kind of reading the piece is, not its format.
+  // Kept short and editorially meaningful. Format (Visual / Film / Audio)
+  // belongs elsewhere on the article record, not in this list.
   const CATEGORIES = [
-    '', 'Origin Story', 'Interview', 'Technique', 'Culture', 'Tea & Food', 'Photo Essay',
+    '', 'Interview', 'Teaching', 'Journey', 'Reflection', 'Story', 'Field Notes',
   ];
   const LAYOUT_TEMPLATES = [
     { value: 'default', label: 'Default' },
@@ -449,6 +464,17 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-modal flex flex-col bg-tea-bg text-tea-text">
+      {/* Shared datalist of contributor slugs. Used by the Author input and
+          the Pull-quote subject input. Free-text entry remains allowed for
+          new contributors that haven't been seeded yet. */}
+      <datalist id="contributor-options">
+        {(contributorOptions ?? []).map((c) => (
+          <option key={c.id} value={c.id}>
+            {c.display_name}{c.role ? ` (${c.role})` : ''}
+          </option>
+        ))}
+      </datalist>
+
       {/* ── Header ─────────────────────────────────────────────────── */}
       <div className="flex items-center gap-2 px-4 md:px-6 py-3 border-b border-tea-border bg-tea-surface/90 backdrop-blur-xl flex-shrink-0">
         {/* Close — top-left per panel convention */}
@@ -470,7 +496,7 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
         />
 
         {/* Status badge */}
-        <span className={`text-ui-9 uppercase tracking-[0.15em] px-2 py-0.5 rounded-full font-medium shrink-0 ${STATUS_BADGE_STYLES[status] ?? STATUS_BADGE_STYLES.draft}`}>
+        <span className={`text-ui-9 uppercase tracking-caps px-2 py-0.5 rounded-full font-medium shrink-0 ${STATUS_BADGE_STYLES[status] ?? STATUS_BADGE_STYLES.draft}`}>
           {status}
         </span>
 
@@ -580,7 +606,7 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
 
             {/* ── Metadata ── */}
             <section>
-              <h3 className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim font-medium mb-3">Metadata</h3>
+              <h3 className="text-ui-10 uppercase tracking-display text-tea-text-dim font-medium mb-3">Metadata</h3>
               <div className="space-y-4">
                 <Field label="Subtitle">
                   <input
@@ -597,7 +623,29 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
                     type="text"
                     value={author}
                     onChange={e => { setAuthor(e.target.value); scheduleAutoSave(); }}
-                    placeholder="Author name or ID…"
+                    placeholder="contributor slug, e.g. chen-wei"
+                    list="contributor-options"
+                    className={inputClass}
+                  />
+                </Field>
+
+                <Field label="Pull-quote (optional)">
+                  <textarea
+                    value={pullQuote}
+                    onChange={e => { setPullQuote(e.target.value); scheduleAutoSave(); }}
+                    placeholder="A single line, ~30 words, that should surface on the named subject's profile page."
+                    rows={2}
+                    className={inputClass}
+                  />
+                </Field>
+
+                <Field label="Pull-quote subject (contributor slug)">
+                  <input
+                    type="text"
+                    value={pullQuoteSubject}
+                    onChange={e => { setPullQuoteSubject(e.target.value); scheduleAutoSave(); }}
+                    placeholder="Whose profile this quote belongs on"
+                    list="contributor-options"
                     className={inputClass}
                   />
                 </Field>
@@ -677,7 +725,7 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
                 onClick={() => setPasteOpen(v => !v)}
                 className="flex items-center gap-2 w-full text-left"
               >
-                <h3 className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim font-medium flex-1">Paste from Claude</h3>
+                <h3 className="text-ui-10 uppercase tracking-display text-tea-text-dim font-medium flex-1">Paste from Claude</h3>
                 {pasteOpen ? <ChevronUp size={13} className="text-tea-text-dim" /> : <ChevronDown size={13} className="text-tea-text-dim" />}
               </button>
 
@@ -728,7 +776,7 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
       {/* Mobile metadata panel (shown below blocks on mobile) */}
       <div className="lg:hidden border-t border-tea-border bg-tea-surface/80">
         <details className="px-4">
-          <summary className="py-3 text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec font-medium cursor-pointer list-none flex items-center justify-between">
+          <summary className="py-3 text-ui-10 uppercase tracking-display text-tea-text-sec font-medium cursor-pointer list-none flex items-center justify-between">
             Article Metadata
             <ChevronDown size={13} className="text-tea-text-dim" />
           </summary>
@@ -737,7 +785,13 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
               <input type="text" value={subtitle} onChange={e => { setSubtitle(e.target.value); scheduleAutoSave(); }} placeholder="Short subtitle…" className={inputClass} />
             </Field>
             <Field label="Author">
-              <input type="text" value={author} onChange={e => { setAuthor(e.target.value); scheduleAutoSave(); }} placeholder="Author name or ID…" className={inputClass} />
+              <input type="text" value={author} onChange={e => { setAuthor(e.target.value); scheduleAutoSave(); }} placeholder="contributor slug, e.g. chen-wei" list="contributor-options" className={inputClass} />
+            </Field>
+            <Field label="Pull-quote (optional)">
+              <textarea value={pullQuote} onChange={e => { setPullQuote(e.target.value); scheduleAutoSave(); }} placeholder="A single line, ~30 words, surfaces on the subject's profile page." rows={2} className={inputClass} />
+            </Field>
+            <Field label="Pull-quote subject">
+              <input type="text" value={pullQuoteSubject} onChange={e => { setPullQuoteSubject(e.target.value); scheduleAutoSave(); }} placeholder="Whose profile this quote belongs on" list="contributor-options" className={inputClass} />
             </Field>
             <Field label="Category">
               <div className="relative">
@@ -756,7 +810,7 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
           </div>
         </details>
         <details className="px-4 border-t border-tea-border">
-          <summary className="py-3 text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec font-medium cursor-pointer list-none flex items-center justify-between">
+          <summary className="py-3 text-ui-10 uppercase tracking-display text-tea-text-sec font-medium cursor-pointer list-none flex items-center justify-between">
             Paste from Claude
             <ChevronDown size={13} className="text-tea-text-dim" />
           </summary>

@@ -153,7 +153,7 @@ const RateRowView: React.FC<RateRowViewProps> = ({ row, onChange }) => {
         <div className="font-display text-ui-17 text-tea-text min-w-[80px]">
           {row.currency}
           {isUSD && (
-            <span className="ml-2 text-tea-text-sec text-ui-11 uppercase tracking-[0.1em]">Base</span>
+            <span className="ml-2 text-tea-text-sec text-ui-11 uppercase tracking-widest">Base</span>
           )}
         </div>
 

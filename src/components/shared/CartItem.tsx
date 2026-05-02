@@ -56,7 +56,7 @@ export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQ
 
           {/* Variant — only when it adds information */}
           {showVariant && (
-            <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mt-1">
+            <p className="text-ui-10 uppercase tracking-display text-tea-text-sec mt-1">
               {item.variant}
             </p>
           )}

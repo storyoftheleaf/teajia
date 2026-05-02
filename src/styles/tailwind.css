@@ -53,12 +53,14 @@ nav[aria-label="Admin navigation"] * {
   --tea-surface-rgb: 40 33 26;
   --tea-elevated: #3a3126;
   --tea-elevated-rgb: 58 49 38;
-  --tea-text: #ede4d4;
-  --tea-text-rgb: 237 228 212;
+  /* Body text: warm parchment, never near-white. Calibrated so dense admin
+     surfaces read as editorial-calm rather than white-on-black. */
+  --tea-text: #d4c5a8;
+  --tea-text-rgb: 212 197 168;
   --tea-text-sec: #b5a892;
   --tea-text-sec-rgb: 181 168 146;
-  --tea-text-dim: #917a55;
-  --tea-text-dim-rgb: 145 122 85;
+  --tea-text-dim: #b09573;
+  --tea-text-dim-rgb: 176 149 115;
   --tea-gold: #a8874d;
   --tea-gold-rgb: 168 135 77;
   --tea-gold-lt: #bfa06a;
@@ -105,7 +107,7 @@ nav[aria-label="Admin navigation"] * {
   --tea-error-rgb: 115 42 35;
 }
 
-/* Force dark tokens on any nested .dark wrapper (e.g. Journal — always dark) */
+/* Force dark tokens on any nested .dark wrapper (e.g. Journal: always dark) */
 :root.light .dark, .light .dark {
   color-scheme: dark;
   --tea-bg: #18130e;
@@ -114,12 +116,12 @@ nav[aria-label="Admin navigation"] * {
   --tea-surface-rgb: 40 33 26;
   --tea-elevated: #3a3126;
   --tea-elevated-rgb: 58 49 38;
-  --tea-text: #ede4d4;
-  --tea-text-rgb: 237 228 212;
+  --tea-text: #d4c5a8;
+  --tea-text-rgb: 212 197 168;
   --tea-text-sec: #b5a892;
   --tea-text-sec-rgb: 181 168 146;
-  --tea-text-dim: #917a55;
-  --tea-text-dim-rgb: 145 122 85;
+  --tea-text-dim: #b09573;
+  --tea-text-dim-rgb: 176 149 115;
   --tea-gold: #a8874d;
   --tea-gold-rgb: 168 135 77;
   --tea-gold-lt: #bfa06a;

@@ -215,7 +215,7 @@ export const CollectionEditView: React.FC = () => {
               onChange={e => setTitleDraft(e.target.value)}
               onBlur={() => titleChanged && titleDraft.trim() && saveMeta({ title: titleDraft.trim() })}
               placeholder="Untitled collection"
-              className="w-full bg-transparent border-b border-tea-border focus:border-tea-gold outline-none py-2 font-display text-[clamp(24px,3.5vw,32px)] leading-[1.2] text-tea-text placeholder:text-tea-text-dim"
+              className="w-full bg-transparent border-b border-tea-border focus:border-tea-gold outline-none py-2 font-display text-[clamp(24px,3.5vw,32px)] leading-snug text-tea-text placeholder:text-tea-text-dim"
               style={{ fontWeight: 500 }}
             />
             <textarea
@@ -224,7 +224,7 @@ export const CollectionEditView: React.FC = () => {
               onBlur={() => noteChanged && saveMeta({ note: noteDraft })}
               placeholder="A short note for whoever opens the link — this shows above the product list on the public page."
               rows={2}
-              className="w-full bg-transparent border-none outline-none resize-none font-body text-ui-15 leading-[1.65] text-tea-text placeholder:text-tea-text-dim italic"
+              className="w-full bg-transparent border-none outline-none resize-none font-body text-ui-15 leading-loose text-tea-text placeholder:text-tea-text-dim italic"
             />
             {savingMeta && <p className="text-ui-10 text-tea-text-dim">Saving…</p>}
           </section>

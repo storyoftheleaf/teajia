@@ -57,7 +57,7 @@ const PublicReviewsSection: React.FC<{ productId: string; teaKey?: string }> = (
   if (networkReviews.length === 0) {
     return (
       <div className="mt-10 pt-6 border-t border-tea-border">
-        <h3 className="text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec mb-3">Reviews</h3>
+        <h3 className="text-ui-11 uppercase tracking-caps text-tea-text-sec mb-3">Reviews</h3>
         <p className="text-xs text-tea-text-dim italic">No reviews yet.</p>
       </div>
     );
@@ -65,7 +65,7 @@ const PublicReviewsSection: React.FC<{ productId: string; teaKey?: string }> = (
 
   return (
     <div className="mt-10 pt-6 border-t border-tea-border">
-      <h3 className="text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec mb-4">
+      <h3 className="text-ui-11 uppercase tracking-caps text-tea-text-sec mb-4">
         Reviews <span className="text-tea-text-dim font-sans normal-case tracking-normal">({networkReviews.length})</span>
       </h3>
       <div className="space-y-4">
@@ -196,7 +196,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
         </p>
         <Link
           to="/shop"
-          className="px-8 py-3 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.2em] hover:bg-tea-gold/90 transition-colors"
+          className="px-8 py-3 bg-tea-gold text-tea-bg text-xs uppercase tracking-display hover:bg-tea-gold/90 transition-colors"
         >
           Back to Shop
         </Link>
@@ -328,7 +328,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
                   <TeaPlaceholder type={item.type} style={{ width: '32%', height: '32%', opacity: 0.2 }} />
                 )}
                 <span
-                  className="font-sans text-ui-10 uppercase tracking-[0.2em]"
+                  className="font-sans text-ui-10 uppercase tracking-display"
                   style={{ color: typeColor, opacity: 0.4 }}
                 >
                   {item.origin || item.type}
@@ -429,7 +429,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
           {/* About — character and description */}
           {(item.experience || introduction) && (
             <div className="mb-5">
-              <span className="font-sans text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim block mb-2">About</span>
+              <span className="font-sans text-ui-10 uppercase tracking-caps text-tea-text-dim block mb-2">About</span>
               {item.experience && (
                 <p className="text-sm text-tea-text-sec leading-relaxed whitespace-pre-line mb-2">
                   {item.experience}
@@ -446,7 +446,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
           {/* Story — historical/cultural context */}
           {mainStory && (
             <div className="mb-5">
-              <span className="font-sans text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim block mb-2">History</span>
+              <span className="font-sans text-ui-10 uppercase tracking-caps text-tea-text-dim block mb-2">History</span>
               <p className="text-sm text-tea-text-sec leading-relaxed whitespace-pre-line">
                 {mainStory}
               </p>
@@ -473,23 +473,23 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
               </div>
               <dl className="grid grid-cols-2 gap-x-4 gap-y-2.5">
                 <div>
-                  <dt className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim mb-0.5">Water</dt>
+                  <dt className="text-ui-10 uppercase tracking-caps text-tea-text-dim mb-0.5">Water</dt>
                   <dd className="text-sm text-tea-text-sec leading-snug">{brewingProfile.waterTemp}</dd>
                 </div>
                 <div>
-                  <dt className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim mb-0.5">Steep</dt>
+                  <dt className="text-ui-10 uppercase tracking-caps text-tea-text-dim mb-0.5">Steep</dt>
                   <dd className="text-sm text-tea-text-sec leading-snug">{brewingProfile.steepTime}</dd>
                 </div>
                 <div>
-                  <dt className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim mb-0.5">Leaf</dt>
+                  <dt className="text-ui-10 uppercase tracking-caps text-tea-text-dim mb-0.5">Leaf</dt>
                   <dd className="text-sm text-tea-text-sec leading-snug">{brewingProfile.leafRatio}</dd>
                 </div>
                 <div>
-                  <dt className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim mb-0.5">Vessel</dt>
+                  <dt className="text-ui-10 uppercase tracking-caps text-tea-text-dim mb-0.5">Vessel</dt>
                   <dd className="text-sm text-tea-text-sec leading-snug">{brewingProfile.vessel}</dd>
                 </div>
                 <div className="col-span-2">
-                  <dt className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim mb-0.5">Infusions</dt>
+                  <dt className="text-ui-10 uppercase tracking-caps text-tea-text-dim mb-0.5">Infusions</dt>
                   <dd className="text-sm text-tea-text-sec leading-snug">{brewingProfile.infusions}</dd>
                 </div>
               </dl>
@@ -583,7 +583,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
             <button
               onClick={handleAdd}
               disabled={isSoldOut}
-              className={`flex-1 flex items-center justify-center gap-3 py-3 rounded-sm text-xs uppercase tracking-[0.1em] font-medium transition-all active:scale-[0.98] ${
+              className={`flex-1 flex items-center justify-center gap-3 py-3 rounded-sm text-xs uppercase tracking-widest font-medium transition-all active:scale-[0.98] ${
                 isSoldOut
                   ? 'bg-tea-accent-sub text-tea-text-sec border border-tea-border cursor-not-allowed opacity-60'
                   : added
@@ -726,7 +726,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
             </div>
             <button
               onClick={handleAdd}
-              className={`px-5 py-2.5 rounded-sm text-xs uppercase tracking-[0.1em] font-medium transition-all active:scale-[0.98] flex-shrink-0 ${
+              className={`px-5 py-2.5 rounded-sm text-xs uppercase tracking-widest font-medium transition-all active:scale-[0.98] flex-shrink-0 ${
                 added
                   ? 'bg-tea-green text-tea-bg'
                   : 'bg-tea-gold text-tea-bg hover:bg-tea-gold-lt'

@@ -104,7 +104,7 @@ const SectionHeader: React.FC<{
     <div className="flex items-center gap-3">
       <div className="text-tea-gold">{icon}</div>
       <div>
-        <h3 className="text-xs uppercase tracking-[0.15em] text-tea-text/70 font-sans font-medium">
+        <h3 className="text-xs uppercase tracking-caps text-tea-text/70 font-sans font-medium">
           {title}
         </h3>
         {subtitle && (

@@ -64,7 +64,7 @@ export const AdoptionQueue: React.FC<AdoptionQueueProps> = ({ embedded = false }
         <h1 className={`${TYPOGRAPHY_CLASSES.h2} text-tea-text mb-2`}>
           Adoption queue
         </h1>
-        <p className="font-body italic text-ui-15 text-tea-text-sec leading-[1.7]">
+        <p className="font-body italic text-ui-15 text-tea-text-sec leading-reading">
           Partners can flag teas they originated for the Teajia network catalog.
           Adopting transfers curation to you; declining keeps it with the originator.
         </p>
@@ -79,8 +79,8 @@ export const AdoptionQueue: React.FC<AdoptionQueueProps> = ({ embedded = false }
             onClick={() => setFilter(f.key)}
             className={
               filter === f.key
-                ? 'text-tea-gold tracking-[0.04em]'
-                : 'text-tea-text-sec hover:text-tea-text transition-colors tracking-[0.04em]'
+                ? 'text-tea-gold tracking-wider'
+                : 'text-tea-text-sec hover:text-tea-text transition-colors tracking-wider'
             }
           >
             {f.label}
@@ -98,7 +98,7 @@ export const AdoptionQueue: React.FC<AdoptionQueueProps> = ({ embedded = false }
       )}
 
       {!error && entries && entries.length === 0 && (
-        <p className="font-body italic text-ui-14 text-tea-text-sec leading-[1.7]">
+        <p className="font-body italic text-ui-14 text-tea-text-sec leading-reading">
           {filter === 'pending'
             ? 'Nothing is waiting. Tea Masters will appear here when they offer a profile up for the network.'
             : filter === 'adopted'
@@ -185,7 +185,7 @@ const AdoptionRow: React.FC<AdoptionRowProps> = ({ entry, onChange }) => {
       {originLine && (
         <p className="font-body text-ui-13 text-tea-text-sec mb-1">{originLine}</p>
       )}
-      <p className="text-ui-11 text-tea-text-dim tracking-[0.04em] mb-4">
+      <p className="text-ui-11 text-tea-text-dim tracking-wider mb-4">
         Originated by {entry.originator_account_name}
         {entry.suggested_by_user_name && ` · suggested by ${entry.suggested_by_user_name}`}
         {suggestedDate && ` · ${suggestedDate}`}
@@ -193,14 +193,14 @@ const AdoptionRow: React.FC<AdoptionRowProps> = ({ entry, onChange }) => {
 
       {/* Description */}
       {entry.description && (
-        <p className="font-body text-ui-15 text-tea-text leading-[1.7] mb-4">
+        <p className="font-body text-ui-15 text-tea-text leading-reading mb-4">
           {entry.description}
         </p>
       )}
 
       {/* Originator note */}
       {entry.suggested_for_network_note && (
-        <blockquote className="font-body italic text-ui-14 text-tea-text-sec leading-[1.7] mb-5 pl-4 border-l border-tea-border">
+        <blockquote className="font-body italic text-ui-14 text-tea-text-sec leading-reading mb-5 pl-4 border-l border-tea-border">
           "{entry.suggested_for_network_note}"
         </blockquote>
       )}

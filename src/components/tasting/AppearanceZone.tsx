@@ -50,10 +50,9 @@ const AppearanceZoneInner: React.FC<AppearanceZoneProps> = ({ flow, value, onCha
                 key={opt.id}
                 type="button"
                 onClick={() => onChange({ ...value, clarity: isSelected ? undefined : opt.id as TastingData['clarity'] })}
-                className={`tag-selectable flex-1 justify-center ${isSelected ? 'tag-selectable-active' : ''}`}
+                className={`tag-selectable flex-1 justify-center text-ui-14 ${isSelected ? 'tag-selectable-active' : ''}`}
                 style={{
                   fontFamily: 'var(--font-body)',
-                  fontSize: '12px',
                   ...(isSelected && {
                     background: 'rgb(var(--tea-gold-rgb) / 0.22)',
                     color: 'var(--tea-gold)',
@@ -87,10 +86,9 @@ const AppearanceZoneInner: React.FC<AppearanceZoneProps> = ({ flow, value, onCha
                 key={opt.id}
                 type="button"
                 onClick={() => onChange({ ...value, brewingVessel: isSelected ? undefined : opt.id })}
-                className={`tag-selectable ${isSelected ? 'tag-selectable-active' : ''}`}
+                className={`tag-selectable text-ui-14 ${isSelected ? 'tag-selectable-active' : ''}`}
                 style={{
                   fontFamily: 'var(--font-body)',
-                  fontSize: '12px',
                   ...(isSelected && {
                     background: 'rgb(var(--tea-gold-rgb) / 0.22)',
                     color: 'var(--tea-gold)',
@@ -108,10 +106,9 @@ const AppearanceZoneInner: React.FC<AppearanceZoneProps> = ({ flow, value, onCha
             <button
               type="button"
               onClick={() => onChange({ ...value, brewingVessel: undefined })}
-              className="tag-selectable tag-selectable-active"
+              className="tag-selectable tag-selectable-active text-ui-14"
               style={{
                 fontFamily: 'var(--font-body)',
-                fontSize: '12px',
                 background: 'rgb(var(--tea-gold-rgb) / 0.22)',
                 color: 'var(--tea-gold)',
                 fontWeight: 600,
@@ -127,7 +124,7 @@ const AppearanceZoneInner: React.FC<AppearanceZoneProps> = ({ flow, value, onCha
         <div className="flex items-center gap-3">
           <div className="flex flex-col gap-0.5">
             <span
-              className="text-ui-10 uppercase tracking-[0.12em] text-tea-text-dim"
+              className="text-ui-11 uppercase tracking-[0.12em] text-tea-text-sec font-semibold"
               style={{ fontFamily: 'var(--font-display)' }}
             >
               Temp
@@ -143,7 +140,7 @@ const AppearanceZoneInner: React.FC<AppearanceZoneProps> = ({ flow, value, onCha
           </div>
           <div className="flex flex-col gap-0.5">
             <span
-              className="text-ui-10 uppercase tracking-[0.12em] text-tea-text-dim"
+              className="text-ui-11 uppercase tracking-[0.12em] text-tea-text-sec font-semibold"
               style={{ fontFamily: 'var(--font-display)' }}
             >
               Time

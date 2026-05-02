@@ -506,7 +506,7 @@ export const AttendeeTable: React.FC<AttendeeTableProps> = ({ attendees, eventId
               <div key={attendee.id} className={`py-3 px-1 ${attendee.isDenied ? 'opacity-50' : ''}`}>
                 <div className="flex items-center justify-between gap-2 mb-1.5">
                   <AttendeeName attendee={attendee} compact />
-                  <span className={`text-ui-10 uppercase tracking-[0.1em] px-2 py-0.5 rounded-full shrink-0 ${STATUS_CHIPS[attendee.status]}`}>
+                  <span className={`text-ui-10 uppercase tracking-widest px-2 py-0.5 rounded-full shrink-0 ${STATUS_CHIPS[attendee.status]}`}>
                     {STATUS_LABELS[attendee.status]}
                   </span>
                 </div>
@@ -575,7 +575,7 @@ export const AttendeeTable: React.FC<AttendeeTableProps> = ({ attendees, eventId
                     { field: null, label: 'Attended' },
                     { field: null, label: 'Actions' },
                   ].map((col, i) => (
-                    <th key={i} className="text-left text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec font-medium py-2 px-2">
+                    <th key={i} className="text-left text-ui-10 uppercase tracking-caps text-tea-text-sec font-medium py-2 px-2">
                       {col.field ? (
                         <button onClick={() => toggleSort(col.field!)} className="flex items-center gap-1 hover:text-tea-text transition-colors">
                           {col.label}
@@ -598,7 +598,7 @@ export const AttendeeTable: React.FC<AttendeeTableProps> = ({ attendees, eventId
                       ) : <span className="text-tea-text-sec">—</span>}
                     </td>
                     <td className="py-2.5 px-2">
-                      <span className={`text-ui-10 uppercase tracking-[0.1em] px-2 py-0.5 rounded-full ${STATUS_CHIPS[attendee.status]}`}>
+                      <span className={`text-ui-10 uppercase tracking-widest px-2 py-0.5 rounded-full ${STATUS_CHIPS[attendee.status]}`}>
                         {STATUS_LABELS[attendee.status]}
                       </span>
                     </td>

@@ -122,7 +122,7 @@ export const AccountSwitcher: React.FC<Props> = ({ compact = false }) => {
               {displayName}
             </div>
             {displayRole && (
-              <div className="text-ui-9 uppercase tracking-[0.15em] text-tea-text-dim">
+              <div className="text-ui-9 uppercase tracking-caps text-tea-text-dim">
                 {displayRole}
               </div>
             )}
@@ -139,7 +139,7 @@ export const AccountSwitcher: React.FC<Props> = ({ compact = false }) => {
           role="listbox"
           className="absolute left-0 right-0 bottom-full mb-2 bg-tea-surface rounded-lg shadow-2xl overflow-hidden z-priority border border-tea-border"
         >
-          <div className="px-3 py-2 text-ui-9 uppercase tracking-[0.2em] text-tea-text-dim border-b border-tea-border">
+          <div className="px-3 py-2 text-ui-9 uppercase tracking-display text-tea-text-dim border-b border-tea-border">
             Your Tea Houses
           </div>
           <div className="max-h-64 overflow-y-auto">
@@ -175,7 +175,7 @@ export const AccountSwitcher: React.FC<Props> = ({ compact = false }) => {
                     <div className="text-xs font-semibold text-tea-text truncate">
                       {m.account_name}
                     </div>
-                    <div className="text-ui-9 uppercase tracking-[0.15em] text-tea-text-dim">
+                    <div className="text-ui-9 uppercase tracking-caps text-tea-text-dim">
                       {roleLabel[m.role]}
                     </div>
                   </div>
@@ -187,7 +187,7 @@ export const AccountSwitcher: React.FC<Props> = ({ compact = false }) => {
 
           {isPlatformOwner && (
             <>
-              <div className="px-3 py-2 text-ui-9 uppercase tracking-[0.2em] text-tea-text-dim border-t border-b border-tea-border flex items-center gap-1.5">
+              <div className="px-3 py-2 text-ui-9 uppercase tracking-display text-tea-text-dim border-t border-b border-tea-border flex items-center gap-1.5">
                 <ShieldCheck size={10} className="text-tea-gold" />
                 All Network Accounts
               </div>
@@ -223,7 +223,7 @@ export const AccountSwitcher: React.FC<Props> = ({ compact = false }) => {
                           <div className="text-xs font-semibold text-tea-text truncate">
                             {a.name}
                           </div>
-                          <div className="text-ui-9 uppercase tracking-[0.15em] text-tea-text-dim truncate">
+                          <div className="text-ui-9 uppercase tracking-caps text-tea-text-dim truncate">
                             {a.location_city || a.slug}
                           </div>
                         </div>

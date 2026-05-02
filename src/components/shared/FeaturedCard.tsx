@@ -33,10 +33,10 @@ export const FeaturedCard: React.FC<FeaturedCardProps> = ({
       <div className="flex flex-col md:flex-row">
         {/* Text content */}
         <div className="flex-1 p-6 md:p-8">
-          <span className="inline-block text-ui-10 uppercase tracking-[0.2em] text-tea-gold font-sans mb-4 px-2 py-1 bg-tea-gold/10 rounded-sm">
+          <span className="inline-block text-ui-10 uppercase tracking-display text-tea-gold font-sans mb-4 px-2 py-1 bg-tea-gold/10 rounded-sm">
             {badge}
           </span>
-          <h2 className="font-serif text-[clamp(24px,3.5vw,32px)] text-tea-text leading-[1.2] tracking-[0.01em] mb-4">
+          <h2 className="font-serif text-[clamp(24px,3.5vw,32px)] text-tea-text leading-snug tracking-wide mb-4">
             {title}
           </h2>
           <p className="font-serif text-ui-17 text-tea-text-sec leading-[1.85] mb-6 max-w-lg">

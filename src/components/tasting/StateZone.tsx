@@ -88,12 +88,12 @@ const StateZoneInner: React.FC<StateZoneProps> = ({ flow, value, onChange }) => 
                       else if (lastSelectedFeeling === term.id) setLastSelectedFeeling(null);
                     }}
                     aria-pressed={isSelected}
-                    className={`flex items-center gap-2 w-full text-left px-2.5 py-2 min-h-[40px] rounded-lg transition-all duration-150 ${
+                    className={`flex items-center gap-2 w-full text-left px-2.5 py-2 min-h-[40px] rounded-lg text-ui-14 transition-all duration-150 ${
                       isSelected
                         ? 'bg-tea-gold/12 text-tea-gold'
                         : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'
                     }`}
-                    style={{ fontFamily: 'var(--font-body)', fontSize: '13px' }}
+                    style={{ fontFamily: 'var(--font-body)' }}
                   >
                     {Icon && (
                       <Icon
@@ -125,7 +125,7 @@ const StateZoneInner: React.FC<StateZoneProps> = ({ flow, value, onChange }) => 
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.2 }}
-            className="text-ui-12 text-tea-text-sec px-1 mb-4 overflow-hidden"
+            className="text-ui-13 text-tea-text-sec px-1 mb-4 overflow-hidden"
             style={{ fontFamily: 'var(--font-body)' }}
           >
             {lastHint}

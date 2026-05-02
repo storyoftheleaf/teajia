@@ -418,7 +418,7 @@ const PreviewCard: React.FC<{ entry: CustomerTasting }> = ({ entry }) => {
         <div className="border-b mb-4" style={{ borderColor: '#2e2820' }} />
         {flavorTerms.length > 0 && (
           <div className="mb-3">
-            <div className="text-ui-8 tracking-[0.2em] uppercase mb-2" style={{ color: '#8a7f74', fontFamily: 'Georgia, serif' }}>Flavor</div>
+            <div className="text-ui-8 tracking-display uppercase mb-2" style={{ color: '#8a7f74', fontFamily: 'Georgia, serif' }}>Flavor</div>
             <div className="flex flex-wrap gap-1.5">
               {flavorTerms.map((t, i) => (
                 <span key={i} className="text-ui-11 rounded-full px-2.5 py-0.5" style={{ color: '#f0ebe3', background: 'rgba(200,168,75,0.12)', border: '1px solid rgba(200,168,75,0.2)', fontFamily: 'Georgia, serif' }}>{t}</span>
@@ -442,7 +442,7 @@ const PreviewCard: React.FC<{ entry: CustomerTasting }> = ({ entry }) => {
         <div className="border-b mb-3" style={{ borderColor: '#2e2820' }} />
         <div className="flex items-center justify-between">
           <span className="text-ui-9" style={{ color: '#8a7f74', fontFamily: 'Georgia, serif' }}>{formatCardDate(entry.createdAt)}</span>
-          <span className="text-ui-9 tracking-[0.1em]" style={{ color: 'rgba(200,168,75,0.4)', fontFamily: 'Georgia, serif' }}>teajia.com</span>
+          <span className="text-ui-9 tracking-widest" style={{ color: 'rgba(200,168,75,0.4)', fontFamily: 'Georgia, serif' }}>teajia.com</span>
         </div>
       </div>
     </div>

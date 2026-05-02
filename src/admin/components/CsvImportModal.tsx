@@ -405,7 +405,7 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
             <div className="h-full flex flex-col items-center justify-center gap-6">
               <div className="w-full max-w-md border-2 border-dashed border-tea-border rounded-xl hover:border-tea-text-sec transition-colors p-10 flex flex-col items-center bg-tea-surface/50">
                 <Upload size={48} className="text-tea-text-sec mb-4" />
-                <label className="cursor-pointer bg-tea-gold text-tea-bg px-6 py-3 rounded-lg font-bold uppercase tracking-[0.2em] text-xs hover:bg-tea-gold/90 transition-colors">
+                <label className="cursor-pointer bg-tea-gold text-tea-bg px-6 py-3 rounded-lg font-bold uppercase tracking-display text-xs hover:bg-tea-gold/90 transition-colors">
                   Select CSV File
                   <input type="file" accept=".csv" className="hidden" onChange={handleFileUpload} />
                 </label>
@@ -416,7 +416,7 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
               </div>
 
               <div className="flex flex-col items-center gap-2">
-                 <button onClick={handleDownloadTemplate} className="text-tea-text-sec hover:text-tea-text flex items-center gap-2 text-xs uppercase tracking-[0.2em] border border-tea-border px-4 py-2 rounded-lg hover:bg-tea-surface transition-colors">
+                 <button onClick={handleDownloadTemplate} className="text-tea-text-sec hover:text-tea-text flex items-center gap-2 text-xs uppercase tracking-display border border-tea-border px-4 py-2 rounded-lg hover:bg-tea-surface transition-colors">
                     <Download size={14} /> Download Template
                  </button>
               </div>
@@ -434,7 +434,7 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
 
               {/* Mobile card list */}
               <div className="block md:hidden flex-1 overflow-auto pb-24">
-                <div className="text-ui-10 text-tea-text-sec uppercase tracking-[0.2em] px-1 pb-2">
+                <div className="text-ui-10 text-tea-text-sec uppercase tracking-display px-1 pb-2">
                   Reviewing {stagingData.length} item{stagingData.length !== 1 ? 's' : ''}
                 </div>
                 {stagingData.map((row, idx) => {
@@ -555,7 +555,7 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
               {/* Desktop table */}
               <div className="hidden md:block flex-1 overflow-auto border border-tea-border rounded-xl bg-tea-surface">
                 <table className="w-full text-left text-xs whitespace-nowrap">
-                  <thead className="bg-tea-bg text-tea-text-sec font-serif uppercase tracking-[0.2em] text-ui-10 sticky top-0 z-10">
+                  <thead className="bg-tea-bg text-tea-text-sec font-serif uppercase tracking-display text-ui-10 sticky top-0 z-10">
                     <tr>
                       <th className="p-3 border-b border-tea-border">State</th>
                       <th className="p-3 border-b border-tea-border">Type</th>
@@ -632,10 +632,10 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
         {stage === 'staging' && (
           <div className="p-6 border-t border-tea-border bg-tea-surface flex justify-between items-center rounded-b-xl">
             <div className="flex gap-4">
-              <button onClick={() => setStage('upload')} className="text-tea-text-sec hover:text-tea-text transition-colors text-xs uppercase tracking-[0.2em]">Back</button>
-              <button onClick={onClose} className="text-tea-text-sec hover:text-tea-text transition-colors text-xs uppercase tracking-[0.2em]">Cancel</button>
+              <button onClick={() => setStage('upload')} className="text-tea-text-sec hover:text-tea-text transition-colors text-xs uppercase tracking-display">Back</button>
+              <button onClick={onClose} className="text-tea-text-sec hover:text-tea-text transition-colors text-xs uppercase tracking-display">Cancel</button>
             </div>
-            <button onClick={handleCommit} disabled={stagingData.length === 0} className="px-6 py-3 bg-tea-gold text-tea-bg rounded-lg font-bold text-xs uppercase tracking-[0.2em] hover:bg-tea-gold/90 disabled:opacity-50 transition-colors">
+            <button onClick={handleCommit} disabled={stagingData.length === 0} className="px-6 py-3 bg-tea-gold text-tea-bg rounded-lg font-bold text-xs uppercase tracking-display hover:bg-tea-gold/90 disabled:opacity-50 transition-colors">
                 Import All ({stagingData.length})
             </button>
           </div>

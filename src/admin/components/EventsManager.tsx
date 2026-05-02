@@ -91,7 +91,7 @@ export const EventsManager: React.FC = () => {
       <h1 className="font-serif font-normal text-2xl lg:text-3xl text-tea-text leading-tight tracking-[0.02em]" style={{ fontFamily: 'var(--font-display)' }}>Events</h1>
       <div className="flex items-center gap-2">
         {activeMembership && (
-          <span className="hidden sm:block text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec truncate max-w-[120px]">
+          <span className="hidden sm:block text-ui-10 uppercase tracking-caps text-tea-text-sec truncate max-w-[120px]">
             {activeMembership.account_name}
           </span>
         )}
@@ -161,7 +161,7 @@ export const EventsManager: React.FC = () => {
           <p className="font-serif italic text-sm text-tea-text-sec mb-6">No gatherings yet.</p>
           <button
             onClick={() => setIsFormOpen(true)}
-            className="inline-flex items-center gap-2 bg-tea-gold text-tea-bg px-5 py-2.5 text-xs font-semibold uppercase tracking-[0.2em] hover:bg-tea-gold-lt transition-colors rounded-sm"
+            className="inline-flex items-center gap-2 bg-tea-gold text-tea-bg px-5 py-2.5 text-xs font-semibold uppercase tracking-display hover:bg-tea-gold-lt transition-colors rounded-sm"
           >
             <Plus size={13} />
             Create your first event
@@ -203,7 +203,7 @@ export const EventsManager: React.FC = () => {
                 <div className="w-14 shrink-0 text-center pt-0.5">
                   <div className="text-ui-9 tracking-[0.25em] text-tea-text-dim uppercase">{dayName}</div>
                   <div className={`font-serif text-[30px] font-normal leading-none mt-0.5 ${isPast ? 'text-tea-text-sec' : 'text-tea-text'}`}>{dateNum}</div>
-                  <div className="text-ui-9 tracking-[0.2em] text-tea-text-dim mt-0.5">{monthName}</div>
+                  <div className="text-ui-9 tracking-display text-tea-text-dim mt-0.5">{monthName}</div>
                 </div>
 
                 {/* Content */}
@@ -212,7 +212,7 @@ export const EventsManager: React.FC = () => {
                     <div className="min-w-0">
                       <div className="flex items-center gap-2.5 flex-wrap mb-0.5">
                         <h3 className="font-serif text-base font-medium text-tea-text leading-snug">{event.title}</h3>
-                        <span className={`text-ui-9 uppercase tracking-[0.2em] font-semibold ${STATUS_STYLES[event.status]}`}>
+                        <span className={`text-ui-9 uppercase tracking-display font-semibold ${STATUS_STYLES[event.status]}`}>
                           {event.status}
                         </span>
                         {requested > 0 && (

@@ -142,7 +142,7 @@ const ColorSwatchesInner: React.FC<ColorSwatchesProps> = ({ flow, compact = fals
     <div role="radiogroup" aria-label="Liquor color">
       <div className="flex items-center justify-between mb-2">
         <div
-          className="text-ui-11 uppercase tracking-[0.15em] text-tea-text-dim font-medium"
+          className="text-ui-11 uppercase tracking-caps text-tea-text-dim font-medium"
           style={{ fontFamily: 'var(--font-display)' }}
         >
           Liquor Color

@@ -129,7 +129,7 @@ const VerifySheet: React.FC<VerifySheetProps> = ({ onClose, onVerified, purpose 
                     key={m}
                     type="button"
                     onClick={() => setMethod(m)}
-                    className={`flex-1 py-2.5 text-xs uppercase tracking-[0.15em] rounded-sm transition-colors ${
+                    className={`flex-1 py-2.5 text-xs uppercase tracking-caps rounded-sm transition-colors ${
                       method === m
                         ? 'bg-tea-gold/10 text-tea-gold'
                         : 'bg-tea-surface text-tea-text-sec hover:text-tea-text border border-tea-border'
@@ -160,7 +160,7 @@ const VerifySheet: React.FC<VerifySheetProps> = ({ onClose, onVerified, purpose 
                 type="button"
                 disabled={!isContactValid || requestMutation.isPending}
                 onClick={() => requestMutation.mutate()}
-                className="w-full py-3.5 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.2em] rounded-sm hover:bg-tea-gold/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center"
+                className="w-full py-3.5 bg-tea-gold text-tea-bg text-xs uppercase tracking-display rounded-sm hover:bg-tea-gold/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center"
               >
                 {requestMutation.isPending ? (
                   <span className="w-4 h-4 border-2 border-tea-border border-t-tea-gold rounded-full animate-spin" />
@@ -209,7 +209,7 @@ const VerifySheet: React.FC<VerifySheetProps> = ({ onClose, onVerified, purpose 
                 type="button"
                 disabled={!isCodeComplete || confirmMutation.isPending}
                 onClick={() => confirmMutation.mutate()}
-                className="w-full py-3.5 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.2em] rounded-sm hover:bg-tea-gold/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center"
+                className="w-full py-3.5 bg-tea-gold text-tea-bg text-xs uppercase tracking-display rounded-sm hover:bg-tea-gold/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center"
               >
                 {confirmMutation.isPending ? (
                   <span className="w-4 h-4 border-2 border-tea-border border-t-tea-gold rounded-full animate-spin" />

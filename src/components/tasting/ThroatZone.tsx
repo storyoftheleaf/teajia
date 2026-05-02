@@ -69,7 +69,7 @@ const ChineseConceptToggle: React.FC<ChineseConceptToggleProps> = ({
       >
         {pinyin}
       </span>
-      <span className="text-ui-11 text-tea-text-dim ml-2" style={{ fontFamily: 'var(--font-body)' }}>
+      <span className="text-ui-12 text-tea-text-sec ml-2" style={{ fontFamily: 'var(--font-body)' }}>
         {english}
       </span>
     </div>
@@ -150,18 +150,18 @@ const ThroatZoneInner: React.FC<ThroatZoneProps> = ({ flow, value, onChange, sim
       <div className="mb-4">
         <div className="mb-3">
           <div
-            className="text-ui-12 uppercase tracking-[0.12em] text-tea-text-dim font-medium"
+            className="text-ui-12 uppercase tracking-[0.12em] text-tea-text-sec font-semibold"
             style={{ fontFamily: 'var(--font-display)' }}
           >
             Finish
           </div>
-          <p className="text-ui-11 text-tea-text-sec mt-0.5" style={{ fontFamily: 'var(--font-body)' }}>
+          <p className="text-ui-13 text-tea-text-sec mt-0.5" style={{ fontFamily: 'var(--font-body)' }}>
             How long does the flavor linger, and what quality does it leave?
           </p>
         </div>
 
         <div
-          className="text-ui-10 uppercase tracking-[0.1em] text-tea-text-dim mb-1.5"
+          className="text-ui-11 uppercase tracking-widest text-tea-text-sec font-semibold mb-1.5"
           style={{ fontFamily: 'var(--font-display)' }}
         >
           Duration
@@ -194,7 +194,7 @@ const ThroatZoneInner: React.FC<ThroatZoneProps> = ({ flow, value, onChange, sim
         </div>
 
         <div
-          className="text-ui-10 uppercase tracking-[0.1em] text-tea-text-dim mb-1.5"
+          className="text-ui-11 uppercase tracking-widest text-tea-text-sec font-semibold mb-1.5"
           style={{ fontFamily: 'var(--font-display)' }}
         >
           Character
@@ -215,7 +215,7 @@ const ThroatZoneInner: React.FC<ThroatZoneProps> = ({ flow, value, onChange, sim
                   else if (lastSelectedFinishChar === term.id) setLastSelectedFinishChar(null);
                 }}
                 aria-pressed={isSelected}
-                className={`tag-selectable w-full justify-center text-ui-13 ${isSelected ? 'tag-selectable-active' : ''}`}
+                className={`tag-selectable w-full justify-center text-ui-14 ${isSelected ? 'tag-selectable-active' : ''}`}
                 style={{ fontFamily: 'var(--font-body)' }}
               >
                 {term.label}
@@ -230,7 +230,7 @@ const ThroatZoneInner: React.FC<ThroatZoneProps> = ({ flow, value, onChange, sim
           className="overflow-hidden"
         >
           {lastFinishHint && (
-            <p className="text-ui-12 text-tea-text-sec mt-2 px-0.5" style={{ fontFamily: 'var(--font-body)' }}>
+            <p className="text-ui-13 text-tea-text-sec mt-2 px-0.5" style={{ fontFamily: 'var(--font-body)' }}>
               {lastFinishHint}
             </p>
           )}
@@ -243,12 +243,12 @@ const ThroatZoneInner: React.FC<ThroatZoneProps> = ({ flow, value, onChange, sim
       <div className="mb-4">
         <div className="mb-3">
           <div
-            className="text-ui-12 uppercase tracking-[0.12em] text-tea-text-dim font-medium"
+            className="text-ui-12 uppercase tracking-[0.12em] text-tea-text-sec font-semibold"
             style={{ fontFamily: 'var(--font-display)' }}
           >
             Passage
           </div>
-          <p className="text-ui-11 text-tea-text-sec mt-0.5" style={{ fontFamily: 'var(--font-body)' }}>
+          <p className="text-ui-13 text-tea-text-sec mt-0.5" style={{ fontFamily: 'var(--font-body)' }}>
             How does the tea feel going down the throat — smooth or scratchy?
           </p>
         </div>
@@ -276,7 +276,7 @@ const ThroatZoneInner: React.FC<ThroatZoneProps> = ({ flow, value, onChange, sim
                 <span className={`text-ui-14 leading-tight ${isSel ? 'font-semibold' : 'font-medium'}`}>
                   {opt.label}
                 </span>
-                <span className={`text-ui-10 leading-tight mt-0.5 ${isSel ? 'text-tea-gold/70' : 'text-tea-text-dim'}`}>
+                <span className={`text-ui-11 leading-tight mt-0.5 ${isSel ? 'text-tea-gold/70' : 'text-tea-text-sec'}`}>
                   {opt.sub}
                 </span>
               </motion.button>
@@ -291,12 +291,12 @@ const ThroatZoneInner: React.FC<ThroatZoneProps> = ({ flow, value, onChange, sim
       <div className="mb-4">
         <div className="mb-3">
           <div
-            className="text-ui-12 uppercase tracking-[0.12em] text-tea-text-dim font-medium"
+            className="text-ui-12 uppercase tracking-[0.12em] text-tea-text-sec font-semibold"
             style={{ fontFamily: 'var(--font-display)' }}
           >
             Throat feel
           </div>
-          <p className="text-ui-11 text-tea-text-sec mt-0.5" style={{ fontFamily: 'var(--font-body)' }}>
+          <p className="text-ui-13 text-tea-text-sec mt-0.5" style={{ fontFamily: 'var(--font-body)' }}>
             Any distinct sensations in the throat or chest after swallowing?
           </p>
         </div>
@@ -326,10 +326,10 @@ const ThroatZoneInner: React.FC<ThroatZoneProps> = ({ flow, value, onChange, sim
                   className={`shrink-0 transition-opacity ${isSelected ? 'opacity-80' : 'opacity-20'}`}
                 />
                 <div className="flex flex-col">
-                  <span className={`text-ui-13 leading-tight ${isSelected ? 'font-semibold' : 'font-medium'}`}>
+                  <span className={`text-ui-14 leading-tight ${isSelected ? 'font-semibold' : 'font-medium'}`}>
                     {term.label}
                   </span>
-                  <span className={`text-ui-11 leading-tight mt-0.5 ${isSelected ? 'text-tea-gold/70' : 'text-tea-text-dim'}`}>
+                  <span className={`text-ui-12 leading-tight mt-0.5 ${isSelected ? 'text-tea-gold/70' : 'text-tea-text-sec'}`}>
                     {term.sub}
                   </span>
                 </div>

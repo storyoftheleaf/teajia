@@ -125,7 +125,7 @@ const TableCardPage: React.FC = () => {
           </p>
           <Link
             to="/"
-            className="text-xs uppercase tracking-[0.2em] text-tea-gold hover:text-tea-text transition-colors"
+            className="text-xs uppercase tracking-display text-tea-gold hover:text-tea-text transition-colors"
           >
             Explore Teajia
           </Link>
@@ -176,7 +176,7 @@ const TableCardPage: React.FC = () => {
             {(metaChunks.length > 0 || entry.originRegion) && (
               <div className="mt-4 space-y-1">
                 {metaChunks.length > 0 && (
-                  <p className="text-xs uppercase tracking-[0.15em] text-tea-text-sec">
+                  <p className="text-xs uppercase tracking-caps text-tea-text-sec">
                     {metaChunks.join(' · ')}
                   </p>
                 )}
@@ -191,7 +191,7 @@ const TableCardPage: React.FC = () => {
 
           {/* Verdict section */}
           <div>
-            <h2 className="text-ui-11 uppercase tracking-[0.2em] text-tea-text-sec mb-5">
+            <h2 className="text-ui-11 uppercase tracking-display text-tea-text-sec mb-5">
               How does this tea feel to you?
             </h2>
 
@@ -238,7 +238,7 @@ const TableCardPage: React.FC = () => {
           {/* Notes — shown only after voting */}
           {selectedVerdict && (
             <div className="space-y-3">
-              <label className="block text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec">
+              <label className="block text-ui-11 uppercase tracking-caps text-tea-text-sec">
                 Leave a note
               </label>
               <textarea
@@ -252,7 +252,7 @@ const TableCardPage: React.FC = () => {
                 type="button"
                 disabled={submitting || !notes.trim()}
                 onClick={handleSaveNote}
-                className="text-xs uppercase tracking-[0.2em] text-tea-gold hover:text-tea-text disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                className="text-xs uppercase tracking-display text-tea-gold hover:text-tea-text disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
                 {notesSaved ? 'Saved' : 'Save note'}
               </button>
@@ -262,7 +262,7 @@ const TableCardPage: React.FC = () => {
           {/* Live verdict counts */}
           {totalVotes > 0 && (
             <div>
-              <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim mb-3">
+              <p className="text-ui-10 uppercase tracking-display text-tea-text-dim mb-3">
                 {totalVotes} {totalVotes === 1 ? 'response' : 'responses'}
               </p>
               <div className="space-y-2">
@@ -292,21 +292,21 @@ const TableCardPage: React.FC = () => {
           <div className="pt-4 border-t border-tea-border space-y-4">
             <Link
               to="/"
-              className="block text-xs uppercase tracking-[0.2em] text-tea-text-sec hover:text-tea-gold transition-colors"
+              className="block text-xs uppercase tracking-display text-tea-text-sec hover:text-tea-gold transition-colors"
             >
               Explore Teajia
             </Link>
             {hasToken() ? (
               <Link
                 to="/compass"
-                className="block text-xs uppercase tracking-[0.2em] text-tea-text-dim hover:text-tea-gold transition-colors"
+                className="block text-xs uppercase tracking-display text-tea-text-dim hover:text-tea-gold transition-colors"
               >
                 Add to your compass
               </Link>
             ) : (
               <Link
                 to="/signin"
-                className="block text-xs uppercase tracking-[0.2em] text-tea-text-dim hover:text-tea-gold transition-colors"
+                className="block text-xs uppercase tracking-display text-tea-text-dim hover:text-tea-gold transition-colors"
               >
                 Add to your compass
               </Link>

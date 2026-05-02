@@ -94,7 +94,7 @@ export const MagazineView: React.FC = () => {
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
-            className={`px-3 py-1 text-ui-10 uppercase tracking-[0.15em] rounded-md transition-colors ${
+            className={`px-3 py-1 text-ui-10 uppercase tracking-caps rounded-md transition-colors ${
               tab === t.id
                 ? 'text-tea-gold font-medium'
                 : 'text-tea-text-sec hover:text-tea-text'
@@ -152,7 +152,7 @@ export const MagazineView: React.FC = () => {
                       <span className="text-sm font-medium text-tea-text leading-snug group-hover:text-tea-gold transition-colors">
                         {article.title || <span className="italic text-tea-text-sec">Untitled</span>}
                       </span>
-                      <span className={`text-ui-9 uppercase tracking-[0.15em] px-2 py-0.5 rounded-full font-medium ${STATUS_STYLES[article.status] ?? STATUS_STYLES.draft}`}>
+                      <span className={`text-ui-9 uppercase tracking-caps px-2 py-0.5 rounded-full font-medium ${STATUS_STYLES[article.status] ?? STATUS_STYLES.draft}`}>
                         {article.status}
                       </span>
                       {article.category && (

@@ -30,7 +30,7 @@ const TeaMenuPreview: React.FC<TeaMenuPreviewProps> = ({ teaMenu, eventDate, cla
   return (
     <div className={`${className}`}>
       <h3 className="font-serif text-xl text-tea-text mb-2">Tea Menu</h3>
-      <p className="text-xs text-tea-text-sec uppercase tracking-[0.2em] mb-6">
+      <p className="text-xs text-tea-text-sec uppercase tracking-display mb-6">
         {sortedMenu.length} {sortedMenu.length === 1 ? 'selection' : 'selections'} curated for this session
       </p>
 
@@ -51,7 +51,7 @@ const TeaMenuPreview: React.FC<TeaMenuPreviewProps> = ({ teaMenu, eventDate, cla
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-ui-10 uppercase tracking-[0.2em] text-tea-gold">
+                        <span className="text-ui-10 uppercase tracking-display text-tea-gold">
                           {item.productType || `Tea ${index + 1}`}
                         </span>
                       </div>

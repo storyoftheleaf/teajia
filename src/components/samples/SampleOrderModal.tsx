@@ -143,7 +143,7 @@ export const SampleOrderModal: React.FC<SampleOrderModalProps> = ({
                 <div className="space-y-4">
                   {/* Tea name */}
                   <div>
-                    <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-0.5" style={{ fontFamily: 'var(--font-display)' }}>
+                    <p className="text-ui-10 uppercase tracking-display text-tea-text-sec mb-0.5" style={{ fontFamily: 'var(--font-display)' }}>
                       Tea
                     </p>
                     <p className="text-sm text-tea-text" style={{ fontFamily: 'var(--font-body)' }}>
@@ -154,7 +154,7 @@ export const SampleOrderModal: React.FC<SampleOrderModalProps> = ({
 
                   {/* Quantity */}
                   <div>
-                    <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-2" style={{ fontFamily: 'var(--font-display)' }}>
+                    <p className="text-ui-10 uppercase tracking-display text-tea-text-sec mb-2" style={{ fontFamily: 'var(--font-display)' }}>
                       Quantity
                     </p>
                     <div className="flex gap-2 flex-wrap">
@@ -199,7 +199,7 @@ export const SampleOrderModal: React.FC<SampleOrderModalProps> = ({
 
                   {/* Contact fields */}
                   <div className="space-y-2">
-                    <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec" style={{ fontFamily: 'var(--font-display)' }}>
+                    <p className="text-ui-10 uppercase tracking-display text-tea-text-sec" style={{ fontFamily: 'var(--font-display)' }}>
                       Your Details
                     </p>
                     <input
@@ -241,7 +241,7 @@ export const SampleOrderModal: React.FC<SampleOrderModalProps> = ({
                       type="button"
                       onClick={handleSubmit}
                       disabled={!canSubmit || submitting}
-                      className="flex-1 flex items-center justify-center gap-2 py-3 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.2em] font-semibold rounded-sm hover:bg-tea-gold/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                      className="flex-1 flex items-center justify-center gap-2 py-3 bg-tea-gold text-tea-bg text-xs uppercase tracking-display font-semibold rounded-sm hover:bg-tea-gold/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
                     >
                       {submitting ? (
                         <span className="w-4 h-4 border-2 border-tea-bg/30 border-t-tea-bg rounded-full animate-spin" />
@@ -272,7 +272,7 @@ export const SampleOrderModal: React.FC<SampleOrderModalProps> = ({
                   <div className="flex flex-col gap-2">
                     <button
                       onClick={handleWhatsAppResend}
-                      className="w-full flex items-center justify-center gap-2 py-3 border border-tea-border text-tea-text-sec text-xs uppercase tracking-[0.15em] rounded-sm hover:bg-tea-surface transition-colors"
+                      className="w-full flex items-center justify-center gap-2 py-3 border border-tea-border text-tea-text-sec text-xs uppercase tracking-caps rounded-sm hover:bg-tea-surface transition-colors"
                     >
                       <MessageCircle size={14} />
                       Resend message

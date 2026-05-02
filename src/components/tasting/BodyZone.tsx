@@ -68,12 +68,12 @@ const BodyZoneInner: React.FC<BodyZoneProps> = ({ flow, value, onChange }) => {
       <div className="mb-4">
         <div className="mb-2">
           <div
-            className="text-ui-12 uppercase tracking-[0.12em] text-tea-text-dim font-medium"
+            className="text-ui-12 uppercase tracking-[0.12em] text-tea-text-sec font-semibold"
             style={{ fontFamily: 'var(--font-display)' }}
           >
             Weight
           </div>
-          <p className="text-ui-11 text-tea-text-sec mt-0.5" style={{ fontFamily: 'var(--font-body)' }}>
+          <p className="text-ui-13 text-tea-text-sec mt-0.5" style={{ fontFamily: 'var(--font-body)' }}>
             How heavy does the liquor feel sitting on your tongue?
           </p>
         </div>
@@ -108,12 +108,12 @@ const BodyZoneInner: React.FC<BodyZoneProps> = ({ flow, value, onChange }) => {
       <div>
         <div className="mb-2">
           <div
-            className="text-ui-12 uppercase tracking-[0.12em] text-tea-text-dim font-medium"
+            className="text-ui-12 uppercase tracking-[0.12em] text-tea-text-sec font-semibold"
             style={{ fontFamily: 'var(--font-display)' }}
           >
             Texture
           </div>
-          <p className="text-ui-11 text-tea-text-sec mt-0.5" style={{ fontFamily: 'var(--font-body)' }}>
+          <p className="text-ui-13 text-tea-text-sec mt-0.5" style={{ fontFamily: 'var(--font-body)' }}>
             What physical sensation moves through your mouth?
           </p>
         </div>
@@ -132,8 +132,8 @@ const BodyZoneInner: React.FC<BodyZoneProps> = ({ flow, value, onChange }) => {
                   if (!isSelected) setLastSelectedTexture(t.id);
                   else if (lastSelectedTexture === t.id) setLastSelectedTexture(null);
                 }}
-                className={`tag-selectable w-full justify-center ${isSelected ? 'tag-selectable-active' : ''}`}
-                style={{ fontFamily: 'var(--font-body)', fontSize: '13px' }}
+                className={`tag-selectable w-full justify-center text-ui-14 ${isSelected ? 'tag-selectable-active' : ''}`}
+                style={{ fontFamily: 'var(--font-body)' }}
                 aria-pressed={isSelected}
               >
                 {t.label}
@@ -149,7 +149,7 @@ const BodyZoneInner: React.FC<BodyZoneProps> = ({ flow, value, onChange }) => {
           className="overflow-hidden"
         >
           {lastHint && (
-            <p className="text-ui-12 text-tea-text-sec mt-2 px-0.5" style={{ fontFamily: 'var(--font-body)' }}>
+            <p className="text-ui-13 text-tea-text-sec mt-2 px-0.5" style={{ fontFamily: 'var(--font-body)' }}>
               {lastHint}
             </p>
           )}

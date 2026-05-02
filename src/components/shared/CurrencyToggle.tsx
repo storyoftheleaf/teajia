@@ -25,7 +25,7 @@ export const CurrencyToggle: React.FC<CurrencyToggleProps> = ({
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-1.5 px-2.5 py-1.5 text-ui-10 uppercase tracking-[0.15em] font-mono text-tea-text/70 bg-tea-gold/5 border border-tea-border rounded-sm hover:bg-tea-gold/10 transition-colors overflow-hidden"
+        className="flex items-center gap-1.5 px-2.5 py-1.5 text-ui-10 uppercase tracking-caps font-mono text-tea-text/70 bg-tea-gold/5 border border-tea-border rounded-sm hover:bg-tea-gold/10 transition-colors overflow-hidden"
       >
         {/* Flip animation on currency/unit change */}
         <AnimatePresence mode="wait">
@@ -58,7 +58,7 @@ export const CurrencyToggle: React.FC<CurrencyToggleProps> = ({
           >
             {/* Currency options */}
             <div className="border-b border-tea-border px-3 py-2">
-              <span className="text-ui-9 uppercase tracking-[0.15em] text-tea-text-sec">Currency</span>
+              <span className="text-ui-9 uppercase tracking-caps text-tea-text-sec">Currency</span>
             </div>
             {DISPLAY_CURRENCIES.map((c) => (
               <button
@@ -75,7 +75,7 @@ export const CurrencyToggle: React.FC<CurrencyToggleProps> = ({
 
             {/* Unit options */}
             <div className="border-t border-tea-border border-b border-tea-border px-3 py-2">
-              <span className="text-ui-9 uppercase tracking-[0.15em] text-tea-text-sec">Weight</span>
+              <span className="text-ui-9 uppercase tracking-caps text-tea-text-sec">Weight</span>
             </div>
             {(['g', 'oz'] as const).map((u) => (
               <button

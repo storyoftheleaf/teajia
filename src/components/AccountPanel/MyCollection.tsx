@@ -95,7 +95,7 @@ export const MyCollection: React.FC<MyCollectionProps> = ({ onBack, onViewItem }
       <div className="flex items-center justify-between mb-6">
         <div>
           <h3 className="font-serif text-lg text-tea-text">My Collection</h3>
-          <span className="text-ui-12 uppercase tracking-[0.15em] text-tea-text-sec">
+          <span className="text-ui-12 uppercase tracking-caps text-tea-text-sec">
             {favoriteItems.length} {favoriteItems.length === 1 ? 'tea' : 'teas'}
           </span>
         </div>
@@ -106,12 +106,12 @@ export const MyCollection: React.FC<MyCollectionProps> = ({ onBack, onViewItem }
           {copied ? (
             <>
               <Icons.Check className="w-3.5 h-3.5 text-green-600" />
-              <span className="text-ui-11 uppercase tracking-[0.15em] text-green-600 font-medium">Copied!</span>
+              <span className="text-ui-11 uppercase tracking-caps text-green-600 font-medium">Copied!</span>
             </>
           ) : (
             <>
               <Icons.Share className="w-3.5 h-3.5 text-tea-gold" />
-              <span className="text-ui-11 uppercase tracking-[0.15em] text-tea-gold font-medium">Share</span>
+              <span className="text-ui-11 uppercase tracking-caps text-tea-gold font-medium">Share</span>
             </>
           )}
         </button>

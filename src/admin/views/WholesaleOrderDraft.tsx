@@ -281,10 +281,10 @@ const CatalogPicker: React.FC<CatalogPickerProps> = ({
                   disabled={noSupplierListing}
                   className={`w-full text-left py-3 group ${noSupplierListing ? 'cursor-not-allowed opacity-60' : ''}`}
                 >
-                  <div className={`font-display text-ui-16 leading-[1.2] ${noSupplierListing ? 'text-tea-text-dim' : 'text-tea-text group-hover:text-tea-gold transition-colors'}`}>
+                  <div className={`font-display text-ui-16 leading-snug ${noSupplierListing ? 'text-tea-text-dim' : 'text-tea-text group-hover:text-tea-gold transition-colors'}`}>
                     {profile.name}
                   </div>
-                  <div className="font-body text-ui-12 text-tea-text-sec mt-0.5 leading-[1.4]">
+                  <div className="font-body text-ui-12 text-tea-text-sec mt-0.5 leading-normal">
                     {joinParts(profile.origin_region || profile.origin_country, profile.chinese_name, profile.varietal)}
                     {profile.wholesale_price_per_gram_caller != null ? (
                       <span className="font-mono ml-2 text-ui-11">
@@ -704,7 +704,7 @@ export const WholesaleOrderDraft: React.FC = () => {
   if (!hasSell) {
     return (
       <div className="px-4 md:px-8 pt-10 pb-nav-gap max-w-[640px] mx-auto">
-        <p className="font-body italic text-ui-15 text-tea-text-sec leading-[1.7]">
+        <p className="font-body italic text-ui-15 text-tea-text-sec leading-reading">
           This page requires the Sell bundle. Ask your owner.
         </p>
       </div>
@@ -722,7 +722,7 @@ export const WholesaleOrderDraft: React.FC = () => {
   if (loadError) {
     return (
       <div className="px-4 md:px-8 pt-10 pb-nav-gap max-w-[640px] mx-auto">
-        <p className="font-body italic text-ui-15 text-tea-text-sec leading-[1.7]">
+        <p className="font-body italic text-ui-15 text-tea-text-sec leading-reading">
           Order not found or not yours.
         </p>
       </div>
@@ -756,7 +756,7 @@ export const WholesaleOrderDraft: React.FC = () => {
       {/* Supplier's reply note — shown when status is 'replied' */}
       {orderStatus === 'replied' && orderDetail?.order.supplier_notes && (
         <div className="mb-6 border-b border-tea-border pb-6">
-          <p className="font-body italic text-ui-15 text-tea-text-sec leading-[1.7]">
+          <p className="font-body italic text-ui-15 text-tea-text-sec leading-reading">
             {supplierName ?? 'Adrian'} replied:{' '}
             &ldquo;{orderDetail.order.supplier_notes}&rdquo;
           </p>
@@ -807,7 +807,7 @@ export const WholesaleOrderDraft: React.FC = () => {
 
       <section className="mb-8">
         {items.length === 0 && (
-          <p className="font-body italic text-ui-15 text-tea-text-sec leading-[1.7] py-6 border-t border-b border-tea-border">
+          <p className="font-body italic text-ui-15 text-tea-text-sec leading-reading py-6 border-t border-b border-tea-border">
             No teas added yet.
           </p>
         )}
@@ -866,11 +866,11 @@ export const WholesaleOrderDraft: React.FC = () => {
               rows={4}
               placeholder="Your delivery address"
               aria-label="Shipping address"
-              className="w-full bg-transparent border-b border-tea-border focus:border-tea-gold outline-none text-tea-text font-body text-ui-14 leading-[1.7] py-1 resize-none transition-colors placeholder:italic placeholder:text-tea-text-sec"
+              className="w-full bg-transparent border-b border-tea-border focus:border-tea-gold outline-none text-tea-text font-body text-ui-14 leading-reading py-1 resize-none transition-colors placeholder:italic placeholder:text-tea-text-sec"
             />
           </>
         ) : (
-          <p className="font-body text-ui-14 text-tea-text leading-[1.7] whitespace-pre-wrap">
+          <p className="font-body text-ui-14 text-tea-text leading-reading whitespace-pre-wrap">
             {shippingAddress || (
               <span className="italic text-tea-text-sec">No address provided.</span>
             )}
@@ -892,11 +892,11 @@ export const WholesaleOrderDraft: React.FC = () => {
             rows={5}
             placeholder="Anything Adrian should know? Timing, packaging, sample requests."
             aria-label="Note to supplier"
-            className="w-full bg-transparent border-b border-tea-border focus:border-tea-gold outline-none text-tea-text font-body italic text-ui-15 leading-[1.7] py-1 resize-none transition-colors placeholder:text-tea-text-sec"
+            className="w-full bg-transparent border-b border-tea-border focus:border-tea-gold outline-none text-tea-text font-body italic text-ui-15 leading-reading py-1 resize-none transition-colors placeholder:text-tea-text-sec"
           />
         ) : (
           buyerNotes ? (
-            <p className="font-body italic text-ui-15 text-tea-text leading-[1.7]">
+            <p className="font-body italic text-ui-15 text-tea-text leading-reading">
               &ldquo;{buyerNotes}&rdquo;
             </p>
           ) : (

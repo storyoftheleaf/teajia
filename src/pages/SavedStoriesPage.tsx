@@ -29,7 +29,7 @@ export default function SavedStoriesPage() {
         className="flex items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors mb-8"
       >
         <Icons.Back className="w-4 h-4" />
-        <span className="text-xs uppercase tracking-[0.15em]">Back</span>
+        <span className="text-xs uppercase tracking-caps">Back</span>
       </button>
 
       <h1 className="font-display text-3xl text-tea-text mb-1">Saved Stories</h1>

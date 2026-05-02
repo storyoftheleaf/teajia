@@ -298,7 +298,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
               />
               {!collapsed && (
                 <span
-                  className="text-ui-16 text-tea-text tracking-[0.1em] transition-colors duration-200"
+                  className="text-ui-16 text-tea-text tracking-widest transition-colors duration-200"
                   style={{ fontFamily: 'var(--font-display)', fontWeight: 300 }}
                 >
                   Teajia

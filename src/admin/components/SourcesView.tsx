@@ -203,7 +203,7 @@ const CollapsibleSection = ({ title, defaultOpen = true, children }: {
   return (
     <div className="mx-3 mb-2 rounded-lg bg-tea-surface">
       <button onClick={() => setOpen(!open)} className="w-full flex items-center justify-between px-4 py-3 group">
-        <span className="text-ui-12 text-tea-gold uppercase tracking-[0.15em] font-bold">{title}</span>
+        <span className="text-ui-12 text-tea-gold uppercase tracking-caps font-bold">{title}</span>
         <ChevronRight size={14} className={`text-tea-text-dim transition-transform duration-200 ${open ? 'rotate-90' : ''}`} />
       </button>
       {open && <div className="px-4 pb-4">{children}</div>}
@@ -676,7 +676,7 @@ export const SourcesView = () => {
               headerSlot={
                 <div className="flex items-center gap-2 shrink-0">
                   <Leaf size={16} className="text-tea-gold" />
-                  <h2 className="text-sm font-serif text-tea-text uppercase tracking-[0.15em]">
+                  <h2 className="text-sm font-serif text-tea-text uppercase tracking-caps">
                     {source.name}
                   </h2>
                   <span className="text-tea-text-sec text-xs tracking-wide">
@@ -753,7 +753,7 @@ export const SourcesView = () => {
               setSortConfig(view.sortConfig);
               setGroupBy(view.groupBy);
             }}
-            className={`flex items-center gap-1.5 px-3 py-1 text-ui-10 uppercase tracking-[0.15em] rounded-md whitespace-nowrap transition-colors ${
+            className={`flex items-center gap-1.5 px-3 py-1 text-ui-10 uppercase tracking-caps rounded-md whitespace-nowrap transition-colors ${
               activeViewId === view.id
                 ? 'bg-tea-gold/15 text-tea-gold border border-tea-accent-sub'
                 : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface border border-transparent'
@@ -797,7 +797,7 @@ export const SourcesView = () => {
         ) : (
           <button
             onClick={() => setShowSaveViewPrompt(true)}
-            className="flex items-center gap-1 px-2 py-1 text-ui-10 text-tea-text-sec/50 hover:text-tea-text-sec uppercase tracking-[0.15em] transition-colors"
+            className="flex items-center gap-1 px-2 py-1 text-ui-10 text-tea-text-sec/50 hover:text-tea-text-sec uppercase tracking-caps transition-colors"
           >
             <Save size={10} /> Save View
           </button>
@@ -887,7 +887,7 @@ export const SourcesView = () => {
                 <div className="fixed inset-0 z-40" onClick={() => setShowOptions(false)} />
                 <div className="absolute right-0 top-9 w-48 bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-50 py-1 max-h-[calc(100dvh-100px)] overflow-y-auto">
                   {/* Saved views */}
-                  <div className="px-3 py-1.5 text-ui-9 text-tea-text-sec/60 uppercase tracking-[0.2em]">Views</div>
+                  <div className="px-3 py-1.5 text-ui-9 text-tea-text-sec/60 uppercase tracking-display">Views</div>
                   {savedViews.map(view => (
                     <button
                       key={view.id}
@@ -927,7 +927,7 @@ export const SourcesView = () => {
         <div className="px-6 max-w-5xl mx-auto flex items-center gap-4">
           <div className="flex items-center gap-2 shrink-0">
             <Users size={16} className={isEditMode ? "text-tea-text-sec" : "text-tea-gold"} />
-            <h2 className="text-sm font-serif text-tea-text uppercase tracking-[0.15em]">
+            <h2 className="text-sm font-serif text-tea-text uppercase tracking-caps">
               {isEditMode ? 'Editing' : 'Sources'}
             </h2>
             <span className="text-tea-text-sec text-xs tracking-wide">
@@ -953,7 +953,7 @@ export const SourcesView = () => {
               {/* Toggle Edit Mode */}
               <button
                 onClick={() => setIsEditMode(!isEditMode)}
-                className={`flex items-center gap-2 text-xs uppercase tracking-[0.2em] font-bold transition-all px-3 py-1.5 border rounded-lg ${
+                className={`flex items-center gap-2 text-xs uppercase tracking-display font-bold transition-all px-3 py-1.5 border rounded-lg ${
                   isEditMode
                     ? 'bg-tea-gold text-tea-bg border-tea-gold hover:bg-tea-gold/90'
                     : 'text-tea-text-sec border-transparent hover:border-tea-border hover:text-tea-text'
@@ -967,7 +967,7 @@ export const SourcesView = () => {
 
               <button
                 onClick={() => { setEditingSource(null); setIsModalOpen(true); }}
-                className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] font-bold text-tea-text-sec hover:text-tea-text transition-colors px-3 py-1.5 border border-transparent hover:border-tea-border rounded-lg"
+                className="flex items-center gap-2 text-xs uppercase tracking-display font-bold text-tea-text-sec hover:text-tea-text transition-colors px-3 py-1.5 border border-transparent hover:border-tea-border rounded-lg"
               >
                 <Plus size={14} /> New
               </button>
@@ -988,7 +988,7 @@ export const SourcesView = () => {
                   <>
                     <div className="fixed inset-0 z-40" onClick={() => setShowColumnsPopover(false)} />
                     <div className="absolute right-0 top-full mt-2 w-44 bg-tea-surface border border-tea-border shadow-xl rounded-xl z-50 py-2">
-                      <div className="px-3 pb-1.5 text-ui-9 text-tea-text-sec/60 uppercase tracking-[0.2em]">Visible Columns</div>
+                      <div className="px-3 pb-1.5 text-ui-9 text-tea-text-sec/60 uppercase tracking-display">Visible Columns</div>
                       {SOURCE_COLUMN_DEFS.map(col => (
                         <label key={col.key} className={`flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-tea-bg transition-colors cursor-pointer ${'alwaysVisible' in col && col.alwaysVisible ? 'opacity-50 cursor-not-allowed' : ''}`}>
                           <input
@@ -1141,13 +1141,13 @@ export const SourcesView = () => {
                       <div className="ml-auto flex items-center gap-2">
                         <button
                           onClick={() => { setEditingSource(source); setIsModalOpen(true); }}
-                          className="flex items-center gap-1.5 px-3 py-1.5 text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec hover:text-tea-text bg-tea-bg/60 hover:bg-tea-bg rounded-md transition-colors"
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-ui-10 uppercase tracking-caps text-tea-text-sec hover:text-tea-text bg-tea-bg/60 hover:bg-tea-bg rounded-md transition-colors"
                         >
                           <Pencil size={12} /> Edit
                         </button>
                         <button
                           onClick={() => handleDelete(source)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec hover:text-red-400 bg-tea-bg/60 hover:bg-tea-bg rounded-md transition-colors"
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-ui-10 uppercase tracking-caps text-tea-text-sec hover:text-red-400 bg-tea-bg/60 hover:bg-tea-bg rounded-md transition-colors"
                         >
                           <Trash2 size={12} /> Delete
                         </button>
@@ -1224,7 +1224,7 @@ export const SourcesView = () => {
                     >
                       {isCollapsed ? <ChevronRight size={14} className="text-tea-text-sec" /> : <ChevronDown size={14} className="text-tea-text-sec" />}
                       <span className="text-sm font-serif text-tea-text">{groupKey}</span>
-                      <span className="text-ui-10 text-tea-text-sec uppercase tracking-[0.15em]">{items.length} source{items.length !== 1 ? 's' : ''}</span>
+                      <span className="text-ui-10 text-tea-text-sec uppercase tracking-caps">{items.length} source{items.length !== 1 ? 's' : ''}</span>
                       <span className="text-ui-10 text-tea-text-sec tabular-nums ml-auto">{totalTeas} tea{totalTeas !== 1 ? 's' : ''} total</span>
                     </button>
                     {!isCollapsed && (
@@ -1320,7 +1320,7 @@ export const SourcesView = () => {
               <CollapsibleSection title="Details">
                 <div className="space-y-3">
                   <div>
-                    <label className="text-ui-10 text-tea-text-sec uppercase tracking-[0.15em] block mb-1">Name</label>
+                    <label className="text-ui-10 text-tea-text-sec uppercase tracking-caps block mb-1">Name</label>
                     <GhostInput
                       value={panelSource.name}
                       onSave={(val) => handleSourceUpdate(panelSource.id, 'name', val)}
@@ -1328,7 +1328,7 @@ export const SourcesView = () => {
                     />
                   </div>
                   <div>
-                    <label className="text-ui-10 text-tea-text-sec uppercase tracking-[0.15em] block mb-1">Company</label>
+                    <label className="text-ui-10 text-tea-text-sec uppercase tracking-caps block mb-1">Company</label>
                     <GhostInput
                       value={panelSource.company || ''}
                       onSave={(val) => handleSourceUpdate(panelSource.id, 'company', val)}
@@ -1337,7 +1337,7 @@ export const SourcesView = () => {
                     />
                   </div>
                   <div>
-                    <label className="text-ui-10 text-tea-text-sec uppercase tracking-[0.15em] block mb-1">Country</label>
+                    <label className="text-ui-10 text-tea-text-sec uppercase tracking-caps block mb-1">Country</label>
                     <GhostInput
                       value={panelSource.country || ''}
                       onSave={(val) => handleSourceUpdate(panelSource.id, 'country', val)}
@@ -1347,7 +1347,7 @@ export const SourcesView = () => {
                   </div>
                   {panelSource.notes && (
                     <div>
-                      <label className="text-ui-10 text-tea-text-sec uppercase tracking-[0.15em] block mb-1">Notes</label>
+                      <label className="text-ui-10 text-tea-text-sec uppercase tracking-caps block mb-1">Notes</label>
                       <p className="text-xs text-tea-text-sec/70 font-serif italic leading-relaxed whitespace-pre-line">{panelSource.notes}</p>
                     </div>
                   )}
@@ -1358,7 +1358,7 @@ export const SourcesView = () => {
               <CollapsibleSection title="Contact">
                 <div className="space-y-3">
                   <div>
-                    <label className="text-ui-10 text-tea-text-sec uppercase tracking-[0.15em] block mb-1">Email</label>
+                    <label className="text-ui-10 text-tea-text-sec uppercase tracking-caps block mb-1">Email</label>
                     <GhostInput
                       value={panelSource.email || ''}
                       onSave={(val) => handleSourceUpdate(panelSource.id, 'email', val)}
@@ -1368,7 +1368,7 @@ export const SourcesView = () => {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-ui-10 text-tea-text-sec uppercase tracking-[0.15em] block mb-1">Phone</label>
+                      <label className="text-ui-10 text-tea-text-sec uppercase tracking-caps block mb-1">Phone</label>
                       <GhostInput
                         value={panelSource.phone || ''}
                         onSave={(val) => handleSourceUpdate(panelSource.id, 'phone', val)}
@@ -1377,7 +1377,7 @@ export const SourcesView = () => {
                       />
                     </div>
                     <div>
-                      <label className="text-ui-10 text-tea-text-sec uppercase tracking-[0.15em] block mb-1">WhatsApp</label>
+                      <label className="text-ui-10 text-tea-text-sec uppercase tracking-caps block mb-1">WhatsApp</label>
                       <GhostInput
                         value={panelSource.whatsapp || ''}
                         onSave={(val) => handleSourceUpdate(panelSource.id, 'whatsapp', val)}
@@ -2091,13 +2091,13 @@ export const SourcesView = () => {
             <div className="px-5 py-3 border-t border-tea-accent-sub bg-tea-surface/30 flex items-center justify-between">
               <button
                 onClick={() => { setEditingSource(panelSource); setIsModalOpen(true); }}
-                className="flex items-center gap-1.5 text-ui-10 text-tea-text-sec hover:text-tea-text uppercase tracking-[0.2em] transition-colors"
+                className="flex items-center gap-1.5 text-ui-10 text-tea-text-sec hover:text-tea-text uppercase tracking-display transition-colors"
               >
                 <Edit3 size={11} /> Full Edit
               </button>
               <button
                 onClick={() => handleDelete(panelSource)}
-                className="flex items-center gap-1.5 text-ui-10 text-tea-text-sec hover:text-red-400 uppercase tracking-[0.2em] transition-colors"
+                className="flex items-center gap-1.5 text-ui-10 text-tea-text-sec hover:text-red-400 uppercase tracking-display transition-colors"
               >
                 <Trash2 size={11} /> Delete
               </button>

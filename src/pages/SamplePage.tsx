@@ -195,7 +195,7 @@ const SamplePage: React.FC = () => {
         <Leaf className="w-12 h-12 text-tea-text-dim mb-4" />
         <h1 className="text-xl font-serif mb-2">Sample not found</h1>
         <p className="text-tea-text-sec text-sm mb-6">This QR code may have expired or the sample was removed.</p>
-        <button onClick={() => navigate('/')} className="px-6 py-2 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.2em]">
+        <button onClick={() => navigate('/')} className="px-6 py-2 bg-tea-gold text-tea-bg text-xs uppercase tracking-display">
           Go Home
         </button>
       </div>
@@ -215,7 +215,7 @@ const SamplePage: React.FC = () => {
             <ChevronLeft size={24} />
           </button>
           <div className="flex-1 min-w-0 ml-2">
-            <p className="text-xs uppercase tracking-[0.15em] text-tea-text-dim">Tea Sample</p>
+            <p className="text-xs uppercase tracking-caps text-tea-text-dim">Tea Sample</p>
           </div>
           {isAdmin && (
             <button
@@ -252,7 +252,7 @@ const SamplePage: React.FC = () => {
 
           <div className="flex flex-wrap items-center gap-2 mt-3">
             {sample.type && (
-              <span className="px-3 py-1 text-xs uppercase tracking-[0.1em] rounded-full bg-tea-gold/10 text-tea-gold font-medium">
+              <span className="px-3 py-1 text-xs uppercase tracking-widest rounded-full bg-tea-gold/10 text-tea-gold font-medium">
                 {sample.type}
               </span>
             )}
@@ -315,7 +315,7 @@ const SamplePage: React.FC = () => {
             className="bg-tea-surface rounded-lg p-4 space-y-3"
           >
             <div>
-              <p className="text-xs uppercase tracking-[0.1em] text-tea-text-dim mb-1">Source</p>
+              <p className="text-xs uppercase tracking-widest text-tea-text-dim mb-1">Source</p>
               <p className="font-serif text-tea-text">{sample.sourceName}</p>
             </div>
 
@@ -357,7 +357,7 @@ const SamplePage: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.25 }}
           >
-            <p className="text-xs uppercase tracking-[0.1em] text-tea-text-dim mb-2">Status</p>
+            <p className="text-xs uppercase tracking-widest text-tea-text-dim mb-2">Status</p>
             <div className="flex flex-wrap gap-1.5" role="group" aria-label="Status selector">
               {STATUS_FLOW.map((s) => {
                 const cfg = SAMPLE_STATUS_CONFIG[s];
@@ -387,7 +387,7 @@ const SamplePage: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
           >
-            <p className="text-xs uppercase tracking-[0.1em] text-tea-text-dim mb-2">Notes</p>
+            <p className="text-xs uppercase tracking-widest text-tea-text-dim mb-2">Notes</p>
             {editing ? (
               <textarea
                 value={editNotes}
@@ -411,7 +411,7 @@ const SamplePage: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.35 }}
           >
-            <p className="text-xs uppercase tracking-[0.1em] text-tea-text-dim mb-3">
+            <p className="text-xs uppercase tracking-widest text-tea-text-dim mb-3">
               Tastings ({sample.tastings.length})
             </p>
             <div className="space-y-2">
@@ -494,7 +494,7 @@ const SamplePage: React.FC = () => {
           >
             <button
               onClick={handleOrderInquiry}
-              className="w-full flex items-center justify-center gap-2 py-3 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.2em] font-bold rounded-lg hover:bg-tea-gold/90 transition-colors"
+              className="w-full flex items-center justify-center gap-2 py-3 bg-tea-gold text-tea-bg text-xs uppercase tracking-display font-bold rounded-lg hover:bg-tea-gold/90 transition-colors"
             >
               <ShoppingCart size={16} />
               I'd like to order this
@@ -524,7 +524,7 @@ const SamplePage: React.FC = () => {
           >
             <button
               onClick={() => navigate(`/admin/compass?tab=sourcing&fromSample=${sample.id}`)}
-              className="w-full flex items-center justify-center gap-2 py-3 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.2em] font-bold rounded-lg hover:bg-tea-gold/90 transition-colors"
+              className="w-full flex items-center justify-center gap-2 py-3 bg-tea-gold text-tea-bg text-xs uppercase tracking-display font-bold rounded-lg hover:bg-tea-gold/90 transition-colors"
             >
               <ExternalLink size={16} />
               Promote to Tea Compass

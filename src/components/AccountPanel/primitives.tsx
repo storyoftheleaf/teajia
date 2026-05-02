@@ -115,7 +115,7 @@ export const NeedsAttention: React.FC<{ items: AttentionItem[] }> = ({ items }) 
             {item.label}
           </span>
           {item.meta && (
-            <span className="text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec shrink-0">
+            <span className="text-ui-11 uppercase tracking-caps text-tea-text-sec shrink-0">
               {item.meta}
             </span>
           )}

@@ -186,7 +186,7 @@ const CanonicalDrawer: React.FC<CanonicalDrawerProps> = ({ profile, onClose }) =
           </button>
           <h2 className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text`}>{profile.name}</h2>
           {profile.curated_by_name && (
-            <p className="text-tea-text-sec text-ui-11 tracking-[0.04em] mt-1">
+            <p className="text-tea-text-sec text-ui-11 tracking-wider mt-1">
               Sourced from Teajia · curated by {profile.curated_by_name}
             </p>
           )}
@@ -235,10 +235,10 @@ const CanonicalDrawer: React.FC<CanonicalDrawerProps> = ({ profile, onClose }) =
             if (field === 'image_url') return null; // shown via photos block above
             return (
               <div key={field} className="mb-5">
-                <p className="text-ui-11 uppercase tracking-[0.1em] text-tea-text-dim mb-1">
+                <p className="text-ui-11 uppercase tracking-widest text-tea-text-dim mb-1">
                   {FIELD_LABELS[field]}
                 </p>
-                <p className="font-body text-ui-15 leading-[1.7] text-tea-text whitespace-pre-wrap">
+                <p className="font-body text-ui-15 leading-reading text-tea-text whitespace-pre-wrap">
                   {val}
                 </p>
               </div>
@@ -306,7 +306,7 @@ const CanonicalField: React.FC<CanonicalFieldProps> = ({
   return (
     <div className="group relative">
       <div className="flex items-start gap-2 mb-1">
-        <p className="text-ui-11 uppercase tracking-[0.1em] text-tea-text-dim leading-[1.6]">
+        <p className="text-ui-11 uppercase tracking-widest text-tea-text-dim leading-[1.6]">
           {FIELD_LABELS[field]}
         </p>
         {hasPending && (
@@ -323,7 +323,7 @@ const CanonicalField: React.FC<CanonicalFieldProps> = ({
             onBlur={handleBlur}
             onKeyDown={handleKeyDown}
             rows={5}
-            className="w-full bg-transparent font-body text-ui-15 leading-[1.7] text-tea-text resize-none outline-none border-b border-tea-border focus:border-tea-gold/60 transition-colors py-1"
+            className="w-full bg-transparent font-body text-ui-15 leading-reading text-tea-text resize-none outline-none border-b border-tea-border focus:border-tea-gold/60 transition-colors py-1"
             style={{ boxShadow: 'inset 0 -1px 0 var(--tea-border)' }}
           />
         ) : (
@@ -334,7 +334,7 @@ const CanonicalField: React.FC<CanonicalFieldProps> = ({
             onChange={e => handleChange(e.target.value)}
             onBlur={handleBlur}
             onKeyDown={handleKeyDown}
-            className="w-full bg-transparent font-body text-ui-15 leading-[1.7] text-tea-text outline-none border-b border-tea-border focus:border-tea-gold/60 transition-colors py-1"
+            className="w-full bg-transparent font-body text-ui-15 leading-reading text-tea-text outline-none border-b border-tea-border focus:border-tea-gold/60 transition-colors py-1"
             style={{ boxShadow: 'inset 0 -1px 0 var(--tea-border)' }}
           />
         )
@@ -346,12 +346,12 @@ const CanonicalField: React.FC<CanonicalFieldProps> = ({
           title={`Edit ${FIELD_LABELS[field]}`}
         >
           {isEmpty ? (
-            <span className="font-body text-ui-15 leading-[1.7] italic text-tea-text-dim group-hover/btn:text-tea-text-sec transition-colors">
+            <span className="font-body text-ui-15 leading-reading italic text-tea-text-dim group-hover/btn:text-tea-text-sec transition-colors">
               Add a {FIELD_LABELS[field].toLowerCase()}
             </span>
           ) : (
             <span
-              className={`font-body text-ui-15 leading-[1.7] text-tea-text whitespace-pre-wrap text-left block
+              className={`font-body text-ui-15 leading-reading text-tea-text whitespace-pre-wrap text-left block
                 group-hover/btn:underline group-hover/btn:decoration-tea-gold/30 group-hover/btn:cursor-text transition-colors
                 ${hasPending ? 'underline decoration-tea-gold/40' : ''}`}
             >
@@ -542,7 +542,7 @@ const ListingFields: React.FC<ListingFieldsProps> = ({ listing, profile, callerC
           onChange={e => setStoreNote(e.target.value)}
           rows={4}
           placeholder="Your voice on this tea. Shown above the curator's description on your storefront."
-          className="w-full bg-transparent border border-tea-border focus:border-tea-gold/40 outline-none font-body text-ui-15 leading-[1.7] text-tea-text px-3 py-2 rounded-[2px] resize-none transition-colors placeholder:text-tea-text-dim placeholder:italic"
+          className="w-full bg-transparent border border-tea-border focus:border-tea-gold/40 outline-none font-body text-ui-15 leading-reading text-tea-text px-3 py-2 rounded-[2px] resize-none transition-colors placeholder:text-tea-text-dim placeholder:italic"
         />
         <div className="flex items-center justify-between mt-1">
           <p className="text-tea-text-dim italic text-ui-12 leading-[1.6]">
@@ -627,7 +627,7 @@ const NetworkAdoptionBlock: React.FC<NetworkAdoptionBlockProps> = ({
   if (decision === 'adopted' || curatorIsPlatform) {
     return (
       <div className="mb-8">
-        <p className="font-body italic text-ui-14 text-tea-text-sec leading-[1.7]">
+        <p className="font-body italic text-ui-14 text-tea-text-sec leading-reading">
           {curatorIsPlatform
             ? "This tea is in the Teajia network catalog. You're credited as the originator."
             : 'Adopted into the Teajia network. You stay attributed as the originator.'}
@@ -640,7 +640,7 @@ const NetworkAdoptionBlock: React.FC<NetworkAdoptionBlockProps> = ({
   if (decision === 'pending') {
     return (
       <div className="mb-8">
-        <p className="font-body italic text-ui-14 text-tea-text-sec leading-[1.7]">
+        <p className="font-body italic text-ui-14 text-tea-text-sec leading-reading">
           Suggested for the Teajia network on{' '}
           {suggestedAt ? new Date(suggestedAt).toLocaleDateString(undefined, { day: 'numeric', month: 'long' }) : 'recently'}.
           Awaiting Adrian's review.
@@ -654,7 +654,7 @@ const NetworkAdoptionBlock: React.FC<NetworkAdoptionBlockProps> = ({
     return (
       <div className="mb-8">
         {declineNote && (
-          <p className="font-body italic text-ui-14 text-tea-text-sec leading-[1.7] mb-2">
+          <p className="font-body italic text-ui-14 text-tea-text-sec leading-reading mb-2">
             Adrian declined: "{declineNote}"
           </p>
         )}
@@ -732,7 +732,7 @@ interface SuggestFormProps {
 
 const SuggestForm: React.FC<SuggestFormProps> = ({ note, setNote, busy, error, onCancel, onSubmit }) => (
   <div className="space-y-3">
-    <p className="font-body italic text-ui-14 text-tea-text-sec leading-[1.7]">
+    <p className="font-body italic text-ui-14 text-tea-text-sec leading-reading">
       Adrian reviews suggestions on his time. If adopted, this tea becomes
       visible in every partner's catalog browse, with you credited as the originator.
     </p>
@@ -931,7 +931,7 @@ export const PartnerListingEdit: React.FC = () => {
   if (!hasCatalog) {
     return (
       <div className="px-4 md:px-8 pt-10 pb-nav-gap max-w-2xl mx-auto">
-        <p className="font-body italic text-ui-15 text-tea-text-sec leading-[1.7]">
+        <p className="font-body italic text-ui-15 text-tea-text-sec leading-reading">
           This page requires the Catalog bundle. Ask your owner.
         </p>
       </div>
@@ -943,7 +943,7 @@ export const PartnerListingEdit: React.FC = () => {
   if (notFound || !listing || !profile) {
     return (
       <div className="px-4 md:px-8 pt-10 pb-nav-gap max-w-2xl mx-auto">
-        <p className="font-body italic text-ui-15 text-tea-text-sec leading-[1.7]">
+        <p className="font-body italic text-ui-15 text-tea-text-sec leading-reading">
           This listing doesn't exist or isn't yours.
         </p>
       </div>
@@ -953,7 +953,7 @@ export const PartnerListingEdit: React.FC = () => {
   if (fetchError) {
     return (
       <div className="px-4 md:px-8 pt-10 pb-nav-gap max-w-2xl mx-auto">
-        <p className="font-body italic text-ui-15 text-tea-text-sec leading-[1.7]">
+        <p className="font-body italic text-ui-15 text-tea-text-sec leading-reading">
           {fetchError}
         </p>
         <button
@@ -994,7 +994,7 @@ export const PartnerListingEdit: React.FC = () => {
 
         {/* Attribution */}
         {profile.curated_by_name && (
-          <p className="text-ui-11 text-tea-text-dim tracking-[0.04em] mt-1">
+          <p className="text-ui-11 text-tea-text-dim tracking-wider mt-1">
             Sourced from Teajia · curated by {profile.curated_by_name}
           </p>
         )}
@@ -1026,7 +1026,7 @@ export const PartnerListingEdit: React.FC = () => {
       {/* ── Curator notice — hides suggestion machinery ─────────────────────── */}
       {isCurator && (
         <div className="mb-8">
-          <p className="font-body italic text-ui-14 text-tea-text-sec leading-[1.7]">
+          <p className="font-body italic text-ui-14 text-tea-text-sec leading-reading">
             You curate this tea — edit it directly in your inventory.{' '}
             <button
               type="button"
@@ -1060,7 +1060,7 @@ export const PartnerListingEdit: React.FC = () => {
 
       {/* ── Listing-owned section ─────────────────────────────────────────── */}
       <section className="mb-10">
-        <p className="text-ui-11 uppercase tracking-[0.1em] text-tea-text-dim mb-6">
+        <p className="text-ui-11 uppercase tracking-widest text-tea-text-dim mb-6">
           Your listing
         </p>
         <ListingFields listing={listing} profile={profile} callerCurrency={callerCurrency} callerRateToUsd={callerRateToUsd} />
@@ -1073,7 +1073,7 @@ export const PartnerListingEdit: React.FC = () => {
       {!isCurator && (
         <section className="mb-10">
           <div className="flex items-baseline justify-between mb-1">
-            <p className="text-ui-11 uppercase tracking-[0.1em] text-tea-text-dim">
+            <p className="text-ui-11 uppercase tracking-widest text-tea-text-dim">
               {profile.curated_by_name ? `${profile.curated_by_name}'s record` : 'Curator\'s record'}
             </p>
             {!hasEdits && (
@@ -1090,7 +1090,7 @@ export const PartnerListingEdit: React.FC = () => {
           {/* Canonical image */}
           {profile.image_url && (
             <div className="mb-6">
-              <p className="text-ui-11 uppercase tracking-[0.1em] text-tea-text-dim mb-1">
+              <p className="text-ui-11 uppercase tracking-widest text-tea-text-dim mb-1">
                 {FIELD_LABELS['image_url']}
               </p>
               <CanonicalField
@@ -1187,7 +1187,7 @@ export const PartnerListingEdit: React.FC = () => {
                 type="button"
                 onClick={handleSubmitEdits}
                 disabled={submitBusy}
-                className="text-tea-text hover:text-tea-gold transition-colors font-display text-ui-15 tracking-[0.04em] disabled:text-tea-text-dim disabled:cursor-not-allowed group"
+                className="text-tea-text hover:text-tea-gold transition-colors font-display text-ui-15 tracking-wider disabled:text-tea-text-dim disabled:cursor-not-allowed group"
               >
                 {submitBusy ? 'Sending…' : 'Save proposed edits'}{' '}
                 {!submitBusy && (

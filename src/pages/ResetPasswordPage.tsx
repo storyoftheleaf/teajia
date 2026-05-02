@@ -56,7 +56,7 @@ const ResetPasswordPage: React.FC = () => {
           </p>
           <button
             onClick={() => navigate('/')}
-            className="px-6 py-3 bg-tea-gold text-tea-text text-xs uppercase tracking-[0.2em] font-bold hover:bg-tea-gold/90 transition-colors"
+            className="px-6 py-3 bg-tea-gold text-tea-text text-xs uppercase tracking-display font-bold hover:bg-tea-gold/90 transition-colors"
           >
             Go Home
           </button>
@@ -78,7 +78,7 @@ const ResetPasswordPage: React.FC = () => {
           </p>
           <button
             onClick={() => navigate('/')}
-            className="px-6 py-3 bg-tea-gold text-tea-text text-xs uppercase tracking-[0.2em] font-bold hover:bg-tea-gold/90 transition-colors"
+            className="px-6 py-3 bg-tea-gold text-tea-text text-xs uppercase tracking-display font-bold hover:bg-tea-gold/90 transition-colors"
           >
             Go to Sign In
           </button>
@@ -98,7 +98,7 @@ const ResetPasswordPage: React.FC = () => {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-ui-10 font-bold uppercase tracking-[0.2em] text-tea-text-sec mb-2">New Password</label>
+            <label className="block text-ui-10 font-bold uppercase tracking-display text-tea-text-sec mb-2">New Password</label>
             <input
               type="password"
               value={newPassword}
@@ -110,7 +110,7 @@ const ResetPasswordPage: React.FC = () => {
             />
           </div>
           <div>
-            <label className="block text-ui-10 font-bold uppercase tracking-[0.2em] text-tea-text-sec mb-2">Confirm New Password</label>
+            <label className="block text-ui-10 font-bold uppercase tracking-display text-tea-text-sec mb-2">Confirm New Password</label>
             <input
               type="password"
               value={confirmPassword}
@@ -130,7 +130,7 @@ const ResetPasswordPage: React.FC = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3.5 bg-tea-gold text-tea-text font-bold text-xs uppercase tracking-[0.2em] hover:bg-tea-gold/90 transition-colors disabled:opacity-50 flex justify-center items-center gap-2 mt-2"
+            className="w-full py-3.5 bg-tea-gold text-tea-text font-bold text-xs uppercase tracking-display hover:bg-tea-gold/90 transition-colors disabled:opacity-50 flex justify-center items-center gap-2 mt-2"
           >
             {loading ? (
               <div className="w-4 h-4 border-2 border-tea-border border-t-tea-text-sec rounded-full animate-spin" />

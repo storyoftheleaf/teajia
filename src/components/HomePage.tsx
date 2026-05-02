@@ -202,19 +202,19 @@ const CharacterRevealCapture: React.FC = () => {
           <div className="flex items-end justify-center gap-5 md:gap-8">
             <div className="flex flex-col items-center" style={{ opacity: leftP, transform: `translateX(${(1 - leftP) * -60}px)` }}>
               <span className="text-[48px] sm:text-[69px] leading-none" style={{ fontFamily: "'Ma Shan Zheng', cursive", color: 'var(--tea-gold)' }}>佳</span>
-              <p className="flex flex-col items-center text-ui-14 md:text-ui-15 tracking-[0.04em] font-light mt-3 leading-[1.4] text-tea-text-sec" style={{ fontFamily: 'var(--font-display)' }}>
+              <p className="flex flex-col items-center text-ui-14 md:text-ui-15 tracking-wider font-light mt-3 leading-normal text-tea-text-sec" style={{ fontFamily: 'var(--font-display)' }}>
                 <span>beauty</span><span>excellence</span>
               </p>
             </div>
             <div className="flex flex-col items-center" style={{ opacity: centerP, transform: `scale(${centerP})` }}>
               <span className="text-[48px] sm:text-[69px] leading-none" style={{ fontFamily: "'Ma Shan Zheng', cursive", color: 'var(--tea-gold)' }}>家</span>
-              <p className="flex flex-col items-center text-ui-14 md:text-ui-15 tracking-[0.04em] font-light mt-3 leading-[1.4] text-tea-text-sec" style={{ fontFamily: 'var(--font-display)' }}>
+              <p className="flex flex-col items-center text-ui-14 md:text-ui-15 tracking-wider font-light mt-3 leading-normal text-tea-text-sec" style={{ fontFamily: 'var(--font-display)' }}>
                 <span>home</span><span>devotion</span>
               </p>
             </div>
             <div className="flex flex-col items-center" style={{ opacity: rightP, transform: `translateX(${(1 - rightP) * 60}px)` }}>
               <span className="text-[48px] sm:text-[69px] leading-none" style={{ fontFamily: "'Ma Shan Zheng', cursive", color: 'var(--tea-gold)' }}>嘉</span>
-              <p className="flex flex-col items-center text-ui-14 md:text-ui-15 tracking-[0.04em] font-light mt-3 leading-[1.4] text-tea-text-sec" style={{ fontFamily: 'var(--font-display)' }}>
+              <p className="flex flex-col items-center text-ui-14 md:text-ui-15 tracking-wider font-light mt-3 leading-normal text-tea-text-sec" style={{ fontFamily: 'var(--font-display)' }}>
                 <span>praise</span><span>celebration</span>
               </p>
             </div>
@@ -226,7 +226,7 @@ const CharacterRevealCapture: React.FC = () => {
             style={{ opacity: spiritP, transform: `translateY(${(1 - spiritP) * 12}px)` }}
           >
             <p
-              className="text-ui-14 md:text-ui-15 leading-[1.7] text-tea-text-sec font-light"
+              className="text-ui-14 md:text-ui-15 leading-reading text-tea-text-sec font-light"
               style={{ fontFamily: 'var(--font-body)' }}
             >
               A home for fine tea. A place to source it, study it, and share it
@@ -382,7 +382,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           </motion.div>
 
           <motion.h1
-            className="text-tea-text max-w-[380px] lg:max-w-[560px] text-ui-28 md:text-[34px] lg:text-[48px] leading-[1.35] tracking-[0.01em] font-normal mt-8 sm:mt-12"
+            className="text-tea-text max-w-[380px] lg:max-w-[560px] text-ui-28 md:text-[34px] lg:text-[48px] leading-[1.35] tracking-wide font-normal mt-8 sm:mt-12"
             style={{ fontFamily: 'var(--font-display)', textWrap: 'balance' }}
             initial={initial({ opacity: 0, y: 10 })}
             animate={{ opacity: 1, y: 0 }}

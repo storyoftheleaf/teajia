@@ -143,11 +143,11 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: { isOpen: boolean;
           {mode === 'signup' && (
             <>
               <div>
-                <label className="block text-ui-10 font-bold uppercase tracking-[0.2em] text-tea-text-sec mb-2">Name</label>
+                <label className="block text-ui-10 font-bold uppercase tracking-display text-tea-text-sec mb-2">Name</label>
                 <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full input-warm rounded-lg p-3 text-base outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder-tea-text-sec/50" placeholder="your name" />
               </div>
               <div>
-                <label className="block text-ui-10 font-bold uppercase tracking-[0.2em] text-tea-text-sec mb-2">Username <span className="text-tea-text-dim normal-case tracking-normal font-normal">(optional)</span></label>
+                <label className="block text-ui-10 font-bold uppercase tracking-display text-tea-text-sec mb-2">Username <span className="text-tea-text-dim normal-case tracking-normal font-normal">(optional)</span></label>
                 <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" pattern="[a-zA-Z0-9_.\-]{3,32}" className="w-full input-warm rounded-lg p-3 text-base outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder-tea-text-sec/50" placeholder="Letters, numbers, . _ -" />
               </div>
             </>
@@ -155,14 +155,14 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: { isOpen: boolean;
 
           {(mode === 'login' || mode === 'signup' || mode === 'forgot') && (
             <div>
-               <label className="block text-ui-10 font-bold uppercase tracking-[0.2em] text-tea-text-sec mb-2">{mode === 'login' ? 'Email or Username' : 'Email'}</label>
+               <label className="block text-ui-10 font-bold uppercase tracking-display text-tea-text-sec mb-2">{mode === 'login' ? 'Email or Username' : 'Email'}</label>
                <input type={mode === 'signup' || mode === 'forgot' ? 'email' : 'text'} value={email} onChange={(e) => setEmail(e.target.value)} autoComplete={mode === 'login' ? 'username' : 'email'} className="w-full input-warm rounded-lg p-3 text-base outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder-tea-text-sec/50" placeholder={mode === 'login' ? 'you@example.com or username' : 'you@example.com'} required />
             </div>
           )}
 
           {(mode === 'login' || mode === 'signup') && (
             <div>
-               <label className="block text-ui-10 font-bold uppercase tracking-[0.2em] text-tea-text-sec mb-2">Password</label>
+               <label className="block text-ui-10 font-bold uppercase tracking-display text-tea-text-sec mb-2">Password</label>
                <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} minLength={mode === 'signup' ? 6 : undefined} className="w-full input-warm rounded-lg p-3 text-base outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors" placeholder={mode === 'signup' ? 'Min 6 characters' : ''} required />
             </div>
           )}
@@ -170,11 +170,11 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: { isOpen: boolean;
           {mode === 'reset' && (
             <>
               <div>
-                <label className="block text-ui-10 font-bold uppercase tracking-[0.2em] text-tea-text-sec mb-2">Recovery Token</label>
+                <label className="block text-ui-10 font-bold uppercase tracking-display text-tea-text-sec mb-2">Recovery Token</label>
                 <input type="text" value={resetToken} onChange={(e) => setResetToken(e.target.value)} className="w-full input-warm rounded-lg p-3 text-xs font-mono outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder-tea-text-sec/50" placeholder="Paste your recovery token" required />
               </div>
               <div>
-                <label className="block text-ui-10 font-bold uppercase tracking-[0.2em] text-tea-text-sec mb-2">New Password</label>
+                <label className="block text-ui-10 font-bold uppercase tracking-display text-tea-text-sec mb-2">New Password</label>
                 <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} minLength={6} className="w-full input-warm rounded-lg p-3 text-base outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors" placeholder="Min 6 characters" required />
               </div>
             </>
@@ -195,7 +195,7 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: { isOpen: boolean;
           {info && <div className="p-3 bg-tea-gold-lt/10 border border-tea-border text-tea-text-sec text-sm rounded-lg">{info}</div>}
           {error && <div className="p-3 bg-tea-gold/10 border border-tea-accent-sub text-tea-gold text-sm rounded-lg">{error}</div>}
 
-          <button type="submit" disabled={loading} className="w-full py-3 bg-tea-gold text-tea-bg font-bold text-xs uppercase tracking-[0.2em] rounded-lg hover:bg-tea-gold/90 transition-colors disabled:opacity-50 flex justify-center mt-6 shadow-lg shadow-tea-gold/10">
+          <button type="submit" disabled={loading} className="w-full py-3 bg-tea-gold text-tea-bg font-bold text-xs uppercase tracking-display rounded-lg hover:bg-tea-gold/90 transition-colors disabled:opacity-50 flex justify-center mt-6 shadow-lg shadow-tea-gold/10">
             {loading ? <Loader2 className="animate-spin" /> : submitLabel}
           </button>
         </form>
@@ -204,7 +204,7 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: { isOpen: boolean;
           <div className="mt-5">
             <div className="flex items-center gap-3 mb-4">
               <div className="flex-1 h-px bg-tea-border" />
-              <span className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim">or</span>
+              <span className="text-ui-10 uppercase tracking-display text-tea-text-dim">or</span>
               <div className="flex-1 h-px bg-tea-border" />
             </div>
             <a

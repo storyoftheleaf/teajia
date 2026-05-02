@@ -31,7 +31,7 @@ const OrderStatusPage: React.FC = () => {
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-6">
         <h1 className="text-2xl font-serif text-tea-text mb-4">Order Not Found</h1>
         <p className="text-sm text-tea-text-sec mb-8">This order reference doesn't exist or hasn't been submitted yet.</p>
-        <Link to="/shop" className="px-8 py-3 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.2em]">Browse Shop</Link>
+        <Link to="/shop" className="px-8 py-3 bg-tea-gold text-tea-bg text-xs uppercase tracking-display">Browse Shop</Link>
       </div>
     );
   }
@@ -48,14 +48,14 @@ const OrderStatusPage: React.FC = () => {
   return (
     <div className="max-w-lg mx-auto py-12 px-6 animate-[fadeIn_0.5s_ease-out]">
       <div className="text-center mb-8">
-        <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-2">Order Status</p>
+        <p className="text-ui-10 uppercase tracking-display text-tea-text-sec mb-2">Order Status</p>
         <h1 className="text-2xl font-serif text-tea-text mb-1">{ref}</h1>
         <p className="text-xs text-tea-text-sec">{new Date(inquiry?.created_at || Date.now()).toLocaleDateString()}</p>
       </div>
 
       <div className="bg-tea-surface border border-tea-border rounded-md p-6 mb-6">
         <div className="flex items-center justify-between mb-4">
-          <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec">Status</span>
+          <span className="text-ui-10 uppercase tracking-caps text-tea-text-sec">Status</span>
           <span className="badge-status badge-status-gold">{statusLabels[status] || status}</span>
         </div>
         <div className="space-y-2">
@@ -75,7 +75,7 @@ const OrderStatusPage: React.FC = () => {
       </div>
 
       <div className="bg-tea-surface border border-tea-border rounded-md p-6 mb-6">
-        <p className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec mb-3">Items</p>
+        <p className="text-ui-10 uppercase tracking-caps text-tea-text-sec mb-3">Items</p>
         {items.map((item: any) => (
           <div key={item.id} className="flex justify-between items-center text-sm border-b border-tea-border py-2 last:border-0">
             <div>

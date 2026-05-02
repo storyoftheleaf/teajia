@@ -55,7 +55,7 @@ const TeaLedgerSection: React.FC<TeaLedgerSectionProps> = ({ items }) => {
     <div className="mb-10">
       <div className="flex items-center gap-2 mb-5">
         <TeaLeafIcon className="w-4 h-4 text-tea-gold" />
-        <h2 className="text-ui-11 uppercase tracking-[0.2em] text-tea-text-sec">Teas Served</h2>
+        <h2 className="text-ui-11 uppercase tracking-display text-tea-text-sec">Teas Served</h2>
       </div>
       <div className="space-y-3">
         {sorted.map((item, idx) => (
@@ -68,7 +68,7 @@ const TeaLedgerSection: React.FC<TeaLedgerSectionProps> = ({ items }) => {
                 <div className="flex items-baseline gap-2 mb-0.5">
                   <span className="font-serif text-lg text-tea-gold/30 leading-none shrink-0">{idx + 1}</span>
                   {item.productType && (
-                    <span className="text-ui-10 uppercase tracking-[0.2em] text-tea-gold">
+                    <span className="text-ui-10 uppercase tracking-display text-tea-gold">
                       {item.productType}
                     </span>
                   )}
@@ -85,7 +85,7 @@ const TeaLedgerSection: React.FC<TeaLedgerSectionProps> = ({ items }) => {
               {item.productId && (
                 <a
                   href={`/shop?product=${encodeURIComponent(item.productId)}`}
-                  className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-tea-surface border border-tea-border rounded-sm text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec hover:border-tea-gold/40 hover:text-tea-gold transition-all duration-300 group"
+                  className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-tea-surface border border-tea-border rounded-sm text-ui-10 uppercase tracking-caps text-tea-text-sec hover:border-tea-gold/40 hover:text-tea-gold transition-all duration-300 group"
                   aria-label={`Buy ${item.customName || item.productName}`}
                 >
                   <ShoppingBag className="w-3 h-3 group-hover:text-tea-gold transition-colors" />
@@ -108,7 +108,7 @@ const HostNotesSection: React.FC<HostNotesSectionProps> = ({ notes }) => (
   <div className="mb-10">
     <div className="flex items-center gap-2 mb-5">
       <BookOpen className="w-4 h-4 text-tea-gold" />
-      <h2 className="text-ui-11 uppercase tracking-[0.2em] text-tea-text-sec">From the Host</h2>
+      <h2 className="text-ui-11 uppercase tracking-display text-tea-text-sec">From the Host</h2>
     </div>
     <div className="bg-tea-surface border border-tea-border rounded-sm p-5">
       <p className="text-sm text-tea-text leading-relaxed whitespace-pre-line">{notes}</p>
@@ -124,7 +124,7 @@ const SharedNotesSection: React.FC<SharedNotesSectionProps> = ({ notes }) => (
   <div className="mb-10">
     <div className="flex items-center gap-2 mb-5">
       <MessageCircle className="w-4 h-4 text-tea-gold" />
-      <h2 className="text-ui-11 uppercase tracking-[0.2em] text-tea-text-sec">Guests Said</h2>
+      <h2 className="text-ui-11 uppercase tracking-display text-tea-text-sec">Guests Said</h2>
     </div>
     <div className="bg-tea-surface border border-tea-border rounded-sm p-5">
       <div className="space-y-3">
@@ -146,7 +146,7 @@ const PlaylistSection: React.FC<PlaylistSectionProps> = ({ playlistUrl }) => (
   <div className="mb-10">
     <div className="flex items-center gap-2 mb-5">
       <Music className="w-4 h-4 text-tea-gold" />
-      <h2 className="text-ui-11 uppercase tracking-[0.2em] text-tea-text-sec">Session Playlist</h2>
+      <h2 className="text-ui-11 uppercase tracking-display text-tea-text-sec">Session Playlist</h2>
     </div>
     {playlistUrl.includes('spotify.com') ? (
       <div className="rounded-sm overflow-hidden border border-tea-border">
@@ -199,7 +199,7 @@ const GallerySection: React.FC<GallerySectionProps> = ({ images }) => {
     <div className="mb-10">
       <div className="flex items-center gap-2 mb-5">
         <Image className="w-4 h-4 text-tea-gold" />
-        <h2 className="text-ui-11 uppercase tracking-[0.2em] text-tea-text-sec">Gallery</h2>
+        <h2 className="text-ui-11 uppercase tracking-display text-tea-text-sec">Gallery</h2>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
         {images.map((url, idx) => (
@@ -260,7 +260,7 @@ const PersonalNoteSection: React.FC<PersonalNoteProps> = ({ eventSlug }) => {
     <div className="mb-10">
       <div className="flex items-center gap-2 mb-5">
         <span className="text-ui-10 uppercase tracking-[0.3em] text-tea-gold">✦</span>
-        <h2 className="text-ui-11 uppercase tracking-[0.2em] text-tea-text-sec">What stayed with you?</h2>
+        <h2 className="text-ui-11 uppercase tracking-display text-tea-text-sec">What stayed with you?</h2>
       </div>
       <div className="bg-tea-surface border border-tea-border rounded-sm p-5">
         <textarea
@@ -276,7 +276,7 @@ const PersonalNoteSection: React.FC<PersonalNoteProps> = ({ eventSlug }) => {
           <button
             onClick={handleSave}
             disabled={!note.trim()}
-            className="px-4 py-1.5 text-ui-10 uppercase tracking-[0.15em] border border-tea-border text-tea-text-sec hover:border-tea-gold/40 hover:text-tea-gold disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-300"
+            className="px-4 py-1.5 text-ui-10 uppercase tracking-caps border border-tea-border text-tea-text-sec hover:border-tea-gold/40 hover:text-tea-gold disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-300"
           >
             {saved ? 'Saved' : 'Keep this'}
           </button>

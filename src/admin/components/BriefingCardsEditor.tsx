@@ -90,7 +90,7 @@ export const BriefingCardsEditor: React.FC<BriefingCardsEditorProps> = ({
           >
             {/* Card header */}
             <div className="flex items-center justify-between">
-              <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim">
+              <span className="text-ui-10 uppercase tracking-caps text-tea-text-dim">
                 Card {idx + 1}
               </span>
               <div className="flex items-center gap-1">

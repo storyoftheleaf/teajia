@@ -42,7 +42,7 @@ const PostSessionArchive: React.FC<PostSessionArchiveProps> = ({
         <div className="mb-10">
           <div className="flex items-center gap-2 mb-5">
             <TeaLeafIcon className="w-4 h-4 text-tea-gold" />
-            <h4 className="text-ui-11 uppercase tracking-[0.2em] text-tea-text-sec">Tea Ledger</h4>
+            <h4 className="text-ui-11 uppercase tracking-display text-tea-text-sec">Tea Ledger</h4>
           </div>
           <div className="grid gap-3 md:grid-cols-2">
             {[...teaMenu!].sort((a, b) => (a.brewOrder ?? 0) - (b.brewOrder ?? 0)).map((item) => (
@@ -53,7 +53,7 @@ const PostSessionArchive: React.FC<PostSessionArchiveProps> = ({
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     {item.productType && (
-                      <span className="text-ui-10 uppercase tracking-[0.2em] text-tea-gold">
+                      <span className="text-ui-10 uppercase tracking-display text-tea-gold">
                         {item.productType}
                       </span>
                     )}
@@ -82,7 +82,7 @@ const PostSessionArchive: React.FC<PostSessionArchiveProps> = ({
         <div className="mb-10">
           <div className="flex items-center gap-2 mb-5">
             <MessageCircle className="w-4 h-4 text-tea-gold" />
-            <h4 className="text-ui-11 uppercase tracking-[0.2em] text-tea-text-sec">Guests Said</h4>
+            <h4 className="text-ui-11 uppercase tracking-display text-tea-text-sec">Guests Said</h4>
           </div>
           <div className="bg-tea-surface border border-tea-border rounded-md p-5">
             <div className="space-y-3">
@@ -101,7 +101,7 @@ const PostSessionArchive: React.FC<PostSessionArchiveProps> = ({
         <div className="mb-10">
           <div className="flex items-center gap-2 mb-5">
             <BookOpen className="w-4 h-4 text-tea-gold" />
-            <h4 className="text-ui-11 uppercase tracking-[0.2em] text-tea-text-sec">From the Host</h4>
+            <h4 className="text-ui-11 uppercase tracking-display text-tea-text-sec">From the Host</h4>
           </div>
           <div className="bg-tea-surface border border-tea-border rounded-md p-5">
             <p className="text-sm text-tea-text leading-relaxed whitespace-pre-line">{sessionNotes}</p>
@@ -114,7 +114,7 @@ const PostSessionArchive: React.FC<PostSessionArchiveProps> = ({
         <div className="mb-10">
           <div className="flex items-center gap-2 mb-5">
             <Music className="w-4 h-4 text-tea-gold" />
-            <h4 className="text-ui-11 uppercase tracking-[0.2em] text-tea-text-sec">Session Playlist</h4>
+            <h4 className="text-ui-11 uppercase tracking-display text-tea-text-sec">Session Playlist</h4>
           </div>
           {playlistUrl!.includes('spotify.com') ? (
             <div className="rounded-md overflow-hidden border border-tea-border">
@@ -161,7 +161,7 @@ const PostSessionArchive: React.FC<PostSessionArchiveProps> = ({
         <div className="mb-10">
           <div className="flex items-center gap-2 mb-5">
             <Image className="w-4 h-4 text-tea-gold" />
-            <h4 className="text-ui-11 uppercase tracking-[0.2em] text-tea-text-sec">Gallery</h4>
+            <h4 className="text-ui-11 uppercase tracking-display text-tea-text-sec">Gallery</h4>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
             {galleryImages!.map((url, idx) => (

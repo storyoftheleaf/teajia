@@ -122,7 +122,7 @@ const SendConfirmModal: React.FC<SendConfirmModalProps> = ({
 
         {showPreview && (
           <div className="mb-4 p-4 bg-tea-surface border border-tea-border rounded-sm">
-            <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-2">
+            <p className="text-ui-10 uppercase tracking-display text-tea-text-sec mb-2">
               Message template (sent to each attendee)
             </p>
             <pre className="text-xs text-tea-text-sec whitespace-pre-wrap font-sans leading-relaxed max-h-40 overflow-y-auto">
@@ -138,14 +138,14 @@ const SendConfirmModal: React.FC<SendConfirmModalProps> = ({
         <div className="flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 py-2.5 bg-tea-surface border border-tea-border text-tea-text text-xs uppercase tracking-[0.15em] rounded-sm hover:bg-tea-elevated transition-colors"
+            className="flex-1 py-2.5 bg-tea-surface border border-tea-border text-tea-text text-xs uppercase tracking-caps rounded-sm hover:bg-tea-elevated transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={onConfirm}
             disabled={isSending}
-            className="flex-1 py-2.5 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.15em] rounded-sm hover:bg-tea-gold-lt disabled:opacity-50 transition-colors flex items-center justify-center gap-1.5"
+            className="flex-1 py-2.5 bg-tea-gold text-tea-bg text-xs uppercase tracking-caps rounded-sm hover:bg-tea-gold-lt disabled:opacity-50 transition-colors flex items-center justify-center gap-1.5"
           >
             {isSending ? (
               <Loader2 size={12} className="animate-spin" />
@@ -196,7 +196,7 @@ const InviteStatusBlock: React.FC<InviteStatusBlockProps> = ({
           </div>
           <button
             onClick={onSend}
-            className="text-ui-10 text-tea-text-dim hover:text-tea-text-sec uppercase tracking-[0.1em] transition-colors shrink-0"
+            className="text-ui-10 text-tea-text-dim hover:text-tea-text-sec uppercase tracking-widest transition-colors shrink-0"
           >
             Resend
           </button>
@@ -377,7 +377,7 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({ eventId, e
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-sm text-tea-text font-medium">{notif.attendeeName || 'Guest'}</span>
-                      <span className={`inline-flex items-center gap-1 text-ui-10 uppercase tracking-[0.1em] px-1.5 py-0.5 rounded-full ${statusStyle.className}`}>
+                      <span className={`inline-flex items-center gap-1 text-ui-10 uppercase tracking-widest px-1.5 py-0.5 rounded-full ${statusStyle.className}`}>
                         {statusStyle.icon}
                         {notif.status}
                       </span>

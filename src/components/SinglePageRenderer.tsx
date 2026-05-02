@@ -47,27 +47,27 @@ const TYPE = {
   bodyFont: '"Lora", "Palatino Linotype", serif',
   sansFont: '"Plus Jakarta Sans", system-ui, sans-serif',
   // Display — Cormorant Garamond, high contrast, light weight at large sizes
-  display: 'text-[84px] font-display leading-[0.92] tracking-[-0.02em] font-light',
-  displaySm: 'text-[64px] font-display leading-[0.95] tracking-[-0.01em] font-light',
+  display: 'text-[84px] font-display leading-[0.92] tracking-tighter font-light',
+  displaySm: 'text-[64px] font-display leading-[0.95] tracking-tight font-light',
   // Headlines — Cormorant Garamond, medium weight
   headline: 'text-[40px] font-display leading-[1.15] font-normal',
   subtitle: 'text-[30px] font-display leading-[1.25] font-light italic',
   headlineSm: 'text-ui-28 font-display leading-[1.3] font-normal',
   // Body — Lora, optimized for reading (sizes increased for ~47% mobile scale)
-  subhead: 'text-ui-26 font-body leading-[1.4]',
+  subhead: 'text-ui-26 font-body leading-normal',
   bodyLarge: 'text-[27px] font-body leading-[1.6]',
-  body: 'text-[25px] font-body leading-[1.65]',         // was 21px → renders ~12px on mobile
+  body: 'text-[25px] font-body leading-loose',         // was 21px → renders ~12px on mobile
   bodySm: 'text-[23px] font-body leading-[1.55]',
   bodyDense: 'text-[24px] font-body leading-[36px]',    // Multi-column, locked leading
   // Captions — Plus Jakarta Sans, small-caps, letterspaced (increased for legibility)
-  caption: 'text-ui-15 font-caption leading-[1.4] tracking-[0.12em]',
+  caption: 'text-ui-15 font-caption leading-normal tracking-[0.12em]',
   folio: 'text-ui-13 font-caption leading-[1.3] tracking-[0.18em]',
-  micro: 'text-ui-12 font-caption leading-[1.2]',
+  micro: 'text-ui-12 font-caption leading-snug',
 } as const;
 
 // --- Line Height Semantic Constants ---
 const LH = {
-  tight: 'leading-[1.2]',     // captions, headers
+  tight: 'leading-snug',     // captions, headers
   normal: 'leading-[1.45]',   // short body, quotes
   relaxed: 'leading-[1.6]',   // long-form body
   loose: 'leading-[2.0]',     // poetry, verse
@@ -88,7 +88,7 @@ const PAD = {
 const BODY_CLASS = `${TYPE.body} text-left font-body [font-optical-sizing:auto] [hanging-punctuation:first_last]`;
 const BODY_DENSE_CLASS = `${TYPE.bodyDense} text-justify font-body [font-optical-sizing:auto] [hyphens:auto] [hyphenate-limit-chars:6_3_2] [word-spacing:-0.01em]`;
 const CAPTION_CLASS = `${TYPE.caption} ${LH.tight} uppercase font-caption small-caps`;
-const FOLIO_CLASS = `${TYPE.folio} uppercase font-caption tracking-[0.2em]`;
+const FOLIO_CLASS = `${TYPE.folio} uppercase font-caption tracking-display`;
 const OPENTYPE = { fontFeatureSettings: "'liga' 1, 'kern' 1, 'calt' 1, 'onum' 1", fontOpticalSizing: 'auto' as const } as const;
 
 // --- Animation Styles & Rich Text Helpers ---
@@ -655,7 +655,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                         </div>
                         {/* Title block — lower third */}
                         <div className="relative z-20 mt-auto pb-8" style={{ textShadow: '0 2px 12px rgba(0,0,0,0.5), 0 1px 3px rgba(0,0,0,0.3)' }}>
-                            <EditableText value={storyTitle || ''} onChange={isEditable && onStoryUpdate ? (val) => onStoryUpdate('title', val) : undefined} className={`${TYPE.display} font-display font-light tracking-[-0.02em] leading-[0.88] mb-5 text-tea-text`} placeholder="Title" tag="h1" readOnly={readOnly} />
+                            <EditableText value={storyTitle || ''} onChange={isEditable && onStoryUpdate ? (val) => onStoryUpdate('title', val) : undefined} className={`${TYPE.display} font-display font-light tracking-tighter leading-[0.88] mb-5 text-tea-text`} placeholder="Title" tag="h1" readOnly={readOnly} />
                             <EditableText value={storySubtitle || ''} onChange={isEditable && onStoryUpdate ? (val) => onStoryUpdate('subtitle', val) : undefined} className={`${TYPE.caption} font-caption tracking-[0.12em] text-tea-text/75`} placeholder="Subtitle" tag="p" readOnly={readOnly} />
                         </div>
                     </div>
@@ -689,7 +689,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                 return (
                     <div className={`${paperBase} bg-tea-surface flex flex-col items-center justify-center ${PAD.spacious} text-center`}>
                         <EditableText value={storyTitle || ''} onChange={isEditable && onStoryUpdate ? (val) => onStoryUpdate('title', val) : undefined} className={`${TYPE.headline} font-display tracking-tight mb-2`} placeholder="Title" tag="h1" readOnly={readOnly} />
-                        <EditableText value={storySubtitle || ''} onChange={isEditable && onStoryUpdate ? (val) => onStoryUpdate('subtitle', val) : undefined} className={`${TYPE.caption} uppercase tracking-[0.15em] opacity-40 mb-10`} placeholder="Subtitle" tag="p" readOnly={readOnly} />
+                        <EditableText value={storySubtitle || ''} onChange={isEditable && onStoryUpdate ? (val) => onStoryUpdate('subtitle', val) : undefined} className={`${TYPE.caption} uppercase tracking-caps opacity-40 mb-10`} placeholder="Subtitle" tag="p" readOnly={readOnly} />
                         <div className="w-[60%] aspect-[3/4] relative overflow-hidden">
                             <SafeImage index={0} className="w-full h-full" />
                         </div>
@@ -705,7 +705,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                         <div className="w-1/2 bg-tea-gold/5 flex flex-col justify-center px-12 relative z-10">
                             <EditableText value={storyTitle || ''} onChange={isEditable && onStoryUpdate ? (val) => onStoryUpdate('title', val) : undefined} className={`${TYPE.displaySm} font-display font-light text-tea-text leading-[0.9] tracking-tight`} placeholder="Title" tag="h1" readOnly={readOnly} />
                             <div className="w-16 h-[0.5px] bg-tea-text/20 my-8"></div>
-                            <EditableText value={storySubtitle || ''} onChange={isEditable && onStoryUpdate ? (val) => onStoryUpdate('subtitle', val) : undefined} className={`${TYPE.caption} uppercase tracking-[0.15em] text-tea-text/50`} placeholder="Subtitle" tag="p" readOnly={readOnly} />
+                            <EditableText value={storySubtitle || ''} onChange={isEditable && onStoryUpdate ? (val) => onStoryUpdate('subtitle', val) : undefined} className={`${TYPE.caption} uppercase tracking-caps text-tea-text/50`} placeholder="Subtitle" tag="p" readOnly={readOnly} />
                         </div>
                         <div className="w-1/2 relative">
                             <SafeImage index={0} className="w-full h-full" />
@@ -719,7 +719,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                         {/* Masthead */}
                         <div className="border-b-2 border-tea-text/80 pb-2 mb-1">
                             <div className="text-center">
-                                <span className={`${TYPE.display} font-display font-light tracking-[0.15em] leading-none`}>Teajia</span>
+                                <span className={`${TYPE.display} font-display font-light tracking-caps leading-none`}>Teajia</span>
                             </div>
                         </div>
                         <div className="border-b border-tea-border pb-2 mb-4 flex justify-between">
@@ -909,7 +909,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                 return (
                     <div className={`${paperBase} ${PAD.spacious} flex flex-col items-center justify-center`}>
                          <EditableText value={content.split('|')[0] || ''} onChange={isEditable ? (v) => updateContent(v + '|' + (content.split('|')[1] || '')) : undefined} className="text-[160px] font-display font-light opacity-[0.08] leading-none select-none" placeholder="00" tag="h1" readOnly={readOnly} />
-                         <EditableText value={content.split('|')[1] || ''} onChange={isEditable ? (v) => updateContent((content.split('|')[0] || '') + '|' + v) : undefined} className={`${TYPE.headlineSm} font-caption uppercase tracking-[0.2em] -mt-16 z-10 text-center font-bold`} placeholder="LABEL" tag="p" readOnly={readOnly} />
+                         <EditableText value={content.split('|')[1] || ''} onChange={isEditable ? (v) => updateContent((content.split('|')[0] || '') + '|' + v) : undefined} className={`${TYPE.headlineSm} font-caption uppercase tracking-display -mt-16 z-10 text-center font-bold`} placeholder="LABEL" tag="p" readOnly={readOnly} />
                     </div>
                 );
 
@@ -1021,7 +1021,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                          {/* Vertical accent line from boundary */}
                          <div className="relative h-[55%] p-16 pt-10">
                              <div className="absolute top-0 left-24 w-[1px] h-16 bg-tea-gold opacity-40"></div>
-                             <EditableText value={chSub || ''} onChange={isEditable ? (v) => updateContent((chTitle||'') + '|' + v) : undefined} className={`${TYPE.caption} uppercase tracking-[0.15em] opacity-50`} placeholder="Subtitle" tag="p" readOnly={readOnly} />
+                             <EditableText value={chSub || ''} onChange={isEditable ? (v) => updateContent((chTitle||'') + '|' + v) : undefined} className={`${TYPE.caption} uppercase tracking-caps opacity-50`} placeholder="Subtitle" tag="p" readOnly={readOnly} />
                          </div>
                          {/* Vertical CJK accent strip */}
                          <div className="vertical-cjk absolute left-3 top-0 bottom-0 flex items-center justify-center pointer-events-none select-none" style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}>
@@ -1035,7 +1035,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                 const chapters = content.split('|');
                 return (
                     <div className={`${paperBase} ${PAD.spacious} flex flex-col justify-center`}>
-                         <h2 className={`font-display font-light tracking-[0.1em] text-ui-28 mb-16 text-center border-b border-current/8 pb-6 mx-8`}>Contents</h2>
+                         <h2 className={`font-display font-light tracking-widest text-ui-28 mb-16 text-center border-b border-current/8 pb-6 mx-8`}>Contents</h2>
                          <div className="space-y-8 px-6">
                              {isEditable ? (
                                  <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${TYPE.body} leading-loose`} placeholder="Chapter 1|Chapter 2..." tag="div" readOnly={readOnly} />
@@ -1095,7 +1095,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                              {/* Title */}
                              <div className="relative z-10 mb-6">
                                  {isEditable ? (
-                                     <EditableText value={content} onChange={updateContent} className={`${TYPE.headline} font-display tracking-[0.15em] uppercase font-bold`} placeholder="Location 1|Location 2|..." tag="h2" readOnly={readOnly} />
+                                     <EditableText value={content} onChange={updateContent} className={`${TYPE.headline} font-display tracking-caps uppercase font-bold`} placeholder="Location 1|Location 2|..." tag="h2" readOnly={readOnly} />
                                  ) : (
                                      <h2 className={`${CAPTION_CLASS} text-center`}>Cartography</h2>
                                  )}
@@ -1242,7 +1242,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                                         <Icons.ExternalLink className="w-5 h-5 opacity-40 group-hover:opacity-80 flex-shrink-0 mt-1" />
                                     </div>
                                     {link.source && (
-                                        <div className={`${TYPE.micro} font-caption uppercase tracking-[0.15em] ${theme.subtext} mb-3`}>
+                                        <div className={`${TYPE.micro} font-caption uppercase tracking-caps ${theme.subtext} mb-3`}>
                                             {link.source}
                                         </div>
                                     )}
@@ -1262,7 +1262,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                         </div>
 
                         <div className="mt-auto pt-8 text-center">
-                            <p className={`${TYPE.micro} uppercase tracking-[0.15em] ${theme.subtext}`}>
+                            <p className={`${TYPE.micro} uppercase tracking-caps ${theme.subtext}`}>
                                 Curated with care
                             </p>
                         </div>
@@ -1373,7 +1373,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                     <div className={`${paperBase} ${PAD.text} flex flex-col pt-16`} style={OPENTYPE}>
                         {bqParts[0] && <EditableText value={bqParts[0]} onChange={isEditable ? (v) => updateContent(v + '|' + (bqParts[1]||'') + '|' + (bqParts[2]||'')) : undefined} className={`${BODY_CLASS} opacity-90 mb-8`} placeholder="Text above..." tag="p" readOnly={readOnly} />}
                         <div className={`w-full ${theme.softBg} py-10 px-12 my-4 border-y border-current/5`}>
-                            <EditableText value={bqParts[1] || ''} onChange={isEditable ? (v) => updateContent((bqParts[0]||'') + '|' + v + '|' + (bqParts[2]||'')) : undefined} className={`${TYPE.headline} font-display italic leading-[1.4] text-center opacity-80`} placeholder="Centered quote..." tag="p" readOnly={readOnly} />
+                            <EditableText value={bqParts[1] || ''} onChange={isEditable ? (v) => updateContent((bqParts[0]||'') + '|' + v + '|' + (bqParts[2]||'')) : undefined} className={`${TYPE.headline} font-display italic leading-normal text-center opacity-80`} placeholder="Centered quote..." tag="p" readOnly={readOnly} />
                         </div>
                         {bqParts[2] && <EditableText value={bqParts[2]} onChange={isEditable ? (v) => updateContent((bqParts[0]||'') + '|' + (bqParts[1]||'') + '|' + v) : undefined} className={`${BODY_CLASS} opacity-90 mt-8`} placeholder="Text below..." tag="p" readOnly={readOnly} />}
                     </div>
@@ -1402,12 +1402,12 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                         </div>
                         <div className="max-w-[600px] mx-auto w-full">
                             {isEditable ? (
-                                <EditableText value={content} onChange={updateContent} className={`${TYPE.body} font-mono leading-[1.7] opacity-80 whitespace-pre-wrap`} placeholder="The field notes begin..." tag="p" readOnly={readOnly} />
+                                <EditableText value={content} onChange={updateContent} className={`${TYPE.body} font-mono leading-reading opacity-80 whitespace-pre-wrap`} placeholder="The field notes begin..." tag="p" readOnly={readOnly} />
                             ) : (
                                 <div>
                                     {typewriterLines.map((line, i) => (
                                         <div key={i} className="typewriter-line" style={{ animationDelay: `${i * 1.2}s` }}>
-                                            <p className={`${TYPE.body} font-mono leading-[1.7] opacity-80`}>{line || '\u00A0'}</p>
+                                            <p className={`${TYPE.body} font-mono leading-reading opacity-80`}>{line || '\u00A0'}</p>
                                         </div>
                                     ))}
                                 </div>
@@ -1453,7 +1453,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                                 const isQuestion = block.startsWith('Q:') || block.startsWith('Q ') || i % 2 === 0;
                                 return (
                                     <div key={i} className={`py-3 px-4 ${isQuestion ? '' : 'bg-tea-gold/3'}`}>
-                                        <p className={`${TYPE.bodyDense} ${isQuestion ? 'font-caption font-semibold uppercase' : 'font-body'} leading-[1.4] opacity-90`}>{block}</p>
+                                        <p className={`${TYPE.bodyDense} ${isQuestion ? 'font-caption font-semibold uppercase' : 'font-body'} leading-normal opacity-90`}>{block}</p>
                                     </div>
                                 );
                             }) : (
@@ -1990,7 +1990,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                 return (
                     <div className={`${paperBase} ${PAD.spacious} flex flex-col items-center justify-center text-center`}>
                         <span className={`${TYPE.headlineSm} opacity-20 mb-12`}>·</span>
-                        <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${TYPE.body} font-body italic opacity-70 max-w-[450px] leading-[1.7]`} placeholder="Closing text..." tag="p" readOnly={readOnly} />
+                        <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${TYPE.body} font-body italic opacity-70 max-w-[450px] leading-reading`} placeholder="Closing text..." tag="p" readOnly={readOnly} />
                         <span className={`${TYPE.caption} font-caption mt-12 opacity-25`}>{storyTitle || 'Teajia'}</span>
                     </div>
                 );
@@ -2061,7 +2061,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                                 readOnly={readOnly}
                             />
                             {lpBody && (
-                                <EditableText value={lpBody} onChange={isEditable ? (v) => updateContent((lpTitle || '') + '|' + v) : undefined} className={`${TYPE.caption} uppercase tracking-[0.2em] opacity-40`} placeholder="Subtitle" tag="p" readOnly={readOnly} />
+                                <EditableText value={lpBody} onChange={isEditable ? (v) => updateContent((lpTitle || '') + '|' + v) : undefined} className={`${TYPE.caption} uppercase tracking-display opacity-40`} placeholder="Subtitle" tag="p" readOnly={readOnly} />
                             )}
                         </div>
                     </div>
@@ -2298,7 +2298,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                 return (
                     <div className={`${paperBase} ${STD_PAD} flex flex-col`}>
                         <div className="mb-12 pb-6 border-b border-current/10 opacity-30">
-                            <h3 className={`${TYPE.caption} uppercase tracking-[0.15em] select-none`}>{variant}</h3>
+                            <h3 className={`${TYPE.caption} uppercase tracking-caps select-none`}>{variant}</h3>
                         </div>
                         <div className="flex-1">
                             <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${BODY_CLASS} leading-loose opacity-90`} placeholder="Content..." tag="p" readOnly={readOnly} />

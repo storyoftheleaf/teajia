@@ -141,6 +141,40 @@ if [ -n "$TEXT_PX_VIOLATIONS" ]; then
   ERRORS=$((ERRORS + 1))
 fi
 
+# 8. Arbitrary tracking-[…] / leading-[…] for values that have a named stop —
+#    BLOCKING. The LETTER_SPACING and LINE_HEIGHTS scales in src/designTokens.ts
+#    are wired into Tailwind. Use the named utility (tracking-caps,
+#    leading-reading, etc.) for any value that maps to a defined stop.
+#    Long-tail values without a stop (e.g. tracking-[0.06em], leading-[1.85])
+#    are allowed — propose a new stop in designTokens.ts if a value recurs.
+#
+#    In-scale tracking values: -0.02em, -0.01em, 0.01em, 0.04em, 0.1em, 0.15em, 0.2em
+#    In-scale leading values:  1.12, 1.2, 1.4, 1.625, 1.65, 1.7
+TYPO_VIOLATIONS=$(grep -rnE \
+  'tracking-\[(-0\.02em|-0\.01em|0\.01em|0\.04em|0\.1em|0\.15em|0\.2em)\]|leading-\[(1\.12|1\.2|1\.4|1\.625|1\.65|1\.7)\]' \
+  --include='*.tsx' --include='*.ts' "$SRC_DIR" 2>/dev/null \
+  | grep -vE '^[[:space:]]*//' \
+  || true)
+if [ -n "$TYPO_VIOLATIONS" ]; then
+  echo ""
+  echo "COLOR RULE VIOLATION: Use named tracking/leading utilities instead of arbitrary in-scale values."
+  echo "  tracking-[-0.02em] -> tracking-tighter"
+  echo "  tracking-[-0.01em] -> tracking-tight"
+  echo "  tracking-[0.01em]  -> tracking-wide"
+  echo "  tracking-[0.04em]  -> tracking-wider"
+  echo "  tracking-[0.1em]   -> tracking-widest"
+  echo "  tracking-[0.15em]  -> tracking-caps"
+  echo "  tracking-[0.2em]   -> tracking-display"
+  echo "  leading-[1.12]     -> leading-tight"
+  echo "  leading-[1.2]      -> leading-snug"
+  echo "  leading-[1.4]      -> leading-normal"
+  echo "  leading-[1.625]    -> leading-relaxed"
+  echo "  leading-[1.65]     -> leading-loose"
+  echo "  leading-[1.7]      -> leading-reading"
+  echo "$TYPO_VIOLATIONS"
+  ERRORS=$((ERRORS + 1))
+fi
+
 if [ "$ERRORS" -gt 0 ]; then
   echo ""
   echo "=== $ERRORS color rule violation(s) found ==="

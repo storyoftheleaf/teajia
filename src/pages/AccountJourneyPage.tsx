@@ -549,7 +549,7 @@ const AccountJourneyPage: React.FC = () => {
 
           <section className="mb-16">
             <div className="mb-6">
-              <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim mb-2">At Home</p>
+              <p className="text-ui-10 uppercase tracking-display text-tea-text-dim mb-2">At Home</p>
               <h2 className="font-serif text-xl text-tea-text mb-1">What You've Explored</h2>
               <p className="text-xs text-tea-text-sec">Samples tasted outside the session.</p>
             </div>
@@ -568,7 +568,7 @@ const AccountJourneyPage: React.FC = () => {
             <section className="mb-16">
               <div className="flex items-baseline justify-between mb-6">
                 <div>
-                  <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim mb-2">Your Collection</p>
+                  <p className="text-ui-10 uppercase tracking-display text-tea-text-dim mb-2">Your Collection</p>
                   <h2 className="font-serif text-xl text-tea-text mb-1">The Compass</h2>
                   <p className="text-xs text-tea-text-sec">Teas you've chosen to keep.</p>
                 </div>

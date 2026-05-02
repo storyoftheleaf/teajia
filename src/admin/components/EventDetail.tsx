@@ -144,7 +144,7 @@ const TastingNotesTab: React.FC<TastingNotesTabProps> = ({ notes }) => {
                   </div>
                 )}
                 {note.isFavorite && (
-                  <span className="text-ui-9 text-tea-gold/70 uppercase tracking-[0.1em]">Favorite</span>
+                  <span className="text-ui-9 text-tea-gold/70 uppercase tracking-widest">Favorite</span>
                 )}
               </div>
               {note.impression && (
@@ -434,8 +434,8 @@ export const EventDetail: React.FC = () => {
         <div className="flex items-start justify-between gap-4 mb-3">
           <div className="flex-1 min-w-0">
             <div className="flex items-baseline gap-3 flex-wrap mb-1">
-              <h1 className="font-display text-[clamp(22px,3vw,30px)] font-normal leading-[1.15] tracking-[0.01em] text-tea-text">{event.title}</h1>
-              <span className={`text-ui-9 uppercase tracking-[0.2em] font-semibold shrink-0 ${STATUS_STYLES[event.status]}`}>
+              <h1 className="font-display text-[clamp(22px,3vw,30px)] font-normal leading-[1.15] tracking-wide text-tea-text">{event.title}</h1>
+              <span className={`text-ui-9 uppercase tracking-display font-semibold shrink-0 ${STATUS_STYLES[event.status]}`}>
                 {event.status}
               </span>
               {requestedCount > 0 && (
@@ -775,9 +775,9 @@ export const EventDetail: React.FC = () => {
                       <p className="text-xs text-tea-text-sec mt-0.5">{s.phone || s.email || '—'}</p>
                     </div>
                     {s.converted_at ? (
-                      <span className="text-ui-10 text-tea-text-dim uppercase tracking-[0.15em] shrink-0">Converted</span>
+                      <span className="text-ui-10 text-tea-text-dim uppercase tracking-caps shrink-0">Converted</span>
                     ) : (
-                      <span className="text-ui-10 text-amber-400 uppercase tracking-[0.15em] shrink-0">Pending</span>
+                      <span className="text-ui-10 text-amber-400 uppercase tracking-caps shrink-0">Pending</span>
                     )}
                   </div>
                 ))}
@@ -805,7 +805,7 @@ export const EventDetail: React.FC = () => {
             ) : (
               <>
                 <div>
-                  <label className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec block mb-1.5">Venue</label>
+                  <label className="text-ui-10 uppercase tracking-display text-tea-text-sec block mb-1.5">Venue</label>
                   <div className="relative">
                     <MapPin size={12} className="absolute left-0 top-1/2 -translate-y-1/2 text-tea-text-sec" />
                     <select
@@ -825,7 +825,7 @@ export const EventDetail: React.FC = () => {
                 {/* Space picker */}
                 {selectedVenueObj && selectedVenueObj.spaces.length > 0 && (
                   <div className="space-y-2">
-                    <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec">Spaces</p>
+                    <p className="text-ui-10 uppercase tracking-display text-tea-text-sec">Spaces</p>
                     {selectedSpaceIds.length > 0 && (
                       <div className="flex flex-wrap gap-1.5">
                         {selectedVenueObj.spaces.filter(s => selectedSpaceIds.includes(s.id)).map(s => (
@@ -896,7 +896,7 @@ export const EventDetail: React.FC = () => {
             {/* Venue profile: photos + links */}
             {selectedVenueObj && (selectedVenueObj.photos.length > 0 || selectedVenueObj.website || selectedVenueObj.instagram) && (
               <div className="space-y-3 pt-2">
-                <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec">Venue Profile</p>
+                <p className="text-ui-10 uppercase tracking-display text-tea-text-sec">Venue Profile</p>
                 {/* Profile links */}
                 {(selectedVenueObj.website || selectedVenueObj.instagram) && (
                   <div className="flex items-center gap-4 flex-wrap">

@@ -6,7 +6,7 @@
  *  B) Generate an invite link for external tasters
  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, Copy, Link as LinkIcon, QrCode, Send, X } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
@@ -14,6 +14,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { api } from '../../lib/api';
 import { fetchStore } from '../../lib/storefrontApi';
 import { syncCompassEntries } from '../../lib/teaCompassSync';
+import { useFocusTrap } from '../../hooks/useFocusTrap';
 
 interface CompassShareModalProps {
   entryId: string;
@@ -28,6 +29,7 @@ export const CompassShareModal: React.FC<CompassShareModalProps> = ({
   synced,
   onClose,
 }) => {
+  const focusTrapRef = useFocusTrap<HTMLDivElement>(true);
   const [accountSlug, setAccountSlug] = useState('');
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
@@ -81,6 +83,13 @@ export const CompassShareModal: React.FC<CompassShareModalProps> = ({
     setTimeout(() => setCopiedLink(false), 2000);
   };
 
+  // Escape closes
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [onClose]);
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -96,6 +105,10 @@ export const CompassShareModal: React.FC<CompassShareModalProps> = ({
 
       {/* Sheet */}
       <motion.div
+        ref={focusTrapRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Share ${entryName || 'card'}`}
         initial={{ y: 40, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 40, opacity: 0 }}
@@ -105,7 +118,7 @@ export const CompassShareModal: React.FC<CompassShareModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <div>
-            <p className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim mb-0.5">Share</p>
+            <p className="text-ui-10 uppercase tracking-caps text-tea-text-dim mb-0.5">Share</p>
             <h2 className="font-serif text-ui-15 text-tea-text leading-tight truncate max-w-[200px]">
               {entryName || 'This card'}
             </h2>
@@ -113,7 +126,8 @@ export const CompassShareModal: React.FC<CompassShareModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 text-tea-text-dim hover:text-tea-text transition-colors"
+            aria-label="Close share dialog"
+            className="tap-target p-1.5 text-tea-text-sec hover:text-tea-text transition-colors"
           >
             <X size={16} />
           </button>

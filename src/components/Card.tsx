@@ -85,10 +85,10 @@ export const Card: React.FC<CardProps> = ({ story, onClick, isSaved, isWatched, 
                             <Icons.Audio className="w-5 h-5 text-tea-text/60 group-hover:text-tea-gold transition-colors" />
                        </div>
 
-                       <h3 className="text-[clamp(24px,3.5vw,32px)] text-tea-text mb-2 leading-[1.2] tracking-[0.01em] group-hover:text-tea-gold transition-colors duration-500" style={{ fontFamily: 'var(--font-display)' }}>
+                       <h3 className="text-[clamp(24px,3.5vw,32px)] text-tea-text mb-2 leading-snug tracking-wide group-hover:text-tea-gold transition-colors duration-500" style={{ fontFamily: 'var(--font-display)' }}>
                            {story.title}
                        </h3>
-                       <p className="text-ui-10 text-tea-text-sec font-sans uppercase tracking-[0.15em] mb-4">
+                       <p className="text-ui-10 text-tea-text-sec font-sans uppercase tracking-caps mb-4">
                            {story.subtitle}
                        </p>
 
@@ -98,16 +98,16 @@ export const Card: React.FC<CardProps> = ({ story, onClick, isSaved, isWatched, 
                    </div>
                 ) : (
                   <div className="absolute inset-0 z-10 flex flex-col items-center justify-center p-6 text-center">
-                        <h3 className="text-[clamp(24px,3.5vw,32px)] text-tea-text leading-[1.2] tracking-[0.01em] mb-3 group-hover:text-tea-gold transition-colors duration-500 line-clamp-2" style={{ fontFamily: 'var(--font-display)' }}>
+                        <h3 className="text-[clamp(24px,3.5vw,32px)] text-tea-text leading-snug tracking-wide mb-3 group-hover:text-tea-gold transition-colors duration-500 line-clamp-2" style={{ fontFamily: 'var(--font-display)' }}>
                            {story.title}
                         </h3>
                         <div className="flex flex-col gap-1.5 items-center">
-                             <p className="text-ui-10 text-tea-text-sec font-sans uppercase tracking-[0.15em]">
+                             <p className="text-ui-10 text-tea-text-sec font-sans uppercase tracking-caps">
                                 {story.subtitle}
                              </p>
                              <div className="flex items-start gap-3 mt-2 w-full justify-center">
                                 <div className="w-6 h-[0.5px] bg-tea-gold/15 mt-2 shrink-0"></div>
-                                <p className="font-light italic text-[clamp(16px,1.5vw+8px,18px)] text-tea-gold leading-[1.4] line-clamp-2 text-center max-w-[80%]" style={{ fontFamily: 'var(--font-body)' }}>
+                                <p className="font-light italic text-[clamp(16px,1.5vw+8px,18px)] text-tea-gold leading-normal line-clamp-2 text-center max-w-[80%]" style={{ fontFamily: 'var(--font-body)' }}>
                                     {story.description}
                                 </p>
                                 <div className="w-6 h-[0.5px] bg-tea-gold/15 mt-2 shrink-0"></div>
@@ -173,7 +173,7 @@ export const Card: React.FC<CardProps> = ({ story, onClick, isSaved, isWatched, 
                         <div className="flex justify-between items-end text-tea-text">
                            <div className="flex items-center gap-2">
                               <Icons.Audio className="w-3 h-3 opacity-90" />
-                              <span className="text-xs uppercase tracking-[0.15em] opacity-90">Listen</span>
+                              <span className="text-xs uppercase tracking-caps opacity-90">Listen</span>
                            </div>
                            <span className="text-xs font-mono tabular-nums opacity-80">{story.durationOrTime}</span>
                         </div>
@@ -195,11 +195,11 @@ export const Card: React.FC<CardProps> = ({ story, onClick, isSaved, isWatched, 
         {!isTextOnly && (
             <div className="pt-3 pb-1 px-0.5 flex justify-between items-start gap-3">
                 <div className="text-left min-w-0 flex-1">
-                    <h3 className="text-ui-17 text-tea-text leading-[1.2] mb-1.5 group-hover:text-tea-gold transition-colors duration-500 truncate" style={{ fontFamily: 'var(--font-display)' }}>
+                    <h3 className="text-ui-17 text-tea-text leading-snug mb-1.5 group-hover:text-tea-gold transition-colors duration-500 truncate" style={{ fontFamily: 'var(--font-display)' }}>
                         {story.title}
                     </h3>
                     <div className="flex items-center gap-2">
-                        <p className="text-ui-10 text-tea-text-sec uppercase tracking-[0.15em] font-sans truncate">
+                        <p className="text-ui-10 text-tea-text-sec uppercase tracking-caps font-sans truncate">
                             {story.subtitle}
                         </p>
                     </div>

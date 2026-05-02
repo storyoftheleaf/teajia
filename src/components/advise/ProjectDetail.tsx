@@ -128,7 +128,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, o
           <div className="absolute inset-0 bg-gradient-to-b from-tea-border via-transparent to-tea-bg" />
         </div>
         <div className="relative z-10 px-6 md:px-10 pt-20 pb-16 md:pt-28 md:pb-24 min-h-[55vh] md:min-h-[45vh] flex flex-col justify-end">
-          <p className="text-xs uppercase tracking-[0.2em] text-tea-gold font-sans mb-3">
+          <p className="text-xs uppercase tracking-display text-tea-gold font-sans mb-3">
             {project.type === 'space' ? 'Space Design' : project.type === 'event' ? 'Event' : 'Sourcing Journey'}
           </p>
           <h1 className="font-serif text-3xl md:text-4xl lg:text-5xl font-normal mb-4 text-tea-text">
@@ -236,7 +236,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, o
         </p>
         <button
           onClick={() => onOpenInquiry(inquiryPreselect)}
-          className={`text-tea-gold hover:text-tea-gold/80 text-xs uppercase tracking-[0.15em] font-medium flex items-center gap-1 transition-colors duration-300 min-h-[44px] mb-6 ${CTA_FOCUS}`}
+          className={`text-tea-gold hover:text-tea-gold/80 text-xs uppercase tracking-caps font-medium flex items-center gap-1 transition-colors duration-300 min-h-[44px] mb-6 ${CTA_FOCUS}`}
         >
           Start a conversation
           <Icons.ChevronRight className="w-3.5 h-3.5" />
@@ -245,7 +245,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, o
         <div>
           <button
             onClick={onNavigateProjects}
-            className={`text-tea-text-dim hover:text-tea-gold text-xs uppercase tracking-[0.15em] font-medium flex items-center gap-1 transition-colors duration-300 min-h-[44px] ${CTA_FOCUS}`}
+            className={`text-tea-text-dim hover:text-tea-gold text-xs uppercase tracking-caps font-medium flex items-center gap-1 transition-colors duration-300 min-h-[44px] ${CTA_FOCUS}`}
           >
             See more projects
             <Icons.ChevronRight className="w-3.5 h-3.5" />
@@ -255,7 +255,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, o
 
       {/* Cross-section CTA */}
       <div className={`border-t border-tea-border pt-10 ${SECTION_GAP_LG}`}>
-        <p className="text-xs uppercase tracking-[0.2em] text-tea-gold font-sans mb-2">
+        <p className="text-xs uppercase tracking-display text-tea-gold font-sans mb-2">
           From the Shop
         </p>
         <p className="font-serif text-lg text-tea-text mb-4">
@@ -263,7 +263,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, o
         </p>
         <Link
           to="/shop"
-          className={`text-tea-gold hover:text-tea-gold/80 text-xs uppercase tracking-[0.15em] font-medium inline-flex items-center gap-1 transition-colors duration-300 min-h-[44px] ${CTA_FOCUS}`}
+          className={`text-tea-gold hover:text-tea-gold/80 text-xs uppercase tracking-caps font-medium inline-flex items-center gap-1 transition-colors duration-300 min-h-[44px] ${CTA_FOCUS}`}
         >
           Browse the Shop
           <Icons.ChevronRight className="w-3.5 h-3.5" />

@@ -21,7 +21,7 @@ export const TagFilter: React.FC<TagFilterProps> = ({
       {/* Filter Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`flex items-center gap-2 px-3 py-1.5 text-xs uppercase tracking-[0.15em] font-sans border transition-colors duration-300 ${
+        className={`flex items-center gap-2 px-3 py-1.5 text-xs uppercase tracking-caps font-sans border transition-colors duration-300 ${
           hasSelection
             ? 'border-tea-gold text-tea-gold'
             : 'border-tea-border text-tea-text-sec'
@@ -61,7 +61,7 @@ export const TagFilter: React.FC<TagFilterProps> = ({
           <div className="absolute top-full right-0 mt-2 z-50 w-80 max-h-[70vh] overflow-y-auto bg-tea-surface border border-tea-text/10  shadow-lg animate-[fadeIn_0.15s_ease-out]">
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-tea-text/10 ">
-              <span className="text-xs uppercase tracking-[0.15em] font-sans text-tea-text/60">
+              <span className="text-xs uppercase tracking-caps font-sans text-tea-text/60">
                 Filter by Tag
               </span>
               {hasSelection && (
@@ -79,7 +79,7 @@ export const TagFilter: React.FC<TagFilterProps> = ({
               {(Object.entries(TAG_SECTIONS) as [TagSection, typeof TAG_SECTIONS[TagSection]][]).map(
                 ([sectionKey, section]) => (
                   <div key={sectionKey}>
-                    <h4 className="text-ui-10 uppercase tracking-[0.2em] font-sans text-tea-text/40 mb-2">
+                    <h4 className="text-ui-10 uppercase tracking-display font-sans text-tea-text/40 mb-2">
                       {section.label}
                     </h4>
                     <div className="flex flex-wrap gap-1.5">
@@ -109,7 +109,7 @@ export const TagFilter: React.FC<TagFilterProps> = ({
             <div className="px-4 py-3 border-t border-tea-text/10 ">
               <button
                 onClick={() => setIsOpen(false)}
-                className="w-full py-2 text-xs uppercase tracking-[0.15em] font-sans text-tea-text hover:text-tea-gold dark:hover:text-tea-gold transition-colors"
+                className="w-full py-2 text-xs uppercase tracking-caps font-sans text-tea-text hover:text-tea-gold dark:hover:text-tea-gold transition-colors"
               >
                 Done
               </button>

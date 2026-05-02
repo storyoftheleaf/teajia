@@ -79,7 +79,7 @@ const StatCard: React.FC<{
   >
     <div className="flex items-center gap-2 text-tea-text-dim">
       {icon}
-      <span className="text-ui-10 uppercase tracking-[0.2em]">{label}</span>
+      <span className="text-ui-10 uppercase tracking-display">{label}</span>
     </div>
     <p className="font-serif text-2xl text-tea-text num leading-none">{value}</p>
     {sub && <p className="text-xs text-tea-text-dim">{sub}</p>}
@@ -179,7 +179,7 @@ export const VendorProfileView: React.FC = () => {
           <p className="font-serif text-lg text-tea-text mb-2">Vendor not found</p>
           <button
             onClick={() => navigate(-1)}
-            className="text-xs text-tea-text-sec hover:text-tea-gold transition-colors uppercase tracking-[0.15em]"
+            className="text-xs text-tea-text-sec hover:text-tea-gold transition-colors uppercase tracking-caps"
           >
             Go back
           </button>
@@ -195,7 +195,7 @@ export const VendorProfileView: React.FC = () => {
         {/* Back link */}
         <button
           onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-xs text-tea-text-sec hover:text-tea-gold transition-colors uppercase tracking-[0.15em] mb-10"
+          className="flex items-center gap-2 text-xs text-tea-text-sec hover:text-tea-gold transition-colors uppercase tracking-caps mb-10"
         >
           <ArrowLeft size={13} />
           <span>People</span>
@@ -232,7 +232,7 @@ export const VendorProfileView: React.FC = () => {
               {vendor.tags.map(tag => (
                 <span
                   key={tag}
-                  className="text-ui-10 uppercase tracking-[0.15em] px-2.5 py-1 bg-tea-surface text-tea-text-sec rounded-sm"
+                  className="text-ui-10 uppercase tracking-caps px-2.5 py-1 bg-tea-surface text-tea-text-sec rounded-sm"
                 >
                   {tag}
                 </span>
@@ -291,10 +291,10 @@ export const VendorProfileView: React.FC = () => {
             <div className="border border-tea-border rounded-sm overflow-hidden">
               {/* Table header */}
               <div className="grid grid-cols-[1fr_80px_80px_80px] gap-4 px-5 py-3 bg-tea-surface border-b border-tea-border">
-                <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim">Tea</span>
-                <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim text-right">Stock</span>
-                <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim text-right">Cost/g</span>
-                <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim text-right">Status</span>
+                <span className="text-ui-10 uppercase tracking-caps text-tea-text-dim">Tea</span>
+                <span className="text-ui-10 uppercase tracking-caps text-tea-text-dim text-right">Stock</span>
+                <span className="text-ui-10 uppercase tracking-caps text-tea-text-dim text-right">Cost/g</span>
+                <span className="text-ui-10 uppercase tracking-caps text-tea-text-dim text-right">Status</span>
               </div>
 
               {products.map((p, i) => {
@@ -359,7 +359,7 @@ export const VendorProfileView: React.FC = () => {
                   </div>
                   <div className="text-right">
                     <span
-                      className={`text-ui-10 uppercase tracking-[0.1em] px-2 py-0.5 rounded-sm ${
+                      className={`text-ui-10 uppercase tracking-widest px-2 py-0.5 rounded-sm ${
                         inv.status === 'Filled'
                           ? 'bg-tea-gold/15 text-tea-gold'
                           : 'bg-tea-surface text-tea-text-sec border border-tea-border'

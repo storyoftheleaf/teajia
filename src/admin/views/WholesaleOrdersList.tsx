@@ -185,7 +185,7 @@ export const WholesaleOrdersList: React.FC<WholesaleOrdersListProps> = ({ embedd
   if (!hasSell) {
     return (
       <div className={outerClass}>
-        <p className="text-tea-text-sec italic text-ui-15 leading-[1.65]">
+        <p className="text-tea-text-sec italic text-ui-15 leading-loose">
           This page requires the Sell bundle. Ask your owner.
         </p>
       </div>
@@ -246,7 +246,7 @@ export const WholesaleOrdersList: React.FC<WholesaleOrdersListProps> = ({ embedd
 
       {/* Empty state */}
       {!loading && orders !== null && orders.length === 0 && (
-        <p className="text-tea-text-sec italic text-ui-15 leading-[1.65]">
+        <p className="text-tea-text-sec italic text-ui-15 leading-loose">
           No wholesale orders yet. Start one from a tea you carry, or from
           the network catalog. The supplier sees it on submit.
         </p>
@@ -271,7 +271,7 @@ export const WholesaleOrdersList: React.FC<WholesaleOrdersListProps> = ({ embedd
         <button
           type="button"
           onClick={() => navigate('/admin/network/wholesale/new')}
-          className="text-ui-14 text-tea-text-sec hover:text-tea-gold transition-colors font-display tracking-[0.04em]"
+          className="text-ui-14 text-tea-text-sec hover:text-tea-gold transition-colors font-display tracking-wider"
         >
           Start a new order →
         </button>

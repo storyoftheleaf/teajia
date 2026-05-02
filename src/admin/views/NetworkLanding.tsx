@@ -120,7 +120,7 @@ export const NetworkLanding: React.FC = () => {
           padding doesn't double up with the hub container's. */}
       <div>
         {visibleTabs.length === 0 && (
-          <p className="px-4 md:px-8 max-w-2xl mx-auto font-body italic text-ui-15 text-tea-text-sec leading-[1.7]">
+          <p className="px-4 md:px-8 max-w-2xl mx-auto font-body italic text-ui-15 text-tea-text-sec leading-reading">
             Your account doesn't yet have the bundles that open the network's
             working surfaces. Ask your owner about Catalog or Sell.
           </p>

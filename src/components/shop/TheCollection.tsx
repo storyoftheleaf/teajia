@@ -141,7 +141,7 @@ export const TheCollection: React.FC<TheCollectionProps> = ({ onBack, onNavigate
         onBack={onBack}
         backLabel="Shop"
         rightContent={
-          <span className="text-ui-10 uppercase tracking-[0.2em] text-tea-text/30">
+          <span className="text-ui-10 uppercase tracking-display text-tea-text/30">
             By inquiry only
           </span>
         }

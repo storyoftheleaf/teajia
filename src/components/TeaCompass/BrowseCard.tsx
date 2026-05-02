@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -83,7 +84,7 @@ function getTypeLabel(entry: TeaCompassEntry): string {
 }
 
 
-export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueueActive, isCompareSelected, onToggleCompare, onSelect, isSelected }) => {
+const BrowseCardComponent: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueueActive, isCompareSelected, onToggleCompare, onSelect, isSelected }) => {
   const navigate = useNavigate();
   const removeEntry = useTeaCompassStore((s) => s.removeEntry);
   const updateEntry = useTeaCompassStore((s) => s.updateEntry);
@@ -98,6 +99,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
   const [tastingOpen, setTastingOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const lightboxRef = useFocusTrap<HTMLDivElement>(lightboxIndex !== null);
 
   const validPhotos = (entry.photos || []).filter(Boolean);
 
@@ -249,7 +251,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
               </button>
             ) : typeColor ? (
               <div
-                className="shrink-0 mt-0.5 w-14 h-14 rounded-md flex items-center justify-center text-ui-9 font-semibold tracking-[0.1em] uppercase"
+                className="shrink-0 mt-0.5 w-14 h-14 rounded-md flex items-center justify-center text-ui-9 font-semibold tracking-widest uppercase"
                 style={{ background: `${typeColor}18`, color: typeColor }}
                 aria-hidden="true"
               >
@@ -283,14 +285,14 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
 
               {/* Vendor — provenance group, right after Chinese name */}
               {entry.vendorName && (
-                <div className="flex items-center gap-1 text-ui-10 text-tea-text-dim">
+                <div className="flex items-center gap-1 text-ui-11 text-tea-text-dim">
                   <Store size={10} />
                   <span className="truncate">{entry.vendorName}</span>
                 </div>
               )}
 
               {/* Type · Year · Age · Price/gram */}
-              <p className="text-ui-10 text-tea-text-dim tabular-nums">
+              <p className="text-ui-11 text-tea-text-dim tabular-nums">
                 {[
                   getTypeLabel(entry),
                   entry.year && String(entry.year),
@@ -308,16 +310,16 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
                     </span>
                   )}
                   {isBought && (
-                    <span className="text-ui-10 text-tea-gold/70 font-medium">In Stock</span>
+                    <span className="text-ui-11 text-tea-gold/70 font-medium">In Stock</span>
                   )}
                   {isPassed && (
-                    <span className="text-ui-10 text-tea-text-dim font-medium">Passed</span>
+                    <span className="text-ui-11 text-tea-text-sec font-medium">Passed</span>
                   )}
                   {isWishlisted && !isBought && (
-                    <span className="text-ui-10 text-tea-text-dim font-medium">Wishlist</span>
+                    <span className="text-ui-11 text-tea-text-sec font-medium">Wishlist</span>
                   )}
                   {isIncoming && (
-                    <span className="text-ui-10 text-tea-accent-sub font-medium">Incoming</span>
+                    <span className="text-ui-11 text-tea-accent-sub font-medium">Incoming</span>
                   )}
                 </div>
               )}
@@ -369,7 +371,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
                     type="button"
                     onClick={() => photoInputRef.current?.click()}
                     disabled={photoUploading}
-                    className="shrink-0 flex items-center gap-1 text-ui-10 text-tea-text-dim hover:text-tea-text-sec transition-colors px-2 py-1.5"
+                    className="shrink-0 flex items-center gap-1 text-ui-11 text-tea-text-sec hover:text-tea-text transition-colors px-2 py-1.5"
                   >
                     {photoUploading
                       ? <Loader2 size={11} className="animate-spin" />
@@ -573,7 +575,8 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
           <button
             type="button"
             onClick={() => onEdit(entry.id)}
-            className="p-1.5 rounded-md text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-elevated transition-colors"
+            aria-label="Edit in capture"
+            className="tap-target p-1.5 rounded-md text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated transition-colors"
             title="Edit in Capture"
           >
             <Pencil size={12} />
@@ -593,7 +596,8 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
             <button
               type="button"
               onClick={() => setConfirmDelete(true)}
-              className="p-1.5 rounded-md text-tea-text-dim hover:text-red-400 hover:bg-tea-elevated transition-colors ml-1"
+              aria-label="Delete entry"
+              className="tap-target p-1.5 rounded-md text-tea-text-sec hover:text-red-400 hover:bg-tea-elevated transition-colors ml-1"
               title="Delete"
             >
               <Trash2 size={12} />
@@ -633,18 +637,22 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
       {lightboxIndex !== null && validPhotos[lightboxIndex] && createPortal(
         <motion.div
           key="browse-lightbox"
+          ref={lightboxRef}
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Photo ${lightboxIndex + 1} of ${validPhotos.length}`}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.15 }}
-          className="fixed inset-0 z-toast flex items-center justify-center"
-          style={{ background: 'rgba(0,0,0,0.88)' }}
+          className="fixed inset-0 z-toast flex items-center justify-center bg-black/90"
           onClick={() => setLightboxIndex(null)}
         >
           <button
             type="button"
             onClick={() => setLightboxIndex(null)}
-            className="absolute top-4 right-4 w-9 h-9 flex items-center justify-center rounded-full bg-tea-text/10 text-tea-text hover:bg-tea-text/20 transition-colors"
+            aria-label="Close photo viewer"
+            className="absolute top-4 right-4 w-11 h-11 flex items-center justify-center rounded-full bg-tea-text/10 text-tea-text hover:bg-tea-text/20 transition-colors"
           >
             <X size={18} />
           </button>
@@ -652,7 +660,8 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); setLightboxIndex(lightboxIndex - 1); }}
-              className="absolute left-4 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center rounded-full bg-tea-text/10 text-tea-text hover:bg-tea-text/20 transition-colors"
+              aria-label="Previous photo"
+              className="absolute left-4 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center rounded-full bg-tea-text/10 text-tea-text hover:bg-tea-text/20 transition-colors"
             >
               <ChevronLeft size={20} />
             </button>
@@ -671,7 +680,8 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); setLightboxIndex(lightboxIndex + 1); }}
-              className="absolute right-4 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center rounded-full bg-tea-text/10 text-tea-text hover:bg-tea-text/20 transition-colors"
+              aria-label="Next photo"
+              className="absolute right-4 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center rounded-full bg-tea-text/10 text-tea-text hover:bg-tea-text/20 transition-colors"
             >
               <ChevronRight size={20} />
             </button>
@@ -694,5 +704,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
     </>
   );
 };
+
+export const BrowseCard = React.memo(BrowseCardComponent);
 
 export default BrowseCard;

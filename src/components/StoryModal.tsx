@@ -91,7 +91,7 @@ export const StoryModal: React.FC<StoryModalProps> = ({ story, onClose, onRead }
           {/* Header */}
           <div className="mb-8">
             <div className="flex items-center space-x-3 mb-4">
-              <span className="px-3 py-1 border border-tea-text/20 text-xs uppercase tracking-[0.15em] rounded-full text-tea-text-light">
+              <span className="px-3 py-1 border border-tea-text/20 text-xs uppercase tracking-caps rounded-full text-tea-text-light">
                 {story.type}
               </span>
               <span className="text-xs text-tea-text-light/60 font-serif italic">

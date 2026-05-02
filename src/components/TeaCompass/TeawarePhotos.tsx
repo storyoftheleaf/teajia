@@ -85,7 +85,7 @@ export const TeawarePhotos: React.FC<TeawarePhotosProps> = ({ photos, onPhotosCh
             }`}
           >
             <Plus size={18} className="text-tea-text-dim" />
-            <span className="text-ui-10 text-tea-text-dim mt-1">
+            <span className="text-ui-11 text-tea-text-sec mt-1">
               {uploading ? 'Uploading...' : 'Add'}
             </span>
           </button>

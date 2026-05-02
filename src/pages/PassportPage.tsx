@@ -94,7 +94,7 @@ const LoadingState: React.FC = () => (
   <div className="min-h-screen bg-tea-bg flex items-center justify-center">
     <div className="text-center">
       <div className="w-10 h-10 rounded-full bg-tea-gold/10 mx-auto mb-4 animate-pulse" />
-      <p className="text-xs uppercase tracking-[0.2em] text-tea-text-sec animate-pulse">
+      <p className="text-xs uppercase tracking-display text-tea-text-sec animate-pulse">
         Opening your passport
       </p>
     </div>
@@ -115,7 +115,7 @@ const ErrorState: React.FC<{ message: string }> = ({ message }) => (
       </p>
       <Link
         to="/"
-        className="text-xs uppercase tracking-[0.2em] text-tea-text-sec hover:text-tea-gold transition-colors"
+        className="text-xs uppercase tracking-display text-tea-text-sec hover:text-tea-gold transition-colors"
       >
         Return home
       </Link>
@@ -167,7 +167,7 @@ const TeaChapter: React.FC<{
                   </p>
                 )}
                 {item.productType && (
-                  <p className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim mt-1">
+                  <p className="text-ui-10 uppercase tracking-caps text-tea-text-dim mt-1">
                     {item.productType}
                   </p>
                 )}
@@ -179,11 +179,11 @@ const TeaChapter: React.FC<{
 
       {guestNotes.length > 0 && (
         <div className="mt-5 space-y-4">
-          <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim">Your notes</p>
+          <p className="text-ui-10 uppercase tracking-display text-tea-text-dim">Your notes</p>
           {guestNotes.map((note, i) => (
             <div key={i} className="border-l-2 border-tea-gold/30 pl-4">
               {note.teaName && (
-                <p className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec mb-1">
+                <p className="text-ui-10 uppercase tracking-caps text-tea-text-sec mb-1">
                   {note.teaName}
                 </p>
               )}
@@ -361,7 +361,7 @@ const PassportPage: React.FC = () => {
           {/* Teas tasted at this event */}
           {(teaMenu.length > 0 || tastingNotes.length > 0) ? (
             <div className="ml-7 pl-4 border-l border-tea-border">
-              <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-5">
+              <p className="text-ui-10 uppercase tracking-display text-tea-text-sec mb-5">
                 Teas at this gathering
               </p>
               <TeaChapter

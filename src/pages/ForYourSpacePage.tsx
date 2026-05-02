@@ -212,7 +212,7 @@ export const ForYourSpacePage: React.FC = () => {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-            className="text-[2.2rem] md:text-[3rem] lg:text-[3.5rem] font-light text-tea-text leading-[1.1] tracking-[-0.02em] mb-6"
+            className="text-[2.2rem] md:text-[3rem] lg:text-[3.5rem] font-light text-tea-text leading-[1.1] tracking-tighter mb-6"
             style={{ fontFamily: 'var(--font-display)' }}
           >
             Bring tea to your space.
@@ -242,7 +242,7 @@ export const ForYourSpacePage: React.FC = () => {
                 {i > 0 && <div className="h-px bg-tea-border/20" />}
                 <div className="py-10">
                   <h3
-                    className="text-[1.15rem] md:text-[1.3rem] font-light text-tea-text mb-3 tracking-[-0.01em]"
+                    className="text-[1.15rem] md:text-[1.3rem] font-light text-tea-text mb-3 tracking-tight"
                     style={{ fontFamily: 'var(--font-display)' }}
                   >
                     {uc.label}
@@ -331,7 +331,7 @@ export const ForYourSpacePage: React.FC = () => {
               </p>
               <button
                 onClick={() => setSubmitted(false)}
-                className="text-ui-11 uppercase tracking-[0.1em] text-tea-text-sec hover:text-tea-text transition-colors duration-200 min-h-[44px]"
+                className="text-ui-11 uppercase tracking-widest text-tea-text-sec hover:text-tea-text transition-colors duration-200 min-h-[44px]"
                 style={{ fontFamily: 'var(--font-sans)' }}
               >
                 Edit inquiry
@@ -423,7 +423,7 @@ export const ForYourSpacePage: React.FC = () => {
                           set('contactMethod')(method);
                           set('contactValue')('');
                         }}
-                        className={`flex-1 py-2.5 px-4 text-ui-11 uppercase tracking-[0.1em] border transition-all duration-200 min-h-[44px]
+                        className={`flex-1 py-2.5 px-4 text-ui-11 uppercase tracking-widest border transition-all duration-200 min-h-[44px]
                           ${form.contactMethod === method
                             ? 'border-tea-gold bg-tea-gold/8 text-tea-gold'
                             : 'border-tea-border text-tea-text-sec hover:border-tea-gold/40'
@@ -448,7 +448,7 @@ export const ForYourSpacePage: React.FC = () => {
                 <div className="mt-8">
                   <button
                     type="submit"
-                    className="w-full bg-tea-gold text-tea-bg text-ui-11 uppercase tracking-[0.15em] font-medium
+                    className="w-full bg-tea-gold text-tea-bg text-ui-11 uppercase tracking-caps font-medium
                                py-3 px-6 hover:bg-tea-gold/90 transition-colors duration-300
                                active:scale-[0.98] min-h-[44px]
                                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50"

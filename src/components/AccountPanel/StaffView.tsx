@@ -148,7 +148,7 @@ export const StaffView: React.FC<StaffViewProps> = ({
             <span>Shift</span>
           </div>
           <div className="w-8 h-px bg-tea-gold/40 mt-2 mb-3.5 ml-[22px]" aria-hidden="true" />
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-ui-14 text-tea-text-sec tracking-[0.01em]">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-ui-14 text-tea-text-sec tracking-wide">
             {shiftTools.map((tool: AdminTool, i: number) => (
               <React.Fragment key={tool.id}>
                 {i > 0 && <span className="text-tea-text-sec" aria-hidden="true">·</span>}
@@ -172,7 +172,7 @@ export const StaffView: React.FC<StaffViewProps> = ({
           <span>Learn</span>
         </div>
         <div className="w-8 h-px bg-tea-gold/40 mt-2 mb-3.5 ml-[22px]" aria-hidden="true" />
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-ui-14 text-tea-text-sec tracking-[0.01em]">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-ui-14 text-tea-text-sec tracking-wide">
           <button
             onClick={() => go('/magazine')}
             className="py-1 -my-1 hover:text-tea-gold transition-colors"
@@ -204,7 +204,7 @@ export const StaffView: React.FC<StaffViewProps> = ({
         </div>
         <button
           onClick={onSignOut}
-          className="mt-6 py-2 -my-2 text-tea-text-sec hover:text-tea-gold transition-colors text-ui-12 uppercase tracking-[0.2em] font-medium"
+          className="mt-6 py-2 -my-2 text-tea-text-sec hover:text-tea-gold transition-colors text-ui-12 uppercase tracking-display font-medium"
           style={{ WebkitTapHighlightColor: 'transparent' }}
         >
           Sign Out

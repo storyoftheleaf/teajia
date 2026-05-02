@@ -119,6 +119,9 @@ CREATE TABLE IF NOT EXISTS products (
     vendor_id TEXT,                -- FK to customers table (vendor contact)
     is_sample INTEGER DEFAULT 0,                    -- Sample/trial tea not yet committed to inventory
     in_transit INTEGER DEFAULT 0,                   -- Stock ordered but not yet physically arrived
+    in_transit_grams INTEGER,                       -- Grams expected (when in_transit=1)
+    in_transit_eta TEXT,                            -- Expected arrival date (ISO)
+    session_reserve_grams INTEGER,                  -- Reserve grams that should never be sold/depleted
     tasting TEXT DEFAULT '{}',                    -- Structured tasting taxonomy JSON
     tasting_source TEXT,                          -- 'owner' | 'community' | NULL; NULL falls back to style baseline
     sold_out_at TEXT,                             -- When product auto-archived due to zero stock

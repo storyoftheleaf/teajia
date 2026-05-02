@@ -76,7 +76,7 @@ const VenueGuide: React.FC<VenueGuideProps> = ({ venueGuide, mapLink, className 
                   href={steps[activeStep].video_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 mt-3 ml-10 text-xs text-tea-gold uppercase tracking-[0.15em] hover:text-tea-gold/80 transition-colors"
+                  className="inline-flex items-center gap-2 mt-3 ml-10 text-xs text-tea-gold uppercase tracking-caps hover:text-tea-gold/80 transition-colors"
                 >
                   Watch walkthrough
                 </a>
@@ -132,7 +132,7 @@ const VenueGuide: React.FC<VenueGuideProps> = ({ venueGuide, mapLink, className 
             <div className="flex items-start gap-3 p-4 bg-tea-surface border border-tea-border rounded-md">
               <Car className="w-4 h-4 text-tea-gold mt-0.5 shrink-0" />
               <div>
-                <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-1">Parking</p>
+                <p className="text-ui-10 uppercase tracking-display text-tea-text-sec mb-1">Parking</p>
                 <p className="text-sm text-tea-text-sec leading-relaxed">{venueGuide.parking_notes}</p>
               </div>
             </div>
@@ -141,7 +141,7 @@ const VenueGuide: React.FC<VenueGuideProps> = ({ venueGuide, mapLink, className 
             <div className="flex items-start gap-3 p-4 bg-tea-surface border border-tea-border rounded-md">
               <Train className="w-4 h-4 text-tea-gold mt-0.5 shrink-0" />
               <div>
-                <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-1">Transit</p>
+                <p className="text-ui-10 uppercase tracking-display text-tea-text-sec mb-1">Transit</p>
                 <p className="text-sm text-tea-text-sec leading-relaxed">{venueGuide.transit_notes}</p>
               </div>
             </div>
@@ -150,7 +150,7 @@ const VenueGuide: React.FC<VenueGuideProps> = ({ venueGuide, mapLink, className 
             <div className="flex items-start gap-3 p-4 bg-tea-surface border border-tea-border rounded-md">
               <DoorOpen className="w-4 h-4 text-tea-gold mt-0.5 shrink-0" />
               <div>
-                <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-1">On Arrival</p>
+                <p className="text-ui-10 uppercase tracking-display text-tea-text-sec mb-1">On Arrival</p>
                 <p className="text-sm text-tea-text-sec leading-relaxed">{venueGuide.arrival_notes}</p>
               </div>
             </div>
@@ -167,7 +167,7 @@ const VenueGuide: React.FC<VenueGuideProps> = ({ venueGuide, mapLink, className 
           className="inline-flex items-center gap-3 mt-6 px-6 py-3 bg-tea-surface border border-tea-border rounded-sm text-tea-text hover:border-tea-gold/40 hover:text-tea-gold transition-all duration-300 group"
         >
           <Navigation className="w-4 h-4 text-tea-text-sec group-hover:text-tea-gold transition-colors duration-300" />
-          <span className="text-xs uppercase tracking-[0.2em] font-medium">
+          <span className="text-xs uppercase tracking-display font-medium">
             Open in Maps
           </span>
         </a>

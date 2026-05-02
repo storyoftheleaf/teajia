@@ -166,7 +166,7 @@ export const ContentLinksEditor: React.FC<ContentLinksEditorProps> = ({ products
 
         {/* Entity picker */}
         <div className="px-5 pt-4 shrink-0">
-          <label className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim block mb-1.5">
+          <label className="text-ui-10 uppercase tracking-caps text-tea-text-dim block mb-1.5">
             Select {ENTITY_LABELS[entityType]}
           </label>
           <div className="relative">
@@ -195,7 +195,7 @@ export const ContentLinksEditor: React.FC<ContentLinksEditorProps> = ({ products
             </div>
           ) : (
             <>
-              <p className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim mb-3">
+              <p className="text-ui-10 uppercase tracking-caps text-tea-text-dim mb-3">
                 {linkedProducts.length === 0 ? 'No products linked' : `${linkedProducts.length} linked product${linkedProducts.length === 1 ? '' : 's'}`}
               </p>
 

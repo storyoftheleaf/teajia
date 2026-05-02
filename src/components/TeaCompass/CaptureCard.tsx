@@ -1205,7 +1205,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
                               {type}
                             </span>
                             {TEA_TYPE_DESCRIPTIONS[type] && (
-                              <span className="block text-ui-10 text-tea-text-dim leading-tight mt-0.5">
+                              <span className="block text-ui-11 text-tea-text-sec leading-tight mt-0.5">
                                 {TEA_TYPE_DESCRIPTIONS[type]}
                               </span>
                             )}
@@ -1313,7 +1313,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
         <>
           <div className="flex items-center gap-2">
             <div className="flex-1 h-px bg-tea-border" />
-            <span className="text-ui-9 text-tea-text-dim tracking-[0.2em] uppercase shrink-0">Profile</span>
+            <span className="text-ui-11 text-tea-text-sec tracking-display uppercase shrink-0">Profile</span>
             <div className="flex-1 h-px bg-tea-border" />
           </div>
           <div className="space-y-2.5">
@@ -1372,7 +1372,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
       {/* ─── Notes zone ─── */}
       <div className="flex items-center gap-2">
         <div className="flex-1 h-px bg-tea-border" />
-        <span className="text-ui-9 text-tea-text-dim tracking-[0.2em] uppercase shrink-0">Notes</span>
+        <span className="text-ui-11 text-tea-text-sec tracking-display uppercase shrink-0">Notes</span>
         <div className="flex-1 h-px bg-tea-border" />
       </div>
       <NoteThread
@@ -1475,8 +1475,8 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
                         key={g}
                         type="button"
                         onClick={() => setBuyingQty(g)}
-                        className={`py-0.5 px-2 rounded text-ui-10 transition-colors ${
-                          buyingQty === g ? 'bg-tea-gold/15 text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'
+                        className={`py-0.5 px-2 rounded text-ui-11 transition-colors ${
+                          buyingQty === g ? 'bg-tea-gold/15 text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
                         }`}
                       >
                         {g}g

@@ -204,7 +204,7 @@ export const PlatformAuditLogPage: React.FC = () => {
         {/* Date range */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-ui-9 uppercase tracking-[0.2em] text-tea-text-dim mb-1">From</label>
+            <label className="block text-ui-9 uppercase tracking-display text-tea-text-dim mb-1">From</label>
             <input
               type="date"
               value={dateFrom}
@@ -213,7 +213,7 @@ export const PlatformAuditLogPage: React.FC = () => {
             />
           </div>
           <div>
-            <label className="block text-ui-9 uppercase tracking-[0.2em] text-tea-text-dim mb-1">To</label>
+            <label className="block text-ui-9 uppercase tracking-display text-tea-text-dim mb-1">To</label>
             <input
               type="date"
               value={dateTo}
@@ -229,7 +229,7 @@ export const PlatformAuditLogPage: React.FC = () => {
             <button
               type="button"
               onClick={() => { setSearchAction(''); setDateFrom(''); setDateTo(''); }}
-              className="hover:text-tea-text transition-colors uppercase tracking-[0.15em]"
+              className="hover:text-tea-text transition-colors uppercase tracking-caps"
             >
               Clear filters
             </button>

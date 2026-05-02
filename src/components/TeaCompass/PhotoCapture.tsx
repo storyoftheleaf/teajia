@@ -4,6 +4,7 @@ import { Camera, Check, ChevronLeft, ChevronRight, RefreshCw, Sparkles, X } from
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../../lib/api';
 import { compressImage } from '../../lib/imageCompressor';
+import { useFocusTrap } from '../../hooks/useFocusTrap';
 
 export interface ExtractedTeaData {
   name?: string;
@@ -74,9 +75,11 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
 
   const [pendingPreviews, setPendingPreviews] = useState<PendingPreview[]>([]);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const lightboxRef = useFocusTrap<HTMLDivElement>(lightboxIndex !== null);
   const [justExtracted, setJustExtracted] = useState(false);
 
   const [scannerOpen, setScannerOpen] = useState(false);
+  const scannerRef = useFocusTrap<HTMLDivElement>(scannerOpen);
   const [scanStep, setScanStep] = useState<ScanStep>('camera');
   const [capturedDataUrl, setCapturedDataUrl] = useState<string | null>(null);
   const [capturedImageUrl, setCapturedImageUrl] = useState<string | null>(null);
@@ -229,8 +232,16 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
   };
 
   // ── Scanner modal ──────────────────────────────────────────────────────────
+  // Escape closes the scanner modal
+  useEffect(() => {
+    if (!scannerOpen) return;
+    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') closeScanner(); };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [scannerOpen]);
+
   const scannerModal = scannerOpen ? createPortal(
-    <div className="fixed inset-0 z-modal flex flex-col bg-black">
+    <div ref={scannerRef} role="dialog" aria-modal="true" aria-label="Scan tea label" className="fixed inset-0 z-modal flex flex-col bg-black">
 
       {/* Header */}
       <div className="flex items-center justify-between px-4 pt-4 pb-3 shrink-0">
@@ -246,7 +257,8 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
         <button
           type="button"
           onClick={closeScanner}
-          className="w-8 h-8 flex items-center justify-center rounded-full bg-tea-text/10 text-tea-text hover:bg-tea-text/20 transition-colors"
+          aria-label="Close scanner"
+          className="w-11 h-11 flex items-center justify-center rounded-full bg-tea-text/10 text-tea-text hover:bg-tea-text/20 transition-colors"
         >
           <X size={16} />
         </button>
@@ -283,7 +295,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
               className="absolute left-0 right-0 h-[2px] pointer-events-none"
               style={{
                 background: 'linear-gradient(90deg, transparent 0%, var(--tea-gold) 50%, transparent 100%)',
-                boxShadow: '0 0 12px 3px rgba(184,146,78,0.5)',
+                boxShadow: '0 0 12px 3px rgb(var(--tea-gold-rgb) / 0.5)',
               }}
               animate={{ top: ['0%', '100%'] }}
               transition={{ duration: 1.1, repeat: Infinity, ease: 'linear' }}
@@ -433,18 +445,22 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
     ? createPortal(
         <motion.div
           key="lightbox"
+          ref={lightboxRef}
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Photo ${lightboxIndex + 1} of ${allPhotos.length}`}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.15 }}
-          className="fixed inset-0 z-toast flex items-center justify-center"
-          style={{ background: 'rgba(0,0,0,0.88)' }}
+          className="fixed inset-0 z-toast flex items-center justify-center bg-black/90"
           onClick={() => setLightboxIndex(null)}
         >
           <button
             type="button"
             onClick={() => setLightboxIndex(null)}
-            className="absolute top-4 right-4 w-9 h-9 flex items-center justify-center rounded-full bg-tea-text/10 text-tea-text hover:bg-tea-text/20 transition-colors"
+            aria-label="Close photo viewer"
+            className="absolute top-4 right-4 w-11 h-11 flex items-center justify-center rounded-full bg-tea-text/10 text-tea-text hover:bg-tea-text/20 transition-colors"
           >
             <X size={18} />
           </button>
@@ -452,7 +468,8 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); setLightboxIndex(lightboxIndex - 1); }}
-              className="absolute left-4 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center rounded-full bg-tea-text/10 text-tea-text hover:bg-tea-text/20 transition-colors"
+              aria-label="Previous photo"
+              className="absolute left-4 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center rounded-full bg-tea-text/10 text-tea-text hover:bg-tea-text/20 transition-colors"
             >
               <ChevronLeft size={20} />
             </button>
@@ -471,7 +488,8 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); setLightboxIndex(lightboxIndex + 1); }}
-              className="absolute right-4 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center rounded-full bg-tea-text/10 text-tea-text hover:bg-tea-text/20 transition-colors"
+              aria-label="Next photo"
+              className="absolute right-4 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center rounded-full bg-tea-text/10 text-tea-text hover:bg-tea-text/20 transition-colors"
             >
               <ChevronRight size={20} />
             </button>

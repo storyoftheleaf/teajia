@@ -64,7 +64,7 @@ export const PeopleView: React.FC<PeopleViewProps> = ({
         <h1 className="text-2xl text-tea-text mb-1" style={{ fontFamily: 'var(--font-display)' }}>
           People
         </h1>
-        <p className="text-xs text-tea-text-dim uppercase tracking-[0.15em]">
+        <p className="text-xs text-tea-text-dim uppercase tracking-caps">
           Customers, suppliers, and team
         </p>
       </div>
@@ -76,7 +76,7 @@ export const PeopleView: React.FC<PeopleViewProps> = ({
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-ui-10 uppercase tracking-[0.15em] rounded-md whitespace-nowrap transition-colors ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-ui-10 uppercase tracking-caps rounded-md whitespace-nowrap transition-colors ${
                 activeTab === tab.id
                   ? 'bg-tea-bg text-tea-text shadow-sm'
                   : 'text-tea-text-sec hover:text-tea-text'

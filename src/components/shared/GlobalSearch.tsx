@@ -376,7 +376,7 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) =
           {groupedResults.map(group => (
             <div key={group.label}>
               <div className="px-4 pt-3 pb-1">
-                <span className="text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec font-sans font-medium">
+                <span className="text-ui-11 uppercase tracking-caps text-tea-text-sec font-sans font-medium">
                   {group.label}
                 </span>
               </div>

@@ -217,7 +217,7 @@ const GuestManagement: React.FC = () => {
           </p>
           <button
             onClick={() => navigate('/')}
-            className="px-8 py-3 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.2em] hover:bg-tea-gold/90 transition-colors"
+            className="px-8 py-3 bg-tea-gold text-tea-bg text-xs uppercase tracking-display hover:bg-tea-gold/90 transition-colors"
           >
             Return Home
           </button>
@@ -300,7 +300,7 @@ const GuestManagement: React.FC = () => {
             </Suspense>
             <button
               onClick={() => setShowTasting(false)}
-              className="w-full mt-4 py-3 text-xs uppercase tracking-[0.2em] text-tea-text-dim hover:text-tea-text-sec transition-colors"
+              className="w-full mt-4 py-3 text-xs uppercase tracking-display text-tea-text-dim hover:text-tea-text-sec transition-colors"
             >
               Skip
             </button>
@@ -397,7 +397,7 @@ const GuestManagement: React.FC = () => {
               <div className="border-t border-tea-border pt-10">
                 <button
                   onClick={() => setShowTasting(true)}
-                  className="text-xs uppercase tracking-[0.2em] text-tea-text-sec hover:text-tea-gold transition-colors"
+                  className="text-xs uppercase tracking-display text-tea-text-sec hover:text-tea-gold transition-colors"
                 >
                   Rate the session
                 </button>
@@ -477,7 +477,7 @@ const GuestManagement: React.FC = () => {
 
           {/* Submission summary */}
           <div className="mt-6 p-5 bg-tea-surface border border-tea-border rounded-md space-y-3">
-            <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec">What you submitted</p>
+            <p className="text-ui-10 uppercase tracking-display text-tea-text-sec">What you submitted</p>
             <div className="flex items-center gap-2 text-sm text-tea-text">
               <span className="text-tea-text-sec text-xs w-16 shrink-0">Name</span>
               <span>{attendee.fullName}</span>
@@ -488,7 +488,7 @@ const GuestManagement: React.FC = () => {
             </div>
             {attendee.guestRequests && attendee.guestRequests.length > 0 && (
               <div>
-                <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-2 mt-1">
+                <p className="text-ui-10 uppercase tracking-display text-tea-text-sec mb-2 mt-1">
                   Guest request{attendee.guestRequests.length > 1 ? 's' : ''}
                 </p>
                 <ul className="space-y-1.5">
@@ -616,7 +616,7 @@ const GuestManagement: React.FC = () => {
                 {attendee.claimExpiresAt && (
                   <div className="flex items-center justify-center gap-2 mb-6 text-tea-gold">
                     <Clock className="w-4 h-4" />
-                    <span className="text-xs uppercase tracking-[0.15em] font-medium">
+                    <span className="text-xs uppercase tracking-caps font-medium">
                       {getClaimTimeRemaining(attendee.claimExpiresAt)}
                     </span>
                   </div>
@@ -684,7 +684,7 @@ const GuestManagement: React.FC = () => {
           <div className="text-center">
             <button
               onClick={() => setShowCancelConfirm(true)}
-              className="text-xs text-tea-text-sec hover:text-red-400 transition-colors uppercase tracking-[0.15em]"
+              className="text-xs text-tea-text-sec hover:text-red-400 transition-colors uppercase tracking-caps"
             >
               Cancel my waitlist spot
             </button>
@@ -717,7 +717,7 @@ const GuestManagement: React.FC = () => {
           </p>
           <button
             onClick={() => navigate(`/event/${event.slug}`)}
-            className="px-8 py-3 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.2em] hover:bg-tea-gold/90 transition-colors"
+            className="px-8 py-3 bg-tea-gold text-tea-bg text-xs uppercase tracking-display hover:bg-tea-gold/90 transition-colors"
           >
             View Event
           </button>
@@ -773,7 +773,7 @@ const GuestManagement: React.FC = () => {
         {/* Guest invite links */}
         {approvedGuests.length > 0 && (
           <div className="mb-10 p-5 bg-tea-surface border border-tea-border rounded-md">
-            <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-4">
+            <p className="text-ui-10 uppercase tracking-display text-tea-text-sec mb-4">
               Your guests
             </p>
             <div className="space-y-3">
@@ -897,7 +897,7 @@ const GuestManagement: React.FC = () => {
         {/* Guest count toggle (plus one) */}
         {status === 'confirmed' && (
           <div className="mb-8 p-5 bg-tea-surface border border-tea-border rounded-md">
-            <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-3">
+            <p className="text-ui-10 uppercase tracking-display text-tea-text-sec mb-3">
               Bringing a guest?
             </p>
             <div className="flex items-center gap-3">
@@ -908,7 +908,7 @@ const GuestManagement: React.FC = () => {
                   updateGuests.mutate({ plusOne: next });
                 }}
                 disabled={updateGuests.isPending}
-                className={`flex items-center gap-2 px-4 py-2 rounded-sm text-xs uppercase tracking-[0.15em] border transition-all duration-200 ${
+                className={`flex items-center gap-2 px-4 py-2 rounded-sm text-xs uppercase tracking-caps border transition-all duration-200 ${
                   currentPlusOne
                     ? 'bg-tea-gold/10 border-tea-border text-tea-gold'
                     : 'bg-tea-surface border-tea-border text-tea-text-sec hover:border-tea-gold/30 hover:text-tea-text'
@@ -937,7 +937,7 @@ const GuestManagement: React.FC = () => {
         {/* Dietary requirements / notes */}
         {status === 'confirmed' && (
           <div className="mb-8 p-5 bg-tea-surface border border-tea-border rounded-md">
-            <label className="block text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-3">
+            <label className="block text-ui-10 uppercase tracking-display text-tea-text-sec mb-3">
               Dietary notes or special requests
             </label>
             <textarea
@@ -979,7 +979,7 @@ const GuestManagement: React.FC = () => {
         {/* Guest list opt-in toggle */}
         {status === 'confirmed' && (
           <div className="mb-8 p-5 bg-tea-surface border border-tea-border rounded-md">
-            <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-3">
+            <p className="text-ui-10 uppercase tracking-display text-tea-text-sec mb-3">
               Guest list
             </p>
             <label className="flex items-start gap-3 cursor-pointer group">
@@ -1007,7 +1007,7 @@ const GuestManagement: React.FC = () => {
         <div className="text-center pt-6 pb-12 border-t border-tea-border">
           <button
             onClick={() => setShowCancelConfirm(true)}
-            className="text-xs text-tea-text-sec hover:text-red-400 transition-colors uppercase tracking-[0.15em] py-3"
+            className="text-xs text-tea-text-sec hover:text-red-400 transition-colors uppercase tracking-caps py-3"
           >
             Cancel my reservation
           </button>
@@ -1067,14 +1067,14 @@ const CancelConfirmModal: React.FC<CancelConfirmModalProps> = ({
         <div className="flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 py-3 bg-tea-surface border border-tea-border text-tea-text text-xs uppercase tracking-[0.15em] rounded-sm hover:bg-tea-elevated transition-colors"
+            className="flex-1 py-3 bg-tea-surface border border-tea-border text-tea-text text-xs uppercase tracking-caps rounded-sm hover:bg-tea-elevated transition-colors"
           >
             Keep My Seat
           </button>
           <button
             onClick={onConfirm}
             disabled={isPending}
-            className="flex-1 py-3 bg-red-500/10 border border-red-500/20 text-red-400 text-xs uppercase tracking-[0.15em] rounded-sm hover:bg-red-500/20 disabled:opacity-50 transition-colors flex items-center justify-center"
+            className="flex-1 py-3 bg-red-500/10 border border-red-500/20 text-red-400 text-xs uppercase tracking-caps rounded-sm hover:bg-red-500/20 disabled:opacity-50 transition-colors flex items-center justify-center"
           >
             {isPending ? (
               <span className="inline-block w-4 h-4 border-2 border-red-400/30 border-t-red-400 rounded-full animate-spin" />

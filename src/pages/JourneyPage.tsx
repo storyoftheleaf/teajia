@@ -307,7 +307,7 @@ const JourneyEditorial: React.FC<{ onVerify: () => void }> = ({ onVerify }) => (
       </p>
       <button
         onClick={onVerify}
-        className="inline-flex items-center gap-2 px-8 py-3 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.2em] font-medium hover:bg-tea-gold-lt transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold"
+        className="inline-flex items-center gap-2 px-8 py-3 bg-tea-gold text-tea-bg text-xs uppercase tracking-display font-medium hover:bg-tea-gold-lt transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold"
       >
         View your journey
       </button>
@@ -553,7 +553,7 @@ const PreferencesPanel: React.FC<{ contact: string; token: string }> = ({ contac
       {!deleteConfirm ? (
         <button
           onClick={() => setDeleteConfirm(true)}
-          className="text-xs text-tea-text-sec hover:text-red-400 transition-colors uppercase tracking-[0.15em]"
+          className="text-xs text-tea-text-sec hover:text-red-400 transition-colors uppercase tracking-caps"
         >
           Delete my data
         </button>
@@ -565,13 +565,13 @@ const PreferencesPanel: React.FC<{ contact: string; token: string }> = ({ contac
           <div className="flex gap-3">
             <button
               onClick={() => setDeleteConfirm(false)}
-              className="flex-1 py-2.5 text-xs uppercase tracking-[0.15em] text-tea-text-sec border border-tea-border rounded-sm hover:border-tea-gold/30 transition-colors"
+              className="flex-1 py-2.5 text-xs uppercase tracking-caps text-tea-text-sec border border-tea-border rounded-sm hover:border-tea-gold/30 transition-colors"
             >
               Cancel
             </button>
             <button
               onClick={handleDelete}
-              className="flex-1 py-2.5 text-xs uppercase tracking-[0.15em] text-red-400 border border-red-500/20 rounded-sm hover:bg-red-500/10 transition-colors"
+              className="flex-1 py-2.5 text-xs uppercase tracking-caps text-red-400 border border-red-500/20 rounded-sm hover:bg-red-500/10 transition-colors"
             >
               Delete
             </button>

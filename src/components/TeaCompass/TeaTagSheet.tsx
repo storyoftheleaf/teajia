@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { X, Printer } from 'lucide-react';
 import type { LedgerTransaction, LedgerLineItem } from '../../lib/ledgerStore';
 import type { TeaCompassEntry } from './types';
+import { useFocusTrap } from '../../hooks/useFocusTrap';
 
 // A tag can come from either a ledger line item (bought) or a compass entry (sample/logged)
 interface TagItem {
@@ -53,6 +54,13 @@ interface TeaTagSheetProps {
 }
 
 export const TeaTagSheet: React.FC<TeaTagSheetProps> = ({ transaction, entries, onClose }) => {
+  const focusTrapRef = useFocusTrap<HTMLDivElement>(true);
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [onClose]);
+
   const baseUrl = window.location.origin;
 
   const tags: TagItem[] = transaction
@@ -87,7 +95,11 @@ export const TeaTagSheet: React.FC<TeaTagSheetProps> = ({ transaction, entries, 
 
       {/* bg-white kept literal — this sheet is designed for printing tea tags; the screen view mirrors the print output */}
       <div
+        ref={focusTrapRef}
         id="tea-tag-sheet-root"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Tea tags — print sheet"
         className="fixed inset-0 z-50 bg-white flex flex-col"
         style={{ fontFamily: 'Georgia, serif' }}
       >
@@ -102,6 +114,7 @@ export const TeaTagSheet: React.FC<TeaTagSheetProps> = ({ transaction, entries, 
             <button
               type="button"
               onClick={onClose}
+              aria-label="Close tag sheet"
               className="p-2 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
             >
               <X size={16} />

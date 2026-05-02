@@ -61,7 +61,7 @@ export const ContributorDrawer: React.FC<ContributorDrawerProps> = ({
               {person.name}
             </h2>
             {person.role && (
-              <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-gold mb-2">
+              <p className="text-ui-10 uppercase tracking-display text-tea-gold mb-2">
                 {person.role}
               </p>
             )}

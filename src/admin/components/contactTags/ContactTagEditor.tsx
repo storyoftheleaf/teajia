@@ -128,7 +128,7 @@ export const ContactTagEditor: React.FC<ContactTagEditorProps> = ({
   return (
     <div>
       {!compact && (
-        <p className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec mb-3">
+        <p className="text-ui-10 uppercase tracking-caps text-tea-text-sec mb-3">
           Tags
           {tags.length > 0 && <span className="ml-1 normal-case text-tea-text-dim">({tags.length})</span>}
         </p>

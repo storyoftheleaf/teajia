@@ -70,6 +70,7 @@ const CenterPage = lazy(() => import('./pages/CenterPage'));
 const OrderHistoryPage = lazy(() => import('./pages/OrderHistoryPage'));
 const SampleHistoryPage = lazy(() => import('./pages/SampleHistoryPage'));
 const SessionPage = lazy(() => import('./pages/SessionPage'));
+const JoinPage = lazy(() => import('./pages/JoinPage'));
 const TableCardPage = lazy(() => import('./pages/TableCardPage'));
 const EventsPage = lazy(() => import('./pages/EventsPage'));
 const ForYourSpacePage = lazy(() => import('./pages/ForYourSpacePage'));
@@ -77,6 +78,8 @@ const SpacesPage = lazy(() => import('./pages/SpacesPage'));
 const StartHerePage = lazy(() => import('./pages/StartHerePage'));
 const ArticlePage = lazy(() => import('./pages/ArticlePage'));
 const PublicCollectionPage = lazy(() => import('./pages/PublicCollectionPage'));
+const ContributorProfilePage = lazy(() => import('./pages/ContributorProfilePage'));
+const ContributorsIndexPage = lazy(() => import('./pages/ContributorsIndexPage'));
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchStore } from './lib/storefrontApi';
@@ -744,6 +747,8 @@ const AppContent = () => {
                 <Route path="/c/:slug" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><PublicCollectionPage /></Suspense></ErrorBoundary>} />
                 <Route path="/me" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="list" />}><CenterPage /></Suspense></ErrorBoundary>} />
                 <Route path="/session/:id" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><SessionPage /></Suspense></ErrorBoundary>} />
+                <Route path="/join" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><JoinPage /></Suspense></ErrorBoundary>} />
+                <Route path="/join/:code" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><JoinPage /></Suspense></ErrorBoundary>} />
                 <Route path="/t/:token" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><TableCardPage /></Suspense></ErrorBoundary>} />
                 <Route path="/find-a-table" element={
                   <ErrorBoundary>
@@ -764,13 +769,27 @@ const AppContent = () => {
                     </Suspense>
                   </ErrorBoundary>
                 } />
+                <Route path="/people/:slug" element={
+                  <ErrorBoundary>
+                    <Suspense fallback={<SectionSkeleton variant="hero" />}>
+                      <ContributorProfilePage />
+                    </Suspense>
+                  </ErrorBoundary>
+                } />
+                <Route path="/people" element={
+                  <ErrorBoundary>
+                    <Suspense fallback={<SectionSkeleton variant="list" />}>
+                      <ContributorsIndexPage />
+                    </Suspense>
+                  </ErrorBoundary>
+                } />
                 {/* 404 Page */}
                 <Route path="*" element={
                   <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-6 animate-[fadeIn_0.5s_ease-out]">
                     <h1 className="text-6xl font-serif text-tea-gold mb-4">404</h1>
                     <p className="text-xl font-serif text-tea-text mb-2">Page not found</p>
                     <p className="text-sm text-tea-text-sec mb-8 max-w-md">The page you're looking for doesn't exist or may have been moved.</p>
-                    <button onClick={() => setActiveSection('HOME')} className="px-8 py-3 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.2em] hover:bg-tea-gold/90 transition-colors">Return Home</button>
+                    <button onClick={() => setActiveSection('HOME')} className="px-8 py-3 bg-tea-gold text-tea-bg text-xs uppercase tracking-display hover:bg-tea-gold/90 transition-colors">Return Home</button>
                   </div>
                 } />
               </Routes>

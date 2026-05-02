@@ -97,7 +97,7 @@ const LineItemRow: React.FC<{
             </p>
           )}
           {(item.type || item.form || item.year) && (
-            <p className="text-tea-text-dim text-ui-10 num mt-0.5">
+            <p className="text-tea-text-dim text-ui-11 num mt-0.5">
               {[item.type, item.form, item.year].filter(Boolean).join(' · ')}
             </p>
           )}
@@ -120,7 +120,7 @@ const LineItemRow: React.FC<{
               onWheel={(e) => (e.target as HTMLElement).blur()}
               className="w-10 text-center text-tea-text text-xs font-medium bg-transparent num border-none outline-none"
             />
-            <span className="text-tea-text-dim text-ui-10 num">{isUnitBased ? '×' : 'g'}</span>
+            <span className="text-tea-text-dim text-ui-11 num">{isUnitBased ? '×' : 'g'}</span>
           </div>
           <button
             type="button"
@@ -137,7 +137,7 @@ const LineItemRow: React.FC<{
           <button
             type="button"
             onClick={onRemove}
-            className="text-tea-text-dim hover:text-tea-text-sec text-ui-10 uppercase tracking-wide transition-colors mt-0.5"
+            className="text-tea-text-dim hover:text-tea-text-sec text-ui-11 uppercase tracking-wide transition-colors mt-0.5"
           >
             remove
           </button>
@@ -223,7 +223,7 @@ const TransactionPhotos: React.FC<{ txId: string; photos: string[] }> = ({ txId,
               }`}
             >
               <Plus size={16} className="text-tea-text-dim" />
-              <span className="text-ui-9 text-tea-text-dim mt-0.5">
+              <span className="text-ui-11 text-tea-text-dim mt-0.5">
                 {uploading ? '...' : 'Add'}
               </span>
             </button>
@@ -534,7 +534,7 @@ const TransactionCard: React.FC<{
               {/* Grand total */}
               {tx.items.length > 0 && (
                 <div className="flex items-baseline justify-between pt-3 border-t border-tea-border" aria-label="Grand total">
-                  <span className="text-tea-text-sec text-ui-11 uppercase tracking-[0.15em]">Total</span>
+                  <span className="text-tea-text-sec text-ui-11 uppercase tracking-caps">Total</span>
                   <span className="text-tea-text text-sm font-serif num">
                     {fmtPrice(total, tx.currency)}
                   </span>
@@ -703,7 +703,7 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ embedded, onOpenEntry, s
         <div className="flex flex-col gap-2 w-full max-w-xs">
           <button
             onClick={() => openPurchaseOrder()}
-            className="w-full px-5 py-3 bg-tea-gold text-tea-bg text-ui-10 font-semibold uppercase tracking-[0.08em] transition-colors flex items-center justify-center gap-2"
+            className="w-full px-5 py-3 bg-tea-gold text-tea-bg text-ui-11 font-semibold uppercase tracking-[0.08em] transition-colors flex items-center justify-center gap-2"
           >
             <ShoppingBag size={14} />
             Purchase Order Builder
@@ -711,13 +711,13 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ embedded, onOpenEntry, s
           <div className="flex gap-2">
             <button
               onClick={() => createTransaction('purchase', '', 'NT')}
-              className="flex-1 px-4 py-2.5 bg-tea-surface text-tea-text-sec text-ui-10 font-semibold uppercase tracking-[0.08em] transition-colors active:text-tea-text"
+              className="flex-1 px-4 py-2.5 bg-tea-surface text-tea-text-sec text-ui-11 font-semibold uppercase tracking-[0.08em] transition-colors active:text-tea-text"
             >
               Quick Note
             </button>
             <button
               onClick={() => createTransaction('sale', '', 'USD')}
-              className="flex-1 px-4 py-2.5 bg-tea-surface text-tea-text-sec text-ui-10 font-semibold uppercase tracking-[0.08em] transition-colors active:text-tea-text"
+              className="flex-1 px-4 py-2.5 bg-tea-surface text-tea-text-sec text-ui-11 font-semibold uppercase tracking-[0.08em] transition-colors active:text-tea-text"
             >
               Quick Sale
             </button>

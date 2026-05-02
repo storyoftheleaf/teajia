@@ -60,7 +60,7 @@ export const StartHerePage: React.FC = () => {
           className="opacity-70 mb-6"
         />
         <h1
-          className="text-tea-text text-[22px] md:text-ui-26 font-normal leading-snug tracking-[0.01em]"
+          className="text-tea-text text-[22px] md:text-ui-26 font-normal leading-snug tracking-wide"
           style={{ fontFamily: 'var(--font-display)', fontWeight: 300 }}
         >
           Where would you like to begin?

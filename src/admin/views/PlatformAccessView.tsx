@@ -124,7 +124,7 @@ export const PlatformAccessView: React.FC = () => {
 const CountLine: React.FC<{ value: number; label: string; emphasis?: boolean }> = ({ value, label, emphasis }) => (
   <span className={`${emphasis ? 'text-tea-gold' : ''}`}>
     <span className="font-display text-[24px] font-light">{value}</span>{' '}
-    <span className="text-ui-13 tracking-[0.04em]">{label}</span>
+    <span className="text-ui-13 tracking-wider">{label}</span>
   </span>
 );
 
@@ -132,7 +132,7 @@ const TabButton: React.FC<{ active: boolean; onClick: () => void; children: Reac
   <button
     type="button"
     onClick={onClick}
-    className={`pb-3 -mb-px font-display text-ui-15 tracking-[0.04em] transition-colors ${
+    className={`pb-3 -mb-px font-display text-ui-15 tracking-wider transition-colors ${
       active
         ? 'text-tea-text border-b border-tea-gold'
         : 'text-tea-text-sec hover:text-tea-text border-b border-transparent'
@@ -186,7 +186,7 @@ const AccountsRegister: React.FC<AccountsRegisterProps> = ({ accounts, applicati
       )}
 
       {locations.length === 0 && masters.length === 0 && pending.length === 0 && (
-        <div className="text-tea-text-sec italic text-ui-15 leading-[1.7]">
+        <div className="text-tea-text-sec italic text-ui-15 leading-reading">
           No accounts yet.
         </div>
       )}
@@ -240,7 +240,7 @@ const AccountRow: React.FC<{ account: PlatformAccount; onChange: () => Promise<v
           <div className="flex items-baseline gap-3 flex-wrap">
             <div className="font-display text-ui-17 text-tea-text">{account.name}</div>
             {account.trust_tier && (
-              <div className="text-tea-text-sec text-ui-11 uppercase tracking-[0.1em]">
+              <div className="text-tea-text-sec text-ui-11 uppercase tracking-widest">
                 {TIER_LABEL[account.trust_tier] || account.trust_tier}
               </div>
             )}
@@ -343,7 +343,7 @@ const PendingRow: React.FC<{ application: AccountApplication; onChange: () => Pr
 
   return (
     <div className="py-5 border-b border-tea-border last:border-b-0">
-      <div className="font-body text-ui-15 leading-[1.65] text-tea-text mb-3">
+      <div className="font-body text-ui-15 leading-loose text-tea-text mb-3">
         <span className="font-display">{application.applicant_name || application.applicant_email}</span>
         {' '}<span className="text-tea-text-sec">({application.applicant_email})</span>
         {' '}<span className="text-tea-text-sec text-ui-13">applied {formatDate(application.created_at)}</span>
@@ -385,7 +385,7 @@ const PendingRow: React.FC<{ application: AccountApplication; onChange: () => Pr
                 key={t}
                 type="button"
                 onClick={() => setTrustTier(t)}
-                className={`font-display tracking-[0.04em] transition-colors ${
+                className={`font-display tracking-wider transition-colors ${
                   trustTier === t ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
                 }`}
               >

@@ -165,7 +165,7 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
           <div className="absolute top-0 right-0 p-4 md:p-6 opacity-5 group-hover:opacity-10 transition-opacity text-tea-gold">
              <DollarSign size={60} strokeWidth={1} className="md:w-20 md:h-20" />
           </div>
-          <p className="text-tea-text-sec text-ui-10 md:text-xs uppercase tracking-[0.2em] mb-2 md:mb-4 font-bold">Total Asset Cost</p>
+          <p className="text-tea-text-sec text-ui-10 md:text-xs uppercase tracking-display mb-2 md:mb-4 font-bold">Total Asset Cost</p>
           <h3 className="text-2xl md:text-5xl font-serif font-light text-tea-text num">{fmtDollars(metrics.totalCostUSD)}</h3>
           <p className="text-ui-10 md:text-xs text-tea-text-sec/70 mt-2 md:mt-4 num">Capital deployed</p>
         </div>
@@ -174,13 +174,13 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
           <div className="absolute top-0 right-0 p-4 md:p-6 opacity-5 group-hover:opacity-10 transition-opacity text-tea-gold">
              <PieIcon size={60} strokeWidth={1} className="md:w-20 md:h-20" />
           </div>
-          <p className="text-tea-text-sec text-ui-10 md:text-xs uppercase tracking-[0.2em] mb-2 md:mb-4 font-bold">Retail Valuation</p>
+          <p className="text-tea-text-sec text-ui-10 md:text-xs uppercase tracking-display mb-2 md:mb-4 font-bold">Retail Valuation</p>
           <h3 className="text-2xl md:text-5xl font-serif font-light text-tea-text num">{fmtDollars(metrics.totalRetailUSD)}</h3>
           <p className="text-ui-10 md:text-xs text-tea-text-sec/70 mt-2 md:mt-4 num">At current prices</p>
         </div>
 
         <div className="bg-tea-surface border border-tea-border p-5 md:p-8 rounded-lg relative overflow-hidden group hover:border-tea-gold/30 transition-colors duration-200 min-w-[260px] md:min-w-0 snap-center flex-shrink-0 md:flex-shrink">
-          <p className="text-tea-text-sec text-ui-10 md:text-xs uppercase tracking-[0.2em] mb-2 md:mb-4 font-bold">Unrealized P&L</p>
+          <p className="text-tea-text-sec text-ui-10 md:text-xs uppercase tracking-display mb-2 md:mb-4 font-bold">Unrealized P&L</p>
           <h3 className="text-2xl md:text-5xl font-serif font-light text-tea-gold num">+{fmtDollars(metrics.potentialProfit)}</h3>
           <p className="text-ui-10 md:text-xs text-tea-text-sec/70 mt-2 md:mt-4 num">Margin: {fmtPct(metrics.totalCostUSD > 0 ? (metrics.potentialProfit / metrics.totalCostUSD) * 100 : 0)}</p>
         </div>

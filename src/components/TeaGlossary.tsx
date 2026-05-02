@@ -216,7 +216,7 @@ export const TeaGlossary: React.FC<TeaGlossaryProps> = ({
                             </p>
                           )}
                         </div>
-                        <span className="text-ui-9 uppercase tracking-[0.15em] text-tea-text-sec font-sans flex-shrink-0 mt-1">
+                        <span className="text-ui-9 uppercase tracking-caps text-tea-text-sec font-sans flex-shrink-0 mt-1">
                           {GLOSSARY_CATEGORIES[term.category].label}
                         </span>
                       </div>

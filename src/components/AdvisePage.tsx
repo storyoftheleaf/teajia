@@ -143,7 +143,7 @@ export const AdvisePage: React.FC<AdvisePageProps> = ({ onCartClick, onAccountCl
           className={`pt-14 md:pt-20 lg:pt-24 pb-10 md:pb-14 ${heroReveal.className}`}
           style={heroReveal.style}
         >
-          <h2 className="text-[2rem] md:text-[2.8rem] lg:text-[3.5rem] font-light text-tea-text leading-[1.1] tracking-[-0.02em]"
+          <h2 className="text-[2rem] md:text-[2.8rem] lg:text-[3.5rem] font-light text-tea-text leading-[1.1] tracking-tighter"
               style={{ fontFamily: 'var(--font-display)' }}>
             Tea spaces, sourcing,<br /> guidance.
           </h2>
@@ -165,7 +165,7 @@ export const AdvisePage: React.FC<AdvisePageProps> = ({ onCartClick, onAccountCl
             />
           </div>
           <div className="flex flex-col justify-center max-w-[460px]">
-            <p className="text-[1.05rem] md:text-[1.15rem] font-light text-tea-text leading-[1.4] tracking-[-0.005em] mb-6"
+            <p className="text-[1.05rem] md:text-[1.15rem] font-light text-tea-text leading-normal tracking-[-0.005em] mb-6"
                style={{ fontFamily: 'var(--font-display)' }}>
               Twenty years in tea culture.<br className="hidden md:block" />
               Taiwan, China, Japan, Bali, and beyond.
@@ -180,7 +180,7 @@ export const AdvisePage: React.FC<AdvisePageProps> = ({ onCartClick, onAccountCl
             </p>
             <button
               onClick={() => openInquiry('')}
-              className="text-ui-11 uppercase tracking-[0.1em] text-tea-gold hover:text-tea-gold/70
+              className="text-ui-11 uppercase tracking-widest text-tea-gold hover:text-tea-gold/70
                          font-medium transition-colors duration-300 text-left mt-8 min-h-[44px]"
               style={{ fontFamily: 'var(--font-sans)' }}
             >
@@ -206,7 +206,7 @@ export const AdvisePage: React.FC<AdvisePageProps> = ({ onCartClick, onAccountCl
                        transition-colors duration-200 group min-h-[44px]"
             style={{ fontFamily: 'var(--font-sans)' }}
           >
-            <span className="uppercase tracking-[0.1em]">Hotels, studios, and teams</span>
+            <span className="uppercase tracking-widest">Hotels, studios, and teams</span>
             <span className="text-tea-gold/60 group-hover:text-tea-gold transition-colors duration-200">&rarr;</span>
           </Link>
         </div>
@@ -302,12 +302,12 @@ const Services: React.FC = () => (
             className={`${i > 0 ? 'pt-14 md:pt-16' : ''} ${i < SERVICES.length - 1 ? 'pb-14 md:pb-16' : 'pb-6'}`}
           >
             <div className="flex items-baseline justify-between gap-6 mb-3">
-            <h3 className={`font-light text-tea-text leading-tight tracking-[-0.01em]
+            <h3 className={`font-light text-tea-text leading-tight tracking-tight
                            ${isDesign ? 'text-[1.5rem] md:text-[1.75rem]' : 'text-[1.2rem] md:text-[1.35rem]'}`}
                 style={{ fontFamily: 'var(--font-display)' }}>
               {svc.label}
             </h3>
-            <span className="text-ui-11 uppercase tracking-[0.1em] text-tea-gold/70 shrink-0"
+            <span className="text-ui-11 uppercase tracking-widest text-tea-gold/70 shrink-0"
                   style={{ fontFamily: 'var(--font-sans)' }}>
               {svc.price}
             </span>
@@ -328,7 +328,7 @@ const Services: React.FC = () => (
                           style={{ fontFamily: 'var(--font-display)' }}>
                       {o.name}
                     </span>
-                    <span className="text-ui-11 text-tea-gold/70 shrink-0 uppercase tracking-[0.1em] tabular-nums"
+                    <span className="text-ui-11 text-tea-gold/70 shrink-0 uppercase tracking-widest tabular-nums"
                           style={{ fontFamily: 'var(--font-mono, var(--font-sans))' }}>
                       {o.price}
                     </span>
@@ -400,7 +400,7 @@ const ProjectsPreview: React.FC<ProjectsPreviewProps> = ({ onSelectProject, onVi
 
       <button
         onClick={onViewAll}
-        className="text-ui-11 uppercase tracking-[0.1em] text-tea-gold/60 hover:text-tea-gold
+        className="text-ui-11 uppercase tracking-widest text-tea-gold/60 hover:text-tea-gold
                    transition-colors duration-300 min-h-[44px] mt-3
                    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 rounded-sm"
         style={{ fontFamily: 'var(--font-sans)' }}
@@ -427,11 +427,11 @@ const Testimonial: React.FC = () => {
       transition={{ duration: 1 }}
       className="mt-28 md:mt-40 text-center"
     >
-      <p className="text-[1.5rem] md:text-[1.85rem] font-light text-tea-text leading-[1.35] max-w-[540px] mx-auto tracking-[-0.01em]"
+      <p className="text-[1.5rem] md:text-[1.85rem] font-light text-tea-text leading-[1.35] max-w-[540px] mx-auto tracking-tight"
          style={{ fontFamily: 'var(--font-display)' }}>
         "{testimonial.quote}"
       </p>
-      <p className="text-ui-11 text-tea-text-sec mt-6 tracking-[0.1em]"
+      <p className="text-ui-11 text-tea-text-sec mt-6 tracking-widest"
          style={{ fontFamily: 'var(--font-sans)' }}>
         {testimonial.name}<span className="text-tea-text-dim mx-2">&middot;</span>{testimonial.title}
       </p>
@@ -455,13 +455,13 @@ const ClosingCTA: React.FC<ClosingCTAProps> = ({ onOpenInquiry }) => (
     transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
     className="mt-16 md:mt-24 pb-32 md:pb-40 text-center"
   >
-    <h3 className="text-[2rem] md:text-[2.75rem] lg:text-[3.25rem] font-light text-tea-text leading-[1.1] tracking-[-0.02em] mx-auto max-w-[580px]"
+    <h3 className="text-[2rem] md:text-[2.75rem] lg:text-[3.25rem] font-light text-tea-text leading-[1.1] tracking-tighter mx-auto max-w-[580px]"
         style={{ fontFamily: 'var(--font-display)' }}>
       Every project begins with a conversation.
     </h3>
     <button
       onClick={onOpenInquiry}
-      className="mt-10 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.15em] font-medium
+      className="mt-10 bg-tea-gold text-tea-bg text-xs uppercase tracking-caps font-medium
                  py-2.5 px-6 hover:bg-tea-gold/90 transition-colors duration-300
                  active:scale-95 min-h-[44px]
                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50"

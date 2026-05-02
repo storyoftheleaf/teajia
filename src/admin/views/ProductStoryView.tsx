@@ -198,7 +198,7 @@ const TimelineEntry: React.FC<{
       <div className="w-[1px] bg-tea-border flex-1 mt-1" />
     </div>
     <div className="pb-6 min-w-0 flex-1">
-      <p className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim mb-0.5">
+      <p className="text-ui-10 uppercase tracking-caps text-tea-text-dim mb-0.5">
         {date}
       </p>
       <p className="text-sm text-tea-text">{label}</p>
@@ -340,7 +340,7 @@ export const ProductStoryView: React.FC = () => {
           <p className="font-serif text-lg text-tea-text mb-2">Tea not found</p>
           <button
             onClick={() => navigate(-1)}
-            className="text-xs text-tea-text-sec hover:text-tea-gold transition-colors uppercase tracking-[0.15em]"
+            className="text-xs text-tea-text-sec hover:text-tea-gold transition-colors uppercase tracking-caps"
           >
             Go back
           </button>
@@ -356,7 +356,7 @@ export const ProductStoryView: React.FC = () => {
         {/* Back */}
         <button
           onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-xs text-tea-text-sec hover:text-tea-gold transition-colors uppercase tracking-[0.15em] mb-10"
+          className="flex items-center gap-2 text-xs text-tea-text-sec hover:text-tea-gold transition-colors uppercase tracking-caps mb-10"
         >
           <ArrowLeft size={13} />
           <span>Back</span>
@@ -624,7 +624,7 @@ export const ProductStoryView: React.FC = () => {
                 onClick={() => {
                   openPurchaseOrder();
                 }}
-                className="flex items-center gap-2 px-5 py-2.5 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.15em] hover:bg-tea-gold-lt transition-colors"
+                className="flex items-center gap-2 px-5 py-2.5 bg-tea-gold text-tea-bg text-xs uppercase tracking-caps hover:bg-tea-gold-lt transition-colors"
               >
                 <ShoppingBag size={13} />
                 Add to invoice

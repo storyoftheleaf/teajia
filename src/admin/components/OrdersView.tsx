@@ -242,7 +242,7 @@ export const OrdersView = () => {
                 <button
                   key={id}
                   onClick={() => setStatusFilter(id)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 text-ui-10 uppercase tracking-[0.15em] rounded-md whitespace-nowrap transition-colors shrink-0 ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 text-ui-10 uppercase tracking-caps rounded-md whitespace-nowrap transition-colors shrink-0 ${
                     statusFilter === id
                       ? 'bg-tea-bg text-tea-text shadow-sm'
                       : 'text-tea-text-sec hover:text-tea-text'
@@ -264,7 +264,7 @@ export const OrdersView = () => {
 
           <button
             onClick={() => setShowQuickInvoice(true)}
-            className="ml-auto shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-ui-10 uppercase tracking-[0.15em] text-tea-text border border-tea-border rounded-lg hover:border-tea-gold/50 hover:text-tea-gold transition-colors"
+            className="ml-auto shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-ui-10 uppercase tracking-caps text-tea-text border border-tea-border rounded-lg hover:border-tea-gold/50 hover:text-tea-gold transition-colors"
           >
             <Plus size={11} /> Invoice
           </button>
@@ -515,7 +515,7 @@ export const OrdersView = () => {
           <div className="text-center py-4">
             <button
               onClick={() => setPageSize(prev => prev + 50)}
-              className="text-xs text-tea-text-sec hover:text-tea-text uppercase tracking-[0.2em] border border-tea-border px-4 py-2 rounded-lg hover:bg-tea-surface transition-colors"
+              className="text-xs text-tea-text-sec hover:text-tea-text uppercase tracking-display border border-tea-border px-4 py-2 rounded-lg hover:bg-tea-surface transition-colors"
             >
               Load More
             </button>
@@ -563,7 +563,7 @@ export const OrdersView = () => {
                 {/* Source Event */}
                 {viewingInvoice.source_event_title && (
                   <div className="bg-tea-surface border border-tea-border rounded-xl p-4 mb-6">
-                    <h4 className="text-xs uppercase tracking-[0.2em] text-tea-text-sec mb-2">Source Event</h4>
+                    <h4 className="text-xs uppercase tracking-display text-tea-text-sec mb-2">Source Event</h4>
                     <button
                       onClick={() => { setViewingInvoice(null); navigate(`/admin/events?search=${encodeURIComponent(viewingInvoice.source_event_title)}`); }}
                       className="text-sm text-tea-text hover:text-tea-gold transition-colors"
@@ -576,13 +576,13 @@ export const OrdersView = () => {
                 {/* Notes */}
                 {viewingInvoice.notes && (
                   <div className="bg-tea-surface border border-tea-border rounded-xl p-4 mb-6">
-                    <h4 className="text-xs uppercase tracking-[0.2em] text-tea-text-sec mb-2">Notes</h4>
+                    <h4 className="text-xs uppercase tracking-display text-tea-text-sec mb-2">Notes</h4>
                     <p className="text-sm text-tea-text whitespace-pre-wrap">{viewingInvoice.notes}</p>
                   </div>
                 )}
 
                 <div className="bg-tea-surface border border-tea-border rounded-xl p-6 mb-8">
-                    <h4 className="text-xs uppercase tracking-[0.2em] text-tea-text-sec mb-4">Items</h4>
+                    <h4 className="text-xs uppercase tracking-display text-tea-text-sec mb-4">Items</h4>
                     <div className="space-y-3 max-h-56 overflow-y-auto custom-scrollbar pr-2">
                         {viewingInvoice.items?.map((item, i) => (
                             <div key={i} className="text-sm">
@@ -660,7 +660,7 @@ export const OrdersView = () => {
                 {/* Timeline */}
                 {invoiceTimeline.length > 0 && (
                   <div className="mt-8 pt-6 border-t border-tea-border">
-                    <h4 className="text-xs uppercase tracking-[0.2em] text-tea-text-sec mb-4">Activity</h4>
+                    <h4 className="text-xs uppercase tracking-display text-tea-text-sec mb-4">Activity</h4>
                     <div className="space-y-3">
                       {invoiceTimeline.map((log, i) => (
                         <div key={log.id || i} className="flex items-start gap-3">
@@ -686,7 +686,7 @@ export const OrdersView = () => {
                      <div className="mt-8 pt-6 border-t border-tea-border">
                         <button
                             onClick={() => { setViewingInvoice(null); openFulfillConfirm(viewingInvoice); }}
-                            className="w-full py-4 bg-tea-gold hover:bg-tea-gold/90 text-tea-bg font-bold uppercase tracking-[0.2em] text-xs rounded-lg flex items-center justify-center gap-2 transition-all shadow-lg shadow-tea-gold/10"
+                            className="w-full py-4 bg-tea-gold hover:bg-tea-gold/90 text-tea-bg font-bold uppercase tracking-display text-xs rounded-lg flex items-center justify-center gap-2 transition-all shadow-lg shadow-tea-gold/10"
                         >
                             <PackageCheck size={18} /> Confirm Order & Deduct Stock
                         </button>
@@ -713,7 +713,7 @@ export const OrdersView = () => {
                           total: `$${total} USD`,
                         });
                       }}
-                      className="w-full py-3 border border-tea-border rounded-lg text-xs uppercase tracking-[0.2em] text-tea-text-sec hover:text-tea-text hover:bg-tea-surface flex items-center justify-center gap-2 transition-all"
+                      className="w-full py-3 border border-tea-border rounded-lg text-xs uppercase tracking-display text-tea-text-sec hover:text-tea-text hover:bg-tea-surface flex items-center justify-center gap-2 transition-all"
                     >
                       <MessageCircle size={14} /> Notify Customer via WhatsApp
                     </button>
@@ -749,7 +749,7 @@ export const OrdersView = () => {
         {/* Stock Impact Preview for Fulfillment */}
         {confirmState?.type === 'fulfill' && confirmState.stockImpact && (
           <div className="bg-tea-surface border border-tea-border rounded-xl p-4">
-            <h4 className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-3">Stock Impact</h4>
+            <h4 className="text-ui-10 uppercase tracking-display text-tea-text-sec mb-3">Stock Impact</h4>
             <div className="space-y-2">
               {confirmState.stockImpact.map((item, i) => (
                 <div key={i} className="flex justify-between text-xs">

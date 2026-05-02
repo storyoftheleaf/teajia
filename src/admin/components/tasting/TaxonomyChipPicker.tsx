@@ -83,7 +83,7 @@ export const TaxonomyChipPicker: React.FC<TaxonomyChipPickerProps> = ({
   return (
     <div className="space-y-2">
       <div className="flex items-baseline justify-between gap-2">
-        <span className="text-ui-10 text-tea-text-sec uppercase tracking-[0.1em]">
+        <span className="text-ui-10 text-tea-text-sec uppercase tracking-widest">
           {sectionLabel}
         </span>
         {selectedCount > 0 && (

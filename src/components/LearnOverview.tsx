@@ -76,7 +76,7 @@ const InkWashPlaceholder: React.FC<{ label?: string; aspectRatio?: string; class
 /** Section label — serif, editorial, warm gold accent */
 const SectionLabel: React.FC<{ children: React.ReactNode; subtitle?: string }> = ({ children, subtitle }) => (
   <div style={{ marginBottom: 'clamp(28px, 3vw, 40px)' }}>
-    <h3 className="text-tea-text tracking-[0.01em] leading-[1.2]" style={{ fontSize: 'clamp(20px, 2.5vw + 8px, 28px)', fontFamily: 'var(--font-display)' }}>
+    <h3 className="text-tea-text tracking-wide leading-snug" style={{ fontSize: 'clamp(20px, 2.5vw + 8px, 28px)', fontFamily: 'var(--font-display)' }}>
       {children}
     </h3>
     {subtitle && (
@@ -182,10 +182,10 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
           {/* Quote overlaid at the bottom */}
           <div className="absolute inset-0 bg-gradient-to-t from-tea-bg/60 via-transparent to-transparent" />
           <div className="absolute bottom-0 left-0 right-0" style={{ padding: 'clamp(16px, 3vw, 32px)' }}>
-            <p className="font-light italic text-tea-gold leading-[1.4] max-w-md" style={{ fontSize: 'clamp(14px, 1.5vw + 6px, 18px)', fontFamily: 'var(--font-body)' }}>
+            <p className="font-light italic text-tea-gold leading-normal max-w-md" style={{ fontSize: 'clamp(14px, 1.5vw + 6px, 18px)', fontFamily: 'var(--font-body)' }}>
               "Everything I wish someone had given me when I started. Take what you need."
             </p>
-            <span className="block mt-2 text-ui-10 font-sans uppercase tracking-[0.15em] text-tea-text-sec">
+            <span className="block mt-2 text-ui-10 font-sans uppercase tracking-caps text-tea-text-sec">
               Adrian
             </span>
           </div>
@@ -237,7 +237,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
               <span className={`${tile.iconColor || 'text-tea-gold/40'} group-hover:text-tea-gold/70 transition-colors flex-shrink-0`}>
                 {tile.icon}
               </span>
-              <span className="flex-1 text-tea-text leading-[1.4] group-hover:text-tea-gold transition-colors" style={{ fontSize: 'clamp(13px, 1.2vw + 8px, 15px)', fontFamily: 'var(--font-display)' }}>
+              <span className="flex-1 text-tea-text leading-normal group-hover:text-tea-gold transition-colors" style={{ fontSize: 'clamp(13px, 1.2vw + 8px, 15px)', fontFamily: 'var(--font-display)' }}>
                 {tile.label}
               </span>
               <span className="text-tea-text-sec font-sans text-right shrink-0 max-w-[45%] leading-[1.5]" style={{ fontSize: 'clamp(9px, 0.8vw + 5px, 11px)', letterSpacing: 'clamp(0.08em, 0.5vw, 0.15em)' }}>
@@ -252,7 +252,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
           <div className="mt-4 bg-tea-surface border border-transparent rounded-[1px] p-5 space-y-4">
             {searchResults.courses.length > 0 && (
               <div>
-                <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-gold font-sans block mb-2">Courses</span>
+                <span className="text-ui-10 uppercase tracking-caps text-tea-gold font-sans block mb-2">Courses</span>
                 {searchResults.courses.map(mod => (
                   <button
                     key={mod.id}
@@ -266,7 +266,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
             )}
             {searchResults.terms.length > 0 && (
               <div>
-                <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-gold font-sans block mb-2">Terms</span>
+                <span className="text-ui-10 uppercase tracking-caps text-tea-gold font-sans block mb-2">Terms</span>
                 {searchResults.terms.map(term => (
                   <button
                     key={term.id}
@@ -318,13 +318,13 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
               <div className="relative" style={{ padding: 'clamp(24px, 4vw, 48px)' }}>
                 {/* Category + badge */}
                 <div className="flex items-center gap-3 mb-6">
-                  <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-gold font-sans border border-tea-border px-2.5 py-1 rounded-sm">
+                  <span className="text-ui-10 uppercase tracking-caps text-tea-gold font-sans border border-tea-border px-2.5 py-1 rounded-sm">
                     {GLOSSARY_CATEGORIES[spotlightTerm.category].label}
                   </span>
                 </div>
 
                 {/* Term name */}
-                <h3 className="text-[clamp(32px,4.8vw,48px)] text-tea-text leading-[1.12] mb-2 tracking-[0.01em]" style={{ fontFamily: 'var(--font-display)' }}>
+                <h3 className="text-[clamp(32px,4.8vw,48px)] text-tea-text leading-tight mb-2 tracking-wide" style={{ fontFamily: 'var(--font-display)' }}>
                   {spotlightTerm.term}
                 </h3>
 
@@ -342,7 +342,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
                 {/* Try This */}
                 {spotlightTerm.deepDive?.tryThis?.[0] && (
                   <div className="border-l-2 border-tea-border pl-4 mb-8 max-w-md">
-                    <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec font-sans block mb-1.5">
+                    <span className="text-ui-10 uppercase tracking-caps text-tea-text-sec font-sans block mb-1.5">
                       Try this
                     </span>
                     <p className="text-ui-15 text-tea-text-sec leading-[1.8] font-light italic" style={{ fontFamily: 'var(--font-body)' }}>
@@ -353,7 +353,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
 
                 {/* CTA */}
                 <div className="flex items-center gap-6">
-                  <span className="text-tea-gold hover:text-tea-gold/80 text-xs uppercase tracking-[0.15em] font-sans flex items-center gap-1.5 group-hover:gap-2.5 transition-all">
+                  <span className="text-tea-gold hover:text-tea-gold/80 text-xs uppercase tracking-caps font-sans flex items-center gap-1.5 group-hover:gap-2.5 transition-all">
                     Explore full glossary
                     <Icons.ChevronRight className="w-4 h-4" />
                   </span>
@@ -420,7 +420,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
               >
                 <div style={{ padding: 'clamp(16px, 2vw, 24px) 0' }}>
                   <div className="flex items-baseline justify-between gap-4 mb-2">
-                    <h4 className={`leading-[1.2] tracking-[0.01em] transition-colors ${
+                    <h4 className={`leading-snug tracking-wide transition-colors ${
                       isNext ? 'text-tea-text group-hover:text-tea-gold' :
                       isDone ? 'text-tea-text/60' :
                       'text-tea-text/70 group-hover:text-tea-gold/80'
@@ -476,10 +476,10 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
                 <span className="text-tea-gold/30 mb-4 block group-hover:text-tea-gold/50 transition-colors">
                   {tile.icon}
                 </span>
-                <h4 className="text-tea-text leading-[1.2] mb-1 group-hover:text-tea-gold transition-colors" style={{ fontSize: 'clamp(13px, 1vw + 7px, 15px)', fontFamily: 'var(--font-display)' }}>
+                <h4 className="text-tea-text leading-snug mb-1 group-hover:text-tea-gold transition-colors" style={{ fontSize: 'clamp(13px, 1vw + 7px, 15px)', fontFamily: 'var(--font-display)' }}>
                   {tile.label}
                 </h4>
-                <p className="text-tea-text-sec font-sans uppercase leading-[1.4]" style={{ fontSize: 'clamp(8px, 0.6vw + 4px, 10px)', letterSpacing: 'clamp(0.12em, 0.5vw, 0.2em)' }}>
+                <p className="text-tea-text-sec font-sans uppercase leading-normal" style={{ fontSize: 'clamp(8px, 0.6vw + 4px, 10px)', letterSpacing: 'clamp(0.12em, 0.5vw, 0.2em)' }}>
                   {tile.subtitle}
                 </p>
               </div>
@@ -521,7 +521,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
                 <InkWashPlaceholder label={pin.name} aspectRatio="4/3" mood={i % 2 === 0 ? 'warm' : 'cool'} />
 
                 <div className="p-4 bg-tea-bg">
-                  <span className="inline-block text-ui-9 uppercase tracking-[0.15em] text-tea-gold/70 font-sans mb-2">
+                  <span className="inline-block text-ui-9 uppercase tracking-caps text-tea-gold/70 font-sans mb-2">
                     {PIN_TYPE_LABELS[pin.type] || pin.type}
                   </span>
                   <h4 className="text-sm text-tea-text leading-tight mb-0.5 group-hover:text-tea-gold transition-colors" style={{ fontFamily: 'var(--font-display)' }}>
@@ -560,7 +560,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
 
             {/* Content below image */}
             <div className="bg-tea-bg" style={{ padding: 'clamp(16px, 2.5vw, 28px)' }}>
-              <span className="inline-block text-ui-9 uppercase tracking-[0.15em] text-tea-gold/70 font-sans mb-3">
+              <span className="inline-block text-ui-9 uppercase tracking-caps text-tea-gold/70 font-sans mb-3">
                 {SPACE_TYPE_LABELS[featuredSpace.spaceType]}
               </span>
               <h4 className="text-tea-text mb-2 group-hover:text-tea-gold transition-colors tracking-tight" style={{ fontSize: 'clamp(16px, 1.5vw + 8px, 20px)', fontFamily: 'var(--font-display)' }}>
@@ -569,7 +569,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
               <p className="italic text-sm text-tea-text/70 leading-relaxed mb-4 max-w-md" style={{ fontFamily: 'var(--font-body)' }}>
                 {featuredSpace.description}
               </p>
-              <span className="text-tea-gold hover:text-tea-gold/80 text-xs uppercase tracking-[0.15em] font-sans flex items-center gap-1.5 group-hover:gap-2.5 transition-all">
+              <span className="text-tea-gold hover:text-tea-gold/80 text-xs uppercase tracking-caps font-sans flex items-center gap-1.5 group-hover:gap-2.5 transition-all">
                 See all {counts.spaces} spaces
                 <Icons.ChevronRight className="w-4 h-4" />
               </span>
@@ -598,7 +598,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
             {onNavigateToAdvise ? (
               <button
                 onClick={onNavigateToAdvise}
-                className={`inline-flex items-center gap-1.5 text-tea-gold hover:text-tea-gold/80 text-xs uppercase tracking-[0.15em] font-sans hover:gap-2.5 transition-all ${CTA_FOCUS}`}
+                className={`inline-flex items-center gap-1.5 text-tea-gold hover:text-tea-gold/80 text-xs uppercase tracking-caps font-sans hover:gap-2.5 transition-all ${CTA_FOCUS}`}
               >
                 Share something <Icons.ChevronRight className="w-3.5 h-3.5" />
               </button>

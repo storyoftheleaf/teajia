@@ -206,7 +206,7 @@ export const TeaMenuEditor: React.FC<TeaMenuEditorProps> = ({ eventId }) => {
 
                 {/* Reveal date */}
                 <div className="mt-2 flex items-center gap-2">
-                  <label className="text-ui-9 uppercase tracking-[0.15em] text-tea-text-sec">Reveal</label>
+                  <label className="text-ui-9 uppercase tracking-caps text-tea-text-sec">Reveal</label>
                   <input
                     type="datetime-local"
                     value={item.revealDate ? item.revealDate.slice(0, 16) : ''}
@@ -293,7 +293,7 @@ export const TeaMenuEditor: React.FC<TeaMenuEditorProps> = ({ eventId }) => {
       {showCustom && (
         <div className="mt-3 bg-tea-bg border border-tea-border rounded-md p-3 space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec">Custom Tea</span>
+            <span className="text-ui-10 uppercase tracking-display text-tea-text-sec">Custom Tea</span>
             <button onClick={() => setShowCustom(false)} className="text-tea-text-sec hover:text-tea-text p-1">
               <X size={14} />
             </button>

@@ -25,30 +25,42 @@ function lineTotal(item: LedgerLineItem): number {
   return item.pricePerUnit * (item.quantityUnits ?? 1);
 }
 
+// PDFs render with literal hex (no CSS variables in @react-pdf/renderer). These
+// mirror the Parchment light-theme tokens — print medium is always paper, never
+// dark, regardless of app theme.
+const PDF_COLORS = {
+  paper:       '#f4ece0',  // tea-bg light
+  ink:         '#2a2218',  // tea-text light
+  inkDim:      '#8b7b65',  // tea-text-dim light
+  inkVeryDim:  '#b5a892',  // tea-text-sec dark (used for footer/id chrome)
+  rule:        '#d4c9b8',  // tea-border light
+  ruleSoft:    '#e4dace',  // row dividers
+} as const;
+
 const s = StyleSheet.create({
   page: {
     padding: 50,
-    backgroundColor: '#f4ece0',
+    backgroundColor: PDF_COLORS.paper,
     fontFamily: 'Plus Jakarta Sans',
     fontSize: 10,
-    color: '#2a2218',
+    color: PDF_COLORS.ink,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 30,
     borderBottomWidth: 1,
-    borderBottomColor: '#d4c9b8',
+    borderBottomColor: PDF_COLORS.rule,
     paddingBottom: 16,
   },
-  title: { fontSize: 20, fontWeight: 'bold', marginBottom: 4, color: '#2a2218' },
-  subtitle: { fontSize: 9, color: '#8b7b65', textTransform: 'uppercase', letterSpacing: 2 },
+  title: { fontSize: 20, fontWeight: 'bold', marginBottom: 4, color: PDF_COLORS.ink },
+  subtitle: { fontSize: 9, color: PDF_COLORS.inkDim, textTransform: 'uppercase', letterSpacing: 2 },
   meta: { textAlign: 'right' as const },
-  metaLine: { fontSize: 9, color: '#8b7b65', marginBottom: 2 },
+  metaLine: { fontSize: 9, color: PDF_COLORS.inkDim, marginBottom: 2 },
   tableHeader: {
     flexDirection: 'row',
     borderBottomWidth: 1,
-    borderBottomColor: '#2a2218',
+    borderBottomColor: PDF_COLORS.ink,
     paddingBottom: 6,
     marginBottom: 6,
     fontWeight: 'bold',
@@ -60,24 +72,24 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     paddingVertical: 6,
     borderBottomWidth: 1,
-    borderBottomColor: '#e4dace',
+    borderBottomColor: PDF_COLORS.ruleSoft,
   },
   colName: { flex: 3 },
   colQty: { flex: 1, textAlign: 'right' as const },
   colPrice: { flex: 1, textAlign: 'right' as const },
   colTotal: { flex: 1, textAlign: 'right' as const },
-  itemName: { fontSize: 10, color: '#2a2218' },
-  itemSub: { fontSize: 8, color: '#8b7b65', marginTop: 1 },
+  itemName: { fontSize: 10, color: PDF_COLORS.ink },
+  itemSub: { fontSize: 8, color: PDF_COLORS.inkDim, marginTop: 1 },
   totalRow: {
     flexDirection: 'row',
     borderTopWidth: 2,
-    borderTopColor: '#2a2218',
+    borderTopColor: PDF_COLORS.ink,
     paddingTop: 10,
     marginTop: 10,
   },
   totalLabel: { flex: 5, textAlign: 'right' as const, fontWeight: 'bold', fontSize: 11, paddingRight: 8 },
   totalValue: { flex: 1, textAlign: 'right' as const, fontWeight: 'bold', fontSize: 13 },
-  footer: { marginTop: 40, fontSize: 8, color: '#b5a892', textAlign: 'center' as const },
+  footer: { marginTop: 40, fontSize: 8, color: PDF_COLORS.inkVeryDim, textAlign: 'center' as const },
 });
 
 interface LedgerPdfProps {
@@ -110,7 +122,7 @@ export const LedgerPdf: React.FC<LedgerPdfProps> = ({ transaction }) => {
             <Text style={s.metaLine}>
               Status: {transaction.status === 'confirmed' ? 'Confirmed' : 'Draft'}
             </Text>
-            <Text style={{ ...s.metaLine, fontSize: 7, color: '#b5a892' }}>
+            <Text style={{ ...s.metaLine, fontSize: 7, color: PDF_COLORS.inkVeryDim }}>
               #{transaction.id.slice(0, 8)}
             </Text>
           </View>

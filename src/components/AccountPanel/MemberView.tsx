@@ -343,7 +343,7 @@ export const MemberView: React.FC<MemberViewProps> = ({
 
         <button
           onClick={onSignOut}
-          className="mt-6 py-2 -my-2 text-tea-text-sec hover:text-tea-gold transition-colors text-ui-12 uppercase tracking-[0.2em] font-medium"
+          className="mt-6 py-2 -my-2 text-tea-text-sec hover:text-tea-gold transition-colors text-ui-12 uppercase tracking-display font-medium"
           style={{ WebkitTapHighlightColor: 'transparent' }}
         >
           Sign Out

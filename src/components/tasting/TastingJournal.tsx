@@ -180,7 +180,7 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
     <div className="flex flex-col h-full surface-warm">
       {/* Header */}
       <header className="px-4 pt-4 pb-3 border-b border-tea-border">
-        <div className="flex items-center gap-2.5 mb-1">
+        <div className="flex items-center gap-2.5 mb-1 max-w-[640px] mx-auto w-full">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="text-tea-gold shrink-0">
             <path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2zm20 0h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/>
           </svg>
@@ -192,7 +192,7 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
       </header>
 
       {tastingJournal.length > 0 && (
-        <div className="px-4 pt-3 space-y-2">
+        <div className="px-4 pt-3 space-y-2 max-w-[640px] mx-auto w-full">
           {/* Search bar */}
           <div className="relative">
             <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-text-dim pointer-events-none" />
@@ -238,7 +238,8 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
         </div>
       )}
 
-      <div className="flex-1 overflow-auto px-4 py-3 space-y-2">
+      <div className="flex-1 overflow-auto">
+        <div className="px-4 py-3 space-y-2 max-w-[640px] mx-auto w-full">
         {/* Stats row */}
         {stats && (
           <div className="text-ui-11 text-tea-text-dim tabular-nums mb-1 px-0.5 font-feature-settings-tnum">
@@ -470,7 +471,7 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
                               {/* Past tastings timeline. Shown when this tea has been tasted more than once. */}
                               {entry.tastings.length > 1 && (
                                 <div className="mt-2 pt-2 border-t border-tea-border space-y-1.5">
-                                  <div className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim px-1" style={{ fontFamily: 'var(--font-display)' }}>
+                                  <div className="text-ui-10 uppercase tracking-caps text-tea-text-dim px-1" style={{ fontFamily: 'var(--font-display)' }}>
                                     Past tastings
                                   </div>
                                   {[...entry.tastings].reverse().map(t => (
@@ -544,6 +545,7 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
             </button>
           </div>
         )}
+        </div>
       </div>
     </div>
     </>

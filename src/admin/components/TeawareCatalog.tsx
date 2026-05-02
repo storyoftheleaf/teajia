@@ -46,7 +46,7 @@ const TeawareCard: React.FC<{
                 <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${product.isCustomWisdom ? 'bg-tea-gold' : 'bg-tea-text-sec/30'}`} title={product.isCustomWisdom ? "Edited lore" : "AI generated lore"} />
             )}
         </h3>
-        <p className="text-ui-10 text-tea-text-sec uppercase tracking-[0.2em] mt-2">{product.originRegion}</p>
+        <p className="text-ui-10 text-tea-text-sec uppercase tracking-display mt-2">{product.originRegion}</p>
       </div>
       <div className="mt-6 pt-6 border-t border-tea-border flex justify-between items-end">
         <p className="text-sm text-tea-text-sec line-clamp-2 pr-4 font-light leading-relaxed">{product.description}</p>
@@ -134,7 +134,7 @@ export const TeawareCatalog = ({ products, currency, rates, onAdd, loading, isAd
         <div className="px-6 max-w-7xl mx-auto flex items-center gap-4">
           <div className="flex items-center gap-2 shrink-0">
             <Coffee size={16} className="text-tea-gold" />
-            <h2 className="text-sm font-serif text-tea-text uppercase tracking-[0.15em]">
+            <h2 className="text-sm font-serif text-tea-text uppercase tracking-caps">
               Equipment
             </h2>
             <span className="text-tea-text-sec text-xs tracking-wide">
@@ -175,7 +175,7 @@ export const TeawareCatalog = ({ products, currency, rates, onAdd, loading, isAd
 
             <div className="w-px h-4 bg-tea-border mx-1" />
 
-            <button onClick={() => { if (products.length > 0) onAdd(products[0]); }} className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] font-bold text-tea-text-sec hover:text-tea-text transition-colors px-3 py-1.5 border border-transparent hover:border-tea-border rounded-lg">
+            <button onClick={() => { if (products.length > 0) onAdd(products[0]); }} className="flex items-center gap-2 text-xs uppercase tracking-display font-bold text-tea-text-sec hover:text-tea-text transition-colors px-3 py-1.5 border border-transparent hover:border-tea-border rounded-lg">
               <Plus size={14} /> New
             </button>
           </div>

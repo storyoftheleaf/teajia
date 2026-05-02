@@ -64,7 +64,7 @@ export const PendingView: React.FC = () => {
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <ClipboardList size={14} className="text-tea-text-sec" />
-            <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec">Pending Orders</span>
+            <span className="text-ui-10 uppercase tracking-caps text-tea-text-sec">Pending Orders</span>
             {orders.length > 0 && (
               <span className="text-ui-10 bg-amber-400/15 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded-full num">
                 {orders.length}
@@ -118,7 +118,7 @@ export const PendingView: React.FC = () => {
       <section>
         <div className="flex items-center gap-2 mb-3">
           <CalendarDays size={14} className="text-tea-text-sec" />
-          <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec">Pending Event RSVPs</span>
+          <span className="text-ui-10 uppercase tracking-caps text-tea-text-sec">Pending Event RSVPs</span>
           {pendingAttendees.length > 0 && (
             <span className="text-ui-10 bg-amber-400/15 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded-full num">
               {pendingAttendees.length}

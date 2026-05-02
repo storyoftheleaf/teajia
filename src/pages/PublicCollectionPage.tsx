@@ -90,10 +90,10 @@ const PublicCollectionPage: React.FC = () => {
     return (
       <main className="min-h-screen bg-tea-bg flex items-center justify-center px-6 text-center">
         <div className="max-w-sm">
-          <p className="font-display text-[clamp(24px,3.5vw,32px)] leading-[1.2] text-tea-text mb-3" style={{ fontWeight: 500 }}>
+          <p className="font-display text-[clamp(24px,3.5vw,32px)] leading-snug text-tea-text mb-3" style={{ fontWeight: 500 }}>
             {status === 'gone' ? 'This collection has been put away.' : 'Not found.'}
           </p>
-          <p className="font-body text-ui-15 leading-[1.65] text-tea-text-sec italic">
+          <p className="font-body text-ui-15 leading-loose text-tea-text-sec italic">
             {status === 'gone'
               ? 'The link may have been taken down. Ask Adrian directly for a new one.'
               : "The link you followed doesn’t lead anywhere. Check it with whoever shared it."}
@@ -183,12 +183,12 @@ const CollectionCatalog: React.FC<{ data: PublicCollectionResponse }> = ({ data 
             {collection.title}
           </h1>
           {collection.note && (
-            <p className="font-body text-ui-17 leading-[1.7] text-tea-text-sec italic max-w-[55ch]">
+            <p className="font-body text-ui-17 leading-reading text-tea-text-sec italic max-w-[55ch]">
               {collection.note}
             </p>
           )}
           {curatorName && (
-            <p className="font-body text-ui-14 leading-[1.65] text-tea-text-sec italic mt-4">
+            <p className="font-body text-ui-14 leading-loose text-tea-text-sec italic mt-4">
               Curated by {curatorName}.
             </p>
           )}
@@ -208,7 +208,7 @@ const CollectionCatalog: React.FC<{ data: PublicCollectionResponse }> = ({ data 
       {/* Catalog body */}
       <section className={`max-w-[720px] mx-auto px-5 sm:px-8 py-10 md:py-16 ${selectedCount > 0 ? 'pb-nav-gap-lg' : 'pb-nav-gap'}`}>
         {visible.length === 0 ? (
-          <p className="font-body text-ui-15 leading-[1.65] text-tea-text-sec italic py-10 text-center">
+          <p className="font-body text-ui-15 leading-loose text-tea-text-sec italic py-10 text-center">
             The teas in this collection are currently unavailable.
           </p>
         ) : (
@@ -326,7 +326,7 @@ const CatalogEntry: React.FC<{
         </span>
         <div className="flex-1 min-w-0">
           <h2
-            className="font-display text-[clamp(22px,3.2vw,28px)] leading-[1.2] tracking-[-0.005em] text-tea-text"
+            className="font-display text-[clamp(22px,3.2vw,28px)] leading-snug tracking-[-0.005em] text-tea-text"
             style={{ fontWeight: 400 }}
           >
             {item.product_name}

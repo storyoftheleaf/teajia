@@ -33,13 +33,13 @@ export const QrCodeModal: React.FC<QrCodeModalProps> = ({ isOpen, onClose, produ
             <QRCodeCanvas value={qrValue} size={200} />
           </div>
           
-          <div className="pt-4 text-ui-10 text-tea-text-sec font-mono uppercase tracking-[0.2em] print:text-black">
+          <div className="pt-4 text-ui-10 text-tea-text-sec font-mono uppercase tracking-display print:text-black">
             ID: {product.id}
           </div>
 
           <button 
             onClick={handlePrint}
-            className="w-full flex items-center justify-center gap-2 py-3 bg-tea-gold text-tea-bg font-bold text-xs uppercase tracking-[0.2em] rounded-lg hover:bg-tea-gold/90 transition-colors print:hidden mt-6"
+            className="w-full flex items-center justify-center gap-2 py-3 bg-tea-gold text-tea-bg font-bold text-xs uppercase tracking-display rounded-lg hover:bg-tea-gold/90 transition-colors print:hidden mt-6"
           >
             <Printer size={16} /> Print Label
           </button>

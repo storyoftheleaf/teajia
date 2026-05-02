@@ -59,7 +59,7 @@ export const TeaReviewsComparison: React.FC<TeaReviewsComparisonProps> = ({ teaK
 
   return (
     <div className={className}>
-      <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-3" style={{ fontFamily: 'var(--font-display)' }}>
+      <p className="text-ui-10 uppercase tracking-display text-tea-text-sec mb-3" style={{ fontFamily: 'var(--font-display)' }}>
         Tasting Panel · {submitted.length} {submitted.length === 1 ? 'review' : 'reviews'}
       </p>
 

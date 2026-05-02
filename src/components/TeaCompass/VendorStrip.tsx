@@ -548,7 +548,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                             className="flex items-center justify-between w-full px-3 py-2 text-left text-ui-13 text-tea-text-sec hover:bg-tea-gold/[0.06] hover:text-tea-text transition-colors"
                           >
                             <span>{v.name}</span>
-                            {v.isRecent && <span className="text-ui-10 text-tea-text-dim shrink-0 ml-2">recent</span>}
+                            {v.isRecent && <span className="text-ui-11 text-tea-text-sec shrink-0 ml-2">recent</span>}
                           </button>
                         ))}
                       </div>

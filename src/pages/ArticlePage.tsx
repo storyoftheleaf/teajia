@@ -4,6 +4,7 @@ import { Helmet } from 'react-helmet-async';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import type { DbArticle } from '../admin/types';
+import { SharePanel, type SharePage } from '../components/article/SharePanel';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Article Pages Reader — 4:5 paginated, Instagram + book ready.
@@ -49,8 +50,8 @@ const FRAME_MAX_W_DESKTOP = 880; // 1100 * 4 / 5
 type Page =
   // Synthetic
   | { kind: 'cover'; title: string; subtitle?: string; coverImage?: string; category?: string; mark?: string }
-  | { kind: 'masthead'; intro: string; author?: string; date?: string; readingTime?: number }
-  | { kind: 'colophon'; title: string; author?: string; date?: string; category?: string }
+  | { kind: 'masthead'; intro: string; author?: string; authorSlug?: string; date?: string; readingTime?: number }
+  | { kind: 'colophon'; title: string; author?: string; authorSlug?: string; date?: string; category?: string }
   | { kind: 'end'; title: string }
   // Original 8 (kept for the renderers we already wrote)
   | { kind: 'body'; head: string; paragraphs: string[]; pageNum: number; pageTotal: number }
@@ -97,6 +98,9 @@ function formatAuthor(authorId?: string): string | undefined {
 function buildPages(article: DbArticle): Page[] {
   const pages: Page[] = [];
   const author = formatAuthor(article.author_id);
+  const authorSlug = article.author_id && !/^[0-9a-f]{8}-/i.test(article.author_id)
+    ? article.author_id
+    : undefined;
   const date = formatDate(article.published_at ?? article.created_at);
 
   // The first non-cover block is the intro; if a cover block exists, use it
@@ -134,6 +138,7 @@ function buildPages(article: DbArticle): Page[] {
       kind: 'masthead',
       intro: firstIntro.text,
       author,
+      authorSlug,
       date,
       readingTime: article.reading_time_mins,
     });
@@ -290,6 +295,7 @@ function buildPages(article: DbArticle): Page[] {
     kind: 'colophon',
     title: article.title,
     author,
+    authorSlug,
     date,
     category: article.category,
   });
@@ -846,7 +852,32 @@ const MastheadPage: React.FC<{ page: Extract<Page, { kind: 'masthead' }> }> = ({
           gap: 4,
         }}
       >
-        {page.author && <span>By {page.author}</span>}
+        {page.author && (
+          <span>
+            By{' '}
+            {page.authorSlug ? (
+              <a
+                href={`/people/${page.authorSlug}`}
+                style={{
+                  color: 'inherit',
+                  textDecoration: 'none',
+                  borderBottom: '1px solid transparent',
+                  transition: 'border-color 200ms',
+                }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLAnchorElement).style.borderBottomColor = 'rgba(168,135,77,0.4)';
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLAnchorElement).style.borderBottomColor = 'transparent';
+                }}
+              >
+                {page.author}
+              </a>
+            ) : (
+              page.author
+            )}
+          </span>
+        )}
         <span>
           {page.date}
           {page.readingTime && ` · ${page.readingTime} min`}
@@ -1116,7 +1147,29 @@ const ColophonPage: React.FC<{ page: Extract<Page, { kind: 'colophon' }> }> = ({
         {page.author && (
           <>
             <dt style={{ fontFamily: T.mono, fontSize: '19px', letterSpacing: '0.08em', color: T.textDim, textTransform: 'uppercase' as const }}>Author</dt>
-            <dd style={{ margin: 0, color: T.text }}>{page.author}</dd>
+            <dd style={{ margin: 0, color: T.text }}>
+              {page.authorSlug ? (
+                <a
+                  href={`/people/${page.authorSlug}`}
+                  style={{
+                    color: 'inherit',
+                    textDecoration: 'none',
+                    borderBottom: '1px solid transparent',
+                    transition: 'border-color 200ms',
+                  }}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLAnchorElement).style.borderBottomColor = 'rgba(168,135,77,0.4)';
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLAnchorElement).style.borderBottomColor = 'transparent';
+                  }}
+                >
+                  {page.author}
+                </a>
+              ) : (
+                page.author
+              )}
+            </dd>
           </>
         )}
         {page.date && (
@@ -2416,6 +2469,7 @@ export default function ArticlePage() {
   }, [article]);
 
   const [current, setCurrent] = useState(initialPage);
+  const [showShare, setShowShare] = useState(false);
   const trackRef = useRef<HTMLDivElement>(null);
   const restoredRef = useRef(false);
 
@@ -2472,13 +2526,17 @@ export default function ArticlePage() {
     const onKey = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement).tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA') return;
-      if (e.key === 'Escape') { navigate('/magazine'); return; }
+      if (e.key === 'Escape') {
+        if (showShare) { setShowShare(false); return; }
+        navigate('/magazine');
+        return;
+      }
       if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); scrollTo(Math.min(total - 1, current + 1)); }
       if (e.key === 'ArrowLeft') { e.preventDefault(); scrollTo(Math.max(0, current - 1)); }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [current, total, scrollTo, navigate]);
+  }, [current, total, scrollTo, navigate, showShare]);
 
   if (isLoading) return <ReaderLoading />;
 
@@ -2615,8 +2673,33 @@ export default function ArticlePage() {
           >
             Teajia
           </div>
-          <div style={{ width: 64 }} aria-hidden="true" />
+          <button
+            onClick={() => setShowShare(true)}
+            aria-label="Share"
+            style={{
+              color: T.textSec,
+              padding: 10,
+              background: 'none',
+              border: 0,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="M4 8a2 2 0 100-4 2 2 0 000 4zm8-4a2 2 0 100-4 2 2 0 000 4zm0 12a2 2 0 100-4 2 2 0 000 4zM5.6 7.2L10.4 4M5.6 8.8L10.4 12" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round"/>
+            </svg>
+          </button>
         </header>
+
+        {showShare && (
+          <SharePanel
+            page={(pages[current] ?? null) as SharePage | null}
+            article={article}
+            onClose={() => setShowShare(false)}
+          />
+        )}
 
         {/* Page track */}
         <div

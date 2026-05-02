@@ -87,7 +87,7 @@ const NewPoForm: React.FC<{ onClose: () => void; onSubmit: (data: Parameters<typ
   const sectionLabel = (label: string) => (
     <div className="flex items-center gap-2">
       <div className="flex-1 h-px bg-tea-border" />
-      <span className="text-ui-9 uppercase tracking-[0.2em] text-tea-text-dim shrink-0">{label}</span>
+      <span className="text-ui-9 uppercase tracking-display text-tea-text-dim shrink-0">{label}</span>
       <div className="flex-1 h-px bg-tea-border" />
     </div>
   );
@@ -110,7 +110,7 @@ const NewPoForm: React.FC<{ onClose: () => void; onSubmit: (data: Parameters<typ
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-tea-border flex-shrink-0">
-          <span className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec">New Purchase Order</span>
+          <span className="text-ui-10 uppercase tracking-display text-tea-text-sec">New Purchase Order</span>
           <button onClick={onClose} className="p-1.5 text-tea-text-sec hover:text-tea-text transition-colors rounded-md" aria-label="Close">
             <X size={15} />
           </button>
@@ -184,7 +184,7 @@ const NewPoForm: React.FC<{ onClose: () => void; onSubmit: (data: Parameters<typ
           />
 
           <div className="flex justify-between items-center gap-3 pt-1">
-            <button type="button" onClick={onClose} className="px-2 py-2 text-xs text-tea-text-sec hover:text-tea-text transition-colors uppercase tracking-[0.15em]">
+            <button type="button" onClick={onClose} className="px-2 py-2 text-xs text-tea-text-sec hover:text-tea-text transition-colors uppercase tracking-caps">
               Cancel
             </button>
             <button
@@ -256,13 +256,13 @@ const ReceiveStockPrompt: React.FC<{
         onClick={e => e.stopPropagation()}
       >
         <div className="px-5 py-4 border-b border-tea-border flex items-center justify-between">
-          <span className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec">Receive Stock</span>
+          <span className="text-ui-10 uppercase tracking-display text-tea-text-sec">Receive Stock</span>
           <button onClick={onClose} className="p-1.5 text-tea-text-sec hover:text-tea-text transition-colors" aria-label="Close"><X size={15} /></button>
         </div>
         <div className="px-5 py-4 space-y-1">
           <div className="flex items-center gap-2 mb-3">
             <div className="flex-1 h-px bg-tea-border" />
-            <span className="text-ui-9 uppercase tracking-[0.2em] text-tea-text-dim shrink-0">Add to inventory?</span>
+            <span className="text-ui-9 uppercase tracking-display text-tea-text-dim shrink-0">Add to inventory?</span>
             <div className="flex-1 h-px bg-tea-border" />
           </div>
           {items.map((item, idx) => (
@@ -273,7 +273,7 @@ const ReceiveStockPrompt: React.FC<{
           ))}
         </div>
         <div className="px-5 pb-5 flex justify-between items-center gap-3">
-          <button onClick={onClose} className="px-2 py-2 text-xs text-tea-text-sec hover:text-tea-text transition-colors uppercase tracking-[0.15em]">Skip</button>
+          <button onClick={onClose} className="px-2 py-2 text-xs text-tea-text-sec hover:text-tea-text transition-colors uppercase tracking-caps">Skip</button>
           <button
             disabled={confirming}
             onClick={async () => {

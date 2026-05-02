@@ -99,7 +99,7 @@ export const Storefront: React.FC<StorefrontProps> = ({
         </p>
         <Link
           to="/find-a-table"
-          className="px-8 py-3 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.2em] hover:bg-tea-gold/90 transition-colors"
+          className="px-8 py-3 bg-tea-gold text-tea-bg text-xs uppercase tracking-display hover:bg-tea-gold/90 transition-colors"
         >
           Browse the network
         </Link>
@@ -154,7 +154,7 @@ export const Storefront: React.FC<StorefrontProps> = ({
             </p>
           )}
           {location && (
-            <p className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-tea-text-dim">
+            <p className="flex items-center gap-2 text-xs uppercase tracking-display text-tea-text-dim">
               <Icons.Location className="w-3.5 h-3.5 text-tea-gold" />
               {location}
             </p>
@@ -411,7 +411,7 @@ const StorefrontEventsSection: React.FC<{ events: TeaEvent[] }> = ({ events }) =
                 <div className="w-12 shrink-0 text-center pt-0.5">
                   <div className="text-ui-9 tracking-[0.25em] text-tea-text-dim uppercase">{day}</div>
                   <div className="font-serif text-[32px] font-normal text-tea-text leading-none mt-0.5">{dateNum}</div>
-                  <div className="text-ui-9 tracking-[0.2em] text-tea-text-dim mt-0.5">{month}</div>
+                  <div className="text-ui-9 tracking-display text-tea-text-dim mt-0.5">{month}</div>
                 </div>
                 {/* Content */}
                 <div className="flex-1 min-w-0">

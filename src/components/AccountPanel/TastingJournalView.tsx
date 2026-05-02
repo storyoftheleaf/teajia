@@ -124,7 +124,7 @@ const EntryDetail: React.FC<{
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 20 }}
       transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
-      className="animate-[fadeIn_0.24s_ease-out]"
+      className="animate-[fadeIn_0.24s_ease-out] max-w-[640px] mx-auto w-full"
     >
       {/* Back to list */}
       <button
@@ -148,7 +148,7 @@ const EntryDetail: React.FC<{
           <div className="min-w-0 flex-1">
             <h3 className="font-serif text-lg text-tea-text leading-tight">{entry.productName}</h3>
             {entry.productType && (
-              <div className="text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec mt-1">
+              <div className="text-ui-11 uppercase tracking-caps text-tea-text-sec mt-1">
                 {entry.productType}
               </div>
             )}
@@ -305,7 +305,7 @@ export const TastingJournalView: React.FC<TastingJournalViewProps> = ({ onBack, 
   // Empty state
   if (entries.length === 0) {
     return (
-      <div className="animate-[fadeIn_0.3s_ease-out]">
+      <div className="animate-[fadeIn_0.3s_ease-out] max-w-[640px] mx-auto w-full">
         <button
           onClick={onBack}
           className="flex items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors mb-6"
@@ -336,6 +336,7 @@ export const TastingJournalView: React.FC<TastingJournalViewProps> = ({ onBack, 
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.18 }}
+        className="max-w-[640px] mx-auto w-full"
       >
         <button
           onClick={onBack}
@@ -349,12 +350,12 @@ export const TastingJournalView: React.FC<TastingJournalViewProps> = ({ onBack, 
         <div className="flex items-center justify-between mb-6">
           <div>
             <h3 className="font-serif text-lg text-tea-text">Tasting Journal</h3>
-            <span className="text-ui-12 uppercase tracking-[0.15em] text-tea-text-sec">
+            <span className="text-ui-12 uppercase tracking-caps text-tea-text-sec">
               {entries.length} {entries.length === 1 ? 'tea' : 'teas'}
             </span>
           </div>
           {unsyncedCount > 0 && (
-            <span className="inline-flex items-center gap-1.5 px-2 py-1 text-ui-11 uppercase tracking-[0.1em] bg-tea-gold/10 text-tea-gold border border-tea-gold/20 rounded">
+            <span className="inline-flex items-center gap-1.5 px-2 py-1 text-ui-11 uppercase tracking-widest bg-tea-gold/10 text-tea-gold border border-tea-gold/20 rounded">
               <span className="w-1.5 h-1.5 rounded-full bg-tea-gold animate-pulse shrink-0" />
               {unsyncedCount} unsynced
             </span>

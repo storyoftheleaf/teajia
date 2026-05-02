@@ -191,7 +191,7 @@ export const PopupModal: React.FC<PopupModalProps> = ({
         <>
           <div className="flex items-center gap-4 px-1 mb-4">
             <div className="flex flex-col min-w-[60px] text-left">
-              <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-bg/60">Qty</span>
+              <span className="text-ui-10 uppercase tracking-caps text-tea-bg/60">Qty</span>
               <span className="num text-sm text-tea-bg">{currentQuantity}g</span>
             </div>
             <HapticSlider
@@ -204,7 +204,7 @@ export const PopupModal: React.FC<PopupModalProps> = ({
           </div>
           <button
             onClick={() => { onAddToCart(item, currentQuantity, totalPrice); onClose(); }}
-            className="add-to-cart-btn w-full bg-tea-gold hover:bg-tea-gold/90 text-tea-text text-xs uppercase tracking-[0.2em] font-medium py-3 rounded-lg transition-all active:scale-95 flex items-center justify-center gap-3 focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none"
+            className="add-to-cart-btn w-full bg-tea-gold hover:bg-tea-gold/90 text-tea-text text-xs uppercase tracking-display font-medium py-3 rounded-lg transition-all active:scale-95 flex items-center justify-center gap-3 focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none"
           >
             <span>Add to Cart</span>
             <span className="opacity-50">•</span>
@@ -214,7 +214,7 @@ export const PopupModal: React.FC<PopupModalProps> = ({
       ) : (
         <>
           <div className="flex items-center gap-4 px-1 mb-4">
-            <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-text/60">Quantity</span>
+            <span className="text-ui-10 uppercase tracking-caps text-tea-text/60">Quantity</span>
             <div className="flex items-center rounded-lg bg-tea-text/25 ml-auto" style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub)' }}>
               <button
                 onClick={() => setSelectedQuantities(prev => ({ ...prev, [item.id]: Math.max(1, (prev[item.id] || defaultQuantity) - 1) }))}
@@ -231,7 +231,7 @@ export const PopupModal: React.FC<PopupModalProps> = ({
           </div>
           <button
             onClick={() => { onAddToCart(item, currentQuantity, totalPrice); onClose(); }}
-            className="add-to-cart-btn w-full bg-tea-gold hover:bg-tea-gold/90 text-tea-text text-xs uppercase tracking-[0.2em] font-medium py-3 rounded-lg transition-all active:scale-95 flex items-center justify-center gap-3 focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none"
+            className="add-to-cart-btn w-full bg-tea-gold hover:bg-tea-gold/90 text-tea-text text-xs uppercase tracking-display font-medium py-3 rounded-lg transition-all active:scale-95 flex items-center justify-center gap-3 focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none"
           >
             <span>Add to Cart</span>
             <span className="opacity-50">•</span>
@@ -273,12 +273,12 @@ export const PopupModal: React.FC<PopupModalProps> = ({
           <div className="mt-6 text-center w-full max-w-sm cursor-auto" onClick={e => e.stopPropagation()}>
             <h2 className="text-3xl text-tea-text mb-1" style={{ fontFamily: 'var(--font-display)' }}>{item.name}</h2>
             {(item.type || item.variant) && (
-              <div className="text-tea-gold text-xs uppercase tracking-[0.2em] mb-2 font-medium">
+              <div className="text-tea-gold text-xs uppercase tracking-display mb-2 font-medium">
                 {item.type} {item.variant ? `• ${item.variant}` : ''}
               </div>
             )}
             {(item.year || item.origin) && (
-              <div className="flex items-center justify-center gap-3 text-tea-text/70 text-xs uppercase tracking-[0.15em] mb-4">
+              <div className="flex items-center justify-center gap-3 text-tea-text/70 text-xs uppercase tracking-caps mb-4">
                 {item.year && <span className="font-mono tabular-nums">{item.year}</span>}
                 {item.year && item.origin && <span>•</span>}
                 {item.origin && <span>{item.origin}</span>}
@@ -327,12 +327,12 @@ export const PopupModal: React.FC<PopupModalProps> = ({
           <div className="px-6 pb-6">
             <h2 className="text-2xl text-tea-text mb-1" style={{ fontFamily: 'var(--font-display)' }}>{item.name}</h2>
             {(item.type || item.variant) && (
-              <div className="text-tea-gold text-xs uppercase tracking-[0.2em] mb-2 font-medium">
+              <div className="text-tea-gold text-xs uppercase tracking-display mb-2 font-medium">
                 {item.type} {item.variant ? `• ${item.variant}` : ''}
               </div>
             )}
             {(item.year || item.origin) && (
-              <div className="flex items-center gap-3 text-tea-text/70 text-xs uppercase tracking-[0.15em] mb-3">
+              <div className="flex items-center gap-3 text-tea-text/70 text-xs uppercase tracking-caps mb-3">
                 {item.year && <span className="font-mono tabular-nums">{item.year}</span>}
                 {item.year && item.origin && <span>•</span>}
                 {item.origin && <span>{item.origin}</span>}

@@ -283,7 +283,7 @@ const TastingProfileStripInner: React.FC<TastingProfileStripProps> = ({ value, t
             >
               {/* Category label with icon */}
               <div
-                className={`flex items-center gap-1 text-ui-11 uppercase tracking-[0.15em] ${labelClass} mb-1 ml-0.5`}
+                className={`flex items-center gap-1 text-ui-11 uppercase tracking-caps ${labelClass} mb-1 ml-0.5`}
                 style={{ fontFamily: 'var(--font-display)' }}
               >
                 {HeaderIcon && <HeaderIcon size={9} className="shrink-0" />}

@@ -96,7 +96,7 @@ const EditorSheet: React.FC<EditorSheetProps> = ({ member, isViewerOwner, onClos
           >
             ✕
           </button>
-          <div className="text-tea-text-sec text-ui-11 uppercase tracking-[0.1em]">
+          <div className="text-tea-text-sec text-ui-11 uppercase tracking-widest">
             {isOwner ? 'Owner' : member.role === 'staff' ? 'Member' : 'Viewer'}
           </div>
         </div>
@@ -204,7 +204,7 @@ const EditorSheet: React.FC<EditorSheetProps> = ({ member, isViewerOwner, onClos
             type="button"
             onClick={handleSave}
             disabled={!dirty || saving || isOwner}
-            className="text-ui-14 font-display tracking-[0.04em] py-1 px-1 transition-colors disabled:text-tea-text-dim disabled:cursor-not-allowed text-tea-gold hover:text-tea-gold-lt"
+            className="text-ui-14 font-display tracking-wider py-1 px-1 transition-colors disabled:text-tea-text-dim disabled:cursor-not-allowed text-tea-gold hover:text-tea-gold-lt"
           >
             {saving ? 'Saving…' : 'Save'}
           </button>
@@ -336,7 +336,7 @@ export const AccessView: React.FC = () => {
       )}
 
       {members && members.length === 0 && (
-        <div className="text-tea-text-sec italic text-ui-15 leading-[1.7] mb-8">
+        <div className="text-tea-text-sec italic text-ui-15 leading-reading mb-8">
           You haven't invited anyone to help run this place yet.
         </div>
       )}
@@ -465,7 +465,7 @@ const RosterRow: React.FC<RosterRowProps> = ({ member, onClick, isSelf }) => {
         <div className="min-w-0 flex-1">
           <div className="flex items-baseline gap-3 flex-wrap">
             <div className="font-display text-ui-17 text-tea-text">{displayName}</div>
-            <div className="text-tea-text-sec text-ui-11 uppercase tracking-[0.1em]">{tierLabel}</div>
+            <div className="text-tea-text-sec text-ui-11 uppercase tracking-widest">{tierLabel}</div>
             {isInvited && (
               <div className="text-tea-text-sec italic text-ui-12">Not yet accepted</div>
             )}

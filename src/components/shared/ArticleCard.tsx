@@ -69,7 +69,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
           )}
         </div>
         {description && (
-          <p className="text-ui-11 text-tea-text-sec font-sans leading-[1.4] line-clamp-1">
+          <p className="text-ui-11 text-tea-text-sec font-sans leading-normal line-clamp-1">
             {description}
           </p>
         )}
@@ -80,7 +80,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
               e.stopPropagation();
               onAuthorClick?.(e);
             }}
-            className="mt-1 text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim hover:text-tea-gold transition-colors font-sans text-left"
+            className="mt-1 text-ui-10 uppercase tracking-caps text-tea-text-dim hover:text-tea-gold transition-colors font-sans text-left"
           >
             {authorName}
           </button>
@@ -109,7 +109,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
           </div>
         ) : (
           <div className="w-full h-full bg-tea-elevated/40 flex items-center justify-center">
-            <p className="text-ui-8 uppercase tracking-[0.2em] text-tea-text-dim font-sans rotate-90 whitespace-nowrap">
+            <p className="text-ui-8 uppercase tracking-display text-tea-text-dim font-sans rotate-90 whitespace-nowrap">
               {categoryLabel ?? 'Article'}
             </p>
           </div>

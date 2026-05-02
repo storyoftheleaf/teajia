@@ -78,7 +78,7 @@ const FlavorSplitInner: React.FC<FlavorSplitProps> = ({ selected, onToggle, teaT
   return (
     <div>
     {suggestedFamilyNames && (
-      <p className="text-ui-11 text-tea-text-dim italic mb-3" style={{ fontFamily: 'var(--font-body)' }}>
+      <p className="text-ui-13 text-tea-text-sec mb-3" style={{ fontFamily: 'var(--font-body)' }}>
         {teaType} teas often show up in {suggestedFamilyNames}.
       </p>
     )}
@@ -233,8 +233,8 @@ const SubTermButton: React.FC<SubTermButtonProps> = ({ termId, label, isSelected
         ${isSelected
           ? 'text-tea-gold font-medium'
           : general
-            ? 'text-tea-text-sec hover:text-tea-text'
-            : 'text-tea-text-dim hover:text-tea-text-sec'
+            ? 'text-tea-text font-medium hover:text-tea-text'
+            : 'text-tea-text-sec hover:text-tea-text'
         }
       `}
       style={{ fontFamily: 'var(--font-body)', fontSize: '16px' }}

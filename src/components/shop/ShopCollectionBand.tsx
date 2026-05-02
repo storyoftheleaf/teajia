@@ -40,7 +40,7 @@ const BandItemCard: React.FC<{ item: ShopCollectionItem }> = ({ item }) => {
           </p>
         )}
         {(origin || item.year) && (
-          <p className="font-sans text-ui-10 uppercase tracking-[1.2px] text-tea-text-dim leading-[1.4] mt-0.5">
+          <p className="font-sans text-ui-10 uppercase tracking-[1.2px] text-tea-text-dim leading-normal mt-0.5">
             {[origin, item.year].filter(Boolean).join(' · ')}
           </p>
         )}
@@ -73,7 +73,7 @@ export const ShopCollectionBand: React.FC<ShopCollectionBandProps> = ({ entry })
         {/* Title + see-all row */}
         <div className="flex items-end justify-between gap-4 flex-wrap">
           <h2
-            className="font-display text-[clamp(22px,3.2vw,28px)] leading-[1.2] tracking-[0.01em] text-tea-text"
+            className="font-display text-[clamp(22px,3.2vw,28px)] leading-snug tracking-wide text-tea-text"
             style={{ fontWeight: 500 }}
           >
             {collection.title}
@@ -94,7 +94,7 @@ export const ShopCollectionBand: React.FC<ShopCollectionBandProps> = ({ entry })
 
         {/* Note */}
         {collection.note && (
-          <p className="font-body text-ui-15 leading-[1.65] text-tea-text-sec italic mt-3 max-w-[52ch]"
+          <p className="font-body text-ui-15 leading-loose text-tea-text-sec italic mt-3 max-w-[52ch]"
              style={{ fontWeight: 400 }}>
             {collection.note}
           </p>

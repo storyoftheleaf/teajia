@@ -175,7 +175,7 @@ export default function AboutPage() {
         </p>
         <Link
           to="/shop"
-          className="inline-flex items-center gap-2 bg-tea-gold hover:bg-tea-gold-lt text-tea-bg px-8 py-3 rounded text-xs uppercase tracking-[0.15em] font-sans font-medium transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-tea-gold focus-visible:outline-none"
+          className="inline-flex items-center gap-2 bg-tea-gold hover:bg-tea-gold-lt text-tea-bg px-8 py-3 rounded text-xs uppercase tracking-caps font-sans font-medium transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-tea-gold focus-visible:outline-none"
         >
           Browse our teas
           <Icons.ChevronRight className="w-3.5 h-3.5" />

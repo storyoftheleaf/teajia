@@ -92,7 +92,7 @@ export const AlcoveSensoryGrid: React.FC<AlcoveSensoryGridProps> = ({
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); onEditProductTasting(item); }}
-            className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim hover:text-tea-gold transition-colors"
+            className="text-ui-10 uppercase tracking-caps text-tea-text-dim hover:text-tea-gold transition-colors"
             style={{ fontFamily: "var(--font-display)", display: "inline-flex", alignItems: "center", gap: "4px" }}
             aria-label="Edit product tasting"
           >

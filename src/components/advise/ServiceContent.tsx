@@ -30,7 +30,7 @@ const Threshold = ({ children }: { children: string }) => (
 /** CTA — uppercase sans-serif, visually distinct from body text */
 const ServiceCTA = ({ label, onClick, variant = 'primary' }: { label: string; onClick: () => void; variant?: 'primary' | 'secondary' }) => (
   <button onClick={onClick}
-    className={`text-ui-11 uppercase tracking-[0.1em] transition-colors duration-300 min-h-[44px]
+    className={`text-ui-11 uppercase tracking-widest transition-colors duration-300 min-h-[44px]
                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 rounded-sm
                ${variant === 'primary'
                  ? 'text-tea-gold hover:text-tea-gold/70 font-medium'
@@ -82,7 +82,7 @@ export const DesignSection = forwardRef<HTMLElement, ServiceSectionProps>(
            style={{ fontFamily: 'var(--font-sans)' }}>
           Space Design
         </p>
-        <h3 className="text-[1.75rem] md:text-[2.25rem] font-light text-tea-text leading-[1.15] tracking-[-0.01em] mb-8"
+        <h3 className="text-[1.75rem] md:text-[2.25rem] font-light text-tea-text leading-[1.15] tracking-tight mb-8"
             style={{ fontFamily: 'var(--font-display)' }}>
           Tea House Design<br className="sm:hidden" /> & Curation
         </h3>
@@ -162,7 +162,7 @@ export const SessionsSection = forwardRef<HTMLElement, ServiceSectionProps>(
            style={{ fontFamily: 'var(--font-sans)' }}>
           Sessions
         </p>
-        <h3 className="text-[1.75rem] md:text-[2.25rem] font-light text-tea-text leading-[1.15] tracking-[-0.01em] mb-8"
+        <h3 className="text-[1.75rem] md:text-[2.25rem] font-light text-tea-text leading-[1.15] tracking-tight mb-8"
             style={{ fontFamily: 'var(--font-display)' }}>
           Sessions & Guidance
         </h3>
@@ -182,12 +182,12 @@ export const SessionsSection = forwardRef<HTMLElement, ServiceSectionProps>(
                     style={{ fontFamily: 'var(--font-display)' }}>
                   {name}
                 </h4>
-                <span className="text-ui-12 text-tea-gold shrink-0 uppercase tracking-[0.04em]"
+                <span className="text-ui-12 text-tea-gold shrink-0 uppercase tracking-wider"
                       style={{ fontFamily: 'var(--font-sans)' }}>
                   {price}
                 </span>
               </div>
-              <p className="text-ui-12 text-tea-text-dim mt-1.5 leading-relaxed tracking-[0.01em]"
+              <p className="text-ui-12 text-tea-text-dim mt-1.5 leading-relaxed tracking-wide"
                  style={{ fontFamily: 'var(--font-sans)' }}>
                 {desc}
               </p>
@@ -202,7 +202,7 @@ export const SessionsSection = forwardRef<HTMLElement, ServiceSectionProps>(
         </p>
         <ul className="space-y-3 mb-12 max-w-[480px]">
           {WALKAWAY.map(item => (
-            <li key={item} className="flex items-start gap-3 text-ui-13 text-tea-text-sec tracking-[0.01em]"
+            <li key={item} className="flex items-start gap-3 text-ui-13 text-tea-text-sec tracking-wide"
                 style={{ fontFamily: 'var(--font-sans)' }}>
               <span className="text-tea-gold/30 mt-[1px]">&mdash;</span>
               {item}

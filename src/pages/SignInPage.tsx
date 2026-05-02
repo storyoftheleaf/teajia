@@ -5,7 +5,7 @@ import { Icons, SealIcon } from '../components/Icons';
 
 const inputClass = "w-full bg-tea-surface border border-tea-border p-3.5 text-tea-text rounded outline-none focus:border-tea-gold focus:ring-0 transition-colors duration-150 placeholder-tea-text-dim font-sans text-sm";
 const inputStyle = { boxShadow: 'inset 0 1px 0 var(--tea-accent-sub), inset 0 -1px 0 var(--tea-accent-sub)' };
-const labelClass = "block text-ui-10 font-bold uppercase tracking-[0.2em] text-tea-text-sec mb-2";
+const labelClass = "block text-ui-10 font-bold uppercase tracking-display text-tea-text-sec mb-2";
 
 export default function SignInPage() {
   const navigate = useNavigate();

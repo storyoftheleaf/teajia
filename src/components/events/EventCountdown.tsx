@@ -63,7 +63,7 @@ const EventCountdown: React.FC<EventCountdownProps> = ({ eventDate, className = 
   if (time.isPast) {
     return (
       <div className={`text-center ${className}`}>
-        <p className="text-sm uppercase tracking-[0.2em] text-tea-text-sec">
+        <p className="text-sm uppercase tracking-display text-tea-text-sec">
           Session has begun
         </p>
       </div>

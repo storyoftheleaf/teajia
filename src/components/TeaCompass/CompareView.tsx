@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { X } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getTeaColor } from '../../designTokens';
+import { useFocusTrap } from '../../hooks/useFocusTrap';
 import type { TeaCompassEntry } from './types';
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
@@ -56,23 +57,23 @@ function TastingCell({ entry }: { entry: TeaCompassEntry }) {
           >
             {quality}
           </span>
-          <span className="text-ui-10 text-tea-text-dim">/10</span>
+          <span className="text-ui-11 text-tea-text-sec">/10</span>
         </div>
       )}
       {t.flavor && t.flavor.length > 0 && (
         <div className="flex flex-wrap gap-1">
           {t.flavor.slice(0, 4).map((f) => (
-            <span key={f} className="text-ui-10 text-tea-text-sec bg-tea-surface/60 px-1.5 py-0.5 rounded">
+            <span key={f} className="text-ui-11 text-tea-text-sec bg-tea-surface/60 px-1.5 py-0.5 rounded">
               {f}
             </span>
           ))}
         </div>
       )}
       {t.body && t.body.length > 0 && (
-        <p className="text-ui-10 text-tea-text-dim">{t.body.slice(0, 2).join(', ')}</p>
+        <p className="text-ui-11 text-tea-text-sec">{t.body.slice(0, 2).join(', ')}</p>
       )}
       {t.feeling && t.feeling.length > 0 && (
-        <p className="text-ui-10 text-tea-text-dim italic">{t.feeling.slice(0, 2).join(', ')}</p>
+        <p className="text-ui-11 text-tea-text-sec italic">{t.feeling.slice(0, 2).join(', ')}</p>
       )}
     </div>
   );
@@ -80,10 +81,21 @@ function TastingCell({ entry }: { entry: TeaCompassEntry }) {
 
 export const CompareView: React.FC<CompareViewProps> = ({ entries, onClose, onRemove }) => {
   const currentYear = new Date().getFullYear();
+  const focusTrapRef = useFocusTrap<HTMLDivElement>(true);
+
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [onClose]);
 
   return createPortal(
     <AnimatePresence>
       <motion.div
+        ref={focusTrapRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Compare ${entries.length} teas`}
         initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 40 }}
@@ -97,10 +109,10 @@ export const CompareView: React.FC<CompareViewProps> = ({ entries, onClose, onRe
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-tea-border shrink-0">
           <span
-            className="text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec font-medium"
+            className="text-ui-11 uppercase tracking-caps text-tea-text-sec font-medium"
             style={{ fontFamily: 'var(--font-display)' }}
           >
-            Compare — {entries.length} teas
+            Compare · {entries.length} teas
           </span>
           <button
             type="button"
@@ -128,7 +140,8 @@ export const CompareView: React.FC<CompareViewProps> = ({ entries, onClose, onRe
                       <button
                         type="button"
                         onClick={() => onRemove(entry.id)}
-                        className="float-right -mt-0.5 text-tea-text-dim hover:text-red-400 transition-colors"
+                        aria-label={`Remove ${entry.name || 'entry'} from comparison`}
+                        className="tap-target float-right -mt-0.5 text-tea-text-sec hover:text-red-400 transition-colors"
                       >
                         <X size={12} />
                       </button>
@@ -154,7 +167,7 @@ export const CompareView: React.FC<CompareViewProps> = ({ entries, onClose, onRe
                       )}
 
                       {/* Type · Year · Age */}
-                      <p className="text-ui-10 text-tea-text-dim">
+                      <p className="text-ui-11 text-tea-text-sec">
                         {[
                           entry.type,
                           entry.year,

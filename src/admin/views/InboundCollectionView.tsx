@@ -133,11 +133,11 @@ export const InboundCollectionView: React.FC = () => {
                 </span>
               )}
             </p>
-            <h1 className="font-display text-[clamp(24px,3.5vw,32px)] leading-[1.2] text-tea-text" style={{ fontWeight: 500 }}>
+            <h1 className="font-display text-[clamp(24px,3.5vw,32px)] leading-snug text-tea-text" style={{ fontWeight: 500 }}>
               {pub.title}
             </h1>
             {pub.note && (
-              <p className="font-body text-ui-15 leading-[1.65] text-tea-text italic">
+              <p className="font-body text-ui-15 leading-loose text-tea-text italic">
                 {pub.note}
               </p>
             )}

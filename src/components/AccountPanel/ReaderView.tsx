@@ -24,7 +24,7 @@ const LinkCluster: React.FC<{
       <span>{hint}</span>
     </div>
     <div className="w-8 h-px bg-tea-gold/40 mt-2 mb-3.5 ml-[22px]" aria-hidden="true" />
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-ui-14 text-tea-text-sec tracking-[0.01em]">
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-ui-14 text-tea-text-sec tracking-wide">
       {links.map((link, i) => (
         <React.Fragment key={link.label}>
           {i > 0 && <span className="text-tea-text-sec" aria-hidden="true">·</span>}

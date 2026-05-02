@@ -72,7 +72,7 @@ export const Projects: React.FC<ProjectsProps> = ({ onBack, onSelectProject }) =
 
       {/* Header */}
       <div className="mb-8">
-        <p className="text-xs uppercase tracking-[0.2em] text-tea-gold font-sans mb-2">
+        <p className="text-xs uppercase tracking-display text-tea-gold font-sans mb-2">
           Portfolio
         </p>
         <h1 className="font-serif text-3xl md:text-4xl lg:text-5xl font-normal mb-6 text-tea-text">

@@ -677,6 +677,40 @@ input[type="number"]::-webkit-outer-spin-button {
   cursor: not-allowed;
 }
 
+/* Quiet pill: no border, no underline. Active state via subtle bg tint only.
+   Use for clusters of toggles where each toggle has equal weight (e.g. status flags
+   in product editor). Avoids the loud "active" emphasis of .pill-active. */
+.pill-quiet {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 9px;
+  border-radius: 6px;
+  border: none;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease;
+  background: transparent;
+  color: var(--tea-text-dim);
+}
+
+.pill-quiet:hover {
+  background: transparent;
+  color: var(--tea-text-sec);
+}
+
+/* Active state carried by color + weight only. No fill, no border.
+   Adheres to the "quiet aesthetic" rule: pills should never read as filled badges. */
+.pill-quiet-on {
+  background: transparent;
+  color: var(--tea-gold);
+  font-weight: 500;
+}
+
+/* No hover treatment on active state. Bronze rarity preserved. */
+
 /* Destructive — subtle red tint, used for confirm step of suspend/delete */
 .pill-destructive {
   color: #f87171;

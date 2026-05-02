@@ -56,7 +56,7 @@ const ShareCardPage: React.FC = () => {
           </p>
           <Link
             to="/"
-            className="text-xs uppercase tracking-[0.2em] text-tea-gold hover:text-tea-text transition-colors"
+            className="text-xs uppercase tracking-display text-tea-gold hover:text-tea-text transition-colors"
           >
             Visit Teajia
           </Link>
@@ -81,7 +81,7 @@ const ShareCardPage: React.FC = () => {
           <button
             type="button"
             onClick={() => navigate('/compass')}
-            className="text-xs uppercase tracking-[0.2em] text-tea-gold hover:text-tea-text transition-colors"
+            className="text-xs uppercase tracking-display text-tea-gold hover:text-tea-text transition-colors"
           >
             Open Compass
           </button>
@@ -160,7 +160,7 @@ const ShareCardPage: React.FC = () => {
               type="button"
               disabled={claimMutation.isPending}
               onClick={() => claimMutation.mutate()}
-              className="w-full py-4 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.2em] font-semibold rounded-sm hover:bg-tea-gold/90 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
+              className="w-full py-4 bg-tea-gold text-tea-bg text-xs uppercase tracking-display font-semibold rounded-sm hover:bg-tea-gold/90 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
             >
               {claimMutation.isPending ? (
                 <span className="inline-block w-4 h-4 border-2 border-tea-bg/30 border-t-tea-bg rounded-full animate-spin" />
@@ -181,7 +181,7 @@ const ShareCardPage: React.FC = () => {
             </p>
             <Link
               to={`/admin?redirect=${returnPath}`}
-              className="block w-full py-4 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.2em] font-semibold rounded-sm hover:bg-tea-gold/90 transition-all"
+              className="block w-full py-4 bg-tea-gold text-tea-bg text-xs uppercase tracking-display font-semibold rounded-sm hover:bg-tea-gold/90 transition-all"
             >
               Sign in to save
             </Link>

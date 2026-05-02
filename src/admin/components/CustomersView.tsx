@@ -236,7 +236,7 @@ const CustomerModal = ({
                 key={t}
                 type="button"
                 onClick={() => setForm(prev => ({ ...prev, type: t }))}
-                className={`flex-1 py-2 text-xs uppercase tracking-[0.15em] transition-colors ${
+                className={`flex-1 py-2 text-xs uppercase tracking-caps transition-colors ${
                   form.type === t
                     ? 'bg-tea-elevated text-tea-text font-medium'
                     : 'text-tea-text-sec hover:text-tea-text'
@@ -411,7 +411,7 @@ const CustomerModal = ({
           <button
             type="submit"
             disabled={saving || !form.name.trim()}
-            className="w-full py-3 bg-tea-gold hover:bg-tea-gold/90 text-tea-bg font-bold uppercase tracking-[0.2em] text-xs rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-3 bg-tea-gold hover:bg-tea-gold/90 text-tea-bg font-bold uppercase tracking-display text-xs rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {saving ? 'Saving...' : isEditing ? 'Update Customer' : 'Add Customer'}
           </button>
@@ -602,7 +602,7 @@ export const CustomerDetail = ({
                 onClick={() => setShowSupplied(!showSupplied)}
                 className="w-full flex justify-between items-center"
               >
-                <h4 className="text-xs uppercase tracking-[0.2em] text-tea-text-sec flex items-center gap-2">
+                <h4 className="text-xs uppercase tracking-display text-tea-text-sec flex items-center gap-2">
                   <Leaf size={12} /> Vendor — Products Sourced
                   {!loadingSupplied && suppliedProducts.length > 0 && <span className="text-tea-gold">({suppliedProducts.length})</span>}
                 </h4>
@@ -624,15 +624,15 @@ export const CustomerDetail = ({
                           <div className="grid grid-cols-3 gap-3 mb-4">
                             <div className="bg-tea-bg rounded-lg p-3 text-center">
                               <div className="text-lg font-serif text-tea-gold">{suppliedProducts.length}</div>
-                              <div className="text-ui-9 uppercase tracking-[0.15em] text-tea-text-sec mt-0.5">Products</div>
+                              <div className="text-ui-9 uppercase tracking-caps text-tea-text-sec mt-0.5">Products</div>
                             </div>
                             <div className="bg-tea-bg rounded-lg p-3 text-center">
                               <div className="text-sm font-serif text-tea-gold">{formatUSD(totalValue)}</div>
-                              <div className="text-ui-9 uppercase tracking-[0.15em] text-tea-text-sec mt-0.5">Total Value</div>
+                              <div className="text-ui-9 uppercase tracking-caps text-tea-text-sec mt-0.5">Total Value</div>
                             </div>
                             <div className="bg-tea-bg rounded-lg p-3 text-center">
                               <div className="text-sm font-serif text-tea-text">{avgCostPerGram != null ? `$${avgCostPerGram.toFixed(3)}/g` : '—'}</div>
-                              <div className="text-ui-9 uppercase tracking-[0.15em] text-tea-text-sec mt-0.5">Avg Cost/g</div>
+                              <div className="text-ui-9 uppercase tracking-caps text-tea-text-sec mt-0.5">Avg Cost/g</div>
                             </div>
                           </div>
                         );
@@ -746,13 +746,13 @@ export const CustomerDetail = ({
 
           {/* ── Contact ────────────────────────────────── */}
           <div className="flex items-center gap-3 pt-1">
-            <span className="text-ui-9 uppercase tracking-[0.2em] text-tea-gold/40 font-sans font-medium">Contact</span>
+            <span className="text-ui-9 uppercase tracking-display text-tea-gold/40 font-sans font-medium">Contact</span>
             <div className="flex-1 h-px bg-tea-accent-sub"></div>
           </div>
 
           {/* Contact Info */}
           <div className="bg-tea-surface border border-tea-border rounded-xl p-5 space-y-3">
-            <h4 className="text-xs uppercase tracking-[0.2em] text-tea-text-sec">Contact</h4>
+            <h4 className="text-xs uppercase tracking-display text-tea-text-sec">Contact</h4>
             {(() => {
               const contacts: ContactEntry[] = customer.contacts?.length > 0
                 ? customer.contacts
@@ -783,14 +783,14 @@ export const CustomerDetail = ({
           {/* Notes */}
           {customer.notes && (
             <div className="bg-tea-surface border border-tea-border rounded-xl p-5">
-              <h4 className="text-xs uppercase tracking-[0.2em] text-tea-text-sec mb-3">Notes</h4>
+              <h4 className="text-xs uppercase tracking-display text-tea-text-sec mb-3">Notes</h4>
               <p className="text-sm text-tea-text whitespace-pre-wrap leading-relaxed">{customer.notes}</p>
             </div>
           )}
 
           {/* ── History ────────────────────────────────── */}
           <div className="flex items-center gap-3 pt-1">
-            <span className="text-ui-9 uppercase tracking-[0.2em] text-tea-gold/40 font-sans font-medium">History</span>
+            <span className="text-ui-9 uppercase tracking-display text-tea-gold/40 font-sans font-medium">History</span>
             <div className="flex-1 h-px bg-tea-accent-sub"></div>
           </div>
 
@@ -800,7 +800,7 @@ export const CustomerDetail = ({
               onClick={() => setShowEvents(!showEvents)}
               className="w-full flex justify-between items-center"
             >
-              <h4 className="text-xs uppercase tracking-[0.2em] text-tea-text-sec flex items-center gap-2">
+              <h4 className="text-xs uppercase tracking-display text-tea-text-sec flex items-center gap-2">
                 <Calendar size={12} /> Events Attended
                 {!loadingEvents && events.length > 0 && <span className="text-tea-gold">({events.length})</span>}
               </h4>
@@ -853,7 +853,7 @@ export const CustomerDetail = ({
               onClick={() => setShowJourney(!showJourney)}
               className="w-full flex justify-between items-center"
             >
-              <h4 className="text-xs uppercase tracking-[0.2em] text-tea-text-sec flex items-center gap-2">
+              <h4 className="text-xs uppercase tracking-display text-tea-text-sec flex items-center gap-2">
                 <Leaf size={12} /> Tea Journey
               </h4>
               {showJourney ? <ChevronUp size={14} className="text-tea-text-sec" /> : <ChevronDown size={14} className="text-tea-text-sec" />}
@@ -955,7 +955,7 @@ export const CustomerDetail = ({
               onClick={() => setShowTeas(!showTeas)}
               className="w-full flex justify-between items-center"
             >
-              <h4 className="text-xs uppercase tracking-[0.2em] text-tea-text-sec flex items-center gap-2">
+              <h4 className="text-xs uppercase tracking-display text-tea-text-sec flex items-center gap-2">
                 <Leaf size={12} /> Tea History
                 {!loadingTeas && (teas.length + events.filter((e) => e.attended === 1).length) > 0 && (
                   <span className="text-tea-gold">({teas.length + events.filter((e) => e.attended === 1).length})</span>
@@ -975,7 +975,7 @@ export const CustomerDetail = ({
                     {teas.length > 0 && (
                       <>
                         {events.filter((e) => e.attended === 1).length > 0 && (
-                          <p className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim">Purchased</p>
+                          <p className="text-ui-10 uppercase tracking-caps text-tea-text-dim">Purchased</p>
                         )}
                         {teas.map((tea) => (
                           <div key={tea.id} className="flex items-center gap-3 py-2 border-b border-tea-border last:border-0">
@@ -1011,7 +1011,7 @@ export const CustomerDetail = ({
                     )}
                     {events.filter((e) => e.attended === 1).length > 0 && (
                       <>
-                        <p className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim mt-2">Tasted at Events</p>
+                        <p className="text-ui-10 uppercase tracking-caps text-tea-text-dim mt-2">Tasted at Events</p>
                         {events.filter((e) => e.attended === 1).map((evt) => (
                           <div key={evt.id + '-tasting'} className="flex items-center gap-3 py-2 border-b border-tea-border last:border-0">
                             <div className="w-10 h-10 rounded-lg bg-tea-gold-lt flex items-center justify-center flex-shrink-0">
@@ -1045,7 +1045,7 @@ export const CustomerDetail = ({
               onClick={() => setShowSampleTastings(!showSampleTastings)}
               className="w-full flex justify-between items-center"
             >
-              <h4 className="text-xs uppercase tracking-[0.2em] text-tea-text-sec flex items-center gap-2">
+              <h4 className="text-xs uppercase tracking-display text-tea-text-sec flex items-center gap-2">
                 <span>⬡</span> Sample Tastings
                 {customerTastings.length > 0 && (
                   <span className="text-tea-gold num">{customerTastings.length}</span>
@@ -1091,7 +1091,7 @@ export const CustomerDetail = ({
               onClick={() => setShowOrders(!showOrders)}
               className="w-full flex justify-between items-center"
             >
-              <h4 className="text-xs uppercase tracking-[0.2em] text-tea-text-sec">Order History</h4>
+              <h4 className="text-xs uppercase tracking-display text-tea-text-sec">Order History</h4>
               {showOrders ? <ChevronUp size={14} className="text-tea-text-sec" /> : <ChevronDown size={14} className="text-tea-text-sec" />}
             </button>
 
@@ -1133,7 +1133,7 @@ export const CustomerDetail = ({
           {/* Account Link */}
           <div className="bg-tea-surface border border-tea-border rounded-xl p-5">
             <div className="flex items-center justify-between">
-              <h4 className="text-xs uppercase tracking-[0.2em] text-tea-text-sec flex items-center gap-2">
+              <h4 className="text-xs uppercase tracking-display text-tea-text-sec flex items-center gap-2">
                 <Link size={12} /> Account Link
               </h4>
               {customer.userId ? (
@@ -1573,7 +1573,7 @@ export const CustomersView = () => {
         <div className="px-3 md:px-6 max-w-5xl mx-auto flex items-center gap-3 md:gap-4">
           <div className="flex items-center gap-2 shrink-0">
             <Users size={16} className="text-tea-gold" />
-            <h2 className="text-sm font-serif text-tea-text uppercase tracking-[0.15em] hidden md:block">Customers</h2>
+            <h2 className="text-sm font-serif text-tea-text uppercase tracking-caps hidden md:block">Customers</h2>
             <span className="text-tea-text-sec text-xs tracking-wide hidden md:inline">
               — {filtered.length} contact{filtered.length !== 1 ? 's' : ''}
             </span>
@@ -1702,7 +1702,7 @@ export const CustomersView = () => {
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setShowColumnsPopover(false)} />
                   <div className="absolute right-0 top-full mt-2 w-44 bg-tea-surface border border-tea-border shadow-xl rounded-xl z-50 py-2">
-                    <div className="px-3 pb-1.5 text-ui-9 text-tea-text-sec/60 uppercase tracking-[0.2em]">Visible Columns</div>
+                    <div className="px-3 pb-1.5 text-ui-9 text-tea-text-sec/60 uppercase tracking-display">Visible Columns</div>
                     {CUSTOMER_COLUMN_DEFS.map(col => (
                       <label
                         key={col.key}
@@ -1756,7 +1756,7 @@ export const CustomersView = () => {
             </button>
             <button
               onClick={() => { setEditingCustomer(null); setIsModalOpen(true); }}
-              className="hidden md:flex items-center gap-2 text-xs uppercase tracking-[0.2em] font-bold text-tea-text-sec hover:text-tea-text transition-colors px-3 py-1.5 border border-transparent hover:border-tea-border rounded-lg"
+              className="hidden md:flex items-center gap-2 text-xs uppercase tracking-display font-bold text-tea-text-sec hover:text-tea-text transition-colors px-3 py-1.5 border border-transparent hover:border-tea-border rounded-lg"
             >
               <Plus size={14} /> New
             </button>

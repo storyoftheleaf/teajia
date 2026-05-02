@@ -31,7 +31,7 @@ function membershipLabel(role?: string): string {
 
 function SectionHeading({ children }: { children: React.ReactNode }) {
   return (
-    <h2 className="text-ui-10 font-bold uppercase tracking-[0.2em] text-tea-text-sec mb-4">
+    <h2 className="text-ui-10 font-bold uppercase tracking-display text-tea-text-sec mb-4">
       {children}
     </h2>
   );
@@ -66,7 +66,7 @@ function QueueCard({ entry }: { entry: TeaCompassEntry }) {
       <div className="p-2.5">
         <p className="text-ui-13 font-medium text-tea-text leading-tight line-clamp-2">{entry.name}</p>
         {entry.type && (
-          <p className="text-ui-10 uppercase tracking-[0.1em] text-tea-text-sec mt-0.5">{entry.type}</p>
+          <p className="text-ui-10 uppercase tracking-widest text-tea-text-sec mt-0.5">{entry.type}</p>
         )}
 
         {open ? (
@@ -105,7 +105,7 @@ function WishlistCard({ entry }: { entry: TeaCompassEntry }) {
       <p className="text-ui-14 text-tea-text leading-snug">{entry.name}</p>
       <div className="flex items-center gap-2 mt-0.5">
         {entry.type && (
-          <span className="text-ui-10 uppercase tracking-[0.1em] text-tea-text-sec">{entry.type}</span>
+          <span className="text-ui-10 uppercase tracking-widest text-tea-text-sec">{entry.type}</span>
         )}
         {entry.type && entry.vendorName && (
           <span className="text-tea-text-dim text-ui-10">&middot;</span>
@@ -132,7 +132,7 @@ function StatCard({
   const inner = (
     <div className="flex-1 min-w-[88px] bg-tea-surface px-4 py-4 rounded-sm text-center">
       <p className="text-2xl font-display text-tea-text">{value}</p>
-      <p className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec mt-1">{label}</p>
+      <p className="text-ui-10 uppercase tracking-caps text-tea-text-sec mt-1">{label}</p>
     </div>
   );
 
@@ -277,12 +277,12 @@ export default function CenterPage() {
           className="flex items-center gap-1.5 text-tea-text-sec hover:text-tea-text transition-colors mb-8"
         >
           <ChevronLeft className="w-4 h-4" />
-          <span className="text-ui-11 uppercase tracking-[0.15em]">Back</span>
+          <span className="text-ui-11 uppercase tracking-caps">Back</span>
         </button>
 
         {/* Identity */}
         <div className="mb-8">
-          <div className="inline-block text-ui-10 uppercase tracking-[0.2em] text-tea-gold bg-tea-gold/8 px-2.5 py-1 rounded-sm mb-3">
+          <div className="inline-block text-ui-10 uppercase tracking-display text-tea-gold bg-tea-gold/8 px-2.5 py-1 rounded-sm mb-3">
             {tier}
           </div>
           <h1 className="font-display text-4xl text-tea-text leading-tight">

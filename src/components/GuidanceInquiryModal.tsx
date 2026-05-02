@@ -121,7 +121,7 @@ export const GuidanceInquiryModal: React.FC<GuidanceInquiryModalProps> = ({ onCl
               {/* Required: Name & Email - side by side on desktop */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="name" className="block text-xs uppercase tracking-[0.15em] text-tea-text/80 mb-2">
+                  <label htmlFor="name" className="block text-xs uppercase tracking-caps text-tea-text/80 mb-2">
                     Name
                   </label>
                   <input
@@ -138,7 +138,7 @@ export const GuidanceInquiryModal: React.FC<GuidanceInquiryModalProps> = ({ onCl
                 </div>
 
                 <div>
-                  <label htmlFor="email" className="block text-xs uppercase tracking-[0.15em] text-tea-text/80 mb-2">
+                  <label htmlFor="email" className="block text-xs uppercase tracking-caps text-tea-text/80 mb-2">
                     Email
                   </label>
                   <input
@@ -157,7 +157,7 @@ export const GuidanceInquiryModal: React.FC<GuidanceInquiryModalProps> = ({ onCl
 
               {/* Required: Vision / Message */}
               <div>
-                <label htmlFor="vision" className="block text-xs uppercase tracking-[0.15em] text-tea-text/80 mb-2">
+                <label htmlFor="vision" className="block text-xs uppercase tracking-caps text-tea-text/80 mb-2">
                   {formData.serviceType === 'design' ? 'Describe Your Vision' : formData.serviceType === 'teaching' ? 'What Would You Like to Learn?' : 'Your Message'}
                 </label>
                 <textarea
@@ -194,7 +194,7 @@ export const GuidanceInquiryModal: React.FC<GuidanceInquiryModalProps> = ({ onCl
                   <div className="mt-3 space-y-4 animate-[fadeIn_0.2s_ease-out]">
                     {/* Service Type Selection */}
                     <div>
-                      <label className="block text-xs uppercase tracking-[0.15em] text-tea-text/80 mb-2">
+                      <label className="block text-xs uppercase tracking-caps text-tea-text/80 mb-2">
                         What are you interested in?
                       </label>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
@@ -219,7 +219,7 @@ export const GuidanceInquiryModal: React.FC<GuidanceInquiryModalProps> = ({ onCl
                     {/* Teaching Format (conditional) */}
                     {formData.serviceType === 'teaching' && (
                       <div className="animate-[fadeIn_0.2s_ease-out]">
-                        <label className="block text-xs uppercase tracking-[0.15em] text-tea-text/80 mb-2">
+                        <label className="block text-xs uppercase tracking-caps text-tea-text/80 mb-2">
                           Preferred Format
                         </label>
                         <div className="grid grid-cols-1 gap-2">
@@ -242,7 +242,7 @@ export const GuidanceInquiryModal: React.FC<GuidanceInquiryModalProps> = ({ onCl
 
                         {/* Experience Level */}
                         <div className="mt-4">
-                          <label className="block text-xs uppercase tracking-[0.15em] text-tea-text/80 mb-2">
+                          <label className="block text-xs uppercase tracking-caps text-tea-text/80 mb-2">
                             Your Experience Level
                           </label>
                           <div className="flex gap-2">
@@ -270,7 +270,7 @@ export const GuidanceInquiryModal: React.FC<GuidanceInquiryModalProps> = ({ onCl
                       <div className="animate-[fadeIn_0.2s_ease-out] space-y-4">
                         {/* Space Type */}
                         <div>
-                          <label className="block text-xs uppercase tracking-[0.15em] text-tea-text/80 mb-2">
+                          <label className="block text-xs uppercase tracking-caps text-tea-text/80 mb-2">
                             Type of Space
                           </label>
                           <div className="flex gap-2">
@@ -297,7 +297,7 @@ export const GuidanceInquiryModal: React.FC<GuidanceInquiryModalProps> = ({ onCl
 
                         {/* Budget Range */}
                         <div>
-                          <label className="block text-xs uppercase tracking-[0.15em] text-tea-text/80 mb-2">
+                          <label className="block text-xs uppercase tracking-caps text-tea-text/80 mb-2">
                             Budget Range
                           </label>
                           <div className="grid grid-cols-2 gap-2">
@@ -327,7 +327,7 @@ export const GuidanceInquiryModal: React.FC<GuidanceInquiryModalProps> = ({ onCl
 
                     {/* Phone */}
                     <div>
-                      <label htmlFor="phone" className="block text-xs uppercase tracking-[0.15em] text-tea-text/80 mb-2">
+                      <label htmlFor="phone" className="block text-xs uppercase tracking-caps text-tea-text/80 mb-2">
                         Phone
                       </label>
                       <input

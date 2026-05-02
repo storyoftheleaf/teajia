@@ -150,7 +150,7 @@ const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, cla
         {onClose && (
           <button
             onClick={onClose}
-            className="px-8 py-3 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.2em] font-semibold hover:bg-tea-gold/90 transition-colors"
+            className="px-8 py-3 bg-tea-gold text-tea-bg text-xs uppercase tracking-display font-semibold hover:bg-tea-gold/90 transition-colors"
           >
             Done
           </button>
@@ -164,7 +164,7 @@ const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, cla
   return (
     <div className={`${className}`}>
       <h3 className="text-xl text-tea-text mb-2" style={{ fontFamily: 'var(--font-display)' }}>Share Your Impressions</h3>
-      <p className="text-xs text-tea-text-sec uppercase tracking-[0.2em] mb-6" style={{ fontFamily: 'var(--font-body)' }}>
+      <p className="text-xs text-tea-text-sec uppercase tracking-display mb-6" style={{ fontFamily: 'var(--font-body)' }}>
         Rate the teas you tasted today
       </p>
 
@@ -198,7 +198,7 @@ const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, cla
         <div className="mb-4">
           <div className="flex items-center gap-2 mb-1">
             {currentItem.productType && (
-              <span className="text-ui-10 uppercase tracking-[0.2em] text-tea-gold">
+              <span className="text-ui-10 uppercase tracking-display text-tea-gold">
                 {currentItem.productType}
               </span>
             )}
@@ -213,7 +213,7 @@ const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, cla
 
         {/* Rating: 5 tea leaves */}
         <div className="mb-4">
-          <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-2" style={{ fontFamily: 'var(--font-display)' }}>
+          <p className="text-ui-10 uppercase tracking-display text-tea-text-sec mb-2" style={{ fontFamily: 'var(--font-display)' }}>
             Rating
           </p>
           <div className="flex gap-2">

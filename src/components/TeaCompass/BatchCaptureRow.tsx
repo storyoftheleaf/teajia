@@ -87,7 +87,7 @@ export const BatchCaptureRow: React.FC<BatchCaptureRowProps> = ({ onAdded }) => 
       </div>
 
       {feedback && (
-        <p className="text-ui-10 text-tea-gold/70 px-1">
+        <p className="text-ui-11 text-tea-gold/80 px-1">
           + {feedback} added
         </p>
       )}

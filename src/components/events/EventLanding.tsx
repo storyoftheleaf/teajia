@@ -20,7 +20,7 @@ const PublicTeaMenuSection: React.FC<PublicTeaMenuProps> = ({ items }) => {
   return (
     <div className="mb-10">
       <h3 className="font-serif text-xl text-tea-text mb-1">What we'll be tasting</h3>
-      <p className="text-xs text-tea-text-sec uppercase tracking-[0.2em] mb-6">
+      <p className="text-xs text-tea-text-sec uppercase tracking-display mb-6">
         {sorted.length} {sorted.length === 1 ? 'selection' : 'selections'} curated for this session
       </p>
       <div className="space-y-3">
@@ -29,7 +29,7 @@ const PublicTeaMenuSection: React.FC<PublicTeaMenuProps> = ({ items }) => {
             <span className="font-serif text-xl text-tea-gold/30 leading-none shrink-0 mt-0.5">{idx + 1}</span>
             <div className="flex-1 min-w-0">
               {item.productType && (
-                <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-gold mb-0.5">{item.productType}</p>
+                <p className="text-ui-10 uppercase tracking-display text-tea-gold mb-0.5">{item.productType}</p>
               )}
               <p className="font-serif text-base text-tea-text">{item.customName || item.productName}</p>
               {item.customDescription && (
@@ -262,7 +262,7 @@ const EventLanding: React.FC = () => {
           </p>
           <button
             onClick={() => navigate('/')}
-            className="px-8 py-3 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.2em] hover:bg-tea-gold/90 transition-colors"
+            className="px-8 py-3 bg-tea-gold text-tea-bg text-xs uppercase tracking-display hover:bg-tea-gold/90 transition-colors"
           >
             Return Home
           </button>
@@ -474,14 +474,14 @@ const EventLanding: React.FC = () => {
                   {myAttendee.status === 'confirmed' && (
                     <button
                       onClick={() => navigate(`/m/${myAttendee.magic_token || myAttendee.magicToken}`)}
-                      className="py-[13px] bg-tea-surface border border-tea-border text-tea-text text-ui-11 uppercase tracking-[0.2em] rounded-sm hover:border-tea-gold/40 transition-colors"
+                      className="py-[13px] bg-tea-surface border border-tea-border text-tea-text text-ui-11 uppercase tracking-display rounded-sm hover:border-tea-gold/40 transition-colors"
                     >
                       Invite a Friend
                     </button>
                   )}
                   <button
                     onClick={() => setShowCancelConfirm(true)}
-                    className="py-[13px] bg-tea-surface border border-tea-border text-tea-text-sec text-ui-11 uppercase tracking-[0.2em] rounded-sm hover:border-red-400/30 hover:text-red-400 transition-colors"
+                    className="py-[13px] bg-tea-surface border border-tea-border text-tea-text-sec text-ui-11 uppercase tracking-display rounded-sm hover:border-red-400/30 hover:text-red-400 transition-colors"
                   >
                     Cancel {myAttendee.status === 'confirmed' ? 'My Seat' : 'Registration'}
                   </button>
@@ -514,7 +514,7 @@ const EventLanding: React.FC = () => {
                           }
                         }}
                         disabled={cancelling}
-                        className="flex-1 py-2.5 text-ui-11 uppercase tracking-[0.15em] text-red-400 hover:text-red-300 border border-red-400/30 rounded-sm hover:border-red-400/50 transition-colors disabled:opacity-50"
+                        className="flex-1 py-2.5 text-ui-11 uppercase tracking-caps text-red-400 hover:text-red-300 border border-red-400/30 rounded-sm hover:border-red-400/50 transition-colors disabled:opacity-50"
                       >
                         {cancelling ? 'Cancelling…' : 'Yes, cancel'}
                       </button>
@@ -577,7 +577,7 @@ const EventLanding: React.FC = () => {
               {isCompleted && slug && (
                 <button
                   onClick={() => navigate(`/event/${slug}/recap`)}
-                  className="w-full flex items-center justify-center gap-2.5 py-[13px] bg-tea-surface border border-tea-border text-tea-text text-ui-11 uppercase tracking-[0.2em] rounded-sm hover:border-tea-gold/40 hover:text-tea-gold transition-all duration-300 group"
+                  className="w-full flex items-center justify-center gap-2.5 py-[13px] bg-tea-surface border border-tea-border text-tea-text text-ui-11 uppercase tracking-display rounded-sm hover:border-tea-gold/40 hover:text-tea-gold transition-all duration-300 group"
                 >
                   <BookOpen className="w-3.5 h-3.5 text-tea-text-sec group-hover:text-tea-gold transition-colors" />
                   View session recap
@@ -597,7 +597,7 @@ const EventLanding: React.FC = () => {
         {/* Description */}
         {event.description && (
           <div className="mb-8">
-            <p className="font-serif text-ui-14 text-tea-text-sec leading-[1.7] whitespace-pre-line">
+            <p className="font-serif text-ui-14 text-tea-text-sec leading-reading whitespace-pre-line">
               {event.description}
             </p>
           </div>

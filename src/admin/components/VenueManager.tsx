@@ -18,7 +18,7 @@ const textareaClass = 'w-full border border-tea-border bg-transparent focus:bord
 
 const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
   <div>
-    <label className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec block mb-1.5">{label}</label>
+    <label className="text-ui-10 uppercase tracking-display text-tea-text-sec block mb-1.5">{label}</label>
     {children}
   </div>
 );
@@ -367,7 +367,7 @@ const VenueCard: React.FC<VenueCardProps> = ({ venue, onRefresh }) => {
                 </Field>
               </div>
               <div>
-                <label className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec block mb-1">Venue Photos</label>
+                <label className="text-ui-10 uppercase tracking-display text-tea-text-sec block mb-1">Venue Photos</label>
                 <p className="text-ui-10 text-tea-text-dim mb-2">First photo is the hero. Add more to show the vibe from past events.</p>
                 <PhotoStrip photos={photos} onAdd={handleUpload} onRemove={handleRemovePhoto} uploading={uploading} />
               </div>
@@ -391,7 +391,7 @@ const VenueCard: React.FC<VenueCardProps> = ({ venue, onRefresh }) => {
 
           {/* Spaces list */}
           <div className="p-4 space-y-3">
-            <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim">Spaces</p>
+            <p className="text-ui-10 uppercase tracking-display text-tea-text-dim">Spaces</p>
 
             {venue.spaces.length === 0 && !addingSpace && (
               <p className="text-xs text-tea-text-dim py-2">No spaces yet — add a tea table or room below.</p>
@@ -480,7 +480,7 @@ const VenueCard: React.FC<VenueCardProps> = ({ venue, onRefresh }) => {
           <div className="p-4 border-t border-tea-border space-y-2">
             <div className="flex items-center gap-2">
               <Calendar size={12} className="text-tea-text-dim" />
-              <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim">Events Hosted Here</p>
+              <p className="text-ui-10 uppercase tracking-display text-tea-text-dim">Events Hosted Here</p>
             </div>
             {loadingEvents ? (
               <Loader2 size={14} className="animate-spin text-tea-text-dim" />

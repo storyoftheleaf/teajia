@@ -144,7 +144,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
             {/* Customer & Shipping */}
             <div className="grid grid-cols-2 gap-3 mb-5">
               <div>
-                <label className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec mb-1 block">Customer</label>
+                <label className="text-ui-10 uppercase tracking-caps text-tea-text-sec mb-1 block">Customer</label>
                 <input
                   type="text"
                   value={customerName}
@@ -153,7 +153,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
                 />
               </div>
               <div>
-                <label className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec mb-1 block">Shipping (USD)</label>
+                <label className="text-ui-10 uppercase tracking-caps text-tea-text-sec mb-1 block">Shipping (USD)</label>
                 <input
                   type="number"
                   min={0}
@@ -167,7 +167,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
 
             {/* Notes */}
             <div className="mb-5">
-              <label className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec mb-1 block">Notes</label>
+              <label className="text-ui-10 uppercase tracking-caps text-tea-text-sec mb-1 block">Notes</label>
               <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
@@ -180,7 +180,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
             {/* Line Items */}
             <div className="mb-5">
               <div className="flex items-center justify-between mb-2">
-                <label className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec">Items</label>
+                <label className="text-ui-10 uppercase tracking-caps text-tea-text-sec">Items</label>
                 <button
                   onClick={() => setAddingProduct(!addingProduct)}
                   className="text-xs text-tea-gold hover:text-tea-gold/80 flex items-center gap-1 transition-colors"

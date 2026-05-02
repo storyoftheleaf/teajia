@@ -243,7 +243,7 @@ export const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
       {/* Hint chips — shown on empty focus when a type is selected */}
       {showHints && (
         <div className="absolute left-0 right-0 top-full mt-1 z-30 bg-tea-surface border border-tea-border rounded-lg shadow-lg p-2">
-          <p className="text-ui-10 text-tea-text-dim uppercase tracking-[0.1em] mb-1.5 px-1">Examples</p>
+          <p className="text-ui-10 text-tea-text-dim uppercase tracking-widest mb-1.5 px-1">Examples</p>
           <div className="flex flex-wrap gap-1.5">
             {hintSuggestions.map((hint) => (
               <button

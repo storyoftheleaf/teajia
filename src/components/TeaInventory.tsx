@@ -475,7 +475,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                className="flex-1 min-w-0 bg-transparent border-b border-tea-border text-tea-text text-sm placeholder:text-tea-text-dim py-1 pr-2 outline-none focus:border-tea-gold transition-colors"
                style={{ fontFamily: 'var(--font-body)' }}
              />
-             <span className="shrink-0 text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim num">
+             <span className="shrink-0 text-ui-10 uppercase tracking-caps text-tea-text-dim num">
                {filteredInventory.length} {filteredInventory.length === 1 ? 'tea' : 'teas'}
              </span>
            </div>
@@ -487,7 +487,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                onClick={() => setShopSavedOnly(!shopSavedOnly)}
                aria-pressed={shopSavedOnly}
                aria-label="Show only liked teas"
-               className={`flex items-center gap-1.5 text-ui-10 uppercase tracking-[0.15em] py-1 shrink-0 transition-colors ${
+               className={`flex items-center gap-1.5 text-ui-10 uppercase tracking-caps py-1 shrink-0 transition-colors ${
                  shopSavedOnly ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
                }`}
              >
@@ -497,13 +497,13 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
 
              <div className="w-px h-3.5 bg-tea-border shrink-0" />
 
-             <label className="flex items-center gap-1.5 text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec shrink-0">
+             <label className="flex items-center gap-1.5 text-ui-10 uppercase tracking-caps text-tea-text-sec shrink-0">
                <span>Sort</span>
                <select
                  value={shopSort}
                  onChange={e => setShopSort(e.target.value as any)}
                  aria-label="Sort teas by"
-                 className="bg-transparent text-tea-text text-ui-10 uppercase tracking-[0.15em] outline-none cursor-pointer border-none focus-visible:underline"
+                 className="bg-transparent text-tea-text text-ui-10 uppercase tracking-caps outline-none cursor-pointer border-none focus-visible:underline"
                  style={{ fontFamily: 'var(--font-body)' }}
                >
                  <option value="featured">Featured</option>
@@ -517,7 +517,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
              <div className="w-px h-3.5 bg-tea-border shrink-0" />
 
              <div className="flex items-center gap-1.5 shrink-0 ml-auto">
-               <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec">Price per</span>
+               <span className="text-ui-10 uppercase tracking-caps text-tea-text-sec">Price per</span>
                <div className="flex items-center gap-0.5 border border-tea-border rounded-sm overflow-hidden">
                  {([25, 50, 100] as const).map(g => (
                    <button
@@ -543,7 +543,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                {/* Type button */}
                <button
                   onClick={() => setOpenFilter(prev => prev === 'type' ? null : 'type')}
-                  className={`flex items-center gap-1.5 text-ui-10 uppercase tracking-[0.15em] py-1.5 transition-colors ${
+                  className={`flex items-center gap-1.5 text-ui-10 uppercase tracking-caps py-1.5 transition-colors ${
                      activeType !== 'All' ? 'text-tea-gold' : openFilter === 'type' ? 'text-tea-text' : 'text-tea-text-sec hover:text-tea-text'
                   }`}
                >
@@ -555,7 +555,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                {availableFeelings.length > 0 && (
                <button
                   onClick={() => setOpenFilter(prev => prev === 'feeling' ? null : 'feeling')}
-                  className={`flex items-center gap-1.5 text-ui-10 uppercase tracking-[0.15em] py-1.5 transition-colors ${
+                  className={`flex items-center gap-1.5 text-ui-10 uppercase tracking-caps py-1.5 transition-colors ${
                      activeFeeling ? 'text-tea-gold' : openFilter === 'feeling' ? 'text-tea-text' : 'text-tea-text-sec hover:text-tea-text'
                   }`}
                >
@@ -638,7 +638,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
              <button
                type="button"
                onClick={() => setMoodFlavorOpen(p => !p)}
-               className={`flex items-center gap-1.5 text-ui-10 uppercase tracking-[0.15em] py-1 transition-colors ${
+               className={`flex items-center gap-1.5 text-ui-10 uppercase tracking-caps py-1 transition-colors ${
                  (activeMoodTags.length > 0 || activeFlavorTags.length > 0)
                    ? 'text-tea-gold'
                    : moodFlavorOpen
@@ -810,7 +810,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                 <div className="border-t border-tea-border mb-3 first:border-0" />
                                 <div className="flex items-center gap-2">
                                     <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: typeColor }} />
-                                    <span className="text-ui-11 uppercase tracking-[0.2em] text-tea-text-sec">{group.type}</span>
+                                    <span className="text-ui-11 uppercase tracking-display text-tea-text-sec">{group.type}</span>
                                 </div>
                             </div>
                         );
@@ -944,7 +944,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
       {/* Recently Viewed */}
       {recentlyViewedItems.length > 0 && filteredInventory.length > 0 && (
         <div className="mt-10 px-3 md:px-4 lg:px-6">
-          <p className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim mb-3">Recently Viewed</p>
+          <p className="text-ui-10 uppercase tracking-caps text-tea-text-dim mb-3">Recently Viewed</p>
           <div className="flex gap-3 overflow-x-auto hide-scrollbar pb-2">
             {recentlyViewedItems.map(item => (
               <button
@@ -974,7 +974,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
         <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-sticky animate-[fadeIn_0.3s_ease-out]">
           <button
             onClick={() => setShowCompare(true)}
-            className="flex items-center gap-2 px-5 py-2.5 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.1em] font-medium rounded-sm shadow-lg hover:bg-tea-gold-lt transition-all active:scale-95"
+            className="flex items-center gap-2 px-5 py-2.5 bg-tea-gold text-tea-bg text-xs uppercase tracking-widest font-medium rounded-sm shadow-lg hover:bg-tea-gold-lt transition-all active:scale-95"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="3" width="7" height="18" rx="1" />

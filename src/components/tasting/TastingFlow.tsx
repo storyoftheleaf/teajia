@@ -245,7 +245,7 @@ export const TastingFlow: React.FC<TastingFlowProps> = ({
               className="px-4 pb-4 pt-3"
             >
               <p
-                className="text-ui-11 text-tea-text-dim italic mb-3"
+                className="text-ui-13 text-tea-text-sec mb-3"
                 style={{ fontFamily: 'var(--font-body)' }}
               >
                 {activeSection.subtitle}

@@ -53,7 +53,7 @@ export const CartToast: React.FC<CartToastProps> = ({
           >
             {/* Item info */}
             <div className="flex-1 min-w-0">
-              <p className="text-ui-11 text-tea-text-sec uppercase tracking-[0.15em] mb-0.5">Added to cart</p>
+              <p className="text-ui-11 text-tea-text-sec uppercase tracking-caps mb-0.5">Added to cart</p>
               <p className="text-sm font-serif text-tea-text truncate">{itemName}</p>
             </div>
 
@@ -63,7 +63,7 @@ export const CartToast: React.FC<CartToastProps> = ({
                 e.stopPropagation();
                 onViewCart();
               }}
-              className="shrink-0 flex items-center gap-1.5 px-2 py-1.5 text-tea-text text-ui-11 uppercase tracking-[0.15em] underline underline-offset-4 decoration-tea-border hover:decoration-tea-gold transition-colors"
+              className="shrink-0 flex items-center gap-1.5 px-2 py-1.5 text-tea-text text-ui-11 uppercase tracking-caps underline underline-offset-4 decoration-tea-border hover:decoration-tea-gold transition-colors"
             >
               <Icons.Bag className="w-3.5 h-3.5 text-tea-text-sec" />
               <span className="num">{cartCount}</span>

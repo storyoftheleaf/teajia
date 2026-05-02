@@ -119,7 +119,7 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({ embedd
           <h1 className="text-2xl text-tea-text mb-1" style={{ fontFamily: 'var(--font-display)' }}>
             Account Settings
           </h1>
-          <p className="text-xs text-tea-text-dim uppercase tracking-[0.15em]">
+          <p className="text-xs text-tea-text-dim uppercase tracking-caps">
             {account.name}
           </p>
         </div>
@@ -144,7 +144,7 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({ embedd
       <form onSubmit={handleSave} className="space-y-6">
         {/* Read-only section */}
         <div className="bg-tea-surface rounded-lg border border-tea-border p-5 space-y-4">
-          <h2 className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim mb-1">
+          <h2 className="text-ui-10 uppercase tracking-display text-tea-text-dim mb-1">
             System
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -159,7 +159,7 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({ embedd
 
         {/* Editable profile */}
         <div className="bg-tea-surface rounded-lg border border-tea-border p-5 space-y-4">
-          <h2 className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim mb-1">
+          <h2 className="text-ui-10 uppercase tracking-display text-tea-text-dim mb-1">
             Profile
           </h2>
           <Field
@@ -204,7 +204,7 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({ embedd
 
         {/* Commerce */}
         <div className="bg-tea-surface rounded-lg border border-tea-border p-5 space-y-4">
-          <h2 className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim mb-1">
+          <h2 className="text-ui-10 uppercase tracking-display text-tea-text-dim mb-1">
             Commerce
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -238,7 +238,7 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({ embedd
             <button
               type="submit"
               disabled={saving}
-              className="inline-flex items-center gap-2 px-5 py-2 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold uppercase tracking-[0.15em] hover:opacity-90 transition-opacity disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-5 py-2 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold uppercase tracking-caps hover:opacity-90 transition-opacity disabled:opacity-50"
             >
               {saving ? <Loader2 className="animate-spin" size={13} /> : <Save size={13} />}
               Save Changes
@@ -250,7 +250,7 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({ embedd
       {/* Danger Zone */}
       {canEdit && (
         <div className="mt-10">
-          <h2 className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim mb-3">
+          <h2 className="text-ui-10 uppercase tracking-display text-tea-text-dim mb-3">
             Danger Zone
           </h2>
           <TransferOwnershipSection account={account} accountId={activeAccountId!} />
@@ -342,7 +342,7 @@ const TransferOwnershipSection: React.FC<{
       {/* Gate 1: Select target member */}
       {step === 'select-member' && (
         <div className="border-t border-tea-border px-5 py-4 space-y-3">
-          <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim">Step 1 of 3 — Select new owner</p>
+          <p className="text-ui-10 uppercase tracking-display text-tea-text-dim">Step 1 of 3 — Select new owner</p>
           {loadingMembers ? (
             <div className="flex items-center gap-2 text-xs text-tea-text-dim py-2">
               <Loader2 size={12} className="animate-spin" /> Loading team members…
@@ -352,7 +352,7 @@ const TransferOwnershipSection: React.FC<{
           ) : (
             <>
               <div>
-                <label className="block text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-1.5">
+                <label className="block text-ui-10 uppercase tracking-display text-tea-text-sec mb-1.5">
                   New Owner
                 </label>
                 <select
@@ -393,7 +393,7 @@ const TransferOwnershipSection: React.FC<{
       {/* Gate 2: Type exact account name */}
       {step === 'confirm-name' && selectedMember && (
         <div className="border-t border-tea-border px-5 py-4 space-y-4">
-          <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim">Step 2 of 3 — Confirm account name</p>
+          <p className="text-ui-10 uppercase tracking-display text-tea-text-dim">Step 2 of 3 — Confirm account name</p>
           <div className="bg-tea-bg rounded-md px-4 py-3 text-sm text-tea-text-sec space-y-1">
             <p>
               Transfer <span className="text-tea-text font-medium">{account.name}</span> to{' '}
@@ -402,7 +402,7 @@ const TransferOwnershipSection: React.FC<{
             <p className="text-xs text-tea-text-dim">{selectedMember.email} · current role: {selectedMember.role}</p>
           </div>
           <div>
-            <label className="block text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-1.5">
+            <label className="block text-ui-10 uppercase tracking-display text-tea-text-sec mb-1.5">
               Type the account name to confirm
             </label>
             <input
@@ -440,9 +440,9 @@ const TransferOwnershipSection: React.FC<{
       {/* Gate 3: Re-enter password */}
       {step === 'verify-password' && selectedMember && (
         <div className="border-t border-tea-border px-5 py-4 space-y-4">
-          <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim">Step 3 of 3 — Authorise</p>
+          <p className="text-ui-10 uppercase tracking-display text-tea-text-dim">Step 3 of 3 — Authorise</p>
           <div>
-            <label className="block text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-1.5">
+            <label className="block text-ui-10 uppercase tracking-display text-tea-text-sec mb-1.5">
               Re-enter your password to authorise
             </label>
             <input
@@ -490,7 +490,7 @@ const Field: React.FC<{
   disabled?: boolean;
 }> = ({ label, value, onChange, disabled }) => (
   <div>
-    <label className="block text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-2">
+    <label className="block text-ui-10 uppercase tracking-display text-tea-text-sec mb-2">
       {label}
     </label>
     <input
@@ -510,7 +510,7 @@ const TextAreaField: React.FC<{
   disabled?: boolean;
 }> = ({ label, value, onChange, disabled }) => (
   <div>
-    <label className="block text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-2">
+    <label className="block text-ui-10 uppercase tracking-display text-tea-text-sec mb-2">
       {label}
     </label>
     <textarea
@@ -525,7 +525,7 @@ const TextAreaField: React.FC<{
 
 const ReadOnlyField: React.FC<{ label: string; value: string }> = ({ label, value }) => (
   <div>
-    <div className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim mb-1">{label}</div>
+    <div className="text-ui-10 uppercase tracking-display text-tea-text-dim mb-1">{label}</div>
     <div className="text-sm text-tea-text-sec font-mono">{value || '—'}</div>
   </div>
 );

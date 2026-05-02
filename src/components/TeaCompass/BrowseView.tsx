@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, X, Trash2, Heart, ThumbsUp, Minus, ThumbsDown, SplitSquareHorizontal } from 'lucide-react';
 import { CompareView } from './CompareView';
@@ -41,12 +41,12 @@ function hasTastingData(e: TeaCompassEntry): boolean {
 
 const SectionHeader: React.FC<{ label: React.ReactNode; count: number; right?: React.ReactNode }> = ({ label, count, right }) => (
   <div className="flex items-center justify-between mb-2.5">
-    <span className="text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec font-medium font-serif">
+    <span className="text-ui-11 uppercase tracking-caps text-tea-text-sec font-medium font-serif">
       {label}
     </span>
     <span className="flex items-center gap-2">
       {right}
-      <span className="text-ui-10 text-tea-text-dim num">{count}</span>
+      <span className="text-ui-11 text-tea-text-sec num">{count}</span>
     </span>
   </div>
 );
@@ -141,6 +141,15 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
 
   // ─── Render helpers ───────────────────────────────────────────────────────
 
+  const handleToggleCompare = useCallback((id: string) => {
+    setCompareIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else if (next.size < 3) next.add(id);
+      return next;
+    });
+  }, []);
+
 const renderEntries = (list: TeaCompassEntry[], opts?: {
     dimPassed?: boolean;
     dimTasted?: boolean;
@@ -164,15 +173,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
                 onEdit={onEditEntry}
                 tasteQueueActive={opts?.tasteQueueActive}
                 isCompareSelected={compareIds.has(entry.id)}
-                onToggleCompare={(id) => {
-                  setCompareIds((prev) => {
-                    const next = new Set(prev);
-                    if (next.has(id)) next.delete(id);
-                    else if (next.size < 3) next.add(id);
-                    return next;
-                  });
-                }
-                }
+                onToggleCompare={handleToggleCompare}
                 onSelect={onSelectEntry}
                 isSelected={selectedEntryId === entry.id}
               />
@@ -318,7 +319,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
                 }
                 count={setEntries.length}
                 right={
-                  <span className={`text-ui-10 num font-medium ${allTasted ? 'text-tea-gold/70' : 'text-tea-text-dim'}`}>
+                  <span className={`text-ui-11 num font-medium ${allTasted ? 'text-tea-gold/70' : 'text-tea-text-sec'}`}>
                     {tastedCount}/{setEntries.length} tasted
                   </span>
                 }
@@ -438,7 +439,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
         </p>
         <button
           onClick={onNewCapture}
-          className="px-8 py-3 bg-tea-gold text-tea-bg text-ui-10 font-semibold uppercase tracking-[0.25em] hover:bg-tea-gold/90 transition-colors rounded-sm"
+          className="px-8 py-3 bg-tea-gold text-tea-bg text-ui-11 font-semibold uppercase tracking-[0.25em] hover:bg-tea-gold/90 transition-colors rounded-sm"
         >
           Begin
         </button>
@@ -459,6 +460,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
             value={internalSearchQuery}
             onChange={(e) => setInternalSearchQuery(e.target.value)}
             placeholder="Search by name, region, vendor…"
+            aria-label="Search entries by name, region, or vendor"
             className="w-full bg-tea-surface/60 text-tea-text text-ui-13 rounded-lg pl-8 pr-8 py-2
                        outline-none placeholder:text-tea-text-dim focus:ring-1 focus:ring-tea-gold/40"
           />
@@ -466,7 +468,8 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
             <button
               type="button"
               onClick={() => setInternalSearchQuery('')}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-tea-text-dim hover:text-tea-text-sec transition-colors"
+              aria-label="Clear search"
+              className="tap-target absolute right-2.5 top-1/2 -translate-y-1/2 text-tea-text-sec hover:text-tea-text transition-colors"
             >
               <X size={13} />
             </button>
@@ -532,7 +535,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
                   Compare →
                 </button>
               )}
-              <span className="text-tea-text-dim text-ui-10">tap cards to select</span>
+              <span className="text-tea-text-sec text-ui-11">tap cards to select</span>
               <button
                 type="button"
                 onClick={() => setCompareIds(new Set())}

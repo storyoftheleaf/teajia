@@ -57,7 +57,7 @@ export const PageHeaderActions: React.FC<PageHeaderActionsProps> = ({
       {/* Item Count */}
       {showItemCount && itemCount !== undefined && (
         <div className="pr-2 opacity-60 hidden md:block">
-          <span className="text-xs uppercase tracking-[0.2em] text-tea-text">
+          <span className="text-xs uppercase tracking-display text-tea-text">
             {itemCount} Items
           </span>
         </div>
@@ -67,7 +67,7 @@ export const PageHeaderActions: React.FC<PageHeaderActionsProps> = ({
       {showReset && (activeType !== 'All' || !!activeFeeling) && (
         <button
           onClick={onReset}
-          className="text-xs uppercase tracking-[0.2em] text-tea-gold hover:text-tea-text transition-colors"
+          className="text-xs uppercase tracking-display text-tea-gold hover:text-tea-text transition-colors"
         >
           Reset
         </button>
@@ -80,7 +80,7 @@ export const PageHeaderActions: React.FC<PageHeaderActionsProps> = ({
           className="flex items-center gap-2 text-tea-text/70 hover:text-tea-text transition-colors group"
         >
           <Icons.Filter className="w-3.5 h-3.5 group-hover:text-tea-gold transition-colors" />
-          <span className="text-xs uppercase tracking-[0.2em] font-medium">Filter</span>
+          <span className="text-xs uppercase tracking-display font-medium">Filter</span>
           {(activeType !== 'All' || !!activeFeeling) && (
             <div className="w-1 h-1 rounded-full bg-tea-gold"></div>
           )}

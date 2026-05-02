@@ -314,7 +314,7 @@ export const Shop: React.FC<ShopProps> = ({
               <button
                 onClick={(e) => { e.stopPropagation(); handleAddStarterSet(set); }}
                 disabled={isAddingToCart[set.id]}
-                className="bg-tea-gold hover:bg-tea-gold-lt text-tea-bg text-xs uppercase tracking-[0.15em] font-medium py-2.5 px-6 rounded-lg transition-all active:scale-95 flex items-center justify-center gap-3 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+                className="bg-tea-gold hover:bg-tea-gold-lt text-tea-bg text-xs uppercase tracking-caps font-medium py-2.5 px-6 rounded-lg transition-all active:scale-95 flex items-center justify-center gap-3 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isAddingToCart[set.id] && <Loader2 className="w-4 h-4 animate-spin" />}
                 <span>{isAddingToCart[set.id] ? 'Adding...' : 'Add Set to Cart'}</span>
@@ -449,7 +449,7 @@ export const Shop: React.FC<ShopProps> = ({
             {onRetry && (
               <button
                 onClick={onRetry}
-                className="bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.15em] font-medium py-2.5 px-6 rounded-lg hover:bg-tea-gold-lt transition-all active:scale-95"
+                className="bg-tea-gold text-tea-bg text-xs uppercase tracking-caps font-medium py-2.5 px-6 rounded-lg hover:bg-tea-gold-lt transition-all active:scale-95"
               >
                 Try Again
               </button>
@@ -506,7 +506,7 @@ export const Shop: React.FC<ShopProps> = ({
           if (recentItems.length === 0) return null;
           return (
             <div className="px-3 md:px-4 lg:px-6 pb-8 pt-6">
-              <p className="text-ui-11 uppercase tracking-[0.15em] text-tea-text-dim mb-3 font-sans">Recently Viewed</p>
+              <p className="text-ui-11 uppercase tracking-caps text-tea-text-dim mb-3 font-sans">Recently Viewed</p>
               <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none snap-x snap-mandatory">
                 {recentItems.map(item => {
                   const isTea = item.category === 'tea';

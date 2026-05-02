@@ -182,7 +182,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ story, onClose }) => {
                      </div>
                      <span className="text-tea-text text-xs tracking-[0.3em] font-serif">TEAJIA</span>
                   </div>
-                  <p className="text-ui-10 text-tea-text/40 font-mono tracking-[0.15em]">JOURNAL OF TEA</p>
+                  <p className="text-ui-10 text-tea-text/40 font-mono tracking-caps">JOURNAL OF TEA</p>
               </div>
           </div>
       </div>
@@ -236,7 +236,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ story, onClose }) => {
            </div>
 
            {/* Share Info Text */}
-           <span className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-light/50">Tap below to share this story</span>
+           <span className="text-ui-10 uppercase tracking-display text-tea-text-light/50">Tap below to share this story</span>
         </div>
 
         {/* Actions */}
@@ -247,7 +247,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ story, onClose }) => {
               <div className="absolute inset-0 bg-tea-bg/80 backdrop-blur-sm z-30 flex items-center justify-center">
                   <div className="flex flex-col items-center">
                       <div className="w-6 h-6 border-2 border-tea-text/20 border-t-tea-text rounded-full animate-spin mb-2"></div>
-                      <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-text/60">Preparing Leaf...</span>
+                      <span className="text-ui-10 uppercase tracking-caps text-tea-text/60">Preparing Leaf...</span>
                   </div>
               </div>
            )}
@@ -258,7 +258,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ story, onClose }) => {
              className="w-full py-3.5 bg-tea-bg text-tea-text flex items-center justify-center gap-3 hover:bg-tea-elevated transition-colors shadow-lg group"
            >
              <Icons.Share className="w-4 h-4 group-hover:scale-110 transition-transform" />
-             <span className="text-xs uppercase tracking-[0.15em]">Share</span>
+             <span className="text-xs uppercase tracking-caps">Share</span>
            </button>
 
            {/* 2. Story / Visual Share */}
@@ -267,7 +267,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ story, onClose }) => {
              className="w-full py-3 bg-tea-text/5 border border-tea-text/10 text-tea-text flex items-center justify-center gap-2 hover:bg-tea-text/10 transition-colors"
            >
              <Icons.Instagram className="w-4 h-4 text-tea-text/70" />
-             <span className="text-ui-10 uppercase tracking-[0.15em] font-medium">Share to Story</span>
+             <span className="text-ui-10 uppercase tracking-caps font-medium">Share to Story</span>
            </button>
 
            {/* 3. Desktop / Direct Links Grid - with platform colors */}

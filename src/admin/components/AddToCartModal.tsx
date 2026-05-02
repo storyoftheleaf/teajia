@@ -45,7 +45,7 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
 
         <div className="space-y-6">
           <div>
-            <label className="block text-ui-10 font-bold uppercase tracking-[0.2em] text-tea-text-sec mb-2">Quantity ({product.type === 'Teaware' ? 'Units' : 'Grams'})</label>
+            <label className="block text-ui-10 font-bold uppercase tracking-display text-tea-text-sec mb-2">Quantity ({product.type === 'Teaware' ? 'Units' : 'Grams'})</label>
             <input
               type="number" autoFocus value={quantity} onChange={(e) => setQuantity(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter' && Number(quantity) > 0) onConfirm(Number(quantity)); }}
@@ -73,10 +73,10 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
             <span className="text-2xl font-serif text-tea-gold">{formatCurrency(totalUSD, currency, rates)}</span>
           </div>
           <div className="pt-6 flex gap-4">
-            <button onClick={onClose} className="flex-1 py-3 text-xs font-bold uppercase tracking-[0.2em] text-tea-text-sec hover:text-tea-text transition-colors border border-transparent hover:border-tea-border rounded-lg focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none">Cancel</button>
+            <button onClick={onClose} className="flex-1 py-3 text-xs font-bold uppercase tracking-display text-tea-text-sec hover:text-tea-text transition-colors border border-transparent hover:border-tea-border rounded-lg focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none">Cancel</button>
             <button 
               onClick={() => { if (Number(quantity) > 0) onConfirm(Number(quantity)); }}
-              className="flex-1 py-3 bg-tea-gold text-tea-bg font-bold text-xs uppercase tracking-[0.2em] rounded-lg hover:bg-tea-gold/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-tea-gold/10 focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none"
+              className="flex-1 py-3 bg-tea-gold text-tea-bg font-bold text-xs uppercase tracking-display rounded-lg hover:bg-tea-gold/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-tea-gold/10 focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none"
               disabled={!quantity || Number(quantity) <= 0}
             >
               Add Item

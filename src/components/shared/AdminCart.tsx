@@ -684,7 +684,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
                   setCart(undoState.prevCart);
                   setUndoState(null);
                 }}
-                className="text-tea-gold text-xs uppercase tracking-[0.15em] font-medium ml-4 hover:text-tea-gold/80 transition-colors"
+                className="text-tea-gold text-xs uppercase tracking-caps font-medium ml-4 hover:text-tea-gold/80 transition-colors"
               >
                 Undo
               </button>
@@ -701,7 +701,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
             )}
             <div className="text-center">
               <p className="font-serif italic text-base mb-1">{isPurchase ? 'Purchase Order Empty' : 'Registry Empty'}</p>
-              <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec/70 mb-4">{isPurchase ? 'Add items to order from vendor' : 'Select items from catalog'}</p>
+              <p className="text-ui-10 uppercase tracking-display text-tea-text-sec/70 mb-4">{isPurchase ? 'Add items to order from vendor' : 'Select items from catalog'}</p>
               <button
                 onClick={() => { onClose(); navigate('/admin/inventory'); }}
                 className="text-xs text-tea-gold hover:text-tea-gold/80 transition-colors flex items-center gap-1.5 mx-auto px-3 py-1.5 rounded-lg hover:bg-tea-surface border border-tea-border"
@@ -739,7 +739,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
                         onChange={(e) => updateQuantity(idx, Number(e.target.value))}
                         className="w-8 bg-transparent text-center text-xs outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg num text-tea-text"
                       />
-                      <span className="text-ui-9 text-tea-text-sec border-l border-tea-border pl-1.5 uppercase tracking-[0.2em]">
+                      <span className="text-ui-9 text-tea-text-sec border-l border-tea-border pl-1.5 uppercase tracking-display">
                         {item.product.type === 'Teaware' ? 'u' : 'g'}
                       </span>
                     </div>
@@ -817,7 +817,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
         )}
         <div>
           <div className="flex justify-between items-end text-tea-text mb-4 pt-2 border-t border-tea-border">
-            <span className="text-xs uppercase tracking-[0.2em] text-tea-text-sec">Total</span>
+            <span className="text-xs uppercase tracking-display text-tea-text-sec">Total</span>
             <span className="text-xl font-serif text-tea-gold">
               {formatCurrency(totalUSD, displayCurrency, rates)}
             </span>
@@ -825,7 +825,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
           <button
             onClick={handleCompleteSale}
             disabled={isProcessing || isEmpty}
-            className={`w-full py-4 text-xs font-bold uppercase tracking-[0.2em] rounded-lg flex items-center justify-center gap-2 transition-all ${
+            className={`w-full py-4 text-xs font-bold uppercase tracking-display rounded-lg flex items-center justify-center gap-2 transition-all ${
               isEmpty
                 ? 'bg-tea-bg text-tea-text-sec cursor-not-allowed border border-tea-border'
                 : 'bg-tea-gold text-tea-bg hover:bg-tea-gold/90 shadow-lg shadow-tea-gold/10'

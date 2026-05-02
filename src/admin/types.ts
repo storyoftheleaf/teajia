@@ -211,6 +211,7 @@ export interface DbArticle {
   title: string;
   subtitle?: string;
   author_id?: string;
+  author_name?: string;
   slug: string;
   status: 'draft' | 'published' | 'archived';
   category?: string;
@@ -223,4 +224,8 @@ export interface DbArticle {
   created_at: string;
   updated_at: string;
   blocks_preview?: string; // list view only
+  // Contributor weave (migration 059):
+  subject_ids?: string[];
+  pull_quote?: string;
+  pull_quote_subject?: string;
 }

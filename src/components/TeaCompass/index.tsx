@@ -460,7 +460,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
             <button
               type="button"
               onClick={() => handleNewCapture()}
-              className="pill pill-active flex items-center gap-1 text-ui-10"
+              className="pill pill-active flex items-center gap-1 text-ui-11"
               style={{ fontFamily: 'var(--font-display)' }}
             >
               <Plus size={11} strokeWidth={2} />
@@ -590,7 +590,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                     </button>
                     <button type="button" onClick={() => handleCaptureOption('samples')}
                       className={`flex-1 text-center py-1.5 text-ui-12 font-medium rounded-[5px] transition-colors relative z-[1] ${captureOption === 'samples' ? 'text-tea-text' : 'text-tea-text-dim hover:text-tea-text-sec'}`}>
-                      Samples{sampleCartCount > 0 && <span className="ml-1 text-ui-10 text-tea-gold tabular-nums">({sampleCartCount})</span>}
+                      Samples{sampleCartCount > 0 && <span className="ml-1 text-ui-11 text-tea-gold tabular-nums">({sampleCartCount})</span>}
                     </button>
                   </div>
 
@@ -878,7 +878,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                     <button
                       type="button"
                       onClick={() => captureCardActionsRef.current?.openTasting()}
-                      className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-10 font-medium transition-colors ${
+                      className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-11 font-medium transition-colors ${
                         hasTasting ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'
                       }`}
                     >
@@ -888,7 +888,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                     <button
                       type="button"
                       onClick={() => activeEntryId && updateEntry(activeEntryId, { status: isWantEntry ? 'noted' : 'want' })}
-                      className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-10 font-medium transition-colors ${
+                      className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-11 font-medium transition-colors ${
                         isWantEntry ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'
                       }`}
                     >
@@ -898,7 +898,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                     <button
                       type="button"
                       onClick={() => captureCardActionsRef.current?.toggleBuy()}
-                      className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-10 font-medium text-tea-text-dim hover:text-tea-text-sec transition-colors"
+                      className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-11 font-medium text-tea-text-dim hover:text-tea-text-sec transition-colors"
                     >
                       <ShoppingCart size={14} />
                       Buy
@@ -920,7 +920,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                           });
                         }
                       }}
-                      className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-10 font-medium transition-colors ${
+                      className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-11 font-medium transition-colors ${
                         captureEntryInCart ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'
                       }`}
                     >
@@ -938,7 +938,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                       type="button"
                       onClick={handleVoicePress}
                       disabled={voiceState === 'transcribing'}
-                      className={`relative flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-10 font-medium transition-colors ${
+                      className={`relative flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-11 font-medium transition-colors ${
                         voiceState === 'recording'
                           ? 'text-tea-gold'
                           : voiceState === 'transcribing'
@@ -975,7 +975,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                 <button
                   type="button"
                   onClick={() => setBatchMode((v) => !v)}
-                  className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-10 font-medium transition-colors ${
+                  className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-11 font-medium transition-colors ${
                     batchMode ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'
                   }`}
                   aria-label="Batch entry"
@@ -989,7 +989,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                   <button
                     type="button"
                     onClick={() => setShareModalOpen(true)}
-                    className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-10 font-medium text-tea-text-dim hover:text-tea-text-sec transition-colors"
+                    className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-11 font-medium text-tea-text-dim hover:text-tea-text-sec transition-colors"
                     aria-label="Share"
                   >
                     <Share2 size={14} strokeWidth={1.5} />
@@ -1498,7 +1498,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                       <button
                         type="button"
                         onClick={() => captureCardActionsRef.current?.openTasting()}
-                        className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-10 font-medium transition-colors ${
+                        className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-11 font-medium transition-colors ${
                           hasTasting ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'
                         }`}
                       >
@@ -1508,7 +1508,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                       <button
                         type="button"
                         onClick={() => activeEntryId && updateEntry(activeEntryId, { status: isWantEntry ? 'noted' : 'want' })}
-                        className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-10 font-medium transition-colors ${
+                        className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-11 font-medium transition-colors ${
                           isWantEntry ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'
                         }`}
                       >
@@ -1518,7 +1518,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                       <button
                         type="button"
                         onClick={() => captureCardActionsRef.current?.toggleBuy()}
-                        className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-10 font-medium text-tea-text-dim hover:text-tea-text-sec transition-colors"
+                        className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-11 font-medium text-tea-text-dim hover:text-tea-text-sec transition-colors"
                       >
                         <ShoppingCart size={14} />
                         Buy
@@ -1540,7 +1540,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                             });
                           }
                         }}
-                        className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-10 font-medium transition-colors ${
+                        className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-11 font-medium transition-colors ${
                           captureEntryInCart ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'
                         }`}
                       >
@@ -1557,7 +1557,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                       type="button"
                       onClick={handleVoicePress}
                       disabled={voiceState === 'transcribing'}
-                      className={`relative flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-10 font-medium transition-colors ${
+                      className={`relative flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-11 font-medium transition-colors ${
                         voiceState === 'recording' ? 'text-tea-gold'
                         : voiceState === 'transcribing' ? 'text-tea-text-dim cursor-wait'
                         : 'text-tea-text-dim hover:text-tea-text-sec'
@@ -1588,7 +1588,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                   <button
                     type="button"
                     onClick={() => setBatchMode((v) => !v)}
-                    className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-10 font-medium transition-colors ${
+                    className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-11 font-medium transition-colors ${
                       batchMode ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'
                     }`}
                     aria-label="Batch entry"
@@ -1602,7 +1602,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                     <button
                       type="button"
                       onClick={() => setShareModalOpen(true)}
-                      className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-10 font-medium text-tea-text-dim hover:text-tea-text-sec transition-colors"
+                      className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-11 font-medium text-tea-text-dim hover:text-tea-text-sec transition-colors"
                       aria-label="Share"
                     >
                       <Share2 size={14} strokeWidth={1.5} />

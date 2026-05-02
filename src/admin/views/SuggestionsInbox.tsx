@@ -124,7 +124,7 @@ const FieldRow: React.FC<FieldRowProps> = ({
     return (
       <div className="py-4 border-b border-tea-border last:border-b-0">
         <div className="flex items-baseline gap-3 mb-3">
-          <span className="text-tea-text-sec text-ui-11 uppercase tracking-[0.1em]">
+          <span className="text-tea-text-sec text-ui-11 uppercase tracking-widest">
             {fieldLabel(fieldName)}
           </span>
           <span className="text-tea-text-sec italic text-ui-12">
@@ -167,7 +167,7 @@ const FieldRow: React.FC<FieldRowProps> = ({
   return (
     <div className="py-4 border-b border-tea-border last:border-b-0">
       {/* Field label */}
-      <div className="text-tea-text-sec text-ui-11 uppercase tracking-[0.1em] mb-3">
+      <div className="text-tea-text-sec text-ui-11 uppercase tracking-widest mb-3">
         {fieldLabel(fieldName)}
       </div>
 
@@ -412,7 +412,7 @@ const BundleRow: React.FC<BundleRowProps> = ({ suggestion, onRefetch }) => {
             <button
               type="button"
               onClick={() => setExpanded(true)}
-              className="text-tea-text-sec hover:text-tea-text transition-colors text-ui-13 shrink-0 font-display tracking-[0.04em]"
+              className="text-tea-text-sec hover:text-tea-text transition-colors text-ui-13 shrink-0 font-display tracking-wider"
             >
               Review
             </button>
@@ -465,7 +465,7 @@ const BundleRow: React.FC<BundleRowProps> = ({ suggestion, onRefetch }) => {
                 type="button"
                 onClick={handleSubmit}
                 disabled={submitting || localDecidedCount === 0}
-                className={`font-display tracking-[0.04em] transition-colors disabled:text-tea-text-dim ${
+                className={`font-display tracking-wider transition-colors disabled:text-tea-text-dim ${
                   localDecidedCount > 0 && !submitting
                     ? 'text-tea-text-sec hover:text-tea-gold'
                     : 'text-tea-text-dim'
@@ -528,7 +528,7 @@ export const SuggestionsInbox: React.FC<SuggestionsInboxProps> = ({ embedded = f
   if (!hasCatalog) {
     return (
       <div className={outerClass}>
-        <p className="text-tea-text-sec italic text-ui-15 leading-[1.65]">
+        <p className="text-tea-text-sec italic text-ui-15 leading-loose">
           This page requires the Catalog bundle. Ask your owner.
         </p>
       </div>
@@ -600,7 +600,7 @@ export const SuggestionsInbox: React.FC<SuggestionsInboxProps> = ({ embedded = f
 
       {/* Bundle list */}
       {suggestions !== null && suggestions.length === 0 && !loading && (
-        <p className="text-tea-text-sec italic text-ui-15 leading-[1.65]">
+        <p className="text-tea-text-sec italic text-ui-15 leading-loose">
           {filter === 'resolved'
             ? 'No resolved suggestions.'
             : filter === 'withdrawn'

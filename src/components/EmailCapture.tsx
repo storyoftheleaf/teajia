@@ -43,7 +43,7 @@ export const EmailCapture: React.FC<EmailCaptureProps> = ({
 
   return (
     <div className={`${className}`}>
-      <p className="text-xs uppercase tracking-[0.2em] text-tea-gold-dark font-sans mb-1.5">
+      <p className="text-xs uppercase tracking-display text-tea-gold-dark font-sans mb-1.5">
         Newsletter
       </p>
       <h2 className="font-serif text-xl md:text-2xl font-normal text-tea-text mb-2 leading-snug" style={{ fontFamily: 'var(--font-display)' }}>

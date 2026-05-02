@@ -83,7 +83,7 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 text-tea-text-sec hover:text-tea-text transition-colors shrink-0"
+            className="tap-target p-1.5 text-tea-text-sec hover:text-tea-text transition-colors shrink-0"
             aria-label="Close detail panel"
           >
             <X size={16} />

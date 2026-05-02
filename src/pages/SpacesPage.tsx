@@ -71,7 +71,7 @@ const StatusBadge: React.FC<{ status: SpaceStatus }> = ({ status }) => {
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 text-ui-10 uppercase tracking-[0.15em] ${colorClass}`}
+      className={`inline-flex items-center gap-1.5 text-ui-10 uppercase tracking-caps ${colorClass}`}
       style={{ fontFamily: 'var(--font-sans)' }}
     >
       <span
@@ -141,7 +141,7 @@ export const SpacesPage: React.FC = () => {
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.05, ease: [0.22, 1, 0.36, 1] }}
-          className="text-[2.2rem] md:text-[3rem] font-light text-tea-text leading-[1.1] tracking-[-0.02em] mb-5"
+          className="text-[2.2rem] md:text-[3rem] font-light text-tea-text leading-[1.1] tracking-tighter mb-5"
           style={{ fontFamily: 'var(--font-display)' }}
         >
           Our Spaces
@@ -174,7 +174,7 @@ export const SpacesPage: React.FC = () => {
                 <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
                   <div className="flex flex-col gap-1.5">
                     <h2
-                      className="text-[1.25rem] md:text-[1.4rem] font-light text-tea-text leading-snug tracking-[-0.01em]"
+                      className="text-[1.25rem] md:text-[1.4rem] font-light text-tea-text leading-snug tracking-tight"
                       style={{ fontFamily: 'var(--font-display)' }}
                     >
                       {space.name}
@@ -214,7 +214,7 @@ export const SpacesPage: React.FC = () => {
                   <div className="flex items-center gap-2 mb-5">
                     <Icons.Lock className="w-3 h-3 text-tea-text-dim shrink-0" />
                     <span
-                      className="text-ui-11 text-tea-text-dim tracking-[0.04em]"
+                      className="text-ui-11 text-tea-text-dim tracking-wider"
                       style={{ fontFamily: 'var(--font-sans)' }}
                     >
                       Private — by invitation or inquiry
@@ -245,7 +245,7 @@ export const SpacesPage: React.FC = () => {
       {/* Operator prompt */}
       <div className="py-12 md:py-16 max-w-[560px]">
         <p
-          className="text-ui-13 text-tea-text-dim leading-[1.7] mb-3"
+          className="text-ui-13 text-tea-text-dim leading-reading mb-3"
           style={{ fontFamily: 'var(--font-body)' }}
         >
           Operate a tea space?

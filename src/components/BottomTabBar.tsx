@@ -61,10 +61,10 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
        { id: 'people',   label: 'people',   path: '/admin/people' }],
     ];
     return [
-      [{ id: 'compass', label: 'compass', path: '/admin/compass' },
-       { id: 'samples', label: 'samples', path: '/admin/samples' }],
-      [{ id: 'capture', label: 'capture', path: '/admin/capture' },
-       { id: 'events',  label: 'events',  path: '/admin/events' }],
+      [{ id: 'compass',   label: 'compass',   path: '/admin/compass' },
+       { id: 'inventory', label: 'inventory', path: '/admin/inventory' }],
+      [{ id: 'capture',   label: 'capture',   path: '/admin/capture' },
+       { id: 'events',    label: 'events',    path: '/admin/events' }],
     ];
   })();
 
@@ -146,6 +146,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
         onClick={() => {
           if ('vibrate' in navigator) { navigator.vibrate?.(10); }
           onSearchClose?.();
+          onAccountClose?.();
           if (section.id === activeSection) {
             window.scrollTo({ top: 0, behavior: 'smooth' });
             return;

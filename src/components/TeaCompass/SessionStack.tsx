@@ -59,7 +59,7 @@ export const SessionStack: React.FC<SessionStackProps> = ({
               >
                 {/* Tea / teaware icon */}
                 {isTeaware ? (
-                  <span className="text-ui-9 text-tea-text-dim font-medium shrink-0 border border-tea-border rounded px-1 py-px">
+                  <span className="text-ui-10 text-tea-text-sec font-medium shrink-0 border border-tea-border rounded px-1 py-px">
                     TWR
                   </span>
                 ) : (
@@ -78,7 +78,7 @@ export const SessionStack: React.FC<SessionStackProps> = ({
                 {/* Type badge */}
                 {entry.type && (
                   <span
-                    className="text-ui-9 font-medium px-1.5 py-0.5 rounded-full uppercase tracking-wider shrink-0"
+                    className="text-ui-10 font-medium px-1.5 py-0.5 rounded-full uppercase tracking-wider shrink-0"
                     style={{
                       backgroundColor: `color-mix(in srgb, ${typeColor} 12%, transparent)`,
                       color: typeColor || undefined,

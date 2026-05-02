@@ -64,7 +64,7 @@ const Field = ({
   className?: string;
 }) => (
   <div className={className}>
-    <label className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec block mb-1.5">{label}</label>
+    <label className="text-ui-10 uppercase tracking-display text-tea-text-sec block mb-1.5">{label}</label>
     {children}
   </div>
 );
@@ -201,7 +201,7 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
 
             {/* Identity — Title always visible */}
             <section className="space-y-5 pb-8">
-              <h3 className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec font-medium">Event Details</h3>
+              <h3 className="text-ui-10 uppercase tracking-display text-tea-text-sec font-medium">Event Details</h3>
               <Field label="Title *">
                 <input
                   type="text"
@@ -217,7 +217,7 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
 
             {/* Scheduling — Date + Seats always visible */}
             <section className="space-y-5 py-8">
-              <h3 className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec font-medium">Scheduling</h3>
+              <h3 className="text-ui-10 uppercase tracking-display text-tea-text-sec font-medium">Scheduling</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Field label="Start Date & Time *">
                   <input
@@ -243,7 +243,7 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
 
             {/* Format — Gathering Type always visible */}
             <section className="space-y-5 py-8">
-              <h3 className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec font-medium">Format</h3>
+              <h3 className="text-ui-10 uppercase tracking-display text-tea-text-sec font-medium">Format</h3>
               <Field label="Gathering Type">
                 <p className="text-ui-11 text-tea-text-dim mb-2">Intimacy &amp; access level</p>
                 <div className="flex gap-4 pt-1">
@@ -267,7 +267,7 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
 
             {/* Location — always visible */}
             <section className="space-y-4 pt-8">
-              <h3 className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec font-medium">Location</h3>
+              <h3 className="text-ui-10 uppercase tracking-display text-tea-text-sec font-medium">Location</h3>
 
               {venues.length === 0 ? (
                 <div className="flex items-center justify-between py-1">
@@ -310,7 +310,7 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
                   {selectedVenue && selectedVenue.spaces.length > 0 && (
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec">Spaces</p>
+                        <p className="text-ui-10 uppercase tracking-display text-tea-text-sec">Spaces</p>
                         {selectedSpaceIds.length === 0 && (
                           <p className="text-ui-11 text-amber-400">No spaces selected. Capacity defaults to 12.</p>
                         )}
@@ -412,7 +412,7 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
 
                 {/* Subtitle + Description */}
                 <section className="space-y-5 pb-8">
-                  <h3 className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec font-medium">Event Details</h3>
+                  <h3 className="text-ui-10 uppercase tracking-display text-tea-text-sec font-medium">Event Details</h3>
                   <Field label="Subtitle">
                     <input
                       type="text"
@@ -435,7 +435,7 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
 
                 {/* Duration, Repeat dates, Status */}
                 <section className="space-y-5 py-8">
-                  <h3 className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec font-medium">Scheduling</h3>
+                  <h3 className="text-ui-10 uppercase tracking-display text-tea-text-sec font-medium">Scheduling</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <Field label="Duration">
                       <div className="relative">
@@ -472,7 +472,7 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
                   {/* Repeat dates */}
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec">Repeats</span>
+                      <span className="text-ui-10 uppercase tracking-display text-tea-text-sec">Repeats</span>
                       <div className="flex gap-3">
                         <button
                           type="button"
@@ -532,7 +532,7 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
 
                 {/* Format select */}
                 <section className="space-y-5 py-8">
-                  <h3 className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec font-medium">Format</h3>
+                  <h3 className="text-ui-10 uppercase tracking-display text-tea-text-sec font-medium">Format</h3>
                   <Field label="Format">
                     <select
                       value={format}
@@ -568,7 +568,7 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
 
           {/* ── Right column: flyer ── */}
           <div className="space-y-4">
-            <h3 className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec font-medium">Flyer</h3>
+            <h3 className="text-ui-10 uppercase tracking-display text-tea-text-sec font-medium">Flyer</h3>
             {flyerImageUrl ? (
               <div className="relative w-full rounded-md overflow-hidden border border-tea-border">
                 <img src={flyerImageUrl} alt="Flyer" className="w-full object-cover" loading="lazy" />
@@ -952,7 +952,7 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
       className="w-full flex items-center justify-between py-3 text-sm text-tea-text-sec hover:text-tea-text transition-colors"
     >
       <span className="flex items-center gap-2.5">
-        <span className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec font-medium">{label}</span>
+        <span className="text-ui-10 uppercase tracking-display text-tea-text-sec font-medium">{label}</span>
         {count !== undefined && count > 0 && (
           <span className="text-ui-10 font-mono text-tea-text-dim">{count}</span>
         )}
@@ -1055,7 +1055,7 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
                 {/* Repeat dates */}
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec">Repeats</span>
+                    <span className="text-ui-10 uppercase tracking-display text-tea-text-sec">Repeats</span>
                     <div className="flex gap-3">
                       <button
                         type="button"
@@ -1247,11 +1247,11 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
             {/* ── Venue picker ── */}
             <div className="pt-1 space-y-3">
               <div className="flex items-center justify-between">
-                <label className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec">Venue</label>
+                <label className="text-ui-10 uppercase tracking-display text-tea-text-sec">Venue</label>
                 <button
                   type="button"
                   onClick={() => setIsVenueManagerOpen(true)}
-                  className="flex items-center gap-1 text-ui-10 text-tea-gold hover:text-tea-gold-lt transition-colors uppercase tracking-[0.15em]"
+                  className="flex items-center gap-1 text-ui-10 text-tea-gold hover:text-tea-gold-lt transition-colors uppercase tracking-caps"
                 >
                   <MapPin size={10} /> Manage venues
                 </button>
@@ -1288,7 +1288,7 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
                   {editVenueObj && editVenueObj.spaces.length > 0 && (
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec">Spaces</p>
+                        <p className="text-ui-10 uppercase tracking-display text-tea-text-sec">Spaces</p>
                         {editSpaceIds.length === 0 && (
                           <p className="text-ui-11 text-amber-400">No spaces selected</p>
                         )}
@@ -1364,12 +1364,12 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
             </div>
 
             <div className="flex items-center justify-between pt-1">
-              <label className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec">Manual Location</label>
+              <label className="text-ui-10 uppercase tracking-display text-tea-text-sec">Manual Location</label>
               {form.locationName?.trim() && form.addressText?.trim() && !selectedLocationId && (
                 <button
                   type="button"
                   onClick={() => setShowSaveLocation(true)}
-                  className="flex items-center gap-1 text-ui-10 text-tea-gold hover:text-tea-gold-lt transition-colors uppercase tracking-[0.15em]"
+                  className="flex items-center gap-1 text-ui-10 text-tea-gold hover:text-tea-gold-lt transition-colors uppercase tracking-caps"
                 >
                   <Bookmark size={10} /> Save Location
                 </button>

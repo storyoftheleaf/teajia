@@ -390,7 +390,7 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({ open, onClose }) => 
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 text-tea-text-sec hover:text-tea-text transition-colors"
+              className="tap-target p-1.5 text-tea-text-sec hover:text-tea-text transition-colors"
               aria-label="Close order"
             >
               <X size={22} />

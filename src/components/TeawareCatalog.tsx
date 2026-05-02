@@ -128,7 +128,7 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
         {/* Category filter chips — matching tea's type chips */}
         <div className="mb-4 space-y-3">
           <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar pb-1">
-            <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim shrink-0 mr-1">Category</span>
+            <span className="text-ui-10 uppercase tracking-caps text-tea-text-dim shrink-0 mr-1">Category</span>
             <button
               onClick={() => { if ('vibrate' in navigator) navigator.vibrate?.(10); setActiveCategory('All'); }}
               className={`shrink-0 pill ${activeCategory === 'All' ? 'pill-active' : ''}`}
@@ -148,7 +148,7 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
 
           {/* Item count + clear */}
           <div className="flex items-center justify-between">
-            <p className="text-xs uppercase tracking-[0.15em] text-tea-text/50">
+            <p className="text-xs uppercase tracking-caps text-tea-text/50">
               {filteredItems.length} {filteredItems.length === 1 ? 'piece' : 'pieces'}
             </p>
             {activeCategory !== 'All' && (

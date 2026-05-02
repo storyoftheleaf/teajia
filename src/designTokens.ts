@@ -151,19 +151,19 @@ export const TYPE_SCALE = {
 
 /** Tailwind class presets for common typography patterns */
 export const TYPOGRAPHY_CLASSES = {
-  h1:        'font-display text-[clamp(32px,4.8vw,48px)] font-light leading-[1.12] tracking-[0.01em]',
-  h2:        'font-display text-[clamp(24px,3.5vw,32px)] font-medium leading-[1.2] tracking-[0.01em]',
-  h3:        'font-display text-[19px] font-normal leading-[1.3] tracking-[0.01em]',
-  subtitle:  'font-body text-ui-17 font-normal italic leading-[1.4]',
-  body:      'font-body text-ui-17 font-normal leading-[1.7]',
-  bodyLight: 'font-body text-ui-15 font-light leading-[1.65]',
-  label:     'font-sans text-ui-11 font-normal uppercase tracking-[1.2px] leading-[1.4]',
-  nav:       'font-sans text-ui-12 font-normal uppercase tracking-[1px] leading-[1.4]',
+  h1:        'font-display text-[clamp(32px,4.8vw,48px)] font-light leading-tight tracking-wide',
+  h2:        'font-display text-[clamp(24px,3.5vw,32px)] font-medium leading-snug tracking-wide',
+  h3:        'font-display text-[19px] font-normal leading-[1.3] tracking-wide',
+  subtitle:  'font-body text-ui-17 font-normal italic leading-normal',
+  body:      'font-body text-ui-17 font-normal leading-reading',
+  bodyLight: 'font-body text-ui-15 font-light leading-loose',
+  label:     'font-sans text-ui-11 font-normal uppercase tracking-[1.2px] leading-normal',
+  nav:       'font-sans text-ui-12 font-normal uppercase tracking-[1px] leading-normal',
   link:      'font-sans text-ui-14 font-normal tracking-[0.2px]',
   mono:      'font-mono text-ui-11 font-normal',
-  navSidebar:      'font-display text-ui-15 font-medium tracking-[0.04em] leading-[1.3]',
-  navSidebarChild: 'font-display text-ui-13 font-normal tracking-[0.04em] leading-[1.3]',
-  accountMeta:     'font-sans text-ui-12 font-normal tracking-[0.04em] leading-[1.3]',
+  navSidebar:      'font-display text-ui-15 font-medium tracking-wider leading-[1.3]',
+  navSidebarChild: 'font-display text-ui-13 font-normal tracking-wider leading-[1.3]',
+  accountMeta:     'font-sans text-ui-12 font-normal tracking-wider leading-[1.3]',
 } as const;
 
 export const FONT_SIZES = {

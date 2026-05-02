@@ -106,7 +106,7 @@ export const IntentBar: React.FC<IntentBarProps> = ({ entry, onApply }) => {
   return (
     <div className="flex items-center gap-2 px-1 flex-wrap">
       <Sparkles size={11} className="text-tea-gold/60 shrink-0" />
-      <span className="text-ui-10 text-tea-text-dim shrink-0">Detected:</span>
+      <span className="text-ui-11 text-tea-text-sec shrink-0">Detected:</span>
       {actionable.map((intent) => {
         const key = `${intent.type}-${intent.value}`;
         return (
@@ -114,7 +114,7 @@ export const IntentBar: React.FC<IntentBarProps> = ({ entry, onApply }) => {
             <button
               type="button"
               onClick={() => handleApply(intent)}
-              className="text-ui-10 text-tea-gold/80 hover:text-tea-gold underline underline-offset-2 decoration-dashed transition-colors"
+              className="text-ui-11 text-tea-gold/80 hover:text-tea-gold underline underline-offset-2 decoration-dashed transition-colors"
             >
               {intent.label}
             </button>

@@ -221,7 +221,7 @@ const GuestInviteClaimPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setMethod('whatsapp')}
-                className={`flex-1 py-2.5 text-xs uppercase tracking-[0.15em] rounded-sm transition-colors ${
+                className={`flex-1 py-2.5 text-xs uppercase tracking-caps rounded-sm transition-colors ${
                   method === 'whatsapp'
                     ? 'bg-tea-gold text-tea-bg'
                     : 'bg-tea-surface text-tea-text-sec border border-tea-border hover:border-tea-gold/30'
@@ -232,7 +232,7 @@ const GuestInviteClaimPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setMethod('email')}
-                className={`flex-1 py-2.5 text-xs uppercase tracking-[0.15em] rounded-sm transition-colors ${
+                className={`flex-1 py-2.5 text-xs uppercase tracking-caps rounded-sm transition-colors ${
                   method === 'email'
                     ? 'bg-tea-gold text-tea-bg'
                     : 'bg-tea-surface text-tea-text-sec border border-tea-border hover:border-tea-gold/30'

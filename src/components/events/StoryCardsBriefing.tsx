@@ -132,7 +132,7 @@ const StoryCardsBriefing: React.FC<StoryCardsBriefingProps> = ({
             {card.isOutro && (
               <button
                 onClick={(e) => { e.stopPropagation(); onComplete(); }}
-                className="mt-10 flex items-center gap-2 px-6 py-3 border border-tea-gold text-tea-gold text-xs uppercase tracking-[0.2em] hover:bg-tea-gold hover:text-tea-bg transition-all duration-300"
+                className="mt-10 flex items-center gap-2 px-6 py-3 border border-tea-gold text-tea-gold text-xs uppercase tracking-display hover:bg-tea-gold hover:text-tea-bg transition-all duration-300"
               >
                 View Your Ticket
                 <ArrowRight className="w-3.5 h-3.5" />

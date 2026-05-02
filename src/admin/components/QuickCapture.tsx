@@ -426,7 +426,7 @@ export const QuickCapture: React.FC<QuickCaptureProps> = ({
         <div className="flex items-center gap-1 px-4 md:px-6 py-2 border-b border-tea-border bg-tea-bg/30">
           <button
             onClick={() => setActiveQueue('review')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-ui-10 uppercase tracking-[0.15em] rounded-md whitespace-nowrap transition-colors ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-ui-10 uppercase tracking-caps rounded-md whitespace-nowrap transition-colors ${
               activeQueue === 'review'
                 ? 'bg-tea-gold/15 text-tea-gold'
                 : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'
@@ -442,7 +442,7 @@ export const QuickCapture: React.FC<QuickCaptureProps> = ({
           </button>
           <button
             onClick={() => setActiveQueue('approve')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-ui-10 uppercase tracking-[0.15em] rounded-md whitespace-nowrap transition-colors ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-ui-10 uppercase tracking-caps rounded-md whitespace-nowrap transition-colors ${
               activeQueue === 'approve'
                 ? 'bg-tea-gold/15 text-tea-gold'
                 : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'

@@ -75,11 +75,11 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
         {/* Availability badge */}
         <div className="absolute top-3 right-3">
           {isFull ? (
-            <span className="px-2.5 py-1 text-ui-10 uppercase tracking-[0.2em] bg-tea-bg/80 text-tea-text-dim backdrop-blur-sm rounded-full border border-tea-border">
+            <span className="px-2.5 py-1 text-ui-10 uppercase tracking-display bg-tea-bg/80 text-tea-text-dim backdrop-blur-sm rounded-full border border-tea-border">
               Full
             </span>
           ) : (
-            <span className="px-2.5 py-1 text-ui-10 uppercase tracking-[0.2em] bg-tea-bg/80 text-tea-gold backdrop-blur-sm rounded-full border border-tea-gold/20">
+            <span className="px-2.5 py-1 text-ui-10 uppercase tracking-display bg-tea-bg/80 text-tea-gold backdrop-blur-sm rounded-full border border-tea-gold/20">
               {seats} {seats === 1 ? 'seat' : 'seats'} open
             </span>
           )}

@@ -167,7 +167,7 @@ export const RecommendationModal: React.FC<RecommendationModalProps> = ({
           {/* Message panel */}
           <div className="md:w-68 border-t md:border-t-0 md:border-l border-tea-border flex flex-col p-4 gap-3 flex-shrink-0 overflow-y-auto" style={{ minWidth: '260px' }}>
             <div>
-              <p className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec mb-1.5">Personal note</p>
+              <p className="text-ui-10 uppercase tracking-caps text-tea-text-sec mb-1.5">Personal note</p>
               <textarea
                 value={note}
                 onChange={e => setNote(e.target.value)}
@@ -177,7 +177,7 @@ export const RecommendationModal: React.FC<RecommendationModalProps> = ({
               />
             </div>
             <div className="flex-1 flex flex-col min-h-0">
-              <p className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec mb-1.5">
+              <p className="text-ui-10 uppercase tracking-caps text-tea-text-sec mb-1.5">
                 Message preview
                 {selected.length > 0 && <span className="ml-2 normal-case text-tea-text-dim">{selected.length} tea{selected.length !== 1 ? 's' : ''}</span>}
               </p>

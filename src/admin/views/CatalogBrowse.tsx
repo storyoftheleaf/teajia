@@ -162,7 +162,7 @@ const CarryForm: React.FC<CarryFormProps> = ({ profile, callerCurrency, onCarrie
           type="button"
           onClick={handleSubmit}
           disabled={!canSubmit}
-          className="text-tea-text-sec hover:text-tea-gold transition-colors disabled:text-tea-text-dim disabled:cursor-not-allowed font-display tracking-[0.04em]"
+          className="text-tea-text-sec hover:text-tea-gold transition-colors disabled:text-tea-text-dim disabled:cursor-not-allowed font-display tracking-wider"
         >
           {busy ? 'Carrying…' : 'Carry it'}
         </button>
@@ -226,7 +226,7 @@ const ProfileDrawer: React.FC<DrawerProps> = ({ profile, callerCurrency, onClose
           </button>
           <h2 className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text`}>{profile.name}</h2>
           {profile.curator_account_name && (
-            <p className="text-tea-text-sec text-ui-11 tracking-[0.04em] mt-1">
+            <p className="text-tea-text-sec text-ui-11 tracking-wider mt-1">
               Sourced from Teajia · curated by {profile.curator_account_name}
               {profile.originator_account_name && profile.originator_account_name !== profile.curator_account_name
                 ? ` · originated by ${profile.originator_account_name}`
@@ -275,7 +275,7 @@ const ProfileDrawer: React.FC<DrawerProps> = ({ profile, callerCurrency, onClose
 
           {/* Description */}
           {profile.description && (
-            <p className="font-body text-ui-15 leading-[1.7] text-tea-text mb-6">
+            <p className="font-body text-ui-15 leading-reading text-tea-text mb-6">
               {profile.description}
             </p>
           )}
@@ -332,7 +332,7 @@ const ProfileDrawer: React.FC<DrawerProps> = ({ profile, callerCurrency, onClose
             <button
               type="button"
               onClick={() => setCarryMode('carry')}
-              className="text-tea-text hover:text-tea-gold transition-colors font-display text-ui-15 tracking-[0.04em] group"
+              className="text-tea-text hover:text-tea-gold transition-colors font-display text-ui-15 tracking-wider group"
             >
               Carry this tea{' '}
               <span className="inline-block transition-transform group-hover:translate-x-0.5">→</span>
@@ -390,7 +390,7 @@ const CatalogCard: React.FC<CatalogCardProps> = ({ profile, onSelect, isHovered,
               loading="lazy"
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-tea-text-dim text-ui-11 tracking-[0.1em] uppercase">
+            <div className="w-full h-full flex items-center justify-center text-tea-text-dim text-ui-11 tracking-widest uppercase">
               No photo
             </div>
           )}
@@ -400,7 +400,7 @@ const CatalogCard: React.FC<CatalogCardProps> = ({ profile, onSelect, isHovered,
         <div className="flex-1 flex flex-col gap-1 min-w-0 py-1">
           {/* Name */}
           <h3
-            className="font-display text-[24px] font-normal leading-[1.2] tracking-[0.01em] text-tea-text"
+            className="font-display text-[24px] font-normal leading-snug tracking-wide text-tea-text"
             style={{ fontWeight: 400 }}
           >
             {profile.name}
@@ -539,7 +539,7 @@ export const CatalogBrowse: React.FC<CatalogBrowseProps> = ({ embedded = false }
   if (!hasCatalog) {
     return (
       <div className={outerClass}>
-        <p className="font-body italic text-ui-15 text-tea-text-sec leading-[1.7]">
+        <p className="font-body italic text-ui-15 text-tea-text-sec leading-reading">
           This destination requires the Catalog bundle. Ask your owner.
         </p>
       </div>
@@ -575,7 +575,7 @@ export const CatalogBrowse: React.FC<CatalogBrowseProps> = ({ embedded = false }
         <h1 className={`${TYPOGRAPHY_CLASSES.h2} text-tea-text mb-2`}>
           {countSentence}
         </h1>
-        <p className="font-body italic text-ui-17 text-tea-text-sec leading-[1.4]">
+        <p className="font-body italic text-ui-17 text-tea-text-sec leading-normal">
           Pick what belongs in your house.
         </p>
       </header>
@@ -607,7 +607,7 @@ export const CatalogBrowse: React.FC<CatalogBrowseProps> = ({ embedded = false }
 
       {/* Empty — carries everything */}
       {!networkError && profiles?.length === 0 && (
-        <p className="font-body italic text-ui-16 text-tea-text-sec leading-[1.7]">
+        <p className="font-body italic text-ui-16 text-tea-text-sec leading-reading">
           You carry everything Adrian curates. New harvests appear here as Adrian publishes them.
         </p>
       )}

@@ -148,7 +148,7 @@ export const FindATable: React.FC = () => {
                     key={city}
                     type="button"
                     onClick={() => setFilterCity(prev => prev === city ? '' : city)}
-                    className={`text-ui-10 uppercase tracking-[0.15em] px-2.5 py-1 rounded-full transition-colors ${
+                    className={`text-ui-10 uppercase tracking-caps px-2.5 py-1 rounded-full transition-colors ${
                       filterCity === city
                         ? 'bg-tea-gold/20 text-tea-gold'
                         : 'bg-tea-surface text-tea-text-dim hover:text-tea-text border border-tea-border'
@@ -164,7 +164,7 @@ export const FindATable: React.FC = () => {
                     key={country}
                     type="button"
                     onClick={() => setFilterCountry(prev => prev === country ? '' : country)}
-                    className={`text-ui-10 uppercase tracking-[0.15em] px-2.5 py-1 rounded-full transition-colors flex items-center gap-1 ${
+                    className={`text-ui-10 uppercase tracking-caps px-2.5 py-1 rounded-full transition-colors flex items-center gap-1 ${
                       filterCountry === country
                         ? 'bg-tea-gold-lt text-tea-text'
                         : 'bg-tea-surface text-tea-text-dim hover:text-tea-text border border-tea-border'
@@ -186,7 +186,7 @@ export const FindATable: React.FC = () => {
                 <button
                   type="button"
                   onClick={clearFilters}
-                  className="text-xs text-tea-text-dim hover:text-tea-text transition-colors uppercase tracking-[0.15em]"
+                  className="text-xs text-tea-text-dim hover:text-tea-text transition-colors uppercase tracking-caps"
                 >
                   Clear filters
                 </button>
@@ -243,7 +243,7 @@ export const FindATable: React.FC = () => {
                         {store.name}
                       </h2>
                       {(store.location_city || store.location_country) && (
-                        <p className="text-ui-11 uppercase tracking-[0.2em] text-tea-text-dim mb-2 flex items-center gap-1.5">
+                        <p className="text-ui-11 uppercase tracking-display text-tea-text-dim mb-2 flex items-center gap-1.5">
                           <Icons.Location className="w-3 h-3 text-tea-gold" />
                           {[store.location_city, store.location_country].filter(Boolean).join(', ')}
                         </p>
@@ -254,7 +254,7 @@ export const FindATable: React.FC = () => {
                         </p>
                       )}
                       {(reviewCountByAccount[store.id] ?? 0) > 0 && (
-                        <p className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim mt-2">
+                        <p className="text-ui-10 uppercase tracking-caps text-tea-text-dim mt-2">
                           {reviewCountByAccount[store.id]} network {reviewCountByAccount[store.id] === 1 ? 'review' : 'reviews'}
                         </p>
                       )}

@@ -42,7 +42,7 @@ export const EndOfArticle: React.FC<EndOfArticleProps> = ({
             <p className="font-serif text-lg text-tea-text">
               {guest.name}
             </p>
-            <p className="text-xs text-tea-text/50 uppercase tracking-[0.15em] font-sans mt-1">
+            <p className="text-xs text-tea-text/50 uppercase tracking-caps font-sans mt-1">
               {guest.role}
             </p>
           </div>
@@ -58,7 +58,7 @@ export const EndOfArticle: React.FC<EndOfArticleProps> = ({
           <div className="flex justify-center">
             <div className="w-8 h-px bg-tea-text/10/10" />
           </div>
-          <p className="text-xs uppercase tracking-[0.2em] font-sans text-tea-text/40 text-center">
+          <p className="text-xs uppercase tracking-display font-sans text-tea-text/40 text-center">
             Continue Reading
           </p>
           <div className="space-y-2">
