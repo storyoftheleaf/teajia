@@ -117,7 +117,7 @@ export const GhostInput = ({
       spellCheck={false}
       data-1p-ignore
       data-lpignore="true"
-      className={`w-full bg-transparent border-b border-dashed border-tea-accent-sub focus:border-solid focus:border-tea-accent-sub focus:bg-tea-gold/[0.06] rounded-none py-0 px-0 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-all text-${align} placeholder-tea-text-dim leading-none ${justSaved ? '!text-tea-gold' : ''} ${className}`}
+      className={`w-full bg-transparent border-0 border-b-0 hover:border-b hover:border-tea-accent-sub focus:border-b focus:border-tea-gold/40 focus:bg-tea-gold/[0.03] rounded-none py-1 px-0 outline-none focus-visible:ring-0 transition-colors text-${align} placeholder-tea-text-dim/60 leading-none ${justSaved ? '!text-tea-gold' : ''} ${className}`}
     />
   );
 };
@@ -161,7 +161,7 @@ export const GhostAutocompleteInput = ({
         itemData={itemData}
         onSelect={handleSelect}
         placeholder={placeholder}
-        className={`w-full bg-transparent border-b border-dashed border-tea-accent-sub focus:border-solid focus:border-tea-accent-sub focus:bg-tea-gold/[0.06] rounded-none py-0 px-0 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-all text-right placeholder-tea-text-dim leading-none ${justSaved ? '!text-tea-gold' : ''} ${className}`}
+        className={`w-full bg-transparent border-0 border-b-0 hover:border-b hover:border-tea-accent-sub focus:border-b focus:border-tea-gold/40 focus:bg-tea-gold/[0.03] rounded-none py-1 px-0 outline-none focus-visible:ring-0 transition-colors text-left placeholder-tea-text-dim/60 leading-none ${justSaved ? '!text-tea-gold' : ''} ${className}`}
       />
     </div>
   );
@@ -175,13 +175,13 @@ export const GhostSelect = ({ value, onSave, options, className = '', ariaLabel 
       aria-label={ariaLabel}
       value={value}
       onChange={(e) => onSave(e.target.value)}
-      className={`w-full bg-transparent border-b border-dashed border-tea-accent-sub focus:border-solid focus:border-tea-accent-sub focus:bg-tea-gold/[0.06] rounded-none py-0 px-0 pr-4 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-all text-right appearance-none cursor-pointer leading-none ${className}`}
+      className={`w-full bg-transparent border-0 border-b-0 hover:border-b hover:border-tea-accent-sub focus:border-b focus:border-tea-gold/40 focus:bg-tea-gold/[0.03] rounded-none py-1 px-0 pr-4 outline-none focus-visible:ring-0 transition-colors text-left appearance-none cursor-pointer leading-none ${className}`}
     >
       {options.map(opt => (
         <option key={opt} value={opt} className="bg-tea-surface text-tea-text">{opt}</option>
       ))}
     </select>
-    <ChevronRight size={10} aria-hidden="true" className="absolute right-0 top-1/2 -translate-y-1/2 rotate-90 text-tea-text-sec pointer-events-none" />
+    <ChevronDown size={10} aria-hidden="true" className="absolute right-0 top-1/2 -translate-y-1/2 text-tea-text-dim/70 pointer-events-none" />
   </div>
 );
 
@@ -304,6 +304,52 @@ export const CollapsibleSection = ({ title, defaultOpen = true, mobileDefault, c
     </div>
   );
 };
+
+/* ------------------------------------------------------------------ */
+/* Field primitives for the Quick Entry block                          */
+/* ------------------------------------------------------------------ */
+
+/** Labeled cell in a multi-column quick-entry row. Caps label above input. */
+export const FieldCell = ({ label, labelAdornment, children }: {
+  label: string;
+  labelAdornment?: React.ReactNode;
+  children: React.ReactNode;
+}) => (
+  <label className="flex flex-col gap-0.5 min-w-0">
+    <span className="text-ui-9 text-tea-text-dim uppercase tracking-caps flex items-center leading-none">
+      {label}
+      {labelAdornment}
+    </span>
+    <div className="flex items-center min-w-0">{children}</div>
+  </label>
+);
+
+/** Multi-column row of FieldCells. cols=2 -> 2-up; cols=3 -> 3-up. */
+export const FieldGrid = ({ cols, children }: { cols: 2 | 3; children: React.ReactNode }) => (
+  <div className={`mt-3 grid gap-x-4 gap-y-2.5 ${cols === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
+    {children}
+  </div>
+);
+
+/** Single full-width labeled row. */
+export const FieldRowFull = ({ label, labelAdornment, children }: {
+  label: string;
+  labelAdornment?: React.ReactNode;
+  children: React.ReactNode;
+}) => (
+  <div className="mt-3 flex flex-col gap-0.5">
+    <span className="text-ui-9 text-tea-text-dim uppercase tracking-caps flex items-center gap-1.5 leading-none">
+      {label}
+      {labelAdornment}
+    </span>
+    <div className="flex items-center min-w-0">{children}</div>
+  </div>
+);
+
+/** Hairline divider between logical groups in Quick Entry. */
+export const FieldGroupDivider = () => (
+  <div className="mt-4 mb-1 border-t border-tea-accent-sub" />
+);
 
 export const ImageManager = ({ product, onUpdate }: {
   product: Product; onUpdate: (field: keyof Product, value: any) => void;
@@ -775,174 +821,220 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
 
           {/* Scrollable content */}
           <div className="flex-1 overflow-y-auto custom-scrollbar pt-3 pb-nav-gap">
-            {/* 1. Identity & Origin */}
-            <CollapsibleSection title="Identity & Origin" defaultOpen={true}>
-              <div className="space-y-0">
-                <div className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
-                  <span className="text-ui-11 text-tea-text-sec uppercase tracking-[0.06em] shrink-0 w-20 md:w-24">Name</span>
-                  <GhostAutocompleteInput
-                    value={product.productName}
-                    onSave={(val) => handleUpdate(product.id, 'productName', val)}
-                    suggestions={nameSuggestions}
-                    itemData={nameItemData}
-                    onAutoFill={(data) => {
-                      const type = data.type || data.product_type;
-                      const region = data.originRegion || data.origin_region;
-                      const year = data.year;
-                      const chineseName = data.chineseName || data.chinese_name;
-                      if (type && !product.type) handleUpdate(product.id, 'type', type);
-                      if (region && !product.originRegion) handleUpdate(product.id, 'originRegion', region);
-                      if (year && !product.year) handleUpdate(product.id, 'year', year);
-                      if (chineseName && !product.chineseName) handleUpdate(product.id, 'chineseName', chineseName);
-                    }}
-                    className="text-xs text-tea-text"
-                  />
-                </div>
-                {([
-                  { label: 'Given Name', field: 'givenName' as const, value: product.givenName || '' },
-                  { label: 'Chinese', field: 'chineseName' as const, value: product.chineseName || '' },
-                ]).map(item => (
-                  <div key={item.field} className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
-                    <span className="text-ui-11 text-tea-text-sec uppercase tracking-[0.06em] shrink-0 w-20 md:w-24">{item.label}</span>
-                    <GhostInput value={item.value} onSave={(val) => handleUpdate(product.id, item.field, val)} align="right" className="text-xs text-tea-text flex-1" />
-                  </div>
-                ))}
+            {/* 1. QUICK ENTRY. Required fields, single dense block, no header chrome.
+                  Identity, origin, vendor, pricing, stock, status all live here so a
+                  product can be entered top-to-bottom without expanding sections. */}
+            <div className="mx-3 mb-4 rounded-lg bg-tea-surface/60 px-4 pt-3.5 pb-4">
+              {/* Name (full row, autocomplete + autofill) */}
+              <FieldRowFull label="Name">
+                <GhostAutocompleteInput
+                  value={product.productName}
+                  onSave={(val) => handleUpdate(product.id, 'productName', val)}
+                  suggestions={nameSuggestions}
+                  itemData={nameItemData}
+                  onAutoFill={(data) => {
+                    const type = data.type || data.product_type;
+                    const region = data.originRegion || data.origin_region;
+                    const year = data.year;
+                    const chineseName = data.chineseName || data.chinese_name;
+                    if (type && !product.type) handleUpdate(product.id, 'type', type);
+                    if (region && !product.originRegion) handleUpdate(product.id, 'originRegion', region);
+                    if (year && !product.year) handleUpdate(product.id, 'year', year);
+                    if (chineseName && !product.chineseName) handleUpdate(product.id, 'chineseName', chineseName);
+                  }}
+                  className="text-ui-15 font-serif text-tea-text-sec"
+                />
+              </FieldRowFull>
+
+              <FieldGrid cols={2}>
+                <FieldCell label="Given">
+                  <GhostInput value={product.givenName || ''} onSave={(val) => handleUpdate(product.id, 'givenName', val)} className="text-xs text-tea-text-sec" />
+                </FieldCell>
+                <FieldCell label="中文">
+                  <GhostInput value={product.chineseName || ''} onSave={(val) => handleUpdate(product.id, 'chineseName', val)} className="text-xs text-tea-text-sec" />
+                </FieldCell>
+              </FieldGrid>
+
+              <FieldGrid cols={3}>
                 {inventoryCategory === 'teaware' ? (
                   <>
-                    <div className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
-                      <span className="text-ui-11 text-tea-text-sec uppercase tracking-[0.06em] shrink-0 w-20 md:w-24">Category</span>
-                      <GhostInput value={product.teawareCategory || ''} onSave={(val) => handleUpdate(product.id, 'teawareCategory', val)} align="right" className="text-xs text-tea-text flex-1" />
-                    </div>
-                    <div className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
-                      <span className="text-ui-11 text-tea-text-sec uppercase tracking-[0.06em] shrink-0 w-20 md:w-24">Material</span>
-                      <GhostInput value={product.material || ''} onSave={(val) => handleUpdate(product.id, 'material', val)} align="right" className="text-xs text-tea-text flex-1" />
-                    </div>
+                    <FieldCell label="Category">
+                      <GhostInput value={product.teawareCategory || ''} onSave={(val) => handleUpdate(product.id, 'teawareCategory', val)} className="text-xs text-tea-text-sec" />
+                    </FieldCell>
+                    <FieldCell label="Material">
+                      <GhostInput value={product.material || ''} onSave={(val) => handleUpdate(product.id, 'material', val)} className="text-xs text-tea-text-sec" />
+                    </FieldCell>
                   </>
                 ) : (
                   <>
-                    <div className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
-                      <span className="text-ui-11 text-tea-text-sec uppercase tracking-[0.06em] shrink-0 w-20 md:w-24">Type</span>
-                      <GhostSelect ariaLabel="Type" value={product.type} onSave={(val) => handleUpdate(product.id, 'type', val)} options={['Green', 'Yellow', 'White', 'Oolong', 'Red', 'Dark', 'Sheng', 'Shou', 'Herbal', 'Misc']} className="text-xs text-tea-text" />
-                    </div>
-                    <div className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
-                      <span className="text-ui-11 text-tea-text-sec uppercase tracking-[0.06em] shrink-0 w-20 md:w-24">Form</span>
-                      <GhostSelect ariaLabel="Form" value={product.form || ''} onSave={(val) => handleUpdate(product.id, 'form', val)} options={['Loose Leaf', 'Cake', 'Tuo', 'Brick', 'Rolled', 'Ball', 'Powder', 'Bag', 'Other']} className="text-xs text-tea-text" />
-                    </div>
+                    <FieldCell label="Type">
+                      <GhostSelect ariaLabel="Type" value={product.type} onSave={(val) => handleUpdate(product.id, 'type', val)} options={['Green', 'Yellow', 'White', 'Oolong', 'Red', 'Dark', 'Sheng', 'Shou', 'Herbal', 'Misc']} className="text-xs text-tea-text-sec" />
+                    </FieldCell>
+                    <FieldCell label="Form">
+                      <GhostSelect ariaLabel="Form" value={product.form || ''} onSave={(val) => handleUpdate(product.id, 'form', val)} options={['Loose Leaf', 'Cake', 'Tuo', 'Brick', 'Rolled', 'Ball', 'Powder', 'Bag', 'Other']} className="text-xs text-tea-text-sec" />
+                    </FieldCell>
                   </>
                 )}
-                <div className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
-                  <span className="text-ui-11 text-tea-text-sec uppercase tracking-[0.06em] shrink-0 w-20 md:w-24">Year</span>
-                  <GhostInput value={product.year || ''} onSave={(val) => handleUpdate(product.id, 'year', val)} type="number" align="right" className="text-xs text-tea-text flex-1" />
+                <FieldCell label="Year">
+                  <GhostInput value={product.year || ''} onSave={(val) => handleUpdate(product.id, 'year', val)} type="number" className="text-xs text-tea-text-sec tabular-nums" />
+                </FieldCell>
+              </FieldGrid>
+
+              <FieldGroupDivider />
+
+              <FieldGrid cols={2}>
+                <FieldCell label="Country">
+                  <GhostInput value={product.originCountry || ''} onSave={(val) => handleUpdate(product.id, 'originCountry', val)} className="text-xs text-tea-text-sec" />
+                </FieldCell>
+                <FieldCell label="Region">
+                  <GhostInput value={product.originRegion || ''} onSave={(val) => handleUpdate(product.id, 'originRegion', val)} className="text-xs text-tea-text-sec" />
+                </FieldCell>
+              </FieldGrid>
+
+              {/* Vendor row. Profile link sits trailing-right for clean label edge. */}
+              <div className="mt-3 flex flex-col gap-0.5">
+                <div className="flex items-center justify-between leading-none">
+                  <span className="text-ui-9 text-tea-text-dim uppercase tracking-caps">Vendor</span>
+                  {product.vendor && (
+                    <button
+                      onClick={() => navigate(`/admin/people?tab=sources&search=${encodeURIComponent(product.vendor || '')}`)}
+                      className="flex items-center gap-0.5 text-ui-9 text-tea-text-sec hover:text-tea-text uppercase tracking-caps transition-colors"
+                      title="View vendor profile"
+                    >
+                      Profile <ChevronRight size={10} aria-hidden="true" />
+                    </button>
+                  )}
                 </div>
+                <VendorPicker
+                  value={product.vendor || ''}
+                  productId={product.id}
+                  onChange={(val) => handleUpdate(product.id, 'vendor', val)}
+                  className="w-full bg-transparent border-0 border-b-0 hover:border-b hover:border-tea-accent-sub focus:border-b focus:border-tea-gold/40 focus:bg-tea-gold/[0.03] rounded-none py-1 px-0 outline-none focus-visible:ring-0 transition-colors text-xs text-tea-text-sec placeholder-tea-text-dim/60 leading-none"
+                />
+              </div>
 
-                {/* Origin */}
-                <div className="mt-3 pt-3 border-t border-tea-accent-sub">
-                  <div className="text-ui-9 text-tea-text-dim uppercase tracking-[0.18em] mb-2">Origin</div>
-                  {[
-                    { label: 'Country', field: 'originCountry' as const, value: product.originCountry || '' },
-                    { label: 'Region', field: 'originRegion' as const, value: product.originRegion || '' },
-                  ].map(item => (
-                    <div key={item.field} className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
-                      <span className="text-ui-11 text-tea-text-sec uppercase tracking-[0.06em] shrink-0 w-20 md:w-24">{item.label}</span>
-                      <GhostInput value={item.value} onSave={(val) => handleUpdate(product.id, item.field, val)} align="right" className="text-xs text-tea-text flex-1" />
-                    </div>
-                  ))}
-                  <div className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
-                    <div className="flex items-center gap-1.5 shrink-0 w-20 md:w-24">
-                      <span className="text-ui-11 text-tea-text-sec uppercase tracking-[0.06em]">Vendor</span>
-                      {product.vendor && (
-                        <button onClick={() => navigate(`/admin/people?tab=sources&search=${encodeURIComponent(product.vendor || '')}`)} className="text-tea-gold hover:text-tea-gold-lt transition-colors" title="View vendor profile">
-                          <ChevronRight size={12} />
-                        </button>
-                      )}
-                    </div>
-                    <VendorPicker
-                      value={product.vendor || ''}
-                      productId={product.id}
-                      onChange={(val) => handleUpdate(product.id, 'vendor', val)}
-                      className="w-full bg-transparent border-b border-dashed border-tea-accent-sub focus:border-solid focus:border-tea-accent-sub focus:bg-tea-gold/[0.06] rounded-none py-0 px-0 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-all text-right text-xs text-tea-text placeholder-tea-text-dim leading-none"
-                    />
-                  </div>
+              <FieldGroupDivider />
 
-                  {/* Links */}
-                  <div className="mt-3 pt-3 border-t border-tea-accent-sub">
-                    <div className="text-ui-9 text-tea-text-dim uppercase tracking-[0.18em] mb-1">Links</div>
-                  </div>
-                  {(() => {
-                    const compassEntryId = product.sourceCompassEntryId;
-                    const compassEntry = compassEntryId
-                      ? compassEntries.find(e => e.id === compassEntryId)
-                      : compassEntries.find(e => e.draftProductId === product.id);
-                    if (!compassEntry && !compassEntryId) return null;
-                    const linkId = compassEntry?.id || compassEntryId!;
-                    return (
-                      <div className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
-                        <span className="text-ui-11 text-tea-text-sec uppercase tracking-[0.06em] shrink-0 w-20 md:w-24">Encounter</span>
-                        <button onClick={() => navigate(`/admin/compass?tab=buying&entry=${encodeURIComponent(linkId)}`)} className="text-xs text-tea-gold hover:text-tea-text transition-colors text-right flex items-center gap-1.5">
-                          <Globe size={10} />
-                          {compassEntry?.vendorName || 'Encounters Entry'}
-                          {compassEntry && <span className="text-tea-text-dim">· {new Date(compassEntry.createdAt).toLocaleDateString()}</span>}
-                          <ChevronRight size={11} className="text-tea-text-dim shrink-0" />
-                        </button>
+              {/* Pricing inputs. Cost gets full-width row so currency + amount have room.
+                  Batch and shipping rate paired below. Calculated retail readout follows. */}
+              {inventoryCategory === 'teaware' ? (
+                <FieldGrid cols={2}>
+                  <FieldCell label="Cost">
+                    <GhostInput value={product.costAmount} onSave={(val) => handleUpdate(product.id, 'costAmount', val)} type="number" className="text-xs text-tea-text-sec tabular-nums" />
+                  </FieldCell>
+                  <FieldCell label="Retail / $">
+                    <GhostInput value={product.pricePerGramUSD} onSave={(val) => handleUpdate(product.id, 'pricePerGramUSD', val)} type="number" className="text-xs text-tea-text-sec tabular-nums" />
+                  </FieldCell>
+                </FieldGrid>
+              ) : (
+                <>
+                  <FieldRowFull label="Cost">
+                    <div className="flex items-baseline gap-2 w-full">
+                      <label className="relative flex items-baseline shrink-0 min-w-[44px] cursor-pointer">
+                        <select
+                          value={product.costCurrency || 'USD'}
+                          onChange={(e) => handleUpdate(product.id, 'costCurrency', e.target.value)}
+                          className="bg-transparent text-xs text-tea-text-sec font-medium uppercase outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/40 cursor-pointer appearance-none border-none pr-3 pl-0 leading-none py-1 w-full"
+                          aria-label="Cost currency"
+                        >
+                          {['USD', 'NT', 'Yuan', 'IDR', 'JPY', 'MYR', 'HKD'].map(c => (
+                            <option key={c} value={c} className="bg-tea-surface text-tea-text">{c === 'Yuan' ? 'CNY' : c}</option>
+                          ))}
+                        </select>
+                        <ChevronDown size={9} className="absolute right-0 top-1/2 -translate-y-1/2 text-tea-text-dim pointer-events-none" />
+                      </label>
+                      <GhostInput value={product.costAmount} onSave={(val) => handleUpdate(product.id, 'costAmount', val)} type="number" className="text-xs text-tea-text-sec tabular-nums flex-1 min-w-0" />
+                    </div>
+                  </FieldRowFull>
+                  <FieldGrid cols={2}>
+                    <FieldCell label="Batch g">
+                      <GhostInput value={product.quantityPurchased || 0} onSave={(val) => handleUpdate(product.id, 'quantityPurchased', val)} type="number" className="text-xs text-tea-text-sec tabular-nums" />
+                    </FieldCell>
+                    <FieldCell label="Ship $/kg">
+                      <GhostInput value={product.shippingRatePerKg || 13} onSave={(val) => handleUpdate(product.id, 'shippingRatePerKg', val)} type="number" className="text-xs text-tea-text-sec tabular-nums" />
+                    </FieldCell>
+                  </FieldGrid>
+                  {pricingCalc && pricingCalc.suggestedRetailUSD > 0 && (
+                    <div className="mt-4 flex items-baseline justify-between">
+                      <span className="text-ui-9 text-tea-text-dim uppercase tracking-caps">Suggested retail</span>
+                      <span className="text-base text-tea-gold tabular-nums font-serif">
+                        ${pricingCalc.suggestedRetailUSD.toFixed(2)}
+                        <span className="text-ui-10 text-tea-text-dim ml-1 italic font-serif">per gram</span>
+                      </span>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Stock. State signaled by caps text label, not color alone. */}
+              {inventoryCategory === 'teaware' ? (
+                <FieldGrid cols={2}>
+                  <FieldCell label="Units">
+                    <GhostInput value={product.quantityUnits || ''} onSave={(val) => handleUpdate(product.id, 'quantityUnits', val)} type="number" className="text-xs text-tea-text-sec tabular-nums" />
+                  </FieldCell>
+                  <FieldCell label="Capacity ml">
+                    <GhostInput value={product.capacityMl || ''} onSave={(val) => handleUpdate(product.id, 'capacityMl', val)} type="number" className="text-xs text-tea-text-sec tabular-nums" />
+                  </FieldCell>
+                </FieldGrid>
+              ) : (() => {
+                const stock = product.stockGrams;
+                const threshold = product.lowStockThreshold || 0;
+                const isLow = threshold > 0 && stock <= threshold;
+                const isOut = stock === 0;
+                const stateLabel = isOut ? 'Empty' : isLow ? 'Low' : 'OK';
+                const stateColor = isOut ? 'text-tea-error' : isLow ? 'text-tea-gold' : 'text-tea-text-dim';
+                return (
+                  <FieldGrid cols={2}>
+                    <FieldCell label="Stock g">
+                      <div className="flex items-center gap-2 w-full">
+                        <span aria-label={`Stock state: ${stateLabel}`} className={`text-ui-9 uppercase tracking-caps shrink-0 ${stateColor}`}>
+                          {stateLabel}
+                        </span>
+                        <GhostInput value={stock} onSave={(val) => handleUpdate(product.id, 'stockGrams', val)} type="number" className={`text-xs tabular-nums flex-1 ${isOut ? 'text-tea-error' : isLow ? 'text-tea-gold' : 'text-tea-text-sec'}`} />
                       </div>
-                    );
-                  })()}
-                  <div className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
-                    <span className="text-ui-11 text-tea-text-sec uppercase tracking-[0.06em] shrink-0 w-20 md:w-24">Orders</span>
-                    <button onClick={() => navigate(`/admin/activity?tab=orders&search=${encodeURIComponent(product.givenName || product.productName)}`)} className="text-xs text-tea-gold hover:text-tea-text transition-colors text-right flex items-center gap-1.5">
-                      <Receipt size={10} />
-                      View order history
-                      <ChevronRight size={11} className="text-tea-text-dim shrink-0" />
-                    </button>
-                  </div>
-                  <div className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
-                    <span className="text-ui-11 text-tea-text-sec uppercase tracking-[0.06em] shrink-0 w-20 md:w-24">Story</span>
-                    <button onClick={() => navigate(`/admin/products/${product.id}/story`)} className="text-xs text-tea-gold hover:text-tea-text transition-colors text-right flex items-center gap-1.5">
-                      <BookOpen size={10} />
-                      View full story
-                      <ChevronRight size={11} className="text-tea-text-dim shrink-0" />
-                    </button>
-                  </div>
+                    </FieldCell>
+                    <FieldCell label="Low alert g">
+                      <GhostInput value={threshold} onSave={(val) => handleUpdate(product.id, 'lowStockThreshold', val)} type="number" className="text-xs text-tea-text-sec tabular-nums" />
+                    </FieldCell>
+                  </FieldGrid>
+                );
+              })()}
+
+              <FieldGroupDivider />
+
+              {/* Status pills. Quiet variant: no fill, no border. Active state via color only. */}
+              <div className="grid grid-cols-[64px_1fr] gap-x-3 gap-y-2.5 items-center">
+                <span className="text-ui-9 text-tea-text-dim uppercase tracking-caps text-right">Visible</span>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <button onClick={() => handleUpdate(product.id, 'isPublic', !product.isPublic)} className={`pill-quiet ${product.isPublic ? 'pill-quiet-on' : ''}`}>
+                    {product.isPublic ? <Eye size={10} /> : <EyeOff size={10} />} In Shop
+                  </button>
                 </div>
 
-                {/* Toggles */}
-                <div className="mt-3 pt-3 border-t border-tea-accent-sub space-y-2.5">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-ui-9 text-tea-text-dim uppercase tracking-[0.15em] w-14 shrink-0">Visibility</span>
-                    {([
-                      { field: 'isPublic' as const, label: 'In Shop', icon: product.isPublic ? <Eye size={10} /> : <EyeOff size={10} />, active: product.isPublic },
-                    ] as const).map(toggle => (
-                      <button key={toggle.field} onClick={() => handleUpdate(product.id, toggle.field, !toggle.active)} className={`pill ${toggle.active ? 'pill-active' : ''}`}>
-                        {toggle.icon} {toggle.label}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-ui-9 text-tea-text-dim uppercase tracking-[0.15em] w-14 shrink-0">Promote</span>
-                    {([
-                      { field: 'isFeatured' as const, label: 'Starred', icon: <Star size={10} className={product.isFeatured ? 'fill-tea-gold' : ''} />, active: product.isFeatured },
-                      { field: 'isCurated' as const, label: 'Top Pick', icon: <Sparkles size={10} />, active: product.isCurated },
-                    ] as const).map(toggle => (
-                      <button key={toggle.field} onClick={() => handleUpdate(product.id, toggle.field, !toggle.active)} className={`pill ${toggle.active ? 'pill-active' : ''}`}>
-                        {toggle.icon} {toggle.label}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-ui-9 text-tea-text-dim uppercase tracking-[0.15em] w-14 shrink-0">Classify</span>
-                    {([
-                      { field: 'isSample' as const, label: 'Sample', icon: <FlaskConical size={10} />, active: product.isSample },
-                      { field: 'canReorder' as const, label: 'Restockable', icon: <RefreshCw size={10} />, active: product.canReorder },
-                      { field: 'isPersonal' as const, label: 'Mine', icon: <User size={10} />, active: product.isPersonal },
-                    ] as const).map(toggle => (
-                      <button key={toggle.field} onClick={() => handleUpdate(product.id, toggle.field, !toggle.active)} className={`pill ${toggle.active ? 'pill-active' : ''}`}>
-                        {toggle.icon} {toggle.label}
-                      </button>
-                    ))}
-                  </div>
+                <span className="text-ui-9 text-tea-text-dim uppercase tracking-caps text-right">Promote</span>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <button onClick={() => handleUpdate(product.id, 'isFeatured', !product.isFeatured)} className={`pill-quiet ${product.isFeatured ? 'pill-quiet-on' : ''}`}>
+                    <Star size={10} className={product.isFeatured ? 'fill-current' : ''} /> Starred
+                  </button>
+                  <button onClick={() => handleUpdate(product.id, 'isCurated', !product.isCurated)} className={`pill-quiet ${product.isCurated ? 'pill-quiet-on' : ''}`}>
+                    <Sparkles size={10} /> Top Pick
+                  </button>
+                </div>
+
+                <span className="text-ui-9 text-tea-text-dim uppercase tracking-caps text-right">Classify</span>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <button onClick={() => handleUpdate(product.id, 'isSample', !product.isSample)} className={`pill-quiet ${product.isSample ? 'pill-quiet-on' : ''}`}>
+                    <FlaskConical size={10} /> Sample
+                  </button>
+                  <button onClick={() => handleUpdate(product.id, 'canReorder', !product.canReorder)} className={`pill-quiet ${product.canReorder ? 'pill-quiet-on' : ''}`}>
+                    <RefreshCw size={10} /> Restockable
+                  </button>
+                  <button onClick={() => handleUpdate(product.id, 'isPersonal', !product.isPersonal)} className={`pill-quiet ${product.isPersonal ? 'pill-quiet-on' : ''}`}>
+                    <User size={10} /> Mine
+                  </button>
                 </div>
               </div>
-            </CollapsibleSection>
+            </div>
 
             {/* 2. Images — flat, no section header */}
             <div className="px-3 mb-3">
@@ -973,57 +1065,14 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
               </div>
             </button>
 
-            {/* 4. Pricing */}
-            <CollapsibleSection title="Pricing" defaultOpen={false}>
+            {/* 4. Pricing details. Override + breakdown only; quick fields hoisted up. */}
+            <CollapsibleSection title="Pricing details" defaultOpen={false}>
               {inventoryCategory === 'teaware' ? (
-                <div className="space-y-0">
-                  {[
-                    { label: 'Cost', field: 'costAmount' as const, value: product.costAmount },
-                    { label: 'Retail ($)', field: 'pricePerGramUSD' as const, value: product.pricePerGramUSD },
-                  ].map(item => (
-                    <div key={item.field} className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
-                      <span className="text-ui-11 text-tea-text-sec uppercase tracking-[0.06em] shrink-0 w-20 md:w-24">{item.label}</span>
-                      <GhostInput value={item.value} onSave={(val) => handleUpdate(product.id, item.field, val)} type="number" align="right" className="text-xs text-tea-text tabular-nums flex-1" />
-                    </div>
-                  ))}
-                </div>
+                <p className="text-ui-10 text-tea-text-dim italic py-1">Cost and retail are set in Quick Entry above.</p>
               ) : (() => {
                 const calc = pricingCalc!;
                 return (
                   <div className="space-y-0">
-                    <div className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
-                      <span className="text-ui-11 text-tea-text-sec uppercase tracking-[0.06em] shrink-0 w-20 md:w-24">Batch Cost</span>
-                      <div className="flex items-center gap-1.5 flex-1 justify-end">
-                        <div className="relative flex items-center">
-                          <select
-                            value={product.costCurrency || 'USD'}
-                            onChange={(e) => handleUpdate(product.id, 'costCurrency', e.target.value)}
-                            className="bg-transparent text-ui-10 text-tea-text-sec font-medium uppercase outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg cursor-pointer appearance-none border-none pr-3"
-                          >
-                            {['USD', 'NT', 'Yuan', 'IDR', 'JPY', 'MYR', 'HKD'].map(c => (
-                              <option key={c} value={c} className="bg-tea-surface text-tea-text">{c === 'Yuan' ? 'CNY' : c}</option>
-                            ))}
-                          </select>
-                          <ChevronDown size={9} className="absolute right-0 top-1/2 -translate-y-1/2 text-tea-text-dim pointer-events-none" />
-                        </div>
-                        <GhostInput value={product.costAmount} onSave={(val) => handleUpdate(product.id, 'costAmount', val)} type="number" align="right" className="text-xs text-tea-text tabular-nums flex-1" />
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
-                      <span className="text-ui-11 text-tea-text-sec uppercase tracking-[0.06em] shrink-0 w-20 md:w-24">Batch Weight</span>
-                      <GhostInput value={product.quantityPurchased || 0} onSave={(val) => handleUpdate(product.id, 'quantityPurchased', val)} type="number" align="right" className="text-xs text-tea-text tabular-nums flex-1" />
-                    </div>
-                    <div className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
-                      <span className="text-ui-11 text-tea-text-sec uppercase tracking-[0.06em] shrink-0 w-20 md:w-24">Shipping/kg</span>
-                      <GhostInput value={product.shippingRatePerKg || 13} onSave={(val) => handleUpdate(product.id, 'shippingRatePerKg', val)} type="number" align="right" className="text-xs text-tea-text tabular-nums flex-1" />
-                    </div>
-                    <div className="flex items-center justify-between gap-3 py-2 mt-2 rounded-md bg-tea-bg px-2 -mx-2">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-ui-10 text-tea-text-dim uppercase tracking-[0.06em] shrink-0">Calculated Retail</span>
-                        <span className="text-ui-9 text-tea-text-dim uppercase tracking-[0.08em]">(3× markup)</span>
-                      </div>
-                      <span className="text-xs text-tea-text-sec tabular-nums font-medium">${calc.suggestedRetailUSD.toFixed(2)}/g</span>
-                    </div>
                     <div className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
                       <div className="flex items-center gap-1.5 shrink-0 w-20 md:w-24">
                         <span className="text-ui-11 text-tea-text-sec uppercase tracking-[0.06em]">Override</span>
@@ -1061,59 +1110,30 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
               })()}
             </CollapsibleSection>
 
-            {/* 5. Stock */}
-            <CollapsibleSection title="Stock" defaultOpen={true}>
+            {/* 5. Stock details. Recount flag, verify date, history; quick fields hoisted up. */}
+            <CollapsibleSection title="Stock details" defaultOpen={false}>
               <div className="space-y-0">
-                {inventoryCategory === 'teaware' ? (
-                  <>
-                    <div className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
-                      <span className="text-ui-11 text-tea-text-sec uppercase tracking-[0.06em] shrink-0 w-20 md:w-24">Units</span>
-                      <GhostInput value={product.quantityUnits || ''} onSave={(val) => handleUpdate(product.id, 'quantityUnits', val)} type="number" align="right" className="text-xs text-tea-text tabular-nums flex-1" />
-                    </div>
-                    <div className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
-                      <span className="text-ui-11 text-tea-text-sec uppercase tracking-[0.06em] shrink-0 w-20 md:w-24">Capacity (ml)</span>
-                      <GhostInput value={product.capacityMl || ''} onSave={(val) => handleUpdate(product.id, 'capacityMl', val)} type="number" align="right" className="text-xs text-tea-text tabular-nums flex-1" />
-                    </div>
-                  </>
-                ) : (() => {
+                {inventoryCategory === 'tea' && (() => {
                   const stock = product.stockGrams;
                   const threshold = product.lowStockThreshold || 0;
                   const isLow = threshold > 0 && stock <= threshold;
                   const isOut = stock === 0;
                   const pct = threshold > 0 ? Math.min(1, stock / (threshold * 4)) : null;
                   const barColor = isOut ? 'bg-tea-error/60' : isLow ? 'bg-tea-gold/60' : 'bg-tea-gold/40';
+                  if (pct === null) return null;
                   return (
-                    <>
-                      <div className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
-                        <div className="flex items-center gap-1.5 shrink-0 w-20 md:w-24">
-                          <span className="text-ui-11 text-tea-text-sec uppercase tracking-[0.06em]">Current</span>
-                          <span className="text-ui-9 text-tea-text-dim uppercase tracking-[0.08em]">(g)</span>
-                        </div>
-                        <div className="flex items-center gap-2 flex-1 justify-end">
-                          {isLow && !isOut && <span className="text-ui-10 text-tea-gold/80 italic">Low</span>}
-                          {isOut && <span className="text-ui-10 text-tea-error italic">Empty</span>}
-                          <GhostInput value={stock} onSave={(val) => handleUpdate(product.id, 'stockGrams', val)} type="number" align="right" className={`text-xs tabular-nums w-20 ${isOut ? 'text-tea-error font-medium' : isLow ? 'text-tea-gold font-medium' : 'text-tea-text'}`} />
-                        </div>
+                    <div className="flex items-center gap-2 pb-2 mb-1">
+                      <div className="flex-1 h-1 bg-tea-bg rounded-full overflow-hidden">
+                        <div className={`h-full rounded-full origin-left transition-transform duration-500 ${barColor}`} style={{ transform: `scaleX(${pct})` }} />
                       </div>
-                      {pct !== null && (
-                        <div className="flex items-center gap-2 pb-1">
-                          <div className="flex-1 h-1 bg-tea-bg rounded-full overflow-hidden">
-                            <div className={`h-full rounded-full origin-left transition-transform duration-500 ${barColor}`} style={{ transform: `scaleX(${pct})` }} />
-                          </div>
-                          <span className="text-ui-9 text-tea-text-dim tabular-nums w-10 text-right">
-                            {threshold > 0 ? `${Math.round((stock / threshold) * 10) / 10}× min` : ''}
-                          </span>
-                        </div>
-                      )}
-                      <div className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
-                        <span className="text-ui-11 text-tea-text-sec uppercase tracking-[0.06em] shrink-0 w-20 md:w-24">Low Alert</span>
-                        <GhostInput value={threshold} onSave={(val) => handleUpdate(product.id, 'lowStockThreshold', val)} type="number" align="right" className="text-xs text-tea-text tabular-nums flex-1" />
-                      </div>
-                    </>
+                      <span className="text-ui-9 text-tea-text-dim tabular-nums w-12 text-right">
+                        {threshold > 0 ? `${Math.round((stock / threshold) * 10) / 10}× min` : ''}
+                      </span>
+                    </div>
                   );
                 })()}
 
-                <div className="flex items-center gap-2 pt-2.5 mt-1.5 border-t border-tea-accent-sub">
+                <div className="flex items-center gap-2">
                   <button onClick={() => handleUpdate(product.id, 'recheckStock', !product.recheckStock)} className={`pill ${product.recheckStock ? 'pill-active-amber' : ''}`}>
                     <RefreshCw size={10} /> Flag for Recount
                   </button>
@@ -1207,6 +1227,47 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                     }}
                     className="text-tea-text font-serif"
                   />
+                </div>
+              </div>
+            </CollapsibleSection>
+
+            {/* 7b. Links. Outbound navigation, kept out of the data-entry flow. */}
+            <CollapsibleSection title="Links" defaultOpen={false}>
+              <div className="space-y-0">
+                {(() => {
+                  const compassEntryId = product.sourceCompassEntryId;
+                  const compassEntry = compassEntryId
+                    ? compassEntries.find(e => e.id === compassEntryId)
+                    : compassEntries.find(e => e.draftProductId === product.id);
+                  if (!compassEntry && !compassEntryId) return null;
+                  const linkId = compassEntry?.id || compassEntryId!;
+                  return (
+                    <div className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
+                      <span className="text-ui-11 text-tea-text-sec uppercase tracking-[0.06em] shrink-0 w-20 md:w-24">Encounter</span>
+                      <button onClick={() => navigate(`/admin/compass?tab=buying&entry=${encodeURIComponent(linkId)}`)} className="text-xs text-tea-gold hover:text-tea-text transition-colors text-right flex items-center gap-1.5">
+                        <Globe size={10} />
+                        {compassEntry?.vendorName || 'Encounters Entry'}
+                        {compassEntry && <span className="text-tea-text-dim">· {new Date(compassEntry.createdAt).toLocaleDateString()}</span>}
+                        <ChevronRight size={11} className="text-tea-text-dim shrink-0" />
+                      </button>
+                    </div>
+                  );
+                })()}
+                <div className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
+                  <span className="text-ui-11 text-tea-text-sec uppercase tracking-[0.06em] shrink-0 w-20 md:w-24">Orders</span>
+                  <button onClick={() => navigate(`/admin/activity?tab=orders&search=${encodeURIComponent(product.givenName || product.productName)}`)} className="text-xs text-tea-gold hover:text-tea-text transition-colors text-right flex items-center gap-1.5">
+                    <Receipt size={10} />
+                    View order history
+                    <ChevronRight size={11} className="text-tea-text-dim shrink-0" />
+                  </button>
+                </div>
+                <div className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
+                  <span className="text-ui-11 text-tea-text-sec uppercase tracking-[0.06em] shrink-0 w-20 md:w-24">Story page</span>
+                  <button onClick={() => navigate(`/admin/products/${product.id}/story`)} className="text-xs text-tea-gold hover:text-tea-text transition-colors text-right flex items-center gap-1.5">
+                    <BookOpen size={10} />
+                    View full story
+                    <ChevronRight size={11} className="text-tea-text-dim shrink-0" />
+                  </button>
                 </div>
               </div>
             </CollapsibleSection>
