@@ -159,7 +159,10 @@ export async function hydrateTastingJournal(): Promise<void> {
 
   try {
     const data = await api.tastingJournal.list();
-    const serverEntries: CustomerTasting[] = (data.entries || data || []).map(fromApiRow);
+    const rows = Array.isArray(data?.entries) ? data.entries
+      : Array.isArray(data) ? data
+      : [];
+    const serverEntries: CustomerTasting[] = rows.map(fromApiRow);
 
     useAppStore.setState(state => {
       const local = state.tastingJournal.filter(e => e.productId && e.productId !== 'quick-note');
