@@ -24,6 +24,9 @@ interface PhotoCaptureProps {
   onPhotoReplaced?: (oldUrl: string, newUrl: string) => void;
   photos?: string[];
   onRemovePhoto?: (index: number) => void;
+  /** 'lg' renders the inline strip with larger thumbs + 44×44 action buttons,
+   *  used by the teaware capture card where the top of the form needs breathing room. */
+  size?: 'default' | 'lg';
 }
 
 interface PendingPreview {
@@ -67,7 +70,16 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
   onPhotoReplaced,
   photos,
   onRemovePhoto,
+  size = 'default',
 }) => {
+  const isLg = size === 'lg';
+  const thumbCls = isLg ? 'w-[60px] h-[60px]' : 'w-14 h-14';
+  const btnCls = isLg
+    ? 'w-11 h-11 rounded-xl'  // 44×44 — meets WCAG 2.5.5 floor without tap-target padding
+    : 'w-7 h-7 rounded-lg';
+  const btnIcon = isLg ? 18 : 12;
+  const btnGap = isLg ? 'gap-2' : 'gap-1';
+  const stripGap = isLg ? 'gap-2' : 'gap-1.5';
   const fileInputRef = useRef<HTMLInputElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const videoElRef = useRef<HTMLVideoElement | null>(null);
@@ -504,13 +516,13 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
         className="hidden"
       />
 
-      <div className="flex items-center gap-1.5 shrink-0">
+      <div className={`flex items-center ${stripGap} ${isLg ? 'flex-1 min-w-0 flex-wrap' : 'shrink-0'}`}>
         {validPhotos.map((url, i) => (
           <div key={url} className="relative shrink-0">
             <img
               src={url}
               alt={`Photo ${i + 1}`}
-              className="w-14 h-14 rounded-xl object-cover cursor-pointer"
+              className={`${thumbCls} rounded-xl object-cover cursor-pointer`}
               onClick={() => setLightboxIndex(i)}
             />
             {onRemovePhoto && (
@@ -531,7 +543,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
             <img
               src={preview.localUrl}
               alt={`Uploading ${i + 1}`}
-              className={`w-14 h-14 rounded-xl object-cover ${preview.uploading ? 'opacity-60' : 'opacity-40'}`}
+              className={`${thumbCls} rounded-xl object-cover ${preview.uploading ? 'opacity-60' : 'opacity-40'}`}
             />
             {preview.uploading && (
               <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-black/20">
@@ -551,12 +563,12 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
           </div>
         ))}
 
-        <div className="flex flex-col gap-1 shrink-0">
+        <div className={`flex ${isLg ? 'flex-row ml-auto' : 'flex-col'} ${btnGap} shrink-0`}>
           {/* Sparkles = live camera scanner */}
           <button
             type="button"
             onClick={openScanner}
-            className={`w-7 h-7 flex items-center justify-center rounded-lg border shrink-0 transition-colors ${
+            className={`${btnCls} flex items-center justify-center border shrink-0 transition-colors ${
               justExtracted
                 ? 'border-tea-gold/40 text-tea-gold bg-tea-gold/10'
                 : 'border-tea-border bg-tea-elevated text-tea-text-dim hover:text-tea-gold hover:border-tea-gold/40'
@@ -564,18 +576,18 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
             aria-label="Scan label"
             title="Scan label"
           >
-            {justExtracted ? <Check size={12} strokeWidth={2} /> : <Sparkles size={12} strokeWidth={1.5} />}
+            {justExtracted ? <Check size={btnIcon} strokeWidth={2} /> : <Sparkles size={btnIcon} strokeWidth={1.5} />}
           </button>
 
           {/* Camera icon = gallery picker, no extraction */}
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="w-7 h-7 flex items-center justify-center rounded-lg bg-tea-elevated border border-tea-border text-tea-text-dim hover:text-tea-text hover:border-tea-gold/40 shrink-0 transition-colors"
+            className={`${btnCls} flex items-center justify-center bg-tea-elevated border border-tea-border text-tea-text-dim hover:text-tea-text hover:border-tea-gold/40 shrink-0 transition-colors`}
             aria-label="Add photo"
             title="Add photo"
           >
-            <Camera size={13} strokeWidth={1.5} />
+            <Camera size={btnIcon} strokeWidth={1.5} />
           </button>
         </div>
       </div>
