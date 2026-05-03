@@ -920,9 +920,12 @@ function swrJson(data: unknown, sMaxAge: number, swr: number, status = 200): Res
   });
 }
 
-function cors(response: Response, origin: string): Response {
+function cors(response: Response, origin: string | null): Response {
   const headers = new Headers(response.headers);
-  headers.set('Access-Control-Allow-Origin', origin);
+  // Only echo ACAO when the origin is actually trusted — echoing the wrong
+  // origin makes the browser silently drop the response (Safari surfaces
+  // this as "Load failed" with no JS error to act on).
+  if (origin) headers.set('Access-Control-Allow-Origin', origin);
   headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Teajia-Account');
   headers.set('Vary', 'Origin');
@@ -14886,24 +14889,42 @@ const ALLOWED_ORIGINS = [
   'http://localhost:7777',
 ];
 
+/** Decide whether to echo an Origin back as Access-Control-Allow-Origin.
+ *
+ *  Returning an ACAO that does NOT match the actual Origin is what was
+ *  surfacing as Safari "Load failed" on the sign-in page — when the user
+ *  hit the API from a Pages preview URL or a non-7777 dev port, the worker
+ *  echoed `https://teajia.com` and Safari rejected the response without
+ *  ever showing it to the app. We now match a broader set of legitimate
+ *  Teajia frontends, and return null (no ACAO) for anything else so the
+ *  browser raises an explicit CORS error instead of a phantom failure.
+ */
+function resolveAllowedOrigin(origin: string): string | null {
+  if (!origin) return null;
+  if (ALLOWED_ORIGINS.includes(origin)) return origin;
+  // Cloudflare Pages preview deploys: <branch>.teajia.pages.dev
+  if (/^https:\/\/[a-z0-9][a-z0-9-]*\.teajia\.pages\.dev$/i.test(origin)) return origin;
+  // Local dev on any port (Vite reload picks alternates if 7777 is busy)
+  if (/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin)) return origin;
+  return null;
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
     const origin = request.headers.get('Origin') || '';
-    const corsOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+    const corsOrigin = resolveAllowedOrigin(origin);
 
     // CORS preflight — cache for 24h to eliminate redundant OPTIONS round-trips
     if (request.method === 'OPTIONS') {
-      return new Response(null, {
-        status: 204,
-        headers: {
-          'Access-Control-Allow-Origin': corsOrigin,
-          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Teajia-Account',
-          'Access-Control-Max-Age': '86400',
-          'Vary': 'Origin',
-        },
-      });
+      const headers: Record<string, string> = {
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Teajia-Account',
+        'Access-Control-Max-Age': '86400',
+        'Vary': 'Origin',
+      };
+      if (corsOrigin) headers['Access-Control-Allow-Origin'] = corsOrigin;
+      return new Response(null, { status: 204, headers });
     }
 
     const match = matchRoute(request.method, url.pathname, routes);
