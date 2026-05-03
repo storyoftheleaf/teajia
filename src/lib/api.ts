@@ -209,17 +209,30 @@ function maybeScheduleBackgroundRefresh() {
   void ensureTokenRefreshed();
 }
 
-/** Fetch with an AbortController timeout. */
+/** Fetch with an AbortController timeout.
+ *
+ *  Browsers throw a generic TypeError for any pre-response failure (DNS,
+ *  CORS preflight rejection, offline, mixed-content). The .message is
+ *  browser-specific and useless to surface in UI:
+ *    - Safari (iOS / macOS): "Load failed"
+ *    - Chrome:               "Failed to fetch"
+ *    - Firefox:              "NetworkError when attempting to fetch resource"
+ *  We rewrite all of those into a single clear message so the sign-in form
+ *  (and every other call-site) shows something the user can act on.
+ */
 async function fetchWithTimeout(url: string, options: RequestInit = {}): Promise<Response> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   try {
     return await fetch(url, { ...options, signal: controller.signal });
   } catch (err: any) {
-    if (err.name === 'AbortError') {
+    if (err?.name === 'AbortError') {
       throw new Error('Request timed out. Please try again.');
     }
     dispatchNetworkError();
+    if (err?.name === 'TypeError') {
+      throw new Error("Couldn't reach the server. Check your connection and try again.");
+    }
     throw err;
   } finally {
     clearTimeout(timeoutId);
