@@ -871,6 +871,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   // null hides the popover (no selection, mobile, or anchor row not yet measured).
   const tableWrapperRef = useRef<HTMLDivElement>(null);
   const [drawerTop, setDrawerTop] = useState<number | null>(null);
+  const [isDrawerExpanded, setIsDrawerExpanded] = useState(false);
 
   // Modals
   const [qrProduct, setQrProduct] = useState<Product | null>(null);
@@ -1152,8 +1153,13 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     return () => ro.disconnect();
   }, [anchorProductId, processedProducts, isMobile, collapsedGroups]);
 
+  // Always collapse the action chip when the anchor row changes — the user is
+  // moving on; the next expand should be intentional, not residual.
+  useEffect(() => { setIsDrawerExpanded(false); }, [anchorProductId]);
+
   // Floating action popover. Renders absolutely-positioned beneath the anchor row so
-  // selecting/deselecting teas never reflows the table.
+  // selecting/deselecting teas never reflows the table. Starts as a tiny chip showing
+  // just the count; tap the chip to expand into the full action bar.
   const renderActionDrawer = () => {
     if (!anchorProductId || isEditMode || drawerTop == null) return null;
     const count = selectedIds.size;
@@ -1161,85 +1167,124 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     return (
       <motion.div
         key={`__drawer__${anchorProductId}`}
-        initial={{ opacity: 0, y: -4 }}
+        initial={{ opacity: 0, y: -3 }}
         animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -4 }}
-        transition={{ duration: 0.14, ease: [0.4, 0, 0.2, 1] }}
+        exit={{ opacity: 0, y: -3 }}
+        transition={{ duration: 0.12, ease: [0.4, 0, 0.2, 1] }}
         className="absolute right-6 z-30"
         style={{ top: drawerTop + 6 }}
       >
-        {/* Notch — visually tethers the popover to the row above */}
+        {/* Notch — visually tethers the chip to the row above */}
         <div
-          className="absolute right-7 -top-[5px] w-2.5 h-2.5 bg-tea-elevated border-t border-l border-tea-border rotate-45"
+          className="absolute right-4 -top-[5px] w-2 h-2 bg-tea-elevated border-t border-l border-tea-border rotate-45"
           aria-hidden="true"
         />
-        <div
-          className="relative flex items-center gap-1 pl-2 pr-1 py-1 bg-tea-elevated border border-tea-border rounded-md"
-          style={{ boxShadow: '0 10px 28px rgba(24,19,14,0.32), 0 0 0 1px rgba(212,166,82,0.14)' }}
+        <motion.div
+          layout
+          transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+          className="relative flex items-center bg-tea-elevated border border-tea-border rounded-full overflow-hidden"
+          style={{ boxShadow: '0 6px 18px rgba(24,19,14,0.28), 0 0 0 1px rgba(212,166,82,0.10)' }}
         >
-          <button
-            onClick={toggleSelectAll}
-            className="flex items-baseline gap-1 px-2 py-1 rounded-md hover:bg-tea-bg/40 transition-colors"
-            title={allSelected ? 'Deselect all' : 'Select all'}
-          >
-            <span className="text-sm font-bold text-tea-text tabular-nums leading-none">{allSelected ? 'All' : count}</span>
-            <span className="text-ui-9 text-tea-text-sec uppercase tracking-[0.1em] leading-none">item{count !== 1 ? 's' : ''}</span>
-          </button>
-          <div className="w-px h-4 bg-tea-border mx-1 flex-shrink-0" />
-          <button
-            onClick={() => handleBulkVisibility(true)}
-            disabled={isBulkApplying}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 bg-tea-gold text-tea-bg rounded-md hover:bg-tea-gold/90 transition-colors disabled:opacity-40"
-            title="Publish"
-          >
-            {isBulkApplying ? <Loader2 size={12} className="animate-spin" /> : <Eye size={12} />}
-            <span className="text-ui-10 font-bold uppercase tracking-[0.15em]">Publish</span>
-          </button>
-          <button
-            onClick={() => handleBulkVisibility(false)}
-            disabled={isBulkApplying}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 text-tea-text-sec rounded-md hover:text-tea-text hover:bg-tea-bg/40 transition-colors disabled:opacity-40"
-            title="Unpublish"
-          >
-            {isBulkApplying ? <Loader2 size={12} className="animate-spin" /> : <EyeOff size={12} />}
-            <span className="text-ui-10 font-bold uppercase tracking-[0.15em]">Unpublish</span>
-          </button>
-          <button
-            onClick={handleSendToSamples}
-            disabled={isBulkApplying}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 text-tea-text-sec rounded-md hover:text-tea-text hover:bg-tea-bg/40 transition-colors disabled:opacity-40"
-            title="Send to samples"
-          >
-            <FlaskConical size={12} />
-            <span className="text-ui-10 font-bold uppercase tracking-[0.15em]">Samples</span>
-          </button>
-          <button
-            onClick={() => setShareToNetworkOpen(true)}
-            disabled={isBulkApplying}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 text-tea-text-sec rounded-md hover:text-tea-text hover:bg-tea-bg/40 transition-colors disabled:opacity-40"
-            title="Share"
-          >
-            <Globe size={12} />
-            <span className="text-ui-10 font-bold uppercase tracking-[0.15em]">Share</span>
-          </button>
-          <button
-            onClick={() => setInvoiceFromInventoryOpen(true)}
-            disabled={isBulkApplying}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 text-tea-text-sec rounded-md hover:text-tea-text hover:bg-tea-bg/40 transition-colors disabled:opacity-40"
-            title="Add to invoice"
-          >
-            <Receipt size={12} />
-            <span className="text-ui-10 font-bold uppercase tracking-[0.15em]">Invoice</span>
-          </button>
-          <div className="w-px h-4 bg-tea-border mx-1 flex-shrink-0" />
-          <button
-            onClick={() => { setSelectedIds(new Set()); lastSelectedIdxRef.current = null; }}
-            className="p-1.5 text-tea-text-sec hover:text-tea-text rounded-md hover:bg-tea-bg/40 transition-colors"
-            title="Clear selection"
-          >
-            <XIcon size={13} />
-          </button>
-        </div>
+          <AnimatePresence mode="wait" initial={false}>
+            {!isDrawerExpanded ? (
+              <motion.button
+                key="chip"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.08 }}
+                onClick={() => setIsDrawerExpanded(true)}
+                className="flex items-baseline gap-1 pl-3 pr-2.5 py-1.5 hover:bg-tea-bg/30 transition-colors"
+                title={`${allSelected ? 'All' : count} selected — tap to act`}
+              >
+                <span className="text-ui-12 font-bold text-tea-text tabular-nums leading-none">{allSelected ? 'All' : count}</span>
+                <span className="text-ui-9 text-tea-text-sec uppercase tracking-[0.1em] leading-none">item{count !== 1 ? 's' : ''}</span>
+                <ChevronDown size={10} className="text-tea-text-sec ml-0.5 self-center" aria-hidden="true" />
+              </motion.button>
+            ) : (
+              <motion.div
+                key="bar"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.1 }}
+                className="flex items-center gap-1 pl-2 pr-1 py-1"
+              >
+                <button
+                  onClick={toggleSelectAll}
+                  className="flex items-baseline gap-1 px-2 py-1 rounded-full hover:bg-tea-bg/40 transition-colors"
+                  title={allSelected ? 'Deselect all' : 'Select all'}
+                >
+                  <span className="text-ui-12 font-bold text-tea-text tabular-nums leading-none">{allSelected ? 'All' : count}</span>
+                  <span className="text-ui-9 text-tea-text-sec uppercase tracking-[0.1em] leading-none">item{count !== 1 ? 's' : ''}</span>
+                </button>
+                <div className="w-px h-4 bg-tea-border mx-0.5 flex-shrink-0" />
+                <button
+                  onClick={() => handleBulkVisibility(true)}
+                  disabled={isBulkApplying}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 bg-tea-gold text-tea-bg rounded-full hover:bg-tea-gold/90 transition-colors disabled:opacity-40"
+                  title="Publish"
+                >
+                  {isBulkApplying ? <Loader2 size={12} className="animate-spin" /> : <Eye size={12} />}
+                  <span className="text-ui-10 font-bold uppercase tracking-[0.15em]">Publish</span>
+                </button>
+                <button
+                  onClick={() => handleBulkVisibility(false)}
+                  disabled={isBulkApplying}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 text-tea-text-sec rounded-full hover:text-tea-text hover:bg-tea-bg/40 transition-colors disabled:opacity-40"
+                  title="Unpublish"
+                >
+                  {isBulkApplying ? <Loader2 size={12} className="animate-spin" /> : <EyeOff size={12} />}
+                  <span className="text-ui-10 font-bold uppercase tracking-[0.15em]">Unpublish</span>
+                </button>
+                <button
+                  onClick={handleSendToSamples}
+                  disabled={isBulkApplying}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 text-tea-text-sec rounded-full hover:text-tea-text hover:bg-tea-bg/40 transition-colors disabled:opacity-40"
+                  title="Send to samples"
+                >
+                  <FlaskConical size={12} />
+                  <span className="text-ui-10 font-bold uppercase tracking-[0.15em]">Samples</span>
+                </button>
+                <button
+                  onClick={() => setShareToNetworkOpen(true)}
+                  disabled={isBulkApplying}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 text-tea-text-sec rounded-full hover:text-tea-text hover:bg-tea-bg/40 transition-colors disabled:opacity-40"
+                  title="Share"
+                >
+                  <Globe size={12} />
+                  <span className="text-ui-10 font-bold uppercase tracking-[0.15em]">Share</span>
+                </button>
+                <button
+                  onClick={() => setInvoiceFromInventoryOpen(true)}
+                  disabled={isBulkApplying}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 text-tea-text-sec rounded-full hover:text-tea-text hover:bg-tea-bg/40 transition-colors disabled:opacity-40"
+                  title="Add to invoice"
+                >
+                  <Receipt size={12} />
+                  <span className="text-ui-10 font-bold uppercase tracking-[0.15em]">Invoice</span>
+                </button>
+                <div className="w-px h-4 bg-tea-border mx-0.5 flex-shrink-0" />
+                <button
+                  onClick={() => setIsDrawerExpanded(false)}
+                  className="p-1.5 text-tea-text-sec hover:text-tea-text rounded-full hover:bg-tea-bg/40 transition-colors"
+                  title="Collapse"
+                  aria-label="Collapse action bar"
+                >
+                  <ChevronUp size={12} />
+                </button>
+                <button
+                  onClick={() => { setSelectedIds(new Set()); lastSelectedIdxRef.current = null; setIsDrawerExpanded(false); }}
+                  className="p-1.5 text-tea-text-sec hover:text-tea-text rounded-full hover:bg-tea-bg/40 transition-colors"
+                  title="Clear selection"
+                  aria-label="Clear selection"
+                >
+                  <XIcon size={13} />
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
       </motion.div>
     );
   };
