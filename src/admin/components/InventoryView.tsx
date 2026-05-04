@@ -68,16 +68,16 @@ const VIEW_ICON_MAP: Record<string, React.ComponentType<{ size?: number; classNa
 };
 
 const VIEW_FILTER_LABELS: Record<string, string> = {
-  All: 'All Inventory',
-  ForSale: 'For Sale',
-  Alerts: 'Needs Attention',
+  All: 'All',
+  ForSale: 'Selling',
+  Alerts: 'Alerts',
   Unpublished: 'Hidden',
-  Unverified: 'Stock Check',
+  Unverified: 'Verify',
   Samples: 'Samples',
-  Personal: 'Personal Collection',
+  Personal: 'Personal',
   Archived: 'Archived',
-  SoldOut: 'Sold Out',
-  Untasted: 'Tasting Unreviewed',
+  SoldOut: 'Sold',
+  Untasted: 'Untasted',
 };
 
 // --- COLUMN DEFINITIONS ---
@@ -979,23 +979,6 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       return 0;
     });
   }, [localProducts, searchQuery, filterType, inventorySortConfig]);
-
-  const tabCounts = useMemo(() => {
-    const base = localProducts
-      .filter(p => inventoryCategory === 'teaware' ? p.type === 'Teaware' : p.type !== 'Teaware')
-      .filter(p => p.status !== 'Archived');
-    return {
-      Alerts: base.filter(p => p.status === 'Draft' || p.stockGrams <= p.lowStockThreshold || p.pricePerGramUSD === 0 || p.recheckStock).length,
-      Unverified: base.filter(p => !p.stockVerifiedAt).length,
-      Unpublished: base.filter(p => !p.isPublic).length,
-      Samples: base.filter(p => p.isSample).length,
-      Personal: base.filter(p => p.isPersonal).length,
-      ForSale: base.filter(p => !p.isPersonal && !p.isSample).length,
-      Archived: localProducts.filter(p =>
-        (inventoryCategory === 'teaware' ? p.type === 'Teaware' : p.type !== 'Teaware') && p.status === 'Archived'
-      ).length,
-    };
-  }, [localProducts, inventoryCategory]);
 
   // Visible columns (filtered by store, adapted to category)
   // Price columns are always controlled by priceMode toggle, not by view config
@@ -2132,11 +2115,6 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     >
                       {view.icon && VIEW_ICON_MAP[view.icon] && React.createElement(VIEW_ICON_MAP[view.icon], { size: 15 })}
                       {viewTabsExpanded && isIconOnly ? <span className="text-ui-11 uppercase tracking-[0.08em]">{filterLabel}</span> : (view.name || null)}
-                      {(tabCounts[view.filterType as keyof typeof tabCounts] ?? 0) > 0 && activeViewId !== view.id && (
-                        <span className={`absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] flex items-center justify-center text-ui-8 font-bold rounded-full px-0.5 leading-none ${view.filterType === 'Alerts' || view.filterType === 'Unverified' ? 'bg-tea-gold/80 text-tea-bg' : 'bg-tea-surface text-tea-text-dim border border-tea-border'}`}>
-                          {tabCounts[view.filterType as keyof typeof tabCounts]}
-                        </span>
-                      )}
                       {!view.id.startsWith('default-') && (
                         <span
                           onClick={(e) => { e.stopPropagation(); deleteView(view.id); }}
@@ -2353,11 +2331,6 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 >
                   {view.icon && VIEW_ICON_MAP[view.icon] && React.createElement(VIEW_ICON_MAP[view.icon], { size: 13 })}
                   {view.name}
-                  {(view.filterType === 'Alerts' || view.filterType === 'Unverified') && (tabCounts[view.filterType as keyof typeof tabCounts] ?? 0) > 0 && activeViewId !== view.id && (
-                    <span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] flex items-center justify-center bg-tea-gold/80 text-tea-bg text-ui-8 font-bold rounded-full px-0.5 leading-none">
-                      {tabCounts[view.filterType as keyof typeof tabCounts]}
-                    </span>
-                  )}
                   {!view.id.startsWith('default-') && (
                     <span
                       onClick={(e) => { e.stopPropagation(); deleteView(view.id); }}
