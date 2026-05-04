@@ -1197,27 +1197,28 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
     return (
       <>
-        {/* Chip — square gold tile that fills the row's right edge. Sized to the
-            anchor row's full height so it visually slots into the row instead of
-            floating above it. Subtle hover/active states keep it readable as a
-            button. */}
+        {/* Chip — gold tab that slots into the row's right wall. Flush with the
+            wrapper's right edge; small breathing margin on top and bottom so it
+            respects the row's vertical rhythm. Left side rounded, right side
+            flat against the edge — reads as a button tab pulled in from the
+            right. */}
         <div
-          className="absolute right-1 z-30"
-          style={{ top: anchorRect.top, height: anchorRect.bottom - anchorRect.top }}
+          className="absolute right-0 z-30"
+          style={{ top: anchorRect.top + 4, height: Math.max(0, anchorRect.bottom - anchorRect.top - 8) }}
         >
           <motion.button
             key={`__chip__${anchorProductId}`}
             data-action-chip
-            initial={{ opacity: 0, scale: 0.94 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.94 }}
-            transition={{ duration: 0.14, ease: [0.4, 0, 0.2, 1] }}
+            initial={{ opacity: 0, x: 4 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 4 }}
+            transition={{ duration: 0.16, ease: [0.4, 0, 0.2, 1] }}
             onClick={() => setIsDrawerExpanded(v => !v)}
             aria-expanded={isDrawerExpanded}
             aria-label={`${allSelected ? 'All' : count} selected — ${isDrawerExpanded ? 'close' : 'open'} actions`}
             title={`${allSelected ? 'All' : count} selected`}
-            className="flex items-center gap-1 px-2.5 h-full bg-tea-gold text-tea-bg rounded-sm hover:bg-tea-gold/90 active:bg-tea-gold/80 transition-colors"
-            style={{ boxShadow: 'inset 0 0 0 1px rgba(24,19,14,0.10)' }}
+            className="flex items-center gap-1 px-2.5 h-full bg-tea-gold text-tea-bg rounded-l-md hover:bg-tea-gold/90 active:bg-tea-gold/80 transition-colors"
+            style={{ boxShadow: 'inset 1px 0 0 rgba(24,19,14,0.12)' }}
           >
             <span className="text-ui-12 font-bold tabular-nums leading-none">{allSelected ? 'All' : count}</span>
             <motion.span
@@ -1243,15 +1244,15 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.94, y: menuOpenAbove ? 4 : -4 }}
               transition={{ duration: 0.16, ease: [0.4, 0, 0.2, 1] }}
-              className={`absolute right-3 z-30 w-48 ${menuOpenAbove ? 'origin-bottom-right' : 'origin-top-right'}`}
+              className={`absolute right-0 z-30 w-48 ${menuOpenAbove ? 'origin-bottom-right' : 'origin-top-right'}`}
               style={{
-                top: menuOpenAbove ? undefined : anchorRect.bottom + 8,
-                bottom: menuOpenAbove ? `calc(100% - ${anchorRect.top}px + 8px)` : undefined,
+                top: menuOpenAbove ? undefined : anchorRect.bottom + 6,
+                bottom: menuOpenAbove ? `calc(100% - ${anchorRect.top}px + 6px)` : undefined,
               }}
             >
               <div
-                className="bg-tea-elevated border border-tea-border rounded-lg overflow-hidden py-1"
-                style={{ boxShadow: '0 14px 36px rgba(24,19,14,0.46), 0 0 0 1px rgba(212,166,82,0.10)' }}
+                className="bg-tea-elevated border-y border-l border-tea-border rounded-l-lg overflow-hidden py-1"
+                style={{ boxShadow: '-12px 14px 36px rgba(24,19,14,0.42), inset 1px 0 0 rgba(212,166,82,0.12)' }}
               >
                 {/* Header — selection summary + select-all toggle */}
                 <button
