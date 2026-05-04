@@ -506,6 +506,7 @@ function InventoryRowBase(props: InventoryRowProps) {
 
   return (
     <tr
+      data-product-id={product.id}
       className={trCls}
       style={{ height: rowHeight }}
       onTouchStart={() => {
@@ -527,7 +528,10 @@ function InventoryRowBase(props: InventoryRowProps) {
         : visibleCols.map((col, colIdx) => renderCell(col.key, colIdx))}
       <td className="px-1 align-middle text-right">
         <div className="flex justify-end gap-0.5" onClick={(e) => e.stopPropagation()}>
-          {!isEditMode && (
+          {/* When the row is selected, the row's right-edge icons are hidden so the
+              floating selection chip (rendered in InventoryView) can sit alone in the
+              corner. Star/eye/edit/more return on deselect. */}
+          {!isEditMode && !isSelected && (
             <>
               <span className="inline-flex items-center gap-0.5">
                 <button onClick={(e) => { e.stopPropagation(); onSelectionAwareUpdate(product, 'isFeatured', !product.isFeatured); }} className={`${product.isFeatured ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'} p-1 transition-colors`} aria-label={product.isFeatured ? 'Remove featured star' : 'Mark as featured'} aria-pressed={product.isFeatured} title={product.isFeatured ? 'Remove star' : 'Star'}><Star size={12} className={product.isFeatured ? 'fill-tea-gold' : ''} aria-hidden="true" /></button>
@@ -866,6 +870,14 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const scrollRAFRef = useRef<number | null>(null);
   const [containerHeight, setContainerHeight] = useState(600);
 
+  // Floating action popover — anchored offsets from the desktop table wrapper. null
+  // hides the popover (no selection, mobile, or anchor row not yet measured). The
+  // tiny chip sits at the row's right edge; the expanded action bar drops just below.
+  const tableWrapperRef = useRef<HTMLDivElement>(null);
+  const [anchorRect, setAnchorRect] = useState<{ top: number; bottom: number } | null>(null);
+  const [menuOpenAbove, setMenuOpenAbove] = useState(false);
+  const [isDrawerExpanded, setIsDrawerExpanded] = useState(false);
+
   // Modals
   const [qrProduct, setQrProduct] = useState<Product | null>(null);
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
@@ -990,8 +1002,6 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     if (!inventoryColumns.includes(col.key)) return false;
     return true;
   }), [inventoryColumns, activeColumnDefs, priceMode]);
-  const colCount = visibleCols.length + 1; // +1 for actions column
-  const colCountWithBulk = colCount;
 
   // Index map for O(1) globalIdx lookup in grouped view (replaces O(n²) indexOf)
   const productIndexMap = useMemo(
@@ -1126,79 +1136,173 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     return null;
   })();
 
-  const renderActionDrawer = (colSpan: number) => {
-    if (!anchorProductId || isEditMode) return null;
+  // Track the anchor row's bottom offset relative to the desktop table wrapper so the
+  // floating action popover can dock just below it. ResizeObserver re-measures on row
+  // height changes (data updates, group collapse/expand, window resize).
+  useLayoutEffect(() => {
+    if (!anchorProductId || !tableWrapperRef.current || isMobile) {
+      setAnchorRect(null);
+      return;
+    }
+    const wrapper = tableWrapperRef.current;
+    const scrollContainer = wrapper.closest<HTMLElement>('[data-testid="inventory-scroll"]');
+    const compute = () => {
+      const row = wrapper.querySelector<HTMLElement>(`[data-product-id="${anchorProductId}"]`);
+      if (!row) { setAnchorRect(null); return; }
+      const wRect = wrapper.getBoundingClientRect();
+      const rRect = row.getBoundingClientRect();
+      setAnchorRect({ top: rRect.top - wRect.top, bottom: rRect.bottom - wRect.top });
+      // Decide menu open direction by remaining space inside the scroll viewport.
+      // Prefer opening below; flip up when the row is within ~MENU_HEIGHT of the bottom.
+      const MENU_HEIGHT = 280;
+      if (scrollContainer) {
+        const scRect = scrollContainer.getBoundingClientRect();
+        const spaceBelow = scRect.bottom - rRect.bottom;
+        const spaceAbove = rRect.top - scRect.top;
+        setMenuOpenAbove(spaceBelow < MENU_HEIGHT && spaceAbove > spaceBelow);
+      }
+    };
+    compute();
+    const ro = new ResizeObserver(compute);
+    ro.observe(wrapper);
+    if (scrollContainer) ro.observe(scrollContainer);
+    return () => ro.disconnect();
+  }, [anchorProductId, processedProducts, isMobile, collapsedGroups]);
+
+  // Always collapse the action chip when the anchor row changes — the user is
+  // moving on; the next expand should be intentional, not residual.
+  useEffect(() => { setIsDrawerExpanded(false); }, [anchorProductId]);
+
+  // Click outside the chip or menu collapses the action menu.
+  useEffect(() => {
+    if (!isDrawerExpanded) return;
+    const handler = (e: MouseEvent) => {
+      const t = e.target as HTMLElement;
+      if (t.closest('[data-action-menu]') || t.closest('[data-action-chip]')) return;
+      setIsDrawerExpanded(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [isDrawerExpanded]);
+
+  // Selection UI — tiny gold chip in the row's right corner + vertical dropdown
+  // menu anchored to the chip. Both float absolutely so toggling selection never
+  // reflows the table; the menu's narrow column means it overlays only the right
+  // strip of rows below (or above, when near the viewport bottom).
+  const renderActionDrawer = () => {
+    if (!anchorProductId || isEditMode || !anchorRect) return null;
     const count = selectedIds.size;
     const allSelected = count === processedProducts.length;
+    const menuItem = "w-full flex items-center gap-2.5 px-3 py-2 text-ui-12 text-tea-text-sec hover:text-tea-text hover:bg-tea-gold/8 transition-colors text-left disabled:opacity-40 disabled:cursor-not-allowed";
+
     return (
-      <tr key={`__drawer__${anchorProductId}`} className="bg-tea-elevated border-b border-tea-border">
-        <td colSpan={colSpan} className="p-0">
-          <div className="flex items-center gap-1 px-4 py-2 flex-wrap">
-            <button
-              onClick={toggleSelectAll}
-              className="flex items-baseline gap-1 px-2 py-1 rounded-md hover:bg-tea-bg/40 transition-colors"
-              title={allSelected ? 'Deselect all' : 'Select all'}
+      <>
+        {/* Chip — gold tab that slots into the row's right wall. Flush with the
+            wrapper's right edge; small breathing margin on top and bottom so it
+            respects the row's vertical rhythm. Left side rounded, right side
+            flat against the edge — reads as a button tab pulled in from the
+            right. */}
+        <div
+          className="absolute right-0 z-30"
+          style={{ top: anchorRect.top + 4, height: Math.max(0, anchorRect.bottom - anchorRect.top - 8) }}
+        >
+          <motion.button
+            key={`__chip__${anchorProductId}`}
+            data-action-chip
+            initial={{ opacity: 0, x: 4 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 4 }}
+            transition={{ duration: 0.16, ease: [0.4, 0, 0.2, 1] }}
+            onClick={() => setIsDrawerExpanded(v => !v)}
+            aria-expanded={isDrawerExpanded}
+            aria-label={`${allSelected ? 'All' : count} selected — ${isDrawerExpanded ? 'close' : 'open'} actions`}
+            title={`${allSelected ? 'All' : count} selected`}
+            className="flex items-center gap-1 px-2.5 h-full bg-tea-gold text-tea-bg rounded-l-md hover:bg-tea-gold/90 active:bg-tea-gold/80 transition-colors"
+            style={{ boxShadow: 'inset 1px 0 0 rgba(24,19,14,0.12)' }}
+          >
+            <span className="text-ui-12 font-bold tabular-nums leading-none">{allSelected ? 'All' : count}</span>
+            <motion.span
+              animate={{ rotate: isDrawerExpanded ? 180 : 0 }}
+              transition={{ duration: 0.2 }}
+              className="inline-flex items-center"
+              aria-hidden="true"
             >
-              <span className="text-sm font-bold text-tea-text tabular-nums leading-none">{allSelected ? 'All' : count}</span>
-              <span className="text-ui-9 text-tea-text-sec uppercase tracking-[0.1em] leading-none">item{count !== 1 ? 's' : ''}</span>
-            </button>
-            <div className="w-px h-4 bg-tea-border mx-1 flex-shrink-0" />
-            <button
-              onClick={() => handleBulkVisibility(true)}
-              disabled={isBulkApplying}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-tea-gold text-tea-bg rounded-md hover:bg-tea-gold/90 transition-colors disabled:opacity-40"
-              title="Publish"
+              <ChevronDown size={11} strokeWidth={3} />
+            </motion.span>
+          </motion.button>
+        </div>
+
+        {/* Vertical action menu — opens below the row by default, flips above
+            when there isn't enough room. Origin is the corner closest to the
+            chip so the open animation reads as expanding *from* the chip. */}
+        <AnimatePresence>
+          {isDrawerExpanded && (
+            <motion.div
+              key={`__menu__${anchorProductId}`}
+              data-action-menu
+              initial={{ opacity: 0, scale: 0.94, y: menuOpenAbove ? 4 : -4 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.94, y: menuOpenAbove ? 4 : -4 }}
+              transition={{ duration: 0.16, ease: [0.4, 0, 0.2, 1] }}
+              className={`absolute right-0 z-30 w-48 ${menuOpenAbove ? 'origin-bottom-right' : 'origin-top-right'}`}
+              style={{
+                top: menuOpenAbove ? undefined : anchorRect.bottom + 6,
+                bottom: menuOpenAbove ? `calc(100% - ${anchorRect.top}px + 6px)` : undefined,
+              }}
             >
-              {isBulkApplying ? <Loader2 size={12} className="animate-spin" /> : <Eye size={12} />}
-              <span className="text-ui-10 font-bold uppercase tracking-[0.15em]">Publish</span>
-            </button>
-            <button
-              onClick={() => handleBulkVisibility(false)}
-              disabled={isBulkApplying}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 text-tea-text-sec rounded-md hover:text-tea-text hover:bg-tea-bg/40 transition-colors disabled:opacity-40"
-              title="Unpublish"
-            >
-              {isBulkApplying ? <Loader2 size={12} className="animate-spin" /> : <EyeOff size={12} />}
-              <span className="text-ui-10 font-bold uppercase tracking-[0.15em]">Unpublish</span>
-            </button>
-            <button
-              onClick={handleSendToSamples}
-              disabled={isBulkApplying}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 text-tea-text-sec rounded-md hover:text-tea-text hover:bg-tea-bg/40 transition-colors disabled:opacity-40"
-              title="Send to samples"
-            >
-              <FlaskConical size={12} />
-              <span className="text-ui-10 font-bold uppercase tracking-[0.15em]">Samples</span>
-            </button>
-            <button
-              onClick={() => setShareToNetworkOpen(true)}
-              disabled={isBulkApplying}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 text-tea-text-sec rounded-md hover:text-tea-text hover:bg-tea-bg/40 transition-colors disabled:opacity-40"
-              title="Share"
-            >
-              <Globe size={12} />
-              <span className="text-ui-10 font-bold uppercase tracking-[0.15em]">Share</span>
-            </button>
-            <button
-              onClick={() => setInvoiceFromInventoryOpen(true)}
-              disabled={isBulkApplying}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 text-tea-text-sec rounded-md hover:text-tea-text hover:bg-tea-bg/40 transition-colors disabled:opacity-40"
-              title="Add to invoice"
-            >
-              <Receipt size={12} />
-              <span className="text-ui-10 font-bold uppercase tracking-[0.15em]">Invoice</span>
-            </button>
-            <div className="flex-1" />
-            <button
-              onClick={() => { setSelectedIds(new Set()); lastSelectedIdxRef.current = null; }}
-              className="p-1.5 text-tea-text-sec hover:text-tea-text rounded-md hover:bg-tea-bg/40 transition-colors"
-              title="Clear selection"
-            >
-              <XIcon size={13} />
-            </button>
-          </div>
-        </td>
-      </tr>
+              <div
+                className="bg-tea-elevated border-y border-l border-tea-border rounded-l-lg overflow-hidden py-1"
+                style={{ boxShadow: '-12px 14px 36px rgba(24,19,14,0.42), inset 1px 0 0 rgba(212,166,82,0.12)' }}
+              >
+                {/* Header — selection summary + select-all toggle */}
+                <button
+                  onClick={toggleSelectAll}
+                  className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-tea-bg/30 transition-colors"
+                  title={allSelected ? 'Deselect all' : 'Select all'}
+                >
+                  <span className="text-ui-9 text-tea-text-sec uppercase tracking-[0.12em]">Selection</span>
+                  <span className="flex items-baseline gap-1">
+                    <span className="text-ui-12 font-bold text-tea-text tabular-nums leading-none">{allSelected ? 'All' : count}</span>
+                    <span className="text-ui-9 text-tea-text-sec uppercase tracking-[0.1em] leading-none">item{count !== 1 ? 's' : ''}</span>
+                  </span>
+                </button>
+                <div className="h-px bg-tea-border" />
+
+                {/* Primary action — Publish, accented gold */}
+                <button onClick={() => handleBulkVisibility(true)} disabled={isBulkApplying} className={menuItem}>
+                  {isBulkApplying ? <Loader2 size={13} className="animate-spin text-tea-gold" /> : <Eye size={13} className="text-tea-gold" />}
+                  <span className="text-tea-text">Publish</span>
+                </button>
+                <button onClick={() => handleBulkVisibility(false)} disabled={isBulkApplying} className={menuItem}>
+                  {isBulkApplying ? <Loader2 size={13} className="animate-spin" /> : <EyeOff size={13} />}
+                  <span>Unpublish</span>
+                </button>
+                <button onClick={handleSendToSamples} disabled={isBulkApplying} className={menuItem}>
+                  <FlaskConical size={13} />
+                  <span>Send to samples</span>
+                </button>
+                <button onClick={() => setShareToNetworkOpen(true)} disabled={isBulkApplying} className={menuItem}>
+                  <Globe size={13} />
+                  <span>Share</span>
+                </button>
+                <button onClick={() => setInvoiceFromInventoryOpen(true)} disabled={isBulkApplying} className={menuItem}>
+                  <Receipt size={13} />
+                  <span>Add to invoice</span>
+                </button>
+
+                <div className="h-px bg-tea-border my-1" />
+                <button
+                  onClick={() => { setSelectedIds(new Set()); lastSelectedIdxRef.current = null; setIsDrawerExpanded(false); }}
+                  className={menuItem}
+                >
+                  <XIcon size={13} />
+                  <span>Clear selection</span>
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </>
     );
   };
 
@@ -3318,11 +3422,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         </div>}
 
         {/* DESKTOP TABLE */}
-        {!isMobile && filterType !== 'Pending' && !glossaryMode && <div className="w-full max-w-7xl mx-auto bg-tea-surface min-h-full">
+        {!isMobile && filterType !== 'Pending' && !glossaryMode && <div ref={tableWrapperRef} className="relative w-full max-w-7xl mx-auto bg-tea-surface min-h-full">
 
-          {/* Anchor row for context-anchored action drawer.
-              Prefers the last-clicked index, falls back to the first selected id. */}
-          {(() => { /* no-op placeholder for readability */ return null; })()}
+          {/* Floating bulk-action popover — anchored to the last-clicked row, positioned
+              absolutely so toggling selection never reflows the table. */}
+          <AnimatePresence>{renderActionDrawer()}</AnimatePresence>
 
           {/* --- GROUPED VIEW --- */}
           {groupedProducts ? (
@@ -3399,7 +3503,6 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                   showToast={showToast}
                                   navigate={navigate}
                                 />
-                                {product.id === anchorProductId && renderActionDrawer(splitView ? 2 : visibleCols.length + 1)}
                               </React.Fragment>
                             );
                           })}
@@ -3462,7 +3565,6 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                               showToast={showToast}
                               navigate={navigate}
                             />
-                            {product.id === anchorProductId && renderActionDrawer(splitView ? 2 : colCountWithBulk)}
                           </React.Fragment>
                         );
                     })}
