@@ -714,7 +714,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                   setDraftProduct(null);
                   setShowDraftBanner(false);
                 }}
-                className="text-xs text-tea-text-dim hover:text-tea-text-sec uppercase tracking-wider transition-colors"
+                className="text-xs text-tea-text-sec hover:text-tea-text uppercase tracking-wider transition-colors"
               >
                 Discard
               </button>
@@ -730,25 +730,25 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
 
             {/* TOGGLE CHIPS */}
             <div className="flex flex-wrap gap-1.5">
-                <label className={`pill cursor-pointer select-none font-bold ${formData.isPersonal ? 'pill-active' : ''}`}>
-                    <input type="checkbox" name="isPersonal" checked={formData.isPersonal} onChange={handleChange} className="hidden" />
-                    <UserCheck size={12} /> Personal
+                <label className={`pill cursor-pointer select-none font-bold has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-tea-gold/50 has-[:focus-visible]:ring-offset-1 has-[:focus-visible]:ring-offset-tea-bg ${formData.isPersonal ? 'pill-active' : ''}`}>
+                    <input type="checkbox" name="isPersonal" checked={formData.isPersonal} onChange={handleChange} className="sr-only" />
+                    <UserCheck size={12} aria-hidden="true" /> Personal
                 </label>
-                <label className={`pill cursor-pointer select-none font-bold ${formData.canReorder ? 'pill-active' : ''}`}>
-                    <input type="checkbox" name="canReorder" checked={formData.canReorder} onChange={handleChange} className="hidden" />
-                    <RefreshCw size={12} /> Restockable
+                <label className={`pill cursor-pointer select-none font-bold has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-tea-gold/50 has-[:focus-visible]:ring-offset-1 has-[:focus-visible]:ring-offset-tea-bg ${formData.canReorder ? 'pill-active' : ''}`}>
+                    <input type="checkbox" name="canReorder" checked={formData.canReorder} onChange={handleChange} className="sr-only" />
+                    <RefreshCw size={12} aria-hidden="true" /> Restockable
                 </label>
-                <label className={`pill cursor-pointer select-none font-bold ${formData.isPublic ? 'pill-active' : ''}`}>
-                    <input type="checkbox" name="isPublic" checked={formData.isPublic} onChange={handleChange} className="hidden" />
-                    <Globe size={12} /> Public
+                <label className={`pill cursor-pointer select-none font-bold has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-tea-gold/50 has-[:focus-visible]:ring-offset-1 has-[:focus-visible]:ring-offset-tea-bg ${formData.isPublic ? 'pill-active' : ''}`}>
+                    <input type="checkbox" name="isPublic" checked={formData.isPublic} onChange={handleChange} className="sr-only" />
+                    <Globe size={12} aria-hidden="true" /> Public
                 </label>
-                <label className={`pill cursor-pointer select-none font-bold ${formData.isCurated ? 'pill-active' : ''}`}>
-                    <input type="checkbox" name="isCurated" checked={formData.isCurated} onChange={handleChange} className="hidden" />
-                    <Star size={12} /> Curated
+                <label className={`pill cursor-pointer select-none font-bold has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-tea-gold/50 has-[:focus-visible]:ring-offset-1 has-[:focus-visible]:ring-offset-tea-bg ${formData.isCurated ? 'pill-active' : ''}`}>
+                    <input type="checkbox" name="isCurated" checked={formData.isCurated} onChange={handleChange} className="sr-only" />
+                    <Star size={12} aria-hidden="true" /> Curated
                 </label>
                 {isPlatformAccount && (
-                  <label className={`pill cursor-pointer select-none font-bold ${formData.catalogVisible ? 'pill-active' : ''}`}>
-                    <input type="checkbox" checked={formData.catalogVisible} onChange={e => setFormData(prev => ({ ...prev, catalogVisible: e.target.checked }))} className="hidden" />
+                  <label className={`pill cursor-pointer select-none font-bold has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-tea-gold/50 has-[:focus-visible]:ring-offset-1 has-[:focus-visible]:ring-offset-tea-bg ${formData.catalogVisible ? 'pill-active' : ''}`}>
+                    <input type="checkbox" checked={formData.catalogVisible} onChange={e => setFormData(prev => ({ ...prev, catalogVisible: e.target.checked }))} className="sr-only" />
                     In Catalog
                   </label>
                 )}
@@ -975,9 +975,9 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
 
                       <label className="flex items-center gap-2 mt-1.5 cursor-pointer group">
                           <div className="relative">
-                              <input type="checkbox" name="recheckStock" checked={formData.recheckStock} onChange={handleChange} className="sr-only" />
-                              <div className={`w-3.5 h-3.5 rounded-sm border transition-colors ${formData.recheckStock ? 'bg-tea-gold border-tea-gold' : 'border-tea-border group-hover:border-tea-gold/20'}`}>
-                                  {formData.recheckStock && <svg className="w-3.5 h-3.5 text-tea-bg" viewBox="0 0 14 14" fill="none"><path d="M3.5 7L6 9.5L10.5 4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                              <input type="checkbox" name="recheckStock" checked={formData.recheckStock} onChange={handleChange} className="peer sr-only" />
+                              <div className={`w-3.5 h-3.5 rounded-sm border transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-tea-gold/50 peer-focus-visible:ring-offset-1 peer-focus-visible:ring-offset-tea-bg ${formData.recheckStock ? 'bg-tea-gold border-tea-gold' : 'border-tea-border group-hover:border-tea-gold/20'}`}>
+                                  {formData.recheckStock && <svg className="w-3.5 h-3.5 text-tea-bg" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M3.5 7L6 9.5L10.5 4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                               </div>
                           </div>
                           <span className="text-xs text-tea-text-sec group-hover:text-tea-text transition-colors">Flag for stock recheck</span>
@@ -986,9 +986,9 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                       {/* In-transit toggle + expanded fields */}
                       <label className="flex items-center gap-2 mt-1.5 cursor-pointer group">
                           <div className="relative">
-                              <input type="checkbox" name="inTransit" checked={formData.inTransit} onChange={handleChange} className="sr-only" />
-                              <div className={`w-3.5 h-3.5 rounded-sm border transition-colors ${formData.inTransit ? 'bg-tea-gold border-tea-gold' : 'border-tea-border group-hover:border-tea-gold/20'}`}>
-                                  {formData.inTransit && <svg className="w-3.5 h-3.5 text-tea-bg" viewBox="0 0 14 14" fill="none"><path d="M3.5 7L6 9.5L10.5 4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                              <input type="checkbox" name="inTransit" checked={formData.inTransit} onChange={handleChange} className="peer sr-only" />
+                              <div className={`w-3.5 h-3.5 rounded-sm border transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-tea-gold/50 peer-focus-visible:ring-offset-1 peer-focus-visible:ring-offset-tea-bg ${formData.inTransit ? 'bg-tea-gold border-tea-gold' : 'border-tea-border group-hover:border-tea-gold/20'}`}>
+                                  {formData.inTransit && <svg className="w-3.5 h-3.5 text-tea-bg" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M3.5 7L6 9.5L10.5 4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                               </div>
                           </div>
                           <span className="text-xs text-tea-text-sec group-hover:text-tea-text transition-colors">In transit</span>
@@ -1028,7 +1028,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                         <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileUpload} className="hidden" id="img-upload" />
                         <label
                             htmlFor="img-upload"
-                            className={`flex items-center justify-center gap-2 w-full border border-dashed border-tea-border rounded-lg p-3 cursor-pointer hover:bg-tea-bg hover:bg-tea-gold/5 transition-all text-sm ${uploading ? 'opacity-50 pointer-events-none' : ''}`}
+                            className={`flex items-center justify-center gap-2 w-full border border-dashed border-tea-border rounded-lg p-3 cursor-pointer hover:bg-tea-gold/5 transition-all text-sm ${uploading ? 'opacity-50 pointer-events-none' : ''}`}
                         >
                             {uploading ? <Loader2 className="animate-spin text-tea-gold" size={16} /> : <Upload className="text-tea-text-sec" size={16} />}
                             <span className="text-xs text-tea-text-sec font-mono">{uploading ? 'Uploading...' : 'Click to Upload Image'}</span>
@@ -1063,7 +1063,8 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                           ...prev,
                           additionalImages: prev.additionalImages.filter((_, i) => i !== idx),
                         }))}
-                        className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
+                        className="absolute inset-0 bg-tea-bg/70 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
+                        aria-label="Remove image"
                       >
                         <Trash2 size={12} className="text-tea-text" />
                       </button>
@@ -1133,8 +1134,8 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                             </button>
                             <label className="flex items-center gap-2 cursor-pointer group/toggle">
                                 <div className="relative">
-                                    <input type="checkbox" name="showWisdom" checked={formData.showWisdom} onChange={handleChange} className="sr-only" />
-                                    <div className={`block w-7 h-3.5 rounded-full transition-colors ${formData.showWisdom ? 'bg-tea-gold/30' : 'bg-tea-border'}`}></div>
+                                    <input type="checkbox" name="showWisdom" checked={formData.showWisdom} onChange={handleChange} className="peer sr-only" />
+                                    <div className={`block w-7 h-3.5 rounded-full transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-tea-gold/50 peer-focus-visible:ring-offset-1 peer-focus-visible:ring-offset-tea-bg ${formData.showWisdom ? 'bg-tea-gold/30' : 'bg-tea-border'}`}></div>
                                     <div className={`absolute left-0.5 top-0.5 bg-tea-text w-2.5 h-2.5 rounded-full transition-transform ${formData.showWisdom ? 'translate-x-3.5 bg-tea-gold' : ''}`}></div>
                                 </div>
                                 <span className="text-ui-10 uppercase tracking-wider text-tea-text-sec group-hover/toggle:text-tea-text transition-colors">Show Publicly</span>
@@ -1158,7 +1159,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                             <button
                                 type="button"
                                 onClick={() => setPendingWisdom(null)}
-                                className="text-xs text-tea-text-dim hover:text-tea-text-sec uppercase tracking-wider transition-colors"
+                                className="text-xs text-tea-text-sec hover:text-tea-text uppercase tracking-wider transition-colors"
                             >
                                 Discard
                             </button>
@@ -1170,7 +1171,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                 {showWisdomSaveHint && !pendingWisdom && (
                     <div className="mx-1 mb-3 px-3 py-2 bg-tea-accent-sub/30 border border-tea-border rounded-lg flex items-center justify-between gap-2">
                         <span className="text-xs text-tea-text-sec">Wisdom populated — save the product to persist it.</span>
-                        <button type="button" onClick={() => setShowWisdomSaveHint(false)} className="text-ui-10 text-tea-text-dim hover:text-tea-text-sec">✕</button>
+                        <button type="button" onClick={() => setShowWisdomSaveHint(false)} aria-label="Dismiss" className="text-ui-10 text-tea-text-sec hover:text-tea-text">✕</button>
                     </div>
                 )}
 
