@@ -923,63 +923,35 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
 
         <div className="border-t border-tea-border" />
 
-        {/* Row 3 — Name + Category */}
-        <div className="flex items-center gap-2">
-          <input
-            type="text"
-            value={entry.name}
-            onChange={(e) => update({ name: e.target.value })}
-            placeholder="What is it?"
-            className="flex-1 min-w-0 bg-tea-gold/[0.06] text-tea-text text-base rounded-xl px-3 py-2.5 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder:text-tea-text-dim"
-          />
-          <div className="relative shrink-0" ref={categoryPopoverRef}>
-            <button
-              type="button"
-              onClick={() => { setCategoryPopoverOpen(!categoryPopoverOpen); setEraPopoverOpen(false); setMaterialPopoverOpen(false); }}
-              className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2.5 text-sm font-medium bg-tea-elevated text-tea-text-sec border border-tea-border hover:bg-tea-gold/[0.1] hover:text-tea-text active:bg-tea-gold/[0.14] transition-colors whitespace-nowrap"
-              style={entry.teawareCategory ? { backgroundColor: 'rgb(var(--tea-gold-rgb) / 0.12)', color: 'var(--tea-gold)' } : undefined}
-            >
-              <span>{entry.teawareCategory || 'Category'}</span>
-              <ChevronDown size={14} strokeWidth={2} />
-            </button>
-            <AnimatePresence>
-              {categoryPopoverOpen && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ duration: 0.15 }}
-                  className="absolute top-full right-0 mt-1 z-20 bg-tea-surface rounded-xl p-2 shadow-lg border border-tea-border"
-                >
-                  <div className="grid grid-cols-2 gap-1.5" style={{ minWidth: '160px' }}>
-                    {TEAWARE_CATEGORIES.map((cat) => (
-                      <button
-                        key={cat}
-                        type="button"
-                        onClick={() => {
-                          const updates: Record<string, unknown> = { teawareCategory: cat };
-                          if (entry.teawareCategory !== cat) {
-                            updates.material = undefined;
-                            updates.clayType = undefined;
-                          }
-                          update(updates);
-                          setCategoryPopoverOpen(false);
-                        }}
-                        className={`${entry.teawareCategory === cat ? 'tag-selectable-active' : 'tag-selectable'} py-2`}
-                      >
-                        {cat}
-                      </button>
-                    ))}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        </div>
+        {/* Row 3 — Name (full width). The category chip moved down with Era /
+            Material so the descriptors group together and the name field gets
+            the full row to breathe. */}
+        <input
+          type="text"
+          value={entry.name}
+          onChange={(e) => update({ name: e.target.value })}
+          placeholder="What is it?"
+          className="w-full bg-tea-gold/[0.06] text-tea-text text-base rounded-xl px-3 py-2.5 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder:text-tea-text-dim"
+        />
 
-        {/* Row 4 — Era + Material + Origin (relative wrapper so popovers are bounded by the row) */}
+        {/* Row 4 — Category + Era + Material + Origin. flex-wrap so long labels
+            (e.g. "Pre-70s", "Porcelain") fall to a second line gracefully on
+            narrow viewports instead of crushing Origin to nothing. */}
         <div className="relative">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Category chip — was on the name row, moved here so all descriptors live together */}
+            <div className="shrink-0" ref={categoryPopoverRef}>
+              <button
+                type="button"
+                onClick={() => { setCategoryPopoverOpen(!categoryPopoverOpen); setEraPopoverOpen(false); setMaterialPopoverOpen(false); }}
+                className="inline-flex items-center gap-1 rounded-xl px-3 py-2.5 text-sm bg-tea-gold/[0.06] border border-tea-border text-tea-text-dim hover:text-tea-text transition-colors"
+                style={entry.teawareCategory ? { color: 'var(--tea-text)' } : undefined}
+              >
+                <span>{entry.teawareCategory || 'Category'}</span>
+                <ChevronDown size={13} strokeWidth={2} />
+              </button>
+            </div>
+
             {/* Era chip */}
             <div className="shrink-0" ref={eraPopoverRef}>
               <button
@@ -1012,15 +984,51 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
               </button>
             </div>
 
-            {/* Origin */}
+            {/* Origin — flex-1 so it fills the remaining row, but min-w-[140px]
+                so it doesn't get crushed when the chip line is full. When the
+                chip line wraps, Origin lands on its own line at full width. */}
             <AutocompleteInput
               value={entry.originRegion || ''}
               onChange={(val) => update({ originRegion: val || undefined })}
               suggestions={availableRegions}
               placeholder="Origin"
-              className="flex-1 min-w-0 bg-tea-gold/[0.06] text-tea-text text-base rounded-xl px-3 py-2.5 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder:text-tea-text-dim"
+              className="flex-1 min-w-[140px] bg-tea-gold/[0.06] text-tea-text text-base rounded-xl px-3 py-2.5 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder:text-tea-text-dim"
             />
           </div>
+
+          {/* Category popover — anchored to the row's left edge */}
+          <AnimatePresence>
+            {categoryPopoverOpen && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.15 }}
+                className="absolute top-full left-0 mt-1 z-20 bg-tea-surface rounded-xl p-2 shadow-lg border border-tea-border"
+              >
+                <div className="grid grid-cols-2 gap-1.5" style={{ minWidth: '180px' }}>
+                  {TEAWARE_CATEGORIES.map((cat) => (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => {
+                        const updates: Record<string, unknown> = { teawareCategory: cat };
+                        if (entry.teawareCategory !== cat) {
+                          updates.material = undefined;
+                          updates.clayType = undefined;
+                        }
+                        update(updates);
+                        setCategoryPopoverOpen(false);
+                      }}
+                      className={`${entry.teawareCategory === cat ? 'tag-selectable-active' : 'tag-selectable'} py-2`}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Optional clay-subtype subtitle — small line below the row when Yixing has a clay set.
               Placement (small, dim, indented under the Material chip) signals that it's an
