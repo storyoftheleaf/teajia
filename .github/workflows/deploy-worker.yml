@@ -1,0 +1,48 @@
+name: Deploy worker
+
+# Cloudflare Pages auto-deploys the frontend on every push, but the worker
+# (the API at teajia-api.lightcodes.workers.dev) only updates when we run
+# `wrangler deploy`. This workflow runs that command in CI whenever the
+# worker source changes on main, plus on demand from the Actions tab.
+#
+# Required GitHub repo secrets:
+#   CLOUDFLARE_API_TOKEN   — Edit Workers permission, scoped to the account
+#   CLOUDFLARE_ACCOUNT_ID  — the account that owns teajia-api
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'worker/**'
+      - '.github/workflows/deploy-worker.yml'
+  # Lets you trigger a deploy manually from any branch (Actions tab → Run workflow).
+  # Useful when a fix has landed on a feature branch and you want it live
+  # before the branch is merged to main.
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-worker
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install worker dependencies
+        working-directory: worker
+        run: npm ci
+
+      - name: Deploy to Cloudflare Workers
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: worker
+          command: deploy
