@@ -10507,6 +10507,34 @@ const handleGetMyJourney: Handler = async (request, env) => {
 
 // ── Co-Tasting Sessions ──
 
+// Returns { userId, claims } when the caller has a valid token and is a member
+// of the given session. Returns { error } otherwise. Used by per-guest handlers
+// where the caller has no account membership (Tasting Event guests are
+// passwordless redeemers with empty memberships).
+async function requireSessionMember(
+  request: Request,
+  env: Env,
+  sessionId: string,
+): Promise<{ userId: string; claims: TokenClaims; sessionRow: Record<string, any> } | { error: Response }> {
+  const authErr = await requireAuth(request, env);
+  if (authErr) return { error: authErr };
+  const token = isAuthed(request)!;
+  const claims = parseToken(token);
+  if (!claims) return { error: json({ error: 'Unauthorized', reason: 'invalid' }, 401) };
+  const sessionRow = await env.DB.prepare(
+    'SELECT * FROM tasting_sessions WHERE id = ?'
+  ).bind(sessionId).first() as Record<string, any> | null;
+  if (!sessionRow) return { error: json({ error: 'Session not found' }, 404) };
+  const member = await env.DB.prepare(
+    'SELECT 1 as ok FROM tasting_session_members WHERE session_id = ? AND user_id = ?'
+  ).bind(sessionId, claims.sub).first<{ ok: number }>();
+  // Host (created_by_user_id) is always treated as a member even if the row is missing.
+  if (!member && sessionRow.created_by_user_id !== claims.sub) {
+    return { error: json({ error: 'Not a member of this session' }, 403) };
+  }
+  return { userId: claims.sub, claims, sessionRow };
+}
+
 const handleCreateSession: Handler = async (request, env) => {
   const ctx = await requireAccount(request, env);
   if ('error' in ctx) return ctx.error;
@@ -10515,6 +10543,7 @@ const handleCreateSession: Handler = async (request, env) => {
   const body = await request.json() as {
     title?: string;
     entry_ids?: string[];
+    product_ids?: string[];
     member_ids?: string[];
   };
 
@@ -10524,16 +10553,50 @@ const handleCreateSession: Handler = async (request, env) => {
 
   await env.DB.prepare(
     `INSERT INTO tasting_sessions (id, account_id, created_by_user_id, title, status, invite_token, max_participants, created_at)
-     VALUES (?, ?, ?, ?, 'active', ?, 4, ?)`
+     VALUES (?, ?, ?, ?, 'active', ?, 8, ?)`
   ).bind(sessionId, accountId, userId, body.title || null, inviteToken, now).run();
 
-  // Add creator as first member
+  // Add creator as first member. INSERT OR IGNORE matches the other join paths
+  // and is safe under retry (handler crash + retry would otherwise hit a UNIQUE
+  // violation on the second pass).
   await env.DB.prepare(
-    `INSERT INTO tasting_session_members (id, session_id, user_id, joined_at) VALUES (?, ?, ?, ?)`
+    `INSERT OR IGNORE INTO tasting_session_members (id, session_id, user_id, joined_at) VALUES (?, ?, ?, ?)`
   ).bind(crypto.randomUUID(), sessionId, userId, now).run();
 
-  // Add teas from entry_ids
+  // Tasting Event flow: link teas to products catalog so verdicts can bridge into
+  // customer_tasting_journal (keyed on (user_id, product_id)). Scope to the host's
+  // account — guests must not be able to taste another account's catalog rows.
+  const productIds: string[] = body.product_ids || [];
+  for (let i = 0; i < productIds.length; i++) {
+    const product = await env.DB.prepare(
+      `SELECT id, given_name, product_name, type, year, origin_region, image_url, additional_images
+       FROM products WHERE id = ? AND account_id = ?`
+    ).bind(productIds[i], accountId).first() as Record<string, any> | null;
+    if (!product) continue;
+
+    let photo: string | null = product.image_url ?? null;
+    if (!photo && product.additional_images) {
+      try { photo = JSON.parse(product.additional_images)?.[0] ?? null; } catch { photo = null; }
+    }
+
+    const teaName = product.given_name || product.product_name || 'Tea';
+    const metadata = JSON.stringify({
+      name: teaName,
+      type: product.type ?? null,
+      year: product.year ?? null,
+      originRegion: product.origin_region ?? null,
+      photo,
+    });
+
+    await env.DB.prepare(
+      `INSERT INTO tasting_session_teas (id, session_id, product_id, compass_entry_id, tea_name, tea_key, tea_metadata, position)
+       VALUES (?, ?, ?, NULL, ?, NULL, ?, ?)`
+    ).bind(crypto.randomUUID(), sessionId, product.id, teaName, metadata, i).run();
+  }
+
+  // Legacy compass-entry path — kept so co-tasting from the Compass still works.
   const entryIds: string[] = body.entry_ids || [];
+  const baseIndex = productIds.length;
   for (let i = 0; i < entryIds.length; i++) {
     const entry = await env.DB.prepare(
       'SELECT id, name, tea_key, type, form, year, origin_region, photos FROM tea_compass_entries WHERE id = ? AND account_id = ?'
@@ -10549,7 +10612,7 @@ const handleCreateSession: Handler = async (request, env) => {
     await env.DB.prepare(
       `INSERT INTO tasting_session_teas (id, session_id, compass_entry_id, tea_name, tea_key, tea_metadata, position)
        VALUES (?, ?, ?, ?, ?, ?, ?)`
-    ).bind(crypto.randomUUID(), sessionId, entry.id, entry.name, entry.tea_key || null, metadata, i).run();
+    ).bind(crypto.randomUUID(), sessionId, entry.id, entry.name, entry.tea_key || null, metadata, baseIndex + i).run();
   }
 
   // Pre-add invited members
@@ -10566,14 +10629,9 @@ const handleCreateSession: Handler = async (request, env) => {
 };
 
 const handleGetSession: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
-  if ('error' in ctx) return ctx.error;
-  const { accountId, userId } = ctx;
-
-  const session = await env.DB.prepare(
-    'SELECT * FROM tasting_sessions WHERE id = ? AND account_id = ?'
-  ).bind(params.id, accountId).first() as Record<string, any> | null;
-  if (!session) return json({ error: 'Session not found' }, 404);
+  const gate = await requireSessionMember(request, env, params.id);
+  if ('error' in gate) return gate.error;
+  const { userId, sessionRow: session } = gate;
 
   const [teas, members] = await Promise.all([
     env.DB.prepare('SELECT * FROM tasting_session_teas WHERE session_id = ? ORDER BY position').bind(params.id).all(),
@@ -10620,9 +10678,16 @@ const handleGetSessionByToken: Handler = async (request, env, params) => {
 };
 
 const handleJoinSession: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
-  if ('error' in ctx) return ctx.error;
-  const { userId } = ctx;
+  // Guests redeem via /api/auth/join-code/redeem (which adds them as members
+  // already). This handler is the legacy "logged-in user joins by session id"
+  // path used by co-tasting via the Compass — it must accept users with no
+  // account memberships.
+  const authErr = await requireAuth(request, env);
+  if (authErr) return authErr;
+  const token = isAuthed(request)!;
+  const claims = parseToken(token);
+  if (!claims) return json({ error: 'Unauthorized', reason: 'invalid' }, 401);
+  const userId = claims.sub;
 
   const session = await env.DB.prepare(
     "SELECT * FROM tasting_sessions WHERE id = ? AND status = 'active'"
@@ -10632,8 +10697,12 @@ const handleJoinSession: Handler = async (request, env, params) => {
   const memberCount = await env.DB.prepare(
     'SELECT COUNT(*) as c FROM tasting_session_members WHERE session_id = ?'
   ).bind(params.id).first<{ c: number }>();
-  if ((memberCount?.c || 0) >= (session.max_participants || 4)) {
-    return json({ error: 'Session is full' }, 400);
+  if ((memberCount?.c || 0) >= (session.max_participants || 8)) {
+    // Already-a-member redemptions are fine even when full.
+    const existing = await env.DB.prepare(
+      'SELECT 1 as ok FROM tasting_session_members WHERE session_id = ? AND user_id = ?'
+    ).bind(params.id, userId).first<{ ok: number }>();
+    if (!existing) return json({ error: 'Session is full' }, 400);
   }
 
   const now = new Date().toISOString();
@@ -10647,19 +10716,24 @@ const handleJoinSession: Handler = async (request, env, params) => {
 };
 
 const handleSubmitSessionVerdict: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
-  if ('error' in ctx) return ctx.error;
-  const { userId } = ctx;
+  const gate = await requireSessionMember(request, env, params.id);
+  if ('error' in gate) return gate.error;
+  const { userId, claims, sessionRow } = gate;
+
+  if (sessionRow.status === 'completed') {
+    return json({ error: 'Adrian closed the session', reason: 'session_completed' }, 409);
+  }
 
   const body = await request.json() as {
     verdict?: string;
     tasting_data?: Record<string, any>;
     notes?: string;
+    would_buy?: boolean;
   };
 
   const sessionTea = await env.DB.prepare(
     'SELECT * FROM tasting_session_teas WHERE id = ? AND session_id = ?'
-  ).bind(params.teaId, params.id).first();
+  ).bind(params.teaId, params.id).first() as Record<string, any> | null;
   if (!sessionTea) return json({ error: 'Session tea not found' }, 404);
 
   const now = new Date().toISOString();
@@ -10676,28 +10750,109 @@ const handleSubmitSessionVerdict: Handler = async (request, env, params) => {
     body.notes || null, now
   ).run();
 
-  // Update taste profile silently
+  // Taste profile is per-account. Only update when the caller is a member of the
+  // session's account (i.e. an account user, not a Tasting Event guest). Writing
+  // a guest's verdict into Adrian's taste profile would be the wrong owner.
   if (body.verdict) {
-    const session = await env.DB.prepare('SELECT account_id FROM tasting_sessions WHERE id = ?').bind(params.id).first() as any;
-    if (session) {
-      await _upsertTasteProfile(env, userId, session.account_id, body.verdict, body.tasting_data);
+    const isAccountMember = await env.DB.prepare(
+      `SELECT 1 as ok FROM account_members WHERE user_id = ? AND account_id = ? AND status = 'active'`
+    ).bind(userId, sessionRow.account_id).first<{ ok: number }>();
+    if (isAccountMember) {
+      await _upsertTasteProfile(env, userId, sessionRow.account_id, body.verdict, body.tasting_data);
     }
+  }
+
+  // Journal bridge — for product-linked teas, dual-write the verdict into the
+  // guest's customer_tasting_journal. The guest can re-read their notes from any
+  // device, forever, even after the session ends. Wrapped in try/catch so a
+  // bridge failure never breaks the primary verdict save (client syncTastingJournal
+  // is the safety net).
+  try {
+    if (sessionTea.product_id) {
+      const userEmail = (claims.email as string) || null;
+      const meta = sessionTea.tea_metadata
+        ? (() => { try { return JSON.parse(sessionTea.tea_metadata as string); } catch { return {}; } })()
+        : {};
+
+      const tastingData = body.tasting_data ?? {};
+      const recordId = crypto.randomUUID();
+      const newRecord = {
+        id: recordId,
+        createdAt: now,
+        tasting: tastingData,
+        sourceType: 'session',
+        eventId: sessionRow.id,
+        eventTitle: sessionRow.title ?? null,
+      };
+      const noteShape = {
+        tasting: tastingData,
+        personalNote: body.notes ?? null,
+        rating: (tastingData as any)?.quality ?? null,
+        verdict: body.verdict ?? null,
+        wouldBuy: body.would_buy ?? null,
+        updatedAt: now,
+      };
+
+      // Read existing row to merge tastings array (replace if same eventId
+      // already exists, otherwise append). Per the plan's locked decision:
+      // re-saves of the same tea in the same session replace.
+      const existing = await env.DB.prepare(
+        'SELECT id, tastings FROM customer_tasting_journal WHERE user_id = ? AND product_id = ?'
+      ).bind(userEmail, sessionTea.product_id).first() as { id: string; tastings: string | null } | null;
+
+      let tastingsArr: any[] = [];
+      if (existing?.tastings) {
+        try { tastingsArr = JSON.parse(existing.tastings) || []; } catch { tastingsArr = []; }
+      }
+      const idx = tastingsArr.findIndex(t => t && t.eventId === sessionRow.id);
+      if (idx >= 0) tastingsArr[idx] = newRecord;
+      else tastingsArr.push(newRecord);
+
+      await env.DB.prepare(
+        `INSERT INTO customer_tasting_journal
+           (id, account_id, user_id, product_id, product_name, product_type, product_image,
+            note, tastings, source_type, session_id, session_title, event_id, event_title, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'session', ?, ?, ?, ?, ?)
+         ON CONFLICT(user_id, product_id) DO UPDATE SET
+           product_name  = excluded.product_name,
+           product_type  = excluded.product_type,
+           product_image = excluded.product_image,
+           note          = excluded.note,
+           tastings      = excluded.tastings,
+           source_type   = 'session',
+           session_id    = excluded.session_id,
+           session_title = excluded.session_title,
+           event_id      = excluded.event_id,
+           event_title   = excluded.event_title`
+      ).bind(
+        existing?.id || recordId,
+        sessionRow.account_id,
+        userEmail,
+        sessionTea.product_id,
+        meta.name ?? sessionTea.tea_name ?? null,
+        meta.type ?? null,
+        meta.photo ?? null,
+        JSON.stringify(noteShape),
+        JSON.stringify(tastingsArr),
+        sessionRow.id,
+        sessionRow.title ?? null,
+        sessionRow.id,
+        sessionRow.title ?? null,
+        now
+      ).run();
+    }
+  } catch (err) {
+    console.error('journal bridge failed (verdict save still succeeded):', err);
   }
 
   return json({ success: true });
 };
 
 const handleGetSessionVerdicts: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
-  if ('error' in ctx) return ctx.error;
-  const { accountId } = ctx;
+  const gate = await requireSessionMember(request, env, params.id);
+  if ('error' in gate) return gate.error;
 
-  const session = await env.DB.prepare(
-    'SELECT * FROM tasting_sessions WHERE id = ? AND account_id = ?'
-  ).bind(params.id, accountId).first() as Record<string, any> | null;
-  if (!session) return json({ error: 'Session not found' }, 404);
-
-  // Verdicts are visible to all authenticated members of the session's account
+  // Verdicts are visible to all members of the session.
   const verdicts = await env.DB.prepare(
     `SELECT tsv.*, u.name as user_name, sst.tea_name, sst.position
      FROM tasting_session_verdicts tsv
@@ -10731,6 +10886,288 @@ const handleCompleteSession: Handler = async (request, env, params) => {
   ).bind(new Date().toISOString(), params.id).run();
 
   return json({ success: true });
+};
+
+// ── Tasting Event: Admin List ───────────────────────────────────────────────
+const handleListSessions: Handler = async (request, env) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+
+  const url = new URL(request.url);
+  const status = url.searchParams.get('status');
+  const limit = Math.min(100, parseInt(url.searchParams.get('limit') || '50', 10));
+
+  let query = `
+    SELECT s.id, s.title, s.status, s.created_at, s.completed_at, s.created_by_user_id,
+           (SELECT COUNT(*) FROM tasting_session_members m WHERE m.session_id = s.id) AS member_count,
+           (SELECT COUNT(*) FROM tasting_session_teas t WHERE t.session_id = s.id) AS tea_count
+    FROM tasting_sessions s
+    WHERE s.account_id = ?`;
+  const binds: any[] = [accountId];
+  if (status === 'active' || status === 'completed') {
+    query += ' AND s.status = ?';
+    binds.push(status);
+  }
+  query += ' ORDER BY s.created_at DESC LIMIT ?';
+  binds.push(limit);
+
+  const { results } = await env.DB.prepare(query).bind(...binds).all();
+  return json({ sessions: results });
+};
+
+// ── Tasting Event: Join Codes ───────────────────────────────────────────────
+// 6-digit codes the host hands out (verbally or via QR). Guests redeem with
+// first name + email; redemption creates a passwordless account or logs into
+// an existing one and adds them as a session member.
+
+const JOIN_CODE_TTL_MS = 24 * 60 * 60 * 1000;
+
+function generateJoinCode(): string {
+  const n = Math.floor(crypto.getRandomValues(new Uint32Array(1))[0] % 1_000_000);
+  return n.toString().padStart(6, '0');
+}
+
+const handleIssueJoinCode: Handler = async (request, env) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId, userId } = ctx;
+
+  const body = await request.json() as { session_id?: string };
+  if (!body.session_id) return json({ error: 'session_id required' }, 400);
+
+  const session = await env.DB.prepare(
+    'SELECT id, account_id, created_by_user_id, status FROM tasting_sessions WHERE id = ?'
+  ).bind(body.session_id).first() as Record<string, any> | null;
+  if (!session) return json({ error: 'Session not found' }, 404);
+  if (session.account_id !== accountId) return json({ error: 'Not your session' }, 403);
+  if (session.status !== 'active') return json({ error: 'Session is not active' }, 400);
+
+  const nowIso = new Date().toISOString();
+  // Idempotent — return any non-expired, non-revoked code so the host can
+  // refresh their share screen without minting a new code.
+  const existing = await env.DB.prepare(
+    `SELECT code, expires_at FROM tasting_join_codes
+     WHERE session_id = ? AND revoked_at IS NULL AND expires_at > ?
+     ORDER BY created_at DESC LIMIT 1`
+  ).bind(body.session_id, nowIso).first() as { code: string; expires_at: string } | null;
+  if (existing) return json({ code: existing.code, expires_at: existing.expires_at, reused: true });
+
+  // Up to ~5 retries on PRIMARY KEY collision (1-in-a-million per attempt).
+  let code = '';
+  let expiresAt = '';
+  for (let attempt = 0; attempt < 5; attempt++) {
+    code = generateJoinCode();
+    expiresAt = new Date(Date.now() + JOIN_CODE_TTL_MS).toISOString();
+    try {
+      await env.DB.prepare(
+        `INSERT INTO tasting_join_codes (code, session_id, account_id, created_by_user_id, created_at, expires_at)
+         VALUES (?, ?, ?, ?, ?, ?)`
+      ).bind(code, body.session_id, accountId, userId, nowIso, expiresAt).run();
+      break;
+    } catch (err: any) {
+      if (attempt === 4) throw err;
+    }
+  }
+
+  return json({ code, expires_at: expiresAt });
+};
+
+const handleRedeemJoinCode: Handler = async (request, env) => {
+  const ip = request.headers.get('CF-Connecting-IP') || request.headers.get('X-Forwarded-For') || 'unknown';
+  if (!checkRateLimit(`joincode:${ip}`, 20, 60000)) {
+    return json({ error: 'Too many attempts. Please try again later.' }, 429);
+  }
+
+  const body = await request.json() as { code?: string; first_name?: string; email?: string };
+  const code = (body.code || '').trim();
+  const firstName = (body.first_name || '').trim();
+  const email = (body.email || '').trim().toLowerCase();
+
+  if (!/^\d{6}$/.test(code)) return json({ error: 'Invalid code format' }, 400);
+  if (!firstName) return json({ error: 'First name required' }, 400);
+  if (!email || !email.includes('@')) return json({ error: 'Valid email required' }, 400);
+
+  const nowIso = new Date().toISOString();
+  const codeRow = await env.DB.prepare(
+    'SELECT * FROM tasting_join_codes WHERE code = ?'
+  ).bind(code).first() as Record<string, any> | null;
+  if (!codeRow) return json({ error: 'Code not recognised' }, 404);
+  if (codeRow.revoked_at) return json({ error: 'This code has been revoked' }, 410);
+  if ((codeRow.expires_at as string) <= nowIso) return json({ error: 'This code has expired' }, 410);
+
+  const session = await env.DB.prepare(
+    'SELECT id, account_id, status, max_participants, title FROM tasting_sessions WHERE id = ?'
+  ).bind(codeRow.session_id).first() as Record<string, any> | null;
+  if (!session) return json({ error: 'Session no longer exists' }, 404);
+  if (session.status !== 'active') return json({ error: 'Session is closed' }, 410);
+
+  // Capacity check before user creation, so we don't strand a fresh account
+  // attached to a full session with no way in.
+  const memberCount = await env.DB.prepare(
+    'SELECT COUNT(*) as c FROM tasting_session_members WHERE session_id = ?'
+  ).bind(session.id).first<{ c: number }>();
+
+  // Find or create the user.
+  let user = await env.DB.prepare(
+    'SELECT id, email, name, username, role, platform_role FROM users WHERE lower(email) = ?'
+  ).bind(email).first() as Record<string, any> | null;
+  let isNewUser = false;
+
+  if (!user) {
+    // password_hash is NOT NULL in the schema; sentinel until the guest
+    // sets a real password via forgot-password later.
+    const newUserId = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
+    await env.DB.prepare(
+      `INSERT INTO users (id, email, name, password_hash, role) VALUES (?, ?, ?, 'JOIN_ONLY', 'user')`
+    ).bind(newUserId, email, firstName).run();
+    user = { id: newUserId, email, name: firstName, username: null, role: 'user', platform_role: null };
+    isNewUser = true;
+  }
+
+  // Check membership: existing members can re-redeem freely; new members
+  // count toward capacity.
+  const alreadyMember = await env.DB.prepare(
+    'SELECT 1 as ok FROM tasting_session_members WHERE session_id = ? AND user_id = ?'
+  ).bind(session.id, user.id).first<{ ok: number }>();
+
+  if (!alreadyMember && (memberCount?.c || 0) >= (session.max_participants || 8)) {
+    return json({ error: 'Session is full' }, 400);
+  }
+
+  if (!alreadyMember) {
+    await env.DB.prepare(
+      `INSERT OR IGNORE INTO tasting_session_members (id, session_id, user_id, user_name, joined_at)
+       VALUES (?, ?, ?, ?, ?)`
+    ).bind(crypto.randomUUID(), session.id, user.id, firstName, nowIso).run();
+  }
+
+  await env.DB.prepare(
+    'UPDATE tasting_join_codes SET redemption_count = redemption_count + 1 WHERE code = ?'
+  ).bind(code).run();
+
+  // Audit log — both new and existing redemptions, so abuse is traceable.
+  try {
+    await logPlatformAction(
+      env,
+      isNewUser ? 'tasting_event.guest_signup' : 'tasting_event.guest_join',
+      user.id as string,
+      user.email as string,
+      'tasting_session',
+      session.id as string,
+      { code, ip, first_name: firstName, is_new_user: isNewUser },
+      session.account_id as string,
+      session.account_id as string,
+    );
+  } catch { /* logging never blocks */ }
+
+  const memberships = await loadMemberships(env, user.id as string);
+  const activeAccountId = memberships[0]?.account_id || null;
+  const platformRole = (user.platform_role as PlatformRole) ?? null;
+  const token = await createToken(env.JWT_SECRET, {
+    sub: user.id as string,
+    email: user.email as string,
+    role: (user.role as string) || 'user',
+    platform_role: platformRole,
+    name: (user.name as string) || firstName,
+    username: (user.username as string | null) ?? null,
+    memberships,
+    active_account_id: activeAccountId,
+  });
+
+  return json({
+    token,
+    user: {
+      id: user.id, email: user.email, username: user.username ?? null,
+      name: user.name, role: user.role, platform_role: platformRole,
+    },
+    memberships,
+    active_account_id: activeAccountId,
+    session_id: session.id,
+    session_title: session.title ?? null,
+    is_new_user: isNewUser,
+  });
+};
+
+const handleRevokeJoinCode: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+
+  const codeRow = await env.DB.prepare(
+    'SELECT account_id, revoked_at FROM tasting_join_codes WHERE code = ?'
+  ).bind(params.code).first() as Record<string, any> | null;
+  if (!codeRow) return json({ error: 'Code not found' }, 404);
+  if (codeRow.account_id !== accountId) return json({ error: 'Not your code' }, 403);
+  if (codeRow.revoked_at) return json({ success: true, already_revoked: true });
+
+  await env.DB.prepare(
+    'UPDATE tasting_join_codes SET revoked_at = ? WHERE code = ?'
+  ).bind(new Date().toISOString(), params.code).run();
+  return json({ success: true });
+};
+
+// ── Tasting Event: Host Live View ───────────────────────────────────────────
+// One-shot fetch returning everything the live admin screen needs. Frontend
+// polls this every ~7s. Members & verdicts shown in raw shape; client renders
+// the matrix.
+const handleSessionHostLive: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId, userId } = ctx;
+
+  const session = await env.DB.prepare(
+    'SELECT * FROM tasting_sessions WHERE id = ? AND account_id = ?'
+  ).bind(params.id, accountId).first() as Record<string, any> | null;
+  if (!session) return json({ error: 'Session not found' }, 404);
+  if (session.created_by_user_id !== userId) {
+    return json({ error: 'Only the session host can view the live screen' }, 403);
+  }
+
+  const [teas, members, verdicts] = await Promise.all([
+    env.DB.prepare(
+      'SELECT * FROM tasting_session_teas WHERE session_id = ? ORDER BY position'
+    ).bind(params.id).all(),
+    env.DB.prepare(
+      `SELECT tsm.user_id, tsm.user_name, tsm.joined_at, u.name, u.email
+       FROM tasting_session_members tsm
+       LEFT JOIN users u ON u.id = tsm.user_id
+       WHERE tsm.session_id = ?
+       ORDER BY tsm.joined_at ASC`
+    ).bind(params.id).all(),
+    env.DB.prepare(
+      `SELECT tsv.*, sst.position FROM tasting_session_verdicts tsv
+       JOIN tasting_session_teas sst ON sst.id = tsv.session_tea_id
+       WHERE tsv.session_id = ?`
+    ).bind(params.id).all(),
+  ]);
+
+  const teaIds = (teas.results as any[]).map(t => t.id);
+  const totalTeas = teaIds.length;
+
+  const completedByUser = new Map<string, number>();
+  for (const v of verdicts.results as any[]) {
+    completedByUser.set(v.user_id, (completedByUser.get(v.user_id) || 0) + 1);
+  }
+  const progress = (members.results as any[]).map(m => ({
+    user_id: m.user_id,
+    completed: completedByUser.get(m.user_id) || 0,
+    total: totalTeas,
+  }));
+
+  return json({
+    session,
+    teas: (teas.results as any[]).map(t => ({
+      ...t,
+      tea_metadata: t.tea_metadata ? (() => { try { return JSON.parse(t.tea_metadata); } catch { return {}; } })() : {},
+    })),
+    members: members.results,
+    verdicts: (verdicts.results as any[]).map(v => ({
+      ...v,
+      tasting_data: v.tasting_data ? (() => { try { return JSON.parse(v.tasting_data); } catch { return null; } })() : null,
+    })),
+    progress,
+  });
 };
 
 // ── Member Connections ──
@@ -14934,12 +15371,19 @@ const routes: [string, string, Handler][] = [
 
   // Co-Tasting Sessions
   ['POST', '/api/sessions', handleCreateSession],
+  ['GET', '/api/sessions', handleListSessions],
   ['GET', '/api/sessions/:id', handleGetSession],
   ['GET', '/api/sessions/join/:token', handleGetSessionByToken],
   ['POST', '/api/sessions/:id/join', handleJoinSession],
   ['POST', '/api/sessions/:id/teas/:teaId/verdict', handleSubmitSessionVerdict],
   ['GET', '/api/sessions/:id/verdicts', handleGetSessionVerdicts],
+  ['GET', '/api/sessions/:id/host-live', handleSessionHostLive],
   ['POST', '/api/sessions/:id/complete', handleCompleteSession],
+
+  // Tasting Event: join codes (6-digit)
+  ['POST', '/api/auth/join-code/issue', handleIssueJoinCode],
+  ['POST', '/api/auth/join-code/redeem', handleRedeemJoinCode],
+  ['POST', '/api/auth/join-code/:code/revoke', handleRevokeJoinCode],
 
   // Member Connections
   ['GET', '/api/connections', handleGetConnections],

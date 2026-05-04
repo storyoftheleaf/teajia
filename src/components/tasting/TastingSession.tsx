@@ -27,7 +27,7 @@ export interface TastingItem {
   type?: string;
   image?: string;
   /** Stamps sourceType on every journal entry automatically */
-  sourceType?: 'product' | 'compass' | 'event' | 'sample';
+  sourceType?: 'product' | 'compass' | 'event' | 'sample' | 'session';
   compassEntryId?: string;
   eventId?: string;
   eventTitle?: string;

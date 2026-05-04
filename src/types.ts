@@ -77,7 +77,7 @@ export interface TastingRecord {
    */
   reason?: string;
   /** Per-tasting provenance. Source context lives here, not at entry level. */
-  sourceType?: 'product' | 'compass' | 'event' | 'sample';
+  sourceType?: 'product' | 'compass' | 'event' | 'sample' | 'session';
   eventId?: string;
   eventSlug?: string;
   eventTitle?: string;

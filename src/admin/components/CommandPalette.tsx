@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Command } from 'cmdk';
 import { useNavigate } from 'react-router-dom';
-import { Search, Leaf, Coffee, Settings, UserCheck, History, FolderOpen, Plus } from 'lucide-react';
+import { Search, Leaf, Coffee, Settings, UserCheck, History, FolderOpen, Plus, Sparkles } from 'lucide-react';
 import { useAppStore } from '../store';
 import { api } from '../../lib/api';
 
@@ -188,6 +188,12 @@ export const CommandPalette = ({ onAddProduct, externalOpen, onOpenChange }: { o
             )}
 
             <Command.Group heading="Navigation" className="text-ui-10 uppercase tracking-[0.2em] font-bold text-tea-text-sec px-2 py-2">
+              <Command.Item onSelect={() => runCommand(() => navigate('/admin/tasting-events/new'))} className="flex items-center gap-3 px-3 py-3.5 rounded-lg hover:bg-tea-surface cursor-pointer text-tea-text aria-selected:bg-tea-surface aria-selected:text-tea-gold transition-colors font-serif">
+                <Sparkles size={16} className="text-tea-text-sec" /> New tasting event
+              </Command.Item>
+              <Command.Item onSelect={() => runCommand(() => navigate('/admin/tasting-events'))} className="flex items-center gap-3 px-3 py-3.5 rounded-lg hover:bg-tea-surface cursor-pointer text-tea-text aria-selected:bg-tea-surface aria-selected:text-tea-gold transition-colors font-serif">
+                <Coffee size={16} className="text-tea-text-sec" /> Tasting events
+              </Command.Item>
               <Command.Item onSelect={() => runCommand(() => navigate('/admin/inventory'))} className="flex items-center gap-3 px-3 py-3.5 rounded-lg hover:bg-tea-surface cursor-pointer text-tea-text aria-selected:bg-tea-surface aria-selected:text-tea-gold transition-colors font-serif">
                 <Leaf size={16} className="text-tea-text-sec" /> Tea Glossary
               </Command.Item>

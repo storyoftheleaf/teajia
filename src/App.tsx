@@ -70,6 +70,7 @@ const CenterPage = lazy(() => import('./pages/CenterPage'));
 const OrderHistoryPage = lazy(() => import('./pages/OrderHistoryPage'));
 const SampleHistoryPage = lazy(() => import('./pages/SampleHistoryPage'));
 const SessionPage = lazy(() => import('./pages/SessionPage'));
+const JoinPage = lazy(() => import('./pages/JoinPage'));
 const TableCardPage = lazy(() => import('./pages/TableCardPage'));
 const EventsPage = lazy(() => import('./pages/EventsPage'));
 const ForYourSpacePage = lazy(() => import('./pages/ForYourSpacePage'));
@@ -746,6 +747,8 @@ const AppContent = () => {
                 <Route path="/c/:slug" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><PublicCollectionPage /></Suspense></ErrorBoundary>} />
                 <Route path="/me" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="list" />}><CenterPage /></Suspense></ErrorBoundary>} />
                 <Route path="/session/:id" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><SessionPage /></Suspense></ErrorBoundary>} />
+                <Route path="/join" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><JoinPage /></Suspense></ErrorBoundary>} />
+                <Route path="/join/:code" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><JoinPage /></Suspense></ErrorBoundary>} />
                 <Route path="/t/:token" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><TableCardPage /></Suspense></ErrorBoundary>} />
                 <Route path="/find-a-table" element={
                   <ErrorBoundary>

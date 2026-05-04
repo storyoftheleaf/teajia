@@ -460,6 +460,14 @@ export const api = {
       });
       return handleResponse(res);
     },
+    redeemJoinCode: async (data: { code: string; first_name: string; email: string }) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/auth/join-code/redeem`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
   },
 
   users: {
@@ -2791,12 +2799,40 @@ export const api = {
   },
 
   sessions: {
-    create: async (data: { title?: string; entry_ids?: string[]; member_ids?: string[] }) => {
+    list: async (params?: { status?: 'active' | 'completed'; limit?: number }) => {
+      const qs = new URLSearchParams();
+      if (params?.status) qs.set('status', params.status);
+      if (params?.limit) qs.set('limit', String(params.limit));
+      const url = `${API_URL}/api/sessions${qs.toString() ? `?${qs.toString()}` : ''}`;
+      const res = await fetchWithTimeout(url, { headers: authHeaders() });
+      return handleResponse(res);
+    },
+    create: async (data: { title?: string; entry_ids?: string[]; product_ids?: string[]; member_ids?: string[] }) => {
       const res = await fetchWithTimeout(`${API_URL}/api/sessions`, {
         method: 'POST',
         headers: authHeaders(),
         body: JSON.stringify(data),
       });
+      return handleResponse(res);
+    },
+    issueJoinCode: async (sessionId: string): Promise<{ code: string; expires_at: string; reused?: boolean }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/auth/join-code/issue`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ session_id: sessionId }),
+      });
+      return handleResponse(res);
+    },
+    revokeJoinCode: async (code: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/auth/join-code/${code}/revoke`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({}),
+      });
+      return handleResponse(res);
+    },
+    hostLive: async (id: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/sessions/${id}/host-live`, { headers: authHeaders() });
       return handleResponse(res);
     },
     get: async (id: string) => {
@@ -2819,6 +2855,7 @@ export const api = {
       verdict?: string;
       tasting_data?: Record<string, any>;
       notes?: string;
+      would_buy?: boolean;
     }) => {
       const res = await fetchWithTimeout(`${API_URL}/api/sessions/${sessionId}/teas/${teaId}/verdict`, {
         method: 'POST',

@@ -346,11 +346,26 @@ export const useAppStore = create<AppState>()(
           if (existing) {
             entryId = existing.id;
             const isFreshTasting = !!record.reason;
-            const updatedTastings = isFreshTasting
-              ? [...existing.tastings, record]
-              : existing.tastings.length > 0
-                ? [...existing.tastings.slice(0, -1), { ...existing.tastings[existing.tastings.length - 1], ...record, id: existing.tastings[existing.tastings.length - 1].id }]
-                : [record];
+            const isSessionRecord = record.sourceType === 'session';
+            // Sessions: append a new TastingRecord (so an existing journal entry
+            // gains a session-stamped record rather than overwriting the user's
+            // last solo note). Re-saves of the same eventId within the session
+            // are deduped server-side by the journal bridge.
+            let updatedTastings;
+            if (isFreshTasting) {
+              updatedTastings = [...existing.tastings, record];
+            } else if (isSessionRecord) {
+              const idx = existing.tastings.findIndex(
+                (t) => t.eventId && record.eventId && t.eventId === record.eventId
+              );
+              updatedTastings = idx >= 0
+                ? existing.tastings.map((t, i) => i === idx ? { ...t, ...record, id: t.id } : t)
+                : [...existing.tastings, record];
+            } else if (existing.tastings.length > 0) {
+              updatedTastings = [...existing.tastings.slice(0, -1), { ...existing.tastings[existing.tastings.length - 1], ...record, id: existing.tastings[existing.tastings.length - 1].id }];
+            } else {
+              updatedTastings = [record];
+            }
             return {
               tastingJournal: state.tastingJournal.map((t) =>
                 t.id === existing.id
