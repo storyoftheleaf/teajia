@@ -14886,6 +14886,7 @@ const ALLOWED_ORIGINS = [
   'https://teajia.com',
   'https://www.teajia.com',
   'https://teajia.pages.dev',
+  'https://teajiafinal.pages.dev',
   'http://localhost:7777',
 ];
 
@@ -14898,13 +14899,21 @@ const ALLOWED_ORIGINS = [
  *  ever showing it to the app. We now match a broader set of legitimate
  *  Teajia frontends, and return null (no ACAO) for anything else so the
  *  browser raises an explicit CORS error instead of a phantom failure.
+ *
+ *  The Cloudflare Pages project is `teajiafinal` (not `teajia`), so the
+ *  per-branch preview URLs look like
+ *      <branch>.teajiafinal.pages.dev
+ *      <commit-hash>.teajiafinal.pages.dev
+ *  The pattern below matches any subdomain of any Pages project whose
+ *  name starts with "teajia" so future renames (teajia-staging, etc.)
+ *  also work without code changes.
  */
 function resolveAllowedOrigin(origin: string): string | null {
   if (!origin) return null;
   if (ALLOWED_ORIGINS.includes(origin)) return origin;
-  // Cloudflare Pages preview deploys: <branch>.teajia.pages.dev
-  if (/^https:\/\/[a-z0-9][a-z0-9-]*\.teajia\.pages\.dev$/i.test(origin)) return origin;
-  // Local dev on any port (Vite reload picks alternates if 7777 is busy)
+  // Cloudflare Pages — bare project domain or any preview subdomain
+  if (/^https:\/\/([a-z0-9][a-z0-9-]*\.)?teajia[a-z0-9-]*\.pages\.dev$/i.test(origin)) return origin;
+  // Local dev on any port (Vite picks alternates if 7777 is busy)
   if (/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin)) return origin;
   return null;
 }
