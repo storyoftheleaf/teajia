@@ -77,6 +77,9 @@ import { PlatformAccessView } from './views/PlatformAccessView';
 import { CurrencyRatesView } from './views/CurrencyRatesView';
 import { EventsManager } from './components/EventsManager';
 import { EventDetail } from './components/EventDetail';
+import { TastingEventsList } from './components/tasting/TastingEventsList';
+import { TastingEventForm } from './components/tasting/TastingEventForm';
+import { TastingControlRoom } from './components/tasting/TastingControlRoom';
 import { VenueManager } from './components/VenueManager';
 import { PeopleView } from './components/PeopleView';
 import { CustomerProfilePage } from './components/CustomerProfilePage';
@@ -631,6 +634,10 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
               {/* Member tools — events + samples open to all members */}
               <Route path="events" element={<ProtectedRoute hasAccess={isMember} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><EventsManager /></PageTransition></ProtectedRoute>} />
               <Route path="events/:id" element={<ProtectedRoute hasAccess={isMember} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><EventDetail /></PageTransition></ProtectedRoute>} />
+              <Route path="tasting-events" element={<ProtectedRoute hasAccess={isMember} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><TastingEventsList /></PageTransition></ProtectedRoute>} />
+              <Route path="tasting-events/new" element={<ProtectedRoute hasAccess={isMember} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><TastingEventForm /></PageTransition></ProtectedRoute>} />
+              <Route path="tasting-events/:sessionId" element={<ProtectedRoute hasAccess={isMember} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><TastingControlRoom /></PageTransition></ProtectedRoute>} />
+              <Route path="tasting-events/:sessionId/live" element={<ProtectedRoute hasAccess={isMember} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><TastingControlRoom /></PageTransition></ProtectedRoute>} />
               <Route path="venues" element={<ProtectedRoute hasAccess={isMember} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><VenueManager /></PageTransition></ProtectedRoute>} />
               <Route path="samples" element={<Navigate to="/admin/compass?tab=samples" replace />} />
 

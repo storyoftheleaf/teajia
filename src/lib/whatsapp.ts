@@ -150,3 +150,44 @@ export function openWhatsAppStatus(phone: string, opts: Parameters<typeof buildS
   const message = buildStatusMessage(opts);
   window.open(buildWhatsAppUrl(phone, message), '_blank');
 }
+
+// ── Tasting Event: Send my picks ───────────────────────────────────────────
+
+const ROMAN_NUMERALS = ['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'];
+function roman(n: number): string {
+  return ROMAN_NUMERALS[n] ?? String(n + 1);
+}
+
+export interface TastingPick {
+  teaName: string;
+  verdict?: 'love' | 'like' | 'neutral' | 'pass' | string;
+  wouldBuy?: boolean;
+}
+
+export function buildTastingPicksMessage(opts: {
+  guestName: string;
+  guestEmail: string;
+  sessionTitle?: string | null;
+  picks: TastingPick[];
+}): string {
+  const title = opts.sessionTitle?.trim() || 'today\'s tasting';
+  const lines: string[] = [];
+  lines.push(`From ${opts.guestName} (${opts.guestEmail}) at ${title}`);
+  lines.push('');
+  lines.push("At Adrian's tasting today, here's what I want:");
+  lines.push('');
+
+  opts.picks.forEach((p, i) => {
+    const verdictLabel = p.verdict
+      ? p.verdict.charAt(0).toUpperCase() + p.verdict.slice(1)
+      : '';
+    const buyTag = p.wouldBuy ? ' · would order' : '';
+    const tail = verdictLabel ? `${verdictLabel}${buyTag}` : (p.wouldBuy ? 'would order' : '');
+    lines.push(tail
+      ? `${roman(i)}. ${p.teaName} · ${tail}`
+      : `${roman(i)}. ${p.teaName}`
+    );
+  });
+
+  return lines.join('\n');
+}

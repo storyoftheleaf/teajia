@@ -31,6 +31,7 @@ interface UseAuthReturn {
   isSessionReady: boolean;
   login: (identifier: string, password: string) => Promise<void>;
   signup: (email: string, password: string, name: string, username?: string | null) => Promise<void>;
+  redeemJoinCode: (data: { code: string; first_name: string; email: string }) => Promise<{ session_id: string; session_title: string | null; is_new_user: boolean }>;
   logout: () => void;
   checkSession: () => Promise<void>;
 }
@@ -144,6 +145,20 @@ export function useAuth(): UseAuthReturn {
     }
   }, []);
 
+  const redeemJoinCode = useCallback(async (data: { code: string; first_name: string; email: string }) => {
+    const result = await api.auth.redeemJoinCode(data);
+    setToken(result.token);
+    const claims = getTokenClaims();
+    if (claims) {
+      setUser({ email: claims.email, username: claims.username ?? null, name: claims.name, role: claims.role });
+    }
+    return {
+      session_id: result.session_id as string,
+      session_title: (result.session_title ?? null) as string | null,
+      is_new_user: Boolean(result.is_new_user),
+    };
+  }, []);
+
   const logout = useCallback(() => {
     clearToken();
     setUser(null);
@@ -157,6 +172,7 @@ export function useAuth(): UseAuthReturn {
     isSessionReady,
     login,
     signup,
+    redeemJoinCode,
     logout,
     checkSession,
   };
