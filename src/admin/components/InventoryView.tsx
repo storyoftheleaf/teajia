@@ -506,6 +506,7 @@ function InventoryRowBase(props: InventoryRowProps) {
 
   return (
     <tr
+      data-product-id={product.id}
       className={trCls}
       style={{ height: rowHeight }}
       onTouchStart={() => {
@@ -866,6 +867,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const scrollRAFRef = useRef<number | null>(null);
   const [containerHeight, setContainerHeight] = useState(600);
 
+  // Floating action popover — anchored vertical offset from the desktop table wrapper.
+  // null hides the popover (no selection, mobile, or anchor row not yet measured).
+  const tableWrapperRef = useRef<HTMLDivElement>(null);
+  const [drawerTop, setDrawerTop] = useState<number | null>(null);
+
   // Modals
   const [qrProduct, setQrProduct] = useState<Product | null>(null);
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
@@ -990,8 +996,6 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     if (!inventoryColumns.includes(col.key)) return false;
     return true;
   }), [inventoryColumns, activeColumnDefs, priceMode]);
-  const colCount = visibleCols.length + 1; // +1 for actions column
-  const colCountWithBulk = colCount;
 
   // Index map for O(1) globalIdx lookup in grouped view (replaces O(n²) indexOf)
   const productIndexMap = useMemo(
@@ -1126,79 +1130,117 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     return null;
   })();
 
-  const renderActionDrawer = (colSpan: number) => {
-    if (!anchorProductId || isEditMode) return null;
+  // Track the anchor row's bottom offset relative to the desktop table wrapper so the
+  // floating action popover can dock just below it. ResizeObserver re-measures on row
+  // height changes (data updates, group collapse/expand, window resize).
+  useLayoutEffect(() => {
+    if (!anchorProductId || !tableWrapperRef.current || isMobile) {
+      setDrawerTop(null);
+      return;
+    }
+    const wrapper = tableWrapperRef.current;
+    const compute = () => {
+      const row = wrapper.querySelector<HTMLElement>(`[data-product-id="${anchorProductId}"]`);
+      if (!row) { setDrawerTop(null); return; }
+      const wRect = wrapper.getBoundingClientRect();
+      const rRect = row.getBoundingClientRect();
+      setDrawerTop(rRect.bottom - wRect.top);
+    };
+    compute();
+    const ro = new ResizeObserver(compute);
+    ro.observe(wrapper);
+    return () => ro.disconnect();
+  }, [anchorProductId, processedProducts, isMobile, collapsedGroups]);
+
+  // Floating action popover. Renders absolutely-positioned beneath the anchor row so
+  // selecting/deselecting teas never reflows the table.
+  const renderActionDrawer = () => {
+    if (!anchorProductId || isEditMode || drawerTop == null) return null;
     const count = selectedIds.size;
     const allSelected = count === processedProducts.length;
     return (
-      <tr key={`__drawer__${anchorProductId}`} className="bg-tea-elevated border-b border-tea-border">
-        <td colSpan={colSpan} className="p-0">
-          <div className="flex items-center gap-1 px-4 py-2 flex-wrap">
-            <button
-              onClick={toggleSelectAll}
-              className="flex items-baseline gap-1 px-2 py-1 rounded-md hover:bg-tea-bg/40 transition-colors"
-              title={allSelected ? 'Deselect all' : 'Select all'}
-            >
-              <span className="text-sm font-bold text-tea-text tabular-nums leading-none">{allSelected ? 'All' : count}</span>
-              <span className="text-ui-9 text-tea-text-sec uppercase tracking-[0.1em] leading-none">item{count !== 1 ? 's' : ''}</span>
-            </button>
-            <div className="w-px h-4 bg-tea-border mx-1 flex-shrink-0" />
-            <button
-              onClick={() => handleBulkVisibility(true)}
-              disabled={isBulkApplying}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-tea-gold text-tea-bg rounded-md hover:bg-tea-gold/90 transition-colors disabled:opacity-40"
-              title="Publish"
-            >
-              {isBulkApplying ? <Loader2 size={12} className="animate-spin" /> : <Eye size={12} />}
-              <span className="text-ui-10 font-bold uppercase tracking-[0.15em]">Publish</span>
-            </button>
-            <button
-              onClick={() => handleBulkVisibility(false)}
-              disabled={isBulkApplying}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 text-tea-text-sec rounded-md hover:text-tea-text hover:bg-tea-bg/40 transition-colors disabled:opacity-40"
-              title="Unpublish"
-            >
-              {isBulkApplying ? <Loader2 size={12} className="animate-spin" /> : <EyeOff size={12} />}
-              <span className="text-ui-10 font-bold uppercase tracking-[0.15em]">Unpublish</span>
-            </button>
-            <button
-              onClick={handleSendToSamples}
-              disabled={isBulkApplying}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 text-tea-text-sec rounded-md hover:text-tea-text hover:bg-tea-bg/40 transition-colors disabled:opacity-40"
-              title="Send to samples"
-            >
-              <FlaskConical size={12} />
-              <span className="text-ui-10 font-bold uppercase tracking-[0.15em]">Samples</span>
-            </button>
-            <button
-              onClick={() => setShareToNetworkOpen(true)}
-              disabled={isBulkApplying}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 text-tea-text-sec rounded-md hover:text-tea-text hover:bg-tea-bg/40 transition-colors disabled:opacity-40"
-              title="Share"
-            >
-              <Globe size={12} />
-              <span className="text-ui-10 font-bold uppercase tracking-[0.15em]">Share</span>
-            </button>
-            <button
-              onClick={() => setInvoiceFromInventoryOpen(true)}
-              disabled={isBulkApplying}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 text-tea-text-sec rounded-md hover:text-tea-text hover:bg-tea-bg/40 transition-colors disabled:opacity-40"
-              title="Add to invoice"
-            >
-              <Receipt size={12} />
-              <span className="text-ui-10 font-bold uppercase tracking-[0.15em]">Invoice</span>
-            </button>
-            <div className="flex-1" />
-            <button
-              onClick={() => { setSelectedIds(new Set()); lastSelectedIdxRef.current = null; }}
-              className="p-1.5 text-tea-text-sec hover:text-tea-text rounded-md hover:bg-tea-bg/40 transition-colors"
-              title="Clear selection"
-            >
-              <XIcon size={13} />
-            </button>
-          </div>
-        </td>
-      </tr>
+      <motion.div
+        key={`__drawer__${anchorProductId}`}
+        initial={{ opacity: 0, y: -4 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -4 }}
+        transition={{ duration: 0.14, ease: [0.4, 0, 0.2, 1] }}
+        className="absolute right-6 z-30"
+        style={{ top: drawerTop + 6 }}
+      >
+        {/* Notch — visually tethers the popover to the row above */}
+        <div
+          className="absolute right-7 -top-[5px] w-2.5 h-2.5 bg-tea-elevated border-t border-l border-tea-border rotate-45"
+          aria-hidden="true"
+        />
+        <div
+          className="relative flex items-center gap-1 pl-2 pr-1 py-1 bg-tea-elevated border border-tea-border rounded-md"
+          style={{ boxShadow: '0 10px 28px rgba(24,19,14,0.32), 0 0 0 1px rgba(212,166,82,0.14)' }}
+        >
+          <button
+            onClick={toggleSelectAll}
+            className="flex items-baseline gap-1 px-2 py-1 rounded-md hover:bg-tea-bg/40 transition-colors"
+            title={allSelected ? 'Deselect all' : 'Select all'}
+          >
+            <span className="text-sm font-bold text-tea-text tabular-nums leading-none">{allSelected ? 'All' : count}</span>
+            <span className="text-ui-9 text-tea-text-sec uppercase tracking-[0.1em] leading-none">item{count !== 1 ? 's' : ''}</span>
+          </button>
+          <div className="w-px h-4 bg-tea-border mx-1 flex-shrink-0" />
+          <button
+            onClick={() => handleBulkVisibility(true)}
+            disabled={isBulkApplying}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 bg-tea-gold text-tea-bg rounded-md hover:bg-tea-gold/90 transition-colors disabled:opacity-40"
+            title="Publish"
+          >
+            {isBulkApplying ? <Loader2 size={12} className="animate-spin" /> : <Eye size={12} />}
+            <span className="text-ui-10 font-bold uppercase tracking-[0.15em]">Publish</span>
+          </button>
+          <button
+            onClick={() => handleBulkVisibility(false)}
+            disabled={isBulkApplying}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-tea-text-sec rounded-md hover:text-tea-text hover:bg-tea-bg/40 transition-colors disabled:opacity-40"
+            title="Unpublish"
+          >
+            {isBulkApplying ? <Loader2 size={12} className="animate-spin" /> : <EyeOff size={12} />}
+            <span className="text-ui-10 font-bold uppercase tracking-[0.15em]">Unpublish</span>
+          </button>
+          <button
+            onClick={handleSendToSamples}
+            disabled={isBulkApplying}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-tea-text-sec rounded-md hover:text-tea-text hover:bg-tea-bg/40 transition-colors disabled:opacity-40"
+            title="Send to samples"
+          >
+            <FlaskConical size={12} />
+            <span className="text-ui-10 font-bold uppercase tracking-[0.15em]">Samples</span>
+          </button>
+          <button
+            onClick={() => setShareToNetworkOpen(true)}
+            disabled={isBulkApplying}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-tea-text-sec rounded-md hover:text-tea-text hover:bg-tea-bg/40 transition-colors disabled:opacity-40"
+            title="Share"
+          >
+            <Globe size={12} />
+            <span className="text-ui-10 font-bold uppercase tracking-[0.15em]">Share</span>
+          </button>
+          <button
+            onClick={() => setInvoiceFromInventoryOpen(true)}
+            disabled={isBulkApplying}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-tea-text-sec rounded-md hover:text-tea-text hover:bg-tea-bg/40 transition-colors disabled:opacity-40"
+            title="Add to invoice"
+          >
+            <Receipt size={12} />
+            <span className="text-ui-10 font-bold uppercase tracking-[0.15em]">Invoice</span>
+          </button>
+          <div className="w-px h-4 bg-tea-border mx-1 flex-shrink-0" />
+          <button
+            onClick={() => { setSelectedIds(new Set()); lastSelectedIdxRef.current = null; }}
+            className="p-1.5 text-tea-text-sec hover:text-tea-text rounded-md hover:bg-tea-bg/40 transition-colors"
+            title="Clear selection"
+          >
+            <XIcon size={13} />
+          </button>
+        </div>
+      </motion.div>
     );
   };
 
@@ -3318,11 +3360,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         </div>}
 
         {/* DESKTOP TABLE */}
-        {!isMobile && filterType !== 'Pending' && !glossaryMode && <div className="w-full max-w-7xl mx-auto bg-tea-surface min-h-full">
+        {!isMobile && filterType !== 'Pending' && !glossaryMode && <div ref={tableWrapperRef} className="relative w-full max-w-7xl mx-auto bg-tea-surface min-h-full">
 
-          {/* Anchor row for context-anchored action drawer.
-              Prefers the last-clicked index, falls back to the first selected id. */}
-          {(() => { /* no-op placeholder for readability */ return null; })()}
+          {/* Floating bulk-action popover — anchored to the last-clicked row, positioned
+              absolutely so toggling selection never reflows the table. */}
+          <AnimatePresence>{renderActionDrawer()}</AnimatePresence>
 
           {/* --- GROUPED VIEW --- */}
           {groupedProducts ? (
@@ -3399,7 +3441,6 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                   showToast={showToast}
                                   navigate={navigate}
                                 />
-                                {product.id === anchorProductId && renderActionDrawer(splitView ? 2 : visibleCols.length + 1)}
                               </React.Fragment>
                             );
                           })}
@@ -3462,7 +3503,6 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                               showToast={showToast}
                               navigate={navigate}
                             />
-                            {product.id === anchorProductId && renderActionDrawer(splitView ? 2 : colCountWithBulk)}
                           </React.Fragment>
                         );
                     })}
