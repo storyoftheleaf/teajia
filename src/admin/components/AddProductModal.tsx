@@ -393,6 +393,11 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
       setTastingData({});
       setWisdomOpen(false);
     }
+    if (!isOpen) {
+      setNameError(false);
+      setAutoFillSource(null);
+      autoFillSnapshotRef.current = null;
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, initialData]);
 
@@ -428,6 +433,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
             .sort((a: any, b: any) => (b.is_custom_wisdom ? 1 : 0) - (a.is_custom_wisdom ? 1 : 0))[0];
 
         if (match) {
+            autoFillSnapshotRef.current = formData;
             const tastingNotes = Array.isArray(match.tasting_notes) ? match.tasting_notes : [];
             setFormData(prev => ({
                 ...prev,
@@ -440,6 +446,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                 mood: match.mood || prev.mood,
                 experience: match.experience || prev.experience,
             }));
+            setAutoFillSource(match.product_name || formData.productName);
         }
     } catch (err) {
         console.error("Memory bank check failed:", err);
@@ -451,6 +458,9 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
   const [showDraftBanner, setShowDraftBanner] = useState(false);
   const [pendingWisdom, setPendingWisdom] = useState<null | { lore: string; tastingNotes: string; chineseName: string; originRegion: string; processingNotes: string; terroir: string; mood: string; experience: string }>(null);
   const [showWisdomSaveHint, setShowWisdomSaveHint] = useState(false);
+  const [nameError, setNameError] = useState(false);
+  const [autoFillSource, setAutoFillSource] = useState<string | null>(null);
+  const autoFillSnapshotRef = useRef<typeof formData | null>(null);
 
   // #42 — Show restore banner when opening a new product form and a draft exists
   useEffect(() => {
@@ -691,6 +701,38 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
           </button>
         </div>
 
+        {/* Auto-fill from existing record banner */}
+        {autoFillSource && !isEditMode && (
+          <div className="px-6 py-2.5 bg-tea-accent-sub/30 border-b border-tea-border flex items-center justify-between gap-4 shrink-0">
+            <span className="text-xs text-tea-text-sec">
+              Filled from existing record: <span className="text-tea-text font-bold">{autoFillSource}</span>
+            </span>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  if (autoFillSnapshotRef.current) {
+                    setFormData(autoFillSnapshotRef.current);
+                    autoFillSnapshotRef.current = null;
+                  }
+                  setAutoFillSource(null);
+                }}
+                className="text-xs font-bold text-tea-gold hover:text-tea-gold/80 uppercase tracking-wider transition-colors"
+              >
+                Undo
+              </button>
+              <button
+                type="button"
+                onClick={() => { setAutoFillSource(null); autoFillSnapshotRef.current = null; }}
+                aria-label="Dismiss"
+                className="text-xs text-tea-text-sec hover:text-tea-text uppercase tracking-wider transition-colors"
+              >
+                Keep
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* #42 — Draft restore banner */}
         {showDraftBanner && !isEditMode && (
           <div className="px-6 py-2.5 bg-tea-gold/10 border-b border-tea-border flex items-center justify-between gap-4 shrink-0">
@@ -803,8 +845,25 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
             {/* NOMENCLATURE */}
             <div className="space-y-3">
                 <div>
-                    <label className={labelStyle}><Tag size={9} /> Product Name / Cultivar *</label>
-                    <input name="productName" required value={formData.productName} onChange={handleChange} onBlur={handleProductNameBlur} autoComplete="off" onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 300); }} className={inputStyle} placeholder="e.g. Alishan High Mountain" />
+                    <label className={labelStyle} htmlFor="product-name-input"><Tag size={9} aria-hidden="true" /> Product Name / Cultivar *</label>
+                    <input
+                      id="product-name-input"
+                      name="productName"
+                      required
+                      aria-required="true"
+                      aria-invalid={nameError || undefined}
+                      aria-describedby={nameError ? 'product-name-error' : undefined}
+                      value={formData.productName}
+                      onChange={(e) => { handleChange(e); if (nameError && e.target.value.trim()) setNameError(false); }}
+                      onBlur={handleProductNameBlur}
+                      autoComplete="off"
+                      onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 300); }}
+                      className={inputStyle}
+                      placeholder="e.g. Alishan High Mountain"
+                    />
+                    {nameError && (
+                      <p id="product-name-error" className="text-ui-11 text-tea-gold mt-1">Product name is required to save.</p>
+                    )}
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                     <div>
@@ -1441,9 +1500,18 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                 Cancel
             </button>
             <button
-                type="submit"
-                form="add-product-form"
-                disabled={loading || !formData.productName || uploading}
+                type="button"
+                onClick={() => {
+                    if (!formData.productName.trim()) {
+                        setNameError(true);
+                        showToast('Product name is required.', 'error');
+                        document.getElementById('product-name-input')?.focus();
+                        return;
+                    }
+                    const form = document.getElementById('add-product-form') as HTMLFormElement | null;
+                    if (form) form.requestSubmit();
+                }}
+                disabled={loading || uploading}
                 className="px-6 py-2.5 bg-tea-gold text-tea-bg text-sm font-medium hover:bg-tea-gold/90 transition-all disabled:opacity-50 flex items-center justify-center gap-2 rounded-lg"
             >
                 {loading || uploading ? <Loader2 className="animate-spin" size={14} aria-hidden="true" /> : <Save size={14} aria-hidden="true" />}
