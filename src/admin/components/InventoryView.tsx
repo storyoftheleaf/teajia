@@ -1208,15 +1208,15 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           <motion.button
             key={`__chip__${anchorProductId}`}
             data-action-chip
-            initial={{ opacity: 0, scale: 0.85 }}
+            initial={{ opacity: 0, scale: 0.92 }}
             animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.85 }}
+            exit={{ opacity: 0, scale: 0.92 }}
             transition={{ duration: 0.14, ease: [0.4, 0, 0.2, 1] }}
             onClick={() => setIsDrawerExpanded(v => !v)}
             aria-expanded={isDrawerExpanded}
             aria-label={`${allSelected ? 'All' : count} selected — ${isDrawerExpanded ? 'close' : 'open'} actions`}
             title={`${allSelected ? 'All' : count} selected`}
-            className="flex items-center gap-1 px-2 h-6 bg-tea-gold text-tea-bg rounded-full shadow-md hover:bg-tea-gold/90 active:scale-95 transition-colors"
+            className="flex items-center gap-1 px-2 h-[30px] bg-tea-gold text-tea-bg rounded-md shadow-sm hover:bg-tea-gold/90 active:scale-95 transition-colors"
           >
             <span className="text-ui-11 font-bold tabular-nums leading-none">{allSelected ? 'All' : count}</span>
             <motion.span
