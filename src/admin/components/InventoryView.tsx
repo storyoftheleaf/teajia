@@ -528,7 +528,10 @@ function InventoryRowBase(props: InventoryRowProps) {
         : visibleCols.map((col, colIdx) => renderCell(col.key, colIdx))}
       <td className="px-1 align-middle text-right">
         <div className="flex justify-end gap-0.5" onClick={(e) => e.stopPropagation()}>
-          {!isEditMode && (
+          {/* When the row is selected, the row's right-edge icons are hidden so the
+              floating selection chip (rendered in InventoryView) can sit alone in the
+              corner. Star/eye/edit/more return on deselect. */}
+          {!isEditMode && !isSelected && (
             <>
               <span className="inline-flex items-center gap-0.5">
                 <button onClick={(e) => { e.stopPropagation(); onSelectionAwareUpdate(product, 'isFeatured', !product.isFeatured); }} className={`${product.isFeatured ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'} p-1 transition-colors`} aria-label={product.isFeatured ? 'Remove featured star' : 'Mark as featured'} aria-pressed={product.isFeatured} title={product.isFeatured ? 'Remove star' : 'Star'}><Star size={12} className={product.isFeatured ? 'fill-tea-gold' : ''} aria-hidden="true" /></button>
@@ -867,10 +870,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const scrollRAFRef = useRef<number | null>(null);
   const [containerHeight, setContainerHeight] = useState(600);
 
-  // Floating action popover — anchored vertical offset from the desktop table wrapper.
-  // null hides the popover (no selection, mobile, or anchor row not yet measured).
+  // Floating action popover — anchored offsets from the desktop table wrapper. null
+  // hides the popover (no selection, mobile, or anchor row not yet measured). The
+  // tiny chip sits at the row's right edge; the expanded action bar drops just below.
   const tableWrapperRef = useRef<HTMLDivElement>(null);
-  const [drawerTop, setDrawerTop] = useState<number | null>(null);
+  const [anchorRect, setAnchorRect] = useState<{ top: number; bottom: number } | null>(null);
   const [isDrawerExpanded, setIsDrawerExpanded] = useState(false);
 
   // Modals
@@ -1136,16 +1140,16 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   // height changes (data updates, group collapse/expand, window resize).
   useLayoutEffect(() => {
     if (!anchorProductId || !tableWrapperRef.current || isMobile) {
-      setDrawerTop(null);
+      setAnchorRect(null);
       return;
     }
     const wrapper = tableWrapperRef.current;
     const compute = () => {
       const row = wrapper.querySelector<HTMLElement>(`[data-product-id="${anchorProductId}"]`);
-      if (!row) { setDrawerTop(null); return; }
+      if (!row) { setAnchorRect(null); return; }
       const wRect = wrapper.getBoundingClientRect();
       const rRect = row.getBoundingClientRect();
-      setDrawerTop(rRect.bottom - wRect.top);
+      setAnchorRect({ top: rRect.top - wRect.top, bottom: rRect.bottom - wRect.top });
     };
     compute();
     const ro = new ResizeObserver(compute);
@@ -1157,58 +1161,63 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   // moving on; the next expand should be intentional, not residual.
   useEffect(() => { setIsDrawerExpanded(false); }, [anchorProductId]);
 
-  // Floating action popover. Renders absolutely-positioned beneath the anchor row so
-  // selecting/deselecting teas never reflows the table. Starts as a tiny chip showing
-  // just the count; tap the chip to expand into the full action bar.
+  // Tiny in-row chip + floating action bar. Both anchor to the last-clicked row but
+  // sit in the row's right corner (chip) and just below the row (action bar) so the
+  // table layout never reflows when toggling selection.
   const renderActionDrawer = () => {
-    if (!anchorProductId || isEditMode || drawerTop == null) return null;
+    if (!anchorProductId || isEditMode || !anchorRect) return null;
     const count = selectedIds.size;
     const allSelected = count === processedProducts.length;
+    const rowMidY = (anchorRect.top + anchorRect.bottom) / 2;
+
     return (
-      <motion.div
-        key={`__drawer__${anchorProductId}`}
-        initial={{ opacity: 0, y: -3 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -3 }}
-        transition={{ duration: 0.12, ease: [0.4, 0, 0.2, 1] }}
-        className="absolute right-6 z-30"
-        style={{ top: drawerTop + 6 }}
-      >
-        {/* Notch — visually tethers the chip to the row above */}
-        <div
-          className="absolute right-4 -top-[5px] w-2 h-2 bg-tea-elevated border-t border-l border-tea-border rotate-45"
-          aria-hidden="true"
-        />
-        <motion.div
-          layout
-          transition={{ type: 'spring', stiffness: 420, damping: 34 }}
-          className="relative flex items-center bg-tea-elevated border border-tea-border rounded-full overflow-hidden"
-          style={{ boxShadow: '0 6px 18px rgba(24,19,14,0.28), 0 0 0 1px rgba(212,166,82,0.10)' }}
+      <>
+        {/* Tiny chip — sits in the row's right corner where the icons used to be.
+            Vertically centered against the anchor row so it feels embedded. */}
+        <motion.button
+          key={`__chip__${anchorProductId}`}
+          initial={{ opacity: 0, scale: 0.85 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.85 }}
+          transition={{ duration: 0.12, ease: [0.4, 0, 0.2, 1] }}
+          onClick={() => setIsDrawerExpanded(v => !v)}
+          aria-expanded={isDrawerExpanded}
+          aria-label={`${allSelected ? 'All' : count} selected — ${isDrawerExpanded ? 'collapse' : 'expand'} actions`}
+          title={`${allSelected ? 'All' : count} selected — tap to ${isDrawerExpanded ? 'collapse' : 'act'}`}
+          className="absolute right-3 z-30 flex items-center gap-0.5 px-2 h-6 bg-tea-gold text-tea-bg rounded-full shadow-md hover:bg-tea-gold/90 active:scale-95 transition-all"
+          style={{ top: rowMidY, transform: 'translateY(-50%)' }}
         >
-          <AnimatePresence mode="wait" initial={false}>
-            {!isDrawerExpanded ? (
-              <motion.button
-                key="chip"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.08 }}
-                onClick={() => setIsDrawerExpanded(true)}
-                className="flex items-baseline gap-1 pl-3 pr-2.5 py-1.5 hover:bg-tea-bg/30 transition-colors"
-                title={`${allSelected ? 'All' : count} selected — tap to act`}
-              >
-                <span className="text-ui-12 font-bold text-tea-text tabular-nums leading-none">{allSelected ? 'All' : count}</span>
-                <span className="text-ui-9 text-tea-text-sec uppercase tracking-[0.1em] leading-none">item{count !== 1 ? 's' : ''}</span>
-                <ChevronDown size={10} className="text-tea-text-sec ml-0.5 self-center" aria-hidden="true" />
-              </motion.button>
-            ) : (
-              <motion.div
-                key="bar"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.1 }}
-                className="flex items-center gap-1 pl-2 pr-1 py-1"
+          <span className="text-ui-11 font-bold tabular-nums leading-none">{allSelected ? 'All' : count}</span>
+          <motion.span
+            animate={{ rotate: isDrawerExpanded ? 180 : 0 }}
+            transition={{ duration: 0.18 }}
+            className="inline-flex items-center"
+            aria-hidden="true"
+          >
+            <ChevronDown size={10} strokeWidth={3} />
+          </motion.span>
+        </motion.button>
+
+        {/* Expanded action bar — drops just below the row, only while expanded.
+            Uses absolute positioning so opening it doesn't shift any rows. */}
+        <AnimatePresence>
+          {isDrawerExpanded && (
+            <motion.div
+              key={`__bar__${anchorProductId}`}
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.14, ease: [0.4, 0, 0.2, 1] }}
+              className="absolute right-3 z-30"
+              style={{ top: anchorRect.bottom + 6 }}
+            >
+              <div
+                className="absolute right-3 -top-[5px] w-2 h-2 bg-tea-elevated border-t border-l border-tea-border rotate-45"
+                aria-hidden="true"
+              />
+              <div
+                className="relative flex items-center gap-1 pl-2 pr-1 py-1 bg-tea-elevated border border-tea-border rounded-full"
+                style={{ boxShadow: '0 8px 22px rgba(24,19,14,0.30), 0 0 0 1px rgba(212,166,82,0.10)' }}
               >
                 <button
                   onClick={toggleSelectAll}
@@ -1266,14 +1275,6 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 </button>
                 <div className="w-px h-4 bg-tea-border mx-0.5 flex-shrink-0" />
                 <button
-                  onClick={() => setIsDrawerExpanded(false)}
-                  className="p-1.5 text-tea-text-sec hover:text-tea-text rounded-full hover:bg-tea-bg/40 transition-colors"
-                  title="Collapse"
-                  aria-label="Collapse action bar"
-                >
-                  <ChevronUp size={12} />
-                </button>
-                <button
                   onClick={() => { setSelectedIds(new Set()); lastSelectedIdxRef.current = null; setIsDrawerExpanded(false); }}
                   className="p-1.5 text-tea-text-sec hover:text-tea-text rounded-full hover:bg-tea-bg/40 transition-colors"
                   title="Clear selection"
@@ -1281,11 +1282,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 >
                   <XIcon size={13} />
                 </button>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </motion.div>
-      </motion.div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </>
     );
   };
 
