@@ -867,38 +867,48 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                 </motion.div>
               )}
 
-              {/* Save */}
+              {/* Save / Cancel */}
               <div className="px-3 pb-3 pt-1.5">
                 {saveState === 'error' && (
                   <p className="text-ui-11 text-red-400 text-center mb-1.5" style={{ fontFamily: 'var(--font-body)' }}>
                     Save failed — check your connection and try again
                   </p>
                 )}
-                <button
-                  onClick={handleSave}
-                  disabled={!canSave}
-                  className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
-                    saveState === 'saving' || saveState === 'saved'
-                      ? 'bg-tea-gold text-tea-bg scale-[0.98]'
-                      : canSave
-                        ? 'border border-tea-gold/40 text-tea-gold hover:bg-tea-gold/8 active:scale-[0.98]'
-                        : 'border border-tea-border text-tea-text-dim cursor-not-allowed'
-                  }`}
-                >
-                  <motion.span
-                    key={saveState}
-                    initial={{ opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="flex items-center gap-2"
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="shrink-0 px-4 py-2.5 text-sm font-medium text-tea-text-sec hover:text-tea-text transition-colors"
+                    style={{ fontFamily: 'var(--font-body)' }}
                   >
-                    <Check size={15} />
-                    {saveState === 'idle' && (verdictRequired && !verdict ? 'Select a verdict to save' : 'Save')}
-                    {saveState === 'saving' && 'Saving…'}
-                    {saveState === 'saved' && 'Saved'}
-                    {saveState === 'error' && 'Retry'}
-                  </motion.span>
-                </button>
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSave}
+                    disabled={!canSave}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                      saveState === 'saving' || saveState === 'saved'
+                        ? 'bg-tea-gold text-tea-bg scale-[0.98]'
+                        : canSave
+                          ? 'border border-tea-gold/40 text-tea-gold hover:bg-tea-gold/8 active:scale-[0.98]'
+                          : 'border border-tea-border text-tea-text-sec cursor-not-allowed'
+                    }`}
+                  >
+                    <motion.span
+                      key={saveState}
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="flex items-center gap-2"
+                    >
+                      <Check size={15} />
+                      {saveState === 'idle' && (verdictRequired && !verdict ? 'Select a verdict to save' : 'Save')}
+                      {saveState === 'saving' && 'Saving…'}
+                      {saveState === 'saved' && 'Saved'}
+                      {saveState === 'error' && 'Retry'}
+                    </motion.span>
+                  </button>
+                </div>
               </div>
             </div>
           </motion.div>
