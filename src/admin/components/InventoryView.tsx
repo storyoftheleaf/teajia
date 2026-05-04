@@ -1193,39 +1193,40 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     if (!anchorProductId || isEditMode || !anchorRect) return null;
     const count = selectedIds.size;
     const allSelected = count === processedProducts.length;
-    const rowMidY = (anchorRect.top + anchorRect.bottom) / 2;
     const menuItem = "w-full flex items-center gap-2.5 px-3 py-2 text-ui-12 text-tea-text-sec hover:text-tea-text hover:bg-tea-gold/8 transition-colors text-left disabled:opacity-40 disabled:cursor-not-allowed";
 
     return (
       <>
-        {/* Chip — gold pill, count + chevron, centered on the row's right edge.
-            Absolute wrapper handles vertical centering so framer-motion is free
-            to drive scale/opacity on the button itself. */}
+        {/* Chip — square gold tile that fills the row's right edge. Sized to the
+            anchor row's full height so it visually slots into the row instead of
+            floating above it. Subtle hover/active states keep it readable as a
+            button. */}
         <div
-          className="absolute right-3 z-30"
-          style={{ top: rowMidY, transform: 'translateY(-50%)' }}
+          className="absolute right-1 z-30"
+          style={{ top: anchorRect.top, height: anchorRect.bottom - anchorRect.top }}
         >
           <motion.button
             key={`__chip__${anchorProductId}`}
             data-action-chip
-            initial={{ opacity: 0, scale: 0.92 }}
+            initial={{ opacity: 0, scale: 0.94 }}
             animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.92 }}
+            exit={{ opacity: 0, scale: 0.94 }}
             transition={{ duration: 0.14, ease: [0.4, 0, 0.2, 1] }}
             onClick={() => setIsDrawerExpanded(v => !v)}
             aria-expanded={isDrawerExpanded}
             aria-label={`${allSelected ? 'All' : count} selected — ${isDrawerExpanded ? 'close' : 'open'} actions`}
             title={`${allSelected ? 'All' : count} selected`}
-            className="flex items-center gap-1 px-2 h-[30px] bg-tea-gold text-tea-bg rounded-md shadow-sm hover:bg-tea-gold/90 active:scale-95 transition-colors"
+            className="flex items-center gap-1 px-2.5 h-full bg-tea-gold text-tea-bg rounded-sm hover:bg-tea-gold/90 active:bg-tea-gold/80 transition-colors"
+            style={{ boxShadow: 'inset 0 0 0 1px rgba(24,19,14,0.10)' }}
           >
-            <span className="text-ui-11 font-bold tabular-nums leading-none">{allSelected ? 'All' : count}</span>
+            <span className="text-ui-12 font-bold tabular-nums leading-none">{allSelected ? 'All' : count}</span>
             <motion.span
               animate={{ rotate: isDrawerExpanded ? 180 : 0 }}
               transition={{ duration: 0.2 }}
               className="inline-flex items-center"
               aria-hidden="true"
             >
-              <ChevronDown size={10} strokeWidth={3} />
+              <ChevronDown size={11} strokeWidth={3} />
             </motion.span>
           </motion.button>
         </div>
