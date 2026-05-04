@@ -77,6 +77,8 @@ const SpacesPage = lazy(() => import('./pages/SpacesPage'));
 const StartHerePage = lazy(() => import('./pages/StartHerePage'));
 const ArticlePage = lazy(() => import('./pages/ArticlePage'));
 const PublicCollectionPage = lazy(() => import('./pages/PublicCollectionPage'));
+const ContributorProfilePage = lazy(() => import('./pages/ContributorProfilePage'));
+const ContributorsIndexPage = lazy(() => import('./pages/ContributorsIndexPage'));
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchStore } from './lib/storefrontApi';
@@ -761,6 +763,20 @@ const AppContent = () => {
                         onAccountClick={handleOpenAccount}
                         cartItemCount={cart.length}
                       />
+                    </Suspense>
+                  </ErrorBoundary>
+                } />
+                <Route path="/people/:slug" element={
+                  <ErrorBoundary>
+                    <Suspense fallback={<SectionSkeleton variant="hero" />}>
+                      <ContributorProfilePage />
+                    </Suspense>
+                  </ErrorBoundary>
+                } />
+                <Route path="/people" element={
+                  <ErrorBoundary>
+                    <Suspense fallback={<SectionSkeleton variant="list" />}>
+                      <ContributorsIndexPage />
                     </Suspense>
                   </ErrorBoundary>
                 } />

@@ -261,6 +261,111 @@ export interface Person {
   avatarUrl?: string;
 }
 
+// Contributor - the canonical editorial identity that backs /people/:slug.
+// See docs/CONTRIBUTOR_PROFILES_PLAN.md.
+export interface ContributorLink {
+  label: string;
+  url: string;
+}
+
+export interface ContributorListItem {
+  id: string;
+  display_name: string;
+  chinese_name?: string | null;
+  role?: string | null;
+  location_line?: string | null;
+  avatar_url?: string | null;
+}
+
+export interface ContributorPullQuote {
+  pull_quote: string;
+  author_id: string;
+  published_at: string;
+  article_slug: string;
+  article_title: string;
+}
+
+export interface ContributorArticleRef {
+  slug: string;
+  title: string;
+  subtitle?: string | null;
+  published_at: string;
+  cover_image_url?: string | null;
+}
+
+export interface ContributorFeaturedRef {
+  slug: string;
+  title: string;
+  subtitle?: string | null;
+  author_id: string;
+  published_at: string;
+}
+
+export interface ContributorProductRef {
+  id: string;
+  product_name: string;
+  given_name?: string | null;
+  chinese_name?: string | null;
+  image_url?: string | null;
+  sourced_by?: string | null;
+  roasted_by?: string | null;
+  vouched_by?: string | null;
+}
+
+export interface ContributorHostAccount {
+  id: string;
+  slug: string;
+  name: string;
+  tagline?: string | null;
+  public_shop_path?: string | null;
+  location_city?: string | null;
+  location_country?: string | null;
+}
+
+export interface ContributorProfile {
+  id: string;
+  account_id: string;
+  user_id?: string | null;
+  face_of_account_id?: string | null;
+
+  display_name: string;
+  chinese_name?: string | null;
+  role?: string | null;
+  pronouns?: string | null;
+  location_line?: string | null;
+  active_since?: string | null;
+
+  beginnings?: string | null;
+  now_text?: string | null;
+  now_stamp?: string | null;
+  now_updated_at?: string | null;
+  inspirations?: string | null;
+  closing?: string | null;
+
+  avatar_url?: string | null;
+  portrait_url?: string | null;
+  portrait_caption?: string | null;
+  voice_clip_url?: string | null;
+  voice_clip_caption?: string | null;
+
+  pouring_today_product_id?: string | null;
+  pouring_today_note?: string | null;
+  where_to_find_text?: string | null;
+
+  links: ContributorLink[];
+  is_published: 0 | 1;
+
+  articles: ContributorArticleRef[];
+  pull_quotes: ContributorPullQuote[];
+  featured_in: ContributorFeaturedRef[];
+  products: ContributorProductRef[];
+  host_account: ContributorHostAccount | null;
+  seasonal_line: string | null;
+
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Chapter {
   id: string;
   title: string;

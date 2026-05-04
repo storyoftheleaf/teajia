@@ -11285,6 +11285,108 @@ const handleGetPublicArticle: Handler = async (request, env, params) => {
     ...row,
     tags: row.tags ? JSON.parse(row.tags as string) : [],
     blocks: row.blocks ? JSON.parse(row.blocks as string) : [],
+    subject_ids: row.subject_ids ? JSON.parse(row.subject_ids as string) : [],
+  });
+};
+
+// ── Contributors — Public ─────────────────────────────────────────────────────
+// GET /api/people — list of published contributors for the directory page.
+// GET /api/people/:slug — single profile + woven content.
+// Per docs/CONTRIBUTOR_PROFILES_PLAN.md.
+
+const handleListPublicContributors: Handler = async (request, env) => {
+  const rows = await env.DB.prepare(
+    `SELECT id, display_name, chinese_name, role, location_line, avatar_url
+     FROM contributors
+     WHERE is_published = 1
+     ORDER BY display_name ASC`
+  ).all();
+
+  return json({ contributors: rows.results ?? [] });
+};
+
+const handleGetPublicContributor: Handler = async (request, env, params) => {
+  const slug = params.slug;
+  if (!slug) return json({ error: 'Missing slug' }, 400);
+
+  const row = await env.DB.prepare(
+    `SELECT * FROM contributors WHERE id = ? AND is_published = 1`
+  ).bind(slug).first() as Record<string, any> | null;
+  if (!row) return json({ error: 'Contributor not found' }, 404);
+
+  const articlesRes = await env.DB.prepare(
+    `SELECT slug, title, subtitle, published_at, cover_image_url
+     FROM articles
+     WHERE author_id = ? AND status = 'published'
+     ORDER BY published_at DESC
+     LIMIT 24`
+  ).bind(slug).all();
+
+  const pullQuotesRes = await env.DB.prepare(
+    `SELECT pull_quote, author_id, published_at, slug AS article_slug, title AS article_title
+     FROM articles
+     WHERE pull_quote_subject = ?
+       AND pull_quote IS NOT NULL
+       AND pull_quote != ''
+       AND status = 'published'
+     ORDER BY published_at DESC
+     LIMIT 2`
+  ).bind(slug).all();
+
+  const subjectMatch = `%"${slug}"%`;
+  const featuredInRes = await env.DB.prepare(
+    `SELECT slug, title, subtitle, author_id, published_at
+     FROM articles
+     WHERE subject_ids LIKE ?
+       AND status = 'published'
+     ORDER BY published_at DESC
+     LIMIT 12`
+  ).bind(subjectMatch).all();
+
+  let hostAccount: Record<string, any> | null = null;
+  if (row.face_of_account_id) {
+    hostAccount = await env.DB.prepare(
+      `SELECT id, slug, name, tagline, public_shop_path, location_city, location_country
+       FROM accounts
+       WHERE id = ? AND public_enabled = 1`
+    ).bind(row.face_of_account_id).first() as Record<string, any> | null;
+  }
+
+  const productsRes = await env.DB.prepare(
+    `SELECT id, product_name, given_name, chinese_name, image_url, sourced_by, roasted_by, vouched_by
+     FROM products
+     WHERE sourced_by = ? OR roasted_by = ? OR vouched_by = ?
+     LIMIT 24`
+  ).bind(slug, slug, slug).all();
+
+  let seasonalLine: string | null = null;
+  if (row.location_line) {
+    const today = new Date();
+    const month = today.getUTCMonth() + 1;
+    const day = today.getUTCDate();
+    const seasonalRow = await env.DB.prepare(
+      `SELECT line, region
+       FROM seasonal_calendar
+       WHERE account_id = ?
+         AND ? LIKE '%' || region || '%'
+         AND month_start <= ? AND month_end >= ?
+         AND (day_start IS NULL OR day_start <= ?)
+         AND (day_end IS NULL OR day_end >= ?)
+       ORDER BY id DESC
+       LIMIT 1`
+    ).bind(row.account_id, row.location_line, month, month, day, day).first() as Record<string, any> | null;
+    if (seasonalRow) seasonalLine = seasonalRow.line as string;
+  }
+
+  return json({
+    ...row,
+    links: row.links ? JSON.parse(row.links as string) : [],
+    articles: articlesRes.results ?? [],
+    pull_quotes: pullQuotesRes.results ?? [],
+    featured_in: featuredInRes.results ?? [],
+    products: productsRes.results ?? [],
+    host_account: hostAccount,
+    seasonal_line: seasonalLine,
   });
 };
 
@@ -14858,6 +14960,10 @@ const routes: [string, string, Handler][] = [
   // Articles — Public
   ['GET', '/api/articles',       handleGetPublicArticles],
   ['GET', '/api/articles/:slug', handleGetPublicArticle],
+
+  // Contributors — Public
+  ['GET', '/api/people',         handleListPublicContributors],
+  ['GET', '/api/people/:slug',   handleGetPublicContributor],
 
   // Articles — Admin
   ['GET',    '/api/admin/articles',                    handleListArticles],

@@ -2949,4 +2949,15 @@ export const api = {
     },
   },
 
+  people: {
+    list: async () => {
+      const res = await fetchWithTimeout(`${API_URL}/api/people`);
+      return handleResponse(res);
+    },
+    getBySlug: async (slug: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/people/${encodeURIComponent(slug)}`);
+      return handleResponse(res);
+    },
+  },
+
 };
