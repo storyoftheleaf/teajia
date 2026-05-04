@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { X, Save, Layers, Edit, Loader2, UserCheck, RefreshCw, Calculator, Tag, Globe, FileText, Image as ImageIcon, Upload, Trash2, Star, Sparkles, ChevronDown, Compass, ExternalLink } from 'lucide-react';
+import { X, Save, Layers, Edit, Loader2, UserCheck, RefreshCw, Tag, Globe, FileText, Image as ImageIcon, Upload, Trash2, Star, ChevronDown, Compass, ExternalLink } from 'lucide-react';
 import { api } from '../../lib/api';
 import { Currency, Product, ExchangeRate, ProductType } from '../types';
 import type { TastingData } from '../../types';
@@ -191,7 +191,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { aiPromptTemplate, draftProduct, setDraftProduct, memberships, activeAccountId } = useAppStore();
+  const { draftProduct, setDraftProduct, memberships, activeAccountId } = useAppStore();
   const isPlatformAccount = memberships.find(m => m.account_id === activeAccountId)?.is_platform_account ?? false;
 
   const [tastingData, setTastingData] = useState<TastingData>({});
@@ -453,11 +453,8 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
     }
   };
 
-  const [generatingWisdom, setGeneratingWisdom] = useState(false);
   const [wisdomOpen, setWisdomOpen] = useState(false);
   const [showDraftBanner, setShowDraftBanner] = useState(false);
-  const [pendingWisdom, setPendingWisdom] = useState<null | { lore: string; tastingNotes: string; chineseName: string; originRegion: string; processingNotes: string; terroir: string; mood: string; experience: string }>(null);
-  const [showWisdomSaveHint, setShowWisdomSaveHint] = useState(false);
   const [nameError, setNameError] = useState(false);
   const [autoFillSource, setAutoFillSource] = useState<string | null>(null);
   const autoFillSnapshotRef = useRef<typeof formData | null>(null);
@@ -481,63 +478,6 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
     return () => clearTimeout(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData, isOpen]);
-
-  const applyGeneratedWisdom = (data: typeof pendingWisdom) => {
-    if (!data) return;
-    setFormData(prev => ({
-        ...prev,
-        lore: data.lore || prev.lore,
-        tastingNotes: data.tastingNotes || prev.tastingNotes,
-        chineseName: prev.chineseName || data.chineseName,
-        originRegion: prev.originRegion || data.originRegion,
-        processingNotes: prev.processingNotes || data.processingNotes,
-        terroir: prev.terroir || data.terroir,
-        mood: prev.mood || data.mood,
-        experience: prev.experience || data.experience,
-        isCustomWisdom: false,
-        showWisdom: true,
-    }));
-    setPendingWisdom(null);
-    setShowWisdomSaveHint(true);
-  };
-
-  const handleGenerateWisdom = async () => {
-    if (!formData.productName) {
-        showToast("Please enter a product name first.", 'error');
-        return;
-    }
-
-    setGeneratingWisdom(true);
-    try {
-        const prompt = aiPromptTemplate
-            .replace('{{productName}}', formData.productName)
-            .replace('{{type}}', formData.type);
-
-        const data = await api.generateWisdom(prompt);
-        const generated = {
-            lore: data.lore || '',
-            tastingNotes: data.tastingNotes ? data.tastingNotes.join(', ') : '',
-            chineseName: data.chineseName || '',
-            originRegion: data.originRegion || '',
-            processingNotes: data.processingNotes || '',
-            terroir: data.terroir || '',
-            mood: data.mood || '',
-            experience: data.experience || '',
-        };
-
-        // If there's existing lore, confirm before overwriting
-        if (formData.lore && formData.lore.trim()) {
-            setPendingWisdom(generated);
-        } else {
-            applyGeneratedWisdom(generated);
-        }
-    } catch (error: any) {
-        console.error("Failed to generate wisdom:", error);
-        showToast("Failed to generate wisdom. Please try again.", 'error');
-    } finally {
-        setGeneratingWisdom(false);
-    }
-  };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -893,187 +833,208 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                  </div>
             </div>
 
-            {/* COST CALCULATION */}
-            <div className="pt-2 border-t border-tea-border">
-              <div className="flex items-center gap-2 mb-3">
-                <Calculator size={12} className="text-tea-gold/70" />
-                <span className="text-xs font-serif italic text-tea-text-sec">Cost Calculation</span>
+            {/* COST */}
+            <section aria-labelledby="cost-heading" className="pt-4 border-t border-tea-border">
+              <div className="flex items-baseline justify-between mb-4">
+                <h3 id="cost-heading" className="text-base font-serif italic text-tea-text">Cost</h3>
+                <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec">Per gram, all-in</span>
               </div>
 
-              <div className="bg-tea-bg p-4 rounded-xl border border-tea-border shadow-inner space-y-3 font-mono text-sm">
-
-                 {/* INPUTS */}
-                 <div className="space-y-2.5 border-b border-dashed border-tea-border pb-3">
-                      <div className="flex justify-between items-center">
-                          <label className="text-tea-gold/70 uppercase text-xs tracking-[0.2em]">Batch Cost</label>
-                          <div className="flex items-center gap-2 border-b border-tea-border hover:border-tea-gold/20 transition-colors">
-                              <select
-                                  name="costCurrency" value={formData.costCurrency} onChange={handleChange}
-                                  className="bg-transparent appearance-none rounded-none text-xs text-tea-gold font-bold outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg cursor-pointer uppercase"
-                              >
-                                  <option value="USD" className="bg-tea-surface text-tea-text">USD</option>
-                                  <option value="NT" className="bg-tea-surface text-tea-text">NT</option>
-                                  <option value="Yuan" className="bg-tea-surface text-tea-text">CNY</option>
-                                  <option value="IDR" className="bg-tea-surface text-tea-text">IDR</option>
-                                  <option value="JPY" className="bg-tea-surface text-tea-text">JPY</option>
-                                  <option value="MYR" className="bg-tea-surface text-tea-text">MYR</option>
-                              </select>
-                              <input
-                                  name="costAmount" type="number" step="0.01" value={formData.costAmount} onChange={handleChange}
-                                  className="w-24 bg-transparent text-right text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg placeholder-tea-text-sec tabular-nums" placeholder="0.00"
-                                  inputMode="decimal" onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 300); }}
-                              />
-                          </div>
-                      </div>
-                      <div className="flex justify-between items-center">
-                          <label className="text-tea-gold/70 uppercase text-xs tracking-[0.2em]">Weight (g)</label>
-                          <input
-                              name="quantityPurchased" type="number" value={formData.quantityPurchased} onChange={handleChange}
-                              className="w-24 bg-transparent text-right text-tea-text border-b border-tea-border hover:border-tea-gold/20 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg placeholder-tea-text-sec transition-colors tabular-nums" placeholder="0"
-                              inputMode="decimal" onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 300); }}
-                          />
-                      </div>
-                      <div className="flex justify-between items-center">
-                          <label className="text-tea-gold/70 uppercase text-xs tracking-[0.2em]">Ship (USD/kg)</label>
-                          <input
-                              name="shippingRateUSD" type="number" step="0.01" value={formData.shippingRateUSD} onChange={handleChange}
-                              className="w-24 bg-transparent text-right text-tea-text border-b border-tea-border hover:border-tea-gold/20 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg placeholder-tea-text-sec transition-colors tabular-nums" placeholder="10.00"
-                              inputMode="decimal" onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 300); }}
-                          />
-                      </div>
-                 </div>
-
-                 {/* CALCULATED */}
-                 <div className="space-y-1.5">
-                      <div className="flex justify-between text-tea-text-sec text-xs">
-                           <span>Source Cost/g</span>
-                           <span className="num">{calc.costPerGramSource.toFixed(3)} {formData.costCurrency}</span>
-                      </div>
-                      <div className="flex justify-between text-tea-text-sec text-xs">
-                           <span>Exchange Rate</span>
-                           <span className="num">{calc.rateUsed}</span>
-                      </div>
-                      <div className="flex justify-between text-tea-text text-xs pt-1">
-                           <span>True Cost (USD)</span>
-                           <span className="num text-tea-gold font-bold">${calc.trueCostUSD.toFixed(3)}/g</span>
-                      </div>
-                 </div>
-
-                 {/* RETAIL OUTPUT */}
-                 <div className="pt-2.5 border-t border-dashed border-tea-border">
-                    <div className="flex justify-between items-center mb-1.5">
-                       <label className="text-xs uppercase tracking-[0.2em] text-tea-gold font-bold">Retail (USD/g)</label>
-                       <span className="text-ui-9 text-tea-text-sec num">3x Markup: ${calc.suggestedRetailUSD.toFixed(2)}</span>
-                    </div>
-                    <div className="flex items-center gap-2 bg-tea-surface border border-tea-border rounded-lg px-3 py-2">
-                       <span className="text-base text-tea-text-sec font-serif">$</span>
-                       <input
-                          name="fixedRetailPriceUSD" type="number" inputMode="decimal" step="0.01" value={formData.fixedRetailPriceUSD} onChange={handleChange}
-                          onFocus={(e) => {
-                              if (!formData.fixedRetailPriceUSD && calc.suggestedRetailUSD > 0) {
-                                  setFormData({ ...formData, fixedRetailPriceUSD: calc.suggestedRetailUSD.toFixed(2) });
-                              }
-                              setTimeout(() => { e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 300);
-                          }}
-                          className={`flex-1 bg-transparent text-lg num outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg text-right ${
-                              formData.fixedRetailPriceUSD && parseFloat(formData.fixedRetailPriceUSD) < calc.trueCostUSD
-                              ? 'text-tea-gold font-bold' : 'text-tea-text'
-                          }`}
-                          placeholder={calc.suggestedRetailUSD.toFixed(2)}
-                       />
-                    </div>
-                 </div>
-
-                 {/* WHOLESALE PRICE — platform accounts only */}
-                 {isPlatformAccount && (
-                   <div className="pt-2.5 border-t border-dashed border-tea-border">
-                     <label className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec block mb-1.5">Wholesale Price (USD/g)</label>
-                     <input
-                       type="number"
-                       step="0.0001"
-                       value={formData.wholesalePrice}
-                       onChange={e => setFormData(prev => ({ ...prev, wholesalePrice: e.target.value }))}
-                       placeholder="0.0000"
-                       className="w-full border-b border-tea-border bg-transparent focus:border-tea-gold outline-none text-sm text-tea-text py-2 placeholder:text-tea-text-sec"
-                     />
-                   </div>
-                 )}
-
-                 {/* STOCK */}
-                 <div className="pt-2">
-                      <div className="flex justify-between items-center">
-                          <label className="text-tea-gold/70 uppercase text-xs tracking-[0.2em]">Current Stock</label>
-                          <input
-                              name="stockGrams" type="number" value={formData.stockGrams} onChange={handleChange}
-                              className="w-24 bg-transparent text-right text-tea-text border-b border-tea-border hover:border-tea-gold/20 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg placeholder-tea-text-sec transition-colors tabular-nums" placeholder="0"
-                              inputMode="numeric"
-                          />
-                      </div>
-
-                      {/* Low-stock alert threshold */}
-                      <div className="flex justify-between items-center mt-2">
-                          <label className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim">Alert below (g)</label>
-                          <input
-                              name="lowStockThreshold" type="number" value={formData.lowStockThreshold} onChange={handleChange}
-                              className="w-24 bg-transparent text-right text-tea-text-sec border-b border-tea-border hover:border-tea-gold/20 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg placeholder-tea-text-sec transition-colors tabular-nums text-sm" placeholder="0"
-                              inputMode="numeric"
-                          />
-                      </div>
-
-                      {/* Session reserve threshold — tea only */}
-                      {formData.type !== 'Teaware' && (
-                        <div className="flex justify-between items-center mt-2">
-                            <label className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim" title="Stock below this amount shows a low-availability warning on the shop.">Session reserve (g)</label>
-                            <input
-                                name="sessionReserveGrams" type="number" value={formData.sessionReserveGrams} onChange={handleChange}
-                                className="w-24 bg-transparent text-right text-tea-text-sec border-b border-tea-border hover:border-tea-gold/20 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg placeholder-tea-text-sec transition-colors tabular-nums text-sm" placeholder="0"
-                                inputMode="numeric"
-                            />
-                        </div>
-                      )}
-
-                      <label className="flex items-center gap-2 mt-1.5 cursor-pointer group">
-                          <div className="relative">
-                              <input type="checkbox" name="recheckStock" checked={formData.recheckStock} onChange={handleChange} className="peer sr-only" />
-                              <div className={`w-3.5 h-3.5 rounded-sm border transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-tea-gold/50 peer-focus-visible:ring-offset-1 peer-focus-visible:ring-offset-tea-bg ${formData.recheckStock ? 'bg-tea-gold border-tea-gold' : 'border-tea-border group-hover:border-tea-gold/20'}`}>
-                                  {formData.recheckStock && <svg className="w-3.5 h-3.5 text-tea-bg" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M3.5 7L6 9.5L10.5 4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-                              </div>
-                          </div>
-                          <span className="text-xs text-tea-text-sec group-hover:text-tea-text transition-colors">Flag for stock recheck</span>
-                      </label>
-
-                      {/* In-transit toggle + expanded fields */}
-                      <label className="flex items-center gap-2 mt-1.5 cursor-pointer group">
-                          <div className="relative">
-                              <input type="checkbox" name="inTransit" checked={formData.inTransit} onChange={handleChange} className="peer sr-only" />
-                              <div className={`w-3.5 h-3.5 rounded-sm border transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-tea-gold/50 peer-focus-visible:ring-offset-1 peer-focus-visible:ring-offset-tea-bg ${formData.inTransit ? 'bg-tea-gold border-tea-gold' : 'border-tea-border group-hover:border-tea-gold/20'}`}>
-                                  {formData.inTransit && <svg className="w-3.5 h-3.5 text-tea-bg" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M3.5 7L6 9.5L10.5 4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-                              </div>
-                          </div>
-                          <span className="text-xs text-tea-text-sec group-hover:text-tea-text transition-colors">In transit</span>
-                      </label>
-                      {formData.inTransit && (
-                        <div className="mt-2 pl-5 space-y-1.5 border-l border-tea-border">
-                          <div className="flex justify-between items-center">
-                            <label className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim">Qty in transit (g)</label>
-                            <input
-                              name="inTransitGrams" type="number" value={formData.inTransitGrams} onChange={handleChange}
-                              className="w-20 bg-transparent text-right text-tea-gold border-b border-tea-border hover:border-tea-gold/20 outline-none text-sm tabular-nums placeholder-tea-text-sec"
-                              placeholder="0" inputMode="numeric"
-                            />
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <label className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim">Expected arrival</label>
-                            <input
-                              name="inTransitEta" type="date" value={formData.inTransitEta} onChange={handleChange}
-                              className="bg-transparent text-right text-tea-text-sec border-b border-tea-border hover:border-tea-gold/20 outline-none text-xs"
-                            />
-                          </div>
-                        </div>
-                      )}
-                 </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className={labelStyle}>Batch Cost</label>
+                  <div className="flex items-baseline gap-1.5 border-b border-tea-border focus-within:border-tea-accent-sub transition-colors">
+                    <select
+                      name="costCurrency" value={formData.costCurrency} onChange={handleChange}
+                      aria-label="Cost currency"
+                      className="bg-transparent appearance-none text-ui-11 text-tea-gold font-bold outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg cursor-pointer uppercase tracking-[0.15em] shrink-0"
+                    >
+                      <option value="USD" className="bg-tea-surface text-tea-text">USD</option>
+                      <option value="NT" className="bg-tea-surface text-tea-text">NT</option>
+                      <option value="Yuan" className="bg-tea-surface text-tea-text">Yuan (CNY)</option>
+                      <option value="IDR" className="bg-tea-surface text-tea-text">IDR</option>
+                      <option value="JPY" className="bg-tea-surface text-tea-text">JPY</option>
+                      <option value="MYR" className="bg-tea-surface text-tea-text">MYR</option>
+                    </select>
+                    <input
+                      name="costAmount" type="number" step="0.01" value={formData.costAmount} onChange={handleChange}
+                      className="flex-1 min-w-0 bg-transparent py-1.5 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg placeholder-tea-text-sec tabular-nums text-right"
+                      placeholder="0.00"
+                      inputMode="decimal"
+                      onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 300); }}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className={labelStyle}>Weight (g)</label>
+                  <input
+                    name="quantityPurchased" type="number" value={formData.quantityPurchased} onChange={handleChange}
+                    className={`${inputStyle} tabular-nums text-right`}
+                    placeholder="0"
+                    inputMode="decimal"
+                    onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 300); }}
+                  />
+                </div>
+                <div>
+                  <label className={labelStyle}>Ship USD/kg</label>
+                  <input
+                    name="shippingRateUSD" type="number" step="0.01" value={formData.shippingRateUSD} onChange={handleChange}
+                    className={`${inputStyle} tabular-nums text-right`}
+                    placeholder="13.00"
+                    inputMode="decimal"
+                    onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 300); }}
+                  />
+                </div>
               </div>
-            </div>
+
+              {/* The headline — true cost, large and confident */}
+              <div className="mt-5 flex items-end justify-between gap-4">
+                <div>
+                  <div className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec mb-0.5">True cost</div>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-3xl font-serif text-tea-gold tabular-nums">${calc.trueCostUSD.toFixed(3)}</span>
+                    <span className="text-xs text-tea-text-sec font-serif italic">per gram</span>
+                  </div>
+                </div>
+                <div className="text-right text-ui-10 text-tea-text-sec space-y-0.5">
+                  <div><span className="tabular-nums">{calc.costPerGramSource.toFixed(3)}</span> <span className="uppercase tracking-[0.15em]">{formData.costCurrency}</span>/g source</div>
+                  <div>FX <span className="tabular-nums">{calc.rateUsed}</span></div>
+                </div>
+              </div>
+
+              {/* Retail */}
+              <div className="mt-5 pt-4 border-t border-tea-border">
+                <div className="flex items-baseline justify-between mb-1.5">
+                  <label htmlFor="retail-input" className={labelStyle}>Retail USD/g</label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (calc.suggestedRetailUSD > 0) {
+                        setFormData(prev => ({ ...prev, fixedRetailPriceUSD: calc.suggestedRetailUSD.toFixed(2) }));
+                      }
+                    }}
+                    disabled={calc.suggestedRetailUSD <= 0}
+                    className="text-ui-10 uppercase tracking-[0.15em] text-tea-gold/80 hover:text-tea-gold disabled:opacity-40 disabled:cursor-default transition-colors"
+                  >
+                    Use 3× <span className="tabular-nums">${calc.suggestedRetailUSD.toFixed(2)}</span>
+                  </button>
+                </div>
+                <div className="flex items-baseline gap-1.5 border-b border-tea-border focus-within:border-tea-accent-sub transition-colors">
+                  <span className="text-sm text-tea-text-sec font-serif">$</span>
+                  <input
+                    id="retail-input"
+                    name="fixedRetailPriceUSD" type="number" inputMode="decimal" step="0.01" value={formData.fixedRetailPriceUSD} onChange={handleChange}
+                    onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 300); }}
+                    className={`flex-1 min-w-0 bg-transparent py-1.5 text-sm tabular-nums text-right outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg placeholder-tea-text-sec ${
+                      formData.fixedRetailPriceUSD && parseFloat(formData.fixedRetailPriceUSD) < calc.trueCostUSD
+                        ? 'text-tea-gold font-bold' : 'text-tea-text'
+                    }`}
+                    placeholder={calc.suggestedRetailUSD > 0 ? calc.suggestedRetailUSD.toFixed(2) : '0.00'}
+                  />
+                </div>
+                {formData.fixedRetailPriceUSD && parseFloat(formData.fixedRetailPriceUSD) < calc.trueCostUSD && (
+                  <p className="text-ui-11 text-tea-gold mt-1 italic">Retail is below true cost.</p>
+                )}
+              </div>
+
+              {/* Wholesale — platform accounts only */}
+              {isPlatformAccount && (
+                <div className="mt-4">
+                  <label htmlFor="wholesale-input" className={labelStyle}>Wholesale USD/g</label>
+                  <input
+                    id="wholesale-input"
+                    type="number"
+                    step="0.0001"
+                    value={formData.wholesalePrice}
+                    onChange={e => setFormData(prev => ({ ...prev, wholesalePrice: e.target.value }))}
+                    placeholder="0.0000"
+                    className={`${inputStyle} tabular-nums text-right`}
+                  />
+                </div>
+              )}
+            </section>
+
+            {/* STOCK */}
+            <section aria-labelledby="stock-heading" className="pt-4 border-t border-tea-border">
+              <div className="flex items-baseline justify-between mb-4">
+                <h3 id="stock-heading" className="text-base font-serif italic text-tea-text">Stock</h3>
+                <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec">In grams</span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className={labelStyle}>Current</label>
+                  <input
+                    name="stockGrams" type="number" value={formData.stockGrams} onChange={handleChange}
+                    className={`${inputStyle} tabular-nums text-right`}
+                    placeholder="0"
+                    inputMode="numeric"
+                  />
+                </div>
+                <div>
+                  <label className={labelStyle}>Alert below</label>
+                  <input
+                    name="lowStockThreshold" type="number" value={formData.lowStockThreshold} onChange={handleChange}
+                    className={`${inputStyle} tabular-nums text-right`}
+                    placeholder="0"
+                    inputMode="numeric"
+                  />
+                </div>
+                {formData.type !== 'Teaware' && (
+                  <div>
+                    <label className={labelStyle} title="Stock below this amount shows a low-availability warning on the shop.">Session reserve</label>
+                    <input
+                      name="sessionReserveGrams" type="number" value={formData.sessionReserveGrams} onChange={handleChange}
+                      className={`${inputStyle} tabular-nums text-right`}
+                      placeholder="0"
+                      inputMode="numeric"
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-4 space-y-2">
+                <label className="flex items-center gap-2 cursor-pointer group">
+                  <div className="relative">
+                    <input type="checkbox" name="recheckStock" checked={formData.recheckStock} onChange={handleChange} className="peer sr-only" />
+                    <div className={`w-3.5 h-3.5 rounded-sm border transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-tea-gold/50 peer-focus-visible:ring-offset-1 peer-focus-visible:ring-offset-tea-bg ${formData.recheckStock ? 'bg-tea-gold border-tea-gold' : 'border-tea-border group-hover:border-tea-gold/40'}`}>
+                      {formData.recheckStock && <svg className="w-3.5 h-3.5 text-tea-bg" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M3.5 7L6 9.5L10.5 4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                    </div>
+                  </div>
+                  <span className="text-xs text-tea-text-sec group-hover:text-tea-text transition-colors">Flag for stock recheck</span>
+                </label>
+
+                <label className="flex items-center gap-2 cursor-pointer group">
+                  <div className="relative">
+                    <input type="checkbox" name="inTransit" checked={formData.inTransit} onChange={handleChange} className="peer sr-only" />
+                    <div className={`w-3.5 h-3.5 rounded-sm border transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-tea-gold/50 peer-focus-visible:ring-offset-1 peer-focus-visible:ring-offset-tea-bg ${formData.inTransit ? 'bg-tea-gold border-tea-gold' : 'border-tea-border group-hover:border-tea-gold/40'}`}>
+                      {formData.inTransit && <svg className="w-3.5 h-3.5 text-tea-bg" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M3.5 7L6 9.5L10.5 4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                    </div>
+                  </div>
+                  <span className="text-xs text-tea-text-sec group-hover:text-tea-text transition-colors">In transit</span>
+                </label>
+
+                {formData.inTransit && (
+                  <div className="mt-2 pl-5 grid grid-cols-2 gap-4 border-l border-tea-border">
+                    <div>
+                      <label className={labelStyle}>Qty in transit (g)</label>
+                      <input
+                        name="inTransitGrams" type="number" value={formData.inTransitGrams} onChange={handleChange}
+                        className={`${inputStyle} tabular-nums text-right`}
+                        placeholder="0" inputMode="numeric"
+                      />
+                    </div>
+                    <div>
+                      <label className={labelStyle}>Expected arrival</label>
+                      <input
+                        name="inTransitEta" type="date" value={formData.inTransitEta} onChange={handleChange}
+                        className={inputStyle}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </section>
           </div>
 
           {/* --- RIGHT COLUMN: CONTENT & WISDOM (7/12) — spacious for reading/editing --- */}
@@ -1182,15 +1143,6 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                     </button>
                     {wisdomOpen && (
                         <div className="flex items-center gap-3">
-                            <button
-                                type="button"
-                                onClick={handleGenerateWisdom}
-                                disabled={generatingWisdom || !formData.productName}
-                                className="flex items-center gap-1.5 px-2.5 py-1 bg-tea-gold/10 text-tea-gold hover:bg-tea-gold/20 rounded text-ui-10 uppercase tracking-wider font-bold transition-colors disabled:opacity-50"
-                            >
-                                {generatingWisdom ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
-                                Generate with AI
-                            </button>
                             <label className="flex items-center gap-2 cursor-pointer group/toggle">
                                 <div className="relative">
                                     <input type="checkbox" name="showWisdom" checked={formData.showWisdom} onChange={handleChange} className="peer sr-only" />
@@ -1203,48 +1155,12 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                     )}
                 </div>
 
-                {/* Overwrite confirmation banner */}
-                {pendingWisdom && (
-                    <div className="mx-1 mb-3 px-3 py-2.5 bg-tea-gold/10 border border-tea-border rounded-lg flex items-center justify-between gap-3">
-                        <span className="text-xs text-tea-text-sec">AI wisdom ready. Replace existing lore?</span>
-                        <div className="flex items-center gap-2 shrink-0">
-                            <button
-                                type="button"
-                                onClick={() => applyGeneratedWisdom(pendingWisdom)}
-                                className="text-xs font-bold text-tea-gold hover:text-tea-gold/80 uppercase tracking-wider transition-colors"
-                            >
-                                Replace
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setPendingWisdom(null)}
-                                className="text-xs text-tea-text-sec hover:text-tea-text uppercase tracking-wider transition-colors"
-                            >
-                                Discard
-                            </button>
-                        </div>
-                    </div>
-                )}
-
-                {/* Save hint after generation */}
-                {showWisdomSaveHint && !pendingWisdom && (
-                    <div className="mx-1 mb-3 px-3 py-2 bg-tea-accent-sub/30 border border-tea-border rounded-lg flex items-center justify-between gap-2">
-                        <span className="text-xs text-tea-text-sec">Wisdom populated — save the product to persist it.</span>
-                        <button type="button" onClick={() => setShowWisdomSaveHint(false)} aria-label="Dismiss" className="text-ui-10 text-tea-text-sec hover:text-tea-text">✕</button>
-                    </div>
-                )}
-
                 {wisdomOpen && (
                     <div className="space-y-4">
                         {/* Lore — generous textarea */}
                         <div>
-                            <div className="flex justify-between items-center mb-1.5">
+                            <div className="mb-1.5">
                                 <label className={labelStyle}>Lore (History & Terroir)</label>
-                                {formData.isCustomWisdom ? (
-                                    <span className="text-ui-10 text-tea-gold uppercase tracking-wider flex items-center gap-1"><Edit size={9} /> Handcrafted</span>
-                                ) : formData.lore ? (
-                                    <span className="text-ui-10 text-tea-text-sec uppercase tracking-wider flex items-center gap-1"><Star size={9} /> AI Generated</span>
-                                ) : null}
                             </div>
                             <textarea
                                 name="lore" value={formData.lore}
