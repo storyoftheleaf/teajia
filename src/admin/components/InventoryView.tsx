@@ -875,6 +875,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   // tiny chip sits at the row's right edge; the expanded action bar drops just below.
   const tableWrapperRef = useRef<HTMLDivElement>(null);
   const [anchorRect, setAnchorRect] = useState<{ top: number; bottom: number } | null>(null);
+  const [menuOpenAbove, setMenuOpenAbove] = useState(false);
   const [isDrawerExpanded, setIsDrawerExpanded] = useState(false);
 
   // Modals
@@ -1144,16 +1145,27 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       return;
     }
     const wrapper = tableWrapperRef.current;
+    const scrollContainer = wrapper.closest<HTMLElement>('[data-testid="inventory-scroll"]');
     const compute = () => {
       const row = wrapper.querySelector<HTMLElement>(`[data-product-id="${anchorProductId}"]`);
       if (!row) { setAnchorRect(null); return; }
       const wRect = wrapper.getBoundingClientRect();
       const rRect = row.getBoundingClientRect();
       setAnchorRect({ top: rRect.top - wRect.top, bottom: rRect.bottom - wRect.top });
+      // Decide menu open direction by remaining space inside the scroll viewport.
+      // Prefer opening below; flip up when the row is within ~MENU_HEIGHT of the bottom.
+      const MENU_HEIGHT = 280;
+      if (scrollContainer) {
+        const scRect = scrollContainer.getBoundingClientRect();
+        const spaceBelow = scRect.bottom - rRect.bottom;
+        const spaceAbove = rRect.top - scRect.top;
+        setMenuOpenAbove(spaceBelow < MENU_HEIGHT && spaceAbove > spaceBelow);
+      }
     };
     compute();
     const ro = new ResizeObserver(compute);
     ro.observe(wrapper);
+    if (scrollContainer) ro.observe(scrollContainer);
     return () => ro.disconnect();
   }, [anchorProductId, processedProducts, isMobile, collapsedGroups]);
 
@@ -1161,126 +1173,128 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   // moving on; the next expand should be intentional, not residual.
   useEffect(() => { setIsDrawerExpanded(false); }, [anchorProductId]);
 
-  // Tiny in-row chip + floating action bar. Both anchor to the last-clicked row but
-  // sit in the row's right corner (chip) and just below the row (action bar) so the
-  // table layout never reflows when toggling selection.
+  // Click outside the chip or menu collapses the action menu.
+  useEffect(() => {
+    if (!isDrawerExpanded) return;
+    const handler = (e: MouseEvent) => {
+      const t = e.target as HTMLElement;
+      if (t.closest('[data-action-menu]') || t.closest('[data-action-chip]')) return;
+      setIsDrawerExpanded(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [isDrawerExpanded]);
+
+  // Selection UI — tiny gold chip in the row's right corner + vertical dropdown
+  // menu anchored to the chip. Both float absolutely so toggling selection never
+  // reflows the table; the menu's narrow column means it overlays only the right
+  // strip of rows below (or above, when near the viewport bottom).
   const renderActionDrawer = () => {
     if (!anchorProductId || isEditMode || !anchorRect) return null;
     const count = selectedIds.size;
     const allSelected = count === processedProducts.length;
     const rowMidY = (anchorRect.top + anchorRect.bottom) / 2;
+    const menuItem = "w-full flex items-center gap-2.5 px-3 py-2 text-ui-12 text-tea-text-sec hover:text-tea-text hover:bg-tea-gold/8 transition-colors text-left disabled:opacity-40 disabled:cursor-not-allowed";
 
     return (
       <>
-        {/* Tiny chip — sits in the row's right corner where the icons used to be.
-            Vertically centered against the anchor row so it feels embedded. */}
-        <motion.button
-          key={`__chip__${anchorProductId}`}
-          initial={{ opacity: 0, scale: 0.85 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.85 }}
-          transition={{ duration: 0.12, ease: [0.4, 0, 0.2, 1] }}
-          onClick={() => setIsDrawerExpanded(v => !v)}
-          aria-expanded={isDrawerExpanded}
-          aria-label={`${allSelected ? 'All' : count} selected — ${isDrawerExpanded ? 'collapse' : 'expand'} actions`}
-          title={`${allSelected ? 'All' : count} selected — tap to ${isDrawerExpanded ? 'collapse' : 'act'}`}
-          className="absolute right-3 z-30 flex items-center gap-0.5 px-2 h-6 bg-tea-gold text-tea-bg rounded-full shadow-md hover:bg-tea-gold/90 active:scale-95 transition-all"
+        {/* Chip — gold pill, count + chevron, centered on the row's right edge.
+            Absolute wrapper handles vertical centering so framer-motion is free
+            to drive scale/opacity on the button itself. */}
+        <div
+          className="absolute right-3 z-30"
           style={{ top: rowMidY, transform: 'translateY(-50%)' }}
         >
-          <span className="text-ui-11 font-bold tabular-nums leading-none">{allSelected ? 'All' : count}</span>
-          <motion.span
-            animate={{ rotate: isDrawerExpanded ? 180 : 0 }}
-            transition={{ duration: 0.18 }}
-            className="inline-flex items-center"
-            aria-hidden="true"
+          <motion.button
+            key={`__chip__${anchorProductId}`}
+            data-action-chip
+            initial={{ opacity: 0, scale: 0.85 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.85 }}
+            transition={{ duration: 0.14, ease: [0.4, 0, 0.2, 1] }}
+            onClick={() => setIsDrawerExpanded(v => !v)}
+            aria-expanded={isDrawerExpanded}
+            aria-label={`${allSelected ? 'All' : count} selected — ${isDrawerExpanded ? 'close' : 'open'} actions`}
+            title={`${allSelected ? 'All' : count} selected`}
+            className="flex items-center gap-1 px-2 h-6 bg-tea-gold text-tea-bg rounded-full shadow-md hover:bg-tea-gold/90 active:scale-95 transition-colors"
           >
-            <ChevronDown size={10} strokeWidth={3} />
-          </motion.span>
-        </motion.button>
+            <span className="text-ui-11 font-bold tabular-nums leading-none">{allSelected ? 'All' : count}</span>
+            <motion.span
+              animate={{ rotate: isDrawerExpanded ? 180 : 0 }}
+              transition={{ duration: 0.2 }}
+              className="inline-flex items-center"
+              aria-hidden="true"
+            >
+              <ChevronDown size={10} strokeWidth={3} />
+            </motion.span>
+          </motion.button>
+        </div>
 
-        {/* Expanded action bar — drops just below the row, only while expanded.
-            Uses absolute positioning so opening it doesn't shift any rows. */}
+        {/* Vertical action menu — opens below the row by default, flips above
+            when there isn't enough room. Origin is the corner closest to the
+            chip so the open animation reads as expanding *from* the chip. */}
         <AnimatePresence>
           {isDrawerExpanded && (
             <motion.div
-              key={`__bar__${anchorProductId}`}
-              initial={{ opacity: 0, y: -4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -4 }}
-              transition={{ duration: 0.14, ease: [0.4, 0, 0.2, 1] }}
-              className="absolute right-3 z-30"
-              style={{ top: anchorRect.bottom + 6 }}
+              key={`__menu__${anchorProductId}`}
+              data-action-menu
+              initial={{ opacity: 0, scale: 0.94, y: menuOpenAbove ? 4 : -4 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.94, y: menuOpenAbove ? 4 : -4 }}
+              transition={{ duration: 0.16, ease: [0.4, 0, 0.2, 1] }}
+              className={`absolute right-3 z-30 w-48 ${menuOpenAbove ? 'origin-bottom-right' : 'origin-top-right'}`}
+              style={{
+                top: menuOpenAbove ? undefined : anchorRect.bottom + 8,
+                bottom: menuOpenAbove ? `calc(100% - ${anchorRect.top}px + 8px)` : undefined,
+              }}
             >
               <div
-                className="absolute right-3 -top-[5px] w-2 h-2 bg-tea-elevated border-t border-l border-tea-border rotate-45"
-                aria-hidden="true"
-              />
-              <div
-                className="relative flex items-center gap-1 pl-2 pr-1 py-1 bg-tea-elevated border border-tea-border rounded-full"
-                style={{ boxShadow: '0 8px 22px rgba(24,19,14,0.30), 0 0 0 1px rgba(212,166,82,0.10)' }}
+                className="bg-tea-elevated border border-tea-border rounded-lg overflow-hidden py-1"
+                style={{ boxShadow: '0 14px 36px rgba(24,19,14,0.46), 0 0 0 1px rgba(212,166,82,0.10)' }}
               >
+                {/* Header — selection summary + select-all toggle */}
                 <button
                   onClick={toggleSelectAll}
-                  className="flex items-baseline gap-1 px-2 py-1 rounded-full hover:bg-tea-bg/40 transition-colors"
+                  className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-tea-bg/30 transition-colors"
                   title={allSelected ? 'Deselect all' : 'Select all'}
                 >
-                  <span className="text-ui-12 font-bold text-tea-text tabular-nums leading-none">{allSelected ? 'All' : count}</span>
-                  <span className="text-ui-9 text-tea-text-sec uppercase tracking-[0.1em] leading-none">item{count !== 1 ? 's' : ''}</span>
+                  <span className="text-ui-9 text-tea-text-sec uppercase tracking-[0.12em]">Selection</span>
+                  <span className="flex items-baseline gap-1">
+                    <span className="text-ui-12 font-bold text-tea-text tabular-nums leading-none">{allSelected ? 'All' : count}</span>
+                    <span className="text-ui-9 text-tea-text-sec uppercase tracking-[0.1em] leading-none">item{count !== 1 ? 's' : ''}</span>
+                  </span>
                 </button>
-                <div className="w-px h-4 bg-tea-border mx-0.5 flex-shrink-0" />
-                <button
-                  onClick={() => handleBulkVisibility(true)}
-                  disabled={isBulkApplying}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 bg-tea-gold text-tea-bg rounded-full hover:bg-tea-gold/90 transition-colors disabled:opacity-40"
-                  title="Publish"
-                >
-                  {isBulkApplying ? <Loader2 size={12} className="animate-spin" /> : <Eye size={12} />}
-                  <span className="text-ui-10 font-bold uppercase tracking-[0.15em]">Publish</span>
+                <div className="h-px bg-tea-border" />
+
+                {/* Primary action — Publish, accented gold */}
+                <button onClick={() => handleBulkVisibility(true)} disabled={isBulkApplying} className={menuItem}>
+                  {isBulkApplying ? <Loader2 size={13} className="animate-spin text-tea-gold" /> : <Eye size={13} className="text-tea-gold" />}
+                  <span className="text-tea-text">Publish</span>
                 </button>
-                <button
-                  onClick={() => handleBulkVisibility(false)}
-                  disabled={isBulkApplying}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 text-tea-text-sec rounded-full hover:text-tea-text hover:bg-tea-bg/40 transition-colors disabled:opacity-40"
-                  title="Unpublish"
-                >
-                  {isBulkApplying ? <Loader2 size={12} className="animate-spin" /> : <EyeOff size={12} />}
-                  <span className="text-ui-10 font-bold uppercase tracking-[0.15em]">Unpublish</span>
+                <button onClick={() => handleBulkVisibility(false)} disabled={isBulkApplying} className={menuItem}>
+                  {isBulkApplying ? <Loader2 size={13} className="animate-spin" /> : <EyeOff size={13} />}
+                  <span>Unpublish</span>
                 </button>
-                <button
-                  onClick={handleSendToSamples}
-                  disabled={isBulkApplying}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 text-tea-text-sec rounded-full hover:text-tea-text hover:bg-tea-bg/40 transition-colors disabled:opacity-40"
-                  title="Send to samples"
-                >
-                  <FlaskConical size={12} />
-                  <span className="text-ui-10 font-bold uppercase tracking-[0.15em]">Samples</span>
+                <button onClick={handleSendToSamples} disabled={isBulkApplying} className={menuItem}>
+                  <FlaskConical size={13} />
+                  <span>Send to samples</span>
                 </button>
-                <button
-                  onClick={() => setShareToNetworkOpen(true)}
-                  disabled={isBulkApplying}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 text-tea-text-sec rounded-full hover:text-tea-text hover:bg-tea-bg/40 transition-colors disabled:opacity-40"
-                  title="Share"
-                >
-                  <Globe size={12} />
-                  <span className="text-ui-10 font-bold uppercase tracking-[0.15em]">Share</span>
+                <button onClick={() => setShareToNetworkOpen(true)} disabled={isBulkApplying} className={menuItem}>
+                  <Globe size={13} />
+                  <span>Share</span>
                 </button>
-                <button
-                  onClick={() => setInvoiceFromInventoryOpen(true)}
-                  disabled={isBulkApplying}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 text-tea-text-sec rounded-full hover:text-tea-text hover:bg-tea-bg/40 transition-colors disabled:opacity-40"
-                  title="Add to invoice"
-                >
-                  <Receipt size={12} />
-                  <span className="text-ui-10 font-bold uppercase tracking-[0.15em]">Invoice</span>
+                <button onClick={() => setInvoiceFromInventoryOpen(true)} disabled={isBulkApplying} className={menuItem}>
+                  <Receipt size={13} />
+                  <span>Add to invoice</span>
                 </button>
-                <div className="w-px h-4 bg-tea-border mx-0.5 flex-shrink-0" />
+
+                <div className="h-px bg-tea-border my-1" />
                 <button
                   onClick={() => { setSelectedIds(new Set()); lastSelectedIdxRef.current = null; setIsDrawerExpanded(false); }}
-                  className="p-1.5 text-tea-text-sec hover:text-tea-text rounded-full hover:bg-tea-bg/40 transition-colors"
-                  title="Clear selection"
-                  aria-label="Clear selection"
+                  className={menuItem}
                 >
                   <XIcon size={13} />
+                  <span>Clear selection</span>
                 </button>
               </div>
             </motion.div>
