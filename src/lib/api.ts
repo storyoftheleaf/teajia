@@ -558,6 +558,18 @@ export const api = {
       });
       return handleResponse(res);
     },
+    enhanceImage: async (
+      id: string,
+      slot: 'main' | '1' | '2',
+      prompt?: string,
+    ): Promise<{ url: string }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/products/${id}/enhance-image`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ slot, prompt }),
+      });
+      return handleResponse(res);
+    },
   },
 
   rates: {
@@ -957,16 +969,24 @@ export const api = {
     return handleResponse(res);
   },
 
-  uploadImage: async (file: File | Blob) => {
+  uploadImage: async (
+    file: File | Blob,
+    options?: { productId?: string; slot?: 'main' | '1' | '2'; filename?: string },
+  ) => {
     const formData = new FormData();
-    formData.append('file', file);
+    // Browsers default a Blob filename to "blob"; pass a real .jpg filename so
+    // the worker can derive an extension for stable-key uploads.
+    const filename = options?.filename ?? (file instanceof File ? file.name : 'photo.jpg');
+    formData.append('file', file, filename);
+    if (options?.productId) formData.append('product_id', options.productId);
+    if (options?.slot) formData.append('slot', options.slot);
     const res = await fetchWithTimeout(`${API_URL}/api/upload-image`, {
       method: 'POST',
       headers: authHeaders(),
       body: formData,
     });
     const data = await handleResponse(res);
-    return data.url;
+    return data.url as string;
   },
 
   events: {
@@ -1988,6 +2008,28 @@ export const api = {
       });
       const data = await handleResponse(res);
       return (data?.features ?? data) as Record<string, boolean>;
+    },
+    // BYOK: per-account OpenAI API key. Plaintext is sent over HTTPS once,
+    // encrypted server-side, and never returned again.
+    setOpenAIKey: async (
+      accountId: string,
+      apiKey: string,
+    ): Promise<{ has_openai_key: boolean; openai_key_last4: string | null }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/accounts/${accountId}/integrations/openai-key`, {
+        method: 'PUT',
+        headers: authHeaders(),
+        body: JSON.stringify({ api_key: apiKey }),
+      });
+      return handleResponse(res);
+    },
+    clearOpenAIKey: async (
+      accountId: string,
+    ): Promise<{ has_openai_key: boolean; openai_key_last4: string | null }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/accounts/${accountId}/integrations/openai-key`, {
+        method: 'DELETE',
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
     },
   },
 
