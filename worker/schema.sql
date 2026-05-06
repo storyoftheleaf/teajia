@@ -32,6 +32,10 @@ CREATE TABLE IF NOT EXISTS accounts (
     trust_tier TEXT DEFAULT 'basic',
     is_platform_owner INTEGER DEFAULT 0,
     ships_to_countries TEXT DEFAULT '[]',
+    -- BYOK: per-account OpenAI API key. Encrypted with AES-GCM in the worker
+    -- via KEY_ENCRYPTION_SECRET (see migration 065). Plaintext is never stored.
+    openai_api_key_encrypted TEXT,
+    openai_api_key_last4 TEXT,
     created_at TEXT DEFAULT (datetime('now')),
     updated_at TEXT DEFAULT (datetime('now'))
 );

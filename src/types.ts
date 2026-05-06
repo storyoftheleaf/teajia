@@ -638,6 +638,9 @@ export interface Account {
   public_enabled?: boolean;
   is_platform_owner?: boolean;
   invoice_prefix?: string;
+  // BYOK presence flags (the encrypted secret itself is never sent to the client).
+  has_openai_key?: boolean;
+  openai_key_last4?: string | null;
 }
 
 export type AccountRole = 'owner' | 'staff' | 'viewer';

@@ -247,6 +247,20 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({ embedd
         )}
       </form>
 
+      {/* Integrations — per-account third-party API keys (BYOK) */}
+      {canEdit && (
+        <div className="mt-10">
+          <h2 className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim mb-3">
+            Integrations
+          </h2>
+          <IntegrationsSection
+            account={account}
+            accountId={activeAccountId!}
+            onAccountChange={setAccount}
+          />
+        </div>
+      )}
+
       {/* Danger Zone */}
       {canEdit && (
         <div className="mt-10">
@@ -257,6 +271,137 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({ embedd
         </div>
       )}
     </div>
+    </div>
+  );
+};
+
+// ─── Integrations (BYOK) ─────────────────────────────────────────────────────
+
+const IntegrationsSection: React.FC<{
+  account: Account;
+  accountId: string;
+  onAccountChange: (a: Account) => void;
+}> = ({ account, accountId, onAccountChange }) => {
+  const [editing, setEditing] = useState(false);
+  const [keyInput, setKeyInput] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const hasKey = Boolean(account.has_openai_key);
+  const last4 = account.openai_key_last4 || null;
+
+  const save = async () => {
+    setBusy(true);
+    setErr(null);
+    try {
+      const res = await api.accounts.setOpenAIKey(accountId, keyInput.trim());
+      onAccountChange({ ...account, has_openai_key: res.has_openai_key, openai_key_last4: res.openai_key_last4 });
+      setKeyInput('');
+      setEditing(false);
+    } catch (e: any) {
+      setErr(e?.message || 'Failed to save key');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const clear = async () => {
+    setBusy(true);
+    setErr(null);
+    try {
+      const res = await api.accounts.clearOpenAIKey(accountId);
+      onAccountChange({ ...account, has_openai_key: res.has_openai_key, openai_key_last4: res.openai_key_last4 });
+    } catch (e: any) {
+      setErr(e?.message || 'Failed to clear key');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="bg-tea-surface rounded-lg border border-tea-border p-5 space-y-3">
+      <div>
+        <h3 className="text-sm text-tea-text" style={{ fontFamily: 'var(--font-display)' }}>
+          OpenAI API Key
+        </h3>
+        <p className="text-ui-11 text-tea-text-dim mt-1">
+          Used for the AI Enhance action on product photos. Stored encrypted; only the last
+          four characters are shown for confirmation.
+        </p>
+      </div>
+
+      {!editing && hasKey && (
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-ui-12 text-tea-text font-mono">sk-…{last4 ?? '••••'}</span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => { setEditing(true); setKeyInput(''); setErr(null); }}
+              disabled={busy}
+              className="px-3 py-1.5 text-ui-11 rounded-md border border-tea-border text-tea-text-sec hover:text-tea-text transition-colors"
+            >
+              Replace
+            </button>
+            <button
+              type="button"
+              onClick={clear}
+              disabled={busy}
+              className="px-3 py-1.5 text-ui-11 rounded-md text-tea-text-sec hover:text-tea-text transition-colors"
+            >
+              Remove
+            </button>
+          </div>
+        </div>
+      )}
+
+      {!editing && !hasKey && (
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-ui-12 text-tea-text-dim">No key configured.</span>
+          <button
+            type="button"
+            onClick={() => { setEditing(true); setKeyInput(''); setErr(null); }}
+            className="px-3 py-1.5 text-ui-11 rounded-md bg-tea-gold text-tea-bg hover:opacity-90 transition-opacity"
+          >
+            Add key
+          </button>
+        </div>
+      )}
+
+      {editing && (
+        <div className="space-y-2">
+          <input
+            type="password"
+            value={keyInput}
+            onChange={(e) => setKeyInput(e.target.value)}
+            placeholder="sk-…"
+            autoComplete="off"
+            spellCheck={false}
+            data-1p-ignore
+            className="w-full bg-tea-bg border border-tea-border rounded-md px-3 py-2 text-ui-12 text-tea-text font-mono focus:outline-none focus:border-tea-gold"
+          />
+          <div className="flex items-center justify-between gap-3">
+            <button
+              type="button"
+              onClick={() => { setEditing(false); setKeyInput(''); setErr(null); }}
+              disabled={busy}
+              className="px-3 py-1.5 text-ui-11 rounded-md text-tea-text-sec hover:text-tea-text transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={save}
+              disabled={busy || keyInput.trim().length < 10}
+              className="inline-flex items-center gap-2 px-4 py-1.5 text-ui-11 rounded-md bg-tea-gold text-tea-bg hover:opacity-90 transition-opacity disabled:opacity-50"
+            >
+              {busy && <Loader2 className="animate-spin" size={12} />}
+              Save key
+            </button>
+          </div>
+        </div>
+      )}
+
+      {err && <div className="text-ui-11 text-tea-gold">{err}</div>}
     </div>
   );
 };

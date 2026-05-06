@@ -3,8 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import {
   X as XIcon, ChevronLeft, ChevronRight, ChevronDown, QrCode, Eye, EyeOff, Star, Sparkles,
   FlaskConical, RefreshCw, User, Pencil, Plus, Loader2, Check, Globe, Receipt, BookOpen,
+  Camera, Upload, Crop, Download, MoreHorizontal, Trash2, Wand2,
 } from 'lucide-react';
 import { api } from '../../lib/api';
+import { SquareCropModal } from './SquareCropModal';
+import { useAppStore } from '../store';
 import type { Product, ExchangeRate, Currency } from '../types';
 import { calculatePricing } from '../utils';
 import { useCustomers } from '../hooks/useAdminData';
@@ -351,36 +354,102 @@ export const FieldGroupDivider = () => (
   <div className="mt-4 mb-1 border-t border-tea-accent-sub" />
 );
 
+// Slot index → stable R2 slot key the worker uses for in-place writes.
+const SLOT_KEYS = ['main', '1', '2'] as const;
+type SlotKey = typeof SLOT_KEYS[number];
+
 export const ImageManager = ({ product, onUpdate }: {
   product: Product; onUpdate: (field: keyof Product, value: any) => void;
 }) => {
   const [uploadingSlot, setUploadingSlot] = useState<number | null>(null);
   const [justUploadedSlot, setJustUploadedSlot] = useState<number | null>(null);
+  const [enhancingSlot, setEnhancingSlot] = useState<number | null>(null);
+  const [cropper, setCropper] = useState<{ source: File | string; slotIndex: number } | null>(null);
+  const [openMenu, setOpenMenu] = useState<number | null>(null);
   const { showToast } = useToast();
+  const account = useAppStore((s) => s.activeAccount);
+  const hasOpenAIKey = Boolean((account as any)?.has_openai_key);
 
   const images = [product.imageUrl || '', ...(product.additionalImages || [])].slice(0, 3);
   while (images.length < 3) images.push('');
 
-  const handleUpload = async (file: File, slotIndex: number) => {
+  const writeSlot = (slotIndex: number, url: string) => {
+    if (slotIndex === 0) {
+      onUpdate('imageUrl', url);
+    } else {
+      const additional = [...(product.additionalImages || [])];
+      additional[slotIndex - 1] = url;
+      onUpdate('additionalImages' as keyof Product, additional);
+    }
+  };
+
+  const uploadCroppedBlob = async (blob: Blob, slotIndex: number) => {
     setUploadingSlot(slotIndex);
     try {
-      const url = await api.uploadImage(file);
-      if (slotIndex === 0) onUpdate('imageUrl', url);
-      else {
-        const additional = [...(product.additionalImages || [])];
-        additional[slotIndex - 1] = url;
-        onUpdate('additionalImages' as keyof Product, additional);
-      }
+      const url = await api.uploadImage(blob, {
+        productId: product.id,
+        slot: SLOT_KEYS[slotIndex],
+        filename: `${SLOT_KEYS[slotIndex]}.jpg`,
+      });
+      writeSlot(slotIndex, url);
       setJustUploadedSlot(slotIndex);
       setTimeout(() => setJustUploadedSlot(null), 1200);
     } catch (err: any) {
       showToast(`Upload failed: ${err.message}`, 'error');
+      throw err;
     } finally {
       setUploadingSlot(null);
     }
   };
 
+  // Open a hidden file input. `useCamera` switches to the rear camera on
+  // mobile via the `capture` attribute; on desktop browsers it's ignored
+  // and the standard file picker opens.
+  const pickFile = (slotIndex: number, useCamera: boolean) => {
+    setOpenMenu(null);
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    if (useCamera) input.setAttribute('capture', 'environment');
+    input.onchange = (e: any) => {
+      const file = e.target.files?.[0];
+      if (file) setCropper({ source: file, slotIndex });
+    };
+    document.body.appendChild(input);
+    input.click();
+    input.remove();
+  };
+
+  const recrop = (slotIndex: number) => {
+    setOpenMenu(null);
+    const url = images[slotIndex];
+    if (!url) return;
+    setCropper({ source: url, slotIndex });
+  };
+
+  const downloadImage = async (slotIndex: number) => {
+    setOpenMenu(null);
+    const url = images[slotIndex];
+    if (!url) return;
+    try {
+      const res = await fetch(url, { mode: 'cors', cache: 'no-cache' });
+      if (!res.ok) throw new Error(`Failed to download (${res.status})`);
+      const blob = await res.blob();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      const safeName = (product.productName || 'product').replace(/[^a-zA-Z0-9-_]+/g, '-').toLowerCase();
+      a.download = `${safeName}-${SLOT_KEYS[slotIndex]}.jpg`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    } catch (err: any) {
+      showToast(`Download failed: ${err.message}`, 'error');
+    }
+  };
+
   const handleRemove = (slotIndex: number) => {
+    setOpenMenu(null);
     if (slotIndex === 0) onUpdate('imageUrl', '');
     else {
       const additional = [...(product.additionalImages || [])];
@@ -389,56 +458,165 @@ export const ImageManager = ({ product, onUpdate }: {
     }
   };
 
+  const handleEnhance = async (slotIndex: number) => {
+    setOpenMenu(null);
+    if (!hasOpenAIKey) {
+      showToast('Add an OpenAI API key in Account Settings → Integrations to enable AI enhance.', 'error');
+      return;
+    }
+    setEnhancingSlot(slotIndex);
+    try {
+      const res = await api.products.enhanceImage(product.id, SLOT_KEYS[slotIndex]);
+      if (res?.url) {
+        writeSlot(slotIndex, res.url);
+        setJustUploadedSlot(slotIndex);
+        setTimeout(() => setJustUploadedSlot(null), 1200);
+      }
+    } catch (err: any) {
+      showToast(`AI enhance failed: ${err.message}`, 'error');
+    } finally {
+      setEnhancingSlot(null);
+    }
+  };
+
   const slotLabels = ['Primary', 'Second', 'Third'];
   return (
-    <div className="flex gap-2">
-      {images.map((img, i) => (
-        <div key={i} className="flex-1 aspect-square relative group">
-          {img ? (
-            <>
-              <img src={img} alt={slotLabels[i]} className="w-full h-full object-cover rounded-md" loading="lazy" />
-              <span aria-hidden="true" className="absolute top-1 left-1 w-4 h-4 rounded-full bg-tea-bg/80 text-tea-text-dim text-ui-10 font-serif tabular-nums flex items-center justify-center">{i + 1}</span>
-              {justUploadedSlot === i ? (
-                <div className="absolute inset-0 rounded-md bg-tea-bg/70 flex items-center justify-center pointer-events-none">
-                  <Check size={20} className="text-tea-gold" aria-hidden="true" />
-                </div>
-              ) : (
+    <>
+      <div className="flex gap-2">
+        {images.map((img, i) => (
+          <div key={i} className="flex-1 aspect-square relative group">
+            {img ? (
+              <>
+                <img src={img} alt={slotLabels[i]} className="w-full h-full object-cover rounded-md" loading="lazy" />
+                <span aria-hidden="true" className="absolute top-1 left-1 w-4 h-4 rounded-full bg-tea-bg/80 text-tea-text-dim text-ui-10 font-serif tabular-nums flex items-center justify-center">{i + 1}</span>
+
+                {justUploadedSlot === i ? (
+                  <div className="absolute inset-0 rounded-md bg-tea-bg/70 flex items-center justify-center pointer-events-none">
+                    <Check size={20} className="text-tea-gold" aria-hidden="true" />
+                  </div>
+                ) : enhancingSlot === i || uploadingSlot === i ? (
+                  <div className="absolute inset-0 rounded-md bg-tea-bg/70 flex items-center justify-center pointer-events-none">
+                    <Loader2 size={18} className="text-tea-gold animate-spin" aria-hidden="true" />
+                  </div>
+                ) : (
+                  <>
+                    {/* Action menu trigger — always visible top-right so it works on touch */}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setOpenMenu(openMenu === i ? null : i); }}
+                      aria-label={`Image actions for ${slotLabels[i].toLowerCase()}`}
+                      className="absolute top-1 right-1 w-6 h-6 rounded-full bg-tea-bg/85 border border-tea-border flex items-center justify-center text-tea-text-sec hover:text-tea-text tap-target"
+                    >
+                      <MoreHorizontal size={12} />
+                    </button>
+
+                    {openMenu === i && (
+                      <>
+                        {/* Click-away overlay */}
+                        <button
+                          aria-label="Close menu"
+                          onClick={() => setOpenMenu(null)}
+                          className="fixed inset-0 z-10 cursor-default"
+                        />
+                        <div
+                          role="menu"
+                          className="absolute top-8 right-1 z-20 min-w-[150px] bg-tea-bg border border-tea-border rounded-md shadow-lg py-1"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <SlotMenuItem icon={Crop} label="Re-crop" onClick={() => recrop(i)} />
+                          <SlotMenuItem icon={Upload} label="Replace" onClick={() => pickFile(i, false)} />
+                          <SlotMenuItem icon={Camera} label="Take photo" onClick={() => pickFile(i, true)} />
+                          <SlotMenuItem icon={Download} label="Download" onClick={() => downloadImage(i)} />
+                          <SlotMenuItem
+                            icon={Wand2}
+                            label="AI enhance"
+                            onClick={() => handleEnhance(i)}
+                            disabled={!hasOpenAIKey}
+                            hint={hasOpenAIKey ? undefined : 'Add OpenAI key'}
+                          />
+                          <div className="my-1 border-t border-tea-border" />
+                          <SlotMenuItem icon={Trash2} label="Remove" onClick={() => handleRemove(i)} destructive />
+                        </div>
+                      </>
+                    )}
+                  </>
+                )}
+              </>
+            ) : (
+              <div className="relative w-full h-full">
+                {/* Empty slot — primary action is "Take photo" (mobile) / "Upload" (desktop).
+                    Both routes through the cropper. */}
                 <button
-                  onClick={() => handleRemove(i)}
-                  aria-label={`Remove ${slotLabels[i].toLowerCase()} image`}
-                  className="absolute inset-0 rounded-md bg-tea-bg/70 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity flex items-center justify-center"
+                  onClick={() => pickFile(i, false)}
+                  disabled={uploadingSlot !== null}
+                  aria-label={`Add ${slotLabels[i].toLowerCase()} image`}
+                  className="w-full h-full rounded-md bg-tea-bg/40 hover:bg-tea-gold/[0.04] border border-tea-accent-sub/30 hover:border-tea-gold/40 transition-colors flex flex-col items-center justify-center gap-1.5 cursor-pointer group"
                 >
-                  <XIcon size={16} className="text-tea-text" aria-hidden="true" />
+                  {uploadingSlot === i ? (
+                    <Loader2 size={16} className="text-tea-text-dim animate-spin" aria-hidden="true" />
+                  ) : (
+                    <>
+                      <Plus size={14} className="text-tea-text-dim/50 group-hover:text-tea-gold transition-colors" aria-hidden="true" />
+                      <span className="text-ui-9 text-tea-text-dim/70 group-hover:text-tea-gold/80 uppercase tracking-caps transition-colors">{slotLabels[i]}</span>
+                    </>
+                  )}
                 </button>
-              )}
-            </>
-          ) : (
-            <button
-              onClick={() => {
-                const input = document.createElement('input');
-                input.type = 'file'; input.accept = 'image/*';
-                input.onchange = (e: any) => { const file = e.target.files?.[0]; if (file) handleUpload(file, i); };
-                document.body.appendChild(input); input.click(); input.remove();
-              }}
-              disabled={uploadingSlot !== null}
-              aria-label={`Add ${slotLabels[i].toLowerCase()} image`}
-              className="w-full h-full rounded-md bg-tea-bg/40 hover:bg-tea-gold/[0.04] border border-tea-accent-sub/30 hover:border-tea-gold/40 transition-colors flex flex-col items-center justify-center gap-1.5 cursor-pointer group"
-            >
-              {uploadingSlot === i ? (
-                <Loader2 size={16} className="text-tea-text-dim animate-spin" aria-hidden="true" />
-              ) : (
-                <>
-                  <Plus size={14} className="text-tea-text-dim/50 group-hover:text-tea-gold transition-colors" aria-hidden="true" />
-                  <span className="text-ui-9 text-tea-text-dim/70 group-hover:text-tea-gold/80 uppercase tracking-caps transition-colors">{slotLabels[i]}</span>
-                </>
-              )}
-            </button>
-          )}
-        </div>
-      ))}
-    </div>
+                {/* Camera shortcut, bottom-right of empty slot */}
+                <button
+                  onClick={() => pickFile(i, true)}
+                  disabled={uploadingSlot !== null}
+                  aria-label={`Take photo for ${slotLabels[i].toLowerCase()}`}
+                  title="Take photo"
+                  className="absolute bottom-1 right-1 w-6 h-6 rounded-full bg-tea-bg/85 border border-tea-border flex items-center justify-center text-tea-text-sec hover:text-tea-gold tap-target"
+                >
+                  <Camera size={12} />
+                </button>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      <SquareCropModal
+        isOpen={cropper !== null}
+        source={cropper?.source ?? null}
+        title={cropper ? `Crop ${slotLabels[cropper.slotIndex].toLowerCase()} photo` : 'Crop photo'}
+        onClose={() => setCropper(null)}
+        onConfirm={async (blob) => {
+          if (!cropper) return;
+          await uploadCroppedBlob(blob, cropper.slotIndex);
+          setCropper(null);
+        }}
+      />
+    </>
   );
 };
+
+const SlotMenuItem = ({
+  icon: Icon, label, onClick, destructive, disabled, hint,
+}: {
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+  label: string;
+  onClick: () => void;
+  destructive?: boolean;
+  disabled?: boolean;
+  hint?: string;
+}) => (
+  <button
+    role="menuitem"
+    onClick={onClick}
+    disabled={disabled}
+    title={hint}
+    className={`w-full flex items-center gap-2 px-3 py-1.5 text-ui-12 transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed ${
+      destructive
+        ? 'text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated'
+        : 'text-tea-text hover:bg-tea-gold/[0.06]'
+    }`}
+  >
+    <Icon size={13} className={destructive ? 'text-tea-text-sec' : 'text-tea-text-sec'} />
+    <span className="flex-1">{label}</span>
+    {hint && <span className="text-ui-10 text-tea-text-dim">{hint}</span>}
+  </button>
+);
 
 /* ------------------------------------------------------------------ */
 /* Field → DB column mapping (shared between panel and inventory)      */

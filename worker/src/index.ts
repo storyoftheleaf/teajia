@@ -15,6 +15,9 @@ interface Env {
   GOOGLE_CLIENT_SECRET?: string;
   // Optional — set to 'true' to enable hard-coded dev admin credentials
   ENABLE_DEV_ADMIN?: string;
+  // Optional — wrapping key for BYOK secrets stored in D1 (e.g. accounts.openai_api_key_encrypted).
+  // Set via `wrangler secret put KEY_ENCRYPTION_SECRET` to any high-entropy string.
+  KEY_ENCRYPTION_SECRET?: string;
 }
 
 type Handler = (request: Request, env: Env, params: Record<string, string>) => Promise<Response>;
@@ -182,6 +185,66 @@ function isAuthed(request: Request): string | null {
   const auth = request.headers.get('Authorization');
   if (!auth?.startsWith('Bearer ')) return null;
   return auth.slice(7);
+}
+
+// ── BYOK secret encryption (AES-GCM via HKDF-derived key) ──
+// Used for per-account third-party API keys stored in D1. The wrapping key
+// is derived from KEY_ENCRYPTION_SECRET so the same plaintext encrypts to
+// different ciphertexts each call (12-byte random IV, prepended to output).
+async function deriveAesKey(secret: string): Promise<CryptoKey> {
+  const enc = new TextEncoder();
+  const baseKey = await crypto.subtle.importKey(
+    'raw', enc.encode(secret), 'HKDF', false, ['deriveKey'],
+  );
+  return crypto.subtle.deriveKey(
+    { name: 'HKDF', hash: 'SHA-256', salt: enc.encode('teajia/byok/v1'), info: enc.encode('account-secret') },
+    baseKey,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt', 'decrypt'],
+  );
+}
+
+function bytesToB64(bytes: Uint8Array): string {
+  let s = '';
+  for (let i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
+  return btoa(s);
+}
+
+function b64ToBytes(s: string): Uint8Array {
+  const bin = atob(s);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+export async function encryptSecret(plaintext: string, env: Env): Promise<string> {
+  if (!env.KEY_ENCRYPTION_SECRET) {
+    throw new Error('KEY_ENCRYPTION_SECRET not configured');
+  }
+  const key = await deriveAesKey(env.KEY_ENCRYPTION_SECRET);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = new Uint8Array(
+    await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode(plaintext)),
+  );
+  // Prefix the IV so we don't need a second column.
+  const combined = new Uint8Array(iv.length + ct.length);
+  combined.set(iv, 0);
+  combined.set(ct, iv.length);
+  return bytesToB64(combined);
+}
+
+export async function decryptSecret(b64: string, env: Env): Promise<string> {
+  if (!env.KEY_ENCRYPTION_SECRET) {
+    throw new Error('KEY_ENCRYPTION_SECRET not configured');
+  }
+  const key = await deriveAesKey(env.KEY_ENCRYPTION_SECRET);
+  const buf = b64ToBytes(b64);
+  if (buf.length < 13) throw new Error('Encrypted payload too short');
+  const iv = buf.slice(0, 12);
+  const ct = buf.slice(12);
+  const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct);
+  return new TextDecoder().decode(pt);
 }
 
 function parseToken(token: string): TokenClaims | null {
@@ -4147,6 +4210,16 @@ const handleGetActivityLogs: Handler = async (request, env) => {
 };
 
 // ── Image Upload (R2) — partitioned by account ──
+// Two key shapes:
+//   • Stable slot (preferred): when product_id + slot are passed via the
+//     multipart form, the file is written to a deterministic key
+//     (`accounts/X/products/{product_id}/{slot}.jpg`). Re-uploading replaces
+//     in place so AI regen / re-cropping always lands at the same URL.
+//   • Random uuid (legacy): when neither is passed, falls back to the original
+//     scheme so existing call sites (extract-from-image, ad-hoc uploads) keep
+//     working unchanged.
+// The returned URL carries a `?v={ms}` cache buster so the CDN serves the
+// fresh bytes after an in-place overwrite.
 const handleUploadImage: Handler = async (request, env) => {
   const ctx = await requireAccount(request, env);
   if ('error' in ctx) return ctx.error;
@@ -4163,19 +4236,136 @@ const handleUploadImage: Handler = async (request, env) => {
 
   const formData = await request.formData();
   const file = formData.get('file') as File | null;
-
   if (!file) return json({ error: 'No file provided' }, 400);
 
-  const ext = file.name.split('.').pop() || 'jpg';
-  const key = `accounts/${accountId}/products/${crypto.randomUUID()}.${ext}`;
+  const productId = (formData.get('product_id') as string | null)?.trim() || '';
+  const slotRaw = (formData.get('slot') as string | null)?.trim() || '';
+  const allowedSlots = new Set(['main', '1', '2']);
+
+  // Stable key path — only when both inputs are provided and well-formed.
+  let key: string;
+  const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+  if (productId && allowedSlots.has(slotRaw)) {
+    if (!/^[a-zA-Z0-9_-]+$/.test(productId)) {
+      return json({ error: 'Invalid product_id' }, 400);
+    }
+    // Verify the product belongs to this account before letting the caller
+    // overwrite an arbitrary R2 key.
+    const product = await env.DB.prepare(
+      'SELECT id FROM products WHERE id = ? AND account_id = ?'
+    ).bind(productId, accountId).first();
+    if (!product) return json({ error: 'Product not found' }, 404);
+    key = `accounts/${accountId}/products/${productId}/${slotRaw}.${ext}`;
+  } else {
+    key = `accounts/${accountId}/products/${crypto.randomUUID()}.${ext}`;
+  }
 
   await env.MEDIA_BUCKET.put(key, file.stream(), {
-    httpMetadata: { contentType: file.type },
+    httpMetadata: { contentType: file.type || 'image/jpeg' },
   });
 
-  const publicUrl = `https://media.teajia.co/${key}`;
+  const publicUrl = `https://media.teajia.co/${key}?v=${Date.now()}`;
 
   return json({ url: publicUrl, key }, 201);
+};
+
+// ── POST /api/products/:id/enhance-image ──
+// Sends the current product image at the requested slot to OpenAI's image
+// edit endpoint (gpt-image-1) using the *account's* BYOK API key. The result
+// overwrites the same R2 key so the product page URL stays stable.
+//
+// Gated on: account must have an OpenAI key configured + user must hold the
+// `catalog` bundle (same gate as other product edits).
+const handleEnhanceProductImage: Handler = async (request, env, params) => {
+  const ctx = await requireBundle(request, env, 'catalog');
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+
+  if (!env.MEDIA_BUCKET) return json({ error: 'R2 media bucket not configured' }, 503);
+  if (!env.KEY_ENCRYPTION_SECRET) {
+    return json({ error: 'KEY_ENCRYPTION_SECRET not configured on server' }, 503);
+  }
+
+  const productId = params.id;
+  if (!/^[a-zA-Z0-9_-]+$/.test(productId)) {
+    return json({ error: 'Invalid product id' }, 400);
+  }
+
+  const body = await request.json().catch(() => ({})) as { slot?: string; prompt?: string };
+  const slot = (body.slot || 'main').trim();
+  if (!['main', '1', '2'].includes(slot)) {
+    return json({ error: 'Invalid slot (expected main, 1, or 2)' }, 400);
+  }
+  const prompt = (body.prompt || 'Studio-quality product photograph on a clean neutral background. Preserve colors, label, and shape exactly. No added decorations.').slice(0, 1000);
+
+  // Fetch the encrypted key + verify product ownership in one round trip.
+  const product = await env.DB.prepare(
+    `SELECT p.id, a.openai_api_key_encrypted
+     FROM products p
+     JOIN accounts a ON a.id = p.account_id
+     WHERE p.id = ? AND p.account_id = ?`
+  ).bind(productId, accountId).first() as { id: string; openai_api_key_encrypted: string | null } | null;
+  if (!product) return json({ error: 'Product not found' }, 404);
+  if (!product.openai_api_key_encrypted) {
+    return json({ error: 'No OpenAI API key configured for this account' }, 412);
+  }
+
+  let openaiKey: string;
+  try {
+    openaiKey = await decryptSecret(product.openai_api_key_encrypted, env);
+  } catch {
+    return json({ error: 'Could not decrypt OpenAI key (rotated KEY_ENCRYPTION_SECRET?)' }, 500);
+  }
+
+  // Load the current image bytes from R2. We try common extensions because
+  // the slot file extension was set at upload time and isn't tracked separately.
+  const candidateExts = ['jpg', 'jpeg', 'png', 'webp'];
+  let sourceBytes: ArrayBuffer | null = null;
+  let sourceKey = '';
+  let sourceMime = 'image/jpeg';
+  for (const ext of candidateExts) {
+    const k = `accounts/${accountId}/products/${productId}/${slot}.${ext}`;
+    const obj = await env.MEDIA_BUCKET.get(k);
+    if (obj) {
+      sourceBytes = await obj.arrayBuffer();
+      sourceKey = k;
+      sourceMime = obj.httpMetadata?.contentType || (ext === 'png' ? 'image/png' : 'image/jpeg');
+      break;
+    }
+  }
+  if (!sourceBytes) {
+    return json({ error: 'No source image at this slot — upload one first' }, 404);
+  }
+
+  // OpenAI images.edit accepts multipart/form-data with `image` and `prompt`.
+  const oaForm = new FormData();
+  oaForm.append('model', 'gpt-image-1');
+  oaForm.append('prompt', prompt);
+  oaForm.append('size', '1024x1024');
+  oaForm.append('image', new File([sourceBytes], 'source.png', { type: sourceMime }));
+
+  const oaRes = await fetch('https://api.openai.com/v1/images/edits', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${openaiKey}` },
+    body: oaForm,
+  });
+  if (!oaRes.ok) {
+    const errText = await oaRes.text().catch(() => '');
+    // Don't leak the API key in the error path.
+    return json({ error: `OpenAI: ${oaRes.status} ${errText.slice(0, 300)}` }, 502);
+  }
+  const oaJson = await oaRes.json() as { data?: Array<{ b64_json?: string }> };
+  const b64 = oaJson.data?.[0]?.b64_json;
+  if (!b64) return json({ error: 'OpenAI returned no image data' }, 502);
+
+  // Decode and write back to the SAME R2 key so the product URL stays stable.
+  const bin = atob(b64);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  await env.MEDIA_BUCKET.put(sourceKey, out, { httpMetadata: { contentType: 'image/png' } });
+
+  const publicUrl = `https://media.teajia.co/${sourceKey}?v=${Date.now()}`;
+  return json({ url: publicUrl, key: sourceKey });
 };
 
 // ── Extract Product Info from Image (Gemini Flash) ──
@@ -8784,9 +8974,14 @@ const handleGetAccount: Handler = async (request, env, params) => {
     ).bind(ctx.userId, params.id).first();
     if (!row) return json({ error: 'Account access denied' }, 403);
   }
-  const acc = await env.DB.prepare('SELECT * FROM accounts WHERE id = ?').bind(params.id).first();
+  const acc = await env.DB.prepare('SELECT * FROM accounts WHERE id = ?').bind(params.id).first() as any;
   if (!acc) return json({ error: 'Account not found' }, 404);
-  return json(acc);
+  // Redact secrets. Surface only the presence flag and last-4 for display.
+  const has_openai_key = Boolean(acc.openai_api_key_encrypted);
+  const openai_key_last4 = (acc.openai_api_key_last4 as string | null) || null;
+  delete acc.openai_api_key_encrypted;
+  delete acc.openai_api_key_last4;
+  return json({ ...acc, has_openai_key, openai_key_last4 });
 };
 
 // PUT /api/accounts/:id — update account profile (owner-tier only)
@@ -8796,10 +8991,15 @@ const handleUpdateAccount: Handler = async (request, env, params) => {
   if (params.id !== ctx.accountId) return json({ error: 'Account access denied' }, 403);
 
   const body = await request.json() as Record<string, any>;
-  // Guard against changing immutable/privileged fields.
+  // Guard against changing immutable/privileged fields. Secret columns can
+  // only be set via the dedicated /integrations/* routes that handle encryption.
   delete body.id;
   delete body.is_platform_owner;
   delete body.created_at;
+  delete body.openai_api_key_encrypted;
+  delete body.openai_api_key_last4;
+  delete body.has_openai_key;
+  delete body.openai_key_last4;
 
   const cols = Object.keys(body);
   if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
@@ -8808,8 +9008,50 @@ const handleUpdateAccount: Handler = async (request, env, params) => {
     `UPDATE accounts SET ${sets}, updated_at = datetime('now') WHERE id = ?`
   ).bind(...cols.map(c => body[c] ?? null), params.id).run();
 
-  const acc = await env.DB.prepare('SELECT * FROM accounts WHERE id = ?').bind(params.id).first();
+  const acc = await env.DB.prepare('SELECT * FROM accounts WHERE id = ?').bind(params.id).first() as any;
+  if (acc) {
+    const has_openai_key = Boolean(acc.openai_api_key_encrypted);
+    const openai_key_last4 = (acc.openai_api_key_last4 as string | null) || null;
+    delete acc.openai_api_key_encrypted;
+    delete acc.openai_api_key_last4;
+    return json({ ...acc, has_openai_key, openai_key_last4 });
+  }
   return json(acc);
+};
+
+// PUT /api/accounts/:id/integrations/openai-key — set/replace the per-account
+// OpenAI API key. The plaintext is encrypted with AES-GCM (KEY_ENCRYPTION_SECRET)
+// before being persisted; only the last 4 chars are stored cleartext for display.
+const handleSetAccountOpenAIKey: Handler = async (request, env, params) => {
+  const ctx = await requireOwnerTier(request, env);
+  if ('error' in ctx) return ctx.error;
+  if (params.id !== ctx.accountId) return json({ error: 'Account access denied' }, 403);
+  if (!env.KEY_ENCRYPTION_SECRET) {
+    return json({ error: 'KEY_ENCRYPTION_SECRET not configured on server' }, 503);
+  }
+  const body = await request.json() as { api_key?: string };
+  const apiKey = (body.api_key || '').trim();
+  if (!apiKey) return json({ error: 'api_key required' }, 400);
+  if (!/^sk-[A-Za-z0-9_\-]{20,}$/.test(apiKey)) {
+    return json({ error: 'Does not look like a valid OpenAI key (expected sk-…)' }, 400);
+  }
+  const ciphertext = await encryptSecret(apiKey, env);
+  const last4 = apiKey.slice(-4);
+  await env.DB.prepare(
+    `UPDATE accounts SET openai_api_key_encrypted = ?, openai_api_key_last4 = ?, updated_at = datetime('now') WHERE id = ?`
+  ).bind(ciphertext, last4, params.id).run();
+  return json({ has_openai_key: true, openai_key_last4: last4 });
+};
+
+// DELETE /api/accounts/:id/integrations/openai-key
+const handleClearAccountOpenAIKey: Handler = async (request, env, params) => {
+  const ctx = await requireOwnerTier(request, env);
+  if ('error' in ctx) return ctx.error;
+  if (params.id !== ctx.accountId) return json({ error: 'Account access denied' }, 403);
+  await env.DB.prepare(
+    `UPDATE accounts SET openai_api_key_encrypted = NULL, openai_api_key_last4 = NULL, updated_at = datetime('now') WHERE id = ?`
+  ).bind(params.id).run();
+  return json({ has_openai_key: false, openai_key_last4: null });
 };
 
 // GET /api/accounts/:id/features
@@ -14997,6 +15239,8 @@ const routes: [string, string, Handler][] = [
   ['POST', '/api/accounts/switch', handleSwitchAccount],
   ['GET', '/api/accounts/:id', handleGetAccount],
   ['PUT', '/api/accounts/:id', handleUpdateAccount],
+  ['PUT', '/api/accounts/:id/integrations/openai-key', handleSetAccountOpenAIKey],
+  ['DELETE', '/api/accounts/:id/integrations/openai-key', handleClearAccountOpenAIKey],
   ['GET', '/api/accounts/:id/features', handleGetAccountFeatures],
   ['GET', '/api/accounts/:id/members', handleGetAccountMembers],
   ['POST', '/api/accounts/:id/members', handleInviteAccountMember],
@@ -15081,6 +15325,7 @@ const routes: [string, string, Handler][] = [
   ['PUT', '/api/products/:id', handleUpdateProduct],
   ['DELETE', '/api/products/:id', handleDeleteProduct],
   ['POST', '/api/products/:id/featured', handleSetProductFeatured],
+  ['POST', '/api/products/:id/enhance-image', handleEnhanceProductImage],
   ['GET', '/api/products/:id/events', handleGetProductEvents],
 
   // Wholesale Catalog
