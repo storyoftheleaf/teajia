@@ -279,6 +279,9 @@ interface NoteThreadProps {
   hideMic?: boolean;
   /** Suppress tasting artifact cards — use when TastingProfileStrip already shows the same data */
   hideTastingArtifacts?: boolean;
+  /** Bigger textarea + mic — used in teaware capture where the notes field
+   *  was reported as too cramped to engage with on mobile. */
+  larger?: boolean;
 }
 
 type RecState = 'idle' | 'recording' | 'transcribing';
@@ -290,7 +293,13 @@ export const NoteThread: React.FC<NoteThreadProps> = ({
   compact = false,
   hideMic = false,
   hideTastingArtifacts = false,
+  larger = false,
 }) => {
+  const textareaRows = larger ? 3 : compact ? 1 : 2;
+  const inputPad = larger ? 'px-4 py-3.5' : 'px-3 py-2.5';
+  const inputText = larger ? 'text-ui-14' : 'text-ui-13';
+  const micIconSize = larger ? 20 : 14;
+  const micBtnExtra = larger ? 'tasting-voice-btn-large' : '';
   const { addNote, notes: allNotes } = useNotesStore();
   const { activeAccountId, activeAccount } = useAppStore();
 
@@ -453,16 +462,16 @@ export const NoteThread: React.FC<NoteThreadProps> = ({
             onChange={e => setDraft(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={notes.length > 0 ? 'Add another note…' : 'Impressions, vendor story, anything worth keeping…'}
-            rows={compact ? 1 : 2}
-            className="flex-1 px-3 py-2.5 bg-transparent text-ui-13 text-tea-text placeholder:text-tea-text-dim/40 focus:outline-none resize-none"
+            rows={textareaRows}
+            className={`flex-1 ${inputPad} bg-transparent ${inputText} text-tea-text placeholder:text-tea-text-dim/40 focus:outline-none resize-none`}
             style={{ fontFamily: 'var(--font-body)' }}
           />
         ) : (
-          <div className="flex-1 flex items-center px-3 py-2.5">
+          <div className={`flex-1 flex items-center ${inputPad}`}>
             <motion.span
               animate={{ opacity: [1, 0.4, 1] }}
               transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
-              className="text-ui-13 text-tea-gold/70"
+              className={`${inputText} text-tea-gold/70`}
               style={{ fontFamily: 'var(--font-body)' }}
             >
               Recording…
@@ -475,27 +484,27 @@ export const NoteThread: React.FC<NoteThreadProps> = ({
           <button
             type="button"
             onClick={submitDraft}
-            className="tasting-voice-btn"
+            className={`tasting-voice-btn ${micBtnExtra}`}
             aria-label="Add note"
           >
-            <Plus size={14} />
+            <Plus size={micIconSize} />
           </button>
         ) : !hideMic ? (
           <button
             type="button"
             onClick={handleMicPress}
             disabled={recState === 'transcribing'}
-            className={`tasting-voice-btn ${recState === 'recording' ? 'tasting-voice-btn-recording' : ''}`}
+            className={`tasting-voice-btn ${micBtnExtra} ${recState === 'recording' ? 'tasting-voice-btn-recording' : ''}`}
             aria-label={recState === 'recording' ? 'Stop recording' : 'Tap to record a note'}
           >
             {recState === 'transcribing' ? (
               <motion.span animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
-                <Loader2 size={14} />
+                <Loader2 size={micIconSize} />
               </motion.span>
             ) : recState === 'recording' ? (
-              <Square size={13} fill="currentColor" />
+              <Square size={micIconSize - 2} fill="currentColor" />
             ) : (
-              <Mic size={14} />
+              <Mic size={micIconSize} />
             )}
           </button>
         ) : null}

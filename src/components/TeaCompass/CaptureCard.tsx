@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, BookOpen, Camera, Check, ChevronDown, Droplets, Minus, Plus, X } from 'lucide-react';
+import { ArrowLeft, BookOpen, Camera, Check, ChevronDown, ChevronLeft, ChevronRight, Droplets, Minus, Plus, X } from 'lucide-react';
 import Fuse from 'fuse.js';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { TEA_TYPE_COLORS } from '../../designTokens';
@@ -8,8 +8,8 @@ import type { Currency } from '../../admin/types';
 import type { TastingData } from '../../types';
 import type { TastingCategoryId } from '../../data/tastingTaxonomy';
 import { buildVarietyDataMap, getTeaVarietyNames, getTeaVarietySuggestions } from '../../data/teaVarieties';
-import type { TeaType, TeaForm, TeawareCategory, TeawareMaterial, TeawareEra, VendorDetails, TeaCompassEntry } from './types';
-import { DEFAULT_GRAMS, TEA_TYPES, TEA_FORMS, STORAGE_OPTIONS, TEAWARE_CATEGORIES, TEAWARE_MATERIALS, TEAWARE_ERAS, COMMON_REGIONS, generateTeaKey } from './types';
+import type { TeaType, TeaForm, TeawareCategory, TeawareMaterial, TeawareEra, YixingClayType, VendorDetails, TeaCompassEntry } from './types';
+import { DEFAULT_GRAMS, TEA_TYPES, TEA_FORMS, STORAGE_OPTIONS, TEAWARE_CATEGORIES, TEAWARE_MATERIALS, TEAWARE_ERAS, YIXING_CLAY_TYPES, MATERIAL_ORIGIN_DEFAULT, COMMON_REGIONS, generateTeaKey } from './types';
 import { hasToken } from '../../lib/api';
 import { AutocompleteInput } from './AutocompleteInput';
 import { api } from '../../lib/api';
@@ -159,6 +159,8 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   const setActiveEntry = useTeaCompassStore((s) => s.setActiveEntry);
   const lastVendorId = useTeaCompassStore((s) => s.lastVendorId);
   const lastVendorName = useTeaCompassStore((s) => s.lastVendorName);
+  const customEras = useTeaCompassStore((s) => s.customEras);
+  const addCustomEra = useTeaCompassStore((s) => s.addCustomEra);
 
   const getOrCreatePurchaseTransaction = useLedgerStore((s) => s.getOrCreatePurchaseTransaction);
   const addLineItem = useLedgerStore((s) => s.addLineItem);
@@ -217,9 +219,15 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   const [categoryPopoverOpen, setCategoryPopoverOpen] = useState(false);
   const [eraPopoverOpen, setEraPopoverOpen] = useState(false);
   const [materialPopoverOpen, setMaterialPopoverOpen] = useState(false);
+  // Inside the material popover: when true, swaps panel to Yixing clay subtypes
+  const [materialPanel, setMaterialPanel] = useState<'main' | 'yixing'>('main');
+  // Inside the era popover: shows the "+ Add era" input row
+  const [eraInputOpen, setEraInputOpen] = useState(false);
+  const [eraInputValue, setEraInputValue] = useState('');
   const categoryPopoverRef = useRef<HTMLDivElement>(null);
   const eraPopoverRef = useRef<HTMLDivElement>(null);
   const materialPopoverRef = useRef<HTMLDivElement>(null);
+  const eraInputRef = useRef<HTMLInputElement>(null);
 
   // Products from database — for autocomplete suggestions
   const productsRef = useRef<any[]>([]);
@@ -328,14 +336,17 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
       }
       if (eraPopoverOpen && eraPopoverRef.current && !eraPopoverRef.current.contains(e.target as Node)) {
         setEraPopoverOpen(false);
+        setEraInputOpen(false);
+        setEraInputValue('');
       }
       if (materialPopoverOpen && materialPopoverRef.current && !materialPopoverRef.current.contains(e.target as Node)) {
         setMaterialPopoverOpen(false);
+        setMaterialPanel('main');
       }
     };
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
-  }, [typePopoverOpen, formPopoverOpen, categoryPopoverOpen, eraPopoverOpen]);
+  }, [typePopoverOpen, formPopoverOpen, categoryPopoverOpen, eraPopoverOpen, materialPopoverOpen]);
 
   // Debounced input parser — runs when name changes
   useEffect(() => {
@@ -821,170 +832,357 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   if (isTeaware) {
     const materials = TEAWARE_MATERIALS[entry.teawareCategory || ''] || TEAWARE_MATERIALS.default;
     const hasTeawareName = (entry.name || '').trim().length > 0;
+    const isYixing = entry.material === 'Yixing'
+      || (['Zhuni', 'Zisha', 'Duanni', 'Hongni'] as string[]).includes(entry.material || '');
+    // Surface the legacy-stored clay name (from before Yixing rollup) as a subtype label.
+    const legacyClay = (['Zhuni', 'Zisha', 'Duanni', 'Hongni'] as const).includes(entry.material as never)
+      ? (entry.material as YixingClayType)
+      : undefined;
+    const effectiveClayType: YixingClayType | undefined = entry.clayType || legacyClay;
+
+    const handleMaterialPick = (mat: TeawareMaterial) => {
+      if (mat === 'Yixing') {
+        // Open the clay-subtype sub-panel inside the same popover instead of committing.
+        setMaterialPanel('yixing');
+        return;
+      }
+      const same = entry.material === mat;
+      const updates: Record<string, unknown> = {
+        material: same ? undefined : mat,
+        clayType: undefined,
+      };
+      const originDefault = MATERIAL_ORIGIN_DEFAULT[mat];
+      if (!same && originDefault && !entry.originRegion) {
+        updates.originRegion = originDefault;
+      }
+      update(updates);
+      setMaterialPopoverOpen(false);
+      setMaterialPanel('main');
+    };
+
+    const handleClayPick = (clay: YixingClayType) => {
+      const sameClay = effectiveClayType === clay;
+      const updates: Record<string, unknown> = {
+        material: 'Yixing',
+        clayType: sameClay ? undefined : clay,
+      };
+      if (!entry.originRegion && MATERIAL_ORIGIN_DEFAULT.Yixing) {
+        updates.originRegion = MATERIAL_ORIGIN_DEFAULT.Yixing;
+      }
+      update(updates);
+      setMaterialPopoverOpen(false);
+      setMaterialPanel('main');
+    };
+
+    const handleEraPick = (eraName: string) => {
+      update({ era: entry.era === eraName ? undefined : eraName });
+      setEraPopoverOpen(false);
+      setEraInputOpen(false);
+      setEraInputValue('');
+    };
+
+    const commitCustomEra = () => {
+      const trimmed = eraInputValue.trim();
+      if (!trimmed) return;
+      addCustomEra(trimmed);
+      update({ era: trimmed });
+      setEraInputValue('');
+      setEraInputOpen(false);
+      setEraPopoverOpen(false);
+    };
+
+    const allEras: string[] = [...TEAWARE_ERAS, ...customEras.filter((e) => !TEAWARE_ERAS.includes(e))];
+    const materialChipLabel = isYixing ? 'Yixing' : (entry.material || 'Material');
 
     return (
-      <div className="bg-tea-surface rounded-2xl px-4 py-3 space-y-2">
+      <div className="bg-tea-surface rounded-2xl px-4 py-4 space-y-3">
 
-        {/* Row 1: Vendor + Camera */}
-        <div className="flex items-start gap-3">
-          <div className="flex-1 min-w-0">
-            <VendorStrip
-              vendorName={entry.vendorName}
-              vendorId={entry.vendorId}
-              vendorDetails={entry.vendorDetails}
-              onVendorSelect={handleVendorSelect}
-              onClear={handleVendorClear}
-              onDetailsChange={handleVendorDetailsChange}
-              linkedCustomerId={entry.linkedCustomerId}
-              onLinkedCustomerChange={handleLinkedCustomerChange}
-            />
-          </div>
+        {/* Row 1 — Vendor (full width, gives it room to breathe) */}
+        <VendorStrip
+          vendorName={entry.vendorName}
+          vendorId={entry.vendorId}
+          vendorDetails={entry.vendorDetails}
+          onVendorSelect={handleVendorSelect}
+          onClear={handleVendorClear}
+          onDetailsChange={handleVendorDetailsChange}
+          linkedCustomerId={entry.linkedCustomerId}
+          onLinkedCustomerChange={handleLinkedCustomerChange}
+        />
+
+        {/* Row 2 — Photo / Scan / Camera, dedicated row at 44px tap targets */}
+        <div className="flex items-center min-h-[44px]">
           <PhotoCapture
             onExtracted={handleExtracted}
             onPhotoTaken={handlePhotoTaken}
             onPhotoReplaced={handlePhotoReplaced}
             photos={entry.photos}
             onRemovePhoto={(i) => updateEntry(entryId, { photos: entry.photos.filter((_, idx) => idx !== i) })}
+            size="lg"
           />
         </div>
 
-        {/* Row 2: Name + Category (mirrors Name + Type) */}
-        <div className="flex items-center gap-2">
-          <input
-            type="text"
-            value={entry.name}
-            onChange={(e) => update({ name: e.target.value })}
-            placeholder="What is it?"
-            className="flex-1 min-w-0 bg-tea-gold/[0.06] text-tea-text text-base rounded-xl px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder:text-tea-text-dim"
-          />
-          <div className="relative shrink-0" ref={categoryPopoverRef}>
-            <button
-              type="button"
-              onClick={() => { setCategoryPopoverOpen(!categoryPopoverOpen); setEraPopoverOpen(false); }}
-              className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium bg-tea-elevated text-tea-text-sec border border-tea-border hover:bg-tea-gold/[0.1] hover:text-tea-text active:bg-tea-gold/[0.14] transition-colors whitespace-nowrap"
-              style={entry.teawareCategory ? { backgroundColor: 'rgb(var(--tea-gold-rgb) / 0.12)', color: 'var(--tea-gold)' } : undefined}
-            >
-              <span>{entry.teawareCategory || 'Category'}</span>
-              <ChevronDown size={14} strokeWidth={2} />
-            </button>
-            <AnimatePresence>
-              {categoryPopoverOpen && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ duration: 0.15 }}
-                  className="absolute top-full right-0 mt-1 z-20 bg-tea-surface rounded-xl p-2 shadow-lg border border-tea-border"
-                >
-                  <div className="grid grid-cols-2 gap-1.5" style={{ minWidth: '160px' }}>
-                    {TEAWARE_CATEGORIES.map((cat) => (
-                      <button
-                        key={cat}
-                        type="button"
-                        onClick={() => {
-                          const updates: Record<string, unknown> = { teawareCategory: cat };
-                          if (entry.teawareCategory !== cat) updates.material = undefined;
-                          update(updates);
-                          setCategoryPopoverOpen(false);
+        <div className="border-t border-tea-border" />
+
+        {/* Row 3 — Name (full width). The category chip moved down with Era /
+            Material so the descriptors group together and the name field gets
+            the full row to breathe. */}
+        <input
+          type="text"
+          value={entry.name}
+          onChange={(e) => update({ name: e.target.value })}
+          placeholder="What is it?"
+          className="w-full bg-tea-gold/[0.06] text-tea-text text-base rounded-xl px-3 py-2.5 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder:text-tea-text-dim"
+        />
+
+        {/* Row 4 — Category + Era + Material + Origin. flex-wrap so long labels
+            (e.g. "Pre-70s", "Porcelain") fall to a second line gracefully on
+            narrow viewports instead of crushing Origin to nothing. */}
+        <div className="relative">
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Category chip — was on the name row, moved here so all descriptors live together */}
+            <div className="shrink-0" ref={categoryPopoverRef}>
+              <button
+                type="button"
+                onClick={() => { setCategoryPopoverOpen(!categoryPopoverOpen); setEraPopoverOpen(false); setMaterialPopoverOpen(false); }}
+                className="inline-flex items-center gap-1 rounded-xl px-3 py-2.5 text-sm bg-tea-gold/[0.06] border border-tea-border text-tea-text-dim hover:text-tea-text transition-colors"
+                style={entry.teawareCategory ? { color: 'var(--tea-text)' } : undefined}
+              >
+                <span>{entry.teawareCategory || 'Category'}</span>
+                <ChevronDown size={13} strokeWidth={2} />
+              </button>
+            </div>
+
+            {/* Era chip */}
+            <div className="shrink-0" ref={eraPopoverRef}>
+              <button
+                type="button"
+                onClick={() => { setEraPopoverOpen(!eraPopoverOpen); setMaterialPopoverOpen(false); setCategoryPopoverOpen(false); setEraInputOpen(false); }}
+                className="inline-flex items-center gap-1 rounded-xl px-3 py-2.5 text-sm bg-tea-gold/[0.06] border border-tea-border text-tea-text-dim hover:text-tea-text transition-colors tabular-nums"
+                style={entry.era ? { color: 'var(--tea-text)' } : undefined}
+              >
+                <span>{entry.era || 'Era'}</span>
+                <ChevronDown size={13} strokeWidth={2} />
+              </button>
+            </div>
+
+            {/* Material chip */}
+            <div className="shrink-0" ref={materialPopoverRef}>
+              <button
+                type="button"
+                onClick={() => {
+                  setMaterialPopoverOpen(!materialPopoverOpen);
+                  setEraPopoverOpen(false);
+                  setCategoryPopoverOpen(false);
+                  // Default to the Yixing sub-panel when re-opening on a Yixing entry
+                  setMaterialPanel(isYixing && !materialPopoverOpen ? 'yixing' : 'main');
+                }}
+                className="inline-flex items-center gap-1 rounded-xl px-3 py-2.5 text-sm bg-tea-gold/[0.06] border border-tea-border text-tea-text-dim hover:text-tea-text transition-colors"
+                style={entry.material ? { color: 'var(--tea-text)' } : undefined}
+              >
+                <span>{materialChipLabel}</span>
+                <ChevronDown size={13} strokeWidth={2} />
+              </button>
+            </div>
+
+            {/* Origin — flex-1 so it fills the remaining row, but min-w-[140px]
+                so it doesn't get crushed when the chip line is full. When the
+                chip line wraps, Origin lands on its own line at full width. */}
+            <AutocompleteInput
+              value={entry.originRegion || ''}
+              onChange={(val) => update({ originRegion: val || undefined })}
+              suggestions={availableRegions}
+              placeholder="Origin"
+              className="flex-1 min-w-[140px] bg-tea-gold/[0.06] text-tea-text text-base rounded-xl px-3 py-2.5 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder:text-tea-text-dim"
+            />
+          </div>
+
+          {/* Category popover — anchored to the row's left edge */}
+          <AnimatePresence>
+            {categoryPopoverOpen && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.15 }}
+                className="absolute top-full left-0 mt-1 z-20 bg-tea-surface rounded-xl p-2 shadow-lg border border-tea-border"
+              >
+                <div className="grid grid-cols-2 gap-1.5" style={{ minWidth: '180px' }}>
+                  {TEAWARE_CATEGORIES.map((cat) => (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => {
+                        const updates: Record<string, unknown> = { teawareCategory: cat };
+                        if (entry.teawareCategory !== cat) {
+                          updates.material = undefined;
+                          updates.clayType = undefined;
+                        }
+                        update(updates);
+                        setCategoryPopoverOpen(false);
+                      }}
+                      className={`${entry.teawareCategory === cat ? 'tag-selectable-active' : 'tag-selectable'} py-2`}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Optional clay-subtype subtitle — small line below the row when Yixing has a clay set.
+              Placement (small, dim, indented under the Material chip) signals that it's an
+              optional descriptor without labelling it "optional". */}
+          {isYixing && effectiveClayType && (
+            <div className="flex items-center gap-1.5 mt-1.5 ml-[68px] text-ui-11 text-tea-text-dim">
+              <span
+                className="shrink-0 w-2.5 h-2.5 rounded-full border border-tea-border"
+                style={{ backgroundColor: YIXING_CLAY_TYPES.find((c) => c.name === effectiveClayType)?.swatch }}
+                aria-hidden
+              />
+              <span>{effectiveClayType}</span>
+              <button
+                type="button"
+                onClick={() => update({ material: 'Yixing', clayType: undefined })}
+                className="text-tea-text-dim hover:text-tea-text-sec transition-colors"
+                aria-label="Clear clay subtype"
+              >
+                <X size={10} />
+              </button>
+            </div>
+          )}
+
+          {/* Era popover — anchored to the row's left edge so it never overflows the card */}
+          <AnimatePresence>
+            {eraPopoverOpen && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.15 }}
+                className="absolute top-full left-0 mt-1 z-20 bg-tea-surface rounded-xl p-2 shadow-lg border border-tea-border w-[180px]"
+              >
+                <div className="flex flex-col gap-0.5">
+                  {allEras.map((eraName) => (
+                    <button
+                      key={eraName}
+                      type="button"
+                      onClick={() => handleEraPick(eraName)}
+                      className={`text-left px-3 py-2 rounded-lg text-sm transition-colors ${entry.era === eraName ? 'text-tea-gold bg-tea-gold/[0.08]' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-gold/[0.05]'}`}
+                    >
+                      {eraName}
+                    </button>
+                  ))}
+                  <div className="border-t border-tea-border my-1" />
+                  {eraInputOpen ? (
+                    <div className="flex items-center gap-1 px-1 py-1">
+                      <input
+                        ref={eraInputRef}
+                        type="text"
+                        value={eraInputValue}
+                        autoFocus
+                        onChange={(e) => setEraInputValue(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') { e.preventDefault(); commitCustomEra(); }
+                          if (e.key === 'Escape') { setEraInputOpen(false); setEraInputValue(''); }
                         }}
-                        className={`${entry.teawareCategory === cat ? 'tag-selectable-active' : 'tag-selectable'} py-2`}
+                        placeholder="e.g. Song Dynasty"
+                        className="flex-1 min-w-0 bg-tea-bg text-tea-text text-sm rounded-md px-2 py-1.5 border border-tea-border focus:border-tea-gold/40 outline-none placeholder:text-tea-text-dim"
+                      />
+                      <button
+                        type="button"
+                        onClick={commitCustomEra}
+                        disabled={!eraInputValue.trim()}
+                        className="shrink-0 px-2 py-1.5 rounded-md text-tea-gold text-ui-12 font-semibold hover:bg-tea-gold/10 disabled:opacity-40 transition-colors"
                       >
-                        {cat}
+                        Add
                       </button>
-                    ))}
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setEraInputOpen(true)}
+                      className="flex items-center gap-1.5 text-left px-3 py-2 rounded-lg text-sm text-tea-gold hover:bg-tea-gold/[0.06] transition-colors"
+                    >
+                      <Plus size={13} strokeWidth={2.5} />
+                      Add new era
+                    </button>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Material popover — anchored so it stays within the card. Slides between
+              the main material list and the Yixing clay sub-picker. */}
+          <AnimatePresence>
+            {materialPopoverOpen && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.15 }}
+                className="absolute top-full right-0 mt-1 z-20 bg-tea-surface rounded-xl p-2 shadow-lg border border-tea-border w-[220px] max-w-full"
+              >
+                {materialPanel === 'main' ? (
+                  <div className="flex flex-col gap-0.5">
+                    {materials.map((mat) => {
+                      const isSelected = entry.material === mat || (mat === 'Yixing' && isYixing);
+                      const isYixingRow = mat === 'Yixing';
+                      return (
+                        <button
+                          key={mat}
+                          type="button"
+                          onClick={() => handleMaterialPick(mat)}
+                          className={`flex items-center justify-between text-left px-3 py-2 rounded-lg text-sm transition-colors ${isSelected ? 'text-tea-gold bg-tea-gold/[0.08]' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-gold/[0.05]'}`}
+                        >
+                          <span>{mat}</span>
+                          {isYixingRow && <ChevronRight size={14} className="text-tea-text-dim" />}
+                        </button>
+                      );
+                    })}
                   </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+                ) : (
+                  <div className="flex flex-col gap-0.5">
+                    <button
+                      type="button"
+                      onClick={() => setMaterialPanel('main')}
+                      className="flex items-center gap-1.5 text-left px-3 py-1.5 rounded-lg text-ui-12 text-tea-text-dim hover:text-tea-text hover:bg-tea-gold/[0.05] transition-colors"
+                    >
+                      <ChevronLeft size={13} />
+                      <span>Yixing clay</span>
+                    </button>
+                    <div className="border-t border-tea-border my-1" />
+                    <div className="grid grid-cols-2 gap-1">
+                      {YIXING_CLAY_TYPES.map((clay) => {
+                        const sel = effectiveClayType === clay.name;
+                        return (
+                          <button
+                            key={clay.name}
+                            type="button"
+                            onClick={() => handleClayPick(clay.name)}
+                            className={`flex items-center gap-2 text-left px-2 py-2 rounded-lg text-ui-13 transition-colors ${sel ? 'text-tea-gold bg-tea-gold/[0.08]' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-gold/[0.05]'}`}
+                          >
+                            <span
+                              className="shrink-0 w-4 h-4 rounded-full border border-tea-border"
+                              style={{ backgroundColor: clay.swatch }}
+                              aria-hidden
+                            />
+                            <span className="truncate">{clay.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
-        {/* Row 3: Era + Material + Origin */}
-        <div className="flex items-center gap-2">
-          <div className="relative shrink-0" ref={eraPopoverRef}>
-            <button
-              type="button"
-              onClick={() => { setEraPopoverOpen(!eraPopoverOpen); setCategoryPopoverOpen(false); setMaterialPopoverOpen(false); }}
-              className="inline-flex items-center gap-1 rounded-xl px-3 py-2 text-sm bg-tea-gold/[0.06] border border-tea-border text-tea-text-dim hover:text-tea-text transition-colors tabular-nums"
-              style={entry.era ? { color: 'var(--tea-text)' } : undefined}
-            >
-              <span>{entry.era || 'Era'}</span>
-              <ChevronDown size={13} strokeWidth={2} />
-            </button>
-            <AnimatePresence>
-              {eraPopoverOpen && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ duration: 0.15 }}
-                  className="absolute top-full left-0 mt-1 z-20 bg-tea-surface rounded-xl p-2 shadow-lg border border-tea-border"
-                >
-                  <div className="flex flex-col gap-0.5" style={{ minWidth: '120px' }}>
-                    {TEAWARE_ERAS.map((e) => (
-                      <button
-                        key={e}
-                        type="button"
-                        onClick={() => { update({ era: entry.era === e ? undefined : e }); setEraPopoverOpen(false); }}
-                        className={`text-left px-3 py-1.5 rounded-lg text-sm transition-colors ${entry.era === e ? 'text-tea-gold bg-tea-gold/[0.08]' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-gold/[0.05]'}`}
-                      >
-                        {e}
-                      </button>
-                    ))}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+        <div className="border-t border-tea-border" />
 
-          <div className="relative shrink-0" ref={materialPopoverRef}>
-            <button
-              type="button"
-              onClick={() => { setMaterialPopoverOpen(!materialPopoverOpen); setEraPopoverOpen(false); setCategoryPopoverOpen(false); }}
-              className="inline-flex items-center gap-1 rounded-xl px-3 py-2 text-sm bg-tea-gold/[0.06] border border-tea-border text-tea-text-dim hover:text-tea-text transition-colors"
-              style={entry.material ? { color: 'var(--tea-text)' } : undefined}
-            >
-              <span>{entry.material || 'Material'}</span>
-              <ChevronDown size={13} strokeWidth={2} />
-            </button>
-            <AnimatePresence>
-              {materialPopoverOpen && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ duration: 0.15 }}
-                  className="absolute top-full left-0 mt-1 z-20 bg-tea-surface rounded-xl p-2 shadow-lg border border-tea-border"
-                >
-                  <div className="flex flex-col gap-0.5" style={{ minWidth: '130px' }}>
-                    {materials.map((mat) => (
-                      <button
-                        key={mat}
-                        type="button"
-                        onClick={() => { update({ material: entry.material === mat ? undefined : mat }); setMaterialPopoverOpen(false); }}
-                        className={`text-left px-3 py-1.5 rounded-lg text-sm transition-colors ${entry.material === mat ? 'text-tea-gold bg-tea-gold/[0.08]' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-gold/[0.05]'}`}
-                      >
-                        {mat}
-                      </button>
-                    ))}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          <AutocompleteInput
-            value={entry.originRegion || ''}
-            onChange={(val) => update({ originRegion: val || undefined })}
-            suggestions={availableRegions}
-            placeholder="Origin"
-            className="flex-1 min-w-0 bg-tea-gold/[0.06] text-tea-text text-base rounded-xl px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder:text-tea-text-dim"
-          />
-        </div>
-
-        <div className="border-t border-tea-border my-1" />
-
-        {/* Row 4: Price + ml (mirrors Price + Grams) */}
+        {/* Row 5 — Price + ml */}
         <div className="flex items-center gap-2">
           <div className="flex-1 min-w-0 flex items-center bg-tea-gold/[0.06] rounded-xl border border-tea-border focus-within:border-tea-gold/40 transition-colors">
             <select
@@ -1006,7 +1204,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                 const val = e.target.value;
                 update({ priceAmount: val === '' ? undefined : Number(val) });
               }}
-              className="flex-1 min-w-0 bg-transparent text-tea-text px-2 py-2 outline-none text-base tabular-nums placeholder:text-tea-text-dim [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+              className="flex-1 min-w-0 bg-transparent text-tea-text px-2 py-2.5 outline-none text-base tabular-nums placeholder:text-tea-text-dim [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
               style={{ MozAppearance: 'textfield' } as React.CSSProperties}
             />
           </div>
@@ -1019,19 +1217,19 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
               const val = e.target.value;
               update({ capacityMl: val === '' ? undefined : Number(val) });
             }}
-            className="w-20 shrink-0 bg-tea-gold/[0.06] text-tea-text rounded-xl px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none text-base tabular-nums text-right placeholder:text-tea-text-dim [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+            className="w-20 shrink-0 bg-tea-gold/[0.06] text-tea-text rounded-xl px-3 py-2.5 border border-tea-border focus:border-tea-gold/40 outline-none text-base tabular-nums text-right placeholder:text-tea-text-dim [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
             style={{ MozAppearance: 'textfield' } as React.CSSProperties}
           />
         </div>
 
-        {/* Row 5: Qty stepper */}
+        {/* Row 6 — Qty stepper */}
         <div className="flex items-center gap-1.5">
           <button
             type="button"
             onClick={() => update({ quantity: Math.max(1, (entry.quantity || 1) - 1) })}
-            className="w-7 h-7 flex items-center justify-center rounded-lg bg-tea-elevated border border-tea-border text-tea-text-sec hover:text-tea-text transition-colors"
+            className="w-8 h-8 flex items-center justify-center rounded-lg bg-tea-elevated border border-tea-border text-tea-text-sec hover:text-tea-text transition-colors tap-target"
           >
-            <Minus size={12} />
+            <Minus size={13} />
           </button>
           <span className="text-tea-text text-sm font-medium tabular-nums min-w-[2ch] text-center">
             {entry.quantity || 1}
@@ -1039,20 +1237,20 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           <button
             type="button"
             onClick={() => update({ quantity: (entry.quantity || 1) + 1 })}
-            className="w-7 h-7 flex items-center justify-center rounded-lg bg-tea-elevated border border-tea-border text-tea-text-sec hover:text-tea-text transition-colors"
+            className="w-8 h-8 flex items-center justify-center rounded-lg bg-tea-elevated border border-tea-border text-tea-text-sec hover:text-tea-text transition-colors tap-target"
           >
-            <Plus size={12} />
+            <Plus size={13} />
           </button>
           <span className="text-ui-11 text-tea-text-dim ml-1">qty</span>
         </div>
 
-        <div className="border-t border-tea-border my-1" />
+        <div className="border-t border-tea-border" />
 
-        {/* Notes */}
+        {/* Notes — bigger textarea + larger mic; user reported the small mic was hard to hit */}
         <NoteThread
           compassEntryId={entry.id}
           teaKey={entry.teaKey ?? undefined}
-          compact
+          larger
         />
 
         {/* Done */}

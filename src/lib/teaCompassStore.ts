@@ -27,6 +27,11 @@ interface TeaCompassState {
   shippingRatePerKg: number;
   setShippingRatePerKg: (rate: number) => void;
 
+  // User-added teaware eras (e.g. "Song Dynasty"). Appear in the Era picker
+  // alongside the standard TEAWARE_ERAS list.
+  customEras: string[];
+  addCustomEra: (era: string) => void;
+
   // Actions
   addEntry: (entry: TeaCompassEntry) => void;
   updateEntry: (id: string, updates: Partial<TeaCompassEntry>) => void;
@@ -81,8 +86,17 @@ export const useTeaCompassStore = create<TeaCompassState>()(
       browseGrouping: 'date',
       browseFilter: 'all',
       shippingRatePerKg: 0,
+      customEras: [],
 
       setShippingRatePerKg: (rate) => set({ shippingRatePerKg: rate }),
+
+      addCustomEra: (era) => {
+        const trimmed = era.trim();
+        if (!trimmed) return;
+        set((s) => (s.customEras.includes(trimmed)
+          ? s
+          : { customEras: [...s.customEras, trimmed] }));
+      },
 
       addEntry: (entry) =>
         set((state) => ({
@@ -211,6 +225,7 @@ export const useTeaCompassStore = create<TeaCompassState>()(
         browseGrouping: state.browseGrouping,
         browseFilter: state.browseFilter,
         shippingRatePerKg: state.shippingRatePerKg,
+        customEras: state.customEras,
         // pendingEntries, activeEntryId, sessionEntryIds are intentionally NOT persisted
       }),
     }

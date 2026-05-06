@@ -1851,6 +1851,17 @@ input[type="number"]::-webkit-outer-spin-button {
   color: var(--tea-gold);
 }
 
+/* Larger mic affordance — used by the teaware capture card where reaching the
+   tiny mic at the corner of the notes field was reported as too hard. */
+.tasting-voice-btn-large {
+  width: 56px;
+  min-height: 56px;
+  color: var(--tea-text-sec);
+}
+.tasting-voice-btn-large:hover {
+  color: var(--tea-gold);
+}
+
 /* ── Sub-terms expansion ── */
 
 /* ============================================

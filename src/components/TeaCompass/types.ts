@@ -8,8 +8,15 @@ export type CompassCategory = 'tea' | 'teaware';
 export type Season = 'Spring' | 'Summer' | 'Fall' | 'Winter';
 export type Storage = 'Dry' | 'Wet/Traditional' | 'HK' | 'Malaysian' | 'Natural';
 export type TeawareCategory = 'Pot' | 'Cup' | 'Gaiwan' | 'Fair Cup' | 'Tray' | 'Storage' | 'Tool' | 'Other';
-export type TeawareMaterial = 'Zhuni' | 'Zisha' | 'Duanni' | 'Hongni' | 'Porcelain' | 'Celadon' | 'Wood-fired' | 'Glass' | 'Clay' | 'Ceramic' | 'Wood' | 'Metal' | 'Stone' | 'Silver' | 'Other';
-export type TeawareEra = 'Modern' | '90s' | '80s' | '70s' | 'Pre-70s' | 'Republic' | 'Qing' | 'Unknown';
+// 'Zhuni' | 'Zisha' | 'Duanni' | 'Hongni' kept in the union for backward compatibility
+// with entries created before Yixing-as-material refactor — picker no longer offers them
+// as top-level materials; they're surfaced as clay subtypes under Yixing.
+export type TeawareMaterial = 'Yixing' | 'Zhuni' | 'Zisha' | 'Duanni' | 'Hongni' | 'Porcelain' | 'Celadon' | 'Wood-fired' | 'Glass' | 'Clay' | 'Ceramic' | 'Wood' | 'Metal' | 'Stone' | 'Silver' | 'Other' | 'Unknown';
+// Yixing clay subtypes — picked by colour and name inside the Material picker
+export type YixingClayType = 'Zhuni' | 'Zisha' | 'Duanni' | 'Hongni' | 'Lvni' | 'Heini' | 'Unknown';
+// Era is now a free-form string so user-added eras (e.g. "Song Dynasty") are first-class.
+// Standard values are listed in TEAWARE_ERAS for the picker.
+export type TeawareEra = string;
 
 export type BrowseGrouping = 'date' | 'vendor';
 export type BrowseFilter = 'all' | 'mine' | 'queue' | 'want' | 'pass';
@@ -50,6 +57,10 @@ export interface TeaCompassEntry {
   // Teaware-specific
   teawareCategory?: TeawareCategory;
   material?: TeawareMaterial;
+  /** When material is 'Yixing', the specific clay subtype */
+  clayType?: YixingClayType;
+  /** Optional free-form descriptor for the material (e.g. "Master Wang's blend") */
+  materialNote?: string;
   capacityMl?: number;
   quantity: number;
   era?: TeawareEra;
@@ -133,16 +144,42 @@ export const STORAGE_OPTIONS: Storage[] = ['Dry', 'Wet/Traditional', 'HK', 'Mala
 // Teaware categories
 export const TEAWARE_CATEGORIES: TeawareCategory[] = ['Pot', 'Cup', 'Gaiwan', 'Fair Cup', 'Tray', 'Storage', 'Tool', 'Other'];
 
-// Teaware materials by category
+// Teaware materials by category — Yixing rolls up the four classic clay subtypes
+// (Zhuni / Zisha / Duanni / Hongni); a sub-picker on Yixing surfaces them.
 export const TEAWARE_MATERIALS: Record<string, TeawareMaterial[]> = {
-  Pot: ['Zhuni', 'Zisha', 'Duanni', 'Hongni', 'Porcelain', 'Silver', 'Glass', 'Other'],
-  Cup: ['Porcelain', 'Celadon', 'Wood-fired', 'Glass', 'Clay', 'Other'],
-  Gaiwan: ['Porcelain', 'Celadon', 'Glass', 'Clay', 'Other'],
-  default: ['Clay', 'Porcelain', 'Glass', 'Ceramic', 'Wood', 'Metal', 'Stone', 'Other'],
+  Pot: ['Yixing', 'Porcelain', 'Silver', 'Glass', 'Other', 'Unknown'],
+  Cup: ['Porcelain', 'Celadon', 'Wood-fired', 'Glass', 'Clay', 'Other', 'Unknown'],
+  Gaiwan: ['Porcelain', 'Celadon', 'Glass', 'Clay', 'Other', 'Unknown'],
+  default: ['Clay', 'Porcelain', 'Glass', 'Ceramic', 'Wood', 'Metal', 'Stone', 'Other', 'Unknown'],
 };
 
-// Teaware eras
+// Yixing clay subtypes — picked by colour swatch + name. Hex colours are
+// physical-material references, not theme tokens, so they live inline.
+export interface YixingClayInfo {
+  name: YixingClayType;
+  /** Anglicised label shown beside the swatch */
+  label: string;
+  /** Approximate colour of the fired clay */
+  swatch: string;
+}
+export const YIXING_CLAY_TYPES: YixingClayInfo[] = [
+  { name: 'Zhuni',   label: 'Zhuni',   swatch: '#C84B3F' },
+  { name: 'Hongni',  label: 'Hongni',  swatch: '#A35442' },
+  { name: 'Zisha',   label: 'Zisha',   swatch: '#6B4F4A' },
+  { name: 'Duanni',  label: 'Duanni',  swatch: '#C9A872' },
+  { name: 'Lvni',    label: 'Lvni',    swatch: '#6F8261' },
+  { name: 'Heini',   label: 'Heini',   swatch: '#2A2620' },
+  { name: 'Unknown', label: 'Unknown', swatch: '#8a8275' },
+];
+
+// Teaware eras — standard list shown first in the picker; user-added eras
+// (e.g. "Song Dynasty") are appended via the compass store's customEras.
 export const TEAWARE_ERAS: TeawareEra[] = ['Modern', '90s', '80s', '70s', 'Pre-70s', 'Republic', 'Qing', 'Unknown'];
+
+/** Origin auto-fill rules keyed by material — applied when the field is empty. */
+export const MATERIAL_ORIGIN_DEFAULT: Partial<Record<TeawareMaterial, string>> = {
+  Yixing: 'Yixing, China',
+};
 
 // Common regions
 export const COMMON_REGIONS = [
