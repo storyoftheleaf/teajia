@@ -118,7 +118,7 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
         ]}
       />
 
-      <div className="pb-[calc(44px+env(safe-area-inset-bottom,0px))] lg:pb-8" />
+      <div className="pb-[calc(52px+env(safe-area-inset-bottom,0px))] lg:pb-8" />
     </div>
   );
 };

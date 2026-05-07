@@ -918,7 +918,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
         aria-labelledby={titleId}
         aria-hidden={!product}
         style={{ willChange: 'transform' }}
-        className={`fixed inset-0 bottom-[calc(44px+env(safe-area-inset-bottom))] md:inset-auto md:right-0 md:top-0 md:bottom-0 md:w-[360px] lg:w-[420px] xl:w-[440px] z-30 bg-tea-bg flex flex-col panel-sidebar transition-transform duration-300 ease-out ${product ? 'translate-x-0' : 'translate-x-full'}`}
+        className={`fixed inset-0 bottom-[calc(52px+env(safe-area-inset-bottom))] md:inset-auto md:right-0 md:top-0 md:bottom-0 md:w-[360px] lg:w-[420px] xl:w-[440px] z-30 bg-tea-bg flex flex-col panel-sidebar transition-transform duration-300 ease-out ${product ? 'translate-x-0' : 'translate-x-full'}`}
       >
         {product && (<>
           {/* Header — Row 1: Nav */}
@@ -1519,7 +1519,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
       </div>
 
       {/* Mobile backdrop */}
-      {product && <div className="fixed inset-0 bottom-[calc(44px+env(safe-area-inset-bottom))] z-20 bg-black/50 md:hidden" onClick={onClose} />}
+      {product && <div className="fixed inset-0 bottom-[calc(52px+env(safe-area-inset-bottom))] z-20 bg-black/50 md:hidden" onClick={onClose} />}
 
       {/* Tasting editor modal */}
       {tastingEditorProduct && (

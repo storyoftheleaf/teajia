@@ -554,8 +554,8 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
             } ${
               mode === 'sourcing'
                 ? showCaptureActionBar
-                  ? 'pb-[calc(105px+44px+env(safe-area-inset-bottom,0px))] lg:pb-4'
-                  : 'pb-[calc(53px+44px+env(safe-area-inset-bottom,0px))] lg:pb-4'
+                  ? 'pb-[calc(105px+52px+env(safe-area-inset-bottom,0px))] lg:pb-4'
+                  : 'pb-[calc(53px+52px+env(safe-area-inset-bottom,0px))] lg:pb-4'
                 : 'pb-3'
             }`}
             role="tabpanel"
@@ -854,7 +854,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
 
           {/* Mobile action bar — fixed, single compact row */}
           {mode === 'sourcing' && (
-            <div className="fixed left-0 right-0 z-20 bottom-[calc(44px+env(safe-area-inset-bottom,0px))]">
+            <div className="fixed left-0 right-0 z-20 bottom-[calc(52px+env(safe-area-inset-bottom,0px))]">
               <AnimatePresence>
                 {voiceError && (
                   <motion.p

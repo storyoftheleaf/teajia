@@ -886,7 +886,7 @@ export const MagazineTabbed: React.FC<MagazineTabbedProps> = ({
       </div>
 
       {/* ── Article feed ── */}
-      <div className="flex-1 pb-[calc(44px+env(safe-area-inset-bottom,0px))] lg:pb-12">
+      <div className="flex-1 pb-[calc(52px+env(safe-area-inset-bottom,0px))] lg:pb-12">
         {isContentLoading ? (
           <LoadingSkeleton />
         ) : filtered.length > 0 ? (

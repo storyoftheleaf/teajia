@@ -613,7 +613,7 @@ const AppContent = () => {
         </Suspense>
       ) : (
       <>
-      <main id="main-content" className="px-4 md:px-6 lg:px-10 pt-0 lg:pt-0 pb-[calc(44px+env(safe-area-inset-bottom,0px)+2rem)] lg:pb-8 min-h-screen w-full flex-1 transition-opacity duration-300">
+      <main id="main-content" className="px-4 md:px-6 lg:px-10 pt-0 lg:pt-0 pb-[calc(52px+env(safe-area-inset-bottom,0px)+2rem)] lg:pb-8 min-h-screen w-full flex-1 transition-opacity duration-300">
           <AnimatePresence mode="wait">
           {viewState === 'BROWSE' && (
             <AnimatedRoutes>
@@ -920,7 +920,7 @@ const AppContent = () => {
         onDismiss={dismissCartToast}
       />
 
-      <div role="status" aria-live="polite" className={`fixed bottom-[calc(44px+env(safe-area-inset-bottom,0px)+1rem)] lg:bottom-8 left-1/2 -translate-x-1/2 bg-tea-surface text-tea-text px-6 py-3 rounded-sm shadow-2xl transition-all duration-500 z-toast flex items-center gap-3 ${toast.show ? 'translate-y-0 opacity-100 pointer-events-auto' : 'translate-y-10 opacity-0 pointer-events-none'}`}>
+      <div role="status" aria-live="polite" className={`fixed bottom-[calc(52px+env(safe-area-inset-bottom,0px)+1rem)] lg:bottom-8 left-1/2 -translate-x-1/2 bg-tea-surface text-tea-text px-6 py-3 rounded-sm shadow-2xl transition-all duration-500 z-toast flex items-center gap-3 ${toast.show ? 'translate-y-0 opacity-100 pointer-events-auto' : 'translate-y-10 opacity-0 pointer-events-none'}`}>
           <Icons.Seal className="w-4 h-4 text-tea-gold" />
           <span className="text-xs uppercase tracking-widest font-medium">{toast.message}</span>
       </div>

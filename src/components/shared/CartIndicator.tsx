@@ -20,7 +20,7 @@ export const CartIndicator: React.FC<CartIndicatorProps> = ({ itemCount, onOpen 
         <motion.button
           onClick={onOpen}
           className="fixed right-4 z-toast"
-          style={{ bottom: 'calc(44px + env(safe-area-inset-bottom, 0px) + 0.75rem)' }}
+          style={{ bottom: 'calc(52px + env(safe-area-inset-bottom, 0px) + 0.75rem)' }}
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 8 }}

@@ -2142,27 +2142,27 @@ input[type="number"]::-webkit-outer-spin-button {
 
 /* ============================================
    Bottom Nav Clearance Utilities
-   The mobile bottom nav is 44px + safe-area-inset-bottom,
+   The mobile bottom nav is 52px + safe-area-inset-bottom,
    visible below the `lg` breakpoint (1024px).
    Use these classes instead of repeating the calc() inline.
    ============================================ */
 
 /* Padding clearance — flush against nav (no gap) */
-.pb-nav        { padding-bottom: calc(44px + env(safe-area-inset-bottom, 0px)); }
+.pb-nav        { padding-bottom: calc(52px + env(safe-area-inset-bottom, 0px)); }
 @media (min-width: 1024px) { .pb-nav { padding-bottom: 0; } }
 
 /* Padding clearance — with 1rem breathing room above nav */
-.pb-nav-gap    { padding-bottom: calc(1rem + 44px + env(safe-area-inset-bottom, 0px)); }
+.pb-nav-gap    { padding-bottom: calc(1rem + 52px + env(safe-area-inset-bottom, 0px)); }
 @media (min-width: 1024px) { .pb-nav-gap { padding-bottom: 1rem; } }
 
 /* Padding clearance — with 2rem breathing room above nav */
-.pb-nav-gap-lg { padding-bottom: calc(2rem + 44px + env(safe-area-inset-bottom, 0px)); }
+.pb-nav-gap-lg { padding-bottom: calc(2rem + 52px + env(safe-area-inset-bottom, 0px)); }
 @media (min-width: 1024px) { .pb-nav-gap-lg { padding-bottom: 2rem; } }
 
 /* bottom: offset — positions fixed elements flush above the nav */
-.bottom-nav    { bottom: calc(44px + env(safe-area-inset-bottom, 0px)); }
+.bottom-nav    { bottom: calc(52px + env(safe-area-inset-bottom, 0px)); }
 @media (min-width: 1024px) { .bottom-nav { bottom: 0; } }
 
 /* bottom: offset — positions fixed elements 1rem above the nav */
-.bottom-nav-gap { bottom: calc(1rem + 44px + env(safe-area-inset-bottom, 0px)); }
+.bottom-nav-gap { bottom: calc(1rem + 52px + env(safe-area-inset-bottom, 0px)); }
 @media (min-width: 1024px) { .bottom-nav-gap { bottom: 1rem; } }

@@ -318,7 +318,7 @@ export const PopupModal: React.FC<PopupModalProps> = ({
         </div>
 
         {/* Sheet content */}
-        <div className="bg-tea-bg rounded-t-lg relative -mt-4 pb-[calc(44px+env(safe-area-inset-bottom,0px))] lg:pb-[env(safe-area-inset-bottom)]">
+        <div className="bg-tea-bg rounded-t-lg relative -mt-4 pb-[calc(52px+env(safe-area-inset-bottom,0px))] lg:pb-[env(safe-area-inset-bottom)]">
           {/* Drag handle */}
           <div className="sheet-drag-handle flex justify-center pt-3 pb-4 cursor-grab active:cursor-grabbing">
             <div className="w-10 h-1 bg-tea-gold/15 rounded-full" />

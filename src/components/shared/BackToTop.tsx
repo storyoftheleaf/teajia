@@ -20,7 +20,7 @@ export const BackToTop: React.FC = () => {
           exit={{ opacity: 0, y: 8 }}
           transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-          className="fixed bottom-[calc(44px+env(safe-area-inset-bottom,0px)+1.5rem)] lg:bottom-8 right-4 lg:right-6 z-40 flex flex-col items-center gap-1 group cursor-pointer bg-transparent border-none p-2"
+          className="fixed bottom-[calc(52px+env(safe-area-inset-bottom,0px)+1.5rem)] lg:bottom-8 right-4 lg:right-6 z-40 flex flex-col items-center gap-1 group cursor-pointer bg-transparent border-none p-2"
           aria-label="Back to top"
         >
           {/* Thin upward arrow */}
