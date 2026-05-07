@@ -22,9 +22,15 @@ export const SyncIndicator: React.FC = () => {
     <button
       type="button"
       onClick={handleSync}
-      className="relative w-5 h-5 flex items-center justify-center shrink-0"
-      aria-label={isPending ? `${unsyncedCount} entries pending sync` : 'All synced'}
-      title={isPending ? `${unsyncedCount} pending` : 'Synced'}
+      className="tap-target relative inline-flex items-center gap-1.5 px-1.5 h-6 rounded-md text-tea-text-dim hover:text-tea-text-sec transition-colors shrink-0"
+      aria-label={
+        syncing
+          ? 'Syncing'
+          : isPending
+            ? `${unsyncedCount} entries pending sync — tap to sync now`
+            : 'All synced'
+      }
+      title={syncing ? 'Syncing…' : isPending ? `${unsyncedCount} pending — tap to sync` : 'Synced'}
     >
       <span
         className={`block w-2 h-2 rounded-full transition-colors duration-300 ${
@@ -35,6 +41,9 @@ export const SyncIndicator: React.FC = () => {
               : 'bg-tea-gold-lt'
         }`}
       />
+      {isPending && !syncing && (
+        <span className="text-ui-9 font-semibold text-tea-gold tabular-nums">{unsyncedCount}</span>
+      )}
     </button>
   );
 };

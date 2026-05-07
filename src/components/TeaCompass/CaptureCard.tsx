@@ -930,7 +930,11 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           type="text"
           value={entry.name}
           onChange={(e) => update({ name: e.target.value })}
-          placeholder="What is it?"
+          placeholder={
+            entry.teawareCategory
+              ? `${entry.teawareCategory} name (e.g., Shipiao, Shuiping…)`
+              : 'Name — pick a Category below for hints'
+          }
           className="w-full bg-tea-gold/[0.06] text-tea-text text-base rounded-xl px-3 py-2.5 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder:text-tea-text-dim"
         />
 
@@ -1246,11 +1250,12 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
 
         <div className="border-t border-tea-border" />
 
-        {/* Notes — bigger textarea + larger mic; user reported the small mic was hard to hit */}
+        {/* Notes — the footer Mic owns voice capture, so the in-textarea mic is hidden to avoid two mics in the same view. */}
         <NoteThread
           compassEntryId={entry.id}
           teaKey={entry.teaKey ?? undefined}
           larger
+          hideMic
         />
 
         {/* Done */}

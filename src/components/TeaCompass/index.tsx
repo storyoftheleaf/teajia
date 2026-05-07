@@ -540,9 +540,11 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
               <button
                 type="button"
                 onClick={() => handleNewCapture()}
-                className="whitespace-nowrap px-2.5 py-1 rounded-full text-ui-11 text-tea-text-dim border border-tea-border hover:text-tea-text-sec hover:border-tea-gold/40 transition-colors shrink-0"
+                aria-label="Start a new entry"
+                className="whitespace-nowrap inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-ui-11 text-tea-text-dim border border-tea-border hover:text-tea-text-sec hover:border-tea-gold/40 transition-colors shrink-0"
               >
-                +
+                <Plus size={11} strokeWidth={2} />
+                New
               </button>
             </div>
           )}
