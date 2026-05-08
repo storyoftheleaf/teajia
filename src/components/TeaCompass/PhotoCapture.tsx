@@ -529,8 +529,9 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); onRemovePhoto(photos!.indexOf(url)); }}
-                className="absolute -top-1 -right-1 w-4 h-4 flex items-center justify-center rounded-full bg-tea-surface border border-tea-border text-tea-text-dim hover:text-red-400 transition-colors"
-                aria-label="Remove photo"
+                className="tap-target absolute -top-1 -right-1 w-4 h-4 flex items-center justify-center rounded-full bg-tea-surface border border-tea-border text-tea-text-dim hover:text-red-400 transition-colors"
+                aria-label="Remove photo — tap the camera or scanner to retake"
+                title="Remove (tap the camera or scanner to retake)"
               >
                 <X size={8} strokeWidth={2.5} />
               </button>

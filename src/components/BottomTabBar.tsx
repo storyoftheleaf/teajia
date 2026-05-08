@@ -93,8 +93,8 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
           style={{ fontFamily: 'var(--font-display)', WebkitUserSelect: 'none', userSelect: 'none' }}
           animate={
             isActive
-              ? { color: 'var(--tea-gold)', filter: 'drop-shadow(0 0 6px rgb(var(--tea-gold-rgb) / 0.55)) drop-shadow(0 0 16px rgb(var(--tea-gold-rgb) / 0.22))' }
-              : { color: 'var(--tea-text-sec)', filter: 'drop-shadow(0 0 0px transparent)' }
+              ? { color: 'var(--tea-gold)', fontWeight: 600, filter: 'drop-shadow(0 0 8px rgb(var(--tea-gold-rgb) / 0.75)) drop-shadow(0 0 18px rgb(var(--tea-gold-rgb) / 0.32))' }
+              : { color: 'var(--tea-text-sec)', fontWeight: 400, filter: 'drop-shadow(0 0 0px transparent)' }
           }
           transition={{ duration: 0.45, ease: 'easeOut' }}
         >
@@ -163,8 +163,8 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
           style={{ fontFamily: 'var(--font-display)', WebkitUserSelect: 'none', userSelect: 'none' }}
           animate={
             isActive
-              ? { color: 'var(--tea-gold)', filter: 'drop-shadow(0 0 6px rgb(var(--tea-gold-rgb) / 0.55)) drop-shadow(0 0 16px rgb(var(--tea-gold-rgb) / 0.22))' }
-              : { color: 'var(--tea-text-sec)', filter: 'drop-shadow(0 0 0px transparent)' }
+              ? { color: 'var(--tea-gold)', fontWeight: 600, filter: 'drop-shadow(0 0 8px rgb(var(--tea-gold-rgb) / 0.75)) drop-shadow(0 0 18px rgb(var(--tea-gold-rgb) / 0.32))' }
+              : { color: 'var(--tea-text-sec)', fontWeight: 400, filter: 'drop-shadow(0 0 0px transparent)' }
           }
           transition={{ duration: 0.45, ease: 'easeOut' }}
         >

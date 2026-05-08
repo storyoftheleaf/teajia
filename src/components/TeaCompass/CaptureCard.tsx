@@ -219,6 +219,9 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   const [categoryPopoverOpen, setCategoryPopoverOpen] = useState(false);
   const [eraPopoverOpen, setEraPopoverOpen] = useState(false);
   const [materialPopoverOpen, setMaterialPopoverOpen] = useState(false);
+  // Era + Material are progressive — hidden behind a "+ Era / Material" toggle
+  // when both are empty, since most field captures don't need them.
+  const [teawareDetailsOpen, setTeawareDetailsOpen] = useState(false);
   // Inside the material popover: when true, swaps panel to Yixing clay subtypes
   const [materialPanel, setMaterialPanel] = useState<'main' | 'yixing'>('main');
   // Inside the era popover: shows the "+ Add era" input row
@@ -930,7 +933,11 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           type="text"
           value={entry.name}
           onChange={(e) => update({ name: e.target.value })}
-          placeholder="What is it?"
+          placeholder={
+            entry.teawareCategory
+              ? `${entry.teawareCategory} name (e.g., Shipiao, Shuiping…)`
+              : 'Name — pick a Category below for hints'
+          }
           className="w-full bg-tea-gold/[0.06] text-tea-text text-base rounded-xl px-3 py-2.5 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder:text-tea-text-dim"
         />
 
@@ -952,37 +959,54 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
               </button>
             </div>
 
-            {/* Era chip */}
-            <div className="shrink-0" ref={eraPopoverRef}>
-              <button
-                type="button"
-                onClick={() => { setEraPopoverOpen(!eraPopoverOpen); setMaterialPopoverOpen(false); setCategoryPopoverOpen(false); setEraInputOpen(false); }}
-                className="inline-flex items-center gap-1 rounded-xl px-3 py-2.5 text-sm bg-tea-gold/[0.06] border border-tea-border text-tea-text-dim hover:text-tea-text transition-colors tabular-nums"
-                style={entry.era ? { color: 'var(--tea-text)' } : undefined}
-              >
-                <span>{entry.era || 'Era'}</span>
-                <ChevronDown size={13} strokeWidth={2} />
-              </button>
-            </div>
+            {/* Era + Material — collapsed behind a "+ Era / Material" toggle when
+                both are empty. Once a value is set, the chip stays visible so the
+                user can see and edit it without re-expanding. */}
+            {(teawareDetailsOpen || entry.era || entry.material) ? (
+              <>
+                {/* Era chip */}
+                <div className="shrink-0" ref={eraPopoverRef}>
+                  <button
+                    type="button"
+                    onClick={() => { setEraPopoverOpen(!eraPopoverOpen); setMaterialPopoverOpen(false); setCategoryPopoverOpen(false); setEraInputOpen(false); }}
+                    className="inline-flex items-center gap-1 rounded-xl px-3 py-2.5 text-sm bg-tea-gold/[0.06] border border-tea-border text-tea-text-dim hover:text-tea-text transition-colors tabular-nums"
+                    style={entry.era ? { color: 'var(--tea-text)' } : undefined}
+                  >
+                    <span>{entry.era || 'Era'}</span>
+                    <ChevronDown size={13} strokeWidth={2} />
+                  </button>
+                </div>
 
-            {/* Material chip */}
-            <div className="shrink-0" ref={materialPopoverRef}>
+                {/* Material chip */}
+                <div className="shrink-0" ref={materialPopoverRef}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMaterialPopoverOpen(!materialPopoverOpen);
+                      setEraPopoverOpen(false);
+                      setCategoryPopoverOpen(false);
+                      // Default to the Yixing sub-panel when re-opening on a Yixing entry
+                      setMaterialPanel(isYixing && !materialPopoverOpen ? 'yixing' : 'main');
+                    }}
+                    className="inline-flex items-center gap-1 rounded-xl px-3 py-2.5 text-sm bg-tea-gold/[0.06] border border-tea-border text-tea-text-dim hover:text-tea-text transition-colors"
+                    style={entry.material ? { color: 'var(--tea-text)' } : undefined}
+                  >
+                    <span>{materialChipLabel}</span>
+                    <ChevronDown size={13} strokeWidth={2} />
+                  </button>
+                </div>
+              </>
+            ) : (
               <button
                 type="button"
-                onClick={() => {
-                  setMaterialPopoverOpen(!materialPopoverOpen);
-                  setEraPopoverOpen(false);
-                  setCategoryPopoverOpen(false);
-                  // Default to the Yixing sub-panel when re-opening on a Yixing entry
-                  setMaterialPanel(isYixing && !materialPopoverOpen ? 'yixing' : 'main');
-                }}
-                className="inline-flex items-center gap-1 rounded-xl px-3 py-2.5 text-sm bg-tea-gold/[0.06] border border-tea-border text-tea-text-dim hover:text-tea-text transition-colors"
-                style={entry.material ? { color: 'var(--tea-text)' } : undefined}
+                onClick={() => setTeawareDetailsOpen(true)}
+                className="shrink-0 inline-flex items-center gap-1 rounded-xl px-3 py-2.5 text-sm bg-transparent border border-dashed border-tea-border text-tea-text-dim hover:text-tea-text-sec hover:border-tea-gold/40 transition-colors"
+                aria-label="Add Era and Material details"
               >
-                <span>{materialChipLabel}</span>
-                <ChevronDown size={13} strokeWidth={2} />
+                <Plus size={13} strokeWidth={2} />
+                <span>Era · Material</span>
               </button>
-            </div>
+            )}
 
             {/* Origin — flex-1 so it fills the remaining row, but min-w-[140px]
                 so it doesn't get crushed when the chip line is full. When the
@@ -1246,11 +1270,12 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
 
         <div className="border-t border-tea-border" />
 
-        {/* Notes — bigger textarea + larger mic; user reported the small mic was hard to hit */}
+        {/* Notes — the footer Mic owns voice capture, so the in-textarea mic is hidden to avoid two mics in the same view. */}
         <NoteThread
           compassEntryId={entry.id}
           teaKey={entry.teaKey ?? undefined}
           larger
+          hideMic
         />
 
         {/* Done */}
