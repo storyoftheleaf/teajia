@@ -192,7 +192,7 @@ export const StaffView: React.FC<StaffViewProps> = ({
       </div>
 
       {/* ── Utility footer ──────────────────────────────────────────── */}
-      <div className="px-6 pt-6 pb-[calc(44px+env(safe-area-inset-bottom,0px))] lg:pb-8 border-t border-tea-border mt-3">
+      <div className="px-6 pt-6 pb-[calc(52px+env(safe-area-inset-bottom,0px))] lg:pb-8 border-t border-tea-border mt-3">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-ui-12 text-tea-text-sec tracking-[0.03em]">
           <button
             onClick={() => go('/account/settings')}

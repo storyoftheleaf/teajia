@@ -46,7 +46,7 @@ export const StartHerePage: React.FC = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen flex flex-col items-center pb-[calc(1rem+44px+env(safe-area-inset-bottom,0px))]">
+    <div className="min-h-screen flex flex-col items-center pb-[calc(1rem+52px+env(safe-area-inset-bottom,0px))]">
       <Helmet>
         <title>Start Here — Teajia</title>
         <meta name="description" content="Find your path into Teajia — whether you're new to tea, building a practice, or running a business." />

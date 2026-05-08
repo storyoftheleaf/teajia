@@ -269,7 +269,7 @@ export default function CenterPage() {
 
   return (
     <div className="min-h-screen bg-tea-bg">
-      <div className="max-w-md mx-auto px-5 pt-6 pb-[calc(44px+env(safe-area-inset-bottom,0px))]">
+      <div className="max-w-md mx-auto px-5 pt-6 pb-[calc(52px+env(safe-area-inset-bottom,0px))]">
 
         {/* Back */}
         <button

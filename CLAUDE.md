@@ -44,7 +44,7 @@ Read `docs/COLOR_RULES.md` before writing any component styles.
 - Banned: `tea-ink`, `tea-paper`, `tea-seal`, `tea-charcoal` (legacy tokens)
 - `border-tea-border` — NEVER add opacity modifiers. `border-tea-gold` — ONLY for focus/hover/active.
 - NO horizontal scroll anywhere — use `flex-wrap` instead
-- **Bottom nav clearance — MANDATORY**: The mobile bottom nav (`flex lg:hidden`, `44px + safe-area-inset-bottom`) overlaps page content at every breakpoint below `lg`. Every layout MUST account for it. Use the utility classes from `src/styles/card-utilities.css` — never write the `calc()` inline:
+- **Bottom nav clearance — MANDATORY**: The mobile bottom nav (`flex lg:hidden`, `52px + safe-area-inset-bottom`) overlaps page content at every breakpoint below `lg`. Every layout MUST account for it. Use the utility classes from `src/styles/card-utilities.css` — never write the `calc()` inline:
   | Class | When to use |
   |---|---|
   | `pb-nav` | Scrollable page content — flush clearance |

@@ -358,7 +358,7 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) =
         </div>
 
         {/* Results */}
-        <div className="max-h-[50vh] overflow-y-auto pb-[calc(44px+env(safe-area-inset-bottom,0px))] lg:pb-4">
+        <div className="max-h-[50vh] overflow-y-auto pb-[calc(52px+env(safe-area-inset-bottom,0px))] lg:pb-4">
           {query.trim() === '' && (
             <div className="px-4 py-10 text-center">
               <p className="text-sm text-tea-text-sec">Start typing to search teas, articles, and more</p>

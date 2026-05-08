@@ -164,7 +164,7 @@ const EventsPage: React.FC = () => {
 
   return (
     <div
-      className="min-h-screen bg-tea-bg pb-[calc(44px+env(safe-area-inset-bottom,0px)+24px)]"
+      className="min-h-screen bg-tea-bg pb-[calc(52px+env(safe-area-inset-bottom,0px)+24px)]"
       style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
     >
       <PageHeader title="Sessions" />

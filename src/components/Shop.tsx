@@ -423,7 +423,7 @@ export const Shop: React.FC<ShopProps> = ({
       {/*
         CartToast positioning note (#cart-toast-overlap):
         CartToast lives at src/components/shared/CartToast.tsx and is already
-        positioned at bottom-[calc(44px+env(safe-area-inset-bottom,0px)+1rem)] on
+        positioned at bottom-[calc(52px+env(safe-area-inset-bottom,0px)+1rem)] on
         mobile and lg:bottom-8 lg:right-8 on desktop. The bottom tab bar is 56px
         (h-14) + safe area. If the tab bar height ever changes, update CartToast to:
           mobile: bottom-[calc(56px+env(safe-area-inset-bottom,0px)+12px)]

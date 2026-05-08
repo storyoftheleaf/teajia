@@ -281,7 +281,7 @@ const GuestManagement: React.FC = () => {
     if (showTasting && data.teaMenu && data.teaMenu.length > 0 && magicToken) {
       return (
         <div className="fixed inset-0 sidebar-inset z-50 bg-tea-bg overflow-y-auto animate-[fadeIn_0.4s_ease-out]">
-          <div className="max-w-xl mx-auto px-6 py-10 pb-[calc(44px+env(safe-area-inset-bottom,0px)+2.5rem)]">
+          <div className="max-w-xl mx-auto px-6 py-10 pb-[calc(52px+env(safe-area-inset-bottom,0px)+2.5rem)]">
             <div className="text-center mb-8">
               <p className="text-ui-10 uppercase tracking-[0.3em] text-tea-text-sec mb-2">
                 {formatEventDate(event.eventDate)}

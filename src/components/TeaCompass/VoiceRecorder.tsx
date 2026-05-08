@@ -108,7 +108,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onTranscript }) =>
   }, [state, startRecording, stopRecording]);
 
   return (
-    <div className="fixed right-5 z-30 bottom-[calc(4.5rem+44px+env(safe-area-inset-bottom,0px))] lg:bottom-[4.5rem]">
+    <div className="fixed right-5 z-30 bottom-[calc(4.5rem+52px+env(safe-area-inset-bottom,0px))] lg:bottom-[4.5rem]">
       <motion.button
         type="button"
         onClick={handlePress}
