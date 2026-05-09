@@ -3731,7 +3731,7 @@ function makeXrefHandlers(tableName: string, fkColumn: string) {
   // belongs to the caller's account.
 
   const list: Handler = async (request, env, params) => {
-    const ctx = await requireAccount(request, env);
+    const ctx = await requireBundle(request, env, 'publish');
     if ('error' in ctx) return ctx.error;
     const { accountId } = ctx;
     const id = params.id;
@@ -3746,7 +3746,7 @@ function makeXrefHandlers(tableName: string, fkColumn: string) {
   };
 
   const link: Handler = async (request, env, params) => {
-    const ctx = await requireAccount(request, env);
+    const ctx = await requireBundle(request, env, 'publish');
     if ('error' in ctx) return ctx.error;
     const { accountId } = ctx;
     const body = await request.json() as any;
@@ -3766,7 +3766,7 @@ function makeXrefHandlers(tableName: string, fkColumn: string) {
   };
 
   const unlink: Handler = async (request, env, params) => {
-    const ctx = await requireAccount(request, env);
+    const ctx = await requireBundle(request, env, 'publish');
     if ('error' in ctx) return ctx.error;
     const { accountId } = ctx;
     // Only allow unlinking products that belong to the caller's account.
@@ -3782,7 +3782,7 @@ function makeXrefHandlers(tableName: string, fkColumn: string) {
 
   // Reverse lookup: get all articles/modules/projects for a product.
   const listByProduct: Handler = async (request, env, params) => {
-    const ctx = await requireAccount(request, env);
+    const ctx = await requireBundle(request, env, 'publish');
     if ('error' in ctx) return ctx.error;
     const { accountId } = ctx;
     // Verify the product is in the caller's account.
@@ -11780,7 +11780,7 @@ function slugify(text: string): string {
 }
 
 const handleListArticles: Handler = async (request, env) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'publish');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -11811,7 +11811,7 @@ const handleListArticles: Handler = async (request, env) => {
 };
 
 const handleGetArticle: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'publish');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -11828,7 +11828,7 @@ const handleGetArticle: Handler = async (request, env, params) => {
 };
 
 const handleCreateArticle: Handler = async (request, env) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'publish');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -11870,7 +11870,7 @@ const handleCreateArticle: Handler = async (request, env) => {
 };
 
 const handleUpdateArticle: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'publish');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -11907,7 +11907,7 @@ const handleUpdateArticle: Handler = async (request, env, params) => {
 };
 
 const handlePublishArticle: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'publish');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -11934,7 +11934,7 @@ const handlePublishArticle: Handler = async (request, env, params) => {
 };
 
 const handleUnpublishArticle: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'publish');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -11960,7 +11960,7 @@ const handleUnpublishArticle: Handler = async (request, env, params) => {
 };
 
 const handleDeleteArticle: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'publish');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 

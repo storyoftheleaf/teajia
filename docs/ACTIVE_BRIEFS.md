@@ -11,6 +11,7 @@
 - **plan/product-architecture-implementation.md** — Implementation plan covering domain contracts, robustness fixes, editorial engine, personal memory, network hardening, and IA.
 - **plan/product-architecture-discussion-log.md** — Persistent record of the thread that produced this initiative.
 - **plan/product-architecture-phase-0-inventory.md** — Current domain, route/auth, client state, and article contract inventory.
+- **plan/product-architecture-route-auth-inventory.md** — Maintained route authorization map with access levels, bundle intent, applied fixes, and product-policy decisions still needed.
 
 ## Network & Multi-Store (Phase 1B)
 

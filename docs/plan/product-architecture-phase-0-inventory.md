@@ -34,6 +34,8 @@ Use this before implementation sessions so we can start from the current map ins
 
 ## Route/Auth Inventory
 
+The maintained route/auth companion is now `product-architecture-route-auth-inventory.md`. Keep the high-level summary here and put detailed route decisions there.
+
 The Worker route table lives in `worker/src/index.ts`. Current auth is handler-driven: route requirements are embedded inside handlers rather than declared in the route table.
 
 | Route group | Examples | Intended access | Current posture | Follow-up |
@@ -44,19 +46,20 @@ The Worker route table lives in `worker/src/index.ts`. Current auth is handler-d
 | Public network | `/api/network/stores` | Public | Public by design | Keep public-safe fields only |
 | Network catalog/listings | `/api/network/catalog`, `/api/listings/*`, `/api/profiles/*/suggestions` | Catalog/sell bundles by action | `requireBundle` appears in network handlers | Inventory each handler's bundle |
 | Wholesale | `/api/wholesale/orders*` | Sell bundle, buyer/supplier-aware | `requireBundle('sell')` appears in handlers | Add allowed/denied tests |
-| Products/inventory | `/api/products`, stock RPCs, stock ledger | Stock/catalog depending action | Mixed helper usage | Map read/write bundle requirements explicitly |
-| Customers/sources | `/api/customers*` | Account/staff context | `requireAccount`; customer type filter now validated/bound | Decide whether any routes require specific bundle |
+| Products/inventory | `/api/products`, stock RPCs, stock ledger | Stock/catalog/sell/publish depending field/action | Mixed helper usage | Split legacy product update surface into command routes |
+| Customers/sources | `/api/customers*` | Sell/catalog/gather/publish depending relationship context | `requireAccount`; customer type filter now validated/bound | Decide customer relationship taxonomy before tightening |
 | Events admin | `/api/admin/events*`, attendees, venues | Gather bundle | Many handlers use `requireBundle('gather')` | Add route inventory tests |
-| Articles admin | `/api/admin/articles*` | Publish bundle for writes; read posture needs decision | Writes use publish bundle; list/get currently account-level | Decide whether draft reads require publish bundle |
+| Articles admin | `/api/admin/articles*` | Publish bundle | `requireBundle('publish')` | Add representative allow/deny tests |
 | Public articles/contributors | `/api/articles*`, `/api/people*` | Public published content | Public by design | Keep published-only |
-| Xrefs | `/api/xref/*`, `/api/public/xref/*` | Admin write/public read | Mixed public/admin handlers | Confirm write bundle requirements |
+| Xrefs | `/api/xref/*`, `/api/public/xref/*` | Publish bundle for authenticated routes; public-safe reads for public routes | Admin routes now `requireBundle('publish')`; public routes no-auth with `PUBLIC_FIELDS` | Add representative allow/deny tests |
 | Personal memory | `/api/tasting-journal`, `/api/me/*`, sessions, connections | Signed-in user | Auth/account handlers | Clarify user-vs-account ownership |
 
 ### Route/Auth Follow-Ups
 
-- Build a generated or maintained route table with method, path, handler, public/account/bundle/platform requirement.
+- Use `product-architecture-route-auth-inventory.md` as the maintained route table until a generated route inventory exists.
 - Add tests for representative bundle denial and allowance.
-- Decide admin article read posture: account-level versus publish-bundle.
+- Split legacy product updates by command surface before applying field-sensitive bundles.
+- Decide customer relationship taxonomy before applying customer route bundles.
 - Keep public reads constrained to public-safe fields.
 
 ## Client State Inventory
@@ -128,11 +131,13 @@ The Zustand store now also resets account/user-scoped slices when `activeAccount
 - AccountPanel account switching now invalidates React Query after a successful switch.
 - Tasting editor optimistic product updates now patch all account-scoped product query caches instead of only the old unscoped `['products']` key.
 - Zustand account/user-scoped slices now reset on account switch, user switch, logout, and session expiry.
+- Admin article routes now require the `publish` bundle, including draft list/read, create, update, publish, unpublish, and archive/delete.
+- Authenticated article/module/project product xref routes now require the `publish` bundle; public xref routes remain no-auth and public-field-only.
 
 ## Next Recommended Implementation Pull
 
-1. Add a maintained route/auth inventory, either generated from the route table or curated in documentation.
-2. Decide whether scoped state should be upgraded from reset-on-boundary to per-account saved buckets.
-3. Unify article block types across public, admin, parser, and API client.
-4. Decide whether admin article read endpoints should require the Publish bundle.
+1. Add Worker route auth tests for publish-bundle enforcement on admin articles and authenticated xrefs.
+2. Split legacy product writes into catalog, stock, commercial, and publication command surfaces.
+3. Decide whether scoped state should be upgraded from reset-on-boundary to per-account saved buckets.
+4. Unify article block types across public, admin, parser, and API client.
 5. Add tests for account switching cache isolation and SQL filter validation.
