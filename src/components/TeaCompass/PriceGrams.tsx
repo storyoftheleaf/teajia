@@ -1,7 +1,7 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useCallback, useState } from 'react';
 import type { Currency } from '../../admin/types';
 import { GRAM_PRESETS, TEA_FORMS, type TeaForm } from './types';
+import { BottomSheet, SheetOption } from '../shared/BottomSheet';
 
 interface PriceGramsProps {
   priceAmount?: number;
@@ -26,6 +26,16 @@ const CURRENCY_LABELS: Record<Currency, string> = {
   UNK: '?',
 };
 
+/* One-line hint per tea form, surfaced in the bottom-sheet picker. */
+const FORM_HINTS: Record<TeaForm, string> = {
+  Loose: 'Loose leaf · the standard',
+  Cake: 'Compressed disc · puerh + heicha',
+  Brick: 'Compressed rectangle',
+  Tuo: 'Compressed bowl',
+  Ball: 'Hand-rolled balls',
+  Bag: 'Tea bag',
+};
+
 /* Hide number input spinners globally for these inputs */
 const noSpinnerStyle: React.CSSProperties = {
   MozAppearance: 'textfield',
@@ -42,20 +52,7 @@ export const PriceGrams: React.FC<PriceGramsProps> = ({
   onFormChange,
 }) => {
   const presets = form ? GRAM_PRESETS[form] : GRAM_PRESETS.Loose;
-  const [formPopoverOpen, setFormPopoverOpen] = useState(false);
-  const formPopoverRef = useRef<HTMLDivElement>(null);
-
-  // Close form popover on outside click
-  useEffect(() => {
-    if (!formPopoverOpen) return;
-    const handler = (e: MouseEvent) => {
-      if (formPopoverRef.current && !formPopoverRef.current.contains(e.target as Node)) {
-        setFormPopoverOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [formPopoverOpen]);
+  const [formSheetOpen, setFormSheetOpen] = useState(false);
 
   const handlePriceInput = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -74,11 +71,11 @@ export const PriceGrams: React.FC<PriceGramsProps> = ({
   );
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2.5">
       {/* Price + Grams — one line. Currency is a persistent prefix
           separated from the price by a hairline so the unit reads as
           part of the input rather than a floating selector. */}
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1.5">
         {/* Currency + cost — unified inset container */}
         <div className="flex-1 min-w-0 flex items-stretch bg-tea-gold/[0.06] rounded-xl border border-tea-border focus-within:border-tea-gold/40 transition-colors">
           <select
@@ -116,55 +113,37 @@ export const PriceGrams: React.FC<PriceGramsProps> = ({
         />
       </div>
 
-      {/* Gram presets + Form selector */}
-      <div className="flex items-center gap-1 flex-wrap">
+      {/* Form chip + gram presets — Form is a distinct concept (physical
+          shape: loose / cake / brick / …) so it lives in its own row,
+          separated from the gram-preset chips by a hairline divider so the
+          two affordances don't visually blur together. */}
+      <div className="flex items-center gap-1.5 flex-wrap">
         {onFormChange && (
-          <div className="relative shrink-0" ref={formPopoverRef}>
+          <>
             <button
               type="button"
-              onClick={() => setFormPopoverOpen(!formPopoverOpen)}
-              className={`py-1.5 px-2.5 rounded-lg text-ui-11 transition-colors ${
+              onClick={() => setFormSheetOpen(true)}
+              className={`tap-target py-1.5 px-3 rounded-md text-ui-11 font-medium border transition-colors ${
                 form
-                  ? 'bg-tea-gold/15 text-tea-gold'
-                  : 'text-tea-text-sec hover:text-tea-text'
+                  ? 'bg-tea-gold/15 text-tea-gold border-tea-gold/40'
+                  : 'text-tea-text-sec border-tea-border bg-tea-elevated/40 hover:text-tea-text hover:border-tea-gold/40'
               }`}
             >
               {form || 'Form'}
             </button>
-            <AnimatePresence>
-              {formPopoverOpen && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ duration: 0.15 }}
-                  className="absolute top-full left-0 mt-1 z-20 bg-tea-surface rounded-lg p-2 shadow-lg border border-tea-border"
-                >
-                  <div className="grid grid-cols-3 gap-1.5" style={{ minWidth: '180px' }}>
-                    {TEA_FORMS.map((f) => (
-                      <button
-                        key={f}
-                        type="button"
-                        onClick={() => { onFormChange(f); setFormPopoverOpen(false); }}
-                        className={`${form === f ? 'tag-selectable-active' : 'tag-selectable'} py-2`}
-                      >
-                        {f}
-                      </button>
-                    ))}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+            {presets.length > 0 && (
+              <div className="w-px h-4 bg-tea-border self-center mx-0.5" aria-hidden />
+            )}
+          </>
         )}
         {presets.map((g) => (
           <button
             key={g}
             type="button"
             onClick={() => onGramsChange(g)}
-            className={`py-1.5 px-2.5 rounded-lg text-ui-11 transition-colors ${
+            className={`tap-target py-1.5 px-2.5 rounded-md text-ui-11 transition-colors ${
               pricePerUnitGrams === g
-                ? 'bg-tea-gold/15 text-tea-gold'
+                ? 'bg-tea-gold/15 text-tea-gold font-semibold'
                 : 'text-tea-text-sec hover:text-tea-text'
             }`}
           >
@@ -172,6 +151,28 @@ export const PriceGrams: React.FC<PriceGramsProps> = ({
           </button>
         ))}
       </div>
+
+      {/* Form picker — bottom sheet with one-line hints per option. */}
+      {onFormChange && (
+        <BottomSheet
+          open={formSheetOpen}
+          onOpenChange={setFormSheetOpen}
+          title="Form"
+          description="What shape is this tea?"
+        >
+          <div className="flex flex-col gap-0.5 px-1">
+            {TEA_FORMS.map((f) => (
+              <SheetOption
+                key={f}
+                label={f}
+                hint={FORM_HINTS[f]}
+                selected={form === f}
+                onSelect={() => { onFormChange(f); setFormSheetOpen(false); }}
+              />
+            ))}
+          </div>
+        </BottomSheet>
+      )}
     </div>
   );
 };

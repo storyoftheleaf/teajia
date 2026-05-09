@@ -150,8 +150,9 @@ function getTypeChipStyle(type: TeaType): { bg: string; text: string } {
 }
 
 /** Inline status mark — Want/Buy/Sample/Taste tile inside the form. Glass
- *  surface with gold accent on active. Deliberately not rounded-full so it
- *  reads as a marker, not a navigation pill. */
+ *  surface with gold accent on active. Compact (52px tall) so a 4-up grid
+ *  always fits the mobile width without wrapping or stealing focus from
+ *  the rest of the form. The tap area is the full tile via min-h. */
 const EntryMark: React.FC<{
   icon: React.ReactNode;
   label: string;
@@ -164,19 +165,11 @@ const EntryMark: React.FC<{
     onClick={onClick}
     aria-pressed={active}
     aria-label={ariaLabel || label}
-    className={`group relative flex flex-col items-center justify-center gap-1 px-2 py-2.5 rounded-md border text-ui-10 font-medium transition-all duration-200 tap-target ${
+    className={`group relative flex flex-col items-center justify-center gap-0.5 min-h-[52px] px-1 py-1.5 rounded-md border text-ui-10 font-medium transition-all duration-200 ${
       active
         ? 'bg-tea-gold/10 border-tea-gold/40 text-tea-gold'
         : 'bg-tea-elevated/60 border-tea-border text-tea-text-sec hover:text-tea-text hover:border-tea-gold/30'
     }`}
-    style={
-      active
-        ? {
-            boxShadow:
-              'inset 0 1px 0 rgb(var(--tea-gold-rgb) / 0.18), 0 0 14px -4px rgb(var(--tea-gold-rgb) / 0.22)',
-          }
-        : undefined
-    }
   >
     <span className="pointer-events-none">{icon}</span>
     <span className="leading-none whitespace-nowrap pointer-events-none">{label}</span>
@@ -254,10 +247,9 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   const dismissedDuplicateRef = useRef<string | null>(null);
 
   // Popover state for inline chip selectors
+  // Tea-side Type picker — opens as a Vaul bottom sheet. Form picker has
+  // moved into PriceGrams which now manages its own sheet state.
   const [typePopoverOpen, setTypePopoverOpen] = useState(false);
-  const [formPopoverOpen, setFormPopoverOpen] = useState(false);
-  const typePopoverRef = useRef<HTMLDivElement>(null);
-  const formPopoverRef = useRef<HTMLDivElement>(null);
   // Teaware pickers — open as Vaul bottom sheets. State names kept from
   // the previous popover implementation to minimise churn elsewhere.
   const [categoryPopoverOpen, setCategoryPopoverOpen] = useState(false);
@@ -373,21 +365,8 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
     [entryId, updateEntry]
   );
 
-  // Close inline popovers on outside click. Category / Era / Material now
-  // open as Vaul bottom sheets which handle their own dismissal — only the
-  // tea-side Type / Form pickers still use the inline anchor pattern.
-  useEffect(() => {
-    const handleClick = (e: MouseEvent) => {
-      if (typePopoverOpen && typePopoverRef.current && !typePopoverRef.current.contains(e.target as Node)) {
-        setTypePopoverOpen(false);
-      }
-      if (formPopoverOpen && formPopoverRef.current && !formPopoverRef.current.contains(e.target as Node)) {
-        setFormPopoverOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, [typePopoverOpen, formPopoverOpen]);
+  // (No outside-click handlers needed — every popover in this component
+  // is now a Vaul bottom sheet which manages its own dismissal.)
 
   // Debounced input parser — runs when name changes
   useEffect(() => {
@@ -810,7 +789,6 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
       updates.pricePerUnitGrams = DEFAULT_GRAMS[form];
     }
     update(updates);
-    setFormPopoverOpen(false);
   };
 
   const handleCurrencyChange = (currency: Currency) => {
@@ -1470,7 +1448,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
 
   // ── Tea card layout ────────────────────────
   return (
-    <div className="bg-tea-surface rounded-2xl px-4 py-3 space-y-3">
+    <div className="bg-tea-surface border border-tea-border rounded-2xl px-4 py-4 space-y-4">
       {/* ← Library back link — shown when navigated from Library */}
       {onReturnToLibrary && (
         <button
@@ -1518,64 +1496,51 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
             itemData={{ ...varietyNameMap, ...productNameMap }}
             hintSuggestions={hintSuggestions}
           />
-          <div className="relative shrink-0" ref={typePopoverRef}>
-            <button
-              type="button"
-              onClick={() => { setTypePopoverOpen(!typePopoverOpen); setFormPopoverOpen(false); }}
-              className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium bg-tea-elevated text-tea-text-sec border border-tea-border hover:bg-tea-gold/[0.1] hover:text-tea-text active:bg-tea-gold/[0.14] transition-colors"
-              style={entry.type ? {
-                backgroundColor: getTypeChipStyle(entry.type).bg,
-                color: getTypeChipStyle(entry.type).text,
-              } : undefined}
-            >
-              <span>{entry.type || 'Type'}</span>
-              <ChevronDown size={14} strokeWidth={2} />
-            </button>
-
-            <AnimatePresence>
-              {typePopoverOpen && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ duration: 0.15 }}
-                  className="absolute top-full right-0 mt-1 z-20 bg-tea-surface rounded-lg p-2 shadow-lg border border-tea-border"
-                >
-                  <div className="flex flex-col gap-0.5" style={{ minWidth: '240px' }}>
-                    {TEA_TYPES.map((type) => {
-                      const isSelected = entry.type === type;
-                      const chipStyle = getTypeChipStyle(type);
-                      return (
-                        <button
-                          key={type}
-                          type="button"
-                          onClick={() => handleTypeSelect(type)}
-                          className="flex items-center gap-2.5 w-full px-2.5 py-2 rounded-lg text-left transition-colors hover:bg-tea-gold/10"
-                          style={isSelected ? { backgroundColor: `${chipStyle.bg}` } : undefined}
-                        >
-                          <span
-                            className="shrink-0 w-2 h-2 rounded-full"
-                            style={{ backgroundColor: chipStyle.text }}
-                          />
-                          <span className="flex-1 min-w-0">
-                            <span className={`text-sm font-medium ${isSelected ? 'text-tea-text' : 'text-tea-text-sec'}`}>
-                              {type}
-                            </span>
-                            {TEA_TYPE_DESCRIPTIONS[type] && (
-                              <span className="block text-ui-10 text-tea-text-dim leading-tight mt-0.5">
-                                {TEA_TYPE_DESCRIPTIONS[type]}
-                              </span>
-                            )}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+          <button
+            type="button"
+            onClick={() => setTypePopoverOpen(true)}
+            className="shrink-0 inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium bg-tea-elevated text-tea-text-sec border border-tea-border hover:bg-tea-gold/[0.1] hover:text-tea-text active:bg-tea-gold/[0.14] transition-colors"
+            style={entry.type ? {
+              backgroundColor: getTypeChipStyle(entry.type).bg,
+              color: getTypeChipStyle(entry.type).text,
+            } : undefined}
+          >
+            <span>{entry.type || 'Type'}</span>
+            <ChevronDown size={14} strokeWidth={2} />
+          </button>
         </div>
+
+        {/* Type — bottom sheet. Each tea type carries a one-line description
+            and a colour dot taken from the type chip palette so the picker
+            doubles as a quick reference. */}
+        <BottomSheet
+          open={typePopoverOpen}
+          onOpenChange={setTypePopoverOpen}
+          title="Tea type"
+          description="What kind of tea is this?"
+        >
+          <div className="flex flex-col gap-0.5 px-1">
+            {TEA_TYPES.map((type) => {
+              const chipStyle = getTypeChipStyle(type);
+              return (
+                <SheetOption
+                  key={type}
+                  label={type}
+                  hint={TEA_TYPE_DESCRIPTIONS[type]}
+                  selected={entry.type === type}
+                  leading={
+                    <span
+                      className="block w-3 h-3 rounded-full"
+                      style={{ backgroundColor: chipStyle.text }}
+                      aria-hidden
+                    />
+                  }
+                  onSelect={() => handleTypeSelect(type)}
+                />
+              );
+            })}
+          </div>
+        </BottomSheet>
 
 
         {/* Year + Region */}
@@ -1869,22 +1834,24 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
       </div>
 
       {/* Mobile entry marks + Done. The desktop right column has its own
-          sticky action bar, so these are mobile-only. */}
-      <div className="lg:hidden grid grid-cols-4 gap-2">
+          sticky action bar, so these are mobile-only. Compact 4-up row —
+          smaller icon + label so the strip reads as a marker bar, not as
+          a feature panel. */}
+      <div className="lg:hidden grid grid-cols-4 gap-1.5">
         <EntryMark
-          icon={<Droplets size={16} strokeWidth={1.5} />}
-          label={hasTasting ? 'Re-Taste' : 'Taste'}
+          icon={<Droplets size={13} strokeWidth={1.5} />}
+          label={hasTasting ? 'Tasted' : 'Taste'}
           active={!!hasTasting}
           onClick={openTastingOverlay}
         />
         <EntryMark
-          icon={isWant ? <BookmarkCheck size={16} /> : <BookmarkPlus size={16} />}
+          icon={isWant ? <BookmarkCheck size={13} /> : <BookmarkPlus size={13} />}
           label={isWant ? 'Wanted' : 'Want'}
           active={isWant}
           onClick={() => update({ status: isWant ? 'noted' : 'want' })}
         />
         <EntryMark
-          icon={<ShoppingCart size={16} />}
+          icon={<ShoppingCart size={13} />}
           label="Buy"
           active={showBuyPicker}
           onClick={() => {
@@ -1894,7 +1861,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
           }}
         />
         <EntryMark
-          icon={<FlaskConical size={16} strokeWidth={1.5} />}
+          icon={<FlaskConical size={13} strokeWidth={1.5} />}
           label={sampleCartHas ? 'Listed' : 'Sample'}
           active={sampleCartHas}
           onClick={() => {

@@ -89,17 +89,18 @@ export async function cropToSquareBlob(
   });
 }
 
-// Convert a File or remote URL to an object URL the cropper can use without CORS issues.
-// For remote http(s) URLs we fetch as a blob first so the canvas isn't tainted on export.
+// Convert a File / Blob into an object URL for the cropper. For string URLs
+// (http(s) / data: / blob:) we just return the URL as-is and rely on the
+// Cropper's internal <img> with crossOrigin='anonymous' for both display
+// and canvas export. The previous fetch-to-blob roundtrip was a workaround
+// for canvas tainting, but it had two failure modes: (a) any CORS hiccup
+// on retry left the editor showing a black square with no error, and (b)
+// React Strict Mode's double-invoke could revoke the blob URL the second
+// invocation was using. Server-side, the upload host (R2) returns ACAO
+// for these URLs anyway, so the fetch step bought nothing.
 export async function fileOrUrlToObjectUrl(input: File | Blob | string): Promise<string> {
   if (typeof input !== 'string') {
     return URL.createObjectURL(input);
   }
-  if (input.startsWith('data:') || input.startsWith('blob:')) {
-    return input;
-  }
-  const res = await fetch(input, { mode: 'cors', cache: 'no-cache' });
-  if (!res.ok) throw new Error(`Failed to load image (${res.status})`);
-  const blob = await res.blob();
-  return URL.createObjectURL(blob);
+  return input;
 }

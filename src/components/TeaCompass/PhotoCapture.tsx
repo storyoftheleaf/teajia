@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../../lib/api';
 import { compressImage } from '../../lib/imageCompressor';
 import { SquareCropModal } from '../shared/SquareCropModal';
+import { BottomSheet, SheetOption } from '../shared/BottomSheet';
 
 export interface ExtractedTeaData {
   name?: string;
@@ -95,17 +96,6 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
   const [editingPhotoUrl, setEditingPhotoUrl] = useState<string | null>(null);
   const [savingEdit, setSavingEdit] = useState(false);
   const [justExtracted, setJustExtracted] = useState(false);
-
-  // Close the action menu on outside click
-  useEffect(() => {
-    if (menuPhotoIndex == null) return;
-    const handler = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (!target.closest('[data-photo-menu-root]')) setMenuPhotoIndex(null);
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [menuPhotoIndex]);
 
   const [scannerOpen, setScannerOpen] = useState(false);
   const [scanStep, setScanStep] = useState<ScanStep>('camera');
@@ -541,79 +531,74 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
 
       <div className={`flex items-center ${stripGap} ${isLg ? 'flex-1 min-w-0 flex-wrap' : 'shrink-0'}`}>
         {validPhotos.map((url, i) => (
-          <div key={url} className="relative shrink-0" data-photo-menu-root>
-            {/* Tap thumbnail → open the action menu (Enlarge / Edit / Delete).
-                The previous "X badge" overlay was removed because tap-target
-                inflated it into a giant circle covering the photo. */}
-            <button
-              type="button"
-              onClick={() => setMenuPhotoIndex(menuPhotoIndex === i ? null : i)}
-              className={`${thumbCls} block rounded-xl overflow-hidden border border-tea-border focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/60 transition-shadow ${
-                menuPhotoIndex === i ? 'ring-2 ring-tea-gold/60' : ''
-              }`}
-              aria-haspopup="menu"
-              aria-expanded={menuPhotoIndex === i}
-              aria-label="Photo actions"
-              title="Tap for options"
-            >
-              <img
-                src={url}
-                alt={`Photo ${i + 1}`}
-                className="w-full h-full object-cover pointer-events-none"
-              />
-            </button>
-
-            <AnimatePresence>
-              {menuPhotoIndex === i && (
-                <motion.div
-                  role="menu"
-                  initial={{ opacity: 0, y: 4, scale: 0.96 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 4, scale: 0.96 }}
-                  transition={{ duration: 0.15, ease: 'easeOut' }}
-                  className="absolute z-30 left-1/2 -translate-x-1/2 top-full mt-2 flex gap-1 p-1 rounded-xl bg-tea-elevated border border-tea-border"
-                  style={{
-                    boxShadow:
-                      '0 8px 24px -6px rgb(var(--tea-bg-rgb) / 0.6), 0 0 0 1px rgb(var(--tea-gold-rgb) / 0.08)',
-                  }}
-                >
-                  <button
-                    type="button"
-                    onClick={() => { setLightboxIndex(i); setMenuPhotoIndex(null); }}
-                    className="tap-target flex flex-col items-center justify-center gap-0.5 px-2.5 py-1.5 rounded-lg text-ui-10 text-tea-text-sec hover:text-tea-gold hover:bg-tea-gold/10 transition-colors"
-                    aria-label="Enlarge"
-                  >
-                    <Maximize2 size={14} strokeWidth={1.75} />
-                    <span className="leading-none">View</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setEditingPhotoUrl(url); setMenuPhotoIndex(null); }}
-                    className="tap-target flex flex-col items-center justify-center gap-0.5 px-2.5 py-1.5 rounded-lg text-ui-10 text-tea-text-sec hover:text-tea-gold hover:bg-tea-gold/10 transition-colors"
-                    aria-label="Edit photo — crop, zoom, reposition"
-                  >
-                    <Edit3 size={14} strokeWidth={1.75} />
-                    <span className="leading-none">Edit</span>
-                  </button>
-                  {onRemovePhoto && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        onRemovePhoto(photos!.indexOf(url));
-                        setMenuPhotoIndex(null);
-                      }}
-                      className="tap-target flex flex-col items-center justify-center gap-0.5 px-2.5 py-1.5 rounded-lg text-ui-10 text-tea-text-sec hover:text-red-400 hover:bg-red-400/10 transition-colors"
-                      aria-label="Delete photo"
-                    >
-                      <Trash2 size={14} strokeWidth={1.75} />
-                      <span className="leading-none">Delete</span>
-                    </button>
-                  )}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+          <button
+            key={url}
+            type="button"
+            onClick={() => setMenuPhotoIndex(i)}
+            className={`${thumbCls} relative shrink-0 block rounded-xl overflow-hidden border border-tea-border focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/60 transition-shadow ${
+              menuPhotoIndex === i ? 'ring-2 ring-tea-gold/60' : ''
+            }`}
+            aria-haspopup="menu"
+            aria-expanded={menuPhotoIndex === i}
+            aria-label="Photo actions"
+            title="Tap for options"
+          >
+            <img
+              src={url}
+              alt={`Photo ${i + 1}`}
+              className="w-full h-full object-cover pointer-events-none"
+            />
+          </button>
         ))}
+
+        {/* Action menu — bottom sheet so it never clips at the viewport edge
+            and gives big thumb-friendly rows. Renders once outside the
+            thumbnail loop so we can address any photo by index. */}
+        <BottomSheet
+          open={menuPhotoIndex !== null}
+          onOpenChange={(open) => { if (!open) setMenuPhotoIndex(null); }}
+          title="Photo"
+          description="Choose what to do with this photo"
+        >
+          <div className="flex flex-col gap-0.5 px-1">
+            <SheetOption
+              label="View full size"
+              leading={<Maximize2 size={18} strokeWidth={1.75} className="text-tea-text-sec" />}
+              onSelect={() => {
+                if (menuPhotoIndex !== null) setLightboxIndex(menuPhotoIndex);
+                setMenuPhotoIndex(null);
+              }}
+            />
+            <SheetOption
+              label="Edit photo"
+              hint="Crop, rotate, reposition"
+              leading={<Edit3 size={18} strokeWidth={1.75} className="text-tea-text-sec" />}
+              onSelect={() => {
+                if (menuPhotoIndex !== null) {
+                  const targetUrl = validPhotos[menuPhotoIndex];
+                  if (targetUrl) setEditingPhotoUrl(targetUrl);
+                }
+                setMenuPhotoIndex(null);
+              }}
+            />
+            {onRemovePhoto && (
+              <SheetOption
+                label="Delete"
+                hint="Remove this photo from the entry"
+                leading={<Trash2 size={18} strokeWidth={1.75} className="text-red-400" />}
+                onSelect={() => {
+                  if (menuPhotoIndex !== null) {
+                    const targetUrl = validPhotos[menuPhotoIndex];
+                    if (targetUrl && photos) {
+                      onRemovePhoto(photos.indexOf(targetUrl));
+                    }
+                  }
+                  setMenuPhotoIndex(null);
+                }}
+              />
+            )}
+          </div>
+        </BottomSheet>
 
         {pendingPreviews.map((preview, i) => (
           <div key={preview.localUrl} className="relative shrink-0">
