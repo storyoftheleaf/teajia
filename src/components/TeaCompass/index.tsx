@@ -541,29 +541,33 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
               target, less of the floating-pill feel. */}
           {mode === 'sourcing' && captureOption !== 'samples' && (
             <div className="shrink-0 flex items-center gap-1.5 px-3 py-2 border-b border-tea-border overflow-x-auto scrollbar-hide">
+              {/* Compact + icon-only — "New" label dropped to free up
+                  horizontal room for entry chips. The plus glyph is the
+                  universal "add" affordance, and the title/aria-label
+                  preserve the meaning for screen readers and tooltips. */}
               <button
                 type="button"
                 onClick={() => handleNewCapture()}
                 aria-label="Start a new entry"
                 title="Start a new entry"
-                className="tap-target whitespace-nowrap inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-ui-11 font-medium text-tea-text-sec border border-tea-border bg-tea-elevated/40 hover:text-tea-text hover:border-tea-gold/40 transition-colors shrink-0"
+                className="tap-target shrink-0 inline-flex items-center justify-center w-9 h-8 rounded-md text-tea-text-sec border border-tea-border bg-tea-elevated/40 hover:text-tea-text hover:border-tea-gold/40 transition-colors"
               >
-                <Plus size={12} strokeWidth={2} />
-                New
+                <Plus size={14} strokeWidth={2} />
               </button>
+              {/* Batch — text-only, no icon. Same visual weight as the
+                  entry chips so the strip reads as one consistent row. */}
               <button
                 type="button"
                 onClick={() => setBatchMode((v) => !v)}
                 aria-pressed={batchMode}
                 aria-label={batchMode ? 'Exit batch entry mode' : 'Enter batch entry mode'}
                 title={batchMode ? 'Exit batch mode' : 'Batch — rapid-fire capture'}
-                className={`tap-target whitespace-nowrap inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-ui-11 font-medium border transition-colors shrink-0 ${
+                className={`tap-target whitespace-nowrap inline-flex items-center px-3 py-1.5 rounded-md text-ui-11 font-medium border transition-colors shrink-0 ${
                   batchMode
                     ? 'bg-tea-gold/15 text-tea-gold border-tea-gold/40 font-semibold'
                     : 'text-tea-text-sec border-tea-border bg-tea-elevated/40 hover:text-tea-text hover:border-tea-gold/40'
                 }`}
               >
-                <Layers size={12} strokeWidth={2} />
                 Batch
               </button>
 
