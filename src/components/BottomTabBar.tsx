@@ -116,7 +116,9 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
     },
     onClick: () => {
       if (isOnAdmin) {
-        onAccountClick?.();
+        onSearchClose?.();
+        onAccountClose?.();
+        navigate('/admin/dashboard');
         return;
       }
       onNavigate('HOME');
@@ -178,7 +180,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
       <nav
         aria-label="Main navigation"
         onContextMenu={(e) => e.preventDefault()}
-        className={`flex lg:hidden fixed bottom-0 left-0 right-0 backdrop-blur-md backdrop-saturate-150 z-priority animate-[slideUp_0.4s_ease-out] transition-transform duration-200 select-none ${
+        className={`flex lg:hidden fixed bottom-0 left-0 right-0 backdrop-blur-md backdrop-saturate-150 z-nav animate-[slideUp_0.4s_ease-out] transition-transform duration-200 select-none ${
           hidden ? 'translate-y-full' : 'translate-y-0'
         }`}
         style={{
