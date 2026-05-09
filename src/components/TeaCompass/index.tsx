@@ -1,7 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useBottomBarMic } from '../../hooks/useBottomBarMic';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, BookmarkCheck, BookmarkPlus, Check, Droplets, FlaskConical, Mic, Square, Loader2, Share2, ShoppingCart, Layers, Plus, Search, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, BookmarkCheck, BookmarkPlus, Check, ChevronDown, ChevronUp, Droplets, FlaskConical, Layers, Loader2, Mic, Plus, Search, Share2, ShoppingCart, Square, X } from 'lucide-react';
+import { BottomSheet, SheetOption } from '../shared/BottomSheet';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { hydrateCompassEntries } from '../../lib/teaCompassSync';
@@ -196,6 +198,42 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
 
   // Batch entry mode — rapid-fire name + type row for vendor table sessions
   const [batchMode, setBatchMode] = useState(false);
+
+  // Screen switcher — opens when the user taps the "{Screen} ▾" chip in
+  // the header. Replaces the old SOURCE/LIBRARY/LEDGER underline tab row
+  // so the header collapses to one line with sub-tabs sharing it.
+  const [screenSheetOpen, setScreenSheetOpen] = useState(false);
+
+  // Auto-collapse the header on scroll. We hide it when the user scrolls
+  // down (engaged with the form) and reveal on scroll up. Threshold + a
+  // ref to the scroll container; updates a flag the header reads to apply
+  // translate-y. Skipped on lg+ where the header doesn't compete for
+  // viewport space the same way.
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const lastScrollTopRef = useRef(0);
+  const [headerCollapsed, setHeaderCollapsed] = useState(false);
+  useEffect(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const SCROLL_DOWN_THRESHOLD = 24;
+    const SCROLL_UP_THRESHOLD = 8;
+    const onScroll = () => {
+      const current = el.scrollTop;
+      const last = lastScrollTopRef.current;
+      const delta = current - last;
+      // Always reveal when at the top.
+      if (current < 12) {
+        if (headerCollapsed) setHeaderCollapsed(false);
+      } else if (delta > SCROLL_DOWN_THRESHOLD && !headerCollapsed) {
+        setHeaderCollapsed(true);
+      } else if (delta < -SCROLL_UP_THRESHOLD && headerCollapsed) {
+        setHeaderCollapsed(false);
+      }
+      lastScrollTopRef.current = current;
+    };
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => el.removeEventListener('scroll', onScroll);
+  }, [headerCollapsed]);
 
   // Track just-committed entry for banner
   const [justCommitted, setJustCommitted] = useState<{ name: string; draftProductId?: string } | null>(null);
@@ -448,65 +486,167 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
     { id: 'tasting', label: 'Library', badge: pendingIncomingCount > 0 ? pendingIncomingCount : undefined },
     { id: 'buying', label: 'Ledger' },
   ];
+  const currentTab = tabs.find((t) => t.id === mode);
+
+  // Bottom-bar mic — when sourcing on a privileged account, the centered
+  // teajiā logo in BottomTabBar swaps for a web3-styled mic. The logo
+  // itself is unused on this screen, so giving the slot to voice capture
+  // makes it a primary affordance instead of dead space.
+  const micSlot = mode === 'sourcing' && isPlatformPrivileged
+    ? { state: voiceState, onPress: handleVoicePress }
+    : null;
+  useBottomBarMic(micSlot);
 
   return (
     <div className="flex flex-col relative lg:h-full">
 
-      {/* ── COMPACT HEADER: back + inline tabs + sync dot ── */}
-      <div className="flex items-stretch border-b border-tea-border shrink-0 h-10" role="tablist">
-        <button
-          type="button"
-          onClick={onBack}
-          className="flex items-center pl-3 pr-2 text-tea-text-dim hover:text-tea-text transition-colors shrink-0"
-          aria-label="Back"
-        >
-          <ArrowLeft size={16} strokeWidth={1.5} />
-        </button>
-        {tabs.map((tab) => {
-          const active = mode === tab.id;
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => handleSwitchMode(tab.id)}
-              role="tab"
-              aria-selected={active}
-              className={`relative shrink-0 px-2.5 text-ui-11 font-semibold tracking-[0.08em] uppercase transition-colors ${
-                active ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'
-              }`}
-            >
-              {tab.label}
-              {tab.badge != null && (
-                <span className="ml-1 text-ui-9 px-[5px] py-px rounded-full bg-tea-gold/20 text-tea-gold">{tab.badge}</span>
-              )}
-              {active && (
-                <motion.div
-                  layoutId="compass-tab-indicator"
-                  className="absolute bottom-0 left-1 right-1 h-[2px] bg-tea-gold"
-                  transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                />
-              )}
-            </button>
-          );
-        })}
-        <div className="flex-1" />
-        {mode !== 'sourcing' && (
-          <div className="flex items-center pr-2">
+      {/* ── HEADER (single row prototype) ──
+          [back] [Source ▾] [Tea/Teaware/Samples on sourcing] [share/sync]
+
+          Page tabs (Source / Library / Ledger) collapse into a "{screen} ▾"
+          chip on the left. Tap it to open a Vaul sheet with the three
+          screens to switch between. The Tea / Teaware / Samples sub-tabs
+          live INLINE on the same row when sourcing, so the user has one
+          horizontal nav surface instead of three stacked rows.
+
+          Auto-collapses on scroll-down (translate-y-full) and reveals on
+          scroll-up. Resets to revealed when the user is at the top. */}
+      <div
+        className={`shrink-0 overflow-hidden transition-[height,opacity] duration-200 ease-out lg:!h-11 lg:!opacity-100 ${
+          headerCollapsed ? 'h-0 opacity-0' : 'h-11 opacity-100'
+        }`}
+        style={{ position: 'relative', zIndex: 5 }}
+      >
+        <div className="flex items-stretch h-11 border-b border-tea-border" role="tablist">
+          <button
+            type="button"
+            onClick={onBack}
+            className="flex items-center pl-3 pr-2 tap-target text-tea-text-sec hover:text-tea-text transition-colors shrink-0"
+            aria-label="Back"
+          >
+            <ArrowLeft size={18} strokeWidth={1.75} />
+          </button>
+
+          {/* Screen identity ▾ — a real bordered chip with a leading dot
+              (gold = sourcing, brighter on tap). Reads as a tappable
+              "switch screen" affordance, not as a label. The chevron
+              sits opposite the dot so the eye can scan the chip as a
+              labelled control. */}
+          <button
+            type="button"
+            onClick={() => setScreenSheetOpen(true)}
+            aria-haspopup="menu"
+            aria-expanded={screenSheetOpen}
+            className="self-center ml-1 inline-flex items-center gap-1.5 px-2.5 h-8 rounded-lg text-ui-13 font-semibold text-tea-text border border-tea-border bg-tea-elevated/60 hover:bg-tea-gold/[0.08] hover:border-tea-gold/40 active:bg-tea-gold/[0.14] transition-colors shrink-0"
+            style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.01em' }}
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-tea-gold" aria-hidden />
+            <span>{currentTab?.label ?? 'Source'}</span>
+            {currentTab?.badge != null && (
+              <span className="text-ui-9 px-1.5 py-px rounded-full bg-tea-gold/20 text-tea-gold tabular-nums">{currentTab.badge}</span>
+            )}
+            <ChevronDown size={13} strokeWidth={2} className="text-tea-text-sec -mr-0.5" />
+          </button>
+
+          {/* Hairline divider between the screen-switcher chip and the
+              sub-tabs so they read as two separate controls instead of a
+              run-on row. */}
+          {mode === 'sourcing' && (
+            <div className="self-center mx-2 w-px h-5 bg-tea-border" aria-hidden />
+          )}
+
+          {/* Sub-tabs inline (sourcing only). Bigger text + clearer
+              active state — gold tinted bg + gold border on the active
+              option so it reads at a glance. */}
+          {mode === 'sourcing' && (
+            <div className="flex-1 flex items-center min-w-0">
+              <div className="inline-flex items-center gap-1 max-w-full overflow-x-auto scrollbar-hide">
+                {([
+                  { id: 'tea', label: 'Tea' },
+                  { id: 'teaware', label: 'Teaware' },
+                  { id: 'samples', label: 'Samples' },
+                ] as const).map((opt) => {
+                  const active = captureOption === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => handleCaptureOption(opt.id)}
+                      className={`shrink-0 inline-flex items-center gap-1.5 px-3 h-8 rounded-lg text-ui-12 font-semibold transition-colors ${
+                        active
+                          ? 'bg-tea-gold/[0.12] text-tea-gold border border-tea-gold/40'
+                          : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-gold/[0.04] border border-transparent'
+                      }`}
+                      style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.01em' }}
+                    >
+                      {opt.label}
+                      {opt.id === 'samples' && sampleCartCount > 0 && (
+                        <span className={`text-ui-9 px-1.5 py-px rounded-full tabular-nums font-medium ${active ? 'bg-tea-gold/20 text-tea-gold' : 'bg-tea-elevated text-tea-text'}`}>
+                          {sampleCartCount}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          {mode !== 'sourcing' && <div className="flex-1" />}
+
+          {mode !== 'sourcing' && (
             <button
               type="button"
               onClick={() => handleNewCapture()}
-              className="pill pill-active flex items-center gap-1 text-ui-10"
+              className="pill pill-active flex items-center gap-1 text-ui-10 mr-2 self-center"
               style={{ fontFamily: 'var(--font-display)' }}
             >
               <Plus size={11} strokeWidth={2} />
               New
             </button>
+          )}
+
+          {/* Right-side action cluster — kept lean. Share moved next to
+              the Done CTA inside the form; SyncIndicator moved down to
+              the session/batch strip. The header is now purely
+              navigational: back · Source ▾ · sub-tabs. */}
+          <div className="flex items-center pr-2 self-center">
+            {/* Spacer reserved for any future header-only action; empty
+                today so the share+sync state lives where the user is
+                actually working. */}
           </div>
-        )}
-        <div className="flex items-center pr-3">
-          <SyncIndicator />
         </div>
       </div>
+
+      {/* Screen switcher sheet — Source / Library / Ledger live here
+          rather than as inline tabs. Each option carries its current
+          unread badge if any. */}
+      <BottomSheet
+        open={screenSheetOpen}
+        onOpenChange={setScreenSheetOpen}
+        title="Screen"
+        description="Switch between Source, Library, and Ledger"
+      >
+        <div className="flex flex-col gap-0.5 px-1">
+          {tabs.map((tab) => (
+            <SheetOption
+              key={tab.id}
+              label={tab.label}
+              hint={
+                tab.id === 'sourcing'
+                  ? 'Capture vendors and entries in real time'
+                  : tab.id === 'tasting'
+                    ? 'Browse, taste, and edit your library'
+                    : 'Review purchases and transactions'
+              }
+              selected={mode === tab.id}
+              onSelect={() => {
+                handleSwitchMode(tab.id);
+                setScreenSheetOpen(false);
+              }}
+            />
+          ))}
+        </div>
+      </BottomSheet>
 
       {/* ── BODY ── */}
       <div className="flex-1 min-h-0 flex flex-col">
@@ -531,7 +671,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                       ? 'Search by name, region, vendor…'
                       : 'Search transactions…'
                   }
-                  className="w-full bg-tea-surface border border-tea-border text-tea-text text-ui-13 rounded-lg pl-8 pr-8 py-2 outline-none placeholder:text-tea-text-dim focus:ring-1 focus:ring-tea-gold/40 transition-colors"
+                  className="w-full bg-tea-surface border border-tea-border text-tea-text text-ui-13 rounded-lg pl-8 pr-8 py-2 outline-none placeholder:text-tea-text-sec/70 focus:ring-1 focus:ring-tea-gold/40 transition-colors"
                 />
                 {tabSearchQuery && (
                   <button
@@ -547,54 +687,101 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
             </div>
           )}
 
-          {/* Session chips strip — pinned below header in sourcing mode */}
+          {/* Session chips strip — pinned below header in sourcing mode.
+              "+ New" and "Batch" anchor the LEFT edge as session-level
+              controls (separated from the entry chips by a hairline
+              divider) so the user always reaches for them in the same
+              spot. They use rounded-md tiles, not pills — same big tap
+              target, less of the floating-pill feel. */}
           {mode === 'sourcing' && captureOption !== 'samples' && (
-            <div className="shrink-0 flex items-center gap-1.5 px-4 py-2 border-b border-tea-border overflow-x-auto scrollbar-hide">
-              {sessionEntries.map((entry) => (
-                <button
-                  key={entry.id}
-                  type="button"
-                  onClick={() => handleSelectEntry(entry.id)}
-                  className={`group relative flex items-center gap-1.5 whitespace-nowrap px-3 py-1 rounded-full text-ui-11 border transition-colors shrink-0 ${
-                    entry.id === activeEntryId
-                      ? 'bg-tea-gold/15 text-tea-gold border-tea-gold/40 font-semibold'
-                      : 'bg-transparent text-tea-text-dim border-tea-border hover:text-tea-text-sec'
-                  }`}
-                >
-                  {entry.name || 'New entry'}
-                  <span
-                    role="button"
-                    aria-label="Remove"
-                    onClick={(e) => { e.stopPropagation(); handleDiscardSessionEntry(entry.id); }}
-                    className="opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity"
-                  >
-                    <X size={9} />
-                  </span>
-                </button>
-              ))}
+            <div className="shrink-0 flex items-center gap-1.5 px-3 py-2 border-b border-tea-border overflow-x-auto scrollbar-hide">
+              {/* Compact + icon-only — "New" label dropped to free up
+                  horizontal room for entry chips. The plus glyph is the
+                  universal "add" affordance, and the title/aria-label
+                  preserve the meaning for screen readers and tooltips. */}
               <button
                 type="button"
                 onClick={() => handleNewCapture()}
                 aria-label="Start a new entry"
-                className="whitespace-nowrap inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-ui-11 text-tea-text-dim border border-tea-border hover:text-tea-text-sec hover:border-tea-gold/40 transition-colors shrink-0"
+                title="Start a new entry"
+                className="tap-target shrink-0 inline-flex items-center justify-center w-9 h-8 rounded-md text-tea-text-sec border border-tea-border bg-tea-elevated/40 hover:text-tea-text hover:border-tea-gold/40 transition-colors"
               >
-                <Plus size={11} strokeWidth={2} />
-                New
+                <Plus size={14} strokeWidth={2} />
               </button>
+              {/* Batch — text-only, no icon. Same visual weight as the
+                  entry chips so the strip reads as one consistent row. */}
+              <button
+                type="button"
+                onClick={() => setBatchMode((v) => !v)}
+                aria-pressed={batchMode}
+                aria-label={batchMode ? 'Exit batch entry mode' : 'Enter batch entry mode'}
+                title={batchMode ? 'Exit batch mode' : 'Batch — rapid-fire capture'}
+                className={`tap-target whitespace-nowrap inline-flex items-center px-3 py-1.5 rounded-md text-ui-11 font-medium border transition-colors shrink-0 ${
+                  batchMode
+                    ? 'bg-tea-gold/15 text-tea-gold border-tea-gold/40 font-semibold'
+                    : 'text-tea-text-sec border-tea-border bg-tea-elevated/40 hover:text-tea-text hover:border-tea-gold/40'
+                }`}
+              >
+                Batch
+              </button>
+
+              {sessionEntries.length > 0 && (
+                <div className="w-px h-5 bg-tea-border shrink-0 mx-0.5" aria-hidden />
+              )}
+
+              {sessionEntries.map((entry) => {
+                const isActive = entry.id === activeEntryId;
+                return (
+                  <button
+                    key={entry.id}
+                    type="button"
+                    onClick={() => handleSelectEntry(entry.id)}
+                    className={`group relative flex items-center gap-1.5 whitespace-nowrap px-3 py-1.5 rounded-md text-ui-11 border transition-colors shrink-0 ${
+                      isActive
+                        ? 'bg-tea-gold text-tea-bg border-tea-gold font-semibold'
+                        : 'bg-tea-elevated/40 text-tea-text-sec border-tea-border hover:text-tea-text'
+                    }`}
+                  >
+                    {/* Active session = solid gold pill. Differentiated
+                        from the page-tab gold underline so a user can tell
+                        the active entry chip from a tab indicator. */}
+                    {isActive && <Check size={11} strokeWidth={3} className="text-tea-bg" />}
+                    {entry.name || 'Untitled'}
+                    <span
+                      role="button"
+                      aria-label="Remove"
+                      onClick={(e) => { e.stopPropagation(); handleDiscardSessionEntry(entry.id); }}
+                      className={`transition-opacity ${
+                        isActive ? 'opacity-50 hover:opacity-100' : 'opacity-0 group-hover:opacity-60 hover:!opacity-100'
+                      }`}
+                    >
+                      <X size={9} />
+                    </span>
+                  </button>
+                );
+              })}
+
+              {/* Sync indicator anchored to the right of the session
+                  strip — sits next to the working entries instead of in
+                  the page header, so save state is communicated where
+                  the user is doing the saving. ml-auto pushes it to the
+                  trailing edge regardless of how many session chips are
+                  in the row. */}
+              <div className="ml-auto pl-2 self-center">
+                <SyncIndicator />
+              </div>
             </div>
           )}
 
-          {/* Content area */}
+          {/* Content area. Action bar lived here historically; it's now
+              distributed across the page (Batch/Share in the header strip,
+              Want/Buy/Sample/Taste/Done inside the form), so the scroll
+              region only needs to clear the BottomTabBar. */}
           <div
+            ref={scrollContainerRef}
             className={`flex-1 min-h-0 overflow-y-auto overscroll-contain ${
               mode === 'sourcing' && captureOption === 'samples' ? '' : 'px-4 pt-3'
-            } ${
-              mode === 'sourcing'
-                ? showCaptureActionBar
-                  ? 'pb-[calc(105px+52px+env(safe-area-inset-bottom,0px))] lg:pb-4'
-                  : 'pb-[calc(53px+52px+env(safe-area-inset-bottom,0px))] lg:pb-4'
-                : 'pb-3'
-            }`}
+            } ${mode === 'sourcing' ? 'pb-nav-gap' : 'pb-3'}`}
             role="tabpanel"
             style={{ WebkitOverflowScrolling: 'touch' }}
           >
@@ -607,30 +794,9 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.2 }}
                 >
-                  {/* Tea / Teaware / Samples 3-way toggle */}
-                  <div className="flex gap-0 mb-3 rounded-md bg-tea-surface/30 p-0.5 relative">
-                    <motion.div
-                      className="absolute top-0.5 bottom-0.5 rounded-[5px] bg-tea-surface shadow-sm"
-                      animate={{
-                        left: captureOption === 'tea' ? '2px' : captureOption === 'teaware' ? '33.33%' : '66.66%',
-                        right: captureOption === 'samples' ? '2px' : captureOption === 'teaware' ? '33.33%' : '66.66%',
-                      }}
-                      transition={{ duration: 0.1, ease: 'easeOut' }}
-                    />
-                    <button type="button" onClick={() => handleCaptureOption('tea')}
-                      className={`flex-1 text-center py-1.5 text-ui-12 font-medium rounded-[5px] transition-colors relative z-[1] ${captureOption === 'tea' ? 'text-tea-text' : 'text-tea-text-dim hover:text-tea-text-sec'}`}>
-                      Tea
-                    </button>
-                    <button type="button" onClick={() => handleCaptureOption('teaware')}
-                      className={`flex-1 text-center py-1.5 text-ui-12 font-medium rounded-[5px] transition-colors relative z-[1] ${captureOption === 'teaware' ? 'text-tea-text' : 'text-tea-text-dim hover:text-tea-text-sec'}`}>
-                      Teaware
-                    </button>
-                    <button type="button" onClick={() => handleCaptureOption('samples')}
-                      className={`flex-1 text-center py-1.5 text-ui-12 font-medium rounded-[5px] transition-colors relative z-[1] ${captureOption === 'samples' ? 'text-tea-text' : 'text-tea-text-dim hover:text-tea-text-sec'}`}>
-                      Samples{sampleCartCount > 0 && <span className="ml-1 text-ui-10 text-tea-gold tabular-nums">({sampleCartCount})</span>}
-                    </button>
-                  </div>
-
+                  {/* Tea / Teaware / Samples sub-tabs moved up into the
+                      header row in pass 6 — no duplicate segmented
+                      control here. */}
                   {captureOption === 'samples' ? (
                     <SampleCartPanel />
                   ) : (
@@ -670,6 +836,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                         onCommit={handleCommitEntry}
                         onReturnToLibrary={fromLibrary ? () => { setFromLibrary(false); setMode('tasting'); } : undefined}
                         actionRef={captureCardActionsRef}
+                        onShare={hasToken() ? () => setShareModalOpen(true) : undefined}
                       />
                     </>
                   )}
@@ -889,181 +1056,38 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
           </div>
 
 
-          {/* Mobile action bar — fixed, single compact row */}
-          {mode === 'sourcing' && (
-            <div className="fixed left-0 right-0 z-20 bottom-[calc(52px+env(safe-area-inset-bottom,0px))]">
-              <AnimatePresence>
-                {voiceError && (
-                  <motion.p
-                    initial={{ opacity: 0, y: 4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 4 }}
-                    className="text-ui-11 text-red-400 text-center px-4 py-1.5 border-t border-tea-border bg-tea-bg"
-                  >
-                    {voiceError}
-                  </motion.p>
-                )}
-              </AnimatePresence>
-
-              {/* Save-mode strip: always visible so the dual purpose
-                  (personal log vs. inventory draft) is discoverable. */}
-              {showCaptureActionBar && (
-                <div className="border-t border-tea-border bg-tea-bg flex items-center justify-between px-3 py-1.5">
-                  <SaveModeToggle inventoryDisabled={inventoryDisabled} />
-                  {justPromoted && (
-                    <span className="text-ui-11 text-tea-gold inline-flex items-center gap-1">
-                      <Check size={11} /> Added to drafts
-                    </span>
-                  )}
-                </div>
-              )}
-
-              <div
-                className="border-t border-tea-border bg-tea-surface flex items-stretch"
-                style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+          {/* Voice error toast — floats just above the merged BottomTabBar.
+              The mobile action bar moved into CaptureCard's footer (along
+              with the Done button), so we no longer stack two fixed bars. */}
+          <AnimatePresence>
+            {mode === 'sourcing' && voiceError && (
+              <motion.p
+                key="voice-error"
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 4 }}
+                className="lg:hidden fixed left-0 right-0 z-20 bottom-nav text-ui-11 text-red-400 text-center px-4 py-1.5 border-t border-tea-border bg-tea-bg"
               >
-                {/* Taste */}
-                {showCaptureActionBar && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => captureCardActionsRef.current?.openTasting()}
-                      className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-10 font-medium transition-colors ${
-                        hasTasting ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'
-                      }`}
-                    >
-                      <Droplets size={14} strokeWidth={1.5} />
-                      {hasTasting ? 'Re-Taste' : 'Taste'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => activeEntryId && updateEntry(activeEntryId, { status: isWantEntry ? 'noted' : 'want' })}
-                      className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-10 font-medium transition-colors ${
-                        isWantEntry ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'
-                      }`}
-                    >
-                      {isWantEntry ? <BookmarkCheck size={14} /> : <BookmarkPlus size={14} />}
-                      {isWantEntry ? 'Wanted' : 'Want'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => captureCardActionsRef.current?.toggleBuy()}
-                      className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-10 font-medium text-tea-text-dim hover:text-tea-text-sec transition-colors"
-                    >
-                      <ShoppingCart size={14} />
-                      Buy
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (!activeEntryId || !activeEntry) return;
-                        if (captureEntryInCart) {
-                          removeSampleCartItem(activeEntryId);
-                        } else {
-                          addSampleCartItem({
-                            id: activeEntryId,
-                            name: activeEntry.name,
-                            chineseName: activeEntry.chineseName,
-                            type: activeEntry.type,
-                            vendorName: activeEntry.vendorName,
-                            compassEntryId: activeEntryId,
-                          });
-                        }
-                      }}
-                      className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-10 font-medium transition-colors ${
-                        captureEntryInCart ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'
-                      }`}
-                    >
-                      <FlaskConical size={14} strokeWidth={1.5} />
-                      {captureEntryInCart ? 'Listed' : 'Sample'}
-                    </button>
-                    <div className="w-px self-stretch my-1.5 bg-tea-border" />
-                  </>
-                )}
+                {voiceError}
+              </motion.p>
+            )}
+          </AnimatePresence>
 
-                {/* Mic */}
-                {isPlatformPrivileged && (
-                  <>
-                    <motion.button
-                      type="button"
-                      onClick={handleVoicePress}
-                      disabled={voiceState === 'transcribing'}
-                      className={`relative flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-10 font-medium transition-colors ${
-                        voiceState === 'recording'
-                          ? 'text-tea-gold'
-                          : voiceState === 'transcribing'
-                            ? 'text-tea-text-dim cursor-wait'
-                            : 'text-tea-text-dim hover:text-tea-text-sec'
-                      }`}
-                      aria-label={voiceState === 'recording' ? 'Stop recording' : 'Record note'}
-                    >
-                      {voiceState === 'recording' && (
-                        <motion.span
-                          className="absolute inset-0"
-                          animate={{ opacity: [0.06, 0.12, 0.06] }}
-                          transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
-                          style={{ background: 'var(--tea-gold)' }}
-                        />
-                      )}
-                      <span className="relative flex flex-col items-center gap-0.5">
-                        {voiceState === 'recording' ? (
-                          <Square size={14} fill="currentColor" />
-                        ) : voiceState === 'transcribing' ? (
-                          <motion.span animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }} className="block">
-                            <Loader2 size={14} />
-                          </motion.span>
-                        ) : (
-                          <Mic size={14} />
-                        )}
-                        Mic
-                      </span>
-                    </motion.button>
-                  </>
-                )}
-
-                {/* Batch */}
-                <button
-                  type="button"
-                  onClick={() => setBatchMode((v) => !v)}
-                  className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-10 font-medium transition-colors ${
-                    batchMode ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'
-                  }`}
-                  aria-label="Batch entry"
-                >
-                  <Layers size={14} strokeWidth={1.5} />
-                  Batch
-                </button>
-
-                {/* Share */}
-                {hasToken() && activeEntryId && (
-                  <button
-                    type="button"
-                    onClick={() => setShareModalOpen(true)}
-                    className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-10 font-medium text-tea-text-dim hover:text-tea-text-sec transition-colors"
-                    aria-label="Share"
-                  >
-                    <Share2 size={14} strokeWidth={1.5} />
-                    Share
-                  </button>
-                )}
-
-                <div className="w-px self-stretch my-1.5 bg-tea-border" />
-
-                {/* Done */}
-                <button
-                  type="button"
-                  onClick={handleDoneClick}
-                  disabled={!activeEntryId || captureOption === 'samples' || promoting}
-                  data-testid="compass-done-mobile"
-                  className="flex-[1.4] flex items-center justify-center py-2.5 text-tea-gold font-bold text-ui-13 disabled:opacity-30 transition-opacity"
-                  style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.1em' }}
-                  aria-label="Done"
-                >
-                  {promoting ? <Loader2 size={14} className="animate-spin" /> : 'Done'}
-                </button>
-              </div>
-            </div>
-          )}
+          {/* Floating "Added to drafts" toast — replaces the inline strip
+              that used to live in the gone mobile action bar. */}
+          <AnimatePresence>
+            {justPromoted && (
+              <motion.div
+                key="promote-toast"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 8 }}
+                className="lg:hidden fixed left-1/2 -translate-x-1/2 z-30 bottom-nav-gap inline-flex items-center gap-1.5 text-ui-11 text-tea-gold bg-tea-surface border border-tea-border rounded-full px-3 py-1.5 shadow-lg"
+              >
+                <Check size={11} /> Added to drafts
+              </motion.div>
+            )}
+          </AnimatePresence>
 
         </div>
         {/* END MOBILE */}
@@ -1089,7 +1113,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                     : mode === 'tasting' ? 'Search by name, region, vendor…'
                     : 'Search transactions…'
                   }
-                  className="w-full bg-tea-surface border border-tea-border text-tea-text text-ui-13 rounded-lg pl-8 pr-8 py-2 outline-none placeholder:text-tea-text-dim focus:ring-1 focus:ring-tea-gold/40 transition-colors"
+                  className="w-full bg-tea-surface border border-tea-border text-tea-text text-ui-13 rounded-lg pl-8 pr-8 py-2 outline-none placeholder:text-tea-text-sec/70 focus:ring-1 focus:ring-tea-gold/40 transition-colors"
                 />
                 {tabSearchQuery && (
                   <button
@@ -1189,7 +1213,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                       <button
                         type="button"
                         onClick={() => handleNewCapture()}
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-md border border-dashed border-tea-border text-tea-text-dim hover:text-tea-text-sec hover:border-tea-gold/40 text-ui-12 transition-colors"
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-md border border-dashed border-tea-border text-tea-text-sec hover:text-tea-text hover:border-tea-gold/40 text-ui-12 transition-colors"
                       >
                         <Plus size={12} />
                         New Entry
@@ -1475,6 +1499,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                           onCommit={handleCommitEntry}
                           onReturnToLibrary={fromLibrary ? () => { setFromLibrary(false); setMode('tasting'); } : undefined}
                           actionRef={captureCardActionsRef}
+                          onShare={hasToken() ? () => setShareModalOpen(true) : undefined}
                         />
                       </>
                     ) : (

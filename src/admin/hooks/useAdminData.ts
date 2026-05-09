@@ -1,13 +1,23 @@
 import { useQuery } from '@tanstack/react-query';
-import { api } from '../../lib/api';
+import { api, getTokenClaims } from '../../lib/api';
+import { useAppStore } from '../../lib/store';
 import { Product, ExchangeRate, Customer } from '../types';
 import { INITIAL_RATES } from '../constants';
 import { fetchLiveRates } from '../utils';
 
+const useAccountQueryScope = () => {
+  const activeAccountId = useAppStore((state) => state.activeAccountId);
+  return {
+    accountScope: activeAccountId ?? 'no-account',
+    userScope: getTokenClaims()?.sub ?? 'anonymous',
+  };
+};
+
 // Fetch Products
 export const useProducts = (options?: { enabled?: boolean }) => {
+  const { accountScope, userScope } = useAccountQueryScope();
   return useQuery({
-    queryKey: ['products'],
+    queryKey: ['products', accountScope, userScope],
     staleTime: 1000 * 60 * 5,   // 5 min — prevents background refetch from overwriting inline edits
     refetchOnWindowFocus: false, // window focus should not clobber optimistic updates
     enabled: options?.enabled ?? true,
@@ -69,8 +79,9 @@ export const useProducts = (options?: { enabled?: boolean }) => {
 
 // Fetch Exchange Rates
 export const useRates = () => {
+  const { accountScope, userScope } = useAccountQueryScope();
   return useQuery({
-    queryKey: ['rates'],
+    queryKey: ['rates', accountScope, userScope],
     queryFn: async () => {
       let dbRates: ExchangeRate[] = [];
 
@@ -106,8 +117,9 @@ export const useRates = () => {
 
 // Fetch Customers
 export const useCustomers = () => {
+  const { accountScope, userScope } = useAccountQueryScope();
   return useQuery({
-    queryKey: ['customers'],
+    queryKey: ['customers', accountScope, userScope],
     staleTime: 1000 * 60 * 5,   // 5 min — same as products
     refetchOnWindowFocus: false,
     queryFn: async () => {
@@ -143,8 +155,9 @@ export const useCustomers = () => {
 
 // Fetch Activity Logs (with pagination & filtering)
 export const useActivityLogs = (params?: { limit?: number; offset?: number; action?: string; search?: string; entity_id?: string }) => {
+  const { accountScope, userScope } = useAccountQueryScope();
   return useQuery({
-    queryKey: ['activity_logs', params],
+    queryKey: ['activity_logs', accountScope, userScope, params],
     queryFn: async () => {
       try {
         return await api.activityLogs.list(params);
@@ -157,8 +170,9 @@ export const useActivityLogs = (params?: { limit?: number; offset?: number; acti
 
 // Fetch Stock Ledger — global or per-product
 export const useStockLedger = (productId: string | null | undefined, limit = 50, offset = 0) => {
+  const { accountScope, userScope } = useAccountQueryScope();
   return useQuery({
-    queryKey: ['stock_ledger', productId ?? 'all', limit, offset],
+    queryKey: ['stock_ledger', accountScope, userScope, productId ?? 'all', limit, offset],
     queryFn: async () => {
       return await api.stockLedger.list(productId || undefined, limit, offset);
     }

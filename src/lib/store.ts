@@ -128,10 +128,12 @@ interface AppState {
 
   // Multi-Account (Multi-Store) state
   memberships: AccountMembership[];
+  activeUserId: string | null;
   activeAccountId: string | null;
   activeAccount: Account | null;
   platformRole: PlatformRole;
   setMemberships: (m: AccountMembership[]) => void;
+  setActiveUserId: (id: string | null) => void;
   setActiveAccountId: (id: string | null) => void;
   setActiveAccount: (a: Account | null) => void;
   setPlatformRole: (role: PlatformRole) => void;
@@ -141,6 +143,14 @@ interface AppState {
   upcomingEventsCount: number;
   setUpcomingEventsCount: (count: number) => void;
   cartLastAddedAt: number | null;
+
+  // Bottom-bar action — when set, BottomTabBar swaps the centered logo for
+  // a contextual action button (e.g. a web3-styled mic on the sourcing
+  // page). Pages register via the `useBottomBarMic` hook on mount.
+  bottomBarAction:
+    | { type: 'mic'; state: 'idle' | 'recording' | 'transcribing' | 'error'; onPress: () => void }
+    | null;
+  setBottomBarAction: (action: AppState['bottomBarAction']) => void;
 }
 
 // ── Members & Access selectors ────────────────────────────────────────────────
@@ -162,6 +172,32 @@ export function selectIsOwnerTier(state: Pick<AppState, 'memberships' | 'activeA
   const active = state.memberships.find(m => m.account_id === state.activeAccountId);
   return active?.role === 'owner';
 }
+
+const DEFAULT_INVENTORY_COLUMNS = ['productName', 'type', 'year', 'originRegion', 'stockGrams', 'costAmount', 'pricePerGramUSD'];
+const DEFAULT_INVENTORY_SORT_CONFIG = [{ key: 'type', direction: 'asc' as const }];
+
+const scopedStateReset = () => ({
+  cart: [],
+  isCartOpen: false,
+  cartDirection: 'sale' as const,
+  cartVendorName: '',
+  cartSourceEventId: null,
+  publicCart: [],
+  isPublicCartOpen: false,
+  favoriteTeas: [],
+  tastingJournal: [],
+  recentlyViewed: [],
+  compareItems: [],
+  inventoryColumns: [...DEFAULT_INVENTORY_COLUMNS],
+  savedViews: [],
+  activeViewId: null,
+  inventoryGroupBy: null,
+  inventorySortConfig: [...DEFAULT_INVENTORY_SORT_CONFIG],
+  inventoryPriceMode: 'retail' as const,
+  draftProduct: null,
+  upcomingEventsCount: 0,
+  cartLastAddedAt: null,
+});
 
 export const useAppStore = create<AppState>()(
   persist(
@@ -415,11 +451,11 @@ export const useAppStore = create<AppState>()(
       },
 
       // Inventory view management
-      inventoryColumns: ['productName', 'type', 'year', 'originRegion', 'stockGrams', 'costAmount', 'pricePerGramUSD'],
+      inventoryColumns: [...DEFAULT_INVENTORY_COLUMNS],
       savedViews: [],
       activeViewId: null,
       inventoryGroupBy: null,
-      inventorySortConfig: [{ key: 'type', direction: 'asc' }],
+      inventorySortConfig: [...DEFAULT_INVENTORY_SORT_CONFIG],
       inventoryPriceMode: 'retail' as 'cost' | 'retail',
 
       setInventoryColumns: (columns) => set({ inventoryColumns: columns }),
@@ -456,20 +492,43 @@ export const useAppStore = create<AppState>()(
 
       // Multi-Account state
       memberships: [],
+      activeUserId: null,
       activeAccountId: null,
       activeAccount: null,
       platformRole: null,
       setMemberships: (memberships) => set({ memberships }),
-      setActiveAccountId: (activeAccountId) => set({ activeAccountId }),
+      setActiveUserId: (activeUserId) =>
+        set((state) => (
+          state.activeUserId === activeUserId
+            ? { activeUserId }
+            : { ...scopedStateReset(), activeUserId }
+        )),
+      setActiveAccountId: (activeAccountId) =>
+        set((state) => (
+          state.activeAccountId === activeAccountId
+            ? { activeAccountId }
+            : { ...scopedStateReset(), activeAccountId, activeAccount: null }
+        )),
       setActiveAccount: (activeAccount) => set({ activeAccount }),
       setPlatformRole: (platformRole) => set({ platformRole }),
       clearAccountState: () =>
-        set({ memberships: [], activeAccountId: null, activeAccount: null, platformRole: null }),
+        set({
+          ...scopedStateReset(),
+          memberships: [],
+          activeUserId: null,
+          activeAccountId: null,
+          activeAccount: null,
+          platformRole: null,
+        }),
 
       // Notifications
       upcomingEventsCount: 0,
       setUpcomingEventsCount: (count) => set({ upcomingEventsCount: count }),
       cartLastAddedAt: null,
+
+      // Bottom-bar action (transient — never persisted)
+      bottomBarAction: null,
+      setBottomBarAction: (action) => set({ bottomBarAction: action }),
     }),
     {
       name: 'teajia-storage',
@@ -493,6 +552,7 @@ export const useAppStore = create<AppState>()(
         draftProduct: state.draftProduct,
         shopStoreSlug: state.shopStoreSlug,
         memberships: state.memberships,
+        activeUserId: state.activeUserId,
         activeAccountId: state.activeAccountId,
         // isDevAdmin intentionally excluded — never persisted to localStorage (security fix)
         sidebarCollapsed: state.sidebarCollapsed,

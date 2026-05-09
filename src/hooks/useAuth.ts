@@ -5,11 +5,13 @@ import {
   clearToken,
   hasToken,
   getTokenClaims,
+  hydrateAccountStateFromToken,
   SESSION_EXPIRED_EVENT,
   shouldProactivelyRefreshToken,
   isTokenExpired,
   ensureTokenRefreshed,
 } from '../lib/api';
+import { useAppStore } from '../lib/store';
 
 export interface AuthUser {
   email: string;
@@ -121,6 +123,7 @@ export function useAuth(): UseAuthReturn {
   // Clear React auth state when a 401 triggers session expiry
   useEffect(() => {
     const handleSessionExpired = () => {
+      useAppStore.getState().clearAccountState();
       setUser(null);
     };
     window.addEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired);
@@ -130,6 +133,7 @@ export function useAuth(): UseAuthReturn {
   const login = useCallback(async (identifier: string, password: string) => {
     const result = await api.auth.login(identifier, password);
     setToken(result.token);
+    hydrateAccountStateFromToken();
     const claims = getTokenClaims();
     if (claims) {
       setUser({ email: claims.email, username: claims.username ?? null, name: claims.name, role: claims.role });
@@ -139,6 +143,7 @@ export function useAuth(): UseAuthReturn {
   const signup = useCallback(async (email: string, password: string, name: string, username?: string | null) => {
     const result = await api.auth.signup(email, password, name, username);
     setToken(result.token);
+    hydrateAccountStateFromToken();
     const claims = getTokenClaims();
     if (claims) {
       setUser({ email: claims.email, username: claims.username ?? null, name: claims.name, role: claims.role });
@@ -148,6 +153,7 @@ export function useAuth(): UseAuthReturn {
   const redeemJoinCode = useCallback(async (data: { code: string; first_name: string; email: string }) => {
     const result = await api.auth.redeemJoinCode(data);
     setToken(result.token);
+    hydrateAccountStateFromToken();
     const claims = getTokenClaims();
     if (claims) {
       setUser({ email: claims.email, username: claims.username ?? null, name: claims.name, role: claims.role });
@@ -161,6 +167,7 @@ export function useAuth(): UseAuthReturn {
 
   const logout = useCallback(() => {
     clearToken();
+    useAppStore.getState().clearAccountState();
     setUser(null);
   }, []);
 

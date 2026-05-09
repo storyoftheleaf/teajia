@@ -2,7 +2,7 @@
 
 > Start here. Documentation is organized by purpose, not by type.
 
-**Last updated:** 2026-04-27
+**Last updated:** 2026-05-09
 
 ---
 
@@ -17,6 +17,7 @@
 | **POST_AUDIT_ROADMAP.md** | Three-body forward plan after audit close | Picking the next project |
 | **DESIGN_SYSTEM_PHASING.md** | 4-phase plan for closing finding #36 | Touching tokens, themes, or visual scales |
 | **IA_REVIEW.md** | Scoping doc for the information architecture project | Considering route renames, navigation moves, or section restructuring |
+| **plan/product-architecture-initiative.md** | Product architecture playback + initiative overview | Aligning product taste, architecture, and next implementation work |
 | **OPERATIONAL_NOTES.md** | Intentional tradeoffs, residual risks, things to revisit | Onboarding to the codebase; before changing auth or infra |
 
 ## For product / design
@@ -49,6 +50,9 @@ In `docs/plan/` — read directly when implementing:
 - `event-system-v2.md` · `event-rsvp-capacity-engine.md` · `magazine-editor-spec.md`
 - `tea-compass-spec.md` · `consult-redesign-spec.md` · `learn-archive-redesign.md`
 - `teajia-tasting-usage-guide.md`
+- `product-architecture-initiative.md` · `product-architecture-prd.md` · `product-architecture-implementation.md`
+- `product-architecture-discussion-log.md` · `product-architecture-phase-0-inventory.md`
+- `product-architecture-route-auth-inventory.md`
 
 ## Audit artifacts
 

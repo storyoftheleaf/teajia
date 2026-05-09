@@ -460,7 +460,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
             onChange={(e) => setInternalSearchQuery(e.target.value)}
             placeholder="Search by name, region, vendor…"
             className="w-full bg-tea-surface/60 text-tea-text text-ui-13 rounded-lg pl-8 pr-8 py-2
-                       outline-none placeholder:text-tea-text-dim focus:ring-1 focus:ring-tea-gold/40"
+                       outline-none placeholder:text-tea-text-sec/70 focus:ring-1 focus:ring-tea-gold/40"
           />
           {internalSearchQuery && (
             <button

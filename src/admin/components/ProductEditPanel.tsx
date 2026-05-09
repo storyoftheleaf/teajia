@@ -6,7 +6,7 @@ import {
   Camera, Upload, Crop, Download, MoreHorizontal, Trash2, Wand2,
 } from 'lucide-react';
 import { api } from '../../lib/api';
-import { SquareCropModal } from './SquareCropModal';
+import { SquareCropModal } from '../../components/shared/SquareCropModal';
 import { useAppStore } from '../store';
 import type { Product, ExchangeRate, Currency } from '../types';
 import { calculatePricing } from '../utils';

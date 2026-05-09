@@ -318,7 +318,7 @@ export const VendorInfoPanel: React.FC<VendorInfoPanelProps> = ({
             value={d.phone || ''}
             onChange={(e) => updateDetail('phone', e.target.value || undefined)}
             placeholder="Phone"
-            className="flex-1 input-warm text-base rounded-md px-3 py-2 placeholder:text-tea-text-dim outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
+            className="flex-1 input-warm text-base rounded-md px-3 py-2 placeholder:text-tea-text-sec/70 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
           />
         </div>
         <div className="flex items-center gap-2">
@@ -328,7 +328,7 @@ export const VendorInfoPanel: React.FC<VendorInfoPanelProps> = ({
             value={d.whatsapp || ''}
             onChange={(e) => updateDetail('whatsapp', e.target.value || undefined)}
             placeholder="WhatsApp"
-            className="flex-1 input-warm text-base rounded-md px-3 py-2 placeholder:text-tea-text-dim outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
+            className="flex-1 input-warm text-base rounded-md px-3 py-2 placeholder:text-tea-text-sec/70 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
           />
         </div>
         <div className="flex items-center gap-2">
@@ -338,7 +338,7 @@ export const VendorInfoPanel: React.FC<VendorInfoPanelProps> = ({
             value={d.wechat || ''}
             onChange={(e) => updateDetail('wechat', e.target.value || undefined)}
             placeholder="WeChat"
-            className="flex-1 input-warm text-base rounded-md px-3 py-2 placeholder:text-tea-text-dim outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
+            className="flex-1 input-warm text-base rounded-md px-3 py-2 placeholder:text-tea-text-sec/70 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
           />
         </div>
         <div className="flex items-center gap-2">
@@ -348,7 +348,7 @@ export const VendorInfoPanel: React.FC<VendorInfoPanelProps> = ({
             value={d.line || ''}
             onChange={(e) => updateDetail('line', e.target.value || undefined)}
             placeholder="LINE"
-            className="flex-1 input-warm text-base rounded-md px-3 py-2 placeholder:text-tea-text-dim outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
+            className="flex-1 input-warm text-base rounded-md px-3 py-2 placeholder:text-tea-text-sec/70 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
           />
         </div>
       </div>

@@ -366,6 +366,7 @@ export function hydrateAccountStateFromToken(): TokenClaims | null {
       ...m,
       account_name: m.account_name || m.name || '',
     }));
+    store.setActiveUserId(claims.sub);
     store.setMemberships(memberships);
     store.setPlatformRole(claims.platform_role ?? null);
     if (claims.active_account_id) {

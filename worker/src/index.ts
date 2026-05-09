@@ -1,3 +1,5 @@
+import { mcpFetch, mcpAdminMintToken, mcpAdminListTokens, mcpAdminRevokeToken } from './mcp';
+
 interface Env {
   DB: D1Database;
   MEDIA_BUCKET: R2Bucket;
@@ -2757,6 +2759,40 @@ const handleIncrementStock: Handler = async (request, env) => {
   return json({ success: true });
 };
 
+// ── MCP token admin (mint / list / revoke) ──
+//
+// Restricted to the account's owner tier. The plaintext token is shown ONCE
+// in the mint response and never recoverable afterwards — the admin UI must
+// surface that clearly.
+
+const handleMcpMintToken: Handler = async (request, env) => {
+  const ctx = await requireOwnerTier(request, env);
+  if ('error' in ctx) return ctx.error;
+  const body = await request.json() as { label?: string };
+  const label = (body.label || '').trim();
+  if (!label) return json({ error: 'label is required' }, 400);
+
+  const minted = await mcpAdminMintToken(env, ctx.accountId, ctx.userId, ctx.email, label);
+  await buildActivityLog(env, 'MCP_TOKEN_MINTED', `MCP token minted: ${label}`, ctx.email, 'mcp_token', minted.id, ctx.accountId).run();
+  return json({ id: minted.id, token: minted.token, prefix: minted.prefix }, 201);
+};
+
+const handleMcpListTokens: Handler = async (request, env) => {
+  const ctx = await requireOwnerTier(request, env);
+  if ('error' in ctx) return ctx.error;
+  const tokens = await mcpAdminListTokens(env, ctx.accountId);
+  return json(tokens);
+};
+
+const handleMcpRevokeToken: Handler = async (request, env, params) => {
+  const ctx = await requireOwnerTier(request, env);
+  if ('error' in ctx) return ctx.error;
+  const ok = await mcpAdminRevokeToken(env, ctx.accountId, params.id);
+  if (!ok) return json({ error: 'Token not found or already revoked' }, 404);
+  await buildActivityLog(env, 'MCP_TOKEN_REVOKED', `MCP token revoked: ${params.id}`, ctx.email, 'mcp_token', params.id, ctx.accountId).run();
+  return json({ success: true });
+};
+
 // ── RPC: Void Invoice (atomic server-side) ──
 const handleVoidInvoice: Handler = async (request, env) => {
   const ctx = await requireBundle(request, env, 'sell');
@@ -3098,7 +3134,11 @@ const handleGetCustomers: Handler = async (request, env) => {
 
   const url = new URL(request.url);
   const typeFilter = url.searchParams.get('type'); // 'customer' | 'supplier' | null (all)
-  const typeClause = typeFilter ? `AND c.type = '${typeFilter}'` : '';
+  if (typeFilter && typeFilter !== 'customer' && typeFilter !== 'supplier') {
+    return json({ error: 'Invalid customer type filter' }, 400);
+  }
+  const typeClause = typeFilter ? 'AND c.type = ?' : '';
+  const typeBinds = typeFilter ? [typeFilter] : [];
 
   let result;
   try {
@@ -3117,14 +3157,14 @@ const handleGetCustomers: Handler = async (request, env) => {
       WHERE c.account_id = ? ${typeClause}
       GROUP BY c.id
       ORDER BY c.created_at DESC
-    `).bind(accountId, accountId).all();
+    `).bind(accountId, accountId, ...typeBinds).all();
   } catch {
     result = await env.DB.prepare(`
       SELECT c.*, 0 as order_count, 0 as total_spent_usd, NULL as last_order_date, 0 as event_count
       FROM customers c
       WHERE c.account_id = ? ${typeClause}
       ORDER BY c.created_at DESC
-    `).bind(accountId).all();
+    `).bind(accountId, ...typeBinds).all();
   }
 
   // Attach contact tags (the new freeform admin tags, separate from the
@@ -3691,7 +3731,7 @@ function makeXrefHandlers(tableName: string, fkColumn: string) {
   // belongs to the caller's account.
 
   const list: Handler = async (request, env, params) => {
-    const ctx = await requireAccount(request, env);
+    const ctx = await requireBundle(request, env, 'publish');
     if ('error' in ctx) return ctx.error;
     const { accountId } = ctx;
     const id = params.id;
@@ -3706,7 +3746,7 @@ function makeXrefHandlers(tableName: string, fkColumn: string) {
   };
 
   const link: Handler = async (request, env, params) => {
-    const ctx = await requireAccount(request, env);
+    const ctx = await requireBundle(request, env, 'publish');
     if ('error' in ctx) return ctx.error;
     const { accountId } = ctx;
     const body = await request.json() as any;
@@ -3726,7 +3766,7 @@ function makeXrefHandlers(tableName: string, fkColumn: string) {
   };
 
   const unlink: Handler = async (request, env, params) => {
-    const ctx = await requireAccount(request, env);
+    const ctx = await requireBundle(request, env, 'publish');
     if ('error' in ctx) return ctx.error;
     const { accountId } = ctx;
     // Only allow unlinking products that belong to the caller's account.
@@ -3742,7 +3782,7 @@ function makeXrefHandlers(tableName: string, fkColumn: string) {
 
   // Reverse lookup: get all articles/modules/projects for a product.
   const listByProduct: Handler = async (request, env, params) => {
-    const ctx = await requireAccount(request, env);
+    const ctx = await requireBundle(request, env, 'publish');
     if ('error' in ctx) return ctx.error;
     const { accountId } = ctx;
     // Verify the product is in the caller's account.
@@ -11833,15 +11873,19 @@ function slugify(text: string): string {
 }
 
 const handleListArticles: Handler = async (request, env) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'publish');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
   const url = new URL(request.url);
   const statusFilter = url.searchParams.get('status') || 'all';
+  if (!['all', 'draft', 'published', 'archived'].includes(statusFilter)) {
+    return json({ error: 'Invalid article status filter' }, 400);
+  }
   const statusClause = statusFilter !== 'all'
-    ? `AND status = '${statusFilter}'`
-    : `AND status != 'archived'`;
+    ? 'AND status = ?'
+    : "AND status != 'archived'";
+  const binds = statusFilter !== 'all' ? [accountId, statusFilter] : [accountId];
 
   const rows = await env.DB.prepare(
     `SELECT id, account_id, title, subtitle, author_id, slug, status, category, tags,
@@ -11850,7 +11894,7 @@ const handleListArticles: Handler = async (request, env) => {
      FROM articles
      WHERE account_id = ? ${statusClause}
      ORDER BY updated_at DESC`
-  ).bind(accountId).all();
+  ).bind(...binds).all();
 
   const results = rows.results.map((r: any) => ({
     ...r,
@@ -11860,7 +11904,7 @@ const handleListArticles: Handler = async (request, env) => {
 };
 
 const handleGetArticle: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'publish');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -11877,7 +11921,7 @@ const handleGetArticle: Handler = async (request, env, params) => {
 };
 
 const handleCreateArticle: Handler = async (request, env) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'publish');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -11919,7 +11963,7 @@ const handleCreateArticle: Handler = async (request, env) => {
 };
 
 const handleUpdateArticle: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'publish');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -11956,7 +12000,7 @@ const handleUpdateArticle: Handler = async (request, env, params) => {
 };
 
 const handlePublishArticle: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'publish');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -11983,7 +12027,7 @@ const handlePublishArticle: Handler = async (request, env, params) => {
 };
 
 const handleUnpublishArticle: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'publish');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -12009,7 +12053,7 @@ const handleUnpublishArticle: Handler = async (request, env, params) => {
 };
 
 const handleDeleteArticle: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'publish');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -15496,6 +15540,12 @@ const routes: [string, string, Handler][] = [
   ['POST', '/api/rpc/split-invoice', handleSplitInvoice],
   ['POST', '/api/rpc/link-line-item', handleLinkLineItem],
   ['POST', '/api/rpc/increment-stock', handleIncrementStock],
+
+  // MCP tokens (voice/agent control of inventory)
+  ['GET',    '/api/admin/mcp-tokens',     handleMcpListTokens],
+  ['POST',   '/api/admin/mcp-tokens',     handleMcpMintToken],
+  ['DELETE', '/api/admin/mcp-tokens/:id', handleMcpRevokeToken],
+
   ['POST', '/api/rpc/truncate-all', handleTruncateAll],
   ['POST', '/api/rpc/backfill-customer-links', handleBackfillCustomerLinks],
   ['POST', '/api/rpc/auto-link-vendors', handleAutoLinkVendors],
@@ -15823,6 +15873,14 @@ export default {
       };
       if (corsOrigin) headers['Access-Control-Allow-Origin'] = corsOrigin;
       return new Response(null, { status: 204, headers });
+    }
+
+    // MCP server lives outside the regular route table — it speaks JSON-RPC 2.0
+    // and uses its own bearer-token auth (mcp_tokens), not the JWT/X-Teajia-Account
+    // pair. Handle GET (health) and POST (RPC) here; other methods 405.
+    if (url.pathname === '/mcp') {
+      const response = await mcpFetch(request, env);
+      return cors(response, corsOrigin);
     }
 
     const match = matchRoute(request.method, url.pathname, routes);

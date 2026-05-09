@@ -2,7 +2,16 @@
 
 > Index of feature briefs and specs currently being built or scoped. For shipped work see CHANGELOG.md. For locked architectural decisions see ARCHITECTURE.md.
 
-**Last updated:** 2026-04-27
+**Last updated:** 2026-05-09
+
+## Product Architecture & Taste Preservation
+
+- **plan/product-architecture-initiative.md** — Playback of what Teajia is, how it is being built, and where attention should go next.
+- **plan/product-architecture-prd.md** — Product requirements for preserving Teajia's domain distinctions, taste, editorial authority, personal memory, and network trust.
+- **plan/product-architecture-implementation.md** — Implementation plan covering domain contracts, robustness fixes, editorial engine, personal memory, network hardening, and IA.
+- **plan/product-architecture-discussion-log.md** — Persistent record of the thread that produced this initiative.
+- **plan/product-architecture-phase-0-inventory.md** — Current domain, route/auth, client state, and article contract inventory.
+- **plan/product-architecture-route-auth-inventory.md** — Maintained route authorization map with access levels, bundle intent, applied fixes, and product-policy decisions still needed.
 
 ## Network & Multi-Store (Phase 1B)
 

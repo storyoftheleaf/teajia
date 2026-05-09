@@ -428,3 +428,19 @@ CREATE INDEX IF NOT EXISTS idx_collection_items_collection ON collection_items(c
 CREATE INDEX IF NOT EXISTS idx_collection_items_product ON collection_items(product_id);
 CREATE INDEX IF NOT EXISTS idx_collection_publications_collection ON collection_publications(collection_id);
 CREATE INDEX IF NOT EXISTS idx_collection_publications_slug ON collection_publications(slug);
+
+-- 9. MCP tokens (migration 066) — voice/agent control of this account's inventory.
+CREATE TABLE IF NOT EXISTS mcp_tokens (
+    id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+    account_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    user_email TEXT NOT NULL,
+    label TEXT NOT NULL,
+    token_hash TEXT NOT NULL,
+    token_prefix TEXT NOT NULL,
+    created_at TEXT DEFAULT (datetime('now')),
+    last_used_at TEXT,
+    revoked_at TEXT
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_mcp_tokens_hash ON mcp_tokens(token_hash);
+CREATE INDEX IF NOT EXISTS idx_mcp_tokens_account ON mcp_tokens(account_id, revoked_at);

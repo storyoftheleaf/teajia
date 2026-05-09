@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Sun, Moon, Calendar, Receipt, UserPlus, Package, Clock, CalendarCheck, AlertTriangle, Zap, UserCheck, Compass, LogIn, Users, Settings } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Icons, SealIcon } from '../Icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useScrollLock } from '../../hooks/useScrollLock';
@@ -251,6 +251,7 @@ const QuickAction: React.FC<{
 export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateToStory, initialView }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const queryClient = useQueryClient();
   const { theme, toggleTheme } = useTheme();
   const auth = useAuth();
   const {
@@ -430,6 +431,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
           }
         } catch { /* non-critical */ }
       }
+      queryClient.invalidateQueries();
       if (!activeAccount?.currency_default) {
         setCurrency(getCurrencyFromSlug(membership.slug));
       }
