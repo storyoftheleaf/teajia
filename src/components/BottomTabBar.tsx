@@ -194,20 +194,22 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
       >
         <div className="flex w-full px-0 h-full">
 
-          {/* Far left — Search icon (fixed narrow slot) */}
+          {/* Far left — Search icon (framed slot, paired dividers) */}
+          {/* Outer divider — frames the edge slot symmetrically with inner cells */}
+          <div className="w-px h-4 bg-tea-border self-center flex-shrink-0" />
           <button
             onClick={onSearchClick}
-            className="w-8 flex-shrink-0 h-full flex items-center justify-center group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none"
+            className="w-12 flex-shrink-0 h-full flex items-center justify-center group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none"
             style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', touchAction: 'manipulation' }}
             title="Search"
             aria-label="Search"
           >
             <svg
               viewBox="0 0 24 24"
-              className="w-[15px] h-[15px] transition-colors duration-200 text-tea-text-sec group-hover:text-tea-text pointer-events-none"
+              className="w-[18px] h-[18px] transition-all duration-200 text-tea-text-sec group-hover:text-tea-text pointer-events-none"
               fill="none"
               stroke="currentColor"
-              strokeWidth={2}
+              strokeWidth={1.75}
               strokeLinecap="round"
               strokeLinejoin="round"
             >
@@ -280,23 +282,23 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
             ))
           )}
 
-          {/* Far right — Account panel */}
+          {/* Far right — Account panel (framed slot, paired dividers) */}
           <button
             onClick={() => {
               if ('vibrate' in navigator) { navigator.vibrate?.(10); }
               onAccountClick?.();
             }}
-            className="w-8 flex-shrink-0 h-full flex flex-col items-center justify-center gap-px group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none relative"
+            className="w-12 flex-shrink-0 h-full flex flex-col items-center justify-center gap-px group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none relative"
             style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', touchAction: 'manipulation' }}
             title="Your Table"
             aria-label="Your Table"
           >
             <svg
               viewBox="0 0 24 24"
-              className="w-[13px] h-[13px] transition-colors duration-200 text-tea-text-sec group-hover:text-tea-text pointer-events-none"
+              className="w-[18px] h-[18px] transition-all duration-200 text-tea-text-sec group-hover:text-tea-text pointer-events-none"
               fill="none"
               stroke="currentColor"
-              strokeWidth={2}
+              strokeWidth={1.75}
               strokeLinecap="round"
               strokeLinejoin="round"
             >
@@ -304,9 +306,12 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
               <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
             </svg>
             {upcomingEventsCount > 0 && (
-              <span className="absolute top-1.5 right-1 w-1.5 h-1.5 rounded-full bg-tea-gold pointer-events-none" />
+              <span className="absolute top-1.5 right-2 w-1.5 h-1.5 rounded-full bg-tea-gold pointer-events-none" />
             )}
           </button>
+
+          {/* Outer divider — frames the edge slot symmetrically with inner cells */}
+          <div className="w-px h-4 bg-tea-border self-center flex-shrink-0" />
 
         </div>
       </nav>
