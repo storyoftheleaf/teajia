@@ -444,3 +444,27 @@ CREATE TABLE IF NOT EXISTS mcp_tokens (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS idx_mcp_tokens_hash ON mcp_tokens(token_hash);
 CREATE INDEX IF NOT EXISTS idx_mcp_tokens_account ON mcp_tokens(account_id, revoked_at);
+
+-- 10. OAuth 2.1 + dynamic client registration (migration 067)
+CREATE TABLE IF NOT EXISTS oauth_clients (
+    id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+    client_name TEXT NOT NULL,
+    redirect_uris TEXT NOT NULL,
+    grant_types TEXT NOT NULL DEFAULT '["authorization_code"]',
+    response_types TEXT NOT NULL DEFAULT '["code"]',
+    created_at TEXT DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS oauth_codes (
+    code TEXT PRIMARY KEY,
+    client_id TEXT NOT NULL,
+    redirect_uri TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    user_email TEXT NOT NULL,
+    account_id TEXT NOT NULL,
+    code_challenge TEXT NOT NULL,
+    code_challenge_method TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    used_at TEXT,
+    created_at TEXT DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_oauth_codes_expires ON oauth_codes(expires_at);

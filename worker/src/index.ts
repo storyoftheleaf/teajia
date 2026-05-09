@@ -1,4 +1,8 @@
-import { mcpFetch, mcpAdminMintToken, mcpAdminListTokens, mcpAdminRevokeToken } from './mcp';
+import {
+  mcpFetch, mcpAdminMintToken, mcpAdminListTokens, mcpAdminRevokeToken,
+  oauthProtectedResourceMetadata, oauthAuthorizationServerMetadata,
+  oauthRegister, oauthAuthorize, oauthAuthorizeDecision, oauthToken,
+} from './mcp';
 
 interface Env {
   DB: D1Database;
@@ -15787,6 +15791,27 @@ export default {
     if (url.pathname === '/mcp') {
       const response = await mcpFetch(request, env);
       return cors(response, corsOrigin);
+    }
+
+    // OAuth 2.1 endpoints for MCP clients (Claude desktop/mobile, ChatGPT).
+    // These are unauthenticated routes by design — they ARE the auth flow.
+    if (url.pathname === '/.well-known/oauth-protected-resource') {
+      return cors(oauthProtectedResourceMetadata(request), corsOrigin);
+    }
+    if (url.pathname === '/.well-known/oauth-authorization-server') {
+      return cors(oauthAuthorizationServerMetadata(request), corsOrigin);
+    }
+    if (url.pathname === '/oauth/register') {
+      return cors(await oauthRegister(request, env), corsOrigin);
+    }
+    if (url.pathname === '/oauth/authorize') {
+      return oauthAuthorize(request); // 302 redirect to consent page
+    }
+    if (url.pathname === '/oauth/authorize/decision') {
+      return cors(await oauthAuthorizeDecision(request, env), corsOrigin);
+    }
+    if (url.pathname === '/oauth/token') {
+      return cors(await oauthToken(request, env), corsOrigin);
     }
 
     const match = matchRoute(request.method, url.pathname, routes);
