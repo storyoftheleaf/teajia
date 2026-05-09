@@ -240,10 +240,11 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
     setPendingPreviews((prev) => [...prev, { localUrl, uploading: true, failed: false }]);
 
     try {
-      // Initial capture keeps the full frame at 1000px so the in-app editor
-      // has breathing room for rotation + crop adjustments. The Edit flow
-      // re-saves at 800px square once the user commits a crop.
-      const compressed = await compressImage(file, 1000, 0.7);
+      // Initial capture stays large — 1600px / quality 0.7 — so the in-app
+      // editor has plenty of pixels to work with for crop, rotation and
+      // future adjustments. Once the user commits an edit the editor saves
+      // back at 800px square, but we want the unedited source generous.
+      const compressed = await compressImage(file, 1600, 0.7);
       const compressedFile = new File([compressed], 'photo.jpg', { type: 'image/jpeg' });
       const imageUrl = await api.uploadImage(compressedFile).catch(() => null);
 

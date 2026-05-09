@@ -591,12 +591,26 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   );
 
   const handlePhotoReplaced = useCallback(
-    (_localUrl: string, serverUrl: string) => {
-      // onPhotoTaken already added serverUrl; nothing extra to do here
-      // (local preview is managed inside PhotoCapture component state)
-      void serverUrl;
+    (oldUrl: string, newUrl: string) => {
+      // Two callers feed this:
+      //   1) Initial capture finishes — oldUrl is a transient blob: URL that
+      //      never made it into entry.photos, so map() is a safe no-op.
+      //   2) In-app crop/rotate edit — oldUrl IS a real entry photo URL and
+      //      we must swap it for newUrl so the thumbnail re-renders. Without
+      //      this, the user sees their edits "save" but the strip keeps
+      //      showing the stale image.
+      if (!entry || oldUrl === newUrl) return;
+      let changed = false;
+      const updated = entry.photos.map((u) => {
+        if (u === oldUrl) {
+          changed = true;
+          return newUrl;
+        }
+        return u;
+      });
+      if (changed) updateEntry(entryId, { photos: updated });
     },
-    []
+    [entry, entryId, updateEntry]
   );
 
   // Handle teaware photos change

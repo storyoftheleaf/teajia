@@ -533,18 +533,53 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
             </div>
           )}
 
-          {/* Session chips strip — pinned below header in sourcing mode */}
+          {/* Session chips strip — pinned below header in sourcing mode.
+              "+ New" and "Batch" anchor the LEFT edge as session-level
+              controls (separated from the entry chips by a hairline
+              divider) so the user always reaches for them in the same
+              spot. They use rounded-md tiles, not pills — same big tap
+              target, less of the floating-pill feel. */}
           {mode === 'sourcing' && captureOption !== 'samples' && (
-            <div className="shrink-0 flex items-center gap-1.5 px-4 py-2 border-b border-tea-border overflow-x-auto scrollbar-hide">
+            <div className="shrink-0 flex items-center gap-1.5 px-3 py-2 border-b border-tea-border overflow-x-auto scrollbar-hide">
+              <button
+                type="button"
+                onClick={() => handleNewCapture()}
+                aria-label="Start a new entry"
+                title="Start a new entry"
+                className="tap-target whitespace-nowrap inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-ui-11 font-medium text-tea-text-sec border border-tea-border bg-tea-elevated/40 hover:text-tea-text hover:border-tea-gold/40 transition-colors shrink-0"
+              >
+                <Plus size={12} strokeWidth={2} />
+                New
+              </button>
+              <button
+                type="button"
+                onClick={() => setBatchMode((v) => !v)}
+                aria-pressed={batchMode}
+                aria-label={batchMode ? 'Exit batch entry mode' : 'Enter batch entry mode'}
+                title={batchMode ? 'Exit batch mode' : 'Batch — rapid-fire capture'}
+                className={`tap-target whitespace-nowrap inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-ui-11 font-medium border transition-colors shrink-0 ${
+                  batchMode
+                    ? 'bg-tea-gold/15 text-tea-gold border-tea-gold/40 font-semibold'
+                    : 'text-tea-text-sec border-tea-border bg-tea-elevated/40 hover:text-tea-text hover:border-tea-gold/40'
+                }`}
+              >
+                <Layers size={12} strokeWidth={2} />
+                Batch
+              </button>
+
+              {sessionEntries.length > 0 && (
+                <div className="w-px h-5 bg-tea-border shrink-0 mx-0.5" aria-hidden />
+              )}
+
               {sessionEntries.map((entry) => (
                 <button
                   key={entry.id}
                   type="button"
                   onClick={() => handleSelectEntry(entry.id)}
-                  className={`group relative flex items-center gap-1.5 whitespace-nowrap px-3 py-1 rounded-full text-ui-11 border transition-colors shrink-0 ${
+                  className={`group relative flex items-center gap-1.5 whitespace-nowrap px-3 py-1.5 rounded-md text-ui-11 border transition-colors shrink-0 ${
                     entry.id === activeEntryId
                       ? 'bg-tea-gold/15 text-tea-gold border-tea-gold/40 font-semibold'
-                      : 'bg-transparent text-tea-text-sec border-tea-border hover:text-tea-text'
+                      : 'bg-tea-elevated/40 text-tea-text-sec border-tea-border hover:text-tea-text'
                   }`}
                 >
                   {entry.name || 'Untitled'}
@@ -558,33 +593,6 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                   </span>
                 </button>
               ))}
-              <button
-                type="button"
-                onClick={() => handleNewCapture()}
-                aria-label="Start a new entry"
-                title="Start a new entry"
-                className="tap-target whitespace-nowrap inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-ui-11 text-tea-text-sec border border-tea-border hover:text-tea-text hover:border-tea-gold/40 transition-colors shrink-0"
-              >
-                <Plus size={11} strokeWidth={2} />
-                New
-              </button>
-              {/* Batch lives with "+ New" — both are session-level controls
-                  (start another entry vs. start a stream of entries) so
-                  clustering them keeps related affordances together. */}
-              <button
-                type="button"
-                onClick={() => setBatchMode((v) => !v)}
-                aria-label={batchMode ? 'Exit batch entry mode' : 'Enter batch entry mode'}
-                title={batchMode ? 'Exit batch mode' : 'Batch — rapid-fire capture'}
-                className={`tap-target whitespace-nowrap inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-ui-11 border transition-colors shrink-0 ${
-                  batchMode
-                    ? 'bg-tea-gold/15 text-tea-gold border-tea-gold/40 font-semibold'
-                    : 'text-tea-text-sec border-tea-border hover:text-tea-text hover:border-tea-gold/40'
-                }`}
-              >
-                <Layers size={11} strokeWidth={2} />
-                Batch
-              </button>
             </div>
           )}
 
