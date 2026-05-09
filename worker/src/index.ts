@@ -1,3 +1,5 @@
+import { mcpFetch, mcpAdminMintToken, mcpAdminListTokens, mcpAdminRevokeToken } from './mcp';
+
 interface Env {
   DB: D1Database;
   MEDIA_BUCKET: R2Bucket;
@@ -2754,6 +2756,40 @@ const handleIncrementStock: Handler = async (request, env) => {
       .bind(amount, product_id, accountId),
     buildListingStockDelta(env, product_id, amount),
   ]);
+  return json({ success: true });
+};
+
+// ── MCP token admin (mint / list / revoke) ──
+//
+// Restricted to the account's owner tier. The plaintext token is shown ONCE
+// in the mint response and never recoverable afterwards — the admin UI must
+// surface that clearly.
+
+const handleMcpMintToken: Handler = async (request, env) => {
+  const ctx = await requireOwnerTier(request, env);
+  if ('error' in ctx) return ctx.error;
+  const body = await request.json() as { label?: string };
+  const label = (body.label || '').trim();
+  if (!label) return json({ error: 'label is required' }, 400);
+
+  const minted = await mcpAdminMintToken(env, ctx.accountId, ctx.userId, ctx.email, label);
+  await buildActivityLog(env, 'MCP_TOKEN_MINTED', `MCP token minted: ${label}`, ctx.email, 'mcp_token', minted.id, ctx.accountId).run();
+  return json({ id: minted.id, token: minted.token, prefix: minted.prefix }, 201);
+};
+
+const handleMcpListTokens: Handler = async (request, env) => {
+  const ctx = await requireOwnerTier(request, env);
+  if ('error' in ctx) return ctx.error;
+  const tokens = await mcpAdminListTokens(env, ctx.accountId);
+  return json(tokens);
+};
+
+const handleMcpRevokeToken: Handler = async (request, env, params) => {
+  const ctx = await requireOwnerTier(request, env);
+  if ('error' in ctx) return ctx.error;
+  const ok = await mcpAdminRevokeToken(env, ctx.accountId, params.id);
+  if (!ok) return json({ error: 'Token not found or already revoked' }, 404);
+  await buildActivityLog(env, 'MCP_TOKEN_REVOKED', `MCP token revoked: ${params.id}`, ctx.email, 'mcp_token', params.id, ctx.accountId).run();
   return json({ success: true });
 };
 
@@ -15411,6 +15447,12 @@ const routes: [string, string, Handler][] = [
   ['POST', '/api/rpc/split-invoice', handleSplitInvoice],
   ['POST', '/api/rpc/link-line-item', handleLinkLineItem],
   ['POST', '/api/rpc/increment-stock', handleIncrementStock],
+
+  // MCP tokens (voice/agent control of inventory)
+  ['GET',    '/api/admin/mcp-tokens',     handleMcpListTokens],
+  ['POST',   '/api/admin/mcp-tokens',     handleMcpMintToken],
+  ['DELETE', '/api/admin/mcp-tokens/:id', handleMcpRevokeToken],
+
   ['POST', '/api/rpc/truncate-all', handleTruncateAll],
   ['POST', '/api/rpc/backfill-customer-links', handleBackfillCustomerLinks],
   ['POST', '/api/rpc/auto-link-vendors', handleAutoLinkVendors],
@@ -15737,6 +15779,14 @@ export default {
       };
       if (corsOrigin) headers['Access-Control-Allow-Origin'] = corsOrigin;
       return new Response(null, { status: 204, headers });
+    }
+
+    // MCP server lives outside the regular route table — it speaks JSON-RPC 2.0
+    // and uses its own bearer-token auth (mcp_tokens), not the JWT/X-Teajia-Account
+    // pair. Handle GET (health) and POST (RPC) here; other methods 405.
+    if (url.pathname === '/mcp') {
+      const response = await mcpFetch(request, env);
+      return cors(response, corsOrigin);
     }
 
     const match = matchRoute(request.method, url.pathname, routes);

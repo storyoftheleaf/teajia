@@ -5,7 +5,7 @@ stack: [Vite 6, React 19, TypeScript, Tailwind v3, Zustand, React Query, Framer 
 deploy: https://teajia.pages.dev
 family: tea
 supersedes: [tea-dev-inital, teajia-grid]
-last_reviewed: 2026-05-02
+last_reviewed: 2026-05-09
 ---
 
 # Teajia — flagship e-commerce + content platform
@@ -114,6 +114,17 @@ Requires dev server already running (`npm run dev`). Takes ~90 seconds.
 |---|---|
 | `/account/orders` | Empty state only — no order data wired |
 | `/account/samples` | Empty state only — no sample data wired |
+
+## Voice & agent control (MCP)
+The worker exposes an MCP server at `/mcp` for voice/agent inventory control. Tokens are minted at `/admin/mcp-tokens` (owner-tier only) and shown ONCE on creation.
+
+**Available tools:** `search_tea`, `get_tea`, `list_low_stock`, `find_customer`, `add_stock`, `remove_stock`, `record_sale`. Mutating tools follow a two-step preview/confirm pattern — first call returns a `confirmation_token`, second call commits.
+
+**Phase 1 (shipped):** all seven tools; `record_sale` creates + fills invoices through the same fulfillment path the admin UI uses (stock_ledger entries, listing mirror, low-stock alerts, sold-out auto-archive all fire). PDFs and email delivery are **Phase 2** — for now invoices created via MCP can be downloaded/shared from the admin UI.
+
+**Implementation:** see [worker/src/mcp.ts](worker/src/mcp.ts) for the JSON-RPC handler and tool definitions, and [src/admin/views/MCPTokensView.tsx](src/admin/views/MCPTokensView.tsx) for token management.
+
+**Schema:** [worker/migrations/066_mcp_tokens.sql](worker/migrations/066_mcp_tokens.sql) — tokens stored as SHA-256 hash; `last_used_at` is bumped on every successful auth so the admin UI shows liveness.
 
 ## Open work
 See `docs/ROADMAP.md` for build sequence and `docs/MULTI_STORE_PLAN.md` for multi-tenancy rollout.
