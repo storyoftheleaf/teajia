@@ -253,14 +253,10 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   // Teaware pickers — open as Vaul bottom sheets. State names kept from
   // the previous popover implementation to minimise churn elsewhere.
   const [categoryPopoverOpen, setCategoryPopoverOpen] = useState(false);
-  const [eraPopoverOpen, setEraPopoverOpen] = useState(false);
   const [materialPopoverOpen, setMaterialPopoverOpen] = useState(false);
   // Clay subtype picker — opens as a separate full-screen sheet after the
   // user picks Clay or Yixing in the Material sheet.
   const [claySheetOpen, setClaySheetOpen] = useState(false);
-  // Era + Material are progressive — hidden behind a "+ Era / Material" toggle
-  // when both are empty, since most field captures don't need them.
-  const [teawareDetailsOpen, setTeawareDetailsOpen] = useState(false);
   // Vestigial — still used by some legacy code paths to track which panel
   // a popover is in. Bottom sheets don't need this; left for safety.
   const [materialPanel, setMaterialPanel] = useState<'main' | 'yixing'>('main');
@@ -927,13 +923,6 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
       setMaterialPanel('main');
     };
 
-    const handleEraPick = (eraName: string) => {
-      update({ era: entry.era === eraName ? undefined : eraName });
-      setEraPopoverOpen(false);
-      setEraInputOpen(false);
-      setEraInputValue('');
-    };
-
     const commitCustomEra = () => {
       const trimmed = eraInputValue.trim();
       if (!trimmed) return;
@@ -941,7 +930,6 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
       update({ era: trimmed });
       setEraInputValue('');
       setEraInputOpen(false);
-      setEraPopoverOpen(false);
     };
 
     const allEras: string[] = [...TEAWARE_ERAS, ...customEras.filter((e) => !TEAWARE_ERAS.includes(e))];
@@ -991,16 +979,17 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           className="w-full bg-tea-gold/[0.06] text-tea-text text-base rounded-xl px-3 py-2.5 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder:text-tea-text-sec/70"
         />
 
-        {/* Row 4 — Category + Era + Material + Origin. flex-wrap so long labels
-            (e.g. "Pre-70s", "Porcelain") fall to a second line gracefully on
-            narrow viewports instead of crushing Origin to nothing. */}
+        {/* Row 4 — Material group: Category + Material + Clay subtype.
+            "What it's made of" reads on one line. The clay subtype, when
+            set, replaces the orphan dot subtitle that used to live below
+            Origin — it now sits next to its parent Material chip where
+            it logically belongs. */}
         <div className="relative">
           <div className="flex items-center gap-2 flex-wrap">
-            {/* Category chip — was on the name row, moved here so all descriptors live together */}
-            <div className="shrink-0" ref={categoryPopoverRef}>
+            <div className="shrink-0">
               <button
                 type="button"
-                onClick={() => { setCategoryPopoverOpen(!categoryPopoverOpen); setEraPopoverOpen(false); setMaterialPopoverOpen(false); }}
+                onClick={() => setCategoryPopoverOpen(true)}
                 className={`inline-flex items-center gap-1 rounded-xl px-3 py-2.5 text-sm border border-tea-border transition-colors ${
                   entry.teawareCategory
                     ? 'text-tea-text font-semibold bg-tea-gold/[0.10]'
@@ -1012,75 +1001,131 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
               </button>
             </div>
 
-            {/* Era + Material — collapsed behind a "+ Era / Material" toggle when
-                both are empty. Once a value is set, the chip stays visible so the
-                user can see and edit it without re-expanding. */}
-            {(teawareDetailsOpen || entry.era || entry.material) ? (
-              <>
-                {/* Era chip */}
-                <div className="shrink-0" ref={eraPopoverRef}>
-                  <button
-                    type="button"
-                    onClick={() => { setEraPopoverOpen(!eraPopoverOpen); setMaterialPopoverOpen(false); setCategoryPopoverOpen(false); setEraInputOpen(false); }}
-                    className={`inline-flex items-center gap-1 rounded-xl px-3 py-2.5 text-sm border border-tea-border transition-colors tabular-nums ${
-                      entry.era
-                        ? 'text-tea-text font-semibold bg-tea-gold/[0.10]'
-                        : 'text-tea-text-sec font-medium bg-tea-gold/[0.06] hover:text-tea-text'
-                    }`}
-                  >
-                    <span>{entry.era || 'Era'}</span>
-                    <ChevronDown size={13} strokeWidth={2} />
-                  </button>
-                </div>
-
-                {/* Material chip */}
-                <div className="shrink-0" ref={materialPopoverRef}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMaterialPopoverOpen(!materialPopoverOpen);
-                      setEraPopoverOpen(false);
-                      setCategoryPopoverOpen(false);
-                      // Default to the Yixing sub-panel when re-opening on a Yixing entry
-                      setMaterialPanel(isYixing && !materialPopoverOpen ? 'yixing' : 'main');
-                    }}
-                    className={`inline-flex items-center gap-1 rounded-xl px-3 py-2.5 text-sm border border-tea-border transition-colors ${
-                      entry.material
-                        ? 'text-tea-text font-semibold bg-tea-gold/[0.10]'
-                        : 'text-tea-text-sec font-medium bg-tea-gold/[0.06] hover:text-tea-text'
-                    }`}
-                  >
-                    <span>{materialChipLabel}</span>
-                    <ChevronDown size={13} strokeWidth={2} />
-                  </button>
-                </div>
-              </>
-            ) : (
+            {/* Material chip — drills into a Vaul bottom sheet. */}
+            <div className="shrink-0">
               <button
                 type="button"
-                onClick={() => setTeawareDetailsOpen(true)}
-                className="shrink-0 inline-flex items-center gap-1 rounded-xl px-3 py-2.5 text-sm bg-transparent border border-dashed border-tea-border text-tea-text-dim hover:text-tea-text-sec hover:border-tea-gold/40 transition-colors"
-                aria-label="Add Era and Material details"
+                onClick={() => {
+                  setMaterialPopoverOpen(true);
+                  setMaterialPanel(isYixing && !materialPopoverOpen ? 'yixing' : 'main');
+                }}
+                className={`inline-flex items-center gap-1 rounded-xl px-3 py-2.5 text-sm border border-tea-border transition-colors ${
+                  entry.material
+                    ? 'text-tea-text font-semibold bg-tea-gold/[0.10]'
+                    : 'text-tea-text-sec font-medium bg-tea-gold/[0.06] hover:text-tea-text'
+                }`}
               >
-                <Plus size={13} strokeWidth={2} />
-                <span>Era · Material</span>
+                <span>{materialChipLabel}</span>
+                <ChevronDown size={13} strokeWidth={2} />
               </button>
-            )}
-
-            {/* Origin — wrapped in an outer div with w-full on mobile so it
-                drops to its own line beneath the chips (the chips line was
-                clipping Origin at narrow widths). Desktop keeps the inline
-                flex-1 behaviour. AutocompleteInput's internal flex-1 wrapper
-                fills whatever width this outer div claims. */}
-            <div className="w-full lg:w-auto lg:flex-1 lg:min-w-[140px]">
-              <AutocompleteInput
-                value={entry.originRegion || ''}
-                onChange={(val) => update({ originRegion: val || undefined })}
-                suggestions={availableRegions}
-                placeholder="Origin"
-                className="w-full bg-tea-gold/[0.06] text-tea-text text-base rounded-xl px-3 py-2.5 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder:text-tea-text-sec/70"
-              />
             </div>
+
+            {/* Clay subtype chip — only when Material is Yixing or Clay
+                AND a subtype is set. Tap re-opens the clay picker. */}
+            {(isYixing || entry.material === 'Clay') && effectiveClayType && (
+              <div className="shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setClaySheetOpen(true)}
+                  className="tap-target inline-flex items-center gap-1.5 rounded-xl px-2.5 py-2 text-sm font-medium bg-tea-gold/[0.10] text-tea-gold border border-tea-gold/30 hover:bg-tea-gold/[0.14] transition-colors"
+                  aria-label={`Clay subtype: ${effectiveClayType} — tap to change`}
+                >
+                  <span
+                    className="shrink-0 w-3 h-3 rounded-full border border-tea-border"
+                    style={{ backgroundColor: YIXING_CLAY_TYPES.find((c) => c.name === effectiveClayType)?.swatch }}
+                    aria-hidden
+                  />
+                  <span>{effectiveClayType}</span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      update({ material: entry.material === 'Clay' ? 'Clay' : 'Yixing', clayType: undefined });
+                    }}
+                    className="shrink-0 -mr-0.5 ml-0.5 text-tea-gold/70 hover:text-tea-gold transition-colors"
+                    aria-label="Clear clay subtype"
+                  >
+                    <X size={11} />
+                  </button>
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Row 5 — Provenance group: Origin (where) + Era (when).
+              Era is an inline horizontal strip — one tap sets the value,
+              no intermediate sheet to open and dismiss. Wraps to multiple
+              rows on narrow viewports rather than scrolling. */}
+          <div className="mt-3 space-y-2">
+            <AutocompleteInput
+              value={entry.originRegion || ''}
+              onChange={(val) => update({ originRegion: val || undefined })}
+              suggestions={availableRegions}
+              placeholder="Origin"
+              className="w-full bg-tea-gold/[0.06] text-tea-text text-base rounded-xl px-3 py-2.5 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder:text-tea-text-sec/70"
+            />
+
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-ui-10 uppercase tracking-[0.12em] text-tea-text-sec font-medium pr-1 shrink-0">Era</span>
+              {allEras.map((eraName) => (
+                <button
+                  key={eraName}
+                  type="button"
+                  onClick={() => update({ era: entry.era === eraName ? undefined : eraName })}
+                  className={`tap-target px-2.5 py-1 rounded-md text-ui-11 font-medium border transition-colors tabular-nums ${
+                    entry.era === eraName
+                      ? 'bg-tea-gold/15 text-tea-gold border-tea-gold/40 font-semibold'
+                      : 'text-tea-text-sec border-tea-border bg-tea-elevated/40 hover:text-tea-text hover:border-tea-gold/40'
+                  }`}
+                >
+                  {eraName}
+                </button>
+              ))}
+              {!eraInputOpen ? (
+                <button
+                  type="button"
+                  onClick={() => setEraInputOpen(true)}
+                  className="tap-target inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-ui-11 font-medium text-tea-gold border border-dashed border-tea-gold/40 bg-transparent hover:bg-tea-gold/[0.08] transition-colors"
+                  aria-label="Add a custom era"
+                >
+                  <Plus size={11} strokeWidth={2.5} />
+                  Add
+                </button>
+              ) : null}
+            </div>
+
+            {eraInputOpen && (
+              <div className="flex items-center gap-2">
+                <input
+                  ref={eraInputRef}
+                  type="text"
+                  value={eraInputValue}
+                  autoFocus
+                  onChange={(e) => setEraInputValue(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') { e.preventDefault(); commitCustomEra(); }
+                    if (e.key === 'Escape') { setEraInputOpen(false); setEraInputValue(''); }
+                  }}
+                  placeholder="e.g. Song Dynasty"
+                  className="flex-1 min-w-0 bg-tea-gold/[0.06] text-tea-text text-base rounded-lg px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none placeholder:text-tea-text-sec/70"
+                />
+                <button
+                  type="button"
+                  onClick={commitCustomEra}
+                  disabled={!eraInputValue.trim()}
+                  className="shrink-0 px-3 py-2 rounded-lg bg-tea-gold text-tea-bg text-ui-12 font-semibold disabled:opacity-40 transition-opacity"
+                >
+                  Add
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setEraInputOpen(false); setEraInputValue(''); }}
+                  className="shrink-0 text-ui-11 text-tea-text-sec hover:text-tea-text transition-colors px-2 py-2"
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Category — opens as a bottom sheet (Vaul) so the picker has
@@ -1112,86 +1157,10 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             </div>
           </BottomSheet>
 
-          {/* Optional clay-subtype subtitle — small line below the row when a
-              clay subtype is set (under either Yixing or generic Clay parent).
-              Placement (small, dim, indented under the Material chip) signals
-              that it's an optional descriptor without labelling it "optional". */}
-          {(isYixing || entry.material === 'Clay') && effectiveClayType && (
-            <div className="flex items-center gap-1.5 mt-1.5 ml-[68px] text-ui-11 text-tea-text-sec">
-              <span
-                className="shrink-0 w-2.5 h-2.5 rounded-full border border-tea-border"
-                style={{ backgroundColor: YIXING_CLAY_TYPES.find((c) => c.name === effectiveClayType)?.swatch }}
-                aria-hidden
-              />
-              <span>{effectiveClayType}</span>
-              <button
-                type="button"
-                onClick={() => update({ material: entry.material === 'Clay' ? 'Clay' : 'Yixing', clayType: undefined })}
-                className="text-tea-text-sec hover:text-tea-text transition-colors"
-                aria-label="Clear clay subtype"
-              >
-                <X size={10} />
-              </button>
-            </div>
-          )}
-
-          {/* Era — bottom sheet. Includes "+ Add new era" affordance at the
-              bottom for user-defined entries (Song Dynasty, etc.). */}
-          <BottomSheet
-            open={eraPopoverOpen}
-            onOpenChange={(open) => {
-              setEraPopoverOpen(open);
-              if (!open) { setEraInputOpen(false); setEraInputValue(''); }
-            }}
-            title="Era"
-            description="When was this piece made?"
-          >
-            <div className="flex flex-col gap-0.5 px-1">
-              {allEras.map((eraName) => (
-                <SheetOption
-                  key={eraName}
-                  label={eraName}
-                  selected={entry.era === eraName}
-                  onSelect={() => handleEraPick(eraName)}
-                />
-              ))}
-              <div className="border-t border-tea-border my-2" />
-              {eraInputOpen ? (
-                <div className="flex items-center gap-2 px-3 py-2">
-                  <input
-                    ref={eraInputRef}
-                    type="text"
-                    value={eraInputValue}
-                    autoFocus
-                    onChange={(e) => setEraInputValue(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') { e.preventDefault(); commitCustomEra(); }
-                      if (e.key === 'Escape') { setEraInputOpen(false); setEraInputValue(''); }
-                    }}
-                    placeholder="e.g. Song Dynasty"
-                    className="flex-1 min-w-0 bg-tea-bg text-tea-text text-base rounded-lg px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none placeholder:text-tea-text-sec/70"
-                  />
-                  <button
-                    type="button"
-                    onClick={commitCustomEra}
-                    disabled={!eraInputValue.trim()}
-                    className="shrink-0 px-3 py-2 rounded-lg bg-tea-gold text-tea-bg text-ui-12 font-semibold disabled:opacity-40 transition-opacity"
-                  >
-                    Add
-                  </button>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setEraInputOpen(true)}
-                  className="flex items-center gap-2 px-3 py-3 rounded-xl text-base font-medium text-tea-gold hover:bg-tea-gold/[0.08] transition-colors"
-                >
-                  <Plus size={16} strokeWidth={2} />
-                  Add new era
-                </button>
-              )}
-            </div>
-          </BottomSheet>
+          {/* (Era is now an inline 1-click strip rendered above with the
+              Origin field; no separate sheet needed. The clay subtype's
+              orphan "• Zhuni ×" subtitle is gone too — the chip lives
+              alongside the Material chip in the row above.) */}
 
           {/* Material — bottom sheet. Yixing and Clay both display a chevron
               and drill into the full-screen Clay sheet rendered below. */}
