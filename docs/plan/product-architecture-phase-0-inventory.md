@@ -80,24 +80,26 @@ Sensitive admin query families are excluded from disk persistence:
 
 ### Zustand
 
-`teajia-storage` still persists mixed state. This needs a deeper classification pass.
+`teajia-storage` still uses one persisted key, but scoped reset behavior now protects the sensitive slices below when the authenticated user or active account changes.
 
 | Slice | Current persistence | Desired classification | Notes |
 |---|---|---|---|
-| Admin cart | Persisted | Account-scoped | Should not move between active accounts |
-| Public cart | Persisted | Store/account or guest scoped | Public shop location matters |
+| Admin cart | Persisted and reset on user/account change | Account-scoped | Should not move between active accounts |
+| Public cart | Persisted and reset on user/account change | Store/account or guest scoped | Public shop location matters |
 | Currency | Persisted | User preference with account override | Account default currently updates on switch |
-| Favorites | Persisted | User or guest-local, then sync | Needs guest-to-member decision |
-| Tasting journal | Persisted | User/account personal memory | Should not leak across users |
-| Recently viewed | Persisted | Guest/user local | Safe if product IDs are public/account-aware |
-| Compare items | Persisted | Guest/user local | Account/store context matters |
-| Inventory view config | Persisted | Account/user scoped | Saved views can be account-specific |
-| Draft product | Persisted | Account-scoped | Could create wrong-account draft restore |
+| Favorites | Persisted and reset on user/account change | User or guest-local, then sync | Needs guest-to-member decision |
+| Tasting journal | Persisted and reset on user/account change | User/account personal memory | Should not leak across users |
+| Recently viewed | Persisted and reset on user/account change | Guest/user local | Safe if product IDs are public/account-aware |
+| Compare items | Persisted and reset on user/account change | Guest/user local | Account/store context matters |
+| Inventory view config | Persisted and reset on user/account change | Account/user scoped | Saved views can be account-specific |
+| Draft product | Persisted and reset on user/account change | Account-scoped | Prevents wrong-account draft restore |
 | Memberships / active account | Persisted | Auth-derived session state | Hydrated from JWT; persistence should be reviewed |
 
 ### Account Switching
 
 The AccountPanel location switch now invalidates React Query caches after a successful switch. This closes the gap where AccountSwitcher invalidated broadly but AccountPanel's switcher did not.
+
+The Zustand store now also resets account/user-scoped slices when `activeAccountId` or `activeUserId` changes. `useAuth.logout`, session-expiry handling, and JWT hydration call through the same boundary, so sensitive local state is cleared on logout, session expiry, login as a different user, or active-account switch.
 
 ## Article Contract Inventory
 
@@ -125,11 +127,12 @@ The AccountPanel location switch now invalidates React Query caches after a succ
 - Sensitive admin query families are excluded from React Query disk persistence.
 - AccountPanel account switching now invalidates React Query after a successful switch.
 - Tasting editor optimistic product updates now patch all account-scoped product query caches instead of only the old unscoped `['products']` key.
+- Zustand account/user-scoped slices now reset on account switch, user switch, logout, and session expiry.
 
 ## Next Recommended Implementation Pull
 
 1. Add a maintained route/auth inventory, either generated from the route table or curated in documentation.
-2. Classify Zustand persisted slices and decide which ones become account-scoped keys.
+2. Decide whether scoped state should be upgraded from reset-on-boundary to per-account saved buckets.
 3. Unify article block types across public, admin, parser, and API client.
 4. Decide whether admin article read endpoints should require the Publish bundle.
 5. Add tests for account switching cache isolation and SQL filter validation.
