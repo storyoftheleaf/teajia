@@ -427,15 +427,21 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   return (
     <div className="flex flex-col relative lg:h-full">
 
-      {/* ── COMPACT HEADER: back + inline tabs + sync dot ── */}
-      <div className="flex items-stretch border-b border-tea-border shrink-0 h-10" role="tablist">
+      {/* ── COMPACT HEADER: back + inline tabs + share/sync cluster ──
+          Page tabs and sub-tabs now share the same typographic family
+          (text-ui-12 font-semibold, mixed case, no tracking) so they
+          read as a coherent navigation language rather than two different
+          designers' work. The active page tab still uses a gold underline
+          (different from the sub-tab pill) because they serve different
+          functions: page tabs switch screens, sub-tabs filter content. */}
+      <div className="flex items-stretch border-b border-tea-border shrink-0 h-11" role="tablist">
         <button
           type="button"
           onClick={onBack}
           className="flex items-center pl-3 pr-2 tap-target text-tea-text-sec hover:text-tea-text transition-colors shrink-0"
           aria-label="Back"
         >
-          <ArrowLeft size={16} strokeWidth={1.5} />
+          <ArrowLeft size={18} strokeWidth={1.75} />
         </button>
         {tabs.map((tab) => {
           const active = mode === tab.id;
@@ -446,18 +452,19 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
               onClick={() => handleSwitchMode(tab.id)}
               role="tab"
               aria-selected={active}
-              className={`relative shrink-0 px-2.5 text-ui-11 font-semibold tracking-[0.08em] uppercase transition-colors ${
+              className={`relative shrink-0 px-3 text-ui-12 font-semibold transition-colors ${
                 active ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
               }`}
+              style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.01em' }}
             >
               {tab.label}
               {tab.badge != null && (
-                <span className="ml-1 text-ui-9 px-[5px] py-px rounded-full bg-tea-gold/20 text-tea-gold">{tab.badge}</span>
+                <span className="ml-1.5 text-ui-9 px-1.5 py-px rounded-full bg-tea-gold/20 text-tea-gold tabular-nums">{tab.badge}</span>
               )}
               {active && (
                 <motion.div
                   layoutId="compass-tab-indicator"
-                  className="absolute bottom-0 left-1 right-1 h-[2px] bg-tea-gold"
+                  className="absolute bottom-0 left-1 right-1 h-[2px] bg-tea-gold rounded-full"
                   transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                 />
               )}
@@ -465,32 +472,40 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
           );
         })}
         <div className="flex-1" />
+
         {mode !== 'sourcing' && (
-          <div className="flex items-center pr-2">
-            <button
-              type="button"
-              onClick={() => handleNewCapture()}
-              className="pill pill-active flex items-center gap-1 text-ui-10"
-              style={{ fontFamily: 'var(--font-display)' }}
-            >
-              <Plus size={11} strokeWidth={2} />
-              New
-            </button>
-          </div>
-        )}
-        {mode === 'sourcing' && hasToken() && activeEntryId && (
           <button
             type="button"
-            onClick={() => setShareModalOpen(true)}
-            className="lg:hidden tap-target flex items-center justify-center w-8 h-full text-tea-text-sec hover:text-tea-text transition-colors shrink-0"
-            aria-label="Share entry"
-            title="Share this entry"
+            onClick={() => handleNewCapture()}
+            className="pill pill-active flex items-center gap-1 text-ui-10 mr-2 self-center"
+            style={{ fontFamily: 'var(--font-display)' }}
           >
-            <Share2 size={14} strokeWidth={1.5} />
+            <Plus size={11} strokeWidth={2} />
+            New
           </button>
         )}
-        <div className="flex items-center pr-3">
-          <SyncIndicator />
+
+        {/* Right-side action cluster — share + sync grouped in a single
+            bordered shell with a hairline divider between them, so they
+            read as one cohesive control rather than two floating dots. */}
+        <div className="flex items-center pr-3 gap-1">
+          {mode === 'sourcing' && hasToken() && activeEntryId && (
+            <>
+              <button
+                type="button"
+                onClick={() => setShareModalOpen(true)}
+                className="lg:hidden tap-target flex items-center justify-center w-9 h-9 rounded-md text-tea-text-sec hover:text-tea-text hover:bg-tea-gold/[0.06] transition-colors shrink-0"
+                aria-label="Share entry"
+                title="Share this entry"
+              >
+                <Share2 size={16} strokeWidth={1.75} />
+              </button>
+              <div className="lg:hidden w-px h-4 bg-tea-border self-center" aria-hidden />
+            </>
+          )}
+          <div className="flex items-center self-center">
+            <SyncIndicator />
+          </div>
         </div>
       </div>
 
@@ -575,28 +590,38 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                 <div className="w-px h-5 bg-tea-border shrink-0 mx-0.5" aria-hidden />
               )}
 
-              {sessionEntries.map((entry) => (
-                <button
-                  key={entry.id}
-                  type="button"
-                  onClick={() => handleSelectEntry(entry.id)}
-                  className={`group relative flex items-center gap-1.5 whitespace-nowrap px-3 py-1.5 rounded-md text-ui-11 border transition-colors shrink-0 ${
-                    entry.id === activeEntryId
-                      ? 'bg-tea-gold/15 text-tea-gold border-tea-gold/40 font-semibold'
-                      : 'bg-tea-elevated/40 text-tea-text-sec border-tea-border hover:text-tea-text'
-                  }`}
-                >
-                  {entry.name || 'Untitled'}
-                  <span
-                    role="button"
-                    aria-label="Remove"
-                    onClick={(e) => { e.stopPropagation(); handleDiscardSessionEntry(entry.id); }}
-                    className="opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity"
+              {sessionEntries.map((entry) => {
+                const isActive = entry.id === activeEntryId;
+                return (
+                  <button
+                    key={entry.id}
+                    type="button"
+                    onClick={() => handleSelectEntry(entry.id)}
+                    className={`group relative flex items-center gap-1.5 whitespace-nowrap px-3 py-1.5 rounded-md text-ui-11 border transition-colors shrink-0 ${
+                      isActive
+                        ? 'bg-tea-gold text-tea-bg border-tea-gold font-semibold'
+                        : 'bg-tea-elevated/40 text-tea-text-sec border-tea-border hover:text-tea-text'
+                    }`}
                   >
-                    <X size={9} />
-                  </span>
-                </button>
-              ))}
+                    {/* Active session = solid gold pill (committed-feeling).
+                        Differentiated from the page-tab gold underline so
+                        a user can tell the active entry chip from a tab
+                        indicator at a glance. */}
+                    {isActive && <Check size={11} strokeWidth={3} className="text-tea-bg" />}
+                    {entry.name || 'Untitled'}
+                    <span
+                      role="button"
+                      aria-label="Remove"
+                      onClick={(e) => { e.stopPropagation(); handleDiscardSessionEntry(entry.id); }}
+                      className={`transition-opacity ${
+                        isActive ? 'opacity-50 hover:opacity-100' : 'opacity-0 group-hover:opacity-60 hover:!opacity-100'
+                      }`}
+                    >
+                      <X size={9} />
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           )}
 
@@ -620,7 +645,12 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.2 }}
                 >
-                  {/* Tea / Teaware / Samples 3-way toggle */}
+                  {/* Tea / Teaware / Samples segmented control. Same
+                      font family as the page tabs above (display font,
+                      semibold, ui-12) so the two nav levels read as one
+                      typographic system. The sliding pill stays — it's a
+                      filter/segmented-control pattern, distinct from the
+                      page tabs' underline pattern. */}
                   <div className="flex gap-0 mb-3 rounded-md bg-tea-surface/30 p-0.5 relative">
                     <motion.div
                       className="absolute top-0.5 bottom-0.5 rounded-[5px] bg-tea-surface shadow-sm"
@@ -631,16 +661,22 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                       transition={{ duration: 0.1, ease: 'easeOut' }}
                     />
                     <button type="button" onClick={() => handleCaptureOption('tea')}
-                      className={`flex-1 text-center py-1.5 text-ui-12 font-medium rounded-[5px] transition-colors relative z-[1] ${captureOption === 'tea' ? 'text-tea-text' : 'text-tea-text-dim hover:text-tea-text-sec'}`}>
+                      className={`flex-1 text-center py-1.5 text-ui-12 font-semibold rounded-[5px] transition-colors relative z-[1] ${captureOption === 'tea' ? 'text-tea-text' : 'text-tea-text-sec hover:text-tea-text'}`}
+                      style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.01em' }}>
                       Tea
                     </button>
                     <button type="button" onClick={() => handleCaptureOption('teaware')}
-                      className={`flex-1 text-center py-1.5 text-ui-12 font-medium rounded-[5px] transition-colors relative z-[1] ${captureOption === 'teaware' ? 'text-tea-text' : 'text-tea-text-dim hover:text-tea-text-sec'}`}>
+                      className={`flex-1 text-center py-1.5 text-ui-12 font-semibold rounded-[5px] transition-colors relative z-[1] ${captureOption === 'teaware' ? 'text-tea-text' : 'text-tea-text-sec hover:text-tea-text'}`}
+                      style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.01em' }}>
                       Teaware
                     </button>
                     <button type="button" onClick={() => handleCaptureOption('samples')}
-                      className={`flex-1 text-center py-1.5 text-ui-12 font-medium rounded-[5px] transition-colors relative z-[1] ${captureOption === 'samples' ? 'text-tea-text' : 'text-tea-text-dim hover:text-tea-text-sec'}`}>
-                      Samples{sampleCartCount > 0 && <span className="ml-1 text-ui-10 text-tea-gold tabular-nums">({sampleCartCount})</span>}
+                      className={`flex-1 text-center py-1.5 text-ui-12 font-semibold rounded-[5px] transition-colors relative z-[1] inline-flex items-center justify-center gap-1.5 ${captureOption === 'samples' ? 'text-tea-text' : 'text-tea-text-sec hover:text-tea-text'}`}
+                      style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.01em' }}>
+                      Samples
+                      {sampleCartCount > 0 && (
+                        <span className="text-ui-9 px-1.5 py-px rounded-full bg-tea-gold/20 text-tea-gold tabular-nums font-medium">{sampleCartCount}</span>
+                      )}
                     </button>
                   </div>
 
