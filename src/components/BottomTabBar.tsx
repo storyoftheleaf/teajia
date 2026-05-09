@@ -23,22 +23,6 @@ interface BottomTabBarProps {
   isAdminRoute?: boolean;
 }
 
-const BracketFrame: React.FC<{ active: boolean }> = ({ active }) => {
-  const tone = active ? 'rgb(var(--tea-gold-rgb) / 0.7)' : 'rgb(var(--tea-gold-rgb) / 0.35)';
-  const corner = 'absolute w-1.5 h-1.5 transition-[border-color,transform] duration-300 ease-out';
-  const offset = active ? '-translate-x-px -translate-y-px' : '';
-  return (
-    <span aria-hidden className="absolute inset-0 flex items-center justify-center pointer-events-none">
-      <span className="relative w-9 h-7">
-        <span className={`${corner} top-0 left-0 border-l border-t ${active ? offset : ''}`} style={{ borderColor: tone }} />
-        <span className={`${corner} top-0 right-0 border-r border-t ${active ? 'translate-x-px -translate-y-px' : ''}`} style={{ borderColor: tone }} />
-        <span className={`${corner} bottom-0 left-0 border-l border-b ${active ? '-translate-x-px translate-y-px' : ''}`} style={{ borderColor: tone }} />
-        <span className={`${corner} bottom-0 right-0 border-r border-b ${active ? 'translate-x-px translate-y-px' : ''}`} style={{ borderColor: tone }} />
-      </span>
-    </span>
-  );
-};
-
 export const BottomTabBar: React.FC<BottomTabBarProps> = ({
   activeSection,
   onNavigate,
@@ -216,19 +200,18 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
       >
         <div className="flex w-full px-0 h-full">
 
-          {/* Far left — Search (bracket-framed tool slot) */}
+          {/* Far left — Search (elevated tool slot) */}
           <button
             onClick={onSearchClick}
-            className="relative w-14 flex-shrink-0 h-full flex items-center justify-center group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none"
+            className={`w-11 flex-shrink-0 h-full flex items-center justify-center border-r border-tea-border group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none transition-colors duration-300 ${isSearchOpen ? 'bg-tea-gold/10' : 'bg-tea-elevated'}`}
             style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', touchAction: 'manipulation' }}
             title="Search"
             aria-label="Search"
             aria-pressed={isSearchOpen}
           >
-            <BracketFrame active={isSearchOpen} />
             <svg
               viewBox="0 0 24 24"
-              className={`w-5 h-5 transition-colors duration-300 pointer-events-none relative ${isSearchOpen ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'}`}
+              className={`w-5 h-5 transition-colors duration-300 pointer-events-none ${isSearchOpen ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'}`}
               fill="none"
               stroke="currentColor"
               strokeWidth={1.6}
@@ -304,22 +287,21 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
             ))
           )}
 
-          {/* Far right — Your Table (bracket-framed tool slot) */}
+          {/* Far right — Your Table (elevated tool slot) */}
           <button
             onClick={() => {
               if ('vibrate' in navigator) { navigator.vibrate?.(10); }
               onAccountClick?.();
             }}
-            className="relative w-14 flex-shrink-0 h-full flex items-center justify-center group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none"
+            className={`relative w-11 flex-shrink-0 h-full flex items-center justify-center border-l border-tea-border group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none transition-colors duration-300 ${isAccountOpen ? 'bg-tea-gold/10' : 'bg-tea-elevated'}`}
             style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', touchAction: 'manipulation' }}
             title="Your Table"
             aria-label="Your Table"
             aria-pressed={isAccountOpen}
           >
-            <BracketFrame active={isAccountOpen} />
             <svg
               viewBox="0 0 24 24"
-              className={`w-5 h-5 transition-colors duration-300 pointer-events-none relative ${isAccountOpen ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'}`}
+              className={`w-5 h-5 transition-colors duration-300 pointer-events-none ${isAccountOpen ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'}`}
               fill="none"
               stroke="currentColor"
               strokeWidth={1.6}
@@ -330,7 +312,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
               <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
             </svg>
             {upcomingEventsCount > 0 && (
-              <span className="absolute top-2.5 right-3 w-1.5 h-1.5 rounded-full bg-tea-gold pointer-events-none" />
+              <span className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-tea-gold pointer-events-none" />
             )}
           </button>
 
