@@ -946,7 +946,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
     const materialChipLabel = isYixing ? 'Yixing' : (entry.material || 'Material');
 
     return (
-      <div className="bg-tea-surface border border-tea-border rounded-2xl px-4 py-4 space-y-5">
+      <div className="bg-tea-surface border border-tea-border rounded-2xl px-4 py-4 space-y-4">
 
         {/* "Source" header — vendor + photos read as a single header card
             with a faint gold inner glow and a subtle hairline between the
@@ -995,43 +995,43 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           </div>
         </div>
 
-        {/* Row 3 — Name (full width). The category chip moved down with Era /
-            Material so the descriptors group together and the name field gets
-            the full row to breathe. */}
-        <input
-          type="text"
-          value={entry.name}
-          onChange={(e) => update({ name: e.target.value })}
-          placeholder={
-            entry.teawareCategory
-              ? `${entry.teawareCategory} name (e.g., Shipiao, Shuiping…)`
-              : 'Name — pick a Category below for hints'
-          }
-          className="w-full bg-tea-gold/[0.06] text-tea-text text-base rounded-xl px-3 py-2.5 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder:text-tea-text-sec/70"
-        />
+        {/* Row 3 — Name + Category chip on one line. Mirrors the tea
+            variant's "Name + Type chip" pattern so both forms have the
+            same primary-classifier rhythm: free-text identity on the
+            left, single decisive picker on the right. */}
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            value={entry.name}
+            onChange={(e) => update({ name: e.target.value })}
+            placeholder={
+              entry.teawareCategory
+                ? `${entry.teawareCategory} name (e.g., Shipiao, Shuiping…)`
+                : 'Teaware name (e.g., Shipiao, Bing Lang…)'
+            }
+            className="flex-1 min-w-0 bg-tea-gold/[0.06] text-tea-text text-base rounded-xl px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder:text-tea-text-sec/70"
+          />
+          <button
+            type="button"
+            onClick={() => setCategoryPopoverOpen(true)}
+            className={`shrink-0 inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm border border-tea-border transition-colors ${
+              entry.teawareCategory
+                ? 'text-tea-text font-semibold bg-tea-gold/[0.10]'
+                : 'text-tea-text-sec font-medium bg-tea-elevated hover:text-tea-text hover:bg-tea-gold/[0.10]'
+            }`}
+          >
+            <span>{entry.teawareCategory || 'Category'}</span>
+            <ChevronDown size={14} strokeWidth={2} />
+          </button>
+        </div>
 
-        {/* Row 4 — Material group: Category + Material + Clay subtype.
-            "What it's made of" reads on one line. The clay subtype, when
-            set, replaces the orphan dot subtitle that used to live below
-            Origin — it now sits next to its parent Material chip where
-            it logically belongs. */}
+        {/* Row 4 — Material + Clay subtype. Category lifted up to the
+            name row so this row holds only "what it's made of". The clay
+            subtype, when set, replaces the orphan dot subtitle that used
+            to live below Origin — it now sits next to its parent Material
+            chip where it logically belongs. */}
         <div className="relative">
           <div className="flex items-center gap-2 flex-wrap">
-            <div className="shrink-0">
-              <button
-                type="button"
-                onClick={() => setCategoryPopoverOpen(true)}
-                className={`inline-flex items-center gap-1 rounded-xl px-3 py-2.5 text-sm border border-tea-border transition-colors ${
-                  entry.teawareCategory
-                    ? 'text-tea-text font-semibold bg-tea-gold/[0.10]'
-                    : 'text-tea-text-sec font-medium bg-tea-gold/[0.06] hover:text-tea-text'
-                }`}
-              >
-                <span>{entry.teawareCategory || 'Category'}</span>
-                <ChevronDown size={13} strokeWidth={2} />
-              </button>
-            </div>
-
             {/* Material chip — drills into a Vaul bottom sheet. */}
             <div className="shrink-0">
               <button
@@ -1373,17 +1373,39 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           hideMic
         />
 
-        {/* Done */}
-        {hasTeawareName && (
-          <button
-            type="button"
-            onClick={handleCommit}
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-tea-gold/10 text-tea-gold text-sm font-semibold hover:bg-tea-gold/15 active:bg-tea-gold/20 transition-all"
-          >
-            <Check size={15} strokeWidth={2.5} />
-            Done
-          </button>
-        )}
+        {/* Done — same gold-gradient primary CTA as the tea variant, with
+            consistent name-trim gating. Disabled state stays muted so the
+            user sees what unblocks them (filling the name). */}
+        {(() => {
+          const ready = !!entry.name?.trim();
+          return (
+            <button
+              type="button"
+              onClick={handleCommit}
+              disabled={!ready}
+              className={`w-full mt-1 py-3.5 rounded-xl text-base font-semibold transition-all ${
+                ready
+                  ? 'text-tea-bg'
+                  : 'text-tea-text-sec bg-tea-elevated border border-tea-border cursor-not-allowed'
+              }`}
+              style={
+                ready
+                  ? {
+                      fontFamily: 'var(--font-display)',
+                      letterSpacing: '0.06em',
+                      background:
+                        'linear-gradient(180deg, rgb(var(--tea-gold-rgb)) 0%, rgb(var(--tea-gold-lt-rgb)) 100%)',
+                      boxShadow:
+                        '0 4px 14px -2px rgb(var(--tea-gold-rgb) / 0.35), inset 0 1px 0 rgb(255 255 255 / 0.12)',
+                    }
+                  : { fontFamily: 'var(--font-display)', letterSpacing: '0.06em' }
+              }
+              aria-label="Done — commit this entry"
+            >
+              Done
+            </button>
+          );
+        })()}
       </div>
     );
   }
@@ -1444,36 +1466,61 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
         </button>
       )}
 
-      {/* ─── IDENTITY ─── */}
-      <div className="space-y-2">
-        <div className="flex items-start gap-3">
-          <div className="flex-1 min-w-0">
-            <VendorStrip
-              vendorName={entry.vendorName}
-              vendorId={entry.vendorId}
-              vendorDetails={entry.vendorDetails}
-              onVendorSelect={handleVendorSelect}
-              onClear={handleVendorClear}
-              onDetailsChange={handleVendorDetailsChange}
-              linkedCustomerId={entry.linkedCustomerId}
-              onLinkedCustomerChange={handleLinkedCustomerChange}
-            />
-          </div>
+      {/* SOURCE header — same card the teaware variant uses, so both forms
+          open with an identical vendor + photo cluster. Photo strip uses
+          the lg size so thumbnails render at full visibility, and the
+          right-side counter mirrors what Teaware shows. */}
+      <div
+        className="rounded-2xl border border-tea-border bg-tea-gold/[0.025] px-3 py-2.5"
+        style={{ boxShadow: 'inset 0 1px 0 rgb(var(--tea-gold-rgb) / 0.05)' }}
+      >
+        <div className="flex items-center justify-between mb-1.5">
+          <span
+            className="text-ui-9 uppercase tracking-[0.18em] text-tea-text-sec font-medium"
+            style={{ fontFamily: 'var(--font-display)' }}
+          >
+            Source
+          </span>
+          {entry.photos.length > 0 && (
+            <span className="text-ui-9 uppercase tracking-[0.14em] text-tea-text-sec tabular-nums">
+              {entry.photos.length} {entry.photos.length === 1 ? 'photo' : 'photos'}
+            </span>
+          )}
+        </div>
+
+        <VendorStrip
+          vendorName={entry.vendorName}
+          vendorId={entry.vendorId}
+          vendorDetails={entry.vendorDetails}
+          onVendorSelect={handleVendorSelect}
+          onClear={handleVendorClear}
+          onDetailsChange={handleVendorDetailsChange}
+          linkedCustomerId={entry.linkedCustomerId}
+          onLinkedCustomerChange={handleLinkedCustomerChange}
+        />
+
+        <div className="border-t border-tea-border -mx-3 mt-2.5 mb-2.5" aria-hidden />
+
+        <div className="flex items-center min-h-[44px]">
           <PhotoCapture
             onExtracted={handleExtracted}
             onPhotoTaken={handlePhotoTaken}
             onPhotoReplaced={handlePhotoReplaced}
             photos={entry.photos}
             onRemovePhoto={(i) => updateEntry(entryId, { photos: entry.photos.filter((_, idx) => idx !== i) })}
+            size="lg"
           />
         </div>
+      </div>
 
+      {/* ─── IDENTITY ─── */}
+      <div className="space-y-2">
         <div className="flex items-center gap-2">
           <AutocompleteInput
             value={entry.name}
             onChange={(val) => update({ name: val })}
             suggestions={allNameSuggestions}
-            placeholder="What are you tasting?"
+            placeholder={entry.type ? `${entry.type} name (e.g., Tieguanyin, Bingdao…)` : 'Tea name (e.g., Tieguanyin, Bingdao…)'}
             className="w-full bg-tea-gold/[0.06] text-tea-text text-base rounded-xl px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors min-w-0 placeholder:text-tea-text-sec/70"
             onSelect={handleNameAutocompleteSelect}
             itemData={{ ...varietyNameMap, ...productNameMap }}
