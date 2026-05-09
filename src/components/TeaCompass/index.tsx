@@ -1564,10 +1564,10 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                 </AnimatePresence>
 
                 {showCaptureActionBar && (
-                  <div className="flex items-center justify-between px-3 py-1.5 bg-tea-bg border-b border-tea-border">
-                    <SaveModeToggle inventoryDisabled={inventoryDisabled} />
+                  <div className="flex items-start justify-between gap-3 px-3 py-2 bg-tea-bg border-b border-tea-border">
+                    <SaveModeToggle inventoryDisabled={inventoryDisabled} compact />
                     {justPromoted && (
-                      <span className="text-ui-11 text-tea-gold inline-flex items-center gap-1">
+                      <span className="text-ui-11 text-tea-gold inline-flex items-center gap-1 mt-1.5">
                         <Check size={11} /> Added to drafts
                       </span>
                     )}
