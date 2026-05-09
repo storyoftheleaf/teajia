@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Cropper, { Area } from 'react-easy-crop';
 import { Loader2, RotateCw, X } from 'lucide-react';
 import { cropToSquareBlob, fileOrUrlToObjectUrl } from '../../lib/cropImage';
@@ -26,6 +26,12 @@ export const SquareCropModal: React.FC<SquareCropModalProps> = ({
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
+  // Mirror croppedAreaPixels into a ref so handleConfirm always reads the
+  // freshest value. Without this, a quick zoom-then-Save tap could save
+  // the pre-zoom pixels because react-easy-crop's onCropComplete fires
+  // throttled and React's state update hadn't propagated to the click
+  // handler's closure yet.
+  const croppedAreaPixelsRef = useRef<Area | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -44,6 +50,7 @@ export const SquareCropModal: React.FC<SquareCropModalProps> = ({
     setZoom(1);
     setRotation(0);
     setCroppedAreaPixels(null);
+    croppedAreaPixelsRef.current = null;
     setImageLoaded(false);
 
     if (!isOpen || !source) return;
@@ -71,15 +78,19 @@ export const SquareCropModal: React.FC<SquareCropModalProps> = ({
   }, [isOpen, source]);
 
   const onCropComplete = useCallback((_: Area, croppedPixels: Area) => {
+    croppedAreaPixelsRef.current = croppedPixels;
     setCroppedAreaPixels(croppedPixels);
   }, []);
 
   const handleConfirm = async () => {
-    if (!imageSrc || !croppedAreaPixels) return;
+    // Read from the ref so we always get the latest crop area, even when
+    // the user zooms and immediately taps Save.
+    const pixels = croppedAreaPixelsRef.current ?? croppedAreaPixels;
+    if (!imageSrc || !pixels) return;
     setSaving(true);
     setError(null);
     try {
-      const blob = await cropToSquareBlob(imageSrc, croppedAreaPixels, {
+      const blob = await cropToSquareBlob(imageSrc, pixels, {
         size: outputSize,
         quality: outputQuality,
         rotation,

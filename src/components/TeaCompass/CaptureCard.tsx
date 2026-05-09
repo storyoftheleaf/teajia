@@ -948,31 +948,52 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
     return (
       <div className="bg-tea-surface border border-tea-border rounded-2xl px-4 py-4 space-y-5">
 
-        {/* Row 1 — Vendor (full width, gives it room to breathe) */}
-        <VendorStrip
-          vendorName={entry.vendorName}
-          vendorId={entry.vendorId}
-          vendorDetails={entry.vendorDetails}
-          onVendorSelect={handleVendorSelect}
-          onClear={handleVendorClear}
-          onDetailsChange={handleVendorDetailsChange}
-          linkedCustomerId={entry.linkedCustomerId}
-          onLinkedCustomerChange={handleLinkedCustomerChange}
-        />
+        {/* "Source" header — vendor + photos read as a single header card
+            with a faint gold inner glow and a subtle hairline between the
+            vendor row and the photo row. Treats the two rows as one
+            cohesive header rather than two stacked widgets. */}
+        <div
+          className="rounded-2xl border border-tea-border bg-tea-gold/[0.025] px-3 py-2.5"
+          style={{ boxShadow: 'inset 0 1px 0 rgb(var(--tea-gold-rgb) / 0.05)' }}
+        >
+          <div className="flex items-center justify-between mb-1.5">
+            <span
+              className="text-ui-9 uppercase tracking-[0.18em] text-tea-text-sec font-medium"
+              style={{ fontFamily: 'var(--font-display)' }}
+            >
+              Source
+            </span>
+            {entry.photos.length > 0 && (
+              <span className="text-ui-9 uppercase tracking-[0.14em] text-tea-text-sec tabular-nums">
+                {entry.photos.length} {entry.photos.length === 1 ? 'photo' : 'photos'}
+              </span>
+            )}
+          </div>
 
-        {/* Row 2 — Photo / Scan / Camera, dedicated row at 44px tap targets */}
-        <div className="flex items-center min-h-[44px]">
-          <PhotoCapture
-            onExtracted={handleExtracted}
-            onPhotoTaken={handlePhotoTaken}
-            onPhotoReplaced={handlePhotoReplaced}
-            photos={entry.photos}
-            onRemovePhoto={(i) => updateEntry(entryId, { photos: entry.photos.filter((_, idx) => idx !== i) })}
-            size="lg"
+          <VendorStrip
+            vendorName={entry.vendorName}
+            vendorId={entry.vendorId}
+            vendorDetails={entry.vendorDetails}
+            onVendorSelect={handleVendorSelect}
+            onClear={handleVendorClear}
+            onDetailsChange={handleVendorDetailsChange}
+            linkedCustomerId={entry.linkedCustomerId}
+            onLinkedCustomerChange={handleLinkedCustomerChange}
           />
-        </div>
 
-        <div className="border-t border-tea-border" />
+          <div className="border-t border-tea-border -mx-3 mt-2.5 mb-2.5" aria-hidden />
+
+          <div className="flex items-center min-h-[44px]">
+            <PhotoCapture
+              onExtracted={handleExtracted}
+              onPhotoTaken={handlePhotoTaken}
+              onPhotoReplaced={handlePhotoReplaced}
+              photos={entry.photos}
+              onRemovePhoto={(i) => updateEntry(entryId, { photos: entry.photos.filter((_, idx) => idx !== i) })}
+              size="lg"
+            />
+          </div>
+        </div>
 
         {/* Row 3 — Name (full width). The category chip moved down with Era /
             Material so the descriptors group together and the name field gets

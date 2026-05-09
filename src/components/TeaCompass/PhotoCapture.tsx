@@ -626,22 +626,30 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
         ))}
 
         <div className={`flex ${isLg ? 'flex-row ml-auto' : 'flex-col'} ${btnGap} shrink-0`}>
-          {/* Sparkles = live camera scanner */}
+          {/* Sparkles = AI label scanner. Carries a subtle gold accent at
+              rest so it reads as the "magic" primary action — distinct
+              from the plain Camera button which is just a gallery picker. */}
           <button
             type="button"
             onClick={openScanner}
-            className={`${btnCls} ${isLg ? '' : 'tap-target'} flex items-center justify-center border shrink-0 transition-colors ${
+            className={`${btnCls} ${isLg ? '' : 'tap-target'} flex items-center justify-center border shrink-0 transition-all ${
               justExtracted
-                ? 'border-tea-gold/40 text-tea-gold bg-tea-gold/10'
-                : 'border-tea-border bg-tea-elevated text-tea-text-sec hover:text-tea-gold hover:border-tea-gold/40'
+                ? 'border-tea-gold/50 text-tea-gold bg-tea-gold/15'
+                : 'border-tea-gold/30 bg-tea-gold/[0.06] text-tea-gold hover:bg-tea-gold/[0.12] hover:border-tea-gold/50'
             }`}
+            style={
+              justExtracted
+                ? undefined
+                : { boxShadow: 'inset 0 1px 0 rgb(var(--tea-gold-rgb) / 0.10)' }
+            }
             aria-label="Scan label"
             title="Scan label"
           >
             {justExtracted ? <Check size={btnIcon} strokeWidth={2} /> : <Sparkles size={btnIcon} strokeWidth={1.5} />}
           </button>
 
-          {/* Camera icon = gallery picker, no extraction */}
+          {/* Camera icon = plain gallery picker. Quieter visual weight so
+              the eye lands on the Sparkles scan button first. */}
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
