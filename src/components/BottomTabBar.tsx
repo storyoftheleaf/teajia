@@ -16,10 +16,28 @@ interface BottomTabBarProps {
   hidden?: boolean;
   onAccountClick?: () => void;
   onAccountClose?: () => void;
+  isAccountOpen?: boolean;
   onSearchClick?: () => void;
   onSearchClose?: () => void;
+  isSearchOpen?: boolean;
   isAdminRoute?: boolean;
 }
+
+const BracketFrame: React.FC<{ active: boolean }> = ({ active }) => {
+  const tone = active ? 'rgb(var(--tea-gold-rgb) / 0.7)' : 'rgb(var(--tea-gold-rgb) / 0.35)';
+  const corner = 'absolute w-1.5 h-1.5 transition-[border-color,transform] duration-300 ease-out';
+  const offset = active ? '-translate-x-px -translate-y-px' : '';
+  return (
+    <span aria-hidden className="absolute inset-0 flex items-center justify-center pointer-events-none">
+      <span className="relative w-9 h-7">
+        <span className={`${corner} top-0 left-0 border-l border-t ${active ? offset : ''}`} style={{ borderColor: tone }} />
+        <span className={`${corner} top-0 right-0 border-r border-t ${active ? 'translate-x-px -translate-y-px' : ''}`} style={{ borderColor: tone }} />
+        <span className={`${corner} bottom-0 left-0 border-l border-b ${active ? '-translate-x-px translate-y-px' : ''}`} style={{ borderColor: tone }} />
+        <span className={`${corner} bottom-0 right-0 border-r border-b ${active ? 'translate-x-px translate-y-px' : ''}`} style={{ borderColor: tone }} />
+      </span>
+    </span>
+  );
+};
 
 export const BottomTabBar: React.FC<BottomTabBarProps> = ({
   activeSection,
@@ -27,8 +45,10 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
   hidden = false,
   onAccountClick,
   onAccountClose,
+  isAccountOpen = false,
   onSearchClick,
   onSearchClose,
+  isSearchOpen = false,
   isAdminRoute = false,
 }) => {
   const navigate = useNavigate();
@@ -196,22 +216,22 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
       >
         <div className="flex w-full px-0 h-full">
 
-          {/* Far left — Search icon (framed slot, paired dividers) */}
-          {/* Outer divider — frames the edge slot symmetrically with inner cells */}
-          <div className="w-px h-4 bg-tea-border self-center flex-shrink-0" />
+          {/* Far left — Search (bracket-framed tool slot) */}
           <button
             onClick={onSearchClick}
-            className="w-12 flex-shrink-0 h-full flex items-center justify-center group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none"
+            className="relative w-14 flex-shrink-0 h-full flex items-center justify-center group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none"
             style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', touchAction: 'manipulation' }}
             title="Search"
             aria-label="Search"
+            aria-pressed={isSearchOpen}
           >
+            <BracketFrame active={isSearchOpen} />
             <svg
               viewBox="0 0 24 24"
-              className="w-[18px] h-[18px] transition-all duration-200 text-tea-text-sec group-hover:text-tea-text pointer-events-none"
+              className={`w-5 h-5 transition-colors duration-300 pointer-events-none relative ${isSearchOpen ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'}`}
               fill="none"
               stroke="currentColor"
-              strokeWidth={1.75}
+              strokeWidth={1.6}
               strokeLinecap="round"
               strokeLinejoin="round"
             >
@@ -220,18 +240,18 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
             </svg>
           </button>
 
-          {/* Left sections */}
+          {/* Left sections — divider only between tab pairs, not adjacent to the bracket-framed search */}
           {isAdminRoute ? (
             adminLeftTabs.map((tab, index) => (
               <React.Fragment key={tab.id}>
-                <div className="w-px h-4 bg-tea-border self-center flex-shrink-0" />
+                {index > 0 && <div className="w-px h-4 bg-tea-border self-center flex-shrink-0" />}
                 {renderAdminTabButton(tab, index)}
               </React.Fragment>
             ))
           ) : (
             leftSections.map((section, index) => (
               <React.Fragment key={section.id}>
-                <div className="w-px h-4 bg-tea-border self-center flex-shrink-0" />
+                {index > 0 && <div className="w-px h-4 bg-tea-border self-center flex-shrink-0" />}
                 {renderTabButton(section, index)}
               </React.Fragment>
             ))
@@ -267,40 +287,42 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
 
           <div className="w-px h-4 bg-tea-border self-center flex-shrink-0" />
 
-          {/* Right sections */}
+          {/* Right sections — divider only between tab pairs, not adjacent to the bracket-framed account */}
           {isAdminRoute ? (
             adminRightTabs.map((tab, index) => (
               <React.Fragment key={tab.id}>
                 {renderAdminTabButton(tab, index + adminLeftTabs.length + 1)}
-                <div className="w-px h-4 bg-tea-border self-center flex-shrink-0" />
+                {index < adminRightTabs.length - 1 && <div className="w-px h-4 bg-tea-border self-center flex-shrink-0" />}
               </React.Fragment>
             ))
           ) : (
             rightSections.map((section, index) => (
               <React.Fragment key={section.id}>
                 {renderTabButton(section, index + leftSections.length + 1)}
-                <div className="w-px h-4 bg-tea-border self-center flex-shrink-0" />
+                {index < rightSections.length - 1 && <div className="w-px h-4 bg-tea-border self-center flex-shrink-0" />}
               </React.Fragment>
             ))
           )}
 
-          {/* Far right — Account panel (framed slot, paired dividers) */}
+          {/* Far right — Your Table (bracket-framed tool slot) */}
           <button
             onClick={() => {
               if ('vibrate' in navigator) { navigator.vibrate?.(10); }
               onAccountClick?.();
             }}
-            className="w-12 flex-shrink-0 h-full flex flex-col items-center justify-center gap-px group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none relative"
+            className="relative w-14 flex-shrink-0 h-full flex items-center justify-center group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none"
             style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', touchAction: 'manipulation' }}
             title="Your Table"
             aria-label="Your Table"
+            aria-pressed={isAccountOpen}
           >
+            <BracketFrame active={isAccountOpen} />
             <svg
               viewBox="0 0 24 24"
-              className="w-[18px] h-[18px] transition-all duration-200 text-tea-text-sec group-hover:text-tea-text pointer-events-none"
+              className={`w-5 h-5 transition-colors duration-300 pointer-events-none relative ${isAccountOpen ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'}`}
               fill="none"
               stroke="currentColor"
-              strokeWidth={1.75}
+              strokeWidth={1.6}
               strokeLinecap="round"
               strokeLinejoin="round"
             >
@@ -308,12 +330,9 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
               <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
             </svg>
             {upcomingEventsCount > 0 && (
-              <span className="absolute top-1.5 right-2 w-1.5 h-1.5 rounded-full bg-tea-gold pointer-events-none" />
+              <span className="absolute top-2.5 right-3 w-1.5 h-1.5 rounded-full bg-tea-gold pointer-events-none" />
             )}
           </button>
-
-          {/* Outer divider — frames the edge slot symmetrically with inner cells */}
-          <div className="w-px h-4 bg-tea-border self-center flex-shrink-0" />
 
         </div>
       </nav>
