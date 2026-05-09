@@ -16,6 +16,9 @@ import { CompassIcon } from './CompassIcon';
 import { SyncIndicator } from './SyncIndicator';
 import { SessionStack } from './SessionStack';
 import { CaptureCard, type CaptureCardActions } from './CaptureCard';
+import { SaveModeToggle } from './SaveModeToggle';
+import { useCommitAndPromote } from './useCommitAndPromote';
+import { useCompassSaveMode } from '../../lib/compassSaveMode';
 import { BrowseView } from './BrowseView';
 import { LedgerView } from './LedgerView';
 import { useVoiceRecorder } from './useVoiceRecorder';
@@ -100,6 +103,28 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
 
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+
+  // ── Inventory promotion: read save mode + commit helper ──────────────────
+  const inventoryDisabled = !activeAccountId;
+  const setSaveMode = useCompassSaveMode((s) => s.setMode);
+  const { commitAndPromote, busy: promoting, lastResult: promoteResult } = useCommitAndPromote();
+  const [justPromoted, setJustPromoted] = useState(false);
+
+  // Deep-link from DraftsView: /admin/compass?mode=inventory pre-selects the
+  // segmented control so the user lands directly in inventory-capture mode.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const requested = params.get('mode');
+    if (requested === 'inventory' && !inventoryDisabled) setSaveMode('inventory');
+  }, [setSaveMode, inventoryDisabled]);
+
+  useEffect(() => {
+    if (!promoteResult?.promoted) return;
+    setJustPromoted(true);
+    const t = setTimeout(() => setJustPromoted(false), 2200);
+    return () => clearTimeout(t);
+  }, [promoteResult]);
 
   // Mode: sourcing (editing an entry), tasting (list), or buying (transactions)
   const [mode, setMode] = useState<CompassMode>(initialMode || 'sourcing');
@@ -252,6 +277,10 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
     // Capture committed entry info before it's removed from session
     const committed = activeEntryId ? getEntry(activeEntryId) : null;
 
+    // If save mode is 'inventory', sync + promote in the background. Runs once
+    // per commit regardless of which Done button (tea or teaware) was clicked.
+    if (activeEntryId) void commitAndPromote(activeEntryId);
+
     // If this compass entry is linked to a sample, write tasting data back
     if (committed?.isSample && committed.id && committed.tasting &&
         Object.values(committed.tasting).some((v) => Array.isArray(v) ? v.length > 0 : v != null)) {
@@ -302,7 +331,13 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
         activeEntryId ? getEntry(activeEntryId)?.category || 'tea' : 'tea'
       );
     }
-  }, [getSessionEntries, activeEntryId, setActiveEntry, startNewCapture, getEntry, samplesList, addSampleTasting, updateSampleStatus, setFromLibrary]);
+  }, [getSessionEntries, activeEntryId, setActiveEntry, startNewCapture, getEntry, samplesList, addSampleTasting, updateSampleStatus, setFromLibrary, commitAndPromote]);
+
+  const handleDoneClick = useCallback(() => {
+    if (!activeEntryId) return;
+    commitEntry(activeEntryId);
+    handleCommitEntry();
+  }, [activeEntryId, commitEntry, handleCommitEntry]);
 
   const handleDiscardActive = useCallback(() => {
     if (!activeEntryId) return;
@@ -870,6 +905,19 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                 )}
               </AnimatePresence>
 
+              {/* Save-mode strip: always visible so the dual purpose
+                  (personal log vs. inventory draft) is discoverable. */}
+              {showCaptureActionBar && (
+                <div className="border-t border-tea-border bg-tea-bg flex items-center justify-between px-3 py-1.5">
+                  <SaveModeToggle inventoryDisabled={inventoryDisabled} />
+                  {justPromoted && (
+                    <span className="text-ui-11 text-tea-gold inline-flex items-center gap-1">
+                      <Check size={11} /> Added to drafts
+                    </span>
+                  )}
+                </div>
+              )}
+
               <div
                 className="border-t border-tea-border bg-tea-surface flex items-stretch"
                 style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
@@ -1004,17 +1052,14 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                 {/* Done */}
                 <button
                   type="button"
-                  onClick={() => {
-                    if (!activeEntryId) return;
-                    commitEntry(activeEntryId);
-                    handleCommitEntry();
-                  }}
-                  disabled={!activeEntryId || captureOption === 'samples'}
+                  onClick={handleDoneClick}
+                  disabled={!activeEntryId || captureOption === 'samples' || promoting}
+                  data-testid="compass-done-mobile"
                   className="flex-[1.4] flex items-center justify-center py-2.5 text-tea-gold font-bold text-ui-13 disabled:opacity-30 transition-opacity"
                   style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.1em' }}
                   aria-label="Done"
                 >
-                  Done
+                  {promoting ? <Loader2 size={14} className="animate-spin" /> : 'Done'}
                 </button>
               </div>
             </div>
@@ -1493,6 +1538,17 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                   )}
                 </AnimatePresence>
 
+                {showCaptureActionBar && (
+                  <div className="flex items-center justify-between px-3 py-1.5 bg-tea-bg border-b border-tea-border">
+                    <SaveModeToggle inventoryDisabled={inventoryDisabled} />
+                    {justPromoted && (
+                      <span className="text-ui-11 text-tea-gold inline-flex items-center gap-1">
+                        <Check size={11} /> Added to drafts
+                      </span>
+                    )}
+                  </div>
+                )}
+
                 <div className="flex items-stretch bg-tea-surface">
                   {/* Taste / Want / Buy */}
                   {showCaptureActionBar && (
@@ -1617,17 +1673,14 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                   {/* Done */}
                   <button
                     type="button"
-                    onClick={() => {
-                      if (!activeEntryId) return;
-                      commitEntry(activeEntryId);
-                      handleCommitEntry();
-                    }}
-                    disabled={!activeEntryId || captureOption === 'samples'}
+                    onClick={handleDoneClick}
+                    disabled={!activeEntryId || captureOption === 'samples' || promoting}
+                    data-testid="compass-done-desktop"
                     className="flex-[1.4] flex items-center justify-center py-2.5 text-tea-gold font-bold text-ui-13 disabled:opacity-30 transition-opacity"
                     style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.1em' }}
                     aria-label="Done"
                   >
-                    Done
+                    {promoting ? <Loader2 size={14} className="animate-spin" /> : 'Done'}
                   </button>
                 </div>
               </div>

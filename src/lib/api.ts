@@ -1566,6 +1566,15 @@ export const api = {
       });
       return handleResponse(res);
     },
+    /** Promote a compass entry to a Draft product in the active account.
+     *  Idempotent — returns the existing product if already promoted. */
+    promote: async (entryId: string): Promise<{ id: string; product: Record<string, any>; alreadyPromoted: boolean }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/compass/entries/${entryId}/promote`, {
+        method: 'POST',
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
     /** Share a capture card to known accounts and/or generate an invite link for external tasters */
     share: async (params: {
       entryId: string;

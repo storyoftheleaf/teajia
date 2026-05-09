@@ -45,7 +45,7 @@ export const DraftsView: React.FC<DraftsViewProps> = ({
     return draftProducts;
   }, [filter, toReview, readyToApprove, draftProducts]);
 
-  const goToCompass = useCallback(() => navigate('/admin/compass'), [navigate]);
+  const goToCompass = useCallback(() => navigate('/admin/compass?mode=inventory'), [navigate]);
 
   const bulkApprove = async () => {
     if (readyToApprove.length === 0 || approving) return;
@@ -177,7 +177,7 @@ const EmptyState: React.FC<{ onCompass: () => void }> = ({ onCompass }) => (
       <Check size={32} className="mx-auto mb-3 text-tea-text-dim opacity-30" />
       <p className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text mb-1`}>No drafts in the queue</p>
       <p className="text-ui-13 text-tea-text-sec mb-5">
-        New items are captured in Compass — photos, samples, and labels become drafts that land here for review.
+        Drafts arrive here when items are captured in Compass with <span className="text-tea-text">Inventory</span> mode selected.
       </p>
       <button
         type="button"
