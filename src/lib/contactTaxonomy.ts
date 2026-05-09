@@ -11,6 +11,7 @@ export type ContactRelationshipKind =
 export interface ContactRelationshipDefinition {
   kind: ContactRelationshipKind;
   label: string;
+  shortLabel: string;
   primaryBundle: Bundle | 'personal';
   description: string;
   examples: string[];
@@ -20,6 +21,7 @@ export const CONTACT_RELATIONSHIP_TAXONOMY: Record<ContactRelationshipKind, Cont
   buyer: {
     kind: 'buyer',
     label: 'Buyer',
+    shortLabel: 'Buyer',
     primaryBundle: 'sell',
     description: 'A person or organization connected to orders, invoices, pricing, WhatsApp checkout, and revenue history.',
     examples: ['retail customer', 'wholesale buyer', 'repeat tea client'],
@@ -27,6 +29,7 @@ export const CONTACT_RELATIONSHIP_TAXONOMY: Record<ContactRelationshipKind, Cont
   vendor: {
     kind: 'vendor',
     label: 'Vendor / Source',
+    shortLabel: 'Source',
     primaryBundle: 'catalog',
     description: 'A sourcing relationship connected to tea identity, procurement context, origin notes, or supplier reliability.',
     examples: ['tea farmer', 'producer', 'supplier', 'ceramicist'],
@@ -34,6 +37,7 @@ export const CONTACT_RELATIONSHIP_TAXONOMY: Record<ContactRelationshipKind, Cont
   event_guest: {
     kind: 'event_guest',
     label: 'Event Guest',
+    shortLabel: 'Guest',
     primaryBundle: 'gather',
     description: 'A person connected to hosted gatherings, attendance, RSVP state, guest history, and post-session memory.',
     examples: ['RSVP guest', 'attendee', 'waitlisted guest'],
@@ -41,6 +45,7 @@ export const CONTACT_RELATIONSHIP_TAXONOMY: Record<ContactRelationshipKind, Cont
   collection_recipient: {
     kind: 'collection_recipient',
     label: 'Collection Recipient',
+    shortLabel: 'Recipient',
     primaryBundle: 'publish',
     description: 'A recipient or audience member for curated collections, shares, and editorially assembled tea lists.',
     examples: ['private collection recipient', 'shop collection audience', 'shared tasting list recipient'],
@@ -48,6 +53,7 @@ export const CONTACT_RELATIONSHIP_TAXONOMY: Record<ContactRelationshipKind, Cont
   contributor: {
     kind: 'contributor',
     label: 'Contributor',
+    shortLabel: 'Contributor',
     primaryBundle: 'publish',
     description: 'A person whose authorship, expertise, photography, or tea practice appears in public editorial context.',
     examples: ['writer', 'photographer', 'tea master', 'interview subject'],
@@ -55,6 +61,7 @@ export const CONTACT_RELATIONSHIP_TAXONOMY: Record<ContactRelationshipKind, Cont
   personal_connection: {
     kind: 'personal_connection',
     label: 'Personal Connection',
+    shortLabel: 'Personal',
     primaryBundle: 'personal',
     description: 'A relationship note or memory that belongs to a person/account context rather than an operational department.',
     examples: ['friend of the practice', 'private note', 'shared tasting memory'],

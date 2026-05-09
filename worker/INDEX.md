@@ -7,7 +7,7 @@
 ## Where things live
 
 - **src/index.ts** — every route handler. ~296 endpoints. Single file by design (Worker bundle size limit).
-- **migrations/** — D1 schema, numbered sequentially. Latest: 068_mcp_token_scopes.sql
+- **migrations/** — D1 schema, numbered sequentially. Latest: 069_contact_relationships.sql
 - **wrangler.toml** — deploy config
 
 ## Endpoints by bundle (gated by requireBundle())
@@ -157,6 +157,7 @@ From /docs/_audit/03_platform_crosscutting.md §PART 1.
   - `PUT /api/products/:id/commercial` → `sell`
   - `PUT /api/products/:id/publication` → `publish`
 - MCP token mint/list/revoke and MCP OAuth approval are owner-tier. Tokens now store explicit scopes: `inventory:read`, `stock:write`, `customers:read`, `sales:write`.
+- Contact relationships split people by purpose. `contact_relationships` stores buyer, source, event guest, collection recipient, contributor, and personal connection meaning without duplicating the underlying person record.
 
 **Multi-tenancy:** Every data query MUST filter by account_id. Spot-checked in /docs/_audit/03_platform_crosscutting.md §B — all 5 sample routes scoped correctly.
 
@@ -186,7 +187,7 @@ Platform-wide audit log: `platform_audit_log` table (created migration 047_membe
 | 051 | 051_network_adoption.sql | Adoption queue + network_visible flag |
 | 052–055 | 052_fix_missing_columns.sql, etc. | Schema repairs + audit columns |
 
-Latest: **068_mcp_token_scopes.sql**
+Latest: **069_contact_relationships.sql**
 
 ## Key numbers
 

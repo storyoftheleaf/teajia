@@ -2583,6 +2583,7 @@ const handleCreateInvoice: Handler = async (request, env) => {
   );
 
   await env.DB.batch([invoiceStmt, ...lineItemStmts, logStmt]);
+  await ensureContactRelationship(env, accountId, body.invoice.customer_id, 'buyer', 'workflow', 'invoice', id);
 
   return json({ id, invoice_number: invoiceNumber }, 201);
 };
@@ -2614,6 +2615,7 @@ const handleUpdateInvoice: Handler = async (request, env, params) => {
   const sets = cols.map(c => `${c} = ?`).join(', ');
   await env.DB.prepare(`UPDATE invoices SET ${sets} WHERE id = ? AND account_id = ?`)
     .bind(...cols.map(c => body[c] ?? null), params.id, accountId).run();
+  await ensureContactRelationship(env, accountId, body.customer_id, 'buyer', 'workflow', 'invoice', params.id);
   return json({ success: true });
 };
 
@@ -3001,6 +3003,7 @@ const handleSplitInvoice: Handler = async (request, env) => {
     console.error('handleSplitInvoice batch failed:', err);
     return json({ error: 'Split failed — no changes were committed' }, 500);
   }
+  await ensureContactRelationship(env, accountId, invoice.customer_id, 'buyer', 'workflow', 'invoice', newId);
   return json({ original_id: invoice_id, new_id: newId, new_invoice_number: newNumber }, 201);
 };
 
@@ -3059,6 +3062,7 @@ const handleUpdateInvoiceItems: Handler = async (request, env, params) => {
     userEmail, 'invoice', params.id, accountId));
 
   await env.DB.batch(stmts);
+  await ensureContactRelationship(env, accountId, body.customer_id, 'buyer', 'workflow', 'invoice', params.id);
   return json({ success: true });
 };
 
@@ -3198,6 +3202,111 @@ const handleTruncateAll: Handler = async (request, env) => {
 };
 
 // ── Customers ──
+const CONTACT_RELATIONSHIP_KINDS = [
+  'buyer',
+  'vendor',
+  'event_guest',
+  'collection_recipient',
+  'contributor',
+  'personal_connection',
+] as const;
+type ContactRelationshipKind = typeof CONTACT_RELATIONSHIP_KINDS[number];
+
+function isContactRelationshipKind(value: unknown): value is ContactRelationshipKind {
+  return typeof value === 'string' && CONTACT_RELATIONSHIP_KINDS.includes(value as ContactRelationshipKind);
+}
+
+function parseJsonArray(raw: unknown): any[] {
+  if (Array.isArray(raw)) return raw;
+  if (typeof raw !== 'string' || !raw.trim()) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+async function listContactRelationshipsForCustomers(
+  env: Env,
+  accountId: string,
+  customerIds: string[],
+): Promise<Map<string, ContactRelationshipKind[]>> {
+  const map = new Map<string, ContactRelationshipKind[]>();
+  const ids = [...new Set(customerIds.filter(Boolean))];
+  if (ids.length === 0) return map;
+  try {
+    const placeholders = ids.map(() => '?').join(',');
+    const rows = await env.DB.prepare(
+      `SELECT customer_id, kind
+         FROM contact_relationships
+        WHERE account_id = ? AND customer_id IN (${placeholders})
+        ORDER BY created_at ASC`
+    ).bind(accountId, ...ids).all();
+    for (const row of (rows.results ?? []) as any[]) {
+      if (!isContactRelationshipKind(row.kind)) continue;
+      const list = map.get(row.customer_id) ?? [];
+      if (!list.includes(row.kind)) list.push(row.kind);
+      map.set(row.customer_id, list);
+    }
+  } catch {
+    // Older local DBs may not have the relationship table yet. The UI can
+    // still fall back to legacy tags until the migration is applied.
+  }
+  return map;
+}
+
+async function listContactRelationshipsForCustomer(env: Env, accountId: string, customerId: string) {
+  const relationships = await listContactRelationshipsForCustomers(env, accountId, [customerId]);
+  return relationships.get(customerId) ?? [];
+}
+
+async function ensureContactRelationship(
+  env: Env,
+  accountId: string,
+  customerId: string | null | undefined,
+  kind: ContactRelationshipKind,
+  source = 'workflow',
+  sourceEntityType?: string,
+  sourceEntityId?: string,
+) {
+  if (!customerId) return;
+  try {
+    await env.DB.prepare(
+      `INSERT OR IGNORE INTO contact_relationships
+        (id, account_id, customer_id, kind, source, source_entity_type, source_entity_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
+    ).bind(
+      crypto.randomUUID(),
+      accountId,
+      customerId,
+      kind,
+      source,
+      sourceEntityType ?? null,
+      sourceEntityId ?? null,
+    ).run();
+  } catch {
+    // Keep legacy workflows alive if a local/dev database has not run 069 yet.
+  }
+}
+
+async function ensureRelationshipsFromCustomerBody(
+  env: Env,
+  accountId: string,
+  customerId: string,
+  body: Record<string, any>,
+  source = 'customer_profile',
+) {
+  const tags = parseJsonArray(body.tags);
+  const requested = parseJsonArray(body.relationship_kinds).filter(isContactRelationshipKind);
+  const kinds = new Set<ContactRelationshipKind>(requested);
+  if (body.type === 'supplier' || tags.includes('vendor')) kinds.add('vendor');
+  if (tags.includes('friend') || tags.includes('personal')) kinds.add('personal_connection');
+  for (const kind of kinds) {
+    await ensureContactRelationship(env, accountId, customerId, kind, source, 'customer', customerId);
+  }
+}
+
 const handleGetCustomers: Handler = async (request, env) => {
   const ctx = await requireAccount(request, env);
   if ('error' in ctx) return ctx.error;
@@ -3205,11 +3314,24 @@ const handleGetCustomers: Handler = async (request, env) => {
 
   const url = new URL(request.url);
   const typeFilter = url.searchParams.get('type'); // 'customer' | 'supplier' | null (all)
+  const relationshipFilter = url.searchParams.get('relationship');
   if (typeFilter && typeFilter !== 'customer' && typeFilter !== 'supplier') {
     return json({ error: 'Invalid customer type filter' }, 400);
   }
+  if (relationshipFilter && !isContactRelationshipKind(relationshipFilter)) {
+    return json({ error: 'Invalid relationship filter' }, 400);
+  }
   const typeClause = typeFilter ? 'AND c.type = ?' : '';
   const typeBinds = typeFilter ? [typeFilter] : [];
+  const relationshipClause = relationshipFilter
+    ? `AND EXISTS (
+        SELECT 1 FROM contact_relationships cr
+         WHERE cr.account_id = c.account_id
+           AND cr.customer_id = c.id
+           AND cr.kind = ?
+      )`
+    : '';
+  const relationshipBinds = relationshipFilter ? [relationshipFilter] : [];
 
   let result;
   try {
@@ -3225,10 +3347,10 @@ const handleGetCustomers: Handler = async (request, env) => {
         ) as event_count
       FROM customers c
       LEFT JOIN invoices i ON i.customer_id = c.id AND i.status != 'Void' AND i.account_id = ?
-      WHERE c.account_id = ? ${typeClause}
+      WHERE c.account_id = ? ${typeClause} ${relationshipClause}
       GROUP BY c.id
       ORDER BY c.created_at DESC
-    `).bind(accountId, accountId, ...typeBinds).all();
+    `).bind(accountId, accountId, ...typeBinds, ...relationshipBinds).all();
   } catch {
     result = await env.DB.prepare(`
       SELECT c.*, 0 as order_count, 0 as total_spent_usd, NULL as last_order_date, 0 as event_count
@@ -3252,11 +3374,18 @@ const handleGetCustomers: Handler = async (request, env) => {
     }
   } catch { /* tag table may not exist yet on older databases */ }
 
+  const relationshipMap = await listContactRelationshipsForCustomers(
+    env,
+    accountId,
+    (result.results as any[]).map(c => c.id),
+  );
+
   const customers = (result.results as any[]).map(c => ({
     ...c,
     contacts: typeof c.contacts === 'string' ? JSON.parse(c.contacts || '[]') : (c.contacts ?? []),
     tags: typeof c.tags === 'string' ? JSON.parse(c.tags || '[]') : (c.tags ?? []),
     contact_tags: tagMap.get(c.id) || [],
+    relationship_kinds: relationshipMap.get(c.id) || [],
   }));
   return json(customers);
 };
@@ -3283,9 +3412,54 @@ const handleGetCustomer: Handler = async (request, env, params) => {
     ...customer,
     contacts: typeof customer.contacts === 'string' ? JSON.parse(customer.contacts || '[]') : (customer.contacts ?? []),
     tags: typeof customer.tags === 'string' ? JSON.parse(customer.tags || '[]') : (customer.tags ?? []),
+    relationship_kinds: await listContactRelationshipsForCustomer(env, accountId, params.id),
     orders,
   };
   return json(parsed);
+};
+
+const handleGetCustomerRelationships: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+
+  const customer = await env.DB.prepare(
+    'SELECT id FROM customers WHERE id = ? AND account_id = ?'
+  ).bind(params.id, accountId).first();
+  if (!customer) return json({ error: 'Customer not found' }, 404);
+
+  try {
+    const rows = await env.DB.prepare(
+      `SELECT id, kind, source, source_entity_type, source_entity_id, notes, created_at, updated_at
+         FROM contact_relationships
+        WHERE account_id = ? AND customer_id = ?
+        ORDER BY created_at ASC`
+    ).bind(accountId, params.id).all();
+    return json(rows.results ?? []);
+  } catch {
+    return json([]);
+  }
+};
+
+const handlePutCustomerRelationships: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+
+  const body = await request.json() as Record<string, any>;
+  const kinds = parseJsonArray(body.relationship_kinds).filter(isContactRelationshipKind);
+  const customer = await env.DB.prepare(
+    'SELECT id FROM customers WHERE id = ? AND account_id = ?'
+  ).bind(params.id, accountId).first();
+  if (!customer) return json({ error: 'Customer not found' }, 404);
+
+  await env.DB.prepare(
+    'DELETE FROM contact_relationships WHERE account_id = ? AND customer_id = ? AND source = ?'
+  ).bind(accountId, params.id, 'manual').run();
+  for (const kind of kinds) {
+    await ensureContactRelationship(env, accountId, params.id, kind, 'manual', 'customer', params.id);
+  }
+  return json({ success: true, relationship_kinds: await listContactRelationshipsForCustomer(env, accountId, params.id) });
 };
 
 const handleCreateCustomer: Handler = async (request, env) => {
@@ -3322,6 +3496,8 @@ const handleCreateCustomer: Handler = async (request, env) => {
     body.contacts || '[]'
   ).run();
 
+  await ensureRelationshipsFromCustomerBody(env, accountId, id, body, 'manual');
+
   return json({ id }, 201);
 };
 
@@ -3337,11 +3513,14 @@ const handleUpdateCustomer: Handler = async (request, env, params) => {
 
   const CUSTOMER_ALLOWED_COLS = new Set(['name','email','phone','notes','tags','address','city','country','source','vip','preferred_currency','instagram','wechat','whatsapp','referred_by','type','company','contacts']);
   const cols = Object.keys(body).filter(k => CUSTOMER_ALLOWED_COLS.has(k));
-  if (cols.length === 0) return json({ success: true });
-  const sets = cols.map(c => `${c} = ?`).join(', ');
-  await env.DB.prepare(
-    `UPDATE customers SET ${sets}, updated_at = datetime('now') WHERE id = ? AND account_id = ?`
-  ).bind(...cols.map(c => body[c] ?? null), params.id, accountId).run();
+  if (cols.length > 0) {
+    const sets = cols.map(c => `${c} = ?`).join(', ');
+    await env.DB.prepare(
+      `UPDATE customers SET ${sets}, updated_at = datetime('now') WHERE id = ? AND account_id = ?`
+    ).bind(...cols.map(c => body[c] ?? null), params.id, accountId).run();
+  }
+
+  await ensureRelationshipsFromCustomerBody(env, accountId, params.id, body, 'manual');
 
   return json({ success: true });
 };
@@ -3362,7 +3541,7 @@ const handleDeleteCustomer: Handler = async (request, env, params) => {
 };
 
 const handleGetCustomerOrders: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'sell');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -3439,7 +3618,7 @@ const handleGetCustomerTeas: Handler = async (request, env, params) => {
 };
 
 const handleGetCustomerEvents: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'gather');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -3556,7 +3735,7 @@ const handleGetCustomerJourney: Handler = async (request, env, params) => {
 };
 
 const handleGetVendorProducts: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'catalog');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -3572,7 +3751,7 @@ const handleGetVendorProducts: Handler = async (request, env, params) => {
 };
 
 const handleLinkVendorProduct: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'catalog');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -3582,12 +3761,13 @@ const handleLinkVendorProduct: Handler = async (request, env, params) => {
 
   await env.DB.prepare('UPDATE products SET vendor_id = ? WHERE id = ? AND account_id = ?')
     .bind(params.id, productId, accountId).run();
+  await ensureContactRelationship(env, accountId, params.id, 'vendor', 'workflow', 'product', productId);
 
   return json({ success: true });
 };
 
 const handleUnlinkVendorProduct: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'catalog');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -5687,6 +5867,7 @@ const handleUpdateAttendee: Handler = async (request, env, params) => {
   const sets = cols.map(c => `${c} = ?`).join(', ');
   await env.DB.prepare(`UPDATE event_attendees SET ${sets} WHERE id = ?`)
     .bind(...cols.map(c => body[c] ?? null), params.id).run();
+  await ensureContactRelationship(env, accountId, body.customer_id, 'event_guest', 'workflow', 'event_attendee', params.id);
 
   if (body.status === 'cancelled' && attendee.status !== 'cancelled') {
     await cascadeWaitlist(env, attendee.eid as string, (attendee.claim_window_minutes as number) || 60);
@@ -7088,6 +7269,7 @@ const handleApproveAttendee: Handler = async (request, env, params) => {
       await env.DB.prepare(
         'UPDATE event_attendees SET customer_id = ? WHERE id = ?'
       ).bind(linkedCustomerId, params.id).run();
+      await ensureContactRelationship(env, accountId, linkedCustomerId, 'event_guest', 'workflow', 'event_attendee', params.id);
     }
   } catch {
     // Auto-link is non-critical — don't fail the approval if it errors
@@ -7532,6 +7714,7 @@ const handleApproveBatch: Handler = async (request, env, params) => {
       }
       await env.DB.prepare('UPDATE event_attendees SET customer_id = ? WHERE id = ?')
         .bind(linkedId, row.id).run();
+      await ensureContactRelationship(env, accountId, linkedId, 'event_guest', 'workflow', 'event_attendee', row.id);
     } catch {}
   }
 
@@ -7685,6 +7868,7 @@ const handleClaimGuestInvite: Handler = async (request, env, params) => {
     }
     await env.DB.prepare('UPDATE event_attendees SET customer_id = ? WHERE id = ?')
       .bind(linkedId, newAttendeeId).run();
+    await ensureContactRelationship(env, accountId, linkedId, 'event_guest', 'workflow', 'event_attendee', newAttendeeId);
   } catch {}
 
   return json({ magic_token: magicToken, redirect_url: `/m/${magicToken}` }, 201);
@@ -12804,6 +12988,17 @@ const handlePublishCollection: Handler = async (request, env, params) => {
     slug, (targetType === 'person' || targetType === 'tag') ? JSON.stringify(recipients) : null,
     ctx.userId
   ).run();
+  for (const recipient of recipients) {
+    await ensureContactRelationship(
+      env,
+      ctx.accountId,
+      recipient?.customer_id,
+      'collection_recipient',
+      'workflow',
+      'collection_publication',
+      pubId,
+    );
+  }
 
   // Auto-promote draft → active on first publish.
   await env.DB.prepare(
@@ -15566,6 +15761,8 @@ const routes: [string, string, Handler][] = [
   // Customers
   ['GET', '/api/customers', handleGetCustomers],
   ['GET', '/api/customers/:id', handleGetCustomer],
+  ['GET', '/api/customers/:id/relationships', handleGetCustomerRelationships],
+  ['PUT', '/api/customers/:id/relationships', handlePutCustomerRelationships],
   ['POST', '/api/customers', handleCreateCustomer],
   ['PUT', '/api/customers/:id', handleUpdateCustomer],
   ['DELETE', '/api/customers/:id', handleDeleteCustomer],

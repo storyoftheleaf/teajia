@@ -19,7 +19,20 @@ This taxonomy defines the first durable relationship model so future route and U
 | Contributor | Someone whose expertise, authorship, photography, or tea practice appears publicly | `publish` | magazine articles, contributor pages, editorial credits |
 | Personal Connection | A private relationship note or memory tied to a person/account context | personal/account scoped | journal, notes, private member memory |
 
-The matching executable constant is `CONTACT_RELATIONSHIP_TAXONOMY` in `src/lib/contactTaxonomy.ts`.
+The matching executable constant is `CONTACT_RELATIONSHIP_TAXONOMY` in `src/lib/contactTaxonomy.ts`. The database source of truth is `contact_relationships`, added by `worker/migrations/069_contact_relationships.sql`.
+
+## Implementation State
+
+The first release is now designed around one canonical person row plus many relationship rows.
+
+Shipped foundation:
+
+- `contact_relationships` stores relationship kind, account, customer/person id, source, and source entity.
+- Existing data is backfilled from invoices, product vendor links, event attendees, collection publications, and legacy vendor/friend tags.
+- Database triggers keep future invoice, vendor, event attendee, and collection-publication workflows synchronized.
+- Customer list and profile responses include `relationship_kinds`.
+- The admin People area shows relationship badges and filters.
+- The person profile shows a relationship portrait before the operational history.
 
 ## Authorization Direction
 
@@ -38,10 +51,11 @@ Instead, split access by relationship context:
 
 ## Implementation Pulls
 
-1. Add relationship-kind fields or join tables rather than overloading `customers.type`.
-2. Split route handlers by relationship purpose before adding bundle gates.
-3. Rename UI labels where needed: "Customer" should remain commerce-specific; broader surfaces should say Contact, Guest, Source, Recipient, or Contributor.
-4. Add route tests after each split so buyers, vendors, guests, and recipients do not accidentally inherit the wrong permission model.
+1. Extend contributor/contact linking so editorial contributors can optionally point back to a private contact record.
+2. Split richer profile sections behind bundle-aware loaders so partial-access staff see only their relationship surface.
+3. Move remaining legacy `customers.type` and `vendor`/`friend` tag assumptions to relationship reads.
+4. Add a dedicated relationship editor for nuanced manual corrections and privacy notes.
+5. Add route tests after each split so buyers, vendors, guests, and recipients do not accidentally inherit the wrong permission model.
 
 ## Product Principle
 

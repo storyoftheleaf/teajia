@@ -728,8 +728,12 @@ export const api = {
   },
 
   customers: {
-    list: async (type?: 'customer' | 'supplier') => {
-      const url = type ? `${API_URL}/api/customers?type=${type}` : `${API_URL}/api/customers`;
+    list: async (type?: 'customer' | 'supplier', relationship?: string) => {
+      const params = new URLSearchParams();
+      if (type) params.set('type', type);
+      if (relationship) params.set('relationship', relationship);
+      const query = params.toString();
+      const url = query ? `${API_URL}/api/customers?${query}` : `${API_URL}/api/customers`;
       const res = await fetchWithTimeout(url, {
         headers: authHeaders(),
       });
@@ -785,6 +789,20 @@ export const api = {
     getSuppliedProducts: async (id: string) => {
       const res = await fetchWithTimeout(`${API_URL}/api/customers/${id}/products`, {
         headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    getRelationships: async (id: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/customers/${id}/relationships`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    updateRelationships: async (id: string, relationshipKinds: string[]) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/customers/${id}/relationships`, {
+        method: 'PUT',
+        headers: authHeaders(),
+        body: JSON.stringify({ relationship_kinds: relationshipKinds }),
       });
       return handleResponse(res);
     },

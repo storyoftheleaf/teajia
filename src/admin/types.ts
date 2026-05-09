@@ -119,6 +119,13 @@ export interface InvoiceWithItems extends Invoice {
 
 export type CustomerTag = 'wholesale' | 'retail' | 'friend' | 'vendor' | 'vip' | 'inactive';
 export type ContactType = 'customer' | 'supplier';
+export type ContactRelationshipKind =
+  | 'buyer'
+  | 'vendor'
+  | 'event_guest'
+  | 'collection_recipient'
+  | 'contributor'
+  | 'personal_connection';
 
 export type ContactChannel = 'phone' | 'email' | 'whatsapp' | 'wechat' | 'line' | 'instagram' | 'telegram' | 'signal' | 'other';
 
@@ -144,6 +151,7 @@ export interface Customer {
   tags: CustomerTag[];
   /** Freeform contact tags (admin-only, lowercase). Joined from customer_tags. */
   contact_tags?: string[];
+  relationshipKinds?: ContactRelationshipKind[];
   notes?: string;
   source?: string;
   createdAt: string;

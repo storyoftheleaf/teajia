@@ -206,6 +206,33 @@ describe('worker authorization boundaries', () => {
     expect(body.fields).toContain('product_name');
   });
 
+  it('requires the catalog bundle for source supplied-product reads', async () => {
+    const request = await authedRequest('/api/customers/cus_test/products');
+    const response = await worker.fetch(request, makeEnv({ role: 'staff', bundles: ['sell'] }));
+    const body = await response.json() as any;
+
+    expect(response.status).toBe(403);
+    expect(body.required_bundle).toBe('catalog');
+  });
+
+  it('requires the sell bundle for buyer order history reads', async () => {
+    const request = await authedRequest('/api/customers/cus_test/orders');
+    const response = await worker.fetch(request, makeEnv({ role: 'staff', bundles: ['gather'] }));
+    const body = await response.json() as any;
+
+    expect(response.status).toBe(403);
+    expect(body.required_bundle).toBe('sell');
+  });
+
+  it('rejects unknown contact relationship filters', async () => {
+    const request = await authedRequest('/api/customers?relationship=crm_bucket');
+    const response = await worker.fetch(request, makeEnv({ role: 'owner' }));
+    const body = await response.json() as any;
+
+    expect(response.status).toBe(400);
+    expect(body.error).toBe('Invalid relationship filter');
+  });
+
   it('requires a verified JWT for MCP OAuth approval', async () => {
     const request = new Request('https://worker.test/oauth/authorize/decision', {
       method: 'POST',

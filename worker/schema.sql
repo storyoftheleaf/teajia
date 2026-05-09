@@ -386,6 +386,34 @@ CREATE INDEX IF NOT EXISTS idx_customers_account_name ON customers(account_id, n
 CREATE INDEX IF NOT EXISTS idx_activity_logs_account_created ON activity_logs(account_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_account_members_user_status ON account_members(user_id, status);
 
+-- Relationship-aware people model. One customer row can carry multiple
+-- relationship meanings: buyer, vendor/source, event guest, recipient,
+-- contributor, or personal connection.
+CREATE TABLE IF NOT EXISTS contact_relationships (
+  id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  account_id TEXT NOT NULL,
+  customer_id TEXT NOT NULL,
+  kind TEXT NOT NULL CHECK (kind IN (
+    'buyer',
+    'vendor',
+    'event_guest',
+    'collection_recipient',
+    'contributor',
+    'personal_connection'
+  )),
+  source TEXT NOT NULL DEFAULT 'manual',
+  source_entity_type TEXT,
+  source_entity_id TEXT,
+  notes TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE(account_id, customer_id, kind)
+);
+CREATE INDEX IF NOT EXISTS idx_contact_relationships_account_kind
+  ON contact_relationships(account_id, kind);
+CREATE INDEX IF NOT EXISTS idx_contact_relationships_customer
+  ON contact_relationships(account_id, customer_id);
+
 -- 8. Collections — persistent curator-driven product sets published to audiences.
 -- Phase 1 ships Person audience; target_type accommodates future store/event/shop.
 CREATE TABLE IF NOT EXISTS collections (

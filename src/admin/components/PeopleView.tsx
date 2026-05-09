@@ -30,7 +30,7 @@ export const PeopleView: React.FC<PeopleViewProps> = ({
 
   // Build available tabs based on access level
   const tabs: { id: PeopleTab; label: string; icon: React.ReactNode; visible: boolean }[] = [
-    { id: 'customers', label: 'Customers', icon: <Users size={15} />, visible: true },
+    { id: 'customers', label: 'Contacts', icon: <Users size={15} />, visible: true },
     { id: 'sources', label: 'Sources', icon: <Store size={15} />, visible: canSeeSources },
     { id: 'purchase-orders', label: 'Purchase Orders', icon: <ShoppingBag size={15} />, visible: canSeeSources },
     { id: 'team', label: 'Team', icon: <Shield size={15} />, visible: canSeeTeam },
@@ -65,7 +65,7 @@ export const PeopleView: React.FC<PeopleViewProps> = ({
           People
         </h1>
         <p className="text-xs text-tea-text-dim uppercase tracking-[0.15em]">
-          Customers, suppliers, and team
+          Buyers, sources, guests, contributors, and team
         </p>
       </div>
 

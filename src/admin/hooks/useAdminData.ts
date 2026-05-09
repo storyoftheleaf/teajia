@@ -137,6 +137,7 @@ export const useCustomers = () => {
         preferredCurrency: c.preferred_currency || 'USD',
         tags: typeof c.tags === 'string' ? JSON.parse(c.tags || '[]') : (c.tags || []),
         contacts: typeof c.contacts === 'string' ? JSON.parse(c.contacts || '[]') : (c.contacts || []),
+        contact_tags: Array.isArray(c.contact_tags) ? c.contact_tags : [],
         notes: c.notes || undefined,
         source: c.source || undefined,
         type: c.type || 'customer',
@@ -148,6 +149,7 @@ export const useCustomers = () => {
         totalSpentUSD: Number(c.total_spent_usd) || 0,
         lastOrderDate: c.last_order_date || undefined,
         eventCount: Number(c.event_count) || 0,
+        relationshipKinds: Array.isArray(c.relationship_kinds) ? c.relationship_kinds : [],
       })) as Customer[];
     }
   });

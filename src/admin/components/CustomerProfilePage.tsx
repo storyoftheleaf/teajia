@@ -5,7 +5,8 @@ import {
   Calendar, Edit3, Star, Package, Search, Check, Copy, X,
 } from 'lucide-react';
 import { api } from '../../lib/api';
-import { Customer, Product } from '../types';
+import { CONTACT_RELATIONSHIP_ORDER, CONTACT_RELATIONSHIP_TAXONOMY } from '../../lib/contactTaxonomy';
+import { ContactRelationshipKind, Customer, Product } from '../types';
 import { useProducts } from '../hooks/useAdminData';
 import { useToast } from './Toast';
 import { RecommendationModal } from './RecommendationModal';
@@ -47,6 +48,18 @@ interface CustomerJourney {
 
 const fmtUSD = (v?: number | null) =>
   v == null ? '—' : `$${v.toFixed(0)}`;
+
+const RELATIONSHIP_BADGE_CLASSES: Record<ContactRelationshipKind, string> = {
+  buyer: 'bg-tea-gold-lt text-tea-text',
+  vendor: 'bg-tea-elevated text-tea-gold',
+  event_guest: 'bg-tea-surface text-tea-text',
+  collection_recipient: 'bg-tea-elevated text-tea-text-sec',
+  contributor: 'bg-tea-surface text-tea-text-sec',
+  personal_connection: 'bg-tea-bg text-tea-text-sec border border-tea-border',
+};
+
+const relationshipLabel = (kind: ContactRelationshipKind) =>
+  CONTACT_RELATIONSHIP_TAXONOMY[kind]?.shortLabel ?? kind;
 
 // ── Sample offer modal (admin-side WhatsApp sample pitch) ──────────────────
 const SampleOfferModal: React.FC<{
@@ -179,16 +192,21 @@ export const CustomerProfilePage: React.FC = () => {
   useEffect(() => {
     if (!customerId) return;
     setLoading(true);
-    Promise.all([
-      api.customers.get(customerId),
-      api.customers.getTeas(customerId),
-      api.customers.getEvents(customerId),
-      api.customers.getOrders(customerId),
-    ]).then(([c, t, e, o]) => {
-      setCustomer(c);
-      setTeas(t || []);
-      setEvents(e || []);
-      setOrders(o || []);
+    api.customers.get(customerId).then(async (c) => {
+      const [teasResult, eventsResult, ordersResult] = await Promise.allSettled([
+        api.customers.getTeas(customerId),
+        api.customers.getEvents(customerId),
+        api.customers.getOrders(customerId),
+      ]);
+      setCustomer({
+        ...c,
+        relationshipKinds: Array.isArray(c.relationship_kinds)
+          ? c.relationship_kinds
+          : (c.relationshipKinds || []),
+      });
+      setTeas(teasResult.status === 'fulfilled' ? (teasResult.value || []) : []);
+      setEvents(eventsResult.status === 'fulfilled' ? (eventsResult.value || []) : []);
+      setOrders(ordersResult.status === 'fulfilled' ? (ordersResult.value || []) : []);
     }).catch(() => {
       showToast('Failed to load profile', 'error');
     }).finally(() => setLoading(false));
@@ -257,6 +275,17 @@ export const CustomerProfilePage: React.FC = () => {
           <div>
             <h1 className="font-serif text-3xl text-tea-text">{customer.name}</h1>
             {customer.company && <p className="text-tea-text-sec mt-1">{customer.company}</p>}
+            {(customer.relationshipKinds?.length ?? 0) > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-3">
+                {CONTACT_RELATIONSHIP_ORDER
+                  .filter(kind => customer.relationshipKinds?.includes(kind))
+                  .map(kind => (
+                    <span key={kind} className={`text-ui-11 px-2 py-1 rounded-full ${RELATIONSHIP_BADGE_CLASSES[kind] || 'bg-tea-elevated text-tea-text-sec'}`}>
+                      {relationshipLabel(kind)}
+                    </span>
+                  ))}
+              </div>
+            )}
             {journey?.memberSince && (
               <p className="text-tea-text-dim text-sm mt-1">
                 Member since {new Date(journey.memberSince).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
@@ -279,6 +308,24 @@ export const CustomerProfilePage: React.FC = () => {
 
           {/* Contact tags */}
           <ContactTagEditor customerId={customer.id} />
+
+          {(customer.relationshipKinds?.length ?? 0) > 0 && (
+            <div className="bg-tea-surface border border-tea-border rounded-xl p-5">
+              <p className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec mb-3">Relationship portrait</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {CONTACT_RELATIONSHIP_ORDER
+                  .filter(kind => customer.relationshipKinds?.includes(kind))
+                  .map(kind => (
+                    <div key={kind} className="bg-tea-bg border border-tea-border rounded-lg p-3">
+                      <div className="text-sm font-serif text-tea-text mb-1">{CONTACT_RELATIONSHIP_TAXONOMY[kind].label}</div>
+                      <div className="text-ui-11 text-tea-text-sec leading-relaxed">
+                        {CONTACT_RELATIONSHIP_TAXONOMY[kind].description}
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
 
           {/* Stats */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

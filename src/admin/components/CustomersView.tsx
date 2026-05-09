@@ -5,7 +5,8 @@ import Papa from 'papaparse';
 import { useCustomers, useProducts } from '../hooks/useAdminData';
 import { useToast } from './Toast';
 import { api } from '../../lib/api';
-import { Customer, CustomerTag, ContactType, ContactChannel, ContactEntry, Product, Invoice } from '../types';
+import { CONTACT_RELATIONSHIP_ORDER, CONTACT_RELATIONSHIP_TAXONOMY } from '../../lib/contactTaxonomy';
+import { Customer, CustomerTag, ContactType, ContactChannel, ContactEntry, ContactRelationshipKind, Product, Invoice } from '../types';
 import { useSampleStore } from '../../samples/sampleStore';
 import { SAMPLE_STATUS_CONFIG } from '../../samples/types';
 
@@ -92,9 +93,21 @@ const TAG_ACTIVE_COLORS: Record<CustomerTag, string> = {
   inactive: 'bg-tea-elevated/60 text-tea-text-dim',
 };
 
+const RELATIONSHIP_BADGE_CLASSES: Record<ContactRelationshipKind, string> = {
+  buyer: 'bg-tea-gold-lt text-tea-text',
+  vendor: 'bg-tea-elevated text-tea-gold',
+  event_guest: 'bg-tea-surface text-tea-text',
+  collection_recipient: 'bg-tea-elevated text-tea-text-sec',
+  contributor: 'bg-tea-surface text-tea-text-sec',
+  personal_connection: 'bg-tea-bg text-tea-text-sec border border-tea-border',
+};
+
+const relationshipLabel = (kind: ContactRelationshipKind) =>
+  CONTACT_RELATIONSHIP_TAXONOMY[kind]?.shortLabel ?? kind;
+
 // ── Table column definitions ──
 const CUSTOMER_COLUMN_DEFS = [
-  { key: 'name',    label: 'Customer', defaultWidth: 'w-[22%]', alwaysVisible: true },
+  { key: 'name',    label: 'Contact', defaultWidth: 'w-[22%]', alwaysVisible: true },
   { key: 'company', label: 'Company',  defaultWidth: 'w-[16%]' },
   { key: 'country', label: 'Country',  defaultWidth: 'w-[11%]' },
   { key: 'tags',    label: 'Tags',     defaultWidth: 'w-[15%]' },
@@ -129,6 +142,7 @@ interface CustomerFormData {
   type: ContactType;
   name: string;
   company: string;
+  relationship_kinds: ContactRelationshipKind[];
   contacts: ContactEntry[];
   address: string;
   city: string;
@@ -142,6 +156,7 @@ interface CustomerFormData {
 const emptyForm: CustomerFormData = {
   type: 'customer',
   name: '', company: '', contacts: [],
+  relationship_kinds: [],
   address: '', city: '', country: '', preferred_currency: 'USD',
   tags: [], notes: '', source: '',
 };
@@ -188,6 +203,15 @@ const CustomerModal = ({
       tags: prev.tags.includes(tag as CustomerTag)
         ? prev.tags.filter(t => t !== tag)
         : [...prev.tags, tag as CustomerTag],
+    }));
+  };
+
+  const toggleRelationship = (kind: ContactRelationshipKind) => {
+    setForm(prev => ({
+      ...prev,
+      relationship_kinds: prev.relationship_kinds.includes(kind)
+        ? prev.relationship_kinds.filter(k => k !== kind)
+        : [...prev.relationship_kinds, kind],
     }));
   };
 
@@ -245,6 +269,25 @@ const CustomerModal = ({
                 {t === 'customer' ? 'Customer' : 'Supplier'}
               </button>
             ))}
+          </div>
+
+          <div>
+            <label className="block text-xs text-tea-text-sec mb-2 uppercase tracking-wider">Relationships</label>
+            <div className="flex flex-wrap gap-1.5">
+              {CONTACT_RELATIONSHIP_ORDER.map(kind => {
+                const active = form.relationship_kinds.includes(kind);
+                return (
+                  <button
+                    key={kind}
+                    type="button"
+                    onClick={() => toggleRelationship(kind)}
+                    className={`text-ui-11 px-2 py-1 rounded-full transition-colors ${active ? (RELATIONSHIP_BADGE_CLASSES[kind] || 'bg-tea-elevated text-tea-text') : 'bg-tea-surface text-tea-text-sec hover:text-tea-text'}`}
+                  >
+                    {relationshipLabel(kind)}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           <Field label="Name *" name="name" placeholder="Full name" />
@@ -1219,6 +1262,15 @@ export const CustomerDetail = ({
 
           {/* Meta */}
           <div className="text-xs text-tea-text-sec/50 space-y-1">
+            {(customer.relationshipKinds?.length ?? 0) > 0 && (
+              <div className="flex flex-wrap gap-1 pb-1">
+                {customer.relationshipKinds!.map(kind => (
+                  <span key={kind} className={`text-ui-9 px-1.5 py-0.5 rounded-full ${RELATIONSHIP_BADGE_CLASSES[kind] || 'bg-tea-elevated text-tea-text-sec'}`}>
+                    {relationshipLabel(kind)}
+                  </span>
+                ))}
+              </div>
+            )}
             <p>Type: {customer.type || 'customer'}</p>
             {customer.source && <p>Source: {customer.source}</p>}
             <p>Added: {new Date(customer.createdAt).toLocaleDateString()}</p>
@@ -1239,6 +1291,7 @@ export const CustomersView = () => {
 
   const [search, setSearch] = useState(searchParams.get('search') || '');
   const [filterTags, setFilterTags] = useState<CustomerTag[]>([]);
+  const [relationshipFilter, setRelationshipFilter] = useState<ContactRelationshipKind | 'all'>('all');
   const [filterAttendedEvents, setFilterAttendedEvents] = useState(false);
   const [typeFilter, setTypeFilter] = useState<'all' | 'customer' | 'supplier'>('all');
   const [sortConfig, setSortConfig] = useState<{ key: CustomerSortKey; direction: 'asc' | 'desc' }[]>([{ key: 'name', direction: 'asc' }]);
@@ -1256,18 +1309,13 @@ export const CustomersView = () => {
     if (found) setViewingCustomer(found);
   }, [customers, searchParams]);
 
-  // Exclude vendor-only customers (they appear in Sources view)
-  const nonVendorCustomers = useMemo(() => {
-    return customers.filter(c => {
-      const isVendorOnly = c.tags.length === 1 && c.tags[0] === 'vendor';
-      return !isVendorOnly;
-    });
-  }, [customers]);
-
   const filtered = useMemo(() => {
-    let list = nonVendorCustomers;
+    let list = customers;
     if (typeFilter !== 'all') {
       list = list.filter(c => (c.type || 'customer') === typeFilter);
+    }
+    if (relationshipFilter !== 'all') {
+      list = list.filter(c => c.relationshipKinds?.includes(relationshipFilter));
     }
     if (search) {
       const q = search.toLowerCase();
@@ -1305,16 +1353,18 @@ export const CustomersView = () => {
       return 0;
     });
     return list;
-  }, [nonVendorCustomers, typeFilter, search, filterTags, filterAttendedEvents, sortConfig]);
+  }, [customers, typeFilter, relationshipFilter, search, filterTags, filterAttendedEvents, sortConfig]);
 
   const handleSave = async (data: CustomerFormData) => {
     try {
       if (editingCustomer) {
         await api.customers.update(editingCustomer.id, data);
-        showToast('Customer updated', 'success');
+        await api.customers.updateRelationships(editingCustomer.id, data.relationship_kinds);
+        showToast('Contact updated', 'success');
       } else {
-        await api.customers.create(data);
-        showToast('Customer added', 'success');
+        const created = await api.customers.create(data);
+        if (created?.id) await api.customers.updateRelationships(created.id, data.relationship_kinds);
+        showToast('Contact added', 'success');
       }
       setIsModalOpen(false);
       setEditingCustomer(null);
@@ -1329,7 +1379,7 @@ export const CustomersView = () => {
     if (!confirm(`Delete ${label} "${customer.name}"?\n\nTheir invoices will be preserved but unlinked.`)) return;
     try {
       await api.customers.delete(customer.id);
-      showToast('Customer deleted', 'success');
+      showToast('Contact deleted', 'success');
       setViewingCustomer(null);
       refetch();
     } catch (err: any) {
@@ -1366,6 +1416,7 @@ export const CustomersView = () => {
     const csv = Papa.unparse(filtered.map(c => ({
       Name: c.name,
       Type: c.type || 'customer',
+      Relationships: (c.relationshipKinds || []).map(relationshipLabel).join(', '),
       Company: c.company || '',
       Country: c.country || '',
       Tags: c.tags.join(', '),
@@ -1383,7 +1434,7 @@ export const CustomersView = () => {
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.setAttribute('href', URL.createObjectURL(blob));
-    link.setAttribute('download', 'customers_export.csv');
+    link.setAttribute('download', 'contacts_export.csv');
     link.click();
     showToast('Export generated', 'success');
   };
@@ -1401,6 +1452,7 @@ export const CustomersView = () => {
       type: c.type || 'customer',
       name: c.name,
       company: c.company || '',
+      relationship_kinds: c.relationshipKinds || [],
       contacts,
       address: c.address || '',
       city: c.city || '',
@@ -1468,13 +1520,20 @@ export const CustomersView = () => {
         );
       case 'tags': {
         const contactTags = customer.contact_tags ?? [];
+        const relationships = customer.relationshipKinds ?? [];
         const legacyShown = customer.tags.slice(0, 2);
         const contactShown = contactTags.slice(0, 3);
-        const extra = (customer.tags.length - legacyShown.length) + (contactTags.length - contactShown.length);
-        const empty = customer.tags.length === 0 && contactTags.length === 0;
+        const relationshipShown = relationships.slice(0, 3);
+        const extra = (relationships.length - relationshipShown.length) + (customer.tags.length - legacyShown.length) + (contactTags.length - contactShown.length);
+        const empty = relationships.length === 0 && customer.tags.length === 0 && contactTags.length === 0;
         return (
           <td key="tags" className="px-4 align-middle overflow-hidden">
             <div className="flex items-center gap-1 flex-wrap">
+              {relationshipShown.map(kind => (
+                <span key={`r-${kind}`} className={`text-ui-9 px-1.5 py-0.5 rounded-full ${RELATIONSHIP_BADGE_CLASSES[kind] || 'bg-tea-elevated text-tea-text-sec'}`}>
+                  {relationshipLabel(kind)}
+                </span>
+              ))}
               {legacyShown.map(tag => (
                 <span key={`l-${tag}`} className={`text-ui-9 px-1.5 py-0.5 rounded-full ${TAG_COLORS[tag as CustomerTag] || 'bg-tea-elevated text-tea-text-sec'}`}>{tag}</span>
               ))}
@@ -1573,7 +1632,7 @@ export const CustomersView = () => {
         <div className="px-3 md:px-6 max-w-5xl mx-auto flex items-center gap-3 md:gap-4">
           <div className="flex items-center gap-2 shrink-0">
             <Users size={16} className="text-tea-gold" />
-            <h2 className="text-sm font-serif text-tea-text uppercase tracking-[0.15em] hidden md:block">Customers</h2>
+            <h2 className="text-sm font-serif text-tea-text uppercase tracking-[0.15em] hidden md:block">Contacts</h2>
             <span className="text-tea-text-sec text-xs tracking-wide hidden md:inline">
               — {filtered.length} contact{filtered.length !== 1 ? 's' : ''}
             </span>
@@ -1584,10 +1643,10 @@ export const CustomersView = () => {
             {/* Customer / Supplier segment */}
             <button onClick={() => setTypeFilter('all')} className={typeFilter === 'all' ? 'pill-active' : 'pill'}>
               All
-              <span className="text-ui-9 opacity-70 ml-0.5">{nonVendorCustomers.length}</span>
+              <span className="text-ui-9 opacity-70 ml-0.5">{customers.length}</span>
             </button>
             {(['customer', 'supplier'] as const).map(t => {
-              const count = nonVendorCustomers.filter(c => (c.type || 'customer') === t).length;
+              const count = customers.filter(c => (c.type || 'customer') === t).length;
               if (count === 0) return null;
               return (
                 <button key={t} onClick={() => setTypeFilter(t)} className={typeFilter === t ? 'pill-active' : 'pill'}>
@@ -1597,8 +1656,23 @@ export const CustomersView = () => {
               );
             })}
             <span className="w-px h-4 bg-tea-border flex-shrink-0" />
+            {CONTACT_RELATIONSHIP_ORDER.map(kind => {
+              const count = customers.filter(c => c.relationshipKinds?.includes(kind)).length;
+              if (count === 0) return null;
+              return (
+                <button
+                  key={kind}
+                  onClick={() => setRelationshipFilter(prev => prev === kind ? 'all' : kind)}
+                  className={relationshipFilter === kind ? 'pill-active' : 'pill'}
+                >
+                  {relationshipLabel(kind)}
+                  <span className="text-ui-9 opacity-70 ml-0.5">{count}</span>
+                </button>
+              );
+            })}
+            <span className="w-px h-4 bg-tea-border flex-shrink-0" />
             {TAG_OPTIONS.map(tag => {
-              const count = nonVendorCustomers.filter(c => c.tags.includes(tag)).length;
+              const count = customers.filter(c => c.tags.includes(tag)).length;
               if (count === 0) return null;
               const isActive = filterTags.includes(tag);
               return (
@@ -1617,7 +1691,7 @@ export const CustomersView = () => {
 
             {/* Attended Events segment filter */}
             {(() => {
-              const attendedCount = nonVendorCustomers.filter(c => (c.eventCount || 0) > 0).length;
+              const attendedCount = customers.filter(c => (c.eventCount || 0) > 0).length;
               if (attendedCount === 0) return null;
               return (
                 <>
