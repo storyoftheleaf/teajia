@@ -262,52 +262,96 @@ export const QuickCapture: React.FC<QuickCaptureProps> = ({
       onDragOver={onDragOver}
       onDrop={onDrop}
     >
-      {/* ── Top action strip (single row) ─────────────────────────────────── */}
-      <div className="flex items-center gap-1 px-4 md:px-6 h-12 border-b border-tea-border bg-tea-bg/30 flex-shrink-0">
-        <h1 className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text mr-3`}>Capture</h1>
+      {/* ── Single shelf: title · segmented filter · status · intake icons ── */}
+      <div className="flex items-center gap-3 px-4 md:px-6 h-12 bg-tea-bg flex-shrink-0 relative z-10">
+        <h1 className="font-display text-ui-15 font-light tracking-[0.04em] text-tea-text whitespace-nowrap">
+          Capture
+        </h1>
 
-        <button
-          type="button"
-          onClick={() => cameraInputRef.current?.click()}
-          className="tap-target inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-ui-12 text-tea-text-sec hover:text-tea-text hover:bg-tea-surface transition-colors"
-          title="Capture photos"
-        >
-          <Camera size={14} />
-          <span className="hidden sm:inline">Photo</span>
-        </button>
-        <button
-          type="button"
-          onClick={onImportClick}
-          className="tap-target inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-ui-12 text-tea-text-sec hover:text-tea-text hover:bg-tea-surface transition-colors"
-          title="Import CSV"
-        >
-          <FileSpreadsheet size={14} />
-          <span className="hidden sm:inline">CSV</span>
-        </button>
-        <button
-          type="button"
-          onClick={onAddClick}
-          className="tap-target inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-ui-12 text-tea-text-sec hover:text-tea-text hover:bg-tea-surface transition-colors"
-          title="Add manually"
-        >
-          <PlusCircle size={14} />
-          <span className="hidden sm:inline">Manual</span>
-        </button>
+        {(draftProducts.length > 0 || ghosts.length > 0) && (
+          <div className="inline-flex items-center rounded-md border border-tea-border bg-tea-surface/40 p-0.5">
+            <SegmentChip
+              active={filter === 'all'}
+              onClick={() => setFilter('all')}
+              label="All"
+              count={draftProducts.length}
+              showZero
+            />
+            <SegmentChip
+              active={filter === 'review'}
+              onClick={() => setFilter('review')}
+              label="Review"
+              count={toReview.length}
+            />
+            <SegmentChip
+              active={filter === 'ready'}
+              onClick={() => setFilter('ready')}
+              label="Ready"
+              count={readyToApprove.length}
+            />
+          </div>
+        )}
+
+        {filter === 'ready' && readyToApprove.length > 0 && (
+          <button
+            type="button"
+            onClick={bulkApprove}
+            disabled={approving}
+            className="pill-active text-ui-11 px-2.5 py-1 inline-flex items-center gap-1.5"
+          >
+            {approving ? (
+              <><Loader2 size={11} className="animate-spin" /> Activating…</>
+            ) : (
+              <><ArrowRight size={11} /> Activate {readyToApprove.length}</>
+            )}
+          </button>
+        )}
 
         {/* Inline status counts */}
         <div className="ml-auto flex items-center gap-3 text-ui-11 text-tea-text-sec">
           {extractingCount > 0 && (
             <span className="inline-flex items-center gap-1.5">
               <Loader2 size={11} className="animate-spin" />
-              {extractingCount} extracting
+              {extractingCount}
             </span>
           )}
           {savingCount > 0 && (
             <span className="inline-flex items-center gap-1.5">
               <Loader2 size={11} className="animate-spin" />
-              {savingCount} saving
+              {savingCount}
             </span>
           )}
+        </div>
+
+        {/* Intake icons (right cluster) */}
+        <div className="flex items-center gap-0.5">
+          <button
+            type="button"
+            onClick={() => cameraInputRef.current?.click()}
+            className="tap-target p-1.5 rounded-md text-tea-text-sec hover:text-tea-text hover:bg-tea-surface transition-colors"
+            title="Capture photos"
+            aria-label="Capture photos"
+          >
+            <Camera size={15} />
+          </button>
+          <button
+            type="button"
+            onClick={onImportClick}
+            className="tap-target p-1.5 rounded-md text-tea-text-sec hover:text-tea-text hover:bg-tea-surface transition-colors"
+            title="Import CSV"
+            aria-label="Import CSV"
+          >
+            <FileSpreadsheet size={15} />
+          </button>
+          <button
+            type="button"
+            onClick={onAddClick}
+            className="tap-target p-1.5 rounded-md text-tea-text-sec hover:text-tea-text hover:bg-tea-surface transition-colors"
+            title="Add manually"
+            aria-label="Add manually"
+          >
+            <PlusCircle size={15} />
+          </button>
         </div>
 
         <input
@@ -328,45 +372,12 @@ export const QuickCapture: React.FC<QuickCaptureProps> = ({
         />
       </div>
 
-      {/* ── Filter chip row (only when there is something to filter) ──────── */}
-      {(draftProducts.length > 0 || ghosts.length > 0) && (
-        <div className="flex items-center gap-1 px-4 md:px-6 h-10 border-b border-tea-border flex-shrink-0">
-          <FilterChip
-            active={filter === 'all'}
-            onClick={() => setFilter('all')}
-            label="All drafts"
-            count={draftProducts.length}
-          />
-          <FilterChip
-            active={filter === 'review'}
-            onClick={() => setFilter('review')}
-            label="Needs review"
-            count={toReview.length}
-          />
-          <FilterChip
-            active={filter === 'ready'}
-            onClick={() => setFilter('ready')}
-            label="Ready"
-            count={readyToApprove.length}
-          />
-
-          {filter === 'ready' && readyToApprove.length > 0 && (
-            <button
-              type="button"
-              onClick={bulkApprove}
-              disabled={approving}
-              className="ml-auto pill-active text-ui-11 px-3 py-1.5 inline-flex items-center gap-1.5"
-            >
-              {approving ? (
-                <><Loader2 size={11} className="animate-spin" /> Activating…</>
-              ) : (
-                <><ArrowRight size={11} /> Activate {readyToApprove.length}</>
-              )}
-            </button>
-          )}
-        </div>
-      )}
-
+      {/* Soft fade so scrolling rows dissolve into the shelf above instead of cutting hard against it */}
+      <div
+        aria-hidden="true"
+        className="h-3 flex-shrink-0 relative z-10 pointer-events-none"
+        style={{ background: 'linear-gradient(to bottom, var(--tea-bg), transparent)' }}
+      />
       {/* ── Ghost rows (in-flight extractions) ────────────────────────────── */}
       <AnimatePresence>
         {ghosts.length > 0 && (
@@ -432,26 +443,26 @@ export const QuickCapture: React.FC<QuickCaptureProps> = ({
 
 // ─── Subcomponents ─────────────────────────────────────────────────────────
 
-const FilterChip: React.FC<{
+const SegmentChip: React.FC<{
   active: boolean;
   onClick: () => void;
   label: string;
   count: number;
-}> = ({ active, onClick, label, count }) => (
+  /** Render the count even when 0 (used for the leading "All" segment to anchor the shelf) */
+  showZero?: boolean;
+}> = ({ active, onClick, label, count, showZero }) => (
   <button
     type="button"
     onClick={onClick}
-    className={`tap-target inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-ui-11 uppercase tracking-[0.12em] whitespace-nowrap transition-colors ${
+    className={`tap-target inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-ui-11 uppercase tracking-[0.1em] whitespace-nowrap transition-colors ${
       active
         ? 'bg-tea-gold/15 text-tea-gold'
-        : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'
+        : 'text-tea-text-sec hover:text-tea-text'
     }`}
   >
     {label}
-    {count > 0 && (
-      <span className={`min-w-[18px] h-[18px] px-1 rounded-full inline-flex items-center justify-center text-ui-9 font-semibold ${
-        active ? 'bg-tea-gold/20 text-tea-gold' : 'bg-tea-elevated text-tea-text-sec'
-      }`}>
+    {(count > 0 || showZero) && (
+      <span className={`text-ui-10 font-medium ${active ? 'text-tea-gold' : 'text-tea-text-dim'}`}>
         {count}
       </span>
     )}
