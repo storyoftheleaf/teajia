@@ -926,6 +926,21 @@ const AppContent = () => {
       </div>
 
 
+      {/* Soft fade behind the floating bottom tab bar — masks page content
+          peeking through the pill's side margins and bottom gap so the bar
+          reads cleanly without distracting text behind it. */}
+      {!isCartOpen && (
+        <div
+          aria-hidden="true"
+          className="lg:hidden fixed inset-x-0 bottom-0 pointer-events-none"
+          style={{
+            height: 'calc(env(safe-area-inset-bottom, 0px) + 112px)',
+            background: 'linear-gradient(to top, var(--tea-bg) 0%, var(--tea-bg) 60%, transparent 100%)',
+            zIndex: 70,
+          }}
+        />
+      )}
+
       {/* Bottom Tab Bar for Mobile */}
       <BottomTabBar activeSection={activeSection} onNavigate={handleNavSection} hidden={isCartOpen} onAccountClick={handleToggleAccount} onAccountClose={handleCloseAccount} isAccountOpen={showAccountModal} onSearchClick={() => { window.dispatchEvent(new CustomEvent('dismiss-tasting-overlay')); setShowAccountModal(false); setAccountInitialView(undefined); setShowGlobalSearch(true); }} onSearchClose={() => setShowGlobalSearch(false)} isSearchOpen={showGlobalSearch} isAdminRoute={isAdminRoute} />
 

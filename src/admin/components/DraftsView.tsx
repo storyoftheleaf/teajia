@@ -64,14 +64,10 @@ export const DraftsView: React.FC<DraftsViewProps> = ({
 
   return (
     <div className="h-full flex flex-col relative">
-      {/* ── Single shelf: title · segmented filter · Compass link ─────────── */}
-      <div className="flex items-center gap-3 px-4 md:px-6 h-12 bg-tea-bg flex-shrink-0 relative z-10">
-        <h1 className="font-display text-ui-15 font-light tracking-[0.04em] text-tea-text whitespace-nowrap">
-          Inventory
-        </h1>
-
+      {/* ── Slim shelf: just the triage segments + Compass handoff ──────── */}
+      <div className="flex items-center gap-3 px-4 md:px-6 h-9 bg-tea-bg flex-shrink-0 relative z-10">
         {draftProducts.length > 0 && (
-          <div className="inline-flex items-center rounded-md border border-tea-border bg-tea-surface/40 p-0.5">
+          <div className="inline-flex items-center gap-0.5">
             <SegmentChip
               active={filter === 'all'}
               onClick={() => setFilter('all')}
@@ -79,12 +75,14 @@ export const DraftsView: React.FC<DraftsViewProps> = ({
               count={draftProducts.length}
               showZero
             />
+            <span className="w-px h-3 bg-tea-border" aria-hidden="true" />
             <SegmentChip
               active={filter === 'review'}
               onClick={() => setFilter('review')}
               label="Review"
               count={toReview.length}
             />
+            <span className="w-px h-3 bg-tea-border" aria-hidden="true" />
             <SegmentChip
               active={filter === 'ready'}
               onClick={() => setFilter('ready')}
@@ -113,10 +111,10 @@ export const DraftsView: React.FC<DraftsViewProps> = ({
         <button
           type="button"
           onClick={goToCompass}
-          className="ml-auto tap-target inline-flex items-center gap-1.5 text-ui-12 text-tea-text-sec hover:text-tea-gold transition-colors"
+          className="ml-auto tap-target inline-flex items-center gap-1.5 text-ui-11 text-tea-text-sec hover:text-tea-gold transition-colors"
           title="Capture new items in Compass"
         >
-          <Compass size={13} />
+          <Compass size={12} />
           <span>Capture in Compass</span>
         </button>
       </div>
