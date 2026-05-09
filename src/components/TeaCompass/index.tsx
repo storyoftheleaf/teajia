@@ -2,7 +2,8 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useBottomBarMic } from '../../hooks/useBottomBarMic';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, BookmarkCheck, BookmarkPlus, Check, Droplets, FlaskConical, Layers, Loader2, Mic, Plus, Search, Share2, ShoppingCart, Square, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, BookmarkCheck, BookmarkPlus, Check, ChevronDown, ChevronUp, Droplets, FlaskConical, Layers, Loader2, Mic, Plus, Search, Share2, ShoppingCart, Square, X } from 'lucide-react';
+import { BottomSheet, SheetOption } from '../shared/BottomSheet';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { hydrateCompassEntries } from '../../lib/teaCompassSync';
@@ -172,6 +173,42 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
 
   // Batch entry mode — rapid-fire name + type row for vendor table sessions
   const [batchMode, setBatchMode] = useState(false);
+
+  // Screen switcher — opens when the user taps the "{Screen} ▾" chip in
+  // the header. Replaces the old SOURCE/LIBRARY/LEDGER underline tab row
+  // so the header collapses to one line with sub-tabs sharing it.
+  const [screenSheetOpen, setScreenSheetOpen] = useState(false);
+
+  // Auto-collapse the header on scroll. We hide it when the user scrolls
+  // down (engaged with the form) and reveal on scroll up. Threshold + a
+  // ref to the scroll container; updates a flag the header reads to apply
+  // translate-y. Skipped on lg+ where the header doesn't compete for
+  // viewport space the same way.
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const lastScrollTopRef = useRef(0);
+  const [headerCollapsed, setHeaderCollapsed] = useState(false);
+  useEffect(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const SCROLL_DOWN_THRESHOLD = 24;
+    const SCROLL_UP_THRESHOLD = 8;
+    const onScroll = () => {
+      const current = el.scrollTop;
+      const last = lastScrollTopRef.current;
+      const delta = current - last;
+      // Always reveal when at the top.
+      if (current < 12) {
+        if (headerCollapsed) setHeaderCollapsed(false);
+      } else if (delta > SCROLL_DOWN_THRESHOLD && !headerCollapsed) {
+        setHeaderCollapsed(true);
+      } else if (delta < -SCROLL_UP_THRESHOLD && headerCollapsed) {
+        setHeaderCollapsed(false);
+      }
+      lastScrollTopRef.current = current;
+    };
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => el.removeEventListener('scroll', onScroll);
+  }, [headerCollapsed]);
 
   // Track just-committed entry for banner
   const [justCommitted, setJustCommitted] = useState<{ name: string; draftProductId?: string } | null>(null);
@@ -414,6 +451,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
     { id: 'tasting', label: 'Library', badge: pendingIncomingCount > 0 ? pendingIncomingCount : undefined },
     { id: 'buying', label: 'Ledger' },
   ];
+  const currentTab = tabs.find((t) => t.id === mode);
 
   // Bottom-bar mic — when sourcing on a privileged account, the centered
   // teajiā logo in BottomTabBar swaps for a web3-styled mic. The logo
@@ -427,87 +465,167 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   return (
     <div className="flex flex-col relative lg:h-full">
 
-      {/* ── COMPACT HEADER: back + inline tabs + share/sync cluster ──
-          Page tabs and sub-tabs now share the same typographic family
-          (text-ui-12 font-semibold, mixed case, no tracking) so they
-          read as a coherent navigation language rather than two different
-          designers' work. The active page tab still uses a gold underline
-          (different from the sub-tab pill) because they serve different
-          functions: page tabs switch screens, sub-tabs filter content. */}
-      <div className="flex items-stretch border-b border-tea-border shrink-0 h-11" role="tablist">
-        <button
-          type="button"
-          onClick={onBack}
-          className="flex items-center pl-3 pr-2 tap-target text-tea-text-sec hover:text-tea-text transition-colors shrink-0"
-          aria-label="Back"
-        >
-          <ArrowLeft size={18} strokeWidth={1.75} />
-        </button>
-        {tabs.map((tab) => {
-          const active = mode === tab.id;
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => handleSwitchMode(tab.id)}
-              role="tab"
-              aria-selected={active}
-              className={`relative shrink-0 px-3 text-ui-12 font-semibold transition-colors ${
-                active ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
-              }`}
-              style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.01em' }}
-            >
-              {tab.label}
-              {tab.badge != null && (
-                <span className="ml-1.5 text-ui-9 px-1.5 py-px rounded-full bg-tea-gold/20 text-tea-gold tabular-nums">{tab.badge}</span>
-              )}
-              {active && (
-                <motion.div
-                  layoutId="compass-tab-indicator"
-                  className="absolute bottom-0 left-1 right-1 h-[2px] bg-tea-gold rounded-full"
-                  transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                />
-              )}
-            </button>
-          );
-        })}
-        <div className="flex-1" />
+      {/* ── HEADER (single row prototype) ──
+          [back] [Source ▾] [Tea/Teaware/Samples on sourcing] [share/sync]
 
-        {mode !== 'sourcing' && (
+          Page tabs (Source / Library / Ledger) collapse into a "{screen} ▾"
+          chip on the left. Tap it to open a Vaul sheet with the three
+          screens to switch between. The Tea / Teaware / Samples sub-tabs
+          live INLINE on the same row when sourcing, so the user has one
+          horizontal nav surface instead of three stacked rows.
+
+          Auto-collapses on scroll-down (translate-y-full) and reveals on
+          scroll-up. Resets to revealed when the user is at the top. */}
+      <div
+        className={`shrink-0 overflow-hidden transition-[height,opacity] duration-200 ease-out lg:!h-11 lg:!opacity-100 ${
+          headerCollapsed ? 'h-0 opacity-0' : 'h-11 opacity-100'
+        }`}
+        style={{ position: 'relative', zIndex: 5 }}
+      >
+        <div className="flex items-stretch h-11 border-b border-tea-border" role="tablist">
           <button
             type="button"
-            onClick={() => handleNewCapture()}
-            className="pill pill-active flex items-center gap-1 text-ui-10 mr-2 self-center"
-            style={{ fontFamily: 'var(--font-display)' }}
+            onClick={onBack}
+            className="flex items-center pl-3 pr-2 tap-target text-tea-text-sec hover:text-tea-text transition-colors shrink-0"
+            aria-label="Back"
           >
-            <Plus size={11} strokeWidth={2} />
-            New
+            <ArrowLeft size={18} strokeWidth={1.75} />
           </button>
-        )}
 
-        {/* Right-side action cluster — share + sync grouped in a single
-            bordered shell with a hairline divider between them, so they
-            read as one cohesive control rather than two floating dots. */}
-        <div className="flex items-center pr-3 gap-1">
-          {mode === 'sourcing' && hasToken() && activeEntryId && (
-            <>
-              <button
-                type="button"
-                onClick={() => setShareModalOpen(true)}
-                className="lg:hidden tap-target flex items-center justify-center w-9 h-9 rounded-md text-tea-text-sec hover:text-tea-text hover:bg-tea-gold/[0.06] transition-colors shrink-0"
-                aria-label="Share entry"
-                title="Share this entry"
-              >
-                <Share2 size={16} strokeWidth={1.75} />
-              </button>
-              <div className="lg:hidden w-px h-4 bg-tea-border self-center" aria-hidden />
-            </>
+          {/* Screen identity ▾ — collapses Source/Library/Ledger into a
+              single tap-to-switch chip. Carries the same family
+              (display font, semibold, ui-12) as the sub-tabs. */}
+          <button
+            type="button"
+            onClick={() => setScreenSheetOpen(true)}
+            aria-haspopup="menu"
+            aria-expanded={screenSheetOpen}
+            className="self-center inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-ui-12 font-semibold text-tea-gold hover:bg-tea-gold/[0.08] active:bg-tea-gold/[0.12] transition-colors shrink-0"
+            style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.01em' }}
+          >
+            <span>{currentTab?.label ?? 'Source'}</span>
+            {currentTab?.badge != null && (
+              <span className="ml-0.5 text-ui-9 px-1.5 py-px rounded-full bg-tea-gold/20 text-tea-gold tabular-nums">{currentTab.badge}</span>
+            )}
+            <ChevronDown size={13} strokeWidth={2} />
+          </button>
+
+          {/* Sub-tabs inline (sourcing only). Compact segmented control
+              styled to match the rest of the header. */}
+          {mode === 'sourcing' && (
+            <div className="flex-1 flex items-center justify-center min-w-0 px-2">
+              <div className="relative inline-flex items-center bg-tea-surface/30 rounded-md p-0.5 max-w-full">
+                <motion.div
+                  className="absolute top-0.5 bottom-0.5 rounded-[5px] bg-tea-surface shadow-sm"
+                  animate={{
+                    left: captureOption === 'tea' ? '2px' : captureOption === 'teaware' ? '33.33%' : '66.66%',
+                    right: captureOption === 'samples' ? '2px' : captureOption === 'teaware' ? '33.33%' : '66.66%',
+                  }}
+                  transition={{ duration: 0.1, ease: 'easeOut' }}
+                />
+                <button
+                  type="button"
+                  onClick={() => handleCaptureOption('tea')}
+                  className={`relative z-[1] px-3 py-1 text-ui-11 font-semibold rounded-[5px] transition-colors ${
+                    captureOption === 'tea' ? 'text-tea-text' : 'text-tea-text-sec hover:text-tea-text'
+                  }`}
+                  style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.01em' }}
+                >
+                  Tea
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleCaptureOption('teaware')}
+                  className={`relative z-[1] px-3 py-1 text-ui-11 font-semibold rounded-[5px] transition-colors ${
+                    captureOption === 'teaware' ? 'text-tea-text' : 'text-tea-text-sec hover:text-tea-text'
+                  }`}
+                  style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.01em' }}
+                >
+                  Teaware
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleCaptureOption('samples')}
+                  className={`relative z-[1] inline-flex items-center gap-1 px-3 py-1 text-ui-11 font-semibold rounded-[5px] transition-colors ${
+                    captureOption === 'samples' ? 'text-tea-text' : 'text-tea-text-sec hover:text-tea-text'
+                  }`}
+                  style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.01em' }}
+                >
+                  Samples
+                  {sampleCartCount > 0 && (
+                    <span className="text-ui-9 px-1.5 py-px rounded-full bg-tea-gold/20 text-tea-gold tabular-nums font-medium">{sampleCartCount}</span>
+                  )}
+                </button>
+              </div>
+            </div>
           )}
-          <div className="flex items-center self-center">
-            <SyncIndicator />
+          {mode !== 'sourcing' && <div className="flex-1" />}
+
+          {mode !== 'sourcing' && (
+            <button
+              type="button"
+              onClick={() => handleNewCapture()}
+              className="pill pill-active flex items-center gap-1 text-ui-10 mr-2 self-center"
+              style={{ fontFamily: 'var(--font-display)' }}
+            >
+              <Plus size={11} strokeWidth={2} />
+              New
+            </button>
+          )}
+
+          {/* Right-side action cluster — share + sync grouped */}
+          <div className="flex items-center pr-3 gap-1">
+            {mode === 'sourcing' && hasToken() && activeEntryId && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setShareModalOpen(true)}
+                  className="lg:hidden tap-target flex items-center justify-center w-9 h-9 rounded-md text-tea-text-sec hover:text-tea-text hover:bg-tea-gold/[0.06] transition-colors shrink-0"
+                  aria-label="Share entry"
+                  title="Share this entry"
+                >
+                  <Share2 size={16} strokeWidth={1.75} />
+                </button>
+                <div className="lg:hidden w-px h-4 bg-tea-border self-center" aria-hidden />
+              </>
+            )}
+            <div className="flex items-center self-center">
+              <SyncIndicator />
+            </div>
           </div>
         </div>
       </div>
+
+      {/* Screen switcher sheet — Source / Library / Ledger live here
+          rather than as inline tabs. Each option carries its current
+          unread badge if any. */}
+      <BottomSheet
+        open={screenSheetOpen}
+        onOpenChange={setScreenSheetOpen}
+        title="Screen"
+        description="Switch between Source, Library, and Ledger"
+      >
+        <div className="flex flex-col gap-0.5 px-1">
+          {tabs.map((tab) => (
+            <SheetOption
+              key={tab.id}
+              label={tab.label}
+              hint={
+                tab.id === 'sourcing'
+                  ? 'Capture vendors and entries in real time'
+                  : tab.id === 'tasting'
+                    ? 'Browse, taste, and edit your library'
+                    : 'Review purchases and transactions'
+              }
+              selected={mode === tab.id}
+              onSelect={() => {
+                handleSwitchMode(tab.id);
+                setScreenSheetOpen(false);
+              }}
+            />
+          ))}
+        </div>
+      </BottomSheet>
 
       {/* ── BODY ── */}
       <div className="flex-1 min-h-0 flex flex-col">
@@ -630,6 +748,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
               Want/Buy/Sample/Taste/Done inside the form), so the scroll
               region only needs to clear the BottomTabBar. */}
           <div
+            ref={scrollContainerRef}
             className={`flex-1 min-h-0 overflow-y-auto overscroll-contain ${
               mode === 'sourcing' && captureOption === 'samples' ? '' : 'px-4 pt-3'
             } ${mode === 'sourcing' ? 'pb-nav-gap' : 'pb-3'}`}
@@ -645,41 +764,9 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.2 }}
                 >
-                  {/* Tea / Teaware / Samples segmented control. Same
-                      font family as the page tabs above (display font,
-                      semibold, ui-12) so the two nav levels read as one
-                      typographic system. The sliding pill stays — it's a
-                      filter/segmented-control pattern, distinct from the
-                      page tabs' underline pattern. */}
-                  <div className="flex gap-0 mb-3 rounded-md bg-tea-surface/30 p-0.5 relative">
-                    <motion.div
-                      className="absolute top-0.5 bottom-0.5 rounded-[5px] bg-tea-surface shadow-sm"
-                      animate={{
-                        left: captureOption === 'tea' ? '2px' : captureOption === 'teaware' ? '33.33%' : '66.66%',
-                        right: captureOption === 'samples' ? '2px' : captureOption === 'teaware' ? '33.33%' : '66.66%',
-                      }}
-                      transition={{ duration: 0.1, ease: 'easeOut' }}
-                    />
-                    <button type="button" onClick={() => handleCaptureOption('tea')}
-                      className={`flex-1 text-center py-1.5 text-ui-12 font-semibold rounded-[5px] transition-colors relative z-[1] ${captureOption === 'tea' ? 'text-tea-text' : 'text-tea-text-sec hover:text-tea-text'}`}
-                      style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.01em' }}>
-                      Tea
-                    </button>
-                    <button type="button" onClick={() => handleCaptureOption('teaware')}
-                      className={`flex-1 text-center py-1.5 text-ui-12 font-semibold rounded-[5px] transition-colors relative z-[1] ${captureOption === 'teaware' ? 'text-tea-text' : 'text-tea-text-sec hover:text-tea-text'}`}
-                      style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.01em' }}>
-                      Teaware
-                    </button>
-                    <button type="button" onClick={() => handleCaptureOption('samples')}
-                      className={`flex-1 text-center py-1.5 text-ui-12 font-semibold rounded-[5px] transition-colors relative z-[1] inline-flex items-center justify-center gap-1.5 ${captureOption === 'samples' ? 'text-tea-text' : 'text-tea-text-sec hover:text-tea-text'}`}
-                      style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.01em' }}>
-                      Samples
-                      {sampleCartCount > 0 && (
-                        <span className="text-ui-9 px-1.5 py-px rounded-full bg-tea-gold/20 text-tea-gold tabular-nums font-medium">{sampleCartCount}</span>
-                      )}
-                    </button>
-                  </div>
-
+                  {/* Tea / Teaware / Samples sub-tabs moved up into the
+                      header row in pass 6 — no duplicate segmented
+                      control here. */}
                   {captureOption === 'samples' ? (
                     <SampleCartPanel />
                   ) : (

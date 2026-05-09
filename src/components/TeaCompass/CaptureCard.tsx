@@ -14,7 +14,7 @@ import { hasToken } from '../../lib/api';
 import { AutocompleteInput } from './AutocompleteInput';
 import { api } from '../../lib/api';
 import { VendorStrip } from './VendorStrip';
-import { PriceGrams } from './PriceGrams';
+import { PricingRow } from './PricingRow';
 import { NoteThread } from '../shared/NoteThread';
 import { useLedgerStore } from '../../lib/ledgerStore';
 import { useSampleCartStore } from '../../samples/sampleCartStore';
@@ -1311,71 +1311,21 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
 
         <div className="border-t border-tea-border" />
 
-        {/* Row 5 — Price + Quantity on one line. Volume was removed —
-            we'll bring it back as a structured "dimensions" field if /
-            when teaware capacity actually pulls weight in the workflow. */}
-        <div className="flex items-stretch gap-2">
-          {/* Price (with currency prefix) — flex-1 takes remaining space */}
-          <div className="flex-1 min-w-0 flex items-stretch bg-tea-gold/[0.06] rounded-xl border border-tea-border focus-within:border-tea-gold/40 transition-colors">
-            <select
-              value={entry.priceCurrency || 'NT'}
-              onChange={(e) => handleCurrencyChange(e.target.value as Currency)}
-              className="self-stretch bg-transparent text-tea-text-sec text-xs tabular-nums font-medium border-none border-r border-r-tea-border outline-none cursor-pointer appearance-none shrink-0 pl-2.5 pr-1"
-              style={{ backgroundImage: 'none' }}
-              aria-label="Currency"
-            >
-              {CURRENCIES.map((c) => (
-                <option key={c.value} value={c.value}>{c.label}</option>
-              ))}
-            </select>
-            <input
-              type="number"
-              inputMode="decimal"
-              placeholder="Price"
-              value={entry.priceAmount ?? ''}
-              onChange={(e) => {
-                const val = e.target.value;
-                update({ priceAmount: val === '' ? undefined : Number(val) });
-              }}
-              className="flex-1 min-w-0 bg-transparent text-tea-text px-2 py-2.5 outline-none text-base tabular-nums placeholder:text-tea-text-sec/70 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-              style={{ MozAppearance: 'textfield' } as React.CSSProperties}
-              aria-label="Price"
-            />
-          </div>
-
-          {/* Quantity stepper — compact pill on the right of the price
-              field. The whole control (button + count + ct suffix + button)
-              lives in a single bordered shell so it reads as one unit. The
-              "ct" suffix surfaces what the number represents (count of
-              pieces) so a "100" can never be misread as grams here. */}
-          <div className="shrink-0 flex items-stretch bg-tea-gold/[0.06] rounded-xl border border-tea-border" aria-label={`Quantity: ${entry.quantity || 1} count`}>
-            <button
-              type="button"
-              onClick={() => update({ quantity: Math.max(1, (entry.quantity || 1) - 1) })}
-              className="w-7 self-stretch flex items-center justify-center text-tea-text-sec hover:text-tea-text transition-colors border-r border-r-tea-border"
-              aria-label="Decrease quantity"
-            >
-              <Minus size={12} />
-            </button>
-            <span className="text-tea-text text-base font-semibold tabular-nums w-7 text-center self-center pl-1" aria-live="polite">
-              {entry.quantity || 1}
-            </span>
-            <span
-              className="self-center pr-2 pl-0.5 text-tea-text-sec text-ui-10 tabular-nums font-medium pointer-events-none select-none"
-              aria-hidden
-            >
-              ct
-            </span>
-            <button
-              type="button"
-              onClick={() => update({ quantity: (entry.quantity || 1) + 1 })}
-              className="w-7 self-stretch flex items-center justify-center text-tea-text-sec hover:text-tea-text transition-colors border-l border-l-tea-border"
-              aria-label="Increase quantity"
-            >
-              <Plus size={12} />
-            </button>
-          </div>
-        </div>
+        {/* Pricing — shared with the tea variant via PricingRow. count
+            mode here just means "1 ct, 2 ct…" instead of grams; no preset
+            row beneath. Volume (ml) lives elsewhere when teaware
+            dimensions earn their place. */}
+        <PricingRow
+          priceAmount={entry.priceAmount}
+          priceCurrency={entry.priceCurrency || 'NT'}
+          onPriceChange={(priceAmount) => update({ priceAmount })}
+          onCurrencyChange={handleCurrencyChange}
+          unit={{
+            mode: 'count',
+            quantity: entry.quantity || 1,
+            onQuantityChange: (quantity) => update({ quantity }),
+          }}
+        />
 
         <div className="border-t border-tea-border" />
 
@@ -1655,15 +1605,18 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
 
         <div className="border-t border-tea-border" />
 
-        <PriceGrams
+        <PricingRow
           priceAmount={entry.priceAmount}
           priceCurrency={entry.priceCurrency}
-          pricePerUnitGrams={entry.pricePerUnitGrams}
-          form={entry.form}
           onPriceChange={(priceAmount) => update({ priceAmount })}
           onCurrencyChange={handleCurrencyChange}
-          onGramsChange={(pricePerUnitGrams) => update({ pricePerUnitGrams })}
-          onFormChange={handleFormSelect}
+          unit={{
+            mode: 'grams',
+            pricePerUnitGrams: entry.pricePerUnitGrams,
+            onGramsChange: (pricePerUnitGrams) => update({ pricePerUnitGrams }),
+            form: entry.form,
+            onFormChange: handleFormSelect,
+          }}
         />
 
         {/* Retail price preview — only for tea with cost + grams entered */}
