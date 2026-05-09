@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import React from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Mic, Square, Loader2 } from 'lucide-react';
 import { LogoText } from './Logos';
 import { Section } from '../types';
 
@@ -21,6 +22,93 @@ interface BottomTabBarProps {
   isAdminRoute?: boolean;
 }
 
+/**
+ * MicCenterButton — a web3-flavoured circular button that lifts above the
+ * bar plane via negative translate, layered gold halo, and animated ripple
+ * rings during recording. Replaces the centered teajiā logo on screens
+ * that register a `bottomBarAction` of type `'mic'`.
+ */
+const MicCenterButton: React.FC<{
+  state: 'idle' | 'recording' | 'transcribing' | 'error';
+  onPress: () => void;
+}> = ({ state, onPress }) => {
+  const recording = state === 'recording';
+  const transcribing = state === 'transcribing';
+  const errored = state === 'error';
+
+  return (
+    <motion.button
+      type="button"
+      onClick={onPress}
+      disabled={transcribing}
+      whileHover={{ scale: transcribing ? 1 : 1.05 }}
+      whileTap={{ scale: transcribing ? 1 : 0.92 }}
+      transition={{ type: 'spring', stiffness: 400, damping: 22 }}
+      aria-label={recording ? 'Stop recording' : transcribing ? 'Transcribing' : 'Record voice note'}
+      title={recording ? 'Stop recording' : transcribing ? 'Transcribing…' : 'Tap to record'}
+      className="relative -translate-y-2 w-12 h-12 rounded-full flex items-center justify-center select-none disabled:cursor-wait"
+      style={{
+        WebkitTouchCallout: 'none',
+        WebkitUserSelect: 'none',
+        touchAction: 'manipulation',
+        background: recording
+          ? 'radial-gradient(circle at 50% 35%, rgb(var(--tea-gold-rgb) / 0.32), rgb(var(--tea-elevated-rgb)) 75%)'
+          : 'radial-gradient(circle at 50% 35%, rgb(var(--tea-gold-rgb) / 0.14), rgb(var(--tea-elevated-rgb)) 70%)',
+        border: `1px solid rgb(var(--tea-gold-rgb) / ${recording ? 0.65 : 0.4})`,
+        boxShadow: recording
+          ? '0 0 0 6px rgb(var(--tea-gold-rgb) / 0.10), 0 8px 24px -4px rgb(var(--tea-gold-rgb) / 0.45), 0 0 18px rgb(var(--tea-gold-rgb) / 0.35), inset 0 1px 0 rgb(255 255 255 / 0.08)'
+          : '0 0 0 5px rgb(var(--tea-gold-rgb) / 0.05), 0 8px 22px -6px rgb(var(--tea-bg-rgb) / 0.7), 0 0 22px -6px rgb(var(--tea-gold-rgb) / 0.22), inset 0 1px 0 rgb(255 255 255 / 0.05)',
+      }}
+    >
+      {/* Recording ripple rings — two concentric, staggered, expand outward */}
+      <AnimatePresence>
+        {recording && (
+          <>
+            <motion.span
+              key="ring-1"
+              initial={{ scale: 1, opacity: 0.55 }}
+              animate={{ scale: 1.55, opacity: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 1.6, repeat: Infinity, ease: 'easeOut' }}
+              className="absolute inset-0 rounded-full pointer-events-none"
+              style={{ border: '1px solid rgb(var(--tea-gold-rgb) / 0.55)' }}
+            />
+            <motion.span
+              key="ring-2"
+              initial={{ scale: 1, opacity: 0.4 }}
+              animate={{ scale: 1.85, opacity: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 1.6, repeat: Infinity, ease: 'easeOut', delay: 0.5 }}
+              className="absolute inset-0 rounded-full pointer-events-none"
+              style={{ border: '1px solid rgb(var(--tea-gold-rgb) / 0.35)' }}
+            />
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Icon */}
+      <span
+        className="relative pointer-events-none"
+        style={{ color: errored ? '#fb7185' : 'var(--tea-gold)' }}
+      >
+        {recording ? (
+          <Square size={18} fill="currentColor" strokeWidth={0} />
+        ) : transcribing ? (
+          <motion.span
+            className="block"
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1.1, repeat: Infinity, ease: 'linear' }}
+          >
+            <Loader2 size={20} strokeWidth={1.75} />
+          </motion.span>
+        ) : (
+          <Mic size={20} strokeWidth={1.75} />
+        )}
+      </span>
+    </motion.button>
+  );
+};
+
 export const BottomTabBar: React.FC<BottomTabBarProps> = ({
   activeSection,
   onNavigate,
@@ -37,22 +125,15 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
   // using one authoritative source to avoid split-brain if prop is ever stale.
   const isOnAdmin = location.pathname.startsWith('/admin');
 
-  const { activeAccount, upcomingEventsCount, composerSlot } = useAppStore();
+  const { activeAccount, upcomingEventsCount, bottomBarAction } = useAppStore();
   const auth = useAuth();
-
-  // "Peek" mode lets the user tap the centered logo while a composer is
-  // active to temporarily reveal the underlying nav so they can navigate
-  // away. Auto-resets whenever the composer slot transitions in/out.
-  const [peeking, setPeeking] = useState(false);
-  const composerActive = !!composerSlot && !peeking;
-  useEffect(() => {
-    setPeeking(false);
-  }, [composerSlot]);
   const isAdmin = auth.isAdmin;
   const isStaff = auth.user?.role === 'staff' || auth.user?.role === 'admin' || auth.user?.role === 'owner';
   const locationAbbr = activeAccount?.location_country?.slice(0, 2).toUpperCase()
     ?? activeAccount?.location_city?.slice(0, 2).toUpperCase()
     ?? null;
+
+  const micActive = bottomBarAction?.type === 'mic';
 
   // Admin tab definitions (path-based routing)
   type AdminTab = { id: string; label: string; path: string };
@@ -124,14 +205,6 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
       }
     },
     onClick: () => {
-      // While a composer is active, the logo toggles peek mode instead of
-      // navigating — first tap reveals the nav, second tap returns to the
-      // composer. Once peeking, nav buttons are tappable as normal.
-      if (composerSlot) {
-        if ('vibrate' in navigator) { navigator.vibrate?.(8); }
-        setPeeking((p) => !p);
-        return;
-      }
       if (isOnAdmin) {
         onAccountClick?.();
         return;
@@ -211,176 +284,129 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
       >
         <div className="flex w-full px-0 h-full">
 
-          {/* LEFT RAIL — nav (search + left sections) crossfades with composer.left.
-              Both layers occupy the same absolute box; the inactive one is opacity 0
-              with pointer-events disabled so the active one captures touches. */}
-          <div className="relative flex items-stretch min-w-0" style={{ flex: '2 1 0%' }}>
-            <div
-              aria-hidden={composerActive}
-              className={`absolute inset-0 flex items-stretch min-w-0 transition-opacity duration-[180ms] ease-out ${
-                composerActive ? 'opacity-0 pointer-events-none' : 'opacity-100'
-              }`}
-            >
-              {/* Far left — Search icon (fixed narrow slot) */}
-              <button
-                onClick={onSearchClick}
-                className="w-8 flex-shrink-0 h-full flex items-center justify-center group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none"
-                style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', touchAction: 'manipulation' }}
-                title="Search"
-                aria-label="Search"
-                tabIndex={composerActive ? -1 : 0}
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  className="w-[15px] h-[15px] transition-colors duration-200 text-tea-text-sec group-hover:text-tea-text pointer-events-none"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <circle cx="11" cy="11" r="7" />
-                  <line x1="16.5" y1="16.5" x2="22" y2="22" />
-                </svg>
-              </button>
-
-              {/* Left sections */}
-              {isAdminRoute ? (
-                adminLeftTabs.map((tab, index) => (
-                  <React.Fragment key={tab.id}>
-                    <div className="w-px h-4 bg-tea-border self-center flex-shrink-0" />
-                    {renderAdminTabButton(tab, index)}
-                  </React.Fragment>
-                ))
-              ) : (
-                leftSections.map((section, index) => (
-                  <React.Fragment key={section.id}>
-                    <div className="w-px h-4 bg-tea-border self-center flex-shrink-0" />
-                    {renderTabButton(section, index)}
-                  </React.Fragment>
-                ))
-              )}
-            </div>
-
-            <div
-              aria-hidden={!composerActive}
-              className={`absolute inset-0 flex items-stretch justify-end min-w-0 transition-opacity duration-[180ms] ease-out ${
-                composerActive ? 'opacity-100' : 'opacity-0 pointer-events-none'
-              }`}
-            >
-              {composerSlot?.left}
-            </div>
-          </div>
-
-          <div className="w-px h-4 bg-tea-border self-center flex-shrink-0" />
-
-          {/* Center — HOME / ADMIN HOME / composer-peek toggle.
-              Always mounted; never moves. Tap behavior changes based on
-              whether a composer slot is registered. */}
-          <motion.button
-            {...centerLongPress}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: leftSections.length * 0.05, duration: 0.25, ease: 'easeOut' }}
-            className="h-full flex items-center justify-center relative transition-all duration-300 select-none"
-            style={{
-              flex: '1 1 0%',
-              WebkitTouchCallout: 'none',
-              WebkitUserSelect: 'none',
-              touchAction: 'manipulation',
-            }}
-            title={
-              composerSlot
-                ? (peeking ? 'Tap to return to your work' : 'Tap to reveal navigation')
-                : (isAdminRoute ? 'Admin Home · Long press to go to storefront' : 'Home · Long press for admin')
-            }
-            aria-label={
-              composerSlot
-                ? (peeking ? 'Return to composer' : 'Reveal navigation')
-                : (isAdminRoute ? 'Admin home, long press to go to storefront' : 'Return to home, long press to open launchpad')
-            }
+          {/* Far left — Search icon (fixed narrow slot) */}
+          <button
+            onClick={onSearchClick}
+            className="w-8 flex-shrink-0 h-full flex items-center justify-center group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none"
+            style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', touchAction: 'manipulation' }}
+            title="Search"
+            aria-label="Search"
           >
-            <span style={{ display: 'inline-block', transform: 'scale(0.89)', transformOrigin: 'center', lineHeight: 0 }}>
-              <LogoText
-                size="sm"
-                color={
-                  composerSlot
-                    ? 'var(--tea-gold)'
-                    : isAdminRoute
-                      ? 'var(--tea-text-sec)'
-                      : (activeSection === 'HOME' ? 'var(--tea-gold)' : 'var(--tea-text-sec)')
-                }
-                className="transition-all duration-300 pointer-events-none"
-              />
-            </span>
-          </motion.button>
+            <svg
+              viewBox="0 0 24 24"
+              className="w-[15px] h-[15px] transition-colors duration-200 text-tea-text-sec group-hover:text-tea-text pointer-events-none"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="11" cy="11" r="7" />
+              <line x1="16.5" y1="16.5" x2="22" y2="22" />
+            </svg>
+          </button>
+
+          {/* Left sections */}
+          {isAdminRoute ? (
+            adminLeftTabs.map((tab, index) => (
+              <React.Fragment key={tab.id}>
+                <div className="w-px h-4 bg-tea-border self-center flex-shrink-0" />
+                {renderAdminTabButton(tab, index)}
+              </React.Fragment>
+            ))
+          ) : (
+            leftSections.map((section, index) => (
+              <React.Fragment key={section.id}>
+                <div className="w-px h-4 bg-tea-border self-center flex-shrink-0" />
+                {renderTabButton(section, index)}
+              </React.Fragment>
+            ))
+          )}
 
           <div className="w-px h-4 bg-tea-border self-center flex-shrink-0" />
 
-          {/* RIGHT RAIL — nav (right sections + account) crossfades with composer.right. */}
-          <div className="relative flex items-stretch min-w-0" style={{ flex: '2 1 0%' }}>
+          {/* Center — HOME / ADMIN HOME, OR a contextual mic button when a
+              page registers `bottomBarAction = { type: 'mic' }`. */}
+          {micActive && bottomBarAction?.type === 'mic' ? (
             <div
-              aria-hidden={composerActive}
-              className={`absolute inset-0 flex items-stretch min-w-0 transition-opacity duration-[180ms] ease-out ${
-                composerActive ? 'opacity-0 pointer-events-none' : 'opacity-100'
-              }`}
+              className="flex items-center justify-center"
+              style={{ flex: '1 1 0%' }}
             >
-              {/* Right sections */}
-              {isAdminRoute ? (
-                adminRightTabs.map((tab, index) => (
-                  <React.Fragment key={tab.id}>
-                    {renderAdminTabButton(tab, index + adminLeftTabs.length + 1)}
-                    <div className="w-px h-4 bg-tea-border self-center flex-shrink-0" />
-                  </React.Fragment>
-                ))
-              ) : (
-                rightSections.map((section, index) => (
-                  <React.Fragment key={section.id}>
-                    {renderTabButton(section, index + leftSections.length + 1)}
-                    <div className="w-px h-4 bg-tea-border self-center flex-shrink-0" />
-                  </React.Fragment>
-                ))
-              )}
-
-              {/* Far right — Account panel */}
-              <button
-                onClick={() => {
-                  if ('vibrate' in navigator) { navigator.vibrate?.(10); }
-                  onAccountClick?.();
-                }}
-                className="w-8 flex-shrink-0 h-full flex flex-col items-center justify-center gap-px group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none relative"
-                style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', touchAction: 'manipulation' }}
-                title="Your Table"
-                aria-label="Your Table"
-                tabIndex={composerActive ? -1 : 0}
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  className="w-[13px] h-[13px] transition-colors duration-200 text-tea-text-sec group-hover:text-tea-text pointer-events-none"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <circle cx="12" cy="8" r="4" />
-                  <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
-                </svg>
-                {upcomingEventsCount > 0 && (
-                  <span className="absolute top-1.5 right-1 w-1.5 h-1.5 rounded-full bg-tea-gold pointer-events-none" />
-                )}
-              </button>
+              <MicCenterButton state={bottomBarAction.state} onPress={bottomBarAction.onPress} />
             </div>
-
-            <div
-              aria-hidden={!composerActive}
-              className={`absolute inset-0 flex items-stretch justify-start min-w-0 transition-opacity duration-[180ms] ease-out ${
-                composerActive ? 'opacity-100' : 'opacity-0 pointer-events-none'
-              }`}
+          ) : (
+            <motion.button
+              {...centerLongPress}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: leftSections.length * 0.05, duration: 0.25, ease: 'easeOut' }}
+              className="flex-1 w-full h-full flex items-center justify-center relative transition-all duration-300 select-none"
+              style={{
+                WebkitTouchCallout: 'none',
+                WebkitUserSelect: 'none',
+                touchAction: 'manipulation',
+              }}
+              title={isAdminRoute ? 'Admin Home · Long press to go to storefront' : 'Home · Long press for admin'}
+              aria-label={isAdminRoute ? 'Admin home, long press to go to storefront' : 'Return to home, long press to open launchpad'}
             >
-              {composerSlot?.right}
-            </div>
-          </div>
+              <span style={{ display: 'inline-block', transform: 'scale(0.89)', transformOrigin: 'center', lineHeight: 0 }}>
+                <LogoText
+                  size="sm"
+                  color={isAdminRoute
+                    ? 'var(--tea-text-sec)'
+                    : (activeSection === 'HOME' ? 'var(--tea-gold)' : 'var(--tea-text-sec)')}
+                  className="transition-all duration-300 pointer-events-none"
+                />
+              </span>
+            </motion.button>
+          )}
+
+          <div className="w-px h-4 bg-tea-border self-center flex-shrink-0" />
+
+          {/* Right sections */}
+          {isAdminRoute ? (
+            adminRightTabs.map((tab, index) => (
+              <React.Fragment key={tab.id}>
+                {renderAdminTabButton(tab, index + adminLeftTabs.length + 1)}
+                <div className="w-px h-4 bg-tea-border self-center flex-shrink-0" />
+              </React.Fragment>
+            ))
+          ) : (
+            rightSections.map((section, index) => (
+              <React.Fragment key={section.id}>
+                {renderTabButton(section, index + leftSections.length + 1)}
+                <div className="w-px h-4 bg-tea-border self-center flex-shrink-0" />
+              </React.Fragment>
+            ))
+          )}
+
+          {/* Far right — Account panel */}
+          <button
+            onClick={() => {
+              if ('vibrate' in navigator) { navigator.vibrate?.(10); }
+              onAccountClick?.();
+            }}
+            className="w-8 flex-shrink-0 h-full flex flex-col items-center justify-center gap-px group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none relative"
+            style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', touchAction: 'manipulation' }}
+            title="Your Table"
+            aria-label="Your Table"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              className="w-[13px] h-[13px] transition-colors duration-200 text-tea-text-sec group-hover:text-tea-text pointer-events-none"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="12" cy="8" r="4" />
+              <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+            </svg>
+            {upcomingEventsCount > 0 && (
+              <span className="absolute top-1.5 right-1 w-1.5 h-1.5 rounded-full bg-tea-gold pointer-events-none" />
+            )}
+          </button>
 
         </div>
       </nav>

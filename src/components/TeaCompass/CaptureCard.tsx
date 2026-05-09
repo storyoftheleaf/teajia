@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, BookOpen, Camera, Check, ChevronDown, ChevronLeft, ChevronRight, Droplets, Minus, Plus, X } from 'lucide-react';
+import { ArrowLeft, BookmarkCheck, BookmarkPlus, BookOpen, Camera, Check, ChevronDown, ChevronLeft, ChevronRight, Droplets, FlaskConical, Minus, Plus, ShoppingCart, X } from 'lucide-react';
 import Fuse from 'fuse.js';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { TEA_TYPE_COLORS } from '../../designTokens';
@@ -17,6 +17,7 @@ import { VendorStrip } from './VendorStrip';
 import { PriceGrams } from './PriceGrams';
 import { NoteThread } from '../shared/NoteThread';
 import { useLedgerStore } from '../../lib/ledgerStore';
+import { useSampleCartStore } from '../../samples/sampleCartStore';
 import { TastingSession } from '../tasting/TastingSession';
 import { TastingProfileStrip } from '../tasting/TastingProfileStrip';
 import { parseTeaInput } from './InputParser';
@@ -147,6 +148,40 @@ function getTypeChipStyle(type: TeaType): { bg: string; text: string } {
   return { bg: `${color}20`, text: color };
 }
 
+/** Inline status mark — Want/Buy/Sample/Taste tile inside the form. Glass
+ *  surface with gold accent on active. Deliberately not rounded-full so it
+ *  reads as a marker, not a navigation pill. */
+const EntryMark: React.FC<{
+  icon: React.ReactNode;
+  label: string;
+  active: boolean;
+  onClick: () => void;
+  ariaLabel?: string;
+}> = ({ icon, label, active, onClick, ariaLabel }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    aria-pressed={active}
+    aria-label={ariaLabel || label}
+    className={`group relative flex flex-col items-center justify-center gap-1 px-2 py-2.5 rounded-md border text-ui-10 font-medium transition-all duration-200 tap-target ${
+      active
+        ? 'bg-tea-gold/10 border-tea-gold/40 text-tea-gold'
+        : 'bg-tea-elevated/60 border-tea-border text-tea-text-sec hover:text-tea-text hover:border-tea-gold/30'
+    }`}
+    style={
+      active
+        ? {
+            boxShadow:
+              'inset 0 1px 0 rgb(var(--tea-gold-rgb) / 0.18), 0 0 14px -4px rgb(var(--tea-gold-rgb) / 0.22)',
+          }
+        : undefined
+    }
+  >
+    <span className="pointer-events-none">{icon}</span>
+    <span className="leading-none whitespace-nowrap pointer-events-none">{label}</span>
+  </button>
+);
+
 export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLedger, onCommit, onReturnToLibrary, initialCollapsed = false, actionRef }) => {
   const entry = useTeaCompassStore((s) => s.getEntry(entryId));
   const updateEntry = useTeaCompassStore((s) => s.updateEntry);
@@ -165,6 +200,13 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   const getOrCreatePurchaseTransaction = useLedgerStore((s) => s.getOrCreatePurchaseTransaction);
   const addLineItem = useLedgerStore((s) => s.addLineItem);
   const transactions = useLedgerStore((s) => s.transactions);
+
+  // Sample cart — used by the inline EntryMarks strip below the form so
+  // Want/Buy/Sample/Taste are colocated with the entry rather than living
+  // in a separate fixed action bar.
+  const sampleCartHas = useSampleCartStore((s) => s.items.some((i) => i.id === entryId));
+  const addSampleCartItem = useSampleCartStore((s) => s.addItem);
+  const removeSampleCartItem = useSampleCartStore((s) => s.removeItem);
 
   const [collapsed, setCollapsed] = useState(initialCollapsed);
   const [tastingOverlayOpen, setTastingOverlayOpen] = useState(false);
@@ -1751,6 +1793,86 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
           )}
         </AnimatePresence>
       </div>
+
+      {/* Mobile entry marks + Done. The desktop right column has its own
+          sticky action bar, so these are mobile-only. */}
+      <div className="lg:hidden grid grid-cols-4 gap-2">
+        <EntryMark
+          icon={<Droplets size={16} strokeWidth={1.5} />}
+          label={hasTasting ? 'Re-Taste' : 'Taste'}
+          active={!!hasTasting}
+          onClick={openTastingOverlay}
+        />
+        <EntryMark
+          icon={isWant ? <BookmarkCheck size={16} /> : <BookmarkPlus size={16} />}
+          label={isWant ? 'Wanted' : 'Want'}
+          active={isWant}
+          onClick={() => update({ status: isWant ? 'noted' : 'want' })}
+        />
+        <EntryMark
+          icon={<ShoppingCart size={16} />}
+          label="Buy"
+          active={showBuyPicker}
+          onClick={() => {
+            const defaultQty = unitBased ? 1 : (entry.form ? (DEFAULT_GRAMS[entry.form] ?? 100) : 100);
+            if (!showBuyPicker) setBuyingQty(defaultQty);
+            setShowBuyPicker((v) => !v);
+          }}
+        />
+        <EntryMark
+          icon={<FlaskConical size={16} strokeWidth={1.5} />}
+          label={sampleCartHas ? 'Listed' : 'Sample'}
+          active={sampleCartHas}
+          onClick={() => {
+            if (sampleCartHas) {
+              removeSampleCartItem(entryId);
+            } else {
+              addSampleCartItem({
+                id: entryId,
+                name: entry.name,
+                chineseName: entry.chineseName,
+                type: entry.type,
+                vendorName: entry.vendorName,
+                compassEntryId: entryId,
+              });
+            }
+          }}
+        />
+      </div>
+
+      {/* Mobile Done — full-width primary CTA at the end of the form.
+          Subtle gradient + layered shadow gives it a tactile lift without
+          drifting from the dark/gold palette. */}
+      {(() => {
+        const ready = !!entry.name?.trim();
+        return (
+          <button
+            type="button"
+            onClick={handleCommit}
+            disabled={!ready}
+            className={`lg:hidden w-full mt-1 py-3.5 rounded-xl text-base font-semibold transition-all ${
+              ready
+                ? 'text-tea-bg'
+                : 'text-tea-text-sec bg-tea-elevated border border-tea-border cursor-not-allowed'
+            }`}
+            style={
+              ready
+                ? {
+                    fontFamily: 'var(--font-display)',
+                    letterSpacing: '0.06em',
+                    background:
+                      'linear-gradient(180deg, rgb(var(--tea-gold-rgb)) 0%, rgb(var(--tea-gold-lt-rgb)) 100%)',
+                    boxShadow:
+                      '0 4px 14px -2px rgb(var(--tea-gold-rgb) / 0.35), inset 0 1px 0 rgb(255 255 255 / 0.12)',
+                  }
+                : { fontFamily: 'var(--font-display)', letterSpacing: '0.06em' }
+            }
+            aria-label="Done — commit this entry"
+          >
+            Done
+          </button>
+        );
+      })()}
 
       {/* ─── Tasting overlay ─── */}
       <AnimatePresence>

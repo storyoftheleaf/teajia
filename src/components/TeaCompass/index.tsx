@@ -1,8 +1,8 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useComposerSlot } from '../../hooks/useComposerSlot';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useBottomBarMic } from '../../hooks/useBottomBarMic';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, BookmarkCheck, BookmarkPlus, Check, Droplets, FlaskConical, Mic, Square, Loader2, Share2, ShoppingCart, Layers, Plus, Search, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, BookmarkCheck, BookmarkPlus, Check, Droplets, FlaskConical, Layers, Loader2, Mic, Plus, Search, Share2, ShoppingCart, Square, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { hydrateCompassEntries } from '../../lib/teaCompassSync';
@@ -70,89 +70,6 @@ const CompassRightEmptyState: React.FC<{
     </div>
   );
 };
-
-// ─── Composer action pills (rendered inside BottomTabBar via composerSlot) ───
-// The action bar used to live in its own fixed bar above the bottom nav. We now
-// route it through a single bar — these pills fill the left/right rails around
-// the centered teajiā logo. Tap the logo to peek the underlying nav back in.
-
-const ComposerActionPill: React.FC<{
-  icon: React.ReactNode;
-  label: string;
-  onClick: () => void;
-  active?: boolean;
-  disabled?: boolean;
-  ariaLabel?: string;
-}> = ({ icon, label, onClick, active, disabled, ariaLabel }) => (
-  <button
-    type="button"
-    onClick={onClick}
-    disabled={disabled}
-    className={`flex-1 min-w-0 flex flex-col items-center justify-center gap-0.5 py-1 text-ui-10 font-medium transition-colors tap-target disabled:opacity-30 ${
-      active ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
-    }`}
-    aria-label={ariaLabel || label}
-  >
-    <span className="pointer-events-none">{icon}</span>
-    <span className="leading-none pointer-events-none">{label}</span>
-  </button>
-);
-
-const ComposerMicAction: React.FC<{
-  state: 'idle' | 'recording' | 'transcribing' | 'error';
-  onPress: () => void;
-}> = ({ state, onPress }) => (
-  <motion.button
-    type="button"
-    onClick={onPress}
-    disabled={state === 'transcribing'}
-    className={`relative flex-1 min-w-0 flex flex-col items-center justify-center gap-0.5 py-1 text-ui-10 font-medium transition-colors tap-target overflow-hidden ${
-      state === 'recording'
-        ? 'text-tea-gold'
-        : state === 'transcribing'
-          ? 'text-tea-text-sec cursor-wait'
-          : 'text-tea-text-sec hover:text-tea-text'
-    }`}
-    aria-label={state === 'recording' ? 'Stop recording' : 'Record note'}
-  >
-    {state === 'recording' && (
-      <motion.span
-        className="absolute inset-0"
-        animate={{ opacity: [0.06, 0.12, 0.06] }}
-        transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
-        style={{ background: 'var(--tea-gold)' }}
-      />
-    )}
-    <span className="relative flex flex-col items-center gap-0.5 leading-none pointer-events-none">
-      {state === 'recording' ? (
-        <Square size={14} fill="currentColor" />
-      ) : state === 'transcribing' ? (
-        <motion.span animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }} className="block">
-          <Loader2 size={14} />
-        </motion.span>
-      ) : (
-        <Mic size={14} />
-      )}
-      <span>Mic</span>
-    </span>
-  </motion.button>
-);
-
-const ComposerDoneAction: React.FC<{
-  onClick: () => void;
-  disabled?: boolean;
-}> = ({ onClick, disabled }) => (
-  <button
-    type="button"
-    onClick={onClick}
-    disabled={disabled}
-    className="my-1.5 mr-1.5 ml-0.5 px-3 rounded-full bg-tea-gold text-tea-bg font-semibold text-ui-12 disabled:opacity-30 disabled:bg-transparent disabled:text-tea-text-sec disabled:border disabled:border-tea-border hover:bg-tea-gold-lt transition-all tap-target flex items-center justify-center whitespace-nowrap"
-    style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.08em' }}
-    aria-label="Done"
-  >
-    Done
-  </button>
-);
 
 // ─── Main Tea Compass ────────────────────────────────────────────────────
 
@@ -498,127 +415,14 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
     { id: 'buying', label: 'Ledger' },
   ];
 
-  // Composer slot — when sourcing, the BottomTabBar swaps its nav items for
-  // the action pills around the centered teajiā logo. Tap the logo to reveal
-  // the underlying nav and navigate elsewhere.
-  const composerSlot = useMemo(() => {
-    if (mode !== 'sourcing') return null;
-
-    const sampleHandler = () => {
-      if (!activeEntryId || !activeEntry) return;
-      if (captureEntryInCart) {
-        removeSampleCartItem(activeEntryId);
-      } else {
-        addSampleCartItem({
-          id: activeEntryId,
-          name: activeEntry.name,
-          chineseName: activeEntry.chineseName,
-          type: activeEntry.type,
-          vendorName: activeEntry.vendorName,
-          compassEntryId: activeEntryId,
-        });
-      }
-    };
-
-    const intentPills = showCaptureActionBar ? (
-      <>
-        <ComposerActionPill
-          icon={<Droplets size={14} strokeWidth={1.5} />}
-          label={hasTasting ? 'Re-Taste' : 'Taste'}
-          active={hasTasting}
-          onClick={() => captureCardActionsRef.current?.openTasting()}
-        />
-        <ComposerActionPill
-          icon={isWantEntry ? <BookmarkCheck size={14} /> : <BookmarkPlus size={14} />}
-          label={isWantEntry ? 'Wanted' : 'Want'}
-          active={isWantEntry}
-          onClick={() => activeEntryId && updateEntry(activeEntryId, { status: isWantEntry ? 'noted' : 'want' })}
-        />
-        <ComposerActionPill
-          icon={<ShoppingCart size={14} />}
-          label="Buy"
-          onClick={() => captureCardActionsRef.current?.toggleBuy()}
-        />
-        <ComposerActionPill
-          icon={<FlaskConical size={14} strokeWidth={1.5} />}
-          label={captureEntryInCart ? 'Listed' : 'Sample'}
-          active={captureEntryInCart}
-          onClick={sampleHandler}
-        />
-      </>
-    ) : null;
-
-    const showShare = hasToken() && !!activeEntryId;
-
-    // When intent pills fill the left rail, Mic/Batch shift to the right rail
-    // alongside Share/Done. Otherwise, Mic/Batch sit on the left.
-    const left = intentPills ?? (
-      <>
-        {isPlatformPrivileged && (
-          <ComposerMicAction state={voiceState} onPress={handleVoicePress} />
-        )}
-        <ComposerActionPill
-          icon={<Layers size={14} strokeWidth={1.5} />}
-          label="Batch"
-          active={batchMode}
-          onClick={() => setBatchMode((v) => !v)}
-        />
-      </>
-    );
-
-    const right = (
-      <>
-        {showCaptureActionBar && isPlatformPrivileged && (
-          <ComposerMicAction state={voiceState} onPress={handleVoicePress} />
-        )}
-        {showCaptureActionBar && (
-          <ComposerActionPill
-            icon={<Layers size={14} strokeWidth={1.5} />}
-            label="Batch"
-            active={batchMode}
-            onClick={() => setBatchMode((v) => !v)}
-          />
-        )}
-        {showShare && (
-          <ComposerActionPill
-            icon={<Share2 size={14} strokeWidth={1.5} />}
-            label="Share"
-            onClick={() => setShareModalOpen(true)}
-          />
-        )}
-        <ComposerDoneAction
-          disabled={!activeEntryId || captureOption === 'samples'}
-          onClick={() => {
-            if (!activeEntryId) return;
-            commitEntry(activeEntryId);
-            handleCommitEntry();
-          }}
-        />
-      </>
-    );
-
-    return { left, right };
-  }, [
-    mode,
-    showCaptureActionBar,
-    hasTasting,
-    isWantEntry,
-    activeEntryId,
-    activeEntry,
-    captureEntryInCart,
-    addSampleCartItem,
-    removeSampleCartItem,
-    updateEntry,
-    isPlatformPrivileged,
-    voiceState,
-    handleVoicePress,
-    batchMode,
-    captureOption,
-    commitEntry,
-    handleCommitEntry,
-  ]);
-
-  useComposerSlot(composerSlot);
+  // Bottom-bar mic — when sourcing on a privileged account, the centered
+  // teajiā logo in BottomTabBar swaps for a web3-styled mic. The logo
+  // itself is unused on this screen, so giving the slot to voice capture
+  // makes it a primary affordance instead of dead space.
+  const micSlot = mode === 'sourcing' && isPlatformPrivileged
+    ? { state: voiceState, onPress: handleVoicePress }
+    : null;
+  useBottomBarMic(micSlot);
 
   return (
     <div className="flex flex-col relative lg:h-full">
@@ -673,6 +477,17 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
               New
             </button>
           </div>
+        )}
+        {mode === 'sourcing' && hasToken() && activeEntryId && (
+          <button
+            type="button"
+            onClick={() => setShareModalOpen(true)}
+            className="lg:hidden tap-target flex items-center justify-center w-8 h-full text-tea-text-sec hover:text-tea-text transition-colors shrink-0"
+            aria-label="Share entry"
+            title="Share this entry"
+          >
+            <Share2 size={14} strokeWidth={1.5} />
+          </button>
         )}
         <div className="flex items-center pr-3">
           <SyncIndicator />
@@ -753,20 +568,34 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                 <Plus size={11} strokeWidth={2} />
                 New
               </button>
+              {/* Batch lives with "+ New" — both are session-level controls
+                  (start another entry vs. start a stream of entries) so
+                  clustering them keeps related affordances together. */}
+              <button
+                type="button"
+                onClick={() => setBatchMode((v) => !v)}
+                aria-label={batchMode ? 'Exit batch entry mode' : 'Enter batch entry mode'}
+                title={batchMode ? 'Exit batch mode' : 'Batch — rapid-fire capture'}
+                className={`tap-target whitespace-nowrap inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-ui-11 border transition-colors shrink-0 ${
+                  batchMode
+                    ? 'bg-tea-gold/15 text-tea-gold border-tea-gold/40 font-semibold'
+                    : 'text-tea-text-sec border-tea-border hover:text-tea-text hover:border-tea-gold/40'
+                }`}
+              >
+                <Layers size={11} strokeWidth={2} />
+                Batch
+              </button>
             </div>
           )}
 
-          {/* Content area */}
+          {/* Content area. Action bar lived here historically; it's now
+              distributed across the page (Batch/Share in the header strip,
+              Want/Buy/Sample/Taste/Done inside the form), so the scroll
+              region only needs to clear the BottomTabBar. */}
           <div
             className={`flex-1 min-h-0 overflow-y-auto overscroll-contain ${
               mode === 'sourcing' && captureOption === 'samples' ? '' : 'px-4 pt-3'
-            } ${
-              mode === 'sourcing'
-                ? showCaptureActionBar
-                  ? 'pb-[calc(105px+52px+env(safe-area-inset-bottom,0px))] lg:pb-4'
-                  : 'pb-[calc(53px+52px+env(safe-area-inset-bottom,0px))] lg:pb-4'
-                : 'pb-3'
-            }`}
+            } ${mode === 'sourcing' ? 'pb-nav-gap' : 'pb-3'}`}
             role="tabpanel"
             style={{ WebkitOverflowScrolling: 'touch' }}
           >

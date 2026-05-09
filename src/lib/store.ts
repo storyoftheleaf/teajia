@@ -142,12 +142,13 @@ interface AppState {
   setUpcomingEventsCount: (count: number) => void;
   cartLastAddedAt: number | null;
 
-  // Composer Slot — when set, BottomTabBar swaps its nav items for these
-  // action nodes, keeping the centered logo in place. Tapping the logo
-  // "peeks" the underlying nav so the user can navigate away. Composer
-  // screens register with `setComposerSlot` on mount and clear on unmount.
-  composerSlot: { left?: import('react').ReactNode; right?: import('react').ReactNode } | null;
-  setComposerSlot: (slot: { left?: import('react').ReactNode; right?: import('react').ReactNode } | null) => void;
+  // Bottom-bar action — when set, BottomTabBar swaps the centered logo for
+  // a contextual action button (e.g. a web3-styled mic on the sourcing
+  // page). Pages register via the `useBottomBarMic` hook on mount.
+  bottomBarAction:
+    | { type: 'mic'; state: 'idle' | 'recording' | 'transcribing' | 'error'; onPress: () => void }
+    | null;
+  setBottomBarAction: (action: AppState['bottomBarAction']) => void;
 }
 
 // ── Members & Access selectors ────────────────────────────────────────────────
@@ -478,9 +479,9 @@ export const useAppStore = create<AppState>()(
       setUpcomingEventsCount: (count) => set({ upcomingEventsCount: count }),
       cartLastAddedAt: null,
 
-      // Composer Slot (transient — never persisted)
-      composerSlot: null,
-      setComposerSlot: (slot) => set({ composerSlot: slot }),
+      // Bottom-bar action (transient — never persisted)
+      bottomBarAction: null,
+      setBottomBarAction: (action) => set({ bottomBarAction: action }),
     }),
     {
       name: 'teajia-storage',
