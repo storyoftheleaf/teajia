@@ -159,16 +159,24 @@ const EntryMark: React.FC<{
   active: boolean;
   onClick: () => void;
   ariaLabel?: string;
-}> = ({ icon, label, active, onClick, ariaLabel }) => (
+  /** Render as a non-interactive placeholder. Used when a mark doesn't
+   *  apply to the current category (e.g. "Taste" / "Sample" on teaware)
+   *  so the 4-up row stays visually consistent across forms. */
+  disabled?: boolean;
+}> = ({ icon, label, active, onClick, ariaLabel, disabled }) => (
   <button
     type="button"
     onClick={onClick}
+    disabled={disabled}
     aria-pressed={active}
+    aria-disabled={disabled}
     aria-label={ariaLabel || label}
     className={`group relative flex flex-col items-center justify-center gap-0.5 min-h-[52px] px-1 py-1.5 rounded-md border text-ui-10 font-medium transition-all duration-200 ${
-      active
-        ? 'bg-tea-gold/10 border-tea-gold/40 text-tea-gold'
-        : 'bg-tea-elevated/60 border-tea-border text-tea-text-sec hover:text-tea-text hover:border-tea-gold/30'
+      disabled
+        ? 'bg-tea-elevated/30 border-tea-border text-tea-text-dim cursor-not-allowed opacity-60'
+        : active
+          ? 'bg-tea-gold/10 border-tea-gold/40 text-tea-gold'
+          : 'bg-tea-elevated/60 border-tea-border text-tea-text-sec hover:text-tea-text hover:border-tea-gold/30'
     }`}
   >
     <span className="pointer-events-none">{icon}</span>
@@ -956,19 +964,18 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           className="rounded-2xl border border-tea-border bg-tea-gold/[0.025] px-3 py-2.5"
           style={{ boxShadow: 'inset 0 1px 0 rgb(var(--tea-gold-rgb) / 0.05)' }}
         >
-          <div className="flex items-center justify-between mb-1.5">
-            <span
-              className="text-ui-9 uppercase tracking-[0.18em] text-tea-text-sec font-medium"
-              style={{ fontFamily: 'var(--font-display)' }}
-            >
-              Source
-            </span>
-            {entry.photos.length > 0 && (
+          {/* Photo counter floats top-right of the card when photos exist;
+              otherwise the card opens directly with the vendor strip. The
+              SOURCE label that used to sit on the left was removed —
+              the bordered card with its faint gold inner glow is enough
+              visual grouping on its own. */}
+          {entry.photos.length > 0 && (
+            <div className="flex items-center justify-end mb-1">
               <span className="text-ui-9 uppercase tracking-[0.14em] text-tea-text-sec tabular-nums">
                 {entry.photos.length} {entry.photos.length === 1 ? 'photo' : 'photos'}
               </span>
-            )}
-          </div>
+            </div>
+          )}
 
           <VendorStrip
             vendorName={entry.vendorName}
@@ -1337,10 +1344,11 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           </div>
 
           {/* Quantity stepper — compact pill on the right of the price
-              field. The whole control (button + count + button) lives in
-              a single bordered shell so it reads as one unit rather than
-              three loose elements. */}
-          <div className="shrink-0 flex items-stretch bg-tea-gold/[0.06] rounded-xl border border-tea-border" aria-label={`Quantity: ${entry.quantity || 1}`}>
+              field. The whole control (button + count + ct suffix + button)
+              lives in a single bordered shell so it reads as one unit. The
+              "ct" suffix surfaces what the number represents (count of
+              pieces) so a "100" can never be misread as grams here. */}
+          <div className="shrink-0 flex items-stretch bg-tea-gold/[0.06] rounded-xl border border-tea-border" aria-label={`Quantity: ${entry.quantity || 1} count`}>
             <button
               type="button"
               onClick={() => update({ quantity: Math.max(1, (entry.quantity || 1) - 1) })}
@@ -1349,8 +1357,14 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             >
               <Minus size={12} />
             </button>
-            <span className="text-tea-text text-base font-semibold tabular-nums w-8 text-center self-center" aria-live="polite">
+            <span className="text-tea-text text-base font-semibold tabular-nums w-7 text-center self-center pl-1" aria-live="polite">
               {entry.quantity || 1}
+            </span>
+            <span
+              className="self-center pr-2 pl-0.5 text-tea-text-sec text-ui-10 tabular-nums font-medium pointer-events-none select-none"
+              aria-hidden
+            >
+              ct
             </span>
             <button
               type="button"
@@ -1372,6 +1386,46 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           larger
           hideMic
         />
+
+        {/* Mobile entry marks — same 4-up grid as the tea variant for
+            visual parity. Taste / Buy / Sample don't carry a teaware
+            workflow (no tasting session, no ml-based buy picker, no
+            sample cart), so they render as disabled placeholders. Want
+            is the only mark that maps cleanly. */}
+        {(() => {
+          const isWantTeaware = entry.status === 'want';
+          return (
+            <div className="lg:hidden grid grid-cols-4 gap-1.5">
+              <EntryMark
+                icon={<Droplets size={13} strokeWidth={1.5} />}
+                label="Taste"
+                active={false}
+                onClick={() => {}}
+                disabled
+              />
+              <EntryMark
+                icon={isWantTeaware ? <BookmarkCheck size={13} /> : <BookmarkPlus size={13} />}
+                label={isWantTeaware ? 'Wanted' : 'Want'}
+                active={isWantTeaware}
+                onClick={() => update({ status: isWantTeaware ? 'noted' : 'want' })}
+              />
+              <EntryMark
+                icon={<ShoppingCart size={13} />}
+                label="Buy"
+                active={false}
+                onClick={() => {}}
+                disabled
+              />
+              <EntryMark
+                icon={<FlaskConical size={13} strokeWidth={1.5} />}
+                label="Sample"
+                active={false}
+                onClick={() => {}}
+                disabled
+              />
+            </div>
+          );
+        })()}
 
         {/* Done — same gold-gradient primary CTA as the tea variant, with
             consistent name-trim gating. Disabled state stays muted so the
@@ -1593,7 +1647,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
             value={entry.originRegion || ''}
             onChange={(val) => { userTapped.current.add('region'); update({ originRegion: val || undefined }); }}
             suggestions={availableRegions}
-            placeholder="Region"
+            placeholder="Origin"
             className="w-full bg-tea-gold/[0.06] text-tea-text text-base rounded-xl px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder:text-tea-text-sec/70"
           />
         </div>
