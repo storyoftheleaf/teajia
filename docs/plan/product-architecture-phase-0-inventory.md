@@ -110,15 +110,16 @@ The Zustand store now also resets account/user-scoped slices when `activeAccount
 |---|---|---|---|
 | `src/types.ts` | Canonical rich `ArticleBlock` union with cover, chapter, Q&A, stat, recipe, tasting notes, embeds, back matter | Yes | Shared by public reader, admin editor, API client, and parser |
 | `src/admin/types.ts` | Re-exports shared article types | Yes | Keeps old admin imports working without a second contract |
-| `ArticleEditorModal` | Intro, paragraph, section heading, quote, image, divider, plus read-only preservation for richer block kinds | Partially | Editor cannot express all reader-supported blocks yet, but it no longer drops them |
+| `ArticleEditorModal` | Uses `ARTICLE_BLOCK_REGISTRY` for labels/addable blocks; editable blocks remain intro, paragraph, section heading, quote, image, divider, with read-only preservation for richer block kinds | Partially | Editor cannot express all reader-supported blocks yet, but it no longer drops them |
 | `ArticlePage` / reader | Rich paginated 4:5 article system | Yes | Strong product direction, but large file |
 | `SinglePageRenderer` | Many layout variants | Yes | Needs keeper-list curation before full editor exposure |
 | `scripts/parseDirectives.ts` | Imports shared article block type | Partially | Parser still creates simple blocks, but it now targets the canonical contract |
 
 ### Article Follow-Ups
 
-- Create a block registry with reader support, editor support, validation, and fallback behavior.
-- Curate magazine keeper templates before exposing all variants in the editor.
+- Use `ARTICLE_BLOCK_REGISTRY` in `src/lib/articleBlockRegistry.ts` as the source of truth for reader support, editor support, page limits, and keeper-template status.
+- Add validation that uses the registry before article save.
+- Build dedicated editor controls for planned keeper blocks: Q&A, tasting notes, and back matter.
 
 ## Safety Fixes Applied In This Slice
 
@@ -132,14 +133,18 @@ The Zustand store now also resets account/user-scoped slices when `activeAccount
 - Admin article routes now require the `publish` bundle, including draft list/read, create, update, publish, unpublish, and archive/delete.
 - Authenticated article/module/project product xref routes now require the `publish` bundle; public xref routes remain no-auth and public-field-only.
 - Product command routes now split catalog, stock, commercial, and publication writes behind `catalog`, `stock`, `sell`, and `publish` bundle gates.
+- Product UI writes now flow through `api.products.updateByDomain`, which splits mixed product saves across catalog, stock, commercial, and publication command routes.
 - Article block types are now canonical in `src/types.ts`; admin imports re-export the shared contract, public reader/parser imports use it directly, and the editor preserves richer unsupported blocks.
+- Article block registry now records editor support, reader support, page limits, and keeper-template status.
 - Magazine admin rows now fetch the full article before editing so list responses without `blocks` cannot overwrite rich article content.
+- Customer/contact taxonomy now names buyer, vendor/source, event guest, collection recipient, contributor, and personal connection as separate relationship kinds.
 - MCP OAuth approval now verifies the Teajia JWT server-side and re-checks owner-tier account access before minting an OAuth code.
+- MCP tokens now carry explicit scopes and confirmed mutating tool calls write `MCP_TOOL_CALL` activity logs.
 
 ## Next Recommended Implementation Pull
 
-1. Add Worker route auth tests for publish-bundle enforcement on admin articles, authenticated xrefs, product command routes, and MCP OAuth approval.
-2. Migrate product UI and MCP product tools from broad product update calls to catalog/stock/commercial/publication command routes.
+1. Expand Worker route auth tests to include authenticated xrefs and successful product command writes with fake D1 state changes.
+2. Remove the compatibility fallback inside `api.products.updateByDomain` after confirming no callers emit legacy-only fields.
 3. Decide whether scoped state should be upgraded from reset-on-boundary to per-account saved buckets.
-4. Build the article block registry and validation layer.
+4. Add article save validation from the block registry.
 5. Add tests for account switching cache isolation and SQL filter validation.

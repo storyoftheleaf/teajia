@@ -64,7 +64,7 @@ export function useAdminOverlay() {
   }, [products, invoices, enabled]);
 
   const updateProduct = async (id: string, data: Record<string, any>) => {
-    await api.products.update(id, data);
+    await api.products.updateByDomain(id, data);
     refetchProducts();
   };
 

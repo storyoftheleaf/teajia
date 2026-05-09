@@ -1464,7 +1464,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
     // 3. Fire & Forget (with Error Revert)
     try {
-      await api.products.update(id, dbPayload);
+      await api.products.updateByDomain(id, dbPayload);
     } catch (err: any) {
       showToast(`Update failed: ${err.message}`, 'error');
       onRefresh();
@@ -1530,7 +1530,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
                 const data = await api.generateWisdom(prompt);
 
-                await api.products.update(tea.id, {
+                await api.products.updateByDomain(tea.id, {
                     lore: data.lore,
                     tasting_notes: data.tastingNotes,
                     chinese_name: tea.chineseName || data.chineseName || '',
@@ -1591,7 +1591,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       (draft.experience || '') !== (product.experience || '')
     );
     try {
-      await api.products.update(product.id, {
+      await api.products.updateByDomain(product.id, {
         lore: draft.lore || product.lore,
         terroir: draft.terroir || '',
         processing_notes: draft.processingNotes || '',
@@ -1622,7 +1622,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           (draft.mood || '') !== (p.mood || '') ||
           (draft.experience || '') !== (p.experience || '')
         );
-        return api.products.update(p.id, {
+        return api.products.updateByDomain(p.id, {
           lore: draft.lore || p.lore,
           terroir: draft.terroir || '',
           processing_notes: draft.processingNotes || '',
@@ -1643,7 +1643,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
   const handleDiscardOne = async (productId: string) => {
     try {
-      await api.products.update(productId, { lore: '', show_wisdom: false });
+      await api.products.updateByDomain(productId, { lore: '', show_wisdom: false });
       setLocalProducts(prev => prev.map(p => p.id === productId ? { ...p, lore: '', showWisdom: false } : p));
       setReviewDrafts(prev => { const n = { ...prev }; delete n[productId]; return n; });
     } catch (err: any) {
@@ -1654,7 +1654,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const handleDiscardAll = async () => {
     const pending = processedProducts;
     try {
-      await Promise.all(pending.map(p => api.products.update(p.id, { lore: '', show_wisdom: false })));
+      await Promise.all(pending.map(p => api.products.updateByDomain(p.id, { lore: '', show_wisdom: false })));
       showToast(`${pending.length} teas discarded`, 'info');
       onRefresh();
     } catch (err: any) {

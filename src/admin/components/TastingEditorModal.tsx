@@ -36,7 +36,7 @@ export const TastingEditorModal: React.FC<TastingEditorModalProps> = ({
         ...syncFields,
       };
 
-      await api.products.update(product.id, payload);
+      await api.products.updateByDomain(product.id, payload);
 
       queryClient.setQueriesData<Product[]>(
         {
@@ -97,7 +97,7 @@ export const TastingEditorModal: React.FC<TastingEditorModalProps> = ({
 
   const handleWriteDescription = useCallback(async (text: string) => {
     try {
-      await api.products.update(product.id, { description: text });
+      await api.products.updateByDomain(product.id, { description: text });
       queryClient.setQueriesData<Product[]>(
         {
           predicate: (q) => Array.isArray(q.queryKey) && q.queryKey[0] === 'products' && q.queryKey[1] !== 'public',

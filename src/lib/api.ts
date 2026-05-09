@@ -141,6 +141,81 @@ function authHeaders(): Record<string, string> {
   return headers;
 }
 
+const PRODUCT_CATALOG_UPDATE_FIELDS = new Set([
+  'product_name', 'given_name', 'chinese_name', 'type', 'form', 'origin', 'origin_country',
+  'origin_region', 'year', 'harvest', 'altitude', 'cultivar', 'processing', 'format',
+  'material', 'capacity_ml', 'teaware_category', 'description', 'notes', 'tags', 'moods',
+  'tasting_notes', 'brewing_notes', 'tasting', 'tasting_source', 'lore', 'processing_notes',
+  'terroir', 'mood', 'experience', 'image_url', 'additional_images', 'quantity_units',
+  'tea_key', 'source_compass_entry_id',
+]);
+
+const PRODUCT_STOCK_UPDATE_FIELDS = new Set([
+  'stock', 'stock_unit', 'stock_grams', 'low_stock_threshold', 'recheck_stock',
+  'stock_verified_at', 'in_transit', 'in_transit_grams', 'in_transit_eta',
+  'session_reserve_grams',
+]);
+
+const PRODUCT_COMMERCIAL_UPDATE_FIELDS = new Set([
+  'price', 'cost', 'cost_amount', 'cost_currency', 'shipping_rate_per_kg',
+  'quantity_purchased', 'markup_multiplier', 'fixed_retail_price_usd',
+  'price_per_gram_usd', 'wholesale_price', 'vendor', 'vendor_id', 'vendor_url',
+  'can_reorder',
+]);
+
+const PRODUCT_PUBLICATION_UPDATE_FIELDS = new Set([
+  'status', 'is_public', 'catalog_visible', 'is_featured', 'is_curated',
+  'show_wisdom', 'is_custom_wisdom', 'is_personal', 'is_sample', 'sold_out_at',
+]);
+
+function splitProductUpdateByDomain(data: Record<string, any>): {
+  catalog: Record<string, any>;
+  stock: Record<string, any>;
+  commercial: Record<string, any>;
+  publication: Record<string, any>;
+  legacy: Record<string, any>;
+} {
+  const groups = {
+    catalog: {} as Record<string, any>,
+    stock: {} as Record<string, any>,
+    commercial: {} as Record<string, any>,
+    publication: {} as Record<string, any>,
+    legacy: {} as Record<string, any>,
+  };
+
+  for (const [key, value] of Object.entries(data)) {
+    if (PRODUCT_CATALOG_UPDATE_FIELDS.has(key)) groups.catalog[key] = value;
+    else if (PRODUCT_STOCK_UPDATE_FIELDS.has(key)) groups.stock[key] = value;
+    else if (PRODUCT_COMMERCIAL_UPDATE_FIELDS.has(key)) groups.commercial[key] = value;
+    else if (PRODUCT_PUBLICATION_UPDATE_FIELDS.has(key)) groups.publication[key] = value;
+    else groups.legacy[key] = value;
+  }
+
+  return groups;
+}
+
+async function putProductUpdate(id: string, suffix: string, data: Record<string, any>) {
+  const res = await fetchWithTimeout(`${API_URL}/api/products/${id}${suffix}`, {
+    method: 'PUT',
+    headers: authHeaders(),
+    body: JSON.stringify(data),
+  });
+  return handleResponse(res);
+}
+
+async function updateProductByDomain(id: string, data: Record<string, any>) {
+  const groups = splitProductUpdateByDomain(data);
+  let result: any = { success: true };
+  if (Object.keys(groups.catalog).length > 0) result = await putProductUpdate(id, '/catalog', groups.catalog);
+  if (Object.keys(groups.stock).length > 0) result = await putProductUpdate(id, '/stock', groups.stock);
+  if (Object.keys(groups.commercial).length > 0) result = await putProductUpdate(id, '/commercial', groups.commercial);
+  if (Object.keys(groups.publication).length > 0) result = await putProductUpdate(id, '/publication', groups.publication);
+  // Preserve compatibility for fields that the broad legacy endpoint already
+  // accepts or safely ignores while callers are migrated field by field.
+  if (Object.keys(groups.legacy).length > 0) result = await putProductUpdate(id, '', groups.legacy);
+  return result;
+}
+
 // ── Silent refresh machinery ──────────────────────────────────────────────
 // Coordinates ongoing refresh calls so many concurrent requests don't each
 // fire their own refresh when a page first loads a stale token.
@@ -538,37 +613,18 @@ export const api = {
       });
       return handleResponse(res);
     },
+    updateByDomain: updateProductByDomain,
     updateCatalog: async (id: string, data: Record<string, any>) => {
-      const res = await fetchWithTimeout(`${API_URL}/api/products/${id}/catalog`, {
-        method: 'PUT',
-        headers: authHeaders(),
-        body: JSON.stringify(data),
-      });
-      return handleResponse(res);
+      return putProductUpdate(id, '/catalog', data);
     },
     updateStock: async (id: string, data: Record<string, any>) => {
-      const res = await fetchWithTimeout(`${API_URL}/api/products/${id}/stock`, {
-        method: 'PUT',
-        headers: authHeaders(),
-        body: JSON.stringify(data),
-      });
-      return handleResponse(res);
+      return putProductUpdate(id, '/stock', data);
     },
     updateCommercial: async (id: string, data: Record<string, any>) => {
-      const res = await fetchWithTimeout(`${API_URL}/api/products/${id}/commercial`, {
-        method: 'PUT',
-        headers: authHeaders(),
-        body: JSON.stringify(data),
-      });
-      return handleResponse(res);
+      return putProductUpdate(id, '/commercial', data);
     },
     updatePublication: async (id: string, data: Record<string, any>) => {
-      const res = await fetchWithTimeout(`${API_URL}/api/products/${id}/publication`, {
-        method: 'PUT',
-        headers: authHeaders(),
-        body: JSON.stringify(data),
-      });
-      return handleResponse(res);
+      return putProductUpdate(id, '/publication', data);
     },
     delete: async (id: string) => {
       const res = await fetchWithTimeout(`${API_URL}/api/products/${id}`, {

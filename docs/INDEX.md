@@ -52,7 +52,7 @@ In `docs/plan/` — read directly when implementing:
 - `teajia-tasting-usage-guide.md`
 - `product-architecture-initiative.md` · `product-architecture-prd.md` · `product-architecture-implementation.md`
 - `product-architecture-discussion-log.md` · `product-architecture-phase-0-inventory.md`
-- `product-architecture-route-auth-inventory.md`
+- `product-architecture-route-auth-inventory.md` · `customer-contact-taxonomy.md`
 
 ## Audit artifacts
 

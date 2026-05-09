@@ -438,6 +438,7 @@ CREATE TABLE IF NOT EXISTS mcp_tokens (
     label TEXT NOT NULL,
     token_hash TEXT NOT NULL,
     token_prefix TEXT NOT NULL,
+    scopes TEXT NOT NULL DEFAULT '["inventory:read","stock:write","customers:read","sales:write"]',
     created_at TEXT DEFAULT (datetime('now')),
     last_used_at TEXT,
     revoked_at TEXT

@@ -10,6 +10,7 @@
     "preview": "vite preview",
     "lint": "tsc --noEmit",
     "audit": "node scripts/audit.mjs",
+    "test:worker": "vitest run worker/tests",
     "test:mobile": "npx playwright test tests/account-panel-mobile.spec.ts --project='Mobile Chrome' --reporter=list"
   },
   "dependencies": {
@@ -45,6 +46,7 @@
     "terser": "^5.44.1",
     "typescript": "~5.8.2",
     "vite": "^6.2.0",
-    "vite-plugin-pwa": "^1.2.0"
+    "vite-plugin-pwa": "^1.2.0",
+    "vitest": "^4.1.5"
   }
 }

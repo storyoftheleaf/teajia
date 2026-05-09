@@ -68,7 +68,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
   const handleReactivate = async (product: Product) => {
     setReactivating(product.id);
     try {
-      await api.products.update(product.id, { status: 'Active' });
+      await api.products.updateByDomain(product.id, { status: 'Active' });
       queryClient.invalidateQueries({ queryKey: ['products'] });
       showToast(`${product.givenName || product.productName} reactivated.`, 'success');
     } catch (err: any) {

@@ -52,7 +52,7 @@ export const DraftsView: React.FC<DraftsViewProps> = ({
     setApproving(true);
     try {
       await Promise.all(
-        readyToApprove.map(p => api.products.update(p.id, { status: 'Active' }))
+        readyToApprove.map(p => api.products.updateByDomain(p.id, { status: 'Active' }))
       );
       onDraftCreated();
     } catch (err) {

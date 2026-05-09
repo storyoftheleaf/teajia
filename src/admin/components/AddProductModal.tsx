@@ -562,7 +562,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
         let productId: string | undefined;
 
         if (isEditMode && initialData) {
-            await api.products.update(initialData.id, payload);
+            await api.products.updateByDomain(initialData.id, payload);
             productId = initialData.id;
         } else {
             const created = await api.products.create(payload);

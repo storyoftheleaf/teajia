@@ -12,6 +12,7 @@
 - **plan/product-architecture-discussion-log.md** — Persistent record of the thread that produced this initiative.
 - **plan/product-architecture-phase-0-inventory.md** — Current domain, route/auth, client state, and article contract inventory.
 - **plan/product-architecture-route-auth-inventory.md** — Maintained route authorization map with access levels, bundle intent, applied fixes, and product-policy decisions still needed.
+- **plan/customer-contact-taxonomy.md** — Relationship taxonomy for buyer, vendor/source, event guest, collection recipient, contributor, and personal connection surfaces.
 
 ## Network & Multi-Store (Phase 1B)
 

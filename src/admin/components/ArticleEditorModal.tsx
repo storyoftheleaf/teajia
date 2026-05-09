@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../../lib/api';
+import { EDITABLE_ARTICLE_BLOCK_TYPES, getArticleBlockLabel } from '../../lib/articleBlockRegistry';
 import { useToast } from './Toast';
 import type { DbArticle, ArticleBlock } from '../../types';
 
@@ -85,17 +86,6 @@ const Field = ({ label, children, className = '' }: { label: string; children: R
     {children}
   </div>
 );
-
-// ─── Block type labels ────────────────────────────────────────────────────────
-
-const BLOCK_TYPE_LABELS: Record<string, string> = {
-  intro: 'Intro',
-  paragraph: 'Paragraph',
-  section_heading: 'Section Heading',
-  quote: 'Pull Quote',
-  image: 'Image',
-  divider: 'Divider',
-};
 
 // ─── Single block editor ─────────────────────────────────────────────────────
 
@@ -213,7 +203,7 @@ const BlockEditor: React.FC<BlockEditorProps> = ({ block, index, total, onChange
       {/* Block header row */}
       <div className="flex items-center justify-between">
         <span className="text-ui-9 uppercase tracking-[0.2em] text-tea-text-dim font-medium">
-          {BLOCK_TYPE_LABELS[block.type] ?? block.type}
+          {getArticleBlockLabel(block.type)}
         </span>
         <div className="flex items-center gap-0.5">
           <button
@@ -248,13 +238,9 @@ const BlockEditor: React.FC<BlockEditorProps> = ({ block, index, total, onChange
 
 // ─── Add block dropdown ───────────────────────────────────────────────────────
 
-const ADD_BLOCK_OPTIONS: { type: ArticleBlock['type']; label: string }[] = [
-  { type: 'paragraph', label: 'Paragraph' },
-  { type: 'section_heading', label: 'Section Heading' },
-  { type: 'quote', label: 'Pull Quote' },
-  { type: 'image', label: 'Image' },
-  { type: 'divider', label: 'Divider' },
-];
+const ADD_BLOCK_OPTIONS: { type: ArticleBlock['type']; label: string }[] = EDITABLE_ARTICLE_BLOCK_TYPES
+  .filter(type => type !== 'intro')
+  .map(type => ({ type, label: getArticleBlockLabel(type) }));
 
 function makeEmptyBlock(type: ArticleBlock['type']): ArticleBlock {
   switch (type) {

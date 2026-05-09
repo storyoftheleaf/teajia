@@ -156,7 +156,27 @@ type McpAuth = {
   userId: string;
   userEmail: string;
   tokenId: string;
+  scopes: McpScope[];
 };
+
+const MCP_SCOPES = ['inventory:read', 'stock:write', 'customers:read', 'sales:write'] as const;
+type McpScope = typeof MCP_SCOPES[number];
+const DEFAULT_MCP_SCOPES: McpScope[] = [...MCP_SCOPES];
+
+function parseMcpScopes(raw: unknown): McpScope[] {
+  if (!raw) return DEFAULT_MCP_SCOPES;
+  try {
+    const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    if (!Array.isArray(parsed)) return DEFAULT_MCP_SCOPES;
+    return parsed.filter((scope): scope is McpScope => MCP_SCOPES.includes(scope as McpScope));
+  } catch {
+    return DEFAULT_MCP_SCOPES;
+  }
+}
+
+function hasMcpScope(auth: McpAuth, scope: McpScope): boolean {
+  return auth.scopes.includes(scope);
+}
 
 // 401 with WWW-Authenticate header — required by the MCP OAuth spec so
 // clients (Claude desktop/mobile) know to start the OAuth discovery flow.
@@ -185,7 +205,7 @@ async function authenticateMcp(request: Request, env: Env): Promise<McpAuth | Re
 
   const hash = await sha256Hex(plaintext);
   const row = await env.DB.prepare(
-    'SELECT id, account_id, user_id, user_email, revoked_at FROM mcp_tokens WHERE token_hash = ?'
+    'SELECT id, account_id, user_id, user_email, revoked_at, scopes FROM mcp_tokens WHERE token_hash = ?'
   ).bind(hash).first() as Record<string, any> | null;
 
   if (!row || row.revoked_at) {
@@ -201,6 +221,7 @@ async function authenticateMcp(request: Request, env: Env): Promise<McpAuth | Re
     userId: row.user_id as string,
     userEmail: row.user_email as string,
     tokenId: row.id as string,
+    scopes: parseMcpScopes(row.scopes),
   };
 }
 
@@ -839,6 +860,7 @@ async function commitRecordSale(env: Env, m: Extract<PendingMutation, { kind: 'r
 const TOOL_DEFS = [
   {
     name: 'search_tea',
+    scope: 'inventory:read',
     description: 'Fuzzy-search tea inventory by name, Chinese name, region, or vendor. Returns up to `limit` matches with stock + match score. Use this first whenever the user names a tea ambiguously.',
     inputSchema: {
       type: 'object',
@@ -851,6 +873,7 @@ const TOOL_DEFS = [
   },
   {
     name: 'get_tea',
+    scope: 'inventory:read',
     description: 'Fetch full record for one tea by id, including last 10 stock-ledger entries.',
     inputSchema: {
       type: 'object',
@@ -860,11 +883,13 @@ const TOOL_DEFS = [
   },
   {
     name: 'list_low_stock',
+    scope: 'inventory:read',
     description: 'List teas whose current stock has fallen below their per-product low-stock threshold.',
     inputSchema: { type: 'object', properties: {} },
   },
   {
     name: 'find_customer',
+    scope: 'customers:read',
     description: 'Fuzzy-search customers by name, company, email, phone, or WhatsApp.',
     inputSchema: {
       type: 'object',
@@ -874,6 +899,7 @@ const TOOL_DEFS = [
   },
   {
     name: 'add_stock',
+    scope: 'stock:write',
     description: 'Add grams to a tea\'s stock. Two-step: first call returns a preview + confirmation_token; re-call with the token in `confirm` to commit. Use reason "PURCHASE_RECEIPT" when restocking from a vendor.',
     inputSchema: {
       type: 'object',
@@ -888,6 +914,7 @@ const TOOL_DEFS = [
   },
   {
     name: 'remove_stock',
+    scope: 'stock:write',
     description: 'Deduct grams from a tea\'s stock outside of a sale (waste, samples, personal use). Two-step preview/confirm. For sales, use `record_sale` instead so it goes through the invoice path.',
     inputSchema: {
       type: 'object',
@@ -903,6 +930,7 @@ const TOOL_DEFS = [
   },
   {
     name: 'record_sale',
+    scope: 'sales:write',
     description: 'Create + immediately fill an invoice for a multi-line tea sale. Stock is deducted through the same path the admin UI uses, so the ledger, low-stock alerts, and sold-out auto-archive all fire. Two-step preview/confirm. After commit, the invoice exists in the admin and can be downloaded as PDF there.',
     inputSchema: {
       type: 'object',
@@ -942,17 +970,58 @@ function mcpContent(payload: unknown) {
   };
 }
 
+function toolDefFor(name: string) {
+  return TOOL_DEFS.find(tool => tool.name === name);
+}
+
+function visibleToolDefs(auth: McpAuth) {
+  return TOOL_DEFS
+    .filter(tool => hasMcpScope(auth, tool.scope as McpScope))
+    .map(({ scope: _scope, ...tool }) => tool);
+}
+
+async function logMcpToolCall(env: Env, auth: McpAuth, toolName: string, args: any, result: unknown) {
+  const shouldAudit =
+    toolName === 'record_sale' ||
+    ((toolName === 'add_stock' || toolName === 'remove_stock') && typeof args?.confirm === 'string');
+  if (!shouldAudit) return;
+  const failed = Boolean((result as any)?.isError);
+  await env.DB.prepare(
+    `INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id, account_id)
+     VALUES (?, 'MCP_TOOL_CALL', ?, ?, 'mcp_token', ?, ?)`
+  ).bind(
+    crypto.randomUUID(),
+    JSON.stringify({ tool: toolName, token_id: auth.tokenId, confirmed: Boolean(args?.confirm), failed }),
+    auth.userEmail,
+    auth.tokenId,
+    auth.accountId,
+  ).run();
+}
+
 async function dispatchTool(env: Env, auth: McpAuth, name: string, args: any) {
+  const tool = toolDefFor(name);
+  if (!tool) throw new Error(`Unknown tool: ${name}`);
+  if (!hasMcpScope(auth, tool.scope as McpScope)) {
+    return mcpContent({
+      error: 'insufficient_mcp_scope',
+      required_scope: tool.scope,
+      tool: name,
+    });
+  }
+
+  let result;
   switch (name) {
-    case 'search_tea': return mcpContent(await toolSearchTea(env, auth.accountId, args));
-    case 'get_tea': return mcpContent(await toolGetTea(env, auth.accountId, args));
-    case 'list_low_stock': return mcpContent(await toolListLowStock(env, auth.accountId));
-    case 'find_customer': return mcpContent(await toolFindCustomer(env, auth.accountId, args));
-    case 'add_stock': return mcpContent(await toolAddStock(env, auth, args));
-    case 'remove_stock': return mcpContent(await toolRemoveStock(env, auth, args));
-    case 'record_sale': return mcpContent(await toolRecordSale(env, auth, args));
+    case 'search_tea': result = mcpContent(await toolSearchTea(env, auth.accountId, args)); break;
+    case 'get_tea': result = mcpContent(await toolGetTea(env, auth.accountId, args)); break;
+    case 'list_low_stock': result = mcpContent(await toolListLowStock(env, auth.accountId)); break;
+    case 'find_customer': result = mcpContent(await toolFindCustomer(env, auth.accountId, args)); break;
+    case 'add_stock': result = mcpContent(await toolAddStock(env, auth, args)); break;
+    case 'remove_stock': result = mcpContent(await toolRemoveStock(env, auth, args)); break;
+    case 'record_sale': result = mcpContent(await toolRecordSale(env, auth, args)); break;
     default: throw new Error(`Unknown tool: ${name}`);
   }
+  await logMcpToolCall(env, auth, name, args, result);
+  return result;
 }
 
 const SERVER_INFO = {
@@ -1003,7 +1072,7 @@ export async function mcpFetch(request: Request, env: Env): Promise<Response> {
         });
 
       case 'tools/list':
-        return rpcResult(id, { tools: TOOL_DEFS });
+        return rpcResult(id, { tools: visibleToolDefs(auth) });
 
       case 'tools/call': {
         const name = params?.name;
@@ -1043,16 +1112,16 @@ export async function mcpAdminMintToken(
   const id = crypto.randomUUID();
 
   await env.DB.prepare(
-    `INSERT INTO mcp_tokens (id, account_id, user_id, user_email, label, token_hash, token_prefix)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`
-  ).bind(id, accountId, userId, userEmail, label.slice(0, 80), hash, prefix).run();
+    `INSERT INTO mcp_tokens (id, account_id, user_id, user_email, label, token_hash, token_prefix, scopes)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+  ).bind(id, accountId, userId, userEmail, label.slice(0, 80), hash, prefix, JSON.stringify(DEFAULT_MCP_SCOPES)).run();
 
   return { id, token: plaintext, prefix };
 }
 
 export async function mcpAdminListTokens(env: Env, accountId: string) {
   const { results } = await env.DB.prepare(
-    `SELECT id, user_email, label, token_prefix, created_at, last_used_at, revoked_at
+    `SELECT id, user_email, label, token_prefix, scopes, created_at, last_used_at, revoked_at
        FROM mcp_tokens WHERE account_id = ? ORDER BY created_at DESC`
   ).bind(accountId).all();
   return results;
@@ -1316,12 +1385,12 @@ export async function oauthToken(request: Request, env: Env): Promise<Response> 
   const label = `OAuth: ${clientRow?.client_name || 'Unknown'}`;
 
   await env.DB.prepare(
-    `INSERT INTO mcp_tokens (id, account_id, user_id, user_email, label, token_hash, token_prefix)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO mcp_tokens (id, account_id, user_id, user_email, label, token_hash, token_prefix, scopes)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     tokenId,
     codeRow.account_id, codeRow.user_id, codeRow.user_email,
-    label, tokenHash, tokenPrefix,
+    label, tokenHash, tokenPrefix, JSON.stringify(DEFAULT_MCP_SCOPES),
   ).run();
 
   await env.DB.prepare(
@@ -1338,7 +1407,7 @@ export async function oauthToken(request: Request, env: Env): Promise<Response> 
   return corsJson({
     access_token: accessToken,
     token_type: 'Bearer',
-    scope: 'mcp',
+    scope: DEFAULT_MCP_SCOPES.join(' '),
     // No refresh token — clients can re-run the OAuth dance to get a new
     // access token, and the existing tokens stay valid in the meantime.
     // Most MCP clients treat the access token as long-lived by default.

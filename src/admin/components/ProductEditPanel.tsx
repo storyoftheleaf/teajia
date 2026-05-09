@@ -769,7 +769,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
     if (onUpdate) { await onUpdate(id, field, value); return; }
     const payload = buildProductUpdatePayload(field, value);
     if (!payload) return;
-    try { await api.products.update(id, payload); }
+    try { await api.products.updateByDomain(id, payload); }
     catch (err: any) { showToast(`Update failed: ${err.message}`, 'error'); }
   }, [onUpdate, showToast]);
 

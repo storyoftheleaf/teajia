@@ -133,18 +133,18 @@ Because those fields share one legacy update endpoint today, a single route-leve
 | `PUT /api/products/:id/commercial` | `sell` | Prices and commerce terms |
 | `PUT /api/products/:id/publication` | `publish` | Shop/public/featured curation state |
 
-Next step: migrate admin product screens and MCP tools to those command routes, then tighten or retire the broad legacy endpoint once usage is gone.
+Admin product UI writes now call `api.products.updateByDomain`, which splits mixed saves across these command routes. The broad legacy endpoint remains only as a compatibility fallback for old fields that were previously ignored or not yet modeled.
 
 ### 2. Customers
 
-`customers` currently includes customers, vendors/suppliers, recipients, event attendees, and relationship notes. That makes it hard to map every customer route to one bundle.
+`customers` currently includes customers, vendors/suppliers, recipients, event attendees, and relationship notes. That makes it hard to map every customer route to one bundle. The current relationship taxonomy is documented in `docs/plan/customer-contact-taxonomy.md` and exported from `src/lib/contactTaxonomy.ts`.
 
 Candidate split:
 
 | Proposed surface | Bundle | Notes |
 |---|---|---|
 | Sales customers and invoices | `sell` | Buyer relationship, orders, RFM, revenue context |
-| Vendors/suppliers | `catalog` or `stock` | Sourcing contact versus procurement contact needs a product call |
+| Vendors/suppliers | `catalog` | Sourcing relationship, origin/provenance, product vendor links |
 | Event participants | `gather` | Attendance, RSVP, tasting events |
 | Editorial recipients | `publish` | Collection recipients, share lists |
 
@@ -152,21 +152,21 @@ The important design point: relationship data should stay rich, but access to it
 
 ### 3. MCP Tokens
 
-Agent access is high leverage because it can operate inventory or admin flows outside the normal UI. Owner-tier minting and OAuth approval are now enforced, but the route inventory still needs a specific pass that records:
+Agent access is high leverage because it can operate inventory or admin flows outside the normal UI. Owner-tier minting and OAuth approval are now enforced, tokens now store explicit scopes, and confirmed mutating tool calls now create `MCP_TOOL_CALL` activity logs.
 
 | Question | Decision needed |
 |---|---|
-| Who can mint tokens? | Resolved for v1: owner-tier only. Revisit only when token scopes exist. |
-| What can a token do? | Single-purpose tool scope versus broad account scope |
-| How is token use audited? | Per-command audit logs, not just token creation/revocation |
+| Who can mint tokens? | Resolved for v1: owner-tier only. |
+| What can a token do? | Current default scopes: `inventory:read`, `stock:write`, `customers:read`, `sales:write`. |
+| How is token use audited? | Token creation/revocation plus confirmed mutating tool calls. |
 
 ## Highest-Value Next Pulls
 
-1. Migrate product UI and MCP product tools from broad `api.products.update` calls to the explicit command routes.
-2. Add Worker tests for representative allow/deny cases: publish user can edit articles; non-publish member cannot; product command routes reject wrong-bundle and wrong-domain fields; public article reads still work.
+1. Expand Worker tests for authenticated xrefs and successful product command writes with fake D1 state changes.
+2. Remove the product update compatibility fallback after all emitted fields are modeled in the command routes.
 3. Add a generated route inventory script that extracts method/path/handler from the route table and joins it to a maintained access map.
-4. Decide the customer relationship taxonomy before changing customer route authorization.
-5. Inventory MCP tool-level privileges before extending agent control beyond the current broad account-scope token model.
+4. Split customer/contact routes by relationship kind before changing authorization.
+5. Add an admin UI for MCP scope selection once read-only or domain-specific tokens are needed.
 
 ## Implementation Notes
 
