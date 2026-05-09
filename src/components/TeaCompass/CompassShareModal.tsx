@@ -86,7 +86,7 @@ export const CompassShareModal: React.FC<CompassShareModalProps> = ({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
+      className="fixed inset-0 z-priority flex items-end sm:items-center justify-center pb-nav sm:pb-0"
     >
       {/* Backdrop */}
       <div
@@ -94,13 +94,16 @@ export const CompassShareModal: React.FC<CompassShareModalProps> = ({
         onClick={onClose}
       />
 
-      {/* Sheet */}
+      {/* Sheet — bottom-docked on mobile but the parent flex container
+          carries pb-nav, so the sheet sits ABOVE the BottomTabBar
+          rather than rendering behind it. On sm+ the modal centers
+          normally. */}
       <motion.div
         initial={{ y: 40, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 40, opacity: 0 }}
         transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-        className="relative z-10 w-full sm:max-w-sm bg-tea-elevated rounded-t-2xl sm:rounded-xl border border-tea-border p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] sm:pb-5 shadow-xl"
+        className="relative z-10 w-full sm:max-w-sm bg-tea-elevated rounded-t-2xl sm:rounded-xl border border-tea-border p-5 pb-5 shadow-xl"
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-4">

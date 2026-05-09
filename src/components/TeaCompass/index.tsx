@@ -570,25 +570,14 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
             </button>
           )}
 
-          {/* Right-side action cluster — share + sync grouped */}
-          <div className="flex items-center pr-3 gap-1">
-            {mode === 'sourcing' && hasToken() && activeEntryId && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => setShareModalOpen(true)}
-                  className="lg:hidden tap-target flex items-center justify-center w-9 h-9 rounded-md text-tea-text-sec hover:text-tea-text hover:bg-tea-gold/[0.06] transition-colors shrink-0"
-                  aria-label="Share entry"
-                  title="Share this entry"
-                >
-                  <Share2 size={16} strokeWidth={1.75} />
-                </button>
-                <div className="lg:hidden w-px h-4 bg-tea-border self-center" aria-hidden />
-              </>
-            )}
-            <div className="flex items-center self-center">
-              <SyncIndicator />
-            </div>
+          {/* Right-side action cluster — kept lean. Share moved next to
+              the Done CTA inside the form; SyncIndicator moved down to
+              the session/batch strip. The header is now purely
+              navigational: back · Source ▾ · sub-tabs. */}
+          <div className="flex items-center pr-2 self-center">
+            {/* Spacer reserved for any future header-only action; empty
+                today so the share+sync state lives where the user is
+                actually working. */}
           </div>
         </div>
       </div>
@@ -718,10 +707,9 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                         : 'bg-tea-elevated/40 text-tea-text-sec border-tea-border hover:text-tea-text'
                     }`}
                   >
-                    {/* Active session = solid gold pill (committed-feeling).
-                        Differentiated from the page-tab gold underline so
-                        a user can tell the active entry chip from a tab
-                        indicator at a glance. */}
+                    {/* Active session = solid gold pill. Differentiated
+                        from the page-tab gold underline so a user can tell
+                        the active entry chip from a tab indicator. */}
                     {isActive && <Check size={11} strokeWidth={3} className="text-tea-bg" />}
                     {entry.name || 'Untitled'}
                     <span
@@ -737,6 +725,16 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                   </button>
                 );
               })}
+
+              {/* Sync indicator anchored to the right of the session
+                  strip — sits next to the working entries instead of in
+                  the page header, so save state is communicated where
+                  the user is doing the saving. ml-auto pushes it to the
+                  trailing edge regardless of how many session chips are
+                  in the row. */}
+              <div className="ml-auto pl-2 self-center">
+                <SyncIndicator />
+              </div>
             </div>
           )}
 
@@ -803,6 +801,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                         onCommit={handleCommitEntry}
                         onReturnToLibrary={fromLibrary ? () => { setFromLibrary(false); setMode('tasting'); } : undefined}
                         actionRef={captureCardActionsRef}
+                        onShare={hasToken() ? () => setShareModalOpen(true) : undefined}
                       />
                     </>
                   )}
@@ -1449,6 +1448,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                           onCommit={handleCommitEntry}
                           onReturnToLibrary={fromLibrary ? () => { setFromLibrary(false); setMode('tasting'); } : undefined}
                           actionRef={captureCardActionsRef}
+                          onShare={hasToken() ? () => setShareModalOpen(true) : undefined}
                         />
                       </>
                     ) : (

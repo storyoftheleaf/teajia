@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, BookmarkCheck, BookmarkPlus, BookOpen, Camera, Check, ChevronDown, ChevronLeft, ChevronRight, Droplets, FlaskConical, Minus, Plus, ShoppingCart, X } from 'lucide-react';
+import { ArrowLeft, BookmarkCheck, BookmarkPlus, BookOpen, Camera, Check, ChevronDown, ChevronLeft, ChevronRight, Droplets, FlaskConical, Minus, Plus, Share2, ShoppingCart, X } from 'lucide-react';
 import Fuse from 'fuse.js';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { TEA_TYPE_COLORS } from '../../designTokens';
@@ -58,6 +58,10 @@ interface CaptureCardProps {
   initialCollapsed?: boolean;
   /** Ref populated with action callbacks — used by parent to render pinned action bar */
   actionRef?: React.MutableRefObject<CaptureCardActions | null>;
+  /** When provided, a small "Share" affordance renders next to the Done
+   *  CTA so the user has share + commit colocated in the action area
+   *  (rather than share floating up in the page header). */
+  onShare?: () => void;
 }
 
 const EMPTY_TASTING: TastingData = {};
@@ -184,7 +188,7 @@ const EntryMark: React.FC<{
   </button>
 );
 
-export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLedger, onCommit, onReturnToLibrary, initialCollapsed = false, actionRef }) => {
+export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLedger, onCommit, onReturnToLibrary, initialCollapsed = false, actionRef, onShare }) => {
   const entry = useTeaCompassStore((s) => s.getEntry(entryId));
   const updateEntry = useTeaCompassStore((s) => s.updateEntry);
   const commitEntry = useTeaCompassStore((s) => s.commitEntry);
@@ -1377,37 +1381,50 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           );
         })()}
 
-        {/* Done — same gold-gradient primary CTA as the tea variant, with
-            consistent name-trim gating. Disabled state stays muted so the
-            user sees what unblocks them (filling the name). */}
+        {/* Action footer — Share + Done colocated. Same pattern as the
+            tea variant so both forms have the share affordance in the
+            commit area instead of the page header. */}
         {(() => {
           const ready = !!entry.name?.trim();
           return (
-            <button
-              type="button"
-              onClick={handleCommit}
-              disabled={!ready}
-              className={`w-full mt-1 py-3.5 rounded-xl text-base font-semibold transition-all ${
-                ready
-                  ? 'text-tea-bg'
-                  : 'text-tea-text-sec bg-tea-elevated border border-tea-border cursor-not-allowed'
-              }`}
-              style={
-                ready
-                  ? {
-                      fontFamily: 'var(--font-display)',
-                      letterSpacing: '0.06em',
-                      background:
-                        'linear-gradient(180deg, rgb(var(--tea-gold-rgb)) 0%, rgb(var(--tea-gold-lt-rgb)) 100%)',
-                      boxShadow:
-                        '0 4px 14px -2px rgb(var(--tea-gold-rgb) / 0.35), inset 0 1px 0 rgb(255 255 255 / 0.12)',
-                    }
-                  : { fontFamily: 'var(--font-display)', letterSpacing: '0.06em' }
-              }
-              aria-label="Done — commit this entry"
-            >
-              Done
-            </button>
+            <div className="flex items-stretch gap-2 mt-1">
+              {onShare && (
+                <button
+                  type="button"
+                  onClick={onShare}
+                  className="shrink-0 inline-flex items-center justify-center w-12 rounded-xl bg-tea-elevated border border-tea-border text-tea-text-sec hover:text-tea-gold hover:border-tea-gold/40 transition-colors"
+                  aria-label="Share this entry"
+                  title="Share this entry"
+                >
+                  <Share2 size={18} strokeWidth={1.75} />
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={handleCommit}
+                disabled={!ready}
+                className={`flex-1 py-3.5 rounded-xl text-base font-semibold transition-all ${
+                  ready
+                    ? 'text-tea-bg'
+                    : 'text-tea-text-sec bg-tea-elevated border border-tea-border cursor-not-allowed'
+                }`}
+                style={
+                  ready
+                    ? {
+                        fontFamily: 'var(--font-display)',
+                        letterSpacing: '0.06em',
+                        background:
+                          'linear-gradient(180deg, rgb(var(--tea-gold-rgb)) 0%, rgb(var(--tea-gold-lt-rgb)) 100%)',
+                        boxShadow:
+                          '0 4px 14px -2px rgb(var(--tea-gold-rgb) / 0.35), inset 0 1px 0 rgb(255 255 255 / 0.12)',
+                      }
+                    : { fontFamily: 'var(--font-display)', letterSpacing: '0.06em' }
+                }
+                aria-label="Done — commit this entry"
+              >
+                Done
+              </button>
+            </div>
           );
         })()}
       </div>
@@ -1917,37 +1934,51 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
         />
       </div>
 
-      {/* Mobile Done — full-width primary CTA at the end of the form.
-          Subtle gradient + layered shadow gives it a tactile lift without
-          drifting from the dark/gold palette. */}
+      {/* Mobile action footer — Share (small icon button) on the left,
+          Done (gold-gradient primary) flex-1 on the right. Share lives
+          here so the user has commit + share colocated in the action
+          area, rather than share floating up in the page header. */}
       {(() => {
         const ready = !!entry.name?.trim();
         return (
-          <button
-            type="button"
-            onClick={handleCommit}
-            disabled={!ready}
-            className={`lg:hidden w-full mt-1 py-3.5 rounded-xl text-base font-semibold transition-all ${
-              ready
-                ? 'text-tea-bg'
-                : 'text-tea-text-sec bg-tea-elevated border border-tea-border cursor-not-allowed'
-            }`}
-            style={
-              ready
-                ? {
-                    fontFamily: 'var(--font-display)',
-                    letterSpacing: '0.06em',
-                    background:
-                      'linear-gradient(180deg, rgb(var(--tea-gold-rgb)) 0%, rgb(var(--tea-gold-lt-rgb)) 100%)',
-                    boxShadow:
-                      '0 4px 14px -2px rgb(var(--tea-gold-rgb) / 0.35), inset 0 1px 0 rgb(255 255 255 / 0.12)',
-                  }
-                : { fontFamily: 'var(--font-display)', letterSpacing: '0.06em' }
-            }
-            aria-label="Done — commit this entry"
-          >
-            Done
-          </button>
+          <div className="lg:hidden flex items-stretch gap-2 mt-1">
+            {onShare && (
+              <button
+                type="button"
+                onClick={onShare}
+                className="shrink-0 inline-flex items-center justify-center w-12 rounded-xl bg-tea-elevated border border-tea-border text-tea-text-sec hover:text-tea-gold hover:border-tea-gold/40 transition-colors"
+                aria-label="Share this entry"
+                title="Share this entry"
+              >
+                <Share2 size={18} strokeWidth={1.75} />
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={handleCommit}
+              disabled={!ready}
+              className={`flex-1 py-3.5 rounded-xl text-base font-semibold transition-all ${
+                ready
+                  ? 'text-tea-bg'
+                  : 'text-tea-text-sec bg-tea-elevated border border-tea-border cursor-not-allowed'
+              }`}
+              style={
+                ready
+                  ? {
+                      fontFamily: 'var(--font-display)',
+                      letterSpacing: '0.06em',
+                      background:
+                        'linear-gradient(180deg, rgb(var(--tea-gold-rgb)) 0%, rgb(var(--tea-gold-lt-rgb)) 100%)',
+                      boxShadow:
+                        '0 4px 14px -2px rgb(var(--tea-gold-rgb) / 0.35), inset 0 1px 0 rgb(255 255 255 / 0.12)',
+                    }
+                  : { fontFamily: 'var(--font-display)', letterSpacing: '0.06em' }
+              }
+              aria-label="Done — commit this entry"
+            >
+              Done
+            </button>
+          </div>
         );
       })()}
 
