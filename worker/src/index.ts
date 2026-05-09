@@ -3098,7 +3098,11 @@ const handleGetCustomers: Handler = async (request, env) => {
 
   const url = new URL(request.url);
   const typeFilter = url.searchParams.get('type'); // 'customer' | 'supplier' | null (all)
-  const typeClause = typeFilter ? `AND c.type = '${typeFilter}'` : '';
+  if (typeFilter && typeFilter !== 'customer' && typeFilter !== 'supplier') {
+    return json({ error: 'Invalid customer type filter' }, 400);
+  }
+  const typeClause = typeFilter ? 'AND c.type = ?' : '';
+  const typeBinds = typeFilter ? [typeFilter] : [];
 
   let result;
   try {
@@ -3117,14 +3121,14 @@ const handleGetCustomers: Handler = async (request, env) => {
       WHERE c.account_id = ? ${typeClause}
       GROUP BY c.id
       ORDER BY c.created_at DESC
-    `).bind(accountId, accountId).all();
+    `).bind(accountId, accountId, ...typeBinds).all();
   } catch {
     result = await env.DB.prepare(`
       SELECT c.*, 0 as order_count, 0 as total_spent_usd, NULL as last_order_date, 0 as event_count
       FROM customers c
       WHERE c.account_id = ? ${typeClause}
       ORDER BY c.created_at DESC
-    `).bind(accountId).all();
+    `).bind(accountId, ...typeBinds).all();
   }
 
   // Attach contact tags (the new freeform admin tags, separate from the
@@ -11746,9 +11750,13 @@ const handleListArticles: Handler = async (request, env) => {
 
   const url = new URL(request.url);
   const statusFilter = url.searchParams.get('status') || 'all';
+  if (!['all', 'draft', 'published', 'archived'].includes(statusFilter)) {
+    return json({ error: 'Invalid article status filter' }, 400);
+  }
   const statusClause = statusFilter !== 'all'
-    ? `AND status = '${statusFilter}'`
-    : `AND status != 'archived'`;
+    ? 'AND status = ?'
+    : "AND status != 'archived'";
+  const binds = statusFilter !== 'all' ? [accountId, statusFilter] : [accountId];
 
   const rows = await env.DB.prepare(
     `SELECT id, account_id, title, subtitle, author_id, slug, status, category, tags,
@@ -11757,7 +11765,7 @@ const handleListArticles: Handler = async (request, env) => {
      FROM articles
      WHERE account_id = ? ${statusClause}
      ORDER BY updated_at DESC`
-  ).bind(accountId).all();
+  ).bind(...binds).all();
 
   const results = rows.results.map((r: any) => ({
     ...r,

@@ -28,6 +28,7 @@ const persister = createSyncStoragePersister({
 // Don't persist sensitive or auth-shaped queries. Anything containing these
 // substrings in its query key is excluded from disk.
 const NEVER_PERSIST = ['auth', 'session', 'me', 'magic'];
+const NEVER_PERSIST_ADMIN_KEYS = ['customers', 'activity_logs', 'stock_ledger'];
 
 // Reload once when a preloaded chunk fails (e.g. after a new deployment).
 // Only runs in production — in dev, Vite HMR handles chunk invalidation natively
@@ -62,6 +63,9 @@ root.render(
           dehydrateOptions: {
             shouldDehydrateQuery: (q) => {
               const keyStr = JSON.stringify(q.queryKey).toLowerCase();
+              const firstKey = Array.isArray(q.queryKey) ? String(q.queryKey[0] ?? '') : '';
+              if (NEVER_PERSIST_ADMIN_KEYS.includes(firstKey)) return false;
+              if (firstKey === 'products' && q.queryKey[1] !== 'public') return false;
               return q.state.status === 'success' && !NEVER_PERSIST.some(s => keyStr.includes(s));
             },
           },

@@ -38,14 +38,19 @@ export const TastingEditorModal: React.FC<TastingEditorModalProps> = ({
 
       await api.products.update(product.id, payload);
 
-      queryClient.setQueryData(['products'], (old: Product[] | undefined) => {
-        if (!old) return old;
-        return old.map(p =>
-          p.id === product.id
-            ? { ...p, tasting: tastingData, tastingSource: tastingSource ?? undefined, ...syncFields }
-            : p
-        );
-      });
+      queryClient.setQueriesData<Product[]>(
+        {
+          predicate: (q) => Array.isArray(q.queryKey) && q.queryKey[0] === 'products' && q.queryKey[1] !== 'public',
+        },
+        (old) => {
+          if (!old) return old;
+          return old.map(p =>
+            p.id === product.id
+              ? { ...p, tasting: tastingData, tastingSource: tastingSource ?? undefined, ...syncFields }
+              : p
+          );
+        }
+      );
 
       // Optimistically patch every public-product cache so toggling a star
       // (on or off) reflects on the card immediately. There are two distinct
@@ -93,10 +98,15 @@ export const TastingEditorModal: React.FC<TastingEditorModalProps> = ({
   const handleWriteDescription = useCallback(async (text: string) => {
     try {
       await api.products.update(product.id, { description: text });
-      queryClient.setQueryData(['products'], (old: Product[] | undefined) => {
-        if (!old) return old;
-        return old.map(p => p.id === product.id ? { ...p, description: text } : p);
-      });
+      queryClient.setQueriesData<Product[]>(
+        {
+          predicate: (q) => Array.isArray(q.queryKey) && q.queryKey[0] === 'products' && q.queryKey[1] !== 'public',
+        },
+        (old) => {
+          if (!old) return old;
+          return old.map(p => p.id === product.id ? { ...p, description: text } : p);
+        }
+      );
       showToast('Description saved', 'success');
     } catch {
       showToast('Failed to save description', 'error');
