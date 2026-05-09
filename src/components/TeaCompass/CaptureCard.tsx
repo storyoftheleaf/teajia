@@ -1304,10 +1304,9 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
 
         <div className="border-t border-tea-border" />
 
-        {/* Row 5 — Price · Volume · Quantity, all on one line. Currency
-            and "ml" stay as persistent affixes inside their input shells.
-            The qty stepper uses 28px buttons + 18px count to stay
-            compact enough to share the line on a 360px viewport. */}
+        {/* Row 5 — Price + Quantity on one line. Volume was removed —
+            we'll bring it back as a structured "dimensions" field if /
+            when teaware capacity actually pulls weight in the workflow. */}
         <div className="flex items-stretch gap-2">
           {/* Price (with currency prefix) — flex-1 takes remaining space */}
           <div className="flex-1 min-w-0 flex items-stretch bg-tea-gold/[0.06] rounded-xl border border-tea-border focus-within:border-tea-gold/40 transition-colors">
@@ -1337,33 +1336,10 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             />
           </div>
 
-          {/* Volume — narrow, with "ml" suffix inside the shell */}
-          <div className="w-[88px] shrink-0 flex items-stretch bg-tea-gold/[0.06] rounded-xl border border-tea-border focus-within:border-tea-gold/40 transition-colors">
-            <input
-              type="number"
-              inputMode="numeric"
-              placeholder="Vol"
-              value={entry.capacityMl ?? ''}
-              onChange={(e) => {
-                const val = e.target.value;
-                update({ capacityMl: val === '' ? undefined : Number(val) });
-              }}
-              className="flex-1 min-w-0 bg-transparent text-tea-text pl-2.5 pr-1 py-2.5 outline-none text-base tabular-nums text-right placeholder:text-tea-text-sec/70 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-              style={{ MozAppearance: 'textfield' } as React.CSSProperties}
-              aria-label="Volume in millilitres"
-            />
-            <span
-              className="self-stretch flex items-center pl-1 pr-2.5 text-tea-text-sec text-xs tabular-nums font-medium pointer-events-none select-none"
-              aria-hidden
-            >
-              ml
-            </span>
-          </div>
-
-          {/* Quantity stepper — compact so it fits on the same line as
-              Price + Volume. The whole pill (button + count + button) is
-              wrapped in a single bordered shell so it reads as one
-              control rather than three loose elements. */}
+          {/* Quantity stepper — compact pill on the right of the price
+              field. The whole control (button + count + button) lives in
+              a single bordered shell so it reads as one unit rather than
+              three loose elements. */}
           <div className="shrink-0 flex items-stretch bg-tea-gold/[0.06] rounded-xl border border-tea-border" aria-label={`Quantity: ${entry.quantity || 1}`}>
             <button
               type="button"
