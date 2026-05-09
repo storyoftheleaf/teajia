@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { Minus, Plus } from 'lucide-react';
+import { ChevronDown, Minus, Plus } from 'lucide-react';
 import type { Currency } from '../../admin/types';
 import { GRAM_PRESETS, TEA_FORMS, type TeaForm } from './types';
 import { BottomSheet, SheetOption } from '../shared/BottomSheet';
@@ -86,11 +86,15 @@ export const PricingRow: React.FC<PricingRowProps> = ({
 
   return (
     <div className="space-y-2">
-      {/* Top row — [currency + price] [unit]. Currency is a persistent
-          prefix separated by a hairline; the unit on the right adapts
-          to grams or count mode. */}
+      {/* Top row.
+          - grams mode: [Currency + Price] [Grams · g] [Form ▾]
+            — all three flex-1 / equal sizes so the row reads as one
+            grouped pricing unit instead of "primary input + sidekick".
+          - count mode: [Currency + Price flex-1] [− qty + ct]
+            — counter stays a compact pill on the right since there's
+            no form picker to balance it. */}
       <div className="flex items-stretch gap-2">
-        <div className="flex-1 min-w-0 flex items-stretch bg-tea-gold/[0.06] rounded-xl border border-tea-border focus-within:border-tea-gold/40 transition-colors">
+        <div className={`${unit.mode === 'grams' ? 'flex-1' : 'flex-1'} min-w-0 flex items-stretch bg-tea-gold/[0.06] rounded-xl border border-tea-border focus-within:border-tea-gold/40 transition-colors`}>
           <select
             value={priceCurrency}
             onChange={(e) => onCurrencyChange(e.target.value as Currency)}
@@ -114,29 +118,48 @@ export const PricingRow: React.FC<PricingRowProps> = ({
           />
         </div>
 
-        {/* Unit — grams input with "g" suffix, or +/- counter pill */}
+        {/* Unit — grams + form chip in grams mode (both flex-1, equal
+            sizes); +/- counter pill in count mode. */}
         {unit.mode === 'grams' ? (
-          <div className="w-[88px] shrink-0 flex items-stretch bg-tea-gold/[0.06] rounded-xl border border-tea-border focus-within:border-tea-gold/40 transition-colors">
-            <input
-              type="number"
-              inputMode="numeric"
-              placeholder="Grams"
-              value={unit.pricePerUnitGrams ?? ''}
-              onChange={(e) => {
-                const val = e.target.value;
-                unit.onGramsChange(val === '' ? undefined : Number(val));
-              }}
-              style={noSpinnerStyle}
-              className="flex-1 min-w-0 bg-transparent text-tea-text pl-2.5 pr-1 py-2.5 outline-none text-base tabular-nums text-right placeholder:text-tea-text-sec/70 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-              aria-label="Grams"
-            />
-            <span
-              className="self-center pr-2.5 pl-1 text-tea-text-sec text-xs tabular-nums font-medium pointer-events-none select-none"
-              aria-hidden
-            >
-              g
-            </span>
-          </div>
+          <>
+            <div className="flex-1 min-w-0 flex items-stretch bg-tea-gold/[0.06] rounded-xl border border-tea-border focus-within:border-tea-gold/40 transition-colors">
+              <input
+                type="number"
+                inputMode="numeric"
+                placeholder="Grams"
+                value={unit.pricePerUnitGrams ?? ''}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  unit.onGramsChange(val === '' ? undefined : Number(val));
+                }}
+                style={noSpinnerStyle}
+                className="flex-1 min-w-0 bg-transparent text-tea-text pl-2.5 pr-1 py-2.5 outline-none text-base tabular-nums text-right placeholder:text-tea-text-sec/70 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                aria-label="Grams"
+              />
+              <span
+                className="self-center pr-2.5 pl-1 text-tea-text-sec text-xs tabular-nums font-medium pointer-events-none select-none"
+                aria-hidden
+              >
+                g
+              </span>
+            </div>
+
+            {unit.onFormChange && (
+              <button
+                type="button"
+                onClick={() => setFormSheetOpen(true)}
+                className={`flex-1 min-w-0 flex items-center justify-between gap-1 px-3 py-2.5 rounded-xl border transition-colors ${
+                  unit.form
+                    ? 'bg-tea-gold/[0.10] border-tea-gold/40 text-tea-gold font-semibold'
+                    : 'bg-tea-gold/[0.06] border-tea-border text-tea-text-sec hover:text-tea-text hover:border-tea-gold/40'
+                }`}
+                aria-label="Tea form"
+              >
+                <span className="truncate text-base font-medium">{unit.form || 'Form'}</span>
+                <ChevronDown size={14} strokeWidth={2} className={unit.form ? 'text-tea-gold shrink-0' : 'text-tea-text-sec shrink-0'} />
+              </button>
+            )}
+          </>
         ) : (
           <div
             className="shrink-0 flex items-stretch bg-tea-gold/[0.06] rounded-xl border border-tea-border"
@@ -171,70 +194,53 @@ export const PricingRow: React.FC<PricingRowProps> = ({
         )}
       </div>
 
-      {/* Grams-mode only — Form chip + gram presets below the main row.
-          Skipped entirely for count mode where presets don't make sense. */}
+      {/* Grams-mode only — gram presets below the main row. The Form
+          chip moved up to share the top row, so this row is now JUST
+          the preset shortcuts. Skipped entirely for count mode. */}
       {unit.mode === 'grams' && (() => {
         const presets = unit.form ? GRAM_PRESETS[unit.form] : GRAM_PRESETS.Loose;
+        if (presets.length === 0) return null;
         return (
-          <>
-            <div className="flex items-center gap-1.5 flex-wrap">
-              {unit.onFormChange && (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => setFormSheetOpen(true)}
-                    className={`tap-target py-1.5 px-3 rounded-md text-ui-11 font-medium border transition-colors ${
-                      unit.form
-                        ? 'bg-tea-gold/15 text-tea-gold border-tea-gold/40'
-                        : 'text-tea-text-sec border-tea-border bg-tea-elevated/40 hover:text-tea-text hover:border-tea-gold/40'
-                    }`}
-                  >
-                    {unit.form || 'Form'}
-                  </button>
-                  {presets.length > 0 && (
-                    <div className="w-px h-4 bg-tea-border self-center mx-0.5" aria-hidden />
-                  )}
-                </>
-              )}
-              {presets.map((g) => (
-                <button
-                  key={g}
-                  type="button"
-                  onClick={() => unit.onGramsChange(g)}
-                  className={`tap-target py-1.5 px-2.5 rounded-md text-ui-11 transition-colors ${
-                    unit.pricePerUnitGrams === g
-                      ? 'bg-tea-gold/15 text-tea-gold font-semibold'
-                      : 'text-tea-text-sec hover:text-tea-text'
-                  }`}
-                >
-                  {g}g
-                </button>
-              ))}
-            </div>
-
-            {unit.onFormChange && (
-              <BottomSheet
-                open={formSheetOpen}
-                onOpenChange={setFormSheetOpen}
-                title="Form"
-                description="What shape is this tea?"
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {presets.map((g) => (
+              <button
+                key={g}
+                type="button"
+                onClick={() => unit.onGramsChange(g)}
+                className={`tap-target py-1.5 px-2.5 rounded-md text-ui-11 transition-colors ${
+                  unit.pricePerUnitGrams === g
+                    ? 'bg-tea-gold/15 text-tea-gold font-semibold'
+                    : 'text-tea-text-sec hover:text-tea-text'
+                }`}
               >
-                <div className="flex flex-col gap-0.5 px-1">
-                  {TEA_FORMS.map((f) => (
-                    <SheetOption
-                      key={f}
-                      label={f}
-                      hint={FORM_HINTS[f]}
-                      selected={unit.form === f}
-                      onSelect={() => { unit.onFormChange?.(f); setFormSheetOpen(false); }}
-                    />
-                  ))}
-                </div>
-              </BottomSheet>
-            )}
-          </>
+                {g}g
+              </button>
+            ))}
+          </div>
         );
       })()}
+
+      {/* Form picker — bottom sheet with one-line hints per option. */}
+      {unit.mode === 'grams' && unit.onFormChange && (
+        <BottomSheet
+          open={formSheetOpen}
+          onOpenChange={setFormSheetOpen}
+          title="Form"
+          description="What shape is this tea?"
+        >
+          <div className="flex flex-col gap-0.5 px-1">
+            {TEA_FORMS.map((f) => (
+              <SheetOption
+                key={f}
+                label={f}
+                hint={FORM_HINTS[f]}
+                selected={unit.form === f}
+                onSelect={() => { unit.onFormChange?.(f); setFormSheetOpen(false); }}
+              />
+            ))}
+          </div>
+        </BottomSheet>
+      )}
     </div>
   );
 };
