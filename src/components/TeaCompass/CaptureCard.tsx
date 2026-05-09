@@ -27,8 +27,6 @@ import type { ExtractedTeaData } from './PhotoCapture';
 import { TeawarePhotos } from './TeawarePhotos';
 import { DuplicateNudge } from './DuplicateNudge';
 import { IntentBar } from './IntentBar';
-import { SaveModeToggle } from './SaveModeToggle';
-import { useAppStore } from '../../lib/store';
 
 type ParseableField = 'type' | 'form' | 'year' | 'season' | 'storage' | 'region';
 
@@ -196,12 +194,6 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   const lastVendorName = useTeaCompassStore((s) => s.lastVendorName);
   const customEras = useTeaCompassStore((s) => s.customEras);
   const addCustomEra = useTeaCompassStore((s) => s.addCustomEra);
-
-  // Inventory promotion needs an active shop account to scope the draft
-  // product. Members without one see the Inventory segment disabled with a
-  // hint tooltip via SaveModeToggle.
-  const activeAccountId = useAppStore((s) => s.activeAccountId);
-  const inventoryDisabled = !activeAccountId;
 
   const getOrCreatePurchaseTransaction = useLedgerStore((s) => s.getOrCreatePurchaseTransaction);
   const addLineItem = useLedgerStore((s) => s.addLineItem);
@@ -1359,14 +1351,6 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           );
         })()}
 
-        {/* Save-mode toggle: always visible above Done so the dual purpose
-            (personal log vs. inventory draft) is discoverable on every
-            commit. The desktop action bar in index.tsx hides itself for
-            teaware, so the toggle has to live here for both viewports. */}
-        <div className="flex items-center justify-between pt-1">
-          <SaveModeToggle inventoryDisabled={inventoryDisabled} />
-        </div>
-
         {/* Action footer — Share + Done colocated. Same pattern as the
             tea variant so both forms have the share affordance in the
             commit area instead of the page header. */}
@@ -1916,12 +1900,6 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
             }
           }}
         />
-      </div>
-
-      {/* Save-mode toggle (mobile only) — desktop tea has the toggle in
-          the right-column action bar in index.tsx. */}
-      <div className="lg:hidden flex items-center pt-1">
-        <SaveModeToggle inventoryDisabled={inventoryDisabled} />
       </div>
 
       {/* Mobile action footer — Share (small icon button) on the left,

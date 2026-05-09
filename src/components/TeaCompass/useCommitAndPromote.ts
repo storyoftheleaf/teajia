@@ -1,6 +1,5 @@
 import { useCallback, useState } from 'react';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
-import { useCompassSaveMode } from '../../lib/compassSaveMode';
 import { syncCompassEntries } from '../../lib/teaCompassSync';
 import { api, hasToken } from '../../lib/api';
 
@@ -12,9 +11,10 @@ export interface CommitResult {
 }
 
 /**
- * Commits a compass entry locally, then — if the active save mode is 'inventory' —
- * syncs the entry to D1 and promotes it to a Draft product. Returns metadata so
- * the UI can show feedback ("Added to drafts queue").
+ * Commits a Compass entry locally, then syncs it to D1 and promotes it to
+ * a Draft product so it lands in /admin/capture for triage. The decision
+ * about whether the tea is for sale or a private note happens in triage,
+ * not at capture time — capture is friction-free.
  */
 export function useCommitAndPromote() {
   const updateEntry = useTeaCompassStore((s) => s.updateEntry);
@@ -23,8 +23,7 @@ export function useCommitAndPromote() {
 
   const commitAndPromote = useCallback(
     async (entryId: string): Promise<CommitResult> => {
-      const mode = useCompassSaveMode.getState().mode;
-      if (mode !== 'inventory' || !hasToken()) {
+      if (!hasToken()) {
         const result: CommitResult = { promoted: false };
         setLastResult(result);
         return result;
@@ -32,12 +31,12 @@ export function useCommitAndPromote() {
 
       setBusy(true);
       try {
-        // The compass entry might still be unsynced (the periodic sync runs on
-        // a timer). Force a sync now so the worker can find the row.
+        // The compass entry might still be unsynced (the periodic sync
+        // runs on a timer). Force a sync now so the worker can find it.
         await syncCompassEntries();
         const { id, alreadyPromoted } = await api.compass.promote(entryId);
-        // Mirror the link locally so the entry knows it's been promoted (and
-        // a re-promote click would no-op via the worker's idempotency).
+        // Mirror the link locally so a re-promote click would no-op via
+        // the worker's idempotency.
         updateEntry(entryId, { draftProductId: id, synced: false });
         const result: CommitResult = { promoted: !alreadyPromoted, productId: id };
         setLastResult(result);

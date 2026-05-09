@@ -18,9 +18,7 @@ import { CompassIcon } from './CompassIcon';
 import { SyncIndicator } from './SyncIndicator';
 import { SessionStack } from './SessionStack';
 import { CaptureCard, type CaptureCardActions } from './CaptureCard';
-import { SaveModeToggle } from './SaveModeToggle';
 import { useCommitAndPromote } from './useCommitAndPromote';
-import { useCompassSaveMode } from '../../lib/compassSaveMode';
 import { BrowseView } from './BrowseView';
 import { LedgerView } from './LedgerView';
 import { useVoiceRecorder } from './useVoiceRecorder';
@@ -106,20 +104,11 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  // ── Inventory promotion: read save mode + commit helper ──────────────────
-  const inventoryDisabled = !activeAccountId;
-  const setSaveMode = useCompassSaveMode((s) => s.setMode);
+  // Every Compass save auto-promotes to a Draft product. The decision
+  // (personal note vs. for-sale) moves to /admin/capture triage time;
+  // capture itself stays friction-free.
   const { commitAndPromote, busy: promoting, lastResult: promoteResult } = useCommitAndPromote();
   const [justPromoted, setJustPromoted] = useState(false);
-
-  // Deep-link from DraftsView: /admin/compass?mode=inventory pre-selects the
-  // segmented control so the user lands directly in inventory-capture mode.
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const params = new URLSearchParams(window.location.search);
-    const requested = params.get('mode');
-    if (requested === 'inventory' && !inventoryDisabled) setSaveMode('inventory');
-  }, [setSaveMode, inventoryDisabled]);
 
   useEffect(() => {
     if (!promoteResult?.promoted) return;
@@ -1563,14 +1552,11 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                   )}
                 </AnimatePresence>
 
-                {showCaptureActionBar && (
-                  <div className="flex items-start justify-between gap-3 px-3 py-2 bg-tea-bg border-b border-tea-border">
-                    <SaveModeToggle inventoryDisabled={inventoryDisabled} compact />
-                    {justPromoted && (
-                      <span className="text-ui-11 text-tea-gold inline-flex items-center gap-1 mt-1.5">
-                        <Check size={11} /> Added to drafts
-                      </span>
-                    )}
+                {showCaptureActionBar && justPromoted && (
+                  <div className="flex items-center justify-end px-3 py-1.5 bg-tea-bg border-b border-tea-border">
+                    <span className="text-ui-11 text-tea-gold inline-flex items-center gap-1">
+                      <Check size={11} /> Added to drafts
+                    </span>
                   </div>
                 )}
 
