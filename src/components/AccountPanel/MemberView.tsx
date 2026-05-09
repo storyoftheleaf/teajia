@@ -257,8 +257,10 @@ export const MemberView: React.FC<MemberViewProps> = ({
         </PreviewBlock>
       )}
 
-      {/* ── Compass — pull-quote, not a row ───────────────────────────── */}
-      <PreviewBlock hint="Compass" icon={<Compass {...ICON_PROPS} />} onClick={() => go('/compass')}>
+      {/* ── Tasting profile — pull-quote, not a row. The quote is the
+          member's evolving taste profile derived from their journal;
+          tapping opens the journal where it's built up from. */}
+      <PreviewBlock hint="Tasting" icon={<Compass {...ICON_PROPS} />} onClick={() => go('/account/journal')}>
         {compassProfile ? (
           <p
             className="text-ui-16 leading-snug text-tea-text italic"

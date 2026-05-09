@@ -61,7 +61,6 @@ const TabStyleDemo = lazy(() => import('./pages/TabStyleDemo'));
 const PalettePreviewPage = lazy(() => import('./pages/PalettePreviewPage'));
 const JournalPage = lazy(() => import('./pages/JournalPage'));
 const CollectionPage = lazy(() => import('./pages/CollectionPage'));
-const CompassPage = lazy(() => import('./pages/CompassPage'));
 const SignInPage = lazy(() => import('./pages/SignInPage'));
 const SignUpPage = lazy(() => import('./pages/SignUpPage'));
 const AccountSettingsPage = lazy(() => import('./pages/AccountSettingsPage'));
@@ -722,7 +721,9 @@ const AppContent = () => {
                   </ErrorBoundary>
                 } />
                 <Route path="/about" element={<ErrorBoundary><AboutPage /></ErrorBoundary>} />
-                <Route path="/compass" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="grid" />}><CompassPage /></Suspense></ErrorBoundary>} />
+                {/* /compass is admin-only at /admin/compass — public route removed.
+                    Members use /account/journal for tasting; Compass is sourcing + ledger only. */}
+                <Route path="/compass" element={<Navigate to="/account/journal" replace />} />
                 <Route path="/account/journal" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="list" />}><JournalPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/collection" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="list" />}><CollectionPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/journey" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><AccountJourneyPage /></Suspense></ErrorBoundary>} />

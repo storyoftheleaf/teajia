@@ -76,14 +76,14 @@ const ShareCardPage: React.FC = () => {
           </div>
           <h1 className="font-serif text-2xl text-tea-text mb-3">Card saved</h1>
           <p className="text-sm text-tea-text-sec mb-6">
-            {meta.name} is now in your Tea Compass as an incoming entry.
+            {meta.name} is now in your Tasting Journal as an incoming entry.
           </p>
           <button
             type="button"
-            onClick={() => navigate('/compass')}
+            onClick={() => navigate('/account/journal')}
             className="text-xs uppercase tracking-[0.2em] text-tea-gold hover:text-tea-text transition-colors"
           >
-            Open Compass
+            Open Journal
           </button>
         </div>
       </div>

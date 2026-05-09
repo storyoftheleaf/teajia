@@ -93,7 +93,6 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
         icon={<Sparkles {...ICON_PROPS} />}
         links={[
           { label: 'Journal your sessions', onClick: onOpenSignUp },
-          { label: 'Find teas for your taste', onClick: () => go('/compass') },
           { label: 'Attend a session', onClick: onOpenEvents },
         ]}
       />

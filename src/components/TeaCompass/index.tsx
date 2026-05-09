@@ -30,7 +30,7 @@ import { LedgerOverviewPanel } from './LedgerOverviewPanel';
 import { SampleCartPanel } from '../samples/SampleCartPanel';
 import { useSampleCartStore } from '../../samples/sampleCartStore';
 
-export type CompassMode = 'sourcing' | 'tasting' | 'buying';
+export type CompassMode = 'sourcing' | 'library' | 'buying';
 
 interface TeaCompassProps {
   onBack?: () => void;
@@ -50,7 +50,7 @@ const CompassRightEmptyState: React.FC<{
 }> = ({ mode, onNewCapture }) => {
   const content = {
     sourcing: { title: 'Ready to capture', body: 'Select a session entry on the left, or start a new one.' },
-    tasting: { title: 'Select an entry', body: 'Choose a tea from your library to view or edit its notes.' },
+    library: { title: 'Select an entry', body: 'Choose a tea from your library to view or edit its notes.' },
     buying:  { title: 'Transactions expand inline', body: 'Open a transaction on the left to see its line items.' },
   }[mode];
   return (
@@ -117,7 +117,8 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
     return () => clearTimeout(t);
   }, [promoteResult]);
 
-  // Mode: sourcing (editing an entry), tasting (list), or buying (transactions)
+  // Mode: sourcing (editing an entry), library (browse past captures), or buying (ledger).
+  // Tasting (the Tasting Journal) is its own surface at /account/journal — not a Compass mode.
   const [mode, setMode] = useState<CompassMode>(initialMode || 'sourcing');
 
   // Incoming pending shares (not yet accepted into compass)
@@ -472,7 +473,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   // Tab config
   const tabs: { id: CompassMode; label: string; badge?: number }[] = [
     { id: 'sourcing', label: 'Source' },
-    { id: 'tasting', label: 'Library', badge: pendingIncomingCount > 0 ? pendingIncomingCount : undefined },
+    { id: 'library', label: 'Library', badge: pendingIncomingCount > 0 ? pendingIncomingCount : undefined },
     { id: 'buying', label: 'Ledger' },
   ];
   const currentTab = tabs.find((t) => t.id === mode);
@@ -623,7 +624,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
               hint={
                 tab.id === 'sourcing'
                   ? 'Capture vendors and entries in real time'
-                  : tab.id === 'tasting'
+                  : tab.id === 'library'
                     ? 'Browse, taste, and edit your library'
                     : 'Review purchases and transactions'
               }
@@ -656,7 +657,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                   value={tabSearchQuery}
                   onChange={(e) => setTabSearchQuery(e.target.value)}
                   placeholder={
-                    mode === 'tasting'
+                    mode === 'library'
                       ? 'Search by name, region, vendor…'
                       : 'Search transactions…'
                   }
@@ -809,7 +810,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                               <span className="flex-1 truncate">{justCommitted.name} saved</span>
                               <button
                                 type="button"
-                                onClick={() => { setJustCommitted(null); setMode('tasting'); }}
+                                onClick={() => { setJustCommitted(null); setMode('library'); }}
                                 className="flex items-center gap-1 text-tea-text-sec hover:text-tea-text transition-colors shrink-0"
                               >
                                 Sessions
@@ -823,16 +824,16 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                         entryId={activeEntryId}
                         onSwitchToLedger={() => handleSwitchMode('buying')}
                         onCommit={handleCommitEntry}
-                        onReturnToLibrary={fromLibrary ? () => { setFromLibrary(false); setMode('tasting'); } : undefined}
+                        onReturnToLibrary={fromLibrary ? () => { setFromLibrary(false); setMode('library'); } : undefined}
                         actionRef={captureCardActionsRef}
                         onShare={hasToken() ? () => setShareModalOpen(true) : undefined}
                       />
                     </>
                   )}
                 </motion.div>
-              ) : mode === 'tasting' ? (
+              ) : mode === 'library' ? (
                 <motion.div
-                  key="tasting"
+                  key="library"
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 20 }}
@@ -1099,7 +1100,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                   onChange={(e) => setTabSearchQuery(e.target.value)}
                   placeholder={
                     mode === 'sourcing' ? 'Search entries…'
-                    : mode === 'tasting' ? 'Search by name, region, vendor…'
+                    : mode === 'library' ? 'Search by name, region, vendor…'
                     : 'Search transactions…'
                   }
                   className="w-full bg-tea-surface border border-tea-border text-tea-text text-ui-13 rounded-lg pl-8 pr-8 py-2 outline-none placeholder:text-tea-text-sec/70 focus:ring-1 focus:ring-tea-gold/40 transition-colors"
@@ -1187,7 +1188,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                             <span className="flex-1 truncate">{justCommitted.name} saved</span>
                             <button
                               type="button"
-                              onClick={() => { setJustCommitted(null); setMode('tasting'); }}
+                              onClick={() => { setJustCommitted(null); setMode('library'); }}
                               className="flex items-center gap-1 text-tea-text-sec hover:text-tea-text transition-colors shrink-0"
                             >
                               Sessions
@@ -1212,7 +1213,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                 )}
 
                 {/* TASTING LEFT: shares + co-tasting + BrowseView */}
-                {mode === 'tasting' && (
+                {mode === 'library' && (
                   <motion.div
                     key="left-tasting"
                     initial={{ opacity: 0, x: -20 }}
@@ -1454,7 +1455,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
             {/* Right column scrollable content */}
             <div
               className={`flex-1 min-h-0 overscroll-contain ${
-                mode === 'tasting' || mode === 'buying'
+                mode === 'library' || mode === 'buying'
                   ? 'overflow-hidden'
                   : `overflow-y-auto ${mode === 'sourcing' && captureOption === 'samples' ? '' : 'px-4 pt-3'} pb-4`
               }`}
@@ -1486,7 +1487,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                           entryId={activeEntryId}
                           onSwitchToLedger={() => handleSwitchMode('buying')}
                           onCommit={handleCommitEntry}
-                          onReturnToLibrary={fromLibrary ? () => { setFromLibrary(false); setMode('tasting'); } : undefined}
+                          onReturnToLibrary={fromLibrary ? () => { setFromLibrary(false); setMode('library'); } : undefined}
                           actionRef={captureCardActionsRef}
                           onShare={hasToken() ? () => setShareModalOpen(true) : undefined}
                         />
@@ -1498,7 +1499,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                 )}
 
                 {/* TASTING RIGHT: entry detail panel or empty state */}
-                {mode === 'tasting' && (
+                {mode === 'library' && (
                   <motion.div
                     key="right-tasting"
                     initial={{ opacity: 0 }}
@@ -1514,7 +1515,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                         onClose={() => setTastingSelectedEntryId(null)}
                       />
                     ) : (
-                      <CompassRightEmptyState mode="tasting" onNewCapture={() => handleNewCapture()} />
+                      <CompassRightEmptyState mode="library" onNewCapture={() => handleNewCapture()} />
                     )}
                   </motion.div>
                 )}

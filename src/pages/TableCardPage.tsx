@@ -298,10 +298,10 @@ const TableCardPage: React.FC = () => {
             </Link>
             {hasToken() ? (
               <Link
-                to="/compass"
+                to="/account/journal"
                 className="block text-xs uppercase tracking-[0.2em] text-tea-text-dim hover:text-tea-gold transition-colors"
               >
-                Add to your compass
+                Add to your journal
               </Link>
             ) : (
               <Link

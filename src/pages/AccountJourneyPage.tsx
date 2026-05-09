@@ -569,14 +569,14 @@ const AccountJourneyPage: React.FC = () => {
               <div className="flex items-baseline justify-between mb-6">
                 <div>
                   <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim mb-2">Your Collection</p>
-                  <h2 className="font-serif text-xl text-tea-text mb-1">The Compass</h2>
+                  <h2 className="font-serif text-xl text-tea-text mb-1">The Journal</h2>
                   <p className="text-xs text-tea-text-sec">Teas you've chosen to keep.</p>
                 </div>
                 <Link
-                  to="/compass"
+                  to="/account/journal"
                   className="flex items-center gap-1 text-xs text-tea-text-sec hover:text-tea-gold transition-colors shrink-0"
                 >
-                  Open compass
+                  Open journal
                   <ExternalLink size={11} />
                 </Link>
               </div>

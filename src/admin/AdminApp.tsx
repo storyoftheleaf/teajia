@@ -124,7 +124,12 @@ const CompassWithMode: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     tab === 'buying' ? 'buying' : tab === 'ledger' ? 'buying' :
     tab === 'sourcing' ? 'sourcing' : tab === 'capture' ? 'sourcing' :
     tab === 'samples' ? 'sourcing' :
-    tab === 'tasting' ? 'tasting' : tab === 'browse' ? 'tasting' :
+    // 'tasting' kept as a back-compat alias for the old query param —
+    // internal name is now 'library' since this view is the Library of
+    // past compass captures, not the Tasting surface (that lives at
+    // /account/journal).
+    tab === 'tasting' ? 'library' : tab === 'browse' ? 'library' :
+    tab === 'library' ? 'library' :
     undefined;
   const initialCaptureOption: 'tea' | 'teaware' | 'samples' | undefined =
     tab === 'samples' || capture === 'samples' ? 'samples' :
