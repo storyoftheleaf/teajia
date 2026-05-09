@@ -16,8 +16,10 @@ interface BottomTabBarProps {
   hidden?: boolean;
   onAccountClick?: () => void;
   onAccountClose?: () => void;
+  isAccountOpen?: boolean;
   onSearchClick?: () => void;
   onSearchClose?: () => void;
+  isSearchOpen?: boolean;
   isAdminRoute?: boolean;
 }
 
@@ -27,8 +29,10 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
   hidden = false,
   onAccountClick,
   onAccountClose,
+  isAccountOpen = false,
   onSearchClick,
   onSearchClose,
+  isSearchOpen = false,
   isAdminRoute = false,
 }) => {
   const navigate = useNavigate();
@@ -116,7 +120,9 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
     },
     onClick: () => {
       if (isOnAdmin) {
-        onAccountClick?.();
+        onSearchClose?.();
+        onAccountClose?.();
+        navigate('/admin/dashboard');
         return;
       }
       onNavigate('HOME');
@@ -178,14 +184,20 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
       <nav
         aria-label="Main navigation"
         onContextMenu={(e) => e.preventDefault()}
-        className={`flex lg:hidden fixed bottom-0 left-0 right-0 backdrop-blur-md backdrop-saturate-150 z-priority animate-[slideUp_0.4s_ease-out] transition-transform duration-200 select-none ${
-          hidden ? 'translate-y-full' : 'translate-y-0'
+        className={`lg:hidden fixed z-nav flex animate-[slideUp_0.4s_ease-out] transition-transform duration-200 select-none overflow-hidden ${
+          hidden ? 'translate-y-[calc(100%+24px)]' : 'translate-y-0'
         }`}
         style={{
-          background: 'rgb(var(--tea-bg-rgb) / 0.95)',
-          boxShadow: '0 -6px 20px rgb(var(--tea-bg-rgb) / 0.25), 0 -1px 4px rgb(var(--tea-bg-rgb) / 0.15)',
-          height: 'calc(52px + env(safe-area-inset-bottom, 0px))',
-          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+          left: '16px',
+          right: '16px',
+          bottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)',
+          height: '52px',
+          borderRadius: '9999px',
+          background: 'rgb(var(--tea-bg-rgb) / 0.92)',
+          backdropFilter: 'blur(20px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+          border: '1px solid rgb(var(--tea-border-rgb) / 0.6)',
+          boxShadow: '0 10px 32px rgb(0 0 0 / 0.45), 0 2px 8px rgb(0 0 0 / 0.25), inset 0 1px 0 rgb(var(--tea-gold-rgb) / 0.06)',
           WebkitTapHighlightColor: 'transparent',
           WebkitTouchCallout: 'none',
           WebkitUserSelect: 'none',
@@ -194,20 +206,21 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
       >
         <div className="flex w-full px-0 h-full">
 
-          {/* Far left — Search icon (fixed narrow slot) */}
+          {/* Far left — Search (clean icon, sits inside the floating capsule) */}
           <button
             onClick={onSearchClick}
-            className="w-8 flex-shrink-0 h-full flex items-center justify-center group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none"
+            className="w-12 flex-shrink-0 h-full flex items-center justify-center pl-1 group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none transition-colors duration-300"
             style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', touchAction: 'manipulation' }}
             title="Search"
             aria-label="Search"
+            aria-pressed={isSearchOpen}
           >
             <svg
               viewBox="0 0 24 24"
-              className="w-[15px] h-[15px] transition-colors duration-200 text-tea-text-sec group-hover:text-tea-text pointer-events-none"
+              className={`w-5 h-5 transition-colors duration-300 pointer-events-none ${isSearchOpen ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'}`}
               fill="none"
               stroke="currentColor"
-              strokeWidth={2}
+              strokeWidth={1.6}
               strokeLinecap="round"
               strokeLinejoin="round"
             >
@@ -216,18 +229,18 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
             </svg>
           </button>
 
-          {/* Left sections */}
+          {/* Left sections — divider only between tab pairs, not adjacent to the bracket-framed search */}
           {isAdminRoute ? (
             adminLeftTabs.map((tab, index) => (
               <React.Fragment key={tab.id}>
-                <div className="w-px h-4 bg-tea-border self-center flex-shrink-0" />
+                {index > 0 && <div className="w-px h-4 bg-tea-border self-center flex-shrink-0" />}
                 {renderAdminTabButton(tab, index)}
               </React.Fragment>
             ))
           ) : (
             leftSections.map((section, index) => (
               <React.Fragment key={section.id}>
-                <div className="w-px h-4 bg-tea-border self-center flex-shrink-0" />
+                {index > 0 && <div className="w-px h-4 bg-tea-border self-center flex-shrink-0" />}
                 {renderTabButton(section, index)}
               </React.Fragment>
             ))
@@ -263,40 +276,41 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
 
           <div className="w-px h-4 bg-tea-border self-center flex-shrink-0" />
 
-          {/* Right sections */}
+          {/* Right sections — divider only between tab pairs, not adjacent to the bracket-framed account */}
           {isAdminRoute ? (
             adminRightTabs.map((tab, index) => (
               <React.Fragment key={tab.id}>
                 {renderAdminTabButton(tab, index + adminLeftTabs.length + 1)}
-                <div className="w-px h-4 bg-tea-border self-center flex-shrink-0" />
+                {index < adminRightTabs.length - 1 && <div className="w-px h-4 bg-tea-border self-center flex-shrink-0" />}
               </React.Fragment>
             ))
           ) : (
             rightSections.map((section, index) => (
               <React.Fragment key={section.id}>
                 {renderTabButton(section, index + leftSections.length + 1)}
-                <div className="w-px h-4 bg-tea-border self-center flex-shrink-0" />
+                {index < rightSections.length - 1 && <div className="w-px h-4 bg-tea-border self-center flex-shrink-0" />}
               </React.Fragment>
             ))
           )}
 
-          {/* Far right — Account panel */}
+          {/* Far right — Your Table (clean icon, sits inside the floating capsule) */}
           <button
             onClick={() => {
               if ('vibrate' in navigator) { navigator.vibrate?.(10); }
               onAccountClick?.();
             }}
-            className="w-8 flex-shrink-0 h-full flex flex-col items-center justify-center gap-px group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none relative"
+            className="relative w-12 flex-shrink-0 h-full flex items-center justify-center pr-1 group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none transition-colors duration-300"
             style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', touchAction: 'manipulation' }}
             title="Your Table"
             aria-label="Your Table"
+            aria-pressed={isAccountOpen}
           >
             <svg
               viewBox="0 0 24 24"
-              className="w-[13px] h-[13px] transition-colors duration-200 text-tea-text-sec group-hover:text-tea-text pointer-events-none"
+              className={`w-5 h-5 transition-colors duration-300 pointer-events-none ${isAccountOpen ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'}`}
               fill="none"
               stroke="currentColor"
-              strokeWidth={2}
+              strokeWidth={1.6}
               strokeLinecap="round"
               strokeLinejoin="round"
             >
@@ -304,7 +318,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
               <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
             </svg>
             {upcomingEventsCount > 0 && (
-              <span className="absolute top-1.5 right-1 w-1.5 h-1.5 rounded-full bg-tea-gold pointer-events-none" />
+              <span className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-tea-gold pointer-events-none" />
             )}
           </button>
 

@@ -59,6 +59,7 @@ const config: Config = {
         priority: '60',
         'panel-backdrop': '65',
         'panel-modal': '70',
+        nav: '75',
       },
     },
   },
