@@ -307,6 +307,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
   const [showSourceSuggestions, setShowSourceSuggestions] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const isOnInventory = location.pathname.includes('/admin/inventory');
+  const isOnCapture = location.pathname.includes('/admin/capture');
   const isOnHome = location.pathname === '/admin/' || location.pathname === '/admin/compass';
   const isOnCompass = location.pathname.includes('/admin/compass');
 
@@ -603,7 +604,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
            )}
         </div>}
 
-        <div className={`flex-1 relative min-h-0 ${isOnInventory ? 'overflow-hidden' : 'overflow-y-auto pb-[calc(56px+env(safe-area-inset-bottom,0px))] lg:pb-0'}`}>
+        <div className={`flex-1 relative min-h-0 ${isOnInventory || isOnCapture ? 'overflow-hidden' : 'overflow-y-auto pb-[calc(56px+env(safe-area-inset-bottom,0px))] lg:pb-0'}`}>
           <Routes>
               <Route path="/" element={<Navigate to="compass" replace />} />
               <Route path="home" element={<Navigate to="../compass" replace />} />

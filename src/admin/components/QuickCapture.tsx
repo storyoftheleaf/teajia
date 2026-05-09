@@ -1,10 +1,10 @@
-import React, { useState, useRef, useCallback, useMemo } from 'react';
-import { Camera, Upload, Loader2, Check, X, ChevronRight, FileSpreadsheet, PlusCircle, Image as ImageIcon, AlertTriangle, CheckCircle2, ArrowRight, Compass } from 'lucide-react';
+import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
+import { Camera, Upload, Loader2, Check, X, FileSpreadsheet, PlusCircle, AlertTriangle, ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
 import type { Product, ProductType, Currency, TeaForm } from '../types';
 import { InventoryView } from './InventoryView';
+import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 
 interface ExtractedProduct {
   givenName?: string;
@@ -24,62 +24,224 @@ interface ExtractedProduct {
   imageUrl?: string;
 }
 
-interface CaptureItem {
+type GhostStatus = 'extracting' | 'duplicate' | 'saving' | 'error';
+
+interface GhostItem {
   id: string;
   file: File;
   preview: string;
-  status: 'extracting' | 'review' | 'saving' | 'saved' | 'error';
-  extracted: ExtractedProduct;
+  status: GhostStatus;
+  extracted?: ExtractedProduct;
+  duplicateOf?: Product;
   error?: string;
 }
 
 interface QuickCaptureProps {
   products: Product[];
   isLoading: boolean;
+  isError?: boolean;
+  error?: Error | null;
   onDraftCreated: () => void;
   onImportClick: () => void;
   onAddClick: () => void;
   rates?: any;
 }
 
-const TEA_TYPES: ProductType[] = ['Green', 'Yellow', 'White', 'Oolong', 'Red', 'Dark', 'Sheng', 'Shou', 'Herbal', 'Teaware', 'Misc'];
-const CURRENCIES: Currency[] = ['USD', 'NT', 'Yuan', 'IDR', 'JPY', 'MYR', 'HKD', 'UNK'];
+type FilterMode = 'all' | 'review' | 'ready';
+
+const EXTRACT_CONCURRENCY = 3;
+
+// "Ready to approve" gate — pulled out so it's the single source of truth.
+function isReadyToApprove(p: Product): boolean {
+  const hasName = !!p.givenName && p.givenName !== 'Unnamed Tea' && p.givenName.trim().length > 0;
+  const hasType = !!p.type && p.type !== 'Misc' && (p.type as string) !== 'MISSING_TYPE';
+  const hasCost = (p.costAmount ?? 0) > 0;
+  const hasStock = (p.stockGrams ?? 0) > 0 || ((p.quantityUnits ?? 0) > 0);
+  return hasName && hasType && hasCost && hasStock;
+}
+
+function dedupeKey(name?: string, vendor?: string): string {
+  return `${(name || '').trim().toLowerCase()}|${(vendor || '').trim().toLowerCase()}`;
+}
 
 export const QuickCapture: React.FC<QuickCaptureProps> = ({
-  products, isLoading, onDraftCreated, onImportClick, onAddClick,
+  products, isLoading, isError, error, onDraftCreated, onImportClick, onAddClick,
 }) => {
-  const navigate = useNavigate();
-  const [items, setItems] = useState<CaptureItem[]>([]);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [intakeOpen, setIntakeOpen] = useState(true);
+  const [ghosts, setGhosts] = useState<GhostItem[]>([]);
+  const [filter, setFilter] = useState<FilterMode>('all');
+  const [approving, setApproving] = useState(false);
+  const [pageDragging, setPageDragging] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+  const dragCounter = useRef(0);
+  const queueRef = useRef<File[]>([]);
+  const activeRef = useRef(0);
 
-  const [activeQueue, setActiveQueue] = useState<'review' | 'approve'>('review');
-  const [approving, setApproving] = useState(false);
-
-  // Split drafts into two stages
+  // Drafts derived from server state
   const draftProducts = useMemo(() => products.filter(p => p.status === 'Draft'), [products]);
+  const toReview = useMemo(() => draftProducts.filter(p => !isReadyToApprove(p)), [draftProducts]);
+  const readyToApprove = useMemo(() => draftProducts.filter(p => isReadyToApprove(p)), [draftProducts]);
 
-  // "Ready to approve" = has a real name, a valid type, cost > 0, and stock/quantity > 0
-  const isReadyToApprove = useCallback((p: Product) => {
-    const hasName = p.givenName && p.givenName !== 'Unnamed Tea' && p.givenName.trim().length > 0;
-    const hasType = p.type && p.type !== 'Misc' && p.type !== 'MISSING_TYPE';
-    const hasCost = p.costAmount > 0;
-    const hasStock = p.stockGrams > 0 || (p.quantityUnits !== undefined && p.quantityUnits > 0);
-    return hasName && hasType && hasCost && hasStock;
+  // Existing dedupe index over ALL products (not just drafts)
+  const dedupeIndex = useMemo(() => {
+    const m = new Map<string, Product>();
+    for (const p of products) {
+      const k = dedupeKey(p.givenName, p.vendor);
+      if (k !== '|') m.set(k, p);
+    }
+    return m;
+  }, [products]);
+
+  // Cleanup blob URLs on unmount
+  useEffect(() => {
+    return () => {
+      for (const g of ghosts) URL.revokeObjectURL(g.preview);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const toReview = useMemo(() => draftProducts.filter(p => !isReadyToApprove(p)), [draftProducts, isReadyToApprove]);
-  const readyToApprove = useMemo(() => draftProducts.filter(p => isReadyToApprove(p)), [draftProducts, isReadyToApprove]);
+  const filteredDrafts = useMemo(() => {
+    if (filter === 'review') return toReview;
+    if (filter === 'ready') return readyToApprove;
+    return draftProducts;
+  }, [filter, toReview, readyToApprove, draftProducts]);
 
+  // ── Extraction pipeline with concurrency cap ───────────────────────────────
+  const saveAsDraft = useCallback(async (id: string, extracted: ExtractedProduct) => {
+    setGhosts(prev => prev.map(g => g.id === id ? { ...g, status: 'saving', extracted } : g));
+    try {
+      await api.products.create({
+        type: extracted.type || 'Misc',
+        given_name: extracted.givenName || 'Unnamed Tea',
+        chinese_name: extracted.chineseName || '',
+        product_name: extracted.productName || '',
+        year: extracted.year || null,
+        origin_country: extracted.originCountry || '',
+        origin_region: extracted.originRegion || '',
+        vendor: extracted.vendor || '',
+        cost_amount: extracted.costAmount || 0,
+        cost_currency: extracted.costCurrency || 'UNK',
+        quantity_purchased: extracted.quantityPurchased || 0,
+        stock_grams: extracted.quantityPurchased || 0,
+        description: extracted.description || '',
+        image_url: extracted.imageUrl || '',
+        status: 'Draft',
+        is_personal: false,
+        can_reorder: false,
+        is_public: false,
+        tasting_notes: [],
+      });
+      // Drop the ghost — the row will appear in the spreadsheet on refetch
+      setGhosts(prev => {
+        const g = prev.find(x => x.id === id);
+        if (g) URL.revokeObjectURL(g.preview);
+        return prev.filter(x => x.id !== id);
+      });
+      onDraftCreated();
+    } catch (err: any) {
+      setGhosts(prev => prev.map(g => g.id === id ? { ...g, status: 'error', error: err?.message || 'Save failed' } : g));
+    }
+  }, [onDraftCreated]);
+
+  const pump = useCallback(() => {
+    while (activeRef.current < EXTRACT_CONCURRENCY && queueRef.current.length > 0) {
+      const file = queueRef.current.shift()!;
+      const id = crypto.randomUUID();
+      const preview = URL.createObjectURL(file);
+      const ghost: GhostItem = { id, file, preview, status: 'extracting' };
+      setGhosts(prev => [ghost, ...prev]);
+      activeRef.current += 1;
+
+      api.extractFromImage(file)
+        .then((extracted: ExtractedProduct) => {
+          const key = dedupeKey(extracted.givenName, extracted.vendor);
+          const dup = key !== '|' ? dedupeIndex.get(key) : undefined;
+          if (dup) {
+            setGhosts(prev => prev.map(g => g.id === id
+              ? { ...g, status: 'duplicate', extracted, duplicateOf: dup }
+              : g));
+          } else {
+            void saveAsDraft(id, extracted);
+          }
+        })
+        .catch((err: any) => {
+          setGhosts(prev => prev.map(g => g.id === id
+            ? { ...g, status: 'error', error: err?.message || 'Extraction failed' }
+            : g));
+        })
+        .finally(() => {
+          activeRef.current -= 1;
+          pump();
+        });
+    }
+  }, [dedupeIndex, saveAsDraft]);
+
+  const handleFiles = useCallback((files: FileList | File[] | null) => {
+    if (!files) return;
+    const arr = Array.from(files).filter(f => f.type.startsWith('image/'));
+    if (arr.length === 0) return;
+    queueRef.current.push(...arr);
+    pump();
+  }, [pump]);
+
+  const removeGhost = useCallback((id: string) => {
+    setGhosts(prev => {
+      const g = prev.find(x => x.id === id);
+      if (g) URL.revokeObjectURL(g.preview);
+      return prev.filter(x => x.id !== id);
+    });
+  }, []);
+
+  const retryGhost = useCallback((id: string) => {
+    setGhosts(prev => {
+      const g = prev.find(x => x.id === id);
+      if (!g) return prev;
+      queueRef.current.push(g.file);
+      URL.revokeObjectURL(g.preview);
+      return prev.filter(x => x.id !== id);
+    });
+    pump();
+  }, [pump]);
+
+  const confirmDuplicate = useCallback((id: string) => {
+    const g = ghosts.find(x => x.id === id);
+    if (!g || !g.extracted) return;
+    void saveAsDraft(id, g.extracted);
+  }, [ghosts, saveAsDraft]);
+
+  // ── Page-level drag-and-drop ───────────────────────────────────────────────
+  const onDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    if (e.dataTransfer.types.includes('Files')) {
+      dragCounter.current += 1;
+      setPageDragging(true);
+    }
+  };
+  const onDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    dragCounter.current = Math.max(0, dragCounter.current - 1);
+    if (dragCounter.current === 0) setPageDragging(false);
+  };
+  const onDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+  const onDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    dragCounter.current = 0;
+    setPageDragging(false);
+    handleFiles(e.dataTransfer.files);
+  };
+
+  // ── Bulk activate ──────────────────────────────────────────────────────────
   const bulkApprove = async () => {
-    if (readyToApprove.length === 0) return;
+    if (readyToApprove.length === 0 || approving) return;
     setApproving(true);
     try {
-      for (const product of readyToApprove) {
-        await api.products.update(product.id, { status: 'Active' });
-      }
+      // Fire updates in parallel (server already orders by id)
+      await Promise.all(
+        readyToApprove.map(p => api.products.update(p.id, { status: 'Active' }))
+      );
       onDraftCreated();
     } catch (err) {
       console.error('Bulk approve failed:', err);
@@ -88,480 +250,306 @@ export const QuickCapture: React.FC<QuickCaptureProps> = ({
     }
   };
 
-  const processFile = useCallback(async (file: File) => {
-    const id = crypto.randomUUID();
-    const preview = URL.createObjectURL(file);
-
-    const item: CaptureItem = {
-      id,
-      file,
-      preview,
-      status: 'extracting',
-      extracted: {},
-    };
-
-    setItems(prev => [item, ...prev]);
-    setExpandedId(id);
-
-    try {
-      const extracted = await api.extractFromImage(file);
-      setItems(prev =>
-        prev.map(i => i.id === id ? { ...i, status: 'review', extracted } : i)
-      );
-    } catch (err: any) {
-      setItems(prev =>
-        prev.map(i => i.id === id ? { ...i, status: 'error', error: err.message || 'Extraction failed' } : i)
-      );
-    }
-  }, []);
-
-  const handleFiles = useCallback((files: FileList | null) => {
-    if (!files) return;
-    Array.from(files).forEach(processFile);
-  }, [processFile]);
-
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    handleFiles(e.dataTransfer.files);
-  }, [handleFiles]);
-
-  const updateExtracted = (id: string, field: string, value: any) => {
-    setItems(prev =>
-      prev.map(i => i.id === id ? { ...i, extracted: { ...i.extracted, [field]: value } } : i)
-    );
-  };
-
-  const saveDraft = async (item: CaptureItem) => {
-    setItems(prev => prev.map(i => i.id === item.id ? { ...i, status: 'saving' } : i));
-
-    try {
-      const e = item.extracted;
-      await api.products.create({
-        type: e.type || 'Misc',
-        given_name: e.givenName || 'Unnamed Tea',
-        chinese_name: e.chineseName || '',
-        product_name: e.productName || '',
-        year: e.year || null,
-        origin_country: e.originCountry || '',
-        origin_region: e.originRegion || '',
-        vendor: e.vendor || '',
-        cost_amount: e.costAmount || 0,
-        cost_currency: e.costCurrency || 'UNK',
-        quantity_purchased: e.quantityPurchased || 0,
-        stock_grams: e.quantityPurchased || 0,
-        description: e.description || '',
-        image_url: e.imageUrl || '',
-        status: 'Draft',
-        is_personal: false,
-        can_reorder: false,
-        is_public: false,
-        tasting_notes: [],
-      });
-
-      setItems(prev => prev.map(i => i.id === item.id ? { ...i, status: 'saved' } : i));
-      onDraftCreated();
-    } catch (err: any) {
-      setItems(prev =>
-        prev.map(i => i.id === item.id ? { ...i, status: 'error', error: err.message || 'Save failed' } : i)
-      );
-    }
-  };
-
-  const saveAllReviewed = async () => {
-    const reviewItems = items.filter(i => i.status === 'review');
-    for (const item of reviewItems) {
-      await saveDraft(item);
-    }
-  };
-
-  const removeItem = (id: string) => {
-    setItems(prev => {
-      const item = prev.find(i => i.id === id);
-      if (item) URL.revokeObjectURL(item.preview);
-      return prev.filter(i => i.id !== id);
-    });
-    if (expandedId === id) setExpandedId(null);
-  };
-
-  const reviewCount = items.filter(i => i.status === 'review').length;
-  const savedCount = items.filter(i => i.status === 'saved').length;
-  const extractingCount = items.filter(i => i.status === 'extracting').length;
+  const extractingCount = ghosts.filter(g => g.status === 'extracting').length;
+  const savingCount = ghosts.filter(g => g.status === 'saving').length;
+  const ghostBlocking = ghosts.filter(g => g.status === 'duplicate' || g.status === 'error');
 
   return (
-    <div className="h-full flex flex-col">
-      {/* ── Intake Section (collapsible) ── */}
-      <div className="border-b border-tea-border">
+    <div
+      className="h-full flex flex-col relative"
+      onDragEnter={onDragEnter}
+      onDragLeave={onDragLeave}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
+    >
+      {/* ── Top action strip (single row) ─────────────────────────────────── */}
+      <div className="flex items-center gap-1 px-4 md:px-6 h-12 border-b border-tea-border bg-tea-bg/30 flex-shrink-0">
+        <h1 className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text mr-3`}>Capture</h1>
+
         <button
-          onClick={() => setIntakeOpen(!intakeOpen)}
-          className="w-full flex items-center justify-between px-4 md:px-6 py-3 hover:bg-tea-elevated/30 transition-colors"
+          type="button"
+          onClick={() => cameraInputRef.current?.click()}
+          className="tap-target inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-ui-12 text-tea-text-sec hover:text-tea-text hover:bg-tea-surface transition-colors"
+          title="Capture photos"
         >
-          <div className="flex items-center gap-3">
-            <h2 className="text-base font-serif text-tea-text">Intake</h2>
-            {items.length > 0 && (
-              <span className="text-xs text-tea-text-sec">
-                {extractingCount > 0 && `${extractingCount} processing`}
-                {reviewCount > 0 && `${reviewCount} ready`}
-                {savedCount > 0 && ` · ${savedCount} saved`}
-              </span>
-            )}
-          </div>
-          <ChevronRight size={16} className={`text-tea-text-sec transition-transform ${intakeOpen ? 'rotate-90' : ''}`} />
+          <Camera size={14} />
+          <span className="hidden sm:inline">Photo</span>
+        </button>
+        <button
+          type="button"
+          onClick={onImportClick}
+          className="tap-target inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-ui-12 text-tea-text-sec hover:text-tea-text hover:bg-tea-surface transition-colors"
+          title="Import CSV"
+        >
+          <FileSpreadsheet size={14} />
+          <span className="hidden sm:inline">CSV</span>
+        </button>
+        <button
+          type="button"
+          onClick={onAddClick}
+          className="tap-target inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-ui-12 text-tea-text-sec hover:text-tea-text hover:bg-tea-surface transition-colors"
+          title="Add manually"
+        >
+          <PlusCircle size={14} />
+          <span className="hidden sm:inline">Manual</span>
         </button>
 
-        <AnimatePresence>
-          {intakeOpen && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="overflow-hidden"
-            >
-              <div className="px-4 md:px-6 pb-4 space-y-4">
-                {/* Intake Method Buttons */}
-                <div className="grid grid-cols-4 gap-3">
-                  <button
-                    onClick={() => cameraInputRef.current?.click()}
-                    className="flex flex-col items-center gap-2 p-4 rounded-xl bg-tea-surface/50 hover:bg-tea-surface transition-colors group"
-                    style={{ boxShadow: '0 1px 3px var(--tea-accent-sub)' }}
-                  >
-                    <div className="w-10 h-10 rounded-full bg-tea-gold/10 flex items-center justify-center group-hover:bg-tea-gold/20 transition-colors">
-                      <Camera className="w-5 h-5 text-tea-gold" />
-                    </div>
-                    <span className="text-xs font-medium text-tea-text-sec">Photo</span>
-                  </button>
-
-                  <button
-                    onClick={onImportClick}
-                    className="flex flex-col items-center gap-2 p-4 rounded-xl bg-tea-surface/50 hover:bg-tea-surface transition-colors group"
-                    style={{ boxShadow: '0 1px 3px var(--tea-accent-sub)' }}
-                  >
-                    <div className="w-10 h-10 rounded-full bg-tea-gold/10 flex items-center justify-center group-hover:bg-tea-gold/20 transition-colors">
-                      <FileSpreadsheet className="w-5 h-5 text-tea-gold" />
-                    </div>
-                    <span className="text-xs font-medium text-tea-text-sec">CSV</span>
-                  </button>
-
-                  <button
-                    onClick={onAddClick}
-                    className="flex flex-col items-center gap-2 p-4 rounded-xl bg-tea-surface/50 hover:bg-tea-surface transition-colors group"
-                    style={{ boxShadow: '0 1px 3px var(--tea-accent-sub)' }}
-                  >
-                    <div className="w-10 h-10 rounded-full bg-tea-gold/10 flex items-center justify-center group-hover:bg-tea-gold/20 transition-colors">
-                      <PlusCircle className="w-5 h-5 text-tea-gold" />
-                    </div>
-                    <span className="text-xs font-medium text-tea-text-sec">Manual</span>
-                  </button>
-
-                  <button
-                    onClick={() => navigate('/admin/compass')}
-                    className="flex flex-col items-center gap-2 p-4 rounded-xl bg-tea-surface/50 hover:bg-tea-surface transition-colors group"
-                    style={{ boxShadow: '0 1px 3px var(--tea-accent-sub)' }}
-                  >
-                    <div className="w-10 h-10 rounded-full bg-tea-gold/10 flex items-center justify-center group-hover:bg-tea-gold/20 transition-colors">
-                      <Compass className="w-5 h-5 text-tea-gold" />
-                    </div>
-                    <span className="text-xs font-medium text-tea-text-sec">Compass</span>
-                  </button>
-                </div>
-
-                {/* Drop zone for images */}
-                <div
-                  onDragOver={e => e.preventDefault()}
-                  onDrop={handleDrop}
-                  onClick={() => fileInputRef.current?.click()}
-                  className="rounded-lg bg-tea-bg/50 border border-dashed border-tea-border p-4 text-center cursor-pointer transition-colors hover:border-tea-gold/40 hover:bg-tea-bg/80"
-                >
-                  <div className="flex items-center justify-center gap-2 text-xs text-tea-text-dim">
-                    <Upload size={14} />
-                    Drop images here or click to upload multiple
-                  </div>
-                </div>
-
-                {/* Hidden inputs */}
-                <input
-                  ref={cameraInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={e => { handleFiles(e.target.files); e.target.value = ''; }}
-                  multiple
-                />
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={e => { handleFiles(e.target.files); e.target.value = ''; }}
-                  multiple
-                />
-
-                {/* Batch Actions */}
-                {reviewCount > 0 && (
-                  <div className="flex items-center justify-between bg-tea-surface rounded-lg px-4 py-2.5">
-                    <span className="text-xs text-tea-text-sec">
-                      {reviewCount} ready to save{savedCount > 0 && `, ${savedCount} saved`}
-                    </span>
-                    <button
-                      onClick={saveAllReviewed}
-                      className="pill-active text-xs px-3 py-1.5 flex items-center gap-1.5"
-                    >
-                      <Check size={12} />
-                      Save All as Drafts
-                    </button>
-                  </div>
-                )}
-
-                {/* Extracting indicator */}
-                {extractingCount > 0 && (
-                  <div className="flex items-center gap-2 text-xs text-tea-text-sec px-1">
-                    <Loader2 size={12} className="animate-spin" />
-                    Extracting {extractingCount} image{extractingCount > 1 ? 's' : ''}...
-                  </div>
-                )}
-
-                {/* Capture Items */}
-                <AnimatePresence mode="popLayout">
-                  {items.map(item => (
-                    <motion.div
-                      key={item.id}
-                      layout
-                      initial={{ opacity: 0, y: 12 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.95 }}
-                      className={`rounded-lg bg-tea-surface overflow-hidden ${
-                        item.status === 'saved' ? 'opacity-50' : ''
-                      }`}
-                      style={{ boxShadow: '0 1px 3px var(--tea-accent-sub)' }}
-                    >
-                      {/* Card Header */}
-                      <button
-                        onClick={() => setExpandedId(expandedId === item.id ? null : item.id)}
-                        className="w-full flex items-center gap-3 p-2.5 text-left hover:bg-tea-elevated/30 transition-colors"
-                      >
-                        <div className="w-11 h-11 rounded-md overflow-hidden bg-tea-bg flex-shrink-0">
-                          <img src={item.preview} alt="" className="w-full h-full object-cover" loading="lazy" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            {item.status === 'extracting' && <Loader2 size={12} className="animate-spin text-tea-gold flex-shrink-0" />}
-                            {item.status === 'saved' && <Check size={12} className="text-tea-text-sec flex-shrink-0" />}
-                            {item.status === 'error' && <X size={12} className="text-tea-text-sec flex-shrink-0" />}
-                            <span className="text-sm font-medium text-tea-text truncate">
-                              {item.extracted.givenName || item.extracted.productName || (item.status === 'extracting' ? 'Analyzing...' : 'Unknown Tea')}
-                            </span>
-                          </div>
-                          <div className="text-ui-11 text-tea-text-sec mt-0.5 truncate">
-                            {item.status === 'extracting' && 'Reading label...'}
-                            {item.status === 'review' && [item.extracted.type, item.extracted.originCountry, item.extracted.vendor].filter(Boolean).join(' · ')}
-                            {item.status === 'saving' && 'Saving draft...'}
-                            {item.status === 'saved' && 'Saved as draft'}
-                            {item.status === 'error' && (item.error || 'Error')}
-                          </div>
-                        </div>
-                        <ChevronRight size={14} className={`text-tea-text-sec flex-shrink-0 transition-transform ${expandedId === item.id ? 'rotate-90' : ''}`} />
-                      </button>
-
-                      {/* Expanded Detail */}
-                      <AnimatePresence>
-                        {expandedId === item.id && item.status !== 'extracting' && (
-                          <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: 'auto', opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            transition={{ duration: 0.2 }}
-                            className="overflow-hidden"
-                          >
-                            <div className="px-3 pb-3 space-y-3 border-t border-tea-border">
-                              <div className="grid grid-cols-2 gap-2.5 pt-3">
-                                <Field label="Name" value={item.extracted.givenName || ''} onChange={v => updateExtracted(item.id, 'givenName', v)} />
-                                <Field label="Chinese" value={item.extracted.chineseName || ''} onChange={v => updateExtracted(item.id, 'chineseName', v)} />
-                                <Field label="Cultivar" value={item.extracted.productName || ''} onChange={v => updateExtracted(item.id, 'productName', v)} />
-                                <SelectField label="Type" value={item.extracted.type || 'Misc'} options={TEA_TYPES} onChange={v => updateExtracted(item.id, 'type', v)} />
-                                <Field label="Country" value={item.extracted.originCountry || ''} onChange={v => updateExtracted(item.id, 'originCountry', v)} />
-                                <Field label="Region" value={item.extracted.originRegion || ''} onChange={v => updateExtracted(item.id, 'originRegion', v)} />
-                                <Field label="Vendor" value={item.extracted.vendor || ''} onChange={v => updateExtracted(item.id, 'vendor', v)} />
-                                <Field label="Year" value={item.extracted.year?.toString() || ''} onChange={v => updateExtracted(item.id, 'year', v ? parseInt(v) : undefined)} type="number" />
-                                <Field label="Cost" value={item.extracted.costAmount?.toString() || ''} onChange={v => updateExtracted(item.id, 'costAmount', v ? parseFloat(v) : 0)} type="number" />
-                                <SelectField label="Currency" value={item.extracted.costCurrency || 'UNK'} options={CURRENCIES} onChange={v => updateExtracted(item.id, 'costCurrency', v)} />
-                                <Field label="Grams" value={item.extracted.quantityPurchased?.toString() || ''} onChange={v => updateExtracted(item.id, 'quantityPurchased', v ? parseFloat(v) : 0)} type="number" />
-                              </div>
-
-                              {(item.extracted.description || item.extracted.notes) && (
-                                <div className="text-ui-11 text-tea-text-sec bg-tea-bg/50 rounded-md p-2.5 space-y-1">
-                                  {item.extracted.description && <p>{item.extracted.description}</p>}
-                                  {item.extracted.notes && <p className="italic">{item.extracted.notes}</p>}
-                                </div>
-                              )}
-
-                              <div className="flex items-center gap-2 pt-1">
-                                {item.status === 'review' && (
-                                  <button onClick={() => saveDraft(item)} className="pill-active text-xs px-3 py-1.5 flex items-center gap-1.5">
-                                    <Check size={12} /> Save Draft
-                                  </button>
-                                )}
-                                {item.status === 'error' && (
-                                  <button onClick={() => processFile(item.file)} className="pill text-xs px-3 py-1.5">Retry</button>
-                                )}
-                                <button onClick={() => removeItem(item.id)} className="pill text-xs px-2.5 py-1.5 flex items-center gap-1 ml-auto">
-                                  <X size={12} /> Remove
-                                </button>
-                              </div>
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
-              </div>
-            </motion.div>
+        {/* Inline status counts */}
+        <div className="ml-auto flex items-center gap-3 text-ui-11 text-tea-text-sec">
+          {extractingCount > 0 && (
+            <span className="inline-flex items-center gap-1.5">
+              <Loader2 size={11} className="animate-spin" />
+              {extractingCount} extracting
+            </span>
           )}
-        </AnimatePresence>
+          {savingCount > 0 && (
+            <span className="inline-flex items-center gap-1.5">
+              <Loader2 size={11} className="animate-spin" />
+              {savingCount} saving
+            </span>
+          )}
+        </div>
+
+        <input
+          ref={cameraInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={e => { handleFiles(e.target.files); e.target.value = ''; }}
+          multiple
+        />
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={e => { handleFiles(e.target.files); e.target.value = ''; }}
+          multiple
+        />
       </div>
 
-      {/* ── Draft Queue — Two-stage tabs ── */}
-      <div className="flex-1 flex flex-col min-h-0">
-        {/* Tab Bar */}
-        <div className="flex items-center gap-1 px-4 md:px-6 py-2 border-b border-tea-border bg-tea-bg/30">
-          <button
-            onClick={() => setActiveQueue('review')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-ui-10 uppercase tracking-[0.15em] rounded-md whitespace-nowrap transition-colors ${
-              activeQueue === 'review'
-                ? 'bg-tea-gold/15 text-tea-gold'
-                : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'
-            }`}
-          >
-            <AlertTriangle size={11} />
-            To Review
-            {toReview.length > 0 && (
-              <span className="ml-1 min-w-[18px] h-[18px] bg-amber-500/20 text-amber-400 text-ui-9 font-bold rounded-full flex items-center justify-center px-1">
-                {toReview.length}
-              </span>
-            )}
-          </button>
-          <button
-            onClick={() => setActiveQueue('approve')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-ui-10 uppercase tracking-[0.15em] rounded-md whitespace-nowrap transition-colors ${
-              activeQueue === 'approve'
-                ? 'bg-tea-gold/15 text-tea-gold'
-                : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'
-            }`}
-          >
-            <CheckCircle2 size={11} />
-            Ready to Approve
-            {readyToApprove.length > 0 && (
-              <span className="ml-1 min-w-[18px] h-[18px] bg-green-500/20 text-green-400 text-ui-9 font-bold rounded-full flex items-center justify-center px-1">
-                {readyToApprove.length}
-              </span>
-            )}
-          </button>
+      {/* ── Filter chip row (only when there is something to filter) ──────── */}
+      {(draftProducts.length > 0 || ghosts.length > 0) && (
+        <div className="flex items-center gap-1 px-4 md:px-6 h-10 border-b border-tea-border flex-shrink-0">
+          <FilterChip
+            active={filter === 'all'}
+            onClick={() => setFilter('all')}
+            label="All drafts"
+            count={draftProducts.length}
+          />
+          <FilterChip
+            active={filter === 'review'}
+            onClick={() => setFilter('review')}
+            label="Needs review"
+            count={toReview.length}
+          />
+          <FilterChip
+            active={filter === 'ready'}
+            onClick={() => setFilter('ready')}
+            label="Ready"
+            count={readyToApprove.length}
+          />
 
-          {/* Bulk approve button */}
-          {activeQueue === 'approve' && readyToApprove.length > 0 && (
+          {filter === 'ready' && readyToApprove.length > 0 && (
             <button
+              type="button"
               onClick={bulkApprove}
               disabled={approving}
-              className="ml-auto pill-active text-ui-10 px-3 py-1.5 flex items-center gap-1.5"
+              className="ml-auto pill-active text-ui-11 px-3 py-1.5 inline-flex items-center gap-1.5"
             >
               {approving ? (
-                <><Loader2 size={11} className="animate-spin" /> Approving...</>
+                <><Loader2 size={11} className="animate-spin" /> Activating…</>
               ) : (
-                <><ArrowRight size={11} /> Activate All ({readyToApprove.length})</>
+                <><ArrowRight size={11} /> Activate {readyToApprove.length}</>
               )}
             </button>
           )}
         </div>
+      )}
 
-        {/* Queue Content */}
-        {activeQueue === 'review' ? (
-          toReview.length === 0 && !isLoading ? (
-            <div className="flex-1 flex items-center justify-center">
-              <div className="text-center py-12 text-tea-text-dim">
-                <Check size={36} className="mx-auto mb-3 opacity-20" />
-                <p className="text-sm">Nothing to review.</p>
-                <p className="text-xs mt-1">
-                  {readyToApprove.length > 0
-                    ? `${readyToApprove.length} item${readyToApprove.length !== 1 ? 's' : ''} ready to approve.`
-                    : 'Capture photos or import a CSV above to get started.'}
-                </p>
-              </div>
+      {/* ── Ghost rows (in-flight extractions) ────────────────────────────── */}
+      <AnimatePresence>
+        {ghosts.length > 0 && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="overflow-hidden border-b border-tea-border flex-shrink-0"
+          >
+            <div className="px-4 md:px-6 py-2 space-y-1.5">
+              {ghosts.map(g => (
+                <GhostRow
+                  key={g.id}
+                  ghost={g}
+                  onRemove={() => removeGhost(g.id)}
+                  onRetry={() => retryGhost(g.id)}
+                  onConfirmDuplicate={() => confirmDuplicate(g.id)}
+                />
+              ))}
             </div>
-          ) : (
-            <div className="flex-1 overflow-auto">
-              <InventoryView
-                products={toReview}
-                isLoading={isLoading}
-                onImportClick={onImportClick}
-                onAddClick={onAddClick}
-                onRefresh={onDraftCreated}
-              />
-            </div>
-          )
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Spreadsheet body (drafts only) ────────────────────────────────── */}
+      <div className="flex-1 min-h-0 overflow-hidden">
+        {draftProducts.length === 0 && ghosts.length === 0 && !isLoading ? (
+          <EmptyState onPhoto={() => cameraInputRef.current?.click()} onImport={onImportClick} onAdd={onAddClick} />
         ) : (
-          readyToApprove.length === 0 && !isLoading ? (
-            <div className="flex-1 flex items-center justify-center">
-              <div className="text-center py-12 text-tea-text-dim">
-                <ImageIcon size={36} className="mx-auto mb-3 opacity-20" />
-                <p className="text-sm">No drafts ready to approve yet.</p>
-                <p className="text-xs mt-1">
-                  {toReview.length > 0
-                    ? `${toReview.length} item${toReview.length !== 1 ? 's' : ''} still need review — fill in name, type, cost, and stock.`
-                    : 'Import or capture items first.'}
-                </p>
-              </div>
-            </div>
-          ) : (
-            <div className="flex-1 overflow-auto">
-              <InventoryView
-                products={readyToApprove}
-                isLoading={isLoading}
-                onImportClick={onImportClick}
-                onAddClick={onAddClick}
-                onRefresh={onDraftCreated}
-              />
-            </div>
-          )
+          <InventoryView
+            products={filteredDrafts}
+            isLoading={isLoading}
+            isError={isError}
+            error={error}
+            onImportClick={onImportClick}
+            onAddClick={onAddClick}
+            onRefresh={onDraftCreated}
+          />
         )}
       </div>
+
+      {/* ── Drag-and-drop overlay ─────────────────────────────────────────── */}
+      <AnimatePresence>
+        {pageDragging && ghostBlocking.length === 0 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.12 }}
+            className="absolute inset-0 z-10 flex items-center justify-center bg-tea-bg/85 backdrop-blur-sm pointer-events-none"
+          >
+            <div className="flex flex-col items-center gap-2 text-tea-gold">
+              <Upload size={32} />
+              <span className={`${TYPOGRAPHY_CLASSES.label} text-tea-gold`}>Drop to capture</span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
 
-// ── Small helper components ──
+// ─── Subcomponents ─────────────────────────────────────────────────────────
 
-const Field: React.FC<{
+const FilterChip: React.FC<{
+  active: boolean;
+  onClick: () => void;
   label: string;
-  value: string;
-  onChange: (v: string) => void;
-  type?: string;
-}> = ({ label, value, onChange, type = 'text' }) => (
-  <div>
-    <label className="text-ui-10 uppercase tracking-wider text-tea-text-dim font-sans">{label}</label>
-    <input
-      type={type}
-      value={value}
-      onChange={e => onChange(e.target.value)}
-      className="w-full mt-0.5 px-2 py-1.5 text-sm bg-tea-bg rounded-md border border-tea-border text-tea-text focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold/50 transition-colors"
-    />
-  </div>
+  count: number;
+}> = ({ active, onClick, label, count }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className={`tap-target inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-ui-11 uppercase tracking-[0.12em] whitespace-nowrap transition-colors ${
+      active
+        ? 'bg-tea-gold/15 text-tea-gold'
+        : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'
+    }`}
+  >
+    {label}
+    {count > 0 && (
+      <span className={`min-w-[18px] h-[18px] px-1 rounded-full inline-flex items-center justify-center text-ui-9 font-semibold ${
+        active ? 'bg-tea-gold/20 text-tea-gold' : 'bg-tea-elevated text-tea-text-sec'
+      }`}>
+        {count}
+      </span>
+    )}
+  </button>
 );
 
-const SelectField: React.FC<{
-  label: string;
-  value: string;
-  options: readonly string[];
-  onChange: (v: string) => void;
-}> = ({ label, value, options, onChange }) => (
-  <div>
-    <label className="text-ui-10 uppercase tracking-wider text-tea-text-dim font-sans">{label}</label>
-    <select
-      value={value}
-      onChange={e => onChange(e.target.value)}
-      className="w-full mt-0.5 px-2 py-1.5 text-sm bg-tea-bg rounded-md border border-tea-border text-tea-text focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold/50 transition-colors"
+const GhostRow: React.FC<{
+  ghost: GhostItem;
+  onRemove: () => void;
+  onRetry: () => void;
+  onConfirmDuplicate: () => void;
+}> = ({ ghost, onRemove, onRetry, onConfirmDuplicate }) => {
+  const name = ghost.extracted?.givenName || ghost.extracted?.productName;
+  const subtitle =
+    ghost.status === 'extracting' ? 'Reading label…' :
+    ghost.status === 'saving' ? 'Saving draft…' :
+    ghost.status === 'duplicate' ? `Possible duplicate of ${ghost.duplicateOf?.givenName || 'existing item'}` :
+    ghost.status === 'error' ? (ghost.error || 'Error') :
+    '';
+
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: -4 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0 }}
+      className="flex items-center gap-3 rounded-md bg-tea-surface/60 px-2.5 py-2"
     >
-      {options.map(o => <option key={o} value={o}>{o}</option>)}
-    </select>
+      <div className="w-9 h-9 rounded-md overflow-hidden bg-tea-bg flex-shrink-0">
+        <img src={ghost.preview} alt="" className="w-full h-full object-cover" loading="lazy" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5">
+          {ghost.status === 'extracting' && <Loader2 size={11} className="animate-spin text-tea-gold flex-shrink-0" />}
+          {ghost.status === 'saving' && <Loader2 size={11} className="animate-spin text-tea-gold flex-shrink-0" />}
+          {ghost.status === 'duplicate' && <AlertTriangle size={11} className="text-tea-gold flex-shrink-0" />}
+          {ghost.status === 'error' && <X size={11} className="text-tea-text-sec flex-shrink-0" />}
+          <span className="text-ui-13 text-tea-text truncate">
+            {name || (ghost.status === 'extracting' ? 'Analyzing…' : 'Unknown')}
+          </span>
+        </div>
+        <div className="text-ui-11 text-tea-text-sec truncate">{subtitle}</div>
+      </div>
+
+      {ghost.status === 'duplicate' && (
+        <button
+          type="button"
+          onClick={onConfirmDuplicate}
+          className="tap-target text-ui-11 px-2.5 py-1 rounded-md text-tea-gold hover:bg-tea-gold/10 transition-colors"
+        >
+          Save anyway
+        </button>
+      )}
+      {ghost.status === 'error' && (
+        <button
+          type="button"
+          onClick={onRetry}
+          className="tap-target text-ui-11 px-2.5 py-1 rounded-md text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated transition-colors"
+        >
+          Retry
+        </button>
+      )}
+      <button
+        type="button"
+        onClick={onRemove}
+        className="tap-target p-1 rounded-md text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated transition-colors"
+        aria-label="Remove"
+      >
+        <X size={13} />
+      </button>
+    </motion.div>
+  );
+};
+
+const EmptyState: React.FC<{
+  onPhoto: () => void;
+  onImport: () => void;
+  onAdd: () => void;
+}> = ({ onPhoto, onImport, onAdd }) => (
+  <div className="h-full flex items-center justify-center px-6">
+    <div className="text-center max-w-sm">
+      <Check size={32} className="mx-auto mb-3 text-tea-text-dim opacity-30" />
+      <p className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text mb-1`}>No drafts yet</p>
+      <p className="text-ui-13 text-tea-text-sec mb-5">
+        Drop photos anywhere on this page, or use one of the actions above to get started.
+      </p>
+      <div className="flex items-center justify-center gap-2">
+        <button type="button" onClick={onPhoto} className="pill text-ui-12 px-3 py-1.5 inline-flex items-center gap-1.5">
+          <Camera size={12} /> Photo
+        </button>
+        <button type="button" onClick={onImport} className="pill text-ui-12 px-3 py-1.5 inline-flex items-center gap-1.5">
+          <FileSpreadsheet size={12} /> CSV
+        </button>
+        <button type="button" onClick={onAdd} className="pill text-ui-12 px-3 py-1.5 inline-flex items-center gap-1.5">
+          <PlusCircle size={12} /> Manual
+        </button>
+      </div>
+    </div>
   </div>
 );
 
