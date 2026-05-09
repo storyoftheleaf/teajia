@@ -257,6 +257,8 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   // Clay subtype picker — opens as a separate full-screen sheet after the
   // user picks Clay or Yixing in the Material sheet.
   const [claySheetOpen, setClaySheetOpen] = useState(false);
+  // Era picker — opens as a Vaul bottom sheet next to the Origin field.
+  const [eraSheetOpen, setEraSheetOpen] = useState(false);
   // Vestigial — still used by some legacy code paths to track which panel
   // a popover is in. Bottom sheets don't need this; left for safety.
   const [materialPanel, setMaterialPanel] = useState<'main' | 'yixing'>('main');
@@ -923,6 +925,13 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
       setMaterialPanel('main');
     };
 
+    const handleEraPick = (eraName: string) => {
+      update({ era: entry.era === eraName ? undefined : eraName });
+      setEraSheetOpen(false);
+      setEraInputOpen(false);
+      setEraInputValue('');
+    };
+
     const commitCustomEra = () => {
       const trimmed = eraInputValue.trim();
       if (!trimmed) return;
@@ -930,6 +939,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
       update({ era: trimmed });
       setEraInputValue('');
       setEraInputOpen(false);
+      setEraSheetOpen(false);
     };
 
     const allEras: string[] = [...TEAWARE_ERAS, ...customEras.filter((e) => !TEAWARE_ERAS.includes(e))];
@@ -1052,80 +1062,31 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             )}
           </div>
 
-          {/* Row 5 — Provenance group: Origin (where) + Era (when).
-              Era is an inline horizontal strip — one tap sets the value,
-              no intermediate sheet to open and dismiss. Wraps to multiple
-              rows on narrow viewports rather than scrolling. */}
-          <div className="mt-3 space-y-2">
-            <AutocompleteInput
-              value={entry.originRegion || ''}
-              onChange={(val) => update({ originRegion: val || undefined })}
-              suggestions={availableRegions}
-              placeholder="Origin"
-              className="w-full bg-tea-gold/[0.06] text-tea-text text-base rounded-xl px-3 py-2.5 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder:text-tea-text-sec/70"
-            />
-
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-ui-10 uppercase tracking-[0.12em] text-tea-text-sec font-medium pr-1 shrink-0">Era</span>
-              {allEras.map((eraName) => (
-                <button
-                  key={eraName}
-                  type="button"
-                  onClick={() => update({ era: entry.era === eraName ? undefined : eraName })}
-                  className={`tap-target px-2.5 py-1 rounded-md text-ui-11 font-medium border transition-colors tabular-nums ${
-                    entry.era === eraName
-                      ? 'bg-tea-gold/15 text-tea-gold border-tea-gold/40 font-semibold'
-                      : 'text-tea-text-sec border-tea-border bg-tea-elevated/40 hover:text-tea-text hover:border-tea-gold/40'
-                  }`}
-                >
-                  {eraName}
-                </button>
-              ))}
-              {!eraInputOpen ? (
-                <button
-                  type="button"
-                  onClick={() => setEraInputOpen(true)}
-                  className="tap-target inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-ui-11 font-medium text-tea-gold border border-dashed border-tea-gold/40 bg-transparent hover:bg-tea-gold/[0.08] transition-colors"
-                  aria-label="Add a custom era"
-                >
-                  <Plus size={11} strokeWidth={2.5} />
-                  Add
-                </button>
-              ) : null}
+          {/* Row 5 — Provenance: Origin (where) + Era chip (when) on one
+              line. Tapping the Era chip opens a Vaul sheet — same picker
+              pattern as the clay subtype sheet, just without photos. */}
+          <div className="mt-3 flex items-center gap-2">
+            <div className="flex-1 min-w-0">
+              <AutocompleteInput
+                value={entry.originRegion || ''}
+                onChange={(val) => update({ originRegion: val || undefined })}
+                suggestions={availableRegions}
+                placeholder="Origin"
+                className="w-full bg-tea-gold/[0.06] text-tea-text text-base rounded-xl px-3 py-2.5 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder:text-tea-text-sec/70"
+              />
             </div>
-
-            {eraInputOpen && (
-              <div className="flex items-center gap-2">
-                <input
-                  ref={eraInputRef}
-                  type="text"
-                  value={eraInputValue}
-                  autoFocus
-                  onChange={(e) => setEraInputValue(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') { e.preventDefault(); commitCustomEra(); }
-                    if (e.key === 'Escape') { setEraInputOpen(false); setEraInputValue(''); }
-                  }}
-                  placeholder="e.g. Song Dynasty"
-                  className="flex-1 min-w-0 bg-tea-gold/[0.06] text-tea-text text-base rounded-lg px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none placeholder:text-tea-text-sec/70"
-                />
-                <button
-                  type="button"
-                  onClick={commitCustomEra}
-                  disabled={!eraInputValue.trim()}
-                  className="shrink-0 px-3 py-2 rounded-lg bg-tea-gold text-tea-bg text-ui-12 font-semibold disabled:opacity-40 transition-opacity"
-                >
-                  Add
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setEraInputOpen(false); setEraInputValue(''); }}
-                  className="shrink-0 text-ui-11 text-tea-text-sec hover:text-tea-text transition-colors px-2 py-2"
-                >
-                  Cancel
-                </button>
-              </div>
-            )}
+            <button
+              type="button"
+              onClick={() => setEraSheetOpen(true)}
+              className={`shrink-0 inline-flex items-center gap-1 rounded-xl px-3 py-2.5 text-sm border border-tea-border transition-colors tabular-nums ${
+                entry.era
+                  ? 'text-tea-text font-semibold bg-tea-gold/[0.10]'
+                  : 'text-tea-text-sec font-medium bg-tea-gold/[0.06] hover:text-tea-text'
+              }`}
+            >
+              <span>{entry.era || 'Era'}</span>
+              <ChevronDown size={13} strokeWidth={2} />
+            </button>
           </div>
 
           {/* Category — opens as a bottom sheet (Vaul) so the picker has
@@ -1157,10 +1118,63 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             </div>
           </BottomSheet>
 
-          {/* (Era is now an inline 1-click strip rendered above with the
-              Origin field; no separate sheet needed. The clay subtype's
-              orphan "• Zhuni ×" subtitle is gone too — the chip lives
-              alongside the Material chip in the row above.) */}
+          {/* Era — bottom sheet. Includes "+ Add new era" affordance at the
+              bottom for user-defined entries (Song Dynasty, etc.). */}
+          <BottomSheet
+            open={eraSheetOpen}
+            onOpenChange={(open) => {
+              setEraSheetOpen(open);
+              if (!open) { setEraInputOpen(false); setEraInputValue(''); }
+            }}
+            title="Era"
+            description="When was this piece made?"
+          >
+            <div className="flex flex-col gap-0.5 px-1">
+              {allEras.map((eraName) => (
+                <SheetOption
+                  key={eraName}
+                  label={eraName}
+                  selected={entry.era === eraName}
+                  onSelect={() => handleEraPick(eraName)}
+                />
+              ))}
+              <div className="border-t border-tea-border my-2" />
+              {eraInputOpen ? (
+                <div className="flex items-center gap-2 px-3 py-2">
+                  <input
+                    ref={eraInputRef}
+                    type="text"
+                    value={eraInputValue}
+                    autoFocus
+                    onChange={(e) => setEraInputValue(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') { e.preventDefault(); commitCustomEra(); }
+                      if (e.key === 'Escape') { setEraInputOpen(false); setEraInputValue(''); }
+                    }}
+                    placeholder="e.g. Song Dynasty"
+                    className="flex-1 min-w-0 bg-tea-bg text-tea-text text-base rounded-lg px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none placeholder:text-tea-text-sec/70"
+                  />
+                  <button
+                    type="button"
+                    onClick={commitCustomEra}
+                    disabled={!eraInputValue.trim()}
+                    className="shrink-0 px-3 py-2 rounded-lg bg-tea-gold text-tea-bg text-ui-12 font-semibold disabled:opacity-40 transition-opacity"
+                  >
+                    Add
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setEraInputOpen(true)}
+                  className="flex items-center gap-2 px-3 py-3 rounded-xl text-base font-medium text-tea-gold hover:bg-tea-gold/[0.08] transition-colors"
+                >
+                  <Plus size={16} strokeWidth={2} />
+                  Add new era
+                </button>
+              )}
+            </div>
+          </BottomSheet>
 
           {/* Material — bottom sheet. Yixing and Clay both display a chevron
               and drill into the full-screen Clay sheet rendered below. */}
@@ -1269,15 +1283,17 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
 
         <div className="border-t border-tea-border" />
 
-        {/* Row 5 — Price + ml. Both currency and "ml" are persistent affixes
-            inside their input shells, separated from the editable area by a
-            hairline so the unit always reads as part of the field. */}
-        <div className="flex items-center gap-2">
+        {/* Row 5 — Price · Volume · Quantity, all on one line. Currency
+            and "ml" stay as persistent affixes inside their input shells.
+            The qty stepper uses 28px buttons + 18px count to stay
+            compact enough to share the line on a 360px viewport. */}
+        <div className="flex items-stretch gap-2">
+          {/* Price (with currency prefix) — flex-1 takes remaining space */}
           <div className="flex-1 min-w-0 flex items-stretch bg-tea-gold/[0.06] rounded-xl border border-tea-border focus-within:border-tea-gold/40 transition-colors">
             <select
               value={entry.priceCurrency || 'NT'}
               onChange={(e) => handleCurrencyChange(e.target.value as Currency)}
-              className="self-stretch bg-transparent text-tea-text-sec text-xs tabular-nums font-medium border-none border-r border-r-tea-border outline-none cursor-pointer appearance-none shrink-0 pl-3 pr-1"
+              className="self-stretch bg-transparent text-tea-text-sec text-xs tabular-nums font-medium border-none border-r border-r-tea-border outline-none cursor-pointer appearance-none shrink-0 pl-2.5 pr-1"
               style={{ backgroundImage: 'none' }}
               aria-label="Currency"
             >
@@ -1299,52 +1315,53 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
               aria-label="Price"
             />
           </div>
-          <div className="w-24 shrink-0 flex items-stretch bg-tea-gold/[0.06] rounded-xl border border-tea-border focus-within:border-tea-gold/40 transition-colors">
+
+          {/* Volume — narrow, with "ml" suffix inside the shell */}
+          <div className="w-[88px] shrink-0 flex items-stretch bg-tea-gold/[0.06] rounded-xl border border-tea-border focus-within:border-tea-gold/40 transition-colors">
             <input
               type="number"
               inputMode="numeric"
-              placeholder="Volume"
+              placeholder="Vol"
               value={entry.capacityMl ?? ''}
               onChange={(e) => {
                 const val = e.target.value;
                 update({ capacityMl: val === '' ? undefined : Number(val) });
               }}
-              className="flex-1 min-w-0 bg-transparent text-tea-text pl-3 pr-2 py-2.5 outline-none text-base tabular-nums text-right placeholder:text-tea-text-sec/70 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+              className="flex-1 min-w-0 bg-transparent text-tea-text pl-2.5 pr-1 py-2.5 outline-none text-base tabular-nums text-right placeholder:text-tea-text-sec/70 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
               style={{ MozAppearance: 'textfield' } as React.CSSProperties}
               aria-label="Volume in millilitres"
             />
             <span
-              className="self-stretch flex items-center pl-2 pr-3 text-tea-text-sec text-xs tabular-nums font-medium border-l border-tea-border pointer-events-none select-none"
+              className="self-stretch flex items-center pl-1 pr-2.5 text-tea-text-sec text-xs tabular-nums font-medium pointer-events-none select-none"
               aria-hidden
             >
               ml
             </span>
           </div>
-        </div>
 
-        {/* Row 6 — Quantity. Label sits above the stepper so it reads as a
-            field label, not a unit suffix. */}
-        <div className="flex flex-col gap-1.5">
-          <span className="text-ui-10 uppercase tracking-[0.12em] text-tea-text-sec font-medium">Quantity</span>
-          <div className="flex items-center gap-2">
+          {/* Quantity stepper — compact so it fits on the same line as
+              Price + Volume. The whole pill (button + count + button) is
+              wrapped in a single bordered shell so it reads as one
+              control rather than three loose elements. */}
+          <div className="shrink-0 flex items-stretch bg-tea-gold/[0.06] rounded-xl border border-tea-border" aria-label={`Quantity: ${entry.quantity || 1}`}>
             <button
               type="button"
               onClick={() => update({ quantity: Math.max(1, (entry.quantity || 1) - 1) })}
-              className="w-8 h-8 flex items-center justify-center rounded-lg bg-tea-elevated border border-tea-border text-tea-text-sec hover:text-tea-text transition-colors tap-target"
+              className="w-7 self-stretch flex items-center justify-center text-tea-text-sec hover:text-tea-text transition-colors border-r border-r-tea-border"
               aria-label="Decrease quantity"
             >
-              <Minus size={13} />
+              <Minus size={12} />
             </button>
-            <span className="text-tea-text text-base font-semibold tabular-nums min-w-[2ch] text-center" aria-live="polite">
+            <span className="text-tea-text text-base font-semibold tabular-nums w-8 text-center self-center" aria-live="polite">
               {entry.quantity || 1}
             </span>
             <button
               type="button"
               onClick={() => update({ quantity: (entry.quantity || 1) + 1 })}
-              className="w-8 h-8 flex items-center justify-center rounded-lg bg-tea-elevated border border-tea-border text-tea-text-sec hover:text-tea-text transition-colors tap-target"
+              className="w-7 self-stretch flex items-center justify-center text-tea-text-sec hover:text-tea-text transition-colors border-l border-l-tea-border"
               aria-label="Increase quantity"
             >
-              <Plus size={13} />
+              <Plus size={12} />
             </button>
           </div>
         </div>
