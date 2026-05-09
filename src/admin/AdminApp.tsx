@@ -86,7 +86,7 @@ import { VenueManager } from './components/VenueManager';
 import { PeopleView } from './components/PeopleView';
 import { CustomerProfilePage } from './components/CustomerProfilePage';
 import { ActivityView } from './components/ActivityView';
-import { QuickCapture } from './components/QuickCapture';
+import { DraftsView } from './components/DraftsView';
 import { CatalogView } from './views/CatalogView';
 import { PurchaseOrdersPage } from './views/PurchaseOrdersPage';
 import { TeaCompass } from '../components/TeaCompass';
@@ -125,7 +125,12 @@ const CompassWithMode: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     tab === 'buying' ? 'buying' : tab === 'ledger' ? 'buying' :
     tab === 'sourcing' ? 'sourcing' : tab === 'capture' ? 'sourcing' :
     tab === 'samples' ? 'sourcing' :
-    tab === 'tasting' ? 'tasting' : tab === 'browse' ? 'tasting' :
+    // 'tasting' kept as a back-compat alias for the old query param —
+    // internal name is now 'library' since this view is the Library of
+    // past compass captures, not the Tasting surface (that lives at
+    // /account/journal).
+    tab === 'tasting' ? 'library' : tab === 'browse' ? 'library' :
+    tab === 'library' ? 'library' :
     undefined;
   const initialCaptureOption: 'tea' | 'teaware' | 'samples' | undefined =
     tab === 'samples' || capture === 'samples' ? 'samples' :
@@ -309,6 +314,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
   const [showSourceSuggestions, setShowSourceSuggestions] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const isOnInventory = location.pathname.includes('/admin/inventory');
+  const isOnCapture = location.pathname.includes('/admin/capture');
   const isOnHome = location.pathname === '/admin/' || location.pathname === '/admin/compass';
   const isOnCompass = location.pathname.includes('/admin/compass');
 
@@ -605,7 +611,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
            )}
         </div>}
 
-        <div className={`flex-1 relative min-h-0 ${isOnInventory ? 'overflow-hidden' : 'overflow-y-auto pb-[calc(56px+env(safe-area-inset-bottom,0px))] lg:pb-0'}`}>
+        <div className={`flex-1 relative min-h-0 ${isOnInventory || isOnCapture ? 'overflow-hidden' : 'overflow-y-auto pb-[calc(56px+env(safe-area-inset-bottom,0px))] lg:pb-0'}`}>
           <Routes>
               <Route path="/" element={<Navigate to="compass" replace />} />
               <Route path="home" element={<Navigate to="../compass" replace />} />
@@ -621,7 +627,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
               <Route path="capture" element={
                 <ProtectedRoute hasAccess={isMember} isLoggingIn={isLoginOpen || !isLoggedIn}>
                   <PageTransition>
-                    <QuickCapture
+                    <DraftsView
                       products={products}
                       isLoading={loading}
                       onDraftCreated={refetchProducts}

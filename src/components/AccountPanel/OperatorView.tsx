@@ -419,7 +419,7 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
 
       {/* ── Compass ──────────────────────────────────────────────────── */}
       {compassProfile && (
-        <PreviewBlock hint="Compass" icon={<Compass {...ICON_PROPS} />} onClick={() => go('/compass')}>
+        <PreviewBlock hint="Compass" icon={<Compass {...ICON_PROPS} />} onClick={() => go('/admin/compass')}>
           <p
             className="text-ui-16 leading-snug text-tea-text italic"
             style={{ fontFamily: 'var(--font-display)' }}

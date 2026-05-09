@@ -33,6 +33,7 @@ Tier model (5 tiers + Guest) with 6 capability bundles. Account-scoped access co
 - **COMPASS_SOCIAL_PLAN.md** — Phase 1: tab restructure, sharing, command center (`/me`). LogoIcon navigation, floating actions repositioned.
 - **plan/teajia-tasting-usage-guide.md** — Tasting taxonomy & data model (102 mood/flavor terms, session-based entry).
 - **TASTING_JOURNAL_BRIEF.md** — Customer-facing journal UX (personal record, contemplative pace, bronze accents, serif typography).
+- **plan/compass-tasting-separation-followups.md** — Leftovers from the May 2026 admin-only carve-out (schema unification, permission gate, orphan audit).
 
 ## Events
 

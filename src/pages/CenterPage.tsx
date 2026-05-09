@@ -394,7 +394,6 @@ export default function CenterPage() {
 
           <div>
             <NavRow label="Tea Sessions" to="/events" />
-            <NavRow label="Tasting Sessions" to="/compass?tab=tasting" />
             <NavRow label="Tasting Journal" to="/account/journal" />
             <NavRow label="Collection" to="/account/collection" />
             <NavRow label="Settings" to="/account/settings" />

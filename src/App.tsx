@@ -61,7 +61,6 @@ const TabStyleDemo = lazy(() => import('./pages/TabStyleDemo'));
 const PalettePreviewPage = lazy(() => import('./pages/PalettePreviewPage'));
 const JournalPage = lazy(() => import('./pages/JournalPage'));
 const CollectionPage = lazy(() => import('./pages/CollectionPage'));
-const CompassPage = lazy(() => import('./pages/CompassPage'));
 const SignInPage = lazy(() => import('./pages/SignInPage'));
 const SignUpPage = lazy(() => import('./pages/SignUpPage'));
 const AccountSettingsPage = lazy(() => import('./pages/AccountSettingsPage'));
@@ -722,7 +721,9 @@ const AppContent = () => {
                   </ErrorBoundary>
                 } />
                 <Route path="/about" element={<ErrorBoundary><AboutPage /></ErrorBoundary>} />
-                <Route path="/compass" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="grid" />}><CompassPage /></Suspense></ErrorBoundary>} />
+                {/* /compass is admin-only at /admin/compass — public route removed.
+                    Members use /account/journal for tasting; Compass is sourcing + ledger only. */}
+                <Route path="/compass" element={<Navigate to="/account/journal" replace />} />
                 <Route path="/account/journal" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="list" />}><JournalPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/collection" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="list" />}><CollectionPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/journey" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><AccountJourneyPage /></Suspense></ErrorBoundary>} />
@@ -925,6 +926,21 @@ const AppContent = () => {
           <span className="text-xs uppercase tracking-widest font-medium">{toast.message}</span>
       </div>
 
+
+      {/* Soft fade behind the floating bottom tab bar — masks page content
+          peeking through the pill's side margins and bottom gap so the bar
+          reads cleanly without distracting text behind it. */}
+      {!isCartOpen && (
+        <div
+          aria-hidden="true"
+          className="lg:hidden fixed inset-x-0 bottom-0 pointer-events-none"
+          style={{
+            height: 'calc(env(safe-area-inset-bottom, 0px) + 112px)',
+            background: 'linear-gradient(to top, var(--tea-bg) 0%, var(--tea-bg) 60%, transparent 100%)',
+            zIndex: 70,
+          }}
+        />
+      )}
 
       {/* Bottom Tab Bar for Mobile */}
       <BottomTabBar activeSection={activeSection} onNavigate={handleNavSection} hidden={isCartOpen} onAccountClick={handleToggleAccount} onAccountClose={handleCloseAccount} isAccountOpen={showAccountModal} onSearchClick={() => { window.dispatchEvent(new CustomEvent('dismiss-tasting-overlay')); setShowAccountModal(false); setAccountInitialView(undefined); setShowGlobalSearch(true); }} onSearchClose={() => setShowGlobalSearch(false)} isSearchOpen={showGlobalSearch} isAdminRoute={isAdminRoute} />

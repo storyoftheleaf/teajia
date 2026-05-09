@@ -6768,6 +6768,99 @@ const handleDeleteCompassEntry: Handler = async (request, env, params) => {
   return json({ success: true });
 };
 
+// Promote a compass entry into a Draft product, scoped to the caller's active account.
+// Idempotent: if the entry already has draft_product_id set, returns the existing product.
+const handlePromoteCompassEntry: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId, userId } = ctx;
+
+  const entry = await env.DB.prepare(
+    'SELECT * FROM tea_compass_entries WHERE id = ? AND user_id = ? AND account_id = ?'
+  ).bind(params.id, userId, accountId).first() as Record<string, any> | null;
+
+  if (!entry) return json({ error: 'Compass entry not found' }, 404);
+
+  if (entry.draft_product_id) {
+    const existing = await env.DB.prepare(
+      'SELECT * FROM products WHERE id = ? AND account_id = ?'
+    ).bind(entry.draft_product_id, accountId).first();
+    if (existing) return json({ id: entry.draft_product_id, product: existing, alreadyPromoted: true });
+    // Stale link — fall through and create a new product, then re-link.
+  }
+
+  const isTeaware = entry.category === 'teaware';
+  const name = (entry.name as string | null)?.trim();
+  if (!name) return json({ error: 'Cannot promote: entry has no name' }, 400);
+
+  let photos: string[] = [];
+  try { photos = entry.photos ? JSON.parse(entry.photos) : []; } catch { photos = []; }
+  const tasting = entry.tasting; // already a JSON string in storage
+
+  const productType = isTeaware ? 'Teaware' : (entry.type || 'Misc');
+  const stockGrams = isTeaware ? 0 : Number(entry.buy_quantity_grams ?? 0) || 0;
+  const quantityUnits = isTeaware ? Number(entry.quantity ?? 1) || 1 : null;
+
+  const vendorId = await resolveVendorId(
+    env,
+    entry.vendor_name as string | null | undefined,
+    undefined,
+    accountId,
+  );
+
+  const productId = crypto.randomUUID();
+  const cols: Record<string, any> = {
+    id: productId,
+    account_id: accountId,
+    type: productType,
+    form: entry.form ?? null,
+    given_name: name,
+    chinese_name: entry.chinese_name ?? null,
+    product_name: name,
+    year: entry.year != null ? String(entry.year) : null,
+    origin_region: entry.origin_region ?? null,
+    description: null,
+    image_url: photos[0] ?? null,
+    additional_images: JSON.stringify(photos.slice(1)),
+    status: 'Draft',
+    vendor: entry.vendor_name ?? null,
+    vendor_id: vendorId,
+    stock_grams: stockGrams,
+    cost_amount: Number(entry.price_amount ?? 0) || 0,
+    cost_currency: entry.price_currency ?? 'USD',
+    quantity_purchased: isTeaware ? quantityUnits : stockGrams,
+    quantity_units: quantityUnits,
+    material: entry.material ?? null,
+    capacity_ml: entry.capacity_ml ?? null,
+    teaware_category: entry.teaware_category ?? null,
+    tasting: tasting ?? '{}',
+    tasting_source: tasting && tasting !== '{}' ? 'owner' : null,
+    tea_key: entry.tea_key ?? null,
+    source_compass_entry_id: entry.id,
+  };
+
+  const colNames = Object.keys(cols);
+  const placeholders = colNames.map(() => '?').join(', ');
+  await env.DB.prepare(
+    `INSERT INTO products (${colNames.join(', ')}) VALUES (${placeholders})`
+  ).bind(...colNames.map((c) => cols[c])).run();
+
+  await env.DB.prepare(
+    "UPDATE tea_compass_entries SET draft_product_id = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ?"
+  ).bind(productId, entry.id, accountId).run();
+
+  const created = await env.DB.prepare(
+    'SELECT * FROM products WHERE id = ? AND account_id = ?'
+  ).bind(productId, accountId).first();
+
+  await auditPlatformActingWrite(env, ctx, 'product.created', 'product', productId, {
+    product_name: name,
+    promoted_from_compass: entry.id,
+  });
+
+  return json({ id: productId, product: created, alreadyPromoted: false }, 201);
+};
+
 /* ─────────────────────────────────────────────────────────────────────────────
    NOTES — unified note thread (tea_key or compass_entry_id anchored)
 ───────────────────────────────────────────────────────────────────────────── */
@@ -15670,6 +15763,7 @@ const routes: [string, string, Handler][] = [
   ['PUT', '/api/compass/entries/:id', handleUpdateCompassEntry],
   ['DELETE', '/api/compass/entries/:id', handleDeleteCompassEntry],
   ['POST', '/api/compass/sync', handleSyncCompassEntries],
+  ['POST', '/api/compass/entries/:id/promote', handlePromoteCompassEntry],
 
   // Notes — unified thread
   ['GET',  '/api/notes',              handleGetNotes],

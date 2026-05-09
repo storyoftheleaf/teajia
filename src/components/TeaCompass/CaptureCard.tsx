@@ -154,33 +154,25 @@ function getTypeChipStyle(type: TeaType): { bg: string; text: string } {
 }
 
 /** Inline status mark — Want/Buy/Sample/Taste tile inside the form. Glass
- *  surface with gold accent on active. Compact (52px tall) so a 4-up grid
- *  always fits the mobile width without wrapping or stealing focus from
- *  the rest of the form. The tap area is the full tile via min-h. */
+ *  surface with gold accent on active. Tile height (60px) and icon size
+ *  (18px) are tuned to read as a primary action row, not a secondary
+ *  status chip. The tap area is the full tile via min-h. */
 const EntryMark: React.FC<{
   icon: React.ReactNode;
   label: string;
   active: boolean;
   onClick: () => void;
   ariaLabel?: string;
-  /** Render as a non-interactive placeholder. Used when a mark doesn't
-   *  apply to the current category (e.g. "Taste" / "Sample" on teaware)
-   *  so the 4-up row stays visually consistent across forms. */
-  disabled?: boolean;
-}> = ({ icon, label, active, onClick, ariaLabel, disabled }) => (
+}> = ({ icon, label, active, onClick, ariaLabel }) => (
   <button
     type="button"
     onClick={onClick}
-    disabled={disabled}
     aria-pressed={active}
-    aria-disabled={disabled}
     aria-label={ariaLabel || label}
-    className={`group relative flex flex-col items-center justify-center gap-0.5 min-h-[52px] px-1 py-1.5 rounded-md border text-ui-10 font-medium transition-all duration-200 ${
-      disabled
-        ? 'bg-tea-elevated/30 border-tea-border text-tea-text-dim cursor-not-allowed opacity-60'
-        : active
-          ? 'bg-tea-gold/10 border-tea-gold/40 text-tea-gold'
-          : 'bg-tea-elevated/60 border-tea-border text-tea-text-sec hover:text-tea-text hover:border-tea-gold/30'
+    className={`group relative flex flex-col items-center justify-center gap-1 min-h-[60px] px-1 py-2 rounded-md border text-ui-12 font-medium transition-all duration-200 ${
+      active
+        ? 'bg-tea-gold/10 border-tea-gold/40 text-tea-gold'
+        : 'bg-tea-elevated/60 border-tea-border text-tea-text-sec hover:text-tea-text hover:border-tea-gold/30'
     }`}
   >
     <span className="pointer-events-none">{icon}</span>
@@ -1341,41 +1333,19 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           hideMic
         />
 
-        {/* Mobile entry marks — same 4-up grid as the tea variant for
-            visual parity. Taste / Buy / Sample don't carry a teaware
-            workflow (no tasting session, no ml-based buy picker, no
-            sample cart), so they render as disabled placeholders. Want
-            is the only mark that maps cleanly. */}
+        {/* Teaware entry marks — only Want applies (Taste / Buy / Sample
+            are tea concepts: no brewing session, no ml-based buy picker,
+            no sample cart). Showing the irrelevant ones as disabled
+            placeholders just looks broken — render only what's actionable. */}
         {(() => {
           const isWantTeaware = entry.status === 'want';
           return (
-            <div className="lg:hidden grid grid-cols-4 gap-1.5">
+            <div className="lg:hidden">
               <EntryMark
-                icon={<Droplets size={13} strokeWidth={1.5} />}
-                label="Taste"
-                active={false}
-                onClick={() => {}}
-                disabled
-              />
-              <EntryMark
-                icon={isWantTeaware ? <BookmarkCheck size={13} /> : <BookmarkPlus size={13} />}
+                icon={isWantTeaware ? <BookmarkCheck size={18} /> : <BookmarkPlus size={18} />}
                 label={isWantTeaware ? 'Wanted' : 'Want'}
                 active={isWantTeaware}
                 onClick={() => update({ status: isWantTeaware ? 'noted' : 'want' })}
-              />
-              <EntryMark
-                icon={<ShoppingCart size={13} />}
-                label="Buy"
-                active={false}
-                onClick={() => {}}
-                disabled
-              />
-              <EntryMark
-                icon={<FlaskConical size={13} strokeWidth={1.5} />}
-                label="Sample"
-                active={false}
-                onClick={() => {}}
-                disabled
               />
             </div>
           );
@@ -1886,25 +1856,23 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
         </AnimatePresence>
       </div>
 
-      {/* Mobile entry marks + Done. The desktop right column has its own
-          sticky action bar, so these are mobile-only. Compact 4-up row —
-          smaller icon + label so the strip reads as a marker bar, not as
-          a feature panel. */}
+      {/* Mobile entry marks — primary action row, sized to read as a
+          first-class control surface (not a status chip strip). */}
       <div className="lg:hidden grid grid-cols-4 gap-1.5">
         <EntryMark
-          icon={<Droplets size={13} strokeWidth={1.5} />}
+          icon={<Droplets size={18} strokeWidth={1.5} />}
           label={hasTasting ? 'Tasted' : 'Taste'}
           active={!!hasTasting}
           onClick={openTastingOverlay}
         />
         <EntryMark
-          icon={isWant ? <BookmarkCheck size={13} /> : <BookmarkPlus size={13} />}
+          icon={isWant ? <BookmarkCheck size={18} /> : <BookmarkPlus size={18} />}
           label={isWant ? 'Wanted' : 'Want'}
           active={isWant}
           onClick={() => update({ status: isWant ? 'noted' : 'want' })}
         />
         <EntryMark
-          icon={<ShoppingCart size={13} />}
+          icon={<ShoppingCart size={18} />}
           label="Buy"
           active={showBuyPicker}
           onClick={() => {
@@ -1914,7 +1882,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
           }}
         />
         <EntryMark
-          icon={<FlaskConical size={13} strokeWidth={1.5} />}
+          icon={<FlaskConical size={18} strokeWidth={1.5} />}
           label={sampleCartHas ? 'Listed' : 'Sample'}
           active={sampleCartHas}
           onClick={() => {
