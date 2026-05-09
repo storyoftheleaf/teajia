@@ -141,6 +141,13 @@ interface AppState {
   upcomingEventsCount: number;
   setUpcomingEventsCount: (count: number) => void;
   cartLastAddedAt: number | null;
+
+  // Composer Slot — when set, BottomTabBar swaps its nav items for these
+  // action nodes, keeping the centered logo in place. Tapping the logo
+  // "peeks" the underlying nav so the user can navigate away. Composer
+  // screens register with `setComposerSlot` on mount and clear on unmount.
+  composerSlot: { left?: import('react').ReactNode; right?: import('react').ReactNode } | null;
+  setComposerSlot: (slot: { left?: import('react').ReactNode; right?: import('react').ReactNode } | null) => void;
 }
 
 // ── Members & Access selectors ────────────────────────────────────────────────
@@ -470,6 +477,10 @@ export const useAppStore = create<AppState>()(
       upcomingEventsCount: 0,
       setUpcomingEventsCount: (count) => set({ upcomingEventsCount: count }),
       cartLastAddedAt: null,
+
+      // Composer Slot (transient — never persisted)
+      composerSlot: null,
+      setComposerSlot: (slot) => set({ composerSlot: slot }),
     }),
     {
       name: 'teajia-storage',

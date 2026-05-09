@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useComposerSlot } from '../../hooks/useComposerSlot';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, BookmarkCheck, BookmarkPlus, Check, Droplets, FlaskConical, Mic, Square, Loader2, Share2, ShoppingCart, Layers, Plus, Search, X, ChevronDown, ChevronUp } from 'lucide-react';
@@ -69,6 +70,89 @@ const CompassRightEmptyState: React.FC<{
     </div>
   );
 };
+
+// ─── Composer action pills (rendered inside BottomTabBar via composerSlot) ───
+// The action bar used to live in its own fixed bar above the bottom nav. We now
+// route it through a single bar — these pills fill the left/right rails around
+// the centered teajiā logo. Tap the logo to peek the underlying nav back in.
+
+const ComposerActionPill: React.FC<{
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+  active?: boolean;
+  disabled?: boolean;
+  ariaLabel?: string;
+}> = ({ icon, label, onClick, active, disabled, ariaLabel }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    disabled={disabled}
+    className={`flex-1 min-w-0 flex flex-col items-center justify-center gap-0.5 py-1 text-ui-10 font-medium transition-colors tap-target disabled:opacity-30 ${
+      active ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
+    }`}
+    aria-label={ariaLabel || label}
+  >
+    <span className="pointer-events-none">{icon}</span>
+    <span className="leading-none pointer-events-none">{label}</span>
+  </button>
+);
+
+const ComposerMicAction: React.FC<{
+  state: 'idle' | 'recording' | 'transcribing' | 'error';
+  onPress: () => void;
+}> = ({ state, onPress }) => (
+  <motion.button
+    type="button"
+    onClick={onPress}
+    disabled={state === 'transcribing'}
+    className={`relative flex-1 min-w-0 flex flex-col items-center justify-center gap-0.5 py-1 text-ui-10 font-medium transition-colors tap-target overflow-hidden ${
+      state === 'recording'
+        ? 'text-tea-gold'
+        : state === 'transcribing'
+          ? 'text-tea-text-sec cursor-wait'
+          : 'text-tea-text-sec hover:text-tea-text'
+    }`}
+    aria-label={state === 'recording' ? 'Stop recording' : 'Record note'}
+  >
+    {state === 'recording' && (
+      <motion.span
+        className="absolute inset-0"
+        animate={{ opacity: [0.06, 0.12, 0.06] }}
+        transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+        style={{ background: 'var(--tea-gold)' }}
+      />
+    )}
+    <span className="relative flex flex-col items-center gap-0.5 leading-none pointer-events-none">
+      {state === 'recording' ? (
+        <Square size={14} fill="currentColor" />
+      ) : state === 'transcribing' ? (
+        <motion.span animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }} className="block">
+          <Loader2 size={14} />
+        </motion.span>
+      ) : (
+        <Mic size={14} />
+      )}
+      <span>Mic</span>
+    </span>
+  </motion.button>
+);
+
+const ComposerDoneAction: React.FC<{
+  onClick: () => void;
+  disabled?: boolean;
+}> = ({ onClick, disabled }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    disabled={disabled}
+    className="my-1.5 mr-1.5 ml-0.5 px-3 rounded-full bg-tea-gold text-tea-bg font-semibold text-ui-12 disabled:opacity-30 disabled:bg-transparent disabled:text-tea-text-sec disabled:border disabled:border-tea-border hover:bg-tea-gold-lt transition-all tap-target flex items-center justify-center whitespace-nowrap"
+    style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.08em' }}
+    aria-label="Done"
+  >
+    Done
+  </button>
+);
 
 // ─── Main Tea Compass ────────────────────────────────────────────────────
 
@@ -414,6 +498,128 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
     { id: 'buying', label: 'Ledger' },
   ];
 
+  // Composer slot — when sourcing, the BottomTabBar swaps its nav items for
+  // the action pills around the centered teajiā logo. Tap the logo to reveal
+  // the underlying nav and navigate elsewhere.
+  const composerSlot = useMemo(() => {
+    if (mode !== 'sourcing') return null;
+
+    const sampleHandler = () => {
+      if (!activeEntryId || !activeEntry) return;
+      if (captureEntryInCart) {
+        removeSampleCartItem(activeEntryId);
+      } else {
+        addSampleCartItem({
+          id: activeEntryId,
+          name: activeEntry.name,
+          chineseName: activeEntry.chineseName,
+          type: activeEntry.type,
+          vendorName: activeEntry.vendorName,
+          compassEntryId: activeEntryId,
+        });
+      }
+    };
+
+    const intentPills = showCaptureActionBar ? (
+      <>
+        <ComposerActionPill
+          icon={<Droplets size={14} strokeWidth={1.5} />}
+          label={hasTasting ? 'Re-Taste' : 'Taste'}
+          active={hasTasting}
+          onClick={() => captureCardActionsRef.current?.openTasting()}
+        />
+        <ComposerActionPill
+          icon={isWantEntry ? <BookmarkCheck size={14} /> : <BookmarkPlus size={14} />}
+          label={isWantEntry ? 'Wanted' : 'Want'}
+          active={isWantEntry}
+          onClick={() => activeEntryId && updateEntry(activeEntryId, { status: isWantEntry ? 'noted' : 'want' })}
+        />
+        <ComposerActionPill
+          icon={<ShoppingCart size={14} />}
+          label="Buy"
+          onClick={() => captureCardActionsRef.current?.toggleBuy()}
+        />
+        <ComposerActionPill
+          icon={<FlaskConical size={14} strokeWidth={1.5} />}
+          label={captureEntryInCart ? 'Listed' : 'Sample'}
+          active={captureEntryInCart}
+          onClick={sampleHandler}
+        />
+      </>
+    ) : null;
+
+    const showShare = hasToken() && !!activeEntryId;
+
+    // When intent pills fill the left rail, Mic/Batch shift to the right rail
+    // alongside Share/Done. Otherwise, Mic/Batch sit on the left.
+    const left = intentPills ?? (
+      <>
+        {isPlatformPrivileged && (
+          <ComposerMicAction state={voiceState} onPress={handleVoicePress} />
+        )}
+        <ComposerActionPill
+          icon={<Layers size={14} strokeWidth={1.5} />}
+          label="Batch"
+          active={batchMode}
+          onClick={() => setBatchMode((v) => !v)}
+        />
+      </>
+    );
+
+    const right = (
+      <>
+        {showCaptureActionBar && isPlatformPrivileged && (
+          <ComposerMicAction state={voiceState} onPress={handleVoicePress} />
+        )}
+        {showCaptureActionBar && (
+          <ComposerActionPill
+            icon={<Layers size={14} strokeWidth={1.5} />}
+            label="Batch"
+            active={batchMode}
+            onClick={() => setBatchMode((v) => !v)}
+          />
+        )}
+        {showShare && (
+          <ComposerActionPill
+            icon={<Share2 size={14} strokeWidth={1.5} />}
+            label="Share"
+            onClick={() => setShareModalOpen(true)}
+          />
+        )}
+        <ComposerDoneAction
+          disabled={!activeEntryId || captureOption === 'samples'}
+          onClick={() => {
+            if (!activeEntryId) return;
+            commitEntry(activeEntryId);
+            handleCommitEntry();
+          }}
+        />
+      </>
+    );
+
+    return { left, right };
+  }, [
+    mode,
+    showCaptureActionBar,
+    hasTasting,
+    isWantEntry,
+    activeEntryId,
+    activeEntry,
+    captureEntryInCart,
+    addSampleCartItem,
+    removeSampleCartItem,
+    updateEntry,
+    isPlatformPrivileged,
+    voiceState,
+    handleVoicePress,
+    batchMode,
+    captureOption,
+    commitEntry,
+    handleCommitEntry,
+  ]);
+
+  useComposerSlot(composerSlot);
+
   return (
     <div className="flex flex-col relative lg:h-full">
 
@@ -422,7 +628,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
         <button
           type="button"
           onClick={onBack}
-          className="flex items-center pl-3 pr-2 text-tea-text-dim hover:text-tea-text transition-colors shrink-0"
+          className="flex items-center pl-3 pr-2 tap-target text-tea-text-sec hover:text-tea-text transition-colors shrink-0"
           aria-label="Back"
         >
           <ArrowLeft size={16} strokeWidth={1.5} />
@@ -437,7 +643,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
               role="tab"
               aria-selected={active}
               className={`relative shrink-0 px-2.5 text-ui-11 font-semibold tracking-[0.08em] uppercase transition-colors ${
-                active ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'
+                active ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
               }`}
             >
               {tab.label}
@@ -496,7 +702,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                       ? 'Search by name, region, vendor…'
                       : 'Search transactions…'
                   }
-                  className="w-full bg-tea-surface border border-tea-border text-tea-text text-ui-13 rounded-lg pl-8 pr-8 py-2 outline-none placeholder:text-tea-text-dim focus:ring-1 focus:ring-tea-gold/40 transition-colors"
+                  className="w-full bg-tea-surface border border-tea-border text-tea-text text-ui-13 rounded-lg pl-8 pr-8 py-2 outline-none placeholder:text-tea-text-sec/70 focus:ring-1 focus:ring-tea-gold/40 transition-colors"
                 />
                 {tabSearchQuery && (
                   <button
@@ -523,10 +729,10 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                   className={`group relative flex items-center gap-1.5 whitespace-nowrap px-3 py-1 rounded-full text-ui-11 border transition-colors shrink-0 ${
                     entry.id === activeEntryId
                       ? 'bg-tea-gold/15 text-tea-gold border-tea-gold/40 font-semibold'
-                      : 'bg-transparent text-tea-text-dim border-tea-border hover:text-tea-text-sec'
+                      : 'bg-transparent text-tea-text-sec border-tea-border hover:text-tea-text'
                   }`}
                 >
-                  {entry.name || 'New entry'}
+                  {entry.name || 'Untitled'}
                   <span
                     role="button"
                     aria-label="Remove"
@@ -541,7 +747,8 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                 type="button"
                 onClick={() => handleNewCapture()}
                 aria-label="Start a new entry"
-                className="whitespace-nowrap inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-ui-11 text-tea-text-dim border border-tea-border hover:text-tea-text-sec hover:border-tea-gold/40 transition-colors shrink-0"
+                title="Start a new entry"
+                className="tap-target whitespace-nowrap inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-ui-11 text-tea-text-sec border border-tea-border hover:text-tea-text hover:border-tea-gold/40 transition-colors shrink-0"
               >
                 <Plus size={11} strokeWidth={2} />
                 New
@@ -854,171 +1061,22 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
           </div>
 
 
-          {/* Mobile action bar — fixed, single compact row */}
-          {mode === 'sourcing' && (
-            <div className="fixed left-0 right-0 z-20 bottom-[calc(52px+env(safe-area-inset-bottom,0px))]">
-              <AnimatePresence>
-                {voiceError && (
-                  <motion.p
-                    initial={{ opacity: 0, y: 4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 4 }}
-                    className="text-ui-11 text-red-400 text-center px-4 py-1.5 border-t border-tea-border bg-tea-bg"
-                  >
-                    {voiceError}
-                  </motion.p>
-                )}
-              </AnimatePresence>
-
-              <div
-                className="border-t border-tea-border bg-tea-surface flex items-stretch"
-                style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+          {/* Voice error toast — floats just above the merged BottomTabBar.
+              The action bar itself was merged into BottomTabBar (see
+              composerSlot above) so we no longer stack two fixed bars. */}
+          <AnimatePresence>
+            {mode === 'sourcing' && voiceError && (
+              <motion.p
+                key="voice-error"
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 4 }}
+                className="lg:hidden fixed left-0 right-0 z-20 bottom-nav text-ui-11 text-red-400 text-center px-4 py-1.5 border-t border-tea-border bg-tea-bg"
               >
-                {/* Taste */}
-                {showCaptureActionBar && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => captureCardActionsRef.current?.openTasting()}
-                      className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-10 font-medium transition-colors ${
-                        hasTasting ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'
-                      }`}
-                    >
-                      <Droplets size={14} strokeWidth={1.5} />
-                      {hasTasting ? 'Re-Taste' : 'Taste'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => activeEntryId && updateEntry(activeEntryId, { status: isWantEntry ? 'noted' : 'want' })}
-                      className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-10 font-medium transition-colors ${
-                        isWantEntry ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'
-                      }`}
-                    >
-                      {isWantEntry ? <BookmarkCheck size={14} /> : <BookmarkPlus size={14} />}
-                      {isWantEntry ? 'Wanted' : 'Want'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => captureCardActionsRef.current?.toggleBuy()}
-                      className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-10 font-medium text-tea-text-dim hover:text-tea-text-sec transition-colors"
-                    >
-                      <ShoppingCart size={14} />
-                      Buy
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (!activeEntryId || !activeEntry) return;
-                        if (captureEntryInCart) {
-                          removeSampleCartItem(activeEntryId);
-                        } else {
-                          addSampleCartItem({
-                            id: activeEntryId,
-                            name: activeEntry.name,
-                            chineseName: activeEntry.chineseName,
-                            type: activeEntry.type,
-                            vendorName: activeEntry.vendorName,
-                            compassEntryId: activeEntryId,
-                          });
-                        }
-                      }}
-                      className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-10 font-medium transition-colors ${
-                        captureEntryInCart ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'
-                      }`}
-                    >
-                      <FlaskConical size={14} strokeWidth={1.5} />
-                      {captureEntryInCart ? 'Listed' : 'Sample'}
-                    </button>
-                    <div className="w-px self-stretch my-1.5 bg-tea-border" />
-                  </>
-                )}
-
-                {/* Mic */}
-                {isPlatformPrivileged && (
-                  <>
-                    <motion.button
-                      type="button"
-                      onClick={handleVoicePress}
-                      disabled={voiceState === 'transcribing'}
-                      className={`relative flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-10 font-medium transition-colors ${
-                        voiceState === 'recording'
-                          ? 'text-tea-gold'
-                          : voiceState === 'transcribing'
-                            ? 'text-tea-text-dim cursor-wait'
-                            : 'text-tea-text-dim hover:text-tea-text-sec'
-                      }`}
-                      aria-label={voiceState === 'recording' ? 'Stop recording' : 'Record note'}
-                    >
-                      {voiceState === 'recording' && (
-                        <motion.span
-                          className="absolute inset-0"
-                          animate={{ opacity: [0.06, 0.12, 0.06] }}
-                          transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
-                          style={{ background: 'var(--tea-gold)' }}
-                        />
-                      )}
-                      <span className="relative flex flex-col items-center gap-0.5">
-                        {voiceState === 'recording' ? (
-                          <Square size={14} fill="currentColor" />
-                        ) : voiceState === 'transcribing' ? (
-                          <motion.span animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }} className="block">
-                            <Loader2 size={14} />
-                          </motion.span>
-                        ) : (
-                          <Mic size={14} />
-                        )}
-                        Mic
-                      </span>
-                    </motion.button>
-                  </>
-                )}
-
-                {/* Batch */}
-                <button
-                  type="button"
-                  onClick={() => setBatchMode((v) => !v)}
-                  className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-10 font-medium transition-colors ${
-                    batchMode ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'
-                  }`}
-                  aria-label="Batch entry"
-                >
-                  <Layers size={14} strokeWidth={1.5} />
-                  Batch
-                </button>
-
-                {/* Share */}
-                {hasToken() && activeEntryId && (
-                  <button
-                    type="button"
-                    onClick={() => setShareModalOpen(true)}
-                    className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-10 font-medium text-tea-text-dim hover:text-tea-text-sec transition-colors"
-                    aria-label="Share"
-                  >
-                    <Share2 size={14} strokeWidth={1.5} />
-                    Share
-                  </button>
-                )}
-
-                <div className="w-px self-stretch my-1.5 bg-tea-border" />
-
-                {/* Done */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (!activeEntryId) return;
-                    commitEntry(activeEntryId);
-                    handleCommitEntry();
-                  }}
-                  disabled={!activeEntryId || captureOption === 'samples'}
-                  className="flex-[1.4] flex items-center justify-center py-2.5 text-tea-gold font-bold text-ui-13 disabled:opacity-30 transition-opacity"
-                  style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.1em' }}
-                  aria-label="Done"
-                >
-                  Done
-                </button>
-              </div>
-            </div>
-          )}
+                {voiceError}
+              </motion.p>
+            )}
+          </AnimatePresence>
 
         </div>
         {/* END MOBILE */}
@@ -1044,7 +1102,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                     : mode === 'tasting' ? 'Search by name, region, vendor…'
                     : 'Search transactions…'
                   }
-                  className="w-full bg-tea-surface border border-tea-border text-tea-text text-ui-13 rounded-lg pl-8 pr-8 py-2 outline-none placeholder:text-tea-text-dim focus:ring-1 focus:ring-tea-gold/40 transition-colors"
+                  className="w-full bg-tea-surface border border-tea-border text-tea-text text-ui-13 rounded-lg pl-8 pr-8 py-2 outline-none placeholder:text-tea-text-sec/70 focus:ring-1 focus:ring-tea-gold/40 transition-colors"
                 />
                 {tabSearchQuery && (
                   <button
@@ -1144,7 +1202,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                       <button
                         type="button"
                         onClick={() => handleNewCapture()}
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-md border border-dashed border-tea-border text-tea-text-dim hover:text-tea-text-sec hover:border-tea-gold/40 text-ui-12 transition-colors"
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-md border border-dashed border-tea-border text-tea-text-sec hover:text-tea-text hover:border-tea-gold/40 text-ui-12 transition-colors"
                       >
                         <Plus size={12} />
                         New Entry

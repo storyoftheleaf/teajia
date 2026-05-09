@@ -187,7 +187,7 @@ export const CompassShareModal: React.FC<CompassShareModalProps> = ({
                         }
                       }}
                       placeholder="account-slug"
-                      className="flex-1 bg-tea-surface text-tea-text text-sm rounded-md px-3 py-2.5 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 transition-colors placeholder:text-tea-text-dim font-mono"
+                      className="flex-1 bg-tea-surface text-tea-text text-sm rounded-md px-3 py-2.5 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 transition-colors placeholder:text-tea-text-sec/70 font-mono"
                     />
                     <button
                       type="button"

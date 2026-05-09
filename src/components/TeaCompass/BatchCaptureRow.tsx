@@ -59,7 +59,7 @@ export const BatchCaptureRow: React.FC<BatchCaptureRowProps> = ({ onAdded }) => 
           onChange={(e) => setName(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Quick add tea name…"
-          className="flex-1 min-w-0 bg-tea-surface/60 text-tea-text text-ui-13 rounded-lg px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none placeholder:text-tea-text-dim"
+          className="flex-1 min-w-0 bg-tea-surface/60 text-tea-text text-ui-13 rounded-lg px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none placeholder:text-tea-text-sec/70"
         />
 
         {/* Type picker */}

@@ -678,7 +678,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             value={entry.name}
             onChange={(e) => updateEntry(entryId, { name: e.target.value })}
             placeholder="What are you tasting?"
-            className="flex-1 min-w-0 bg-tea-gold/[0.06] text-tea-text text-base rounded-xl px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none placeholder:text-tea-text-dim"
+            className="flex-1 min-w-0 bg-tea-gold/[0.06] text-tea-text text-base rounded-xl px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none placeholder:text-tea-text-sec/70"
           />
           {entry.type && chipStyle && (
             <span
@@ -898,7 +898,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
     const materialChipLabel = isYixing ? 'Yixing' : (entry.material || 'Material');
 
     return (
-      <div className="bg-tea-surface rounded-2xl px-4 py-4 space-y-3">
+      <div className="bg-tea-surface border border-tea-border rounded-2xl px-4 py-4 space-y-5">
 
         {/* Row 1 — Vendor (full width, gives it room to breathe) */}
         <VendorStrip
@@ -938,7 +938,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
               ? `${entry.teawareCategory} name (e.g., Shipiao, Shuiping…)`
               : 'Name — pick a Category below for hints'
           }
-          className="w-full bg-tea-gold/[0.06] text-tea-text text-base rounded-xl px-3 py-2.5 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder:text-tea-text-dim"
+          className="w-full bg-tea-gold/[0.06] text-tea-text text-base rounded-xl px-3 py-2.5 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder:text-tea-text-sec/70"
         />
 
         {/* Row 4 — Category + Era + Material + Origin. flex-wrap so long labels
@@ -1008,15 +1008,15 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
               </button>
             )}
 
-            {/* Origin — flex-1 so it fills the remaining row, but min-w-[140px]
-                so it doesn't get crushed when the chip line is full. When the
-                chip line wraps, Origin lands on its own line at full width. */}
+            {/* Origin — full width on mobile (wraps to its own line below the
+                chips), flex-1 on desktop. The mobile wrap is enforced by basis-full
+                so Origin can never get clipped at the right edge of the card. */}
             <AutocompleteInput
               value={entry.originRegion || ''}
               onChange={(val) => update({ originRegion: val || undefined })}
               suggestions={availableRegions}
               placeholder="Origin"
-              className="flex-1 min-w-[140px] bg-tea-gold/[0.06] text-tea-text text-base rounded-xl px-3 py-2.5 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder:text-tea-text-dim"
+              className="w-full lg:w-auto lg:flex-1 lg:min-w-[140px] bg-tea-gold/[0.06] text-tea-text text-base rounded-xl px-3 py-2.5 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder:text-tea-text-sec/70"
             />
           </div>
 
@@ -1111,7 +1111,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                           if (e.key === 'Escape') { setEraInputOpen(false); setEraInputValue(''); }
                         }}
                         placeholder="e.g. Song Dynasty"
-                        className="flex-1 min-w-0 bg-tea-bg text-tea-text text-sm rounded-md px-2 py-1.5 border border-tea-border focus:border-tea-gold/40 outline-none placeholder:text-tea-text-dim"
+                        className="flex-1 min-w-0 bg-tea-bg text-tea-text text-sm rounded-md px-2 py-1.5 border border-tea-border focus:border-tea-gold/40 outline-none placeholder:text-tea-text-sec/70"
                       />
                       <button
                         type="button"
@@ -1206,14 +1206,17 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
 
         <div className="border-t border-tea-border" />
 
-        {/* Row 5 — Price + ml */}
+        {/* Row 5 — Price + ml. Both currency and "ml" are persistent affixes
+            inside their input shells, separated from the editable area by a
+            hairline so the unit always reads as part of the field. */}
         <div className="flex items-center gap-2">
-          <div className="flex-1 min-w-0 flex items-center bg-tea-gold/[0.06] rounded-xl border border-tea-border focus-within:border-tea-gold/40 transition-colors">
+          <div className="flex-1 min-w-0 flex items-stretch bg-tea-gold/[0.06] rounded-xl border border-tea-border focus-within:border-tea-gold/40 transition-colors">
             <select
               value={entry.priceCurrency || 'NT'}
               onChange={(e) => handleCurrencyChange(e.target.value as Currency)}
-              className="bg-transparent text-tea-text-sec text-xs tabular-nums font-medium border-none outline-none cursor-pointer appearance-none shrink-0 pl-3 pr-1"
+              className="self-stretch bg-transparent text-tea-text-sec text-xs tabular-nums font-medium border-none border-r border-r-tea-border outline-none cursor-pointer appearance-none shrink-0 pl-3 pr-1"
               style={{ backgroundImage: 'none' }}
+              aria-label="Currency"
             >
               {CURRENCIES.map((c) => (
                 <option key={c.value} value={c.value}>{c.label}</option>
@@ -1228,44 +1231,59 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                 const val = e.target.value;
                 update({ priceAmount: val === '' ? undefined : Number(val) });
               }}
-              className="flex-1 min-w-0 bg-transparent text-tea-text px-2 py-2.5 outline-none text-base tabular-nums placeholder:text-tea-text-dim [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+              className="flex-1 min-w-0 bg-transparent text-tea-text px-2 py-2.5 outline-none text-base tabular-nums placeholder:text-tea-text-sec/70 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
               style={{ MozAppearance: 'textfield' } as React.CSSProperties}
+              aria-label="Price"
             />
           </div>
-          <input
-            type="number"
-            inputMode="numeric"
-            placeholder="ml"
-            value={entry.capacityMl ?? ''}
-            onChange={(e) => {
-              const val = e.target.value;
-              update({ capacityMl: val === '' ? undefined : Number(val) });
-            }}
-            className="w-20 shrink-0 bg-tea-gold/[0.06] text-tea-text rounded-xl px-3 py-2.5 border border-tea-border focus:border-tea-gold/40 outline-none text-base tabular-nums text-right placeholder:text-tea-text-dim [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-            style={{ MozAppearance: 'textfield' } as React.CSSProperties}
-          />
+          <div className="w-24 shrink-0 flex items-stretch bg-tea-gold/[0.06] rounded-xl border border-tea-border focus-within:border-tea-gold/40 transition-colors">
+            <input
+              type="number"
+              inputMode="numeric"
+              placeholder="Volume"
+              value={entry.capacityMl ?? ''}
+              onChange={(e) => {
+                const val = e.target.value;
+                update({ capacityMl: val === '' ? undefined : Number(val) });
+              }}
+              className="flex-1 min-w-0 bg-transparent text-tea-text pl-3 pr-2 py-2.5 outline-none text-base tabular-nums text-right placeholder:text-tea-text-sec/70 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+              style={{ MozAppearance: 'textfield' } as React.CSSProperties}
+              aria-label="Volume in millilitres"
+            />
+            <span
+              className="self-stretch flex items-center pl-2 pr-3 text-tea-text-sec text-xs tabular-nums font-medium border-l border-tea-border pointer-events-none select-none"
+              aria-hidden
+            >
+              ml
+            </span>
+          </div>
         </div>
 
-        {/* Row 6 — Qty stepper */}
-        <div className="flex items-center gap-1.5">
-          <button
-            type="button"
-            onClick={() => update({ quantity: Math.max(1, (entry.quantity || 1) - 1) })}
-            className="w-8 h-8 flex items-center justify-center rounded-lg bg-tea-elevated border border-tea-border text-tea-text-sec hover:text-tea-text transition-colors tap-target"
-          >
-            <Minus size={13} />
-          </button>
-          <span className="text-tea-text text-sm font-medium tabular-nums min-w-[2ch] text-center">
-            {entry.quantity || 1}
-          </span>
-          <button
-            type="button"
-            onClick={() => update({ quantity: (entry.quantity || 1) + 1 })}
-            className="w-8 h-8 flex items-center justify-center rounded-lg bg-tea-elevated border border-tea-border text-tea-text-sec hover:text-tea-text transition-colors tap-target"
-          >
-            <Plus size={13} />
-          </button>
-          <span className="text-ui-11 text-tea-text-dim ml-1">qty</span>
+        {/* Row 6 — Quantity. Label sits above the stepper so it reads as a
+            field label, not a unit suffix. */}
+        <div className="flex flex-col gap-1.5">
+          <span className="text-ui-10 uppercase tracking-[0.12em] text-tea-text-sec font-medium">Quantity</span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => update({ quantity: Math.max(1, (entry.quantity || 1) - 1) })}
+              className="w-8 h-8 flex items-center justify-center rounded-lg bg-tea-elevated border border-tea-border text-tea-text-sec hover:text-tea-text transition-colors tap-target"
+              aria-label="Decrease quantity"
+            >
+              <Minus size={13} />
+            </button>
+            <span className="text-tea-text text-base font-semibold tabular-nums min-w-[2ch] text-center" aria-live="polite">
+              {entry.quantity || 1}
+            </span>
+            <button
+              type="button"
+              onClick={() => update({ quantity: (entry.quantity || 1) + 1 })}
+              className="w-8 h-8 flex items-center justify-center rounded-lg bg-tea-elevated border border-tea-border text-tea-text-sec hover:text-tea-text transition-colors tap-target"
+              aria-label="Increase quantity"
+            >
+              <Plus size={13} />
+            </button>
+          </div>
         </div>
 
         <div className="border-t border-tea-border" />
@@ -1379,7 +1397,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
             onChange={(val) => update({ name: val })}
             suggestions={allNameSuggestions}
             placeholder="What are you tasting?"
-            className="w-full bg-tea-gold/[0.06] text-tea-text text-base rounded-xl px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors min-w-0 placeholder:text-tea-text-dim"
+            className="w-full bg-tea-gold/[0.06] text-tea-text text-base rounded-xl px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors min-w-0 placeholder:text-tea-text-sec/70"
             onSelect={handleNameAutocompleteSelect}
             itemData={{ ...varietyNameMap, ...productNameMap }}
             hintSuggestions={hintSuggestions}
@@ -1456,7 +1474,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
               const val = e.target.value;
               update({ year: val === '' ? undefined : Number(val) });
             }}
-            className="w-20 shrink-0 bg-tea-gold/[0.06] text-tea-text text-base rounded-xl px-2 py-2 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors tabular-nums text-center placeholder:text-tea-text-dim
+            className="w-20 shrink-0 bg-tea-gold/[0.06] text-tea-text text-base rounded-xl px-2 py-2 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors tabular-nums text-center placeholder:text-tea-text-sec/70
                        [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
             style={{ MozAppearance: 'textfield' } as React.CSSProperties}
           />
@@ -1465,7 +1483,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
             onChange={(val) => { userTapped.current.add('region'); update({ originRegion: val || undefined }); }}
             suggestions={availableRegions}
             placeholder="Region"
-            className="w-full bg-tea-gold/[0.06] text-tea-text text-base rounded-xl px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder:text-tea-text-dim"
+            className="w-full bg-tea-gold/[0.06] text-tea-text text-base rounded-xl px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder:text-tea-text-sec/70"
           />
         </div>
 

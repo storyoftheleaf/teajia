@@ -75,15 +75,18 @@ export const PriceGrams: React.FC<PriceGramsProps> = ({
 
   return (
     <div className="space-y-2">
-      {/* Price + Grams — one line */}
+      {/* Price + Grams — one line. Currency is a persistent prefix
+          separated from the price by a hairline so the unit reads as
+          part of the input rather than a floating selector. */}
       <div className="flex items-center gap-1">
         {/* Currency + cost — unified inset container */}
-        <div className="flex-1 min-w-0 flex items-center bg-tea-gold/[0.06] rounded-xl border border-tea-border focus-within:border-tea-gold/40 transition-colors">
+        <div className="flex-1 min-w-0 flex items-stretch bg-tea-gold/[0.06] rounded-xl border border-tea-border focus-within:border-tea-gold/40 transition-colors">
           <select
             value={priceCurrency}
             onChange={(e) => onCurrencyChange(e.target.value as Currency)}
-            className="bg-transparent text-tea-text-sec text-xs tabular-nums font-medium border-none outline-none cursor-pointer appearance-none shrink-0 pl-3 pr-1"
+            className="self-stretch bg-transparent text-tea-text-sec text-xs tabular-nums font-medium border-none border-r border-r-tea-border outline-none cursor-pointer appearance-none shrink-0 pl-3 pr-1"
             style={{ backgroundImage: 'none' }}
+            aria-label="Currency"
           >
             {Object.entries(CURRENCY_LABELS).filter(([k]) => k !== 'UNK').map(([value, label]) => (
               <option key={value} value={value}>{label}</option>
@@ -96,7 +99,7 @@ export const PriceGrams: React.FC<PriceGramsProps> = ({
             value={priceAmount ?? ''}
             onChange={handlePriceInput}
             style={noSpinnerStyle}
-            className="flex-1 min-w-0 bg-transparent text-tea-text px-2 py-2 outline-none text-base tabular-nums placeholder:text-tea-text-dim [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+            className="flex-1 min-w-0 bg-transparent text-tea-text px-2 py-2 outline-none text-base tabular-nums placeholder:text-tea-text-sec/70 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
           />
         </div>
 
@@ -109,7 +112,7 @@ export const PriceGrams: React.FC<PriceGramsProps> = ({
           onChange={handleGramsInput}
           style={noSpinnerStyle}
           className="w-20 shrink-0 bg-tea-gold/[0.06] text-tea-text rounded-xl px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors text-base tabular-nums text-right
-                     placeholder:text-tea-text-dim [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                     placeholder:text-tea-text-sec/70 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
         />
       </div>
 

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { LogoText } from './Logos';
 import { Section } from '../types';
@@ -37,8 +37,17 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
   // using one authoritative source to avoid split-brain if prop is ever stale.
   const isOnAdmin = location.pathname.startsWith('/admin');
 
-  const { activeAccount, upcomingEventsCount } = useAppStore();
+  const { activeAccount, upcomingEventsCount, composerSlot } = useAppStore();
   const auth = useAuth();
+
+  // "Peek" mode lets the user tap the centered logo while a composer is
+  // active to temporarily reveal the underlying nav so they can navigate
+  // away. Auto-resets whenever the composer slot transitions in/out.
+  const [peeking, setPeeking] = useState(false);
+  const composerActive = !!composerSlot && !peeking;
+  useEffect(() => {
+    setPeeking(false);
+  }, [composerSlot]);
   const isAdmin = auth.isAdmin;
   const isStaff = auth.user?.role === 'staff' || auth.user?.role === 'admin' || auth.user?.role === 'owner';
   const locationAbbr = activeAccount?.location_country?.slice(0, 2).toUpperCase()
@@ -115,6 +124,14 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
       }
     },
     onClick: () => {
+      // While a composer is active, the logo toggles peek mode instead of
+      // navigating — first tap reveals the nav, second tap returns to the
+      // composer. Once peeking, nav buttons are tappable as normal.
+      if (composerSlot) {
+        if ('vibrate' in navigator) { navigator.vibrate?.(8); }
+        setPeeking((p) => !p);
+        return;
+      }
       if (isOnAdmin) {
         onAccountClick?.();
         return;
@@ -194,68 +211,105 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
       >
         <div className="flex w-full px-0 h-full">
 
-          {/* Far left — Search icon (fixed narrow slot) */}
-          <button
-            onClick={onSearchClick}
-            className="w-8 flex-shrink-0 h-full flex items-center justify-center group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none"
-            style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', touchAction: 'manipulation' }}
-            title="Search"
-            aria-label="Search"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              className="w-[15px] h-[15px] transition-colors duration-200 text-tea-text-sec group-hover:text-tea-text pointer-events-none"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2}
-              strokeLinecap="round"
-              strokeLinejoin="round"
+          {/* LEFT RAIL — nav (search + left sections) crossfades with composer.left.
+              Both layers occupy the same absolute box; the inactive one is opacity 0
+              with pointer-events disabled so the active one captures touches. */}
+          <div className="relative flex items-stretch min-w-0" style={{ flex: '2 1 0%' }}>
+            <div
+              aria-hidden={composerActive}
+              className={`absolute inset-0 flex items-stretch min-w-0 transition-opacity duration-[180ms] ease-out ${
+                composerActive ? 'opacity-0 pointer-events-none' : 'opacity-100'
+              }`}
             >
-              <circle cx="11" cy="11" r="7" />
-              <line x1="16.5" y1="16.5" x2="22" y2="22" />
-            </svg>
-          </button>
+              {/* Far left — Search icon (fixed narrow slot) */}
+              <button
+                onClick={onSearchClick}
+                className="w-8 flex-shrink-0 h-full flex items-center justify-center group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none"
+                style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', touchAction: 'manipulation' }}
+                title="Search"
+                aria-label="Search"
+                tabIndex={composerActive ? -1 : 0}
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  className="w-[15px] h-[15px] transition-colors duration-200 text-tea-text-sec group-hover:text-tea-text pointer-events-none"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="11" cy="11" r="7" />
+                  <line x1="16.5" y1="16.5" x2="22" y2="22" />
+                </svg>
+              </button>
 
-          {/* Left sections */}
-          {isAdminRoute ? (
-            adminLeftTabs.map((tab, index) => (
-              <React.Fragment key={tab.id}>
-                <div className="w-px h-4 bg-tea-border self-center flex-shrink-0" />
-                {renderAdminTabButton(tab, index)}
-              </React.Fragment>
-            ))
-          ) : (
-            leftSections.map((section, index) => (
-              <React.Fragment key={section.id}>
-                <div className="w-px h-4 bg-tea-border self-center flex-shrink-0" />
-                {renderTabButton(section, index)}
-              </React.Fragment>
-            ))
-          )}
+              {/* Left sections */}
+              {isAdminRoute ? (
+                adminLeftTabs.map((tab, index) => (
+                  <React.Fragment key={tab.id}>
+                    <div className="w-px h-4 bg-tea-border self-center flex-shrink-0" />
+                    {renderAdminTabButton(tab, index)}
+                  </React.Fragment>
+                ))
+              ) : (
+                leftSections.map((section, index) => (
+                  <React.Fragment key={section.id}>
+                    <div className="w-px h-4 bg-tea-border self-center flex-shrink-0" />
+                    {renderTabButton(section, index)}
+                  </React.Fragment>
+                ))
+              )}
+            </div>
+
+            <div
+              aria-hidden={!composerActive}
+              className={`absolute inset-0 flex items-stretch justify-end min-w-0 transition-opacity duration-[180ms] ease-out ${
+                composerActive ? 'opacity-100' : 'opacity-0 pointer-events-none'
+              }`}
+            >
+              {composerSlot?.left}
+            </div>
+          </div>
 
           <div className="w-px h-4 bg-tea-border self-center flex-shrink-0" />
 
-          {/* Center - HOME / ADMIN HOME */}
+          {/* Center — HOME / ADMIN HOME / composer-peek toggle.
+              Always mounted; never moves. Tap behavior changes based on
+              whether a composer slot is registered. */}
           <motion.button
             {...centerLongPress}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: leftSections.length * 0.05, duration: 0.25, ease: 'easeOut' }}
-            className="flex-1 w-full h-full flex items-center justify-center relative transition-all duration-300 select-none"
+            className="h-full flex items-center justify-center relative transition-all duration-300 select-none"
             style={{
+              flex: '1 1 0%',
               WebkitTouchCallout: 'none',
               WebkitUserSelect: 'none',
               touchAction: 'manipulation',
             }}
-            title={isAdminRoute ? 'Admin Home · Long press to go to storefront' : 'Home · Long press for admin'}
-            aria-label={isAdminRoute ? 'Admin home, long press to go to storefront' : 'Return to home, long press to open launchpad'}
+            title={
+              composerSlot
+                ? (peeking ? 'Tap to return to your work' : 'Tap to reveal navigation')
+                : (isAdminRoute ? 'Admin Home · Long press to go to storefront' : 'Home · Long press for admin')
+            }
+            aria-label={
+              composerSlot
+                ? (peeking ? 'Return to composer' : 'Reveal navigation')
+                : (isAdminRoute ? 'Admin home, long press to go to storefront' : 'Return to home, long press to open launchpad')
+            }
           >
             <span style={{ display: 'inline-block', transform: 'scale(0.89)', transformOrigin: 'center', lineHeight: 0 }}>
               <LogoText
                 size="sm"
-                color={isAdminRoute
-                  ? 'var(--tea-text-sec)'
-                  : (activeSection === 'HOME' ? 'var(--tea-gold)' : 'var(--tea-text-sec)')}
+                color={
+                  composerSlot
+                    ? 'var(--tea-gold)'
+                    : isAdminRoute
+                      ? 'var(--tea-text-sec)'
+                      : (activeSection === 'HOME' ? 'var(--tea-gold)' : 'var(--tea-text-sec)')
+                }
                 className="transition-all duration-300 pointer-events-none"
               />
             </span>
@@ -263,50 +317,70 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
 
           <div className="w-px h-4 bg-tea-border self-center flex-shrink-0" />
 
-          {/* Right sections */}
-          {isAdminRoute ? (
-            adminRightTabs.map((tab, index) => (
-              <React.Fragment key={tab.id}>
-                {renderAdminTabButton(tab, index + adminLeftTabs.length + 1)}
-                <div className="w-px h-4 bg-tea-border self-center flex-shrink-0" />
-              </React.Fragment>
-            ))
-          ) : (
-            rightSections.map((section, index) => (
-              <React.Fragment key={section.id}>
-                {renderTabButton(section, index + leftSections.length + 1)}
-                <div className="w-px h-4 bg-tea-border self-center flex-shrink-0" />
-              </React.Fragment>
-            ))
-          )}
-
-          {/* Far right — Account panel */}
-          <button
-            onClick={() => {
-              if ('vibrate' in navigator) { navigator.vibrate?.(10); }
-              onAccountClick?.();
-            }}
-            className="w-8 flex-shrink-0 h-full flex flex-col items-center justify-center gap-px group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none relative"
-            style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', touchAction: 'manipulation' }}
-            title="Your Table"
-            aria-label="Your Table"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              className="w-[13px] h-[13px] transition-colors duration-200 text-tea-text-sec group-hover:text-tea-text pointer-events-none"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2}
-              strokeLinecap="round"
-              strokeLinejoin="round"
+          {/* RIGHT RAIL — nav (right sections + account) crossfades with composer.right. */}
+          <div className="relative flex items-stretch min-w-0" style={{ flex: '2 1 0%' }}>
+            <div
+              aria-hidden={composerActive}
+              className={`absolute inset-0 flex items-stretch min-w-0 transition-opacity duration-[180ms] ease-out ${
+                composerActive ? 'opacity-0 pointer-events-none' : 'opacity-100'
+              }`}
             >
-              <circle cx="12" cy="8" r="4" />
-              <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
-            </svg>
-            {upcomingEventsCount > 0 && (
-              <span className="absolute top-1.5 right-1 w-1.5 h-1.5 rounded-full bg-tea-gold pointer-events-none" />
-            )}
-          </button>
+              {/* Right sections */}
+              {isAdminRoute ? (
+                adminRightTabs.map((tab, index) => (
+                  <React.Fragment key={tab.id}>
+                    {renderAdminTabButton(tab, index + adminLeftTabs.length + 1)}
+                    <div className="w-px h-4 bg-tea-border self-center flex-shrink-0" />
+                  </React.Fragment>
+                ))
+              ) : (
+                rightSections.map((section, index) => (
+                  <React.Fragment key={section.id}>
+                    {renderTabButton(section, index + leftSections.length + 1)}
+                    <div className="w-px h-4 bg-tea-border self-center flex-shrink-0" />
+                  </React.Fragment>
+                ))
+              )}
+
+              {/* Far right — Account panel */}
+              <button
+                onClick={() => {
+                  if ('vibrate' in navigator) { navigator.vibrate?.(10); }
+                  onAccountClick?.();
+                }}
+                className="w-8 flex-shrink-0 h-full flex flex-col items-center justify-center gap-px group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none select-none relative"
+                style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', touchAction: 'manipulation' }}
+                title="Your Table"
+                aria-label="Your Table"
+                tabIndex={composerActive ? -1 : 0}
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  className="w-[13px] h-[13px] transition-colors duration-200 text-tea-text-sec group-hover:text-tea-text pointer-events-none"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="12" cy="8" r="4" />
+                  <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+                </svg>
+                {upcomingEventsCount > 0 && (
+                  <span className="absolute top-1.5 right-1 w-1.5 h-1.5 rounded-full bg-tea-gold pointer-events-none" />
+                )}
+              </button>
+            </div>
+
+            <div
+              aria-hidden={!composerActive}
+              className={`absolute inset-0 flex items-stretch justify-start min-w-0 transition-opacity duration-[180ms] ease-out ${
+                composerActive ? 'opacity-100' : 'opacity-0 pointer-events-none'
+              }`}
+            >
+              {composerSlot?.right}
+            </div>
+          </div>
 
         </div>
       </nav>

@@ -569,10 +569,10 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
           <button
             type="button"
             onClick={openScanner}
-            className={`${btnCls} flex items-center justify-center border shrink-0 transition-colors ${
+            className={`${btnCls} ${isLg ? '' : 'tap-target'} flex items-center justify-center border shrink-0 transition-colors ${
               justExtracted
                 ? 'border-tea-gold/40 text-tea-gold bg-tea-gold/10'
-                : 'border-tea-border bg-tea-elevated text-tea-text-dim hover:text-tea-gold hover:border-tea-gold/40'
+                : 'border-tea-border bg-tea-elevated text-tea-text-sec hover:text-tea-gold hover:border-tea-gold/40'
             }`}
             aria-label="Scan label"
             title="Scan label"
@@ -584,7 +584,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className={`${btnCls} flex items-center justify-center bg-tea-elevated border border-tea-border text-tea-text-dim hover:text-tea-text hover:border-tea-gold/40 shrink-0 transition-colors`}
+            className={`${btnCls} ${isLg ? '' : 'tap-target'} flex items-center justify-center bg-tea-elevated border border-tea-border text-tea-text-sec hover:text-tea-text hover:border-tea-gold/40 shrink-0 transition-colors`}
             aria-label="Add photo"
             title="Add photo"
           >
