@@ -1,9 +1,11 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Camera, Check, ChevronLeft, ChevronRight, RefreshCw, Sparkles, X } from 'lucide-react';
+import { Camera, Check, ChevronLeft, ChevronRight, Edit3, Maximize2, RefreshCw, Sparkles, Trash2, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../../lib/api';
 import { compressImage } from '../../lib/imageCompressor';
+import { SquareCropModal } from '../shared/SquareCropModal';
+import { BottomSheet, SheetOption } from '../shared/BottomSheet';
 
 export interface ExtractedTeaData {
   name?: string;
@@ -86,6 +88,13 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
 
   const [pendingPreviews, setPendingPreviews] = useState<PendingPreview[]>([]);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  // Index of the photo whose action menu (Enlarge / Edit / Delete) is open.
+  // Mutually exclusive across photos so only one menu shows at a time.
+  const [menuPhotoIndex, setMenuPhotoIndex] = useState<number | null>(null);
+  // URL of the photo currently open in the SquareCropModal — when set, the
+  // editor swaps the user's crop back via api.uploadImage + onPhotoReplaced.
+  const [editingPhotoUrl, setEditingPhotoUrl] = useState<string | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
   const [justExtracted, setJustExtracted] = useState(false);
 
   const [scannerOpen, setScannerOpen] = useState(false);
@@ -221,7 +230,11 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
     setPendingPreviews((prev) => [...prev, { localUrl, uploading: true, failed: false }]);
 
     try {
-      const compressed = await compressImage(file);
+      // Initial capture stays large — 1600px / quality 0.7 — so the in-app
+      // editor has plenty of pixels to work with for crop, rotation and
+      // future adjustments. Once the user commits an edit the editor saves
+      // back at 800px square, but we want the unedited source generous.
+      const compressed = await compressImage(file, 1600, 0.7);
       const compressedFile = new File([compressed], 'photo.jpg', { type: 'image/jpeg' });
       const imageUrl = await api.uploadImage(compressedFile).catch(() => null);
 
@@ -518,26 +531,74 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
 
       <div className={`flex items-center ${stripGap} ${isLg ? 'flex-1 min-w-0 flex-wrap' : 'shrink-0'}`}>
         {validPhotos.map((url, i) => (
-          <div key={url} className="relative shrink-0">
+          <button
+            key={url}
+            type="button"
+            onClick={() => setMenuPhotoIndex(i)}
+            className={`${thumbCls} relative shrink-0 block rounded-xl overflow-hidden border border-tea-border focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/60 transition-shadow ${
+              menuPhotoIndex === i ? 'ring-2 ring-tea-gold/60' : ''
+            }`}
+            aria-haspopup="menu"
+            aria-expanded={menuPhotoIndex === i}
+            aria-label="Photo actions"
+            title="Tap for options"
+          >
             <img
               src={url}
               alt={`Photo ${i + 1}`}
-              className={`${thumbCls} rounded-xl object-cover cursor-pointer`}
-              onClick={() => setLightboxIndex(i)}
+              className="w-full h-full object-cover pointer-events-none"
+            />
+          </button>
+        ))}
+
+        {/* Action menu — bottom sheet so it never clips at the viewport edge
+            and gives big thumb-friendly rows. Renders once outside the
+            thumbnail loop so we can address any photo by index. */}
+        <BottomSheet
+          open={menuPhotoIndex !== null}
+          onOpenChange={(open) => { if (!open) setMenuPhotoIndex(null); }}
+          title="Photo"
+          description="Choose what to do with this photo"
+        >
+          <div className="flex flex-col gap-0.5 px-1">
+            <SheetOption
+              label="View full size"
+              leading={<Maximize2 size={18} strokeWidth={1.75} className="text-tea-text-sec" />}
+              onSelect={() => {
+                if (menuPhotoIndex !== null) setLightboxIndex(menuPhotoIndex);
+                setMenuPhotoIndex(null);
+              }}
+            />
+            <SheetOption
+              label="Edit photo"
+              hint="Crop, rotate, reposition"
+              leading={<Edit3 size={18} strokeWidth={1.75} className="text-tea-text-sec" />}
+              onSelect={() => {
+                if (menuPhotoIndex !== null) {
+                  const targetUrl = validPhotos[menuPhotoIndex];
+                  if (targetUrl) setEditingPhotoUrl(targetUrl);
+                }
+                setMenuPhotoIndex(null);
+              }}
             />
             {onRemovePhoto && (
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); onRemovePhoto(photos!.indexOf(url)); }}
-                className="tap-target absolute -top-1 -right-1 w-4 h-4 flex items-center justify-center rounded-full bg-tea-surface border border-tea-border text-tea-text-dim hover:text-red-400 transition-colors"
-                aria-label="Remove photo — tap the camera or scanner to retake"
-                title="Remove (tap the camera or scanner to retake)"
-              >
-                <X size={8} strokeWidth={2.5} />
-              </button>
+              <SheetOption
+                label="Delete"
+                hint="Remove this photo from the entry"
+                leading={<Trash2 size={18} strokeWidth={1.75} className="text-red-400" />}
+                onSelect={() => {
+                  if (menuPhotoIndex !== null) {
+                    const targetUrl = validPhotos[menuPhotoIndex];
+                    if (targetUrl && photos) {
+                      onRemovePhoto(photos.indexOf(targetUrl));
+                    }
+                  }
+                  setMenuPhotoIndex(null);
+                }}
+              />
             )}
           </div>
-        ))}
+        </BottomSheet>
 
         {pendingPreviews.map((preview, i) => (
           <div key={preview.localUrl} className="relative shrink-0">
@@ -565,26 +626,34 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
         ))}
 
         <div className={`flex ${isLg ? 'flex-row ml-auto' : 'flex-col'} ${btnGap} shrink-0`}>
-          {/* Sparkles = live camera scanner */}
+          {/* Sparkles = AI label scanner. Carries a subtle gold accent at
+              rest so it reads as the "magic" primary action — distinct
+              from the plain Camera button which is just a gallery picker. */}
           <button
             type="button"
             onClick={openScanner}
-            className={`${btnCls} flex items-center justify-center border shrink-0 transition-colors ${
+            className={`${btnCls} ${isLg ? '' : 'tap-target'} flex items-center justify-center border shrink-0 transition-all ${
               justExtracted
-                ? 'border-tea-gold/40 text-tea-gold bg-tea-gold/10'
-                : 'border-tea-border bg-tea-elevated text-tea-text-dim hover:text-tea-gold hover:border-tea-gold/40'
+                ? 'border-tea-gold/50 text-tea-gold bg-tea-gold/15'
+                : 'border-tea-gold/30 bg-tea-gold/[0.06] text-tea-gold hover:bg-tea-gold/[0.12] hover:border-tea-gold/50'
             }`}
+            style={
+              justExtracted
+                ? undefined
+                : { boxShadow: 'inset 0 1px 0 rgb(var(--tea-gold-rgb) / 0.10)' }
+            }
             aria-label="Scan label"
             title="Scan label"
           >
             {justExtracted ? <Check size={btnIcon} strokeWidth={2} /> : <Sparkles size={btnIcon} strokeWidth={1.5} />}
           </button>
 
-          {/* Camera icon = gallery picker, no extraction */}
+          {/* Camera icon = plain gallery picker. Quieter visual weight so
+              the eye lands on the Sparkles scan button first. */}
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className={`${btnCls} flex items-center justify-center bg-tea-elevated border border-tea-border text-tea-text-dim hover:text-tea-text hover:border-tea-gold/40 shrink-0 transition-colors`}
+            className={`${btnCls} ${isLg ? '' : 'tap-target'} flex items-center justify-center bg-tea-elevated border border-tea-border text-tea-text-sec hover:text-tea-text hover:border-tea-gold/40 shrink-0 transition-colors`}
             aria-label="Add photo"
             title="Add photo"
           >
@@ -595,6 +664,33 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
 
       {scannerModal}
       {lightbox}
+
+      {/* In-app photo editor — wraps react-easy-crop via SquareCropModal.
+          Output goes back through api.uploadImage and replaces the original
+          via onPhotoReplaced so callers don't need to know the new URL. */}
+      <SquareCropModal
+        isOpen={!!editingPhotoUrl}
+        source={editingPhotoUrl}
+        title="Edit photo"
+        confirmLabel={savingEdit ? 'Saving…' : 'Save'}
+        outputSize={800}
+        outputQuality={0.7}
+        onClose={() => { if (!savingEdit) setEditingPhotoUrl(null); }}
+        onConfirm={async (blob) => {
+          if (!editingPhotoUrl) return;
+          setSavingEdit(true);
+          try {
+            const file = new File([blob], 'photo.jpg', { type: 'image/jpeg' });
+            const newUrl = await api.uploadImage(file).catch(() => null);
+            if (newUrl) {
+              onPhotoReplaced?.(editingPhotoUrl, newUrl);
+            }
+          } finally {
+            setSavingEdit(false);
+            setEditingPhotoUrl(null);
+          }
+        }}
+      />
     </>
   );
 };

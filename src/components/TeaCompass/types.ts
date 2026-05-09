@@ -155,21 +155,27 @@ export const TEAWARE_MATERIALS: Record<string, TeawareMaterial[]> = {
 
 // Yixing clay subtypes — picked by colour swatch + name. Hex colours are
 // physical-material references, not theme tokens, so they live inline.
+// `imageUrl` is optional — when set, the full-screen clay picker shows a
+// photographic swatch instead of the flat colour disk.
 export interface YixingClayInfo {
   name: YixingClayType;
   /** Anglicised label shown beside the swatch */
   label: string;
   /** Approximate colour of the fired clay */
   swatch: string;
+  /** One-line description shown in the full-screen picker */
+  hint?: string;
+  /** Optional photographic swatch URL — replaces the flat colour disk */
+  imageUrl?: string;
 }
 export const YIXING_CLAY_TYPES: YixingClayInfo[] = [
-  { name: 'Zhuni',   label: 'Zhuni',   swatch: '#C84B3F' },
-  { name: 'Hongni',  label: 'Hongni',  swatch: '#A35442' },
-  { name: 'Zisha',   label: 'Zisha',   swatch: '#6B4F4A' },
-  { name: 'Duanni',  label: 'Duanni',  swatch: '#C9A872' },
-  { name: 'Lvni',    label: 'Lvni',    swatch: '#6F8261' },
-  { name: 'Heini',   label: 'Heini',   swatch: '#2A2620' },
-  { name: 'Unknown', label: 'Unknown', swatch: '#8a8275' },
+  { name: 'Zhuni',   label: 'Zhuni',   swatch: '#C84B3F', hint: 'Bright vermillion · iron-rich, dense' },
+  { name: 'Hongni',  label: 'Hongni',  swatch: '#A35442', hint: 'Red iron clay · workhorse Yixing' },
+  { name: 'Zisha',   label: 'Zisha',   swatch: '#6B4F4A', hint: 'Purple sand · the classic' },
+  { name: 'Duanni',  label: 'Duanni',  swatch: '#C9A872', hint: 'Yellow-brown · sandy texture' },
+  { name: 'Lvni',    label: 'Lvni',    swatch: '#6F8261', hint: 'Olive green · rare' },
+  { name: 'Heini',   label: 'Heini',   swatch: '#2A2620', hint: 'Deep black · earthy minerals' },
+  { name: 'Unknown', label: 'Unknown', swatch: '#8a8275', hint: 'Not sure yet' },
 ];
 
 // Teaware eras — standard list shown first in the picker; user-added eras

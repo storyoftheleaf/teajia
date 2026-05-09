@@ -141,6 +141,14 @@ interface AppState {
   upcomingEventsCount: number;
   setUpcomingEventsCount: (count: number) => void;
   cartLastAddedAt: number | null;
+
+  // Bottom-bar action — when set, BottomTabBar swaps the centered logo for
+  // a contextual action button (e.g. a web3-styled mic on the sourcing
+  // page). Pages register via the `useBottomBarMic` hook on mount.
+  bottomBarAction:
+    | { type: 'mic'; state: 'idle' | 'recording' | 'transcribing' | 'error'; onPress: () => void }
+    | null;
+  setBottomBarAction: (action: AppState['bottomBarAction']) => void;
 }
 
 // ── Members & Access selectors ────────────────────────────────────────────────
@@ -470,6 +478,10 @@ export const useAppStore = create<AppState>()(
       upcomingEventsCount: 0,
       setUpcomingEventsCount: (count) => set({ upcomingEventsCount: count }),
       cartLastAddedAt: null,
+
+      // Bottom-bar action (transient — never persisted)
+      bottomBarAction: null,
+      setBottomBarAction: (action) => set({ bottomBarAction: action }),
     }),
     {
       name: 'teajia-storage',

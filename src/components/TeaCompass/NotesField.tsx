@@ -97,7 +97,7 @@ export const NotesField: React.FC<NotesFieldProps> = ({ notes, onNotesChange }) 
                   onBlur={commitEdit}
                   onKeyDown={handleEditKeyDown}
                   rows={2}
-                  className="w-full bg-tea-gold/[0.06] text-tea-text rounded-xl px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors text-base resize-none placeholder:text-tea-text-dim"
+                  className="w-full bg-tea-gold/[0.06] text-tea-text rounded-xl px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors text-base resize-none placeholder:text-tea-text-sec/70"
                 />
               ) : (
                 <div
@@ -125,7 +125,7 @@ export const NotesField: React.FC<NotesFieldProps> = ({ notes, onNotesChange }) 
           onKeyDown={handleKeyDown}
           placeholder="What did the vendor say? Your impressions..."
           rows={focused ? 5 : 3}
-          className="flex-1 bg-tea-gold/[0.06] text-tea-text rounded-xl px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors text-base resize-none placeholder:text-tea-text-dim"
+          className="flex-1 bg-tea-gold/[0.06] text-tea-text rounded-xl px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors text-base resize-none placeholder:text-tea-text-sec/70"
         />
         {currentInput.trim() && (
           <button
