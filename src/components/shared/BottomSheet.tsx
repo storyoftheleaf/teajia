@@ -44,7 +44,6 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
             WebkitBackdropFilter: 'blur(24px) saturate(160%)',
             boxShadow:
               '0 -10px 40px -8px rgb(var(--tea-bg-rgb) / 0.7), inset 0 1px 0 rgb(var(--tea-gold-rgb) / 0.08)',
-            paddingBottom: 'env(safe-area-inset-bottom, 0px)',
           }}
         >
           {/* Drag handle — Vaul listens to drag gestures on the entire
@@ -83,8 +82,11 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
             </div>
           </div>
 
-          {/* Body — scrollable list/grid lives here */}
-          <div className="flex-1 min-h-0 overflow-y-auto px-2 pb-3">
+          {/* Body — scrollable list/grid lives here. The bottom padding
+              clears the BottomTabBar (52px + safe area) so the last option
+              isn't occluded by it. On lg+ the nav is hidden and pb-nav-gap
+              automatically collapses to pb-4. */}
+          <div className="flex-1 min-h-0 overflow-y-auto px-2 pb-nav-gap">
             {children}
           </div>
         </Drawer.Content>
