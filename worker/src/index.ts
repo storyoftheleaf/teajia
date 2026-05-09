@@ -2051,9 +2051,63 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
   return json({ inserted: toInsert.length, skipped: skipped.length, skippedNames: skipped });
 };
 
-const handleUpdateProduct: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
-  if ('error' in ctx) return ctx.error;
+const PRODUCT_UPDATE_COLUMNS = new Set([
+  'product_name', 'type', 'origin', 'year', 'harvest', 'form', 'price', 'cost',
+  'stock', 'stock_unit', 'status', 'description', 'notes', 'tags', 'moods',
+  'tasting_notes', 'brewing_notes', 'vendor', 'vendor_url', 'image_url',
+  'altitude', 'cultivar', 'processing', 'format',
+  // Extended product fields
+  'given_name', 'chinese_name', 'origin_country', 'origin_region', 'stock_grams',
+  'cost_amount', 'cost_currency', 'shipping_rate_per_kg', 'quantity_purchased',
+  'low_stock_threshold', 'recheck_stock', 'markup_multiplier', 'fixed_retail_price_usd',
+  'is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_curated',
+  'lore', 'is_custom_wisdom', 'show_wisdom', 'processing_notes', 'terroir',
+  'mood', 'experience', 'material', 'capacity_ml', 'teaware_category',
+  'additional_images', 'quantity_units', 'vendor_id', 'is_sample', 'in_transit',
+  'in_transit_grams', 'in_transit_eta',
+  'tasting', 'tasting_source',
+  'sold_out_at', 'stock_verified_at', 'source_compass_entry_id',
+  'updated_at', 'last_synced_at', 'tea_key', 'vendor_url',
+  'wholesale_price', 'catalog_visible', 'price_per_gram_usd',
+  'session_reserve_grams',
+]);
+
+const PRODUCT_CATALOG_UPDATE_COLUMNS = new Set([
+  'product_name', 'given_name', 'chinese_name', 'type', 'form', 'origin', 'origin_country',
+  'origin_region', 'year', 'harvest', 'altitude', 'cultivar', 'processing', 'format',
+  'material', 'capacity_ml', 'teaware_category', 'description', 'notes', 'tags', 'moods',
+  'tasting_notes', 'brewing_notes', 'tasting', 'tasting_source', 'lore', 'processing_notes',
+  'terroir', 'mood', 'experience', 'image_url', 'additional_images', 'quantity_units',
+  'tea_key', 'source_compass_entry_id',
+]);
+
+const PRODUCT_STOCK_UPDATE_COLUMNS = new Set([
+  'stock', 'stock_unit', 'stock_grams', 'low_stock_threshold', 'recheck_stock',
+  'stock_verified_at', 'in_transit', 'in_transit_grams', 'in_transit_eta',
+  'session_reserve_grams',
+]);
+
+const PRODUCT_COMMERCIAL_UPDATE_COLUMNS = new Set([
+  'price', 'cost', 'cost_amount', 'cost_currency', 'shipping_rate_per_kg',
+  'quantity_purchased', 'markup_multiplier', 'fixed_retail_price_usd',
+  'price_per_gram_usd', 'wholesale_price', 'vendor', 'vendor_id', 'vendor_url',
+  'can_reorder',
+]);
+
+const PRODUCT_PUBLICATION_UPDATE_COLUMNS = new Set([
+  'status', 'is_public', 'catalog_visible', 'is_featured', 'is_curated',
+  'show_wisdom', 'is_custom_wisdom', 'is_personal', 'is_sample', 'sold_out_at',
+]);
+
+async function applyProductUpdate(
+  request: Request,
+  env: Env,
+  params: Record<string, string>,
+  ctx: AccountCtx,
+  allowedColumns = PRODUCT_UPDATE_COLUMNS,
+  rejectUnknown = false,
+  auditAction = 'product.updated',
+): Promise<Response> {
   const { accountId } = ctx;
 
   const userEmail = getUserEmail(request);
@@ -2081,6 +2135,16 @@ const handleUpdateProduct: Handler = async (request, env, params) => {
   // Auto-resolve vendor → vendor_id
   if (body.vendor !== undefined && !body.vendor_id) {
     body.vendor_id = await resolveVendorId(env, body.vendor, body.origin_country, accountId);
+  }
+
+  if (rejectUnknown) {
+    const unknown = Object.keys(body).filter(k => !allowedColumns.has(k));
+    if (unknown.length > 0) {
+      return json({
+        error: 'Unsupported fields for this product update command',
+        fields: unknown,
+      }, 400);
+    }
   }
 
   // Stock change logging — scoped lookup
@@ -2126,27 +2190,7 @@ const handleUpdateProduct: Handler = async (request, env, params) => {
     }
   }
 
-  const ALLOWED_UPDATE_COLUMNS = new Set([
-    'product_name', 'type', 'origin', 'year', 'harvest', 'form', 'price', 'cost',
-    'stock', 'stock_unit', 'status', 'description', 'notes', 'tags', 'moods',
-    'tasting_notes', 'brewing_notes', 'vendor', 'vendor_url', 'image_url',
-    'altitude', 'cultivar', 'processing', 'format',
-    // Extended product fields
-    'given_name', 'chinese_name', 'origin_country', 'origin_region', 'stock_grams',
-    'cost_amount', 'cost_currency', 'shipping_rate_per_kg', 'quantity_purchased',
-    'low_stock_threshold', 'recheck_stock', 'markup_multiplier', 'fixed_retail_price_usd',
-    'is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_curated',
-    'lore', 'is_custom_wisdom', 'show_wisdom', 'processing_notes', 'terroir',
-    'mood', 'experience', 'material', 'capacity_ml', 'teaware_category',
-    'additional_images', 'quantity_units', 'vendor_id', 'is_sample', 'in_transit',
-    'in_transit_grams', 'in_transit_eta',
-    'tasting', 'tasting_source',
-    'sold_out_at', 'stock_verified_at', 'source_compass_entry_id',
-    'updated_at', 'last_synced_at', 'tea_key', 'vendor_url',
-    'wholesale_price', 'catalog_visible', 'price_per_gram_usd',
-    'session_reserve_grams',
-  ]);
-  const cols = Object.keys(body).filter(k => ALLOWED_UPDATE_COLUMNS.has(k));
+  const cols = Object.keys(body).filter(k => allowedColumns.has(k));
   if (cols.length === 0) return json({ success: true });
   const sets = cols.map(c => `${c} = ?`).join(', ');
   const updateStmt = env.DB.prepare(`UPDATE products SET ${sets} WHERE id = ? AND account_id = ?`)
@@ -2164,12 +2208,35 @@ const handleUpdateProduct: Handler = async (request, env, params) => {
     await updateStmt.run();
   }
 
-  await auditPlatformActingWrite(env, ctx, 'product.updated', 'product', params.id, {
+  await auditPlatformActingWrite(env, ctx, auditAction, 'product', params.id, {
     fields: Object.keys(body).slice(0, 20),
   });
 
   return json({ success: true });
+}
+
+const handleUpdateProduct: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  return applyProductUpdate(request, env, params, ctx);
 };
+
+function makeProductCommandUpdateHandler(
+  bundle: Bundle,
+  allowedColumns: Set<string>,
+  auditAction: string,
+): Handler {
+  return async (request, env, params) => {
+    const ctx = await requireBundle(request, env, bundle);
+    if ('error' in ctx) return ctx.error;
+    return applyProductUpdate(request, env, params, ctx, allowedColumns, true, auditAction);
+  };
+}
+
+const handleUpdateProductCatalog = makeProductCommandUpdateHandler('catalog', PRODUCT_CATALOG_UPDATE_COLUMNS, 'product.catalog_updated');
+const handleUpdateProductStock = makeProductCommandUpdateHandler('stock', PRODUCT_STOCK_UPDATE_COLUMNS, 'product.stock_updated');
+const handleUpdateProductCommercial = makeProductCommandUpdateHandler('sell', PRODUCT_COMMERCIAL_UPDATE_COLUMNS, 'product.commercial_updated');
+const handleUpdateProductPublication = makeProductCommandUpdateHandler('publish', PRODUCT_PUBLICATION_UPDATE_COLUMNS, 'product.publication_updated');
 
 const handleDeleteProduct: Handler = async (request, env, params) => {
   const ctx = await requireAccount(request, env);
@@ -15370,6 +15437,10 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/products', handleGetProducts],
   ['POST', '/api/products', handleCreateProduct],
   ['POST', '/api/products/bulk', handleBulkCreateProducts],
+  ['PUT', '/api/products/:id/catalog', handleUpdateProductCatalog],
+  ['PUT', '/api/products/:id/stock', handleUpdateProductStock],
+  ['PUT', '/api/products/:id/commercial', handleUpdateProductCommercial],
+  ['PUT', '/api/products/:id/publication', handleUpdateProductPublication],
   ['PUT', '/api/products/:id', handleUpdateProduct],
   ['DELETE', '/api/products/:id', handleDeleteProduct],
   ['POST', '/api/products/:id/featured', handleSetProductFeatured],
@@ -15795,10 +15866,20 @@ export default {
 
     // OAuth 2.1 endpoints for MCP clients (Claude desktop/mobile, ChatGPT).
     // These are unauthenticated routes by design — they ARE the auth flow.
-    if (url.pathname === '/.well-known/oauth-protected-resource') {
+    // Both forms — the bare path AND the resource-suffixed variant — because
+    // different MCP clients implement different drafts of the spec. Claude
+    // mobile in particular has been observed hitting the suffixed form first.
+    if (
+      url.pathname === '/.well-known/oauth-protected-resource' ||
+      url.pathname === '/.well-known/oauth-protected-resource/mcp'
+    ) {
       return cors(oauthProtectedResourceMetadata(request), corsOrigin);
     }
-    if (url.pathname === '/.well-known/oauth-authorization-server') {
+    if (
+      url.pathname === '/.well-known/oauth-authorization-server' ||
+      url.pathname === '/.well-known/oauth-authorization-server/mcp' ||
+      url.pathname === '/.well-known/openid-configuration'
+    ) {
       return cors(oauthAuthorizationServerMetadata(request), corsOrigin);
     }
     if (url.pathname === '/oauth/register') {

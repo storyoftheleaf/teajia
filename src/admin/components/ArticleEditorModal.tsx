@@ -194,6 +194,17 @@ const BlockEditor: React.FC<BlockEditorProps> = ({ block, index, total, onChange
         );
       case 'divider':
         return <div className="py-3 text-center"><div className="h-px bg-tea-border" /></div>;
+      default:
+        return (
+          <div className="rounded-md border border-tea-border bg-tea-surface/40 p-3">
+            <p className="text-ui-12 text-tea-text-sec leading-relaxed mb-2">
+              This richer magazine page is preserved exactly, but it is edited from the advanced page composer.
+            </p>
+            <pre className="max-h-40 overflow-auto whitespace-pre-wrap break-words text-ui-11 leading-relaxed text-tea-text-sec">
+              {JSON.stringify(block, null, 2)}
+            </pre>
+          </div>
+        );
     }
   };
 
@@ -253,6 +264,7 @@ function makeEmptyBlock(type: ArticleBlock['type']): ArticleBlock {
     case 'quote': return { type: 'quote', text: '', attribution: '' };
     case 'image': return { type: 'image', description: '', url: '', caption: '' };
     case 'divider': return { type: 'divider' };
+    default: return { type: 'paragraph', text: '' };
   }
 }
 
@@ -336,8 +348,7 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
         await api.articles.update(articleId, payload);
       } else {
         const result = await api.articles.create(payload);
-        const newId = result?.id ?? result?.article?.id;
-        if (newId) setArticleId(newId);
+        if (result?.id) setArticleId(result.id);
       }
       setSaveState('saved');
       onSaved?.();

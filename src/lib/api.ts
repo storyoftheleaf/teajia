@@ -1,4 +1,4 @@
-import type { Account, AccountApplication, AccountKind, AccountMember, AccountMembership, AccountRole, Bundle, PlatformRole } from '../types';
+import type { Account, AccountApplication, AccountKind, AccountMember, AccountMembership, AccountRole, Bundle, DbArticle, PlatformRole } from '../types';
 
 export interface AuditLogEntry {
   id: string;
@@ -532,6 +532,38 @@ export const api = {
     },
     update: async (id: string, data: Record<string, any>) => {
       const res = await fetchWithTimeout(`${API_URL}/api/products/${id}`, {
+        method: 'PUT',
+        headers: authHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
+    updateCatalog: async (id: string, data: Record<string, any>) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/products/${id}/catalog`, {
+        method: 'PUT',
+        headers: authHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
+    updateStock: async (id: string, data: Record<string, any>) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/products/${id}/stock`, {
+        method: 'PUT',
+        headers: authHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
+    updateCommercial: async (id: string, data: Record<string, any>) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/products/${id}/commercial`, {
+        method: 'PUT',
+        headers: authHeaders(),
+        body: JSON.stringify(data),
+      });
+      return handleResponse(res);
+    },
+    updatePublication: async (id: string, data: Record<string, any>) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/products/${id}/publication`, {
         method: 'PUT',
         headers: authHeaders(),
         body: JSON.stringify(data),
@@ -2966,20 +2998,20 @@ export const api = {
 
   articles: {
     // Admin
-    list: async (status?: string) => {
+    list: async (status?: string): Promise<DbArticle[]> => {
       const res = await fetchWithTimeout(
         `${API_URL}/api/admin/articles${status ? `?status=${status}` : ''}`,
         { headers: authHeaders() }
       );
       return handleResponse(res);
     },
-    get: async (id: string) => {
+    get: async (id: string): Promise<DbArticle> => {
       const res = await fetchWithTimeout(`${API_URL}/api/admin/articles/${id}`, {
         headers: authHeaders(),
       });
       return handleResponse(res);
     },
-    create: async (data: Record<string, any>) => {
+    create: async (data: Partial<DbArticle>): Promise<DbArticle> => {
       const res = await fetchWithTimeout(`${API_URL}/api/admin/articles`, {
         method: 'POST',
         headers: authHeaders(),
@@ -2987,7 +3019,7 @@ export const api = {
       });
       return handleResponse(res);
     },
-    update: async (id: string, data: Record<string, any>) => {
+    update: async (id: string, data: Partial<DbArticle>): Promise<DbArticle> => {
       const res = await fetchWithTimeout(`${API_URL}/api/admin/articles/${id}`, {
         method: 'PUT',
         headers: authHeaders(),

@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api';
-import type { DbArticle } from '../admin/types';
+import type { DbArticle } from '../types';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Article Pages Reader — 4:5 paginated, Instagram + book ready.

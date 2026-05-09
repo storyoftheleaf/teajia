@@ -25,6 +25,7 @@ export const MagazineView: React.FC = () => {
   const [tab, setTab] = useState<TabFilter>('all');
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingArticle, setEditingArticle] = useState<DbArticle | null>(null);
+  const [loadingArticleId, setLoadingArticleId] = useState<string | null>(null);
 
   const { data, isLoading, isError, refetch, isRefetching } = useQuery({
     queryKey: ['admin-articles'],
@@ -43,9 +44,18 @@ export const MagazineView: React.FC = () => {
     setEditorOpen(true);
   };
 
-  const handleRowClick = (article: DbArticle) => {
-    setEditingArticle(article);
-    setEditorOpen(true);
+  const handleRowClick = async (article: DbArticle) => {
+    setLoadingArticleId(article.id);
+    try {
+      const fullArticle = await api.articles.get(article.id) as DbArticle;
+      setEditingArticle(fullArticle);
+      setEditorOpen(true);
+    } catch (err) {
+      console.error('Failed to load article for editing:', err);
+      showToast('Could not load the full article.', 'error');
+    } finally {
+      setLoadingArticleId(null);
+    }
   };
 
   const handleEditorClose = () => {
@@ -144,6 +154,7 @@ export const MagazineView: React.FC = () => {
               <button
                 key={article.id}
                 onClick={() => handleRowClick(article)}
+                disabled={loadingArticleId === article.id}
                 className="w-full text-left px-4 md:px-6 py-4 hover:bg-tea-surface/60 transition-colors group"
               >
                 <div className="flex items-start gap-3">
@@ -169,6 +180,9 @@ export const MagazineView: React.FC = () => {
                     )}
                   </div>
                   <div className="flex flex-col items-end gap-1 shrink-0 text-right">
+                    {loadingArticleId === article.id && (
+                      <Loader2 size={13} className="animate-spin text-tea-text-sec" />
+                    )}
                     {article.published_at ? (
                       <span className="text-ui-10 text-tea-text-dim">{formatDate(article.published_at)}</span>
                     ) : (

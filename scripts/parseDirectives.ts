@@ -9,7 +9,7 @@
  * when migrating additional articles requires it.
  */
 
-import type { ArticleBlock } from '../src/admin/types';
+import type { ArticleBlock } from '../src/types';
 import type { Story } from '../src/types';
 
 // ── Per-block character budgets (4:5 page must fit one block) ─────────────

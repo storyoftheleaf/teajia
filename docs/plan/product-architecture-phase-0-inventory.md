@@ -46,7 +46,7 @@ The Worker route table lives in `worker/src/index.ts`. Current auth is handler-d
 | Public network | `/api/network/stores` | Public | Public by design | Keep public-safe fields only |
 | Network catalog/listings | `/api/network/catalog`, `/api/listings/*`, `/api/profiles/*/suggestions` | Catalog/sell bundles by action | `requireBundle` appears in network handlers | Inventory each handler's bundle |
 | Wholesale | `/api/wholesale/orders*` | Sell bundle, buyer/supplier-aware | `requireBundle('sell')` appears in handlers | Add allowed/denied tests |
-| Products/inventory | `/api/products`, stock RPCs, stock ledger | Stock/catalog/sell/publish depending field/action | Mixed helper usage | Split legacy product update surface into command routes |
+| Products/inventory | `/api/products`, stock RPCs, stock ledger | Stock/catalog/sell/publish depending field/action | Legacy update remains broad; new product command routes are bundle-gated by field domain | Migrate UI/MCP callers to command routes before retiring broad update |
 | Customers/sources | `/api/customers*` | Sell/catalog/gather/publish depending relationship context | `requireAccount`; customer type filter now validated/bound | Decide customer relationship taxonomy before tightening |
 | Events admin | `/api/admin/events*`, attendees, venues | Gather bundle | Many handlers use `requireBundle('gather')` | Add route inventory tests |
 | Articles admin | `/api/admin/articles*` | Publish bundle | `requireBundle('publish')` | Add representative allow/deny tests |
@@ -58,7 +58,7 @@ The Worker route table lives in `worker/src/index.ts`. Current auth is handler-d
 
 - Use `product-architecture-route-auth-inventory.md` as the maintained route table until a generated route inventory exists.
 - Add tests for representative bundle denial and allowance.
-- Split legacy product updates by command surface before applying field-sensitive bundles.
+- Migrate legacy product UI writes to the command routes before tightening the broad compatibility endpoint.
 - Decide customer relationship taxonomy before applying customer route bundles.
 - Keep public reads constrained to public-safe fields.
 
@@ -108,17 +108,15 @@ The Zustand store now also resets account/user-scoped slices when `activeAccount
 
 | Area | Current contract | Supports rich blocks? | Notes |
 |---|---|---|---|
-| `src/types.ts` | Rich `ArticleBlock` union with cover, chapter, Q&A, stat, recipe, tasting notes, embeds, back matter | Yes | Best current candidate for canonical type |
-| `src/admin/types.ts` | Simpler six-block union | No | Admin type can lose editorial range |
-| `ArticleEditorModal` | Intro, paragraph, section heading, quote, image, divider | Partially | Editor cannot express all reader-supported blocks |
+| `src/types.ts` | Canonical rich `ArticleBlock` union with cover, chapter, Q&A, stat, recipe, tasting notes, embeds, back matter | Yes | Shared by public reader, admin editor, API client, and parser |
+| `src/admin/types.ts` | Re-exports shared article types | Yes | Keeps old admin imports working without a second contract |
+| `ArticleEditorModal` | Intro, paragraph, section heading, quote, image, divider, plus read-only preservation for richer block kinds | Partially | Editor cannot express all reader-supported blocks yet, but it no longer drops them |
 | `ArticlePage` / reader | Rich paginated 4:5 article system | Yes | Strong product direction, but large file |
 | `SinglePageRenderer` | Many layout variants | Yes | Needs keeper-list curation before full editor exposure |
-| `scripts/parseDirectives.ts` | Imports admin article block type | Limited | Parser may reinforce simplified contract |
+| `scripts/parseDirectives.ts` | Imports shared article block type | Partially | Parser still creates simple blocks, but it now targets the canonical contract |
 
 ### Article Follow-Ups
 
-- Make `src/types.ts` the canonical article block source or move the canonical union to a shared article contract file.
-- Update admin/editor/parser imports to use the canonical type.
 - Create a block registry with reader support, editor support, validation, and fallback behavior.
 - Curate magazine keeper templates before exposing all variants in the editor.
 
@@ -133,11 +131,15 @@ The Zustand store now also resets account/user-scoped slices when `activeAccount
 - Zustand account/user-scoped slices now reset on account switch, user switch, logout, and session expiry.
 - Admin article routes now require the `publish` bundle, including draft list/read, create, update, publish, unpublish, and archive/delete.
 - Authenticated article/module/project product xref routes now require the `publish` bundle; public xref routes remain no-auth and public-field-only.
+- Product command routes now split catalog, stock, commercial, and publication writes behind `catalog`, `stock`, `sell`, and `publish` bundle gates.
+- Article block types are now canonical in `src/types.ts`; admin imports re-export the shared contract, public reader/parser imports use it directly, and the editor preserves richer unsupported blocks.
+- Magazine admin rows now fetch the full article before editing so list responses without `blocks` cannot overwrite rich article content.
+- MCP OAuth approval now verifies the Teajia JWT server-side and re-checks owner-tier account access before minting an OAuth code.
 
 ## Next Recommended Implementation Pull
 
-1. Add Worker route auth tests for publish-bundle enforcement on admin articles and authenticated xrefs.
-2. Split legacy product writes into catalog, stock, commercial, and publication command surfaces.
+1. Add Worker route auth tests for publish-bundle enforcement on admin articles, authenticated xrefs, product command routes, and MCP OAuth approval.
+2. Migrate product UI and MCP product tools from broad product update calls to catalog/stock/commercial/publication command routes.
 3. Decide whether scoped state should be upgraded from reset-on-boundary to per-account saved buckets.
-4. Unify article block types across public, admin, parser, and API client.
+4. Build the article block registry and validation layer.
 5. Add tests for account switching cache isolation and SQL filter validation.

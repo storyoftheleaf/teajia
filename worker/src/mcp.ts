@@ -16,6 +16,7 @@
 
 type Env = {
   DB: D1Database;
+  JWT_SECRET: string;
   // The wider Env interface in index.ts has many more fields — only the ones
   // the MCP server actually reads are listed here so this module is portable.
 };
@@ -36,6 +37,117 @@ function rpcResult(id: number | string | null, result: unknown): Response {
 async function sha256Hex(input: string): Promise<string> {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(input));
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function b64decodeUtf8(b64: string): string {
+  const binary = atob(b64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new TextDecoder().decode(bytes);
+}
+
+type TokenClaims = {
+  sub: string;
+  email: string;
+  name?: string;
+  active_account_id?: string | null;
+  exp?: number;
+};
+
+function getBearerToken(request: Request): string | null {
+  const auth = request.headers.get('Authorization');
+  if (!auth?.startsWith('Bearer ')) return null;
+  return auth.slice(7);
+}
+
+async function verifyJwt(request: Request, env: Env): Promise<TokenClaims | null> {
+  const token = getBearerToken(request);
+  if (!token) return null;
+  try {
+    const [header, payload, sig] = token.split('.');
+    if (!header || !payload || !sig) return null;
+    const key = await crypto.subtle.importKey(
+      'raw',
+      new TextEncoder().encode(env.JWT_SECRET),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['verify'],
+    );
+    const sigBytes = Uint8Array.from(atob(sig), c => c.charCodeAt(0));
+    const valid = await crypto.subtle.verify(
+      'HMAC',
+      key,
+      sigBytes,
+      new TextEncoder().encode(`${header}.${payload}`),
+    );
+    if (!valid) return null;
+    const claims = JSON.parse(b64decodeUtf8(payload)) as TokenClaims;
+    if (!claims.sub || !claims.email) return null;
+    if (typeof claims.exp === 'number' && claims.exp <= Math.floor(Date.now() / 1000)) return null;
+    return claims;
+  } catch {
+    return null;
+  }
+}
+
+type OAuthApprovalContext = {
+  userId: string;
+  userEmail: string;
+  accountId: string;
+};
+
+async function resolveOAuthApprovalContext(
+  request: Request,
+  env: Env,
+  requestedAccountId: string | null,
+): Promise<OAuthApprovalContext | Response> {
+  const claims = await verifyJwt(request, env);
+  if (!claims) {
+    return corsJson({ error: 'unauthenticated', error_description: 'Login required before approval' }, 401);
+  }
+
+  const accountId = requestedAccountId || claims.active_account_id || null;
+  if (!accountId) {
+    return corsJson({ error: 'account_required', error_description: 'Select an account before approval' }, 400);
+  }
+
+  const user = await env.DB.prepare('SELECT id, email, platform_role FROM users WHERE id = ?')
+    .bind(claims.sub)
+    .first() as { id: string; email: string | null; platform_role: string | null } | null;
+  if (!user) {
+    return corsJson({ error: 'unauthenticated', error_description: 'User no longer exists' }, 401);
+  }
+
+  const platformRole = user.platform_role || null;
+  if (platformRole === 'platform_owner' || platformRole === 'platform_admin') {
+    const account = await env.DB.prepare('SELECT status FROM accounts WHERE id = ?')
+      .bind(accountId)
+      .first() as { status: string | null } | null;
+    if (!account) return corsJson({ error: 'access_denied', error_description: 'Account not found' }, 403);
+    if (account.status === 'suspended') {
+      return corsJson({ error: 'access_denied', error_description: 'Account is suspended' }, 403);
+    }
+    return { userId: user.id, userEmail: user.email || claims.email, accountId };
+  }
+
+  const membership = await env.DB.prepare(
+    `SELECT am.role, a.status
+     FROM account_members am
+     JOIN accounts a ON a.id = am.account_id
+     WHERE am.user_id = ? AND am.account_id = ? AND am.status = 'active'`,
+  ).bind(user.id, accountId).first() as { role: string; status: string | null } | null;
+
+  if (!membership) {
+    return corsJson({ error: 'access_denied', error_description: 'Account access denied' }, 403);
+  }
+  if (membership.status === 'suspended') {
+    return corsJson({ error: 'access_denied', error_description: 'Account is suspended' }, 403);
+  }
+  if (membership.role !== 'owner') {
+    return corsJson({ error: 'access_denied', error_description: 'Owner-tier access required for MCP OAuth approval' }, 403);
+  }
+
+  return { userId: user.id, userEmail: user.email || claims.email, accountId };
 }
 
 // ── token auth ──
@@ -1062,20 +1174,21 @@ export async function oauthRegister(request: Request, env: Env): Promise<Respons
 // needed) and the user-facing approve/deny. On approve, the page POSTs back
 // to /oauth/authorize/decision below, which mints the auth code and 302s
 // back to Claude's redirect_uri.
+//
+// CRITICAL: this redirect must go to the FRONTEND origin, not the worker
+// origin — the worker has no UI. We hard-code teajia.pages.dev because the
+// worker has no other reliable way to discover the frontend URL.
+const FRONTEND_ORIGIN = 'https://teajia.pages.dev';
+
 export function oauthAuthorize(request: Request): Response {
   const url = new URL(request.url);
-  const origin = originOf(request);
-  // Forward every original query param (client_id, code_challenge, state, etc.)
-  // to the frontend consent page. The page reads them and submits them back.
-  const consentUrl = `${origin}/admin/oauth-consent${url.search}`;
+  const consentUrl = `${FRONTEND_ORIGIN}/admin/oauth-consent${url.search}`;
   return Response.redirect(consentUrl, 302);
 }
 
 // POST /oauth/authorize/decision — called by the consent page after the user
-// approves. Body carries the JWT (so we can identify the user) plus the
-// original OAuth params. We mint an auth code, bind it to the user's
-// active account + the PKCE challenge, and return the redirect URL the
-// frontend then navigates to (which sends the user's browser back to Claude).
+// approves. The Teajia JWT is read from the Authorization header and verified
+// server-side before we mint a short-lived auth code.
 export async function oauthAuthorizeDecision(request: Request, env: Env): Promise<Response> {
   if (request.method !== 'POST') return corsJson({ error: 'Method not allowed' }, 405);
 
@@ -1084,30 +1197,17 @@ export async function oauthAuthorizeDecision(request: Request, env: Env): Promis
     return corsJson({ error: 'invalid_request' }, 400);
   }
 
-  const {
-    client_id, redirect_uri, code_challenge, code_challenge_method, state, scope,
-    user_id, user_email, account_id, jwt,
-  } = body || {};
+  const { client_id, redirect_uri, code_challenge, code_challenge_method, state, account_id } = body || {};
 
   if (!client_id || !redirect_uri || !code_challenge || code_challenge_method !== 'S256') {
     return corsJson({ error: 'invalid_request', error_description: 'Missing required PKCE params' }, 400);
   }
-  if (!user_id || !user_email || !account_id || !jwt) {
-    return corsJson({ error: 'unauthenticated', error_description: 'Login required before approval' }, 401);
-  }
-
-  // Verify the JWT and the user has access to the account they're approving.
-  // We delegate to the same /api/auth/me-style check by re-inspecting the JWT
-  // with HS256 + JWT_SECRET — but to keep this file decoupled from index.ts
-  // crypto, we accept that the consent page, which runs inside our trusted
-  // frontend, has already verified its own login. The real attack surface
-  // here is "could a malicious page generate a valid auth code without a real
-  // user." Since the consent page lives on teajia.pages.dev (CORS-restricted)
-  // and posts back from the same origin, that's not a concern in practice.
-  //
-  // A future hardening step: re-verify the JWT signature here against
-  // env.JWT_SECRET. Skipping for the v1 OAuth ship since the consent page
-  // is the only legitimate caller.
+  const approval = await resolveOAuthApprovalContext(
+    request,
+    env,
+    typeof account_id === 'string' ? account_id : null,
+  );
+  if (approval instanceof Response) return approval;
 
   // Validate the redirect_uri against what the client registered with.
   const client = await env.DB.prepare('SELECT redirect_uris FROM oauth_clients WHERE id = ?')
@@ -1127,7 +1227,17 @@ export async function oauthAuthorizeDecision(request: Request, env: Env): Promis
     `INSERT INTO oauth_codes
        (code, client_id, redirect_uri, user_id, user_email, account_id, code_challenge, code_challenge_method, expires_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-  ).bind(code, client_id, redirect_uri, user_id, user_email, account_id, code_challenge, code_challenge_method, expires).run();
+  ).bind(
+    code,
+    client_id,
+    redirect_uri,
+    approval.userId,
+    approval.userEmail,
+    approval.accountId,
+    code_challenge,
+    code_challenge_method,
+    expires,
+  ).run();
 
   // Build the redirect URL the browser should go to next.
   const sep = redirect_uri.includes('?') ? '&' : '?';
@@ -1185,9 +1295,11 @@ export async function oauthToken(request: Request, env: Env): Promise<Response> 
     return corsJson({ error: 'invalid_grant', error_description: 'PKCE verification failed' }, 400);
   }
 
-  // Mark code used (best-effort race protection).
-  await env.DB.prepare("UPDATE oauth_codes SET used_at = datetime('now') WHERE code = ? AND used_at IS NULL")
-    .bind(code).run();
+  const markUsed = await env.DB.prepare("UPDATE oauth_codes SET used_at = datetime('now') WHERE code = ? AND used_at IS NULL")
+    .bind(code).run() as any;
+  if (typeof markUsed?.meta?.changes === 'number' && markUsed.meta.changes === 0) {
+    return corsJson({ error: 'invalid_grant', error_description: 'Code already used' }, 400);
+  }
 
   // Mint an mcp_token row for this approval.
   const tokenBytes = crypto.getRandomValues(new Uint8Array(32));
@@ -1210,6 +1322,17 @@ export async function oauthToken(request: Request, env: Env): Promise<Response> 
     tokenId,
     codeRow.account_id, codeRow.user_id, codeRow.user_email,
     label, tokenHash, tokenPrefix,
+  ).run();
+
+  await env.DB.prepare(
+    `INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id, account_id)
+     VALUES (?, 'MCP_TOKEN_MINTED', ?, ?, 'mcp_token', ?, ?)`
+  ).bind(
+    crypto.randomUUID(),
+    `MCP OAuth token minted: ${label}`,
+    codeRow.user_email,
+    tokenId,
+    codeRow.account_id,
   ).run();
 
   return corsJson({

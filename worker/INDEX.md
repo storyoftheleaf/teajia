@@ -1,11 +1,13 @@
 # worker — Index
 
-> Cloudflare Worker (API). Single entry point: src/index.ts (~296 endpoints). Authorization via requireBundle() middleware (26 uses) or legacy role==='owner' checks (13 uses). Multi-tenancy via X-Teajia-Account header + JWT active_account_id. Schema migrations in migrations/.
+> Cloudflare Worker (API). Single entry point: src/index.ts. Authorization is handler-driven via `requireBundle()`, `requireOwnerTier()`, platform gates, and account-scoped JWT membership checks. Multi-tenancy uses `X-Teajia-Account` plus JWT `active_account_id`. The maintained route/auth planning map is `docs/plan/product-architecture-route-auth-inventory.md`.
+
+**Note:** this file is a local navigation index, not the source of truth for line numbers. Prefer the maintained plan document above for current authorization decisions.
 
 ## Where things live
 
 - **src/index.ts** — every route handler. ~296 endpoints. Single file by design (Worker bundle size limit).
-- **migrations/** — D1 schema, numbered sequentially. Latest: 055_audit_account_id.sql
+- **migrations/** — D1 schema, numbered sequentially. Latest: 067_oauth.sql
 - **wrangler.toml** — deploy config
 
 ## Endpoints by bundle (gated by requireBundle())
@@ -40,10 +42,18 @@ Inventory, wholesale stock allocation, reservation holds. **NOTE: RPC endpoints 
 | GET /api/stock-ledger | 14327 | Implicit account scope |
 
 ### Publish bundle
-Magazine, collections, editorial. **NOTE: Publish bundle NOT server-enforced; all routes implicit account-scope only.**
+Magazine, collections, editorial. Admin article routes, authenticated content/product xrefs, and the product publication command route are server-enforced with `requireBundle('publish')`.
 
 | Route | Line | Gate |
 |-------|------|------|
+| GET /api/admin/articles | see src/index.ts | requireBundle('publish') |
+| GET /api/admin/articles/:id | see src/index.ts | requireBundle('publish') |
+| POST /api/admin/articles | see src/index.ts | requireBundle('publish') |
+| PUT /api/admin/articles/:id | see src/index.ts | requireBundle('publish') |
+| POST /api/admin/articles/:id/publish | see src/index.ts | requireBundle('publish') |
+| POST /api/admin/articles/:id/unpublish | see src/index.ts | requireBundle('publish') |
+| DELETE /api/admin/articles/:id | see src/index.ts | requireBundle('publish') |
+| PUT /api/products/:id/publication | see src/index.ts | requireBundle('publish') |
 | GET /api/collections | 14281 | Implicit (legacy owner-tier gate in UI) |
 | POST /api/collections | 14282 | Implicit |
 | GET /api/collections/:id | 14289 | Implicit |
@@ -75,6 +85,7 @@ Invoicing, wholesale orders, customer pricing, revenue analytics.
 | PUT /api/wholesale/orders/:id | 13444 | requireBundle('sell') |
 | POST /api/wholesale/orders/:id/transition | 13565 | requireBundle('sell') |
 | POST /api/wholesale/orders/:id/nudge | 13813 | requireBundle('sell') |
+| PUT /api/products/:id/commercial | see src/index.ts | requireBundle('sell') |
 | POST /api/rpc/fulfill-invoice | 14307 | None — CRITICAL |
 | POST /api/rpc/void-invoice | 14308 | None — CRITICAL |
 | GET /api/invoices | 14250 | Implicit account scope |
@@ -140,6 +151,12 @@ From /docs/_audit/03_platform_crosscutting.md §PART 1.
 - `requirePlatformAdmin()` — platform-tier-only gate. 13 endpoints. Blocks non-platform users.
 - `requireOwnerTier()` — legacy owner-tier-specific actions (ownership transfer, user deletion). 13 checks total, mostly intentional.
 - `requireAccount(accountId)` — multi-tenancy gatekeeper. Validates membership via X-Teajia-Account header or JWT active_account_id.
+- Product updates now have additive command routes:
+  - `PUT /api/products/:id/catalog` → `catalog`
+  - `PUT /api/products/:id/stock` → `stock`
+  - `PUT /api/products/:id/commercial` → `sell`
+  - `PUT /api/products/:id/publication` → `publish`
+- MCP token mint/list/revoke and MCP OAuth approval are owner-tier because current MCP tokens are broad account-scope tokens.
 
 **Multi-tenancy:** Every data query MUST filter by account_id. Spot-checked in /docs/_audit/03_platform_crosscutting.md §B — all 5 sample routes scoped correctly.
 
@@ -169,7 +186,7 @@ Platform-wide audit log: `platform_audit_log` table (created migration 047_membe
 | 051 | 051_network_adoption.sql | Adoption queue + network_visible flag |
 | 052–055 | 052_fix_missing_columns.sql, etc. | Schema repairs + audit columns |
 
-Latest: **055_audit_account_id.sql**
+Latest: **067_oauth.sql**
 
 ## Key numbers
 
@@ -198,7 +215,7 @@ Latest: **055_audit_account_id.sql**
 |----------|-------|----------|
 | RPC endpoints with no auth | 6 | CRITICAL |
 | Gather bundle NOT enforced | 17 | HIGH |
-| Publish bundle NOT enforced | 6 | HIGH |
+| Legacy collection publish routes still need a pass | 6 | HIGH |
 | Stock bundle NOT enforced | 6 | HIGH |
 | Member bundle grants NOT audited | 1 | HIGH |
 | Ownership transfers NOT audited | 1 | HIGH |

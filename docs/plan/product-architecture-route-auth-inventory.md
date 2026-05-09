@@ -56,9 +56,9 @@ Current bundle vocabulary:
 | Purchase orders | `/api/purchase-orders*` | `requireBundle('stock')` | Correct. Purchase orders are inventory procurement. |
 | Stock RPCs and ledgers | reserve/release/increment/ledger routes | `stock` where stock is primary, `sell` where invoice lifecycle is primary | Mostly aligned. Field-level product update remains unresolved. |
 | Customers | `/api/customers*`, customer tags, customer journey | `requireAccount` | Needs policy decision. Customers currently mix sales, vendors, event participants, and editorial recipients. |
-| Products | `/api/products`, `/api/products/:id` | Mixed: list/create/update/delete are account-level; bulk create is `catalog`; stock-specific routes are `stock` | Needs product model split. Legacy product rows combine catalog, stock, and sell concerns. |
+| Products | `/api/products`, `/api/products/:id`, product command routes | Mixed: list/create/update/delete remain account-level for compatibility; bulk create is `catalog`; new command routes enforce `catalog`, `stock`, `sell`, and `publish` by field group | Directionally aligned. UI can migrate to explicit command routes without breaking current screens. |
 | Compass/personal notes | `/api/compass/*`, `/api/notes`, `/api/tasting-journal` | Account/user auth | Deliberate. These are personal/professional memory tools, not only catalog operations. |
-| MCP tokens | `/api/admin/mcp-tokens*` | Account/admin handler surface | Needs explicit inventory in a follow-up because agent access is high leverage. |
+| MCP tokens / OAuth | `/api/admin/mcp-tokens*`, `/oauth/*`, `/mcp` | Manual token admin is owner-tier; OAuth approval now verifies the Teajia JWT and owner-tier account access before minting a code | Correct v1 posture for broad account-scope agent tokens. Tool-level scopes remain a future refinement. |
 
 ## Corrections Applied In This Pass
 
@@ -87,6 +87,31 @@ The authenticated xref handlers now require the `publish` bundle:
 | Project-product links | `/api/xref/projects/:id/products*` | Consult/project references are public-facing product-context decisions. |
 | Reverse product linked content | `/api/products/:id/articles`, `/api/products/:id/modules`, `/api/products/:id/projects` | Reveals the editorial graph around a product. |
 
+### Product Command Routes
+
+The legacy `PUT /api/products/:id` remains available so existing admin screens keep working. The server now also exposes explicit command routes with field allowlists:
+
+| Method | Route | Bundle | Field domain |
+|---|---|---|---|
+| `PUT` | `/api/products/:id/catalog` | `catalog` | Tea identity, origin, tasting, lore, sourcing metadata, imagery |
+| `PUT` | `/api/products/:id/stock` | `stock` | Stock grams, verification, thresholds, in-transit and reserve fields |
+| `PUT` | `/api/products/:id/commercial` | `sell` | Prices, cost basis, vendor, reorder and wholesale/commercial terms |
+| `PUT` | `/api/products/:id/publication` | `publish` | Public/shop/featured/curated visibility state |
+
+These routes reject fields outside their domain with `400`, which gives future UI and agent integrations a safer contract than the broad legacy endpoint.
+
+### MCP OAuth Approval
+
+The OAuth consent endpoint now derives user identity from the signed Teajia JWT in the `Authorization` header and re-checks D1 before minting an OAuth authorization code:
+
+| Check | Why |
+|---|---|
+| JWT signature and expiry | Prevents forged browser body identity from creating an auth code. |
+| User still exists | Revoked users lose OAuth approval power immediately. |
+| Account exists and is not suspended | Prevents token minting into invalid account contexts. |
+| Owner-tier membership or platform tier | MCP tokens currently grant broad account-scope agent control, so approval is owner-tier. |
+| OAuth token issuance activity log | Manual and OAuth token mints now both leave an account activity trail. |
+
 ## Product Boundary Decisions Still Needed
 
 ### 1. Legacy Product Row
@@ -99,16 +124,16 @@ The authenticated xref handlers now require the `publish` bundle:
 | Inventory | stock grams, low stock threshold, stock verification, purchase state, in-transit fields | `stock` |
 | Commerce | retail price, wholesale price, public/shop visibility, featured state | `sell` or `publish`, depending on action |
 
-Because those fields share one update endpoint today, a single route-level bundle would either be too loose or too restrictive. The better refactor is a product command split:
+Because those fields share one legacy update endpoint today, a single route-level bundle would either be too loose or too restrictive. The first command split now exists server-side:
 
-| Proposed command route | Bundle | Scope |
+| Command route | Bundle | Scope |
 |---|---|---|
-| `PATCH /api/products/:id/catalog` | `catalog` | Identity, tasting, sourcing, canonical metadata |
-| `PATCH /api/products/:id/stock` | `stock` | Quantities, stock thresholds, purchase/order state |
-| `PATCH /api/products/:id/commercial` | `sell` | Prices and commerce terms |
-| `PATCH /api/products/:id/publication` | `publish` | Shop/public/featured curation state |
+| `PUT /api/products/:id/catalog` | `catalog` | Identity, tasting, sourcing, canonical metadata |
+| `PUT /api/products/:id/stock` | `stock` | Quantities, stock thresholds, purchase/order state |
+| `PUT /api/products/:id/commercial` | `sell` | Prices and commerce terms |
+| `PUT /api/products/:id/publication` | `publish` | Shop/public/featured curation state |
 
-Until that split exists, route hardening should be conservative and paired with UI audits so staff with legitimate stock duties do not lose operational access accidentally.
+Next step: migrate admin product screens and MCP tools to those command routes, then tighten or retire the broad legacy endpoint once usage is gone.
 
 ### 2. Customers
 
@@ -127,21 +152,21 @@ The important design point: relationship data should stay rich, but access to it
 
 ### 3. MCP Tokens
 
-Agent access is high leverage because it can operate inventory or admin flows outside the normal UI. The route inventory needs a specific pass that records:
+Agent access is high leverage because it can operate inventory or admin flows outside the normal UI. Owner-tier minting and OAuth approval are now enforced, but the route inventory still needs a specific pass that records:
 
 | Question | Decision needed |
 |---|---|
-| Who can mint tokens? | Owner-tier, `members`, or domain bundle? |
+| Who can mint tokens? | Resolved for v1: owner-tier only. Revisit only when token scopes exist. |
 | What can a token do? | Single-purpose tool scope versus broad account scope |
 | How is token use audited? | Per-command audit logs, not just token creation/revocation |
 
 ## Highest-Value Next Pulls
 
-1. Split the legacy product update surface into command routes aligned to `catalog`, `stock`, `sell`, and `publish`.
-2. Add Worker tests for representative allow/deny cases: publish user can edit articles; non-publish member cannot; public article reads still work.
+1. Migrate product UI and MCP product tools from broad `api.products.update` calls to the explicit command routes.
+2. Add Worker tests for representative allow/deny cases: publish user can edit articles; non-publish member cannot; product command routes reject wrong-bundle and wrong-domain fields; public article reads still work.
 3. Add a generated route inventory script that extracts method/path/handler from the route table and joins it to a maintained access map.
 4. Decide the customer relationship taxonomy before changing customer route authorization.
-5. Inventory MCP token privileges and add audit expectations before extending agent control.
+5. Inventory MCP tool-level privileges before extending agent control beyond the current broad account-scope token model.
 
 ## Implementation Notes
 

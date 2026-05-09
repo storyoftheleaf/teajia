@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { useQuery } from '@tanstack/react-query';
 import { Story, ContentType, Person } from '../types';
-import type { DbArticle } from '../admin/types';
+import type { DbArticle } from '../types';
 import { api } from '../lib/api';
 import { LogoEmblem } from './Logos';
 import { Icons } from './Icons';

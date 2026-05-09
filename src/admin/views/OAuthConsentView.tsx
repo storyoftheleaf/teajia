@@ -11,8 +11,8 @@ import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 //   1. If the user isn't logged in, send them through the normal login flow
 //      first (preserving the consent URL so we land back here after).
 //   2. Show "Claude is requesting access to {account}" with approve/deny.
-//   3. On approve, POST to /oauth/authorize/decision with our user info +
-//      JWT, get back a redirect URL pointing into the client's redirect_uri
+//   3. On approve, POST to /oauth/authorize/decision with our JWT in the
+//      Authorization header, get back a redirect URL pointing into the client's redirect_uri
 //      with `code=<auth code>`, and navigate the browser there.
 
 const API_URL = (import.meta as any).env?.VITE_API_URL || '';
@@ -98,7 +98,6 @@ export const OAuthConsentView: React.FC = () => {
 
   const claims = getTokenClaims();
   const userEmail = claims?.email || '';
-  const userId = claims?.sub || '';
   const accountName = activeAccount?.name || 'this account';
   const clientLabel = inferClientLabel(params.redirect_uri);
 
@@ -107,9 +106,13 @@ export const OAuthConsentView: React.FC = () => {
     setError(null);
     const jwt = localStorage.getItem('teajia_token') || sessionStorage.getItem('teajia_token') || '';
     try {
+      if (!jwt) throw new Error('Login required before approval');
       const res = await fetch(`${API_URL}/oauth/authorize/decision`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${jwt}`,
+        },
         body: JSON.stringify({
           client_id: params.client_id,
           redirect_uri: params.redirect_uri,
@@ -117,10 +120,7 @@ export const OAuthConsentView: React.FC = () => {
           code_challenge_method: params.code_challenge_method,
           state: params.state,
           scope: params.scope,
-          user_id: userId,
-          user_email: userEmail,
           account_id: activeAccountId,
-          jwt,
         }),
       });
       if (!res.ok) {
