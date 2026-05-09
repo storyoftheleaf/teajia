@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import Cropper, { Area } from 'react-easy-crop';
-import { Loader2, RotateCcw, X } from 'lucide-react';
+import { Loader2, RotateCcw, RotateCw, X } from 'lucide-react';
 import { cropToSquareBlob, fileOrUrlToObjectUrl } from '../../lib/cropImage';
 
 interface SquareCropModalProps {
@@ -8,16 +8,23 @@ interface SquareCropModalProps {
   source: File | Blob | string | null;
   title?: string;
   confirmLabel?: string;
+  /** Output square edge in pixels. Default 1600 — keep that for product
+   *  photos; tea entry thumbnails can pass 800 for tighter storage. */
+  outputSize?: number;
+  /** JPEG quality 0–1. Default 0.88. */
+  outputQuality?: number;
   onClose: () => void;
   onConfirm: (blob: Blob) => Promise<void> | void;
 }
 
 export const SquareCropModal: React.FC<SquareCropModalProps> = ({
-  isOpen, source, title = 'Crop photo', confirmLabel = 'Save', onClose, onConfirm,
+  isOpen, source, title = 'Crop photo', confirmLabel = 'Save',
+  outputSize, outputQuality, onClose, onConfirm,
 }) => {
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
+  const [rotation, setRotation] = useState(0);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -30,6 +37,7 @@ export const SquareCropModal: React.FC<SquareCropModalProps> = ({
     setError(null);
     setCrop({ x: 0, y: 0 });
     setZoom(1);
+    setRotation(0);
     setCroppedAreaPixels(null);
 
     if (!isOpen || !source) return;
@@ -63,7 +71,11 @@ export const SquareCropModal: React.FC<SquareCropModalProps> = ({
     setSaving(true);
     setError(null);
     try {
-      const blob = await cropToSquareBlob(imageSrc, croppedAreaPixels);
+      const blob = await cropToSquareBlob(imageSrc, croppedAreaPixels, {
+        size: outputSize,
+        quality: outputQuality,
+        rotation,
+      });
       await onConfirm(blob);
     } catch (err: any) {
       setError(err?.message || 'Failed to save crop');
@@ -76,6 +88,11 @@ export const SquareCropModal: React.FC<SquareCropModalProps> = ({
   const handleReset = () => {
     setCrop({ x: 0, y: 0 });
     setZoom(1);
+    setRotation(0);
+  };
+
+  const handleRotate = () => {
+    setRotation((r) => (r + 90) % 360);
   };
 
   if (!isOpen) return null;
@@ -95,6 +112,16 @@ export const SquareCropModal: React.FC<SquareCropModalProps> = ({
           </button>
           <h3 className="text-base font-serif text-tea-text flex-1">{title}</h3>
           <button
+            onClick={handleRotate}
+            disabled={saving || !imageSrc}
+            className="text-tea-text-sec hover:text-tea-text transition-colors text-ui-11 inline-flex items-center gap-1.5 tap-target"
+            aria-label="Rotate 90° clockwise"
+            title="Rotate 90°"
+          >
+            <RotateCw size={14} />
+            <span className="hidden sm:inline">Rotate</span>
+          </button>
+          <button
             onClick={handleReset}
             disabled={saving || !imageSrc}
             className="text-tea-text-sec hover:text-tea-text transition-colors text-ui-11 inline-flex items-center gap-1.5 tap-target"
@@ -113,6 +140,7 @@ export const SquareCropModal: React.FC<SquareCropModalProps> = ({
               image={imageSrc}
               crop={crop}
               zoom={zoom}
+              rotation={rotation}
               aspect={1}
               minZoom={1}
               maxZoom={4}
@@ -120,6 +148,7 @@ export const SquareCropModal: React.FC<SquareCropModalProps> = ({
               objectFit="contain"
               onCropChange={setCrop}
               onZoomChange={setZoom}
+              onRotationChange={setRotation}
               onCropComplete={onCropComplete}
             />
           ) : (
@@ -146,7 +175,7 @@ export const SquareCropModal: React.FC<SquareCropModalProps> = ({
             />
           </label>
           <p className="text-ui-10 text-tea-text-dim mt-2">
-            Drag to position · pinch or scroll to zoom · output is 1600 × 1600.
+            Drag to position · pinch or scroll to zoom · tap Rotate to nudge orientation · output is {outputSize ?? 1600} × {outputSize ?? 1600}.
           </p>
         </div>
 

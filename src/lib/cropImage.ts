@@ -25,12 +25,39 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 export async function cropToSquareBlob(
   imageSrc: string,
   pixelCrop: PixelCrop,
+  options?: { size?: number; quality?: number; rotation?: number },
 ): Promise<Blob> {
+  const size = options?.size ?? OUTPUT_SIZE;
+  const quality = options?.quality ?? QUALITY;
+  const rotation = options?.rotation ?? 0;
   const image = await loadImage(imageSrc);
 
+  // When a rotation is applied, react-easy-crop reports pixelCrop relative
+  // to the rotated image bounding box — so we have to rotate the source
+  // into a working canvas first, then crop from that.
+  let source: CanvasImageSource = image;
+  if (rotation % 360 !== 0) {
+    const rad = (rotation * Math.PI) / 180;
+    const sin = Math.abs(Math.sin(rad));
+    const cos = Math.abs(Math.cos(rad));
+    const stageW = Math.ceil(image.width * cos + image.height * sin);
+    const stageH = Math.ceil(image.width * sin + image.height * cos);
+    const stage = document.createElement('canvas');
+    stage.width = stageW;
+    stage.height = stageH;
+    const sctx = stage.getContext('2d');
+    if (!sctx) throw new Error('Could not get 2d canvas context');
+    sctx.imageSmoothingEnabled = true;
+    sctx.imageSmoothingQuality = 'high';
+    sctx.translate(stageW / 2, stageH / 2);
+    sctx.rotate(rad);
+    sctx.drawImage(image, -image.width / 2, -image.height / 2);
+    source = stage;
+  }
+
   const canvas = document.createElement('canvas');
-  canvas.width = OUTPUT_SIZE;
-  canvas.height = OUTPUT_SIZE;
+  canvas.width = size;
+  canvas.height = size;
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Could not get 2d canvas context');
 
@@ -39,15 +66,15 @@ export async function cropToSquareBlob(
   ctx.imageSmoothingQuality = 'high';
 
   ctx.drawImage(
-    image,
+    source,
     pixelCrop.x,
     pixelCrop.y,
     pixelCrop.width,
     pixelCrop.height,
     0,
     0,
-    OUTPUT_SIZE,
-    OUTPUT_SIZE,
+    size,
+    size,
   );
 
   return new Promise<Blob>((resolve, reject) => {
@@ -57,7 +84,7 @@ export async function cropToSquareBlob(
         else reject(new Error('Canvas toBlob returned null'));
       },
       'image/jpeg',
-      QUALITY,
+      quality,
     );
   });
 }

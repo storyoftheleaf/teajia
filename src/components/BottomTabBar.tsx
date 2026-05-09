@@ -23,10 +23,15 @@ interface BottomTabBarProps {
 }
 
 /**
- * MicCenterButton — a web3-flavoured circular button that lifts above the
- * bar plane via negative translate, layered gold halo, and animated ripple
- * rings during recording. Replaces the centered teajiā logo on screens
- * that register a `bottomBarAction` of type `'mic'`.
+ * MicCenterButton — a web3-flavoured circular button that sits inside the
+ * bar with a layered gold halo and animated ripple rings during recording.
+ * Replaces the centered teajiā logo on screens that register a
+ * `bottomBarAction` of type `'mic'`.
+ *
+ * The button is sized to fit comfortably within the 52px bar (40×40 with
+ * a 4px halo) so it never clips against the bar edges or the home
+ * indicator on iOS — visual prominence comes from the layered glow and
+ * gold ring rather than physically protruding above the bar plane.
  */
 const MicCenterButton: React.FC<{
   state: 'idle' | 'recording' | 'transcribing' | 'error';
@@ -41,23 +46,23 @@ const MicCenterButton: React.FC<{
       type="button"
       onClick={onPress}
       disabled={transcribing}
-      whileHover={{ scale: transcribing ? 1 : 1.05 }}
+      whileHover={{ scale: transcribing ? 1 : 1.06 }}
       whileTap={{ scale: transcribing ? 1 : 0.92 }}
       transition={{ type: 'spring', stiffness: 400, damping: 22 }}
       aria-label={recording ? 'Stop recording' : transcribing ? 'Transcribing' : 'Record voice note'}
       title={recording ? 'Stop recording' : transcribing ? 'Transcribing…' : 'Tap to record'}
-      className="relative -translate-y-2 w-12 h-12 rounded-full flex items-center justify-center select-none disabled:cursor-wait"
+      className="relative w-10 h-10 rounded-full flex items-center justify-center select-none disabled:cursor-wait"
       style={{
         WebkitTouchCallout: 'none',
         WebkitUserSelect: 'none',
         touchAction: 'manipulation',
         background: recording
-          ? 'radial-gradient(circle at 50% 35%, rgb(var(--tea-gold-rgb) / 0.32), rgb(var(--tea-elevated-rgb)) 75%)'
-          : 'radial-gradient(circle at 50% 35%, rgb(var(--tea-gold-rgb) / 0.14), rgb(var(--tea-elevated-rgb)) 70%)',
-        border: `1px solid rgb(var(--tea-gold-rgb) / ${recording ? 0.65 : 0.4})`,
+          ? 'radial-gradient(circle at 50% 35%, rgb(var(--tea-gold-rgb) / 0.36), rgb(var(--tea-elevated-rgb)) 78%)'
+          : 'radial-gradient(circle at 50% 35%, rgb(var(--tea-gold-rgb) / 0.18), rgb(var(--tea-elevated-rgb)) 72%)',
+        border: `1.5px solid rgb(var(--tea-gold-rgb) / ${recording ? 0.7 : 0.5})`,
         boxShadow: recording
-          ? '0 0 0 6px rgb(var(--tea-gold-rgb) / 0.10), 0 8px 24px -4px rgb(var(--tea-gold-rgb) / 0.45), 0 0 18px rgb(var(--tea-gold-rgb) / 0.35), inset 0 1px 0 rgb(255 255 255 / 0.08)'
-          : '0 0 0 5px rgb(var(--tea-gold-rgb) / 0.05), 0 8px 22px -6px rgb(var(--tea-bg-rgb) / 0.7), 0 0 22px -6px rgb(var(--tea-gold-rgb) / 0.22), inset 0 1px 0 rgb(255 255 255 / 0.05)',
+          ? '0 0 0 4px rgb(var(--tea-gold-rgb) / 0.12), 0 4px 14px -2px rgb(var(--tea-gold-rgb) / 0.45), 0 0 16px rgb(var(--tea-gold-rgb) / 0.4), inset 0 1px 0 rgb(255 255 255 / 0.08)'
+          : '0 0 0 4px rgb(var(--tea-gold-rgb) / 0.06), 0 4px 14px -4px rgb(var(--tea-gold-rgb) / 0.28), 0 0 18px rgb(var(--tea-gold-rgb) / 0.2), inset 0 1px 0 rgb(255 255 255 / 0.05)',
       }}
     >
       {/* Recording ripple rings — two concentric, staggered, expand outward */}
@@ -92,17 +97,17 @@ const MicCenterButton: React.FC<{
         style={{ color: errored ? '#fb7185' : 'var(--tea-gold)' }}
       >
         {recording ? (
-          <Square size={18} fill="currentColor" strokeWidth={0} />
+          <Square size={16} fill="currentColor" strokeWidth={0} />
         ) : transcribing ? (
           <motion.span
             className="block"
             animate={{ rotate: 360 }}
             transition={{ duration: 1.1, repeat: Infinity, ease: 'linear' }}
           >
-            <Loader2 size={20} strokeWidth={1.75} />
+            <Loader2 size={18} strokeWidth={1.75} />
           </motion.span>
         ) : (
-          <Mic size={20} strokeWidth={1.75} />
+          <Mic size={18} strokeWidth={1.75} />
         )}
       </span>
     </motion.button>

@@ -886,8 +886,20 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
     const effectiveClayType: YixingClayType | undefined = entry.clayType || legacyClay;
 
     const handleMaterialPick = (mat: TeawareMaterial) => {
-      if (mat === 'Yixing') {
-        // Open the clay-subtype sub-panel inside the same popover instead of committing.
+      // Both Yixing and generic Clay open the clay-subtype sub-panel so the
+      // user can pick from the canonical clay names (Zhuni, Hongni, …)
+      // regardless of vessel category. The material itself is committed
+      // here so handleClayPick can read entry.material to know which one.
+      if (mat === 'Yixing' || mat === 'Clay') {
+        const updates: Record<string, unknown> = {
+          material: mat,
+          clayType: undefined,
+        };
+        const originDefault = MATERIAL_ORIGIN_DEFAULT[mat];
+        if (originDefault && !entry.originRegion) {
+          updates.originRegion = originDefault;
+        }
+        update(updates);
         setMaterialPanel('yixing');
         return;
       }
@@ -907,11 +919,15 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
 
     const handleClayPick = (clay: YixingClayType) => {
       const sameClay = effectiveClayType === clay;
+      // Preserve the parent material the user chose (Yixing vs generic Clay)
+      // — if entry.material is anything else, default to Yixing for the
+      // legacy rollup behaviour.
+      const parentMaterial: TeawareMaterial = entry.material === 'Clay' ? 'Clay' : 'Yixing';
       const updates: Record<string, unknown> = {
-        material: 'Yixing',
+        material: parentMaterial,
         clayType: sameClay ? undefined : clay,
       };
-      if (!entry.originRegion && MATERIAL_ORIGIN_DEFAULT.Yixing) {
+      if (parentMaterial === 'Yixing' && !entry.originRegion && MATERIAL_ORIGIN_DEFAULT.Yixing) {
         updates.originRegion = MATERIAL_ORIGIN_DEFAULT.Yixing;
       }
       update(updates);
@@ -993,8 +1009,11 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
               <button
                 type="button"
                 onClick={() => { setCategoryPopoverOpen(!categoryPopoverOpen); setEraPopoverOpen(false); setMaterialPopoverOpen(false); }}
-                className="inline-flex items-center gap-1 rounded-xl px-3 py-2.5 text-sm bg-tea-gold/[0.06] border border-tea-border text-tea-text-dim hover:text-tea-text transition-colors"
-                style={entry.teawareCategory ? { color: 'var(--tea-text)' } : undefined}
+                className={`inline-flex items-center gap-1 rounded-xl px-3 py-2.5 text-sm border border-tea-border transition-colors ${
+                  entry.teawareCategory
+                    ? 'text-tea-text font-semibold bg-tea-gold/[0.10]'
+                    : 'text-tea-text-sec font-medium bg-tea-gold/[0.06] hover:text-tea-text'
+                }`}
               >
                 <span>{entry.teawareCategory || 'Category'}</span>
                 <ChevronDown size={13} strokeWidth={2} />
@@ -1011,8 +1030,11 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                   <button
                     type="button"
                     onClick={() => { setEraPopoverOpen(!eraPopoverOpen); setMaterialPopoverOpen(false); setCategoryPopoverOpen(false); setEraInputOpen(false); }}
-                    className="inline-flex items-center gap-1 rounded-xl px-3 py-2.5 text-sm bg-tea-gold/[0.06] border border-tea-border text-tea-text-dim hover:text-tea-text transition-colors tabular-nums"
-                    style={entry.era ? { color: 'var(--tea-text)' } : undefined}
+                    className={`inline-flex items-center gap-1 rounded-xl px-3 py-2.5 text-sm border border-tea-border transition-colors tabular-nums ${
+                      entry.era
+                        ? 'text-tea-text font-semibold bg-tea-gold/[0.10]'
+                        : 'text-tea-text-sec font-medium bg-tea-gold/[0.06] hover:text-tea-text'
+                    }`}
                   >
                     <span>{entry.era || 'Era'}</span>
                     <ChevronDown size={13} strokeWidth={2} />
@@ -1030,8 +1052,11 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                       // Default to the Yixing sub-panel when re-opening on a Yixing entry
                       setMaterialPanel(isYixing && !materialPopoverOpen ? 'yixing' : 'main');
                     }}
-                    className="inline-flex items-center gap-1 rounded-xl px-3 py-2.5 text-sm bg-tea-gold/[0.06] border border-tea-border text-tea-text-dim hover:text-tea-text transition-colors"
-                    style={entry.material ? { color: 'var(--tea-text)' } : undefined}
+                    className={`inline-flex items-center gap-1 rounded-xl px-3 py-2.5 text-sm border border-tea-border transition-colors ${
+                      entry.material
+                        ? 'text-tea-text font-semibold bg-tea-gold/[0.10]'
+                        : 'text-tea-text-sec font-medium bg-tea-gold/[0.06] hover:text-tea-text'
+                    }`}
                   >
                     <span>{materialChipLabel}</span>
                     <ChevronDown size={13} strokeWidth={2} />
@@ -1050,16 +1075,20 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
               </button>
             )}
 
-            {/* Origin — full width on mobile (wraps to its own line below the
-                chips), flex-1 on desktop. The mobile wrap is enforced by basis-full
-                so Origin can never get clipped at the right edge of the card. */}
-            <AutocompleteInput
-              value={entry.originRegion || ''}
-              onChange={(val) => update({ originRegion: val || undefined })}
-              suggestions={availableRegions}
-              placeholder="Origin"
-              className="w-full lg:w-auto lg:flex-1 lg:min-w-[140px] bg-tea-gold/[0.06] text-tea-text text-base rounded-xl px-3 py-2.5 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder:text-tea-text-sec/70"
-            />
+            {/* Origin — wrapped in an outer div with w-full on mobile so it
+                drops to its own line beneath the chips (the chips line was
+                clipping Origin at narrow widths). Desktop keeps the inline
+                flex-1 behaviour. AutocompleteInput's internal flex-1 wrapper
+                fills whatever width this outer div claims. */}
+            <div className="w-full lg:w-auto lg:flex-1 lg:min-w-[140px]">
+              <AutocompleteInput
+                value={entry.originRegion || ''}
+                onChange={(val) => update({ originRegion: val || undefined })}
+                suggestions={availableRegions}
+                placeholder="Origin"
+                className="w-full bg-tea-gold/[0.06] text-tea-text text-base rounded-xl px-3 py-2.5 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder:text-tea-text-sec/70"
+              />
+            </div>
           </div>
 
           {/* Category popover — anchored to the row's left edge */}
@@ -1096,11 +1125,12 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             )}
           </AnimatePresence>
 
-          {/* Optional clay-subtype subtitle — small line below the row when Yixing has a clay set.
-              Placement (small, dim, indented under the Material chip) signals that it's an
-              optional descriptor without labelling it "optional". */}
-          {isYixing && effectiveClayType && (
-            <div className="flex items-center gap-1.5 mt-1.5 ml-[68px] text-ui-11 text-tea-text-dim">
+          {/* Optional clay-subtype subtitle — small line below the row when a
+              clay subtype is set (under either Yixing or generic Clay parent).
+              Placement (small, dim, indented under the Material chip) signals
+              that it's an optional descriptor without labelling it "optional". */}
+          {(isYixing || entry.material === 'Clay') && effectiveClayType && (
+            <div className="flex items-center gap-1.5 mt-1.5 ml-[68px] text-ui-11 text-tea-text-sec">
               <span
                 className="shrink-0 w-2.5 h-2.5 rounded-full border border-tea-border"
                 style={{ backgroundColor: YIXING_CLAY_TYPES.find((c) => c.name === effectiveClayType)?.swatch }}
@@ -1109,8 +1139,8 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
               <span>{effectiveClayType}</span>
               <button
                 type="button"
-                onClick={() => update({ material: 'Yixing', clayType: undefined })}
-                className="text-tea-text-dim hover:text-tea-text-sec transition-colors"
+                onClick={() => update({ material: entry.material === 'Clay' ? 'Clay' : 'Yixing', clayType: undefined })}
+                className="text-tea-text-sec hover:text-tea-text transition-colors"
                 aria-label="Clear clay subtype"
               >
                 <X size={10} />
@@ -1134,7 +1164,11 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                       key={eraName}
                       type="button"
                       onClick={() => handleEraPick(eraName)}
-                      className={`text-left px-3 py-2 rounded-lg text-sm transition-colors ${entry.era === eraName ? 'text-tea-gold bg-tea-gold/[0.08]' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-gold/[0.05]'}`}
+                      className={`text-left px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                        entry.era === eraName
+                          ? 'text-tea-gold bg-tea-gold/[0.12] font-semibold'
+                          : 'text-tea-text hover:text-tea-gold hover:bg-tea-gold/[0.08]'
+                      }`}
                     >
                       {eraName}
                     </button>
@@ -1194,16 +1228,20 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                   <div className="flex flex-col gap-0.5">
                     {materials.map((mat) => {
                       const isSelected = entry.material === mat || (mat === 'Yixing' && isYixing);
-                      const isYixingRow = mat === 'Yixing';
+                      const hasSubtypes = mat === 'Yixing' || mat === 'Clay';
                       return (
                         <button
                           key={mat}
                           type="button"
                           onClick={() => handleMaterialPick(mat)}
-                          className={`flex items-center justify-between text-left px-3 py-2 rounded-lg text-sm transition-colors ${isSelected ? 'text-tea-gold bg-tea-gold/[0.08]' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-gold/[0.05]'}`}
+                          className={`flex items-center justify-between text-left px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                            isSelected
+                              ? 'text-tea-gold bg-tea-gold/[0.12] font-semibold'
+                              : 'text-tea-text hover:text-tea-gold hover:bg-tea-gold/[0.08]'
+                          }`}
                         >
                           <span>{mat}</span>
-                          {isYixingRow && <ChevronRight size={14} className="text-tea-text-dim" />}
+                          {hasSubtypes && <ChevronRight size={14} className={isSelected ? 'text-tea-gold' : 'text-tea-text-sec'} />}
                         </button>
                       );
                     })}
@@ -1213,10 +1251,10 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                     <button
                       type="button"
                       onClick={() => setMaterialPanel('main')}
-                      className="flex items-center gap-1.5 text-left px-3 py-1.5 rounded-lg text-ui-12 text-tea-text-dim hover:text-tea-text hover:bg-tea-gold/[0.05] transition-colors"
+                      className="flex items-center gap-1.5 text-left px-3 py-1.5 rounded-lg text-ui-12 text-tea-text-sec hover:text-tea-text hover:bg-tea-gold/[0.06] transition-colors"
                     >
                       <ChevronLeft size={13} />
-                      <span>Yixing clay</span>
+                      <span>{entry.material === 'Clay' ? 'Clay subtype' : 'Yixing clay'}</span>
                     </button>
                     <div className="border-t border-tea-border my-1" />
                     <div className="grid grid-cols-2 gap-1">
@@ -1227,7 +1265,11 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                             key={clay.name}
                             type="button"
                             onClick={() => handleClayPick(clay.name)}
-                            className={`flex items-center gap-2 text-left px-2 py-2 rounded-lg text-ui-13 transition-colors ${sel ? 'text-tea-gold bg-tea-gold/[0.08]' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-gold/[0.05]'}`}
+                            className={`flex items-center gap-2 text-left px-2.5 py-2 rounded-lg text-sm font-medium transition-colors ${
+                              sel
+                                ? 'text-tea-gold bg-tea-gold/[0.12] font-semibold'
+                                : 'text-tea-text hover:text-tea-gold hover:bg-tea-gold/[0.08]'
+                            }`}
                           >
                             <span
                               className="shrink-0 w-4 h-4 rounded-full border border-tea-border"
