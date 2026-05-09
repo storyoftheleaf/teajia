@@ -84,7 +84,7 @@ import { VenueManager } from './components/VenueManager';
 import { PeopleView } from './components/PeopleView';
 import { CustomerProfilePage } from './components/CustomerProfilePage';
 import { ActivityView } from './components/ActivityView';
-import { QuickCapture } from './components/QuickCapture';
+import { DraftsView } from './components/DraftsView';
 import { CatalogView } from './views/CatalogView';
 import { PurchaseOrdersPage } from './views/PurchaseOrdersPage';
 import { TeaCompass } from '../components/TeaCompass';
@@ -620,7 +620,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
               <Route path="capture" element={
                 <ProtectedRoute hasAccess={isMember} isLoggingIn={isLoginOpen || !isLoggedIn}>
                   <PageTransition>
-                    <QuickCapture
+                    <DraftsView
                       products={products}
                       isLoading={loading}
                       onDraftCreated={refetchProducts}
