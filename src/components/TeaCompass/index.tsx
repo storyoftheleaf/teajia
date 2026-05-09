@@ -492,70 +492,67 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
             <ArrowLeft size={18} strokeWidth={1.75} />
           </button>
 
-          {/* Screen identity ▾ — collapses Source/Library/Ledger into a
-              single tap-to-switch chip. Carries the same family
-              (display font, semibold, ui-12) as the sub-tabs. */}
+          {/* Screen identity ▾ — a real bordered chip with a leading dot
+              (gold = sourcing, brighter on tap). Reads as a tappable
+              "switch screen" affordance, not as a label. The chevron
+              sits opposite the dot so the eye can scan the chip as a
+              labelled control. */}
           <button
             type="button"
             onClick={() => setScreenSheetOpen(true)}
             aria-haspopup="menu"
             aria-expanded={screenSheetOpen}
-            className="self-center inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-ui-12 font-semibold text-tea-gold hover:bg-tea-gold/[0.08] active:bg-tea-gold/[0.12] transition-colors shrink-0"
+            className="self-center ml-1 inline-flex items-center gap-1.5 px-2.5 h-8 rounded-lg text-ui-13 font-semibold text-tea-text border border-tea-border bg-tea-elevated/60 hover:bg-tea-gold/[0.08] hover:border-tea-gold/40 active:bg-tea-gold/[0.14] transition-colors shrink-0"
             style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.01em' }}
           >
+            <span className="w-1.5 h-1.5 rounded-full bg-tea-gold" aria-hidden />
             <span>{currentTab?.label ?? 'Source'}</span>
             {currentTab?.badge != null && (
-              <span className="ml-0.5 text-ui-9 px-1.5 py-px rounded-full bg-tea-gold/20 text-tea-gold tabular-nums">{currentTab.badge}</span>
+              <span className="text-ui-9 px-1.5 py-px rounded-full bg-tea-gold/20 text-tea-gold tabular-nums">{currentTab.badge}</span>
             )}
-            <ChevronDown size={13} strokeWidth={2} />
+            <ChevronDown size={13} strokeWidth={2} className="text-tea-text-sec -mr-0.5" />
           </button>
 
-          {/* Sub-tabs inline (sourcing only). Compact segmented control
-              styled to match the rest of the header. */}
+          {/* Hairline divider between the screen-switcher chip and the
+              sub-tabs so they read as two separate controls instead of a
+              run-on row. */}
           {mode === 'sourcing' && (
-            <div className="flex-1 flex items-center justify-center min-w-0 px-2">
-              <div className="relative inline-flex items-center bg-tea-surface/30 rounded-md p-0.5 max-w-full">
-                <motion.div
-                  className="absolute top-0.5 bottom-0.5 rounded-[5px] bg-tea-surface shadow-sm"
-                  animate={{
-                    left: captureOption === 'tea' ? '2px' : captureOption === 'teaware' ? '33.33%' : '66.66%',
-                    right: captureOption === 'samples' ? '2px' : captureOption === 'teaware' ? '33.33%' : '66.66%',
-                  }}
-                  transition={{ duration: 0.1, ease: 'easeOut' }}
-                />
-                <button
-                  type="button"
-                  onClick={() => handleCaptureOption('tea')}
-                  className={`relative z-[1] px-3 py-1 text-ui-11 font-semibold rounded-[5px] transition-colors ${
-                    captureOption === 'tea' ? 'text-tea-text' : 'text-tea-text-sec hover:text-tea-text'
-                  }`}
-                  style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.01em' }}
-                >
-                  Tea
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleCaptureOption('teaware')}
-                  className={`relative z-[1] px-3 py-1 text-ui-11 font-semibold rounded-[5px] transition-colors ${
-                    captureOption === 'teaware' ? 'text-tea-text' : 'text-tea-text-sec hover:text-tea-text'
-                  }`}
-                  style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.01em' }}
-                >
-                  Teaware
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleCaptureOption('samples')}
-                  className={`relative z-[1] inline-flex items-center gap-1 px-3 py-1 text-ui-11 font-semibold rounded-[5px] transition-colors ${
-                    captureOption === 'samples' ? 'text-tea-text' : 'text-tea-text-sec hover:text-tea-text'
-                  }`}
-                  style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.01em' }}
-                >
-                  Samples
-                  {sampleCartCount > 0 && (
-                    <span className="text-ui-9 px-1.5 py-px rounded-full bg-tea-gold/20 text-tea-gold tabular-nums font-medium">{sampleCartCount}</span>
-                  )}
-                </button>
+            <div className="self-center mx-2 w-px h-5 bg-tea-border" aria-hidden />
+          )}
+
+          {/* Sub-tabs inline (sourcing only). Bigger text + clearer
+              active state — gold tinted bg + gold border on the active
+              option so it reads at a glance. */}
+          {mode === 'sourcing' && (
+            <div className="flex-1 flex items-center min-w-0">
+              <div className="inline-flex items-center gap-1 max-w-full overflow-x-auto scrollbar-hide">
+                {([
+                  { id: 'tea', label: 'Tea' },
+                  { id: 'teaware', label: 'Teaware' },
+                  { id: 'samples', label: 'Samples' },
+                ] as const).map((opt) => {
+                  const active = captureOption === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => handleCaptureOption(opt.id)}
+                      className={`shrink-0 inline-flex items-center gap-1.5 px-3 h-8 rounded-lg text-ui-12 font-semibold transition-colors ${
+                        active
+                          ? 'bg-tea-gold/[0.12] text-tea-gold border border-tea-gold/40'
+                          : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-gold/[0.04] border border-transparent'
+                      }`}
+                      style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.01em' }}
+                    >
+                      {opt.label}
+                      {opt.id === 'samples' && sampleCartCount > 0 && (
+                        <span className={`text-ui-9 px-1.5 py-px rounded-full tabular-nums font-medium ${active ? 'bg-tea-gold/20 text-tea-gold' : 'bg-tea-elevated text-tea-text'}`}>
+                          {sampleCartCount}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}

@@ -1478,19 +1478,18 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
         className="rounded-2xl border border-tea-border bg-tea-gold/[0.025] px-3 py-2.5"
         style={{ boxShadow: 'inset 0 1px 0 rgb(var(--tea-gold-rgb) / 0.05)' }}
       >
-        <div className="flex items-center justify-between mb-1.5">
-          <span
-            className="text-ui-9 uppercase tracking-[0.18em] text-tea-text-sec font-medium"
-            style={{ fontFamily: 'var(--font-display)' }}
-          >
-            Source
-          </span>
+          {/* Photo counter floats top-right of the card when photos exist;
+              otherwise the card opens directly with the vendor strip. The
+              SOURCE label that used to sit on the left was removed —
+              the bordered card with its faint gold inner glow is enough
+              visual grouping on its own. */}
           {entry.photos.length > 0 && (
-            <span className="text-ui-9 uppercase tracking-[0.14em] text-tea-text-sec tabular-nums">
-              {entry.photos.length} {entry.photos.length === 1 ? 'photo' : 'photos'}
-            </span>
+            <div className="flex items-center justify-end mb-1">
+              <span className="text-ui-9 uppercase tracking-[0.14em] text-tea-text-sec tabular-nums">
+                {entry.photos.length} {entry.photos.length === 1 ? 'photo' : 'photos'}
+              </span>
+            </div>
           )}
-        </div>
 
         <VendorStrip
           vendorName={entry.vendorName}
