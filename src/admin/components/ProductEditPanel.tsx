@@ -85,7 +85,10 @@ export const GhostTextarea = ({
 };
 
 const GHOST_INPUT_BASE = 'w-full bg-transparent border-0 border-b-0 hover:border-b hover:border-tea-accent-sub focus:border-b focus:border-tea-gold/40 focus:bg-tea-gold/[0.03] rounded-none py-1 px-0 outline-none focus-visible:ring-0 transition-colors placeholder-tea-text-dim/60 leading-none';
-const BORDERED_INPUT_BASE = 'w-full bg-tea-bg border border-tea-border hover:border-tea-gold/40 focus:border-tea-gold/60 rounded-md py-2 px-3 outline-none focus:ring-2 focus:ring-tea-gold/40 transition-colors text-ui-14 text-tea-text placeholder:text-tea-text-dim leading-tight';
+// Both BORDERED_INPUT and BORDERED_SELECT must compute to the SAME box height:
+//   2*8px py + 14px font * 1.25 leading + 2px border = 35.5px. Don't change one
+//   without changing the other.
+const BORDERED_INPUT_BASE = 'w-full h-9 bg-tea-bg border border-tea-border hover:border-tea-gold/40 focus:border-tea-gold/60 rounded-md py-2 px-3 outline-none focus:ring-2 focus:ring-tea-gold/40 transition-colors text-ui-14 text-tea-text placeholder:text-tea-text-dim leading-tight';
 
 export const GhostInput = ({
   value, onSave, type = 'text', align = 'left', className = '', placeholder = '', inputMode, id, ariaLabel, variant = 'ghost',
@@ -185,13 +188,14 @@ export const GhostAutocompleteInput = ({
 };
 
 const GHOST_SELECT_BASE = 'w-full bg-transparent border-0 border-b-0 hover:border-b hover:border-tea-accent-sub focus:border-b focus:border-tea-gold/40 focus:bg-tea-gold/[0.03] rounded-none py-1 px-0 pr-4 outline-none focus-visible:ring-0 transition-colors text-left appearance-none cursor-pointer leading-none';
-const BORDERED_SELECT_BASE = 'w-full bg-tea-bg border border-tea-border hover:border-tea-gold/40 focus:border-tea-gold/60 rounded-md py-2 pl-3 pr-8 outline-none focus:ring-2 focus:ring-tea-gold/40 transition-colors text-ui-14 text-tea-text appearance-none cursor-pointer';
+// h-9 + leading-tight = same height as BORDERED_INPUT_BASE.
+const BORDERED_SELECT_BASE = 'w-full h-9 bg-tea-bg border border-tea-border hover:border-tea-gold/40 focus:border-tea-gold/60 rounded-md py-2 pl-2.5 pr-6 outline-none focus:ring-2 focus:ring-tea-gold/40 transition-colors text-ui-14 text-tea-text leading-tight appearance-none cursor-pointer';
 
 export const GhostSelect = ({ value, onSave, options, className = '', ariaLabel, variant = 'ghost' }: {
   value: string; onSave: (val: string) => void; options: string[]; className?: string; ariaLabel?: string; variant?: FieldVariant;
 }) => {
   const base = variant === 'bordered' ? BORDERED_SELECT_BASE : GHOST_SELECT_BASE;
-  const chevronPos = variant === 'bordered' ? 'right-3' : 'right-0';
+  const chevronPos = variant === 'bordered' ? 'right-2' : 'right-0';
   return (
     <div className="relative flex-1">
       <select
@@ -316,14 +320,14 @@ export const CollapsibleSection = ({ title, description, defaultOpen = true, mob
   });
   return (
     <div className="mx-3 mb-3 bg-tea-surface border border-tea-border rounded-md overflow-hidden">
-      <button onClick={() => setOpen(!open)} aria-expanded={open} className="w-full flex items-start justify-between gap-3 px-4 py-3 group text-left">
+      <button onClick={() => setOpen(!open)} aria-expanded={open} className="w-full flex items-start justify-between gap-3 px-4 py-3.5 group text-left">
         <div className="min-w-0">
-          <span className="block font-display text-ui-15 font-medium text-tea-text leading-[1.3]">{title}</span>
+          <span className="block font-display text-ui-17 font-normal text-tea-text leading-[1.3] tracking-[0.01em]">{title}</span>
           {description && (
             <span className="block text-ui-11 text-tea-text-sec leading-[1.5] mt-1">{description}</span>
           )}
         </div>
-        <ChevronRight size={14} aria-hidden="true" className={`mt-1 shrink-0 text-tea-text-dim transition-transform duration-200 group-hover:text-tea-text-sec ${open ? 'rotate-90' : ''}`} />
+        <ChevronRight size={14} aria-hidden="true" className={`mt-1.5 shrink-0 text-tea-text-dim transition-transform duration-200 group-hover:text-tea-text-sec ${open ? 'rotate-90' : ''}`} />
       </button>
       <div className="grid transition-[grid-template-rows] duration-200 ease-out" style={{ gridTemplateRows: open ? '1fr' : '0fr' }}>
         <div className="overflow-hidden">
@@ -1039,8 +1043,8 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                   Identity, origin, vendor, pricing, stock, visibility all live here so a
                   product can be entered top-to-bottom without expanding sections. */}
             <div className="mx-3 mb-3 rounded-md bg-tea-surface border border-tea-border px-4 pt-4 pb-4">
-              <div className="flex items-baseline justify-between mb-4 pb-2 border-b border-tea-border">
-                <span className="font-display text-ui-15 font-medium text-tea-text leading-[1.3]">Quick entry</span>
+              <div className="flex items-baseline justify-between mb-4 pb-2.5 border-b border-tea-border">
+                <span className="font-display text-ui-17 font-normal text-tea-text leading-[1.3] tracking-[0.01em]">Quick entry</span>
                 <span className="text-ui-10 text-tea-text-dim uppercase tracking-[0.18em]">Auto-saves</span>
               </div>
 
@@ -1128,7 +1132,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                   value={product.vendor || ''}
                   productId={product.id}
                   onChange={(val) => handleUpdate(product.id, 'vendor', val)}
-                  className="w-full bg-tea-bg border border-tea-border hover:border-tea-gold/40 focus:border-tea-gold/60 rounded-md py-2 px-3 outline-none focus:ring-2 focus:ring-tea-gold/40 transition-colors text-ui-14 text-tea-text placeholder:text-tea-text-dim leading-tight"
+                  className="w-full h-9 bg-tea-bg border border-tea-border hover:border-tea-gold/40 focus:border-tea-gold/60 rounded-md py-2 px-3 outline-none focus:ring-2 focus:ring-tea-gold/40 transition-colors text-ui-14 text-tea-text placeholder:text-tea-text-dim leading-tight"
                 />
               </div>
 
@@ -1148,19 +1152,19 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
               ) : (
                 <>
                   <FieldRowFull label="Cost">
-                    <div className="flex items-stretch gap-2 w-full">
-                      <label className="relative shrink-0 cursor-pointer">
+                    <div className="flex items-center gap-2 w-full">
+                      <label className="relative shrink-0 cursor-pointer w-[88px]">
                         <select
                           value={product.costCurrency || 'USD'}
                           onChange={(e) => handleUpdate(product.id, 'costCurrency', e.target.value)}
-                          className="h-full bg-tea-bg border border-tea-border hover:border-tea-gold/40 focus:border-tea-gold/60 rounded-md text-ui-12 text-tea-text-sec font-medium uppercase tracking-[0.08em] outline-none focus:ring-2 focus:ring-tea-gold/40 cursor-pointer appearance-none pl-3 pr-7 py-2"
+                          className="w-full h-9 bg-tea-bg border border-tea-border hover:border-tea-gold/40 focus:border-tea-gold/60 rounded-md text-ui-14 text-tea-text uppercase tracking-[0.06em] leading-tight outline-none focus:ring-2 focus:ring-tea-gold/40 cursor-pointer appearance-none pl-2.5 pr-6 py-2"
                           aria-label="Cost currency"
                         >
                           {['USD', 'NT', 'Yuan', 'IDR', 'JPY', 'MYR', 'HKD'].map(c => (
                             <option key={c} value={c} className="bg-tea-surface text-tea-text">{c === 'Yuan' ? 'CNY' : c}</option>
                           ))}
                         </select>
-                        <ChevronDown size={11} className="absolute right-2 top-1/2 -translate-y-1/2 text-tea-text-dim pointer-events-none" />
+                        <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-tea-text-dim/70 pointer-events-none" />
                       </label>
                       <GhostInput variant="bordered" value={product.costAmount} onSave={(val) => handleUpdate(product.id, 'costAmount', val)} type="number" className="tabular-nums flex-1 min-w-0" />
                     </div>
@@ -1276,7 +1280,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
               className="w-[calc(100%-1.5rem)] mx-3 mb-3 px-4 py-3 flex items-center justify-between gap-3 rounded-md bg-tea-surface border border-tea-border hover:bg-tea-accent-sub transition-colors group text-left"
             >
               <div className="min-w-0">
-                <span className="block font-display text-ui-15 font-medium text-tea-text leading-[1.3]">Tasting profile</span>
+                <span className="block font-display text-ui-17 font-normal text-tea-text leading-[1.3] tracking-[0.01em]">Tasting profile</span>
                 {flattenedTastingCount > 0 && product.mood && (
                   <span className="block font-body text-ui-12 italic text-tea-text-sec truncate mt-1">{product.mood}</span>
                 )}
