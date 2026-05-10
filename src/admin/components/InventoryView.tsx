@@ -1175,13 +1175,17 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   };
 
   // Declared after toggleSelectId so useCallback deps resolve correctly.
+  // Plain click = single-select (open panel, replace selection). Shift/Cmd/Ctrl =
+  // multi-select toggle/range. The "panel closed but selection exists" branch
+  // preserves mobile long-press multi-select: long-press enters multi mode without
+  // opening the panel, so subsequent taps continue to toggle.
   const stableRowClick = useCallback((productId: string, globalIdx: number, e: React.MouseEvent) => {
     if (e.metaKey || e.ctrlKey) {
       toggleSelectId(productId, globalIdx, false);
     } else if (e.shiftKey) {
       e.preventDefault();
       toggleSelectId(productId, globalIdx, true);
-    } else if (selectedIdsRef.current.size > 0) {
+    } else if (panelProductRef.current === null && selectedIdsRef.current.size > 0) {
       toggleSelectId(productId, globalIdx, false);
     } else if (!isEditModeRef.current) {
       const idx = productIndexMapRef.current.get(productId) ?? -1;
