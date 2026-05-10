@@ -16,7 +16,6 @@ import { TastingEditorModal } from './TastingEditorModal';
 import { QrCodeModal } from './QrCodeModal';
 import { ProductCollectionsSection } from './collections/ProductCollectionsSection';
 import { TaxonomyChipPicker } from './tasting/TaxonomyChipPicker';
-import { StockLedgerPanel } from './StockLedgerPanel';
 import { AutocompleteInput } from '../../components/TeaCompass/AutocompleteInput';
 import { buildVarietyDataMap, getTeaVarietySuggestions } from '../../data/teaVarieties';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
@@ -755,7 +754,6 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
   const [tastingEditorProduct, setTastingEditorProduct] = useState<Product | null>(null);
   const [qrProduct, setQrProduct] = useState<Product | null>(null);
   const [breakdownOpen, setBreakdownOpen] = useState(false);
-  const [historyOpen, setHistoryOpen] = useState(false);
 
   // Events & tasting aggregate
   const [productEvents, setProductEvents] = useState<any[]>([]);
@@ -1177,15 +1175,62 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                       <GhostInput variant="bordered" value={product.shippingRatePerKg || 13} onSave={(val) => handleUpdate(product.id, 'shippingRatePerKg', val)} type="number" className="tabular-nums" />
                     </FieldCell>
                   </FieldGrid>
-                  {pricingCalc && pricingCalc.suggestedRetailUSD > 0 && (
-                    <div className="mt-4 flex items-baseline justify-between rounded-md bg-tea-bg border border-tea-border px-3 py-2.5">
-                      <span className="text-ui-10 text-tea-text-dim uppercase tracking-[0.18em]">Suggested retail</span>
-                      <span className="font-display text-ui-17 text-tea-gold tabular-nums leading-none">
-                        ${pricingCalc.suggestedRetailUSD.toFixed(2)}
-                        <span className="font-body text-ui-11 text-tea-text-dim ml-1 italic">/ g</span>
-                      </span>
-                    </div>
-                  )}
+                  {pricingCalc && pricingCalc.suggestedRetailUSD > 0 && (() => {
+                    const calc = pricingCalc;
+                    const hasOverride = product.fixedRetailPriceUSD != null;
+                    const overrideBelowCost = hasOverride && product.fixedRetailPriceUSD! < calc.trueCostUSD;
+                    return (
+                      <div className="mt-4 rounded-md bg-tea-bg border border-tea-border overflow-hidden">
+                        <button
+                          type="button"
+                          onClick={() => setBreakdownOpen(!breakdownOpen)}
+                          aria-expanded={breakdownOpen}
+                          aria-label={breakdownOpen ? 'Collapse pricing details' : 'Expand pricing details'}
+                          className="w-full flex items-baseline justify-between gap-3 px-3 py-2.5 hover:bg-tea-accent-sub transition-colors group"
+                        >
+                          <span className="text-ui-10 text-tea-text-dim uppercase tracking-[0.18em]">Suggested retail</span>
+                          <span className="flex items-baseline gap-2">
+                            <span className="font-display text-ui-17 text-tea-gold tabular-nums leading-none">
+                              ${calc.suggestedRetailUSD.toFixed(2)}
+                              <span className="font-body text-ui-11 text-tea-text-dim ml-1 italic">/ g</span>
+                            </span>
+                            <ChevronDown size={12} aria-hidden="true" className={`text-tea-text-dim group-hover:text-tea-text-sec transition-transform duration-150 ${breakdownOpen ? 'rotate-180' : ''}`} />
+                          </span>
+                        </button>
+                        <div className="grid transition-[grid-template-rows] duration-200 ease-out" style={{ gridTemplateRows: breakdownOpen ? '1fr' : '0fr' }}>
+                          <div className="overflow-hidden">
+                            <div className="px-3 pb-3 pt-1 border-t border-tea-border space-y-3">
+                              {/* Override price */}
+                              <div className="flex flex-col gap-1.5 pt-2">
+                                <div className="flex items-center justify-between gap-2">
+                                  <span className="text-ui-11 text-tea-text-dim uppercase tracking-[0.14em]">Override</span>
+                                  {overrideBelowCost && (
+                                    <span className="text-ui-11 text-tea-error italic" title="Below true cost">Below cost</span>
+                                  )}
+                                </div>
+                                <GhostInput
+                                  variant="bordered"
+                                  value={product.fixedRetailPriceUSD ?? ''}
+                                  placeholder={calc.suggestedRetailUSD.toFixed(2)}
+                                  onSave={(val) => handleUpdate(product.id, 'fixedRetailPriceUSD', val === '' || val === null ? null : Number(val))}
+                                  type="number"
+                                  align="right"
+                                  className={`tabular-nums ${hasOverride ? '!text-tea-gold font-medium' : ''}`}
+                                />
+                              </div>
+                              {/* Breakdown */}
+                              <div className="space-y-2 pt-2 border-t border-tea-border">
+                                <div className="flex justify-between text-ui-12"><span className="text-tea-text-sec">Source cost/g</span><span className="text-tea-text tabular-nums">{calc.costPerGramSource.toFixed(3)} {product.costCurrency || 'USD'}</span></div>
+                                <div className="flex justify-between text-ui-12"><span className="text-tea-text-sec">Exchange rate</span><span className="text-tea-text tabular-nums">{calc.rateUsed}</span></div>
+                                <div className="flex justify-between text-ui-12"><span className="text-tea-text-sec">True cost (USD)</span><span className="text-tea-text tabular-nums font-semibold">${calc.trueCostUSD.toFixed(3)}/g</span></div>
+                                <div className="flex justify-between text-ui-12"><span className="text-tea-text-sec">3× markup</span><span className="text-tea-gold tabular-nums font-medium">${calc.suggestedRetailUSD.toFixed(2)}/g</span></div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </>
               )}
 
@@ -1295,101 +1340,13 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
               </span>
             </button>
 
-            {/* 4. Pricing details. Override + breakdown only; quick fields hoisted up. */}
-            <CollapsibleSection title="Pricing details" description="Override the suggested retail or inspect the cost breakdown." defaultOpen={false}>
-              {inventoryCategory === 'teaware' ? (
-                <p className="text-ui-12 text-tea-text-sec italic py-1">Cost and retail are set in Quick entry above.</p>
-              ) : (() => {
-                const calc = pricingCalc!;
-                return (
-                  <div className="space-y-3">
-                    <div className="flex flex-col gap-1.5">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-ui-11 text-tea-text-dim uppercase tracking-[0.14em]">Override</span>
-                        {product.fixedRetailPriceUSD && product.fixedRetailPriceUSD < calc.trueCostUSD && (
-                          <span className="text-ui-11 text-tea-error italic" title="Below true cost">Below cost</span>
-                        )}
-                      </div>
-                      <GhostInput
-                        variant="bordered"
-                        value={product.fixedRetailPriceUSD ?? ''}
-                        placeholder={calc.suggestedRetailUSD > 0 ? calc.suggestedRetailUSD.toFixed(2) : '—'}
-                        onSave={(val) => handleUpdate(product.id, 'fixedRetailPriceUSD', val === '' || val === null ? null : Number(val))}
-                        type="number"
-                        align="right"
-                        className={`tabular-nums ${product.fixedRetailPriceUSD != null ? '!text-tea-gold font-medium' : ''}`}
-                      />
-                    </div>
-                    <div className="pt-1">
-                      <button onClick={() => setBreakdownOpen(!breakdownOpen)} className="flex items-center gap-1.5 text-ui-12 text-tea-text-sec hover:text-tea-text transition-colors py-1.5 w-full">
-                        <ChevronRight size={12} className={`transition-transform duration-150 ${breakdownOpen ? 'rotate-90' : ''}`} />
-                        Cost breakdown
-                      </button>
-                      <div className="grid transition-[grid-template-rows] duration-200 ease-out" style={{ gridTemplateRows: breakdownOpen ? '1fr' : '0fr' }}>
-                        <div className="overflow-hidden">
-                          <div className="bg-tea-bg border border-tea-border rounded-md px-3 py-2.5 mt-1 space-y-2">
-                            <div className="flex justify-between text-ui-12"><span className="text-tea-text-sec">Source cost/g</span><span className="text-tea-text tabular-nums">{calc.costPerGramSource.toFixed(3)} {product.costCurrency || 'USD'}</span></div>
-                            <div className="flex justify-between text-ui-12"><span className="text-tea-text-sec">Exchange rate</span><span className="text-tea-text tabular-nums">{calc.rateUsed}</span></div>
-                            <div className="flex justify-between text-ui-12"><span className="text-tea-text-sec">True cost (USD)</span><span className="text-tea-text tabular-nums font-semibold">${calc.trueCostUSD.toFixed(3)}/g</span></div>
-                            <div className="flex justify-between text-ui-12 border-t border-tea-border pt-2"><span className="text-tea-text-sec">3× markup</span><span className="text-tea-gold tabular-nums font-medium">${calc.suggestedRetailUSD.toFixed(2)}/g</span></div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })()}
-            </CollapsibleSection>
-
-            {/* 5. Stock details. Recount flag, verify date, history; quick fields hoisted up. */}
-            <CollapsibleSection title="Stock details" description="Recount flag, last verified, and full ledger history." defaultOpen={false}>
-              <div className="space-y-3">
-                {inventoryCategory === 'tea' && (() => {
-                  const stock = product.stockGrams;
-                  const threshold = product.lowStockThreshold || 0;
-                  const isLow = threshold > 0 && stock <= threshold;
-                  const isOut = stock === 0;
-                  const pct = threshold > 0 ? Math.min(1, stock / (threshold * 4)) : null;
-                  const barColor = isOut ? 'bg-tea-error/60' : isLow ? 'bg-tea-gold/60' : 'bg-tea-gold/40';
-                  if (pct === null) return null;
-                  return (
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1 h-1.5 bg-tea-bg border border-tea-border rounded-full overflow-hidden">
-                        <div className={`h-full rounded-full origin-left transition-transform duration-500 ${barColor}`} style={{ transform: `scaleX(${pct})` }} />
-                      </div>
-                      <span className="text-ui-11 text-tea-text-dim tabular-nums w-14 text-right">
-                        {threshold > 0 ? `${Math.round((stock / threshold) * 10) / 10}× min` : ''}
-                      </span>
-                    </div>
-                  );
-                })()}
-
-                <div className="flex items-center gap-2 flex-wrap">
-                  <button onClick={() => handleUpdate(product.id, 'recheckStock', !product.recheckStock)} className={`pill ${product.recheckStock ? 'pill-active-amber' : ''}`}>
-                    <RefreshCw size={10} /> Flag for recount
-                  </button>
-                  {product.stockVerifiedAt && (
-                    <span className="text-ui-11 text-tea-text-dim ml-auto">
-                      Verified {new Date(product.stockVerifiedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                    </span>
-                  )}
-                </div>
-
-                <div>
-                  <button onClick={() => setHistoryOpen(!historyOpen)} className="flex items-center gap-1.5 text-ui-12 text-tea-text-sec hover:text-tea-text transition-colors py-1.5 w-full">
-                    <ChevronRight size={12} className={`transition-transform duration-150 ${historyOpen ? 'rotate-90' : ''}`} />
-                    Stock history
-                  </button>
-                  <div className="grid transition-[grid-template-rows] duration-200 ease-out" style={{ gridTemplateRows: historyOpen ? '1fr' : '0fr' }}>
-                    <div className="overflow-hidden">
-                      <div className="mt-1">
-                        <StockLedgerPanel productId={product.id} productName={product.givenName || product.productName} />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CollapsibleSection>
+            {/* Pricing details and Stock details have been folded out:
+                  - Pricing override + cost breakdown live inside the Suggested
+                    retail click-to-expand inside Quick entry above.
+                  - Stock history opens via the row's stock-grams cell (floating
+                    StockLedgerPanel).
+                  - Flag-for-recount lives at the row level (warning icon and
+                    expandable detail panel). */}
 
             {/* 6. Experience */}
             <CollapsibleSection title="Experience" description="How it drinks — body, session, lingering impression." defaultOpen={false}>
