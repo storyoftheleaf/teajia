@@ -1175,13 +1175,17 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   };
 
   // Declared after toggleSelectId so useCallback deps resolve correctly.
+  // Plain click = single-select (open panel, replace selection). Shift/Cmd/Ctrl =
+  // multi-select toggle/range. The "panel closed but selection exists" branch
+  // preserves mobile long-press multi-select: long-press enters multi mode without
+  // opening the panel, so subsequent taps continue to toggle.
   const stableRowClick = useCallback((productId: string, globalIdx: number, e: React.MouseEvent) => {
     if (e.metaKey || e.ctrlKey) {
       toggleSelectId(productId, globalIdx, false);
     } else if (e.shiftKey) {
       e.preventDefault();
       toggleSelectId(productId, globalIdx, true);
-    } else if (selectedIdsRef.current.size > 0) {
+    } else if (panelProductRef.current === null && selectedIdsRef.current.size > 0) {
       toggleSelectId(productId, globalIdx, false);
     } else if (!isEditModeRef.current) {
       const idx = productIndexMapRef.current.get(productId) ?? -1;
@@ -1313,7 +1317,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   }
 
   return (
-    <div className={`h-full flex flex-col overflow-hidden bg-tea-bg ${panelProduct ? 'md:mr-[420px]' : ''} transition-all duration-300`}>
+    <div className={`h-full flex flex-col overflow-hidden bg-tea-bg ${panelProduct ? 'md:mr-[360px] lg:mr-[420px] xl:mr-[440px]' : ''} transition-all duration-300`}>
 
       {/* --- VENDOR FILTER BANNER --- */}
       {vendorFilter && (
@@ -1729,7 +1733,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         to="/admin/network?tab=catalog"
                         className="font-body text-ui-13 text-tea-text-sec hover:text-tea-gold transition-colors px-3 py-1.5 group"
                       >
-                        Carry from network{' '}
+                        Carry{' '}
                         <span className="inline-block transition-transform group-hover:translate-x-0.5">→</span>
                       </Link>
                     )}
