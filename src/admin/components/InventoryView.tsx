@@ -1733,7 +1733,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         to="/admin/network?tab=catalog"
                         className="font-body text-ui-13 text-tea-text-sec hover:text-tea-gold transition-colors px-3 py-1.5 group"
                       >
-                        Carry from network{' '}
+                        Carry{' '}
                         <span className="inline-block transition-transform group-hover:translate-x-0.5">→</span>
                       </Link>
                     )}

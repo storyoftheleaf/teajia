@@ -542,35 +542,21 @@ export const ImageManager = ({ product, onUpdate }: {
                 )}
               </>
             ) : (
-              <div className="relative w-full h-full">
-                {/* Empty slot — primary action is "Take photo" (mobile) / "Upload" (desktop).
-                    Both routes through the cropper. */}
-                <button
-                  onClick={() => pickFile(i, false)}
-                  disabled={uploadingSlot !== null}
-                  aria-label={`Add ${slotLabels[i].toLowerCase()} image`}
-                  className="w-full h-full rounded-md bg-tea-bg/40 hover:bg-tea-gold/[0.04] border border-tea-accent-sub/30 hover:border-tea-gold/40 transition-colors flex flex-col items-center justify-center gap-1.5 cursor-pointer group"
-                >
-                  {uploadingSlot === i ? (
-                    <Loader2 size={16} className="text-tea-text-dim animate-spin" aria-hidden="true" />
-                  ) : (
-                    <>
-                      <Plus size={14} className="text-tea-text-dim/50 group-hover:text-tea-gold transition-colors" aria-hidden="true" />
-                      <span className="text-ui-9 text-tea-text-dim/70 group-hover:text-tea-gold/80 uppercase tracking-caps transition-colors">{slotLabels[i]}</span>
-                    </>
-                  )}
-                </button>
-                {/* Camera shortcut, bottom-right of empty slot */}
-                <button
-                  onClick={() => pickFile(i, true)}
-                  disabled={uploadingSlot !== null}
-                  aria-label={`Take photo for ${slotLabels[i].toLowerCase()}`}
-                  title="Take photo"
-                  className="absolute bottom-1 right-1 w-6 h-6 rounded-full bg-tea-bg/85 border border-tea-border flex items-center justify-center text-tea-text-sec hover:text-tea-gold tap-target"
-                >
-                  <Camera size={12} />
-                </button>
-              </div>
+              <button
+                onClick={() => pickFile(i, false)}
+                disabled={uploadingSlot !== null}
+                aria-label={`Add ${slotLabels[i].toLowerCase()} image`}
+                className="w-full h-full rounded-md bg-tea-bg/40 hover:bg-tea-gold/[0.04] transition-colors flex flex-col items-center justify-center gap-1.5 cursor-pointer group"
+              >
+                {uploadingSlot === i ? (
+                  <Loader2 size={16} className="text-tea-text-dim animate-spin" aria-hidden="true" />
+                ) : (
+                  <>
+                    <Plus size={14} className="text-tea-text-dim/50 group-hover:text-tea-gold transition-colors" aria-hidden="true" />
+                    <span className="text-ui-9 text-tea-text-dim/70 group-hover:text-tea-gold/80 uppercase tracking-caps transition-colors">{slotLabels[i]}</span>
+                  </>
+                )}
+              </button>
             )}
           </div>
         ))}
