@@ -19,7 +19,6 @@ import { AutocompleteInput } from '../../components/TeaCompass/AutocompleteInput
 import { buildVarietyDataMap, getTeaVarietySuggestions } from '../../data/teaVarieties';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { getThemeColor } from '../themeUtils';
-import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import {
   flattenTastingNotes,
   resolveTermLabel,
@@ -35,7 +34,8 @@ import {
 type FieldVariant = 'ghost' | 'bordered';
 
 const GHOST_TEXTAREA_BASE = 'w-full bg-transparent border border-dashed border-tea-accent-sub focus:border-solid focus:border-tea-accent-sub focus:bg-tea-gold/[0.06] rounded-md py-1.5 px-2 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-all resize-none text-xs leading-relaxed whitespace-pre-line placeholder-tea-text-dim min-h-[80px] overflow-hidden';
-const BORDERED_TEXTAREA_BASE = 'w-full bg-tea-bg border border-tea-border focus:border-tea-gold/60 rounded-md py-2 px-3 outline-none focus:ring-2 focus:ring-tea-gold/40 transition-colors resize-none text-ui-14 text-tea-text leading-relaxed whitespace-pre-line placeholder:text-tea-text-dim min-h-[88px]';
+// Bordered variant uses the admin neutral palette: dark recessed bg, ghost border, gold focus accent.
+const BORDERED_TEXTAREA_BASE = 'admin-input w-full py-2 px-3 resize-none text-ui-14 leading-relaxed whitespace-pre-line min-h-[88px]';
 
 export const GhostTextarea = ({
   value, onSave, className = '', placeholder = '', rows = 3, ariaLabel, variant = 'ghost',
@@ -87,7 +87,7 @@ const GHOST_INPUT_BASE = 'w-full bg-transparent border-0 border-b-0 hover:border
 // Both BORDERED_INPUT and BORDERED_SELECT must compute to the SAME box height:
 //   2*8px py + 14px font * 1.25 leading + 2px border = 35.5px. Don't change one
 //   without changing the other.
-const BORDERED_INPUT_BASE = 'w-full h-9 bg-tea-bg border border-tea-border hover:border-tea-gold/40 focus:border-tea-gold/60 rounded-md py-2 px-3 outline-none focus:ring-2 focus:ring-tea-gold/40 transition-colors text-ui-14 text-tea-text placeholder:text-tea-text-dim leading-tight';
+const BORDERED_INPUT_BASE = 'admin-input w-full h-9 py-2 px-3 text-ui-14 leading-tight';
 
 export const GhostInput = ({
   value, onSave, type = 'text', align = 'left', className = '', placeholder = '', inputMode, id, ariaLabel, variant = 'ghost',
@@ -188,7 +188,7 @@ export const GhostAutocompleteInput = ({
 
 const GHOST_SELECT_BASE = 'w-full bg-transparent border-0 border-b-0 hover:border-b hover:border-tea-accent-sub focus:border-b focus:border-tea-gold/40 focus:bg-tea-gold/[0.03] rounded-none py-1 px-0 pr-4 outline-none focus-visible:ring-0 transition-colors text-left appearance-none cursor-pointer leading-none';
 // h-9 + leading-tight = same height as BORDERED_INPUT_BASE.
-const BORDERED_SELECT_BASE = 'w-full h-9 bg-tea-bg border border-tea-border hover:border-tea-gold/40 focus:border-tea-gold/60 rounded-md py-2 pl-2.5 pr-6 outline-none focus:ring-2 focus:ring-tea-gold/40 transition-colors text-ui-14 text-tea-text leading-tight appearance-none cursor-pointer';
+const BORDERED_SELECT_BASE = 'admin-input w-full h-9 py-2 pl-2.5 pr-6 text-ui-14 leading-tight text-left appearance-none cursor-pointer';
 
 export const GhostSelect = ({ value, onSave, options, className = '', ariaLabel, variant = 'ghost' }: {
   value: string; onSave: (val: string) => void; options: string[]; className?: string; ariaLabel?: string; variant?: FieldVariant;
@@ -318,19 +318,19 @@ export const CollapsibleSection = ({ title, description, defaultOpen = true, mob
     return defaultOpen;
   });
   return (
-    <div className="surface-warm mx-3 mb-3 bg-tea-surface border border-tea-border rounded-md overflow-hidden">
-      <button onClick={() => setOpen(!open)} aria-expanded={open} className="relative z-10 w-full flex items-start justify-between gap-3 px-4 py-3.5 group text-left">
+    <div className="admin-card mx-3 mb-3 overflow-hidden">
+      <button onClick={() => setOpen(!open)} aria-expanded={open} className="w-full flex items-start justify-between gap-3 px-4 py-3.5 group text-left">
         <div className="min-w-0">
-          <span className={`block ${TYPOGRAPHY_CLASSES.h3} text-tea-text`}>{title}</span>
+          <span className="block font-sans text-ui-14 font-medium text-admin-text leading-[1.35]">{title}</span>
           {description && (
-            <span className="block text-ui-11 text-tea-text-sec leading-[1.5] mt-1">{description}</span>
+            <span className="block text-ui-13 text-admin-text-sec leading-[1.5] mt-1">{description}</span>
           )}
         </div>
-        <ChevronRight size={14} aria-hidden="true" className={`mt-1.5 shrink-0 text-tea-text-dim transition-transform duration-200 group-hover:text-tea-text-sec ${open ? 'rotate-90' : ''}`} />
+        <ChevronRight size={14} aria-hidden="true" className={`mt-1 shrink-0 text-admin-text-dim transition-transform duration-200 group-hover:text-admin-text-sec ${open ? 'rotate-90' : ''}`} />
       </button>
-      <div className="relative z-10 grid transition-[grid-template-rows] duration-200 ease-out" style={{ gridTemplateRows: open ? '1fr' : '0fr' }}>
+      <div className="grid transition-[grid-template-rows] duration-200 ease-out" style={{ gridTemplateRows: open ? '1fr' : '0fr' }}>
         <div className="overflow-hidden">
-          <div className="px-4 pb-4 pt-1 border-t border-tea-border">{children}</div>
+          <div className="px-4 pb-4 pt-1 border-t border-admin-border">{children}</div>
         </div>
       </div>
     </div>
@@ -348,7 +348,7 @@ export const FieldCell = ({ label, labelAdornment, children }: {
   children: React.ReactNode;
 }) => (
   <label className="flex flex-col gap-1.5 min-w-0">
-    <span className="text-ui-11 text-tea-text-dim uppercase tracking-[0.14em] flex items-center gap-1 leading-none">
+    <span className="text-ui-11 text-admin-text-dim uppercase tracking-[0.08em] flex items-center gap-1 leading-none">
       {label}
       {labelAdornment}
     </span>
@@ -370,7 +370,7 @@ export const FieldRowFull = ({ label, labelAdornment, children }: {
   children: React.ReactNode;
 }) => (
   <div className="mt-4 flex flex-col gap-1.5">
-    <span className="text-ui-11 text-tea-text-dim uppercase tracking-[0.14em] flex items-center gap-1.5 leading-none">
+    <span className="text-ui-11 text-admin-text-dim uppercase tracking-[0.08em] flex items-center gap-1.5 leading-none">
       {label}
       {labelAdornment}
     </span>
@@ -380,7 +380,7 @@ export const FieldRowFull = ({ label, labelAdornment, children }: {
 
 /** Hairline divider between logical sub-groups in Quick Entry. */
 export const FieldGroupDivider = () => (
-  <div className="mt-5 mb-1 border-t border-tea-border" />
+  <div className="mt-5 mb-1 border-t border-admin-border" />
 );
 
 // Slot index → stable R2 slot key the worker uses for in-place writes.
@@ -723,8 +723,8 @@ export interface ProductEditPanelProps {
 
 const STATUS_COLORS: Record<string, string> = {
   Active: 'var(--tea-gold)',
-  Draft: 'var(--tea-text-dim)',
-  Archived: 'var(--tea-text-sec)',
+  Draft: 'var(--admin-text-dim)',
+  Archived: 'var(--admin-text-sec)',
   'Sold Out': 'var(--tea-error)',
 };
 
@@ -925,7 +925,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
     return tasting ? flattenTastingNotes(tasting).length : 0;
   }, [(product as any)?.tasting]);
 
-  const statusColor = product ? (STATUS_COLORS[product.status] || 'var(--tea-text-sec)') : 'var(--tea-text-sec)';
+  const statusColor = product ? (STATUS_COLORS[product.status] || 'var(--admin-text-sec)') : 'var(--admin-text-sec)';
   const inventoryCategory: 'tea' | 'teaware' = product?.type === 'Teaware' ? 'teaware' : 'tea';
 
   return (
@@ -936,27 +936,27 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
         aria-modal="true"
         aria-labelledby={titleId}
         aria-hidden={!product}
-        style={{ willChange: 'transform' }}
-        className={`fixed inset-0 bottom-[calc(52px+env(safe-area-inset-bottom))] md:inset-auto md:right-0 md:top-0 md:bottom-0 md:w-[360px] lg:w-[420px] xl:w-[440px] z-30 bg-tea-bg flex flex-col panel-sidebar transition-transform duration-300 ease-out ${product ? 'translate-x-0' : 'translate-x-full'}`}
+        style={{ backgroundColor: 'var(--admin-bg)', willChange: 'transform' }}
+        className={`fixed inset-0 bottom-[calc(52px+env(safe-area-inset-bottom))] md:inset-auto md:right-0 md:top-0 md:bottom-0 md:w-[360px] lg:w-[420px] xl:w-[440px] z-30 flex flex-col panel-sidebar transition-transform duration-300 ease-out ${product ? 'translate-x-0' : 'translate-x-full'}`}
       >
         {product && (<>
-          {/* Header — Row 1: Nav. Sits on tea-bg with a single bottom border. */}
-          <div className="flex items-center justify-between px-3 pt-2.5 pb-1.5 border-b border-tea-border">
+          {/* Header — Row 1: Nav. Sits on the panel bg with a single hairline border. */}
+          <div className="flex items-center justify-between px-3 pt-2.5 pb-1.5 border-b border-admin-border">
             <button
               ref={closeButtonRef}
               onClick={onClose}
               aria-label="Close product panel"
               title="Close (Esc)"
-              className="p-2 -ml-0.5 text-tea-text-sec hover:text-tea-text transition-colors rounded-md active:bg-tea-surface"
+              className="p-2 -ml-0.5 text-admin-text-sec hover:text-admin-text transition-colors rounded-md hover:bg-admin-elevated"
             >
               <XIcon size={17} aria-hidden="true" />
             </button>
             <div className="flex flex-col items-center gap-0">
-              <span className="font-mono text-ui-11 text-tea-text-sec tabular-nums leading-none">
+              <span className="font-mono text-ui-11 text-admin-text-sec tabular-nums leading-none">
                 {productIndex >= 0 ? `${productIndex + 1} / ${totalCount}` : ''}
               </span>
               {filterLabel && (
-                <span className="text-ui-10 text-tea-text-dim uppercase tracking-[0.18em] leading-none mt-1">
+                <span className="text-ui-10 text-admin-text-dim uppercase tracking-[0.14em] leading-none mt-1">
                   {filterLabel}
                 </span>
               )}
@@ -966,14 +966,14 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                 onClick={() => prevProduct && onNavigate?.(prevProduct)}
                 aria-label="Previous product"
                 title="Previous (←)"
-                className="p-2 text-tea-text-sec hover:text-tea-text transition-colors rounded-md active:bg-tea-surface disabled:opacity-30"
+                className="p-2 text-admin-text-sec hover:text-admin-text transition-colors rounded-md hover:bg-admin-elevated disabled:opacity-30"
                 disabled={!prevProduct || !onNavigate}
               ><ChevronLeft size={17} aria-hidden="true" /></button>
               <button
                 onClick={() => nextProduct && onNavigate?.(nextProduct)}
                 aria-label="Next product"
                 title="Next (→)"
-                className="p-2 text-tea-text-sec hover:text-tea-text transition-colors rounded-md active:bg-tea-surface disabled:opacity-30"
+                className="p-2 text-admin-text-sec hover:text-admin-text transition-colors rounded-md hover:bg-admin-elevated disabled:opacity-30"
                 disabled={!nextProduct || !onNavigate}
               ><ChevronRight size={17} aria-hidden="true" /></button>
             </div>
@@ -981,45 +981,44 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
 
           {/* Keyboard hint bar — quiet, single-line */}
           {onNavigate && (
-            <div className="hidden md:flex items-center justify-center gap-3 px-4 py-1.5 border-b border-tea-border">
-              <span className="text-ui-10 text-tea-text-dim uppercase tracking-[0.18em]">Esc close</span>
-              <span className="text-ui-10 text-tea-text-dim">·</span>
-              <span className="text-ui-10 text-tea-text-dim uppercase tracking-[0.18em]">← → navigate</span>
+            <div className="hidden md:flex items-center justify-center gap-3 px-4 py-1.5 border-b border-admin-border">
+              <span className="text-ui-10 text-admin-text-dim uppercase tracking-[0.14em]">Esc close</span>
+              <span className="text-ui-10 text-admin-text-faint">·</span>
+              <span className="text-ui-10 text-admin-text-dim uppercase tracking-[0.14em]">← → navigate</span>
             </div>
           )}
 
-          {/* Header — Row 2: Identity card.
-              Type color signal lives as a 2px left bar on the card, so the rest of the
-              chrome can be calm. Status select adopts neutral playbook button styling. */}
+          {/* Header — Row 2: Identity card. Neutral admin surface; the type
+              color signal lives as a 2px left bar so the rest of the card is calm. */}
           <div className="px-3 pt-3 pb-2">
             <div
-              className="surface-warm relative bg-tea-surface border border-tea-border rounded-md pl-4 pr-3 py-3 flex items-start justify-between gap-3 overflow-hidden"
-              style={{ boxShadow: `inset 2px 0 0 ${getThemeColor(product.type)}` }}
+              className="admin-card relative pl-4 pr-3 py-3 flex items-start justify-between gap-3"
+              style={{ boxShadow: `inset 2px 0 0 ${getThemeColor(product.type)}, inset 0 1px 0 rgba(255,255,255,0.04), 0 1px 2px rgba(0,0,0,0.3)` }}
             >
-              <div className="relative z-10 min-w-0 flex-1">
-                <h3 id={titleId} className="font-display text-ui-20 font-normal text-tea-text leading-[1.2] tracking-[0.01em]" title={product.productName}>{product.productName}</h3>
-                {product.givenName && <div className="font-body text-ui-13 text-tea-text-sec italic leading-tight mt-1">{product.givenName}</div>}
+              <div className="min-w-0 flex-1">
+                <h3 id={titleId} className="font-sans text-ui-17 font-medium text-admin-text leading-[1.25] tracking-[-0.005em]" title={product.productName}>{product.productName}</h3>
+                {product.givenName && <div className="text-ui-13 text-admin-text-sec leading-tight mt-1">{product.givenName}</div>}
                 <div className="flex items-center flex-wrap gap-x-1.5 gap-y-0.5 mt-1.5">
-                  <span className="text-ui-12 text-tea-text-sec">{product.type}</span>
-                  {product.year && <span className="text-ui-12 text-tea-text-dim font-mono tabular-nums">· {product.year}</span>}
-                  {product.originRegion && <span className="text-ui-12 text-tea-text-dim">· {product.originRegion}</span>}
+                  <span className="text-ui-12 text-admin-text-sec">{product.type}</span>
+                  {product.year && <span className="text-ui-12 text-admin-text-dim font-mono tabular-nums">· {product.year}</span>}
+                  {product.originRegion && <span className="text-ui-12 text-admin-text-dim">· {product.originRegion}</span>}
                 </div>
               </div>
-              <div className="relative z-10 flex flex-col items-end gap-2 shrink-0">
+              <div className="flex flex-col items-end gap-2 shrink-0">
                 <div className="relative">
                   <label className="sr-only" htmlFor={`panel-status-${product.id}`}>Product status</label>
                   <select
                     id={`panel-status-${product.id}`}
                     value={product.status}
                     onChange={e => handleUpdate(product.id, 'status', e.target.value)}
-                    className="text-ui-11 uppercase tracking-[0.12em] pl-2.5 pr-6 py-1.5 rounded-md bg-tea-bg border border-tea-border cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/40 appearance-none"
+                    className="admin-input text-ui-11 uppercase tracking-[0.08em] pl-2.5 pr-6 py-1.5 cursor-pointer appearance-none"
                     style={{ color: statusColor }}
                   >
-                    {['Active', 'Draft', 'Archived', 'Sold Out'].map(s => <option key={s} value={s} className="bg-tea-surface text-tea-text">{s}</option>)}
+                    {['Active', 'Draft', 'Archived', 'Sold Out'].map(s => <option key={s} value={s} className="bg-admin-surface text-admin-text">{s}</option>)}
                   </select>
-                  <ChevronDown size={11} className="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none text-tea-text-dim" aria-hidden="true" />
+                  <ChevronDown size={11} className="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none text-admin-text-dim" aria-hidden="true" />
                 </div>
-                <button onClick={() => setQrProduct(product)} aria-label="Generate QR code" title="Generate QR Code" className="inline-flex items-center gap-1 text-ui-11 text-tea-text-sec hover:text-tea-text transition-colors rounded px-1 py-0.5">
+                <button onClick={() => setQrProduct(product)} aria-label="Generate QR code" title="Generate QR Code" className="inline-flex items-center gap-1 text-ui-11 text-admin-text-sec hover:text-admin-text transition-colors rounded px-1 py-0.5">
                   <QrCode size={12} aria-hidden="true" /> QR
                 </button>
               </div>
@@ -1031,12 +1030,12 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
             {/* 1. QUICK ENTRY. Required fields grouped on one bordered card.
                   Identity, origin, vendor, pricing, stock, visibility all live here so a
                   product can be entered top-to-bottom without expanding sections. */}
-            <div className="surface-warm relative mx-3 mb-3 rounded-md bg-tea-surface border border-tea-border px-4 pt-4 pb-4 overflow-hidden">
-              <div className="relative z-10 flex items-baseline justify-between mb-4 pb-2.5 border-b border-tea-border">
-                <span className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text`}>Quick entry</span>
-                <span className="text-ui-10 text-tea-text-dim uppercase tracking-[0.18em]">Auto-saves</span>
+            <div className="admin-card mx-3 mb-3 px-4 pt-4 pb-4">
+              <div className="flex items-baseline justify-between mb-4 pb-2.5 border-b border-admin-border">
+                <span className="font-sans text-ui-14 font-medium text-admin-text leading-[1.35]">Quick entry</span>
+                <span className="text-ui-10 text-admin-text-dim uppercase tracking-[0.14em]">Auto-saves</span>
               </div>
-              <div className="relative z-10">
+              <div>
 
               {/* Name (full row, autocomplete + autofill) */}
               <FieldRowFull label="Name">
@@ -1107,11 +1106,11 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
               {/* Vendor row. Profile link sits trailing-right for clean label edge. */}
               <div className="mt-4 flex flex-col gap-1.5">
                 <div className="flex items-center justify-between leading-none">
-                  <span className="text-ui-11 text-tea-text-dim uppercase tracking-[0.14em]">Vendor</span>
+                  <span className="text-ui-11 text-admin-text-dim uppercase tracking-[0.14em]">Vendor</span>
                   {product.vendor && (
                     <button
                       onClick={() => navigate(`/admin/people?tab=sources&search=${encodeURIComponent(product.vendor || '')}`)}
-                      className="flex items-center gap-0.5 text-ui-11 text-tea-text-sec hover:text-tea-text uppercase tracking-[0.14em] transition-colors"
+                      className="flex items-center gap-0.5 text-ui-11 text-admin-text-sec hover:text-admin-text uppercase tracking-[0.14em] transition-colors"
                       title="View vendor profile"
                     >
                       Profile <ChevronRight size={11} aria-hidden="true" />
@@ -1122,7 +1121,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                   value={product.vendor || ''}
                   productId={product.id}
                   onChange={(val) => handleUpdate(product.id, 'vendor', val)}
-                  className="w-full h-9 bg-tea-bg border border-tea-border hover:border-tea-gold/40 focus:border-tea-gold/60 rounded-md py-2 px-3 outline-none focus:ring-2 focus:ring-tea-gold/40 transition-colors text-ui-14 text-tea-text placeholder:text-tea-text-dim leading-tight"
+                  className="admin-input w-full h-9 py-2 px-3 text-ui-14 leading-tight"
                 />
               </div>
 
@@ -1147,14 +1146,14 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                         <select
                           value={product.costCurrency || 'USD'}
                           onChange={(e) => handleUpdate(product.id, 'costCurrency', e.target.value)}
-                          className="w-full h-9 bg-tea-bg border border-tea-border hover:border-tea-gold/40 focus:border-tea-gold/60 rounded-md text-ui-14 text-tea-text uppercase tracking-[0.06em] leading-tight outline-none focus:ring-2 focus:ring-tea-gold/40 cursor-pointer appearance-none pl-2.5 pr-6 py-2"
+                          className="admin-input w-full h-9 py-2 pl-2.5 pr-6 text-ui-14 uppercase tracking-[0.06em] leading-tight cursor-pointer appearance-none"
                           aria-label="Cost currency"
                         >
                           {['USD', 'NT', 'Yuan', 'IDR', 'JPY', 'MYR', 'HKD'].map(c => (
-                            <option key={c} value={c} className="bg-tea-surface text-tea-text">{c === 'Yuan' ? 'CNY' : c}</option>
+                            <option key={c} value={c} className="bg-admin-surface text-admin-text">{c === 'Yuan' ? 'CNY' : c}</option>
                           ))}
                         </select>
-                        <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-tea-text-dim/70 pointer-events-none" />
+                        <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-admin-text-dim/70 pointer-events-none" />
                       </label>
                       <GhostInput variant="bordered" value={product.costAmount} onSave={(val) => handleUpdate(product.id, 'costAmount', val)} type="number" className="tabular-nums flex-1 min-w-0" />
                     </div>
@@ -1172,30 +1171,30 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                     const hasOverride = product.fixedRetailPriceUSD != null;
                     const overrideBelowCost = hasOverride && product.fixedRetailPriceUSD! < calc.trueCostUSD;
                     return (
-                      <div className="mt-4 rounded-md bg-tea-bg border border-tea-border overflow-hidden">
+                      <div className="mt-4 rounded-md bg-admin-input border border-admin-border overflow-hidden">
                         <button
                           type="button"
                           onClick={() => setBreakdownOpen(!breakdownOpen)}
                           aria-expanded={breakdownOpen}
                           aria-label={breakdownOpen ? 'Collapse pricing details' : 'Expand pricing details'}
-                          className="w-full flex items-baseline justify-between gap-3 px-3 py-2.5 hover:bg-tea-accent-sub transition-colors group"
+                          className="w-full flex items-baseline justify-between gap-3 px-3 py-2.5 hover:bg-admin-elevated transition-colors group"
                         >
-                          <span className="text-ui-10 text-tea-text-dim uppercase tracking-[0.18em]">Suggested retail</span>
+                          <span className="text-ui-10 text-admin-text-dim uppercase tracking-[0.18em]">Suggested retail</span>
                           <span className="flex items-baseline gap-2">
                             <span className="font-display text-ui-17 text-tea-gold tabular-nums leading-none">
                               ${calc.suggestedRetailUSD.toFixed(2)}
-                              <span className="font-body text-ui-11 text-tea-text-dim ml-1 italic">/ g</span>
+                              <span className="font-body text-ui-11 text-admin-text-dim ml-1 italic">/ g</span>
                             </span>
-                            <ChevronDown size={12} aria-hidden="true" className={`text-tea-text-dim group-hover:text-tea-text-sec transition-transform duration-150 ${breakdownOpen ? 'rotate-180' : ''}`} />
+                            <ChevronDown size={12} aria-hidden="true" className={`text-admin-text-dim group-hover:text-admin-text-sec transition-transform duration-150 ${breakdownOpen ? 'rotate-180' : ''}`} />
                           </span>
                         </button>
                         <div className="grid transition-[grid-template-rows] duration-200 ease-out" style={{ gridTemplateRows: breakdownOpen ? '1fr' : '0fr' }}>
                           <div className="overflow-hidden">
-                            <div className="px-3 pb-3 pt-1 border-t border-tea-border space-y-3">
+                            <div className="px-3 pb-3 pt-1 border-t border-admin-border space-y-3">
                               {/* Override price */}
                               <div className="flex flex-col gap-1.5 pt-2">
                                 <div className="flex items-center justify-between gap-2">
-                                  <span className="text-ui-11 text-tea-text-dim uppercase tracking-[0.14em]">Override</span>
+                                  <span className="text-ui-11 text-admin-text-dim uppercase tracking-[0.14em]">Override</span>
                                   {overrideBelowCost && (
                                     <span className="text-ui-11 text-tea-error italic" title="Below true cost">Below cost</span>
                                   )}
@@ -1211,11 +1210,11 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                                 />
                               </div>
                               {/* Breakdown */}
-                              <div className="space-y-2 pt-2 border-t border-tea-border">
-                                <div className="flex justify-between text-ui-12"><span className="text-tea-text-sec">Source cost/g</span><span className="text-tea-text tabular-nums">{calc.costPerGramSource.toFixed(3)} {product.costCurrency || 'USD'}</span></div>
-                                <div className="flex justify-between text-ui-12"><span className="text-tea-text-sec">Exchange rate</span><span className="text-tea-text tabular-nums">{calc.rateUsed}</span></div>
-                                <div className="flex justify-between text-ui-12"><span className="text-tea-text-sec">True cost (USD)</span><span className="text-tea-text tabular-nums font-semibold">${calc.trueCostUSD.toFixed(3)}/g</span></div>
-                                <div className="flex justify-between text-ui-12"><span className="text-tea-text-sec">3× markup</span><span className="text-tea-gold tabular-nums font-medium">${calc.suggestedRetailUSD.toFixed(2)}/g</span></div>
+                              <div className="space-y-2 pt-2 border-t border-admin-border">
+                                <div className="flex justify-between text-ui-12"><span className="text-admin-text-sec">Source cost/g</span><span className="text-admin-text tabular-nums">{calc.costPerGramSource.toFixed(3)} {product.costCurrency || 'USD'}</span></div>
+                                <div className="flex justify-between text-ui-12"><span className="text-admin-text-sec">Exchange rate</span><span className="text-admin-text tabular-nums">{calc.rateUsed}</span></div>
+                                <div className="flex justify-between text-ui-12"><span className="text-admin-text-sec">True cost (USD)</span><span className="text-admin-text tabular-nums font-semibold">${calc.trueCostUSD.toFixed(3)}/g</span></div>
+                                <div className="flex justify-between text-ui-12"><span className="text-admin-text-sec">3× markup</span><span className="text-tea-gold tabular-nums font-medium">${calc.suggestedRetailUSD.toFixed(2)}/g</span></div>
                               </div>
                             </div>
                           </div>
@@ -1242,7 +1241,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                 const isLow = threshold > 0 && stock <= threshold;
                 const isOut = stock === 0;
                 const stateLabel = isOut ? 'Empty' : isLow ? 'Low' : 'OK';
-                const stateColor = isOut ? 'text-tea-error' : isLow ? 'text-tea-gold' : 'text-tea-text-dim';
+                const stateColor = isOut ? 'text-tea-error' : isLow ? 'text-tea-gold' : 'text-admin-text-dim';
                 return (
                   <FieldGrid cols={2}>
                     <FieldCell
@@ -1267,7 +1266,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
               {/* Visibility pills. Quiet variant: no fill, no border. Active state via color only. */}
               <div className="space-y-3">
                 <div className="grid grid-cols-[78px_1fr] gap-x-3 items-start">
-                  <span className="text-ui-11 text-tea-text-dim uppercase tracking-[0.14em] pt-1">Visible</span>
+                  <span className="text-ui-11 text-admin-text-dim uppercase tracking-[0.14em] pt-1">Visible</span>
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <button onClick={() => handleUpdate(product.id, 'isPublic', !product.isPublic)} className={`pill-quiet ${product.isPublic ? 'pill-quiet-on' : ''}`}>
                       {product.isPublic ? <Eye size={10} /> : <EyeOff size={10} />} In Shop
@@ -1276,7 +1275,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                 </div>
 
                 <div className="grid grid-cols-[78px_1fr] gap-x-3 items-start">
-                  <span className="text-ui-11 text-tea-text-dim uppercase tracking-[0.14em] pt-1">Promote</span>
+                  <span className="text-ui-11 text-admin-text-dim uppercase tracking-[0.14em] pt-1">Promote</span>
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <button onClick={() => handleUpdate(product.id, 'isFeatured', !product.isFeatured)} className={`pill-quiet ${product.isFeatured ? 'pill-quiet-on' : ''}`}>
                       <Star size={10} className={product.isFeatured ? 'fill-current' : ''} /> Starred
@@ -1288,7 +1287,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                 </div>
 
                 <div className="grid grid-cols-[78px_1fr] gap-x-3 items-start">
-                  <span className="text-ui-11 text-tea-text-dim uppercase tracking-[0.14em] pt-1">Classify</span>
+                  <span className="text-ui-11 text-admin-text-dim uppercase tracking-[0.14em] pt-1">Classify</span>
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <button onClick={() => handleUpdate(product.id, 'isSample', !product.isSample)} className={`pill-quiet ${product.isSample ? 'pill-quiet-on' : ''}`}>
                       <FlaskConical size={10} /> Sample
@@ -1315,21 +1314,21 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
             <button
               onClick={() => setTastingEditorProduct(product)}
               aria-label={flattenedTastingCount > 0 ? `Edit tasting profile (${flattenedTastingCount} notes)` : 'Add tasting profile'}
-              className="surface-warm w-[calc(100%-1.5rem)] mx-3 mb-3 px-4 py-3.5 flex items-center justify-between gap-3 rounded-md bg-tea-surface border border-tea-border hover:bg-tea-accent-sub transition-colors group text-left overflow-hidden"
+              className="admin-card admin-card-interactive w-[calc(100%-1.5rem)] mx-3 mb-3 px-4 py-3.5 flex items-center justify-between gap-3 group text-left"
             >
-              <span className="relative z-10 min-w-0 flex flex-col">
-                <span className={`block ${TYPOGRAPHY_CLASSES.h3} text-tea-text`}>Tasting profile</span>
+              <span className="min-w-0 flex flex-col">
+                <span className="block font-sans text-ui-14 font-medium text-admin-text leading-[1.35]">Tasting profile</span>
                 {flattenedTastingCount > 0 && product.mood && (
-                  <span className="block font-body text-ui-12 italic text-tea-text-sec truncate mt-1">{product.mood}</span>
+                  <span className="block font-body text-ui-12 italic text-admin-text-sec truncate mt-1">{product.mood}</span>
                 )}
               </span>
-              <span className="relative z-10 flex items-center gap-2.5 shrink-0">
+              <span className="flex items-center gap-2.5 shrink-0">
                 {flattenedTastingCount > 0 ? (
-                  <span className="font-mono text-ui-11 text-tea-text-dim tabular-nums">{flattenedTastingCount} notes</span>
+                  <span className="font-mono text-ui-11 text-admin-text-dim tabular-nums">{flattenedTastingCount} notes</span>
                 ) : (
-                  <span className="text-ui-10 text-tea-text-dim uppercase tracking-[0.18em]">Add notes</span>
+                  <span className="text-ui-10 text-admin-text-dim uppercase tracking-[0.18em]">Add notes</span>
                 )}
-                <ChevronRight size={14} aria-hidden="true" className="text-tea-text-dim group-hover:text-tea-text-sec transition-colors" />
+                <ChevronRight size={14} aria-hidden="true" className="text-admin-text-dim group-hover:text-admin-text-sec transition-colors" />
               </span>
             </button>
 
@@ -1351,31 +1350,31 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
               <div className="space-y-5">
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-ui-11 text-tea-text-dim uppercase tracking-[0.14em]">Introduction</span>
-                    <span className="text-ui-11 text-tea-text-dim italic">Personal voice</span>
+                    <span className="text-ui-11 text-admin-text-dim uppercase tracking-[0.14em]">Introduction</span>
+                    <span className="text-ui-11 text-admin-text-dim italic">Personal voice</span>
                   </div>
                   <GhostTextarea variant="bordered" ariaLabel="Introduction" value={product.description || ''} placeholder="Your personal introduction to this tea..." rows={4} onSave={(val) => handleUpdate(product.id, 'description', val)} className="font-body" />
                 </div>
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-ui-11 text-tea-text-dim uppercase tracking-[0.14em]">Terroir</span>
-                    <span className="text-ui-11 text-tea-text-dim italic">Soil, altitude, climate</span>
+                    <span className="text-ui-11 text-admin-text-dim uppercase tracking-[0.14em]">Terroir</span>
+                    <span className="text-ui-11 text-admin-text-dim italic">Soil, altitude, climate</span>
                   </div>
                   <GhostTextarea variant="bordered" ariaLabel="Terroir" value={product.terroir || ''} placeholder="Where this tea grew and why it matters..." rows={3} onSave={(val) => handleUpdate(product.id, 'terroir', val)} className="font-body" />
                 </div>
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-ui-11 text-tea-text-dim uppercase tracking-[0.14em]">Processing</span>
-                    <span className="text-ui-11 text-tea-text-dim italic">Craft & method</span>
+                    <span className="text-ui-11 text-admin-text-dim uppercase tracking-[0.14em]">Processing</span>
+                    <span className="text-ui-11 text-admin-text-dim italic">Craft & method</span>
                   </div>
                   <GhostTextarea variant="bordered" ariaLabel="Processing notes" value={product.processingNotes || ''} placeholder="How this tea was made..." rows={3} onSave={(val) => handleUpdate(product.id, 'processingNotes', val)} className="font-body" />
                 </div>
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-ui-11 text-tea-text-dim uppercase tracking-[0.14em]">Lore & history</span>
+                    <span className="text-ui-11 text-admin-text-dim uppercase tracking-[0.14em]">Lore & history</span>
                     {product.isCustomWisdom
                       ? <span className="flex items-center gap-1 text-ui-11 text-tea-gold italic"><Pencil size={10} /> hand-edited</span>
-                      : <span className="text-ui-11 text-tea-text-dim italic">AI generated</span>}
+                      : <span className="text-ui-11 text-admin-text-dim italic">AI generated</span>}
                   </div>
                   <GhostTextarea
                     variant="bordered"
@@ -1395,7 +1394,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
 
             {/* 7b. Links. Outbound navigation, kept out of the data-entry flow. */}
             <CollapsibleSection title="Links" description="Jump to the source encounter, order history, or full story page." defaultOpen={false}>
-              <div className="divide-y divide-tea-border border-y border-tea-border">
+              <div className="divide-y divide-admin-border border-y border-admin-border">
                 {(() => {
                   const compassEntryId = product.sourceCompassEntryId;
                   const compassEntry = compassEntryId
@@ -1404,31 +1403,31 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                   if (!compassEntry && !compassEntryId) return null;
                   const linkId = compassEntry?.id || compassEntryId!;
                   return (
-                    <button onClick={() => navigate(`/admin/compass?tab=buying&entry=${encodeURIComponent(linkId)}`)} className="w-full flex items-center justify-between gap-3 py-3 text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors group">
+                    <button onClick={() => navigate(`/admin/compass?tab=buying&entry=${encodeURIComponent(linkId)}`)} className="w-full flex items-center justify-between gap-3 py-3 text-ui-13 text-admin-text-sec hover:text-admin-text transition-colors group">
                       <span className="flex items-center gap-2 min-w-0">
-                        <Globe size={12} className="text-tea-text-dim group-hover:text-tea-text-sec shrink-0" />
+                        <Globe size={12} className="text-admin-text-dim group-hover:text-admin-text-sec shrink-0" />
                         <span className="truncate">
-                          Encounter <span className="text-tea-text-dim">·</span> {compassEntry?.vendorName || 'Entry'}
-                          {compassEntry && <span className="text-tea-text-dim"> · {new Date(compassEntry.createdAt).toLocaleDateString()}</span>}
+                          Encounter <span className="text-admin-text-dim">·</span> {compassEntry?.vendorName || 'Entry'}
+                          {compassEntry && <span className="text-admin-text-dim"> · {new Date(compassEntry.createdAt).toLocaleDateString()}</span>}
                         </span>
                       </span>
-                      <ChevronRight size={12} className="text-tea-text-dim shrink-0" />
+                      <ChevronRight size={12} className="text-admin-text-dim shrink-0" />
                     </button>
                   );
                 })()}
-                <button onClick={() => navigate(`/admin/activity?tab=orders&search=${encodeURIComponent(product.givenName || product.productName)}`)} className="w-full flex items-center justify-between gap-3 py-3 text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors group">
+                <button onClick={() => navigate(`/admin/activity?tab=orders&search=${encodeURIComponent(product.givenName || product.productName)}`)} className="w-full flex items-center justify-between gap-3 py-3 text-ui-13 text-admin-text-sec hover:text-admin-text transition-colors group">
                   <span className="flex items-center gap-2">
-                    <Receipt size={12} className="text-tea-text-dim group-hover:text-tea-text-sec" />
+                    <Receipt size={12} className="text-admin-text-dim group-hover:text-admin-text-sec" />
                     Order history
                   </span>
-                  <ChevronRight size={12} className="text-tea-text-dim" />
+                  <ChevronRight size={12} className="text-admin-text-dim" />
                 </button>
-                <button onClick={() => navigate(`/admin/products/${product.id}/story`)} className="w-full flex items-center justify-between gap-3 py-3 text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors group">
+                <button onClick={() => navigate(`/admin/products/${product.id}/story`)} className="w-full flex items-center justify-between gap-3 py-3 text-ui-13 text-admin-text-sec hover:text-admin-text transition-colors group">
                   <span className="flex items-center gap-2">
-                    <BookOpen size={12} className="text-tea-text-dim group-hover:text-tea-text-sec" />
+                    <BookOpen size={12} className="text-admin-text-dim group-hover:text-admin-text-sec" />
                     Full story page
                   </span>
-                  <ChevronRight size={12} className="text-tea-text-dim" />
+                  <ChevronRight size={12} className="text-admin-text-dim" />
                 </button>
               </div>
             </CollapsibleSection>
@@ -1436,27 +1435,27 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
             {/* 8. Events */}
             <CollapsibleSection title="Events" description="Tasting aggregate, guest impressions, and the events this tea appeared at." defaultOpen={false}>
               {productEventsLoading ? (
-                <div className="flex items-center gap-2 py-2 text-ui-12 text-tea-text-sec">
+                <div className="flex items-center gap-2 py-2 text-ui-12 text-admin-text-sec">
                   <Loader2 size={12} className="animate-spin" />
                   <span>Loading events…</span>
                 </div>
               ) : productEvents.length === 0 ? (
-                <p className="text-ui-12 text-tea-text-sec italic py-1">Not featured at any events yet.</p>
+                <p className="text-ui-12 text-admin-text-sec italic py-1">Not featured at any events yet.</p>
               ) : (
                 <>
                   {productTastingAgg && productTastingAgg.totalNotes > 0 && (
-                    <div className="mb-4 rounded-md bg-tea-bg border border-tea-border overflow-hidden">
-                      <div className="flex items-center gap-4 px-4 py-3 border-b border-tea-border">
+                    <div className="mb-4 rounded-md bg-admin-input border border-admin-border overflow-hidden">
+                      <div className="flex items-center gap-4 px-4 py-3 border-b border-admin-border">
                         <div className="flex items-baseline gap-1">
                           <span className="font-display text-ui-26 text-tea-gold leading-none tabular-nums">{productTastingAgg.avgRating.toFixed(1)}</span>
-                          <span className="font-mono text-ui-11 text-tea-text-dim">/5</span>
+                          <span className="font-mono text-ui-11 text-admin-text-dim">/5</span>
                         </div>
                         <div className="flex flex-col gap-0.5">
-                          <span className="text-ui-12 text-tea-text-sec">
+                          <span className="text-ui-12 text-admin-text-sec">
                             {productTastingAgg.totalNotes} tasting {productTastingAgg.totalNotes === 1 ? 'note' : 'notes'}
                           </span>
                           {productTastingAgg.favoriteCount > 0 && (
-                            <span className="text-ui-12 text-tea-text-dim">
+                            <span className="text-ui-12 text-admin-text-dim">
                               {productTastingAgg.favoriteCount} {productTastingAgg.favoriteCount === 1 ? 'guest favorited' : 'guests favorited'}
                             </span>
                           )}
@@ -1464,21 +1463,21 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                       </div>
                       {productTastingAgg.impressions.length > 0 && (
                         <div className="px-4 py-3 space-y-2.5">
-                          <div className="text-ui-10 text-tea-text-dim uppercase tracking-[0.18em]">Guest impressions</div>
+                          <div className="text-ui-10 text-admin-text-dim uppercase tracking-[0.18em]">Guest impressions</div>
                           {productTastingAgg.impressions.map((imp, i) => (
-                            <p key={i} className="font-body text-ui-13 italic text-tea-text leading-[1.55]">"{imp}"</p>
+                            <p key={i} className="font-body text-ui-13 italic text-admin-text leading-[1.55]">"{imp}"</p>
                           ))}
                         </div>
                       )}
                     </div>
                   )}
-                  <div className="text-ui-10 text-tea-text-dim uppercase tracking-[0.18em] mb-2">Appeared at</div>
-                  <div className="divide-y divide-tea-border border-y border-tea-border">
+                  <div className="text-ui-10 text-admin-text-dim uppercase tracking-[0.18em] mb-2">Appeared at</div>
+                  <div className="divide-y divide-admin-border border-y border-admin-border">
                     {productEvents.map((event: any) => (
                       <div key={event.id} className="flex items-center justify-between gap-3 py-2.5">
-                        <span className="text-ui-13 text-tea-text truncate">{event.name || event.title || 'Event'}</span>
+                        <span className="text-ui-13 text-admin-text truncate">{event.name || event.title || 'Event'}</span>
                         {(event.date || event.event_date) && (
-                          <span className="font-mono text-ui-11 text-tea-text-dim shrink-0 tabular-nums">
+                          <span className="font-mono text-ui-11 text-admin-text-dim shrink-0 tabular-nums">
                             {new Date(event.date || event.event_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                           </span>
                         )}
@@ -1499,7 +1498,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
       </div>
 
       {/* Mobile backdrop */}
-      {product && <div className="fixed inset-0 bottom-[calc(52px+env(safe-area-inset-bottom))] z-20 bg-tea-bg/70 md:hidden" onClick={onClose} />}
+      {product && <div className="fixed inset-0 bottom-[calc(52px+env(safe-area-inset-bottom))] z-20 md:hidden" style={{ backgroundColor: 'rgba(14,14,16,0.7)' }} onClick={onClose} />}
 
       {/* Tasting editor modal */}
       {tastingEditorProduct && (

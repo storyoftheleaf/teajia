@@ -25,6 +25,19 @@ const config: Config = {
         'tea-green': '#5A6E5A',
         'tea-moss': '#2A3430',
         'tea-shadow': 'rgba(0,0,0,0.15)',
+        // Admin neutral palette — see card-utilities.css for the full
+        // rationale. Intentionally NOT alpha-channel-aware so /N modifiers
+        // don't accidentally produce off-system colors.
+        'admin-bg':           'var(--admin-bg)',
+        'admin-surface':      'var(--admin-surface)',
+        'admin-elevated':     'var(--admin-elevated)',
+        'admin-input':        'var(--admin-input-bg)',
+        'admin-border':       'var(--admin-border)',
+        'admin-border-hover': 'var(--admin-border-hover)',
+        'admin-text':         'var(--admin-text)',
+        'admin-text-sec':     'var(--admin-text-sec)',
+        'admin-text-dim':     'var(--admin-text-dim)',
+        'admin-text-faint':   'var(--admin-text-faint)',
       },
       fontFamily: {
         display: DESIGN_TOKENS.fontFamily.display as string[],
