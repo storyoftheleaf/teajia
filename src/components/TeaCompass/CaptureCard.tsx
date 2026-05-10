@@ -1590,7 +1590,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
               ? 'shrink-0 inline-flex items-center gap-1.5 rounded-md px-3 py-2.5 text-sm font-medium bg-tea-bg text-tea-text-sec border border-tea-border hover:bg-tea-accent-sub hover:text-tea-text active:bg-tea-accent-sub transition-colors'
               : 'shrink-0 inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium bg-tea-elevated text-tea-text-sec border border-tea-border hover:bg-tea-gold/[0.1] hover:text-tea-text active:bg-tea-gold/[0.14] transition-colors'
             }
-            style={entry.type ? {
+            style={entry.type && !isPlaybookSurface ? {
               backgroundColor: getTypeChipStyle(entry.type).bg,
               color: getTypeChipStyle(entry.type).text,
             } : undefined}
