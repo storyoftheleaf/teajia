@@ -2617,7 +2617,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               <table className="w-full table-fixed border-collapse">
                 <colgroup>
                   {visibleCols.map(col => <col key={col.key} className={col.defaultWidth} />)}
-                  <col className="w-[10%]" />
+                  <col className="w-[200px]" />
                 </colgroup>
                 <thead className="sticky top-0 z-20 bg-tea-bg shadow-sm">
                   <tr>
@@ -2656,7 +2656,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                           ) : (
                             visibleCols.map(col => <col key={col.key} className={col.defaultWidth} />)
                           )}
-                          <col className={splitView ? 'w-[52px]' : 'w-[10%]'} />
+                          <col className={splitView ? 'w-[100px]' : 'w-[200px]'} />
                         </colgroup>
                         <tbody>
                           {items.map((product) => {
@@ -2704,7 +2704,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     ) : (
                       visibleCols.map(col => <col key={col.key} className={col.defaultWidth} />)
                     )}
-                    <col className={splitView ? 'w-[52px]' : 'w-[10%]'} />
+                    <col className={splitView ? 'w-[100px]' : 'w-[200px]'} />
                 </colgroup>
 
                 <thead className="sticky top-0 z-20 bg-tea-bg shadow-sm">
