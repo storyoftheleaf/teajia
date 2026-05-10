@@ -12,7 +12,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useAppStore } from '../../lib/store';
 
 import { api, setToken, hydrateAccountStateFromToken } from '../../lib/api';
-import { fetchStoreEvents } from '../../lib/storefrontApi';
+import { fetchStoreEvents, fetchStoreProducts } from '../../lib/storefrontApi';
 import { hydrateTastingJournal } from '../../lib/tastingJournalSync';
 import type { Currency } from '../../admin/types';
 import type { AccountMembership } from '../../types';
@@ -24,6 +24,7 @@ import { OperatorView } from './OperatorView';
 import { MemberView } from './MemberView';
 import { ReaderView } from './ReaderView';
 import { StaffView } from './StaffView';
+import { buildFirstDoorReadiness } from './workflows';
 
 interface AccountPanelProps {
   onClose: () => void;
@@ -563,6 +564,26 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
     staleTime: 1000 * 60 * 5,
   });
 
+  const canOperateCurrentTable = membershipRole === 'owner' || auth.isAdmin;
+  const { data: storeProducts = [] } = useQuery({
+    queryKey: ['panel-store-products', activeSlug],
+    queryFn: () => fetchStoreProducts(activeSlug),
+    enabled: !!activeSlug && canOperateCurrentTable,
+    staleTime: 1000 * 60 * 5,
+    retry: false,
+  });
+
+  const { data: wholesaleOrderCount = 0 } = useQuery({
+    queryKey: ['panel-wholesale-order-count', activeAccountId],
+    queryFn: async () => {
+      const res = await api.wholesale.listOrders({ role: 'buyer' });
+      return res.orders.length;
+    },
+    enabled: !!activeAccountId && canOperateCurrentTable,
+    staleTime: 1000 * 60 * 5,
+    retry: false,
+  });
+
   const [eventListFilter, setEventListFilter] = useState<'upcoming' | 'open' | 'past'>('upcoming');
 
   const { data: myJourney } = useQuery({
@@ -632,8 +653,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
   }, [activeSlug, activeAccount?.name, activeAccount?.location_city, activeAccount?.location_country, activeLocationStr]);
 
   const isFirstDoorCandidate = useMemo(() => {
-    const canOperate = membershipRole === 'owner' || auth.isAdmin;
-    if (!canOperate) return false;
+    if (!canOperateCurrentTable) return false;
     const hasOperationalHistory =
       storeEvents.length > 0 ||
       pendingCount > 0 ||
@@ -643,12 +663,49 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
   }, [
     activeMembership?.account_kind,
     activeAccount?.public_enabled,
-    auth.isAdmin,
+    canOperateCurrentTable,
     inboundUnreadCount,
     isAustraliaDoor,
-    membershipRole,
     pendingCount,
     storeEvents.length,
+  ]);
+
+  const firstDoorReadiness = useMemo(() => {
+    const sellableProductCount = storeProducts.filter(product => {
+      const price = product.category === 'tea'
+        ? Number(product.price_per_gram || product.price_50g || 0)
+        : Number(product.pricePerUnit || product.price_50g || 0);
+      const stock = product.category === 'tea'
+        ? Number(product.stock_g || 0)
+        : Number(product.quantityUnits ?? product.stock_g ?? 0);
+      return price > 0 && stock > 0;
+    }).length;
+
+    return buildFirstDoorReadiness({
+      accountName: activeAccount?.name ?? activeMembership?.account_name ?? null,
+      locationLabel: activeLocationStr || getLocationFromSlug(activeSlug),
+      currencyLabel: activeDisplayCurrency || getCurrencyFromSlug(activeSlug),
+      hasContact: Boolean(activeAccount?.whatsapp_number || activeAccount?.contact_email),
+      isPublicEnabled: Boolean(activeAccount?.public_enabled),
+      publicProductCount: storeProducts.length,
+      sellableProductCount,
+      wholesaleOrderCount,
+      eventCount: storeEvents.length,
+      memberCount: memberships.length,
+    });
+  }, [
+    activeAccount?.contact_email,
+    activeAccount?.name,
+    activeAccount?.public_enabled,
+    activeAccount?.whatsapp_number,
+    activeDisplayCurrency,
+    activeLocationStr,
+    activeMembership?.account_name,
+    activeSlug,
+    memberships.length,
+    storeEvents.length,
+    storeProducts,
+    wholesaleOrderCount,
   ]);
 
   const displayedEvents = eventListFilter === 'open' ? openSeatEvents : eventListFilter === 'past' ? pastEvents : upcomingEvents;
@@ -1202,6 +1259,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                 activeStoreSlug={activeSlug}
                 currencyLabel={activeDisplayCurrency || getCurrencyFromSlug(activeSlug)}
                 isFirstDoorCandidate={isFirstDoorCandidate}
+                firstDoorReadiness={firstDoorReadiness}
                 isPlatform={!!platformRole}
                 isOwner={membershipRole === 'owner' || auth.isAdmin}
                 pendingInvoiceCount={pendingCount}

@@ -72,6 +72,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { DashboardView } from './components/DashboardView';
 import { NoMembershipGate } from './components/NoMembershipGate';
 import { AccountSettingsView } from './views/AccountSettingsView';
+import { StoreLaunchPlaybookView } from './views/StoreLaunchPlaybookView';
 import { PlatformAdminView } from './views/PlatformAdminView';
 import { AccessView } from './views/AccessView';
 import { PlatformAccessView } from './views/PlatformAccessView';
@@ -203,10 +204,12 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
   const hasCatalogBundle = isAdmin || selectHasBundle(bundleState, 'catalog');
   const hasStockBundle = isAdmin || selectHasBundle(bundleState, 'stock');
   const hasPublishBundle = isAdmin || selectHasBundle(bundleState, 'publish');
+  const hasGatherBundle = isAdmin || selectHasBundle(bundleState, 'gather');
   const hasSellBundle = isAdmin || selectHasBundle(bundleState, 'sell');
   const hasMembersBundle = isAdmin || selectHasBundle(bundleState, 'members');
   const canManageInventory = hasCatalogBundle || hasStockBundle;
   const canUseNetwork = hasCatalogBundle || hasSellBundle || !!platformRole;
+  const canUsePeople = hasSellBundle || hasGatherBundle || hasMembersBundle || hasStockBundle || hasPublishBundle;
 
   // Warm the events list in the background as soon as the user enters admin.
   // The persisted cache may already have a copy, but this kicks off the
@@ -633,14 +636,14 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
 
               {/* Member tools — all authenticated members */}
               <Route path="compass" element={
-                <ProtectedRoute hasAccess={isMember} isLoggingIn={isLoginOpen || !isLoggedIn}>
+                <ProtectedRoute hasAccess={hasCatalogBundle} isLoggingIn={isLoginOpen || !isLoggedIn}>
                   <PageTransition>
                     <CompassWithMode onBack={() => navigate(-1)} />
                   </PageTransition>
                 </ProtectedRoute>
               } />
               <Route path="capture" element={
-                <ProtectedRoute hasAccess={isMember} isLoggingIn={isLoginOpen || !isLoggedIn}>
+                <ProtectedRoute hasAccess={hasCatalogBundle} isLoggingIn={isLoginOpen || !isLoggedIn}>
                   <PageTransition>
                     <DraftsView
                       products={products}
@@ -655,20 +658,20 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
               } />
 
               {/* Member tools — events + samples open to all members */}
-              <Route path="events" element={<ProtectedRoute hasAccess={isMember} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><EventsManager /></PageTransition></ProtectedRoute>} />
-              <Route path="events/:id" element={<ProtectedRoute hasAccess={isMember} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><EventDetail /></PageTransition></ProtectedRoute>} />
-              <Route path="tasting-events" element={<ProtectedRoute hasAccess={isMember} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><TastingEventsList /></PageTransition></ProtectedRoute>} />
-              <Route path="tasting-events/new" element={<ProtectedRoute hasAccess={isMember} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><TastingEventForm /></PageTransition></ProtectedRoute>} />
-              <Route path="tasting-events/:sessionId" element={<ProtectedRoute hasAccess={isMember} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><TastingControlRoom /></PageTransition></ProtectedRoute>} />
-              <Route path="tasting-events/:sessionId/live" element={<ProtectedRoute hasAccess={isMember} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><TastingControlRoom /></PageTransition></ProtectedRoute>} />
-              <Route path="venues" element={<ProtectedRoute hasAccess={isMember} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><VenueManager /></PageTransition></ProtectedRoute>} />
+              <Route path="events" element={<ProtectedRoute hasAccess={hasGatherBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><EventsManager /></PageTransition></ProtectedRoute>} />
+              <Route path="events/:id" element={<ProtectedRoute hasAccess={hasGatherBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><EventDetail /></PageTransition></ProtectedRoute>} />
+              <Route path="tasting-events" element={<ProtectedRoute hasAccess={hasGatherBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><TastingEventsList /></PageTransition></ProtectedRoute>} />
+              <Route path="tasting-events/new" element={<ProtectedRoute hasAccess={hasGatherBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><TastingEventForm /></PageTransition></ProtectedRoute>} />
+              <Route path="tasting-events/:sessionId" element={<ProtectedRoute hasAccess={hasGatherBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><TastingControlRoom /></PageTransition></ProtectedRoute>} />
+              <Route path="tasting-events/:sessionId/live" element={<ProtectedRoute hasAccess={hasGatherBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><TastingControlRoom /></PageTransition></ProtectedRoute>} />
+              <Route path="venues" element={<ProtectedRoute hasAccess={hasGatherBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><VenueManager /></PageTransition></ProtectedRoute>} />
               <Route path="samples" element={<Navigate to="/admin/compass?tab=samples" replace />} />
 
               {/* Operations — staff, admin, owner */}
-              <Route path="activity" element={<ProtectedRoute hasAccess={isStaff} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><ActivityView products={products} /></PageTransition></ProtectedRoute>} />
+              <Route path="activity" element={<ProtectedRoute hasAccess={hasSellBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><ActivityView products={products} /></PageTransition></ProtectedRoute>} />
               <Route path="activity-logs" element={<Navigate to="/admin/activity?tab=log" replace />} />
-              <Route path="people" element={<ProtectedRoute hasAccess={isStaff} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><PeopleView userRole={userRole || 'user'} /></PageTransition></ProtectedRoute>} />
-              <Route path="people/:customerId" element={<ProtectedRoute hasAccess={isStaff} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><CustomerProfilePage /></PageTransition></ProtectedRoute>} />
+              <Route path="people" element={<ProtectedRoute hasAccess={canUsePeople} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><PeopleView userRole={userRole || 'user'} /></PageTransition></ProtectedRoute>} />
+              <Route path="people/:customerId" element={<ProtectedRoute hasAccess={canUsePeople} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><CustomerProfilePage /></PageTransition></ProtectedRoute>} />
               <Route path="contact-tags" element={<ProtectedRoute hasAccess={isStaff} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><ContactTagsView /></PageTransition></ProtectedRoute>} />
 
               {/* Management — admin, owner */}
@@ -713,6 +716,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
               <Route path="network/wholesale/new" element={<ProtectedRoute hasAccess={hasSellBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><WholesaleOrderDraft /></PageTransition></ProtectedRoute>} />
               <Route path="network/wholesale/:orderId" element={<ProtectedRoute hasAccess={hasSellBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><WholesaleOrderDraft /></PageTransition></ProtectedRoute>} />
               <Route path="network/wholesale/:orderId/timeline" element={<ProtectedRoute hasAccess={hasSellBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><WholesaleOrderTimeline /></PageTransition></ProtectedRoute>} />
+              <Route path="launch-playbook" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><StoreLaunchPlaybookView /></PageTransition></ProtectedRoute>} />
               <Route path="account-settings" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><AccountSettingsView /></PageTransition></ProtectedRoute>} />
               <Route path="activity" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><AccountActivityView /></PageTransition></ProtectedRoute>} />
               <Route path="platform" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><PlatformAdminView /></PageTransition></ProtectedRoute>} />

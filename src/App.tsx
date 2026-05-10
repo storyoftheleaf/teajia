@@ -80,6 +80,7 @@ const ArticlePage = lazy(() => import('./pages/ArticlePage'));
 const PublicCollectionPage = lazy(() => import('./pages/PublicCollectionPage'));
 const ContributorProfilePage = lazy(() => import('./pages/ContributorProfilePage'));
 const ContributorsIndexPage = lazy(() => import('./pages/ContributorsIndexPage'));
+const StoreLaunchPlaybookPage = lazy(() => import('./pages/StoreLaunchPlaybookPage'));
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchStore } from './lib/storefrontApi';
@@ -727,6 +728,14 @@ const AppContent = () => {
                     </Suspense>
                   </ErrorBoundary>
                 } />
+                <Route path="/store-launch-playbook" element={
+                  <ErrorBoundary>
+                    <Suspense fallback={<SectionSkeleton variant="hero" />}>
+                      <StoreLaunchPlaybookPage />
+                    </Suspense>
+                  </ErrorBoundary>
+                } />
+                <Route path="/stores/playbook" element={<Navigate to="/store-launch-playbook" replace />} />
                 <Route path="/collection" element={
                   <ErrorBoundary>
                     <Suspense fallback={<SectionSkeleton variant="list" />}>

@@ -10,7 +10,7 @@ import {
   type AdminTool,
   type AdminToolGroup,
 } from '../../admin/toolRegistry';
-import { FIRST_DOOR_WORKFLOW } from './workflows';
+import { OPERATOR_SUPPORT_LINKS, type FirstDoorReadiness, type ReadinessState } from './workflows';
 import {
   PreviewBlock,
   Instrument,
@@ -46,6 +46,7 @@ interface OperatorViewProps {
   activeStoreSlug: string;
   currencyLabel: string | null;
   isFirstDoorCandidate: boolean;
+  firstDoorReadiness: FirstDoorReadiness;
   isPlatform: boolean;
   isOwner: boolean;
 
@@ -122,6 +123,12 @@ function formatDaysAgo(n: number): string {
   return `${capitalize(daysWord(n))} days past`;
 }
 
+function readinessLabel(state: ReadinessState): string {
+  if (state === 'done') return 'Done';
+  if (state === 'next') return 'Next';
+  return 'Open';
+}
+
 // ── OperatorView ───────────────────────────────────────────────────────────
 
 export const OperatorView: React.FC<OperatorViewProps> = ({
@@ -134,6 +141,7 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
   activeStoreSlug,
   currencyLabel,
   isFirstDoorCandidate,
+  firstDoorReadiness,
   isPlatform,
   isOwner,
   pendingInvoiceCount,
@@ -436,15 +444,30 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
       {isFirstDoorCandidate && (
         <section className="mt-6 border-t border-tea-border" aria-label="Opening workflow">
           <header className="px-6 pt-5 pb-2">
-            <div className="text-ui-10 uppercase tracking-[0.28em] text-tea-text-sec font-medium">
-              Opening a table
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-ui-10 uppercase tracking-[0.28em] text-tea-text-sec font-medium">
+                Opening a table
+              </div>
+              <div className="text-ui-11 text-tea-text-sec tabular-nums" style={{ fontFamily: 'var(--font-mono)' }}>
+                {firstDoorReadiness.completeCount}/{firstDoorReadiness.totalCount}
+              </div>
             </div>
             <p className="mt-2 text-ui-14 text-tea-text-sec leading-relaxed" style={{ fontFamily: 'var(--font-display)' }}>
               First-door workflow{locationLabel ? ` · ${locationLabel}` : ''}{currencyLabel ? ` · ${currencyLabel}` : ''}.
             </p>
+            {firstDoorReadiness.nextStep && (
+              <button
+                onClick={() => go(firstDoorReadiness.nextStep!.route)}
+                className="mt-4 w-full min-h-[44px] px-4 py-3 border border-tea-gold/40 text-left text-tea-gold hover:bg-tea-gold/10 transition-colors"
+                style={{ fontFamily: 'var(--font-display)', WebkitTapHighlightColor: 'transparent' }}
+              >
+                <span className="block text-ui-11 uppercase tracking-[0.2em] font-medium">Next step</span>
+                <span className="block mt-1 text-ui-15 text-tea-text leading-tight">{firstDoorReadiness.nextStep.label}</span>
+              </button>
+            )}
           </header>
           <ul>
-            {FIRST_DOOR_WORKFLOW.map((step, index) => (
+            {firstDoorReadiness.steps.map((step, index) => (
               <li key={step.id}>
                 <button
                   onClick={() => go(step.route)}
@@ -459,7 +482,21 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
                       {index + 1}
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block text-ui-15 text-tea-text leading-tight">{step.label}</span>
+                      <span className="flex items-start justify-between gap-3">
+                        <span className="block text-ui-15 text-tea-text leading-tight">{step.label}</span>
+                        <span
+                          className={[
+                            'text-ui-10 uppercase tracking-[0.14em] shrink-0',
+                            step.state === 'done'
+                              ? 'text-tea-gold'
+                              : step.state === 'next'
+                              ? 'text-tea-text'
+                              : 'text-tea-text-sec',
+                          ].join(' ')}
+                        >
+                          {readinessLabel(step.state)}
+                        </span>
+                      </span>
                       <span className="block mt-1 text-ui-12 text-tea-text-sec leading-snug">{step.description}</span>
                     </span>
                   </span>
@@ -477,7 +514,7 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
                     className="mt-0.5 w-5 h-5 rounded-full border border-tea-border text-ui-10 text-tea-gold flex items-center justify-center shrink-0 tabular-nums"
                     style={{ fontFamily: 'var(--font-mono)' }}
                   >
-                    {FIRST_DOOR_WORKFLOW.length + 1}
+                    {firstDoorReadiness.totalCount + 1}
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block text-ui-15 text-tea-text leading-tight">Preview storefront</span>
@@ -489,6 +526,28 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
               </button>
             </li>
           </ul>
+          <div className="px-6 pt-5 pb-1 border-t border-tea-border">
+            <div className="text-ui-10 uppercase tracking-[0.28em] text-tea-text-sec font-medium mb-3">
+              Support
+            </div>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-ui-14 text-tea-text-sec tracking-[0.01em]">
+              {OPERATOR_SUPPORT_LINKS.map((link, i) => {
+                const route = link.id === 'storefront-preview' ? `/store/${activeStoreSlug}` : link.route;
+                return (
+                  <React.Fragment key={link.id}>
+                    {i > 0 && <span className="text-tea-text-sec" aria-hidden="true">·</span>}
+                    <button
+                      onClick={() => go(route)}
+                      className="py-1 -my-1 hover:text-tea-gold transition-colors"
+                      style={{ fontFamily: 'var(--font-display)', WebkitTapHighlightColor: 'transparent' }}
+                    >
+                      {link.label}
+                    </button>
+                  </React.Fragment>
+                );
+              })}
+            </div>
+          </div>
         </section>
       )}
 
