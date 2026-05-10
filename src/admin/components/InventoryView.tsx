@@ -1317,7 +1317,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   }
 
   return (
-    <div className={`h-full flex flex-col overflow-hidden bg-tea-bg ${panelProduct ? 'md:mr-[420px]' : ''} transition-all duration-300`}>
+    <div className={`h-full flex flex-col overflow-hidden bg-tea-bg ${panelProduct ? 'md:mr-[360px] lg:mr-[420px] xl:mr-[440px]' : ''} transition-all duration-300`}>
 
       {/* --- VENDOR FILTER BANNER --- */}
       {vendorFilter && (
