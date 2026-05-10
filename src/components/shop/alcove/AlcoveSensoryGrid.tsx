@@ -78,7 +78,7 @@ export const AlcoveSensoryGrid: React.FC<AlcoveSensoryGridProps> = ({
   return (
     <div style={{
       marginTop: "24px",
-      background: "rgba(0,0,0,0.12)",
+      background: "rgb(var(--tea-text-rgb) / 0.08)",
       borderTop: "1px solid var(--tea-border)",
       borderBottom: "1px solid var(--tea-border)",
       padding: "4px 16px",
@@ -178,7 +178,7 @@ export const AlcoveSensoryGrid: React.FC<AlcoveSensoryGridProps> = ({
                     flexShrink: 0,
                   }} />
                 ) : NoteIcon ? (
-                  <NoteIcon size={16} style={{ opacity: 0.7, flexShrink: 0, color: "var(--tea-gold)" }} />
+                  <NoteIcon size={16} style={{ opacity: 0.72, flexShrink: 0, color: "currentColor" }} />
                 ) : null}
                 <span>{noteItem.label}</span>
               </Tag>

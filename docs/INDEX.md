@@ -2,7 +2,7 @@
 
 > Start here. Documentation is organized by purpose, not by type.
 
-**Last updated:** 2026-05-09
+**Last updated:** 2026-05-10
 
 ---
 
@@ -19,6 +19,10 @@
 | **IA_REVIEW.md** | Scoping doc for the information architecture project | Considering route renames, navigation moves, or section restructuring |
 | **plan/product-architecture-initiative.md** | Product architecture playback + initiative overview | Aligning product taste, architecture, and next implementation work |
 | **OPERATIONAL_NOTES.md** | Intentional tradeoffs, residual risks, things to revisit | Onboarding to the codebase; before changing auth or infra |
+| **AUSTRALIA_LAUNCH_PLAYBOOK.md** | First-store launch checklist for Teajia Australia | Onboarding the first external store owner |
+| **OPENING_STOCK_CSV_GUIDE.md** | Inventory import fields and first-batch rules | Preparing or reviewing opening stock |
+| **STORE_OPERATOR_DAILY_WORKFLOWS.md** | Daily operating guide for store owners and staff | Training Australia staff |
+| **MEMBERS_AND_ACCESS_GUIDE.md** | Role, bundle, and invite guide | Granting staff access safely |
 
 ## For product / design
 
@@ -61,6 +65,7 @@ In `docs/_audit/`:
 - `02_owner_master.md` — 127 Owner+Master actions, by bundle
 - `03_platform_crosscutting.md` — 15 platform actions + 8 cross-cutting systems
 - `04_doc_inventory.md` — 46-file doc census
+- `05_your_table_member_level_links.md` — Your Table link/home audit by member level
 - `FINDINGS.md` — 37 ranked findings (P0–P3)
 - `CONSOLIDATION_PLAN.md` — execution recipe for this consolidation
 

@@ -1,8 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Loader2, Save, AlertTriangle, ArrowRight } from 'lucide-react';
+import { CheckCircle2, Circle, Copy, ExternalLink, Loader2, Save, AlertTriangle, ArrowRight, RefreshCw } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useAppStore } from '../store';
+import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import type { Account, AccountMember, AccountRole } from '../../types';
+import type { TeaEvent } from '../../types/events';
 
 function useCurrentRole(): AccountRole | null {
   const { memberships, activeAccountId } = useAppStore();
@@ -16,6 +18,68 @@ interface AccountSettingsViewProps {
   embedded?: boolean;
 }
 
+type LaunchProductAudit = {
+  total: number;
+  publicCount: number;
+  priced: number;
+  stocked: number;
+  withImages: number;
+  withType: number;
+  readyPublic: number;
+};
+
+type LaunchTeamAudit = {
+  total: number;
+  owners: number;
+  activeMembers: number;
+  pendingInvites: number;
+  membersWithoutBundles: number;
+};
+
+type LaunchAudit = {
+  loading: boolean;
+  error: string | null;
+  products: LaunchProductAudit;
+  team: LaunchTeamAudit;
+  events: {
+    total: number;
+    upcoming: number;
+  };
+  orders: {
+    total: number;
+    pending: number;
+  };
+};
+
+const EMPTY_LAUNCH_AUDIT: LaunchAudit = {
+  loading: true,
+  error: null,
+  products: {
+    total: 0,
+    publicCount: 0,
+    priced: 0,
+    stocked: 0,
+    withImages: 0,
+    withType: 0,
+    readyPublic: 0,
+  },
+  team: {
+    total: 0,
+    owners: 0,
+    activeMembers: 0,
+    pendingInvites: 0,
+    membersWithoutBundles: 0,
+  },
+  events: {
+    total: 0,
+    upcoming: 0,
+  },
+  orders: {
+    total: 0,
+    pending: 0,
+  },
+};
+
 export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({ embedded = false }) => {
   const { activeAccountId, setActiveAccount } = useAppStore();
   const currentRole = useCurrentRole();
@@ -26,6 +90,8 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({ embedd
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
+  const [copiedStorefront, setCopiedStorefront] = useState(false);
+  const [launchAudit, setLaunchAudit] = useState<LaunchAudit>(EMPTY_LAUNCH_AUDIT);
 
   useEffect(() => {
     if (!activeAccountId) return;
@@ -49,6 +115,94 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({ embedd
       cancelled = true;
     };
   }, [activeAccountId, setActiveAccount]);
+
+  const loadLaunchAudit = async () => {
+    if (!activeAccountId) return;
+    setLaunchAudit((prev) => ({ ...prev, loading: true, error: null }));
+    try {
+      const [productsRaw, accessRaw, eventsRaw, invoicesRaw] = await Promise.allSettled([
+        api.products.list(),
+        api.accounts.getAccess(activeAccountId),
+        api.events.listAdmin(),
+        api.invoices.list(100),
+      ]);
+
+      const products = productsRaw.status === 'fulfilled' && Array.isArray(productsRaw.value)
+        ? productsRaw.value as any[]
+        : [];
+      const members = accessRaw.status === 'fulfilled'
+        ? accessRaw.value.members || []
+        : [];
+      const events = eventsRaw.status === 'fulfilled' && Array.isArray(eventsRaw.value)
+        ? eventsRaw.value as TeaEvent[]
+        : [];
+      const invoices = invoicesRaw.status === 'fulfilled' && Array.isArray(invoicesRaw.value)
+        ? invoicesRaw.value as any[]
+        : [];
+
+      const activeProducts = products.filter((p) => p.status !== 'Archived');
+      const publicProducts = activeProducts.filter((p) => p.is_public !== false);
+      const pricedProducts = activeProducts.filter((p) =>
+        Number(p.retail_price_per_gram_usd) > 0 || Number(p.fixed_retail_price_usd) > 0
+      );
+      const stockedProducts = activeProducts.filter((p) =>
+        Number(p.stock_grams) > 0 || Number(p.quantity_units) > 0
+      );
+      const imageProducts = activeProducts.filter((p) => Boolean(p.image_url));
+      const typedProducts = activeProducts.filter((p) => Boolean(p.type));
+      const readyPublicProducts = publicProducts.filter((p) =>
+        (Number(p.stock_grams) > 0 || Number(p.quantity_units) > 0)
+        && (Number(p.retail_price_per_gram_usd) > 0 || Number(p.fixed_retail_price_usd) > 0)
+        && Boolean(p.product_name)
+      );
+      const now = Date.now();
+      const upcomingEvents = events.filter((event: any) => {
+        const date = new Date(event.eventDate || event.event_date || event.date || '').getTime();
+        return Number.isFinite(date) && date >= now && event.status !== 'archived';
+      });
+
+      setLaunchAudit({
+        loading: false,
+        error: null,
+        products: {
+          total: activeProducts.length,
+          publicCount: publicProducts.length,
+          priced: pricedProducts.length,
+          stocked: stockedProducts.length,
+          withImages: imageProducts.length,
+          withType: typedProducts.length,
+          readyPublic: readyPublicProducts.length,
+        },
+        team: {
+          total: members.length,
+          owners: members.filter((m: AccountMember) => m.role === 'owner').length,
+          activeMembers: members.filter((m: AccountMember) => m.status !== 'invited').length,
+          pendingInvites: members.filter((m: AccountMember) => m.status === 'invited' || (m.invited_at && !m.joined_at)).length,
+          membersWithoutBundles: members.filter((m: AccountMember) => m.role === 'staff' && (m.bundles?.length || 0) === 0).length,
+        },
+        events: {
+          total: events.length,
+          upcoming: upcomingEvents.length,
+        },
+        orders: {
+          total: invoices.length,
+          pending: invoices.filter((invoice) => invoice.status === 'Pending').length,
+        },
+      });
+    } catch (err: any) {
+      setLaunchAudit((prev) => ({
+        ...prev,
+        loading: false,
+        error: err?.message || 'Could not load launch status.',
+      }));
+    }
+  };
+
+  useEffect(() => {
+    if (!activeAccountId || !account) return;
+    void loadLaunchAudit();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeAccountId, account?.id]);
 
   const update = <K extends keyof Account>(key: K, value: Account[K]) => {
     setAccount((prev) => (prev ? { ...prev, [key]: value } : prev));
@@ -110,20 +264,36 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({ embedd
   }
 
   const disabled = !canEdit || saving;
+  const storefrontUrl = `${window.location.origin}/store/${account.slug}`;
+
+  const copyStorefrontUrl = async () => {
+    await navigator.clipboard.writeText(storefrontUrl);
+    setCopiedStorefront(true);
+    window.setTimeout(() => setCopiedStorefront(false), 1800);
+  };
 
   return (
     <div className="h-full overflow-y-auto">
-    <div className="p-6 md:p-10 max-w-3xl mx-auto">
+    <div className="p-6 md:p-10 max-w-4xl mx-auto">
       {!embedded && (
         <div className="mb-6">
-          <h1 className="text-2xl text-tea-text mb-1" style={{ fontFamily: 'var(--font-display)' }}>
+          <h1 className={`${TYPOGRAPHY_CLASSES.h2} text-tea-text mb-1`}>
             Account Settings
           </h1>
-          <p className="text-xs text-tea-text-dim uppercase tracking-[0.15em]">
+          <p className="text-ui-11 text-tea-text-dim uppercase tracking-[0.15em]">
             {account.name}
           </p>
         </div>
       )}
+
+      <LaunchReadinessPanel
+        account={account}
+        audit={launchAudit}
+        storefrontUrl={storefrontUrl}
+        copied={copiedStorefront}
+        onCopy={copyStorefrontUrl}
+        onRefresh={loadLaunchAudit}
+      />
 
       {!canEdit && (
         <div className="mb-4 px-4 py-3 rounded-md bg-tea-elevated text-xs text-tea-text-sec">
@@ -141,7 +311,7 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({ embedd
         </div>
       )}
 
-      <form onSubmit={handleSave} className="space-y-6">
+      <form id="account-profile-form" onSubmit={handleSave} className="space-y-6">
         {/* Read-only section */}
         <div className="bg-tea-surface rounded-lg border border-tea-border p-5 space-y-4">
           <h2 className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim mb-1">
@@ -167,24 +337,38 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({ embedd
             value={account.name}
             onChange={(v) => update('name', v)}
             disabled={disabled}
+            hint="Shown at the top of the public store and in the network directory."
           />
           <Field
             label="Tagline"
             value={account.tagline ?? ''}
             onChange={(v) => update('tagline', v)}
             disabled={disabled}
+            placeholder="A short invitation for visitors."
+            hint="One sentence. This appears under the store name."
           />
           <TextAreaField
             label="Description"
             value={account.description ?? ''}
             onChange={(v) => update('description', v)}
             disabled={disabled}
+            placeholder="What this table carries, where it is based, and how guests should approach it."
+            hint="Use plain language. Visitors see this before they decide to message or buy."
           />
           <Field
             label="Logo URL"
             value={account.logo_url ?? ''}
             onChange={(v) => update('logo_url', v)}
             disabled={disabled}
+            placeholder="https://..."
+          />
+          <Field
+            label="Cover Image URL"
+            value={account.cover_image_url ?? ''}
+            onChange={(v) => update('cover_image_url', v)}
+            disabled={disabled}
+            placeholder="https://..."
+            hint="Optional. Used as the atmosphere image at the top of the public store."
           />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Field
@@ -192,12 +376,14 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({ embedd
               value={account.location_city ?? ''}
               onChange={(v) => update('location_city', v)}
               disabled={disabled}
+              placeholder="Melbourne"
             />
             <Field
               label="Country"
               value={account.location_country ?? ''}
               onChange={(v) => update('location_country', v)}
               disabled={disabled}
+              placeholder="Australia"
             />
           </div>
         </div>
@@ -213,23 +399,47 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({ embedd
               value={account.whatsapp_number ?? ''}
               onChange={(v) => update('whatsapp_number', v)}
               disabled={disabled}
+              placeholder="+614XXXXXXXX"
+              hint="Used for visitor questions and WhatsApp checkout. Include the country code."
+            />
+            <Field
+              label="Contact Email"
+              value={account.contact_email ?? ''}
+              onChange={(v) => update('contact_email', v)}
+              disabled={disabled}
+              placeholder="hello@example.com"
+              hint="Fallback contact for visitors who do not use WhatsApp."
             />
             <Field
               label="Default Currency"
               value={account.currency_default ?? ''}
               onChange={(v) => update('currency_default', v)}
               disabled={disabled}
+              placeholder="AUD"
+            />
+            <Field
+              label="Timezone"
+              value={account.timezone ?? ''}
+              onChange={(v) => update('timezone', v)}
+              disabled={disabled}
+              placeholder="Australia/Melbourne"
+              hint="Used for event timing and account operations."
             />
           </div>
-          <label className="flex items-center gap-3 pt-2">
+          <label className="flex items-start gap-3 pt-2">
             <input
               type="checkbox"
               checked={!!account.public_enabled}
               onChange={(e) => update('public_enabled', e.target.checked)}
               disabled={disabled}
-              className="accent-tea-gold"
+              className="accent-tea-gold mt-1"
             />
-            <span className="text-sm text-tea-text">Public shop enabled</span>
+            <span>
+              <span className="block text-ui-14 text-tea-text">Public shop enabled</span>
+              <span className="block text-ui-12 text-tea-text-sec mt-0.5">
+                When enabled, the store can appear publicly at <span className="font-mono">/store/{account.slug}</span>.
+              </span>
+            </span>
           </label>
         </div>
 
@@ -274,6 +484,280 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({ embedd
     </div>
   );
 };
+
+// ─── Launch Readiness ────────────────────────────────────────────────────────
+
+const LaunchReadinessPanel: React.FC<{
+  account: Account;
+  audit: LaunchAudit;
+  storefrontUrl: string;
+  copied: boolean;
+  onCopy: () => void;
+  onRefresh: () => void;
+}> = ({ account, audit, storefrontUrl, copied, onCopy, onRefresh }) => {
+  const profileReady = !!account.public_enabled
+    && !!account.location_country
+    && !!account.currency_default
+    && (!!account.whatsapp_number || !!account.contact_email)
+    && !!account.tagline
+    && !!account.description;
+  const teamReady = audit.team.owners > 0 && audit.team.membersWithoutBundles === 0;
+  const inventoryReady = audit.products.readyPublic > 0;
+  const storefrontReady = !!account.public_enabled
+    && audit.products.readyPublic > 0
+    && (!!account.whatsapp_number || !!account.contact_email);
+  const saleReady = storefrontReady && audit.orders.total > 0;
+  const eventReady = audit.events.upcoming > 0;
+
+  const stages = [
+    {
+      id: 'account',
+      label: 'Account',
+      done: profileReady,
+      detail: profileReady
+        ? 'Store identity, contact, currency, and public state are ready.'
+        : 'Finish public profile, contact path, currency, and location before sharing the store.',
+      action: 'Finish profile',
+      href: '#account-profile-form',
+      checks: [
+        { label: 'Public store enabled', done: !!account.public_enabled },
+        { label: 'Location and AUD/default currency set', done: !!account.location_country && !!account.currency_default },
+        { label: 'WhatsApp or email visible', done: !!account.whatsapp_number || !!account.contact_email },
+        { label: 'Tagline and description written', done: !!account.tagline && !!account.description },
+      ],
+    },
+    {
+      id: 'team',
+      label: 'Team',
+      done: teamReady,
+      detail: audit.loading
+        ? 'Checking team access.'
+        : `${audit.team.total} member${audit.team.total === 1 ? '' : 's'}, ${audit.team.pendingInvites} pending invite${audit.team.pendingInvites === 1 ? '' : 's'}.`,
+      action: 'Review access',
+      href: '/admin/access',
+      checks: [
+        { label: 'At least one owner', done: audit.team.owners > 0 },
+        { label: 'Pending invites are visible', done: true },
+        { label: 'No staff members without bundles', done: audit.team.membersWithoutBundles === 0 },
+      ],
+    },
+    {
+      id: 'inventory',
+      label: 'Inventory',
+      done: inventoryReady,
+      detail: audit.loading
+        ? 'Checking opening stock.'
+        : `${audit.products.total} active item${audit.products.total === 1 ? '' : 's'}, ${audit.products.readyPublic} ready for public sale.`,
+      action: audit.products.total === 0 ? 'Import stock' : 'Review stock',
+      href: '/admin/inventory',
+      checks: [
+        { label: 'Opening stock exists', done: audit.products.total > 0 },
+        { label: 'At least one public, priced, stocked item', done: audit.products.readyPublic > 0 },
+        { label: 'Products have images', done: audit.products.total === 0 ? false : audit.products.withImages === audit.products.total },
+        { label: 'Products have tea or ware type', done: audit.products.total === 0 ? false : audit.products.withType === audit.products.total },
+      ],
+    },
+    {
+      id: 'storefront',
+      label: 'Storefront',
+      done: storefrontReady,
+      detail: storefrontReady
+        ? 'The public page has products and a contact path.'
+        : 'Preview the public page and fix missing stock or contact before sharing.',
+      action: 'Open storefront',
+      href: storefrontUrl,
+      external: true,
+      checks: [
+        { label: 'Public page enabled', done: !!account.public_enabled },
+        { label: 'Public products available', done: audit.products.readyPublic > 0 },
+        { label: 'Checkout/contact route exists', done: !!account.whatsapp_number || !!account.contact_email },
+      ],
+    },
+    {
+      id: 'sale',
+      label: 'First sale rehearsal',
+      done: saleReady,
+      detail: audit.orders.total > 0
+        ? `${audit.orders.total} order${audit.orders.total === 1 ? '' : 's'} recorded, ${audit.orders.pending} pending.`
+        : 'Run one test order before the first real customer message.',
+      action: 'Practice order flow',
+      href: '/admin/activity?tab=orders',
+      checks: [
+        { label: 'Storefront can accept an inquiry', done: storefrontReady },
+        { label: 'At least one order recorded', done: audit.orders.total > 0 },
+        { label: 'Pending orders are visible', done: audit.orders.total > 0 || audit.orders.pending === 0 },
+      ],
+    },
+    {
+      id: 'event',
+      label: 'First event',
+      done: eventReady,
+      detail: audit.events.upcoming > 0
+        ? `${audit.events.upcoming} upcoming event${audit.events.upcoming === 1 ? '' : 's'} ready.`
+        : 'Optional for commerce launch, useful for testing RSVP and guest flow.',
+      action: audit.events.upcoming > 0 ? 'Review events' : 'Create event',
+      href: '/admin/events',
+      checks: [
+        { label: 'Event tool reachable', done: true },
+        { label: 'Upcoming event created', done: audit.events.upcoming > 0 },
+      ],
+    },
+  ];
+
+  const readyCount = stages.filter(item => item.done).length;
+  const nextStage = stages.find(item => !item.done);
+
+  return (
+    <section className="mb-6 bg-tea-surface border border-tea-border rounded-md p-5 space-y-6">
+      <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+        <div className="min-w-0">
+          <h2 className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text`}>Launch Center</h2>
+          <p className="text-ui-13 text-tea-text-sec leading-[1.6] mt-1 max-w-2xl">
+            Follow these steps before sharing this store with customers. The checks read live account data where the system can verify it.
+          </p>
+        </div>
+        <div className="flex items-center gap-3 shrink-0">
+          <div className="text-ui-12 text-tea-text-sec">
+            <span className="font-mono text-tea-text">{readyCount}</span> of {stages.length} launch steps ready
+          </div>
+          <button
+            type="button"
+            onClick={onRefresh}
+            disabled={audit.loading}
+            className="text-tea-text-sec hover:text-tea-text transition-colors tap-target"
+            aria-label="Refresh launch status"
+          >
+            <RefreshCw size={14} className={audit.loading ? 'animate-spin' : ''} />
+          </button>
+        </div>
+      </div>
+
+      {audit.error && (
+        <div className="bg-tea-elevated border border-tea-border rounded-md px-4 py-3 text-ui-13 text-tea-text-sec">
+          {audit.error}
+        </div>
+      )}
+
+      {nextStage && (
+        <div className="bg-tea-bg border border-tea-border rounded-md p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-ui-10 uppercase tracking-[0.18em] text-tea-text-dim mb-1">Next useful step</p>
+            <p className="text-ui-15 text-tea-text font-display">{nextStage.label}</p>
+            <p className="text-ui-12 text-tea-text-sec leading-[1.5] mt-0.5">{nextStage.detail}</p>
+          </div>
+          <LaunchActionLink stage={nextStage} />
+        </div>
+      )}
+
+      <div className="divide-y divide-tea-border border-y border-tea-border">
+        {stages.map((stage, index) => (
+          <LaunchStageRow key={stage.id} stage={stage} index={index} />
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4">
+        <div className="min-w-0">
+          <p className="text-ui-10 uppercase tracking-[0.18em] text-tea-text-dim mb-2">Storefront</p>
+          <div className="flex gap-2">
+            <code className="flex-1 min-w-0 bg-tea-bg border border-tea-border rounded-md px-3 py-2 text-ui-11 text-tea-text-sec font-mono truncate">
+              {storefrontUrl}
+            </code>
+            <button
+              type="button"
+              onClick={onCopy}
+              className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-md border border-tea-border text-tea-text-sec hover:text-tea-text transition-colors text-ui-12 tap-target"
+            >
+              <Copy size={12} />
+              {copied ? 'Copied' : 'Copy'}
+            </button>
+            <a
+              href={storefrontUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-md border border-tea-border text-tea-text-sec hover:text-tea-text transition-colors text-ui-12 tap-target"
+            >
+              <ExternalLink size={12} />
+              Open
+            </a>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2 lg:justify-end lg:self-end">
+          {[
+            { label: 'Import stock', href: '/admin/inventory' },
+            { label: 'Review access', href: '/admin/access' },
+          ].map(step => (
+            <a
+              key={step.href}
+              href={step.href}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md border border-tea-border text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub transition-colors text-ui-12"
+            >
+              {step.label}
+              <ArrowRight size={11} />
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
+
+type LaunchStage = {
+  id: string;
+  label: string;
+  done: boolean;
+  detail: string;
+  action: string;
+  href: string;
+  external?: boolean;
+  checks: Array<{ label: string; done: boolean }>;
+};
+
+const LaunchStageRow: React.FC<{ stage: LaunchStage; index: number }> = ({ stage, index }) => (
+  <div className="py-4 flex flex-col lg:flex-row lg:items-start gap-4">
+    <div className="flex items-start gap-3 flex-1 min-w-0">
+      <div className="pt-0.5 shrink-0">
+        {stage.done ? (
+          <CheckCircle2 size={16} className="text-tea-gold" />
+        ) : (
+          <Circle size={16} className="text-tea-text-dim" />
+        )}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-baseline gap-3 flex-wrap">
+          <span className="font-mono text-ui-11 text-tea-text-dim">{String(index + 1).padStart(2, '0')}</span>
+          <h3 className="font-display text-ui-17 text-tea-text">{stage.label}</h3>
+          {!stage.done && <span className="text-ui-12 text-tea-text-sec italic">Needs attention</span>}
+        </div>
+        <p className="text-ui-13 text-tea-text-sec leading-[1.5] mt-1">{stage.detail}</p>
+        <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
+          {stage.checks.map(check => (
+            <div key={check.label} className="flex items-start gap-2 min-w-0">
+              {check.done ? (
+                <CheckCircle2 size={12} className="text-tea-gold shrink-0 mt-0.5" />
+              ) : (
+                <Circle size={12} className="text-tea-text-dim shrink-0 mt-0.5" />
+              )}
+              <span className="text-ui-12 text-tea-text-sec leading-[1.45]">{check.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+    <LaunchActionLink stage={stage} />
+  </div>
+);
+
+const LaunchActionLink: React.FC<{ stage: LaunchStage }> = ({ stage }) => (
+  <a
+    href={stage.href}
+    target={stage.external ? '_blank' : undefined}
+    rel={stage.external ? 'noreferrer' : undefined}
+    className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-md border border-tea-border text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub transition-colors text-ui-12 shrink-0"
+  >
+    {stage.action}
+    {stage.external ? <ExternalLink size={11} /> : <ArrowRight size={11} />}
+  </a>
+);
 
 // ─── Integrations (BYOK) ─────────────────────────────────────────────────────
 
@@ -633,7 +1117,9 @@ const Field: React.FC<{
   value: string;
   onChange: (v: string) => void;
   disabled?: boolean;
-}> = ({ label, value, onChange, disabled }) => (
+  placeholder?: string;
+  hint?: string;
+}> = ({ label, value, onChange, disabled, placeholder, hint }) => (
   <div>
     <label className="block text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-2">
       {label}
@@ -643,8 +1129,10 @@ const Field: React.FC<{
       value={value}
       onChange={(e) => onChange(e.target.value)}
       disabled={disabled}
+      placeholder={placeholder}
       className="w-full bg-tea-bg text-tea-text text-sm px-3 py-2 rounded-md outline-none focus:ring-2 focus:ring-tea-gold/40 disabled:opacity-60"
     />
+    {hint && <p className="mt-1.5 text-ui-11 text-tea-text-sec leading-[1.5]">{hint}</p>}
   </div>
 );
 
@@ -653,7 +1141,9 @@ const TextAreaField: React.FC<{
   value: string;
   onChange: (v: string) => void;
   disabled?: boolean;
-}> = ({ label, value, onChange, disabled }) => (
+  placeholder?: string;
+  hint?: string;
+}> = ({ label, value, onChange, disabled, placeholder, hint }) => (
   <div>
     <label className="block text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-2">
       {label}
@@ -663,8 +1153,10 @@ const TextAreaField: React.FC<{
       rows={3}
       onChange={(e) => onChange(e.target.value)}
       disabled={disabled}
+      placeholder={placeholder}
       className="w-full bg-tea-bg text-tea-text text-sm px-3 py-2 rounded-md outline-none focus:ring-2 focus:ring-tea-gold/40 disabled:opacity-60 resize-none"
     />
+    {hint && <p className="mt-1.5 text-ui-11 text-tea-text-sec leading-[1.5]">{hint}</p>}
   </div>
 );
 

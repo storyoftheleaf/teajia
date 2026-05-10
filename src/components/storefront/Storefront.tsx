@@ -167,7 +167,7 @@ export const Storefront: React.FC<StorefrontProps> = ({
         className="sticky top-0 z-10 bg-tea-bg/95 backdrop-blur-sm border-b border-tea-border"
         aria-label="Storefront sections"
       >
-        <div className="max-w-5xl mx-auto flex items-center justify-center gap-1 md:gap-2 px-4 overflow-x-auto">
+        <div className="max-w-5xl mx-auto flex items-center justify-center gap-1 md:gap-2 px-4 flex-wrap">
           {TABS.map(tab => {
             const isActive = activeTab === tab.id;
             return (
@@ -237,6 +237,7 @@ interface StorefrontShopSectionProps {
 }
 
 const StorefrontShopSection: React.FC<StorefrontShopSectionProps> = ({
+  store,
   teaInventory,
   teawareInventory,
   isLoading,
@@ -256,9 +257,12 @@ const StorefrontShopSection: React.FC<StorefrontShopSectionProps> = ({
 
   if (!hasTea && !hasWare) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-center px-6">
-        <p className="text-sm text-tea-text-sec italic">
-          The shelves are being restocked. Check back soon.
+      <div className="flex flex-col items-center justify-center py-20 text-center px-6 max-w-md mx-auto">
+        <h2 className="font-display text-ui-26 text-tea-text mb-2">
+          Stock is being prepared
+        </h2>
+        <p className="text-ui-14 text-tea-text-sec leading-[1.6]">
+          {store.name} has not published tea or teaware yet. Use the contact tab for questions, or check back after the opening inventory is added.
         </p>
       </div>
     );

@@ -27,21 +27,21 @@
 | /admin/wholesale | WholesaleOrdersList | Sell | WIRED | Buyer/supplier order list (Step 4) |
 | /admin/wholesale/draft | WholesaleOrderDraft | Sell | WIRED | Draft order editor |
 | /admin/wholesale/:id | WholesaleOrderTimeline | Sell | WIRED | Order timeline + state machine |
-| /admin/network | NetworkLanding | Catalog | WIRED | Network adoption landing (Steps 1–4) |
-| /admin/purchase-orders | PurchaseOrdersPage | Owner-tier | WIRED | PO list; owner-only gate (toolRegistry:26) |
+| /admin/network | NetworkLanding | Catalog or Sell | WIRED | Network adoption landing (Steps 1–4) |
+| /admin/purchase-orders | PeopleView tab | Stock | WIRED | PO list; bundle-visible through toolRegistry |
 
-## Owner-only (tier-gated, not bundle)
+## Management routes
 
 | Route | View component | Tier | Status | Notes |
 |-------|----------------|------|--------|-------|
-| /admin/magazine | MagazineView | Owner | WIRED | Editorial UI; owner-gated (toolRegistry:36) |
-| /admin/collections | CollectionsView | Owner | WIRED | Collection list; owner-gated (toolRegistry:37) |
-| /admin/collections/:id/edit | CollectionEditView | Owner | WIRED | Collection editor |
-| /admin/collections/:id/inbound | InboundCollectionView | Owner | WIRED | Inbound (published-to-me) items |
-| /admin/people?tab=team | TeamView | Owner | WIRED | Staff roster; owner-only (toolRegistry:39) |
-| /admin/access | AccessView | Owner | WIRED | Member bundles assignment (toolRegistry:40) |
+| /admin/magazine | MagazineView | Publish | WIRED | Editorial UI; owner or Publish bundle |
+| /admin/collections | CollectionsView | Publish | WIRED | Collection list; owner or Publish bundle |
+| /admin/collections/:id/edit | CollectionEditView | Publish | WIRED | Collection editor |
+| /admin/collections/:id/inbound | InboundCollectionView | Publish | WIRED | Inbound (published-to-me) items |
+| /admin/people?tab=team | PeopleView tab | Members | WIRED | Staff roster; owner or Members bundle |
+| /admin/access | AccessView | Members | WIRED | Member bundles assignment |
 | /admin/contact-tags | ContactTagsView | Owner | WIRED | Custom customer tags |
-| /admin/settings | AccountSettingsView | Owner | WIRED | Account profile/config (toolRegistry:41) |
+| /admin/account-settings | AccountSettingsView | Owner | WIRED | Account profile/config |
 
 ## Platform Admin only
 

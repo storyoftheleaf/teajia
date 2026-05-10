@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Check, Copy } from 'lucide-react';
 import { api, getTokenClaims } from '../../lib/api';
 import { useAppStore, selectIsOwnerTier } from '../../lib/store';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
@@ -23,6 +24,58 @@ const formatBundles = (bundles: Bundle[]): string => {
   if (bundles.length === ALL_BUNDLES.length) return 'Full access.';
   return bundles.map(b => BUNDLE_LABELS[b]).join(' · ');
 };
+
+type AccessPresetId = 'sales' | 'inventory' | 'events' | 'content' | 'manager' | 'access-manager' | 'viewer';
+
+const ACCESS_PRESETS: Array<{
+  id: AccessPresetId;
+  label: string;
+  description: string;
+  bundles: Bundle[];
+}> = [
+  {
+    id: 'sales',
+    label: 'Sales',
+    description: 'Customers, orders, pricing, and checkout follow-up.',
+    bundles: ['sell'],
+  },
+  {
+    id: 'inventory',
+    label: 'Inventory',
+    description: 'Products, sourcing fields, stock counts, and receiving stock.',
+    bundles: ['catalog', 'stock'],
+  },
+  {
+    id: 'events',
+    label: 'Events',
+    description: 'Sessions, guests, venues, RSVP review, and check-in.',
+    bundles: ['gather'],
+  },
+  {
+    id: 'content',
+    label: 'Content',
+    description: 'Collections and editorial publishing.',
+    bundles: ['publish'],
+  },
+  {
+    id: 'manager',
+    label: 'Manager',
+    description: 'Daily operations without the power to grant access.',
+    bundles: ['catalog', 'stock', 'gather', 'sell', 'publish'],
+  },
+  {
+    id: 'access-manager',
+    label: 'Access manager',
+    description: 'Full account operations, including inviting and removing members.',
+    bundles: [...ALL_BUNDLES],
+  },
+  {
+    id: 'viewer',
+    label: 'Viewer',
+    description: 'No operational bundles. Useful for observation and training.',
+    bundles: [],
+  },
+];
 
 interface EditorSheetProps {
   member: AccountMember;
@@ -58,6 +111,11 @@ const EditorSheet: React.FC<EditorSheetProps> = ({ member, isViewerOwner, onClos
       else next.add(bundle);
       return next;
     });
+  };
+
+  const applyPreset = (bundles: Bundle[]) => {
+    if (isOwner) return;
+    setWorking(new Set(bundles));
   };
 
   const handleSave = async () => {
@@ -115,7 +173,31 @@ const EditorSheet: React.FC<EditorSheetProps> = ({ member, isViewerOwner, onClos
           ) : (
             <>
               <div className="text-tea-text-sec italic text-ui-13 mb-5">
-                Tap a capability to grant or revoke it.
+                Start with a preset, then adjust individual capabilities if needed.
+              </div>
+              <div className="mb-7 space-y-1">
+                {ACCESS_PRESETS.map(preset => {
+                  const active = preset.bundles.length === working.size
+                    && preset.bundles.every(bundle => working.has(bundle));
+                  return (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      onClick={() => applyPreset(preset.bundles)}
+                      className={`w-full text-left py-2.5 px-3 -mx-3 rounded-[2px] transition-colors hover:bg-tea-elevated/50 ${
+                        active ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
+                      }`}
+                    >
+                      <div className="font-display text-ui-15">{preset.label}</div>
+                      <div className="text-ui-12 text-tea-text-dim mt-0.5 leading-[1.45]">
+                        {preset.description}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="text-ui-10 uppercase tracking-[0.18em] text-tea-text-dim mb-2">
+                Capabilities
               </div>
               <div className="space-y-1">
                 {ALL_BUNDLES.map(bundle => {
@@ -228,7 +310,9 @@ export const AccessView: React.FC = () => {
   const [editing, setEditing] = useState<AccountMember | null>(null);
   const [adding, setAdding] = useState(false);
   const [addEmail, setAddEmail] = useState('');
+  const [addPreset, setAddPreset] = useState<AccessPresetId>('sales');
   const [addBusy, setAddBusy] = useState(false);
+  const [inviteLink, setInviteLink] = useState<{ email: string; url: string; copied: boolean } | null>(null);
 
   const load = useCallback(async () => {
     if (!activeAccountId) return;
@@ -255,9 +339,23 @@ export const AccessView: React.FC = () => {
     const email = addEmail.trim().toLowerCase();
     if (!email || !activeAccountId || addBusy) return;
     setAddBusy(true);
+    setError(null);
+    setInviteLink(null);
     try {
-      await api.accounts.addMember(activeAccountId, email, 'staff');
+      const result = await api.accounts.addMember(activeAccountId, email, 'staff');
+      const preset = ACCESS_PRESETS.find(item => item.id === addPreset);
+      if (preset && result.user_id) {
+        await api.accounts.setMemberBundles(activeAccountId, result.user_id, preset.bundles);
+      }
+      if (result.invite_link) {
+        setInviteLink({
+          email,
+          url: `${window.location.origin}${result.invite_link}`,
+          copied: false,
+        });
+      }
       setAddEmail('');
+      setAddPreset('sales');
       setAdding(false);
       await load();
     } catch (err: any) {
@@ -265,6 +363,15 @@ export const AccessView: React.FC = () => {
     } finally {
       setAddBusy(false);
     }
+  };
+
+  const copyInviteLink = async () => {
+    if (!inviteLink) return;
+    await navigator.clipboard.writeText(inviteLink.url);
+    setInviteLink({ ...inviteLink, copied: true });
+    window.setTimeout(() => {
+      setInviteLink(current => current ? { ...current, copied: false } : current);
+    }, 1800);
   };
 
   // Optimistic save — patch the row in place while the network call flies,
@@ -341,6 +448,30 @@ export const AccessView: React.FC = () => {
         </div>
       )}
 
+      {inviteLink && (
+        <div className="mb-8 bg-tea-surface border border-tea-border rounded-md p-4 space-y-3">
+          <div>
+            <p className="text-tea-text font-display text-ui-17">Invite created for {inviteLink.email}</p>
+            <p className="text-tea-text-sec text-ui-13 leading-[1.5] mt-1">
+              Send this link to the new member. It lets them set a password and join this account.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <code className="flex-1 min-w-0 bg-tea-bg border border-tea-border rounded-md px-3 py-2 text-ui-11 text-tea-text-sec font-mono truncate">
+              {inviteLink.url}
+            </code>
+            <button
+              type="button"
+              onClick={copyInviteLink}
+              className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-md border border-tea-border text-tea-text-sec hover:text-tea-text transition-colors text-ui-12 tap-target"
+            >
+              {inviteLink.copied ? <Check size={12} /> : <Copy size={12} />}
+              {inviteLink.copied ? 'Copied' : 'Copy'}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Owners group */}
       {owners.length > 0 && (
         <section className="mb-10">
@@ -395,13 +526,40 @@ export const AccessView: React.FC = () => {
                 className="w-full bg-transparent border-b border-tea-border focus:border-tea-gold outline-none text-tea-text font-body text-ui-15 py-2 transition-colors"
                 onKeyDown={e => {
                   if (e.key === 'Enter') handleAddMember();
-                  if (e.key === 'Escape') { setAdding(false); setAddEmail(''); }
+                  if (e.key === 'Escape') { setAdding(false); setAddEmail(''); setAddPreset('sales'); }
                 }}
               />
+              <div className="space-y-2">
+                <div className="text-ui-10 uppercase tracking-[0.18em] text-tea-text-dim">
+                  Access preset
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {ACCESS_PRESETS.map(preset => {
+                    const active = addPreset === preset.id;
+                    return (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        onClick={() => setAddPreset(preset.id)}
+                        className={`text-left rounded-md border px-3 py-2 transition-colors ${
+                          active
+                            ? 'border-tea-gold/30 bg-tea-accent-sub text-tea-text'
+                            : 'border-tea-border text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub'
+                        }`}
+                      >
+                        <div className="font-display text-ui-14">{preset.label}</div>
+                        <div className="text-ui-11 text-tea-text-sec leading-[1.45] mt-0.5">
+                          {formatBundles(preset.bundles)}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
               <div className="flex items-center justify-between text-ui-13">
                 <button
                   type="button"
-                  onClick={() => { setAdding(false); setAddEmail(''); }}
+                  onClick={() => { setAdding(false); setAddEmail(''); setAddPreset('sales'); }}
                   className="text-tea-text-sec hover:text-tea-text transition-colors"
                 >
                   Cancel

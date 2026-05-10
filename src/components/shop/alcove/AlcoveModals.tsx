@@ -42,13 +42,12 @@ export const SampleModal: React.FC<SampleModalProps> = ({
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Request a sample of ${item.name}`}
       onClick={() => { if (!sampleSubmitting) onClose(); }}
-      style={{
-        position: "fixed", inset: 0, zIndex: 9999,
-        background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        padding: "16px",
-      }}
+      className="fixed inset-0 z-priority flex items-center justify-center p-4"
+      style={{ background: "rgb(0 0 0 / 0.6)", backdropFilter: "blur(4px)" }}
     >
       <div
         onClick={e => e.stopPropagation()}
@@ -67,9 +66,11 @@ export const SampleModal: React.FC<SampleModalProps> = ({
           style={{
             position: "absolute", top: "12px", right: "12px",
             background: "none", border: "none", cursor: "pointer",
-            color: "var(--tea-text-dim)",
+            color: "var(--tea-text-sec)",
             display: "flex", alignItems: "center", justifyContent: "center",
           }}
+          className="tap-target focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50"
+          aria-label="Close sample request"
         >
           <X size={16} />
         </button>
@@ -158,7 +159,7 @@ export const SampleModal: React.FC<SampleModalProps> = ({
                         flex: 1, padding: "8px 4px",
                         borderRadius: "4px",
                         border: sampleGrams === g ? "1px solid var(--tea-gold)" : "1px solid var(--tea-border)",
-                        background: sampleGrams === g ? "var(--tea-gold)/10" : "var(--tea-bg)",
+                        background: sampleGrams === g ? "var(--tea-accent-sub)" : "var(--tea-bg)",
                         cursor: "pointer", textAlign: "center",
                       }}
                     >
@@ -244,13 +245,12 @@ export const CustomAmountModal: React.FC<CustomAmountModalProps> = ({
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Custom amount"
       onClick={onClose}
-      style={{
-        position: "fixed", inset: 0, zIndex: 9999,
-        background: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        padding: "16px",
-      }}
+      className="fixed inset-0 z-priority flex items-center justify-center p-4"
+      style={{ background: "rgb(0 0 0 / 0.55)", backdropFilter: "blur(4px)" }}
     >
       <div
         onClick={e => e.stopPropagation()}
@@ -356,14 +356,12 @@ export const ImageOverlayModal: React.FC<ImageOverlayModalProps> = ({
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Image of ${itemName}`}
       onClick={onClose}
-      style={{
-        position: "fixed", inset: 0, zIndex: 9999,
-        background: "var(--tea-bg)",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        cursor: "pointer",
-        animation: "panelReveal 0.3s ease-out",
-      }}
+      className="fixed inset-0 z-priority flex items-center justify-center"
+      style={{ background: "var(--tea-bg)", cursor: "pointer", animation: "panelReveal 0.3s ease-out" }}
     >
       <img
         src={expandedImageUrl}
@@ -375,18 +373,20 @@ export const ImageOverlayModal: React.FC<ImageOverlayModalProps> = ({
         }}
       />
       <button
+        type="button"
+        aria-label="Close image"
         style={{
           position: "absolute", top: "14px", right: "14px",
-          width: "32px", height: "32px",
-          background: "rgba(0,0,0,0.25)", backdropFilter: "blur(8px)",
+          background: "rgb(0 0 0 / 0.25)", backdropFilter: "blur(8px)",
           WebkitBackdropFilter: "blur(8px)",
           border: "1px solid var(--tea-border)", borderRadius: "50%",
           display: "flex", alignItems: "center", justifyContent: "center",
           cursor: "pointer",
           transition: "background 0.2s ease",
         }}
-        onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(0,0,0,0.4)"; }}
-        onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(0,0,0,0.25)"; }}
+        className="tap-target focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50"
+        onMouseEnter={(e) => { e.currentTarget.style.background = "rgb(0 0 0 / 0.4)"; }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = "rgb(0 0 0 / 0.25)"; }}
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
           stroke="var(--tea-text-sec)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

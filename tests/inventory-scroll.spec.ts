@@ -47,10 +47,89 @@ const FAKE_TOKEN = makeFakeJWT({
   ],
 });
 
+const MOCK_PRODUCTS = Array.from({ length: 96 }, (_, i) => {
+  const types = ['Green', 'Oolong', 'Red', 'Sheng', 'Shou', 'White'];
+  const type = types[i % types.length];
+  return {
+    id: `test-product-${i + 1}`,
+    type,
+    form: 'Loose Leaf',
+    given_name: i % 3 === 0 ? `House ${i + 1}` : '',
+    chinese_name: '',
+    product_name: `${type} Test Tea ${String(i + 1).padStart(2, '0')}`,
+    year: 2018 + (i % 7),
+    origin_country: 'Taiwan',
+    origin_region: ['Alishan', 'Lishan', 'Yiwu', 'Wuyi'][i % 4],
+    retail_price_per_gram_usd: 0.28 + (i % 5) * 0.04,
+    cost_per_gram_usd: 0.12 + (i % 4) * 0.02,
+    cost_amount: 80 + i,
+    stock_grams: 40 + i * 7,
+    low_stock_threshold: 80,
+    description: '',
+    tasting_notes: [],
+    image_url: '',
+    status: 'Active',
+    vendor: ['Chen Family', 'Mountain Source', 'Old Tree Co'][i % 3],
+    cost_currency: 'USD',
+    quantity_purchased: 500,
+    shipping_rate_per_kg: 13,
+    fixed_retail_price_usd: null,
+    is_personal: i % 11 === 0 ? 1 : 0,
+    can_reorder: 1,
+    is_public: i % 9 === 0 ? 0 : 1,
+    is_featured: i % 13 === 0 ? 1 : 0,
+    is_sample: 0,
+    recheck_stock: i % 17 === 0 ? 1 : 0,
+    stock_verified_at: i % 5 === 0 ? new Date().toISOString() : null,
+    tasting_source: i % 4 === 0 ? 'common' : 'owner',
+  };
+});
+
 async function injectAuth(page: Page) {
   await page.addInitScript((token) => {
     localStorage.setItem('teajia_token', token);
   }, FAKE_TOKEN);
+}
+
+async function mockInventoryApi(page: Page) {
+  await page.route('**/api/auth/me', route => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({
+      id: 'test-admin-uid',
+      email: 'admin@teajia.com',
+      name: 'Test Admin',
+      role: 'owner',
+    }),
+  }));
+  await page.route('**/api/auth/refresh', route => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ token: FAKE_TOKEN }),
+  }));
+  await page.route('**/api/products', route => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify(MOCK_PRODUCTS),
+  }));
+  await page.route('**/api/rates', route => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify([
+      { currency: 'USD', rate_to_usd: 1 },
+      { currency: 'IDR', rate_to_usd: 16000 },
+    ]),
+  }));
+  await page.route('**/api/admin/events', route => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify([]),
+  }));
+  await page.route('**/api/compass/incoming', route => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify([]),
+  }));
 }
 
 async function shot(page: Page, name: string) {
@@ -61,6 +140,7 @@ async function shot(page: Page, name: string) {
 test.describe('Inventory page — scroll regression guard', () => {
   test.beforeEach(async ({ page }) => {
     await injectAuth(page);
+    await mockInventoryApi(page);
   });
 
   test('scroll container has height and is scrollable', async ({ page }, testInfo) => {

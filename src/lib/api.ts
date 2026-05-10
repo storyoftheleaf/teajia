@@ -2077,7 +2077,11 @@ export const api = {
       const res = await fetchWithTimeout(url, { headers: authHeaders() });
       return handleResponse(res);
     },
-    addMember: async (id: string, email: string, role: AccountRole): Promise<AccountMember> => {
+    addMember: async (
+      id: string,
+      email: string,
+      role: AccountRole
+    ): Promise<AccountMember & { success?: boolean; created_user?: boolean; invite_link?: string | null }> => {
       const res = await fetchWithTimeout(`${API_URL}/api/accounts/${id}/members`, {
         method: 'POST',
         headers: authHeaders(),

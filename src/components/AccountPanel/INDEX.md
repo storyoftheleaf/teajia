@@ -12,6 +12,7 @@
 | **OperatorView.tsx** | Owner / Tea Master: Curated 2-col Bench grid of admin tools by category (Sell, Source, Gather, Publish, Teach, Network). Imports from /admin/toolRegistry.ts. |
 | **StaffView.tsx** | Delegated Member with bundles: Subset of Operator tools scoped by bundle grants. Today's event count, sign-out. |
 | **TastingJournalView.tsx** | Modal view: logged-in Member's tasting entries, filters, detail modal. Synced via hydrateTastingJournal(). |
+| **workflows.ts** | Central link/workflow registry for member memory links, reader explore links, and first-door operator setup. |
 | **MyCollection.tsx** | Member collection browser: teas saved, favorites, notes. |
 | **primitives.tsx** | Shared editorial helpers (getInitials, daysWord, capitalize, truncate) and typography floor (12px meta, 11px labels, 14-15px body). |
 | **types.ts** | PanelView enum: 'main' | 'location-switcher' | 'events' | 'signin' | 'signup' | 'journal'. |
@@ -32,7 +33,7 @@
 - Each tool has: id, label, group, route, addedAt, requires (optional: 'owner' or 'platform'), bundle (optional: Bundle for staff visibility)
 - `toolsForRole({ isOwner, isPlatform, bundles })` filters by role + bundles; `isRecentlyAdded()` marks new tools (< 30 days)
 - StaffView reads active membership bundles from useAppStore and renders only the tools the staff member can actually use
-- OperatorView renders OperatorView renders grouped tiles; layout driven by GROUP_ICONS map
+- OperatorView renders grouped tools and the first-door opening workflow for new location accounts; layout driven by GROUP_ICONS map
 
 ## Z-index & rendering invariants
 
@@ -57,6 +58,7 @@
 
 - /docs/_audit/01_guest_member.md — full Member-tier flow inventory
 - /docs/_audit/02_owner_master.md §H — Operator launchpad section
+- /docs/_audit/05_your_table_member_level_links.md — Your Table link/home audit
 - /docs/SITE_MAP.md — Member routes
 - /CLAUDE.md — z-index, typography, "Your Table" naming
 - /src/admin/toolRegistry.ts — tool definitions and role filtering

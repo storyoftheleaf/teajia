@@ -9,10 +9,8 @@ interface AlcoveJournalSectionProps {
 }
 
 /**
- * TWO journal section instances — kept verbatim from the original.
- * Instance 1 (cards): article thumbnail cards with open-article dispatch.
- * Instance 2 (editorial links): inline text links + "Learn about X tea →" footer.
- * Both are rendered here exactly as they appeared in AlcoveCard.tsx.
+ * Editorial links related to the product. A single section avoids competing
+ * "From the journal" affordances with different click behavior.
  */
 export const AlcoveJournalSection: React.FC<AlcoveJournalSectionProps> = ({
   relatedArticles,
@@ -22,101 +20,6 @@ export const AlcoveJournalSection: React.FC<AlcoveJournalSectionProps> = ({
 
   return (
     <>
-      {/* === FROM THE JOURNAL (instance 1 — card style) === */}
-      {relatedArticles.length > 0 && (
-        <div style={{
-          marginTop: "28px",
-          padding: "0 20px 8px",
-        }}>
-          <h3 style={{
-            fontFamily: "var(--font-display)",
-            fontSize: "10px", fontWeight: 400,
-            textTransform: "uppercase", letterSpacing: "0.12em",
-            color: "var(--tea-gold)",
-            margin: "0 0 10px 0",
-          }}>
-            From the journal
-          </h3>
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            {relatedArticles.map(article => (
-              <button
-                key={article.id}
-                onClick={() => {
-                  window.dispatchEvent(new CustomEvent('openArticle', { detail: { story: article } }));
-                }}
-                style={{
-                  display: "flex", alignItems: "center", gap: "10px",
-                  background: "var(--tea-accent-sub)",
-                  border: "1px solid var(--tea-border)",
-                  borderRadius: "6px",
-                  padding: "8px 12px",
-                  cursor: "pointer",
-                  textAlign: "left",
-                  transition: "background 0.2s ease, border-color 0.2s ease",
-                }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.background = "var(--tea-surface)";
-                  e.currentTarget.style.borderColor = "var(--tea-gold, #a8874d)";
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.background = "var(--tea-accent-sub)";
-                  e.currentTarget.style.borderColor = "var(--tea-border)";
-                }}
-              >
-                {article.thumbnailUrl ? (
-                  <img
-                    src={article.thumbnailUrl}
-                    alt=""
-                    style={{
-                      width: "36px", height: "36px",
-                      borderRadius: "4px", objectFit: "cover",
-                      flexShrink: 0,
-                    }}
-                  />
-                ) : (
-                  <div style={{
-                    width: "36px", height: "36px",
-                    borderRadius: "4px",
-                    background: "var(--tea-surface)",
-                    border: "1px solid var(--tea-border)",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    flexShrink: 0,
-                  }}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-                      stroke="var(--tea-text-dim)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-                      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-                    </svg>
-                  </div>
-                )}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{
-                    fontFamily: "var(--font-body)",
-                    fontSize: "13px", fontWeight: 400,
-                    color: "var(--tea-text)",
-                    whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-                  }}>
-                    {article.title}
-                  </div>
-                  {article.subtitle && (
-                    <div style={{
-                      fontFamily: "var(--font-body)",
-                      fontSize: "11px", fontWeight: 300,
-                      color: "var(--tea-text-dim)",
-                      marginTop: "2px",
-                      whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-                    }}>
-                      {article.subtitle}
-                    </div>
-                  )}
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* === EDITORIAL LINKS — Journal articles + Learn section (instance 2) === */}
       {(relatedArticles.length > 0 || item.category === 'tea') && (
         <div style={{
           marginTop: "28px",
@@ -137,7 +40,9 @@ export const AlcoveJournalSection: React.FC<AlcoveJournalSectionProps> = ({
                 {relatedArticles.map(article => (
                   <button
                     key={article.id}
-                    onClick={() => navigate('/magazine')}
+                    onClick={() => {
+                      window.dispatchEvent(new CustomEvent('openArticle', { detail: { story: article } }));
+                    }}
                     style={{
                       display: "flex", alignItems: "flex-start", justifyContent: "space-between",
                       gap: "8px",
@@ -179,6 +84,7 @@ export const AlcoveJournalSection: React.FC<AlcoveJournalSectionProps> = ({
             {item.category === 'tea' && (
               <button
                 onClick={() => navigate('/craft')}
+                className="alcove-learn-link"
                 style={{
                   display: "flex", alignItems: "center", gap: "6px",
                   background: "none", border: "none",

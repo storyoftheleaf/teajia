@@ -11,6 +11,7 @@ import {
   getInitials,
   truncate,
 } from './primitives';
+import { MEMBER_MEMORY_LINKS } from './workflows';
 import type { TeaEvent } from '../../types/events';
 
 const ICON_PROPS = { size: 13, strokeWidth: 1.5 } as const;
@@ -309,38 +310,18 @@ export const MemberView: React.FC<MemberViewProps> = ({
           >
             Sessions{upcomingEventsCount > 0 ? ` · ${upcomingEventsCount}` : ''}
           </button>
-          <span className="text-tea-text-sec" aria-hidden="true">·</span>
-          <button
-            onClick={() => go('/account/orders')}
-            className={FOOTER_LINK_CLASS}
-            style={{ WebkitTapHighlightColor: 'transparent' }}
-          >
-            Orders
-          </button>
-          <span className="text-tea-text-sec" aria-hidden="true">·</span>
-          <button
-            onClick={() => go('/spaces')}
-            className={FOOTER_LINK_CLASS}
-            style={{ WebkitTapHighlightColor: 'transparent' }}
-          >
-            Our Spaces
-          </button>
-          <span className="text-tea-text-sec" aria-hidden="true">·</span>
-          <button
-            onClick={() => go('/magazine')}
-            className={FOOTER_LINK_CLASS}
-            style={{ WebkitTapHighlightColor: 'transparent' }}
-          >
-            Magazine
-          </button>
-          <span className="text-tea-text-sec" aria-hidden="true">·</span>
-          <button
-            onClick={() => go('/account/settings')}
-            className={FOOTER_LINK_CLASS}
-            style={{ WebkitTapHighlightColor: 'transparent' }}
-          >
-            Settings
-          </button>
+          {MEMBER_MEMORY_LINKS.map(link => (
+            <React.Fragment key={link.id}>
+              <span className="text-tea-text-sec" aria-hidden="true">·</span>
+              <button
+                onClick={() => go(link.route)}
+                className={FOOTER_LINK_CLASS}
+                style={{ WebkitTapHighlightColor: 'transparent' }}
+              >
+                {link.label}
+              </button>
+            </React.Fragment>
+          ))}
         </div>
 
         <button

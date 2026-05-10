@@ -240,7 +240,6 @@ const PUBLIC_ROUTES = [
   ['/magazine',           'Magazine'],
   ['/find-a-table',       'Find a Teahouse'],
   ['/consult',            'Consult'],
-  ['/community',          'Community'],
 ] as const;
 
 const ADMIN_ROUTES = [

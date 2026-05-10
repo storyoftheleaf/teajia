@@ -1519,7 +1519,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
       </div>
 
       {/* Mobile backdrop */}
-      {product && <div className="fixed inset-0 bottom-[calc(52px+env(safe-area-inset-bottom))] z-20 bg-black/50 md:hidden" onClick={onClose} />}
+      {product && <div className="fixed inset-0 bottom-[calc(52px+env(safe-area-inset-bottom))] z-20 bg-tea-bg/70 md:hidden" onClick={onClose} />}
 
       {/* Tasting editor modal */}
       {tastingEditorProduct && (

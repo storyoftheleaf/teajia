@@ -1905,6 +1905,8 @@ input[type="number"]::-webkit-outer-spin-button {
   align-items: center;
   justify-content: center;
   gap: 4px;
+  min-width: 44px;
+  min-height: 44px;
   background: none;
   border: none;
   padding: 12px 8px;
@@ -1916,8 +1918,20 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 .alcove-icon-btn:hover { opacity: 1; }
 .alcove-icon-btn[data-active="true"] { opacity: 1; color: var(--tea-gold); }
-@media (max-width: 767px) {
-  .alcove-icon-btn { min-width: 44px; min-height: 44px; }
+.alcove-icon-btn:focus-visible,
+.alcove-qty-btn:focus-visible,
+.alcove-preset-btn:focus-visible,
+.alcove-order-btn:focus-visible,
+.alcove-note-btn:focus-visible,
+.alcove-thumb-btn:focus-visible,
+.alcove-thumb-btn-single:focus-visible,
+.alcove-source-link:focus-visible,
+.alcove-magazine-link:focus-visible,
+.alcove-rec-btn:focus-visible,
+.alcove-learn-link:focus-visible,
+.alcove-event-btn:focus-visible {
+  outline: 2px solid rgb(var(--tea-gold-rgb) / 0.55);
+  outline-offset: 2px;
 }
 
 /* Quantity preset row (Sample / 50g / 100g / Custom).
@@ -1994,6 +2008,7 @@ input[type="number"]::-webkit-outer-spin-button {
   gap: 8px;
 }
 .alcove-order-btn:hover:not(:disabled) { background: var(--tea-gold-lt); }
+.alcove-order-btn:active:not(:disabled) { transform: translateY(1px); }
 .alcove-order-btn[data-state="added"] {
   background: var(--tea-leaf);
   border-color: var(--tea-leaf);
@@ -2097,6 +2112,7 @@ input[type="number"]::-webkit-outer-spin-button {
 .alcove-rec-btn {
   background: none;
   border: none;
+  min-height: 44px;
   padding: 6px 0;
   cursor: pointer;
   font-family: var(--font-body);
@@ -2105,8 +2121,14 @@ input[type="number"]::-webkit-outer-spin-button {
   color: var(--tea-text-sec);
   line-height: 1.4;
   transition: color 200ms ease;
+  display: inline-flex;
+  align-items: center;
 }
 .alcove-rec-btn:hover { color: var(--tea-gold); }
+
+.alcove-learn-link {
+  min-height: 44px;
+}
 
 /* Event card button. */
 .alcove-event-btn {
@@ -2124,7 +2146,7 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 .alcove-event-btn:hover {
   background: var(--tea-surface);
-  border-color: var(--tea-gold);
+  border-color: var(--tea-border);
 }
 
 /* ============================================

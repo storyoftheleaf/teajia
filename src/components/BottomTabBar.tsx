@@ -133,6 +133,11 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
   // Derive admin route state from location — same value as the `isAdminRoute` prop,
   // using one authoritative source to avoid split-brain if prop is ever stale.
   const isOnAdmin = location.pathname.startsWith('/admin');
+  const hasProductOverlay = !isOnAdmin && (
+    location.pathname.startsWith('/shop/product/') ||
+    new URLSearchParams(location.search).has('product')
+  );
+  const shouldHide = hidden || hasProductOverlay;
 
   const { activeAccount, upcomingEventsCount, bottomBarAction } = useAppStore();
   const auth = useAuth();
@@ -280,7 +285,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
         aria-label="Main navigation"
         onContextMenu={(e) => e.preventDefault()}
         className={`lg:hidden fixed z-nav flex animate-[slideUp_0.4s_ease-out] transition-transform duration-200 select-none overflow-hidden ${
-          hidden ? 'translate-y-[calc(100%+24px)]' : 'translate-y-0'
+          shouldHide ? 'translate-y-[calc(100%+24px)]' : 'translate-y-0'
         }`}
         style={{
           left: '16px',

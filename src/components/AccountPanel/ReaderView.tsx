@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sparkles, Compass, Building2 } from 'lucide-react';
+import { READER_EXPLORE_LINKS } from './workflows';
 
 interface ReaderViewProps {
   onClose: () => void;
@@ -101,11 +102,10 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
       <LinkCluster
         hint="Explore"
         icon={<Compass {...ICON_PROPS} />}
-        links={[
-          { label: 'The Magazine', onClick: () => go('/magazine') },
-          { label: 'Shop', onClick: () => go('/shop') },
-          { label: 'Our Spaces', onClick: () => go('/spaces') },
-        ]}
+        links={READER_EXPLORE_LINKS.map(link => ({
+          label: link.label,
+          onClick: () => go(link.route),
+        }))}
       />
 
       {/* ── For your space (B2B outreach) ─────────────────────────────── */}

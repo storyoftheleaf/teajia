@@ -15,7 +15,7 @@ import { ContentType } from '../../types';
 
 import { AlcoveShell } from './alcove/AlcoveShell';
 import { AlcoveGallery } from './alcove/AlcoveGallery';
-import { AlcoveIdentityHeader } from './alcove/AlcoveIdentityHeader';
+import { AlcoveIdentityHeader, AlcoveStorySection } from './alcove/AlcoveIdentityHeader';
 import { AlcoveSensoryGrid } from './alcove/AlcoveSensoryGrid';
 import { AlcoveJournalSection } from './alcove/AlcoveJournalSection';
 import { AlcoveCommerceFooter } from './alcove/AlcoveCommerceFooter';
@@ -375,19 +375,24 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
         vintage={vintage}
         alcoveColors={alcoveColors}
         isAdmin={isAdmin}
+        onNavigateSource={() => navigate(`/admin/people?tab=sources&search=${encodeURIComponent(item.supplier!)}`)}
+      />
+
+      {/* Gallery: product image anchor before long editorial prose */}
+      <AlcoveGallery
+        allImages={allImages}
+        itemName={item.name}
+        onExpandImage={(url) => { setExpandedImageUrl(url); setImageExpanded(true); }}
+      />
+
+      <AlcoveStorySection
+        item={item}
         allImages={allImages}
         magazineUrl={magazineUrl}
         mainStory={mainStory}
         introduction={introduction}
         feelingDescription={feelingDescription}
-        onNavigateSource={() => navigate(`/admin/people?tab=sources&search=${encodeURIComponent(item.supplier!)}`)}
-      />
-
-      {/* Gallery: image strip */}
-      <AlcoveGallery
-        allImages={allImages}
-        itemName={item.name}
-        onExpandImage={(url) => { setExpandedImageUrl(url); setImageExpanded(true); }}
+        alcoveColors={alcoveColors}
       />
 
       {/* Sensory grid: tasting notes, mood tags, tasted count */}
@@ -415,7 +420,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
                 fontFamily: "var(--font-display)",
                 fontSize: "10px", fontWeight: 400,
                 textTransform: "uppercase", letterSpacing: "0.12em",
-                color: "var(--tea-gold)",
+                color: "var(--tea-text-dim)",
                 margin: "0 0 6px 0",
               }}>
                 Terroir
@@ -435,14 +440,14 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
               {terroir && (
                 <div style={{
                   height: "1px", marginBottom: "14px",
-                  background: "linear-gradient(90deg, transparent, rgba(184, 146, 78, 0.25) 20%, rgba(184, 146, 78, 0.4) 50%, rgba(184, 146, 78, 0.25) 80%, transparent)",
+                  background: "var(--tea-border)",
                 }} />
               )}
               <h3 style={{
                 fontFamily: "var(--font-display)",
                 fontSize: "10px", fontWeight: 400,
                 textTransform: "uppercase", letterSpacing: "0.12em",
-                color: "var(--tea-gold)",
+                color: "var(--tea-text-dim)",
                 margin: "0 0 6px 0",
               }}>
                 Processing
@@ -493,7 +498,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
             fontFamily: "var(--font-display)",
             fontSize: "10px", fontWeight: 400,
             textTransform: "uppercase", letterSpacing: "0.12em",
-            color: "var(--tea-gold)",
+            color: "var(--tea-text-dim)",
             margin: "0 0 10px 0",
           }}>
             Featured in {productEvents.length} {productEvents.length === 1 ? 'event' : 'events'}
@@ -587,7 +592,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
               fontFamily: "var(--font-display)",
               fontSize: "10px", fontWeight: 400,
               textTransform: "uppercase", letterSpacing: "0.12em",
-              color: "var(--tea-gold)",
+              color: "var(--tea-text-dim)",
               margin: "0 0 10px 0",
             }}>
               You might also like

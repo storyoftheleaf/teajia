@@ -22,8 +22,8 @@ export const AlcoveShell: React.FC<AlcoveShellProps> = ({
   children,
   commerceFooter,
   modals,
-  grainOpacity = 0.06,
-  warmthOpacities = [0.09, 0.05],
+  grainOpacity = 0.05,
+  warmthOpacities = [0.055, 0.025],
 }) => {
   return (
     <div style={{
@@ -65,7 +65,7 @@ export const AlcoveShell: React.FC<AlcoveShellProps> = ({
           letterSpacing: "0.18em",
           userSelect: "none", pointerEvents: "none",
           whiteSpace: "nowrap",
-          opacity: 0.065,
+          opacity: 0.045,
           zIndex: 4,
         }}>
           {chineseCharacters}

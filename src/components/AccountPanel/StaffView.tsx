@@ -10,7 +10,8 @@ import {
   getInitials,
 } from './primitives';
 import { useAppStore } from '../../lib/store';
-import { toolsForRole, type AdminTool } from '../../admin/toolRegistry';
+import { ADMIN_TOOL_GROUPS, groupTools, toolsForRole, type AdminTool } from '../../admin/toolRegistry';
+import { staffToolsForPanel } from './workflows';
 
 const ICON_PROPS = { size: 13, strokeWidth: 1.5 } as const;
 
@@ -57,19 +58,17 @@ export const StaffView: React.FC<StaffViewProps> = ({
   const navigate = useNavigate();
   const go = (route: string) => { onClose(); navigate(route); };
 
-  // Bundle-aware shift toolbar. The same set of admin tools shown to the
-  // operator is filtered down to the bundles this staff member actually holds.
-  // Bottom-bar tools (rendered as primary mobile nav) are excluded so the
-  // panel doesn't duplicate them.
+  // Bundle-aware shift toolbar. Your Table is the permission home, so it shows
+  // every workflow this staff member can actually enter, including tools that
+  // also appear in desktop/mobile admin navigation.
   const memberships = useAppStore((s) => s.memberships);
   const activeAccountId = useAppStore((s) => s.activeAccountId);
   const activeMembership = memberships.find(m => m.account_id === activeAccountId);
   const bundles = activeMembership?.bundles ?? [];
-  const BOTTOM_BAR_TOOL_IDS = new Set(['compass', 'inventory', 'activity', 'events', 'people', 'capture']);
   const shiftTools = useMemo(() => {
-    return toolsForRole({ isOwner: false, isPlatform: false, bundles })
-      .filter(t => !BOTTOM_BAR_TOOL_IDS.has(t.id));
+    return staffToolsForPanel(toolsForRole({ isOwner: false, isPlatform: false, bundles }));
   }, [bundles]);
+  const groupedShiftTools = useMemo(() => groupTools(shiftTools), [shiftTools]);
 
   const attention = todayEventCount > 0 ? [{
     id: 'today',
@@ -141,27 +140,50 @@ export const StaffView: React.FC<StaffViewProps> = ({
       )}
 
       {/* ── Shift tools — bundle-aware text-link cluster ────────────── */}
-      {shiftTools.length > 0 && (
+      {shiftTools.length > 0 ? (
         <div className="border-t border-tea-border px-6 pt-7 pb-5">
           <div className="flex items-center gap-2 text-ui-12 uppercase tracking-[0.22em] text-tea-text font-medium">
             <span className="text-tea-gold/70 shrink-0 flex items-center" aria-hidden="true"><Wrench size={14} strokeWidth={1.5} /></span>
-            <span>Shift</span>
+            <span>Shift access</span>
           </div>
           <div className="w-8 h-px bg-tea-gold/40 mt-2 mb-3.5 ml-[22px]" aria-hidden="true" />
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-ui-14 text-tea-text-sec tracking-[0.01em]">
-            {shiftTools.map((tool: AdminTool, i: number) => (
-              <React.Fragment key={tool.id}>
-                {i > 0 && <span className="text-tea-text-sec" aria-hidden="true">·</span>}
-                <button
-                  onClick={() => go(tool.route)}
-                  className="py-1 -my-1 hover:text-tea-gold transition-colors"
-                  style={{ fontFamily: 'var(--font-display)', WebkitTapHighlightColor: 'transparent' }}
-                >
-                  {tool.label}
-                </button>
-              </React.Fragment>
-            ))}
+          <div className="space-y-4">
+            {ADMIN_TOOL_GROUPS.map(group => {
+              const list: AdminTool[] = groupedShiftTools[group.id];
+              if (list.length === 0) return null;
+              return (
+                <div key={group.id}>
+                  <div className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim mb-1.5">
+                    {group.label}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-ui-14 text-tea-text-sec tracking-[0.01em]">
+                    {list.map((tool: AdminTool, i: number) => (
+                      <React.Fragment key={tool.id}>
+                        {i > 0 && <span className="text-tea-text-sec" aria-hidden="true">·</span>}
+                        <button
+                          onClick={() => go(tool.route)}
+                          className="py-1 -my-1 hover:text-tea-gold transition-colors"
+                          style={{ fontFamily: 'var(--font-display)', WebkitTapHighlightColor: 'transparent' }}
+                        >
+                          {tool.label}
+                        </button>
+                      </React.Fragment>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
           </div>
+        </div>
+      ) : (
+        <div className="border-t border-tea-border px-6 pt-7 pb-5">
+          <div className="flex items-center gap-2 text-ui-12 uppercase tracking-[0.22em] text-tea-text font-medium">
+            <span className="text-tea-gold/70 shrink-0 flex items-center" aria-hidden="true"><Wrench size={14} strokeWidth={1.5} /></span>
+            <span>Shift access</span>
+          </div>
+          <p className="mt-3 text-ui-14 text-tea-text-sec leading-relaxed" style={{ fontFamily: 'var(--font-display)' }}>
+            No workflows have been granted yet. Ask an owner to add bundles in Members & Access.
+          </p>
         </div>
       )}
 

@@ -10,6 +10,7 @@ import {
   type AdminTool,
   type AdminToolGroup,
 } from '../../admin/toolRegistry';
+import { FIRST_DOOR_WORKFLOW } from './workflows';
 import {
   PreviewBlock,
   Instrument,
@@ -42,6 +43,9 @@ interface OperatorViewProps {
   roleBadgeLabel: string | null;
   accountName: string | null;
   locationLabel: string | null;
+  activeStoreSlug: string;
+  currencyLabel: string | null;
+  isFirstDoorCandidate: boolean;
   isPlatform: boolean;
   isOwner: boolean;
 
@@ -127,6 +131,9 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
   roleBadgeLabel,
   accountName,
   locationLabel,
+  activeStoreSlug,
+  currencyLabel,
+  isFirstDoorCandidate,
   isPlatform,
   isOwner,
   pendingInvoiceCount,
@@ -150,11 +157,7 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
   memberCount,
 }) => {
   const navigate = useNavigate();
-  // Tools shown in the bottom tab bar are filtered out of the Bench so the
-  // panel doesn't duplicate the primary mobile nav. Keep this set in sync
-  // with src/components/BottomTabBar.tsx admin tabs.
-  const BOTTOM_BAR_TOOL_IDS = new Set(['compass', 'inventory', 'activity', 'events', 'people', 'capture']);
-  const tools = toolsForRole({ isOwner, isPlatform }).filter(t => !BOTTOM_BAR_TOOL_IDS.has(t.id));
+  const tools = toolsForRole({ isOwner, isPlatform });
   const grouped = groupTools(tools);
 
   const go = (route: string) => { onClose(); navigate(route); };
@@ -429,6 +432,66 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
         </PreviewBlock>
       )}
 
+      {/* ── First door — the explicit opening checklist for a new location ── */}
+      {isFirstDoorCandidate && (
+        <section className="mt-6 border-t border-tea-border" aria-label="Opening workflow">
+          <header className="px-6 pt-5 pb-2">
+            <div className="text-ui-10 uppercase tracking-[0.28em] text-tea-text-sec font-medium">
+              Opening a table
+            </div>
+            <p className="mt-2 text-ui-14 text-tea-text-sec leading-relaxed" style={{ fontFamily: 'var(--font-display)' }}>
+              First-door workflow{locationLabel ? ` · ${locationLabel}` : ''}{currencyLabel ? ` · ${currencyLabel}` : ''}.
+            </p>
+          </header>
+          <ul>
+            {FIRST_DOOR_WORKFLOW.map((step, index) => (
+              <li key={step.id}>
+                <button
+                  onClick={() => go(step.route)}
+                  className="w-full text-left px-6 py-3 border-t border-tea-border hover:bg-tea-surface/60 active:bg-tea-surface transition-colors"
+                  style={{ fontFamily: 'var(--font-display)', WebkitTapHighlightColor: 'transparent' }}
+                >
+                  <span className="flex items-start gap-3">
+                    <span
+                      className="mt-0.5 w-5 h-5 rounded-full border border-tea-border text-ui-10 text-tea-gold flex items-center justify-center shrink-0 tabular-nums"
+                      style={{ fontFamily: 'var(--font-mono)' }}
+                    >
+                      {index + 1}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-ui-15 text-tea-text leading-tight">{step.label}</span>
+                      <span className="block mt-1 text-ui-12 text-tea-text-sec leading-snug">{step.description}</span>
+                    </span>
+                  </span>
+                </button>
+              </li>
+            ))}
+            <li>
+              <button
+                onClick={() => go(`/store/${activeStoreSlug}`)}
+                className="w-full text-left px-6 py-3 border-t border-tea-border hover:bg-tea-surface/60 active:bg-tea-surface transition-colors"
+                style={{ fontFamily: 'var(--font-display)', WebkitTapHighlightColor: 'transparent' }}
+              >
+                <span className="flex items-start gap-3">
+                  <span
+                    className="mt-0.5 w-5 h-5 rounded-full border border-tea-border text-ui-10 text-tea-gold flex items-center justify-center shrink-0 tabular-nums"
+                    style={{ fontFamily: 'var(--font-mono)' }}
+                  >
+                    {FIRST_DOOR_WORKFLOW.length + 1}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-ui-15 text-tea-text leading-tight">Preview storefront</span>
+                    <span className="block mt-1 text-ui-12 text-tea-text-sec leading-snug">
+                      Check what a guest sees before the first public order or session.
+                    </span>
+                  </span>
+                </span>
+              </button>
+            </li>
+          </ul>
+        </section>
+      )}
+
       {/* ── Tools — table of contents
           Single-column list. Each group is a small-caps header row
           followed by its tools stacked vertically. No empty cells, no
@@ -491,15 +554,6 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
           </span>
         </header>
         <ul>
-          <li>
-            <button
-              onClick={() => go('/account/orders')}
-              className="w-full text-left px-6 py-2.5 text-ui-15 text-tea-text leading-tight hover:bg-tea-surface/60 active:bg-tea-surface transition-colors"
-              style={{ fontFamily: 'var(--font-display)', WebkitTapHighlightColor: 'transparent' }}
-            >
-              Orders
-            </button>
-          </li>
           <li>
             <button
               onClick={onOpenEvents}

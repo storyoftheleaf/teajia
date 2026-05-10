@@ -1,8 +1,8 @@
 import React, { useState, useMemo, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import {
-  Loader2, FileSpreadsheet, Plus, Search, QrCode, Download,
-  Trash2, AlertTriangle, Archive, Pencil, AlertOctagon, ArrowUpDown, ArrowUp, ArrowDown, Copy, Layers, Settings, MoreHorizontal, Check, X as XIcon, Eye, EyeOff, Star, Sparkles, FlaskConical, RefreshCw, ChevronDown, ChevronRight, ChevronLeft, MapPin, Save, Columns, Square, CheckSquare, Leaf, Coffee, Image as ImageIcon, Globe, Tag, FileText, User, Receipt, BookOpen, Droplets, PackageX
+  Loader2, FileSpreadsheet, Plus, Download,
+  AlertTriangle, Archive, Pencil, AlertOctagon, ArrowUpDown, ArrowUp, ArrowDown, Layers, Settings, MoreHorizontal, Check, X as XIcon, Eye, EyeOff, Star, Sparkles, FlaskConical, RefreshCw, ChevronDown, ChevronRight, ChevronLeft, MapPin, Save, Columns, Square, CheckSquare, Leaf, Coffee, Image as ImageIcon, Globe, Tag, FileText, User, Receipt, Droplets, PackageX
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Papa from 'papaparse';
@@ -40,8 +40,6 @@ import { AutocompleteInput } from '../../components/TeaCompass/AutocompleteInput
 import { buildVarietyDataMap, getTeaVarietySuggestions } from '../../data/teaVarieties';
 import { CollectionShareSheet } from './collections/CollectionShareSheet';
 import { QuickInvoiceModal } from './QuickInvoiceModal';
-
-const MAINTENANCE_SQL = `-- Reset all data via API\n// Use the admin panel's reset function`;
 
 // Returns true when a featured product is hidden from the public shop.
 // The public GET /api/collections/shop filter requires status='Active' and
@@ -127,10 +125,10 @@ const DEFAULT_TEA_VIEWS: Array<{ id: string; name: string; icon?: string | null;
     filterType: 'All',
     groupBy: null,
   },
-  // Icons after
+  // Quick views after the all-up inventory view.
   {
     id: 'default-forsale',
-    name: '',
+    name: 'Selling',
     icon: 'Globe',
     columns: ['productName', 'type', 'year', 'originRegion', 'stockGrams', 'pricePerGramUSD'],
     sortConfig: [{ key: 'stockGrams', direction: 'asc' as const }],
@@ -139,7 +137,7 @@ const DEFAULT_TEA_VIEWS: Array<{ id: string; name: string; icon?: string | null;
   },
   {
     id: 'default-low-stock',
-    name: '',
+    name: 'Alerts',
     icon: 'AlertTriangle',
     columns: ['productName', 'type', 'year', 'originRegion', 'stockGrams', 'costAmount', 'pricePerGramUSD'],
     sortConfig: [{ key: 'stockGrams', direction: 'asc' as const }],
@@ -148,7 +146,7 @@ const DEFAULT_TEA_VIEWS: Array<{ id: string; name: string; icon?: string | null;
   },
   {
     id: 'default-unpublished',
-    name: '',
+    name: 'Hidden',
     icon: 'EyeOff',
     columns: ['productName', 'type', 'stockGrams', 'pricePerGramUSD'],
     sortConfig: [{ key: 'type', direction: 'asc' as const }],
@@ -157,7 +155,7 @@ const DEFAULT_TEA_VIEWS: Array<{ id: string; name: string; icon?: string | null;
   },
   {
     id: 'default-stock-check',
-    name: '',
+    name: 'Verify',
     icon: 'CheckSquare',
     columns: ['productName', 'type', 'stockGrams', 'verified'],
     sortConfig: [{ key: 'stockGrams', direction: 'asc' as const }],
@@ -166,7 +164,7 @@ const DEFAULT_TEA_VIEWS: Array<{ id: string; name: string; icon?: string | null;
   },
   {
     id: 'default-samples',
-    name: '',
+    name: 'Samples',
     icon: 'FlaskConical',
     columns: ['productName', 'type', 'year', 'originRegion', 'stockGrams', 'costAmount'],
     sortConfig: [{ key: 'year', direction: 'desc' as const }],
@@ -175,7 +173,7 @@ const DEFAULT_TEA_VIEWS: Array<{ id: string; name: string; icon?: string | null;
   },
   {
     id: 'default-personal',
-    name: '',
+    name: 'Personal',
     icon: 'Coffee',
     columns: ['productName', 'type', 'year', 'originRegion', 'stockGrams', 'costAmount'],
     sortConfig: [{ key: 'year', direction: 'desc' as const }],
@@ -184,7 +182,7 @@ const DEFAULT_TEA_VIEWS: Array<{ id: string; name: string; icon?: string | null;
   },
   {
     id: 'default-untasted',
-    name: '',
+    name: 'Untasted',
     icon: 'Droplets',
     columns: ['productName', 'type', 'year', 'originRegion', 'stockGrams', 'pricePerGramUSD'],
     sortConfig: [{ key: 'type', direction: 'asc' as const }],
@@ -193,7 +191,7 @@ const DEFAULT_TEA_VIEWS: Array<{ id: string; name: string; icon?: string | null;
   },
   {
     id: 'default-archived',
-    name: '',
+    name: 'Archived',
     icon: 'Archive',
     columns: ['productName', 'type', 'year', 'originRegion', 'stockGrams', 'costAmount'],
     sortConfig: [{ key: 'type', direction: 'asc' as const }],
@@ -202,7 +200,7 @@ const DEFAULT_TEA_VIEWS: Array<{ id: string; name: string; icon?: string | null;
   },
   {
     id: 'default-soldout',
-    name: '',
+    name: 'Sold',
     icon: 'PackageX',
     columns: ['productName', 'type', 'year', 'originRegion', 'vendor', 'pricePerGramUSD'],
     sortConfig: [{ key: 'type', direction: 'asc' as const }],
@@ -276,7 +274,7 @@ import { GhostInput, GhostTextarea, GhostAutocompleteInput, GhostSelect, VendorP
 // ─────────────────────────────────────────────────────────────────────────────
 
 function getRowBorderClass(product: Product): string {
-  if (product.isPersonal) return 'border-l-4 border-l-amber-700/50';
+  if (product.isPersonal) return 'bg-tea-accent-sub';
   return '';
 }
 
@@ -396,7 +394,7 @@ function InventoryRowBase(props: InventoryRowProps) {
                 <button aria-label={product.recheckStock ? 'Clear recheck flag' : 'Flag for stock recheck'} title={product.recheckStock ? 'Clear recheck flag' : 'Flag for stock recheck'} onClick={(e) => { e.stopPropagation(); onProductUpdate(product.id, 'recheckStock', !product.recheckStock); }} className={`text-ui-10 transition-colors ${product.recheckStock ? 'text-tea-gold hover:text-tea-text-sec' : 'text-tea-border hover:text-tea-gold/70'}`} aria-hidden={false}><span aria-hidden="true">&#9888;</span></button>
               </div>
             ) : (
-              <button onClick={(e) => { e.stopPropagation(); onStockHistory(product.id, product.givenName || product.productName); }} className={`num text-xs flex items-center gap-1 hover:text-tea-gold transition-colors ${isLow ? 'text-tea-gold font-bold' : 'text-tea-text-sec'}`} title="View stock history">
+              <button onClick={(e) => { e.stopPropagation(); onStockHistory(product.id, product.givenName || product.productName); }} className={`tap-target num text-xs flex items-center gap-1 hover:text-tea-gold transition-colors ${isLow ? 'text-tea-gold font-bold' : 'text-tea-text-sec'}`} title="View stock history" aria-label={`View stock history for ${product.productName}`}>
                 {product.recheckStock && <span title="Stock needs rechecking" aria-label="Stock needs rechecking" className="text-tea-gold/80 text-ui-10"><span aria-hidden="true">&#9888;</span></span>}
                 {Math.round(product.stockGrams)}
               </button>
@@ -473,7 +471,8 @@ function InventoryRowBase(props: InventoryRowProps) {
                 }
               }}
               title={isVerified ? `Verified ${new Date(product.stockVerifiedAt!).toLocaleDateString()}` : 'Mark as verified'}
-              className={`inline-flex items-center justify-center w-5 h-5 rounded transition-colors ${isVerified ? 'bg-tea-surface text-tea-text hover:bg-tea-elevated hover:text-tea-text-sec' : 'bg-tea-surface text-tea-border hover:text-tea-text-sec hover:bg-tea-bg'}`}
+              aria-label={isVerified ? `Clear verification for ${product.productName}` : `Mark ${product.productName} as verified`}
+              className={`tap-target inline-flex items-center justify-center w-5 h-5 rounded transition-colors ${isVerified ? 'bg-tea-surface text-tea-text hover:bg-tea-elevated hover:text-tea-text-sec' : 'bg-tea-surface text-tea-border hover:text-tea-text-sec hover:bg-tea-bg'}`}
             >
               {isVerified ? <Check size={12} strokeWidth={3} /> : <span className="w-3 h-3 rounded-sm border border-current" />}
             </button>
@@ -509,6 +508,8 @@ function InventoryRowBase(props: InventoryRowProps) {
       data-product-id={product.id}
       className={trCls}
       style={{ height: rowHeight }}
+      tabIndex={isEditMode ? -1 : 0}
+      aria-selected={isSelected}
       onTouchStart={() => {
         lpFired.current = false;
         lpTimer.current = setTimeout(() => {
@@ -522,6 +523,11 @@ function InventoryRowBase(props: InventoryRowProps) {
         if (lpFired.current) { lpFired.current = false; return; }
         onRowClick(product.id, globalIdxRef.current, e);
       }}
+      onKeyDown={(e) => {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        e.preventDefault();
+        onRowClick(product.id, globalIdxRef.current, e as unknown as React.MouseEvent);
+      }}
     >
       {splitView
         ? renderCell('productName', 0)
@@ -534,14 +540,14 @@ function InventoryRowBase(props: InventoryRowProps) {
           {!isEditMode && !isSelected && (
             <>
               <span className="inline-flex items-center gap-0.5">
-                <button onClick={(e) => { e.stopPropagation(); onSelectionAwareUpdate(product, 'isFeatured', !product.isFeatured); }} className={`${product.isFeatured ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'} p-1 transition-colors`} aria-label={product.isFeatured ? 'Remove featured star' : 'Mark as featured'} aria-pressed={product.isFeatured} title={product.isFeatured ? 'Remove star' : 'Star'}><Star size={12} className={product.isFeatured ? 'fill-tea-gold' : ''} aria-hidden="true" /></button>
+                <button onClick={(e) => { e.stopPropagation(); onSelectionAwareUpdate(product, 'isFeatured', !product.isFeatured); }} className={`tap-target ${product.isFeatured ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'} p-1 transition-colors`} aria-label={product.isFeatured ? 'Remove featured star' : 'Mark as featured'} aria-pressed={product.isFeatured} title={product.isFeatured ? 'Remove star' : 'Star'}><Star size={12} className={product.isFeatured ? 'fill-tea-gold' : ''} aria-hidden="true" /></button>
                 {isFeaturedButHidden(product) && <span className="font-body italic text-ui-10 text-tea-text-sec leading-none">hidden</span>}
               </span>
-              <button onClick={(e) => { e.stopPropagation(); onSelectionAwareUpdate(product, 'isPublic', !product.isPublic); }} className={`${product.isPublic ? 'text-tea-text-sec hover:text-tea-text' : 'text-tea-text-sec/50 hover:text-tea-text-sec'} p-1 transition-colors`} aria-label={product.isPublic ? 'Hide from shop' : 'Show in shop'} aria-pressed={product.isPublic} title={product.isPublic ? 'Hide' : 'Show'}>{product.isPublic ? <Eye size={12} aria-hidden="true" /> : <EyeOff size={12} aria-hidden="true" />}</button>
-              {!splitView && <button onClick={(e) => { e.stopPropagation(); onOpenPanel(product); }} className="text-tea-text-sec hover:text-tea-text p-1 transition-colors" aria-label="Edit product" title="Edit"><Pencil size={13} aria-hidden="true" /></button>}
+              <button onClick={(e) => { e.stopPropagation(); onSelectionAwareUpdate(product, 'isPublic', !product.isPublic); }} className={`tap-target ${product.isPublic ? 'text-tea-text-sec hover:text-tea-text' : 'text-tea-text-sec/50 hover:text-tea-text-sec'} p-1 transition-colors`} aria-label={product.isPublic ? 'Hide from shop' : 'Show in shop'} aria-pressed={product.isPublic} title={product.isPublic ? 'Hide' : 'Show'}>{product.isPublic ? <Eye size={12} aria-hidden="true" /> : <EyeOff size={12} aria-hidden="true" />}</button>
+              {!splitView && <button onClick={(e) => { e.stopPropagation(); onOpenPanel(product); }} className="tap-target text-tea-text-sec hover:text-tea-text p-1 transition-colors" aria-label="Edit product" title="Edit"><Pencil size={13} aria-hidden="true" /></button>}
               {!splitView && (
                 <div className="relative" data-row-dropdown>
-                  <button onClick={() => onToggleDropdown(isDropdownOpen ? null : product.id)} className="text-tea-text-sec hover:text-tea-text p-1 transition-colors" aria-label="More actions" aria-haspopup="menu" aria-expanded={isDropdownOpen} title="More actions"><MoreHorizontal size={13} aria-hidden="true" /></button>
+                  <button onClick={() => onToggleDropdown(isDropdownOpen ? null : product.id)} className="tap-target text-tea-text-sec hover:text-tea-text p-1 transition-colors" aria-label="More actions" aria-haspopup="menu" aria-expanded={isDropdownOpen} title="More actions"><MoreHorizontal size={13} aria-hidden="true" /></button>
                   {isDropdownOpen && (
                     <div className="absolute right-0 top-full mt-1 z-50 bg-tea-surface rounded-lg shadow-lg py-1 min-w-[140px]" style={{ boxShadow: '0 4px 20px rgba(24,19,14,0.3)' }}>
                       <button onClick={() => onRestock(product)} className="w-full flex items-center gap-2 px-3 py-2 text-xs text-tea-text hover:bg-tea-bg/60 transition-colors text-left"><Globe size={12} /> Restock via Compass</button>
@@ -886,6 +892,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const [resetInput, setResetInput] = useState('');
   const [isResetting, setIsResetting] = useState(false);
   const [showMaintenanceModal, setShowMaintenanceModal] = useState(false);
+  const [showEnrichConfirm, setShowEnrichConfirm] = useState(false);
+  const [showVerificationResetConfirm, setShowVerificationResetConfirm] = useState(false);
   const [stockHistoryProduct, setStockHistoryProduct] = useState<{ id: string; name: string } | null>(null);
 
   const { data: rates = [] } = useRates();
@@ -990,7 +998,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       }
       return 0;
     });
-  }, [localProducts, searchQuery, filterType, inventorySortConfig]);
+  }, [localProducts, searchQuery, filterType, inventorySortConfig, inventoryCategory]);
 
   // Visible columns (filtered by store, adapted to category)
   // Price columns are always controlled by priceMode toggle, not by view config
@@ -1378,7 +1386,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     navigate(`/admin/compass?tab=sourcing`);
   }, [startNewCapture, updateCompassEntry, navigate]);
 
-  const handleProductUpdate = useCallback(async (id: string, field: keyof Product, value: any) => {
+  const handleProductUpdate = useCallback(async (id: string, field: keyof Product, value: any, options?: { throwOnError?: boolean }) => {
     // 1. Optimistic Update — single setState call handles both the field change and any
     //    derived retail recalculation to avoid a double re-render.
     const pricingFieldsSet = new Set<keyof Product>(['costAmount', 'quantityPurchased', 'shippingRatePerKg', 'costCurrency']);
@@ -1404,15 +1412,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     }));
     setPanelDirty(true);
 
-    // 2. Map to DB Column
-    let dbPayload: any = {};
-    if (field === 'stockGrams') dbPayload = { stock_grams: Number(value) };
-    else if (field === 'costAmount') dbPayload = { cost_amount: Number(value) };
-    else if (field === 'pricePerGramUSD') dbPayload = { fixed_retail_price_usd: Number(value) }; // Override retail
-    else if (field === 'productName') dbPayload = { product_name: value };
-    else if (field === 'originRegion') dbPayload = { origin_region: value };
-    else if (field === 'year') dbPayload = { year: Number(value) };
-    else if (field === 'isFeatured') {
+    // 2. Route special collection-backed fields, then use the shared field → DB mapper.
+    if (field === 'isFeatured') {
       // Route through the Featured collection endpoint instead of writing the
       // legacy is_featured column. Optimistic local state is already updated above.
       // Refetch on success so the derived value (computed from active shop
@@ -1423,44 +1424,13 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       } catch (err: any) {
         showToast(`Update failed: ${err.message}`, 'error');
         onRefresh();
+        if (options?.throwOnError) throw err;
       }
       return;
     }
-    else if (field === 'isPublic') dbPayload = { is_public: value };
-    else if (field === 'showWisdom') dbPayload = { show_wisdom: value };
-    else if (field === 'recheckStock') dbPayload = { recheck_stock: value ? 1 : 0 };
-    else if (field === 'stockVerifiedAt') dbPayload = { stock_verified_at: value };
-    else if (field === 'material') dbPayload = { material: value };
-    else if (field === 'capacityMl') dbPayload = { capacity_ml: Number(value) };
-    else if (field === 'teawareCategory') dbPayload = { teaware_category: value };
-    else if (field === 'quantityUnits') dbPayload = { quantity_units: Number(value) };
-    else if (field === 'experience') dbPayload = { experience: value };
-    else if (field === 'description') dbPayload = { description: value };
-    else if (field === 'mood') dbPayload = { mood: value };
-    else if (field === 'tastingNotes') dbPayload = { tasting_notes: JSON.stringify(value) };
-    else if (field === 'lore') dbPayload = { lore: value };
-    else if (field === 'givenName') dbPayload = { given_name: value };
-    else if (field === 'chineseName') dbPayload = { chinese_name: value };
-    else if (field === 'form') dbPayload = { form: value };
-    else if (field === 'originCountry') dbPayload = { origin_country: value };
-    else if (field === 'vendor') dbPayload = { vendor: value };
-    else if (field === 'type') dbPayload = { type: value };
-    else if (field === 'status') dbPayload = { status: value };
-    else if (field === 'imageUrl') dbPayload = { image_url: value };
-    else if (field === 'processingNotes') dbPayload = { processing_notes: value };
-    else if (field === 'terroir') dbPayload = { terroir: value };
-    else if (field === 'isPersonal') dbPayload = { is_personal: value ? 1 : 0 };
-    else if (field === 'canReorder') dbPayload = { can_reorder: value ? 1 : 0 };
-    else if (field === 'isCurated') dbPayload = { is_curated: value ? 1 : 0 };
-    else if (field === 'isSample') dbPayload = { is_sample: value ? 1 : 0 };
-    else if (field === 'isCustomWisdom') dbPayload = { is_custom_wisdom: value ? 1 : 0 };
-    else if (field === 'fixedRetailPriceUSD') dbPayload = { fixed_retail_price_usd: value ? Number(value) : null };
-    else if (field === 'shippingRatePerKg') dbPayload = { shipping_rate_per_kg: Number(value) };
-    else if (field === 'quantityPurchased') dbPayload = { quantity_purchased: Number(value) };
-    else if (field === 'lowStockThreshold') dbPayload = { low_stock_threshold: Number(value) };
-    else if (field === 'costCurrency') dbPayload = { cost_currency: value };
-    else if (field === 'additionalImages') dbPayload = { additional_images: JSON.stringify(value || []) };
-    else return; // Unsupported field for quick edit
+
+    const dbPayload = buildProductUpdatePayload(field, value);
+    if (!dbPayload) return; // Unsupported field for quick edit
 
     // 3. Fire & Forget (with Error Revert)
     try {
@@ -1468,6 +1438,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     } catch (err: any) {
       showToast(`Update failed: ${err.message}`, 'error');
       onRefresh();
+      if (options?.throwOnError) throw err;
     }
   }, [setLocalProducts, setPanelDirty, showToast, onRefresh]);
 
@@ -1505,10 +1476,6 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     
     if (teasToEnrich.length === 0) {
         showToast("All teas already have wisdom.", "success");
-        return;
-    }
-
-    if (!confirm(`Are you sure you want to generate wisdom for ${teasToEnrich.length} teas? This may take a few minutes.`)) {
         return;
     }
 
@@ -1575,6 +1542,18 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         showToast("Wipe failed. Permissions error.", 'error');
     } finally {
         setIsResetting(false);
+    }
+  };
+
+  const handleResetStockVerification = async () => {
+    try {
+      await api.rpc.resetStockVerification();
+      setLocalProducts(prev => prev.map(p => ({ ...p, stockVerifiedAt: null })));
+      setShowVerificationResetConfirm(false);
+      onRefresh();
+      showToast('Verification reset — ready for a new stock check', 'success');
+    } catch (err: any) {
+      showToast(`Reset failed: ${err.message}`, 'error');
     }
   };
 
@@ -1696,12 +1675,18 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       const sortIndex = inventorySortConfig.findIndex(s => s.key === colKey);
       const sortEntry = sortIndex >= 0 ? inventorySortConfig[sortIndex] : null;
       const showBadge = inventorySortConfig.length > 1 && sortEntry;
+      const ariaSort = sortEntry ? (sortEntry.direction === 'asc' ? 'ascending' : 'descending') : 'none';
       return (
         <th
-          className={`px-4 py-2 cursor-pointer hover:text-tea-text transition-colors select-none border-b border-tea-border group text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec text-${align} truncate`}
-          onClick={() => handleSort(colKey)}
+          aria-sort={ariaSort}
+          className={`px-4 py-2 border-b border-tea-border text-${align} truncate`}
         >
-          <div className={`flex items-center gap-1 ${align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : ''}`}>
+          <button
+            type="button"
+            onClick={() => handleSort(colKey)}
+            className={`tap-target group inline-flex w-full items-center gap-1 hover:text-tea-text transition-colors select-none text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec ${align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : 'justify-start'}`}
+            aria-label={`Sort by ${label}${sortEntry ? `, currently ${sortEntry.direction === 'asc' ? 'ascending' : 'descending'}` : ''}`}
+          >
              {label}
              <div className="flex-shrink-0 relative z-0 flex items-center">
               {sortEntry ? (
@@ -1711,7 +1696,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 </span>
               ) : <ArrowUpDown size={10} className="opacity-0 group-hover:opacity-100 text-tea-text-sec/50 ml-1 transition-opacity" />}
              </div>
-          </div>
+          </button>
         </th>
       );
   };
@@ -1853,7 +1838,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     const parsedValue = fieldDef?.type === 'boolean' ? bulkValue === 'true' : bulkValue;
     try {
       const results = await Promise.allSettled(
-        [...selectedIds].map(id => handleProductUpdate(id, bulkField as keyof Product, parsedValue))
+        [...selectedIds].map(id => handleProductUpdate(id, bulkField as keyof Product, parsedValue, { throwOnError: true }))
       );
       const succeeded = results.filter(r => r.status === 'fulfilled').length;
       const failed = results.length - succeeded;
@@ -1870,7 +1855,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     setIsBulkApplying(true);
     try {
       const results = await Promise.allSettled(
-        [...selectedIds].map(id => handleProductUpdate(id, 'isPublic', makePublic))
+        [...selectedIds].map(id => handleProductUpdate(id, 'isPublic', makePublic, { throwOnError: true }))
       );
       const succeeded = results.filter(r => r.status === 'fulfilled').length;
       const failed = results.length - succeeded;
@@ -1893,7 +1878,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       setIsBulkApplying(true);
       try {
         const results = await Promise.allSettled(
-          [...selectedIdsRef.current].map(id => handleProductUpdate(id, field, value))
+          [...selectedIdsRef.current].map(id => handleProductUpdate(id, field, value, { throwOnError: true }))
         );
         const succeeded = results.filter(r => r.status === 'fulfilled').length;
         const failed = results.length - succeeded;
@@ -1930,195 +1915,6 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     setSelectedIds(new Set());
     lastSelectedIdxRef.current = null;
     navigate('/admin/compass?tab=samples');
-  };
-
-  // renderCell, makeLongPressHandlers, getRowBorderClass all live in InventoryRowBase above.
-  // Keeping this stub to satisfy any remaining call-sites — remove after full cleanup.
-  const _deadRenderCell = (product: Product, colKey: string, rowIndex: number, colIndex: number) => {
-    const isFocused = focusedCell?.row === rowIndex && focusedCell?.col === colIndex;
-    const focusRing = isFocused ? 'ring-1 ring-tea-gold/50 rounded' : '';
-    const ghostId = `ghost-${rowIndex}-${colIndex}`;
-
-    switch (colKey) {
-      case 'productName':
-        return (
-          <td id={`cell-${rowIndex}-${colIndex}`} className={`px-4 align-middle overflow-hidden ${focusRing}`}>
-            <div className="flex flex-col justify-center h-full">
-              {isEditMode ? (
-                <GhostInput
-                  value={product.productName}
-                  onSave={(val) => handleProductUpdate(product.id, 'productName', val)}
-                  className="font-serif text-sm text-tea-text tracking-wide truncate"
-                  ariaLabel="Product name"
-                />
-              ) : (
-                <>
-                  <span className="text-sm font-serif text-tea-text tracking-wide group-hover:text-tea-gold transition-colors truncate">
-                    {product.productName}
-                  </span>
-                  {product.givenName && (
-                    <span className="text-ui-10 text-tea-text-sec font-sans truncate block">
-                      {product.givenName}
-                      {product.form && <span className="ml-1 opacity-50">· {product.form}</span>}
-                    </span>
-                  )}
-                  {!product.givenName && product.form && (
-                    <span className="text-ui-10 text-tea-text-sec/50 font-sans truncate block">{product.form}</span>
-                  )}
-                </>
-              )}
-            </div>
-          </td>
-        );
-      case 'type': {
-        const dotColor = getThemeColor(product.type);
-        return (
-          <td id={`cell-${rowIndex}-${colIndex}`} className={`px-4 align-middle overflow-hidden ${focusRing}`}>
-            <span className="flex items-center gap-2 text-xs font-medium tracking-wide text-tea-text-sec truncate">
-              <span style={{ color: dotColor, fontSize: '10px' }}>&#9679;</span> {product.type}
-            </span>
-          </td>
-        );
-      }
-      case 'year':
-        return (
-          <td id={`cell-${rowIndex}-${colIndex}`} className={`px-4 align-middle overflow-hidden ${focusRing}`}>
-            {isEditMode ? (
-              <GhostInput id={ghostId} ariaLabel="Year" value={product.year || ''} onSave={(val) => handleProductUpdate(product.id, 'year', val)} type="number" placeholder="YYYY" className="font-sans text-xs text-tea-text-sec tabular-nums" />
-            ) : <span className="text-xs text-tea-text-sec font-sans tabular-nums">{product.year || '-'}</span>}
-          </td>
-        );
-      case 'originRegion':
-        return (
-          <td id={`cell-${rowIndex}-${colIndex}`} className={`px-4 align-middle overflow-hidden ${focusRing}`}>
-            {isEditMode ? (
-              <GhostInput id={ghostId} ariaLabel="Origin region" value={product.originRegion} onSave={(val) => handleProductUpdate(product.id, 'originRegion', val)} className="font-sans text-xs text-tea-text-sec truncate" />
-            ) : <span className="text-xs text-tea-text-sec font-sans truncate block">{product.originRegion}</span>}
-          </td>
-        );
-      case 'stockGrams': {
-        const isLow = product.stockGrams <= product.lowStockThreshold;
-        return (
-          <td id={`cell-${rowIndex}-${colIndex}`} className={`px-4 align-middle overflow-hidden ${focusRing}`}>
-            {isEditMode ? (
-              <div className="flex items-center gap-1">
-                <GhostInput id={ghostId} ariaLabel="Stock grams" value={product.stockGrams} onSave={(val) => handleProductUpdate(product.id, 'stockGrams', val)} type="number" className="num text-xs" />
-                <button aria-label={product.recheckStock ? "Clear recheck flag" : "Flag for stock recheck"} title={product.recheckStock ? "Clear recheck flag" : "Flag for stock recheck"} onClick={(e) => { e.stopPropagation(); handleProductUpdate(product.id, 'recheckStock', !product.recheckStock); }} className={`text-ui-10 transition-colors ${product.recheckStock ? 'text-tea-gold hover:text-tea-text-sec' : 'text-tea-border hover:text-tea-gold/70'}`}><span aria-hidden="true">&#9888;</span></button>
-              </div>
-            ) : (
-              <button
-                onClick={(e) => { e.stopPropagation(); setStockHistoryProduct({ id: product.id, name: product.givenName || product.productName }); }}
-                className={`num text-xs flex items-center gap-1 hover:text-tea-gold transition-colors ${isLow ? 'text-tea-gold font-bold' : 'text-tea-text-sec'}`}
-                title="View stock history"
-              >
-                {product.recheckStock && <span title="Stock needs rechecking" aria-label="Stock needs rechecking" className="text-tea-gold/80 text-ui-10"><span aria-hidden="true">&#9888;</span></span>}
-                {Math.round(product.stockGrams)}
-              </button>
-            )}
-          </td>
-        );
-      }
-      case 'costAmount':
-        return (
-          <td id={`cell-${rowIndex}-${colIndex}`} className={`px-4 align-middle overflow-hidden ${focusRing}`}>
-            {isEditMode ? (
-              <GhostInput id={ghostId} ariaLabel="Cost amount" value={product.costAmount} onSave={(val) => handleProductUpdate(product.id, 'costAmount', val)} type="number" className="num text-xs" />
-            ) : <span className="num text-xs text-tea-text-sec">{product.costAmount > 0 ? product.costAmount.toLocaleString() : '-'}</span>}
-          </td>
-        );
-      case 'costPerGramUSD':
-        return (
-          <td id={`cell-${rowIndex}-${colIndex}`} className={`px-4 align-middle overflow-hidden ${focusRing}`}>
-            <span className="num text-xs text-tea-text-sec">{product.costPerGramUSD > 0 ? fmtNum(product.costPerGramUSD) : '-'}</span>
-          </td>
-        );
-      case 'pricePerGramUSD': {
-        const sellingPrice = product.fixedRetailPriceUSD ?? product.pricePerGramUSD;
-        return (
-          <td id={`cell-${rowIndex}-${colIndex}`} className={`px-4 align-middle overflow-hidden ${focusRing}`}>
-            {isEditMode ? (
-              <GhostInput id={ghostId} ariaLabel="Retail price per gram (USD)" value={sellingPrice?.toFixed(2)} onSave={(val) => handleProductUpdate(product.id, 'fixedRetailPriceUSD', val ? Number(val) : null)} type="number" className="num text-xs" />
-            ) : <span className={`num text-xs ${product.fixedRetailPriceUSD != null ? 'text-tea-gold' : 'text-tea-text'}`}>{sellingPrice != null ? fmtNum(sellingPrice) : '-'}</span>}
-          </td>
-        );
-      }
-      case 'material':
-        return (
-          <td id={`cell-${rowIndex}-${colIndex}`} className={`px-4 align-middle overflow-hidden ${focusRing}`}>
-            {isEditMode ? (
-              <GhostInput id={ghostId} ariaLabel="Material" value={product.material || ''} onSave={(val) => handleProductUpdate(product.id, 'material', val)} className="font-sans text-xs text-tea-text-sec truncate" />
-            ) : <span className="text-xs text-tea-text-sec font-sans truncate block">{product.material || '-'}</span>}
-          </td>
-        );
-      case 'teawareCategory':
-        return (
-          <td id={`cell-${rowIndex}-${colIndex}`} className={`px-4 align-middle overflow-hidden ${focusRing}`}>
-            {isEditMode ? (
-              <GhostInput id={ghostId} ariaLabel="Teaware category" value={product.teawareCategory || ''} onSave={(val) => handleProductUpdate(product.id, 'teawareCategory', val)} className="font-sans text-xs text-tea-text-sec truncate" />
-            ) : <span className="text-xs text-tea-text-sec font-sans capitalize truncate block">{product.teawareCategory || '-'}</span>}
-          </td>
-        );
-      case 'capacityMl':
-        return (
-          <td id={`cell-${rowIndex}-${colIndex}`} className={`px-4 align-middle overflow-hidden ${focusRing}`}>
-            {isEditMode ? (
-              <GhostInput id={ghostId} ariaLabel="Capacity (ml)" value={product.capacityMl || ''} onSave={(val) => handleProductUpdate(product.id, 'capacityMl', val)} type="number" className="num text-xs" />
-            ) : <span className="num text-xs text-tea-text-sec">{product.capacityMl ? `${product.capacityMl}ml` : '-'}</span>}
-          </td>
-        );
-      case 'quantityUnits':
-        return (
-          <td id={`cell-${rowIndex}-${colIndex}`} className={`px-4 align-middle overflow-hidden ${focusRing}`}>
-            {isEditMode ? (
-              <GhostInput id={ghostId} ariaLabel="Quantity units" value={product.quantityUnits || ''} onSave={(val) => handleProductUpdate(product.id, 'quantityUnits', val)} type="number" className="num text-xs" />
-            ) : <span className="num text-xs text-tea-text-sec">{product.quantityUnits ?? '-'}</span>}
-          </td>
-        );
-      case 'verified': {
-        const isVerified = !!product.stockVerifiedAt;
-        return (
-          <td id={`cell-${rowIndex}-${colIndex}`} className={`px-4 align-middle text-center ${focusRing}`}>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                const name = product.givenName || product.productName;
-                if (!isVerified) {
-                  handleProductUpdate(product.id, 'stockVerifiedAt', new Date().toISOString());
-                  showToast(`${name} verified`, 'success', {
-                    duration: 5000,
-                    action: {
-                      label: 'Undo',
-                      onClick: () => handleProductUpdate(product.id, 'stockVerifiedAt', null),
-                    },
-                  });
-                } else {
-                  handleProductUpdate(product.id, 'stockVerifiedAt', null);
-                }
-              }}
-              title={isVerified ? `Verified ${new Date(product.stockVerifiedAt!).toLocaleDateString()}` : 'Mark as verified'}
-              className={`inline-flex items-center justify-center w-5 h-5 rounded transition-colors ${isVerified ? 'bg-tea-surface text-tea-text hover:bg-tea-elevated hover:text-tea-text-sec' : 'bg-tea-surface text-tea-border hover:text-tea-text-sec hover:bg-tea-bg'}`}
-            >
-              {isVerified ? <Check size={12} strokeWidth={3} /> : <span className="w-3 h-3 rounded-sm border border-current" />}
-            </button>
-          </td>
-        );
-      }
-      case 'vendor':
-        return (
-          <td className="px-4 align-middle overflow-hidden">
-            {product.vendor ? (
-              <button
-                onClick={(e) => { e.stopPropagation(); navigate(`/admin/people?tab=sources&search=${encodeURIComponent(product.vendor!)}`); }}
-                className="text-xs text-tea-text-sec hover:text-tea-gold transition-colors truncate block text-left"
-              >
-                {product.vendor}
-              </button>
-            ) : <span className="text-xs text-tea-text-dim">—</span>}
-          </td>
-        );
-      default:
-        return <td className="px-4 align-middle text-xs text-tea-text-sec">-</td>;
-    }
   };
 
   if (isLoading) {
@@ -2208,7 +2004,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         setFilterType(view.filterType);
                         setInventoryGroupBy(view.groupBy);
                       }}
-                      className={`relative flex items-center gap-1 shrink-0 ${isIconOnly && !viewTabsExpanded ? 'w-9 h-9 justify-center' : 'px-2 h-9 text-ui-11 uppercase tracking-[0.08em]'} rounded-md transition-colors ${
+                      className={`tap-target relative flex items-center gap-1 shrink-0 ${isIconOnly && !viewTabsExpanded ? 'w-9 h-9 justify-center' : 'px-2 h-9 text-ui-11 uppercase tracking-[0.08em]'} rounded-md transition-colors ${
                         activeViewId === view.id
                           ? 'bg-tea-gold/15 text-tea-gold'
                           : view.filterType === 'Archived'
@@ -2216,6 +2012,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                           : 'text-tea-text-dim hover:text-tea-text-sec'
                       }`}
                       title={filterLabel}
+                      aria-label={`Show ${filterLabel} view`}
+                      aria-pressed={activeViewId === view.id}
                     >
                       {view.icon && VIEW_ICON_MAP[view.icon] && React.createElement(VIEW_ICON_MAP[view.icon], { size: 15 })}
                       {viewTabsExpanded && isIconOnly ? <span className="text-ui-11 uppercase tracking-[0.08em]">{filterLabel}</span> : (view.name || null)}
@@ -2233,8 +2031,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 {hasMore && (
                   <button
                     onClick={() => setViewTabsExpanded(!viewTabsExpanded)}
-                    className={`w-7 h-7 flex items-center justify-center shrink-0 rounded-md transition-colors ${activeInHidden ? 'text-tea-gold bg-tea-gold/10' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
+                    className={`tap-target w-7 h-7 flex items-center justify-center shrink-0 rounded-md transition-colors ${activeInHidden ? 'text-tea-gold bg-tea-gold/10' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
                     title={viewTabsExpanded ? 'Show fewer views' : 'Show all views'}
+                    aria-label={viewTabsExpanded ? 'Show fewer inventory views' : 'Show all inventory views'}
                   >
                     {viewTabsExpanded ? <XIcon size={13} /> : <Plus size={13} />}
                   </button>
@@ -2253,15 +2052,18 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           <div className="ml-auto flex items-center gap-0">
             <button
               onClick={() => setPriceMode(priceMode === 'retail' ? 'cost' : 'retail')}
-              className={`w-8 h-8 flex items-center justify-center rounded-md transition-colors ${priceMode === 'cost' ? 'text-tea-gold bg-tea-gold/10' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
+              className={`tap-target w-8 h-8 flex items-center justify-center rounded-md transition-colors ${priceMode === 'cost' ? 'text-tea-gold bg-tea-gold/10' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
               title={`Showing ${priceMode} prices — tap to switch`}
+              aria-label={`Showing ${priceMode} prices, switch price mode`}
             >
               {priceMode === 'retail' ? <Tag size={14} /> : <Receipt size={14} />}
             </button>
             <div className="relative">
               <button
                 onClick={() => { setShowMobileGroupBy(!showMobileGroupBy); setShowMobileSort(false); setShowOptions(false); }}
-                className={`w-8 h-8 flex items-center justify-center transition-colors rounded-md ${showMobileGroupBy || inventoryGroupBy ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
+                className={`tap-target w-8 h-8 flex items-center justify-center transition-colors rounded-md ${showMobileGroupBy || inventoryGroupBy ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
+                aria-label="Group inventory"
+                aria-expanded={showMobileGroupBy}
               >
                 <Layers size={14} />
               </button>
@@ -2270,7 +2072,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             <div className="relative">
               <button
                 onClick={() => { setShowMobileSort(!showMobileSort); setShowMobileGroupBy(false); setShowOptions(false); }}
-                className={`w-8 h-8 flex items-center justify-center transition-colors rounded-md ${showMobileSort ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
+                className={`tap-target w-8 h-8 flex items-center justify-center transition-colors rounded-md ${showMobileSort ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
+                aria-label="Sort inventory"
+                aria-expanded={showMobileSort}
               >
                 <ArrowUpDown size={14} />
               </button>
@@ -2386,7 +2190,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                       <Download size={13} /> Export CSV
                   </button>
                   <button
-                      onClick={() => { handleBulkEnrich(); setShowOptions(false); }}
+                      onClick={() => { setShowEnrichConfirm(true); setShowOptions(false); }}
                       disabled={isEnriching}
                       className="px-3 py-2 text-left text-ui-11 text-tea-text-sec hover:text-tea-text hover:bg-tea-bg flex items-center gap-2 transition-colors disabled:opacity-50"
                   >
@@ -2394,8 +2198,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                       Enrich Wisdom
                   </button>
                   <div className="h-px bg-tea-border"></div>
-                  <button onClick={() => { setShowResetConfirm(true); setShowOptions(false); }} className="px-3 py-2 text-left text-ui-11 text-tea-gold hover:bg-tea-gold/10 flex items-center gap-2 transition-colors">
-                      <Trash2 size={13} /> Wipe Database
+                  <button onClick={() => { setShowMaintenanceModal(true); setShowOptions(false); }} className="px-3 py-2 text-left text-ui-11 text-tea-text-sec hover:text-tea-text hover:bg-tea-bg flex items-center gap-2 transition-colors">
+                      <AlertTriangle size={13} /> Maintenance
                   </button>
               </div>
               </>
@@ -2425,6 +2229,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     setInventoryGroupBy(view.groupBy);
                   }}
                   title={VIEW_FILTER_LABELS[view.filterType] || view.name}
+                  aria-label={`Show ${VIEW_FILTER_LABELS[view.filterType] || view.name} view`}
+                  aria-pressed={activeViewId === view.id}
                   className={`relative flex items-center gap-1.5 ${isIconOnly ? 'px-2' : 'px-3'} py-1.5 text-ui-11 uppercase tracking-[0.12em] rounded-md whitespace-nowrap transition-colors ${
                     activeViewId === view.id
                       ? 'bg-tea-gold/15 text-tea-gold'
@@ -2562,6 +2368,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         onClick={() => setShowColumnsPopover(!showColumnsPopover)}
                         className={`flex items-center gap-1 px-2 py-1.5 rounded-lg transition-colors text-xs ${showColumnsPopover ? 'text-tea-gold bg-tea-surface' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'}`}
                         title="Show/Hide Columns"
+                        aria-label="Show or hide columns"
+                        aria-expanded={showColumnsPopover}
                       >
                         <Columns size={14} />
                         <span className="hidden xl:inline tracking-wide">Cols</span>
@@ -2612,6 +2420,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         onClick={() => setShowGroupByDropdown(!showGroupByDropdown)}
                         className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs transition-colors ${inventoryGroupBy ? 'text-tea-gold bg-tea-surface' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'}`}
                         title="Group By"
+                        aria-label="Group inventory"
+                        aria-expanded={showGroupByDropdown}
                       >
                         <Layers size={14} />
                         <span className="hidden xl:inline tracking-wide">Group</span>
@@ -2644,6 +2454,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         onClick={() => setShowVendorDropdown(!showVendorDropdown)}
                         className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs transition-colors ${vendorFilter ? 'text-tea-gold bg-tea-surface' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'}`}
                         title="Filter by vendor"
+                        aria-label="Filter by vendor"
+                        aria-expanded={showVendorDropdown}
                       >
                         <User size={14} />
                         <span className="hidden xl:inline tracking-wide">Vendor</span>
@@ -2678,6 +2490,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     <button
                         onClick={() => setShowOptions(!showOptions)}
                         className="p-1.5 text-tea-text-sec hover:text-tea-text transition-colors rounded-lg hover:bg-tea-surface"
+                        aria-label="Open inventory actions"
+                        aria-expanded={showOptions}
+                        aria-haspopup="menu"
                     >
                         <MoreHorizontal size={16} />
                     </button>
@@ -2723,7 +2538,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                             </button>
                             <button
                                 role="menuitem"
-                                onClick={() => { handleBulkEnrich(); setShowOptions(false); }}
+                                onClick={() => { setShowEnrichConfirm(true); setShowOptions(false); }}
                                 disabled={isEnriching}
                                 className="px-4 py-2 text-left text-xs text-tea-text-sec hover:text-tea-text hover:bg-tea-bg flex items-center gap-2 transition-colors disabled:opacity-50"
                             >
@@ -2731,8 +2546,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                 Enrich Missing Wisdom
                             </button>
                             <div className="h-px bg-tea-border my-1"></div>
-                            <button role="menuitem" onClick={() => { setShowResetConfirm(true); setShowOptions(false); }} className="px-4 py-2 text-left text-xs text-tea-gold hover:bg-tea-gold/10 flex items-center gap-2 transition-colors">
-                                <Trash2 size={14} /> Wipe Database
+                            <button role="menuitem" onClick={() => { setShowMaintenanceModal(true); setShowOptions(false); }} className="px-4 py-2 text-left text-xs text-tea-text-sec hover:text-tea-text hover:bg-tea-bg flex items-center gap-2 transition-colors">
+                                <AlertTriangle size={14} /> Maintenance
                             </button>
                         </div>
                         </>
@@ -2806,17 +2621,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                   )}
                   {verificationStats.verified > 0 && (
                     <button
-                      onClick={async () => {
-                        if (!window.confirm(`Reset all ${verificationStats.verified} verification checkmarks? This lets you start a fresh inventory check.`)) return;
-                        try {
-                          await api.rpc.resetStockVerification();
-                          setLocalProducts(prev => prev.map(p => ({ ...p, stockVerifiedAt: null })));
-                          onRefresh();
-                          showToast('Verification reset — ready for a new stock check', 'success');
-                        } catch (err: any) {
-                          showToast(`Reset failed: ${err.message}`, 'error');
-                        }
-                      }}
+                      onClick={() => setShowVerificationResetConfirm(true)}
                       className="text-ui-10 text-tea-text-dim hover:text-tea-gold transition-colors uppercase tracking-[0.12em]"
                     >
                       Reset
@@ -3145,14 +2950,14 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                             <div className="flex items-center gap-0 pr-2 flex-shrink-0">
                                 <button
                                     onClick={() => setDetailsProduct(product)}
-                                    className="w-10 h-10 flex items-center justify-center text-tea-text-dim hover:text-tea-text-sec transition-colors rounded-lg"
+                                    className="tap-target w-10 h-10 flex items-center justify-center text-tea-text-dim hover:text-tea-text-sec transition-colors rounded-lg"
                                     aria-label="View details"
                                 >
                                     <FileText size={16} />
                                 </button>
                                 <button
                                     onClick={() => setPanelProduct(product)}
-                                    className="w-10 h-10 flex items-center justify-center text-tea-text-dim hover:text-tea-text transition-colors rounded-lg"
+                                    className="tap-target w-10 h-10 flex items-center justify-center text-tea-text-dim hover:text-tea-text transition-colors rounded-lg"
                                     aria-label="Edit product"
                                 >
                                     <Pencil size={16} />
@@ -3178,7 +2983,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                     handleProductUpdate(product.id, 'stockVerifiedAt', null);
                                   }
                                 }}
-                                className={`flex-shrink-0 w-10 h-10 mr-2 rounded-lg flex items-center justify-center transition-colors ${product.stockVerifiedAt ? 'bg-tea-surface text-tea-text' : 'bg-tea-surface text-tea-text-dim'}`}
+                                className={`tap-target flex-shrink-0 w-10 h-10 mr-2 rounded-lg flex items-center justify-center transition-colors ${product.stockVerifiedAt ? 'bg-tea-surface text-tea-text' : 'bg-tea-surface text-tea-text-dim'}`}
+                                aria-label={product.stockVerifiedAt ? `Clear verification for ${product.productName}` : `Mark ${product.productName} as verified`}
                               >
                                 {product.stockVerifiedAt ? <Check size={18} strokeWidth={3} /> : <Square size={18} />}
                               </button>
@@ -3372,7 +3178,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                     <div className="flex flex-col items-center gap-0.5">
                                       <button
                                           onClick={() => handleProductUpdate(product.id, 'isFeatured', !product.isFeatured)}
-                                          className={`w-10 h-10 flex items-center justify-center rounded-lg transition-colors ${product.isFeatured ? 'text-tea-gold bg-tea-gold/10' : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-surface/50'}`}
+                                          className={`tap-target w-10 h-10 flex items-center justify-center rounded-lg transition-colors ${product.isFeatured ? 'text-tea-gold bg-tea-gold/10' : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-surface/50'}`}
                                           aria-label={product.isFeatured ? 'Unfeature' : 'Feature'}
                                       >
                                           <Star size={16} className={product.isFeatured ? "fill-tea-gold" : ""} />
@@ -3381,7 +3187,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                     </div>
                                     <button
                                         onClick={() => handleProductUpdate(product.id, 'isPublic', !product.isPublic)}
-                                        className={`w-10 h-10 flex items-center justify-center rounded-lg transition-colors ${product.isPublic ? 'text-tea-text-sec bg-tea-surface/30' : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-surface/50'}`}
+                                        className={`tap-target w-10 h-10 flex items-center justify-center rounded-lg transition-colors ${product.isPublic ? 'text-tea-text-sec bg-tea-surface/30' : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-surface/50'}`}
                                         aria-label={product.isPublic ? 'Make private' : 'Make public'}
                                     >
                                         {product.isPublic ? <Eye size={16} /> : <EyeOff size={16} />}
@@ -3391,14 +3197,14 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                           const newStatus = product.status === 'Archived' ? 'Active' : 'Archived';
                                           handleProductUpdate(product.id, 'status', newStatus);
                                         }}
-                                        className={`w-10 h-10 flex items-center justify-center rounded-lg transition-colors ${product.status === 'Archived' ? 'text-tea-gold bg-tea-gold/10' : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-surface/50'}`}
+                                        className={`tap-target w-10 h-10 flex items-center justify-center rounded-lg transition-colors ${product.status === 'Archived' ? 'text-tea-gold bg-tea-gold/10' : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-surface/50'}`}
                                         aria-label={product.status === 'Archived' ? 'Unarchive' : 'Archive'}
                                     >
                                         <Archive size={16} />
                                     </button>
                                     <button
                                         onClick={() => handleRestock(product)}
-                                        className="w-10 h-10 flex items-center justify-center rounded-lg transition-colors text-tea-text-dim hover:text-tea-gold hover:bg-tea-gold/10"
+                                        className="tap-target w-10 h-10 flex items-center justify-center rounded-lg transition-colors text-tea-text-dim hover:text-tea-gold hover:bg-tea-gold/10"
                                         aria-label="Restock via Compass"
                                     >
                                         <Globe size={16} />
@@ -3611,16 +3417,73 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           if (idx > 0) setDetailsProduct(processedProducts[idx - 1]);
         }) : undefined}
       />
+
+      {/* ENRICHMENT CONFIRMATION */}
+      {showEnrichConfirm && (
+        <div className="fixed inset-0 z-modal flex items-center justify-center bg-tea-bg/90 backdrop-blur-sm p-4 animate-in fade-in duration-200" role="presentation">
+          <div className="bg-tea-bg border border-tea-border rounded-xl max-w-sm w-full p-6 shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="enrich-confirm-title">
+            <div className="flex items-start gap-3">
+              <div className="p-2 rounded-lg border border-tea-border text-tea-gold bg-tea-accent-sub">
+                <Sparkles size={18} />
+              </div>
+              <div>
+                <h3 id="enrich-confirm-title" className="text-lg font-serif text-tea-text">Generate missing wisdom?</h3>
+                <p className="mt-2 text-sm text-tea-text-sec">
+                  This will generate draft wisdom for teas with no existing lore. You will still review it before publishing.
+                </p>
+              </div>
+            </div>
+            <div className="flex justify-between items-center gap-3 pt-6">
+              <button onClick={() => setShowEnrichConfirm(false)} className="px-1 py-2 text-tea-text-sec hover:text-tea-text transition-colors text-xs uppercase tracking-[0.2em]">Cancel</button>
+              <button
+                onClick={() => { setShowEnrichConfirm(false); void handleBulkEnrich(); }}
+                disabled={isEnriching}
+                className="px-4 py-2 bg-tea-gold text-tea-bg text-xs font-bold uppercase tracking-[0.2em] rounded-lg hover:bg-tea-gold/90 disabled:opacity-40 transition-colors"
+              >
+                {isEnriching ? 'Generating...' : 'Generate'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* STOCK VERIFICATION RESET CONFIRMATION */}
+      {showVerificationResetConfirm && (
+        <div className="fixed inset-0 z-modal flex items-center justify-center bg-tea-bg/90 backdrop-blur-sm p-4 animate-in fade-in duration-200" role="presentation">
+          <div className="bg-tea-bg border border-tea-border rounded-xl max-w-sm w-full p-6 shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="verification-reset-title">
+            <div className="flex items-start gap-3">
+              <div className="p-2 rounded-lg border border-tea-border text-tea-gold bg-tea-accent-sub">
+                <RefreshCw size={18} />
+              </div>
+              <div>
+                <h3 id="verification-reset-title" className="text-lg font-serif text-tea-text">Reset stock check?</h3>
+                <p className="mt-2 text-sm text-tea-text-sec">
+                  This clears {verificationStats.verified} verification checkmark{verificationStats.verified !== 1 ? 's' : ''} so the shelf can be checked again.
+                </p>
+              </div>
+            </div>
+            <div className="flex justify-between items-center gap-3 pt-6">
+              <button onClick={() => setShowVerificationResetConfirm(false)} className="px-1 py-2 text-tea-text-sec hover:text-tea-text transition-colors text-xs uppercase tracking-[0.2em]">Cancel</button>
+              <button
+                onClick={handleResetStockVerification}
+                className="px-4 py-2 bg-tea-gold text-tea-bg text-xs font-bold uppercase tracking-[0.2em] rounded-lg hover:bg-tea-gold/90 transition-colors"
+              >
+                Reset
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* RESET CONFIRMATION */}
       {showResetConfirm && (
-        <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-            <div className="bg-tea-bg border border-tea-accent-sub rounded-xl max-w-sm w-full p-8 relative shadow-2xl">
+        <div className="fixed inset-0 z-modal flex items-center justify-center bg-tea-bg/90 backdrop-blur-sm p-4 animate-in fade-in duration-200" role="presentation">
+            <div className="bg-tea-bg border border-tea-accent-sub rounded-xl max-w-sm w-full p-8 relative shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="database-wipe-title">
                 <div className="flex flex-col items-center text-center space-y-4">
                     <div className="p-4 rounded-full border border-tea-accent-sub text-tea-gold bg-tea-gold/10">
                         {isResetting ? <Loader2 className="animate-spin" size={32} /> : <AlertOctagon size={32} />}
                     </div>
-                    <h3 className="text-xl font-serif text-tea-text">Danger Zone</h3>
+                    <h3 id="database-wipe-title" className="text-xl font-serif text-tea-text">Danger Zone</h3>
                     <p className="text-tea-text-sec text-sm">
                         Confirm full database wipe? This is irreversible.
                     </p>
@@ -3631,6 +3494,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                             value={resetInput}
                             onChange={(e) => setResetInput(e.target.value)}
                             placeholder='Type "delete" to confirm'
+                            aria-label='Type "delete" to confirm database wipe'
                             disabled={isResetting}
                         />
                     </div>
@@ -3651,37 +3515,34 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
       {/* MAINTENANCE MODAL */}
       {showMaintenanceModal && (
-        <div className="fixed inset-0 z-toast flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-in fade-in duration-300">
-            <div className="bg-tea-bg border border-tea-border w-full max-w-2xl rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 z-modal flex items-center justify-center bg-tea-bg/90 backdrop-blur-md p-4 animate-in fade-in duration-300">
+            <div className="bg-tea-bg border border-tea-border w-full max-w-2xl rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]" role="dialog" aria-modal="true" aria-labelledby="inventory-maintenance-title">
                 <div className="p-6 border-b border-tea-border flex justify-between items-center bg-tea-surface">
                     <div className="flex items-center gap-3">
                          <div className="p-2 border border-tea-accent-sub text-tea-gold rounded-lg bg-tea-gold/10">
                             <AlertTriangle size={16} />
                          </div>
-                         <h3 className="text-lg font-serif text-tea-text">Permission Error</h3>
+                         <h3 id="inventory-maintenance-title" className="text-lg font-serif text-tea-text">Inventory Maintenance</h3>
                     </div>
-                    <button onClick={() => setShowMaintenanceModal(false)} className="text-tea-text-sec hover:text-tea-text transition-colors">
+                    <button onClick={() => setShowMaintenanceModal(false)} className="tap-target text-tea-text-sec hover:text-tea-text transition-colors" aria-label="Close maintenance">
                         <XIcon size={20} />
                     </button>
                 </div>
-                <div className="p-6 overflow-y-auto flex-1 custom-scrollbar">
-                    <p className="text-tea-text-sec mb-4 text-sm font-serif italic">
-                        The archives are locked. Supabase requires administrative SQL execution to bypass integrity checks.
-                    </p>
-                    <div className="relative group mt-6">
-                        <pre className="bg-tea-surface border border-tea-border p-4 rounded-xl text-ui-10 font-mono text-tea-text-sec overflow-x-auto whitespace-pre-wrap">
-                            {MAINTENANCE_SQL}
-                        </pre>
-                        <button 
-                            onClick={() => {
-                                navigator.clipboard.writeText(MAINTENANCE_SQL);
-                                showToast("Copied.", 'info');
-                            }}
-                            className="absolute top-2 right-2 border border-tea-border bg-tea-surface text-tea-text-sec p-2 rounded-lg hover:text-tea-text hover:border-tea-text-sec flex items-center gap-2 text-ui-10 uppercase tracking-[0.2em] transition-colors"
-                        >
-                            <Copy size={12} /> Copy
-                        </button>
-                    </div>
+                <div className="p-6 overflow-y-auto flex-1 custom-scrollbar space-y-5">
+                    <section className="border border-tea-border rounded-xl p-4">
+                      <h4 className="text-sm font-serif text-tea-text">Import and export</h4>
+                      <p className="mt-1 text-sm text-tea-text-sec">CSV tools remain in the actions menu because they are routine inventory work.</p>
+                    </section>
+                    <section className="border border-tea-border rounded-xl p-4">
+                      <h4 className="text-sm font-serif text-tea-text">Database wipe</h4>
+                      <p className="mt-1 text-sm text-tea-text-sec">This is owner-only and irreversible. Keep it out of routine command flow.</p>
+                      <button
+                        onClick={() => { setShowMaintenanceModal(false); setShowResetConfirm(true); }}
+                        className="mt-4 text-xs uppercase tracking-[0.18em] text-tea-text-sec hover:text-tea-gold transition-colors"
+                      >
+                        Open wipe confirmation
+                      </button>
+                    </section>
                 </div>
                 <div className="p-4 border-t border-tea-border flex justify-end bg-tea-surface">
                     <button 

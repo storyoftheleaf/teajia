@@ -620,6 +620,37 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
     return upcomingEvents.filter(ev => new Date(ev.eventDate).toDateString() === today).length;
   }, [upcomingEvents]);
 
+  const isAustraliaDoor = useMemo(() => {
+    const haystack = [
+      activeSlug,
+      activeAccount?.name,
+      activeAccount?.location_city,
+      activeAccount?.location_country,
+      activeLocationStr,
+    ].filter(Boolean).join(' ').toLowerCase();
+    return ['australia', 'melbourne', 'sydney', 'brisbane', 'perth', 'adelaide'].some(term => haystack.includes(term));
+  }, [activeSlug, activeAccount?.name, activeAccount?.location_city, activeAccount?.location_country, activeLocationStr]);
+
+  const isFirstDoorCandidate = useMemo(() => {
+    const canOperate = membershipRole === 'owner' || auth.isAdmin;
+    if (!canOperate) return false;
+    const hasOperationalHistory =
+      storeEvents.length > 0 ||
+      pendingCount > 0 ||
+      inboundUnreadCount > 0 ||
+      Boolean(activeAccount?.public_enabled);
+    return isAustraliaDoor || (activeMembership?.account_kind === 'location' && !hasOperationalHistory);
+  }, [
+    activeMembership?.account_kind,
+    activeAccount?.public_enabled,
+    auth.isAdmin,
+    inboundUnreadCount,
+    isAustraliaDoor,
+    membershipRole,
+    pendingCount,
+    storeEvents.length,
+  ]);
+
   const displayedEvents = eventListFilter === 'open' ? openSeatEvents : eventListFilter === 'past' ? pastEvents : upcomingEvents;
 
   // Sync upcoming events count to store for notification dot
@@ -1168,6 +1199,9 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                 roleBadgeLabel={roleBadgeLabel}
                 accountName={activeAccount?.name ?? null}
                 locationLabel={activeLocationStr || null}
+                activeStoreSlug={activeSlug}
+                currencyLabel={activeDisplayCurrency || getCurrencyFromSlug(activeSlug)}
+                isFirstDoorCandidate={isFirstDoorCandidate}
                 isPlatform={!!platformRole}
                 isOwner={membershipRole === 'owner' || auth.isAdmin}
                 pendingInvoiceCount={pendingCount}

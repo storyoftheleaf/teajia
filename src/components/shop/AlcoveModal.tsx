@@ -40,6 +40,9 @@ export const AlcoveModal: React.FC<AlcoveModalProps> = ({
   const [slideDirection, setSlideDirection] = useState<'left' | 'right' | null>(null);
   const slideTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const cardRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const previouslyFocusedRef = useRef<HTMLElement | null>(null);
   const justNavigatedRef = useRef(false);
 
   const currentIndex = item ? items.findIndex(i => i.id === item.id) : -1;
@@ -70,9 +73,17 @@ export const AlcoveModal: React.FC<AlcoveModalProps> = ({
 
   useEffect(() => {
     if (item) {
+      previouslyFocusedRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
       requestAnimationFrame(() => setIsVisible(true));
+      requestAnimationFrame(() => {
+        dialogRef.current?.querySelectorAll<HTMLElement>('[data-alcove-preview]').forEach((el) => {
+          (el as HTMLElement & { inert: boolean }).inert = true;
+        });
+        closeButtonRef.current?.focus();
+      });
     } else {
       setIsVisible(false);
+      previouslyFocusedRef.current?.focus();
     }
   }, [item]);
 
@@ -151,10 +162,56 @@ export const AlcoveModal: React.FC<AlcoveModalProps> = ({
 
   const peekGap = 40;
 
+  const handleDialogKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Escape') {
+      e.stopPropagation();
+      onClose();
+      return;
+    }
+    if (e.key === 'ArrowLeft') {
+      e.stopPropagation();
+      goPrev();
+      return;
+    }
+    if (e.key === 'ArrowRight') {
+      e.stopPropagation();
+      goNext();
+      return;
+    }
+    if (e.key !== 'Tab') return;
+
+    const focusable = Array.from(
+      dialogRef.current?.querySelectorAll<HTMLElement>(
+        'a[href], button:not(:disabled), input:not(:disabled), textarea:not(:disabled), select:not(:disabled), [tabindex]:not([tabindex="-1"])'
+      ) ?? []
+    ).filter(el => !el.closest('[aria-hidden="true"]') && el.offsetParent !== null);
+
+    if (focusable.length === 0) {
+      e.preventDefault();
+      closeButtonRef.current?.focus();
+      return;
+    }
+
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  };
+
   return (
     <div
-      className={`fixed inset-0 z-modal transition-all duration-300 ${isVisible ? 'bg-black/85 backdrop-blur-sm' : 'bg-black/0 pointer-events-none'}`}
+      ref={dialogRef}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={`alcove-title-${item.id}`}
+      className={`fixed inset-0 z-[80] transition-all duration-300 ${isVisible ? 'bg-black/85 backdrop-blur-sm' : 'bg-black/0 pointer-events-none'}`}
       onClick={handleBackdropClick}
+      onKeyDown={handleDialogKeyDown}
     >
       {/* Carousel container */}
       <div
@@ -166,6 +223,8 @@ export const AlcoveModal: React.FC<AlcoveModalProps> = ({
         {/* Previous card (peeking from left) */}
         {hasNavigation && prevItem && (
           <div
+            data-alcove-preview
+            aria-hidden="true"
             className="absolute hidden md:block pointer-events-auto cursor-pointer"
             style={{
               zIndex: 1,
@@ -187,6 +246,8 @@ export const AlcoveModal: React.FC<AlcoveModalProps> = ({
         {/* Mobile: previous card peek */}
         {hasNavigation && prevItem && (
           <div
+            data-alcove-preview
+            aria-hidden="true"
             className="absolute md:hidden pointer-events-none"
             style={{
               zIndex: 1,
@@ -255,7 +316,8 @@ export const AlcoveModal: React.FC<AlcoveModalProps> = ({
             />
             {/* Close button — top-left of the card per CLAUDE.md panel header rule */}
             <button
-              className="absolute top-3 left-3 z-10 w-7 h-7 flex items-center justify-center text-tea-text-sec hover:text-tea-text transition-colors duration-200"
+              ref={closeButtonRef}
+              className="tap-target absolute top-2 left-2 z-10 flex items-center justify-center text-tea-text-sec hover:text-tea-text transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50"
               onClick={onClose}
               aria-label="Close"
             >
@@ -272,6 +334,8 @@ export const AlcoveModal: React.FC<AlcoveModalProps> = ({
         {/* Next card (peeking from right) */}
         {hasNavigation && nextItem && (
           <div
+            data-alcove-preview
+            aria-hidden="true"
             className="absolute hidden md:block pointer-events-auto cursor-pointer"
             style={{
               zIndex: 1,
@@ -293,6 +357,8 @@ export const AlcoveModal: React.FC<AlcoveModalProps> = ({
         {/* Mobile: next card peek */}
         {hasNavigation && nextItem && (
           <div
+            data-alcove-preview
+            aria-hidden="true"
             className="absolute md:hidden pointer-events-none"
             style={{
               zIndex: 1,

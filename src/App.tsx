@@ -131,6 +131,17 @@ import { TEA_INSPIRE_IMAGES } from './data/teaInspire';
 // View Transitions API feature detection (#46)
 const supportsViewTransitions = typeof document !== 'undefined' && 'startViewTransition' in document;
 
+const AccountRouteBridge: React.FC<{ onOpen: () => void }> = ({ onOpen }) => {
+  const openedRef = useRef(false);
+  useEffect(() => {
+    if (openedRef.current) return;
+    openedRef.current = true;
+    onOpen();
+  }, [onOpen]);
+
+  return <div className="min-h-[60vh]" aria-hidden="true" />;
+};
+
 // Create an inner component to use the context
 const AppContent = () => {
   // Track click/tap position for cart fly animation (activeElement unreliable on mobile)
@@ -559,6 +570,9 @@ const AppContent = () => {
   const handleCloseAccount = () => {
     setShowAccountModal(false);
     setAccountInitialView(undefined);
+    if (location.pathname === '/account') {
+      navigate('/', { replace: true });
+    }
   };
 
   const getSectionIcon = (section: Section, active: boolean) => {
@@ -724,6 +738,7 @@ const AppContent = () => {
                 {/* /compass is admin-only at /admin/compass — public route removed.
                     Members use /account/journal for tasting; Compass is sourcing + ledger only. */}
                 <Route path="/compass" element={<Navigate to="/account/journal" replace />} />
+                <Route path="/account" element={<AccountRouteBridge onOpen={() => handleOpenAccount()} />} />
                 <Route path="/account/journal" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="list" />}><JournalPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/collection" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="list" />}><CollectionPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/journey" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><AccountJourneyPage /></Suspense></ErrorBoundary>} />
