@@ -20,6 +20,7 @@ import { AutocompleteInput } from '../../components/TeaCompass/AutocompleteInput
 import { buildVarietyDataMap, getTeaVarietySuggestions } from '../../data/teaVarieties';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { getThemeColor } from '../themeUtils';
+import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import {
   flattenTastingNotes,
   resolveTermLabel,
@@ -318,17 +319,17 @@ export const CollapsibleSection = ({ title, description, defaultOpen = true, mob
     return defaultOpen;
   });
   return (
-    <div className="mx-3 mb-3 bg-tea-surface border border-tea-border rounded-md overflow-hidden">
-      <button onClick={() => setOpen(!open)} aria-expanded={open} className="w-full flex items-start justify-between gap-3 px-4 py-3.5 group text-left">
+    <div className="surface-warm mx-3 mb-3 bg-tea-surface border border-tea-border rounded-md overflow-hidden">
+      <button onClick={() => setOpen(!open)} aria-expanded={open} className="relative z-10 w-full flex items-start justify-between gap-3 px-4 py-3.5 group text-left">
         <div className="min-w-0">
-          <span className="block font-display text-ui-17 font-normal text-tea-text leading-[1.3] tracking-[0.01em]">{title}</span>
+          <span className={`block ${TYPOGRAPHY_CLASSES.h3} text-tea-text`}>{title}</span>
           {description && (
             <span className="block text-ui-11 text-tea-text-sec leading-[1.5] mt-1">{description}</span>
           )}
         </div>
         <ChevronRight size={14} aria-hidden="true" className={`mt-1.5 shrink-0 text-tea-text-dim transition-transform duration-200 group-hover:text-tea-text-sec ${open ? 'rotate-90' : ''}`} />
       </button>
-      <div className="grid transition-[grid-template-rows] duration-200 ease-out" style={{ gridTemplateRows: open ? '1fr' : '0fr' }}>
+      <div className="relative z-10 grid transition-[grid-template-rows] duration-200 ease-out" style={{ gridTemplateRows: open ? '1fr' : '0fr' }}>
         <div className="overflow-hidden">
           <div className="px-4 pb-4 pt-1 border-t border-tea-border">{children}</div>
         </div>
@@ -572,32 +573,23 @@ export const ImageManager = ({ product, onUpdate }: {
               </>
             ) : (
               <div className="relative w-full h-full">
-                {/* Empty slot — primary action is "Take photo" (mobile) / "Upload" (desktop).
-                    Both routes through the cropper. */}
+                {/* Empty slot — clean tap target. Primary action is "Take photo"
+                    (mobile via the file input's capture attribute) / "Upload"
+                    (desktop). Both route through the cropper. */}
                 <button
                   onClick={() => pickFile(i, false)}
                   disabled={uploadingSlot !== null}
                   aria-label={`Add ${slotLabels[i].toLowerCase()} image`}
-                  className="w-full h-full rounded-md bg-tea-bg/40 hover:bg-tea-gold/[0.04] border border-tea-accent-sub/30 hover:border-tea-gold/40 transition-colors flex flex-col items-center justify-center gap-1.5 cursor-pointer group"
+                  className="w-full h-full rounded-md bg-tea-bg hover:bg-tea-accent-sub transition-colors flex flex-col items-center justify-center gap-1.5 cursor-pointer group"
                 >
                   {uploadingSlot === i ? (
                     <Loader2 size={16} className="text-tea-text-dim animate-spin" aria-hidden="true" />
                   ) : (
                     <>
-                      <Plus size={14} className="text-tea-text-dim/50 group-hover:text-tea-gold transition-colors" aria-hidden="true" />
-                      <span className="text-ui-9 text-tea-text-dim/70 group-hover:text-tea-gold/80 uppercase tracking-caps transition-colors">{slotLabels[i]}</span>
+                      <Plus size={14} className="text-tea-text-dim group-hover:text-tea-gold transition-colors" aria-hidden="true" />
+                      <span className="text-ui-10 text-tea-text-dim group-hover:text-tea-text-sec uppercase tracking-[0.18em] transition-colors">{slotLabels[i]}</span>
                     </>
                   )}
-                </button>
-                {/* Camera shortcut, bottom-right of empty slot */}
-                <button
-                  onClick={() => pickFile(i, true)}
-                  disabled={uploadingSlot !== null}
-                  aria-label={`Take photo for ${slotLabels[i].toLowerCase()}`}
-                  title="Take photo"
-                  className="absolute bottom-1 right-1 w-6 h-6 rounded-full bg-tea-bg/85 border border-tea-border flex items-center justify-center text-tea-text-sec hover:text-tea-gold tap-target"
-                >
-                  <Camera size={12} />
                 </button>
               </div>
             )}
@@ -1002,10 +994,10 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
               chrome can be calm. Status select adopts neutral playbook button styling. */}
           <div className="px-3 pt-3 pb-2">
             <div
-              className="relative bg-tea-surface border border-tea-border rounded-md pl-4 pr-3 py-3 flex items-start justify-between gap-3"
+              className="surface-warm relative bg-tea-surface border border-tea-border rounded-md pl-4 pr-3 py-3 flex items-start justify-between gap-3 overflow-hidden"
               style={{ boxShadow: `inset 2px 0 0 ${getThemeColor(product.type)}` }}
             >
-              <div className="min-w-0 flex-1">
+              <div className="relative z-10 min-w-0 flex-1">
                 <h3 id={titleId} className="font-display text-ui-20 font-normal text-tea-text leading-[1.2] tracking-[0.01em]" title={product.productName}>{product.productName}</h3>
                 {product.givenName && <div className="font-body text-ui-13 text-tea-text-sec italic leading-tight mt-1">{product.givenName}</div>}
                 <div className="flex items-center flex-wrap gap-x-1.5 gap-y-0.5 mt-1.5">
@@ -1014,7 +1006,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                   {product.originRegion && <span className="text-ui-12 text-tea-text-dim">· {product.originRegion}</span>}
                 </div>
               </div>
-              <div className="flex flex-col items-end gap-2 shrink-0">
+              <div className="relative z-10 flex flex-col items-end gap-2 shrink-0">
                 <div className="relative">
                   <label className="sr-only" htmlFor={`panel-status-${product.id}`}>Product status</label>
                   <select
@@ -1040,11 +1032,12 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
             {/* 1. QUICK ENTRY. Required fields grouped on one bordered card.
                   Identity, origin, vendor, pricing, stock, visibility all live here so a
                   product can be entered top-to-bottom without expanding sections. */}
-            <div className="mx-3 mb-3 rounded-md bg-tea-surface border border-tea-border px-4 pt-4 pb-4">
-              <div className="flex items-baseline justify-between mb-4 pb-2.5 border-b border-tea-border">
-                <span className="font-display text-ui-17 font-normal text-tea-text leading-[1.3] tracking-[0.01em]">Quick entry</span>
+            <div className="surface-warm relative mx-3 mb-3 rounded-md bg-tea-surface border border-tea-border px-4 pt-4 pb-4 overflow-hidden">
+              <div className="relative z-10 flex items-baseline justify-between mb-4 pb-2.5 border-b border-tea-border">
+                <span className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text`}>Quick entry</span>
                 <span className="text-ui-10 text-tea-text-dim uppercase tracking-[0.18em]">Auto-saves</span>
               </div>
+              <div className="relative z-10">
 
               {/* Name (full row, autocomplete + autofill) */}
               <FieldRowFull label="Name">
@@ -1310,6 +1303,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                   </div>
                 </div>
               </div>
+              </div>
             </div>
 
             {/* 2. Images — flat, no section header */}
@@ -1322,15 +1316,15 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
             <button
               onClick={() => setTastingEditorProduct(product)}
               aria-label={flattenedTastingCount > 0 ? `Edit tasting profile (${flattenedTastingCount} notes)` : 'Add tasting profile'}
-              className="w-[calc(100%-1.5rem)] mx-3 mb-3 px-4 py-3 flex items-center justify-between gap-3 rounded-md bg-tea-surface border border-tea-border hover:bg-tea-accent-sub transition-colors group text-left"
+              className="surface-warm w-[calc(100%-1.5rem)] mx-3 mb-3 px-4 py-3.5 flex items-center justify-between gap-3 rounded-md bg-tea-surface border border-tea-border hover:bg-tea-accent-sub transition-colors group text-left overflow-hidden"
             >
-              <div className="min-w-0">
-                <span className="block font-display text-ui-17 font-normal text-tea-text leading-[1.3] tracking-[0.01em]">Tasting profile</span>
+              <span className="relative z-10 min-w-0 flex flex-col">
+                <span className={`block ${TYPOGRAPHY_CLASSES.h3} text-tea-text`}>Tasting profile</span>
                 {flattenedTastingCount > 0 && product.mood && (
                   <span className="block font-body text-ui-12 italic text-tea-text-sec truncate mt-1">{product.mood}</span>
                 )}
-              </div>
-              <span className="flex items-center gap-2.5 shrink-0">
+              </span>
+              <span className="relative z-10 flex items-center gap-2.5 shrink-0">
                 {flattenedTastingCount > 0 ? (
                   <span className="font-mono text-ui-11 text-tea-text-dim tabular-nums">{flattenedTastingCount} notes</span>
                 ) : (
