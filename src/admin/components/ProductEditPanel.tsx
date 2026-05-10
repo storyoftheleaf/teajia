@@ -717,7 +717,7 @@ export interface ProductEditPanelProps {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  Active: 'var(--tea-gold)',
+  Active: 'var(--admin-text)',
   Draft: 'var(--admin-text-dim)',
   Archived: 'var(--admin-text-sec)',
   'Sold Out': 'var(--tea-error)',
@@ -951,7 +951,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                 {productIndex >= 0 ? `${productIndex + 1} / ${totalCount}` : ''}
               </span>
               {filterLabel && (
-                <span className="text-ui-10 text-admin-text-dim uppercase tracking-[0.14em] leading-none mt-1">
+                <span className="text-ui-10 text-admin-text-dim uppercase tracking-[0.06em] leading-none mt-1">
                   {filterLabel}
                 </span>
               )}
@@ -977,9 +977,9 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
           {/* Keyboard hint bar — quiet, single-line */}
           {onNavigate && (
             <div className="hidden md:flex items-center justify-center gap-3 px-4 py-1.5 border-b border-admin-border">
-              <span className="text-ui-10 text-admin-text-dim uppercase tracking-[0.14em]">Esc close</span>
+              <span className="text-ui-10 text-admin-text-dim uppercase tracking-[0.06em]">Esc close</span>
               <span className="text-ui-10 text-admin-text-faint">·</span>
-              <span className="text-ui-10 text-admin-text-dim uppercase tracking-[0.14em]">← → navigate</span>
+              <span className="text-ui-10 text-admin-text-dim uppercase tracking-[0.06em]">← → navigate</span>
             </div>
           )}
 
@@ -1028,7 +1028,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
             <div className="admin-card mx-3 mb-3 px-4 pt-4 pb-4">
               <div className="flex items-baseline justify-between mb-4 pb-2.5 border-b border-admin-border">
                 <span className="font-sans text-ui-14 font-medium text-admin-text leading-[1.35]">Quick entry</span>
-                <span className="text-ui-10 text-admin-text-dim uppercase tracking-[0.14em]">Auto-saves</span>
+                <span className="text-ui-10 text-admin-text-dim uppercase tracking-[0.06em]">Auto-saves</span>
               </div>
               <div>
 
@@ -1101,11 +1101,11 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
               {/* Vendor row. Profile link sits trailing-right for clean label edge. */}
               <div className="mt-4 flex flex-col gap-1.5">
                 <div className="flex items-center justify-between leading-none">
-                  <span className="text-ui-11 text-admin-text-dim uppercase tracking-[0.14em]">Vendor</span>
+                  <span className="text-ui-11 text-admin-text-dim uppercase tracking-[0.06em]">Vendor</span>
                   {product.vendor && (
                     <button
                       onClick={() => navigate(`/admin/people?tab=sources&search=${encodeURIComponent(product.vendor || '')}`)}
-                      className="flex items-center gap-0.5 text-ui-11 text-admin-text-sec hover:text-admin-text uppercase tracking-[0.14em] transition-colors"
+                      className="flex items-center gap-0.5 text-ui-11 text-admin-text-sec hover:text-admin-text uppercase tracking-[0.06em] transition-colors"
                       title="View vendor profile"
                     >
                       Profile <ChevronRight size={11} aria-hidden="true" />
@@ -1174,11 +1174,11 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                           aria-label={breakdownOpen ? 'Collapse pricing details' : 'Expand pricing details'}
                           className="w-full flex items-baseline justify-between gap-3 px-3 py-2.5 hover:bg-admin-elevated transition-colors group"
                         >
-                          <span className="text-ui-10 text-admin-text-dim uppercase tracking-[0.18em]">Suggested retail</span>
+                          <span className="text-ui-11 text-admin-text-dim uppercase tracking-[0.08em]">Suggested retail</span>
                           <span className="flex items-baseline gap-2">
-                            <span className="font-display text-ui-17 text-tea-gold tabular-nums leading-none">
+                            <span className="font-mono text-ui-14 text-admin-text tabular-nums leading-none">
                               ${calc.suggestedRetailUSD.toFixed(2)}
-                              <span className="font-body text-ui-11 text-admin-text-dim ml-1 italic">/ g</span>
+                              <span className="text-ui-11 text-admin-text-dim ml-1">/g</span>
                             </span>
                             <ChevronDown size={12} aria-hidden="true" className={`text-admin-text-dim group-hover:text-admin-text-sec transition-transform duration-150 ${breakdownOpen ? 'rotate-180' : ''}`} />
                           </span>
@@ -1189,9 +1189,9 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                               {/* Override price */}
                               <div className="flex flex-col gap-1.5 pt-2">
                                 <div className="flex items-center justify-between gap-2">
-                                  <span className="text-ui-11 text-admin-text-dim uppercase tracking-[0.14em]">Override</span>
+                                  <span className="text-ui-11 text-admin-text-dim uppercase tracking-[0.06em]">Override</span>
                                   {overrideBelowCost && (
-                                    <span className="text-ui-11 text-tea-error italic" title="Below true cost">Below cost</span>
+                                    <span className="text-ui-11 text-tea-error" title="Below true cost">Below cost</span>
                                   )}
                                 </div>
                                 <GhostInput
@@ -1201,7 +1201,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                                   onSave={(val) => handleUpdate(product.id, 'fixedRetailPriceUSD', val === '' || val === null ? null : Number(val))}
                                   type="number"
                                   align="right"
-                                  className={`tabular-nums ${hasOverride ? '!text-tea-gold font-medium' : ''}`}
+                                  className={`tabular-nums ${hasOverride ? 'font-medium' : ''}`}
                                 />
                               </div>
                               {/* Breakdown */}
@@ -1209,7 +1209,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                                 <div className="flex justify-between text-ui-12"><span className="text-admin-text-sec">Source cost/g</span><span className="text-admin-text tabular-nums">{calc.costPerGramSource.toFixed(3)} {product.costCurrency || 'USD'}</span></div>
                                 <div className="flex justify-between text-ui-12"><span className="text-admin-text-sec">Exchange rate</span><span className="text-admin-text tabular-nums">{calc.rateUsed}</span></div>
                                 <div className="flex justify-between text-ui-12"><span className="text-admin-text-sec">True cost (USD)</span><span className="text-admin-text tabular-nums font-semibold">${calc.trueCostUSD.toFixed(3)}/g</span></div>
-                                <div className="flex justify-between text-ui-12"><span className="text-admin-text-sec">3× markup</span><span className="text-tea-gold tabular-nums font-medium">${calc.suggestedRetailUSD.toFixed(2)}/g</span></div>
+                                <div className="flex justify-between text-ui-12"><span className="text-admin-text-sec">3× markup</span><span className="text-admin-text tabular-nums font-medium">${calc.suggestedRetailUSD.toFixed(2)}/g</span></div>
                               </div>
                             </div>
                           </div>
@@ -1236,18 +1236,18 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                 const isLow = threshold > 0 && stock <= threshold;
                 const isOut = stock === 0;
                 const stateLabel = isOut ? 'Empty' : isLow ? 'Low' : 'OK';
-                const stateColor = isOut ? 'text-tea-error' : isLow ? 'text-tea-gold' : 'text-admin-text-dim';
+                const stateColor = isOut ? 'text-tea-error' : isLow ? 'text-admin-text' : 'text-admin-text-dim';
                 return (
                   <FieldGrid cols={2}>
                     <FieldCell
                       label="Stock g"
                       labelAdornment={
-                        <span aria-label={`Stock state: ${stateLabel}`} className={`text-ui-11 uppercase tracking-[0.14em] ${stateColor}`}>
+                        <span aria-label={`Stock state: ${stateLabel}`} className={`text-ui-11 uppercase tracking-[0.06em] ${stateColor}`}>
                           · {stateLabel}
                         </span>
                       }
                     >
-                      <GhostInput variant="bordered" value={stock} onSave={(val) => handleUpdate(product.id, 'stockGrams', val)} type="number" className={`tabular-nums ${isOut ? '!text-tea-error' : isLow ? '!text-tea-gold' : ''}`} />
+                      <GhostInput variant="bordered" value={stock} onSave={(val) => handleUpdate(product.id, 'stockGrams', val)} type="number" className={`tabular-nums ${isOut ? '!text-tea-error' : ''}`} />
                     </FieldCell>
                     <FieldCell label="Low alert g">
                       <GhostInput variant="bordered" value={threshold} onSave={(val) => handleUpdate(product.id, 'lowStockThreshold', val)} type="number" className="tabular-nums" />
@@ -1261,7 +1261,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
               {/* Visibility pills. Quiet variant: no fill, no border. Active state via color only. */}
               <div className="space-y-3">
                 <div className="grid grid-cols-[78px_1fr] gap-x-3 items-start">
-                  <span className="text-ui-11 text-admin-text-dim uppercase tracking-[0.14em] pt-1">Visible</span>
+                  <span className="text-ui-11 text-admin-text-dim uppercase tracking-[0.06em] pt-1">Visible</span>
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <button onClick={() => handleUpdate(product.id, 'isPublic', !product.isPublic)} className={`pill-quiet ${product.isPublic ? 'pill-quiet-on' : ''}`}>
                       {product.isPublic ? <Eye size={10} /> : <EyeOff size={10} />} In Shop
@@ -1270,7 +1270,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                 </div>
 
                 <div className="grid grid-cols-[78px_1fr] gap-x-3 items-start">
-                  <span className="text-ui-11 text-admin-text-dim uppercase tracking-[0.14em] pt-1">Promote</span>
+                  <span className="text-ui-11 text-admin-text-dim uppercase tracking-[0.06em] pt-1">Promote</span>
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <button onClick={() => handleUpdate(product.id, 'isFeatured', !product.isFeatured)} className={`pill-quiet ${product.isFeatured ? 'pill-quiet-on' : ''}`}>
                       <Star size={10} className={product.isFeatured ? 'fill-current' : ''} /> Starred
@@ -1282,7 +1282,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                 </div>
 
                 <div className="grid grid-cols-[78px_1fr] gap-x-3 items-start">
-                  <span className="text-ui-11 text-admin-text-dim uppercase tracking-[0.14em] pt-1">Classify</span>
+                  <span className="text-ui-11 text-admin-text-dim uppercase tracking-[0.06em] pt-1">Classify</span>
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <button onClick={() => handleUpdate(product.id, 'isSample', !product.isSample)} className={`pill-quiet ${product.isSample ? 'pill-quiet-on' : ''}`}>
                       <FlaskConical size={10} /> Sample
@@ -1314,14 +1314,14 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
               <span className="min-w-0 flex flex-col">
                 <span className="block font-sans text-ui-14 font-medium text-admin-text leading-[1.35]">Tasting profile</span>
                 {flattenedTastingCount > 0 && product.mood && (
-                  <span className="block font-body text-ui-12 italic text-admin-text-sec truncate mt-1">{product.mood}</span>
+                  <span className="block text-ui-12 text-admin-text-sec truncate mt-1">{product.mood}</span>
                 )}
               </span>
               <span className="flex items-center gap-2.5 shrink-0">
                 {flattenedTastingCount > 0 ? (
                   <span className="font-mono text-ui-11 text-admin-text-dim tabular-nums">{flattenedTastingCount} notes</span>
                 ) : (
-                  <span className="text-ui-10 text-admin-text-dim uppercase tracking-[0.18em]">Add notes</span>
+                  <span className="text-ui-10 text-admin-text-dim uppercase tracking-[0.08em]">Add notes</span>
                 )}
                 <ChevronRight size={14} aria-hidden="true" className="text-admin-text-dim group-hover:text-admin-text-sec transition-colors" />
               </span>
@@ -1345,31 +1345,31 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
               <div className="space-y-5">
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-ui-11 text-admin-text-dim uppercase tracking-[0.14em]">Introduction</span>
-                    <span className="text-ui-11 text-admin-text-dim italic">Personal voice</span>
+                    <span className="text-ui-11 text-admin-text-dim uppercase tracking-[0.06em]">Introduction</span>
+                    <span className="text-ui-11 text-admin-text-dim">Personal voice</span>
                   </div>
-                  <GhostTextarea variant="bordered" ariaLabel="Introduction" value={product.description || ''} placeholder="Your personal introduction to this tea..." rows={4} onSave={(val) => handleUpdate(product.id, 'description', val)} className="font-body" />
+                  <GhostTextarea variant="bordered" ariaLabel="Introduction" value={product.description || ''} placeholder="Your personal introduction to this tea..." rows={4} onSave={(val) => handleUpdate(product.id, 'description', val)} className="" />
                 </div>
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-ui-11 text-admin-text-dim uppercase tracking-[0.14em]">Terroir</span>
-                    <span className="text-ui-11 text-admin-text-dim italic">Soil, altitude, climate</span>
+                    <span className="text-ui-11 text-admin-text-dim uppercase tracking-[0.06em]">Terroir</span>
+                    <span className="text-ui-11 text-admin-text-dim">Soil, altitude, climate</span>
                   </div>
-                  <GhostTextarea variant="bordered" ariaLabel="Terroir" value={product.terroir || ''} placeholder="Where this tea grew and why it matters..." rows={3} onSave={(val) => handleUpdate(product.id, 'terroir', val)} className="font-body" />
+                  <GhostTextarea variant="bordered" ariaLabel="Terroir" value={product.terroir || ''} placeholder="Where this tea grew and why it matters..." rows={3} onSave={(val) => handleUpdate(product.id, 'terroir', val)} className="" />
                 </div>
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-ui-11 text-admin-text-dim uppercase tracking-[0.14em]">Processing</span>
-                    <span className="text-ui-11 text-admin-text-dim italic">Craft & method</span>
+                    <span className="text-ui-11 text-admin-text-dim uppercase tracking-[0.06em]">Processing</span>
+                    <span className="text-ui-11 text-admin-text-dim">Craft & method</span>
                   </div>
-                  <GhostTextarea variant="bordered" ariaLabel="Processing notes" value={product.processingNotes || ''} placeholder="How this tea was made..." rows={3} onSave={(val) => handleUpdate(product.id, 'processingNotes', val)} className="font-body" />
+                  <GhostTextarea variant="bordered" ariaLabel="Processing notes" value={product.processingNotes || ''} placeholder="How this tea was made..." rows={3} onSave={(val) => handleUpdate(product.id, 'processingNotes', val)} className="" />
                 </div>
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-ui-11 text-admin-text-dim uppercase tracking-[0.14em]">Lore & history</span>
+                    <span className="text-ui-11 text-admin-text-dim uppercase tracking-[0.06em]">Lore & history</span>
                     {product.isCustomWisdom
-                      ? <span className="flex items-center gap-1 text-ui-11 text-tea-gold italic"><Pencil size={10} /> hand-edited</span>
-                      : <span className="text-ui-11 text-admin-text-dim italic">AI generated</span>}
+                      ? <span className="flex items-center gap-1 text-ui-11 text-admin-text-sec"><Pencil size={10} /> hand-edited</span>
+                      : <span className="text-ui-11 text-admin-text-dim">AI generated</span>}
                   </div>
                   <GhostTextarea
                     variant="bordered"
@@ -1381,7 +1381,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                       handleUpdate(product.id, 'lore', val);
                       if (!product.isCustomWisdom) handleUpdate(product.id, 'isCustomWisdom', true);
                     }}
-                    className="font-body"
+                    className=""
                   />
                 </div>
               </div>
@@ -1435,14 +1435,14 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                   <span>Loading events…</span>
                 </div>
               ) : productEvents.length === 0 ? (
-                <p className="text-ui-12 text-admin-text-sec italic py-1">Not featured at any events yet.</p>
+                <p className="text-ui-12 text-admin-text-sec py-1">Not featured at any events yet.</p>
               ) : (
                 <>
                   {productTastingAgg && productTastingAgg.totalNotes > 0 && (
                     <div className="mb-4 rounded-md bg-admin-input border border-admin-border overflow-hidden">
                       <div className="flex items-center gap-4 px-4 py-3 border-b border-admin-border">
                         <div className="flex items-baseline gap-1">
-                          <span className="font-display text-ui-26 text-tea-gold leading-none tabular-nums">{productTastingAgg.avgRating.toFixed(1)}</span>
+                          <span className="font-sans text-ui-20 font-medium text-admin-text leading-none tabular-nums">{productTastingAgg.avgRating.toFixed(1)}</span>
                           <span className="font-mono text-ui-11 text-admin-text-dim">/5</span>
                         </div>
                         <div className="flex flex-col gap-0.5">
@@ -1458,15 +1458,15 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                       </div>
                       {productTastingAgg.impressions.length > 0 && (
                         <div className="px-4 py-3 space-y-2.5">
-                          <div className="text-ui-10 text-admin-text-dim uppercase tracking-[0.18em]">Guest impressions</div>
+                          <div className="text-ui-10 text-admin-text-dim uppercase tracking-[0.08em]">Guest impressions</div>
                           {productTastingAgg.impressions.map((imp, i) => (
-                            <p key={i} className="font-body text-ui-13 italic text-admin-text leading-[1.55]">"{imp}"</p>
+                            <p key={i} className="text-ui-13 text-admin-text leading-[1.55]">"{imp}"</p>
                           ))}
                         </div>
                       )}
                     </div>
                   )}
-                  <div className="text-ui-10 text-admin-text-dim uppercase tracking-[0.18em] mb-2">Appeared at</div>
+                  <div className="text-ui-10 text-admin-text-dim uppercase tracking-[0.08em] mb-2">Appeared at</div>
                   <div className="divide-y divide-admin-border border-y border-admin-border">
                     {productEvents.map((event: any) => (
                       <div key={event.id} className="flex items-center justify-between gap-3 py-2.5">

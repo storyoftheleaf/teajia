@@ -2212,22 +2212,20 @@ input[type="number"]::-webkit-outer-spin-button {
    ============================================ */
 
 :root, .light, .dark {
-  /* Sampled from the Claude Code dark UI. The 16-luminance-point gap
-     between bg and surface is what makes cards read as elevated; the
-     rest comes from border + inset top highlight + drop shadow. The
-     previous values (12pt gap, 6% border, no drop shadow) were too
-     timid — the card chrome dissolved into the panel. These values
-     match the reference image's clearly-visible card boundaries. */
-  --admin-bg:           #0E0E10;  /* page background */
-  --admin-surface:      #1E1E22;  /* card surface — clearly distinct */
-  --admin-elevated:     #2A2A30;  /* hover / active / selected card */
-  --admin-input-bg:     #131316;  /* input fill — DARKER than card so input recesses */
-  --admin-border:       rgba(255, 255, 255, 0.11);
-  --admin-border-hover: rgba(255, 255, 255, 0.18);
-  --admin-text:         #E8E8EA;  /* primary heading / value text */
-  --admin-text-sec:     #A0A0A4;  /* body / description */
-  --admin-text-dim:     #6E6E73;  /* labels / meta */
-  --admin-text-faint:   #4A4A4E;  /* very low priority hints */
+  /* Sampled from the Claude Code dark UI. The grays carry a subtle warm
+     cast (R > G > B by 2-4 points) — that's what makes the Anthropic
+     dark mode feel "lived in" instead of sterile-cool. Border whites
+     are warm-tinted to match. */
+  --admin-bg:           #15130F;  /* page background — warm dark */
+  --admin-surface:      #221F1B;  /* card surface */
+  --admin-elevated:     #2D2925;  /* hover / active / selected card */
+  --admin-input-bg:     #19160F;  /* input fill — DARKER than card so input recesses */
+  --admin-border:       rgba(255, 244, 228, 0.10);  /* warm-white edge */
+  --admin-border-hover: rgba(255, 244, 228, 0.17);
+  --admin-text:         #ECE6DC;  /* primary — warm off-white */
+  --admin-text-sec:     #A8A095;  /* body / description */
+  --admin-text-dim:     #756B5F;  /* labels / meta */
+  --admin-text-faint:   #4E4640;  /* very low priority hints */
 }
 
 /* Card surface — three concurrent moves create the "milled object" feel:
@@ -2291,8 +2289,8 @@ input[type="number"]::-webkit-outer-spin-button {
 .admin-input:focus,
 .admin-input:focus-visible {
   outline: none;
-  border-color: rgb(var(--tea-gold-rgb) / 0.55);
-  box-shadow: 0 0 0 2px rgb(var(--tea-gold-rgb) / 0.22);
+  border-color: rgba(255, 244, 228, 0.30);
+  box-shadow: 0 0 0 2px rgba(255, 244, 228, 0.10);
 }
 
 /* Quiet pill (inside admin) — ghosted by default, gold-tinted when on. */
@@ -2312,8 +2310,8 @@ input[type="number"]::-webkit-outer-spin-button {
 .admin-pill:hover { color: var(--admin-text); background: var(--admin-elevated); }
 .admin-pill-on {
   color: var(--admin-text);
-  background: rgb(var(--tea-gold-rgb) / 0.10);
-  border-color: rgb(var(--tea-gold-rgb) / 0.28);
+  background: rgba(255, 244, 228, 0.08);
+  border-color: rgba(255, 244, 228, 0.20);
 }
 
 /* Subtle divider line for in-card lists. Same line weight as borders. */
