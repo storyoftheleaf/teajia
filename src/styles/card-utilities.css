@@ -2212,20 +2212,21 @@ input[type="number"]::-webkit-outer-spin-button {
    ============================================ */
 
 :root, .light, .dark {
-  /* Sampled from the Claude Code dark UI. The grays carry a subtle warm
-     cast (R > G > B by 2-4 points) — that's what makes the Anthropic
-     dark mode feel "lived in" instead of sterile-cool. Border whites
-     are warm-tinted to match. */
-  --admin-bg:           #15130F;  /* page background — warm dark */
-  --admin-surface:      #221F1B;  /* card surface */
-  --admin-elevated:     #2D2925;  /* hover / active / selected card */
-  --admin-input-bg:     #19160F;  /* input fill — DARKER than card so input recesses */
-  --admin-border:       rgba(255, 244, 228, 0.10);  /* warm-white edge */
-  --admin-border-hover: rgba(255, 244, 228, 0.17);
-  --admin-text:         #ECE6DC;  /* primary — warm off-white */
-  --admin-text-sec:     #A8A095;  /* body / description */
-  --admin-text-dim:     #756B5F;  /* labels / meta */
-  --admin-text-faint:   #4E4640;  /* very low priority hints */
+  /* Neutral dark grays. The previous warm pass (R>G>B by 4 points)
+     rendered as visibly yellow/tan against the dark bg — that's why
+     the panel kept reading as "gold and brown". These values are
+     truly neutral (R≈G≈B), with only a 1-point B>R shift to avoid
+     the dead "perfect gray" look. */
+  --admin-bg:           #131314;  /* page background */
+  --admin-surface:      #1E1E1F;  /* card surface */
+  --admin-elevated:     #292929;  /* hover / active / selected card */
+  --admin-input-bg:     #0E0E0F;  /* input fill — DARKER than card so input recesses */
+  --admin-border:       rgba(255, 255, 255, 0.10);
+  --admin-border-hover: rgba(255, 255, 255, 0.16);
+  --admin-text:         #E6E6E7;  /* primary — neutral off-white */
+  --admin-text-sec:     #A0A0A1;  /* body / description */
+  --admin-text-dim:     #6E6E70;  /* labels / meta */
+  --admin-text-faint:   #4A4A4B;  /* very low priority hints */
 }
 
 /* Card surface — three concurrent moves create the "milled object" feel:

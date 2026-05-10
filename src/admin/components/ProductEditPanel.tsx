@@ -575,14 +575,14 @@ export const ImageManager = ({ product, onUpdate }: {
                 onClick={() => pickFile(i, false)}
                 disabled={uploadingSlot !== null}
                 aria-label={`Add ${slotLabels[i].toLowerCase()} image`}
-                className="w-full h-full rounded-md bg-tea-bg/40 hover:bg-tea-gold/[0.04] transition-colors flex flex-col items-center justify-center gap-1.5 cursor-pointer group"
+                className="w-full h-full rounded-md bg-admin-input hover:bg-admin-elevated transition-colors flex flex-col items-center justify-center gap-1.5 cursor-pointer group"
               >
                 {uploadingSlot === i ? (
-                  <Loader2 size={16} className="text-tea-text-dim animate-spin" aria-hidden="true" />
+                  <Loader2 size={16} className="text-admin-text-dim animate-spin" aria-hidden="true" />
                 ) : (
                   <>
-                    <Plus size={14} className="text-tea-text-dim/50 group-hover:text-tea-gold transition-colors" aria-hidden="true" />
-                    <span className="text-ui-9 text-tea-text-dim/70 group-hover:text-tea-gold/80 uppercase tracking-caps transition-colors">{slotLabels[i]}</span>
+                    <Plus size={14} className="text-admin-text-dim group-hover:text-admin-text-sec transition-colors" aria-hidden="true" />
+                    <span className="text-ui-10 text-admin-text-dim group-hover:text-admin-text-sec uppercase tracking-[0.06em] transition-colors">{slotLabels[i]}</span>
                   </>
                 )}
               </button>
