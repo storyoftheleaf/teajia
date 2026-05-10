@@ -238,6 +238,7 @@ const PUBLIC_ROUTES = [
   ['/account/settings',   'Account Settings'],
   ['/shop',               'Shop'],
   ['/magazine',           'Magazine'],
+  ['/community',          'Community'],
   ['/find-a-table',       'Find a Teahouse'],
   ['/consult',            'Consult'],
 ] as const;

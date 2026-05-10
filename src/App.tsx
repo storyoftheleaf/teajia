@@ -784,6 +784,8 @@ const AppContent = () => {
                     </Suspense>
                   </ErrorBoundary>
                 } />
+                {/* Legacy community URL now points to the network directory. */}
+                <Route path="/community" element={<Navigate to="/find-a-table" replace />} />
                 <Route path="/store/:slug" element={
                   <ErrorBoundary>
                     <Suspense fallback={<SectionSkeleton variant="hero" />}>
