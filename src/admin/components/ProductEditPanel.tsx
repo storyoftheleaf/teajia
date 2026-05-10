@@ -15,7 +15,6 @@ import { useToast } from './Toast';
 import { TastingEditorModal } from './TastingEditorModal';
 import { QrCodeModal } from './QrCodeModal';
 import { ProductCollectionsSection } from './collections/ProductCollectionsSection';
-import { TaxonomyChipPicker } from './tasting/TaxonomyChipPicker';
 import { AutocompleteInput } from '../../components/TeaCompass/AutocompleteInput';
 import { buildVarietyDataMap, getTeaVarietySuggestions } from '../../data/teaVarieties';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
@@ -1342,27 +1341,10 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                   - Flag-for-recount lives at the row level (warning icon and
                     expandable detail panel). */}
 
-            {/* 6. Experience */}
-            <CollapsibleSection title="Experience" description="How it drinks — body, session, lingering impression." defaultOpen={false}>
-              <GhostTextarea variant="bordered" ariaLabel="Experience" value={product.experience || ''} placeholder="How this tea feels in the body. The session it creates. What stays with you after the last cup." rows={4} onSave={(val) => handleUpdate(product.id, 'experience', val)} className="font-body" />
-
-              <div className="mt-5 pt-4 border-t border-tea-border space-y-5">
-                <TaxonomyChipPicker
-                  category="mood"
-                  label="State"
-                  value={product.moodTags ?? []}
-                  onChange={(next) => handleUpdate(product.id, 'moodTags', next)}
-                />
-                <div className="pt-3 border-t border-tea-border">
-                  <TaxonomyChipPicker
-                    category="flavor"
-                    label="Flavor"
-                    value={product.flavorTags ?? []}
-                    onChange={(next) => handleUpdate(product.id, 'flavorTags', next)}
-                  />
-                </div>
-              </div>
-            </CollapsibleSection>
+            {/* Experience section removed. The freeform 'experience' field, mood
+                chips, and flavor chips are all captured through the Tasting
+                profile editor (TastingSession) — opened via the Tasting profile
+                button above the collapsibles. */}
 
             {/* 7. Story & Background */}
             <CollapsibleSection title="Story & background" description="Personal voice, terroir, processing, and lore." defaultOpen={false}>
