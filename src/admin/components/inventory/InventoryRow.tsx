@@ -112,7 +112,9 @@ function InventoryRowBase(props: InventoryRowProps) {
         </td>
       );
       case 'stockGrams': {
-        const isLow = product.stockGrams <= product.lowStockThreshold;
+        const isOut = (product.stockGrams ?? 0) <= 0;
+        const isLow = !isOut && product.stockGrams <= product.lowStockThreshold;
+        const stockColor = isOut ? 'text-tea-text-dim' : isLow ? 'text-tea-gold font-bold' : 'text-tea-text-sec';
         return (
           <td key={colKey} id={cellId(colIndex)} className={`px-4 align-middle overflow-hidden ${fr}`}>
             {isEditMode ? (
@@ -121,9 +123,9 @@ function InventoryRowBase(props: InventoryRowProps) {
                 <button aria-label={product.recheckStock ? 'Clear recheck flag' : 'Flag for stock recheck'} title={product.recheckStock ? 'Clear recheck flag' : 'Flag for stock recheck'} onClick={(e) => { e.stopPropagation(); onProductUpdate(product.id, 'recheckStock', !product.recheckStock); }} className={`text-ui-10 transition-colors ${product.recheckStock ? 'text-tea-gold hover:text-tea-text-sec' : 'text-tea-border hover:text-tea-gold/70'}`} aria-hidden={false}><span aria-hidden="true">&#9888;</span></button>
               </div>
             ) : (
-              <button onClick={(e) => { e.stopPropagation(); onStockHistory(product.id, product.givenName || product.productName); }} className={`tap-target num text-xs flex items-center gap-1 hover:text-tea-gold transition-colors ${isLow ? 'text-tea-gold font-bold' : 'text-tea-text-sec'}`} title="View stock history" aria-label={`View stock history for ${product.productName}`}>
+              <button onClick={(e) => { e.stopPropagation(); onStockHistory(product.id, product.givenName || product.productName); }} className={`tap-target num text-xs flex items-center gap-1 hover:text-tea-gold transition-colors ${stockColor}`} title="View stock history" aria-label={`View stock history for ${product.productName}`}>
                 {product.recheckStock && <span title="Stock needs rechecking" aria-label="Stock needs rechecking" className="text-tea-gold/80 text-ui-10"><span aria-hidden="true">&#9888;</span></span>}
-                {Math.round(product.stockGrams)}
+                {isOut ? '0g' : Math.round(product.stockGrams)}
               </button>
             )}
           </td>
@@ -199,9 +201,11 @@ function InventoryRowBase(props: InventoryRowProps) {
               }}
               title={isVerified ? `Verified ${new Date(product.stockVerifiedAt!).toLocaleDateString()}` : 'Mark as verified'}
               aria-label={isVerified ? `Clear verification for ${product.productName}` : `Mark ${product.productName} as verified`}
-              className={`tap-target inline-flex items-center justify-center w-5 h-5 rounded transition-colors ${isVerified ? 'bg-tea-surface text-tea-text hover:bg-tea-elevated hover:text-tea-text-sec' : 'bg-tea-surface text-tea-border hover:text-tea-text-sec hover:bg-tea-bg'}`}
+              className="tap-target group/verified"
             >
-              {isVerified ? <Check size={12} strokeWidth={3} /> : <span className="w-3 h-3 rounded-sm border border-current" />}
+              <span className={`inline-flex items-center justify-center w-5 h-5 rounded transition-colors ${isVerified ? 'bg-tea-surface text-tea-text group-hover/verified:bg-tea-elevated group-hover/verified:text-tea-text-sec' : 'bg-tea-surface text-tea-border group-hover/verified:text-tea-text-sec group-hover/verified:bg-tea-bg'}`}>
+                {isVerified ? <Check size={12} strokeWidth={3} /> : <span className="w-3 h-3 rounded-sm border border-current" />}
+              </span>
             </button>
           </td>
         );
