@@ -1,6 +1,6 @@
 # Customer / Contact Taxonomy
 
-Last updated: 2026-05-09
+Last updated: 2026-05-10
 
 ## Purpose
 
@@ -19,7 +19,7 @@ This taxonomy defines the first durable relationship model so future route and U
 | Contributor | Someone whose expertise, authorship, photography, or tea practice appears publicly | `publish` | magazine articles, contributor pages, editorial credits |
 | Personal Connection | A private relationship note or memory tied to a person/account context | personal/account scoped | journal, notes, private member memory |
 
-The matching executable constant is `CONTACT_RELATIONSHIP_TAXONOMY` in `src/lib/contactTaxonomy.ts`. The database source of truth is `contact_relationships`, added by `worker/migrations/069_contact_relationships.sql`.
+The matching executable constant is `CONTACT_RELATIONSHIP_TAXONOMY` in `src/lib/contactTaxonomy.ts`. The database source of truth starts with `contact_relationships`, added by `worker/migrations/069_contact_relationships.sql`; the owner-only tightening layer is in `worker/migrations/070_people_relationship_tightening.sql`.
 
 ## Implementation State
 
@@ -33,6 +33,9 @@ Shipped foundation:
 - Customer list and profile responses include `relationship_kinds`.
 - The admin People area shows relationship badges and filters.
 - The person profile shows a relationship portrait before the operational history.
+- Contributors can now optionally link to a private contact record through `contributors.contact_customer_id`.
+- Owner-only private notes live in `contact_private_notes`, not in broad staff-visible profile notes.
+- The People audit tab finds missing relationship meanings and exact contributor/contact matches, then applies the obvious updates.
 
 ## Authorization Direction
 
@@ -51,10 +54,10 @@ Instead, split access by relationship context:
 
 ## Implementation Pulls
 
-1. Extend contributor/contact linking so editorial contributors can optionally point back to a private contact record.
-2. Split richer profile sections behind bundle-aware loaders so partial-access staff see only their relationship surface.
-3. Move remaining legacy `customers.type` and `vendor`/`friend` tag assumptions to relationship reads.
-4. Add a dedicated relationship editor for nuanced manual corrections and privacy notes.
+1. Split richer profile sections behind bundle-aware loaders so partial-access staff see only their relationship surface.
+2. Move remaining legacy `customers.type` and `vendor`/`friend` tag assumptions to relationship reads.
+3. Add a dedicated relationship editor for nuanced manual corrections beyond the audit's safe suggestions.
+4. Build the contributor editor described in `docs/CONTRIBUTOR_PROFILES_PLAN.md` so the contact bridge is part of the editorial workflow, not only the audit tab.
 5. Add route tests after each split so buyers, vendors, guests, and recipients do not accidentally inherit the wrong permission model.
 
 ## Product Principle

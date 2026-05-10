@@ -7,7 +7,7 @@
 ## Where things live
 
 - **src/index.ts** — every route handler. ~296 endpoints. Single file by design (Worker bundle size limit).
-- **migrations/** — D1 schema, numbered sequentially. Latest: 069_contact_relationships.sql
+- **migrations/** — D1 schema, numbered sequentially. Latest: 070_people_relationship_tightening.sql
 - **wrangler.toml** — deploy config
 
 ## Endpoints by bundle (gated by requireBundle())
@@ -187,7 +187,7 @@ Platform-wide audit log: `platform_audit_log` table (created migration 047_membe
 | 051 | 051_network_adoption.sql | Adoption queue + network_visible flag |
 | 052–055 | 052_fix_missing_columns.sql, etc. | Schema repairs + audit columns |
 
-Latest: **069_contact_relationships.sql**
+Latest: **070_people_relationship_tightening.sql**
 
 ## Key numbers
 

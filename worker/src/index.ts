@@ -2648,7 +2648,7 @@ const handleFulfillInvoice: Handler = async (request, env) => {
   const { invoice_id } = await request.json() as { invoice_id: string };
 
   const invoice = await env.DB.prepare('SELECT * FROM invoices WHERE id = ? AND account_id = ?')
-    .bind(invoice_id, accountId).first();
+    .bind(invoice_id, accountId).first() as Record<string, any> | null;
   if (!invoice) return json({ error: 'Invoice not found' }, 404);
   if (invoice.inventory_deducted) return json({ error: 'Inventory already deducted' }, 400);
 
@@ -2876,7 +2876,7 @@ const handleVoidInvoice: Handler = async (request, env) => {
   const { invoice_id } = await request.json() as { invoice_id: string };
 
   const invoice = await env.DB.prepare('SELECT * FROM invoices WHERE id = ? AND account_id = ?')
-    .bind(invoice_id, accountId).first();
+    .bind(invoice_id, accountId).first() as Record<string, any> | null;
   if (!invoice) return json({ error: 'Invoice not found' }, 404);
   if (invoice.status === 'Void') return json({ error: 'Invoice is already voided' }, 400);
 
@@ -2957,7 +2957,7 @@ const handleSplitInvoice: Handler = async (request, env) => {
   const { invoice_id, line_item_ids } = await request.json() as { invoice_id: string; line_item_ids: string[] };
 
   const invoice = await env.DB.prepare('SELECT * FROM invoices WHERE id = ? AND account_id = ?')
-    .bind(invoice_id, accountId).first();
+    .bind(invoice_id, accountId).first() as Record<string, any> | null;
   if (!invoice) return json({ error: 'Invoice not found' }, 404);
   if (invoice.status !== 'Pending') return json({ error: 'Only Pending invoices can be split' }, 400);
 
@@ -3307,6 +3307,219 @@ async function ensureRelationshipsFromCustomerBody(
   }
 }
 
+type RelationshipAuditSuggestion = {
+  id: string;
+  action: 'add_relationship' | 'link_contributor';
+  kind?: ContactRelationshipKind;
+  customer_id?: string;
+  customer_name?: string;
+  contributor_id?: string;
+  contributor_name?: string;
+  reason: string;
+  source_entity_type: string;
+  source_entity_id: string;
+  confidence: 'high' | 'medium';
+};
+
+type RelationshipAuditResult = {
+  suggestions: RelationshipAuditSuggestion[];
+  counts: {
+    missing_relationships: number;
+    contributor_links: number;
+  };
+};
+
+function auditSuggestionId(parts: Array<string | number | null | undefined>) {
+  return parts.filter(v => v !== null && v !== undefined && `${v}`.length > 0).join(':');
+}
+
+async function getRelationshipAudit(env: Env, accountId: string): Promise<RelationshipAuditResult> {
+  const suggestions: RelationshipAuditSuggestion[] = [];
+
+  async function addRelationshipRows(
+    kind: ContactRelationshipKind,
+    reason: string,
+    sourceEntityType: string,
+    sql: string,
+  ) {
+    const rows = await env.DB.prepare(sql).bind(accountId).all();
+    for (const row of (rows.results ?? []) as any[]) {
+      if (!row.customer_id) continue;
+      suggestions.push({
+        id: auditSuggestionId(['relationship', kind, row.customer_id, sourceEntityType, row.source_entity_id]),
+        action: 'add_relationship',
+        kind,
+        customer_id: row.customer_id,
+        customer_name: row.customer_name,
+        reason,
+        source_entity_type: sourceEntityType,
+        source_entity_id: row.source_entity_id ?? row.customer_id,
+        confidence: 'high',
+      });
+    }
+  }
+
+  await addRelationshipRows(
+    'buyer',
+    'This contact has invoice history, so Teajia should recognize them as a buyer.',
+    'invoice',
+    `SELECT i.customer_id, c.name AS customer_name, MIN(i.id) AS source_entity_id
+       FROM invoices i
+       JOIN customers c ON c.id = i.customer_id AND c.account_id = i.account_id
+      WHERE i.account_id = ?
+        AND i.customer_id IS NOT NULL
+        AND i.customer_id != ''
+        AND NOT EXISTS (
+          SELECT 1 FROM contact_relationships cr
+           WHERE cr.account_id = i.account_id
+             AND cr.customer_id = i.customer_id
+             AND cr.kind = 'buyer'
+        )
+      GROUP BY i.customer_id, c.name`
+  );
+
+  await addRelationshipRows(
+    'vendor',
+    'This contact supplies one or more products, so Teajia should recognize them as a source/vendor.',
+    'product',
+    `SELECT p.vendor_id AS customer_id, c.name AS customer_name, MIN(p.id) AS source_entity_id
+       FROM products p
+       JOIN customers c ON c.id = p.vendor_id AND c.account_id = p.account_id
+      WHERE p.account_id = ?
+        AND p.vendor_id IS NOT NULL
+        AND p.vendor_id != ''
+        AND NOT EXISTS (
+          SELECT 1 FROM contact_relationships cr
+           WHERE cr.account_id = p.account_id
+             AND cr.customer_id = p.vendor_id
+             AND cr.kind = 'vendor'
+        )
+      GROUP BY p.vendor_id, c.name`
+  );
+
+  await addRelationshipRows(
+    'event_guest',
+    'This contact has attended or registered for an event, so Teajia should recognize them as a guest.',
+    'event_attendee',
+    `SELECT ea.customer_id, c.name AS customer_name, MIN(ea.id) AS source_entity_id
+       FROM event_attendees ea
+       JOIN customers c ON c.id = ea.customer_id AND c.account_id = ea.account_id
+      WHERE ea.account_id = ?
+        AND ea.customer_id IS NOT NULL
+        AND ea.customer_id != ''
+        AND NOT EXISTS (
+          SELECT 1 FROM contact_relationships cr
+           WHERE cr.account_id = ea.account_id
+             AND cr.customer_id = ea.customer_id
+             AND cr.kind = 'event_guest'
+        )
+      GROUP BY ea.customer_id, c.name`
+  );
+
+  await addRelationshipRows(
+    'collection_recipient',
+    'This contact has received a shared collection, so Teajia should remember them as a collection recipient.',
+    'collection_publication',
+    `SELECT json_extract(r.value, '$.customer_id') AS customer_id,
+            cu.name AS customer_name,
+            MIN(cp.id) AS source_entity_id
+       FROM collection_publications cp
+       JOIN collections c ON c.id = cp.collection_id
+       JOIN json_each(cp.recipients_json) r
+       JOIN customers cu ON cu.id = json_extract(r.value, '$.customer_id') AND cu.account_id = c.account_id
+      WHERE c.account_id = ?
+        AND cp.recipients_json IS NOT NULL
+        AND json_extract(r.value, '$.customer_id') IS NOT NULL
+        AND NOT EXISTS (
+          SELECT 1 FROM contact_relationships cr
+           WHERE cr.account_id = c.account_id
+             AND cr.customer_id = json_extract(r.value, '$.customer_id')
+             AND cr.kind = 'collection_recipient'
+        )
+      GROUP BY json_extract(r.value, '$.customer_id'), cu.name`
+  );
+
+  await addRelationshipRows(
+    'personal_connection',
+    'This contact has private owner context, so Teajia should recognize them as a personal relationship.',
+    'private_note',
+    `SELECT n.customer_id, c.name AS customer_name, n.customer_id AS source_entity_id
+       FROM contact_private_notes n
+       JOIN customers c ON c.id = n.customer_id AND c.account_id = n.account_id
+      WHERE n.account_id = ?
+        AND trim(n.body) != ''
+        AND NOT EXISTS (
+          SELECT 1 FROM contact_relationships cr
+           WHERE cr.account_id = n.account_id
+             AND cr.customer_id = n.customer_id
+             AND cr.kind = 'personal_connection'
+        )`
+  );
+
+  const contributorRelationshipRows = await env.DB.prepare(
+    `SELECT co.id AS contributor_id, co.display_name AS contributor_name,
+            co.contact_customer_id AS customer_id, c.name AS customer_name
+       FROM contributors co
+       JOIN customers c ON c.id = co.contact_customer_id AND c.account_id = co.account_id
+      WHERE co.account_id = ?
+        AND co.contact_customer_id IS NOT NULL
+        AND co.contact_customer_id != ''
+        AND NOT EXISTS (
+          SELECT 1 FROM contact_relationships cr
+           WHERE cr.account_id = co.account_id
+             AND cr.customer_id = co.contact_customer_id
+             AND cr.kind = 'contributor'
+        )`
+  ).bind(accountId).all();
+  for (const row of (contributorRelationshipRows.results ?? []) as any[]) {
+    suggestions.push({
+      id: auditSuggestionId(['relationship', 'contributor', row.customer_id, row.contributor_id]),
+      action: 'add_relationship',
+      kind: 'contributor',
+      customer_id: row.customer_id,
+      customer_name: row.customer_name,
+      contributor_id: row.contributor_id,
+      contributor_name: row.contributor_name,
+      reason: 'This contributor already points to a private contact, so Teajia should recognize the contact as a contributor.',
+      source_entity_type: 'contributor',
+      source_entity_id: row.contributor_id,
+      confidence: 'high',
+    });
+  }
+
+  const contributorLinkRows = await env.DB.prepare(
+    `SELECT co.id AS contributor_id, co.display_name AS contributor_name,
+            c.id AS customer_id, c.name AS customer_name
+       FROM contributors co
+       JOIN customers c ON c.account_id = co.account_id
+        AND lower(trim(c.name)) = lower(trim(co.display_name))
+      WHERE co.account_id = ?
+        AND (co.contact_customer_id IS NULL OR co.contact_customer_id = '')`
+  ).bind(accountId).all();
+  for (const row of (contributorLinkRows.results ?? []) as any[]) {
+    suggestions.push({
+      id: auditSuggestionId(['link_contributor', row.contributor_id, row.customer_id]),
+      action: 'link_contributor',
+      contributor_id: row.contributor_id,
+      contributor_name: row.contributor_name,
+      customer_id: row.customer_id,
+      customer_name: row.customer_name,
+      reason: 'The public contributor name exactly matches a private contact record.',
+      source_entity_type: 'contributor',
+      source_entity_id: row.contributor_id,
+      confidence: 'medium',
+    });
+  }
+
+  return {
+    suggestions,
+    counts: {
+      missing_relationships: suggestions.filter(s => s.action === 'add_relationship').length,
+      contributor_links: suggestions.filter(s => s.action === 'link_contributor').length,
+    },
+  };
+}
+
 const handleGetCustomers: Handler = async (request, env) => {
   const ctx = await requireAccount(request, env);
   if ('error' in ctx) return ctx.error;
@@ -3460,6 +3673,176 @@ const handlePutCustomerRelationships: Handler = async (request, env, params) => 
     await ensureContactRelationship(env, accountId, params.id, kind, 'manual', 'customer', params.id);
   }
   return json({ success: true, relationship_kinds: await listContactRelationshipsForCustomer(env, accountId, params.id) });
+};
+
+const handleGetCustomerPrivateNotes: Handler = async (request, env, params) => {
+  const ctx = await requireOwnerTier(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+
+  const customer = await env.DB.prepare(
+    'SELECT id FROM customers WHERE id = ? AND account_id = ?'
+  ).bind(params.id, accountId).first();
+  if (!customer) return json({ error: 'Customer not found' }, 404);
+
+  const note = await env.DB.prepare(
+    `SELECT body, updated_at, updated_by_user_id
+       FROM contact_private_notes
+      WHERE account_id = ? AND customer_id = ?`
+  ).bind(accountId, params.id).first() as Record<string, any> | null;
+
+  return json(note ?? { body: '', updated_at: null, updated_by_user_id: null });
+};
+
+const handlePutCustomerPrivateNotes: Handler = async (request, env, params) => {
+  const ctx = await requireOwnerTier(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId, userId } = ctx;
+
+  const body = await request.json() as Record<string, any>;
+  const noteBody = typeof body.body === 'string' ? body.body : '';
+  const customer = await env.DB.prepare(
+    'SELECT id FROM customers WHERE id = ? AND account_id = ?'
+  ).bind(params.id, accountId).first();
+  if (!customer) return json({ error: 'Customer not found' }, 404);
+
+  await env.DB.prepare(
+    `INSERT INTO contact_private_notes
+      (id, account_id, customer_id, body, created_by_user_id, updated_by_user_id, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+     ON CONFLICT(account_id, customer_id) DO UPDATE SET
+       body = excluded.body,
+       updated_by_user_id = excluded.updated_by_user_id,
+       updated_at = datetime('now')`
+  ).bind(crypto.randomUUID(), accountId, params.id, noteBody, userId, userId).run();
+
+  if (noteBody.trim()) {
+    await ensureContactRelationship(env, accountId, params.id, 'personal_connection', 'workflow', 'private_note', params.id);
+  }
+
+  return json({
+    success: true,
+    body: noteBody,
+    relationship_kinds: await listContactRelationshipsForCustomer(env, accountId, params.id),
+  });
+};
+
+const handleGetPeopleRelationshipAudit: Handler = async (request, env) => {
+  const ctx = await requireOwnerTier(request, env);
+  if ('error' in ctx) return ctx.error;
+  return json(await getRelationshipAudit(env, ctx.accountId));
+};
+
+const handleApplyPeopleRelationshipAudit: Handler = async (request, env) => {
+  const ctx = await requireOwnerTier(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+
+  const audit = await getRelationshipAudit(env, accountId);
+  let relationshipsAdded = 0;
+  let contributorsLinked = 0;
+
+  for (const suggestion of audit.suggestions) {
+    if (suggestion.action === 'link_contributor' && suggestion.contributor_id && suggestion.customer_id) {
+      const result = await env.DB.prepare(
+        `UPDATE contributors
+            SET contact_customer_id = ?, updated_at = datetime('now')
+          WHERE id = ?
+            AND account_id = ?
+            AND (contact_customer_id IS NULL OR contact_customer_id = '')`
+      ).bind(suggestion.customer_id, suggestion.contributor_id, accountId).run();
+      if ((result.meta as any)?.changes) {
+        contributorsLinked += Number((result.meta as any).changes);
+      }
+      await ensureContactRelationship(
+        env,
+        accountId,
+        suggestion.customer_id,
+        'contributor',
+        'workflow',
+        'contributor',
+        suggestion.contributor_id,
+      );
+      relationshipsAdded += 1;
+      continue;
+    }
+
+    if (suggestion.action === 'add_relationship' && suggestion.customer_id && suggestion.kind) {
+      await ensureContactRelationship(
+        env,
+        accountId,
+        suggestion.customer_id,
+        suggestion.kind,
+        'audit',
+        suggestion.source_entity_type,
+        suggestion.source_entity_id,
+      );
+      relationshipsAdded += 1;
+    }
+  }
+
+  return json({
+    success: true,
+    relationships_added: relationshipsAdded,
+    contributors_linked: contributorsLinked,
+    remaining: await getRelationshipAudit(env, accountId),
+  });
+};
+
+const handleListAdminContributors: Handler = async (request, env) => {
+  const ctx = await requireOwnerTier(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+
+  const rows = await env.DB.prepare(
+    `SELECT co.id, co.display_name, co.chinese_name, co.role, co.is_published,
+            co.contact_customer_id,
+            c.name AS contact_name,
+            c.email AS contact_email,
+            c.phone AS contact_phone,
+            c.whatsapp AS contact_whatsapp
+       FROM contributors co
+       LEFT JOIN customers c ON c.id = co.contact_customer_id AND c.account_id = co.account_id
+      WHERE co.account_id = ?
+      ORDER BY co.display_name ASC`
+  ).bind(accountId).all();
+
+  return json({ contributors: rows.results ?? [] });
+};
+
+const handlePutAdminContributorContact: Handler = async (request, env, params) => {
+  const ctx = await requireOwnerTier(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+
+  const body = await request.json() as Record<string, any>;
+  const customerId = typeof body.customer_id === 'string' && body.customer_id.trim()
+    ? body.customer_id.trim()
+    : null;
+
+  const contributor = await env.DB.prepare(
+    'SELECT id FROM contributors WHERE id = ? AND account_id = ?'
+  ).bind(params.id, accountId).first();
+  if (!contributor) return json({ error: 'Contributor not found' }, 404);
+
+  if (customerId) {
+    const customer = await env.DB.prepare(
+      'SELECT id FROM customers WHERE id = ? AND account_id = ?'
+    ).bind(customerId, accountId).first();
+    if (!customer) return json({ error: 'Contact not found' }, 404);
+  }
+
+  await env.DB.prepare(
+    `UPDATE contributors
+        SET contact_customer_id = ?, updated_at = datetime('now')
+      WHERE id = ? AND account_id = ?`
+  ).bind(customerId, params.id, accountId).run();
+
+  if (customerId) {
+    await ensureContactRelationship(env, accountId, customerId, 'contributor', 'manual', 'contributor', params.id);
+  }
+
+  return json({ success: true, contributor_id: params.id, contact_customer_id: customerId });
 };
 
 const handleCreateCustomer: Handler = async (request, env) => {
@@ -14504,7 +14887,7 @@ const handleListProfileSuggestions: Handler = async (request, env, params) => {
       WHERE s.profile_id = ?
       ORDER BY f.created_at ASC
     `).bind(profileId),
-  ]) as [{ results: any[] }, { results: any[] }];
+  ]) as unknown as [{ results: any[] }, { results: any[] }];
 
   // Group fields under their bundles
   const bundles = (bundlesResult.results as any[]).map((b: any) => ({
@@ -14557,7 +14940,7 @@ const handleIncomingSuggestions: Handler = async (request, env) => {
         ${statusClause}
       ORDER BY f.created_at ASC
     `).bind(...params),
-  ]) as [{ results: any[] }, { results: any[] }];
+  ]) as unknown as [{ results: any[] }, { results: any[] }];
 
   const bundles = (bundlesResult.results as any[]).map((b: any) => ({
     ...b,
@@ -15759,10 +16142,16 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/customers/rfm', handleGetCustomerRFM],
 
   // Customers
+  ['GET', '/api/admin/people/relationship-audit', handleGetPeopleRelationshipAudit],
+  ['POST', '/api/admin/people/relationship-audit/apply', handleApplyPeopleRelationshipAudit],
+  ['GET', '/api/admin/contributors', handleListAdminContributors],
+  ['PUT', '/api/admin/contributors/:id/contact', handlePutAdminContributorContact],
   ['GET', '/api/customers', handleGetCustomers],
   ['GET', '/api/customers/:id', handleGetCustomer],
   ['GET', '/api/customers/:id/relationships', handleGetCustomerRelationships],
   ['PUT', '/api/customers/:id/relationships', handlePutCustomerRelationships],
+  ['GET', '/api/customers/:id/private-notes', handleGetCustomerPrivateNotes],
+  ['PUT', '/api/customers/:id/private-notes', handlePutCustomerPrivateNotes],
   ['POST', '/api/customers', handleCreateCustomer],
   ['PUT', '/api/customers/:id', handleUpdateCustomer],
   ['DELETE', '/api/customers/:id', handleDeleteCustomer],

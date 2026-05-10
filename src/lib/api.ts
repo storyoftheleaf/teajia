@@ -806,6 +806,20 @@ export const api = {
       });
       return handleResponse(res);
     },
+    getPrivateNotes: async (id: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/customers/${id}/private-notes`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    updatePrivateNotes: async (id: string, body: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/customers/${id}/private-notes`, {
+        method: 'PUT',
+        headers: authHeaders(),
+        body: JSON.stringify({ body }),
+      });
+      return handleResponse(res);
+    },
     linkProduct: async (vendorId: string, productId: string) => {
       const res = await fetchWithTimeout(`${API_URL}/api/customers/${vendorId}/products`, {
         method: 'POST',
@@ -3151,6 +3165,33 @@ export const api = {
     },
     getBySlug: async (slug: string) => {
       const res = await fetchWithTimeout(`${API_URL}/api/people/${encodeURIComponent(slug)}`);
+      return handleResponse(res);
+    },
+    getRelationshipAudit: async () => {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/people/relationship-audit`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    applyRelationshipAudit: async () => {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/people/relationship-audit/apply`, {
+        method: 'POST',
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    listAdminContributors: async () => {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/contributors`, {
+        headers: authHeaders(),
+      });
+      return handleResponse(res);
+    },
+    updateContributorContact: async (contributorId: string, customerId: string | null) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/contributors/${encodeURIComponent(contributorId)}/contact`, {
+        method: 'PUT',
+        headers: authHeaders(),
+        body: JSON.stringify({ customer_id: customerId }),
+      });
       return handleResponse(res);
     },
   },

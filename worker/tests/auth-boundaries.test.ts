@@ -233,6 +233,36 @@ describe('worker authorization boundaries', () => {
     expect(body.error).toBe('Invalid relationship filter');
   });
 
+  it('keeps owner private contact notes out of staff access', async () => {
+    const request = await authedRequest('/api/customers/cus_test/private-notes');
+    const response = await worker.fetch(request, makeEnv({ role: 'staff', bundles: ['sell', 'gather'] }));
+    const body = await response.json() as any;
+
+    expect(response.status).toBe(403);
+    expect(body.error).toBe('Owner-tier access required for this action');
+  });
+
+  it('keeps the relationship audit owner-tier only', async () => {
+    const request = await authedRequest('/api/admin/people/relationship-audit');
+    const response = await worker.fetch(request, makeEnv({ role: 'staff', bundles: ['members'] }));
+    const body = await response.json() as any;
+
+    expect(response.status).toBe(403);
+    expect(body.error).toBe('Owner-tier access required for this action');
+  });
+
+  it('keeps contributor contact links owner-tier only', async () => {
+    const request = await authedRequest('/api/admin/contributors/person/contact', {
+      method: 'PUT',
+      body: JSON.stringify({ customer_id: 'cus_test' }),
+    });
+    const response = await worker.fetch(request, makeEnv({ role: 'staff', bundles: ['publish'] }));
+    const body = await response.json() as any;
+
+    expect(response.status).toBe(403);
+    expect(body.error).toBe('Owner-tier access required for this action');
+  });
+
   it('requires a verified JWT for MCP OAuth approval', async () => {
     const request = new Request('https://worker.test/oauth/authorize/decision', {
       method: 'POST',

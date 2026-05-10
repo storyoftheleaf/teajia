@@ -1,16 +1,17 @@
 import React, { useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { Users, Store, Shield, ShoppingBag, Tag } from 'lucide-react';
+import { ListChecks, Users, Store, Shield, ShoppingBag, Tag } from 'lucide-react';
 import { CustomersView } from './CustomersView';
 import { SourcesView } from './SourcesView';
+import PeopleAuditView from './PeopleAuditView';
 import { TeamView } from '../views/TeamView';
 import { PurchaseOrdersPage } from '../views/PurchaseOrdersPage';
 import { ContactTagsView } from '../views/ContactTagsView';
 import { useAppStore } from '../store';
 import { api } from '../../lib/api';
 
-type PeopleTab = 'customers' | 'sources' | 'purchase-orders' | 'team' | 'tags';
+type PeopleTab = 'customers' | 'sources' | 'purchase-orders' | 'audit' | 'team' | 'tags';
 
 interface PeopleViewProps {
   userRole: string;
@@ -33,6 +34,7 @@ export const PeopleView: React.FC<PeopleViewProps> = ({
     { id: 'customers', label: 'Contacts', icon: <Users size={15} />, visible: true },
     { id: 'sources', label: 'Sources', icon: <Store size={15} />, visible: canSeeSources },
     { id: 'purchase-orders', label: 'Purchase Orders', icon: <ShoppingBag size={15} />, visible: canSeeSources },
+    { id: 'audit', label: 'Audit', icon: <ListChecks size={15} />, visible: canSeeTeam },
     { id: 'team', label: 'Team', icon: <Shield size={15} />, visible: canSeeTeam },
     { id: 'tags', label: 'Tags', icon: <Tag size={15} />, visible: true },
   ];
@@ -94,6 +96,7 @@ export const PeopleView: React.FC<PeopleViewProps> = ({
         {activeTab === 'customers' && <CustomersView />}
         {activeTab === 'sources' && canSeeSources && <SourcesView />}
         {activeTab === 'purchase-orders' && canSeeSources && <PurchaseOrdersPage />}
+        {activeTab === 'audit' && canSeeTeam && <PeopleAuditView />}
         {activeTab === 'team' && canSeeTeam && <TeamView />}
         {activeTab === 'tags' && <ContactTagsView embedded />}
       </div>

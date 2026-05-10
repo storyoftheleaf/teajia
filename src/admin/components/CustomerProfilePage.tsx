@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, MessageCircle, Leaf, Loader2, ShoppingBag,
   Calendar, Edit3, Star, Package, Search, Check, Copy, X,
+  Lock, Save,
 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { CONTACT_RELATIONSHIP_ORDER, CONTACT_RELATIONSHIP_TAXONOMY } from '../../lib/contactTaxonomy';
@@ -60,6 +61,89 @@ const RELATIONSHIP_BADGE_CLASSES: Record<ContactRelationshipKind, string> = {
 
 const relationshipLabel = (kind: ContactRelationshipKind) =>
   CONTACT_RELATIONSHIP_TAXONOMY[kind]?.shortLabel ?? kind;
+
+const OwnerPrivateNote: React.FC<{
+  customerId: string;
+  onRelationshipKinds?: (kinds: ContactRelationshipKind[]) => void;
+}> = ({ customerId, onRelationshipKinds }) => {
+  const { showToast } = useToast();
+  const [visible, setVisible] = useState(false);
+  const [body, setBody] = useState('');
+  const [savedBody, setSavedBody] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    api.customers.getPrivateNotes(customerId)
+      .then(note => {
+        if (cancelled) return;
+        const nextBody = typeof note?.body === 'string' ? note.body : '';
+        setBody(nextBody);
+        setSavedBody(nextBody);
+        setVisible(true);
+      })
+      .catch(() => {
+        if (!cancelled) setVisible(false);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [customerId]);
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      const result = await api.customers.updatePrivateNotes(customerId, body);
+      setSavedBody(body);
+      if (Array.isArray(result?.relationship_kinds)) {
+        onRelationshipKinds?.(result.relationship_kinds);
+      }
+      showToast('Private note saved.', 'success');
+    } catch {
+      showToast('Could not save private note.', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading || !visible) return null;
+
+  const dirty = body !== savedBody;
+
+  return (
+    <div className="bg-tea-surface border border-tea-border rounded-xl p-5">
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <Lock size={14} className="text-tea-gold" />
+            <p className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec">Owner private note</p>
+          </div>
+          <p className="text-ui-11 text-tea-text-sec mt-1">
+            Visible only to owner-tier accounts.
+          </p>
+        </div>
+        <button
+          onClick={save}
+          disabled={!dirty || saving}
+          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-tea-gold text-tea-bg text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
+          Save
+        </button>
+      </div>
+      <textarea
+        value={body}
+        onChange={e => setBody(e.target.value)}
+        rows={4}
+        placeholder="Context that belongs with the relationship, not in public or staff-facing notes..."
+        className="w-full bg-tea-bg border border-tea-border rounded-lg p-3 text-sm text-tea-text resize-y min-h-[112px] focus:outline-none focus:border-tea-gold/50 placeholder:text-tea-text-sec"
+      />
+    </div>
+  );
+};
 
 // ── Sample offer modal (admin-side WhatsApp sample pitch) ──────────────────
 const SampleOfferModal: React.FC<{
@@ -308,6 +392,11 @@ export const CustomerProfilePage: React.FC = () => {
 
           {/* Contact tags */}
           <ContactTagEditor customerId={customer.id} />
+
+          <OwnerPrivateNote
+            customerId={customer.id}
+            onRelationshipKinds={(kinds) => setCustomer(prev => prev ? ({ ...prev, relationshipKinds: kinds }) : prev)}
+          />
 
           {(customer.relationshipKinds?.length ?? 0) > 0 && (
             <div className="bg-tea-surface border border-tea-border rounded-xl p-5">

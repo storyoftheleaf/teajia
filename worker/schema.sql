@@ -414,6 +414,22 @@ CREATE INDEX IF NOT EXISTS idx_contact_relationships_account_kind
 CREATE INDEX IF NOT EXISTS idx_contact_relationships_customer
   ON contact_relationships(account_id, customer_id);
 
+-- Owner-only private contact notes. Operational relationship labels can be
+-- shared across admin tools; the actual private note body must stay owner-tier.
+CREATE TABLE IF NOT EXISTS contact_private_notes (
+  id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  account_id TEXT NOT NULL,
+  customer_id TEXT NOT NULL,
+  body TEXT NOT NULL DEFAULT '',
+  created_by_user_id TEXT,
+  updated_by_user_id TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE(account_id, customer_id)
+);
+CREATE INDEX IF NOT EXISTS idx_contact_private_notes_customer
+  ON contact_private_notes(account_id, customer_id);
+
 -- 8. Collections — persistent curator-driven product sets published to audiences.
 -- Phase 1 ships Person audience; target_type accommodates future store/event/shop.
 CREATE TABLE IF NOT EXISTS collections (

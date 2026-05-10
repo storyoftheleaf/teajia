@@ -2,6 +2,10 @@
 
 > Shipped work, newest first. For what's next see ROADMAP.md. For active in-progress briefs see ACTIVE_BRIEFS.md.
 
+## 2026-05
+
+- 2026-05-10 — Relationship taxonomy tightened with owner-only private notes, contributor/contact links, and People audit suggestions.
+
 ## 2026-04
 
 - 2026-04-27 — **Audit closed.** 36 of 37 findings shipped or verified; #36 (design system) phased into 4 stages in `DESIGN_SYSTEM_PHASING.md` for future pickup. Forward plan written in `POST_AUDIT_ROADMAP.md`; IA project scoped in `IA_REVIEW.md`; tradeoffs and revisit-if flags captured in `OPERATIONAL_NOTES.md`. State-of-the-site rewritten to reflect post-audit reality. Commits in this session: `1c57099`, `c653dde`, `39d730e`, `da98cd6`, `3433059`, `3d6507c`, `78d5f44`, `6961b34`.
