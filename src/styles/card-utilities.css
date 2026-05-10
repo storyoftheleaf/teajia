@@ -2212,37 +2212,54 @@ input[type="number"]::-webkit-outer-spin-button {
    ============================================ */
 
 :root, .light, .dark {
-  --admin-bg:           #0e0e10;  /* page background — near-black, slight warm-neutral */
-  --admin-surface:      #1a1a1c;  /* card surface — one notch lighter */
-  --admin-elevated:     #232327;  /* hover / active / selected card */
-  --admin-input-bg:     #131316;  /* input fill — DARKER than card so input reads recessed */
-  --admin-border:       rgba(255, 255, 255, 0.06);
-  --admin-border-hover: rgba(255, 255, 255, 0.10);
-  --admin-text:         #E8E8EA;  /* primary, off-white never pure */
-  --admin-text-sec:     #A0A0A4;  /* body / descriptions */
-  --admin-text-dim:     #6E6E73;  /* labels / meta / timestamps */
+  /* Sampled from the Claude Code dark UI. Values chosen to land within
+     ±2 of the reference image. The 12-luminance-point gap between bg
+     and surface is what makes cards read as elevated; the rest comes
+     from border + inset top highlight + drop shadow. */
+  --admin-bg:           #0E0E10;  /* page background */
+  --admin-surface:      #1A1A1E;  /* card surface */
+  --admin-elevated:     #23232A;  /* hover / active / selected card */
+  --admin-input-bg:     #131316;  /* input fill — DARKER than card so input recesses */
+  --admin-border:       rgba(255, 255, 255, 0.08);
+  --admin-border-hover: rgba(255, 255, 255, 0.14);
+  --admin-text:         #E8E8EA;  /* primary heading / value text */
+  --admin-text-sec:     #A0A0A4;  /* body / description */
+  --admin-text-dim:     #6E6E73;  /* labels / meta */
   --admin-text-faint:   #4A4A4E;  /* very low priority hints */
 }
 
-/* Card surface. Inset 1px top highlight is the *single* most important
-   detail — it's what makes the card read as a milled object instead of
-   a painted rectangle. Outer shadow is intentionally barely-there. */
+/* Card surface — three concurrent moves create the "milled object" feel:
+   1. Background gradient (subtle 2.5% white fade at top) — ambient lift
+   2. Inset 0 1px 0 white highlight — sharp top bevel that defines the edge
+   3. Outer drop shadow — separates the card from the page beneath it
+   Each move is barely-there individually; together they make the card
+   sit *above* the panel surface instead of being painted onto it. */
 .admin-card {
-  background: var(--admin-surface);
+  /* Layered chrome that produces the Claude UI's "milled" card feel.
+     Each layer is barely-there individually; together they make the
+     card sit above the panel surface instead of being painted onto it.
+     1. Subtle top-to-mid gradient — ambient lift toward the top edge
+     2. Inset 1px top highlight — sharp bevel that defines the upper edge
+     3. Outer drop shadow — gentle separation from the page beneath */
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(255, 255, 255, 0) 40%),
+    var(--admin-surface);
   border: 1px solid var(--admin-border);
   border-radius: 8px;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.04),
-    0 1px 2px rgba(0, 0, 0, 0.30);
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 1px 2px rgba(0, 0, 0, 0.45);
 }
 
 .admin-card-elevated {
-  background: var(--admin-elevated);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0) 40%),
+    var(--admin-elevated);
   border: 1px solid var(--admin-border-hover);
   border-radius: 8px;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.06),
-    0 1px 3px rgba(0, 0, 0, 0.40);
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 2px 4px rgba(0, 0, 0, 0.50);
 }
 
 /* Interactive card hover — bg shift, border lift, no scale. */
