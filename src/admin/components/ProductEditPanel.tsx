@@ -318,9 +318,9 @@ export const CollapsibleSection = ({ title, description, defaultOpen = true, mob
     <div className="mx-3 mb-3 bg-tea-surface border border-tea-border rounded-md overflow-hidden">
       <button onClick={() => setOpen(!open)} aria-expanded={open} className="w-full flex items-start justify-between gap-3 px-4 py-3 group text-left">
         <div className="min-w-0">
-          <span className="block text-ui-13 text-tea-text font-medium">{title}</span>
+          <span className="block font-display text-ui-15 font-medium text-tea-text leading-[1.3]">{title}</span>
           {description && (
-            <span className="block text-ui-11 text-tea-text-sec leading-[1.5] mt-0.5">{description}</span>
+            <span className="block text-ui-11 text-tea-text-sec leading-[1.5] mt-1">{description}</span>
           )}
         </div>
         <ChevronRight size={14} aria-hidden="true" className={`mt-1 shrink-0 text-tea-text-dim transition-transform duration-200 group-hover:text-tea-text-sec ${open ? 'rotate-90' : ''}`} />
@@ -959,11 +959,11 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
               <XIcon size={17} aria-hidden="true" />
             </button>
             <div className="flex flex-col items-center gap-0">
-              <span className="text-ui-11 text-tea-text-sec tabular-nums leading-none">
+              <span className="font-mono text-ui-11 text-tea-text-sec tabular-nums leading-none">
                 {productIndex >= 0 ? `${productIndex + 1} / ${totalCount}` : ''}
               </span>
               {filterLabel && (
-                <span className="text-ui-10 text-tea-text-dim uppercase tracking-[0.14em] leading-none mt-1">
+                <span className="text-ui-10 text-tea-text-dim uppercase tracking-[0.18em] leading-none mt-1">
                   {filterLabel}
                 </span>
               )}
@@ -989,9 +989,9 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
           {/* Keyboard hint bar — quiet, single-line */}
           {onNavigate && (
             <div className="hidden md:flex items-center justify-center gap-3 px-4 py-1.5 border-b border-tea-border">
-              <span className="text-ui-10 text-tea-text-dim uppercase tracking-[0.16em]">Esc close</span>
+              <span className="text-ui-10 text-tea-text-dim uppercase tracking-[0.18em]">Esc close</span>
               <span className="text-ui-10 text-tea-text-dim">·</span>
-              <span className="text-ui-10 text-tea-text-dim uppercase tracking-[0.16em]">← → navigate</span>
+              <span className="text-ui-10 text-tea-text-dim uppercase tracking-[0.18em]">← → navigate</span>
             </div>
           )}
 
@@ -1004,11 +1004,11 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
               style={{ boxShadow: `inset 2px 0 0 ${getThemeColor(product.type)}` }}
             >
               <div className="min-w-0 flex-1">
-                <h3 id={titleId} className="text-ui-17 font-serif text-tea-text leading-snug" title={product.productName}>{product.productName}</h3>
-                {product.givenName && <div className="text-ui-12 text-tea-text-sec font-serif italic leading-tight mt-0.5">{product.givenName}</div>}
-                <div className="flex items-center flex-wrap gap-x-1.5 gap-y-0.5 mt-1">
+                <h3 id={titleId} className="font-display text-ui-20 font-normal text-tea-text leading-[1.2] tracking-[0.01em]" title={product.productName}>{product.productName}</h3>
+                {product.givenName && <div className="font-body text-ui-13 text-tea-text-sec italic leading-tight mt-1">{product.givenName}</div>}
+                <div className="flex items-center flex-wrap gap-x-1.5 gap-y-0.5 mt-1.5">
                   <span className="text-ui-12 text-tea-text-sec">{product.type}</span>
-                  {product.year && <span className="text-ui-12 text-tea-text-dim">· {product.year}</span>}
+                  {product.year && <span className="text-ui-12 text-tea-text-dim font-mono tabular-nums">· {product.year}</span>}
                   {product.originRegion && <span className="text-ui-12 text-tea-text-dim">· {product.originRegion}</span>}
                 </div>
               </div>
@@ -1039,9 +1039,9 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                   Identity, origin, vendor, pricing, stock, visibility all live here so a
                   product can be entered top-to-bottom without expanding sections. */}
             <div className="mx-3 mb-3 rounded-md bg-tea-surface border border-tea-border px-4 pt-4 pb-4">
-              <div className="flex items-baseline justify-between mb-3">
-                <span className="text-ui-13 text-tea-text font-medium">Quick entry</span>
-                <span className="text-ui-11 text-tea-text-dim uppercase tracking-[0.14em]">Auto-saves</span>
+              <div className="flex items-baseline justify-between mb-4 pb-2 border-b border-tea-border">
+                <span className="font-display text-ui-15 font-medium text-tea-text leading-[1.3]">Quick entry</span>
+                <span className="text-ui-10 text-tea-text-dim uppercase tracking-[0.18em]">Auto-saves</span>
               </div>
 
               {/* Name (full row, autocomplete + autofill) */}
@@ -1174,11 +1174,11 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                     </FieldCell>
                   </FieldGrid>
                   {pricingCalc && pricingCalc.suggestedRetailUSD > 0 && (
-                    <div className="mt-4 flex items-baseline justify-between rounded-md bg-tea-bg border border-tea-border px-3 py-2">
-                      <span className="text-ui-11 text-tea-text-dim uppercase tracking-[0.14em]">Suggested retail</span>
-                      <span className="text-ui-15 text-tea-gold tabular-nums font-serif">
+                    <div className="mt-4 flex items-baseline justify-between rounded-md bg-tea-bg border border-tea-border px-3 py-2.5">
+                      <span className="text-ui-10 text-tea-text-dim uppercase tracking-[0.18em]">Suggested retail</span>
+                      <span className="font-display text-ui-17 text-tea-gold tabular-nums leading-none">
                         ${pricingCalc.suggestedRetailUSD.toFixed(2)}
-                        <span className="text-ui-11 text-tea-text-dim ml-1 italic font-serif">/ g</span>
+                        <span className="font-body text-ui-11 text-tea-text-dim ml-1 italic">/ g</span>
                       </span>
                     </div>
                   )}
@@ -1276,16 +1276,16 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
               className="w-[calc(100%-1.5rem)] mx-3 mb-3 px-4 py-3 flex items-center justify-between gap-3 rounded-md bg-tea-surface border border-tea-border hover:bg-tea-accent-sub transition-colors group text-left"
             >
               <div className="min-w-0">
-                <span className="block text-ui-13 text-tea-text font-medium">Tasting profile</span>
+                <span className="block font-display text-ui-15 font-medium text-tea-text leading-[1.3]">Tasting profile</span>
                 {flattenedTastingCount > 0 && product.mood && (
-                  <span className="block text-ui-11 italic font-serif text-tea-text-sec truncate mt-0.5">{product.mood}</span>
+                  <span className="block font-body text-ui-12 italic text-tea-text-sec truncate mt-1">{product.mood}</span>
                 )}
               </div>
               <span className="flex items-center gap-2.5 shrink-0">
                 {flattenedTastingCount > 0 ? (
-                  <span className="text-ui-11 text-tea-text-dim uppercase tracking-[0.14em] tabular-nums">{flattenedTastingCount} notes</span>
+                  <span className="font-mono text-ui-11 text-tea-text-dim tabular-nums">{flattenedTastingCount} notes</span>
                 ) : (
-                  <span className="text-ui-11 text-tea-text-dim uppercase tracking-[0.14em]">Add notes</span>
+                  <span className="text-ui-10 text-tea-text-dim uppercase tracking-[0.18em]">Add notes</span>
                 )}
                 <ChevronRight size={14} aria-hidden="true" className="text-tea-text-dim group-hover:text-tea-text-sec transition-colors" />
               </span>
@@ -1389,7 +1389,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
 
             {/* 6. Experience */}
             <CollapsibleSection title="Experience" description="How it drinks — body, session, lingering impression." defaultOpen={false}>
-              <GhostTextarea variant="bordered" ariaLabel="Experience" value={product.experience || ''} placeholder="How this tea feels in the body. The session it creates. What stays with you after the last cup." rows={4} onSave={(val) => handleUpdate(product.id, 'experience', val)} className="font-serif" />
+              <GhostTextarea variant="bordered" ariaLabel="Experience" value={product.experience || ''} placeholder="How this tea feels in the body. The session it creates. What stays with you after the last cup." rows={4} onSave={(val) => handleUpdate(product.id, 'experience', val)} className="font-body" />
 
               <div className="mt-5 pt-4 border-t border-tea-border space-y-5">
                 <TaxonomyChipPicker
@@ -1417,21 +1417,21 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                     <span className="text-ui-11 text-tea-text-dim uppercase tracking-[0.14em]">Introduction</span>
                     <span className="text-ui-11 text-tea-text-dim italic">Personal voice</span>
                   </div>
-                  <GhostTextarea variant="bordered" ariaLabel="Introduction" value={product.description || ''} placeholder="Your personal introduction to this tea..." rows={4} onSave={(val) => handleUpdate(product.id, 'description', val)} className="font-serif" />
+                  <GhostTextarea variant="bordered" ariaLabel="Introduction" value={product.description || ''} placeholder="Your personal introduction to this tea..." rows={4} onSave={(val) => handleUpdate(product.id, 'description', val)} className="font-body" />
                 </div>
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <span className="text-ui-11 text-tea-text-dim uppercase tracking-[0.14em]">Terroir</span>
                     <span className="text-ui-11 text-tea-text-dim italic">Soil, altitude, climate</span>
                   </div>
-                  <GhostTextarea variant="bordered" ariaLabel="Terroir" value={product.terroir || ''} placeholder="Where this tea grew and why it matters..." rows={3} onSave={(val) => handleUpdate(product.id, 'terroir', val)} className="font-serif" />
+                  <GhostTextarea variant="bordered" ariaLabel="Terroir" value={product.terroir || ''} placeholder="Where this tea grew and why it matters..." rows={3} onSave={(val) => handleUpdate(product.id, 'terroir', val)} className="font-body" />
                 </div>
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <span className="text-ui-11 text-tea-text-dim uppercase tracking-[0.14em]">Processing</span>
                     <span className="text-ui-11 text-tea-text-dim italic">Craft & method</span>
                   </div>
-                  <GhostTextarea variant="bordered" ariaLabel="Processing notes" value={product.processingNotes || ''} placeholder="How this tea was made..." rows={3} onSave={(val) => handleUpdate(product.id, 'processingNotes', val)} className="font-serif" />
+                  <GhostTextarea variant="bordered" ariaLabel="Processing notes" value={product.processingNotes || ''} placeholder="How this tea was made..." rows={3} onSave={(val) => handleUpdate(product.id, 'processingNotes', val)} className="font-body" />
                 </div>
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
@@ -1450,7 +1450,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                       handleUpdate(product.id, 'lore', val);
                       if (!product.isCustomWisdom) handleUpdate(product.id, 'isCustomWisdom', true);
                     }}
-                    className="font-serif"
+                    className="font-body"
                   />
                 </div>
               </div>
@@ -1511,8 +1511,8 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                     <div className="mb-4 rounded-md bg-tea-bg border border-tea-border overflow-hidden">
                       <div className="flex items-center gap-4 px-4 py-3 border-b border-tea-border">
                         <div className="flex items-baseline gap-1">
-                          <span className="text-ui-26 font-serif text-tea-gold leading-none">{productTastingAgg.avgRating.toFixed(1)}</span>
-                          <span className="text-ui-11 text-tea-text-dim">/5</span>
+                          <span className="font-display text-ui-26 text-tea-gold leading-none tabular-nums">{productTastingAgg.avgRating.toFixed(1)}</span>
+                          <span className="font-mono text-ui-11 text-tea-text-dim">/5</span>
                         </div>
                         <div className="flex flex-col gap-0.5">
                           <span className="text-ui-12 text-tea-text-sec">
@@ -1527,21 +1527,21 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                       </div>
                       {productTastingAgg.impressions.length > 0 && (
                         <div className="px-4 py-3 space-y-2.5">
-                          <div className="text-ui-11 text-tea-text-dim uppercase tracking-[0.14em]">Guest impressions</div>
+                          <div className="text-ui-10 text-tea-text-dim uppercase tracking-[0.18em]">Guest impressions</div>
                           {productTastingAgg.impressions.map((imp, i) => (
-                            <p key={i} className="text-ui-12 font-serif italic text-tea-text leading-relaxed">"{imp}"</p>
+                            <p key={i} className="font-body text-ui-13 italic text-tea-text leading-[1.55]">"{imp}"</p>
                           ))}
                         </div>
                       )}
                     </div>
                   )}
-                  <div className="text-ui-11 text-tea-text-dim uppercase tracking-[0.14em] mb-2">Appeared at</div>
+                  <div className="text-ui-10 text-tea-text-dim uppercase tracking-[0.18em] mb-2">Appeared at</div>
                   <div className="divide-y divide-tea-border border-y border-tea-border">
                     {productEvents.map((event: any) => (
                       <div key={event.id} className="flex items-center justify-between gap-3 py-2.5">
                         <span className="text-ui-13 text-tea-text truncate">{event.name || event.title || 'Event'}</span>
                         {(event.date || event.event_date) && (
-                          <span className="text-ui-11 text-tea-text-dim shrink-0 tabular-nums">
+                          <span className="font-mono text-ui-11 text-tea-text-dim shrink-0 tabular-nums">
                             {new Date(event.date || event.event_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                           </span>
                         )}
