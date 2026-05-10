@@ -2220,7 +2220,7 @@ input[type="number"]::-webkit-outer-spin-button {
   --admin-bg:           #131314;  /* page background */
   --admin-surface:      #1E1E1F;  /* card surface */
   --admin-elevated:     #292929;  /* hover / active / selected card */
-  --admin-input-bg:     #0E0E0F;  /* input fill — DARKER than card so input recesses */
+  --admin-input-bg:     #2A2A2C;  /* input fill — LIGHTER than card so input reads as elevated, matches Claude UI */
   --admin-border:       rgba(255, 255, 255, 0.10);
   --admin-border-hover: rgba(255, 255, 255, 0.16);
   --admin-text:         #E6E6E7;  /* primary — neutral off-white */
@@ -2276,6 +2276,7 @@ input[type="number"]::-webkit-outer-spin-button {
   border: 1px solid var(--admin-border);
   border-radius: 6px;
   color: var(--admin-text);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
   transition: border-color 120ms ease, box-shadow 120ms ease;
 }
 .admin-input::placeholder { color: var(--admin-text-dim); }
