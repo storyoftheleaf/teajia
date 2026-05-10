@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { Icons, SealIcon } from '../components/Icons';
 
@@ -11,6 +11,11 @@ export default function SignInPage() {
   const navigate = useNavigate();
   const auth = useAuth();
   const { state } = useLocation() as { state?: { from?: string } };
+  const [searchParams] = useSearchParams();
+  const returnTo = searchParams.get('returnTo');
+  const safeReturnTo = returnTo && returnTo.startsWith('/') && !returnTo.startsWith('//')
+    ? returnTo
+    : undefined;
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -23,7 +28,7 @@ export default function SignInPage() {
     setLoading(true);
     try {
       await auth.login(identifier.trim(), password);
-      navigate(state?.from ?? -1 as any);
+      navigate(safeReturnTo ?? state?.from ?? -1 as any);
     } catch (err: unknown) {
       setError((err as Error)?.message || 'Sign in failed. Please check your credentials.');
     } finally {
@@ -95,7 +100,7 @@ export default function SignInPage() {
         <p className="font-sans text-sm text-tea-text-sec">
           Don't have an account?{' '}
           <button
-            onClick={() => navigate('/signup')}
+            onClick={() => navigate(safeReturnTo ? `/signup?returnTo=${encodeURIComponent(safeReturnTo)}` : '/signup')}
             className="text-sm text-tea-text-sec hover:text-tea-gold transition-colors font-medium"
           >
             Create one

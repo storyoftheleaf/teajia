@@ -1,5 +1,13 @@
 # Teajia Development TODO
 
+## Infrastructure Follow-Ups
+
+### Cloudflare CI Token — D1 Migration Permission
+- [ ] Update the GitHub Actions `CLOUDFLARE_API_TOKEN` so the Worker deploy workflow can apply D1 migrations automatically.
+- Current state: local Wrangler auth can apply D1 migrations, but the GitHub Actions token does not have D1 database permission.
+- Impact: Worker deploys can still go live, but production migrations may need to be applied manually from an authenticated local terminal.
+- When ready: create/update a Cloudflare API token with Workers deploy permission plus D1 write access, save it as the repo secret `CLOUDFLARE_API_TOKEN`, then remove `continue-on-error: true` from the `Apply D1 migrations` step in `.github/workflows/deploy-worker.yml`.
+
 ## Mood & Flavor Taxonomy System
 
 The goal: create a canonical, interconnected set of mood and flavor tags that every tea pulls from. Build the lists first, then map teas to them.

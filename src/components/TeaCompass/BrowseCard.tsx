@@ -193,9 +193,8 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
   return (
     <>
       <div
-        className={`relative bg-tea-surface rounded-lg overflow-hidden${isSelected ? ' ring-1 ring-tea-gold/40 bg-tea-gold/5' : ''}`}
+        className={`relative bg-tea-surface border border-tea-border rounded-lg overflow-hidden${isSelected ? ' ring-1 ring-tea-gold/40 bg-tea-gold/5' : ''}`}
         style={{
-          ...(typeColor ? { borderLeft: `3px solid color-mix(in srgb, ${typeColor} 50%, transparent)` } : { borderLeft: '3px solid transparent' }),
           ...(isCompareSelected ? { outline: '2px solid var(--tea-gold)', outlineOffset: '-2px' } : {}),
         }}
       >
@@ -242,7 +241,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
                   className="w-14 h-14 rounded-md object-cover"
                 />
                 {validPhotos.length > 1 && (
-                  <span className="absolute bottom-0.5 right-0.5 text-ui-9 font-semibold text-tea-text bg-black/50 rounded px-0.5 leading-tight">
+                  <span className="absolute bottom-0.5 right-0.5 text-ui-9 font-semibold text-tea-text bg-tea-bg/70 rounded px-0.5 leading-tight">
                     +{validPhotos.length - 1}
                   </span>
                 )}

@@ -86,6 +86,8 @@ export interface TeaCompassEntry {
 
   // Panel sharing — normalised identity key, shared across accounts so reviews pool
   teaKey?: string;
+  // Shared/incoming entries point back to the source compass card.
+  sourceEntryId?: string;
 
   // Sample flag — tea entries can be marked as samples (small tasting portions)
   isSample?: boolean;

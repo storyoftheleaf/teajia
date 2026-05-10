@@ -9,6 +9,7 @@ import { useSampleStore } from '../../samples/sampleStore';
 import { BrowseCard } from './BrowseCard';
 import { CompassIcon } from './CompassIcon';
 import type { TeaCompassEntry, BrowseFilter } from './types';
+import type { CompassSurfaceVariant } from './index';
 
 interface BrowseViewProps {
   onEditEntry: (id: string) => void;
@@ -19,6 +20,7 @@ interface BrowseViewProps {
   onSelectEntry?: (id: string) => void;
   /** Desktop: which entry is currently shown in the right detail panel */
   selectedEntryId?: string | null;
+  surfaceVariant?: CompassSurfaceVariant;
 }
 
 function getDateGroup(dateStr: string): string {
@@ -53,7 +55,8 @@ const SectionHeader: React.FC<{ label: React.ReactNode; count: number; right?: R
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCapture, externalSearchQuery, onSelectEntry, selectedEntryId }) => {
+export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCapture, externalSearchQuery, onSelectEntry, selectedEntryId, surfaceVariant = 'classic' }) => {
+  const isPlaybookSurface = surfaceVariant === 'playbook';
   const navigate = useNavigate();
   const { entries, browseFilter, setBrowseFilter, removeEntry, updateEntry } = useTeaCompassStore();
   const [cleanupDismissed, setCleanupDismissed] = useState(false);
@@ -474,37 +477,56 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
         </div>
       )}
 
-      {/* Filter pills + New */}
-      <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide -mx-4 px-4">
+      {/* Filter controls + New */}
+      <div className={isPlaybookSurface ? 'flex flex-wrap items-center gap-2' : 'flex items-center gap-1 overflow-x-auto scrollbar-hide -mx-4 px-4'}>
         {filterOptions.map((opt) => (
           <button
             key={opt.value}
             type="button"
             onClick={() => setBrowseFilter(opt.value)}
-            className={`px-2.5 py-1.5 rounded-lg text-ui-11 font-medium transition-colors whitespace-nowrap shrink-0 ${
-              browseFilter === opt.value
-                ? 'bg-tea-gold/15 text-tea-gold font-semibold'
-                : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-surface/60'
-            }`}
+            className={isPlaybookSurface
+              ? `inline-flex min-h-[36px] items-center gap-2 rounded-md border px-3 py-2 text-ui-12 transition-colors ${
+                  browseFilter === opt.value
+                    ? 'border-tea-gold/30 bg-tea-accent-sub text-tea-text'
+                    : 'border-tea-border bg-tea-bg text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text'
+                }`
+              : `px-2.5 py-1.5 rounded-lg text-ui-11 font-medium transition-colors whitespace-nowrap shrink-0 ${
+                  browseFilter === opt.value
+                    ? 'bg-tea-gold/15 text-tea-gold font-semibold'
+                    : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-surface/60'
+                }`
+            }
           >
-            {opt.label} <span className="tabular-nums">{opt.count}</span>
+            <span>{opt.label}</span>
+            <span className={isPlaybookSurface ? 'font-mono text-ui-11 text-tea-text-dim' : 'tabular-nums'}>{opt.count}</span>
           </button>
         ))}
-        <div className="w-px h-3 bg-tea-border mx-0.5 shrink-0" />
+        <div className={isPlaybookSurface ? 'hidden' : 'w-px h-3 bg-tea-border mx-0.5 shrink-0'} />
         <button
           type="button"
           onClick={() => { setCompareIds(new Set()); setCompareOpen(false); }}
-          className={`p-1.5 rounded-md transition-colors shrink-0 ${
-            compareIds.size > 0 ? 'text-tea-gold bg-tea-gold/10' : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-surface/60'
-          }`}
+          className={isPlaybookSurface
+            ? `inline-flex min-h-[36px] items-center gap-2 rounded-md border px-3 py-2 text-ui-12 transition-colors ${
+                compareIds.size > 0
+                  ? 'border-tea-gold/30 bg-tea-accent-sub text-tea-text'
+                  : 'border-tea-border bg-tea-bg text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text'
+              }`
+            : `p-1.5 rounded-md transition-colors shrink-0 ${
+                compareIds.size > 0 ? 'text-tea-gold bg-tea-gold/10' : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-surface/60'
+              }`
+          }
           title="Compare teas"
         >
           <SplitSquareHorizontal size={13} />
+          {isPlaybookSurface && <span>Compare</span>}
         </button>
         <button
           type="button"
           onClick={onNewCapture}
-          className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-tea-gold/10 text-tea-gold text-ui-11 font-semibold transition-colors hover:bg-tea-gold/15 border border-tea-gold/20 shrink-0"
+          className={isPlaybookSurface
+            ? 'inline-flex min-h-[36px] items-center gap-2 rounded-md border border-tea-gold/30 bg-tea-accent-sub px-3 py-2 text-ui-12 text-tea-text transition-colors hover:bg-tea-gold/10'
+            : 'flex items-center gap-1 px-2.5 py-1 rounded-md bg-tea-gold/10 text-tea-gold text-ui-11 font-semibold transition-colors hover:bg-tea-gold/15 border border-tea-gold/20 shrink-0'
+          }
         >
           <Plus size={11} />
           New

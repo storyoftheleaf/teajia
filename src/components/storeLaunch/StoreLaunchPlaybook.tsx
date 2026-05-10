@@ -22,11 +22,11 @@ type Worksheet = {
   country: string;
   currency: string;
   timezone: string;
-  contactName: string;
-  contactEmail: string;
-  whatsapp: string;
   ownerEmail: string;
   firstStaffEmail: string;
+  publicContactName: string;
+  publicContactEmail: string;
+  publicWhatsapp: string;
   openingStockCount: string;
   firstPublicTea: string;
   firstEventName: string;
@@ -39,11 +39,11 @@ const EMPTY_WORKSHEET: Worksheet = {
   country: '',
   currency: '',
   timezone: '',
-  contactName: '',
-  contactEmail: '',
-  whatsapp: '',
   ownerEmail: '',
   firstStaffEmail: '',
+  publicContactName: '',
+  publicContactEmail: '',
+  publicWhatsapp: '',
   openingStockCount: '',
   firstPublicTea: '',
   firstEventName: '',
@@ -60,8 +60,8 @@ const toWorksheetFromAccount = (account?: Account | null): Partial<Worksheet> =>
     country: account.location_country || '',
     currency: account.currency_default || '',
     timezone: account.timezone || '',
-    contactEmail: account.contact_email || '',
-    whatsapp: account.whatsapp_number || '',
+    publicContactEmail: account.contact_email || '',
+    publicWhatsapp: account.whatsapp_number || '',
   };
 };
 
@@ -83,22 +83,28 @@ const fieldGroups: Array<{
     ],
   },
   {
-    title: 'People',
-    description: 'Who is responsible, who talks to customers, and who needs access first.',
+    title: 'Store access',
+    description: 'The people who can sign in and work inside the store account.',
     fields: [
-      { key: 'contactName', label: 'Main operator', placeholder: 'Customer contact name' },
-      { key: 'ownerEmail', label: 'Owner email', placeholder: 'owner@example.com', type: 'email' },
-      { key: 'firstStaffEmail', label: 'First helper email', placeholder: 'staff@example.com', type: 'email', hint: 'Optional. Add someone who will help with orders, stock, or events.' },
-      { key: 'contactEmail', label: 'Customer email', placeholder: 'hello@example.com', type: 'email' },
-      { key: 'whatsapp', label: 'Customer WhatsApp', placeholder: '+614XXXXXXXX', hint: 'Include the country code.' },
+      { key: 'ownerEmail', label: 'Store owner login email', placeholder: 'owner@example.com', type: 'email', hint: 'This person controls the store account and can invite others.' },
+      { key: 'firstStaffEmail', label: 'First staff login email', placeholder: 'staff@example.com', type: 'email', hint: 'Optional. Add someone who helps with orders, stock, or events.' },
     ],
   },
   {
-    title: 'Opening offer',
-    description: 'The smallest useful public store: one item people can understand and ask for.',
+    title: 'Customer contact',
+    description: 'How visitors get in touch when they want to ask about tea or place an order.',
     fields: [
-      { key: 'openingStockCount', label: 'Number of launch items', placeholder: '12', hint: 'A small, accurate list is better than a large unfinished one.' },
-      { key: 'firstPublicTea', label: 'First public item', placeholder: '2024 Alishan Oolong' },
+      { key: 'publicContactName', label: 'Person customers hear from', placeholder: 'Store contact name', hint: 'Shown in your customer process, not used as a login.' },
+      { key: 'publicContactEmail', label: 'Public customer email', placeholder: 'hello@example.com', type: 'email', hint: 'Use the email customers should write to.' },
+      { key: 'publicWhatsapp', label: 'Public WhatsApp number', placeholder: '+614XXXXXXXX', hint: 'Use the number customers should message. Include the country code.' },
+    ],
+  },
+  {
+    title: 'Opening stock',
+    description: 'The first items that will appear in the public store after they are added in admin.',
+    fields: [
+      { key: 'openingStockCount', label: 'How many items are ready to add?', placeholder: '12', hint: 'This is a planning count. The real products are added in admin inventory.' },
+      { key: 'firstPublicTea', label: 'First item customers should see', placeholder: '2024 Alishan Oolong', hint: 'This should become a real inventory item with price, stock, and description.' },
       { key: 'firstEventName', label: 'First event, optional', placeholder: 'Opening tasting' },
     ],
   },
@@ -119,8 +125,8 @@ const setupSteps = [
   {
     id: 'people',
     icon: Users,
-    title: 'Invite the operating team',
-    publicCopy: 'Decide who owns the store and who will help with customers, stock, and events.',
+    title: 'Set store access',
+    publicCopy: 'Decide who can sign in as the owner and who else needs staff access.',
     adminCopy: 'Invite the owner and staff with presets so nobody starts with unclear permissions.',
     adminHref: '/admin/access',
     publicHref: '/signin',
@@ -130,13 +136,13 @@ const setupSteps = [
   {
     id: 'stock',
     icon: Package,
-    title: 'Load opening stock',
-    publicCopy: 'Prepare item names, prices, quantities, images, and plain descriptions.',
+    title: 'Add opening stock',
+    publicCopy: 'Prepare the first items customers can actually ask about or buy.',
     adminCopy: 'Import the first batch, then make at least one item public, priced, and in stock.',
     adminHref: '/admin/inventory',
     publicHref: '/store-launch-playbook#store-details',
     action: 'Add inventory',
-    publicAction: 'Add launch items below',
+    publicAction: 'Enter opening stock',
   },
   {
     id: 'storefront',
@@ -177,7 +183,7 @@ const primaryFields: Array<keyof Worksheet> = [
   'storeName',
   'country',
   'currency',
-  'contactEmail',
+  'publicContactEmail',
   'openingStockCount',
   'firstPublicTea',
 ];
@@ -231,9 +237,9 @@ export const StoreLaunchPlaybook: React.FC<{
       `Location: ${[storeDetails.city, storeDetails.country].filter(Boolean).join(', ') || 'Not set'}`,
       `Currency: ${storeDetails.currency || 'Not set'}`,
       `Timezone: ${storeDetails.timezone || 'Not set'}`,
-      `Operator: ${storeDetails.contactName || 'Not set'}`,
       `Owner email: ${storeDetails.ownerEmail || 'Not set'}`,
-      `Public contact: ${storeDetails.contactEmail || storeDetails.whatsapp || 'Not set'}`,
+      `Customer contact name: ${storeDetails.publicContactName || 'Not set'}`,
+      `Public contact: ${storeDetails.publicContactEmail || storeDetails.publicWhatsapp || 'Not set'}`,
       `Opening stock count: ${storeDetails.openingStockCount || 'Not set'}`,
       `First public item: ${storeDetails.firstPublicTea || 'Not set'}`,
       `First event: ${storeDetails.firstEventName || 'Optional or not set'}`,
@@ -264,7 +270,7 @@ export const StoreLaunchPlaybook: React.FC<{
               Open a new Teajia store without guessing the steps.
             </h1>
             <p className={`${TYPOGRAPHY_CLASSES.bodyLight} text-tea-text-sec mt-4 max-w-3xl`}>
-              This page collects the details needed to open a store, then points each step to the place where it happens once the store account exists.
+              This page collects the details needed to open a store. Some fields help plan the launch; the real store profile, staff access, and inventory are saved inside admin after the store account exists.
             </p>
           </div>
           <div className="bg-tea-surface border border-tea-border rounded-md p-4">
@@ -289,7 +295,7 @@ export const StoreLaunchPlaybook: React.FC<{
 
         <section className="mt-8 grid gap-3 md:grid-cols-3">
           {[
-            ['1', 'Enter store details', 'Name, location, customer contact, launch items, and the people who need access.'],
+            ['1', 'Enter store details', 'Name, location, customer contact, opening stock, and the people who need access.'],
             ['2', 'Share the opening brief', 'Copy the summary or send the page to the person opening the store.'],
             ['3', 'Finish inside admin', 'After the invite is accepted, the admin page links to the real setup screens.'],
           ].map(([number, title, body]) => (
@@ -313,7 +319,7 @@ export const StoreLaunchPlaybook: React.FC<{
               <div>
                   <h2 className={`${TYPOGRAPHY_CLASSES.h2} text-tea-text`}>Store opening details</h2>
                 <p className="text-ui-13 text-tea-text-sec leading-[1.6] mt-2 max-w-2xl">
-                  Enter the information a store needs before customers see it: identity, contact, access, opening items, and the first customer path.
+                  Enter the information a store needs before customers see it. Login access, customer contact, and inventory are separate on purpose.
                 </p>
               </div>
               <button
@@ -364,10 +370,10 @@ export const StoreLaunchPlaybook: React.FC<{
               <h2 className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text`}>What must be true</h2>
               <div className="mt-4 space-y-3">
                 {[
-                  ['The account has a public name, country, currency, and contact path.', storeDetails.storeName && storeDetails.country && storeDetails.currency && (storeDetails.contactEmail || storeDetails.whatsapp)],
-                  ['At least one owner can access the store.', storeDetails.ownerEmail],
-                  ['At least one public product is priced and in stock.', storeDetails.openingStockCount && storeDetails.firstPublicTea],
-                  ['The operator knows how the first customer message will be handled.', storeDetails.contactName && (storeDetails.contactEmail || storeDetails.whatsapp)],
+                  ['The public store has a name, country, currency, and customer contact path.', storeDetails.storeName && storeDetails.country && storeDetails.currency && (storeDetails.publicContactEmail || storeDetails.publicWhatsapp)],
+                  ['At least one owner login email is known.', storeDetails.ownerEmail],
+                  ['At least one launch item is ready to become a real product in admin.', storeDetails.openingStockCount && storeDetails.firstPublicTea],
+                  ['The customer contact person and contact method are clear.', storeDetails.publicContactName && (storeDetails.publicContactEmail || storeDetails.publicWhatsapp)],
                   ['The first event is either planned or deliberately skipped.', storeDetails.firstEventName || !isAdmin],
                 ].map(([label, done]) => (
                   <div key={label as string} className="flex items-start gap-2">

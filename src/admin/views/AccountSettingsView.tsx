@@ -613,7 +613,7 @@ const LaunchReadinessPanel: React.FC<{
         <div className="min-w-0">
           <h2 className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text`}>Launch Center</h2>
           <p className="text-ui-13 text-tea-text-sec leading-[1.6] mt-1 max-w-2xl">
-            Follow these steps before sharing this store with customers. The checks read live account data where the system can verify it.
+            Follow these steps before sharing this store with customers. The checks read live account data where the system can verify it. The full playbook gives operators the worksheet and linked setup path.
           </p>
         </div>
         <div className="flex items-center gap-3 shrink-0">
@@ -683,6 +683,7 @@ const LaunchReadinessPanel: React.FC<{
         </div>
         <div className="flex flex-wrap gap-2 lg:justify-end lg:self-end">
           {[
+            { label: 'Open playbook', href: '/admin/launch-playbook' },
             { label: 'Import stock', href: '/admin/inventory' },
             { label: 'Review access', href: '/admin/access' },
           ].map(step => (

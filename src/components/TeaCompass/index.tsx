@@ -31,6 +31,7 @@ import { SampleCartPanel } from '../samples/SampleCartPanel';
 import { useSampleCartStore } from '../../samples/sampleCartStore';
 
 export type CompassMode = 'sourcing' | 'library' | 'buying';
+export type CompassSurfaceVariant = 'classic' | 'playbook';
 
 interface TeaCompassProps {
   onBack?: () => void;
@@ -40,6 +41,8 @@ interface TeaCompassProps {
   initialEntryId?: string;
   /** In sourcing mode, preselect the capture sub-tab (tea / teaware / samples) */
   initialCaptureOption?: 'tea' | 'teaware' | 'samples';
+  /** Design preview variant. Classic keeps the current production UI. */
+  surfaceVariant?: CompassSurfaceVariant;
 }
 
 // ─── Desktop-only right column placeholder ───────────────────────────────────
@@ -75,7 +78,8 @@ const CompassRightEmptyState: React.FC<{
 
 // ─── Main Tea Compass ────────────────────────────────────────────────────
 
-export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, initialEntryId, initialCaptureOption }) => {
+export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, initialEntryId, initialCaptureOption, surfaceVariant = 'classic' }) => {
+  const isPlaybookSurface = surfaceVariant === 'playbook';
   const activeEntryId = useTeaCompassStore((s) => s.activeEntryId);
   const setActiveEntry = useTeaCompassStore((s) => s.setActiveEntry);
   const startNewCapture = useTeaCompassStore((s) => s.startNewCapture);
@@ -488,7 +492,38 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   useBottomBarMic(micSlot);
 
   return (
-    <div className="flex flex-col relative lg:h-full">
+    <div className={isPlaybookSurface ? 'flex flex-col relative lg:h-full bg-tea-bg' : 'flex flex-col relative lg:h-full'}>
+      {isPlaybookSurface && (
+        <div className="shrink-0 border-b border-tea-border bg-tea-bg px-4 py-4">
+          <div className="mx-auto flex max-w-5xl flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <div className="min-w-0">
+              <p className="text-ui-10 uppercase tracking-[0.16em] text-tea-text-dim">
+                Tea Compass option surface
+              </p>
+              <p className="mt-1 font-serif text-ui-20 leading-[1.25] text-tea-text">
+                Playbook-style controls
+              </p>
+              <p className="mt-1 max-w-[560px] text-ui-13 text-tea-text-sec leading-[1.5]">
+                Same Compass behavior, restyled with the launch playbook fields, panels, and action boxes.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <a
+                href="/admin/compass"
+                className="inline-flex items-center justify-center rounded-md border border-tea-border bg-tea-bg px-3 py-2 text-ui-12 text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text transition-colors"
+              >
+                Current
+              </a>
+              <a
+                href="/admin/compass-playbook"
+                className="inline-flex items-center justify-center rounded-md border border-tea-gold/30 bg-tea-accent-sub px-3 py-2 text-ui-12 text-tea-text transition-colors"
+              >
+                Playbook
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── HEADER (single row prototype) ──
           [back] [Source ▾] [Tea/Teaware/Samples on sourcing] [share/sync]
@@ -507,7 +542,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
         }`}
         style={{ position: 'relative', zIndex: 5 }}
       >
-        <div className="flex items-stretch h-11 border-b border-tea-border" role="tablist">
+        <div className={isPlaybookSurface ? 'flex items-stretch h-11 border-b border-tea-border bg-tea-bg' : 'flex items-stretch h-11 border-b border-tea-border'} role="tablist">
           <button
             type="button"
             onClick={onBack}
@@ -527,7 +562,10 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
             onClick={() => setScreenSheetOpen(true)}
             aria-haspopup="menu"
             aria-expanded={screenSheetOpen}
-            className="self-center ml-1 inline-flex items-center gap-1.5 px-2.5 h-8 rounded-lg text-ui-13 font-semibold text-tea-text border border-tea-border bg-tea-elevated/60 hover:bg-tea-gold/[0.08] hover:border-tea-gold/40 active:bg-tea-gold/[0.14] transition-colors shrink-0"
+            className={isPlaybookSurface
+              ? 'self-center ml-1 inline-flex items-center gap-1.5 px-2.5 h-8 rounded-md text-ui-13 font-medium text-tea-text border border-tea-border bg-tea-surface hover:bg-tea-accent-sub hover:border-tea-gold/30 active:bg-tea-accent-sub transition-colors shrink-0'
+              : 'self-center ml-1 inline-flex items-center gap-1.5 px-2.5 h-8 rounded-lg text-ui-13 font-semibold text-tea-text border border-tea-border bg-tea-elevated/60 hover:bg-tea-gold/[0.08] hover:border-tea-gold/40 active:bg-tea-gold/[0.14] transition-colors shrink-0'
+            }
             style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.01em' }}
           >
             <span className="w-1.5 h-1.5 rounded-full bg-tea-gold" aria-hidden />
@@ -550,7 +588,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
               option so it reads at a glance. */}
           {mode === 'sourcing' && (
             <div className="flex-1 flex items-center min-w-0">
-              <div className="inline-flex items-center gap-1 max-w-full overflow-x-auto scrollbar-hide">
+              <div className={isPlaybookSurface ? 'inline-flex max-w-full flex-wrap items-center gap-1 overflow-hidden' : 'inline-flex items-center gap-1 max-w-full overflow-x-auto scrollbar-hide'}>
                 {([
                   { id: 'tea', label: 'Tea' },
                   { id: 'teaware', label: 'Teaware' },
@@ -564,8 +602,12 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                       onClick={() => handleCaptureOption(opt.id)}
                       className={`shrink-0 inline-flex items-center gap-1.5 px-3 h-8 rounded-lg text-ui-12 font-semibold transition-colors ${
                         active
-                          ? 'bg-tea-gold/[0.12] text-tea-gold border border-tea-gold/40'
-                          : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-gold/[0.04] border border-transparent'
+                          ? isPlaybookSurface
+                            ? 'bg-tea-accent-sub text-tea-text border border-tea-gold/30'
+                            : 'bg-tea-gold/[0.12] text-tea-gold border border-tea-gold/40'
+                          : isPlaybookSurface
+                            ? 'text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub border border-transparent'
+                            : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-gold/[0.04] border border-transparent'
                       }`}
                       style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.01em' }}
                     >
@@ -684,7 +726,10 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
               spot. They use rounded-md tiles, not pills — same big tap
               target, less of the floating-pill feel. */}
           {mode === 'sourcing' && captureOption !== 'samples' && (
-            <div className="shrink-0 flex items-center gap-1.5 px-3 py-2 border-b border-tea-border overflow-x-auto scrollbar-hide">
+            <div className={isPlaybookSurface
+              ? 'shrink-0 flex flex-wrap items-center gap-2 px-3 py-3 border-b border-tea-border bg-tea-bg'
+              : 'shrink-0 flex items-center gap-1.5 px-3 py-2 border-b border-tea-border overflow-x-auto scrollbar-hide'
+            }>
               {/* Compact + icon-only — "New" label dropped to free up
                   horizontal room for entry chips. The plus glyph is the
                   universal "add" affordance, and the title/aria-label
@@ -694,7 +739,10 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                 onClick={() => handleNewCapture()}
                 aria-label="Start a new entry"
                 title="Start a new entry"
-                className="tap-target shrink-0 inline-flex items-center justify-center w-9 h-8 rounded-md text-tea-text-sec border border-tea-border bg-tea-elevated/40 hover:text-tea-text hover:border-tea-gold/40 transition-colors"
+                className={isPlaybookSurface
+                  ? 'tap-target shrink-0 inline-flex h-9 w-10 items-center justify-center rounded-md border border-tea-border bg-tea-surface text-tea-text-sec transition-colors hover:border-tea-gold/30 hover:bg-tea-accent-sub hover:text-tea-text'
+                  : 'tap-target shrink-0 inline-flex items-center justify-center w-9 h-8 rounded-md text-tea-text-sec border border-tea-border bg-tea-elevated/40 hover:text-tea-text hover:border-tea-gold/40 transition-colors'
+                }
               >
                 <Plus size={14} strokeWidth={2} />
               </button>
@@ -708,8 +756,12 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                 title={batchMode ? 'Exit batch mode' : 'Batch — rapid-fire capture'}
                 className={`tap-target whitespace-nowrap inline-flex items-center px-3 py-1.5 rounded-md text-ui-11 font-medium border transition-colors shrink-0 ${
                   batchMode
-                    ? 'bg-tea-gold/15 text-tea-gold border-tea-gold/40 font-semibold'
-                    : 'text-tea-text-sec border-tea-border bg-tea-elevated/40 hover:text-tea-text hover:border-tea-gold/40'
+                    ? isPlaybookSurface
+                      ? 'bg-tea-accent-sub text-tea-text border-tea-gold/30 font-medium'
+                      : 'bg-tea-gold/15 text-tea-gold border-tea-gold/40 font-semibold'
+                    : isPlaybookSurface
+                      ? 'text-tea-text-sec border-tea-border bg-tea-surface hover:bg-tea-accent-sub hover:text-tea-text hover:border-tea-gold/30'
+                      : 'text-tea-text-sec border-tea-border bg-tea-elevated/40 hover:text-tea-text hover:border-tea-gold/40'
                 }`}
               >
                 Batch
@@ -728,14 +780,18 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                     onClick={() => handleSelectEntry(entry.id)}
                     className={`group relative flex items-center gap-1.5 whitespace-nowrap px-3 py-1.5 rounded-md text-ui-11 border transition-colors shrink-0 ${
                       isActive
-                        ? 'bg-tea-gold text-tea-bg border-tea-gold font-semibold'
-                        : 'bg-tea-elevated/40 text-tea-text-sec border-tea-border hover:text-tea-text'
+                        ? isPlaybookSurface
+                          ? 'bg-tea-accent-sub text-tea-text border-tea-gold/30 font-medium'
+                          : 'bg-tea-gold text-tea-bg border-tea-gold font-semibold'
+                        : isPlaybookSurface
+                          ? 'bg-tea-surface text-tea-text-sec border-tea-border hover:bg-tea-accent-sub hover:text-tea-text'
+                          : 'bg-tea-elevated/40 text-tea-text-sec border-tea-border hover:text-tea-text'
                     }`}
                   >
                     {/* Active session = solid gold pill. Differentiated
                         from the page-tab gold underline so a user can tell
                         the active entry chip from a tab indicator. */}
-                    {isActive && <Check size={11} strokeWidth={3} className="text-tea-bg" />}
+                    {isActive && <Check size={11} strokeWidth={3} className={isPlaybookSurface ? 'text-tea-gold' : 'text-tea-bg'} />}
                     {entry.name || 'Untitled'}
                     <span
                       role="button"
@@ -827,6 +883,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                         onReturnToLibrary={fromLibrary ? () => { setFromLibrary(false); setMode('library'); } : undefined}
                         actionRef={captureCardActionsRef}
                         onShare={hasToken() ? () => setShareModalOpen(true) : undefined}
+                        surfaceVariant={surfaceVariant}
                       />
                     </>
                   )}
@@ -1022,6 +1079,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                     onEditEntry={handleEditEntry}
                     onNewCapture={handleNewCapture}
                     externalSearchQuery={tabSearchQuery}
+                    surfaceVariant={surfaceVariant}
                   />
                 </motion.div>
               ) : (
@@ -1405,6 +1463,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                       externalSearchQuery={tabSearchQuery}
                       onSelectEntry={(id) => setTastingSelectedEntryId(id)}
                       selectedEntryId={tastingSelectedEntryId}
+                      surfaceVariant={surfaceVariant}
                     />
                   </motion.div>
                 )}
@@ -1490,6 +1549,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                           onReturnToLibrary={fromLibrary ? () => { setFromLibrary(false); setMode('library'); } : undefined}
                           actionRef={captureCardActionsRef}
                           onShare={hasToken() ? () => setShareModalOpen(true) : undefined}
+                          surfaceVariant={surfaceVariant}
                         />
                       </>
                     ) : (

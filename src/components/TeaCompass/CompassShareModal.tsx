@@ -32,7 +32,7 @@ export const CompassShareModal: React.FC<CompassShareModalProps> = ({
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
   const [directSent, setDirectSent] = useState(false);
-  const [tab, setTab] = useState<'direct' | 'link' | 'table'>('direct');
+  const [tab, setTab] = useState<'direct' | 'link' | 'table'>('link');
   const [showQr, setShowQr] = useState(false);
   const [tableUrl, setTableUrl] = useState<string | null>(null);
   const [copiedTable, setCopiedTable] = useState(false);
@@ -90,7 +90,7 @@ export const CompassShareModal: React.FC<CompassShareModalProps> = ({
     >
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+        className="absolute inset-0 bg-tea-bg/70 backdrop-blur-sm"
         onClick={onClose}
       />
 
@@ -116,7 +116,7 @@ export const CompassShareModal: React.FC<CompassShareModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 text-tea-text-dim hover:text-tea-text transition-colors"
+            className="tap-target p-1.5 text-tea-text-sec hover:text-tea-text transition-colors"
           >
             <X size={16} />
           </button>
@@ -131,7 +131,7 @@ export const CompassShareModal: React.FC<CompassShareModalProps> = ({
               tab === 'direct' ? 'bg-tea-surface text-tea-text shadow-sm' : 'text-tea-text-dim'
             }`}
           >
-            Send
+            Account
           </button>
           <button
             type="button"
@@ -149,7 +149,7 @@ export const CompassShareModal: React.FC<CompassShareModalProps> = ({
               tab === 'table' ? 'bg-tea-surface text-tea-text shadow-sm' : 'text-tea-text-dim'
             }`}
           >
-            Table
+            Follow-up
           </button>
         </div>
 
@@ -165,7 +165,7 @@ export const CompassShareModal: React.FC<CompassShareModalProps> = ({
             >
               <p className="text-xs text-tea-text-sec">
                 Enter the account slug (the part after{' '}
-                <span className="text-tea-text font-mono">teajia.com/store/</span>)
+                <span className="text-tea-text font-mono">/store/</span>)
                 to push this card directly.
               </p>
 
@@ -224,8 +224,8 @@ export const CompassShareModal: React.FC<CompassShareModalProps> = ({
               className="space-y-3"
             >
               <p className="text-xs text-tea-text-sec">
-                Generate a link anyone can open to view the card. Authenticated Teajia users
-                can save it to their compass.
+                Generate a link anyone can open to view the card. Signed-in Teajia users
+                can save it to their tea journal.
               </p>
 
               {inviteLink ? (
@@ -269,8 +269,8 @@ export const CompassShareModal: React.FC<CompassShareModalProps> = ({
                         transition={{ duration: 0.2 }}
                         className="flex justify-center pt-1"
                       >
-                        <div className="p-3 bg-white rounded-xl shadow-sm">
-                          <QRCodeSVG value={inviteLink} size={180} />
+                        <div className="p-3 bg-tea-text rounded-xl shadow-sm">
+                          <QRCodeSVG value={inviteLink} size={180} bgColor="transparent" fgColor="var(--tea-bg)" />
                         </div>
                       </motion.div>
                     )}
@@ -308,13 +308,13 @@ export const CompassShareModal: React.FC<CompassShareModalProps> = ({
               className="space-y-3"
             >
               <p className="text-xs text-tea-text-sec">
-                Generate a 24-hour QR code for at-table tasting. Guests scan and leave a verdict — no account required.
+                Generate a 24-hour QR code for after-session feedback. Guests can leave a verdict without creating an account.
               </p>
               {tableUrl ? (
                 <div className="space-y-3">
                   <div className="flex justify-center">
-                    <div className="p-3 bg-white rounded-xl shadow-sm">
-                      <QRCodeSVG value={tableUrl} size={180} />
+                    <div className="p-3 bg-tea-text rounded-xl shadow-sm">
+                      <QRCodeSVG value={tableUrl} size={180} bgColor="transparent" fgColor="var(--tea-bg)" />
                     </div>
                   </div>
                   <button
@@ -345,7 +345,7 @@ export const CompassShareModal: React.FC<CompassShareModalProps> = ({
                   className="w-full py-3 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold uppercase tracking-[0.08em] disabled:opacity-40 transition-opacity flex items-center justify-center gap-2"
                 >
                   <QrCode size={13} />
-                  {synced ? 'Generate Table Card' : 'Sync first to generate'}
+                  {synced ? 'Generate feedback QR' : 'Sync first to generate'}
                 </button>
               )}
             </motion.div>

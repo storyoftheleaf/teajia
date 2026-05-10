@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Icons } from '../components/Icons';
 import { buildWhatsAppUrl } from '../lib/whatsapp';
+import { TYPOGRAPHY_CLASSES } from '../designTokens';
 
 const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER || '';
 
@@ -294,6 +295,43 @@ export const ForYourSpacePage: React.FC = () => {
               </li>
             ))}
           </ul>
+        </motion.section>
+
+        {/* ── Divider ── */}
+        <div className="divider-warm my-4 md:my-8" />
+
+        {/* ── Store operator playbook ── */}
+        <motion.section
+          initial={{ opacity: 0, y: 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-40px' }}
+          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+          className="py-16 md:py-20 max-w-[640px]"
+        >
+          <p
+            className="text-ui-11 uppercase tracking-[0.14em] text-tea-text-sec mb-5"
+            style={{ fontFamily: 'var(--font-sans)' }}
+          >
+            Becoming a store
+          </p>
+          <h2
+            className={`${TYPOGRAPHY_CLASSES.h2} text-tea-text mb-4`}
+          >
+            Work through the launch playbook before your account is opened.
+          </h2>
+          <p
+            className={`${TYPOGRAPHY_CLASSES.bodyLight} text-tea-text-sec mb-7`}
+          >
+            The playbook shows the exact fields, people, stock, storefront checks, and first-sale rehearsal every new store needs. Once your account exists, the same path appears inside admin with links to save each part.
+          </p>
+          <Link
+            to="/store-launch-playbook"
+            className="inline-flex min-h-[44px] items-center gap-2 border border-tea-border px-4 py-2 text-ui-12 uppercase tracking-[0.12em] text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text transition-colors"
+            style={{ fontFamily: 'var(--font-sans)' }}
+          >
+            Open store launch playbook
+            <span aria-hidden="true">&rarr;</span>
+          </Link>
         </motion.section>
 
         {/* ── Divider ── */}

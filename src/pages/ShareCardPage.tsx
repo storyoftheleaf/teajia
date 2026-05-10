@@ -3,7 +3,7 @@
  * Route: /share/:token
  *
  * Anyone with the link can view the shared capture card metadata.
- * Authenticated users can claim it into their Tea Compass.
+ * Authenticated users can claim it into their tea journal.
  * Unauthenticated users are nudged to sign up.
  */
 
@@ -52,7 +52,7 @@ const ShareCardPage: React.FC = () => {
         <div className="text-center max-w-sm">
           <h1 className="font-serif text-2xl text-tea-text mb-3">Link not found</h1>
           <p className="text-sm text-tea-text-sec mb-6">
-            This invite link may have expired or already been used.
+            This shared card is no longer available.
           </p>
           <Link
             to="/"
@@ -76,14 +76,14 @@ const ShareCardPage: React.FC = () => {
           </div>
           <h1 className="font-serif text-2xl text-tea-text mb-3">Card saved</h1>
           <p className="text-sm text-tea-text-sec mb-6">
-            {meta.name} is now in your Tasting Journal as an incoming entry.
+            {meta.name || 'This tea'} is now saved to your tea journal.
           </p>
           <button
             type="button"
             onClick={() => navigate('/account/journal')}
             className="text-xs uppercase tracking-[0.2em] text-tea-gold hover:text-tea-text transition-colors"
           >
-            Open Journal
+            Open journal
           </button>
         </div>
       </div>
@@ -91,7 +91,7 @@ const ShareCardPage: React.FC = () => {
   }
   const photo = meta.photo as string | undefined;
   const fromName = invite.source_user_name || invite.source_account_name || 'A taster';
-  const returnPath = encodeURIComponent(location.pathname);
+  const returnPath = encodeURIComponent(`${location.pathname}${location.search}`);
 
   const metaFields: { label: string; value: string | number | undefined }[] = [
     { label: 'Type', value: meta.type },
@@ -108,18 +108,18 @@ const ShareCardPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-tea-bg">
-      <div className="max-w-md mx-auto px-6 py-12 pb-nav-gap">
+      <div className="max-w-md mx-auto px-6 py-12 pb-12">
 
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-2 mb-3">
             <Leaf size={14} className="text-tea-gold" strokeWidth={1.5} />
-            <span className="text-xs uppercase tracking-[0.3em] text-tea-text-sec">Tea Compass</span>
+            <span className="text-xs uppercase tracking-[0.3em] text-tea-text-sec">Tea record</span>
           </div>
           <p className="text-sm text-tea-text-sec mb-1">
             <span className="text-tea-text font-medium">{fromName}</span> is sharing a tea record with you
           </p>
-          <p className="text-xs text-tea-text-dim mt-1">Save it to your own personal tea journal</p>
+          <p className="text-xs text-tea-text-dim mt-1">Save it to your own tea journal</p>
         </div>
 
         {/* Card */}
@@ -165,7 +165,7 @@ const ShareCardPage: React.FC = () => {
               {claimMutation.isPending ? (
                 <span className="inline-block w-4 h-4 border-2 border-tea-bg/30 border-t-tea-bg rounded-full animate-spin" />
               ) : (
-                'Add to My Compass'
+                'Save to my journal'
               )}
             </button>
             {claimMutation.isError && (
@@ -177,17 +177,17 @@ const ShareCardPage: React.FC = () => {
         ) : (
           <div className="text-center space-y-4">
             <p className="text-sm text-tea-text-sec">
-              Sign in to save this card to your Tea Compass and add your own tasting notes.
+              Sign in to save this card to your tea journal and add your own notes.
             </p>
             <Link
-              to={`/admin?redirect=${returnPath}`}
+              to={`/signin?returnTo=${returnPath}`}
               className="block w-full py-4 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.2em] font-semibold rounded-sm hover:bg-tea-gold/90 transition-all"
             >
               Sign in to save
             </Link>
             <p className="text-xs text-tea-text-dim">
               New to Teajia?{' '}
-              <Link to={`/admin?redirect=${returnPath}`} className="text-tea-gold hover:underline">
+              <Link to={`/signup?returnTo=${returnPath}`} className="text-tea-gold hover:underline">
                 Create a free account
               </Link>
             </p>

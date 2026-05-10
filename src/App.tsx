@@ -591,6 +591,7 @@ const AppContent = () => {
   };
 
   const isAdminRoute = location.pathname.startsWith('/admin');
+  const isFocusedShareRoute = location.pathname.startsWith('/share/');
 
   return (
     <div className={`${isAdminRoute ? 'h-dvh overflow-hidden' : 'min-h-dvh'} bg-tea-bg text-tea-text relative selection:bg-tea-gold selection:text-tea-bg overflow-x-hidden font-serif flex flex-col lg:flex-row transition-colors duration-300 pt-[env(safe-area-inset-top)]`}>
@@ -601,17 +602,19 @@ const AppContent = () => {
       {/* Admin Toolbar — visible only for admin users */}
 
       {/* Scroll Progress Bar */}
-      <ScrollProgressBar />
+      {!isFocusedShareRoute && <ScrollProgressBar />}
 
 
       {/* Pull to Refresh Indicator */}
-      <PullToRefreshIndicator pullDistance={pullDistance} isRefreshing={isRefreshing} progress={progress} />
+      {!isFocusedShareRoute && <PullToRefreshIndicator pullDistance={pullDistance} isRefreshing={isRefreshing} progress={progress} />}
 
       {/* Left Sidebar for Desktop */}
-      <LeftSidebar activeSection={activeSection} onNavigate={setActiveSection} onAccountClick={handleOpenAccount} onCartClick={handleOpenCart} onSearchClick={() => { window.dispatchEvent(new CustomEvent('dismiss-tasting-overlay')); setShowAccountModal(false); setAccountInitialView(undefined); setShowGlobalSearch(true); }} cartItemCount={cart.length} topOffset={showAdminBar} />
+      {!isFocusedShareRoute && (
+        <LeftSidebar activeSection={activeSection} onNavigate={setActiveSection} onAccountClick={handleOpenAccount} onCartClick={handleOpenCart} onSearchClick={() => { window.dispatchEvent(new CustomEvent('dismiss-tasting-overlay')); setShowAccountModal(false); setAccountInitialView(undefined); setShowGlobalSearch(true); }} cartItemCount={cart.length} topOffset={showAdminBar} />
+      )}
 
       {/* Main Content Area */}
-      <div className={`flex-1 min-w-0 min-h-0 flex flex-col relative ${sidebarCollapsed ? 'lg:ml-14 lg:max-w-[calc(100vw-3.5rem)]' : 'lg:ml-56 lg:max-w-[calc(100vw-14rem)]'} transition-[margin,max-width] duration-300`}>
+      <div className={`flex-1 min-w-0 min-h-0 flex flex-col relative ${isFocusedShareRoute ? 'lg:ml-0 lg:max-w-none' : sidebarCollapsed ? 'lg:ml-14 lg:max-w-[calc(100vw-3.5rem)]' : 'lg:ml-56 lg:max-w-[calc(100vw-14rem)]'} transition-[margin,max-width] duration-300`}>
 
       {isAdminRoute ? (
         <Suspense fallback={<div className="flex items-center justify-center min-h-screen bg-tea-bg"><div className="w-8 h-8 border-2 border-tea-gold border-t-transparent rounded-full animate-spin" /></div>}>
@@ -627,7 +630,7 @@ const AppContent = () => {
         </Suspense>
       ) : (
       <>
-      <main id="main-content" className="px-4 md:px-6 lg:px-10 pt-0 lg:pt-0 pb-[calc(52px+env(safe-area-inset-bottom,0px)+2rem)] lg:pb-8 min-h-screen w-full flex-1 transition-opacity duration-300">
+      <main id="main-content" className={`${isFocusedShareRoute ? 'px-0 pb-0' : 'px-4 md:px-6 lg:px-10 pb-[calc(52px+env(safe-area-inset-bottom,0px)+2rem)] lg:pb-8'} pt-0 lg:pt-0 min-h-screen w-full flex-1 transition-opacity duration-300`}>
           <AnimatePresence mode="wait">
           {viewState === 'BROWSE' && (
             <AnimatedRoutes>
@@ -956,7 +959,7 @@ const AppContent = () => {
       {/* Soft fade behind the floating bottom tab bar — masks page content
           peeking through the pill's side margins and bottom gap so the bar
           reads cleanly without distracting text behind it. */}
-      {!isCartOpen && (
+      {!isFocusedShareRoute && !isCartOpen && (
         <div
           aria-hidden="true"
           className="lg:hidden fixed inset-x-0 bottom-0 pointer-events-none"
@@ -969,7 +972,9 @@ const AppContent = () => {
       )}
 
       {/* Bottom Tab Bar for Mobile */}
-      <BottomTabBar activeSection={activeSection} onNavigate={handleNavSection} hidden={isCartOpen} onAccountClick={handleToggleAccount} onAccountClose={handleCloseAccount} isAccountOpen={showAccountModal} onSearchClick={() => { window.dispatchEvent(new CustomEvent('dismiss-tasting-overlay')); setShowAccountModal(false); setAccountInitialView(undefined); setShowGlobalSearch(true); }} onSearchClose={() => setShowGlobalSearch(false)} isSearchOpen={showGlobalSearch} isAdminRoute={isAdminRoute} />
+      {!isFocusedShareRoute && (
+        <BottomTabBar activeSection={activeSection} onNavigate={handleNavSection} hidden={isCartOpen} onAccountClick={handleToggleAccount} onAccountClose={handleCloseAccount} isAccountOpen={showAccountModal} onSearchClick={() => { window.dispatchEvent(new CustomEvent('dismiss-tasting-overlay')); setShowAccountModal(false); setAccountInitialView(undefined); setShowGlobalSearch(true); }} onSearchClose={() => setShowGlobalSearch(false)} isSearchOpen={showGlobalSearch} isAdminRoute={isAdminRoute} />
+      )}
 
       </div>
 

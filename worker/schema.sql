@@ -343,12 +343,16 @@ CREATE TABLE IF NOT EXISTS tea_compass_entries (
   buy_quantity_units INTEGER,
   buy_total REAL,
   draft_product_id TEXT,
+  source_entry_id TEXT,
+  session_id TEXT,
   created_at TEXT DEFAULT (datetime('now')),
   updated_at TEXT DEFAULT (datetime('now'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_compass_user_id ON tea_compass_entries(user_id);
 CREATE INDEX IF NOT EXISTS idx_compass_status ON tea_compass_entries(status);
+CREATE INDEX IF NOT EXISTS idx_compass_entries_source ON tea_compass_entries(source_entry_id);
+CREATE INDEX IF NOT EXISTS idx_compass_entries_session ON tea_compass_entries(session_id);
 
 CREATE TABLE IF NOT EXISTS compass_shares (
   id TEXT PRIMARY KEY,

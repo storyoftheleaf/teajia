@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { Icons } from '../components/Icons';
 import { LogoEmblem } from '../components/Logos';
@@ -13,6 +13,11 @@ type ContactPlatform = 'whatsapp' | 'telegram';
 export default function SignUpPage() {
   const navigate = useNavigate();
   const auth = useAuth();
+  const [searchParams] = useSearchParams();
+  const returnTo = searchParams.get('returnTo');
+  const safeReturnTo = returnTo && returnTo.startsWith('/') && !returnTo.startsWith('//')
+    ? returnTo
+    : undefined;
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -35,7 +40,7 @@ export default function SignUpPage() {
         localStorage.setItem('teajia_contact_platform', contactPlatform);
         if (contactPhone.trim()) localStorage.setItem('teajia_contact_phone', contactPhone.trim());
       }
-      navigate(-1);
+      navigate(safeReturnTo ?? -1 as any);
     } catch (err: unknown) {
       setError((err as Error)?.message || 'Account creation failed. Please try again.');
     } finally {
@@ -206,7 +211,7 @@ export default function SignUpPage() {
         <p className="font-sans text-sm text-tea-text-sec">
           Already have an account?{' '}
           <button
-            onClick={() => navigate('/signin')}
+            onClick={() => navigate(safeReturnTo ? `/signin?returnTo=${encodeURIComponent(safeReturnTo)}` : '/signin')}
             className="text-sm text-tea-text-sec hover:text-tea-gold transition-colors font-medium"
           >
             Sign in

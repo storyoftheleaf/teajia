@@ -32,6 +32,7 @@
 | **FLOWS.md** | End-to-end user journeys per tier | Designing features or understanding how surfaces relate |
 | **SITE_MAP.md** | Every route + action, by tier | Adding a link, designing nav, checking if a page exists |
 | **ACTIVE_BRIEFS.md** | Index of in-progress feature briefs | Implementing a feature; need to find its spec |
+| **PLAYBOOK_SURFACE_PATTERN.md** | Reusable visual/UX pattern from the store launch playbook | Applying the new guided look to Tea Compass or other tools |
 | **COLOR_RULES.md** | Design tokens, safe colors, theme contract | Writing CSS or adding a color |
 
 ## For engineering

@@ -20,6 +20,7 @@ const CAMEL_TO_SNAKE: Record<string, string> = {
   buyQuantityUnits: 'buy_quantity_units',
   buyTotal: 'buy_total',
   draftProductId: 'draft_product_id',
+  sourceEntryId: 'source_entry_id',
   teaKey: 'tea_key',
   createdAt: 'created_at',
   updatedAt: 'updated_at',

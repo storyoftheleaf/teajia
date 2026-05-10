@@ -92,7 +92,7 @@ import { DraftsView } from './components/DraftsView';
 import { CatalogView } from './views/CatalogView';
 import { PurchaseOrdersPage } from './views/PurchaseOrdersPage';
 import { TeaCompass } from '../components/TeaCompass';
-import type { CompassMode } from '../components/TeaCompass';
+import type { CompassMode, CompassSurfaceVariant } from '../components/TeaCompass';
 import { VendorProfileView } from './views/VendorProfileView';
 import { ProductStoryView } from './views/ProductStoryView';
 import { PlatformAuditLogPage } from './views/PlatformAuditLogPage';
@@ -118,7 +118,7 @@ import { AddToCartModal } from './components/AddToCartModal';
 import { AddProductModal } from './components/AddProductModal';
 
 /** Reads ?tab= and ?entry= query params and passes them to TeaCompass */
-const CompassWithMode: React.FC<{ onBack: () => void }> = ({ onBack }) => {
+const CompassWithMode: React.FC<{ onBack: () => void; surfaceVariant?: CompassSurfaceVariant }> = ({ onBack, surfaceVariant = 'classic' }) => {
   const [params] = useSearchParams();
   const tab = params.get('tab');
   const entryId = params.get('entry');
@@ -139,7 +139,15 @@ const CompassWithMode: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     capture === 'teaware' ? 'teaware' :
     capture === 'tea' ? 'tea' :
     undefined;
-  return <TeaCompass onBack={onBack} initialMode={initialMode} initialEntryId={entryId || undefined} initialCaptureOption={initialCaptureOption} />;
+  return (
+    <TeaCompass
+      onBack={onBack}
+      initialMode={initialMode}
+      initialEntryId={entryId || undefined}
+      initialCaptureOption={initialCaptureOption}
+      surfaceVariant={surfaceVariant}
+    />
+  );
 };
 
 const PageTransition = ({ children }: { children: React.ReactNode }) => (
@@ -639,6 +647,13 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
                 <ProtectedRoute hasAccess={hasCatalogBundle} isLoggingIn={isLoginOpen || !isLoggedIn}>
                   <PageTransition>
                     <CompassWithMode onBack={() => navigate(-1)} />
+                  </PageTransition>
+                </ProtectedRoute>
+              } />
+              <Route path="compass-playbook" element={
+                <ProtectedRoute hasAccess={hasCatalogBundle} isLoggingIn={isLoginOpen || !isLoggedIn}>
+                  <PageTransition>
+                    <CompassWithMode onBack={() => navigate(-1)} surfaceVariant="playbook" />
                   </PageTransition>
                 </ProtectedRoute>
               } />

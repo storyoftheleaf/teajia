@@ -2609,7 +2609,7 @@ const handleUpdateInvoice: Handler = async (request, env, params) => {
 
   const body = await request.json() as Record<string, any>;
   delete body.account_id;
-  const INVOICE_ALLOWED_COLS = new Set(['customer_name','customer_id','customer_phone','customer_email','status','notes','display_currency','amount_usd','shipping_cost_usd','message_text','paid_at','due_date','payment_method','currency_rate','source_event_id']);
+  const INVOICE_ALLOWED_COLS = new Set(['customer_name','customer_id','customer_phone','customer_email','status','notes','display_currency','amount_usd','shipping_cost_usd','message_text','payment_status','paid_at','payment_date','due_date','payment_method','currency_rate','source_event_id']);
   const cols = Object.keys(body).filter(k => INVOICE_ALLOWED_COLS.has(k));
   if (cols.length === 0) return json({ success: true });
   const sets = cols.map(c => `${c} = ?`).join(', ');
@@ -8895,15 +8895,27 @@ const handleCompassAcceptShare: Handler = async (request, env, params) => {
   if (!share) return json({ error: 'Share not found or already handled' }, 404);
 
   const meta = share.shared_metadata ? JSON.parse(share.shared_metadata as string) : {};
+  const existing = await env.DB.prepare(
+    `SELECT * FROM tea_compass_entries
+     WHERE user_id = ? AND account_id = ? AND source_entry_id = ?
+     ORDER BY created_at DESC LIMIT 1`
+  ).bind(userId, accountId, share.source_entry_id).first();
   const entryId = crypto.randomUUID();
   const now = new Date().toISOString();
+
+  if (existing) {
+    await env.DB.prepare(
+      `UPDATE compass_shares SET status = 'accepted', claimed_by_user_id = ?, claimed_at = ? WHERE id = ?`
+    ).bind(userId, now, params.id).run();
+    return json({ entry: existing, share_id: params.id, already_claimed: true });
+  }
 
   await env.DB.prepare(
     `INSERT INTO tea_compass_entries
        (id, user_id, account_id, name, chinese_name, type, form, year, season,
         origin_region, category, teaware_category, material, capacity_ml,
-        photos, tea_key, status, notes, quantity, price_currency, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'incoming', '', 1, 'NT', ?, ?)`
+        photos, tea_key, source_entry_id, status, notes, quantity, price_currency, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'incoming', '', 1, 'NT', ?, ?)`
   ).bind(
     entryId, userId, accountId,
     meta.name || '', meta.chineseName || null, meta.type || null, meta.form || null,
@@ -8911,6 +8923,7 @@ const handleCompassAcceptShare: Handler = async (request, env, params) => {
     meta.category || 'tea', meta.teawareCategory || null, meta.material || null, meta.capacityMl || null,
     meta.photo ? JSON.stringify([meta.photo]) : '[]',
     meta.teaKey || share.tea_key,
+    share.source_entry_id,
     now, now
   ).run();
 
@@ -8968,15 +8981,27 @@ const handleCompassClaimInvite: Handler = async (request, env, params) => {
   if (!share) return json({ error: 'Invite not found or already used' }, 404);
 
   const meta = share.shared_metadata ? JSON.parse(share.shared_metadata as string) : {};
+  const existing = await env.DB.prepare(
+    `SELECT * FROM tea_compass_entries
+     WHERE user_id = ? AND account_id = ? AND source_entry_id = ?
+     ORDER BY created_at DESC LIMIT 1`
+  ).bind(userId, accountId, share.source_entry_id).first();
   const entryId = crypto.randomUUID();
   const now = new Date().toISOString();
+
+  if (existing) {
+    await env.DB.prepare(
+      `UPDATE compass_shares SET claimed_by_user_id = ?, claimed_at = ? WHERE id = ?`
+    ).bind(userId, now, share.id).run();
+    return json({ entry: existing, already_claimed: true });
+  }
 
   await env.DB.prepare(
     `INSERT INTO tea_compass_entries
        (id, user_id, account_id, name, chinese_name, type, form, year, season,
         origin_region, category, teaware_category, material, capacity_ml,
-        photos, tea_key, status, notes, quantity, price_currency, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'incoming', '', 1, 'NT', ?, ?)`
+        photos, tea_key, source_entry_id, status, notes, quantity, price_currency, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'incoming', '', 1, 'NT', ?, ?)`
   ).bind(
     entryId, userId, accountId,
     meta.name || '', meta.chineseName || null, meta.type || null, meta.form || null,
@@ -8984,6 +9009,7 @@ const handleCompassClaimInvite: Handler = async (request, env, params) => {
     meta.category || 'tea', meta.teawareCategory || null, meta.material || null, meta.capacityMl || null,
     meta.photo ? JSON.stringify([meta.photo]) : '[]',
     meta.teaKey || share.tea_key,
+    share.source_entry_id,
     now, now
   ).run();
 
