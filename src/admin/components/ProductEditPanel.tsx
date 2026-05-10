@@ -1263,7 +1263,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                 <div className="grid grid-cols-[78px_1fr] gap-x-3 items-start">
                   <span className="text-ui-11 text-admin-text-dim uppercase tracking-[0.06em] pt-1">Visible</span>
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <button onClick={() => handleUpdate(product.id, 'isPublic', !product.isPublic)} className={`pill-quiet ${product.isPublic ? 'pill-quiet-on' : ''}`}>
+                    <button onClick={() => handleUpdate(product.id, 'isPublic', !product.isPublic)} className={`admin-pill ${product.isPublic ? 'admin-pill-on' : ''}`}>
                       {product.isPublic ? <Eye size={10} /> : <EyeOff size={10} />} In Shop
                     </button>
                   </div>
@@ -1272,10 +1272,10 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                 <div className="grid grid-cols-[78px_1fr] gap-x-3 items-start">
                   <span className="text-ui-11 text-admin-text-dim uppercase tracking-[0.06em] pt-1">Promote</span>
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <button onClick={() => handleUpdate(product.id, 'isFeatured', !product.isFeatured)} className={`pill-quiet ${product.isFeatured ? 'pill-quiet-on' : ''}`}>
+                    <button onClick={() => handleUpdate(product.id, 'isFeatured', !product.isFeatured)} className={`admin-pill ${product.isFeatured ? 'admin-pill-on' : ''}`}>
                       <Star size={10} className={product.isFeatured ? 'fill-current' : ''} /> Starred
                     </button>
-                    <button onClick={() => handleUpdate(product.id, 'isCurated', !product.isCurated)} className={`pill-quiet ${product.isCurated ? 'pill-quiet-on' : ''}`}>
+                    <button onClick={() => handleUpdate(product.id, 'isCurated', !product.isCurated)} className={`admin-pill ${product.isCurated ? 'admin-pill-on' : ''}`}>
                       <Sparkles size={10} /> Top Pick
                     </button>
                   </div>
@@ -1284,13 +1284,13 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                 <div className="grid grid-cols-[78px_1fr] gap-x-3 items-start">
                   <span className="text-ui-11 text-admin-text-dim uppercase tracking-[0.06em] pt-1">Classify</span>
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <button onClick={() => handleUpdate(product.id, 'isSample', !product.isSample)} className={`pill-quiet ${product.isSample ? 'pill-quiet-on' : ''}`}>
+                    <button onClick={() => handleUpdate(product.id, 'isSample', !product.isSample)} className={`admin-pill ${product.isSample ? 'admin-pill-on' : ''}`}>
                       <FlaskConical size={10} /> Sample
                     </button>
-                    <button onClick={() => handleUpdate(product.id, 'canReorder', !product.canReorder)} className={`pill-quiet ${product.canReorder ? 'pill-quiet-on' : ''}`}>
+                    <button onClick={() => handleUpdate(product.id, 'canReorder', !product.canReorder)} className={`admin-pill ${product.canReorder ? 'admin-pill-on' : ''}`}>
                       <RefreshCw size={10} /> Restockable
                     </button>
-                    <button onClick={() => handleUpdate(product.id, 'isPersonal', !product.isPersonal)} className={`pill-quiet ${product.isPersonal ? 'pill-quiet-on' : ''}`}>
+                    <button onClick={() => handleUpdate(product.id, 'isPersonal', !product.isPersonal)} className={`admin-pill ${product.isPersonal ? 'admin-pill-on' : ''}`}>
                       <User size={10} /> Mine
                     </button>
                   </div>

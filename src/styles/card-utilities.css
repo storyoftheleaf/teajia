@@ -2235,33 +2235,26 @@ input[type="number"]::-webkit-outer-spin-button {
    Each move is barely-there individually; together they make the card
    sit *above* the panel surface instead of being painted onto it. */
 .admin-card {
-  /* Layered chrome producing the Claude UI's "milled" card feel.
-     Each layer is barely-there individually; together they create the
-     unambiguous "card above panel" reading.
-     1. Top-to-mid gradient (4% white) — ambient lift on the upper half
-     2. Inset 0 1px 0 (10% white) — sharp top bevel that defines the edge
-     3. Drop shadow (50% black, 6px blur) — gentle separation from the page
-     4. Faint inset 0 -1px 0 — anchors the bottom edge in shadow */
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0) 50%),
-    var(--admin-surface);
+  /* Flat surface — no gradient. Card is defined by:
+     1. Solid bg color (one notch lighter than page bg)
+     2. Inset 0 1px 0 white highlight — sharp top bevel
+     3. Drop shadow — gentle separation from the page */
+  background: var(--admin-surface);
   border: 1px solid var(--admin-border);
   border-radius: 8px;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.10),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
     inset 0 -1px 0 rgba(0, 0, 0, 0.20),
     0 2px 6px rgba(0, 0, 0, 0.50),
     0 1px 0 rgba(0, 0, 0, 0.30);
 }
 
 .admin-card-elevated {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0) 50%),
-    var(--admin-elevated);
+  background: var(--admin-elevated);
   border: 1px solid var(--admin-border-hover);
   border-radius: 8px;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
     inset 0 -1px 0 rgba(0, 0, 0, 0.25),
     0 3px 8px rgba(0, 0, 0, 0.55),
     0 1px 0 rgba(0, 0, 0, 0.35);
