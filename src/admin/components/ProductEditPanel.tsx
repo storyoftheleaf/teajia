@@ -571,26 +571,21 @@ export const ImageManager = ({ product, onUpdate }: {
                 )}
               </>
             ) : (
-              <div className="relative w-full h-full">
-                {/* Empty slot — clean tap target. Primary action is "Take photo"
-                    (mobile via the file input's capture attribute) / "Upload"
-                    (desktop). Both route through the cropper. */}
-                <button
-                  onClick={() => pickFile(i, false)}
-                  disabled={uploadingSlot !== null}
-                  aria-label={`Add ${slotLabels[i].toLowerCase()} image`}
-                  className="w-full h-full rounded-md bg-tea-bg hover:bg-tea-accent-sub transition-colors flex flex-col items-center justify-center gap-1.5 cursor-pointer group"
-                >
-                  {uploadingSlot === i ? (
-                    <Loader2 size={16} className="text-tea-text-dim animate-spin" aria-hidden="true" />
-                  ) : (
-                    <>
-                      <Plus size={14} className="text-tea-text-dim group-hover:text-tea-gold transition-colors" aria-hidden="true" />
-                      <span className="text-ui-10 text-tea-text-dim group-hover:text-tea-text-sec uppercase tracking-[0.18em] transition-colors">{slotLabels[i]}</span>
-                    </>
-                  )}
-                </button>
-              </div>
+              <button
+                onClick={() => pickFile(i, false)}
+                disabled={uploadingSlot !== null}
+                aria-label={`Add ${slotLabels[i].toLowerCase()} image`}
+                className="w-full h-full rounded-md bg-tea-bg/40 hover:bg-tea-gold/[0.04] transition-colors flex flex-col items-center justify-center gap-1.5 cursor-pointer group"
+              >
+                {uploadingSlot === i ? (
+                  <Loader2 size={16} className="text-tea-text-dim animate-spin" aria-hidden="true" />
+                ) : (
+                  <>
+                    <Plus size={14} className="text-tea-text-dim/50 group-hover:text-tea-gold transition-colors" aria-hidden="true" />
+                    <span className="text-ui-9 text-tea-text-dim/70 group-hover:text-tea-gold/80 uppercase tracking-caps transition-colors">{slotLabels[i]}</span>
+                  </>
+                )}
+              </button>
             )}
           </div>
         ))}
