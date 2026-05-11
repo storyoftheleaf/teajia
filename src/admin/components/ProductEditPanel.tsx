@@ -983,45 +983,46 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
             </div>
           )}
 
-          {/* Header — Row 2: Identity card. Neutral admin surface; the type
-              color signal lives as a 2px left bar so the rest of the card is calm. */}
-          <div className="px-3 pt-3 pb-2">
-            <div
-              className="admin-card relative pl-4 pr-3 py-3 flex items-start justify-between gap-3"
-              style={{ boxShadow: `inset 2px 0 0 ${getThemeColor(product.type)}, inset 0 1px 0 rgba(255,255,255,0.04), 0 1px 2px rgba(0,0,0,0.3)` }}
-            >
-              <div className="min-w-0 flex-1">
-                <h3 id={titleId} className="font-sans text-ui-17 font-medium text-admin-text leading-[1.25] tracking-[-0.005em]" title={product.productName}>{product.productName}</h3>
-                {product.givenName && <div className="text-ui-13 text-admin-text-sec leading-tight mt-1">{product.givenName}</div>}
-                <div className="flex items-center flex-wrap gap-x-1.5 gap-y-0.5 mt-1.5">
-                  <span className="text-ui-12 text-admin-text-sec">{product.type}</span>
-                  {product.year && <span className="text-ui-12 text-admin-text-dim font-mono tabular-nums">· {product.year}</span>}
-                  {product.originRegion && <span className="text-ui-12 text-admin-text-dim">· {product.originRegion}</span>}
+          {/* Scrollable content. Identity card lives here too — scrolls with
+              everything else instead of staying fixed under the nav row. */}
+          <div className="flex-1 overflow-y-auto custom-scrollbar pt-3 pb-nav-gap">
+            {/* Identity card. Neutral admin surface; the type color signal
+                lives as a 2px left bar so the rest of the card is calm. */}
+            <div className="px-3 pb-3">
+              <div
+                className="admin-card relative pl-4 pr-3 py-3 flex items-start justify-between gap-3"
+                style={{ boxShadow: `inset 2px 0 0 ${getThemeColor(product.type)}, inset 0 1px 0 rgba(255,255,255,0.04), 0 1px 2px rgba(0,0,0,0.3)` }}
+              >
+                <div className="min-w-0 flex-1">
+                  <h3 id={titleId} className="font-sans text-ui-17 font-medium text-admin-text leading-[1.25] tracking-[-0.005em]" title={product.productName}>{product.productName}</h3>
+                  {product.givenName && <div className="text-ui-13 text-admin-text-sec leading-tight mt-1">{product.givenName}</div>}
+                  <div className="flex items-center flex-wrap gap-x-1.5 gap-y-0.5 mt-1.5">
+                    <span className="text-ui-12 text-admin-text-sec">{product.type}</span>
+                    {product.year && <span className="text-ui-12 text-admin-text-dim font-mono tabular-nums">· {product.year}</span>}
+                    {product.originRegion && <span className="text-ui-12 text-admin-text-dim">· {product.originRegion}</span>}
+                  </div>
                 </div>
-              </div>
-              <div className="flex flex-col items-end gap-2 shrink-0">
-                <div className="relative">
-                  <label className="sr-only" htmlFor={`panel-status-${product.id}`}>Product status</label>
-                  <select
-                    id={`panel-status-${product.id}`}
-                    value={product.status}
-                    onChange={e => handleUpdate(product.id, 'status', e.target.value)}
-                    className="admin-input text-ui-11 uppercase tracking-[0.08em] pl-2.5 pr-6 py-1.5 cursor-pointer appearance-none"
-                    style={{ color: statusColor }}
-                  >
-                    {['Active', 'Draft', 'Archived', 'Sold Out'].map(s => <option key={s} value={s} className="bg-admin-surface text-admin-text">{s}</option>)}
-                  </select>
-                  <ChevronDown size={11} className="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none text-admin-text-dim" aria-hidden="true" />
+                <div className="flex flex-col items-end gap-2 shrink-0">
+                  <div className="relative">
+                    <label className="sr-only" htmlFor={`panel-status-${product.id}`}>Product status</label>
+                    <select
+                      id={`panel-status-${product.id}`}
+                      value={product.status}
+                      onChange={e => handleUpdate(product.id, 'status', e.target.value)}
+                      className="admin-input text-ui-11 uppercase tracking-[0.08em] pl-2.5 pr-6 py-1.5 cursor-pointer appearance-none"
+                      style={{ color: statusColor }}
+                    >
+                      {['Active', 'Draft', 'Archived', 'Sold Out'].map(s => <option key={s} value={s} className="bg-admin-surface text-admin-text">{s}</option>)}
+                    </select>
+                    <ChevronDown size={11} className="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none text-admin-text-dim" aria-hidden="true" />
+                  </div>
+                  <button onClick={() => setQrProduct(product)} aria-label="Generate QR code" title="Generate QR Code" className="inline-flex items-center gap-1 text-ui-11 text-admin-text-sec hover:text-admin-text transition-colors rounded px-1 py-0.5">
+                    <QrCode size={12} aria-hidden="true" /> QR
+                  </button>
                 </div>
-                <button onClick={() => setQrProduct(product)} aria-label="Generate QR code" title="Generate QR Code" className="inline-flex items-center gap-1 text-ui-11 text-admin-text-sec hover:text-admin-text transition-colors rounded px-1 py-0.5">
-                  <QrCode size={12} aria-hidden="true" /> QR
-                </button>
               </div>
             </div>
-          </div>
 
-          {/* Scrollable content */}
-          <div className="flex-1 overflow-y-auto custom-scrollbar pt-3 pb-nav-gap">
             {/* 1. QUICK ENTRY. Required fields grouped on one bordered card.
                   Identity, origin, vendor, pricing, stock, visibility all live here so a
                   product can be entered top-to-bottom without expanding sections. */}

@@ -2212,21 +2212,20 @@ input[type="number"]::-webkit-outer-spin-button {
    ============================================ */
 
 :root, .light, .dark {
-  /* Neutral dark grays. The previous warm pass (R>G>B by 4 points)
-     rendered as visibly yellow/tan against the dark bg — that's why
-     the panel kept reading as "gold and brown". These values are
-     truly neutral (R≈G≈B), with only a 1-point B>R shift to avoid
-     the dead "perfect gray" look. */
-  --admin-bg:           #131314;  /* page background */
-  --admin-surface:      #1E1E1F;  /* card surface */
-  --admin-elevated:     #292929;  /* hover / active / selected card */
-  --admin-input-bg:     #2A2A2C;  /* input fill — LIGHTER than card so input reads as elevated, matches Claude UI */
-  --admin-border:       rgba(255, 255, 255, 0.10);
-  --admin-border-hover: rgba(255, 255, 255, 0.16);
-  --admin-text:         #E6E6E7;  /* primary — neutral off-white */
-  --admin-text-sec:     #A0A0A1;  /* body / description */
-  --admin-text-dim:     #6E6E70;  /* labels / meta */
-  --admin-text-faint:   #4A4A4B;  /* very low priority hints */
+  /* Warm dark grays — R > G > B by 2-3 points so the bg reads as
+     warm-neutral dark (slight espresso cast) rather than blue-cool.
+     Borders are sharper (~15% white) for crisp 1px edges.
+     Text colors brighter for stronger heading/body contrast. */
+  --admin-bg:           #181613;  /* page background — warm dark */
+  --admin-surface:      #25221E;  /* card surface */
+  --admin-elevated:     #312D28;  /* hover / active / selected card */
+  --admin-input-bg:     #322E29;  /* input fill — LIGHTER than card */
+  --admin-border:       rgba(255, 248, 240, 0.14);  /* crisp 1px edge */
+  --admin-border-hover: rgba(255, 248, 240, 0.22);
+  --admin-text:         #F2F0EC;  /* primary — brighter for contrast */
+  --admin-text-sec:     #B5ADA1;  /* body / description */
+  --admin-text-dim:     #7A7268;  /* labels / meta */
+  --admin-text-faint:   #524A42;  /* very low priority hints */
 }
 
 /* Card surface — three concurrent moves create the "milled object" feel:
@@ -2235,6 +2234,15 @@ input[type="number"]::-webkit-outer-spin-button {
    3. Outer drop shadow — separates the card from the page beneath it
    Each move is barely-there individually; together they make the card
    sit *above* the panel surface instead of being painted onto it. */
+/* Sharper, brighter text across admin surfaces. */
+.admin-card,
+.admin-input,
+[style*="--admin-bg"] {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
 .admin-card {
   /* Flat surface — no gradient. Card is defined by:
      1. Solid bg color (one notch lighter than page bg)
