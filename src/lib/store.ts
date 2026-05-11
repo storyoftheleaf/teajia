@@ -3,6 +3,9 @@ import { persist } from 'zustand/middleware';
 import { CartItem as AdminCartItem, Currency, Product } from '../admin/types';
 import { Account, AccountMembership, CartItem as PublicCartItem, CustomerTasting, PlatformRole } from '../types';
 
+/** A half-filled product captured by the AddProductModal auto-save. */
+export type DraftProduct = Partial<Product>;
+
 interface InventoryViewConfig {
   id: string;
   name: string;
@@ -118,9 +121,14 @@ interface AppState {
   setInventorySortConfig: (sortConfig: { key: string; direction: 'asc' | 'desc' }[]) => void;
   setInventoryPriceMode: (mode: 'cost' | 'retail') => void;
 
-  // Draft Product (auto-save for AddProductModal)
-  draftProduct: Partial<Product> | null;
-  setDraftProduct: (draft: Partial<Product> | null) => void;
+  // Draft Product (auto-save for AddProductModal) — scoped per account so
+  // operators can context-switch between stores without losing a half-drafted
+  // product. Keyed by `activeAccountId`.
+  draftProductByAccountId: Record<string, DraftProduct>;
+  /** Sets the draft for the currently active account. No-op if no active account. */
+  setDraftProduct: (draft: DraftProduct | null) => void;
+  /** Clears the draft for the currently active account. */
+  clearDraftProduct: () => void;
 
   // Public shop — selected store location (null = default Bali)
   shopStoreSlug: string | null;
@@ -173,6 +181,16 @@ export function selectIsOwnerTier(state: Pick<AppState, 'memberships' | 'activeA
   return active?.role === 'owner';
 }
 
+// Returns the active account's in-progress product draft, or null if none exists
+// (or no account is active). Drafts are scoped per account so operators don't
+// lose work when switching stores.
+export function selectActiveDraftProduct(
+  state: Pick<AppState, 'draftProductByAccountId' | 'activeAccountId'>,
+): DraftProduct | null {
+  if (!state.activeAccountId) return null;
+  return state.draftProductByAccountId[state.activeAccountId] ?? null;
+}
+
 const DEFAULT_INVENTORY_COLUMNS = ['productName', 'type', 'year', 'originRegion', 'stockGrams', 'costAmount', 'pricePerGramUSD'];
 const DEFAULT_INVENTORY_SORT_CONFIG = [{ key: 'type', direction: 'asc' as const }];
 
@@ -194,7 +212,8 @@ const scopedStateReset = () => ({
   inventoryGroupBy: null,
   inventorySortConfig: [...DEFAULT_INVENTORY_SORT_CONFIG],
   inventoryPriceMode: 'retail' as const,
-  draftProduct: null,
+  // NOTE: draftProductByAccountId is intentionally NOT reset here. Drafts are
+  // scoped per account and must survive account switches.
   upcomingEventsCount: 0,
   cartLastAddedAt: null,
 });
@@ -481,9 +500,35 @@ export const useAppStore = create<AppState>()(
       setInventorySortConfig: (sortConfig) => set({ inventorySortConfig: sortConfig }),
       setInventoryPriceMode: (mode) => set({ inventoryPriceMode: mode }),
 
-      // Draft Product
-      draftProduct: null,
-      setDraftProduct: (draft) => set({ draftProduct: draft }),
+      // Draft Product — per-account so operators don't lose drafts on switch
+      draftProductByAccountId: {},
+      setDraftProduct: (draft) =>
+        set((state) => {
+          const accountId = state.activeAccountId;
+          if (!accountId) return state;
+          // A null/empty draft means "clear" — drop the key entirely so we
+          // don't keep stale entries hanging around.
+          if (!draft || Object.keys(draft).length === 0) {
+            if (!(accountId in state.draftProductByAccountId)) return state;
+            const next = { ...state.draftProductByAccountId };
+            delete next[accountId];
+            return { draftProductByAccountId: next };
+          }
+          return {
+            draftProductByAccountId: {
+              ...state.draftProductByAccountId,
+              [accountId]: draft,
+            },
+          };
+        }),
+      clearDraftProduct: () =>
+        set((state) => {
+          const accountId = state.activeAccountId;
+          if (!accountId || !(accountId in state.draftProductByAccountId)) return state;
+          const next = { ...state.draftProductByAccountId };
+          delete next[accountId];
+          return { draftProductByAccountId: next };
+        }),
 
 
       // Public shop location
@@ -549,7 +594,7 @@ export const useAppStore = create<AppState>()(
         inventoryGroupBy: state.inventoryGroupBy,
         inventorySortConfig: state.inventorySortConfig,
         inventoryPriceMode: state.inventoryPriceMode,
-        draftProduct: state.draftProduct,
+        draftProductByAccountId: state.draftProductByAccountId,
         shopStoreSlug: state.shopStoreSlug,
         memberships: state.memberships,
         activeUserId: state.activeUserId,
@@ -562,6 +607,29 @@ export const useAppStore = create<AppState>()(
         upcomingEventsCount: state.upcomingEventsCount,
         cartLastAddedAt: state.cartLastAddedAt,
       }),
+      // v1: introduced `draftProductByAccountId` (was `draftProduct`).
+      // Lift any existing single-slot draft into the active account's slot
+      // so operators don't lose work on the rollout. One-shot migration only
+      // — no ongoing back-compat.
+      version: 1,
+      migrate: (persistedState, version) => {
+        if (!persistedState || typeof persistedState !== 'object') return persistedState as AppState;
+        if (version < 1) {
+          const prev = persistedState as Record<string, unknown> & {
+            draftProduct?: DraftProduct | null;
+            activeAccountId?: string | null;
+            draftProductByAccountId?: Record<string, DraftProduct>;
+          };
+          const { draftProduct, activeAccountId } = prev;
+          const byAccount: Record<string, DraftProduct> = { ...(prev.draftProductByAccountId ?? {}) };
+          if (draftProduct && activeAccountId && Object.keys(draftProduct).length > 0) {
+            byAccount[activeAccountId] = draftProduct;
+          }
+          delete prev.draftProduct;
+          prev.draftProductByAccountId = byAccount;
+        }
+        return persistedState as AppState;
+      },
     }
   )
 );

@@ -8,6 +8,7 @@ import { TeaIllustration } from './TeaIllustration';
 import { TastingSession } from '../../components/tasting/TastingSession';
 import { resolveTermLabel, resolveTermIcon, flattenTastingNotes } from '../../data/tastingTaxonomy';
 import { useAppStore } from '../store';
+import { selectActiveDraftProduct } from '../../lib/store';
 import { useToast } from './Toast';
 import { useCustomers } from '../hooks/useAdminData';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
@@ -191,7 +192,11 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { draftProduct, setDraftProduct, memberships, activeAccountId } = useAppStore();
+  const setDraftProduct = useAppStore(s => s.setDraftProduct);
+  const clearDraftProduct = useAppStore(s => s.clearDraftProduct);
+  const draftProduct = useAppStore(selectActiveDraftProduct);
+  const memberships = useAppStore(s => s.memberships);
+  const activeAccountId = useAppStore(s => s.activeAccountId);
   const isPlatformAccount = memberships.find(m => m.account_id === activeAccountId)?.is_platform_account ?? false;
 
   const [tastingData, setTastingData] = useState<TastingData>({});
@@ -286,7 +291,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
 
   // #42 — Wrap onClose to clear draft on deliberate close
   const handleClose = () => {
-    if (!isEditMode) setDraftProduct(null);
+    if (!isEditMode) clearDraftProduct();
     onClose();
   };
 
@@ -593,7 +598,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
             }
         }
 
-        setDraftProduct(null);
+        clearDraftProduct();
         onSuccess();
         onClose();
     } catch (error: any) {
@@ -693,7 +698,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
               <button
                 type="button"
                 onClick={() => {
-                  setDraftProduct(null);
+                  clearDraftProduct();
                   setShowDraftBanner(false);
                 }}
                 className="text-xs text-tea-text-sec hover:text-tea-text uppercase tracking-wider transition-colors"
