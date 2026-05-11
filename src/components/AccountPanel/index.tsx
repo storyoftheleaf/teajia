@@ -24,6 +24,7 @@ import { OperatorView } from './OperatorView';
 import { MemberView } from './MemberView';
 import { ReaderView } from './ReaderView';
 import { StaffView } from './StaffView';
+import { AccountSwitcherChip } from './AccountSwitcherChip';
 import { buildFirstDoorReadiness } from './workflows';
 
 interface AccountPanelProps {
@@ -950,6 +951,18 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
 
         {/* Content */}
         <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto overscroll-contain relative pb-nav-gap surface-warm">
+          {/* Account-switcher chip — only when user has multiple memberships
+              and we're on the main panel view (any role: Operator/Member/Reader/Staff). */}
+          {panelView === 'main' && memberships.length > 1 && (
+            <div className="px-4 pt-3 pb-1 relative z-20">
+              <AccountSwitcherChip
+                memberships={memberships}
+                activeAccountId={activeAccountId}
+                switchingTo={switchingTo}
+                onSwitch={handleSwitchLocation}
+              />
+            </div>
+          )}
           <AnimatePresence mode="wait">
           <motion.div
             key={panelView}
