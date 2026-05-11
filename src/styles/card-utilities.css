@@ -2234,13 +2234,13 @@ input[type="number"]::-webkit-outer-spin-button {
    3. Outer drop shadow — separates the card from the page beneath it
    Each move is barely-there individually; together they make the card
    sit *above* the panel surface instead of being painted onto it. */
-/* Sharper, brighter text across admin surfaces. */
+/* Sharper text on admin surfaces. Intentionally NO text-rendering:
+   optimizeLegibility — it causes layout thrashing on dense pages
+   (the inventory table) in Chrome. font-smoothing is cheap. */
 .admin-card,
-.admin-input,
-[style*="--admin-bg"] {
+.admin-input {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
 }
 
 .admin-card {
