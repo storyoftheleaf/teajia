@@ -10073,7 +10073,11 @@ const handleUpdateMemberBundles: Handler = async (request, env, params) => {
   ).bind(updatedPermissions, params.id, params.userId).run();
 
   await logPlatformAction(env, 'member.bundles_updated', ctx.userId, ctx.email, 'member', `${params.id}:${params.userId}`, {
-    previous_bundles: previousBundles,
+    action_type: 'BUNDLE_GRANT_CHANGED',
+    actor_user_id: ctx.userId,
+    target_user_id: params.userId,
+    account_id: params.id,
+    old_bundles: previousBundles,
     new_bundles: newBundles,
   }, params.id);
 
@@ -10650,6 +10654,20 @@ const handleUpdateMemberPermissions: Handler = async (request, env, params) => {
   ).bind(params.id).all();
   const enabledFeatures = new Set((featureRows as any[]).map(r => r.feature as string));
 
+  // Snapshot prior bundles for the audit log so we capture any grant change
+  // that flows through this legacy endpoint (it wholesale-overwrites permissions
+  // and would silently clobber bundles set via the newer /bundles route).
+  const prior = await env.DB.prepare(
+    'SELECT permissions FROM account_members WHERE account_id = ? AND user_id = ?'
+  ).bind(params.id, params.userId).first() as { permissions: string | null } | null;
+  let priorBundles: string[] = [];
+  if (prior?.permissions) {
+    try {
+      const parsed = JSON.parse(prior.permissions);
+      if (Array.isArray(parsed?.bundles)) priorBundles = parsed.bundles as string[];
+    } catch { /* ignore */ }
+  }
+
   const sanitised: Record<string, boolean> = {};
   for (const [feature, enabled] of Object.entries(body)) {
     if (enabledFeatures.has(feature)) sanitised[feature] = Boolean(enabled);
@@ -10658,6 +10676,17 @@ const handleUpdateMemberPermissions: Handler = async (request, env, params) => {
   await env.DB.prepare(
     'UPDATE account_members SET permissions = ? WHERE account_id = ? AND user_id = ?'
   ).bind(JSON.stringify(sanitised), params.id, params.userId).run();
+
+  await logPlatformAction(env, 'member.permissions_updated', ctx.userId, ctx.email, 'member', `${params.id}:${params.userId}`, {
+    action_type: 'BUNDLE_GRANT_CHANGED',
+    actor_user_id: ctx.userId,
+    target_user_id: params.userId,
+    account_id: params.id,
+    old_bundles: priorBundles,
+    // Legacy permissions endpoint wholesale-overwrites — bundles are dropped.
+    new_bundles: [],
+    new_feature_permissions: sanitised,
+  }, params.id);
 
   return json({ success: true, permissions: sanitised });
 };
@@ -11339,6 +11368,134 @@ const handleGetMyWishlist: Handler = async (request, env) => {
   ).bind(userId, accountId).all();
 
   return json({ entries: result.results });
+};
+
+// GET /api/me/orders — invoices belonging to the authed user.
+// Matches invoices to the caller by:
+//   1. customer_id → customers.user_id (canonical link), OR
+//   2. customer email/whatsapp matching users.email / users.phone (legacy invoices
+//      created before a customer record was linked to the user account).
+// Scoped to the active account. Returns a stable shape the UI can render without
+// further lookups (invoice number, status, total, currency, created_at, line count).
+const handleGetMyOrders: Handler = async (request, env) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId, userId } = ctx;
+
+  const userRow = await env.DB.prepare(
+    'SELECT email, phone FROM users WHERE id = ? LIMIT 1'
+  ).bind(userId).first() as { email: string | null; phone: string | null } | null;
+  const userEmail = (userRow?.email || '').trim().toLowerCase();
+  const userPhone = (userRow?.phone || '').trim();
+
+  // Build the WHERE clause: include rows linked via customers.user_id, plus any
+  // fallback match on customer_whatsapp == users.phone. customers.email is the
+  // strongest match — we OR it in via subquery so multiple customer rows linked
+  // to this user all flow through. Empty strings short-circuit to NULL so we
+  // don't match invoices with blank customer fields.
+  const result = await env.DB.prepare(
+    `SELECT i.id, i.invoice_number, i.status, i.display_currency, i.created_at,
+            COALESCE(t.line_total, 0) as line_total,
+            COALESCE(t.line_count, 0) as line_count,
+            i.shipping_cost_usd
+     FROM invoices i
+     LEFT JOIN (
+       SELECT invoice_id,
+              SUM(quantity * price_at_sale) as line_total,
+              COUNT(*) as line_count
+       FROM invoice_line_items
+       GROUP BY invoice_id
+     ) t ON t.invoice_id = i.id
+     WHERE i.account_id = ?
+       AND i.deleted_at IS NULL
+       AND (
+         i.customer_id IN (
+           SELECT id FROM customers WHERE user_id = ? AND account_id = ?
+         )
+         OR (? != '' AND i.customer_id IN (
+           SELECT id FROM customers WHERE LOWER(email) = ? AND account_id = ?
+         ))
+         OR (? != '' AND i.customer_whatsapp = ?)
+       )
+     ORDER BY i.created_at DESC
+     LIMIT 200`
+  ).bind(
+    accountId,
+    userId, accountId,
+    userEmail, userEmail, accountId,
+    userPhone, userPhone
+  ).all();
+
+  const orders = (result.results as Record<string, any>[]).map(r => ({
+    id: r.id as string,
+    invoice_number: r.invoice_number as string,
+    status: (r.status as string) || 'Draft',
+    total_amount_usd: Number(r.line_total || 0) + Number(r.shipping_cost_usd || 0),
+    currency: (r.display_currency as string) || 'USD',
+    created_at: r.created_at as string,
+    line_items_count: Number(r.line_count || 0),
+  }));
+
+  return json({ orders });
+};
+
+// GET /api/me/samples — tea samples whose tasting trail belongs to the authed user.
+// The tea_samples table doesn't carry recipient email/phone — the user link is
+// established two ways:
+//   1. tea_samples.user_id (direct ownership)
+//   2. tea_sample_tastings.taster_id matching either the user_id or user's email
+//      (legacy tasting rows recorded by email before user_id was wired)
+// Scoped to the active account via tea_samples.account_id.
+const handleGetMySamples: Handler = async (request, env) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId, userId } = ctx;
+
+  const userRow = await env.DB.prepare(
+    'SELECT email FROM users WHERE id = ? LIMIT 1'
+  ).bind(userId).first() as { email: string | null } | null;
+  const userEmail = (userRow?.email || '').trim();
+
+  const result = await env.DB.prepare(
+    `SELECT ts.id,
+            ts.name,
+            ts.chinese_name,
+            ts.type,
+            ts.status,
+            ts.notes,
+            ts.created_at,
+            (SELECT MAX(tst.created_at) FROM tea_sample_tastings tst
+              WHERE tst.sample_id = ts.id
+                AND (tst.taster_id = ? OR tst.taster_id = ?)
+            ) as last_tasted_at
+     FROM tea_samples ts
+     WHERE ts.account_id = ?
+       AND (
+         ts.user_id = ?
+         OR ts.id IN (
+           SELECT sample_id FROM tea_sample_tastings
+            WHERE taster_id = ? OR (? != '' AND taster_id = ?)
+         )
+       )
+     ORDER BY COALESCE(last_tasted_at, ts.created_at) DESC
+     LIMIT 200`
+  ).bind(
+    userId, userEmail,
+    accountId,
+    userId,
+    userId,
+    userEmail, userEmail
+  ).all();
+
+  const samples = (result.results as Record<string, any>[]).map(r => ({
+    id: r.id as string,
+    status: (r.status as string) || 'untasted',
+    sent_at: (r.last_tasted_at as string | null) || (r.created_at as string),
+    tea_name: ((r.name as string) || '').trim() || (r.chinese_name as string) || 'Unnamed sample',
+    notes: (r.notes as string | null) || null,
+  }));
+
+  return json({ samples });
 };
 
 const handleMemberSearch: Handler = async (request, env) => {
@@ -16443,6 +16600,8 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/me/queue', handleGetMyQueue],
   ['GET', '/api/me/wishlist', handleGetMyWishlist],
   ['GET', '/api/me/journey', handleGetMyJourney],
+  ['GET', '/api/me/orders', handleGetMyOrders],
+  ['GET', '/api/me/samples', handleGetMySamples],
   ['GET', '/api/members/search', handleMemberSearch],
 
   // Co-Tasting Sessions

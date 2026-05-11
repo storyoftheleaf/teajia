@@ -2963,6 +2963,32 @@ export const api = {
       const res = await fetchWithTimeout(`${API_URL}/api/me/journey`, { headers: authHeaders() });
       return handleResponse(res);
     },
+    orders: async (): Promise<{
+      orders: Array<{
+        id: string;
+        invoice_number: string;
+        status: string;
+        total_amount_usd: number;
+        currency: string;
+        created_at: string;
+        line_items_count: number;
+      }>;
+    }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/me/orders`, { headers: authHeaders() });
+      return handleResponse(res);
+    },
+    samples: async (): Promise<{
+      samples: Array<{
+        id: string;
+        status: string;
+        sent_at: string;
+        tea_name: string;
+        notes: string | null;
+      }>;
+    }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/me/samples`, { headers: authHeaders() });
+      return handleResponse(res);
+    },
   },
 
   members: {
