@@ -548,7 +548,7 @@ export const useAppStore = create<AppState>()(
       setIsSessionReady: (isSessionReady) => set({ isSessionReady }),
 
       // Sidebar nav font candidate
-      navFontId: 'general-sans',
+      navFontId: 'fraunces',
       setNavFontId: (navFontId) => set({ navFontId }),
 
       // Notifications

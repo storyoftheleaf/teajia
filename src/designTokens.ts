@@ -55,16 +55,16 @@ export const FONT_STACKS = {
  *  When picking the winner, set `--font-nav` to its `family` and remove this list.
  */
 export const NAV_FONT_CANDIDATES = [
-  { id: 'general-sans',      label: 'General Sans',      family: "'General Sans', system-ui, sans-serif" },
-  { id: 'switzer',           label: 'Switzer',           family: "'Switzer', system-ui, sans-serif" },
-  { id: 'inter',             label: 'Inter',             family: "'Inter', system-ui, sans-serif" },
-  { id: 'mona-sans',         label: 'Mona Sans',         family: "'Mona Sans', system-ui, sans-serif" },
-  { id: 'geist',             label: 'Geist',             family: "'Geist', system-ui, sans-serif" },
-  { id: 'manrope',           label: 'Manrope',           family: "'Manrope', system-ui, sans-serif" },
-  { id: 'dm-sans',           label: 'DM Sans',           family: "'DM Sans', system-ui, sans-serif" },
-  { id: 'outfit',            label: 'Outfit',            family: "'Outfit', system-ui, sans-serif" },
-  { id: 'schibsted-grotesk', label: 'Schibsted Grotesk', family: "'Schibsted Grotesk', system-ui, sans-serif" },
-  { id: 'plus-jakarta-sans', label: 'Plus Jakarta Sans', family: "'Plus Jakarta Sans', system-ui, sans-serif" },
+  { id: 'fraunces',           label: 'Fraunces',           family: "'Fraunces', Georgia, serif" },
+  { id: 'instrument-serif',   label: 'Instrument Serif',   family: "'Instrument Serif', Georgia, serif" },
+  { id: 'dm-serif-text',      label: 'DM Serif Text',      family: "'DM Serif Text', Georgia, serif" },
+  { id: 'bricolage-grotesque', label: 'Bricolage Grotesque', family: "'Bricolage Grotesque', system-ui, sans-serif" },
+  { id: 'familjen-grotesk',   label: 'Familjen Grotesk',   family: "'Familjen Grotesk', system-ui, sans-serif" },
+  { id: 'sentient',           label: 'Sentient',           family: "'Sentient', Georgia, serif" },
+  { id: 'erode',              label: 'Erode',              family: "'Erode', Georgia, serif" },
+  { id: 'synonym',            label: 'Synonym',            family: "'Synonym', system-ui, sans-serif" },
+  { id: 'gambarino',          label: 'Gambarino',          family: "'Gambarino', Georgia, serif" },
+  { id: 'cabinet-grotesk',    label: 'Cabinet Grotesk',    family: "'Cabinet Grotesk', system-ui, sans-serif" },
 ] as const;
 
 export type NavFontId = typeof NAV_FONT_CANDIDATES[number]['id'];
