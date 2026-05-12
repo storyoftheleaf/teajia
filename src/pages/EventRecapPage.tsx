@@ -394,7 +394,7 @@ const EventRecapPage: React.FC = () => {
       </div>
 
       {/* Main content — editorial reader chrome */}
-      <div className="max-w-2xl mx-auto px-4 md:px-6 pt-12 pb-24">
+      <div className="max-w-2xl mx-auto px-4 md:px-6 pt-12 pb-nav-gap">
         {/* Header */}
         <div className="text-center mb-10">
           <p className="label-caps text-tea-readgold mb-3">Session Recap</p>
