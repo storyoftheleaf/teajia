@@ -692,7 +692,7 @@ function TweaksPanel({
           <LogoEmblem size={14} className="text-tea-gold opacity-80" />
           <span style={{ ...EYEBROW_STYLE, color: 'var(--tea-gold)' }}>Layout</span>
         </div>
-        <button onClick={onClose} className="text-tea-text-dim hover:text-tea-text transition-colors text-sm">✕</button>
+        <button onClick={onClose} className="text-tea-text-sec hover:text-tea-text transition-colors text-sm">✕</button>
       </div>
       {options.map(o => (
         <button

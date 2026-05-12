@@ -448,7 +448,7 @@ function SampleCard({ sample, onEdit, onDelete, onStatusChange, onTaste, onGradu
           </button>
           <button
             onClick={() => setConfirmDelete(false)}
-            className="p-1 text-tea-text-dim hover:text-tea-text transition-colors"
+            className="p-1 text-tea-text-sec hover:text-tea-text transition-colors"
             aria-label="Close"
           >
             <X size={14} />
@@ -919,7 +919,7 @@ export default function SampleSetCreator({ embeddedMode }: { embeddedMode?: 'lis
           >
             Open Ledger
           </button>
-          <button onClick={() => setLedgerPromptName(null)} className="text-tea-text-dim hover:text-tea-text" aria-label="Dismiss">
+          <button onClick={() => setLedgerPromptName(null)} className="text-tea-text-sec hover:text-tea-text" aria-label="Dismiss">
             <X size={14} />
           </button>
         </div>

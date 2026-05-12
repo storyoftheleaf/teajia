@@ -180,7 +180,7 @@ const NewPoForm: React.FC<{ onClose: () => void; onSubmit: (data: Parameters<typ
             onChange={e => setNotes(e.target.value)}
             rows={2}
             placeholder="Optional notes…"
-            className="w-full bg-tea-gold/[0.06] border border-tea-border rounded-xl px-3 py-2 text-sm text-tea-text outline-none focus:border-tea-gold/40 resize-none placeholder:text-tea-text-dim transition-colors"
+            className="w-full bg-tea-gold/[0.06] border border-tea-border rounded-xl px-3 py-2 text-sm text-tea-text outline-none focus:border-tea-gold/40 resize-none placeholder:text-tea-text-sec transition-colors"
           />
 
           <div className="flex justify-between items-center gap-3 pt-1">

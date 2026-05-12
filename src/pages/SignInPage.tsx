@@ -36,7 +36,7 @@ export default function SignInPage() {
   };
 
   return (
-    <div className="max-w-md mx-auto px-4 pt-12 pb-24">
+    <div className="max-w-md mx-auto px-4 pt-12 pb-nav-gap">
       <div className="text-center mb-8">
         <h1 className="h2">Sign in</h1>
         <p className="subtitle mt-2">A quiet welcome back.</p>

@@ -655,7 +655,7 @@ const AddProductsSheet: React.FC<{
             </div>
             <div className="min-w-0">
               <h2 className="text-sm font-medium text-tea-text tracking-wide">Add to collection</h2>
-              <p className="text-ui-11 text-tea-text-dim mt-0.5 num">{pool.length} available</p>
+              <p className="text-ui-11 text-tea-text-sec mt-0.5 num">{pool.length} available</p>
             </div>
           </div>
           <button onClick={onClose} disabled={submitting} className="text-tea-text-sec hover:text-tea-text transition-colors disabled:opacity-40 p-1 -mr-1" aria-label="Close">
@@ -871,7 +871,7 @@ const AddPublicationSheet: React.FC<{
             </div>
             <div className="min-w-0">
               <h2 className="text-sm font-medium text-tea-text tracking-wide">Share collection</h2>
-              <p className="text-ui-11 text-tea-text-dim mt-0.5 truncate">{collectionTitle}</p>
+              <p className="text-ui-11 text-tea-text-sec mt-0.5 truncate">{collectionTitle}</p>
             </div>
           </div>
           <button onClick={onClose} disabled={submitting} className="text-tea-text-sec hover:text-tea-text transition-colors disabled:opacity-40 p-1 -mr-1" aria-label="Close">

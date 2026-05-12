@@ -70,7 +70,7 @@ const GuestInviteClaimPage: React.FC = () => {
   // Error / not found
   if (isError || !invite) {
     return (
-      <div className="max-w-md mx-auto px-4 pt-12 pb-24">
+      <div className="max-w-md mx-auto px-4 pt-12 pb-nav-gap">
         <div className="text-center">
           <h1 className="h2">Invite not found</h1>
           <p className="subtitle mt-2">This invite link may be invalid or expired.</p>
@@ -85,7 +85,7 @@ const GuestInviteClaimPage: React.FC = () => {
   // Already claimed
   if (invite.status === 'claimed') {
     return (
-      <div className="max-w-md mx-auto px-4 pt-12 pb-24">
+      <div className="max-w-md mx-auto px-4 pt-12 pb-nav-gap">
         <div className="text-center">
           <h1 className="h2">Already claimed</h1>
           <p className="subtitle mt-2">
@@ -101,7 +101,7 @@ const GuestInviteClaimPage: React.FC = () => {
   if (invite.status === 'expired') {
     const expiredEvent = (invite as any).event;
     return (
-      <div className="max-w-md mx-auto px-4 pt-12 pb-24 animate-[fadeIn_0.4s_ease-out]">
+      <div className="max-w-md mx-auto px-4 pt-12 pb-nav-gap animate-[fadeIn_0.4s_ease-out]">
         <div className="text-center mb-8">
           <div className="w-12 h-12 rounded-full bg-tea-border/40 flex items-center justify-center mx-auto mb-5">
             <span className="text-xl font-serif text-tea-text-sec">茶</span>
@@ -138,7 +138,7 @@ const GuestInviteClaimPage: React.FC = () => {
   // Success
   if (submitted) {
     return (
-      <div className="max-w-md mx-auto px-4 pt-12 pb-24 animate-[fadeIn_0.4s_ease-out]">
+      <div className="max-w-md mx-auto px-4 pt-12 pb-nav-gap animate-[fadeIn_0.4s_ease-out]">
         <div className="text-center">
           <div className="w-12 h-12 rounded-full bg-tea-gold/10 flex items-center justify-center mx-auto mb-5">
             <Icons.Check size={28} className="text-tea-gold" />
@@ -154,7 +154,7 @@ const GuestInviteClaimPage: React.FC = () => {
   const event = (invite as any).event;
 
   return (
-    <div className="max-w-md mx-auto px-4 pt-12 pb-24 animate-[fadeIn_0.4s_ease-out]">
+    <div className="max-w-md mx-auto px-4 pt-12 pb-nav-gap animate-[fadeIn_0.4s_ease-out]">
 
       {/* Event flyer */}
       {event?.flyerImageUrl && (
