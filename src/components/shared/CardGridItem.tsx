@@ -30,7 +30,7 @@ export const CardGridItem: React.FC<CardGridItemProps> = ({
 }) => {
   return (
     <div
-      className="group relative break-inside-avoid md:hover:-translate-y-1 md:hover:shadow-lg md:transition-all md:duration-300"
+      className="group relative break-inside-avoid md:transition-all md:duration-300"
     >
       <CardContainer className="p-2 md:p-3">
         {/* Image Container — clicking opens detail */}

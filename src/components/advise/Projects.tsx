@@ -31,7 +31,7 @@ const ProjectCard: React.FC<{
     onClick={() => onSelect(project.id)}
     className={`text-left group w-full ${CTA_FOCUS}`}
   >
-    <CardContainer className="overflow-hidden mb-4 md:hover:-translate-y-1 transition-all duration-300">
+    <CardContainer className="overflow-hidden mb-4 transition-all duration-300">
       {project.heroImage ? (
         <img
           src={project.heroImage}

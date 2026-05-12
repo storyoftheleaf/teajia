@@ -111,7 +111,7 @@ export const ResourcesPage: React.FC<ResourcesPageProps> = ({ resources }) => {
       href={resource.content || '#'}
       target={resource.content ? '_blank' : undefined}
       rel={resource.content ? 'noopener noreferrer' : undefined}
-      className="group relative bg-tea-bg rounded-lg overflow-hidden hover:shadow-lg transition-all duration-300 flex flex-col h-full"
+      className="group relative bg-tea-bg rounded-lg overflow-hidden transition-all duration-300 flex flex-col h-full"
     >
       {/* Image */}
       {resource.image && (
@@ -119,7 +119,7 @@ export const ResourcesPage: React.FC<ResourcesPageProps> = ({ resources }) => {
           <img
             src={resource.image}
             alt={resource.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            className="w-full h-full object-cover transition-transform duration-300"
           />
         </div>
       )}
@@ -191,7 +191,7 @@ export const ResourcesPage: React.FC<ResourcesPageProps> = ({ resources }) => {
               {(filteredCommunity as any).map((member: any) => (
                 <CardContainer
                   key={member.id}
-                  className="flex flex-col h-full cursor-pointer hover:shadow-lg transition-all duration-300"
+                  className="flex flex-col h-full cursor-pointer transition-all duration-300"
                 >
                   <div className="p-6 flex flex-col h-full">
                     {/* Avatar */}

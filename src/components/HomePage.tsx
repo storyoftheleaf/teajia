@@ -373,7 +373,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             />
             <button
               onClick={() => onAccountClick?.()}
-              className="bg-transparent border-none p-0 rounded-full transition-transform duration-500 hover:scale-[1.03] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/40 focus-visible:ring-offset-4 focus-visible:ring-offset-tea-bg"
+              className="bg-transparent border-none p-0 rounded-full transition-transform duration-500 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/40 focus-visible:ring-offset-4 focus-visible:ring-offset-tea-bg"
               aria-label="Open your table"
             >
               <LogoEmblem size={76} color="var(--tea-gold)" className="opacity-70 lg:hidden" />

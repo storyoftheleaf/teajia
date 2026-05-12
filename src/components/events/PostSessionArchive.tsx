@@ -173,7 +173,7 @@ const PostSessionArchive: React.FC<PostSessionArchiveProps> = ({
                 <img
                   src={url}
                   alt={`Session photo ${idx + 1}`}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  className="w-full h-full object-cover transition-transform duration-500"
                   loading="lazy"
                 />
               </button>

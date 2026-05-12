@@ -36,7 +36,7 @@ export const TeaSpacesView: React.FC<TeaSpacesViewProps> = ({ onBack, onNavigate
               onClick={() => toggleSpace(space.id)}
               className="text-left w-full"
             >
-              <CardContainer className={`transition-all h-full ${expandedSpace === space.id ? 'shadow-md' : 'hover:-translate-y-0.5'}`}>
+              <CardContainer className={`transition-all h-full ${expandedSpace === space.id ? 'shadow-md' : ''}`}>
                 <div className="p-4">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-ui-9 uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-tea-gold/8 text-tea-gold border border-tea-border">

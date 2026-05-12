@@ -222,7 +222,7 @@ const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, cla
                 key={level}
                 type="button"
                 onClick={() => updateNote(currentItem.id, 'rating', currentNote.rating === level ? 0 : level)}
-                className="flex-1 min-h-[44px] flex items-center justify-center transition-all duration-200 hover:scale-110"
+                className="flex-1 min-h-[44px] flex items-center justify-center transition-all duration-200"
                 aria-label={`Rate ${level} out of 5`}
               >
                 <Leaf

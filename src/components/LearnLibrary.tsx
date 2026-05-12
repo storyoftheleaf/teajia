@@ -164,7 +164,7 @@ export const LearnLibrary: React.FC<LearnLibraryProps> = ({ watchedStories }) =>
         <div className="flex gap-4 overflow-x-auto hide-scrollbar pb-2">
           {pickedForYou.map(item => (
             <div key={item.id} className="min-w-[200px] max-w-[240px] shrink-0 cursor-pointer">
-              <CardContainer className="hover:-translate-y-0.5 transition-all h-full">
+              <CardContainer className="transition-all h-full">
                 <div className="p-4">
                   <span className={`text-ui-10 uppercase tracking-wider px-2 py-0.5 rounded-sm ${getTypeColor(item.type)}`}>
                     {item.type}
@@ -226,7 +226,7 @@ export const LearnLibrary: React.FC<LearnLibraryProps> = ({ watchedStories }) =>
         />
         <SwipeCarousel itemWidth={220} gap={12} showArrows={true} showDots={false} peek={2}>
           {MUSIC.map(item => (
-            <CardContainer key={item.id} className="w-[220px] cursor-pointer hover:-translate-y-0.5 transition-all">
+            <CardContainer key={item.id} className="w-[220px] cursor-pointer transition-all">
               <div className="p-4">
                 <div className="w-10 h-10 rounded-sm bg-tea-readgold/10 dark:bg-tea-readgold/20 flex items-center justify-center mb-3">
                   <Icons.Music className="w-5 h-5 text-tea-readgold dark:text-tea-readgold" />
@@ -252,7 +252,7 @@ export const LearnLibrary: React.FC<LearnLibraryProps> = ({ watchedStories }) =>
         />
         <SwipeCarousel itemWidth={220} gap={12} showArrows={true} showDots={false} peek={2}>
           {VIDEOS.map(item => (
-            <CardContainer key={item.id} className="w-[220px] cursor-pointer hover:-translate-y-0.5 transition-all">
+            <CardContainer key={item.id} className="w-[220px] cursor-pointer transition-all">
               <div className="p-4">
                 <div className="w-10 h-10 rounded-sm bg-tea-text/10 flex items-center justify-center mb-3">
                   <Icons.Play className="w-5 h-5 text-tea-text/60" />
@@ -299,7 +299,7 @@ export const LearnLibrary: React.FC<LearnLibraryProps> = ({ watchedStories }) =>
         <div className="grid grid-cols-2 gap-4">
           {REFERENCE.map(item => (
             <div key={item.id} className="cursor-pointer">
-              <CardContainer className="hover:-translate-y-0.5 transition-all h-full">
+              <CardContainer className="transition-all h-full">
                 <div className="p-5 flex flex-col items-center text-center">
                   <div className="w-12 h-12 rounded-sm bg-tea-gold/10 dark:bg-tea-gold/20 flex items-center justify-center mb-3">
                     <span className="text-tea-gold dark:text-tea-gold">

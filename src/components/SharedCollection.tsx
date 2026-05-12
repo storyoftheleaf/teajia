@@ -81,7 +81,7 @@ export const SharedCollection: React.FC = () => {
                 <img
                   src={item.image}
                   alt={item.name}
-                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.06]"
+                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-500"
                   loading="lazy"
                 />
               ) : (

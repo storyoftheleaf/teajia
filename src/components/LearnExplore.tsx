@@ -138,7 +138,7 @@ export const LearnExplore: React.FC<LearnExploreProps> = ({ watchedStories, onNa
       <div className="mb-4 -mx-2 md:mx-0">
         <button
           onClick={backToGrid}
-          className="flex items-center gap-2 w-full px-3 py-3 rounded-none md:rounded-lg bg-tea-text/[0.03]  hover:bg-tea-text/[0.06] transition-colors active:bg-tea-text/[0.08]"
+          className="flex items-center gap-2 w-full px-3 py-3 rounded-none md:rounded-lg bg-tea-text/[0.03] hover:bg-tea-text/[0.06] transition-colors active:bg-tea-text/[0.08]"
         >
           <div className="w-8 h-8 rounded-full bg-tea-text/[0.05] flex items-center justify-center shrink-0">
             <Icons.Back className="w-4 h-4 text-tea-text-sec" />
@@ -169,7 +169,7 @@ export const LearnExplore: React.FC<LearnExploreProps> = ({ watchedStories, onNa
               onClick={() => navigateTo(tile.id)}
               className="text-left"
             >
-              <CardContainer className="hover:-translate-y-0.5 hover:shadow-lg transition-all h-full">
+              <CardContainer className="transition-all h-full">
                 <div className="p-5 flex flex-col items-center text-center gap-3">
                   <div className={`w-12 h-12 rounded-lg ${tile.accentBg} flex items-center justify-center`}>
                     <span className={tile.accentText}>{tile.icon}</span>
@@ -204,7 +204,7 @@ export const LearnExplore: React.FC<LearnExploreProps> = ({ watchedStories, onNa
                 <div key={collection.id}>
                   <CardContainer
                    
-                    className={`cursor-pointer overflow-hidden transition-all duration-500 ease-out ${isExpanded ? 'shadow-lg' : 'shadow-sm hover:shadow-md'}`}
+                    className={`cursor-pointer overflow-hidden transition-all duration-500 ease-out ${isExpanded ? 'shadow-lg' : 'shadow-sm '}`}
                     onClick={() => toggleJourney(collection.id)}
                   >
                     <div className="p-5 flex items-start gap-5">
@@ -452,7 +452,7 @@ export const LearnExplore: React.FC<LearnExploreProps> = ({ watchedStories, onNa
           <div className="grid grid-cols-2 gap-4">
             {REFERENCE.map(item => (
               <div key={item.id} className="cursor-pointer">
-                <CardContainer className="hover:-translate-y-0.5 transition-all h-full">
+                <CardContainer className="transition-all h-full">
                   <div className="p-5 flex flex-col items-center text-center">
                     <div className="w-12 h-12 rounded-sm bg-tea-gold/10 dark:bg-tea-gold/20 flex items-center justify-center mb-3">
                       <span className="text-tea-gold dark:text-tea-gold">
@@ -483,7 +483,7 @@ export const LearnExplore: React.FC<LearnExploreProps> = ({ watchedStories, onNa
                   onClick={() => toggleSpace(space.id)}
                   className="text-left w-full"
                 >
-                  <CardContainer className={`transition-all h-full ${expandedSpace === space.id ? 'shadow-md' : 'hover:-translate-y-0.5'}`}>
+                  <CardContainer className={`transition-all h-full ${expandedSpace === space.id ? 'shadow-md' : ''}`}>
                     <div className="p-4">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-ui-9 uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-tea-gold/10 text-tea-gold border border-tea-border">

@@ -2189,11 +2189,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                   <button
                     key={product.id}
                     onClick={() => setDetailsProduct(product)}
-                    className="group text-left bg-tea-surface/50 hover:bg-tea-surface rounded-xl overflow-hidden transition-all duration-200 hover:shadow-lg"
+                    className="group text-left bg-tea-surface/50 hover:bg-tea-surface rounded-xl overflow-hidden transition-all duration-200"
                   >
                     {product.imageUrl ? (
                       <div className="aspect-square overflow-hidden">
-                        <img src={product.imageUrl} alt={product.productName} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
+                        <img src={product.imageUrl} alt={product.productName} className="w-full h-full object-cover transition-transform duration-300" loading="lazy" />
                       </div>
                     ) : (
                       <div className="aspect-square flex items-center justify-center" style={{ backgroundColor: `${dotColor}15` }}>

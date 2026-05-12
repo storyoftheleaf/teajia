@@ -198,7 +198,7 @@ export const LearnCurriculum: React.FC<LearnCurriculumProps> = ({ onStoryClick, 
             {LEARN_PATHS.map(path => (
               <CardContainer
                 key={path.id}
-                className="cursor-pointer transition-all duration-300 hover:shadow-lg"
+                className="cursor-pointer transition-all duration-300"
                 onClick={() => setSelectedPath(path.id)}
               >
                 <div className="p-6 flex flex-col items-center text-center gap-3">

@@ -936,7 +936,7 @@ const AppContent = () => {
 
                 <div className="space-y-6 animate-[fadeIn_0.5s_ease-out]" style={{ animationDelay: '200ms' }}>
                     <div className="flex flex-col items-center">
-                        <Icons.Mail className="w-6 h-6 text-tea-gold mb-2 opacity-80 transition-transform duration-300 hover:scale-110" />
+                        <Icons.Mail className="w-6 h-6 text-tea-gold mb-2 opacity-80 transition-transform duration-300" />
                         <span className="text-sm uppercase tracking-widest text-tea-text-sec mb-1">General Inquiries</span>
                         <a href="mailto:hello@teajia.com" className="font-serif text-xl text-tea-text hover:text-tea-gold transition-colors duration-300">hello@teajia.com</a>
                     </div>
@@ -944,7 +944,7 @@ const AppContent = () => {
                     <div className="w-full h-[1px] bg-tea-border"></div>
 
                     <div className="flex flex-col items-center">
-                        <Icons.Instagram className="w-6 h-6 text-tea-gold mb-2 opacity-80 transition-transform duration-300 hover:scale-110" />
+                        <Icons.Instagram className="w-6 h-6 text-tea-gold mb-2 opacity-80 transition-transform duration-300" />
                         <span className="text-sm uppercase tracking-widest text-tea-text-sec mb-1">Follow Us</span>
                         <a href="https://www.instagram.com/teajia.foundation/" target="_blank" rel="noopener noreferrer" className="font-serif text-xl text-tea-text hover:text-tea-gold transition-colors duration-300">@teajia.journal</a>
                     </div>

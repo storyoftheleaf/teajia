@@ -529,7 +529,7 @@ const VideoEmbed: React.FC<VideoEmbedProps> = ({ videoId, instagramId, isVertica
             onClick={handlePlay}
             className="absolute inset-0 flex items-center justify-center group cursor-pointer"
           >
-            <div className="w-20 h-20 bg-tea-bg/90 backdrop-blur-sm rounded-full flex items-center justify-center border border-tea-border shadow-lg transition-all duration-300 group-hover:scale-110 group-hover:bg-tea-surface group-active:scale-95">
+            <div className="w-20 h-20 bg-tea-bg/90 backdrop-blur-sm rounded-full flex items-center justify-center border border-tea-border shadow-lg transition-all duration-300 group-hover:bg-tea-surface group-active:scale-95">
               <Icons.Play className="w-8 h-8 text-tea-text ml-1" />
             </div>
           </button>
