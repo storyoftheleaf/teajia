@@ -107,9 +107,9 @@ function extractFlavorWords(notes: TastingNote[]): string[] {
 }
 
 function stockStatusLabel(g: number): { label: string; color: string } {
-  if (g <= 0) return { label: 'Out of stock', color: 'text-red-400' };
-  if (g < 100) return { label: 'Low stock', color: 'text-amber-400' };
-  return { label: 'In stock', color: 'text-emerald-400' };
+  if (g <= 0) return { label: 'Out of stock', color: 'text-tea-error' };
+  if (g < 100) return { label: 'Low stock', color: 'text-tea-gold' };
+  return { label: 'In stock', color: 'text-tea-text' };
 }
 
 // ────────────────────────────────────────────────────────
