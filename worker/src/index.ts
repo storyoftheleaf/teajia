@@ -1881,7 +1881,7 @@ async function resolveVendorId(
 }
 
 const handleCreateProduct: Handler = async (request, env) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'catalog');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -2216,7 +2216,7 @@ async function applyProductUpdate(
 }
 
 const handleUpdateProduct: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'catalog');
   if ('error' in ctx) return ctx.error;
   return applyProductUpdate(request, env, params, ctx);
 };
@@ -2239,7 +2239,7 @@ const handleUpdateProductCommercial = makeProductCommandUpdateHandler('sell', PR
 const handleUpdateProductPublication = makeProductCommandUpdateHandler('publish', PRODUCT_PUBLICATION_UPDATE_COLUMNS, 'product.publication_updated');
 
 const handleDeleteProduct: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'catalog');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -2535,7 +2535,7 @@ async function prefixInvoiceNumber(env: Env, accountId: string, raw: string): Pr
 }
 
 const handleCreateInvoice: Handler = async (request, env) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'sell');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -2603,7 +2603,7 @@ const handleGetInvoiceItems: Handler = async (request, env, params) => {
 };
 
 const handleUpdateInvoice: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'sell');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -2620,7 +2620,7 @@ const handleUpdateInvoice: Handler = async (request, env, params) => {
 };
 
 const handleDeleteInvoice: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'sell');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -2949,7 +2949,7 @@ const handleVoidInvoice: Handler = async (request, env) => {
 
 // ── RPC: Split Invoice ──
 const handleSplitInvoice: Handler = async (request, env) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'sell');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -3009,7 +3009,7 @@ const handleSplitInvoice: Handler = async (request, env) => {
 
 // ── Update Invoice Items (edit pending order) ──
 const handleUpdateInvoiceItems: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'sell');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -3068,7 +3068,7 @@ const handleUpdateInvoiceItems: Handler = async (request, env, params) => {
 
 // ── RPC: Link Line Item to Product (with retroactive stock deduction if fulfilled) ──
 const handleLinkLineItem: Handler = async (request, env) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'sell');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
   const userEmail = getUserEmail(request);
@@ -3655,7 +3655,7 @@ const handleGetCustomerRelationships: Handler = async (request, env, params) => 
 };
 
 const handlePutCustomerRelationships: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'gather');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -3846,7 +3846,7 @@ const handlePutAdminContributorContact: Handler = async (request, env, params) =
 };
 
 const handleCreateCustomer: Handler = async (request, env) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'gather');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -3885,7 +3885,7 @@ const handleCreateCustomer: Handler = async (request, env) => {
 };
 
 const handleUpdateCustomer: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'gather');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -3909,7 +3909,7 @@ const handleUpdateCustomer: Handler = async (request, env, params) => {
 };
 
 const handleDeleteCustomer: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'gather');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -4186,7 +4186,7 @@ const handleListCustomerTags: Handler = async (request, env, params) => {
 };
 
 const handleAddCustomerTag: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'gather');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -4220,7 +4220,7 @@ const handleAddCustomerTag: Handler = async (request, env, params) => {
 };
 
 const handleRemoveCustomerTag: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'gather');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -4257,7 +4257,7 @@ const handleListAccountCustomerTags: Handler = async (request, env) => {
 // exists on a customer that also has the old tag, the union is preserved and
 // no duplicates are created. Empty target means delete the tag everywhere.
 const handleRenameOrDeleteCustomerTag: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'gather');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -4498,7 +4498,7 @@ const projectProductXref = makeXrefHandlers('project_products', 'project_id');
 
 // ── Backfill: match existing invoices to customers (scoped) ──
 const handleBackfillCustomerLinks: Handler = async (request, env) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireOwnerTier(request, env);
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -4544,7 +4544,7 @@ const handleBackfillCustomerLinks: Handler = async (request, env) => {
 
 // ── Auto-link vendors: create customer records from product vendor field (scoped) ──
 const handleAutoLinkVendors: Handler = async (request, env) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireOwnerTier(request, env);
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -4731,7 +4731,7 @@ Liquor color: pale-gold, gold, amber, honey-color, copper, orange, reddish-brown
 Brewing: high-temp, medium-temp, low-temp, short-steeps, patient-steeps, flash-steeps, many-infusions, few-infusions, gaiwan, yixing, porcelain, glass, opens-slowly, peaks-mid-session`;
 
 const handleMigrateTasting: Handler = async (request, env) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'catalog');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -6622,7 +6622,7 @@ const handleGetSavedLocations: Handler = async (request, env) => {
 };
 
 const handleCreateSavedLocation: Handler = async (request, env) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'gather');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
   const body = await request.json() as Record<string, any>;
@@ -6636,7 +6636,7 @@ const handleCreateSavedLocation: Handler = async (request, env) => {
 };
 
 const handleUpdateSavedLocation: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'gather');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
   const body = await request.json() as Record<string, any>;
@@ -6652,7 +6652,7 @@ const handleUpdateSavedLocation: Handler = async (request, env, params) => {
 };
 
 const handleDeleteSavedLocation: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'gather');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
   await env.DB.prepare('DELETE FROM saved_locations WHERE id = ? AND account_id = ?')
@@ -6933,7 +6933,7 @@ const handleGetInquiries: Handler = async (request, env) => {
 };
 
 const handleUpdateInquiryStatus: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'gather');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
   const body = await request.json() as { status?: string };
@@ -7068,7 +7068,7 @@ const handleGetTeawareItem: Handler = async (request, env, params) => {
 };
 
 const handleCreateTeawareItem: Handler = async (request, env) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'catalog');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -7092,7 +7092,7 @@ const handleCreateTeawareItem: Handler = async (request, env) => {
 };
 
 const handleUpdateTeawareItem: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'catalog');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -7110,7 +7110,7 @@ const handleUpdateTeawareItem: Handler = async (request, env, params) => {
 };
 
 const handleDeleteTeawareItem: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'catalog');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -7139,7 +7139,7 @@ async function assertTeawareInAccount(env: Env, teawareId: string, accountId: st
 }
 
 const handleAddTeawarePhoto: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'catalog');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
   const guard = await assertTeawareInAccount(env, params.id, accountId);
@@ -7167,7 +7167,7 @@ const handleAddTeawarePhoto: Handler = async (request, env, params) => {
 };
 
 const handleDeleteTeawarePhoto: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'catalog');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
   const guard = await assertTeawareInAccount(env, params.id, accountId);
@@ -7180,7 +7180,7 @@ const handleDeleteTeawarePhoto: Handler = async (request, env, params) => {
 };
 
 const handleUpdateTeawarePhoto: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'catalog');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
   const guard = await assertTeawareInAccount(env, params.id, accountId);
@@ -9391,7 +9391,7 @@ const handleListSamples: Handler = async (request, env) => {
 
 // Admin: POST /api/admin/samples
 const handleCreateSample: Handler = async (request, env) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'gather');
   if ('error' in ctx) return ctx.error;
   const { accountId, userId } = ctx;
 
@@ -9439,7 +9439,7 @@ const handleCreateSample: Handler = async (request, env) => {
 
 // Admin: PUT /api/admin/samples/:id
 const handleUpdateSample: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'gather');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -9475,7 +9475,7 @@ const handleUpdateSample: Handler = async (request, env, params) => {
 
 // Admin: DELETE /api/admin/samples/:id
 const handleDeleteSample: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'gather');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -9509,7 +9509,7 @@ const handleListSampleSets: Handler = async (request, env) => {
 
 // Admin: POST /api/admin/sample-sets
 const handleCreateSampleSet: Handler = async (request, env) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'gather');
   if ('error' in ctx) return ctx.error;
   const { accountId, userId } = ctx;
 
@@ -9550,7 +9550,7 @@ const handleCreateSampleSet: Handler = async (request, env) => {
 
 // Admin: PUT /api/admin/sample-sets/:id
 const handleUpdateSampleSet: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'gather');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -9583,7 +9583,7 @@ const handleUpdateSampleSet: Handler = async (request, env, params) => {
 
 // Admin: DELETE /api/admin/sample-sets/:id
 const handleDeleteSampleSet: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'gather');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -13718,7 +13718,7 @@ const handleUnpublishFromShop: Handler = async (request, env, params) => {
 // is_featured_collection=1 (added in migration 054). It then adds/removes the
 // product and publishes/unpublishes the collection to the shop audience as needed.
 const handleSetProductFeatured: Handler = async (request, env, params) => {
-  const ctx = await getActiveAccount(request, env);
+  const ctx = await requireBundle(request, env, 'publish');
   if ('error' in ctx) return ctx.error;
   const { accountId, userId, email } = ctx;
 
