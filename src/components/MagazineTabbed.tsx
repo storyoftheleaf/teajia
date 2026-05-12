@@ -363,7 +363,7 @@ function EditorialSplit({ stories, onCardClick, onAuthorClick }: { stories: Feed
               {story.title}
             </h3>
             {story.author?.name && (
-              <Byline author={story.author} onAuthorClick={onAuthorClick} style={{ marginTop: 8 }} />
+              <Byline author={story.author} onAuthorClick={onAuthorClick} className="mt-2" />
             )}
           </div>
         </button>
@@ -406,7 +406,7 @@ function HeroCards({ stories, onCardClick, onAuthorClick }: { stories: FeedItem[
               {story.title}
             </h2>
             {story.author?.name && (
-              <Byline author={story.author} onAuthorClick={onAuthorClick} style={{ marginTop: 10 }} />
+              <Byline author={story.author} onAuthorClick={onAuthorClick} className="mt-2.5" />
             )}
           </div>
         </button>
@@ -441,7 +441,7 @@ function MixedGrid({ stories, onCardClick, onAuthorClick }: { stories: FeedItem[
               {hero.title}
             </h2>
             {hero.author?.name && (
-              <Byline author={hero.author} onAuthorClick={onAuthorClick} style={{ marginTop: 10 }} />
+              <Byline author={hero.author} onAuthorClick={onAuthorClick} className="mt-2.5" />
             )}
           </div>
         </button>
@@ -466,7 +466,7 @@ function MixedGrid({ stories, onCardClick, onAuthorClick }: { stories: FeedItem[
                 {story.title}
               </h3>
               {story.author?.name && (
-                <Byline author={story.author} onAuthorClick={onAuthorClick} style={{ marginTop: 6 }} />
+                <Byline author={story.author} onAuthorClick={onAuthorClick} className="mt-1.5" />
               )}
             </div>
           </button>
@@ -516,7 +516,7 @@ function StackedCovers({ stories, onCardClick, onAuthorClick }: { stories: FeedI
           {/* Bottom content — eyebrow / title / byline, with cover barcode below */}
           <div className="absolute left-0 right-0 bottom-0" style={{ padding: '16px 18px 20px' }}>
             {getDisplayType(story) && (
-              <div className="flex items-center gap-2" style={{ marginBottom: 8 }}>
+              <div className="flex items-center gap-2 mb-2">
                 <div style={{ width: 18, height: 1, background: 'var(--tea-gold)' }} />
                 <span style={EYEBROW_STYLE}>{getDisplayType(story)}</span>
               </div>
@@ -529,9 +529,9 @@ function StackedCovers({ stories, onCardClick, onAuthorClick }: { stories: FeedI
               {story.title}
             </h2>
             {story.author?.name && (
-              <Byline author={story.author} onAuthorClick={onAuthorClick} style={{ marginTop: 8 }} />
+              <Byline author={story.author} onAuthorClick={onAuthorClick} className="mt-2" />
             )}
-            <div className="flex justify-end" style={{ marginTop: 12 }}>
+            <div className="flex justify-end mt-3">
               <MiniBarcode />
             </div>
           </div>
@@ -582,7 +582,7 @@ function OffsetInset({ stories, onCardClick, onAuthorClick }: { stories: FeedIte
             {story.title}
           </h3>
           {story.author?.name && (
-            <Byline author={story.author} onAuthorClick={onAuthorClick} style={{ marginTop: 8, clear: 'both' }} />
+            <Byline author={story.author} onAuthorClick={onAuthorClick} className="mt-2 clear-both" />
           )}
         </button>
       ))}
@@ -631,7 +631,7 @@ function AlternatingMargin({ stories, onCardClick, onAuthorClick }: { stories: F
                 {story.title}
               </h3>
               {story.author?.name && (
-                <Byline author={story.author} onAuthorClick={onAuthorClick} style={{ marginTop: 8 }} />
+                <Byline author={story.author} onAuthorClick={onAuthorClick} className="mt-2" />
               )}
             </div>
             {!imgLeft && (

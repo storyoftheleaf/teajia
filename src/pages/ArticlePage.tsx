@@ -1147,7 +1147,7 @@ const ColophonPage: React.FC<{ page: Extract<Page, { kind: 'colophon' }> }> = ({
         {page.author && (
           <>
             <dt style={{ fontFamily: T.mono, fontSize: '19px', letterSpacing: '0.08em', color: T.textDim, textTransform: 'uppercase' as const }}>Author</dt>
-            <dd style={{ margin: 0, color: T.text }}>
+            <dd className="m-0" style={{ color: T.text }}>
               {page.authorSlug ? (
                 <a
                   href={`/people/${page.authorSlug}`}
@@ -1175,17 +1175,17 @@ const ColophonPage: React.FC<{ page: Extract<Page, { kind: 'colophon' }> }> = ({
         {page.date && (
           <>
             <dt style={{ fontFamily: T.mono, fontSize: '19px', letterSpacing: '0.08em', color: T.textDim, textTransform: 'uppercase' as const }}>Published</dt>
-            <dd style={{ margin: 0, color: T.text }}>{page.date}</dd>
+            <dd className="m-0" style={{ color: T.text }}>{page.date}</dd>
           </>
         )}
         {page.category && (
           <>
             <dt style={{ fontFamily: T.mono, fontSize: '19px', letterSpacing: '0.08em', color: T.textDim, textTransform: 'uppercase' as const }}>Section</dt>
-            <dd style={{ margin: 0, color: T.text }}>{page.category}</dd>
+            <dd className="m-0" style={{ color: T.text }}>{page.category}</dd>
           </>
         )}
         <dt style={{ fontFamily: T.mono, fontSize: '19px', letterSpacing: '0.08em', color: T.textDim, textTransform: 'uppercase' as const }}>Set in</dt>
-        <dd style={{ margin: 0, color: T.text }}>Cormorant Garamond &amp; Lora</dd>
+        <dd className="m-0" style={{ color: T.text }}>Cormorant Garamond &amp; Lora</dd>
       </dl>
       <div style={{ flex: 1.2 }} />
     </PageInner>
@@ -2046,7 +2046,7 @@ const EmbedPage: React.FC<{ page: Extract<Page, { kind: 'embed' }> }> = ({ page 
             zIndex: 2,
           }}
         >
-          <span style={{ marginLeft: 4, color: T.gold, fontSize: '36px', lineHeight: 1 }}>▶</span>
+          <span className="ml-1" style={{ color: T.gold, fontSize: '36px', lineHeight: 1 }}>▶</span>
         </div>
         <div style={{ flex: 1 }} />
         <div style={{ position: 'relative', zIndex: 2 }}>

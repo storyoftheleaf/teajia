@@ -168,7 +168,7 @@ export const AlcoveStorySection: React.FC<AlcoveStorySectionProps> = ({
             marginTop: "8px",
           }}>
             {/* Eyebrow — bronze used once; hairline removed to keep bronze rare. */}
-            <div style={{ marginBottom: 12 }}>
+            <div className="mb-3">
               <span style={{
                 fontFamily: "var(--font-display)",
                 fontSize: "10px",
