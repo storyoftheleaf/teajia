@@ -113,7 +113,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
       {isHosted ? (
         /* Slim contextual header: just the action controls for the active tab */
         (activeTab === 'logs' || activeTab === 'archive') ? (
-          <div className="sticky top-0 z-30 bg-tea-bg/90 backdrop-blur-md border-b border-tea-border py-2 flex-shrink-0">
+          <div className="sticky top-0 z-sticky bg-tea-bg/90 backdrop-blur-md border-b border-tea-border py-2 flex-shrink-0">
             <div className="px-3 md:px-6 max-w-5xl mx-auto flex items-center gap-2">
               {activeTab === 'logs' && (
                 <>
@@ -142,8 +142,13 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
               )}
               {activeTab === 'archive' && (
                 <div className="ml-auto">
-                  <button onClick={handleExportArchive} disabled={soldOutProducts.length === 0} className="flex items-center gap-1 md:gap-2 text-ui-10 md:text-xs uppercase tracking-[0.15em] md:tracking-[0.2em] font-bold text-tea-text-sec hover:text-tea-text transition-colors px-2 md:px-3 py-1.5 border border-transparent hover:border-tea-border rounded-lg disabled:opacity-50">
-                    <Download size={14} /> <span className="hidden md:inline">Export CSV</span><span className="md:hidden">CSV</span>
+                  <button
+                    onClick={handleExportArchive}
+                    disabled={soldOutProducts.length === 0}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-tea-border text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub transition-colors text-xs disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <Download size={13} />
+                    <span>Export CSV</span>
                   </button>
                 </div>
               )}
@@ -152,43 +157,45 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
         ) : null /* Ledger tab has no contextual controls */
       ) : (
         /* Standalone mode: full header with tab bar */
-        <div className="sticky top-0 z-30 bg-tea-bg/90 backdrop-blur-md border-b border-tea-border py-2.5 flex-shrink-0">
-          <div className="px-3 md:px-6 max-w-5xl mx-auto flex items-center gap-2 md:gap-4">
-            <div className="flex items-center gap-2 shrink-0">
-              <Archive size={16} className="text-tea-gold" />
-              <h2 className="h3 hidden md:block">
-                System Records
-              </h2>
+        <div className="sticky top-0 z-sticky bg-tea-bg/90 backdrop-blur-md border-b border-tea-border flex-shrink-0">
+          <div className="px-4 md:px-6 lg:px-10 pt-6 pb-3 max-w-5xl mx-auto flex items-end justify-between gap-4 flex-wrap">
+            <div>
+              <h1 className="h2 text-tea-text">System Records</h1>
+              <div className="label-caps text-tea-text-dim mt-1">Archive · Log · Stock ledger</div>
             </div>
+            {activeTab === 'archive' && (
+              <button
+                onClick={handleExportArchive}
+                disabled={soldOutProducts.length === 0}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-tea-border text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub transition-colors text-xs disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <Download size={13} />
+                <span>Export CSV</span>
+              </button>
+            )}
+          </div>
 
-            <div className="flex items-center bg-tea-surface rounded-lg border border-tea-border p-0.5 md:ml-4">
-              <button
-                onClick={() => setActiveTab('archive')}
-                className={`px-2 md:px-3 py-1.5 rounded-md text-ui-10 md:text-xs uppercase tracking-wider font-bold transition-colors flex items-center gap-1 md:gap-1.5 ${activeTab === 'archive' ? 'bg-tea-bg text-tea-text shadow-sm' : 'text-tea-text-sec hover:text-tea-text'}`}
-              >
-                <Archive size={12} /> <span className="hidden md:inline">Archive</span><span className="md:hidden">Arch</span>
-              </button>
-              <button
-                onClick={() => setActiveTab('logs')}
-                className={`px-2 md:px-3 py-1.5 rounded-md text-ui-10 md:text-xs uppercase tracking-wider font-bold transition-colors flex items-center gap-1 md:gap-1.5 ${activeTab === 'logs' ? 'bg-tea-bg text-tea-text shadow-sm' : 'text-tea-text-sec hover:text-tea-text'}`}
-              >
-                <ScrollText size={12} /> Log
-              </button>
-              <button
-                onClick={() => setActiveTab('ledger')}
-                className={`px-2 md:px-3 py-1.5 rounded-md text-ui-10 md:text-xs uppercase tracking-wider font-bold transition-colors flex items-center gap-1 md:gap-1.5 ${activeTab === 'ledger' ? 'bg-tea-bg text-tea-text shadow-sm' : 'text-tea-text-sec hover:text-tea-text'}`}
-              >
-                <BarChart3 size={12} /> <span className="hidden md:inline">Stock Ledger</span><span className="md:hidden">Ledger</span>
-              </button>
-            </div>
-
-            <div className="ml-auto flex items-center gap-2 shrink-0">
-              {activeTab === 'archive' && (
-                <button onClick={handleExportArchive} disabled={soldOutProducts.length === 0} className="flex items-center gap-1 md:gap-2 text-ui-10 md:text-xs uppercase tracking-[0.15em] md:tracking-[0.2em] font-bold text-tea-text-sec hover:text-tea-text transition-colors px-2 md:px-3 py-1.5 border border-transparent hover:border-tea-border rounded-lg disabled:opacity-50">
-                  <Download size={14} /> <span className="hidden md:inline">Export CSV</span><span className="md:hidden">CSV</span>
+          {/* Tab strip — bottom-border underline */}
+          <div className="flex items-center gap-6 px-4 md:px-6 lg:px-10 max-w-5xl mx-auto border-b border-tea-border">
+            {([
+              { id: 'archive', label: 'Archive', icon: <Archive size={13} /> },
+              { id: 'logs', label: 'Log', icon: <ScrollText size={13} /> },
+              { id: 'ledger', label: 'Stock Ledger', icon: <BarChart3 size={13} /> },
+            ] as const).map(t => {
+              const isActive = activeTab === t.id;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => setActiveTab(t.id as any)}
+                  className={`flex items-center gap-1.5 py-2.5 text-ui-12 uppercase tracking-caps font-sans whitespace-nowrap transition-colors border-b ${
+                    isActive ? 'text-tea-text border-tea-gold' : 'text-tea-text-sec hover:text-tea-text border-transparent'
+                  }`}
+                >
+                  {t.icon}
+                  {t.label}
                 </button>
-              )}
-            </div>
+              );
+            })}
           </div>
 
           {activeTab === 'logs' && (
@@ -235,7 +242,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
                 <col className="w-[16%]" />
                 <col className="w-[15%]" />
               </colgroup>
-              <thead className="sticky top-0 z-20 bg-tea-bg shadow-sm">
+              <thead className="sticky top-0 z-sticky bg-tea-bg shadow-sm">
                 <tr>
                   <th className="px-4 py-2 border-b border-tea-border text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec text-left">Product</th>
                   <th className="px-4 py-2 border-b border-tea-border text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec text-left">Type</th>
@@ -261,7 +268,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
                         <div className="flex flex-col justify-center h-full">
                           <button
                             onClick={() => navigate(`/admin/catalog?search=${encodeURIComponent(product.givenName || product.productName)}`)}
-                            className="text-sm font-serif text-tea-text tracking-wide truncate hover:text-tea-gold transition-colors text-left"
+                            className="text-sm font-serif text-tea-text tracking-wide truncate hover:text-tea-readgold transition-colors text-left"
                           >
                             {product.givenName || product.productName}
                           </button>
@@ -291,7 +298,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
                         <button
                           onClick={() => handleReactivate(product)}
                           disabled={reactivating === product.id}
-                          className="text-xs text-tea-gold hover:text-tea-gold/80 flex items-center gap-1 transition-colors mx-auto disabled:opacity-50"
+                          className="text-xs text-tea-readgold hover:text-tea-text flex items-center gap-1 transition-colors mx-auto disabled:opacity-50"
                         >
                           {reactivating === product.id ? (
                             <Loader2 size={12} className="animate-spin" />
@@ -330,7 +337,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
                   <button
                     onClick={() => handleReactivate(product)}
                     disabled={reactivating === product.id}
-                    className="text-ui-10 text-tea-gold hover:text-tea-gold/80 transition-colors shrink-0 disabled:opacity-50"
+                    className="text-ui-10 text-tea-readgold hover:text-tea-text transition-colors shrink-0 disabled:opacity-50"
                   >
                     {reactivating === product.id ? <Loader2 size={10} className="animate-spin" /> : 'Reactivate'}
                   </button>
@@ -354,7 +361,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
                     <col className="w-[14%]" />
                     <col className="w-[54%]" />
                   </colgroup>
-                  <thead className="sticky top-0 z-20 bg-tea-bg shadow-sm">
+                  <thead className="sticky top-0 z-sticky bg-tea-bg shadow-sm">
                     <tr>
                       <th className="px-4 py-2 border-b border-tea-border text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec text-left">Timestamp</th>
                       <th className="px-4 py-2 border-b border-tea-border text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec text-left">User</th>
@@ -371,7 +378,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
                           {(logAction || logSearch) && (
                             <button
                               onClick={() => { setLogAction(''); setLogSearch(''); setLogSearchInput(''); setLogOffset(0); }}
-                              className="block text-xs text-tea-gold hover:text-tea-gold/80 mx-auto mt-2 transition-colors"
+                              className="block text-xs text-tea-readgold hover:text-tea-text mx-auto mt-2 transition-colors"
                             >
                               Clear filters
                             </button>
@@ -481,7 +488,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
                     <col className="w-[15%]" />
                     <col className="w-[18%]" />
                   </colgroup>
-                  <thead className="sticky top-0 z-20 bg-tea-bg shadow-sm">
+                  <thead className="sticky top-0 z-sticky bg-tea-bg shadow-sm">
                     <tr>
                       <th className="px-4 py-2 border-b border-tea-border text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec text-left">Timestamp</th>
                       <th className="px-4 py-2 border-b border-tea-border text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec text-left">Product</th>
@@ -511,7 +518,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
                             <td className="px-4 align-middle overflow-hidden">
                               <button
                                 onClick={() => navigate(`/admin/catalog?search=${encodeURIComponent(entry.product_name || '')}`)}
-                                className="text-xs text-tea-text hover:text-tea-gold transition-colors truncate block text-left"
+                                className="text-xs text-tea-text hover:text-tea-readgold transition-colors truncate block text-left"
                               >
                                 {entry.product_name || entry.product_id}
                               </button>
@@ -534,7 +541,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
                               {entry.source_invoice_number ? (
                                 <button
                                   onClick={() => navigate(`/admin/orders?search=${encodeURIComponent(entry.source_invoice_number)}`)}
-                                  className="text-xs text-tea-text-sec hover:text-tea-gold num transition-colors truncate block text-left"
+                                  className="text-xs text-tea-text-sec hover:text-tea-readgold num transition-colors truncate block text-left"
                                 >
                                   {entry.source_invoice_number}
                                 </button>
@@ -585,7 +592,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
                           </div>
                           <div className="flex items-center justify-between mt-0.5">
                             <span className="text-sm text-tea-text font-serif truncate">{entry.product_name || 'Unknown'}</span>
-                            <span className={`text-xs num font-medium ${isPositive ? 'text-green-500' : 'text-red-400'}`}>
+                            <span className={`text-xs num font-medium ${isPositive ? 'text-tea-green' : 'text-tea-error'}`}>
                               {isPositive ? '+' : ''}{entry.delta}g
                             </span>
                           </div>

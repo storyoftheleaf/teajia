@@ -82,7 +82,7 @@ const selectClass =
 
 const Field = ({ label, children, className = '' }: { label: string; children: React.ReactNode; className?: string }) => (
   <div className={className}>
-    <label className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec block mb-1.5">{label}</label>
+    <label className="block label-caps text-tea-text-sec mb-1.5">{label}</label>
     {children}
   </div>
 );
@@ -202,14 +202,14 @@ const BlockEditor: React.FC<BlockEditorProps> = ({ block, index, total, onChange
     <div className="group relative bg-tea-elevated/40 border border-tea-border rounded-lg p-3 space-y-2">
       {/* Block header row */}
       <div className="flex items-center justify-between">
-        <span className="text-ui-9 uppercase tracking-[0.2em] text-tea-text-dim font-medium">
+        <span className="label-caps text-tea-text-dim">
           {getArticleBlockLabel(block.type)}
         </span>
         <div className="flex items-center gap-0.5">
           <button
             onClick={onMoveUp}
             disabled={index === 0}
-            className="p-1 rounded text-tea-text-dim hover:text-tea-text-sec transition-colors disabled:opacity-30"
+            className="p-1.5 rounded-md text-tea-text-dim hover:text-tea-text-sec transition-colors disabled:opacity-40"
             title="Move up"
           >
             <ArrowUp size={12} />
@@ -217,14 +217,14 @@ const BlockEditor: React.FC<BlockEditorProps> = ({ block, index, total, onChange
           <button
             onClick={onMoveDown}
             disabled={index === total - 1}
-            className="p-1 rounded text-tea-text-dim hover:text-tea-text-sec transition-colors disabled:opacity-30"
+            className="p-1.5 rounded-md text-tea-text-dim hover:text-tea-text-sec transition-colors disabled:opacity-40"
             title="Move down"
           >
             <ArrowDown size={12} />
           </button>
           <button
             onClick={onDelete}
-            className="p-1 rounded text-tea-text-dim hover:text-red-400 transition-colors ml-1"
+            className="p-1.5 rounded-md text-tea-text-dim hover:text-tea-error transition-colors ml-1"
             title="Delete block"
           >
             <Trash2 size={12} />
@@ -467,12 +467,12 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
         />
 
         {/* Status badge */}
-        <span className={`text-ui-9 uppercase tracking-[0.15em] px-2 py-0.5 rounded-full font-medium shrink-0 ${STATUS_BADGE_STYLES[status] ?? STATUS_BADGE_STYLES.draft}`}>
+        <span className={`inline-flex px-2 py-0.5 rounded-full text-ui-9 uppercase tracking-[1.2px] shrink-0 ${STATUS_BADGE_STYLES[status] ?? STATUS_BADGE_STYLES.draft}`}>
           {status}
         </span>
 
         {/* Save state */}
-        <span className="text-ui-10 text-tea-text-dim shrink-0 hidden sm:block">
+        <span className="text-ui-11 text-tea-text-dim shrink-0 hidden sm:block">
           {saveState === 'saving' ? 'Saving…' : saveState === 'saved' ? 'Saved' : ''}
         </span>
 
@@ -480,14 +480,14 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
         <button
           onClick={handlePublishToggle}
           disabled={publishing || !articleId}
-          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors disabled:opacity-40 shrink-0 ${
+          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-colors disabled:opacity-40 shrink-0 ${
             status === 'published'
-              ? 'text-tea-text-sec hover:text-tea-text bg-tea-elevated'
-              : 'text-tea-bg bg-tea-gold hover:bg-tea-gold/90'
+              ? 'border border-tea-border text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub'
+              : 'bg-tea-gold text-tea-bg hover:bg-tea-gold/90'
           }`}
           title={status === 'published' ? 'Unpublish' : 'Publish'}
         >
-          {publishing ? <Loader2 size={12} className="animate-spin" /> : status === 'published' ? <EyeOff size={12} /> : <Eye size={12} />}
+          {publishing ? <Loader2 size={13} className="animate-spin" /> : status === 'published' ? <EyeOff size={13} /> : <Eye size={13} />}
           <span className="hidden sm:inline">{status === 'published' ? 'Unpublish' : 'Publish'}</span>
         </button>
 
@@ -495,9 +495,9 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
         <button
           onClick={() => { void save(); }}
           disabled={saveState === 'saving' || !title.trim()}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-medium hover:bg-tea-gold/90 transition-colors disabled:opacity-40 shrink-0"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
         >
-          {saveState === 'saving' ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
+          {saveState === 'saving' ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
           <span className="hidden sm:inline">Save</span>
         </button>
       </div>
@@ -577,7 +577,7 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
 
             {/* ── Metadata ── */}
             <section>
-              <h3 className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim font-medium mb-3">Metadata</h3>
+              <h3 className="label-caps text-tea-text-dim mb-3">Metadata</h3>
               <div className="space-y-4">
                 <Field label="Subtitle">
                   <input
@@ -674,7 +674,7 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
                 onClick={() => setPasteOpen(v => !v)}
                 className="flex items-center gap-2 w-full text-left"
               >
-                <h3 className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim font-medium flex-1">Paste from Claude</h3>
+                <h3 className="label-caps text-tea-text-dim flex-1">Paste from Claude</h3>
                 {pasteOpen ? <ChevronUp size={13} className="text-tea-text-dim" /> : <ChevronDown size={13} className="text-tea-text-dim" />}
               </button>
 
@@ -704,7 +704,7 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
                       <button
                         onClick={handleParse}
                         disabled={!pasteText.trim()}
-                        className="w-full py-2 rounded-md bg-tea-gold text-tea-bg text-xs font-medium hover:bg-tea-gold/90 transition-colors disabled:opacity-40"
+                        className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                       >
                         Parse into blocks
                       </button>
@@ -725,7 +725,7 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
       {/* Mobile metadata panel (shown below blocks on mobile) */}
       <div className="lg:hidden border-t border-tea-border bg-tea-surface/80">
         <details className="px-4">
-          <summary className="py-3 text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec font-medium cursor-pointer list-none flex items-center justify-between">
+          <summary className="py-3 label-caps text-tea-text-sec cursor-pointer list-none flex items-center justify-between">
             Article Metadata
             <ChevronDown size={13} className="text-tea-text-dim" />
           </summary>
@@ -753,13 +753,13 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
           </div>
         </details>
         <details className="px-4 border-t border-tea-border">
-          <summary className="py-3 text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec font-medium cursor-pointer list-none flex items-center justify-between">
+          <summary className="py-3 label-caps text-tea-text-sec cursor-pointer list-none flex items-center justify-between">
             Paste from Claude
             <ChevronDown size={13} className="text-tea-text-dim" />
           </summary>
           <div className="pb-4 space-y-3">
             <textarea value={pasteText} onChange={e => setPasteText(e.target.value)} placeholder="Paste structured content here…" className={`${textareaClass} min-h-[120px] text-xs font-mono`} rows={6} />
-            <button onClick={handleParse} disabled={!pasteText.trim()} className="w-full py-2 rounded-md bg-tea-gold text-tea-bg text-xs font-medium hover:bg-tea-gold/90 transition-colors disabled:opacity-40">
+            <button onClick={handleParse} disabled={!pasteText.trim()} className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
               Parse into blocks
             </button>
           </div>

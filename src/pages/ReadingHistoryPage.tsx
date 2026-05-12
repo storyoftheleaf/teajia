@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Icons } from '../components/Icons';
+import { ChevronLeft, BookOpen } from 'lucide-react';
 
 interface ProgressEntry {
   storyId: string;
@@ -29,51 +29,43 @@ export default function ReadingHistoryPage() {
   }, []);
 
   return (
-    <div className="max-w-sm mx-auto pt-12 pb-12">
+    <div className="max-w-3xl mx-auto px-4 md:px-6 pt-6 pb-3 pb-nav-gap">
       <button
         onClick={() => navigate(-1)}
-        className="flex items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors mb-8"
+        className="inline-flex items-center gap-1.5 text-tea-text-sec hover:text-tea-text transition-colors mb-6"
+        aria-label="Back"
       >
-        <Icons.Back className="w-4 h-4" />
-        <span className="text-xs uppercase tracking-[0.15em]">Back</span>
+        <ChevronLeft size={14} />
+        <span className="text-ui-12 uppercase tracking-[0.15em]">Back</span>
       </button>
 
-      <h1 className="font-display text-3xl text-tea-text mb-1">Reading History</h1>
-      <p className="font-body italic text-sm text-tea-text-dim mb-8">
-        {history.length} {history.length === 1 ? 'article' : 'articles'} in progress
+      <h1 className="h2">Reading History</h1>
+      <p className="label-caps text-tea-text-dim mt-1">
+        {history.length} {history.length === 1 ? 'Article' : 'Articles'} In Progress
       </p>
 
       {history.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16">
-          <div className="w-16 h-16 rounded-full bg-tea-gold/10 flex items-center justify-center mb-4">
-            <Icons.BookOpen className="w-7 h-7 text-tea-gold/40" />
-          </div>
-          <h3 className="font-serif text-lg text-tea-text mb-2">No Reading History</h3>
-          <p className="text-sm text-tea-text-sec text-center max-w-[260px] leading-relaxed">
+        <div className="flex flex-col items-center text-center max-w-sm mx-auto py-20 px-6">
+          <BookOpen size={28} strokeWidth={1.25} className="text-tea-text-dim" />
+          <h3 className="font-display text-ui-17 text-tea-text mt-4">No reading history</h3>
+          <p className="text-ui-12 text-tea-text-sec leading-relaxed mt-2">
             Your reading progress will appear here as you explore articles.
           </p>
         </div>
       ) : (
-        <div className="border border-tea-border overflow-hidden rounded-md">
-          {history.map((entry, i) => (
-            <button
-              key={entry.storyId}
-              onClick={() => navigate('/magazine')}
-              className={`w-full flex items-center gap-3 px-4 py-3.5 hover:bg-tea-surface/50 transition-colors group text-left ${
-                i < history.length - 1 ? 'border-b border-tea-border' : ''
-              }`}
-            >
-              <Icons.BookOpen className="w-4 h-4 text-tea-text-sec shrink-0" />
-              <div className="flex-1 min-w-0">
-                <span className="font-serif text-sm text-tea-text group-hover:text-tea-gold transition-colors truncate block">
-                  Story #{entry.storyId}
-                </span>
-                <span className="text-ui-10 text-tea-text-sec">Page {entry.page + 1}</span>
-              </div>
-              <Icons.ChevronRight className="w-3.5 h-3.5 text-tea-text-sec shrink-0" />
-            </button>
+        <ul className="divide-y divide-tea-border bg-tea-surface border border-tea-border rounded-xl overflow-hidden mt-6">
+          {history.map((entry) => (
+            <li key={entry.storyId}>
+              <button
+                onClick={() => navigate('/magazine')}
+                className="w-full text-left px-4 md:px-6 py-4 hover:bg-tea-accent-sub transition-colors"
+              >
+                <div className="font-display text-ui-15 text-tea-text">Story #{entry.storyId}</div>
+                <div className="text-ui-12 text-tea-text-dim mt-1">Page {entry.page + 1}</div>
+              </button>
+            </li>
           ))}
-        </div>
+        </ul>
       )}
     </div>
   );

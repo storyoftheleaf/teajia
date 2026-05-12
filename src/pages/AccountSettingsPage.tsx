@@ -2,30 +2,31 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { api, setToken } from '../lib/api';
-import { Icons } from '../components/Icons';
+import { ChevronLeft, AlertCircle, Loader2 } from 'lucide-react';
 
-const inputClass = "w-full bg-tea-surface border border-tea-border p-3.5 text-tea-text rounded outline-none focus:border-tea-gold focus:ring-0 transition-colors duration-150 placeholder-tea-text-dim font-sans text-sm";
-const inputStyle = { boxShadow: 'inset 0 1px 0 var(--tea-accent-sub), inset 0 -1px 0 var(--tea-accent-sub)' };
-const labelClass = "block text-ui-10 font-semibold text-tea-text-sec mb-2";
+const inputClass = "w-full bg-tea-surface border border-tea-border rounded-md px-3 py-2 text-ui-14 text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors";
+const labelClass = "block text-ui-11 uppercase tracking-[1.2px] text-tea-text-sec mb-1.5";
+const helperClass = "text-ui-12 text-tea-text-dim mt-1";
 
 function FormError({ error }: { error: string }) {
   if (!error) return null;
   return (
-    <div className="flex items-start gap-2 p-3 bg-red-500/5 border border-red-500/20 text-red-600 text-sm">
-      <Icons.AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+    <div className="flex items-start gap-2 p-3 bg-tea-error/10 ring-1 ring-inset ring-tea-error/40 rounded-md text-tea-error text-ui-13">
+      <AlertCircle size={16} className="mt-0.5 shrink-0" />
       <span>{error}</span>
     </div>
   );
 }
 
-function SubmitButton({ label, loading }: { label: string; loading: boolean }) {
+function PrimarySubmit({ label, loading }: { label: string; loading: boolean }) {
   return (
     <button
       type="submit"
       disabled={loading}
-      className="w-full py-2.5 bg-tea-gold text-tea-bg font-sans font-medium rounded hover:bg-tea-gold-lt transition-colors duration-150 disabled:opacity-50 flex justify-center items-center gap-2 mt-2"
+      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 active:bg-tea-gold/80 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
     >
-      {loading ? <div className="w-4 h-4 border-2 border-tea-border border-t-tea-text-sec rounded-full animate-spin" /> : label}
+      {loading ? <Loader2 size={13} className="animate-spin" /> : null}
+      {label}
     </button>
   );
 }
@@ -127,34 +128,61 @@ export default function AccountSettingsPage() {
 
   if (!auth.isAuthenticated) {
     return (
-      <div className="max-w-sm mx-auto pt-12 text-center">
-        <p className="text-tea-text-sec text-sm mb-4">You need to be signed in to access account settings.</p>
-        <button onClick={() => navigate('/signin')} className="text-sm text-tea-gold hover:underline">Sign In</button>
+      <div className="max-w-3xl mx-auto px-4 md:px-6 pt-6 pb-3 pb-nav-gap">
+        <div className="flex flex-col items-center text-center max-w-sm mx-auto py-20 px-6">
+          <p className="text-ui-13 text-tea-text-sec mb-4">You need to be signed in to access account settings.</p>
+          <button
+            onClick={() => navigate('/signin')}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors"
+          >
+            Sign In
+          </button>
+        </div>
       </div>
     );
   }
 
+  const initials = (auth.user?.name || auth.user?.email || '?').slice(0, 2).toUpperCase();
+
   return (
-    <div className="max-w-sm mx-auto pt-12 pb-12 space-y-12">
+    <div className="max-w-3xl mx-auto px-4 md:px-6 pt-6 pb-3 pb-nav-gap space-y-8">
       {/* Back */}
       <button
         onClick={() => navigate(-1)}
-        className="flex items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors"
+        className="inline-flex items-center gap-1.5 text-tea-text-sec hover:text-tea-text transition-colors"
+        aria-label="Back"
       >
-        <Icons.Back className="w-4 h-4" />
-        <span className="text-xs">Back</span>
+        <ChevronLeft size={14} />
+        <span className="text-ui-12 uppercase tracking-[0.15em]">Back</span>
       </button>
 
-      {/* Edit Profile */}
-      <section>
-        <div className="flex flex-col items-center pb-8">
-          <div className="w-16 h-16 rounded-full bg-tea-gold/10 flex items-center justify-center mb-4">
-            <Icons.User className="w-7 h-7 text-tea-gold" />
-          </div>
-          <h1 className="font-display text-3xl text-tea-text">Edit Profile</h1>
-          <p className="font-body italic text-sm text-tea-text-dim mt-1">Update your name, username, or email</p>
+      {/* Header */}
+      <div>
+        <h1 className="h2">Account Settings</h1>
+        <p className="label-caps text-tea-text-dim mt-1">Profile · Security</p>
+      </div>
+
+      {/* Identity card */}
+      <div className="bg-tea-surface border border-tea-border rounded-xl p-5 flex items-start gap-4">
+        <div className="w-12 h-12 rounded-full bg-tea-elevated text-tea-text-sec font-display text-ui-15 flex items-center justify-center flex-shrink-0">
+          {initials}
         </div>
-        <form onSubmit={handleEditProfile} className="space-y-4">
+        <div className="flex-1 min-w-0">
+          <h3 className="h3">{auth.user?.name || 'Member'}</h3>
+          <p className="text-ui-13 text-tea-text-sec mt-0.5 truncate">{auth.user?.email}</p>
+          {auth.user?.username ? (
+            <p className="text-ui-12 text-tea-text-dim mt-0.5">@{auth.user.username}</p>
+          ) : null}
+        </div>
+      </div>
+
+      {/* Edit Profile */}
+      <section className="space-y-4">
+        <div>
+          <h2 className="h3">Edit profile</h2>
+          <p className="text-ui-12 text-tea-text-dim mt-1">Update your name, username, or email.</p>
+        </div>
+        <form onSubmit={handleEditProfile} className="space-y-3">
           <div>
             <label className={labelClass}>Name</label>
             <input
@@ -162,7 +190,6 @@ export default function AccountSettingsPage() {
               value={editName}
               onChange={e => setEditName(e.target.value)}
               className={inputClass}
-              style={inputStyle}
               placeholder={auth.user?.name || 'your name'}
             />
           </div>
@@ -177,10 +204,9 @@ export default function AccountSettingsPage() {
               autoComplete="username"
               pattern="[a-zA-Z0-9_.\-]{3,32}"
               className={inputClass}
-              style={inputStyle}
               placeholder={auth.user?.username || 'Pick a username'}
             />
-            <p className="text-ui-11 text-tea-text/40 mt-1.5">Leave blank to remove. Sign in with email or username.</p>
+            <p className={helperClass}>Leave blank to remove. Sign in with email or username.</p>
           </div>
           <div>
             <label className={labelClass}>Email</label>
@@ -189,7 +215,6 @@ export default function AccountSettingsPage() {
               value={editEmail}
               onChange={e => setEditEmail(e.target.value)}
               className={inputClass}
-              style={inputStyle}
               placeholder={auth.user?.email || 'your email'}
             />
           </div>
@@ -202,30 +227,35 @@ export default function AccountSettingsPage() {
               value={editPhone}
               onChange={e => setEditPhone(e.target.value)}
               className={inputClass}
-              style={inputStyle}
               placeholder="+886 912 345 678"
               autoComplete="tel"
             />
-            <p className="text-ui-11 text-tea-text/40 mt-1.5">Include country code. Used to pre-fill RSVP forms.</p>
+            <p className={helperClass}>Include country code. Used to pre-fill RSVP forms.</p>
           </div>
           <FormError error={profileError} />
-          {profileSaved && <p className="text-sm text-green-600">Profile updated.</p>}
-          <SubmitButton label="Save Changes" loading={profileLoading} />
+          {profileSaved && <p className="text-ui-13 text-tea-green">Profile updated.</p>}
+          <div className="flex justify-between pt-2">
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
+              className="px-2 py-1 text-tea-text-sec hover:text-tea-text transition-colors text-ui-13"
+            >
+              Cancel
+            </button>
+            <PrimarySubmit label="Save Changes" loading={profileLoading} />
+          </div>
         </form>
       </section>
 
-      <div className="border-t border-tea-border" />
+      <hr className="border-tea-border" />
 
       {/* Change Password */}
-      <section>
-        <div className="flex flex-col items-center pb-8">
-          <div className="w-16 h-16 rounded-full bg-tea-gold/10 flex items-center justify-center mb-4">
-            <Icons.Lock className="w-7 h-7 text-tea-gold" />
-          </div>
-          <h2 className="font-display text-3xl text-tea-text">Change Password</h2>
-          <p className="font-body italic text-sm text-tea-text-dim mt-1">Update your account password</p>
+      <section className="space-y-4">
+        <div>
+          <h2 className="h3">Change password</h2>
+          <p className="text-ui-12 text-tea-text-dim mt-1">Update your account password.</p>
         </div>
-        <form onSubmit={handleChangePassword} className="space-y-4">
+        <form onSubmit={handleChangePassword} className="space-y-3">
           <div>
             <label className={labelClass}>Current Password</label>
             <input
@@ -233,7 +263,6 @@ export default function AccountSettingsPage() {
               value={currentPassword}
               onChange={e => setCurrentPassword(e.target.value)}
               className={inputClass}
-              style={inputStyle}
               required
             />
           </div>
@@ -244,7 +273,6 @@ export default function AccountSettingsPage() {
               value={newPassword}
               onChange={e => setNewPassword(e.target.value)}
               className={inputClass}
-              style={inputStyle}
               placeholder="Min 6 characters"
               required
             />
@@ -256,30 +284,35 @@ export default function AccountSettingsPage() {
               value={confirmNewPassword}
               onChange={e => setConfirmNewPassword(e.target.value)}
               className={inputClass}
-              style={inputStyle}
               required
             />
           </div>
           <FormError error={passwordError} />
-          {passwordSaved && <p className="text-sm text-green-600">Password updated.</p>}
-          <SubmitButton label="Update Password" loading={passwordLoading} />
+          {passwordSaved && <p className="text-ui-13 text-tea-green">Password updated.</p>}
+          <div className="flex justify-between pt-2">
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
+              className="px-2 py-1 text-tea-text-sec hover:text-tea-text transition-colors text-ui-13"
+            >
+              Cancel
+            </button>
+            <PrimarySubmit label="Update Password" loading={passwordLoading} />
+          </div>
         </form>
       </section>
 
-      <div className="border-t border-tea-border" />
+      <hr className="border-tea-border" />
 
       {/* Danger Zone */}
-      <section>
-        <div className="flex flex-col items-center pb-8">
-          <div className="w-16 h-16 rounded-full bg-red-500/8 flex items-center justify-center mb-4">
-            <Icons.AlertCircle className="w-7 h-7 text-red-500" />
-          </div>
-          <h2 className="font-display text-3xl text-tea-text">Delete Account</h2>
-          <p className="font-body italic text-sm text-tea-text-dim mt-1">This action is permanent and cannot be undone</p>
+      <section className="space-y-4">
+        <div>
+          <h2 className="h3 text-tea-error">Delete account</h2>
+          <p className="text-ui-12 text-tea-text-dim mt-1">This action is permanent and cannot be undone.</p>
         </div>
-        <form onSubmit={handleDeleteAccount} className="space-y-4">
-          <div className="p-4 bg-red-500/5 border border-red-500/15 text-sm text-tea-text-sec space-y-1">
-            <p>Deleting your account will permanently remove your profile, order history, and tasting journal. This cannot be reversed.</p>
+        <form onSubmit={handleDeleteAccount} className="space-y-3">
+          <div className="p-4 bg-tea-error/10 ring-1 ring-inset ring-tea-error/40 rounded-md text-ui-13 text-tea-text-sec">
+            Deleting your account will permanently remove your profile, order history, and tasting journal. This cannot be reversed.
           </div>
           <div>
             <label className={labelClass}>Type DELETE to confirm</label>
@@ -288,7 +321,6 @@ export default function AccountSettingsPage() {
               value={deleteConfirmText}
               onChange={e => setDeleteConfirmText(e.target.value)}
               className={inputClass}
-              style={inputStyle}
               placeholder="DELETE"
               autoComplete="off"
             />
@@ -300,18 +332,27 @@ export default function AccountSettingsPage() {
               value={deletePassword}
               onChange={e => setDeletePassword(e.target.value)}
               className={inputClass}
-              style={inputStyle}
               required
             />
           </div>
           <FormError error={deleteError} />
-          <button
-            type="submit"
-            disabled={deleteLoading || deleteConfirmText !== 'DELETE'}
-            className="w-full py-2.5 bg-red-600 text-tea-bg font-sans font-medium rounded hover:bg-red-700 transition-colors duration-150 disabled:opacity-40 flex justify-center items-center gap-2 mt-2"
-          >
-            {deleteLoading ? <div className="w-4 h-4 border-2 border-tea-bg/30 border-t-tea-bg rounded-full animate-spin" /> : 'Permanently Delete Account'}
-          </button>
+          <div className="flex justify-between pt-2">
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
+              className="px-2 py-1 text-tea-text-sec hover:text-tea-text transition-colors text-ui-13"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={deleteLoading || deleteConfirmText !== 'DELETE'}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-error text-tea-bg text-xs font-semibold hover:bg-tea-error/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {deleteLoading ? <Loader2 size={13} className="animate-spin" /> : null}
+              Permanently Delete Account
+            </button>
+          </div>
         </form>
       </section>
     </div>

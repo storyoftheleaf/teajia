@@ -71,7 +71,7 @@ export const PlatformAccessView: React.FC = () => {
   if (!platformRole) {
     return (
       <div className="px-4 md:px-6 pt-6 pb-nav-gap max-w-3xl mx-auto">
-        <p className="text-tea-text-sec italic">This view is for platform tier only.</p>
+        <p className="text-tea-text-sec text-ui-14">This view is for platform tier only.</p>
       </div>
     );
   }
@@ -79,9 +79,10 @@ export const PlatformAccessView: React.FC = () => {
   return (
     <div className="px-4 md:px-6 pt-6 pb-nav-gap max-w-4xl mx-auto">
       {/* Header — three quiet counts as type, not KPI cards */}
-      <header className="mb-10">
-        <h1 className={`${TYPOGRAPHY_CLASSES.h2} text-tea-text mb-4`}>The network</h1>
-        <div className="flex items-baseline gap-6 flex-wrap text-tea-text-sec">
+      <header className="mb-8">
+        <h1 className={`${TYPOGRAPHY_CLASSES.h2} text-tea-text`}>The network</h1>
+        <p className="label-caps text-tea-text-dim mt-1">Platform tier · accounts and operators</p>
+        <div className="flex items-baseline gap-6 flex-wrap text-tea-text-sec mt-4">
           <CountLine value={counts.locations} label="Locations" />
           <span aria-hidden className="text-tea-border">·</span>
           <CountLine value={counts.masters} label="Tea Masters" />
@@ -90,8 +91,8 @@ export const PlatformAccessView: React.FC = () => {
         </div>
       </header>
 
-      {/* Quiet tab divider — text-link tabs, no chrome */}
-      <nav className="flex gap-6 mb-8 border-b border-tea-border">
+      {/* Tab strip — bottom-border underline */}
+      <nav className="flex items-center gap-6 mb-8 border-b border-tea-border">
         <TabButton active={tab === 'accounts'} onClick={() => setTab('accounts')}>
           Accounts
         </TabButton>
@@ -103,7 +104,7 @@ export const PlatformAccessView: React.FC = () => {
       </nav>
 
       {error && (
-        <div className="mb-6 text-tea-text-sec italic text-ui-14">{error}</div>
+        <div className="mb-6 text-ui-12 text-tea-error">{error}</div>
       )}
 
       {tab === 'accounts' && (
@@ -132,7 +133,7 @@ const TabButton: React.FC<{ active: boolean; onClick: () => void; children: Reac
   <button
     type="button"
     onClick={onClick}
-    className={`pb-3 -mb-px font-display text-ui-15 tracking-[0.04em] transition-colors ${
+    className={`py-2.5 text-ui-12 uppercase tracking-caps transition-colors ${
       active
         ? 'text-tea-text border-b border-tea-gold'
         : 'text-tea-text-sec hover:text-tea-text border-b border-transparent'
@@ -152,7 +153,7 @@ interface AccountsRegisterProps {
 
 const AccountsRegister: React.FC<AccountsRegisterProps> = ({ accounts, applications, onChange }) => {
   if (accounts === null) {
-    return <div className="text-tea-text-sec italic text-ui-14">Loading network…</div>;
+    return <div className="text-tea-text-sec text-ui-14">Loading network…</div>;
   }
 
   const locations = accounts.filter(a => (a.kind || 'location') === 'location');
@@ -186,7 +187,7 @@ const AccountsRegister: React.FC<AccountsRegisterProps> = ({ accounts, applicati
       )}
 
       {locations.length === 0 && masters.length === 0 && pending.length === 0 && (
-        <div className="text-tea-text-sec italic text-ui-15 leading-[1.7]">
+        <div className="text-tea-text-sec text-ui-14 leading-[1.7]">
           No accounts yet.
         </div>
       )}
@@ -195,7 +196,7 @@ const AccountsRegister: React.FC<AccountsRegisterProps> = ({ accounts, applicati
 };
 
 const SectionLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="text-tea-text-sec text-ui-11 uppercase tracking-[0.12em] mb-4">
+  <div className="label-caps text-tea-text-sec mb-4">
     {children}
   </div>
 );
@@ -240,12 +241,12 @@ const AccountRow: React.FC<{ account: PlatformAccount; onChange: () => Promise<v
           <div className="flex items-baseline gap-3 flex-wrap">
             <div className="font-display text-ui-17 text-tea-text">{account.name}</div>
             {account.trust_tier && (
-              <div className="text-tea-text-sec text-ui-11 uppercase tracking-[0.1em]">
+              <div className="label-caps text-tea-text-dim">
                 {TIER_LABEL[account.trust_tier] || account.trust_tier}
               </div>
             )}
             {isSuspended && (
-              <div className="text-tea-text-sec italic text-ui-12">Suspended</div>
+              <div className="inline-flex px-2 py-0.5 rounded-full text-ui-9 uppercase tracking-caps bg-tea-error/10 text-tea-error ring-1 ring-inset ring-tea-error/40">Suspended</div>
             )}
           </div>
           {(account.owner_email || account.contact_email) && (
@@ -267,8 +268,8 @@ const AccountRow: React.FC<{ account: PlatformAccount; onChange: () => Promise<v
       </div>
 
       {confirming && (
-        <div className="mt-4 space-y-3">
-          <p className="text-tea-text-sec italic text-ui-14 leading-[1.6]">
+        <div className="mt-4 space-y-3 bg-tea-surface border border-tea-border rounded-xl p-4">
+          <p className="text-ui-14 text-tea-text-sec leading-[1.6]">
             {confirming === 'suspend'
               ? `Suspend ${account.name}? No one in this account will be able to act, including the owner. The account's data is preserved.`
               : `Reactivate ${account.name}?`}
@@ -279,14 +280,14 @@ const AccountRow: React.FC<{ account: PlatformAccount; onChange: () => Promise<v
             onChange={e => setReason(e.target.value)}
             placeholder={confirming === 'suspend' ? 'Reason (optional)' : 'Note (optional)'}
             autoFocus
-            className="w-full bg-transparent border-b border-tea-border focus:border-tea-gold outline-none text-tea-text font-body text-ui-14 py-1.5 transition-colors"
+            className="w-full bg-tea-bg border border-tea-border rounded-md px-3 py-2 text-ui-14 text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none"
           />
-          <div className="flex items-center gap-6 text-ui-13">
+          <div className="flex items-center justify-between gap-2">
             <button
               type="button"
               onClick={() => { setConfirming(null); setReason(''); }}
               disabled={busy}
-              className="text-tea-text-sec hover:text-tea-text transition-colors"
+              className="px-2 py-1 text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors"
             >
               Cancel
             </button>
@@ -294,13 +295,17 @@ const AccountRow: React.FC<{ account: PlatformAccount; onChange: () => Promise<v
               type="button"
               onClick={handleConfirm}
               disabled={busy}
-              className="text-tea-text-sec hover:text-tea-text transition-colors disabled:text-tea-text-dim"
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-colors disabled:opacity-40 ${
+                confirming === 'suspend'
+                  ? 'bg-tea-error text-tea-bg hover:bg-tea-error/90'
+                  : 'bg-tea-gold text-tea-bg hover:bg-tea-gold/90'
+              }`}
             >
-              {busy ? `${confirming === 'suspend' ? 'Suspending' : 'Reactivating'}…` : `Confirm ${confirming}`}
+              {busy ? `${confirming === 'suspend' ? 'Suspending' : 'Reactivating'}…` : `Confirm ${confirming === 'suspend' ? 'Suspend' : 'Reactivate'}`}
             </button>
           </div>
           {error && (
-            <p className="text-tea-text-sec italic text-ui-13">{error}</p>
+            <p className="text-ui-12 text-tea-error">{error}</p>
           )}
         </div>
       )}
@@ -350,18 +355,18 @@ const PendingRow: React.FC<{ application: AccountApplication; onChange: () => Pr
         {' '}<span className="text-tea-text-sec text-ui-13">for a {application.proposed_account_kind === 'master' ? 'Tea Master' : 'Location'} account.</span>
       </div>
       {application.note && (
-        <div className="text-tea-text-sec italic text-ui-14 leading-[1.6] mb-4 pl-4 border-l border-tea-border">
+        <div className="text-tea-text-sec text-ui-14 leading-[1.6] mb-4 pl-4 border-l border-tea-border italic">
           "{application.note}"
         </div>
       )}
 
       {mode === 'idle' && (
-        <div className="flex gap-6 items-baseline text-ui-14">
+        <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => { setMode('approve'); setError(null); }}
             disabled={busy !== null}
-            className="text-tea-gold hover:text-tea-gold-lt transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40"
           >
             Approve
           </button>
@@ -369,7 +374,7 @@ const PendingRow: React.FC<{ application: AccountApplication; onChange: () => Pr
             type="button"
             onClick={() => { setMode('decline'); setError(null); }}
             disabled={busy !== null}
-            className="text-tea-text-sec hover:text-tea-text transition-colors"
+            className="px-3 py-1.5 rounded-md border border-tea-border text-ui-12 text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub transition-colors"
           >
             Decline
           </button>
@@ -377,28 +382,32 @@ const PendingRow: React.FC<{ application: AccountApplication; onChange: () => Pr
       )}
 
       {mode === 'approve' && (
-        <div className="space-y-3">
-          <div className="flex items-baseline gap-4 text-ui-14 flex-wrap">
-            <span className="text-tea-text-sec">Trust tier:</span>
-            {(['basic', 'verified', 'partner'] as const).map(t => (
-              <button
-                key={t}
-                type="button"
-                onClick={() => setTrustTier(t)}
-                className={`font-display tracking-[0.04em] transition-colors ${
-                  trustTier === t ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
-                }`}
-              >
-                {TIER_LABEL[t]}
-              </button>
-            ))}
+        <div className="space-y-3 bg-tea-surface border border-tea-border rounded-xl p-4">
+          <div>
+            <div className="label-caps text-tea-text-sec mb-2">Trust tier</div>
+            <div className="flex items-center gap-2 flex-wrap">
+              {(['basic', 'verified', 'partner'] as const).map(t => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setTrustTier(t)}
+                  className={`px-3 py-1.5 rounded-md text-ui-12 transition-colors ${
+                    trustTier === t
+                      ? 'bg-tea-gold/10 text-tea-text ring-1 ring-inset ring-tea-gold/40'
+                      : 'border border-tea-border text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub'
+                  }`}
+                >
+                  {TIER_LABEL[t]}
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="flex gap-6 items-baseline text-ui-14">
+          <div className="flex items-center justify-between gap-2">
             <button
               type="button"
               onClick={() => { setMode('idle'); }}
               disabled={busy !== null}
-              className="text-tea-text-sec hover:text-tea-text transition-colors"
+              className="px-2 py-1 text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors"
             >
               Cancel
             </button>
@@ -406,17 +415,17 @@ const PendingRow: React.FC<{ application: AccountApplication; onChange: () => Pr
               type="button"
               onClick={handleApprove}
               disabled={busy !== null}
-              className="text-tea-gold hover:text-tea-gold-lt transition-colors disabled:text-tea-text-dim"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40"
             >
-              {busy === 'approve' ? 'Approving…' : 'Confirm approval'}
+              {busy === 'approve' ? 'Approving…' : 'Confirm Approval'}
             </button>
           </div>
         </div>
       )}
 
       {mode === 'decline' && (
-        <div className="space-y-3">
-          <p className="text-tea-text-sec italic text-ui-14 leading-[1.6]">
+        <div className="space-y-3 bg-tea-surface border border-tea-border rounded-xl p-4">
+          <p className="text-ui-14 text-tea-text-sec leading-[1.6]">
             Decline {application.applicant_name || application.applicant_email}'s application?
           </p>
           <input
@@ -425,14 +434,14 @@ const PendingRow: React.FC<{ application: AccountApplication; onChange: () => Pr
             onChange={e => setDeclineNote(e.target.value)}
             placeholder="A reason helps the applicant (optional)"
             autoFocus
-            className="w-full bg-transparent border-b border-tea-border focus:border-tea-gold outline-none text-tea-text font-body text-ui-14 py-1.5 transition-colors"
+            className="w-full bg-tea-bg border border-tea-border rounded-md px-3 py-2 text-ui-14 text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none"
           />
-          <div className="flex gap-6 items-baseline text-ui-14">
+          <div className="flex items-center justify-between gap-2">
             <button
               type="button"
               onClick={() => { setMode('idle'); setDeclineNote(''); }}
               disabled={busy !== null}
-              className="text-tea-text-sec hover:text-tea-text transition-colors"
+              className="px-2 py-1 text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors"
             >
               Cancel
             </button>
@@ -440,16 +449,16 @@ const PendingRow: React.FC<{ application: AccountApplication; onChange: () => Pr
               type="button"
               onClick={handleDecline}
               disabled={busy !== null}
-              className="text-tea-text-sec hover:text-tea-text transition-colors disabled:text-tea-text-dim"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-error text-tea-bg text-xs font-semibold hover:bg-tea-error/90 transition-colors disabled:opacity-40"
             >
-              {busy === 'decline' ? 'Declining…' : 'Confirm decline'}
+              {busy === 'decline' ? 'Declining…' : 'Confirm Decline'}
             </button>
           </div>
         </div>
       )}
 
       {error && (
-        <div className="text-tea-text-sec italic text-ui-13 mt-3">{error}</div>
+        <div className="text-ui-12 text-tea-error mt-3">{error}</div>
       )}
     </div>
   );
@@ -504,39 +513,48 @@ const PlatformRegister: React.FC<{ onChange: () => Promise<void> | void }> = ({ 
           <button
             type="button"
             onClick={() => { setInviting(true); setResult(null); }}
-            className="text-tea-text-sec hover:text-tea-gold transition-colors text-ui-14 font-display"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors"
           >
-            Invite a Tea Master
+            Invite Tea Master
           </button>
         ) : (
-          <div className="space-y-4 max-w-md">
-            <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              placeholder="email@example.com"
-              autoFocus
-              className="w-full bg-transparent border-b border-tea-border focus:border-tea-gold outline-none text-tea-text font-body text-ui-15 py-2 transition-colors"
-            />
-            <input
-              type="text"
-              value={name}
-              onChange={e => setName(e.target.value)}
-              placeholder="Name (optional)"
-              className="w-full bg-transparent border-b border-tea-border focus:border-tea-gold outline-none text-tea-text font-body text-ui-15 py-2 transition-colors"
-            />
-            <textarea
-              value={note}
-              onChange={e => setNote(e.target.value)}
-              placeholder="Why this person (optional, audit-only)"
-              rows={2}
-              className="w-full bg-transparent border-b border-tea-border focus:border-tea-gold outline-none text-tea-text font-body text-ui-14 py-2 italic transition-colors resize-none"
-            />
-            <div className="flex items-center justify-between text-ui-13 pt-1">
+          <div className="space-y-3 max-w-md bg-tea-surface border border-tea-border rounded-xl p-5">
+            <div>
+              <label className="label-caps text-tea-text-sec mb-1.5 block">Email</label>
+              <input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="email@example.com"
+                autoFocus
+                className="w-full bg-tea-bg border border-tea-border rounded-md px-3 py-2 text-ui-14 text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="label-caps text-tea-text-sec mb-1.5 block">Name</label>
+              <input
+                type="text"
+                value={name}
+                onChange={e => setName(e.target.value)}
+                placeholder="Optional"
+                className="w-full bg-tea-bg border border-tea-border rounded-md px-3 py-2 text-ui-14 text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="label-caps text-tea-text-sec mb-1.5 block">Note</label>
+              <textarea
+                value={note}
+                onChange={e => setNote(e.target.value)}
+                placeholder="Why this person (audit-only, optional)"
+                rows={2}
+                className="w-full bg-tea-bg border border-tea-border rounded-md px-3 py-2 text-ui-14 text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none resize-none"
+              />
+            </div>
+            <div className="flex items-center justify-between gap-2 pt-2">
               <button
                 type="button"
                 onClick={() => { setInviting(false); setEmail(''); setName(''); setNote(''); }}
-                className="text-tea-text-sec hover:text-tea-text transition-colors"
+                className="px-2 py-1 text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors"
               >
                 Cancel
               </button>
@@ -544,12 +562,12 @@ const PlatformRegister: React.FC<{ onChange: () => Promise<void> | void }> = ({ 
                 type="button"
                 onClick={handleInvite}
                 disabled={!email.includes('@') || busy}
-                className="text-tea-gold hover:text-tea-gold-lt disabled:text-tea-text-dim disabled:cursor-not-allowed transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                {busy ? 'Sending…' : 'Send invite'}
+                {busy ? 'Sending…' : 'Send Invite'}
               </button>
             </div>
-            {error && <div className="text-tea-text-sec italic text-ui-13">{error}</div>}
+            {error && <div className="text-ui-12 text-tea-error">{error}</div>}
           </div>
         )}
         {result && (
@@ -561,7 +579,7 @@ const PlatformRegister: React.FC<{ onChange: () => Promise<void> | void }> = ({ 
               result.claim_link && (
                 <div className="mt-1 text-tea-text">
                   Invite created, but email could not be sent. Share this link manually:{' '}
-                  <code className="font-mono text-ui-12 text-tea-text bg-tea-elevated px-2 py-0.5 rounded-[2px]">{result.claim_link}</code>
+                  <code className="font-mono text-ui-12 text-tea-text bg-tea-elevated px-2 py-0.5 rounded-md">{result.claim_link}</code>
                 </div>
               )
             )}
@@ -572,18 +590,18 @@ const PlatformRegister: React.FC<{ onChange: () => Promise<void> | void }> = ({ 
       {/* Audit log peek */}
       <section>
         <SectionLabel>Recent activity</SectionLabel>
-        {auditError && <div className="text-tea-text-sec italic text-ui-13">{auditError}</div>}
+        {auditError && <div className="text-ui-12 text-tea-error">{auditError}</div>}
         {auditEntries === null && !auditError && (
-          <div className="text-tea-text-sec italic text-ui-13">Loading…</div>
+          <div className="text-ui-13 text-tea-text-dim">Loading…</div>
         )}
         {auditEntries && auditEntries.length === 0 && (
-          <div className="text-tea-text-sec italic text-ui-13">No activity yet.</div>
+          <div className="text-ui-13 text-tea-text-dim">No activity yet.</div>
         )}
         {auditEntries && auditEntries.length > 0 && (
           <div className="space-y-3">
             {auditEntries.map(entry => (
               <div key={entry.id} className="text-tea-text text-ui-14 leading-[1.6]">
-                <span className="text-tea-text-sec font-mono text-ui-12">{formatDate(entry.created_at)}</span>
+                <span className="text-tea-text-dim font-mono text-ui-12">{formatDate(entry.created_at)}</span>
                 {' · '}
                 <span>{entry.actor_email || 'system'} {entry.action.replace(/_/g, ' ').replace(/\./g, ' ')}{entry.target_id ? ` · ${entry.target_id}` : ''}</span>
               </div>

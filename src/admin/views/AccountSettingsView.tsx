@@ -274,13 +274,13 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({ embedd
 
   return (
     <div className="h-full overflow-y-auto">
-    <div className="p-6 md:p-10 max-w-4xl mx-auto">
+    <div className="px-4 md:px-6 pt-6 pb-nav-gap max-w-3xl mx-auto">
       {!embedded && (
-        <div className="mb-6">
-          <h1 className={`${TYPOGRAPHY_CLASSES.h2} text-tea-text mb-1`}>
+        <div className="mb-8">
+          <h1 className={`${TYPOGRAPHY_CLASSES.h2} text-tea-text`}>
             Account Settings
           </h1>
-          <p className="text-ui-11 text-tea-text-dim uppercase tracking-[0.15em]">
+          <p className="label-caps text-tea-text-dim mt-1">
             {account.name}
           </p>
         </div>
@@ -296,25 +296,25 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({ embedd
       />
 
       {!canEdit && (
-        <div className="mb-4 px-4 py-3 rounded-md bg-tea-elevated text-xs text-tea-text-sec">
+        <div className="mb-4 px-4 py-3 rounded-md bg-tea-surface border border-tea-border text-ui-12 text-tea-text-sec">
           You don't have permission to edit these settings. View only.
         </div>
       )}
       {error && (
-        <div className="mb-4 px-4 py-3 rounded-md bg-tea-elevated text-xs text-tea-text-sec">
+        <div className="mb-4 px-4 py-3 rounded-md bg-tea-error/10 border border-tea-error/40 text-ui-12 text-tea-error">
           {error}
         </div>
       )}
       {saveMsg && (
-        <div className="mb-4 px-4 py-3 rounded-md bg-tea-gold-lt text-xs text-tea-text">
+        <div className="mb-4 px-4 py-3 rounded-md bg-tea-green/10 border border-tea-green/40 text-ui-12 text-tea-green">
           {saveMsg}
         </div>
       )}
 
       <form id="account-profile-form" onSubmit={handleSave} className="space-y-6">
         {/* Read-only section */}
-        <div className="bg-tea-surface rounded-lg border border-tea-border p-5 space-y-4">
-          <h2 className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim mb-1">
+        <div className="bg-tea-surface rounded-xl border border-tea-border p-5 space-y-4">
+          <h2 className="label-caps text-tea-text-dim">
             System
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -328,8 +328,8 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({ embedd
         </div>
 
         {/* Editable profile */}
-        <div className="bg-tea-surface rounded-lg border border-tea-border p-5 space-y-4">
-          <h2 className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim mb-1">
+        <div className="bg-tea-surface rounded-xl border border-tea-border p-5 space-y-3">
+          <h2 className="label-caps text-tea-text-dim">
             Profile
           </h2>
           <Field
@@ -389,8 +389,8 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({ embedd
         </div>
 
         {/* Commerce */}
-        <div className="bg-tea-surface rounded-lg border border-tea-border p-5 space-y-4">
-          <h2 className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim mb-1">
+        <div className="bg-tea-surface rounded-xl border border-tea-border p-5 space-y-3">
+          <h2 className="label-caps text-tea-text-dim">
             Commerce
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -448,7 +448,7 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({ embedd
             <button
               type="submit"
               disabled={saving}
-              className="inline-flex items-center gap-2 px-5 py-2 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40"
             >
               {saving ? <Loader2 className="animate-spin" size={13} /> : <Save size={13} />}
               Save Changes
@@ -460,7 +460,7 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({ embedd
       {/* Integrations — per-account third-party API keys (BYOK) */}
       {canEdit && (
         <div className="mt-10">
-          <h2 className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim mb-3">
+          <h2 className="label-caps text-tea-text-dim mb-3">
             Integrations
           </h2>
           <IntegrationsSection
@@ -474,7 +474,7 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({ embedd
       {/* Danger Zone */}
       {canEdit && (
         <div className="mt-10">
-          <h2 className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim mb-3">
+          <h2 className="label-caps text-tea-text-dim mb-3">
             Danger Zone
           </h2>
           <TransferOwnershipSection account={account} accountId={activeAccountId!} />
@@ -608,7 +608,7 @@ const LaunchReadinessPanel: React.FC<{
   const nextStage = stages.find(item => !item.done);
 
   return (
-    <section className="mb-6 bg-tea-surface border border-tea-border rounded-md p-5 space-y-6">
+    <section className="mb-6 bg-tea-surface border border-tea-border rounded-xl p-5 space-y-6">
       <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
         <div className="min-w-0">
           <h2 className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text`}>Launch Center</h2>
@@ -624,8 +624,9 @@ const LaunchReadinessPanel: React.FC<{
             type="button"
             onClick={onRefresh}
             disabled={audit.loading}
-            className="text-tea-text-sec hover:text-tea-text transition-colors tap-target"
+            className="p-1.5 rounded-md text-tea-text-dim hover:text-tea-text-sec transition-colors tap-target"
             aria-label="Refresh launch status"
+            title="Refresh"
           >
             <RefreshCw size={14} className={audit.loading ? 'animate-spin' : ''} />
           </button>
@@ -633,7 +634,7 @@ const LaunchReadinessPanel: React.FC<{
       </div>
 
       {audit.error && (
-        <div className="bg-tea-elevated border border-tea-border rounded-md px-4 py-3 text-ui-13 text-tea-text-sec">
+        <div className="bg-tea-error/10 border border-tea-error/40 rounded-md px-4 py-3 text-ui-13 text-tea-error">
           {audit.error}
         </div>
       )}
@@ -641,7 +642,7 @@ const LaunchReadinessPanel: React.FC<{
       {nextStage && (
         <div className="bg-tea-bg border border-tea-border rounded-md p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-ui-10 uppercase tracking-[0.18em] text-tea-text-dim mb-1">Next useful step</p>
+            <p className="label-caps text-tea-text-dim mb-1">Next useful step</p>
             <p className="text-ui-15 text-tea-text font-display">{nextStage.label}</p>
             <p className="text-ui-12 text-tea-text-sec leading-[1.5] mt-0.5">{nextStage.detail}</p>
           </div>
@@ -657,7 +658,7 @@ const LaunchReadinessPanel: React.FC<{
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4">
         <div className="min-w-0">
-          <p className="text-ui-10 uppercase tracking-[0.18em] text-tea-text-dim mb-2">Storefront</p>
+          <p className="label-caps text-tea-text-dim mb-2">Storefront</p>
           <div className="flex gap-2">
             <code className="flex-1 min-w-0 bg-tea-bg border border-tea-border rounded-md px-3 py-2 text-ui-11 text-tea-text-sec font-mono truncate">
               {storefrontUrl}
@@ -804,12 +805,12 @@ const IntegrationsSection: React.FC<{
   };
 
   return (
-    <div className="bg-tea-surface rounded-lg border border-tea-border p-5 space-y-3">
+    <div className="bg-tea-surface rounded-xl border border-tea-border p-5 space-y-3">
       <div>
-        <h3 className="text-sm text-tea-text" style={{ fontFamily: 'var(--font-display)' }}>
+        <h3 className="h3 text-tea-text">
           OpenAI API Key
         </h3>
-        <p className="text-ui-11 text-tea-text-dim mt-1">
+        <p className="text-ui-12 text-tea-text-dim mt-1 leading-[1.5]">
           Used for the AI Enhance action on product photos. Stored encrypted; only the last
           four characters are shown for confirmation.
         </p>
@@ -823,7 +824,7 @@ const IntegrationsSection: React.FC<{
               type="button"
               onClick={() => { setEditing(true); setKeyInput(''); setErr(null); }}
               disabled={busy}
-              className="px-3 py-1.5 text-ui-11 rounded-md border border-tea-border text-tea-text-sec hover:text-tea-text transition-colors"
+              className="px-3 py-1.5 text-ui-12 rounded-md border border-tea-border text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub transition-colors"
             >
               Replace
             </button>
@@ -831,7 +832,7 @@ const IntegrationsSection: React.FC<{
               type="button"
               onClick={clear}
               disabled={busy}
-              className="px-3 py-1.5 text-ui-11 rounded-md text-tea-text-sec hover:text-tea-text transition-colors"
+              className="px-2 py-1 text-ui-12 text-tea-text-sec hover:text-tea-text transition-colors"
             >
               Remove
             </button>
@@ -845,15 +846,15 @@ const IntegrationsSection: React.FC<{
           <button
             type="button"
             onClick={() => { setEditing(true); setKeyInput(''); setErr(null); }}
-            className="px-3 py-1.5 text-ui-11 rounded-md bg-tea-gold text-tea-bg hover:opacity-90 transition-opacity"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors"
           >
-            Add key
+            Add Key
           </button>
         </div>
       )}
 
       {editing && (
-        <div className="space-y-2">
+        <div className="space-y-3">
           <input
             type="password"
             value={keyInput}
@@ -862,14 +863,14 @@ const IntegrationsSection: React.FC<{
             autoComplete="off"
             spellCheck={false}
             data-1p-ignore
-            className="w-full bg-tea-bg border border-tea-border rounded-md px-3 py-2 text-ui-12 text-tea-text font-mono focus:outline-none focus:border-tea-gold"
+            className="w-full bg-tea-bg border border-tea-border rounded-md px-3 py-2 text-ui-12 text-tea-text font-mono placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none"
           />
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center justify-between gap-2">
             <button
               type="button"
               onClick={() => { setEditing(false); setKeyInput(''); setErr(null); }}
               disabled={busy}
-              className="px-3 py-1.5 text-ui-11 rounded-md text-tea-text-sec hover:text-tea-text transition-colors"
+              className="px-2 py-1 text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors"
             >
               Cancel
             </button>
@@ -877,16 +878,16 @@ const IntegrationsSection: React.FC<{
               type="button"
               onClick={save}
               disabled={busy || keyInput.trim().length < 10}
-              className="inline-flex items-center gap-2 px-4 py-1.5 text-ui-11 rounded-md bg-tea-gold text-tea-bg hover:opacity-90 transition-opacity disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40"
             >
               {busy && <Loader2 className="animate-spin" size={12} />}
-              Save key
+              Save Key
             </button>
           </div>
         </div>
       )}
 
-      {err && <div className="text-ui-11 text-tea-gold">{err}</div>}
+      {err && <div className="text-ui-12 text-tea-error">{err}</div>}
     </div>
   );
 };
@@ -949,12 +950,12 @@ const TransferOwnershipSection: React.FC<{
   };
 
   return (
-    <div className="bg-tea-surface rounded-lg border border-tea-border overflow-hidden">
+    <div className="bg-tea-surface rounded-xl border border-tea-border overflow-hidden">
       <div className="px-5 py-4 flex items-start gap-4">
-        <AlertTriangle size={16} className="text-tea-text-dim mt-0.5 shrink-0" />
+        <AlertTriangle size={16} className="text-tea-error mt-0.5 shrink-0" />
         <div className="flex-1 min-w-0">
-          <p className="text-sm text-tea-text font-medium">Transfer Ownership</p>
-          <p className="text-xs text-tea-text-dim mt-0.5">
+          <p className="h3 text-tea-text">Transfer Ownership</p>
+          <p className="text-ui-12 text-tea-text-dim mt-0.5 leading-[1.5]">
             Transfer this account to another team member. You will lose owner access.
           </p>
         </div>
@@ -962,7 +963,7 @@ const TransferOwnershipSection: React.FC<{
           <button
             type="button"
             onClick={openFlow}
-            className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold uppercase tracking-[0.12em] border border-tea-border text-tea-text-sec hover:text-tea-text hover:border-tea-text-dim transition-colors"
+            className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-ui-12 border border-tea-border text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub transition-colors"
           >
             Transfer <ArrowRight size={11} />
           </button>
@@ -972,23 +973,23 @@ const TransferOwnershipSection: React.FC<{
       {/* Gate 1: Select target member */}
       {step === 'select-member' && (
         <div className="border-t border-tea-border px-5 py-4 space-y-3">
-          <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim">Step 1 of 3 — Select new owner</p>
+          <p className="label-caps text-tea-text-dim">Step 1 of 3 — Select new owner</p>
           {loadingMembers ? (
-            <div className="flex items-center gap-2 text-xs text-tea-text-dim py-2">
+            <div className="flex items-center gap-2 text-ui-12 text-tea-text-dim py-2">
               <Loader2 size={12} className="animate-spin" /> Loading team members…
             </div>
           ) : members.length === 0 ? (
-            <p className="text-xs text-tea-text-sec py-2">No other team members. Add a member first.</p>
+            <p className="text-ui-12 text-tea-text-sec py-2">No other team members. Add a member first.</p>
           ) : (
             <>
               <div>
-                <label className="block text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-1.5">
+                <label className="label-caps text-tea-text-sec mb-1.5 block">
                   New Owner
                 </label>
                 <select
                   value={selectedMemberId}
                   onChange={(e) => setSelectedMemberId(e.target.value)}
-                  className="w-full bg-tea-bg border border-tea-border rounded-md px-3 py-2 text-sm text-tea-text outline-none focus:ring-2 focus:ring-tea-gold/40"
+                  className="w-full bg-tea-bg border border-tea-border rounded-md px-3 py-2 text-ui-14 text-tea-text focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none"
                 >
                   <option value="">— select a team member —</option>
                   {members.map((m) => (
@@ -998,11 +999,11 @@ const TransferOwnershipSection: React.FC<{
                   ))}
                 </select>
               </div>
-              <div className="flex gap-2 justify-between">
+              <div className="flex items-center justify-between gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setStep('idle')}
-                  className="px-3 py-1.5 text-xs text-tea-text-sec hover:text-tea-text transition-colors"
+                  className="px-2 py-1 text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors"
                 >
                   Cancel
                 </button>
@@ -1010,7 +1011,7 @@ const TransferOwnershipSection: React.FC<{
                   type="button"
                   disabled={!selectedMemberId}
                   onClick={() => { setConfirmName(''); setStep('confirm-name'); }}
-                  className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-md bg-tea-elevated text-tea-text text-xs font-semibold uppercase tracking-[0.12em] hover:opacity-80 transition-opacity disabled:opacity-40"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40"
                 >
                   Next <ArrowRight size={11} />
                 </button>
@@ -1022,17 +1023,17 @@ const TransferOwnershipSection: React.FC<{
 
       {/* Gate 2: Type exact account name */}
       {step === 'confirm-name' && selectedMember && (
-        <div className="border-t border-tea-border px-5 py-4 space-y-4">
-          <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim">Step 2 of 3 — Confirm account name</p>
-          <div className="bg-tea-bg rounded-md px-4 py-3 text-sm text-tea-text-sec space-y-1">
+        <div className="border-t border-tea-border px-5 py-4 space-y-3">
+          <p className="label-caps text-tea-text-dim">Step 2 of 3 — Confirm account name</p>
+          <div className="bg-tea-bg border border-tea-border rounded-md px-4 py-3 text-ui-14 text-tea-text-sec space-y-1">
             <p>
-              Transfer <span className="text-tea-text font-medium">{account.name}</span> to{' '}
-              <span className="text-tea-text font-medium">{selectedMember.name || selectedMember.email}</span>?
+              Transfer <span className="text-tea-text">{account.name}</span> to{' '}
+              <span className="text-tea-text">{selectedMember.name || selectedMember.email}</span>?
             </p>
-            <p className="text-xs text-tea-text-dim">{selectedMember.email} · current role: {selectedMember.role}</p>
+            <p className="text-ui-12 text-tea-text-dim">{selectedMember.email} · current role: {selectedMember.role}</p>
           </div>
           <div>
-            <label className="block text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-1.5">
+            <label className="label-caps text-tea-text-sec mb-1.5 block">
               Type the account name to confirm
             </label>
             <input
@@ -1041,17 +1042,17 @@ const TransferOwnershipSection: React.FC<{
               onChange={(e) => setConfirmName(e.target.value)}
               placeholder={account.name}
               autoFocus
-              className="w-full bg-tea-bg border border-tea-border rounded-md px-3 py-2 text-sm text-tea-text outline-none focus:ring-2 focus:ring-tea-gold/40 placeholder-tea-text-dim"
+              className="w-full bg-tea-bg border border-tea-border rounded-md px-3 py-2 text-ui-14 text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none"
             />
-            <p className="mt-1 text-ui-11 text-tea-text-dim">
+            <p className="mt-1 text-ui-12 text-tea-text-dim">
               Must match exactly: <span className="text-tea-text-sec font-mono">{account.name}</span>
             </p>
           </div>
-          <div className="flex gap-2 justify-between">
+          <div className="flex items-center justify-between gap-2 pt-2">
             <button
               type="button"
               onClick={() => setStep('select-member')}
-              className="px-3 py-1.5 text-xs text-tea-text-sec hover:text-tea-text transition-colors"
+              className="px-2 py-1 text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors"
             >
               Back
             </button>
@@ -1059,7 +1060,7 @@ const TransferOwnershipSection: React.FC<{
               type="button"
               disabled={!nameMatches}
               onClick={() => { setPasswordInput(''); setTransferError(null); setStep('verify-password'); }}
-              className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-md bg-tea-elevated text-tea-text text-xs font-semibold uppercase tracking-[0.12em] hover:opacity-80 transition-opacity disabled:opacity-40"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40"
             >
               Next <ArrowRight size={11} />
             </button>
@@ -1069,10 +1070,10 @@ const TransferOwnershipSection: React.FC<{
 
       {/* Gate 3: Re-enter password */}
       {step === 'verify-password' && selectedMember && (
-        <div className="border-t border-tea-border px-5 py-4 space-y-4">
-          <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim">Step 3 of 3 — Authorise</p>
+        <div className="border-t border-tea-border px-5 py-4 space-y-3">
+          <p className="label-caps text-tea-text-dim">Step 3 of 3 — Authorise</p>
           <div>
-            <label className="block text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-1.5">
+            <label className="label-caps text-tea-text-sec mb-1.5 block">
               Re-enter your password to authorise
             </label>
             <input
@@ -1080,18 +1081,18 @@ const TransferOwnershipSection: React.FC<{
               value={passwordInput}
               onChange={(e) => { setPasswordInput(e.target.value); setTransferError(null); }}
               autoFocus
-              className="w-full bg-tea-bg border border-tea-border rounded-md px-3 py-2 text-sm text-tea-text outline-none focus:ring-2 focus:ring-tea-gold/40"
+              className="w-full bg-tea-bg border border-tea-border rounded-md px-3 py-2 text-ui-14 text-tea-text focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none"
             />
           </div>
           {transferError && (
-            <p className="text-xs text-tea-text-sec">{transferError}</p>
+            <p className="text-ui-12 text-tea-error">{transferError}</p>
           )}
-          <div className="flex gap-2 justify-between">
+          <div className="flex items-center justify-between gap-2 pt-2">
             <button
               type="button"
               onClick={() => setStep('confirm-name')}
               disabled={transferring}
-              className="px-3 py-1.5 text-xs text-tea-text-sec hover:text-tea-text transition-colors disabled:opacity-50"
+              className="px-2 py-1 text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors disabled:opacity-50"
             >
               Back
             </button>
@@ -1099,7 +1100,7 @@ const TransferOwnershipSection: React.FC<{
               type="button"
               onClick={handleTransfer}
               disabled={!passwordInput || transferring}
-              className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-md bg-tea-elevated text-tea-text text-xs font-semibold uppercase tracking-[0.12em] hover:opacity-80 transition-opacity disabled:opacity-40"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-error text-tea-bg text-xs font-semibold hover:bg-tea-error/90 transition-colors disabled:opacity-40"
             >
               {transferring ? <Loader2 size={11} className="animate-spin" /> : <AlertTriangle size={11} />}
               Transfer Ownership
@@ -1122,7 +1123,7 @@ const Field: React.FC<{
   hint?: string;
 }> = ({ label, value, onChange, disabled, placeholder, hint }) => (
   <div>
-    <label className="block text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-2">
+    <label className="label-caps text-tea-text-sec mb-1.5 block">
       {label}
     </label>
     <input
@@ -1131,9 +1132,9 @@ const Field: React.FC<{
       onChange={(e) => onChange(e.target.value)}
       disabled={disabled}
       placeholder={placeholder}
-      className="w-full bg-tea-bg text-tea-text text-sm px-3 py-2 rounded-md outline-none focus:ring-2 focus:ring-tea-gold/40 disabled:opacity-60"
+      className="w-full bg-tea-bg border border-tea-border rounded-md px-3 py-2 text-ui-14 text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none disabled:opacity-60"
     />
-    {hint && <p className="mt-1.5 text-ui-11 text-tea-text-sec leading-[1.5]">{hint}</p>}
+    {hint && <p className="mt-1 text-ui-12 text-tea-text-dim leading-[1.5]">{hint}</p>}
   </div>
 );
 
@@ -1146,7 +1147,7 @@ const TextAreaField: React.FC<{
   hint?: string;
 }> = ({ label, value, onChange, disabled, placeholder, hint }) => (
   <div>
-    <label className="block text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-2">
+    <label className="label-caps text-tea-text-sec mb-1.5 block">
       {label}
     </label>
     <textarea
@@ -1155,16 +1156,16 @@ const TextAreaField: React.FC<{
       onChange={(e) => onChange(e.target.value)}
       disabled={disabled}
       placeholder={placeholder}
-      className="w-full bg-tea-bg text-tea-text text-sm px-3 py-2 rounded-md outline-none focus:ring-2 focus:ring-tea-gold/40 disabled:opacity-60 resize-none"
+      className="w-full bg-tea-bg border border-tea-border rounded-md px-3 py-2 text-ui-14 text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none disabled:opacity-60 resize-none"
     />
-    {hint && <p className="mt-1.5 text-ui-11 text-tea-text-sec leading-[1.5]">{hint}</p>}
+    {hint && <p className="mt-1 text-ui-12 text-tea-text-dim leading-[1.5]">{hint}</p>}
   </div>
 );
 
 const ReadOnlyField: React.FC<{ label: string; value: string }> = ({ label, value }) => (
   <div>
-    <div className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim mb-1">{label}</div>
-    <div className="text-sm text-tea-text-sec font-mono">{value || '—'}</div>
+    <div className="label-caps text-tea-text-dim mb-1">{label}</div>
+    <div className="text-ui-14 text-tea-text-sec font-mono">{value || '—'}</div>
   </div>
 );
 

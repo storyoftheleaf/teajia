@@ -81,18 +81,13 @@ export const PersonalCollectionView = ({ products, isLoading, onRefresh }: { pro
     <div className="h-full flex flex-col overflow-hidden bg-tea-bg">
 
       {/* Header */}
-      <div className="sticky top-0 z-30 bg-tea-bg/90 backdrop-blur-md border-b border-tea-border py-2.5">
-        <div className="px-6 max-w-7xl mx-auto flex items-center gap-4">
-            <div className="flex items-center gap-2 shrink-0">
-                <UserCheck size={16} className="text-tea-gold" />
-                <h2 className="h3">
-                    Private Collection
-                </h2>
-                <span className="text-tea-text-sec text-xs tracking-wide">
-                    — {sortedProducts.length} items
-                </span>
+      <div className="sticky top-0 z-sticky bg-tea-bg/90 backdrop-blur-md border-b border-tea-border px-4 md:px-6 lg:px-10 pt-6 pb-3">
+        <div className="max-w-7xl mx-auto flex items-end justify-between gap-4 flex-wrap">
+            <div>
+                <h1 className="h2 text-tea-text">Private Collection</h1>
+                <div className="label-caps text-tea-text-dim mt-1">{sortedProducts.length} items · personal</div>
             </div>
-            <div className="relative w-48 ml-auto">
+            <div className="relative w-48">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-text-sec" size={14} />
                 <input
                 type="text"
@@ -107,10 +102,12 @@ export const PersonalCollectionView = ({ products, isLoading, onRefresh }: { pro
 
       <div className="flex-1 overflow-auto custom-scrollbar bg-tea-bg md:px-6">
         {sortedProducts.length === 0 ? (
-            <div className="text-center py-16 text-tea-text-sec font-serif italic">
-                <AlertCircle size={32} className="inline opacity-30 mb-2" /><br />
-                Your collection is empty.<br />
-                <span className="text-xs font-sans not-italic">Mark items as "Personal Collection" in the product editor.</span>
+            <div className="flex flex-col items-center text-center max-w-sm mx-auto py-20 px-6">
+                <UserCheck size={28} strokeWidth={1.25} className="text-tea-text-dim mb-3" />
+                <div className="font-display text-ui-17 text-tea-text">Your collection is empty</div>
+                <p className="text-ui-12 text-tea-text-sec leading-relaxed mt-2">
+                    Mark items as "Personal Collection" in the product editor.
+                </p>
             </div>
         ) : (
           <>
@@ -135,7 +132,7 @@ export const PersonalCollectionView = ({ products, isLoading, onRefresh }: { pro
                         {product.vendor && (
                           <>
                             <span className="opacity-40">·</span>
-                            <button onClick={(e) => { e.stopPropagation(); navigate(`/admin/people?tab=sources&search=${encodeURIComponent(product.vendor!)}`); }} className="truncate hover:text-tea-gold transition-colors">{product.vendor}</button>
+                            <button onClick={(e) => { e.stopPropagation(); navigate(`/admin/people?tab=sources&search=${encodeURIComponent(product.vendor!)}`); }} className="truncate hover:text-tea-readgold transition-colors">{product.vendor}</button>
                           </>
                         )}
                       </div>
@@ -162,7 +159,7 @@ export const PersonalCollectionView = ({ products, isLoading, onRefresh }: { pro
                         <col className="w-[10%]" />
                         <col className="w-[6%]" />
                     </colgroup>
-                    <thead className="sticky top-0 z-20 bg-tea-bg shadow-sm">
+                    <thead className="sticky top-0 z-sticky bg-tea-bg shadow-sm">
                         <tr>
                             <SortHeader colKey="productName" label="Product" />
                             <SortHeader colKey="type" label="Cat." />
@@ -188,7 +185,7 @@ export const PersonalCollectionView = ({ products, isLoading, onRefresh }: { pro
                                 >
                                     <td className="px-4 align-middle overflow-hidden">
                                         <div className="flex flex-col justify-center h-full">
-                                            <span className="text-sm font-serif text-tea-text tracking-wide group-hover:text-tea-gold transition-colors truncate flex items-center gap-2">
+                                            <span className="text-sm font-serif text-tea-text tracking-wide group-hover:text-tea-readgold transition-colors truncate flex items-center gap-2">
                                                 {product.productName || '—'}
                                                 {product.lore && (
                                                     <span title={product.isCustomWisdom ? "Edited lore" : "AI generated lore"}>
@@ -217,7 +214,7 @@ export const PersonalCollectionView = ({ products, isLoading, onRefresh }: { pro
                                     </td>
                                     <td className="px-4 align-middle overflow-hidden">
                                         {product.vendor ? (
-                                          <button onClick={(e) => { e.stopPropagation(); navigate(`/admin/people?tab=sources&search=${encodeURIComponent(product.vendor!)}`); }} className="text-xs text-tea-text-sec hover:text-tea-gold truncate block text-left transition-colors">{product.vendor}</button>
+                                          <button onClick={(e) => { e.stopPropagation(); navigate(`/admin/people?tab=sources&search=${encodeURIComponent(product.vendor!)}`); }} className="text-xs text-tea-text-sec hover:text-tea-readgold truncate block text-left transition-colors">{product.vendor}</button>
                                         ) : <span className="text-xs text-tea-text-dim">Unknown</span>}
                                     </td>
                                     <td className="px-4 align-middle overflow-hidden text-right">

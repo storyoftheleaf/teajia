@@ -130,19 +130,14 @@ export const TeawareCatalog = ({ products, currency, rates, onAdd, loading, isAd
     <div className="h-full flex flex-col overflow-hidden bg-tea-bg">
 
       {/* --- HEADER CONTROLS (matches InventoryView) --- */}
-      <div className="sticky top-0 z-30 bg-tea-bg/90 backdrop-blur-md border-b border-tea-border py-2.5">
-        <div className="px-6 max-w-7xl mx-auto flex items-center gap-4">
-          <div className="flex items-center gap-2 shrink-0">
-            <Coffee size={16} className="text-tea-gold" />
-            <h2 className="h3">
-              Equipment
-            </h2>
-            <span className="text-tea-text-sec text-xs tracking-wide">
-              — {sorted.length} items
-            </span>
+      <div className="sticky top-0 z-sticky bg-tea-bg/90 backdrop-blur-md border-b border-tea-border px-4 md:px-6 lg:px-10 pt-6 pb-3">
+        <div className="max-w-7xl mx-auto flex items-end justify-between gap-4 flex-wrap">
+          <div>
+            <h1 className="h2 text-tea-text">Equipment</h1>
+            <div className="label-caps text-tea-text-dim mt-1">Teaware · {sorted.length} items</div>
           </div>
 
-          <div className="flex items-center gap-4 ml-auto">
+          <div className="flex items-center gap-3 flex-wrap">
             {/* Search */}
             <div className="relative w-48">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-text-sec" size={14} />
@@ -155,28 +150,32 @@ export const TeawareCatalog = ({ products, currency, rates, onAdd, loading, isAd
               />
             </div>
 
-            {/* View Toggle */}
-            <div className="flex items-center bg-tea-surface rounded-lg border border-tea-border p-0.5">
+            {/* View Toggle — icon button pair, no segmented pill */}
+            <div className="flex items-center gap-1">
               <button
                 onClick={() => setViewMode('database')}
-                className={`p-1.5 rounded-md transition-colors ${viewMode === 'database' ? 'bg-tea-bg text-tea-text shadow-sm' : 'text-tea-text-sec hover:text-tea-text'}`}
+                className={`p-1.5 rounded-md transition-colors ${viewMode === 'database' ? 'text-tea-text bg-tea-accent-sub' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
                 title="Database View"
+                aria-label="Database view"
               >
                 <LayoutList size={14} />
               </button>
               <button
                 onClick={() => setViewMode('product')}
-                className={`p-1.5 rounded-md transition-colors ${viewMode === 'product' ? 'bg-tea-bg text-tea-text shadow-sm' : 'text-tea-text-sec hover:text-tea-text'}`}
+                className={`p-1.5 rounded-md transition-colors ${viewMode === 'product' ? 'text-tea-text bg-tea-accent-sub' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
                 title="Product View"
+                aria-label="Product view"
               >
                 <LayoutGrid size={14} />
               </button>
             </div>
 
-            <div className="w-px h-4 bg-tea-border mx-1" />
-
-            <button onClick={() => { if (products.length > 0) onAdd(products[0]); }} className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] font-bold text-tea-text-sec hover:text-tea-text transition-colors px-3 py-1.5 border border-transparent hover:border-tea-border rounded-lg">
-              <Plus size={14} /> New
+            <button
+              onClick={() => { if (products.length > 0) onAdd(products[0]); }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 active:bg-tea-gold/80 transition-colors"
+            >
+              <Plus size={13} />
+              <span>New</span>
             </button>
           </div>
         </div>
@@ -186,8 +185,12 @@ export const TeawareCatalog = ({ products, currency, rates, onAdd, loading, isAd
       <div className="flex-1 overflow-auto custom-scrollbar bg-tea-bg md:px-6">
 
         {sorted.length === 0 ? (
-          <div className="text-center py-16 text-tea-text-sec font-serif italic">
-            No active teaware items found.
+          <div className="flex flex-col items-center text-center max-w-sm mx-auto py-20 px-6">
+            <Coffee size={28} strokeWidth={1.25} className="text-tea-text-dim mb-3" />
+            <div className="font-display text-ui-17 text-tea-text">No teaware yet</div>
+            <p className="text-ui-12 text-tea-text-sec leading-relaxed mt-2">
+              Add equipment via the inventory tools or import from a vendor.
+            </p>
           </div>
         ) : viewMode === 'product' ? (
           /* --- PRODUCT / CARD VIEW --- */
@@ -257,7 +260,7 @@ export const TeawareCatalog = ({ products, currency, rates, onAdd, loading, isAd
                   <col className="w-[10%]" />
                   <col className="w-[7%]" />
                 </colgroup>
-                <thead className="sticky top-0 z-20 bg-tea-bg shadow-sm">
+                <thead className="sticky top-0 z-sticky bg-tea-bg shadow-sm">
                   <tr>
                     <SortHeader colKey="productName" label="Product" />
                     <SortHeader colKey="teawareCategory" label="Category" />
@@ -280,7 +283,7 @@ export const TeawareCatalog = ({ products, currency, rates, onAdd, loading, isAd
                       {/* Product Name */}
                       <td className="px-4 align-middle overflow-hidden">
                         <div className="flex flex-col justify-center h-full">
-                          <span className="text-sm font-serif text-tea-text tracking-wide group-hover:text-tea-gold transition-colors truncate flex items-center gap-2">
+                          <span className="text-sm font-serif text-tea-text tracking-wide group-hover:text-tea-readgold transition-colors truncate flex items-center gap-2">
                             {product.productName}
                             {product.lore && (
                               <span title={product.isCustomWisdom ? "Handcrafted Wisdom" : "AI Generated Wisdom"}>
@@ -338,8 +341,9 @@ export const TeawareCatalog = ({ products, currency, rates, onAdd, loading, isAd
               </table>
 
               {sorted.length === 0 && (
-                <div className="text-center py-16 text-tea-text-sec font-serif italic">
-                  Nothing here yet.
+                <div className="flex flex-col items-center text-center max-w-sm mx-auto py-20 px-6">
+                  <Coffee size={28} strokeWidth={1.25} className="text-tea-text-dim mb-3" />
+                  <div className="font-display text-ui-17 text-tea-text">Nothing here yet</div>
                 </div>
               )}
             </div>

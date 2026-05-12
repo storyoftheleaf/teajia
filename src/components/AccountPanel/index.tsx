@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Sun, Moon, Calendar, Receipt, UserPlus, Package, Clock, CalendarCheck, AlertTriangle, Zap, UserCheck, Compass, LogIn, Users, Settings } from 'lucide-react';
+import { Sun, Moon, Calendar, Receipt, UserPlus, Package, Clock, CalendarCheck, AlertTriangle, Zap, UserCheck, Compass, LogIn, Users, Settings, Loader2 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -124,16 +124,16 @@ const Item: React.FC<{
       className={`w-full flex items-center gap-3.5 px-4 py-3.5 text-left transition-colors group border-b border-tea-border last:border-0 ${
         locked
           ? tapped ? 'opacity-90 bg-tea-gold/10' : 'opacity-75'
-          : 'hover:bg-tea-surface/50'
+          : 'hover:bg-tea-accent-sub'
       }`}
       style={{ WebkitTapHighlightColor: 'transparent' }}
     >
-      <div className={`shrink-0 ${gold ? 'text-tea-gold' : 'text-tea-gold/70 group-hover:text-tea-gold transition-colors'}`}>
+      <div className={`shrink-0 ${gold ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text transition-colors'}`}>
         {icon}
       </div>
       <div className="flex-1 min-w-0">
-        <div className="text-ui-14 font-medium text-tea-text leading-tight">{label}</div>
-        <div className="text-ui-12 text-tea-text-sec mt-1 leading-snug">{description}</div>
+        <div className="font-display text-ui-15 text-tea-text leading-tight">{label}</div>
+        <div className="text-ui-12 text-tea-text-dim mt-1 leading-snug">{description}</div>
       </div>
       {pulse ? (
         <span className="relative flex shrink-0">
@@ -759,16 +759,16 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
 
   // ── Location card ───────────────────────────────────────────────────────────
   const ActiveLocationCard: React.FC<{ showSwitchButton?: boolean; hideActions?: boolean }> = ({ showSwitchButton, hideActions }) => (
-    <div className="rounded-md overflow-hidden border border-tea-border">
-      <div className="flex items-start justify-between px-4 py-3.5 bg-tea-surface">
+    <div className="rounded-xl overflow-hidden border border-tea-border bg-tea-surface">
+      <div className="flex items-start justify-between px-4 py-3.5">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
             <div className="w-2 h-2 rounded-full bg-tea-gold shrink-0" />
-            <span className="text-ui-15 font-serif text-tea-text">
+            <span className="font-display text-ui-15 text-tea-text">
               {activeAccount?.name || activeMembership?.account_name || 'Teajia'}
             </span>
             {roleBadgeLabel && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 text-ui-10 uppercase tracking-[0.08em] text-tea-gold bg-tea-gold/10 rounded shrink-0 font-medium">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-ui-9 uppercase tracking-caps bg-tea-gold/10 text-tea-text ring-1 ring-inset ring-tea-gold/40 shrink-0">
                 {(membershipRole === 'owner' || platformRole) && <SealIcon className="w-2.5 h-2.5" />}
                 {roleBadgeLabel}
               </span>
@@ -790,7 +790,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
         {showSwitchButton && (
           <button
             onClick={() => setPanelView('location-switcher')}
-            className="text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec hover:text-tea-gold transition-colors shrink-0 ml-3 mt-0.5 py-2 -my-2"
+            className="text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec hover:text-tea-text transition-colors shrink-0 ml-3 mt-0.5 py-2 -my-2"
           >
             Switch
           </button>
@@ -800,20 +800,20 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
         <div className="flex border-t border-tea-border divide-x divide-tea-border">
           <button
             onClick={() => { onClose(); navigate('/shop'); }}
-            className="flex-1 py-3 text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec hover:text-tea-gold hover:bg-tea-surface/50 transition-colors font-medium"
+            className="flex-1 py-3 text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub transition-colors"
           >
             Shop
           </button>
           <button
             onClick={() => setPanelView('events')}
-            className="flex-1 py-3 text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec hover:text-tea-gold hover:bg-tea-surface/50 transition-colors font-medium"
+            className="flex-1 py-3 text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub transition-colors"
           >
             Sessions
           </button>
           {isStaff && (
             <button
               onClick={() => handleGoToAdmin('/admin/inventory')}
-              className="flex-1 py-3 text-ui-11 uppercase tracking-[0.15em] text-tea-gold hover:bg-tea-surface/50 transition-colors font-medium"
+              className="flex-1 py-3 text-ui-11 uppercase tracking-[0.15em] text-tea-gold hover:bg-tea-accent-sub transition-colors"
             >
               Ops
             </button>
@@ -829,16 +829,16 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
       <button
         onClick={() => handleSwitchLocation(membership)}
         disabled={!!switchingTo}
-        className="w-full rounded-md border border-tea-border px-4 py-3.5 flex items-center justify-between hover:bg-tea-surface/40 transition-colors group text-left disabled:opacity-60"
+        className="w-full rounded-xl border border-tea-border bg-tea-surface px-4 py-3.5 flex items-center justify-between hover:bg-tea-accent-sub transition-colors group text-left disabled:opacity-60"
       >
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-tea-text-sec group-hover:bg-tea-gold transition-colors shrink-0" />
-            <span className="text-ui-15 text-tea-text-sec group-hover:text-tea-text transition-colors font-serif truncate">
+            <span className="font-display text-ui-15 text-tea-text-sec group-hover:text-tea-text transition-colors truncate">
               {membership.account_name}
             </span>
             {membership.role !== 'viewer' && (
-              <span className="text-ui-10 uppercase tracking-[0.08em] text-tea-text-sec shrink-0 font-medium">
+              <span className="inline-flex px-2 py-0.5 rounded-full text-ui-9 uppercase tracking-caps bg-tea-elevated text-tea-text-sec shrink-0">
                 {membership.role}
               </span>
             )}
@@ -848,9 +848,9 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
           </span>
         </div>
         {isLoading ? (
-          <div className="w-3.5 h-3.5 border border-tea-border border-t-tea-text-sec rounded-full animate-spin shrink-0 ml-2" />
+          <Loader2 size={14} className="animate-spin text-tea-text-sec shrink-0 ml-2" />
         ) : (
-          <Icons.ChevronRight className="w-3.5 h-3.5 text-tea-text-sec group-hover:text-tea-gold transition-colors shrink-0 ml-2" />
+          <Icons.ChevronRight className="w-3.5 h-3.5 text-tea-text-sec group-hover:text-tea-text transition-colors shrink-0 ml-2" />
         )}
       </button>
     );
@@ -858,7 +858,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
 
   const FormError: React.FC = () =>
     formError ? (
-      <div className="flex items-start gap-2 p-3 bg-red-500/5 border border-red-500/20 text-red-600 text-sm">
+      <div className="flex items-start gap-2 p-3 bg-tea-error/10 ring-1 ring-inset ring-tea-error/40 rounded-md text-tea-error text-ui-13">
         <Icons.AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
         <span>{formError}</span>
       </div>
@@ -868,17 +868,18 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
     <button
       type="submit"
       disabled={formLoading}
-      className="w-full py-2.5 bg-tea-gold text-tea-bg font-sans font-medium rounded hover:bg-tea-gold-lt transition-colors duration-150 disabled:opacity-50 flex justify-center items-center gap-2 mt-2"
+      className="inline-flex w-full items-center justify-center gap-1.5 px-3 py-2 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 active:bg-tea-gold/80 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
     >
       {formLoading
-        ? <div className="w-4 h-4 border-2 border-tea-border border-t-tea-text-sec rounded-full animate-spin" />
-        : label}
+        ? <Loader2 size={13} className="animate-spin" />
+        : null}
+      {label}
     </button>
   );
 
-  const inputClass = "w-full bg-tea-surface border border-tea-border p-3.5 text-tea-text rounded outline-none focus:border-tea-gold focus:ring-0 focus:outline-none transition-colors duration-150 placeholder-tea-text-dim font-sans text-sm";
-  const inputStyle = { boxShadow: 'inset 0 1px 0 var(--tea-accent-sub), inset 0 -1px 0 var(--tea-accent-sub)' };
-  const labelClass = "block text-ui-10 font-semibold text-tea-text-sec mb-2";
+  const inputClass = "w-full bg-tea-surface border border-tea-border rounded-md px-3 py-2 text-ui-14 text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors";
+  const inputStyle: React.CSSProperties = {};
+  const labelClass = "block text-ui-11 uppercase tracking-[1.2px] text-tea-text-sec mb-1.5";
 
   return (
     <>
@@ -931,7 +932,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
           </div>
 
           {/* Centered title — absolutely positioned so it ignores sibling width */}
-          <h2 className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-[18px] font-serif text-tea-text tracking-[-0.01em] truncate max-w-[60%] text-center">
+          <h2 className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h3 truncate max-w-[60%] text-center">
             {headerTitle}
           </h2>
 
@@ -966,8 +967,8 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
             {panelView === 'signin' && (
               <div className="px-6 pt-6 pb-6 space-y-5">
                 <div>
-                  <h2 className="font-serif text-2xl text-tea-text">Welcome back.</h2>
-                  <p className="text-ui-14 text-tea-text-sec mt-1.5">Sign in to your Teajia account.</p>
+                  <h2 className="h2">Welcome back.</h2>
+                  <p className="text-ui-13 text-tea-text-sec mt-1.5">Sign in to your Teajia account.</p>
                 </div>
                 <form onSubmit={handleSignIn} className="space-y-4">
                   <FormError />
@@ -1011,7 +1012,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                 <div className="text-center">
                   <button
                     onClick={() => { resetForm(); setPanelView('signup'); }}
-                    className="text-ui-13 text-tea-text-sec hover:text-tea-gold transition-colors py-2 -my-2"
+                    className="text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors py-2 -my-2"
                   >
                     No account? <span className="underline underline-offset-2">Create one</span>
                   </button>
@@ -1025,8 +1026,8 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
             {panelView === 'signup' && (
               <div className="px-6 pt-6 pb-6 space-y-5">
                 <div>
-                  <h2 className="font-serif text-2xl text-tea-text">Join Teajia.</h2>
-                  <p className="text-ui-14 text-tea-text-sec mt-1.5">Create your account to track teas, journal sessions, and more.</p>
+                  <h2 className="h2">Join Teajia.</h2>
+                  <p className="text-ui-13 text-tea-text-sec mt-1.5">Create your account to track teas, journal sessions, and more.</p>
                 </div>
                 <form onSubmit={handleSignUp} className="space-y-4">
                   <FormError />
@@ -1064,7 +1065,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                 <div className="text-center">
                   <button
                     onClick={() => { resetForm(); setPanelView('signin'); }}
-                    className="text-ui-13 text-tea-text-sec hover:text-tea-gold transition-colors py-2 -my-2"
+                    className="text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors py-2 -my-2"
                   >
                     Already have an account? <span className="underline underline-offset-2">Sign in</span>
                   </button>
@@ -1078,21 +1079,21 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
             {panelView === 'events' && (
               <div className="px-6 pt-6 pb-6 animate-[fadeIn_0.25s_ease-out] space-y-1">
                 <div className="mb-4">
-                  <p className="text-ui-11 uppercase tracking-[0.24em] text-tea-text-sec font-medium mb-2">
+                  <p className="label-caps text-tea-text-dim mb-2">
                     {activeAccount?.name || 'Sessions'} · {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                   </p>
-                  <h2 className="font-serif text-3xl font-normal text-tea-text leading-[1.05] tracking-[-0.5px]">
+                  <h2 className="h2">
                     Gather <em className="text-tea-gold italic">around tea.</em>
                   </h2>
-                  <div className="flex gap-1.5 mt-4">
+                  <div className="flex items-center gap-6 mt-4 border-b border-tea-border">
                     {([['upcoming', 'Upcoming'], ['open', 'Open seats'], ['past', 'Past']] as const).map(([key, label]) => (
                       <button
                         key={key}
                         onClick={() => setEventListFilter(key)}
-                        className={`px-3.5 py-2 rounded-full text-ui-12 font-medium tracking-[0.02em] transition-colors border min-h-[36px] ${
+                        className={`py-2.5 text-ui-12 uppercase tracking-[0.15em] transition-colors border-b ${
                           eventListFilter === key
-                            ? 'bg-tea-gold/10 border-tea-gold/40 text-tea-gold'
-                            : 'bg-transparent border-tea-border text-tea-text-sec hover:text-tea-text'
+                            ? 'text-tea-text border-tea-gold'
+                            : 'text-tea-text-sec hover:text-tea-text border-transparent'
                         }`}
                       >{label}</button>
                     ))}
@@ -1117,7 +1118,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                     ))}
                   </div>
                 ) : displayedEvents.length === 0 ? (
-                  <p className="font-serif italic text-ui-15 text-tea-text-sec py-10 text-center">
+                  <p className="font-body italic text-ui-15 text-tea-text-sec py-10 text-center">
                     {eventListFilter === 'past' ? 'No past sessions yet.' : eventListFilter === 'open' ? 'No open seats right now.' : 'No upcoming gatherings at this table.'}
                   </p>
                 ) : (
@@ -1141,17 +1142,17 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                             className="w-full flex gap-3.5 text-left hover:opacity-75 transition-opacity"
                           >
                             <div className="w-12 shrink-0 text-center pt-0.5">
-                              <div className="text-ui-11 tracking-[0.2em] text-tea-text-sec uppercase font-medium">{day}</div>
-                              <div className="font-serif text-ui-28 font-normal text-tea-text leading-none mt-0.5">{dateNum}</div>
-                              <div className="text-ui-11 tracking-[0.18em] text-tea-text-sec mt-0.5 font-medium">{month}</div>
+                              <div className="text-ui-11 tracking-caps text-tea-text-sec uppercase">{day}</div>
+                              <div className="font-display text-ui-28 text-tea-text leading-none mt-0.5">{dateNum}</div>
+                              <div className="text-ui-11 tracking-caps text-tea-text-sec mt-0.5">{month}</div>
                             </div>
                             <div className="flex-1 min-w-0">
-                              <h3 className="font-serif text-ui-15 font-medium text-tea-text leading-snug">{ev.title}</h3>
+                              <h3 className="font-display text-ui-15 text-tea-text leading-snug">{ev.title}</h3>
                               {ev.subtitle && (
-                                <p className="font-serif italic text-ui-13 text-tea-text-sec mt-1">{ev.subtitle}</p>
+                                <p className="font-body italic text-ui-13 text-tea-text-sec mt-1">{ev.subtitle}</p>
                               )}
                               <div className="flex items-center gap-2 mt-2 text-ui-12 text-tea-text-sec flex-wrap">
-                                <span>{time}</span>
+                                <span className="font-mono tabular-nums">{time}</span>
                                 {(ev.areaHint || ev.locationName) && (
                                   <>
                                     <span className="w-0.5 h-0.5 rounded-full bg-tea-text-sec shrink-0" />
@@ -1159,7 +1160,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                                   </>
                                 )}
                                 {seats != null && !isPast && (
-                                  <span className={`ml-auto font-medium tabular-nums${isFull ? ' text-red-400' : ' text-tea-gold'}`}>
+                                  <span className={`ml-auto font-mono tabular-nums${isFull ? ' text-tea-error' : ' text-tea-gold'}`}>
                                     {isFull ? 'Full' : `${seats}/${ev.totalCapacity}`}
                                   </span>
                                 )}
@@ -1173,7 +1174,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                                 href={buildRsvpLink(ev)}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1.5 px-4 py-2.5 text-ui-11 uppercase tracking-[0.15em] font-medium bg-tea-gold/10 text-tea-gold border border-tea-gold/30 rounded hover:bg-tea-gold/20 transition-colors min-h-[44px]"
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors tap-target"
                                 onClick={e => e.stopPropagation()}
                               >
                                 <svg viewBox="0 0 24 24" className="w-3 h-3 fill-current" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
@@ -1214,7 +1215,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                     onChange={e => setLocationSearch(e.target.value)}
                     placeholder="Search locations…"
                     autoFocus
-                    className="w-full bg-tea-surface border border-tea-border pl-9 pr-4 py-3 text-ui-14 text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus:border-tea-gold transition-colors placeholder-tea-text-sec"
+                    className="w-full bg-tea-surface border border-tea-border rounded-md pl-9 pr-3 py-2 text-ui-14 text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors"
                   />
                 </div>
 

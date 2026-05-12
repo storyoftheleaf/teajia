@@ -626,7 +626,7 @@ const AddProductsSheet: React.FC<{
   return (
     <div className="fixed inset-0 z-modal flex items-center justify-center p-4">
       <button aria-label="Close" className="absolute inset-0 bg-tea-bg/80 backdrop-blur-sm" onClick={submitting ? undefined : onClose} />
-      <div className="relative w-full max-w-md bg-tea-surface border border-tea-border rounded-2xl shadow-2xl flex flex-col max-h-[85vh]">
+      <div className="relative w-full max-w-md bg-tea-surface border border-tea-border rounded-xl shadow-2xl flex flex-col max-h-[85vh]">
         <header className="flex items-start justify-between gap-3 px-5 pt-5 pb-3">
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="w-8 h-8 rounded-lg bg-tea-gold/10 flex items-center justify-center flex-shrink-0">
@@ -732,14 +732,14 @@ const AddProductsSheet: React.FC<{
             </ul>
           )}
         </div>
-        <footer className="flex items-center justify-between gap-3 px-5 py-4 border-t border-tea-border flex-shrink-0">
-          <button onClick={onClose} disabled={submitting} className="text-xs text-tea-text-sec hover:text-tea-text transition-colors disabled:opacity-40">Cancel</button>
+        <footer className="flex justify-between gap-2 px-6 py-4 border-t border-tea-border flex-shrink-0">
+          <button onClick={onClose} disabled={submitting} className="px-2 py-1 text-xs text-tea-text-sec hover:text-tea-text transition-colors disabled:opacity-40">Cancel</button>
           <button
             onClick={submit}
             disabled={selected.size === 0 || submitting}
-            className="flex items-center gap-2 px-4 py-2 bg-tea-gold text-tea-bg rounded-lg text-xs font-semibold tracking-wide hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-tea-gold/10"
           >
-            {submitting ? <><Loader2 size={12} className="animate-spin" /> Adding…</> : <>Add {selected.size || ''}</>}
+            {submitting ? <><Loader2 size={13} className="animate-spin" /> Adding…</> : <>Add {selected.size || ''}</>}
           </button>
         </footer>
       </div>
@@ -842,7 +842,7 @@ const AddPublicationSheet: React.FC<{
   return (
     <div className="fixed inset-0 z-modal flex items-center justify-center p-4">
       <button aria-label="Close" className="absolute inset-0 bg-tea-bg/80 backdrop-blur-sm" onClick={submitting ? undefined : onClose} />
-      <div className="relative w-full max-w-md bg-tea-surface border border-tea-border rounded-2xl shadow-2xl flex flex-col max-h-[85vh]">
+      <div className="relative w-full max-w-md bg-tea-surface border border-tea-border rounded-xl shadow-2xl flex flex-col max-h-[85vh]">
         <header className="flex items-start justify-between gap-3 px-5 pt-5 pb-3 flex-shrink-0">
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="w-8 h-8 rounded-lg bg-tea-gold/10 flex items-center justify-center flex-shrink-0">
@@ -1007,15 +1007,15 @@ const AddPublicationSheet: React.FC<{
           {error && <p className="text-xs text-red-400 mt-3">{error}</p>}
         </div>
 
-        <footer className="flex items-center justify-between gap-3 px-5 py-4 border-t border-tea-border flex-shrink-0">
-          <button onClick={onClose} disabled={submitting} className="text-xs text-tea-text-sec hover:text-tea-text transition-colors disabled:opacity-40">Cancel</button>
+        <footer className="flex justify-between gap-2 px-6 py-4 border-t border-tea-border flex-shrink-0">
+          <button onClick={onClose} disabled={submitting} className="px-2 py-1 text-xs text-tea-text-sec hover:text-tea-text transition-colors disabled:opacity-40">Cancel</button>
           <button
             onClick={submit}
             disabled={!canSubmit || submitting || disabled}
-            className="flex items-center gap-2 px-4 py-2 bg-tea-gold text-tea-bg rounded-lg text-xs font-semibold tracking-wide hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-tea-gold/10"
           >
             {submitting
-              ? <><Loader2 size={12} className="animate-spin" /> {mode === 'person' ? 'Publishing…' : mode === 'tag' ? 'Publishing…' : 'Sharing…'}</>
+              ? <><Loader2 size={13} className="animate-spin" /> {mode === 'person' ? 'Publishing…' : mode === 'tag' ? 'Publishing…' : 'Sharing…'}</>
               : mode === 'person' ? <>Create link</>
               : mode === 'tag' ? <>Publish to {selectedTag ? `"${selectedTag}"` : 'tag'}</>
               : <>Share {selectedStore ? `to ${selectedStore.name}` : ''}</>}

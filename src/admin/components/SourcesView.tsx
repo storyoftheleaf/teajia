@@ -923,17 +923,16 @@ export const SourcesView = () => {
       </div>
 
       {/* --- DESKTOP HEADER CONTROLS --- */}
-      <div className={`hidden md:block sticky top-0 z-30 border-b border-tea-border py-2.5 transition-colors flex-shrink-0 ${isEditMode ? 'bg-tea-surface/95 border-b-tea-gold/20' : 'bg-tea-bg/90 backdrop-blur-md'}`}>
-        <div className="px-6 max-w-5xl mx-auto flex items-center gap-4">
-          <div className="flex items-center gap-2 shrink-0">
-            <Users size={16} className={isEditMode ? "text-tea-text-sec" : "text-tea-gold"} />
-            <h2 className="h3">
-              {isEditMode ? 'Editing' : 'Sources'}
-            </h2>
-            <span className="text-tea-text-sec text-xs tracking-wide">
-              {isEditMode ? '— click cells to edit' : `— ${processedSources.length} vendor${processedSources.length !== 1 ? 's' : ''}`}
-            </span>
+      <div className={`hidden md:block sticky top-0 z-sticky border-b border-tea-border transition-colors flex-shrink-0 ${isEditMode ? 'bg-tea-surface/95 border-b-tea-gold/20' : 'bg-tea-bg/90 backdrop-blur-md'}`}>
+        <div className="px-4 md:px-6 lg:px-10 max-w-5xl mx-auto pt-6 pb-3 flex items-end justify-between gap-4 flex-wrap">
+          <div>
+            <h1 className="h2 text-tea-text">{isEditMode ? 'Editing sources' : 'Sources'}</h1>
+            <div className="label-caps text-tea-text-dim mt-1">
+              {isEditMode ? 'Click cells to edit' : `${processedSources.length} vendor${processedSources.length !== 1 ? 's' : ''}`}
+            </div>
           </div>
+        </div>
+        <div className="px-4 md:px-6 lg:px-10 max-w-5xl mx-auto pb-2 flex items-center gap-4 flex-wrap">
 
           <div className="flex items-center gap-4 ml-auto">
             {/* Search */}
@@ -953,23 +952,24 @@ export const SourcesView = () => {
               {/* Toggle Edit Mode */}
               <button
                 onClick={() => setIsEditMode(!isEditMode)}
-                className={`flex items-center gap-2 text-xs uppercase tracking-[0.2em] font-bold transition-all px-3 py-1.5 border rounded-lg ${
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs transition-colors ${
                   isEditMode
-                    ? 'bg-tea-gold text-tea-bg border-tea-gold hover:bg-tea-gold/90'
-                    : 'text-tea-text-sec border-transparent hover:border-tea-border hover:text-tea-text'
+                    ? 'bg-tea-gold text-tea-bg font-semibold hover:bg-tea-gold/90 active:bg-tea-gold/80'
+                    : 'border border-tea-border text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub'
                 }`}
               >
-                {isEditMode ? <Check size={14} /> : <Pencil size={14} />}
-                {isEditMode ? 'Done' : 'Edit'}
+                {isEditMode ? <Check size={13} /> : <Pencil size={13} />}
+                <span>{isEditMode ? 'Done' : 'Edit'}</span>
               </button>
 
               <div className="w-px h-4 bg-tea-border mx-1"></div>
 
               <button
                 onClick={() => { setEditingSource(null); setIsModalOpen(true); }}
-                className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] font-bold text-tea-text-sec hover:text-tea-text transition-colors px-3 py-1.5 border border-transparent hover:border-tea-border rounded-lg"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 active:bg-tea-gold/80 transition-colors"
               >
-                <Plus size={14} /> New
+                <Plus size={13} />
+                <span>New</span>
               </button>
 
               <div className="w-px h-4 bg-tea-border mx-1"></div>

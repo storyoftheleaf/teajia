@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Icons } from '../components/Icons';
+import { ChevronLeft, Bookmark } from 'lucide-react';
 
 const STORAGE_KEY = 'teajia_saved_stories';
 
@@ -23,48 +23,43 @@ export default function SavedStoriesPage() {
   }, []);
 
   return (
-    <div className="max-w-sm mx-auto pt-12 pb-12">
+    <div className="max-w-3xl mx-auto px-4 md:px-6 pt-6 pb-3 pb-nav-gap">
       <button
         onClick={() => navigate(-1)}
-        className="flex items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors mb-8"
+        className="inline-flex items-center gap-1.5 text-tea-text-sec hover:text-tea-text transition-colors mb-6"
+        aria-label="Back"
       >
-        <Icons.Back className="w-4 h-4" />
-        <span className="text-xs uppercase tracking-[0.15em]">Back</span>
+        <ChevronLeft size={14} />
+        <span className="text-ui-12 uppercase tracking-[0.15em]">Back</span>
       </button>
 
-      <h1 className="font-display text-3xl text-tea-text mb-1">Saved Stories</h1>
-      <p className="font-body italic text-sm text-tea-text-dim mb-8">
-        {savedIds.length} {savedIds.length === 1 ? 'story' : 'stories'} saved
+      <h1 className="h2">Saved Stories</h1>
+      <p className="label-caps text-tea-text-dim mt-1">
+        {savedIds.length} {savedIds.length === 1 ? 'Story' : 'Stories'} Saved
       </p>
 
       {savedIds.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16">
-          <div className="w-16 h-16 rounded-full bg-tea-gold/10 flex items-center justify-center mb-4">
-            <Icons.Leaf className="w-7 h-7 text-tea-gold/40" />
-          </div>
-          <h3 className="font-serif text-lg text-tea-text mb-2">No Saved Stories</h3>
-          <p className="text-sm text-tea-text-sec text-center max-w-[260px] leading-relaxed">
-            Tap the leaf icon while reading to save stories for later.
+        <div className="flex flex-col items-center text-center max-w-sm mx-auto py-20 px-6">
+          <Bookmark size={28} strokeWidth={1.25} className="text-tea-text-dim" />
+          <h3 className="font-display text-ui-17 text-tea-text mt-4">No saved stories</h3>
+          <p className="text-ui-12 text-tea-text-sec leading-relaxed mt-2">
+            Tap the bookmark icon while reading to save stories for later.
           </p>
         </div>
       ) : (
-        <div className="border border-tea-border overflow-hidden rounded-md">
-          {savedIds.map((storyId, i) => (
-            <button
-              key={storyId}
-              onClick={() => navigate('/magazine')}
-              className={`w-full flex items-center gap-3 px-4 py-3.5 hover:bg-tea-surface/50 transition-colors group text-left ${
-                i < savedIds.length - 1 ? 'border-b border-tea-border' : ''
-              }`}
-            >
-              <Icons.Leaf className="w-4 h-4 text-tea-gold shrink-0" />
-              <span className="font-serif text-sm text-tea-text group-hover:text-tea-gold transition-colors truncate flex-1">
-                Story #{storyId}
-              </span>
-              <Icons.ChevronRight className="w-3.5 h-3.5 text-tea-text-sec shrink-0" />
-            </button>
+        <ul className="divide-y divide-tea-border bg-tea-surface border border-tea-border rounded-xl overflow-hidden mt-6">
+          {savedIds.map((storyId) => (
+            <li key={storyId}>
+              <button
+                onClick={() => navigate('/magazine')}
+                className="w-full text-left px-4 md:px-6 py-4 hover:bg-tea-accent-sub transition-colors"
+              >
+                <div className="font-display text-ui-15 text-tea-text">Story #{storyId}</div>
+                <div className="text-ui-12 text-tea-text-dim mt-1">Saved · tap to open</div>
+              </button>
+            </li>
           ))}
-        </div>
+        </ul>
       )}
     </div>
   );

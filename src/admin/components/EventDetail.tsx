@@ -155,7 +155,7 @@ const TastingNotesTab: React.FC<TastingNotesTabProps> = ({ notes }) => {
             {/* Promote action */}
             <div className="shrink-0">
               {isDone ? (
-                <span className="flex items-center gap-1 text-ui-10 text-emerald-400">
+                <span className="flex items-center gap-1 text-ui-10 text-tea-gold">
                   <Check size={10} /> Published
                 </span>
               ) : (
@@ -185,21 +185,31 @@ const TastingNotesTab: React.FC<TastingNotesTabProps> = ({ notes }) => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-modal flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+            className="fixed inset-0 z-modal flex items-center justify-center p-4"
           >
+            <button type="button" aria-hidden onClick={() => setConfirmNote(null)} className="absolute inset-0 bg-tea-bg/70 backdrop-blur-[2px]" />
             <motion.div
               initial={{ scale: 0.95, y: 8 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.95, y: 8 }}
-              className="bg-tea-bg border border-tea-border p-6 w-full max-w-sm shadow-2xl"
+              className="relative bg-tea-surface border border-tea-border rounded-xl shadow-2xl w-full max-w-sm"
             >
-              <h3 className="font-serif text-base text-tea-text mb-1">Publish as tea review</h3>
-              <p className="text-xs text-tea-text-sec mb-4">
-                This will create a tea review from {confirmNote.attendeeName || 'Guest'}'s note
-                {confirmNote.teaName ? ` for ${confirmNote.teaName}` : ''}.
-              </p>
+              <button
+                onClick={() => setConfirmNote(null)}
+                aria-label="Close"
+                className="absolute top-4 right-4 text-tea-text-sec hover:text-tea-text transition-colors rounded-md p-1.5 tap-target"
+              >
+                <X size={16} />
+              </button>
+              <div className="px-6 pt-6 pb-3">
+                <h3 className="h3 text-tea-text">Publish as tea review</h3>
+                <p className="text-ui-13 text-tea-text-sec mt-1">
+                  This will create a tea review from {confirmNote.attendeeName || 'Guest'}'s note
+                  {confirmNote.teaName ? ` for ${confirmNote.teaName}` : ''}.
+                </p>
+              </div>
 
-              <div className="space-y-2 mb-5">
+              <div className="px-6 pb-4 space-y-2">
                 {(['private', 'account', 'network'] as VisibilityOption[]).map(v => (
                   <label key={v} className="flex items-center gap-3 cursor-pointer group">
                     <input
@@ -210,19 +220,19 @@ const TastingNotesTab: React.FC<TastingNotesTabProps> = ({ notes }) => {
                       onChange={() => setSelectedVisibility(v)}
                       className="accent-tea-gold"
                     />
-                    <span className="text-xs text-tea-text capitalize">{v}</span>
-                    <span className="text-ui-10 text-tea-text-dim">
+                    <span className="text-ui-13 text-tea-text capitalize">{v}</span>
+                    <span className="text-ui-11 text-tea-text-dim">
                       {v === 'private' ? '(only you)' : v === 'account' ? '(your store only)' : '(visible across network)'}
                     </span>
                   </label>
                 ))}
               </div>
 
-              <div className="flex gap-2 justify-between">
+              <div className="flex justify-between gap-2 px-6 py-4 border-t border-tea-border">
                 <button
                   type="button"
                   onClick={() => setConfirmNote(null)}
-                  className="text-xs text-tea-text-sec hover:text-tea-text px-3 py-1.5 transition-colors"
+                  className="px-2 py-1 text-xs text-tea-text-sec hover:text-tea-text transition-colors"
                 >
                   Cancel
                 </button>
@@ -230,9 +240,9 @@ const TastingNotesTab: React.FC<TastingNotesTabProps> = ({ notes }) => {
                   type="button"
                   onClick={() => handlePromote(confirmNote, selectedVisibility)}
                   disabled={!!promoting}
-                  className="flex items-center gap-1.5 text-xs bg-tea-gold text-tea-bg px-4 py-1.5 hover:bg-tea-gold-lt transition-colors disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-tea-gold/10"
                 >
-                  {promoting ? <Loader2 size={11} className="animate-spin" /> : <Upload size={11} />}
+                  {promoting ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}
                   Publish
                 </button>
               </div>
@@ -251,7 +261,7 @@ const STATUS_STYLES: Record<EventStatus, string> = {
   active: 'text-tea-gold',
   closed: 'text-tea-text-sec',
   archived: 'text-tea-text-dim line-through',
-  completed: 'text-emerald-400',
+  completed: 'text-tea-gold',
 };
 
 function formatEventDate(dateStr: string): string {
@@ -439,7 +449,7 @@ export const EventDetail: React.FC = () => {
                 {event.status}
               </span>
               {requestedCount > 0 && (
-                <span className="flex items-center gap-1 text-ui-9 text-amber-400 shrink-0">
+                <span className="flex items-center gap-1 text-ui-9 text-tea-gold shrink-0">
                   <Bell size={8} className="shrink-0" />
                   {requestedCount} pending
                 </span>
@@ -584,7 +594,7 @@ export const EventDetail: React.FC = () => {
             {tab.label}
             {tab.badge !== undefined && tab.badge > 0 && (
               <span className={`text-ui-10 font-mono leading-none ${
-                activeTab === tab.key ? 'text-tea-gold' : 'text-amber-400'
+                activeTab === tab.key ? 'text-tea-gold' : 'text-tea-gold'
               }`}>
                 {tab.badge}
               </span>
@@ -610,7 +620,7 @@ export const EventDetail: React.FC = () => {
             )}
           </button>
           {overflowOpen && (
-            <div className="absolute right-0 top-full mt-1 z-10 bg-tea-surface border border-tea-border rounded-md shadow-lg py-1 min-w-[140px]">
+            <div className="absolute right-0 top-full mt-1 z-popover bg-tea-surface border border-tea-border rounded-md shadow-lg py-1 min-w-[140px]">
               {OVERFLOW_TABS.map(tab => (
                 <button
                   key={tab.key}
@@ -623,7 +633,7 @@ export const EventDetail: React.FC = () => {
                 >
                   {tab.label}
                   {(tab as any).badge > 0 && (
-                    <span className="text-ui-10 font-mono text-amber-400 leading-none">
+                    <span className="text-ui-10 font-mono text-tea-gold leading-none">
                       {(tab as any).badge}
                     </span>
                   )}
@@ -777,7 +787,7 @@ export const EventDetail: React.FC = () => {
                     {s.converted_at ? (
                       <span className="text-ui-10 text-tea-text-dim uppercase tracking-[0.15em] shrink-0">Converted</span>
                     ) : (
-                      <span className="text-ui-10 text-amber-400 uppercase tracking-[0.15em] shrink-0">Pending</span>
+                      <span className="text-ui-10 text-tea-gold uppercase tracking-[0.15em] shrink-0">Pending</span>
                     )}
                   </div>
                 ))}
@@ -805,7 +815,7 @@ export const EventDetail: React.FC = () => {
             ) : (
               <>
                 <div>
-                  <label className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec block mb-1.5">Venue</label>
+                  <label className="label-caps text-tea-text-sec block mb-1.5">Venue</label>
                   <div className="relative">
                     <MapPin size={12} className="absolute left-0 top-1/2 -translate-y-1/2 text-tea-text-sec" />
                     <select
@@ -825,7 +835,7 @@ export const EventDetail: React.FC = () => {
                 {/* Space picker */}
                 {selectedVenueObj && selectedVenueObj.spaces.length > 0 && (
                   <div className="space-y-2">
-                    <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec">Spaces</p>
+                    <p className="label-caps text-tea-text-sec">Spaces</p>
                     {selectedSpaceIds.length > 0 && (
                       <div className="flex flex-wrap gap-1.5">
                         {selectedVenueObj.spaces.filter(s => selectedSpaceIds.includes(s.id)).map(s => (
@@ -868,7 +878,7 @@ export const EventDetail: React.FC = () => {
                             <div className={`w-4 h-4 rounded-sm border flex-shrink-0 mt-0.5 flex items-center justify-center transition-colors ${
                               active ? 'bg-tea-gold border-tea-gold' : 'border-tea-border'
                             }`}>
-                              {active && <span className="text-tea-bg text-ui-10 font-bold leading-none">✓</span>}
+                              {active && <span className="text-tea-bg text-ui-10 font-semibold leading-none">✓</span>}
                             </div>
                           </button>
                         );
@@ -896,7 +906,7 @@ export const EventDetail: React.FC = () => {
             {/* Venue profile: photos + links */}
             {selectedVenueObj && (selectedVenueObj.photos.length > 0 || selectedVenueObj.website || selectedVenueObj.instagram) && (
               <div className="space-y-3 pt-2">
-                <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec">Venue Profile</p>
+                <p className="label-caps text-tea-text-sec">Venue Profile</p>
                 {/* Profile links */}
                 {(selectedVenueObj.website || selectedVenueObj.instagram) && (
                   <div className="flex items-center gap-4 flex-wrap">
@@ -983,21 +993,31 @@ export const EventDetail: React.FC = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-modal flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+            className="fixed inset-0 z-modal flex items-center justify-center p-4"
           >
+            <button type="button" aria-hidden onClick={() => setConfirmClose(false)} className="absolute inset-0 bg-tea-bg/70 backdrop-blur-[2px]" />
             <motion.div
               initial={{ scale: 0.95, y: 8 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.95, y: 8 }}
-              className="bg-tea-bg border border-tea-border p-6 w-full max-w-sm shadow-2xl"
+              className="relative bg-tea-surface border border-tea-border rounded-xl shadow-2xl w-full max-w-sm"
             >
-              <h3 className="font-serif text-base text-tea-text mb-1">Close RSVPs?</h3>
-              <p className="text-xs text-tea-text-sec mb-5">Guests will no longer be able to register. Existing requests are unaffected.</p>
-              <div className="flex gap-2 justify-between">
+              <button
+                onClick={() => setConfirmClose(false)}
+                aria-label="Close"
+                className="absolute top-4 right-4 text-tea-text-sec hover:text-tea-text transition-colors rounded-md p-1.5 tap-target"
+              >
+                <X size={16} />
+              </button>
+              <div className="px-6 pt-6 pb-3">
+                <h3 className="h3 text-tea-text">Close RSVPs?</h3>
+                <p className="text-ui-13 text-tea-text-sec mt-1">Guests will no longer be able to register. Existing requests are unaffected.</p>
+              </div>
+              <div className="flex justify-between gap-2 px-6 py-4 border-t border-tea-border">
                 <button
                   type="button"
                   onClick={() => setConfirmClose(false)}
-                  className="text-xs text-tea-text-sec hover:text-tea-text px-3 py-1.5 transition-colors"
+                  className="px-2 py-1 text-xs text-tea-text-sec hover:text-tea-text transition-colors"
                 >
                   Cancel
                 </button>
@@ -1017,9 +1037,9 @@ export const EventDetail: React.FC = () => {
                     }
                   }}
                   disabled={closingRsvp}
-                  className="flex items-center gap-1.5 text-xs bg-tea-gold text-tea-bg px-4 py-1.5 rounded-md hover:bg-tea-gold-lt transition-colors disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-tea-gold/10"
                 >
-                  {closingRsvp ? <Loader2 size={11} className="animate-spin" /> : <Lock size={11} />}
+                  {closingRsvp ? <Loader2 size={13} className="animate-spin" /> : <Lock size={13} />}
                   Confirm
                 </button>
               </div>

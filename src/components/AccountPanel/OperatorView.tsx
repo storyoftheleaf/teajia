@@ -235,18 +235,18 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
       {/* ── Identity — small corner mark with role + account/location ── */}
       <div className="px-6 pt-5 pb-0 flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <div className="text-ui-11 uppercase tracking-[0.24em] text-tea-text-sec font-medium">
+          <div className="label-caps text-tea-text-dim">
             {todayLabel}
           </div>
           {accountName && (
-            <div className="text-ui-12 text-tea-text-sec truncate mt-1.5 tracking-[0.02em]">
+            <div className="text-ui-12 text-tea-text-sec truncate mt-1.5">
               {accountName}{locationLabel ? ` · ${locationLabel}` : ''}
             </div>
           )}
         </div>
         <button
           onClick={onAvatarClick}
-          className="w-11 h-11 rounded-full bg-tea-gold/10 flex items-center justify-center border border-tea-border overflow-hidden shrink-0 relative"
+          className="w-12 h-12 rounded-full bg-tea-elevated flex items-center justify-center border border-tea-border overflow-hidden shrink-0 relative"
           title={user?.name || user?.email || 'Change photo'}
           aria-label="Change photo"
           style={{ WebkitTapHighlightColor: 'transparent' }}
@@ -254,7 +254,7 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
           {avatarDataUrl ? (
             <img src={avatarDataUrl} alt="" className="w-full h-full object-cover" loading="lazy" />
           ) : (
-            <span className="text-ui-13 font-serif text-tea-gold">
+            <span className="font-display text-ui-15 text-tea-text-sec">
               {user ? getInitials(user.name || user.email) : '茶'}
             </span>
           )}
@@ -271,10 +271,7 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
 
       {/* ── Frontispiece — one editorial line synthesizing current state ── */}
       <div className="px-6 pt-3 pb-2">
-        <p
-          className="text-ui-20 leading-snug text-tea-text italic"
-          style={{ fontFamily: 'var(--font-display)', fontWeight: 400 }}
-        >
+        <p className="font-body italic text-ui-17 leading-snug text-tea-text">
           {frontispiece}
         </p>
       </div>
@@ -649,7 +646,7 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
         <div className="px-6 pt-5 pb-[calc(52px+env(safe-area-inset-bottom,0px))] lg:pb-8">
           <button
             onClick={onSignOut}
-            className="text-ui-12 uppercase tracking-[0.22em] text-tea-text-sec hover:text-tea-gold transition-colors py-2 -my-2 font-medium"
+            className="text-ui-12 uppercase tracking-[0.15em] text-tea-text-sec hover:text-tea-text transition-colors py-2 -my-2"
             style={{ WebkitTapHighlightColor: 'transparent' }}
           >
             Sign Out

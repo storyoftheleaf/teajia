@@ -243,7 +243,7 @@ const CustomerModal = ({
 
   return (
     <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
-      <div className="bg-tea-bg border border-tea-border rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto overscroll-contain shadow-2xl relative">
+      <div className="bg-tea-bg border border-tea-border rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto overscroll-contain shadow-2xl relative">
         <div className="sticky top-0 bg-tea-bg border-b border-tea-border p-6 flex justify-between items-center z-10">
           <button onClick={onClose} className="text-tea-text-sec hover:text-tea-text transition-colors" aria-label="Close"><X size={20} /></button>
           <h3 className="text-xl font-serif text-tea-text">
@@ -454,7 +454,7 @@ const CustomerModal = ({
           <button
             type="submit"
             disabled={saving || !form.name.trim()}
-            className="w-full py-3 bg-tea-gold hover:bg-tea-gold/90 text-tea-bg font-bold uppercase tracking-[0.2em] text-xs rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-3 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 active:bg-tea-gold/80 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {saving ? 'Saving...' : isEditing ? 'Update Customer' : 'Add Customer'}
           </button>
@@ -569,7 +569,7 @@ export const CustomerDetail = ({
 
   return (
     <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
-      <div className="bg-tea-bg border border-tea-border rounded-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto overscroll-contain shadow-2xl relative">
+      <div className="bg-tea-bg border border-tea-border rounded-xl w-full max-w-xl max-h-[90vh] overflow-y-auto overscroll-contain shadow-2xl relative">
         <div className="sticky top-0 bg-tea-bg border-b border-tea-border p-6 flex justify-between items-center z-10">
           <div>
             <h3 className="text-2xl font-serif text-tea-text">{customer.name}</h3>
@@ -586,7 +586,7 @@ export const CustomerDetail = ({
             <button onClick={onEdit} className="p-2 text-tea-text-sec hover:text-tea-text transition-colors" title="Edit">
               <Edit3 size={16} />
             </button>
-            <button onClick={onDelete} className="p-2 text-tea-text-sec hover:text-red-400 transition-colors" title="Delete">
+            <button onClick={onDelete} className="p-2 text-tea-text-sec hover:text-tea-error transition-colors" title="Delete">
               <Trash2 size={16} />
             </button>
             <button onClick={onClose} className="p-2 text-tea-text-sec hover:text-tea-text transition-colors" aria-label="Close">
@@ -1187,7 +1187,7 @@ export const CustomerDetail = ({
                     showToast('Account unlinked', 'info');
                     onClose();
                   }}
-                  className="text-ui-10 text-tea-text-sec hover:text-red-400 transition-colors uppercase tracking-wider"
+                  className="text-ui-10 text-tea-text-sec hover:text-tea-error transition-colors uppercase tracking-wider"
                 >
                   Unlink
                 </button>
@@ -1614,7 +1614,7 @@ export const CustomersView = () => {
           ><Edit3 size={13} /></button>
           <button
             onClick={() => handleDelete(customer)}
-            className="text-tea-text-sec hover:text-red-400 p-1 transition-colors"
+            className="text-tea-text-sec hover:text-tea-error p-1 transition-colors"
             title="Delete"
           ><Trash2 size={13} /></button>
         </div>
@@ -1628,13 +1628,19 @@ export const CustomersView = () => {
     <div className="h-full flex flex-col overflow-hidden bg-tea-bg">
 
       {/* --- STICKY HEADER --- */}
-      <div className="sticky top-0 z-30 bg-tea-bg/90 backdrop-blur-md border-b border-tea-border py-2.5 flex-shrink-0">
-        <div className="px-3 md:px-6 max-w-5xl mx-auto flex items-center gap-3 md:gap-4">
-          <div className="flex items-center gap-2 shrink-0">
+      <div className="sticky top-0 z-sticky bg-tea-bg/90 backdrop-blur-md border-b border-tea-border flex-shrink-0">
+        {/* Title row */}
+        <div className="px-4 md:px-6 lg:px-10 max-w-5xl mx-auto pt-6 pb-3 hidden md:block">
+          <h1 className="h2 text-tea-text">Contacts</h1>
+          <div className="label-caps text-tea-text-dim mt-1">
+            {filtered.length} contact{filtered.length !== 1 ? 's' : ''}
+          </div>
+        </div>
+        <div className="px-3 md:px-6 lg:px-10 max-w-5xl mx-auto flex items-center gap-3 md:gap-4 py-2">
+          <div className="flex items-center gap-2 shrink-0 md:hidden">
             <Users size={16} className="text-tea-gold" />
-            <h2 className="h3 hidden md:block">Contacts</h2>
-            <span className="text-tea-text-sec text-xs tracking-wide hidden md:inline">
-              — {filtered.length} contact{filtered.length !== 1 ? 's' : ''}
+            <span className="text-tea-text-sec text-xs">
+              {filtered.length} contact{filtered.length !== 1 ? 's' : ''}
             </span>
           </div>
 
@@ -1721,8 +1727,8 @@ export const CustomersView = () => {
               </button>
               {showMobileSort && (
                 <>
-                  <div className="fixed inset-0 z-40" onClick={() => setShowMobileSort(false)} />
-                  <div className="absolute right-0 top-9 w-40 bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-50 py-1" role="menu">
+                  <div className="fixed inset-0 z-modal" onClick={() => setShowMobileSort(false)} />
+                  <div className="absolute right-0 top-9 w-40 bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-popover py-1" role="menu">
                     {([
                       { key: 'name'    as CustomerSortKey, label: 'Name' },
                       { key: 'added'   as CustomerSortKey, label: 'Recent' },
@@ -1774,8 +1780,8 @@ export const CustomersView = () => {
               </button>
               {showColumnsPopover && (
                 <>
-                  <div className="fixed inset-0 z-40" onClick={() => setShowColumnsPopover(false)} />
-                  <div className="absolute right-0 top-full mt-2 w-44 bg-tea-surface border border-tea-border shadow-xl rounded-xl z-50 py-2">
+                  <div className="fixed inset-0 z-modal" onClick={() => setShowColumnsPopover(false)} />
+                  <div className="absolute right-0 top-full mt-2 w-44 bg-tea-surface border border-tea-border shadow-xl rounded-xl z-popover py-2">
                     <div className="px-3 pb-1.5 text-ui-9 text-tea-text-sec/60 uppercase tracking-[0.2em]">Visible Columns</div>
                     {CUSTOMER_COLUMN_DEFS.map(col => (
                       <label
@@ -1807,8 +1813,8 @@ export const CustomersView = () => {
               </button>
               {showOptions && (
                 <>
-                  <div className="fixed inset-0 z-40" onClick={() => setShowOptions(false)} />
-                  <div className="absolute right-0 top-full mt-2 w-48 bg-tea-surface border border-tea-border shadow-xl rounded-xl z-50 py-1 flex flex-col">
+                  <div className="fixed inset-0 z-modal" onClick={() => setShowOptions(false)} />
+                  <div className="absolute right-0 top-full mt-2 w-48 bg-tea-surface border border-tea-border shadow-xl rounded-xl z-popover py-1 flex flex-col">
                     <button
                       onClick={() => { handleExport(); setShowOptions(false); }}
                       className="px-4 py-2 text-left text-xs text-tea-text-sec hover:text-tea-text hover:bg-tea-bg flex items-center gap-2 transition-colors"
@@ -1830,9 +1836,10 @@ export const CustomersView = () => {
             </button>
             <button
               onClick={() => { setEditingCustomer(null); setIsModalOpen(true); }}
-              className="hidden md:flex items-center gap-2 text-xs uppercase tracking-[0.2em] font-bold text-tea-text-sec hover:text-tea-text transition-colors px-3 py-1.5 border border-transparent hover:border-tea-border rounded-lg"
+              className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 active:bg-tea-gold/80 transition-colors"
             >
-              <Plus size={14} /> New
+              <Plus size={13} />
+              <span>New</span>
             </button>
           </div>
         </div>
@@ -1929,7 +1936,7 @@ export const CustomersView = () => {
                   {visibleCols.map(col => <col key={col.key} className={col.defaultWidth} />)}
                   <col className="w-[6%]" />
                 </colgroup>
-                <thead className="sticky top-0 z-20 bg-tea-bg shadow-sm">
+                <thead className="sticky top-0 z-sticky bg-tea-bg shadow-sm">
                   <tr>
                     {visibleCols.map(col => {
                       const SORTABLE = new Set<string>(['name', 'company', 'country', 'spent', 'orders', 'added']);

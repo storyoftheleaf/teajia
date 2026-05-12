@@ -65,15 +65,13 @@ export const MyCollection: React.FC<MyCollectionProps> = ({ onBack, onViewItem }
           className="flex items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors mb-6"
         >
           <Icons.Back className="w-4 h-4" />
-          <span className="text-ui-12 uppercase tracking-[0.18em]">Back</span>
+          <span className="text-ui-12 uppercase tracking-[0.15em]">Back</span>
         </button>
 
-        <div className="flex flex-col items-center justify-center py-16">
-          <div className="w-16 h-16 rounded-full bg-tea-gold/10 flex items-center justify-center mb-4">
-            <Icons.Heart className="w-7 h-7 text-tea-gold/70" />
-          </div>
-          <h3 className="font-serif text-lg text-tea-text  mb-2">No Favorites Yet</h3>
-          <p className="text-sm text-tea-text-sec text-center max-w-[260px] leading-relaxed">
+        <div className="flex flex-col items-center text-center max-w-sm mx-auto py-20 px-6">
+          <Icons.Heart className="w-7 h-7 text-tea-text-dim" strokeWidth={1.25} />
+          <h3 className="font-display text-ui-17 text-tea-text mt-4">No favorites yet</h3>
+          <p className="text-ui-12 text-tea-text-sec leading-relaxed mt-2">
             Tap the heart icon on any tea in the shop to start building your collection.
           </p>
         </div>

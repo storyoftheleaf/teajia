@@ -150,7 +150,7 @@ const VendorPicker = ({
       />
 
       {open && (filtered.length > 0 || (query.trim() && isNew)) && (
-        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-tea-surface border border-tea-border rounded-lg shadow-lg max-h-[min(192px,40vh)] overflow-y-auto">
+        <div className="absolute z-popover top-full left-0 right-0 mt-1 bg-tea-surface border border-tea-border rounded-md shadow-lg max-h-[min(192px,40vh)] overflow-y-auto">
           {isNew && query.trim() && (
             <button
               type="button"
@@ -607,10 +607,10 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
   if (!isOpen) return null;
 
   // Reusable input styles — warm tones only, zero grey
-  const inputStyle = "w-full bg-transparent border-b border-tea-border rounded-none px-0 py-1.5 text-sm font-sans text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-accent-sub transition-colors placeholder-tea-text-sec";
-  const selectStyle = "w-full bg-transparent border-b border-tea-border rounded-none appearance-none px-0 py-1.5 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-accent-sub transition-colors cursor-pointer font-sans";
-  const labelStyle = "block text-xs uppercase tracking-wider text-tea-gold/70 mb-1 flex items-center gap-1 font-bold";
-  const wisdomInputStyle = "w-full bg-transparent border border-tea-border rounded-lg px-3 py-2.5 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold placeholder-tea-text-sec transition-colors font-sans";
+  const inputStyle = "w-full bg-transparent border-b border-tea-border rounded-none px-0 py-1.5 text-sm font-sans text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold transition-colors placeholder-tea-text-sec";
+  const selectStyle = "w-full bg-transparent border-b border-tea-border rounded-none appearance-none px-0 py-1.5 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold transition-colors cursor-pointer font-sans";
+  const labelStyle = "block label-caps text-tea-text-sec mb-1.5 flex items-center gap-1";
+  const wisdomInputStyle = "w-full bg-tea-surface border border-tea-border rounded-md px-3 py-2 text-ui-14 text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 placeholder:text-tea-text-dim transition-colors font-sans";
 
   return (
     <div
@@ -618,34 +618,33 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
         role="dialog"
         aria-modal="true"
         aria-label={initialData ? 'Edit product' : 'Add new product'}
-        className="fixed inset-0 sidebar-inset z-priority flex items-stretch bg-tea-bg/90 backdrop-blur-md animate-in fade-in duration-200"
+        className="fixed inset-0 sidebar-inset z-modal flex items-stretch animate-in fade-in duration-200"
         onClick={handleClose}
     >
+      <button type="button" aria-hidden onClick={handleClose} className="absolute inset-0 bg-tea-bg/70 backdrop-blur-[2px]" />
       <div
-        className="bg-tea-surface border-x border-tea-border w-full flex flex-col overflow-hidden relative"
+        className="relative bg-tea-surface border-x border-tea-border w-full flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
 
         {/* Header */}
         <div className="px-6 py-3.5 border-b border-tea-border flex justify-between items-center bg-tea-bg/50 backdrop-blur-sm shrink-0">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-tea-surface border border-tea-border rounded-full">
-              <Edit className="text-tea-gold" size={16} />
-            </div>
-            <div>
-              <h2 className="text-lg font-serif text-tea-text">{isEditMode ? 'Edit item' : 'New item'}</h2>
+            <button onClick={handleClose} aria-label="Close" className="text-tea-text-sec hover:text-tea-text transition-colors rounded-md p-1.5 tap-target">
+              <X size={16} aria-hidden="true" />
+            </button>
+            <div className="flex items-center gap-2">
+              <Edit className="text-tea-gold" size={14} />
+              <h3 className="h3 text-tea-text">{isEditMode ? 'Edit item' : 'New item'}</h3>
             </div>
           </div>
-          <button onClick={handleClose} aria-label="Close" className="text-tea-text-sec hover:text-tea-text transition-colors p-1.5 hover:bg-tea-bg rounded-full">
-            <X size={20} aria-hidden="true" />
-          </button>
         </div>
 
         {/* Auto-fill from existing record banner */}
         {autoFillSource && !isEditMode && (
           <div className="px-6 py-2.5 bg-tea-accent-sub/30 border-b border-tea-border flex items-center justify-between gap-4 shrink-0">
             <span className="text-xs text-tea-text-sec">
-              Filled from existing record: <span className="text-tea-text font-bold">{autoFillSource}</span>
+              Filled from existing record: <span className="text-tea-text">{autoFillSource}</span>
             </span>
             <div className="flex items-center gap-3">
               <button
@@ -657,7 +656,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                   }
                   setAutoFillSource(null);
                 }}
-                className="text-xs font-bold text-tea-gold hover:text-tea-gold/80 uppercase tracking-wider transition-colors"
+                className="text-xs text-tea-gold hover:text-tea-gold/90 transition-colors"
               >
                 Undo
               </button>
@@ -665,7 +664,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                 type="button"
                 onClick={() => { setAutoFillSource(null); autoFillSnapshotRef.current = null; }}
                 aria-label="Dismiss"
-                className="text-xs text-tea-text-sec hover:text-tea-text uppercase tracking-wider transition-colors"
+                className="text-xs text-tea-text-sec hover:text-tea-text transition-colors"
               >
                 Keep
               </button>
@@ -686,7 +685,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                   }
                   setShowDraftBanner(false);
                 }}
-                className="text-xs font-bold text-tea-gold hover:text-tea-gold/80 uppercase tracking-wider transition-colors"
+                className="text-xs text-tea-gold hover:text-tea-gold/90 transition-colors"
               >
                 Restore
               </button>
@@ -696,7 +695,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                   setDraftProduct(null);
                   setShowDraftBanner(false);
                 }}
-                className="text-xs text-tea-text-sec hover:text-tea-text uppercase tracking-wider transition-colors"
+                className="text-xs text-tea-text-sec hover:text-tea-text transition-colors"
               >
                 Discard
               </button>
@@ -712,24 +711,24 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
 
             {/* TOGGLE CHIPS */}
             <div className="flex flex-wrap gap-1.5">
-                <label className={`pill cursor-pointer select-none font-bold has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-tea-gold/50 has-[:focus-visible]:ring-offset-1 has-[:focus-visible]:ring-offset-tea-bg ${formData.isPersonal ? 'pill-active' : ''}`}>
+                <label className={`pill cursor-pointer select-none has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-tea-gold/50 has-[:focus-visible]:ring-offset-1 has-[:focus-visible]:ring-offset-tea-bg ${formData.isPersonal ? 'pill-active' : ''}`}>
                     <input type="checkbox" name="isPersonal" checked={formData.isPersonal} onChange={handleChange} className="sr-only" />
                     <UserCheck size={12} aria-hidden="true" /> Personal
                 </label>
-                <label className={`pill cursor-pointer select-none font-bold has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-tea-gold/50 has-[:focus-visible]:ring-offset-1 has-[:focus-visible]:ring-offset-tea-bg ${formData.canReorder ? 'pill-active' : ''}`}>
+                <label className={`pill cursor-pointer select-none has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-tea-gold/50 has-[:focus-visible]:ring-offset-1 has-[:focus-visible]:ring-offset-tea-bg ${formData.canReorder ? 'pill-active' : ''}`}>
                     <input type="checkbox" name="canReorder" checked={formData.canReorder} onChange={handleChange} className="sr-only" />
                     <RefreshCw size={12} aria-hidden="true" /> Restockable
                 </label>
-                <label className={`pill cursor-pointer select-none font-bold has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-tea-gold/50 has-[:focus-visible]:ring-offset-1 has-[:focus-visible]:ring-offset-tea-bg ${formData.isPublic ? 'pill-active' : ''}`}>
+                <label className={`pill cursor-pointer select-none has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-tea-gold/50 has-[:focus-visible]:ring-offset-1 has-[:focus-visible]:ring-offset-tea-bg ${formData.isPublic ? 'pill-active' : ''}`}>
                     <input type="checkbox" name="isPublic" checked={formData.isPublic} onChange={handleChange} className="sr-only" />
                     <Globe size={12} aria-hidden="true" /> Public
                 </label>
-                <label className={`pill cursor-pointer select-none font-bold has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-tea-gold/50 has-[:focus-visible]:ring-offset-1 has-[:focus-visible]:ring-offset-tea-bg ${formData.isCurated ? 'pill-active' : ''}`}>
+                <label className={`pill cursor-pointer select-none has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-tea-gold/50 has-[:focus-visible]:ring-offset-1 has-[:focus-visible]:ring-offset-tea-bg ${formData.isCurated ? 'pill-active' : ''}`}>
                     <input type="checkbox" name="isCurated" checked={formData.isCurated} onChange={handleChange} className="sr-only" />
                     <Star size={12} aria-hidden="true" /> Curated
                 </label>
                 {isPlatformAccount && (
-                  <label className={`pill cursor-pointer select-none font-bold has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-tea-gold/50 has-[:focus-visible]:ring-offset-1 has-[:focus-visible]:ring-offset-tea-bg ${formData.catalogVisible ? 'pill-active' : ''}`}>
+                  <label className={`pill cursor-pointer select-none has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-tea-gold/50 has-[:focus-visible]:ring-offset-1 has-[:focus-visible]:ring-offset-tea-bg ${formData.catalogVisible ? 'pill-active' : ''}`}>
                     <input type="checkbox" checked={formData.catalogVisible} onChange={e => setFormData(prev => ({ ...prev, catalogVisible: e.target.checked }))} className="sr-only" />
                     In Catalog
                   </label>
@@ -769,10 +768,10 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                   <label className={labelStyle}>Status</label>
                   <select
                     name="status" value={formData.status} onChange={handleChange}
-                    className={`w-full border-b appearance-none rounded-none px-0 py-1.5 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg text-sm font-bold bg-transparent cursor-pointer font-sans ${
-                        formData.status === 'Draft' ? 'text-tea-text-sec border-tea-text-sec/30' :
-                        formData.status === 'Sold Out' ? 'text-tea-text-sec border-tea-text-sec/30' :
-                        'text-tea-gold border-tea-accent-sub'
+                    className={`w-full border-b appearance-none rounded-none px-0 py-1.5 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg text-sm font-semibold bg-transparent cursor-pointer font-sans ${
+                        formData.status === 'Draft' ? 'text-tea-text-sec border-tea-border' :
+                        formData.status === 'Sold Out' ? 'text-tea-text-sec border-tea-border' :
+                        'text-tea-gold border-tea-border'
                     }`}
                   >
                     <option value="Active" className="bg-tea-surface text-tea-text">Active</option>
@@ -847,7 +846,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                     <select
                       name="costCurrency" value={formData.costCurrency} onChange={handleChange}
                       aria-label="Cost currency"
-                      className="bg-transparent appearance-none text-ui-11 text-tea-gold font-bold outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg cursor-pointer uppercase tracking-[0.15em] shrink-0"
+                      className="bg-transparent appearance-none text-ui-11 text-tea-gold font-semibold outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg cursor-pointer uppercase tracking-[0.15em] shrink-0"
                     >
                       <option value="USD" className="bg-tea-surface text-tea-text">USD</option>
                       <option value="NT" className="bg-tea-surface text-tea-text">NT</option>
@@ -927,7 +926,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                     onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 300); }}
                     className={`flex-1 min-w-0 bg-transparent py-1.5 text-sm tabular-nums text-right outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg placeholder-tea-text-sec ${
                       formData.fixedRetailPriceUSD && parseFloat(formData.fixedRetailPriceUSD) < calc.trueCostUSD
-                        ? 'text-tea-gold font-bold' : 'text-tea-text'
+                        ? 'text-tea-gold font-semibold' : 'text-tea-text'
                     }`}
                     placeholder={calc.suggestedRetailUSD > 0 ? calc.suggestedRetailUSD.toFixed(2) : '0.00'}
                   />
@@ -1328,7 +1327,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
           <div className="px-6 py-4 border-t border-tea-border">
             <div className="flex items-center gap-2 mb-3">
               <Compass size={13} className="text-tea-gold shrink-0" />
-              <h3 className="text-xs uppercase tracking-wider text-tea-gold/70 font-bold">Field Origin</h3>
+              <h3 className="label-caps text-tea-text-sec">Field Origin</h3>
             </div>
             {compassSourceLoading ? (
               <div className="flex items-center gap-2 text-tea-text-dim text-xs">
@@ -1398,7 +1397,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
         {/* Network Reviews — edit mode only when tea_key is set */}
         {isEditMode && formData.teaKey && (
           <div className="px-6 py-4 border-t border-tea-border">
-            <h3 className="text-xs uppercase tracking-wider text-tea-gold/70 font-bold mb-3">
+            <h3 className="label-caps text-tea-text-sec mb-3">
               Network Reviews
             </h3>
             <TeaReviewsPanel
@@ -1411,8 +1410,8 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
         )}
 
         {/* STICKY FOOTER */}
-        <div className="px-6 py-3.5 border-t border-tea-border flex justify-between gap-3 bg-tea-bg/50 backdrop-blur-sm shrink-0">
-            <button type="button" onClick={handleClose} className="px-4 py-2.5 text-sm text-tea-text-sec hover:text-tea-text transition-colors">
+        <div className="flex justify-between gap-2 px-6 py-4 border-t border-tea-border bg-tea-bg/50 backdrop-blur-sm shrink-0">
+            <button type="button" onClick={handleClose} className="px-2 py-1 text-xs text-tea-text-sec hover:text-tea-text transition-colors">
                 Cancel
             </button>
             <button
@@ -1428,9 +1427,9 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                     if (form) form.requestSubmit();
                 }}
                 disabled={loading || uploading}
-                className="px-6 py-2.5 bg-tea-gold text-tea-bg text-sm font-medium hover:bg-tea-gold/90 transition-all disabled:opacity-50 flex items-center justify-center gap-2 rounded-lg"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-tea-gold/10"
             >
-                {loading || uploading ? <Loader2 className="animate-spin" size={14} aria-hidden="true" /> : <Save size={14} aria-hidden="true" />}
+                {loading || uploading ? <Loader2 className="animate-spin" size={13} aria-hidden="true" /> : <Save size={13} aria-hidden="true" />}
                 <span>Save item</span>
             </button>
         </div>

@@ -113,30 +113,29 @@ const MemberSettingsModal: React.FC<MemberSettingsModalProps> = ({
       aria-modal="true"
       aria-label="Member settings"
     >
-      <div className="w-full max-w-md bg-tea-surface rounded-lg border border-tea-border shadow-2xl">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-tea-border">
-          <div>
-            <h2 className="text-base text-tea-text" style={{ fontFamily: 'var(--font-display)' }}>
-              {member.name || member.email}
-            </h2>
-            <p className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim mt-0.5">
-              {roleLabel[member.role]}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-tea-text-sec hover:text-tea-text transition-colors"
-            aria-label="Close"
-          >
-            <X size={16} />
-          </button>
+      <div className="w-full max-w-md relative bg-tea-surface rounded-xl border border-tea-border shadow-2xl">
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute top-4 right-4 p-1.5 rounded-md text-tea-text-sec hover:text-tea-text transition-colors tap-target"
+          aria-label="Close"
+          title="Close"
+        >
+          <X size={16} />
+        </button>
+        <div className="px-5 py-4 border-b border-tea-border pr-12">
+          <h2 className="h3 text-tea-text">
+            {member.name || member.email}
+          </h2>
+          <p className="label-caps text-tea-text-dim mt-0.5">
+            {roleLabel[member.role]}
+          </p>
         </div>
 
         <div className="p-5 space-y-5">
           {/* Feature Permissions */}
           <div>
-            <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-3">
+            <p className="label-caps text-tea-text-sec mb-3">
               Feature Access
             </p>
             <div className="space-y-3">
@@ -169,8 +168,8 @@ const MemberSettingsModal: React.FC<MemberSettingsModalProps> = ({
                     </div>
                   </div>
                   <div>
-                    <p className="text-xs text-tea-text leading-tight">{label}</p>
-                    <p className="text-ui-10 text-tea-text-dim mt-0.5 leading-relaxed">{description}</p>
+                    <p className="text-ui-13 text-tea-text leading-tight">{label}</p>
+                    <p className="text-ui-11 text-tea-text-dim mt-0.5 leading-relaxed">{description}</p>
                   </div>
                 </label>
               ))}
@@ -179,7 +178,7 @@ const MemberSettingsModal: React.FC<MemberSettingsModalProps> = ({
 
           {/* Curator Access */}
           <div className="pt-2 border-t border-tea-border">
-            <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-3">
+            <p className="label-caps text-tea-text-sec mb-3">
               Curator Access
             </p>
             <label className="flex items-start gap-3 cursor-pointer group">
@@ -207,8 +206,8 @@ const MemberSettingsModal: React.FC<MemberSettingsModalProps> = ({
                 </div>
               </div>
               <div>
-                <p className="text-xs text-tea-text leading-tight">Can create collections</p>
-                <p className="text-ui-10 text-tea-text-dim mt-0.5 leading-relaxed">
+                <p className="text-ui-13 text-tea-text leading-tight">Can create collections</p>
+                <p className="text-ui-11 text-tea-text-dim mt-0.5 leading-relaxed">
                   Member can create and publish their own collections. Requests still route to you.
                 </p>
               </div>
@@ -216,7 +215,7 @@ const MemberSettingsModal: React.FC<MemberSettingsModalProps> = ({
           </div>
 
           {msg && (
-            <div className="text-xs text-tea-text-sec bg-tea-elevated px-3 py-2 rounded-md">
+            <div className="text-ui-12 text-tea-text-sec bg-tea-elevated px-3 py-2 rounded-md">
               {msg}
             </div>
           )}
@@ -224,14 +223,14 @@ const MemberSettingsModal: React.FC<MemberSettingsModalProps> = ({
           {/* Transfer Ownership — only for non-self members who aren't already the only owner */}
           {!isSelf && !isLastOwner && (
             <div className="pt-2 border-t border-tea-border">
-              <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-2">
+              <p className="label-caps text-tea-text-sec mb-2">
                 Ownership
               </p>
               <button
                 type="button"
                 onClick={handleTransferOwnership}
                 disabled={transferBusy}
-                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-xs text-tea-text-sec border border-tea-border hover:border-tea-gold/50 hover:text-tea-text transition-colors disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-ui-12 text-tea-text-sec border border-tea-border hover:text-tea-text hover:bg-tea-accent-sub transition-colors disabled:opacity-50"
               >
                 {transferBusy && <Loader2 className="animate-spin" size={11} />}
                 Transfer Ownership to {member.name || member.email}
@@ -366,14 +365,14 @@ export const TeamView: React.FC = () => {
   };
 
   return (
-    <div className="p-6 md:p-10 max-w-4xl mx-auto">
-      <div className="flex items-start justify-between mb-6 gap-4">
+    <div className="px-4 md:px-6 pt-6 pb-nav-gap max-w-3xl mx-auto">
+      <div className="flex items-start justify-between mb-8 gap-4">
         <div>
-          <h1 className="text-2xl text-tea-text mb-1" style={{ fontFamily: 'var(--font-display)' }}>
+          <h1 className="h2 text-tea-text">
             Team
           </h1>
           {activeAccountName && (
-            <p className="text-xs text-tea-text-dim uppercase tracking-[0.15em]">
+            <p className="label-caps text-tea-text-dim mt-1">
               {activeAccountName}
             </p>
           )}
@@ -384,38 +383,38 @@ export const TeamView: React.FC = () => {
             setInviteOpen(true);
             setInviteMsg(null);
           }}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:opacity-90 transition-opacity"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors"
         >
-          <UserPlus size={14} />
+          <UserPlus size={13} />
           Invite
         </button>
       </div>
 
       {error && (
-        <div className="mb-4 px-4 py-3 rounded-md bg-tea-elevated text-xs text-tea-text-sec">
+        <div className="mb-4 px-4 py-3 rounded-md bg-tea-error/10 border border-tea-error/40 text-ui-12 text-tea-error">
           {error}
         </div>
       )}
 
-      <div className="bg-tea-surface rounded-lg overflow-hidden border border-tea-border">
+      <div className="bg-tea-surface rounded-xl overflow-hidden border border-tea-border">
         {loading ? (
           <div className="flex items-center justify-center py-16 text-tea-text-dim">
             <Loader2 className="animate-spin" size={18} />
           </div>
         ) : members.length === 0 ? (
-          <div className="py-16 text-center text-tea-text-dim text-sm font-serif italic">
+          <div className="py-16 text-center text-tea-text-dim text-ui-14">
             No team members yet.
           </div>
         ) : (
-          <table className="w-full text-sm">
+          <table className="w-full">
             <thead>
-              <tr className="text-ui-9 uppercase tracking-[0.15em] text-tea-text-dim">
-                <th className="text-left font-medium px-4 py-3 border-b border-tea-border">Name</th>
-                <th className="text-left font-medium px-4 py-3 border-b border-tea-border">Email</th>
-                <th className="text-left font-medium px-4 py-3 border-b border-tea-border">Role</th>
-                <th className="text-left font-medium px-4 py-3 border-b border-tea-border">Joined</th>
+              <tr className="text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec">
+                <th className="text-left px-4 py-3 border-b border-tea-border">Name</th>
+                <th className="text-left px-4 py-3 border-b border-tea-border">Email</th>
+                <th className="text-left px-4 py-3 border-b border-tea-border">Role</th>
+                <th className="text-left px-4 py-3 border-b border-tea-border">Joined</th>
                 {canEditRoles && (
-                  <th className="text-right font-medium px-4 py-3 border-b border-tea-border"></th>
+                  <th className="text-right px-4 py-3 border-b border-tea-border"></th>
                 )}
               </tr>
             </thead>
@@ -424,33 +423,33 @@ export const TeamView: React.FC = () => {
                 const isSelf = m.user_id === currentUserId;
                 const isLastOwner = m.role === 'owner' && ownerCount <= 1;
                 return (
-                  <tr key={m.user_id} className="hover:bg-tea-elevated/30 transition-colors">
-                    <td className="px-4 py-3 text-tea-text">
+                  <tr key={m.user_id} className="border-b border-tea-border hover:bg-tea-accent-sub transition-colors">
+                    <td className="px-4 py-3 text-ui-14 text-tea-text">
                       <div className="flex items-center gap-2 flex-wrap">
                         {m.name || '—'}
                         {isSelf && (
-                          <span className="text-ui-9 uppercase tracking-[0.15em] text-tea-text-dim">you</span>
+                          <span className="label-caps text-tea-text-dim">you</span>
                         )}
                         {m.platform_role === 'platform_owner' && (
-                          <span className="badge-status badge-status-gold flex items-center gap-0.5">
+                          <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-ui-9 uppercase tracking-caps bg-tea-gold/10 text-tea-text ring-1 ring-inset ring-tea-gold/40">
                             <ShieldCheck size={9} />Super Owner
                           </span>
                         )}
                         {m.platform_role === 'platform_admin' && (
-                          <span className="badge-status badge-status-default flex items-center gap-0.5">
+                          <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-ui-9 uppercase tracking-caps bg-tea-elevated text-tea-text-sec">
                             <Shield size={9} />Platform Admin
                           </span>
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-tea-text-sec">{m.email}</td>
+                    <td className="px-4 py-3 text-ui-13 text-tea-text-sec">{m.email}</td>
                     <td className="px-4 py-3">
                       {canEditRoles && !isSelf ? (
                         <select
                           value={m.role}
                           onChange={(e) => handleRoleChange(m.user_id, e.target.value as AccountRole)}
                           disabled={rowBusy === m.user_id}
-                          className="bg-tea-bg text-tea-text text-xs px-2 py-1 rounded-md outline-none focus:ring-2 focus:ring-tea-gold/40"
+                          className="bg-tea-bg border border-tea-border text-tea-text text-ui-12 px-2 py-1 rounded-md focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none"
                         >
                           {ROLES.map((r) => (
                             <option key={r} value={r}>
@@ -459,12 +458,12 @@ export const TeamView: React.FC = () => {
                           ))}
                         </select>
                       ) : (
-                        <span className="text-tea-text-sec text-xs uppercase tracking-[0.1em]">
+                        <span className="label-caps text-tea-text-sec">
                           {roleLabel[m.role]}
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-tea-text-dim text-xs">
+                    <td className="px-4 py-3 text-tea-text-dim text-ui-12">
                       {m.joined_at ? new Date(m.joined_at).toLocaleDateString() : '—'}
                     </td>
                     {canEditRoles && (
@@ -473,7 +472,7 @@ export const TeamView: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => setSettingsMember(m)}
-                            className="inline-flex items-center justify-center w-7 h-7 rounded-md text-tea-text-dim hover:text-tea-text hover:bg-tea-elevated/60 transition-colors"
+                            className="inline-flex items-center justify-center w-7 h-7 rounded-md text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-accent-sub transition-colors tap-target"
                             aria-label="Member settings"
                             title="Permissions & ownership"
                           >
@@ -483,7 +482,7 @@ export const TeamView: React.FC = () => {
                             type="button"
                             onClick={() => handleRemove(m)}
                             disabled={isSelf || isLastOwner || rowBusy === m.user_id}
-                            className="inline-flex items-center justify-center w-7 h-7 rounded-md text-tea-text-dim hover:text-tea-text hover:bg-tea-elevated/60 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                            className="inline-flex items-center justify-center w-7 h-7 rounded-md text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-accent-sub transition-colors disabled:opacity-30 disabled:cursor-not-allowed tap-target"
                             aria-label="Remove member"
                             title={
                               isSelf
@@ -513,23 +512,24 @@ export const TeamView: React.FC = () => {
           aria-modal="true"
           aria-label="Invite team member"
         >
-          <div className="w-full max-w-md bg-tea-surface rounded-lg border border-tea-border shadow-2xl">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-tea-border">
-              <h2 className="text-lg text-tea-text" style={{ fontFamily: 'var(--font-display)' }}>
+          <div className="w-full max-w-md relative bg-tea-surface rounded-xl border border-tea-border shadow-2xl">
+            <button
+              type="button"
+              onClick={() => setInviteOpen(false)}
+              className="absolute top-4 right-4 p-1.5 rounded-md text-tea-text-sec hover:text-tea-text transition-colors tap-target"
+              aria-label="Close"
+              title="Close"
+            >
+              <X size={16} />
+            </button>
+            <div className="px-5 py-4 border-b border-tea-border">
+              <h2 className="h3 text-tea-text">
                 Invite Member
               </h2>
-              <button
-                type="button"
-                onClick={() => setInviteOpen(false)}
-                className="text-tea-text-dim hover:text-tea-text transition-colors"
-                aria-label="Close"
-              >
-                <X size={16} />
-              </button>
             </div>
-            <form onSubmit={handleInvite} className="p-5 space-y-4">
+            <form onSubmit={handleInvite} className="p-5 space-y-3">
               <div>
-                <label className="block text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-2">
+                <label className="label-caps text-tea-text-sec mb-1.5 block">
                   Email
                 </label>
                 <input
@@ -537,18 +537,18 @@ export const TeamView: React.FC = () => {
                   required
                   value={inviteEmail}
                   onChange={(e) => setInviteEmail(e.target.value)}
-                  placeholder="email"
-                  className="w-full bg-tea-bg text-tea-text text-sm px-3 py-2 rounded-md outline-none focus:ring-2 focus:ring-tea-gold/40"
+                  placeholder="name@example.com"
+                  className="w-full bg-tea-bg border border-tea-border rounded-md px-3 py-2 text-ui-14 text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none"
                 />
               </div>
               <div>
-                <label className="block text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-2">
+                <label className="label-caps text-tea-text-sec mb-1.5 block">
                   Role
                 </label>
                 <select
                   value={inviteRole}
                   onChange={(e) => setInviteRole(e.target.value as AccountRole)}
-                  className="w-full bg-tea-bg text-tea-text text-sm px-3 py-2 rounded-md outline-none focus:ring-2 focus:ring-tea-gold/40"
+                  className="w-full bg-tea-bg border border-tea-border rounded-md px-3 py-2 text-ui-14 text-tea-text focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none"
                 >
                   {ROLES.map((r) => (
                     <option key={r} value={r}>
@@ -558,22 +558,22 @@ export const TeamView: React.FC = () => {
                 </select>
               </div>
               {inviteMsg && (
-                <div className="text-xs text-tea-text-sec bg-tea-elevated px-3 py-2 rounded-md">
+                <div className="text-ui-12 text-tea-text-sec bg-tea-elevated px-3 py-2 rounded-md">
                   {inviteMsg}
                 </div>
               )}
-              <div className="flex items-center justify-end gap-2 pt-2">
+              <div className="flex items-center justify-between gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setInviteOpen(false)}
-                  className="px-4 py-2 text-xs text-tea-text-sec hover:text-tea-text transition-colors"
+                  className="px-2 py-1 text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={inviteBusy || !inviteEmail}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40"
                 >
                   {inviteBusy && <Loader2 className="animate-spin" size={12} />}
                   Send Invite

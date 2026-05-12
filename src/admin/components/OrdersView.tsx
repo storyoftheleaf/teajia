@@ -223,9 +223,27 @@ export const OrdersView = () => {
     <div className="h-full flex flex-col overflow-hidden bg-tea-bg">
 
       {/* Header */}
-      <div className="sticky top-0 z-dropdown bg-tea-bg/90 backdrop-blur-md border-b border-tea-border flex-shrink-0">
+      <div className="sticky top-0 z-sticky bg-tea-bg/90 backdrop-blur-md border-b border-tea-border flex-shrink-0">
+        {/* Title row */}
+        <div className="px-4 md:px-6 lg:px-10 max-w-5xl mx-auto pt-6 pb-3 flex items-end justify-between gap-4 flex-wrap">
+          <div>
+            <h1 className="h2 text-tea-text">Orders</h1>
+            <div className="label-caps text-tea-text-dim mt-1">
+              {summary.pending} pending · {summary.filled} filled
+              {summary.filledTotal > 0 && <> · ${summary.filledTotal.toFixed(0)} revenue</>}
+            </div>
+          </div>
+          <button
+            onClick={() => setShowQuickInvoice(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 active:bg-tea-gold/80 transition-colors"
+          >
+            <Plus size={13} />
+            <span>New Invoice</span>
+          </button>
+        </div>
+
         {/* Row 1: filter + actions */}
-        <div className="px-3 md:px-6 lg:px-10 max-w-5xl mx-auto flex items-center gap-2 md:gap-4 py-2.5 md:h-16 md:py-0">
+        <div className="px-3 md:px-6 lg:px-10 max-w-5xl mx-auto flex items-center gap-2 md:gap-4 py-2">
           {/* Pipeline filter — underline tabs (DESIGN_SYSTEM.md §6) */}
           <div className="flex items-center gap-6 border-b border-tea-border overflow-x-auto hide-scrollbar min-w-0">
             {([
@@ -257,18 +275,6 @@ export const OrdersView = () => {
             })}
           </div>
 
-          {summary.filledTotal > 0 && (
-            <span className="text-ui-10 text-tea-text-sec num hidden md:inline shrink-0">
-              Revenue: ${summary.filledTotal.toFixed(0)}
-            </span>
-          )}
-
-          <button
-            onClick={() => setShowQuickInvoice(true)}
-            className="ml-auto shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-ui-10 uppercase tracking-[0.15em] text-tea-text border border-tea-border rounded-lg hover:border-tea-gold/50 hover:text-tea-gold transition-colors"
-          >
-            <Plus size={11} /> Invoice
-          </button>
         </div>
 
         {/* Row 2 (mobile only): search — separated so it doesn't crowd the filter row */}
@@ -316,7 +322,7 @@ export const OrdersView = () => {
               <col className="w-[14%]" />
               <col className="w-[28%]" />
             </colgroup>
-            <thead className="sticky top-0 z-20 bg-tea-bg shadow-sm">
+            <thead className="sticky top-0 z-sticky bg-tea-bg shadow-sm">
               <tr>
                 <th className="px-4 py-2 border-b border-tea-border text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec text-left">Date</th>
                 <th className="px-4 py-2 border-b border-tea-border text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec text-left">Invoice #</th>
@@ -333,7 +339,7 @@ export const OrdersView = () => {
                     <Package size={32} strokeWidth={1} className="opacity-40" />
                     <span className="font-serif italic">{search || statusFilter !== 'all' ? 'Nothing matched — try different words.' : 'No orders yet.'}</span>
                     {(search || statusFilter !== 'all') && (
-                      <button onClick={() => { setSearch(''); setStatusFilter('all'); }} className="text-xs text-tea-gold hover:text-tea-gold/80 transition-colors">
+                      <button onClick={() => { setSearch(''); setStatusFilter('all'); }} className="text-xs text-tea-readgold hover:text-tea-text transition-colors">
                         Clear filters
                       </button>
                     )}
@@ -353,14 +359,14 @@ export const OrdersView = () => {
                         <span className="text-xs text-tea-text-sec">{new Date(order.created_at).toLocaleDateString()}</span>
                       </td>
                       <td className="px-4 align-middle overflow-hidden">
-                        <span className="num text-xs text-tea-text group-hover:text-tea-gold cursor-pointer transition-colors" onClick={() => handleView(order)}>{order.invoice_number}</span>
+                        <span className="num text-xs text-tea-text group-hover:text-tea-readgold cursor-pointer transition-colors" onClick={() => handleView(order)}>{order.invoice_number}</span>
                       </td>
                       <td className="px-4 align-middle overflow-hidden">
                         <button
                           onClick={() => order.customer_id
                             ? navigate(`/admin/people/${order.customer_id}`)
                             : navigate(`/admin/people?search=${encodeURIComponent(order.customer_name || '')}`)}
-                          className="text-xs text-tea-text hover:text-tea-gold transition-colors flex items-center gap-1.5 group/cust truncate"
+                          className="text-xs text-tea-text hover:text-tea-readgold transition-colors flex items-center gap-1.5 group/cust truncate"
                           title="View customer profile"
                         >
                           <Users size={12} className="opacity-0 group-hover/cust:opacity-100 transition-opacity text-tea-text-sec flex-shrink-0" />
@@ -463,7 +469,7 @@ export const OrdersView = () => {
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-ui-10 text-tea-text-sec">{new Date(order.created_at).toLocaleDateString()}</span>
-                    <span className="text-xs text-tea-text num cursor-pointer hover:text-tea-gold transition-colors" onClick={() => handleView(order)}>{order.invoice_number}</span>
+                    <span className="text-xs text-tea-text num cursor-pointer hover:text-tea-readgold transition-colors" onClick={() => handleView(order)}>{order.invoice_number}</span>
                   </div>
                   <div className="flex items-center justify-between mt-1">
                     <span className="text-sm text-tea-text font-serif truncate">{order.customer_name}</span>
@@ -516,7 +522,7 @@ export const OrdersView = () => {
           <div className="text-center py-4">
             <button
               onClick={() => setPageSize(prev => prev + 50)}
-              className="text-xs text-tea-text-sec hover:text-tea-text uppercase tracking-[0.2em] border border-tea-border px-4 py-2 rounded-lg hover:bg-tea-surface transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md border border-tea-border text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub transition-colors text-xs"
             >
               Load More
             </button>
@@ -527,7 +533,7 @@ export const OrdersView = () => {
       {/* INVOICE DETAILS MODAL */}
       {viewingInvoice && (
         <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
-            <div className="bg-tea-bg border border-tea-border rounded-2xl w-full max-w-lg p-8 shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <div className="bg-tea-bg border border-tea-border rounded-xl w-full max-w-lg p-8 shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scrollbar">
                 <button onClick={() => { setViewingInvoice(null); setInvoiceTimeline([]); }} className="absolute top-6 right-6 text-tea-text-sec hover:text-tea-text transition-colors" aria-label="Close">
                     <X size={24} />
                 </button>
@@ -542,7 +548,7 @@ export const OrdersView = () => {
                         <span className="text-tea-text-sec">Customer</span>
                         <button
                           onClick={() => { setViewingInvoice(null); navigate(`/admin/people?search=${encodeURIComponent(viewingInvoice.customer_name || '')}`); }}
-                          className="text-tea-text font-medium hover:text-tea-gold transition-colors"
+                          className="text-tea-text font-medium hover:text-tea-readgold transition-colors"
                         >
                           {viewingInvoice.customer_name}
                         </button>
@@ -567,7 +573,7 @@ export const OrdersView = () => {
                     <h4 className="text-xs uppercase tracking-[0.2em] text-tea-text-sec mb-2">Source Event</h4>
                     <button
                       onClick={() => { setViewingInvoice(null); navigate(`/admin/events?search=${encodeURIComponent(viewingInvoice.source_event_title)}`); }}
-                      className="text-sm text-tea-text hover:text-tea-gold transition-colors"
+                      className="text-sm text-tea-text hover:text-tea-readgold transition-colors"
                     >
                       {viewingInvoice.source_event_title}
                     </button>
@@ -592,7 +598,7 @@ export const OrdersView = () => {
                                     {item.product_id ? (
                                       <button
                                         onClick={() => { setViewingInvoice(null); navigate(`/admin/inventory?panel=${encodeURIComponent(item.product_id)}`); }}
-                                        className="text-tea-text font-medium hover:text-tea-gold transition-colors text-left truncate block"
+                                        className="text-tea-text font-medium hover:text-tea-readgold transition-colors text-left truncate block"
                                       >
                                         {item.given_name || item.product_name || 'Unknown'}
                                       </button>
@@ -633,7 +639,7 @@ export const OrdersView = () => {
                                         ) : (
                                           <button
                                             onClick={() => setLinkState({ itemIndex: i, query: item.custom_name || item.given_name || '' })}
-                                            className="flex items-center gap-1 text-ui-10 text-tea-text-dim hover:text-tea-gold transition-colors"
+                                            className="flex items-center gap-1 text-ui-10 text-tea-text-dim hover:text-tea-readgold transition-colors"
                                           >
                                             <Link2 size={9} /> Link to inventory
                                           </button>
@@ -687,9 +693,9 @@ export const OrdersView = () => {
                      <div className="mt-8 pt-6 border-t border-tea-border">
                         <button
                             onClick={() => { setViewingInvoice(null); openFulfillConfirm(viewingInvoice); }}
-                            className="w-full py-4 bg-tea-gold hover:bg-tea-gold/90 text-tea-bg font-bold uppercase tracking-[0.2em] text-xs rounded-lg flex items-center justify-center gap-2 transition-all shadow-lg shadow-tea-gold/10"
+                            className="w-full inline-flex items-center justify-center gap-2 px-3 py-3 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 active:bg-tea-gold/80 transition-colors shadow-lg shadow-tea-gold/10"
                         >
-                            <PackageCheck size={18} /> Confirm Order & Deduct Stock
+                            <PackageCheck size={16} /> Confirm Order & Deduct Stock
                         </button>
                      </div>
                 )}
@@ -714,7 +720,7 @@ export const OrdersView = () => {
                           total: `$${total} USD`,
                         });
                       }}
-                      className="w-full py-3 border border-tea-border rounded-lg text-xs uppercase tracking-[0.2em] text-tea-text-sec hover:text-tea-text hover:bg-tea-surface flex items-center justify-center gap-2 transition-all"
+                      className="w-full inline-flex items-center justify-center gap-2 px-3 py-3 rounded-md border border-tea-border text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub transition-colors text-xs"
                     >
                       <MessageCircle size={14} /> Notify Customer via WhatsApp
                     </button>

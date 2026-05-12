@@ -84,85 +84,76 @@ const SendConfirmModal: React.FC<SendConfirmModalProps> = ({
   const [showPreview, setShowPreview] = useState(false);
 
   return (
-    <div
-      className="fixed inset-0 z-modal bg-black/80 backdrop-blur-sm flex items-center justify-center p-6 animate-[fadeIn_0.2s_ease-out]"
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-    >
-      <div
-        className="bg-tea-bg border border-tea-border rounded-md p-6 max-w-md w-full shadow-2xl animate-[scaleIn_0.25s_ease-out]"
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex items-start gap-3">
-            <Mail size={18} className="text-tea-gold mt-0.5 shrink-0" />
-            <button onClick={onClose} className="p-1 text-tea-text-sec hover:text-tea-text transition-colors shrink-0" aria-label="Close">
-            <X size={16} />
-          </button>
-          <div>
-              <h3 className="font-serif text-lg text-tea-text mb-1">Send Event Invites</h3>
-              <p className="text-sm text-tea-text-sec">
-                This will send WhatsApp/email invites to{' '}
-                <span className="text-tea-text font-medium">{approvedCount} approved</span>{' '}
-                {approvedCount === 1 ? 'attendee' : 'attendees'}.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Preview toggle */}
+    <div className="fixed inset-0 z-modal flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Send event invites">
+      <button
+        type="button"
+        aria-hidden
+        onClick={onClose}
+        className="absolute inset-0 bg-tea-bg/70 backdrop-blur-[2px]"
+      />
+      <div className="relative bg-tea-surface border border-tea-border rounded-xl shadow-2xl w-full max-w-md">
         <button
-          onClick={() => setShowPreview(v => !v)}
-          className="flex items-center gap-1.5 text-xs text-tea-text-sec hover:text-tea-gold transition-colors mb-3"
+          onClick={onClose}
+          className="absolute top-4 right-4 text-tea-text-sec hover:text-tea-text transition-colors rounded-md p-1.5 tap-target"
+          aria-label="Close"
         >
-          {showPreview ? <EyeOff size={12} /> : <Eye size={12} />}
-          {showPreview ? 'Hide message preview' : 'Preview invite message'}
+          <X size={16} />
         </button>
 
-        {showPreview && (
-          <div className="mb-4 p-4 bg-tea-surface border border-tea-border rounded-sm">
-            <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-2">
-              Message template (sent to each attendee)
-            </p>
-            <pre className="text-xs text-tea-text-sec whitespace-pre-wrap font-sans leading-relaxed max-h-40 overflow-y-auto">
-              {previewMessage}
-            </pre>
+        <div className="px-6 pt-6 pb-3">
+          <div className="flex items-center gap-2">
+            <Mail size={14} className="text-tea-gold" />
+            <h3 className="h3 text-tea-text">Send Event Invites</h3>
           </div>
-        )}
+          <p className="text-ui-13 text-tea-text-sec mt-1">
+            This will send WhatsApp/email invites to{' '}
+            <span className="text-tea-text">{approvedCount} approved</span>{' '}
+            {approvedCount === 1 ? 'attendee' : 'attendees'}.
+          </p>
+        </div>
 
-        <p className="text-xs text-tea-text-dim mb-5">
-          Note: actual delivery depends on the connected messaging provider. If none is configured, invites will be queued but not sent.
-        </p>
+        <div className="px-6 pb-4 space-y-3">
+          <button
+            onClick={() => setShowPreview(v => !v)}
+            className="inline-flex items-center gap-1.5 text-ui-12 text-tea-text-sec hover:text-tea-gold transition-colors"
+          >
+            {showPreview ? <EyeOff size={12} /> : <Eye size={12} />}
+            {showPreview ? 'Hide message preview' : 'Preview invite message'}
+          </button>
 
-        <div className="flex gap-3">
+          {showPreview && (
+            <div className="p-4 bg-tea-bg border border-tea-border rounded-md">
+              <p className="label-caps text-tea-text-dim mb-2">
+                Message template (sent to each attendee)
+              </p>
+              <pre className="text-ui-12 text-tea-text-sec whitespace-pre-wrap font-sans leading-relaxed max-h-40 overflow-y-auto">
+                {previewMessage}
+              </pre>
+            </div>
+          )}
+
+          <p className="text-ui-12 text-tea-text-dim mt-1">
+            Note: actual delivery depends on the connected messaging provider. If none is configured, invites will be queued but not sent.
+          </p>
+        </div>
+
+        <div className="flex justify-between gap-2 px-6 py-4 border-t border-tea-border">
           <button
             onClick={onClose}
-            className="flex-1 py-2.5 bg-tea-surface border border-tea-border text-tea-text text-xs rounded-sm hover:bg-tea-elevated transition-colors"
+            className="px-2 py-1 text-xs text-tea-text-sec hover:text-tea-text transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={onConfirm}
             disabled={isSending}
-            className="flex-1 py-2.5 bg-tea-gold text-tea-bg text-xs rounded-sm hover:bg-tea-gold-lt disabled:opacity-50 transition-colors flex items-center justify-center gap-1.5"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-tea-gold/10"
           >
-            {isSending ? (
-              <Loader2 size={12} className="animate-spin" />
-            ) : (
-              <Send size={12} />
-            )}
+            {isSending ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
             {isSending ? 'Sending...' : 'Send Now'}
           </button>
         </div>
       </div>
-
-      <style>{`
-        @keyframes scaleIn {
-          from { transform: scale(0.95); opacity: 0; }
-          to { transform: scale(1); opacity: 1; }
-        }
-      `}</style>
     </div>
   );
 };
@@ -196,7 +187,7 @@ const InviteStatusBlock: React.FC<InviteStatusBlockProps> = ({
           </div>
           <button
             onClick={onSend}
-            className="text-ui-10 text-tea-text-dim hover:text-tea-text-sec uppercase tracking-[0.1em] transition-colors shrink-0"
+            className="text-ui-12 text-tea-text-sec hover:text-tea-text transition-colors shrink-0"
           >
             Resend
           </button>
@@ -221,9 +212,9 @@ const InviteStatusBlock: React.FC<InviteStatusBlockProps> = ({
           <button
             onClick={onSend}
             disabled={approvedCount === 0}
-            className="flex items-center gap-1.5 text-xs bg-tea-gold text-tea-bg px-3 py-1.5 rounded-sm hover:bg-tea-gold-lt disabled:opacity-40 transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            <Send size={11} />
+            <Send size={13} />
             Send Invites
           </button>
           {approvedCount === 0 && (
@@ -327,34 +318,34 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({ eventId, e
 
       {/* Invite result banner */}
       {invitesSentCount !== null && (
-        <div className="mb-4 flex items-center gap-2 p-3 bg-green-500/8 border border-green-500/20 rounded-md text-xs text-green-400">
-          <CheckCircle size={12} className="shrink-0" />
+        <div className="mb-4 flex items-center gap-2 p-3 bg-tea-gold/10 border border-tea-gold/30 rounded-md text-xs text-tea-text">
+          <CheckCircle size={12} className="shrink-0 text-tea-gold" />
           {invitesSentCount} {invitesSentCount === 1 ? 'invite' : 'invites'} sent successfully.
         </div>
       )}
 
       {/* Reminders section header */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-4 text-xs text-tea-text-sec">
-          <span className="font-medium text-tea-text">Reminders</span>
+      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+        <div className="flex items-center gap-4 text-ui-12 text-tea-text-sec flex-wrap">
+          <span className="text-tea-text">Reminders</span>
           <span>{notifications.length} total</span>
-          <span className="text-amber-400">{pendingCount} pending</span>
-          <span className="text-green-400">{sentCount} sent</span>
+          <span className="text-tea-text-sec">{pendingCount} pending</span>
+          <span className="text-tea-gold">{sentCount} sent</span>
         </div>
         <div className="flex gap-2">
           <button
             onClick={copyAllMessages}
             disabled={pendingCount === 0}
-            className="flex items-center gap-1.5 text-xs text-tea-text-sec hover:text-tea-text px-3 py-1.5 border border-tea-border rounded-md hover:border-tea-gold/30 transition-colors disabled:opacity-40"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md border border-tea-border text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub text-xs transition-colors disabled:opacity-40"
           >
             <Copy size={12} /> Copy All Pending
           </button>
           <button
             onClick={handleGenerate}
             disabled={generating}
-            className="flex items-center gap-1.5 text-xs bg-tea-gold text-tea-bg px-3 py-1.5 rounded-md hover:bg-tea-gold-lt transition-colors disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            {generating ? <Loader2 size={12} className="animate-spin" /> : <Bell size={12} />}
+            {generating ? <Loader2 size={13} className="animate-spin" /> : <Bell size={13} />}
             Generate Reminders
           </button>
         </div>
@@ -377,7 +368,7 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({ eventId, e
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-sm text-tea-text font-medium">{notif.attendeeName || 'Guest'}</span>
-                      <span className={`inline-flex items-center gap-1 text-ui-10 uppercase tracking-[0.1em] px-1.5 py-0.5 rounded-full ${statusStyle.className}`}>
+                      <span className={`inline-flex items-center gap-1 text-ui-9 uppercase tracking-[1.2px] px-2 py-0.5 rounded-full ring-1 ring-inset ring-tea-border ${statusStyle.className}`}>
                         {statusStyle.icon}
                         {notif.status}
                       </span>

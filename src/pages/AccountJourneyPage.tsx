@@ -98,7 +98,7 @@ const BarMap: React.FC<{ data: Record<string, number> }> = ({ data }) => {
     <div className="space-y-3">
       {entries.map(([label, count], i) => (
         <motion.div key={label} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3, delay: i * 0.05 }} className="flex items-center gap-3">
-          <span className="text-xs text-tea-text-sec w-24 shrink-0 truncate">{label}</span>
+          <span className="text-ui-12 text-tea-text-sec w-24 shrink-0 truncate">{label}</span>
           <div className="flex-1 h-1.5 bg-tea-surface rounded-full overflow-hidden">
             <motion.div
               initial={{ width: 0 }}
@@ -107,7 +107,7 @@ const BarMap: React.FC<{ data: Record<string, number> }> = ({ data }) => {
               className="h-full bg-tea-gold rounded-full"
             />
           </div>
-          <span className="text-xs text-tea-text-dim w-5 text-right">{count}</span>
+          <span className="text-ui-12 text-tea-text-dim w-5 text-right font-mono tabular-nums">{count}</span>
         </motion.div>
       ))}
     </div>
@@ -124,7 +124,7 @@ const FavoritesRow: React.FC<{ favorites: string[] }> = ({ favorites }) => {
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.3, delay: i * 0.05 }}
-          className="text-sm font-serif text-tea-gold/80 border border-tea-border rounded-full px-3 py-1"
+          className="font-display text-ui-14 text-tea-text border border-tea-border rounded-full px-3 py-1 bg-tea-gold/10 ring-1 ring-inset ring-tea-gold/40"
         >
           {name}
         </motion.span>
@@ -134,13 +134,13 @@ const FavoritesRow: React.FC<{ favorites: string[] }> = ({ favorites }) => {
 };
 
 const ImpressionFeed: React.FC<{ impressions: JourneyImpression[] }> = ({ impressions }) => {
-  if (impressions.length === 0) return <p className="text-sm text-tea-text-dim italic">Your tasting notes will appear here after sessions.</p>;
+  if (impressions.length === 0) return <p className="body-light italic">Your tasting notes will appear here after sessions.</p>;
   return (
     <div className="space-y-6">
       {impressions.map((imp, i) => (
         <motion.div key={i} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, delay: i * 0.04 }} className="border-l border-tea-border pl-5">
-          <p className="font-serif italic text-base text-tea-text leading-relaxed mb-2">"{imp.text}"</p>
-          <p className="text-xs text-tea-text-sec">
+          <p className="font-body italic text-ui-16 text-tea-text leading-relaxed mb-2">"{imp.text}"</p>
+          <p className="text-ui-12 text-tea-text-sec">
             {imp.teaName}
             <span className="mx-1.5 text-tea-text-dim">·</span>
             {imp.eventTitle}
@@ -176,10 +176,10 @@ const MilestoneMarks: React.FC<{ milestones: string[] }> = ({ milestones }) => {
 // ── At Home — Sample thread ───────────────────────────────────────────────────
 
 const VERDICT_STYLES: Record<string, string> = {
-  love: 'text-tea-gold bg-tea-gold/8',
-  like: 'text-tea-text-sec bg-tea-surface',
-  neutral: 'text-tea-text-dim bg-tea-surface',
-  pass: 'text-tea-text-dim/60 bg-tea-surface/50',
+  love: 'bg-tea-gold/10 text-tea-text ring-1 ring-inset ring-tea-gold/40',
+  like: 'bg-tea-elevated text-tea-text-sec',
+  neutral: 'bg-tea-elevated text-tea-text-dim',
+  pass: 'bg-tea-elevated text-tea-text-dim',
 };
 
 const SampleCard: React.FC<{ sample: SampleEntry; index: number }> = ({ sample, index }) => (
@@ -191,23 +191,23 @@ const SampleCard: React.FC<{ sample: SampleEntry; index: number }> = ({ sample, 
   >
     <div className="flex items-start justify-between mb-3">
       <div>
-        <p className="text-sm font-medium text-tea-text">{sample.name}</p>
-        {sample.chineseName && <p className="text-xs text-tea-text-dim mt-0.5">{sample.chineseName}</p>}
-        <p className="text-xs text-tea-text-sec mt-1">
+        <p className="font-display text-ui-15 text-tea-text">{sample.name}</p>
+        {sample.chineseName && <p className="text-ui-12 text-tea-text-dim mt-0.5">{sample.chineseName}</p>}
+        <p className="text-ui-12 text-tea-text-sec mt-1">
           {[sample.type, sample.region].filter(Boolean).join(' · ')}
         </p>
       </div>
       <div className="flex flex-col items-end gap-1.5 ml-4 shrink-0">
-        <span className={`text-ui-10 uppercase tracking-wide px-2 py-0.5 rounded-full ${VERDICT_STYLES[sample.verdict] || VERDICT_STYLES.neutral}`}>
+        <span className={`inline-flex px-2 py-0.5 rounded-full text-ui-9 uppercase tracking-caps ${VERDICT_STYLES[sample.verdict] || VERDICT_STYLES.neutral}`}>
           {sample.verdict}
         </span>
         {sample.wouldBuy && (
-          <span className="text-ui-9 text-tea-text-dim">would buy</span>
+          <span className="text-ui-9 text-tea-text-dim uppercase tracking-caps">Would Buy</span>
         )}
       </div>
     </div>
     {sample.note && (
-      <p className="font-serif italic text-sm text-tea-text-sec leading-relaxed border-l border-tea-border pl-4">
+      <p className="font-body italic text-ui-14 text-tea-text-sec leading-relaxed border-l border-tea-border pl-4">
         "{sample.note}"
       </p>
     )}
@@ -216,13 +216,13 @@ const SampleCard: React.FC<{ sample: SampleEntry; index: number }> = ({ sample, 
 
 const SampleThread: React.FC<{ samples: SampleEntry[] }> = ({ samples }) => {
   if (samples.length === 0) return (
-    <p className="text-sm text-tea-text-dim italic">Samples you taste at home will appear here.</p>
+    <p className="body-light italic">Samples you taste at home will appear here.</p>
   );
   const loved = samples.filter(s => s.verdict === 'love').length;
   return (
     <div>
       {loved > 0 && (
-        <p className="text-xs text-tea-text-sec mb-5">
+        <p className="text-ui-12 text-tea-text-sec mb-5">
           {loved} of {samples.length} earned a love
         </p>
       )}
@@ -245,7 +245,7 @@ const STATUS_LABEL: Record<string, string> = {
 
 const CompassThread: React.FC<{ entries: CompassEntry[] }> = ({ entries }) => {
   if (entries.length === 0) return (
-    <p className="text-sm text-tea-text-dim italic">Teas you add to your compass will appear here.</p>
+    <p className="body-light italic">Teas you add to your compass will appear here.</p>
   );
   return (
     <div className="space-y-0">
@@ -259,20 +259,20 @@ const CompassThread: React.FC<{ entries: CompassEntry[] }> = ({ entries }) => {
         >
           <div className="flex items-baseline justify-between gap-4">
             <div className="min-w-0">
-              <span className="text-sm text-tea-text">{entry.name}</span>
+              <span className="font-display text-ui-15 text-tea-text">{entry.name}</span>
               {entry.chineseName && (
-                <span className="text-xs text-tea-text-dim ml-2">{entry.chineseName}</span>
+                <span className="text-ui-12 text-tea-text-dim ml-2">{entry.chineseName}</span>
               )}
             </div>
-            <span className="text-ui-10 text-tea-text-dim shrink-0">
+            <span className="text-ui-10 text-tea-text-dim shrink-0 uppercase tracking-caps">
               {STATUS_LABEL[entry.status] || entry.status}
             </span>
           </div>
-          <p className="text-xs text-tea-text-sec mt-0.5">
+          <p className="text-ui-12 text-tea-text-sec mt-0.5">
             {[entry.type, entry.year, entry.region].filter(Boolean).join(' · ')}
           </p>
           {entry.notes && (
-            <p className="text-xs text-tea-text-dim mt-1.5 line-clamp-2 leading-relaxed italic">
+            <p className="text-ui-12 text-tea-text-dim mt-1.5 line-clamp-2 leading-relaxed italic">
               {entry.notes}
             </p>
           )}
@@ -286,8 +286,8 @@ const CompassThread: React.FC<{ entries: CompassEntry[] }> = ({ entries }) => {
 
 const SectionHeader: React.FC<{ title: string; subtitle?: string }> = ({ title, subtitle }) => (
   <div className="mb-6">
-    <h2 className="font-serif text-xl text-tea-text mb-1">{title}</h2>
-    {subtitle && <p className="text-xs text-tea-text-sec">{subtitle}</p>}
+    <h2 className="h3 mb-1">{title}</h2>
+    {subtitle && <p className="text-ui-12 text-tea-text-sec">{subtitle}</p>}
   </div>
 );
 
@@ -296,32 +296,32 @@ const SealModal: React.FC<{ seal: JourneySeal; onClose: () => void }> = ({ seal,
     initial={{ opacity: 0 }}
     animate={{ opacity: 1 }}
     exit={{ opacity: 0 }}
-    className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-6"
+    className="fixed inset-0 z-modal flex items-center justify-center bg-black/70 px-6"
     onClick={onClose}
   >
     <motion.div
       initial={{ scale: 0.9, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
       exit={{ scale: 0.9, opacity: 0 }}
-      className="bg-tea-surface border border-tea-border rounded-2xl p-6 max-w-xs w-full text-center"
+      className="bg-tea-surface border border-tea-border rounded-xl shadow-2xl p-6 max-w-xs w-full text-center"
       onClick={e => e.stopPropagation()}
     >
       <div className="w-20 h-20 rounded-full border border-tea-border mx-auto mb-4 overflow-hidden flex items-center justify-center">
         {seal.flyerUrl
           ? <img src={seal.flyerUrl} alt="" className="w-full h-full object-cover" />
-          : <span className="font-serif text-3xl text-tea-gold/50">茶</span>}
+          : <span className="font-display text-ui-28 text-tea-gold/50">茶</span>}
       </div>
-      <p className="font-serif text-lg text-tea-text mb-1">{seal.title}</p>
-      <p className="text-sm text-tea-text-sec">
+      <p className="h3 mb-1">{seal.title}</p>
+      <p className="text-ui-13 text-tea-text-sec">
         {new Date(seal.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
       </p>
       <div className="mt-5 flex items-center justify-center gap-4">
-        <button onClick={onClose} className="text-xs text-tea-text-sec hover:text-tea-text transition-colors">Close</button>
+        <button onClick={onClose} className="px-2 py-1 text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors">Close</button>
         {seal.slug && (
           <Link
             to={`/event/${seal.slug}`}
             onClick={onClose}
-            className="flex items-center gap-1 text-xs text-tea-gold hover:text-tea-gold/70 transition-colors"
+            className="inline-flex items-center gap-1 text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors"
           >
             <ExternalLink size={11} />
             View event
@@ -349,25 +349,25 @@ const SampleRequestPrompt: React.FC<{ waNumber: string }> = ({ waNumber }) => {
   };
 
   return (
-    <div className="bg-tea-surface border border-tea-border rounded-2xl p-5">
-      <p className="text-xs text-tea-text-sec mb-3">What are you curious to try?</p>
+    <div className="bg-tea-surface border border-tea-border rounded-xl p-5">
+      <p className="text-ui-12 text-tea-text-sec mb-3">What are you curious to try?</p>
       <textarea
         value={note}
         onChange={e => setNote(e.target.value)}
         placeholder="A tea type, region, or just a mood…"
         rows={2}
-        className="w-full bg-tea-bg border border-tea-border rounded-xl px-3 py-2.5 text-sm text-tea-text placeholder:text-tea-text-dim resize-none focus:outline-none focus:border-tea-gold/40 transition-colors"
+        className="w-full bg-tea-bg border border-tea-border rounded-md px-3 py-2 text-ui-14 text-tea-text placeholder:text-tea-text-dim resize-none focus:outline-none focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 transition-colors"
       />
       {waNumber ? (
         <button
           onClick={handleSend}
-          className="mt-3 flex items-center gap-2 px-4 py-2 rounded-xl bg-tea-gold/10 text-tea-gold hover:bg-tea-gold/15 text-sm transition-colors"
+          className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors"
         >
           <Send size={13} />
           {sent ? 'Sent via WhatsApp' : 'Request via WhatsApp'}
         </button>
       ) : (
-        <p className="mt-3 text-xs text-tea-text-dim">WhatsApp not configured for this account.</p>
+        <p className="mt-3 text-ui-12 text-tea-text-dim">WhatsApp not configured for this account.</p>
       )}
     </div>
   );
@@ -393,10 +393,10 @@ const AccountJourneyPage: React.FC = () => {
     return (
       <div className="min-h-screen bg-tea-bg flex items-center justify-center px-6">
         <div className="text-center max-w-sm">
-          <p className="font-serif text-2xl text-tea-text mb-3">Your journey awaits</p>
-          <p className="text-sm text-tea-text-sec mb-6">Sign in to see your sessions, teas, and tasting notes.</p>
-          <button onClick={() => navigate('/')} className="text-sm text-tea-text-sec hover:text-tea-gold transition-colors">
-            ← Go home
+          <p className="h2 mb-3">Your journey awaits</p>
+          <p className="text-ui-13 text-tea-text-sec mb-6">Sign in to see your sessions, teas, and tasting notes.</p>
+          <button onClick={() => navigate('/')} className="inline-flex items-center gap-1.5 text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors">
+            <ArrowLeft size={14} /> Go home
           </button>
         </div>
       </div>
@@ -418,15 +418,15 @@ const AccountJourneyPage: React.FC = () => {
     const hasSomething = (journey?.samples?.length ?? 0) > 0 || (journey?.compass?.length ?? 0) > 0;
     return (
       <div className="min-h-screen bg-tea-bg">
-        <div className="max-w-xl mx-auto px-6 py-12 pb-nav-gap">
-          <button onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-tea-text-sec hover:text-tea-text transition-colors text-sm mb-10">
+        <div className="max-w-3xl mx-auto px-4 md:px-6 pt-6 pb-3 pb-nav-gap">
+          <button onClick={() => navigate(-1)} className="inline-flex items-center gap-1.5 text-tea-text-sec hover:text-tea-text transition-colors mb-6" aria-label="Back">
             <ArrowLeft size={14} />
-            Back
+            <span className="text-ui-12 uppercase tracking-[0.15em]">Back</span>
           </button>
-          <p className="text-ui-10 uppercase tracking-[0.3em] text-tea-text-sec mb-4">Your Journey</p>
-          <h1 className="font-serif text-3xl text-tea-text mb-4">It begins at the table</h1>
+          <p className="label-caps text-tea-text-dim mb-2">Your Journey</p>
+          <h1 className="h2 mb-4">It begins at the table</h1>
           <div className="w-10 h-[1px] bg-tea-gold mb-8" />
-          <p className="text-tea-text-sec leading-relaxed mb-4">
+          <p className="text-ui-15 text-tea-text-sec leading-relaxed mb-4">
             Your session record lives here once your first gathering is complete and your account is linked.
           </p>
 
@@ -449,8 +449,8 @@ const AccountJourneyPage: React.FC = () => {
 
           {!hasSomething && (
             <div className="mt-10 flex gap-3">
-              <button onClick={() => navigate('/events')} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-tea-gold/10 text-tea-gold hover:bg-tea-gold/15 text-sm transition-colors">
-                <Leaf size={14} />
+              <button onClick={() => navigate('/events')} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors">
+                <Leaf size={13} />
                 Browse sessions
               </button>
             </div>
@@ -476,22 +476,22 @@ const AccountJourneyPage: React.FC = () => {
   return (
     <>
       <div className="min-h-screen bg-tea-bg animate-[fadeIn_0.4s_ease-out]">
-        <div className="max-w-xl mx-auto px-6 py-12 pb-nav-gap">
+        <div className="max-w-3xl mx-auto px-4 md:px-6 pt-6 pb-3 pb-nav-gap">
 
           {/* Back */}
-          <button onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-tea-text-sec hover:text-tea-text transition-colors text-sm mb-10">
+          <button onClick={() => navigate(-1)} className="inline-flex items-center gap-1.5 text-tea-text-sec hover:text-tea-text transition-colors mb-6" aria-label="Back">
             <ArrowLeft size={14} />
-            Back
+            <span className="text-ui-12 uppercase tracking-[0.15em]">Back</span>
           </button>
 
           {/* Header */}
           <div className="mb-12">
-            <p className="text-ui-10 uppercase tracking-[0.3em] text-tea-text-sec mb-3">Your Journey</p>
-            <h1 className="font-serif text-3xl text-tea-text mb-2">
+            <p className="label-caps text-tea-text-dim mb-2">Your Journey</p>
+            <h1 className="h2 mb-2">
               {journey.sessionsAttended} gathering{journey.sessionsAttended !== 1 ? 's' : ''}
             </h1>
             {statParts.length > 0 && (
-              <p className="text-sm text-tea-text-sec">
+              <p className="text-ui-13 text-tea-text-sec">
                 {statParts.join(' · ')}
                 {journey.memberSince && (
                   <span className="ml-1">
@@ -549,13 +549,13 @@ const AccountJourneyPage: React.FC = () => {
 
           <section className="mb-16">
             <div className="mb-6">
-              <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim mb-2">At Home</p>
-              <h2 className="font-serif text-xl text-tea-text mb-1">What You've Explored</h2>
-              <p className="text-xs text-tea-text-sec">Samples tasted outside the session.</p>
+              <p className="label-caps text-tea-text-dim mb-2">At Home</p>
+              <h2 className="h3 mb-1">What You've Explored</h2>
+              <p className="text-ui-12 text-tea-text-sec">Samples tasted outside the session.</p>
             </div>
             {hasSamples
               ? <SampleThread samples={journey.samples} />
-              : <p className="text-sm text-tea-text-dim italic mb-6">Samples you taste at home will appear here.</p>
+              : <p className="body-light italic mb-6">Samples you taste at home will appear here.</p>
             }
             <div className="mt-8">
               <SampleRequestPrompt waNumber={activeAccount?.whatsapp_number?.replace(/\D/g, '') ?? ''} />
@@ -568,13 +568,13 @@ const AccountJourneyPage: React.FC = () => {
             <section className="mb-16">
               <div className="flex items-baseline justify-between mb-6">
                 <div>
-                  <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim mb-2">Your Collection</p>
-                  <h2 className="font-serif text-xl text-tea-text mb-1">The Journal</h2>
-                  <p className="text-xs text-tea-text-sec">Teas you've chosen to keep.</p>
+                  <p className="label-caps text-tea-text-dim mb-2">Your Collection</p>
+                  <h2 className="h3 mb-1">The Journal</h2>
+                  <p className="text-ui-12 text-tea-text-sec">Teas you've chosen to keep.</p>
                 </div>
                 <Link
                   to="/account/journal"
-                  className="flex items-center gap-1 text-xs text-tea-text-sec hover:text-tea-gold transition-colors shrink-0"
+                  className="inline-flex items-center gap-1 text-ui-12 text-tea-text-sec hover:text-tea-text transition-colors shrink-0"
                 >
                   Open journal
                   <ExternalLink size={11} />
@@ -588,13 +588,13 @@ const AccountJourneyPage: React.FC = () => {
 
           {hasPortrait ? (
             <div className="border-t border-tea-border pt-10 pb-4">
-              <p className="font-serif italic text-base text-tea-text-sec leading-relaxed text-center max-w-sm mx-auto">
+              <p className="font-body italic text-ui-16 text-tea-text-sec leading-relaxed text-center max-w-sm mx-auto">
                 {journey.portrait}
               </p>
             </div>
           ) : (
             <div className="border-t border-tea-border pt-8 text-center">
-              <p className="text-xs text-tea-text-dim">
+              <p className="text-ui-12 text-tea-text-dim">
                 This is {firstName}'s record with TeaJiA. It grows with every session.
               </p>
             </div>

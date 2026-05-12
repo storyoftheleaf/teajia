@@ -31,10 +31,10 @@ export function truncate(s: string, max: number): string {
 // system sits at 17px body / 11px label; the panel runs slightly tighter
 // because it is a 400px drawer, but never below WCAG-safe sizes.
 
-export const HINT_CLASS = 'text-ui-11 uppercase tracking-[0.24em] text-tea-text-sec font-medium';
-export const META_CLASS = 'text-ui-12 text-tea-text-sec tracking-[0.02em]';
-export const META_DIM_CLASS = 'text-ui-12 text-tea-text-dim tracking-[0.02em]';
-export const FOOTER_LINK_CLASS = 'py-2 -my-2 hover:text-tea-gold transition-colors';
+export const HINT_CLASS = 'text-ui-11 uppercase tracking-[0.15em] text-tea-text-dim';
+export const META_CLASS = 'text-ui-12 text-tea-text-sec';
+export const META_DIM_CLASS = 'text-ui-12 text-tea-text-dim';
+export const FOOTER_LINK_CLASS = 'py-2 -my-2 text-tea-text-sec hover:text-tea-text transition-colors';
 
 // ── Building blocks ────────────────────────────────────────────────────────
 
@@ -48,7 +48,7 @@ export const NewDot: React.FC<{ title?: string }> = ({ title = 'Recently added' 
 
 export const Hint: React.FC<{ children: React.ReactNode; icon?: React.ReactNode }> = ({ children, icon }) => (
   <div className={`${HINT_CLASS} mb-3 flex items-center gap-2`}>
-    {icon && <span className="text-tea-gold/70 shrink-0 flex items-center" aria-hidden="true">{icon}</span>}
+    {icon && <span className="text-tea-text-sec shrink-0 flex items-center" aria-hidden="true">{icon}</span>}
     <span>{children}</span>
   </div>
 );
@@ -72,17 +72,17 @@ interface RowProps {
 export const Row: React.FC<RowProps> = ({ label, onClick, meta, isNew, trailing, subdued }) => (
   <button
     onClick={onClick}
-    className={`w-full flex items-center gap-3 px-6 py-3 text-left transition-colors border-b border-tea-border last:border-0 hover:bg-tea-surface/40 ${
+    className={`w-full flex items-center gap-3 px-6 py-3 text-left transition-colors border-b border-tea-border last:border-0 hover:bg-tea-accent-sub ${
       subdued ? 'opacity-80' : ''
     }`}
     style={{ WebkitTapHighlightColor: 'transparent' }}
   >
     <span className="flex-1 min-w-0 flex items-center gap-2">
-      <span className="font-serif text-ui-15 text-tea-text leading-tight truncate">{label}</span>
+      <span className="font-display text-ui-15 text-tea-text leading-tight truncate">{label}</span>
       {isNew && <NewDot />}
     </span>
     {meta != null && (
-      <span className="text-ui-12 text-tea-text-sec tabular-nums shrink-0 font-sans">{meta}</span>
+      <span className="text-ui-12 text-tea-text-sec font-mono tabular-nums shrink-0">{meta}</span>
     )}
     {trailing}
   </button>
@@ -104,14 +104,14 @@ export const NeedsAttention: React.FC<{ items: AttentionItem[] }> = ({ items }) 
         <button
           key={item.id}
           onClick={item.onClick}
-          className="w-full flex items-center gap-3 py-3 text-left hover:bg-tea-surface/40 transition-colors px-1"
+          className="w-full flex items-center gap-3 py-3 text-left hover:bg-tea-accent-sub transition-colors px-1"
           style={{ WebkitTapHighlightColor: 'transparent' }}
         >
           <span
             className={`w-1.5 h-1.5 rounded-full shrink-0 ${item.urgent ? 'bg-tea-gold' : 'bg-tea-text-sec'}`}
             aria-hidden="true"
           />
-          <span className="flex-1 min-w-0 font-serif text-ui-14 text-tea-text leading-snug truncate">
+          <span className="flex-1 min-w-0 font-display text-ui-15 text-tea-text leading-snug truncate">
             {item.label}
           </span>
           {item.meta && (
@@ -279,7 +279,7 @@ export const PreviewBlock: React.FC<{
 }> = ({ hint, onClick, children, icon }) => (
   <button
     onClick={onClick}
-    className="w-full text-left px-6 py-6 hover:bg-tea-surface/40 transition-colors border-t border-tea-border"
+    className="w-full text-left px-6 py-6 hover:bg-tea-accent-sub transition-colors border-t border-tea-border"
     style={{ WebkitTapHighlightColor: 'transparent' }}
   >
     <Hint icon={icon}>{hint}</Hint>

@@ -165,7 +165,7 @@ export const ContactTagsView: React.FC<ContactTagsViewProps> = ({ embedded = fal
                         className="flex-1 px-2 py-1 text-sm bg-tea-bg border border-tea-border rounded-md outline-none text-tea-text focus:border-tea-gold/40"
                       />
                       {targetExists && (
-                        <span className="text-ui-10 uppercase tracking-wide text-tea-gold">Will merge</span>
+                        <span className="text-ui-10 uppercase tracking-wide text-tea-readgold">Will merge</span>
                       )}
                       <button
                         type="button"
@@ -178,7 +178,7 @@ export const ContactTagsView: React.FC<ContactTagsViewProps> = ({ embedded = fal
                         type="button"
                         onClick={() => saveEdit(t.tag)}
                         disabled={busy || !draft.trim() || draft.trim() === t.tag}
-                        className="px-3 py-1 bg-tea-gold text-tea-bg rounded-md text-xs font-medium hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 active:bg-tea-gold/80 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                       >
                         {targetExists ? 'Merge' : 'Save'}
                       </button>
@@ -201,7 +201,7 @@ export const ContactTagsView: React.FC<ContactTagsViewProps> = ({ embedded = fal
                       <button
                         type="button"
                         onClick={() => deleteTag(t.tag)}
-                        className="text-tea-text-sec hover:text-red-400 transition-colors p-1"
+                        className="text-tea-text-sec hover:text-tea-error transition-colors p-1"
                         aria-label={`Delete ${t.tag}`}
                         title="Delete everywhere"
                       >

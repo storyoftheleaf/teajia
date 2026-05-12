@@ -52,7 +52,7 @@ export const QrCodeModal: React.FC<QrCodeModalProps> = ({ isOpen, onClose, produ
             <QRCodeCanvas value={qrValue} size={192} />
           </div>
 
-          <div className="text-ui-11 uppercase tracking-[0.15em] text-tea-text-dim text-center print:text-black">
+          <div className="label-caps text-tea-text-dim text-center print:text-black">
             ID: {product.id}
           </div>
         </div>

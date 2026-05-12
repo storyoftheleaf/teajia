@@ -77,7 +77,7 @@ export const MCPTokensView: React.FC = () => {
       )}
 
       {justMinted && (
-        <div className="mb-8 border border-tea-gold/40 bg-tea-gold-lt/30 p-4 rounded">
+        <div className="mb-8 border border-tea-gold/40 bg-tea-gold/10 p-4 rounded-xl">
           <div className="text-tea-text font-display mb-2">New token: {justMinted.label}</div>
           <p className="text-tea-text-sec text-ui-13 leading-[1.5] mb-3">
             Copy this now — you won&apos;t see it again. If you lose it, revoke and mint a new one.

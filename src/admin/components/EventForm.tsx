@@ -64,7 +64,7 @@ const Field = ({
   className?: string;
 }) => (
   <div className={className}>
-    <label className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec block mb-1.5">{label}</label>
+    <label className="label-caps text-tea-text-sec block mb-1.5">{label}</label>
     {children}
   </div>
 );
@@ -201,7 +201,7 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
 
             {/* Identity — Title always visible */}
             <section className="space-y-5 pb-8">
-              <h3 className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec font-medium">Event Details</h3>
+              <h3 className="label-caps text-tea-text-sec">Event Details</h3>
               <Field label="Title *">
                 <input
                   type="text"
@@ -217,7 +217,7 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
 
             {/* Scheduling — Date + Seats always visible */}
             <section className="space-y-5 py-8">
-              <h3 className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec font-medium">Scheduling</h3>
+              <h3 className="label-caps text-tea-text-sec">Scheduling</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Field label="Start Date & Time *">
                   <input
@@ -243,7 +243,7 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
 
             {/* Format — Gathering Type always visible */}
             <section className="space-y-5 py-8">
-              <h3 className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec font-medium">Format</h3>
+              <h3 className="label-caps text-tea-text-sec">Format</h3>
               <Field label="Gathering Type">
                 <p className="text-ui-11 text-tea-text-dim mb-2">Intimacy &amp; access level</p>
                 <div className="flex gap-4 pt-1">
@@ -267,7 +267,7 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
 
             {/* Location — always visible */}
             <section className="space-y-4 pt-8">
-              <h3 className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec font-medium">Location</h3>
+              <h3 className="label-caps text-tea-text-sec">Location</h3>
 
               {venues.length === 0 ? (
                 <div className="flex items-center justify-between py-1">
@@ -310,9 +310,9 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
                   {selectedVenue && selectedVenue.spaces.length > 0 && (
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec">Spaces</p>
+                        <p className="label-caps text-tea-text-sec">Spaces</p>
                         {selectedSpaceIds.length === 0 && (
-                          <p className="text-ui-11 text-amber-400">No spaces selected. Capacity defaults to 12.</p>
+                          <p className="text-ui-11 text-tea-gold">No spaces selected. Capacity defaults to 12.</p>
                         )}
                       </div>
                       {/* Selected space chips */}
@@ -335,7 +335,7 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
                               onClick={() => toggleSpace(space.id, space.capacity)}
                               className={`w-full flex items-start gap-3 p-3 rounded-md border text-left transition-colors ${
                                 active
-                                  ? 'border-tea-gold/50 bg-tea-gold/5 text-tea-text'
+                                  ? 'border-tea-gold bg-tea-gold/5 text-tea-text'
                                   : 'border-tea-border hover:border-tea-border text-tea-text-sec'
                               }`}
                             >
@@ -359,7 +359,7 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
                               <div className={`w-4 h-4 rounded-sm border flex-shrink-0 mt-0.5 flex items-center justify-center transition-colors ${
                                 active ? 'bg-tea-gold border-tea-gold' : 'border-tea-border'
                               }`}>
-                                {active && <span className="text-tea-bg text-ui-10 font-bold leading-none">✓</span>}
+                                {active && <span className="text-tea-bg text-ui-10 font-semibold leading-none">✓</span>}
                               </div>
                             </button>
                           );
@@ -401,7 +401,7 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
                   size={14}
                   className={`transition-transform duration-200 ${detailsOpen ? 'rotate-180' : ''}`}
                 />
-                <span className="text-ui-11 uppercase tracking-[0.18em] font-medium">
+                <span className="label-caps">
                   Add Details
                 </span>
               </button>
@@ -412,7 +412,7 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
 
                 {/* Subtitle + Description */}
                 <section className="space-y-5 pb-8">
-                  <h3 className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec font-medium">Event Details</h3>
+                  <h3 className="label-caps text-tea-text-sec">Event Details</h3>
                   <Field label="Subtitle">
                     <input
                       type="text"
@@ -435,7 +435,7 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
 
                 {/* Duration, Repeat dates, Status */}
                 <section className="space-y-5 py-8">
-                  <h3 className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec font-medium">Scheduling</h3>
+                  <h3 className="label-caps text-tea-text-sec">Scheduling</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <Field label="Duration">
                       <div className="relative">
@@ -472,7 +472,7 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
                   {/* Repeat dates */}
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec">Repeats</span>
+                      <span className="label-caps text-tea-text-sec">Repeats</span>
                       <div className="flex gap-3">
                         <button
                           type="button"
@@ -532,7 +532,7 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
 
                 {/* Format select */}
                 <section className="space-y-5 py-8">
-                  <h3 className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec font-medium">Format</h3>
+                  <h3 className="label-caps text-tea-text-sec">Format</h3>
                   <Field label="Format">
                     <select
                       value={format}
@@ -568,7 +568,7 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
 
           {/* ── Right column: flyer ── */}
           <div className="space-y-4">
-            <h3 className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec font-medium">Flyer</h3>
+            <h3 className="label-caps text-tea-text-sec">Flyer</h3>
             {flyerImageUrl ? (
               <div className="relative w-full rounded-md overflow-hidden border border-tea-border">
                 <img src={flyerImageUrl} alt="Flyer" className="w-full object-cover" loading="lazy" />
@@ -611,20 +611,20 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
       </div>
 
       {/* Sticky footer */}
-      <div className="flex-shrink-0 flex justify-between gap-3 px-6 py-4 border-t border-tea-border pb-nav-gap lg:pb-4">
+      <div className="flex-shrink-0 flex justify-between gap-2 px-6 py-4 border-t border-tea-border pb-nav-gap lg:pb-4">
         <button
           type="button"
           onClick={onClose}
-          className="px-4 py-2 text-sm text-tea-text-sec hover:text-tea-text transition-colors"
+          className="px-2 py-1 text-xs text-tea-text-sec hover:text-tea-text transition-colors"
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={saving || uploading}
-          className="flex items-center gap-2 bg-tea-gold text-tea-bg px-5 py-2 text-sm font-medium hover:bg-tea-gold-lt transition-colors disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-tea-gold/10"
         >
-          {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+          {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
           Create Event
         </button>
       </div>
@@ -952,7 +952,7 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
       className="w-full flex items-center justify-between py-3 text-sm text-tea-text-sec hover:text-tea-text transition-colors"
     >
       <span className="flex items-center gap-2.5">
-        <span className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec font-medium">{label}</span>
+        <span className="label-caps text-tea-text-sec">{label}</span>
         {count !== undefined && count > 0 && (
           <span className="text-ui-10 font-mono text-tea-text-dim">{count}</span>
         )}
@@ -994,7 +994,7 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
                     required
                     maxLength={80}
                   />
-                  <div className={`text-right text-ui-10 mt-0.5 ${(form.title || '').length > 70 ? 'text-amber-400' : 'text-tea-text-dim'}`}>
+                  <div className={`text-right text-ui-10 mt-0.5 ${(form.title || '').length > 70 ? 'text-tea-gold' : 'text-tea-text-dim'}`}>
                     {(form.title || '').length}/80
                   </div>
                 </Field>
@@ -1007,7 +1007,7 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
                     placeholder="A journey through Wuyi oolongs"
                     maxLength={120}
                   />
-                  <div className={`text-right text-ui-10 mt-0.5 ${(form.subtitle || '').length > 100 ? 'text-amber-400' : 'text-tea-text-dim'}`}>
+                  <div className={`text-right text-ui-10 mt-0.5 ${(form.subtitle || '').length > 100 ? 'text-tea-gold' : 'text-tea-text-dim'}`}>
                     {(form.subtitle || '').length}/120
                   </div>
                 </Field>
@@ -1020,7 +1020,7 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
                     rows={3}
                     maxLength={500}
                   />
-                  <div className={`text-right text-ui-10 mt-0.5 ${(form.description || '').length > 450 ? 'text-amber-400' : 'text-tea-text-dim'}`}>
+                  <div className={`text-right text-ui-10 mt-0.5 ${(form.description || '').length > 450 ? 'text-tea-gold' : 'text-tea-text-dim'}`}>
                     {(form.description || '').length}/500
                   </div>
                 </Field>
@@ -1055,7 +1055,7 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
                 {/* Repeat dates */}
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec">Repeats</span>
+                    <span className="label-caps text-tea-text-sec">Repeats</span>
                     <div className="flex gap-3">
                       <button
                         type="button"
@@ -1247,7 +1247,7 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
             {/* ── Venue picker ── */}
             <div className="pt-1 space-y-3">
               <div className="flex items-center justify-between">
-                <label className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec">Venue</label>
+                <label className="label-caps text-tea-text-sec">Venue</label>
                 <button
                   type="button"
                   onClick={() => setIsVenueManagerOpen(true)}
@@ -1288,9 +1288,9 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
                   {editVenueObj && editVenueObj.spaces.length > 0 && (
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec">Spaces</p>
+                        <p className="label-caps text-tea-text-sec">Spaces</p>
                         {editSpaceIds.length === 0 && (
-                          <p className="text-ui-11 text-amber-400">No spaces selected</p>
+                          <p className="text-ui-11 text-tea-gold">No spaces selected</p>
                         )}
                       </div>
                       {editSpaceIds.length > 0 && (
@@ -1311,7 +1311,7 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
                               type="button"
                               onClick={() => toggleEditSpace(space.id, space.capacity)}
                               className={`w-full flex items-start gap-3 p-3 rounded-md border text-left transition-colors ${
-                                active ? 'border-tea-gold/50 bg-tea-gold/5 text-tea-text' : 'border-tea-border hover:border-tea-border text-tea-text-sec'
+                                active ? 'border-tea-gold bg-tea-gold/5 text-tea-text' : 'border-tea-border hover:border-tea-border text-tea-text-sec'
                               }`}
                             >
                               {space.photos[0] ? (
@@ -1333,7 +1333,7 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
                               <div className={`w-4 h-4 rounded-sm border flex-shrink-0 mt-0.5 flex items-center justify-center transition-colors ${
                                 active ? 'bg-tea-gold border-tea-gold' : 'border-tea-border'
                               }`}>
-                                {active && <span className="text-tea-bg text-ui-10 font-bold leading-none">✓</span>}
+                                {active && <span className="text-tea-bg text-ui-10 font-semibold leading-none">✓</span>}
                               </div>
                             </button>
                           );
@@ -1364,7 +1364,7 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
             </div>
 
             <div className="flex items-center justify-between pt-1">
-              <label className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec">Manual Location</label>
+              <label className="label-caps text-tea-text-sec">Manual Location</label>
               {form.locationName?.trim() && form.addressText?.trim() && !selectedLocationId && (
                 <button
                   type="button"
@@ -1611,20 +1611,20 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
       </div>
 
       {/* Actions */}
-      <div className="flex-shrink-0 flex justify-between gap-3 px-6 py-4 border-t border-tea-border pb-nav-gap lg:pb-4">
+      <div className="flex-shrink-0 flex justify-between gap-2 px-6 py-4 border-t border-tea-border pb-nav-gap lg:pb-4">
         <button
           type="button"
           onClick={onClose}
-          className="px-4 py-2 text-sm text-tea-text-sec hover:text-tea-text transition-colors"
+          className="px-2 py-1 text-xs text-tea-text-sec hover:text-tea-text transition-colors"
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={saving}
-          className="flex items-center gap-2 bg-tea-gold text-tea-bg px-5 py-2 text-sm font-medium hover:bg-tea-gold-lt transition-colors disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-tea-gold/10"
         >
-          {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+          {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
           Update Event
         </button>
       </div>
@@ -1632,16 +1632,17 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
 
     {/* Inline Venue Manager overlay */}
     {isVenueManagerOpen && (
-      <div className="fixed inset-0 bg-tea-bg z-toast flex flex-col">
-        <div className="flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-tea-border">
-          <h2 className="text-base font-serif text-tea-text">Manage Venues</h2>
+      <div className="fixed inset-0 bg-tea-bg z-modal flex flex-col">
+        <div className="flex-shrink-0 flex items-center gap-3 px-6 py-4 border-b border-tea-border">
           <button
             type="button"
             onClick={() => { setIsVenueManagerOpen(false); loadVenues(); }}
-            className="text-tea-text-sec hover:text-tea-text transition-colors"
+            aria-label="Close"
+            className="text-tea-text-sec hover:text-tea-text transition-colors rounded-md p-1.5 tap-target"
           >
-            <X size={18} />
+            <X size={16} />
           </button>
+          <h3 className="h3 text-tea-text">Manage Venues</h3>
         </div>
         <div className="flex-1 overflow-y-auto">
           <VenueManager />
@@ -1669,12 +1670,12 @@ export const EventForm: React.FC<EventFormProps> = ({ isOpen, onClose, initialDa
           exit={{ opacity: 0, y: 16 }}
           className="fixed inset-0 sidebar-inset bg-tea-bg z-modal flex flex-col"
         >
-          {/* Header */}
-          <div className="flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-tea-border">
-            <h2 className="text-lg font-serif text-tea-text">Create Event</h2>
-            <button onClick={onClose} className="text-tea-text-sec hover:text-tea-text transition-colors">
-              <X size={18} />
+          {/* Header — close-X on left per drawer/panel rule */}
+          <div className="flex-shrink-0 flex items-center gap-3 px-6 py-4 border-b border-tea-border">
+            <button onClick={onClose} aria-label="Close" className="text-tea-text-sec hover:text-tea-text transition-colors rounded-md p-1.5 tap-target">
+              <X size={16} />
             </button>
+            <h3 className="h3 text-tea-text">Create Event</h3>
           </div>
           <div className="flex-1 min-h-0">
             <CreateWizard onClose={onClose} onSuccess={onSuccess} />
@@ -1693,11 +1694,11 @@ export const EventForm: React.FC<EventFormProps> = ({ isOpen, onClose, initialDa
         exit={{ opacity: 0, y: 16 }}
         className="fixed inset-0 sidebar-inset bg-tea-bg z-modal flex flex-col"
       >
-        <div className="flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-tea-border">
-          <h2 className="text-lg font-serif text-tea-text">Edit Event</h2>
-          <button onClick={onClose} className="text-tea-text-sec hover:text-tea-text transition-colors">
-            <X size={18} />
+        <div className="flex-shrink-0 flex items-center gap-3 px-6 py-4 border-b border-tea-border">
+          <button onClick={onClose} aria-label="Close" className="text-tea-text-sec hover:text-tea-text transition-colors rounded-md p-1.5 tap-target">
+            <X size={16} />
           </button>
+          <h3 className="h3 text-tea-text">Edit Event</h3>
         </div>
         <div className="flex-1 min-h-0">
           <EditForm

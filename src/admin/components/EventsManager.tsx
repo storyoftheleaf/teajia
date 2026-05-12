@@ -14,7 +14,7 @@ const STATUS_STYLES: Record<EventStatus, string> = {
   active: 'text-tea-gold',
   closed: 'text-tea-text-sec',
   archived: 'text-tea-text-dim line-through',
-  completed: 'text-emerald-400',
+  completed: 'text-tea-text-sec',
 };
 
 function formatEventDate(dateStr: string): string {
@@ -91,7 +91,7 @@ export const EventsManager: React.FC = () => {
       <h1 className="font-serif font-normal text-2xl lg:text-3xl text-tea-text leading-tight tracking-[0.02em]" style={{ fontFamily: 'var(--font-display)' }}>Events</h1>
       <div className="flex items-center gap-2">
         {activeMembership && (
-          <span className="hidden sm:block text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec truncate max-w-[120px]">
+          <span className="hidden sm:block label-caps text-tea-text-sec truncate max-w-[120px]">
             {activeMembership.account_name}
           </span>
         )}
@@ -104,9 +104,9 @@ export const EventsManager: React.FC = () => {
         </button>
         <button
           onClick={() => setIsFormOpen(true)}
-          className="flex items-center gap-2 text-sm text-tea-text-sec hover:text-tea-text border-b border-tea-border hover:border-tea-gold/60 pb-0.5 transition-colors"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors"
         >
-          <Plus size={14} />
+          <Plus size={13} />
           New Event
         </button>
       </div>
@@ -161,7 +161,7 @@ export const EventsManager: React.FC = () => {
           <p className="font-serif italic text-sm text-tea-text-sec mb-6">No gatherings yet.</p>
           <button
             onClick={() => setIsFormOpen(true)}
-            className="inline-flex items-center gap-2 bg-tea-gold text-tea-bg px-5 py-2.5 text-xs font-semibold hover:bg-tea-gold-lt transition-colors rounded-sm"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors shadow-lg shadow-tea-gold/10"
           >
             <Plus size={13} />
             Create your first event
@@ -218,7 +218,7 @@ export const EventsManager: React.FC = () => {
                         {requested > 0 && (
                           <button
                             onClick={(e) => { e.stopPropagation(); navigate(`/admin/events/${event.id}?tab=requests`); }}
-                            className="flex items-center gap-1 text-ui-9 text-amber-400 hover:text-amber-300 transition-colors"
+                            className="flex items-center gap-1 text-ui-9 text-tea-gold hover:text-tea-gold/90 transition-colors"
                           >
                             <Bell size={8} className="shrink-0" />
                             {requested} pending
@@ -245,7 +245,7 @@ export const EventsManager: React.FC = () => {
                             <span>{event.areaHint ?? event.locationName}</span>
                           </>
                         )}
-                        <span className={`ml-auto font-medium tabular-nums ${isFull ? 'text-red-400' : 'text-tea-gold'}`}>
+                        <span className={`ml-auto font-medium tabular-nums ${isFull ? 'text-tea-error' : 'text-tea-gold'}`}>
                           {isFull ? 'Full' : `${seatsRemaining}/${event.totalCapacity} seats`}
                           {waitlist > 0 && <span className="text-tea-text-dim ml-1">+{waitlist}</span>}
                         </span>
@@ -277,22 +277,34 @@ export const EventsManager: React.FC = () => {
 
       {/* Duplicate Slug Dialog */}
       {duplicateDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setDuplicateDialog(null)}>
-          <div className="bg-tea-surface border border-tea-border p-6 w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
-            <h3 className="text-sm font-serif text-tea-text mb-1">Duplicate Event</h3>
-            <p className="text-xs text-tea-text-sec mb-4">Choose a unique slug for the duplicated event.</p>
-            <input
-              type="text"
-              value={duplicateDialog.slug}
-              onChange={e => setDuplicateDialog(prev => prev ? { ...prev, slug: e.target.value } : null)}
-              className="w-full bg-tea-bg border border-tea-border rounded px-3 py-2 text-sm text-tea-text font-mono outline-none focus:border-tea-gold/50 mb-4"
-              placeholder="event-slug"
-              autoFocus
-              onKeyDown={e => { if (e.key === 'Enter') handleConfirmDuplicate(); if (e.key === 'Escape') setDuplicateDialog(null); }}
-            />
-            <div className="flex gap-2 justify-between">
-              <button onClick={() => setDuplicateDialog(null)} className="px-3 py-1.5 text-xs text-tea-text-sec hover:text-tea-text transition-colors">Cancel</button>
-              <button onClick={handleConfirmDuplicate} disabled={!duplicateDialog.slug.trim()} className="px-4 py-1.5 text-xs bg-tea-gold text-tea-bg rounded hover:bg-tea-gold-lt transition-colors disabled:opacity-40">Duplicate</button>
+        <div className="fixed inset-0 z-modal flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Duplicate event">
+          <button type="button" aria-hidden onClick={() => setDuplicateDialog(null)} className="absolute inset-0 bg-tea-bg/70 backdrop-blur-[2px]" />
+          <div className="relative bg-tea-surface border border-tea-border rounded-xl shadow-2xl w-full max-w-sm">
+            <button
+              onClick={() => setDuplicateDialog(null)}
+              aria-label="Close"
+              className="absolute top-4 right-4 text-tea-text-sec hover:text-tea-text transition-colors rounded-md p-1.5 tap-target"
+            >
+              <X size={16} />
+            </button>
+            <div className="px-6 pt-6 pb-3">
+              <h3 className="h3 text-tea-text">Duplicate Event</h3>
+              <p className="label-caps text-tea-text-dim mt-1">Choose a unique slug</p>
+            </div>
+            <div className="px-6 pb-4">
+              <input
+                type="text"
+                value={duplicateDialog.slug}
+                onChange={e => setDuplicateDialog(prev => prev ? { ...prev, slug: e.target.value } : null)}
+                className="w-full bg-tea-surface border border-tea-border rounded-md px-3 py-2 text-ui-14 text-tea-text font-mono placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors"
+                placeholder="event-slug"
+                autoFocus
+                onKeyDown={e => { if (e.key === 'Enter') handleConfirmDuplicate(); if (e.key === 'Escape') setDuplicateDialog(null); }}
+              />
+            </div>
+            <div className="flex justify-between gap-2 px-6 py-4 border-t border-tea-border">
+              <button onClick={() => setDuplicateDialog(null)} className="px-2 py-1 text-xs text-tea-text-sec hover:text-tea-text transition-colors">Cancel</button>
+              <button onClick={handleConfirmDuplicate} disabled={!duplicateDialog.slug.trim()} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-tea-gold/10">Duplicate</button>
             </div>
           </div>
         </div>

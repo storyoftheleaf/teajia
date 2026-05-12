@@ -340,7 +340,7 @@ export const ProductStoryView: React.FC = () => {
           <p className="font-serif text-lg text-tea-text mb-2">Tea not found</p>
           <button
             onClick={() => navigate(-1)}
-            className="text-xs text-tea-text-sec hover:text-tea-gold transition-colors uppercase tracking-[0.15em]"
+            className="inline-flex items-center gap-1.5 text-xs text-tea-text-sec hover:text-tea-text transition-colors"
           >
             Go back
           </button>
@@ -356,7 +356,7 @@ export const ProductStoryView: React.FC = () => {
         {/* Back */}
         <button
           onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-xs text-tea-text-sec hover:text-tea-gold transition-colors uppercase tracking-[0.15em] mb-10"
+          className="inline-flex items-center gap-1.5 text-xs text-tea-text-sec hover:text-tea-text transition-colors mb-10"
         >
           <ArrowLeft size={13} />
           <span>Back</span>
