@@ -405,7 +405,7 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
             <div className="h-full flex flex-col items-center justify-center gap-6">
               <div className="w-full max-w-md border-2 border-dashed border-tea-border rounded-xl hover:border-tea-text-sec transition-colors p-10 flex flex-col items-center bg-tea-surface/50">
                 <Upload size={48} className="text-tea-text-sec mb-4" />
-                <label className="cursor-pointer bg-tea-gold text-tea-bg px-6 py-3 rounded-lg font-bold uppercase tracking-[0.2em] text-xs hover:bg-tea-gold/90 transition-colors">
+                <label className="cursor-pointer bg-tea-gold text-tea-bg px-6 py-3 rounded-lg font-semibold text-xs hover:bg-tea-gold/90 transition-colors">
                   Select CSV File
                   <input type="file" accept=".csv" className="hidden" onChange={handleFileUpload} />
                 </label>
@@ -635,7 +635,7 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
               <button onClick={() => setStage('upload')} className="text-tea-text-sec hover:text-tea-text transition-colors text-xs uppercase tracking-[0.2em]">Back</button>
               <button onClick={onClose} className="text-tea-text-sec hover:text-tea-text transition-colors text-xs uppercase tracking-[0.2em]">Cancel</button>
             </div>
-            <button onClick={handleCommit} disabled={stagingData.length === 0} className="px-6 py-3 bg-tea-gold text-tea-bg rounded-lg font-bold text-xs uppercase tracking-[0.2em] hover:bg-tea-gold/90 disabled:opacity-50 transition-colors">
+            <button onClick={handleCommit} disabled={stagingData.length === 0} className="px-6 py-3 bg-tea-gold text-tea-bg rounded-lg text-xs font-semibold hover:bg-tea-gold/90 disabled:opacity-50 transition-colors">
                 Import All ({stagingData.length})
             </button>
           </div>

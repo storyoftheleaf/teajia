@@ -684,7 +684,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
                   setCart(undoState.prevCart);
                   setUndoState(null);
                 }}
-                className="text-tea-gold text-xs uppercase tracking-[0.15em] font-medium ml-4 hover:text-tea-gold/80 transition-colors"
+                className="text-tea-gold text-xs font-medium ml-4 hover:text-tea-gold/80 transition-colors"
               >
                 Undo
               </button>
@@ -825,7 +825,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
           <button
             onClick={handleCompleteSale}
             disabled={isProcessing || isEmpty}
-            className={`w-full py-4 text-xs font-bold uppercase tracking-[0.2em] rounded-lg flex items-center justify-center gap-2 transition-all ${
+            className={`w-full py-4 text-xs font-semibold rounded-lg flex items-center justify-center gap-2 transition-all ${
               isEmpty
                 ? 'bg-tea-bg text-tea-text-sec cursor-not-allowed border border-tea-border'
                 : 'bg-tea-gold text-tea-bg hover:bg-tea-gold/90 shadow-lg shadow-tea-gold/10'

@@ -113,7 +113,7 @@ export const SharedCollection: React.FC = () => {
       <div className="text-center pt-8">
         <a
           href="/shop"
-          className="inline-flex items-center gap-2 px-6 py-3 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.15em] hover:bg-tea-gold/90 transition-colors"
+          className="inline-flex items-center gap-2 px-6 py-3 bg-tea-gold text-tea-bg text-xs hover:bg-tea-gold/90 transition-colors"
         >
           Browse Full Shop
           <Icons.ChevronRight className="w-3.5 h-3.5" />

@@ -159,7 +159,7 @@ const SegmentChip: React.FC<{
     type="button"
     onClick={onClick}
     className={`tap-target inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-ui-11 uppercase tracking-[0.1em] whitespace-nowrap transition-colors ${
-      active ? 'bg-tea-gold/15 text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
+      active ? 'bg-tea-gold/10 text-tea-text ring-1 ring-tea-gold/40' : 'text-tea-text-sec hover:text-tea-text'
     }`}
   >
     {label}

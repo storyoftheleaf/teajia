@@ -63,7 +63,7 @@ export function InventoryBulkToolbar({
           <button
             onClick={onApply}
             disabled={!bulkValue || isBulkApplying}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-tea-gold text-tea-bg text-ui-10 font-bold uppercase tracking-[0.2em] rounded-lg hover:bg-tea-gold/90 transition-colors disabled:opacity-40"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-tea-gold text-tea-bg text-ui-10 font-semibold rounded-lg hover:bg-tea-gold/90 transition-colors disabled:opacity-40"
           >
             {isBulkApplying ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />} Apply
           </button>

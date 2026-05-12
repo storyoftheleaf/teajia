@@ -219,7 +219,7 @@ const FlavorCloud: React.FC<{ words: string[] }> = ({ words }) => (
         transition={{ delay: i * 0.04 }}
         className={`px-3 py-1.5 text-xs font-serif italic rounded-sm ${
           i === 0
-            ? 'bg-tea-gold/15 text-tea-gold'
+            ? 'bg-tea-gold/10 text-tea-text ring-1 ring-tea-gold/40'
             : i < 4
             ? 'bg-tea-surface text-tea-text'
             : 'bg-tea-bg text-tea-text-sec border border-tea-border'
@@ -624,7 +624,7 @@ export const ProductStoryView: React.FC = () => {
                 onClick={() => {
                   openPurchaseOrder();
                 }}
-                className="flex items-center gap-2 px-5 py-2.5 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.15em] hover:bg-tea-gold-lt transition-colors"
+                className="flex items-center gap-2 px-5 py-2.5 bg-tea-gold text-tea-bg text-xs hover:bg-tea-gold-lt transition-colors"
               >
                 <ShoppingBag size={13} />
                 Add to invoice

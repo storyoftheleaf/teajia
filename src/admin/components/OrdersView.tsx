@@ -226,11 +226,11 @@ export const OrdersView = () => {
       <div className="sticky top-0 z-dropdown bg-tea-bg/90 backdrop-blur-md border-b border-tea-border flex-shrink-0">
         {/* Row 1: filter + actions */}
         <div className="px-3 md:px-6 lg:px-10 max-w-5xl mx-auto flex items-center gap-2 md:gap-4 py-2.5 md:h-16 md:py-0">
-          {/* Pipeline Summary — segmented filter */}
-          <div className="flex items-center bg-tea-surface rounded-lg border border-tea-border p-0.5 overflow-x-auto hide-scrollbar min-w-0">
+          {/* Pipeline filter — underline tabs (DESIGN_SYSTEM.md §6) */}
+          <div className="flex items-center gap-6 border-b border-tea-border overflow-x-auto hide-scrollbar min-w-0">
             {([
               { id: 'all',     label: 'All',     dot: null },
-              { id: 'Pending', label: 'Pending', dot: 'bg-amber-400' },
+              { id: 'Pending', label: 'Pending', dot: 'bg-tea-text-dim' },
               { id: 'Filled',  label: 'Filled',  dot: 'bg-tea-gold' },
               { id: 'Void',    label: 'Void',    dot: 'bg-tea-text-dim' },
             ] as { id: StatusFilter; label: string; dot: string | null }[]).map(({ id, label, dot }) => {
@@ -238,19 +238,20 @@ export const OrdersView = () => {
                 : id === 'Pending' ? summary.pending
                 : id === 'Filled' ? summary.filled
                 : summary.voided;
+              const isActive = statusFilter === id;
               return (
                 <button
                   key={id}
                   onClick={() => setStatusFilter(id)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 text-ui-10 uppercase tracking-[0.15em] rounded-md whitespace-nowrap transition-colors shrink-0 ${
-                    statusFilter === id
-                      ? 'bg-tea-bg text-tea-text shadow-sm'
-                      : 'text-tea-text-sec hover:text-tea-text'
+                  className={`flex items-center gap-1.5 py-2.5 text-ui-12 uppercase tracking-caps font-sans border-b transition-colors whitespace-nowrap shrink-0 ${
+                    isActive
+                      ? 'text-tea-text border-tea-gold'
+                      : 'text-tea-text-sec hover:text-tea-text border-transparent'
                   }`}
                 >
                   {dot && <span className={`w-1.5 h-1.5 rounded-full ${dot} opacity-70`} />}
                   {label}
-                  <span className={`text-ui-9 tabular-nums ${statusFilter === id ? 'text-tea-text-dim' : 'text-tea-text-dim/60'}`}>{count}</span>
+                  <span className="text-ui-10 tabular-nums text-tea-text-dim">({count})</span>
                 </button>
               );
             })}

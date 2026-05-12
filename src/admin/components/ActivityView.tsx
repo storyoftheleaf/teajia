@@ -186,7 +186,7 @@ function InquiriesView() {
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
                 {inq.source && inq.source !== 'cart' && (
-                  <span className="text-ui-10 px-2 py-0.5 rounded-full bg-tea-gold/15 text-tea-gold uppercase tracking-wider">
+                  <span className="text-ui-10 px-2 py-0.5 rounded-full bg-tea-gold/10 text-tea-text ring-1 ring-tea-gold/40 uppercase tracking-wider">
                     {inq.source}
                   </span>
                 )}

@@ -461,7 +461,7 @@ const ClosingCTA: React.FC<ClosingCTAProps> = ({ onOpenInquiry }) => (
     </h3>
     <button
       onClick={onOpenInquiry}
-      className="mt-10 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.15em] font-medium
+      className="mt-10 bg-tea-gold text-tea-bg text-xs font-medium
                  py-2.5 px-6 hover:bg-tea-gold/90 transition-colors duration-300
                  active:scale-95 min-h-[44px]
                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50"

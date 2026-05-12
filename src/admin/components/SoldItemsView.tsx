@@ -156,7 +156,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
           <div className="px-3 md:px-6 max-w-5xl mx-auto flex items-center gap-2 md:gap-4">
             <div className="flex items-center gap-2 shrink-0">
               <Archive size={16} className="text-tea-gold" />
-              <h2 className="text-sm font-serif text-tea-text uppercase tracking-[0.15em] hidden md:block">
+              <h2 className="h3 hidden md:block">
                 System Records
               </h2>
             </div>

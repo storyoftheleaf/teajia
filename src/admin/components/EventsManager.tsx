@@ -161,7 +161,7 @@ export const EventsManager: React.FC = () => {
           <p className="font-serif italic text-sm text-tea-text-sec mb-6">No gatherings yet.</p>
           <button
             onClick={() => setIsFormOpen(true)}
-            className="inline-flex items-center gap-2 bg-tea-gold text-tea-bg px-5 py-2.5 text-xs font-semibold uppercase tracking-[0.2em] hover:bg-tea-gold-lt transition-colors rounded-sm"
+            className="inline-flex items-center gap-2 bg-tea-gold text-tea-bg px-5 py-2.5 text-xs font-semibold hover:bg-tea-gold-lt transition-colors rounded-sm"
           >
             <Plus size={13} />
             Create your first event

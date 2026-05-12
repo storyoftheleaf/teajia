@@ -85,7 +85,7 @@ export const PersonalCollectionView = ({ products, isLoading, onRefresh }: { pro
         <div className="px-6 max-w-7xl mx-auto flex items-center gap-4">
             <div className="flex items-center gap-2 shrink-0">
                 <UserCheck size={16} className="text-tea-gold" />
-                <h2 className="text-sm font-serif text-tea-text uppercase tracking-[0.15em]">
+                <h2 className="h3">
                     Private Collection
                 </h2>
                 <span className="text-tea-text-sec text-xs tracking-wide">

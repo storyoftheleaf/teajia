@@ -676,7 +676,7 @@ export const SourcesView = () => {
               headerSlot={
                 <div className="flex items-center gap-2 shrink-0">
                   <Leaf size={16} className="text-tea-gold" />
-                  <h2 className="text-sm font-serif text-tea-text uppercase tracking-[0.15em]">
+                  <h2 className="h3">
                     {source.name}
                   </h2>
                   <span className="text-tea-text-sec text-xs tracking-wide">
@@ -755,7 +755,7 @@ export const SourcesView = () => {
             }}
             className={`flex items-center gap-1.5 px-3 py-1 text-ui-10 uppercase tracking-[0.15em] rounded-md whitespace-nowrap transition-colors ${
               activeViewId === view.id
-                ? 'bg-tea-gold/15 text-tea-gold border border-tea-accent-sub'
+                ? 'bg-tea-gold/10 text-tea-text ring-1 ring-tea-gold/40 border border-tea-accent-sub'
                 : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface border border-transparent'
             }`}
           >
@@ -927,7 +927,7 @@ export const SourcesView = () => {
         <div className="px-6 max-w-5xl mx-auto flex items-center gap-4">
           <div className="flex items-center gap-2 shrink-0">
             <Users size={16} className={isEditMode ? "text-tea-text-sec" : "text-tea-gold"} />
-            <h2 className="text-sm font-serif text-tea-text uppercase tracking-[0.15em]">
+            <h2 className="h3">
               {isEditMode ? 'Editing' : 'Sources'}
             </h2>
             <span className="text-tea-text-sec text-xs tracking-wide">

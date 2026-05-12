@@ -367,7 +367,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                     <button
                       type="button"
                       onClick={() => setContactMethod('whatsapp')}
-                      className={`flex-1 py-2.5 rounded-sm text-xs uppercase tracking-[0.15em] transition-all duration-200 ${
+                      className={`flex-1 py-2.5 rounded-sm text-xs transition-all duration-200 ${
                         formData.contactMethod === 'whatsapp'
                           ? 'bg-tea-gold text-tea-bg'
                           : 'bg-tea-surface text-tea-text-sec border border-tea-border hover:border-tea-gold/30'
@@ -378,7 +378,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                     <button
                       type="button"
                       onClick={() => setContactMethod('email')}
-                      className={`flex-1 py-2.5 rounded-sm text-xs uppercase tracking-[0.15em] transition-all duration-200 ${
+                      className={`flex-1 py-2.5 rounded-sm text-xs transition-all duration-200 ${
                         formData.contactMethod === 'email'
                           ? 'bg-tea-gold text-tea-bg'
                           : 'bg-tea-surface text-tea-text-sec border border-tea-border hover:border-tea-gold/30'

@@ -1395,7 +1395,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                       }}
                       className={`tap-target relative flex items-center gap-1 shrink-0 ${isIconOnly && !viewTabsExpanded ? 'w-9 h-9 justify-center' : 'px-2 h-9 text-ui-11 uppercase tracking-[0.08em]'} rounded-md transition-colors ${
                         activeViewId === view.id
-                          ? 'bg-tea-gold/15 text-tea-gold'
+                          ? 'bg-tea-gold/10 text-tea-text ring-1 ring-tea-gold/40'
                           : view.filterType === 'Archived'
                           ? 'text-tea-text-dim/50 hover:text-tea-text-dim'
                           : 'text-tea-text-dim hover:text-tea-text-sec'
@@ -1532,7 +1532,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         }
                         setShowMobileSort(false);
                       }}
-                      className={`flex items-center justify-between gap-1 px-2.5 py-2 rounded-lg text-ui-12 transition-colors ${isActive ? 'bg-tea-gold/15 text-tea-gold font-medium' : 'text-tea-text-sec active:bg-tea-bg'}`}
+                      className={`flex items-center justify-between gap-1 px-2.5 py-2 rounded-lg text-ui-12 transition-colors ${isActive ? 'bg-tea-gold/10 text-tea-text ring-1 ring-tea-gold/40 font-medium' : 'text-tea-text-sec active:bg-tea-bg'}`}
                     >
                       <span>{opt.label}</span>
                       {isActive && (
@@ -1622,7 +1622,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                   aria-pressed={activeViewId === view.id}
                   className={`relative flex items-center gap-1.5 ${isIconOnly ? 'px-2' : 'px-3'} py-1.5 text-ui-11 uppercase tracking-[0.12em] rounded-md whitespace-nowrap transition-colors ${
                     activeViewId === view.id
-                      ? 'bg-tea-gold/15 text-tea-gold'
+                      ? 'bg-tea-gold/10 text-tea-text ring-1 ring-tea-gold/40'
                       : view.filterType === 'Archived'
                       ? 'text-tea-text-dim/50 hover:text-tea-text-dim hover:bg-tea-surface'
                       : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-surface'
@@ -1683,7 +1683,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 onClick={() => setGlossaryMode(prev => !prev)}
                 className={`flex items-center justify-center w-8 h-8 rounded-md transition-colors shrink-0 ${
                   glossaryMode
-                    ? 'bg-tea-gold/15 text-tea-gold'
+                    ? 'bg-tea-gold/10 text-tea-text ring-1 ring-tea-gold/40'
                     : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'
                 }`}
                 aria-label="Glossary view"
@@ -1702,7 +1702,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         <div className="flex px-6 max-w-7xl mx-auto items-center gap-4">
             <div className="flex items-center gap-2 shrink-0">
                 <Settings size={16} className={isEditMode ? "text-tea-text-sec" : "text-tea-gold"} />
-                <h2 className="text-sm font-serif text-tea-text uppercase tracking-[0.15em]">
+                <h2 className="h3">
                     {isEditMode ? 'Editing' : (VIEW_FILTER_LABELS[filterType] || 'Inventory')}
                 </h2>
                 <span className="text-tea-text-sec text-xs tracking-wide">
@@ -1986,7 +1986,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 const IconComp = activeView?.icon ? VIEW_ICON_MAP[activeView.icon] : null;
                 return IconComp ? <IconComp size={14} className="text-tea-text-sec" /> : null;
               })()}
-              <span className="text-xs uppercase tracking-[0.15em] text-tea-text">{VIEW_FILTER_LABELS[filterType]}</span>
+              <span className="text-xs text-tea-text">{VIEW_FILTER_LABELS[filterType]}</span>
               <span className="ml-auto text-ui-10 text-tea-text-dim uppercase tracking-[0.15em]">{processedProducts.length} item{processedProducts.length !== 1 ? 's' : ''}</span>
             </div>
           </div>
@@ -2039,7 +2039,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleApproveAll}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-tea-gold text-tea-bg text-ui-10 font-bold uppercase tracking-[0.2em] rounded-lg hover:bg-tea-gold/90 transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-tea-gold text-tea-bg text-ui-10 font-semibold rounded-lg hover:bg-tea-gold/90 transition-colors"
                 >
                   <Check size={11} /> Approve All
                 </button>

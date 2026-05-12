@@ -114,7 +114,7 @@ export const TeaInspireGallery: React.FC = () => {
         <div className="mb-10">
           <div className="flex items-center gap-2 mb-4">
             <Icons.Star className="w-4 h-4 text-tea-gold" />
-            <span className="text-xs uppercase tracking-[0.15em] text-tea-gold font-medium">Moment of the Week</span>
+            <span className="text-xs text-tea-gold font-medium">Moment of the Week</span>
           </div>
           <button
             onClick={() => handleImageClick(featuredMoment)}
@@ -283,17 +283,17 @@ export const TeaInspireGallery: React.FC = () => {
 
               {/* Category & Badges */}
               <div className="flex flex-wrap gap-2 mb-6">
-                <span className="px-3 py-1.5 bg-tea-gold/10 text-tea-text text-xs uppercase tracking-[0.15em] rounded-full flex items-center gap-2">
+                <span className="px-3 py-1.5 bg-tea-gold/10 text-tea-text text-xs rounded-full flex items-center gap-2">
                   {CATEGORY_CONFIG[selectedImage.category].icon}
                   {CATEGORY_CONFIG[selectedImage.category].label}
                 </span>
                 {selectedImage.season && (
-                  <span className="px-3 py-1.5 bg-tea-gold/10 text-tea-text/80 text-xs uppercase tracking-[0.15em] rounded-full">
+                  <span className="px-3 py-1.5 bg-tea-gold/10 text-tea-text/80 text-xs rounded-full">
                     {selectedImage.season}
                   </span>
                 )}
                 {selectedImage.designedByTeajia && (
-                  <span className="px-3 py-1.5 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.15em] rounded-full">
+                  <span className="px-3 py-1.5 bg-tea-gold text-tea-bg text-xs rounded-full">
                     Designed by Teajia
                   </span>
                 )}
@@ -315,7 +315,7 @@ export const TeaInspireGallery: React.FC = () => {
               {/* Contributor */}
               {memberMap.get(selectedImage.communityMemberId) && (
                 <div className="mb-8">
-                  <h4 className="text-tea-text/50 text-xs uppercase tracking-[0.15em] mb-3">Shared by</h4>
+                  <h4 className="text-tea-text/50 text-xs mb-3">Shared by</h4>
                   <button
                     onClick={(e) => handleMemberClick(e, selectedImage.communityMemberId)}
                     className="flex items-center gap-3 group"
@@ -340,7 +340,7 @@ export const TeaInspireGallery: React.FC = () => {
               {/* What's in this setup? */}
               {(selectedImage.teaFeatured || selectedImage.teawareIdentified?.length) && (
                 <div className="mb-8">
-                  <h4 className="text-tea-text/50 text-xs uppercase tracking-[0.15em] mb-3">What's in this moment?</h4>
+                  <h4 className="text-tea-text/50 text-xs mb-3">What's in this moment?</h4>
                   <div className="space-y-2">
                     {selectedImage.teaFeatured && (
                       <div className="flex items-center gap-2 text-tea-text/80">
@@ -361,7 +361,7 @@ export const TeaInspireGallery: React.FC = () => {
               {/* Insights */}
               {selectedImage.insights && selectedImage.insights.length > 0 && (
                 <div className="mb-8">
-                  <h4 className="text-tea-text/50 text-xs uppercase tracking-[0.15em] mb-3">Insights</h4>
+                  <h4 className="text-tea-text/50 text-xs mb-3">Insights</h4>
                   <div className="space-y-4">
                     {selectedImage.insights.map((insight, i) => (
                       <div key={i} className="border-l-2 border-tea-border pl-4">

@@ -377,7 +377,7 @@ export const CollectionEditView: React.FC = () => {
                 <button
                   onClick={() => setPublishOpen(true)}
                   disabled={!canPublish}
-                  className="flex items-center justify-center gap-2 py-2.5 rounded-lg bg-tea-gold/10 hover:bg-tea-gold/15 text-tea-gold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="flex items-center justify-center gap-2 py-2.5 rounded-lg bg-tea-gold/10 hover:bg-tea-gold/10 text-tea-text ring-1 ring-tea-gold/40 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   title={!canPublish ? 'Add at least one product first' : 'Share with new people, by tag, or with a store'}
                 >
                   <UserPlus size={13} />

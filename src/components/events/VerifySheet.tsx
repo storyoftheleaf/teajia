@@ -129,7 +129,7 @@ const VerifySheet: React.FC<VerifySheetProps> = ({ onClose, onVerified, purpose 
                     key={m}
                     type="button"
                     onClick={() => setMethod(m)}
-                    className={`flex-1 py-2.5 text-xs uppercase tracking-[0.15em] rounded-sm transition-colors ${
+                    className={`flex-1 py-2.5 text-xs rounded-sm transition-colors ${
                       method === m
                         ? 'bg-tea-gold/10 text-tea-gold'
                         : 'bg-tea-surface text-tea-text-sec hover:text-tea-text border border-tea-border'

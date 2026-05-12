@@ -384,7 +384,7 @@ export const TeamView: React.FC = () => {
             setInviteOpen(true);
             setInviteMsg(null);
           }}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold uppercase tracking-[0.15em] hover:opacity-90 transition-opacity"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:opacity-90 transition-opacity"
         >
           <UserPlus size={14} />
           Invite
@@ -566,14 +566,14 @@ export const TeamView: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setInviteOpen(false)}
-                  className="px-4 py-2 text-xs uppercase tracking-[0.15em] text-tea-text-sec hover:text-tea-text transition-colors"
+                  className="px-4 py-2 text-xs text-tea-text-sec hover:text-tea-text transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={inviteBusy || !inviteEmail}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold uppercase tracking-[0.15em] hover:opacity-90 transition-opacity disabled:opacity-50"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
                 >
                   {inviteBusy && <Loader2 className="animate-spin" size={12} />}
                   Send Invite

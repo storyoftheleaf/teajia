@@ -1632,7 +1632,7 @@ export const CustomersView = () => {
         <div className="px-3 md:px-6 max-w-5xl mx-auto flex items-center gap-3 md:gap-4">
           <div className="flex items-center gap-2 shrink-0">
             <Users size={16} className="text-tea-gold" />
-            <h2 className="text-sm font-serif text-tea-text uppercase tracking-[0.15em] hidden md:block">Contacts</h2>
+            <h2 className="h3 hidden md:block">Contacts</h2>
             <span className="text-tea-text-sec text-xs tracking-wide hidden md:inline">
               — {filtered.length} contact{filtered.length !== 1 ? 's' : ''}
             </span>

@@ -134,7 +134,7 @@ export const TeawareCatalog = ({ products, currency, rates, onAdd, loading, isAd
         <div className="px-6 max-w-7xl mx-auto flex items-center gap-4">
           <div className="flex items-center gap-2 shrink-0">
             <Coffee size={16} className="text-tea-gold" />
-            <h2 className="text-sm font-serif text-tea-text uppercase tracking-[0.15em]">
+            <h2 className="h3">
               Equipment
             </h2>
             <span className="text-tea-text-sec text-xs tracking-wide">

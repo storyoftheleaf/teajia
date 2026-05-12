@@ -146,7 +146,7 @@ const SpaceForm: React.FC<SpaceFormProps> = ({ venueId, space, onSaved, onCancel
                 type="button"
                 onClick={() => setTeaStyles(prev => active ? prev.filter(s => s !== style) : [...prev, style])}
                 className={`px-2.5 py-1 rounded-full text-ui-11 transition-colors ${
-                  active ? 'bg-tea-gold/15 text-tea-gold' : 'bg-tea-elevated text-tea-text-sec hover:text-tea-text'
+                  active ? 'bg-tea-gold/10 text-tea-text ring-1 ring-tea-gold/40' : 'bg-tea-elevated text-tea-text-sec hover:text-tea-text'
                 }`}
               >
                 {style}

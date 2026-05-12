@@ -297,7 +297,7 @@ export const Shop: React.FC<ShopProps> = ({
               <button
                 onClick={(e) => { e.stopPropagation(); handleAddStarterSet(set); }}
                 disabled={isAddingToCart[set.id]}
-                className="bg-tea-gold hover:bg-tea-gold-lt text-tea-bg text-xs uppercase tracking-[0.15em] font-medium py-2.5 px-6 rounded-lg transition-all active:scale-95 flex items-center justify-center gap-3 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+                className="bg-tea-gold hover:bg-tea-gold-lt text-tea-bg text-xs font-medium py-2.5 px-6 rounded-lg transition-all active:scale-95 flex items-center justify-center gap-3 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isAddingToCart[set.id] && <Loader2 className="w-4 h-4 animate-spin" />}
                 <span>{isAddingToCart[set.id] ? 'Adding...' : 'Add Set to Cart'}</span>
@@ -432,7 +432,7 @@ export const Shop: React.FC<ShopProps> = ({
             {onRetry && (
               <button
                 onClick={onRetry}
-                className="bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.15em] font-medium py-2.5 px-6 rounded-lg hover:bg-tea-gold-lt transition-all active:scale-95"
+                className="bg-tea-gold text-tea-bg text-xs font-medium py-2.5 px-6 rounded-lg hover:bg-tea-gold-lt transition-all active:scale-95"
               >
                 Try Again
               </button>

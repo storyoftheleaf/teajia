@@ -361,7 +361,7 @@ export const VendorProfileView: React.FC = () => {
                     <span
                       className={`text-ui-10 uppercase tracking-[0.1em] px-2 py-0.5 rounded-sm ${
                         inv.status === 'Filled'
-                          ? 'bg-tea-gold/15 text-tea-gold'
+                          ? 'bg-tea-gold/10 text-tea-text ring-1 ring-tea-gold/40'
                           : 'bg-tea-surface text-tea-text-sec border border-tea-border'
                       }`}
                     >

@@ -138,14 +138,14 @@ const SendConfirmModal: React.FC<SendConfirmModalProps> = ({
         <div className="flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 py-2.5 bg-tea-surface border border-tea-border text-tea-text text-xs uppercase tracking-[0.15em] rounded-sm hover:bg-tea-elevated transition-colors"
+            className="flex-1 py-2.5 bg-tea-surface border border-tea-border text-tea-text text-xs rounded-sm hover:bg-tea-elevated transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={onConfirm}
             disabled={isSending}
-            className="flex-1 py-2.5 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.15em] rounded-sm hover:bg-tea-gold-lt disabled:opacity-50 transition-colors flex items-center justify-center gap-1.5"
+            className="flex-1 py-2.5 bg-tea-gold text-tea-bg text-xs rounded-sm hover:bg-tea-gold-lt disabled:opacity-50 transition-colors flex items-center justify-center gap-1.5"
           >
             {isSending ? (
               <Loader2 size={12} className="animate-spin" />

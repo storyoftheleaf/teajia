@@ -31,7 +31,7 @@ function membershipLabel(role?: string): string {
 
 function SectionHeading({ children }: { children: React.ReactNode }) {
   return (
-    <h2 className="text-ui-10 font-bold uppercase tracking-[0.2em] text-tea-text-sec mb-4">
+    <h2 className="text-ui-10 font-semibold text-tea-text-sec mb-4">
       {children}
     </h2>
   );

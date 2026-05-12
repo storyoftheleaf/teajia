@@ -616,7 +616,7 @@ const GuestManagement: React.FC = () => {
                 {attendee.claimExpiresAt && (
                   <div className="flex items-center justify-center gap-2 mb-6 text-tea-gold">
                     <Clock className="w-4 h-4" />
-                    <span className="text-xs uppercase tracking-[0.15em] font-medium">
+                    <span className="text-xs font-medium">
                       {getClaimTimeRemaining(attendee.claimExpiresAt)}
                     </span>
                   </div>
@@ -908,7 +908,7 @@ const GuestManagement: React.FC = () => {
                   updateGuests.mutate({ plusOne: next });
                 }}
                 disabled={updateGuests.isPending}
-                className={`flex items-center gap-2 px-4 py-2 rounded-sm text-xs uppercase tracking-[0.15em] border transition-all duration-200 ${
+                className={`flex items-center gap-2 px-4 py-2 rounded-sm text-xs border transition-all duration-200 ${
                   currentPlusOne
                     ? 'bg-tea-gold/10 border-tea-border text-tea-gold'
                     : 'bg-tea-surface border-tea-border text-tea-text-sec hover:border-tea-gold/30 hover:text-tea-text'
@@ -1067,14 +1067,14 @@ const CancelConfirmModal: React.FC<CancelConfirmModalProps> = ({
         <div className="flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 py-3 bg-tea-surface border border-tea-border text-tea-text text-xs uppercase tracking-[0.15em] rounded-sm hover:bg-tea-elevated transition-colors"
+            className="flex-1 py-3 bg-tea-surface border border-tea-border text-tea-text text-xs rounded-sm hover:bg-tea-elevated transition-colors"
           >
             Keep My Seat
           </button>
           <button
             onClick={onConfirm}
             disabled={isPending}
-            className="flex-1 py-3 bg-red-500/10 border border-red-500/20 text-red-400 text-xs uppercase tracking-[0.15em] rounded-sm hover:bg-red-500/20 disabled:opacity-50 transition-colors flex items-center justify-center"
+            className="flex-1 py-3 bg-red-500/10 border border-red-500/20 text-red-400 text-xs rounded-sm hover:bg-red-500/20 disabled:opacity-50 transition-colors flex items-center justify-center"
           >
             {isPending ? (
               <span className="inline-block w-4 h-4 border-2 border-red-400/30 border-t-red-400 rounded-full animate-spin" />

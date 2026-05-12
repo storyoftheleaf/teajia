@@ -448,7 +448,7 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({ embedd
             <button
               type="submit"
               disabled={saving}
-              className="inline-flex items-center gap-2 px-5 py-2 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold uppercase tracking-[0.15em] hover:opacity-90 transition-opacity disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-5 py-2 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
             >
               {saving ? <Loader2 className="animate-spin" size={13} /> : <Save size={13} />}
               Save Changes

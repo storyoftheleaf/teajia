@@ -215,7 +215,7 @@ const SamplePage: React.FC = () => {
             <ChevronLeft size={24} />
           </button>
           <div className="flex-1 min-w-0 ml-2">
-            <p className="text-xs uppercase tracking-[0.15em] text-tea-text-dim">Tea Sample</p>
+            <p className="text-xs text-tea-text-dim">Tea Sample</p>
           </div>
           {isAdmin && (
             <button
