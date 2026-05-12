@@ -45,14 +45,15 @@ All colors are stored as CSS variables that switch with mode. Components referen
 | `--tea-surface` | `#28211a` | Primary surface — cards, panels, table backgrounds |
 | `--tea-elevated` | `#3a3126` | Elevated surfaces — popovers, modal interiors, hover lifts |
 | `--tea-text` | `#ede4d4` | Primary text — cream white |
-| `--tea-text-sec` | `#b5a892` | Secondary text — warm gray, labels, captions |
+| `--tea-text-sec` | `#cdc0a8` | Secondary text — **raised floor** for outdoor / low-light legibility (was `#b5a892`) |
 | `--tea-text-dim` | `#80735f` | Dimmed text — eyebrow labels, helper text, meta |
-| `--tea-gold` | `#a8874d` | Accent — primary buttons, active states, focus rings, links |
+| `--tea-gold` | `#a8874d` | **Structural** accent — primary buttons, active borders, focus rings, dots, button fills |
 | `--tea-gold-lt` | `#bfa06a` | Light gold — hover states only |
+| `--tea-readgold` | `#a8874d` | **Reading** gold — pinned for text. Type token names, eyebrow `§` markers, inline code, hover links |
 | `--tea-border` | `rgba(184,146,78,0.08)` | Subtle gold borders — all divider lines |
 | `--tea-accent-sub` | `rgba(184,146,78,0.10)` | Subtle gold backgrounds — pill backgrounds, focus glows |
 | `--tea-leaf` | `#5A6E5A` | Success — never decorative |
-| `--tea-error` | `#8a3a32` | Error — muted oxblood, never bright red |
+| `--tea-error` | `#c46a5a` | Error — **warm terracotta**, reads on espresso (was `#8a3a32` oxblood — too dim on brown) |
 
 ### Light mode
 
@@ -64,13 +65,26 @@ Same token names, different values:
 | `--tea-surface` | `#e6dbcc` |
 | `--tea-elevated` | `#d5c8b4` |
 | `--tea-text` | `#18130e` |
-| `--tea-text-sec` | `#5e5342` |
+| `--tea-text-sec` | `#443a2c` (raised floor; was `#5e5342`) |
 | `--tea-text-dim` | `#9a8c78` |
 | `--tea-gold` | `#8e6d2e` |
 | `--tea-gold-lt` | `#a88340` |
+| `--tea-readgold` | `#8e6d2e` |
 | `--tea-border` | `rgba(142,109,46,0.10)` |
 | `--tea-leaf` | `#4a5e4a` |
 | `--tea-error` | `#732a23` |
+
+### `tea-gold` vs `tea-readgold` — when to use which
+
+The split exists so structural accent can shift toward aged brass (or another tone) without dragging readable text into illegibility. Today the values are aligned — but reference the *role*, not the hex.
+
+| Use `tea-gold` for (structural) | Use `tea-readgold` for (text) |
+|---|---|
+| Primary button fills | Type token names in code blocks |
+| Active borders / focus rings | Inline `<code>` accent |
+| Status pill rings | Hover state on inline links |
+| Sidebar gold left-bar | Eyebrow `§` markers |
+| Dot accents on active rows | Anywhere gold is **read as text** |
 
 ### Allowed opacity modifiers
 
@@ -92,7 +106,7 @@ Same token names, different values:
 | Display | Cormorant Garamond | 300/400/500 | Page titles, hero, headings, large nav labels |
 | Body | Lora | 300/400/500 + italic | Article prose, descriptions, subtitles |
 | UI sans | Plus Jakarta Sans | 300/400/500/600 | Buttons, tags, metadata, dense UI |
-| Mono | IBM Plex Mono | 400 | Prices, weights, codes, tabular numerics |
+| Mono | Plus Jakarta Sans 500 + `tabular-nums` | 500 | Prices, weights, codes, tabular numerics. **Rebound from IBM Plex Mono** — clean geometric numerals, no dotted zero, still column-aligns. |
 | Chinese | Noto Serif SC | 200/400/700 | Chinese product names |
 
 ### Type scale
@@ -110,7 +124,7 @@ Use these named patterns directly, not arbitrary `text-Npx` combinations.
 | `label` | Plus Jakarta Sans 400, 11px, uppercase, tracking 1.2px | **Eyebrow labels, status pills, metadata** |
 | `nav` | Plus Jakarta Sans 400, 12px, uppercase, tracking 1px | Section markers |
 | `link` | Plus Jakarta Sans 400, 14px, tracking 0.2px | Inline link/button text |
-| `mono` | IBM Plex Mono 400, 11px | Prices, weights, ledger numbers |
+| `mono` | Plus Jakarta Sans 500 + `tabular-nums`, 11px | Prices, weights, ledger numbers — clean geometric numerals |
 | `navSidebar` | Cormorant Garamond 500, 15px, tracking 0.04em | Sidebar primary nav |
 | `navSidebarChild` | Cormorant Garamond 400, 13px, tracking 0.04em | Sidebar secondary nav |
 

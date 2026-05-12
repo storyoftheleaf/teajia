@@ -11,7 +11,7 @@ const Section: React.FC<{ id: string; title: string; subtitle?: string; children
 }) => (
   <section id={id} className="scroll-mt-20">
     <header className="mb-6">
-      <div className="text-ui-11 uppercase tracking-[0.15em] text-tea-text-dim mb-1">§ {id}</div>
+      <div className="text-ui-11 uppercase tracking-[0.15em] mb-1"><span className="text-tea-readgold">§</span> <span className="text-tea-text-dim">{id}</span></div>
       <h2 className={`${TYPOGRAPHY_CLASSES.h2} text-tea-text`}>{title}</h2>
       {subtitle && (
         <p className="text-ui-13 text-tea-text-sec mt-1 italic">{subtitle}</p>
@@ -32,7 +32,7 @@ const Swatch: React.FC<{ name: string; varName: string; hex: string; note?: stri
     />
     <div className="min-w-0">
       <div className="text-ui-13 text-tea-text">{name}</div>
-      <div className="text-ui-11 text-tea-text-dim font-mono">{varName}</div>
+      <div className="text-ui-11 text-tea-readgold font-mono">{varName}</div>
       <div className="text-ui-11 text-tea-text-dim font-mono">{hex}</div>
       {note && <div className="text-ui-11 text-tea-text-sec mt-0.5">{note}</div>}
     </div>
@@ -179,13 +179,14 @@ export default function DesignSystemShowcase() {
             <Swatch name="Surface"           varName="--tea-surface"  hex="#28211a" note="Cards, panels" />
             <Swatch name="Elevated"          varName="--tea-elevated" hex="#3a3126" note="Popovers, hover lift" />
             <Swatch name="Text"              varName="--tea-text"     hex="#ede4d4" note="Primary" />
-            <Swatch name="Text secondary"    varName="--tea-text-sec" hex="#b5a892" note="Labels, captions" />
+            <Swatch name="Text secondary"    varName="--tea-text-sec" hex="#cdc0a8" note="Labels — raised floor for legibility" />
             <Swatch name="Text dim"          varName="--tea-text-dim" hex="#80735f" note="Eyebrow, meta" />
-            <Swatch name="Gold"              varName="--tea-gold"     hex="#a8874d" note="Accent, active, primary" />
+            <Swatch name="Gold (structural)" varName="--tea-gold"     hex="#a8874d" note="Buttons, active borders, focus rings" />
             <Swatch name="Gold light"        varName="--tea-gold-lt"  hex="#bfa06a" note="Hover only" />
+            <Swatch name="Readgold (text)"   varName="--tea-readgold" hex="#a8874d" note="Inline code, eyebrow §, hover links" />
             <Swatch name="Border"            varName="--tea-border"   hex="rgba(184,146,78,0.08)" note="All dividers" />
             <Swatch name="Leaf"              varName="--tea-green"     hex="#5A6E5A" note="Success only" />
-            <Swatch name="Error"             varName="--tea-error"    hex="#8a3a32" note="Muted oxblood, never bright" />
+            <Swatch name="Error"             varName="--tea-error"    hex="#c46a5a" note="Warm terracotta — reads on espresso" />
           </div>
         </Section>
 

@@ -55,27 +55,33 @@ nav[aria-label="Admin navigation"] * {
   --tea-elevated-rgb: 58 49 38;
   --tea-text: #ede4d4;
   --tea-text-rgb: 237 228 212;
-  --tea-text-sec: #b5a892;
-  --tea-text-sec-rgb: 181 168 146;
-  --tea-text-dim: #917a55;
-  --tea-text-dim-rgb: 145 122 85;
+  /* Raised floor for outdoor / low-light legibility (was #b5a892) */
+  --tea-text-sec: #cdc0a8;
+  --tea-text-sec-rgb: 205 192 168;
+  /* Spec value (production had drifted to #917a55) */
+  --tea-text-dim: #80735f;
+  --tea-text-dim-rgb: 128 115 95;
   --tea-gold: #a8874d;
   --tea-gold-rgb: 168 135 77;
   --tea-gold-lt: #bfa06a;
   --tea-gold-lt-rgb: 191 160 106;
+  /* Warm gold pinned for text — keeps reading gold even if --tea-gold shifts toward aged brass */
+  --tea-readgold: #a8874d;
+  --tea-readgold-rgb: 168 135 77;
   --tea-border: rgba(139,110,68,0.28);
   --tea-accent-sub: rgba(168,135,77,0.1);
   --tea-leaf: #5A6E5A;
-  /* Muted oxblood — sits with bronze/espresso, never bright */
-  --tea-error: #8a3a32;
-  --tea-error-rgb: 138 58 50;
+  /* Warmed from oxblood #8a3a32 to terracotta — reds now read on espresso */
+  --tea-error: #c46a5a;
+  --tea-error-rgb: 196 106 90;
 
   /* Font Families */
   --font-display: 'Cormorant Garamond', 'Cormorant Garamond Fallback', 'Noto Serif SC', Georgia, serif;
   --font-serif: 'Lora', 'Lora Fallback', 'Noto Serif SC', Georgia, serif;
   --font-body: 'Lora', 'Lora Fallback', 'Noto Serif SC', Georgia, serif;
   --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
-  --font-mono: 'IBM Plex Mono', 'Menlo', 'Courier New', monospace;
+  /* Mono rebound to Plus Jakarta Sans 500 with tabular-nums — clean geometric numerals, no dotted zero */
+  --font-mono: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
 
 }
 
@@ -90,14 +96,19 @@ nav[aria-label="Admin navigation"] * {
   --tea-elevated-rgb: 213 200 180;
   --tea-text: #18130e;
   --tea-text-rgb: 24 19 14;
-  --tea-text-sec: #4a3f30;
-  --tea-text-sec-rgb: 74 63 48;
-  --tea-text-dim: #857662;
-  --tea-text-dim-rgb: 133 118 98;
+  /* Raised floor (was #4a3f30) */
+  --tea-text-sec: #443a2c;
+  --tea-text-sec-rgb: 68 58 44;
+  /* Spec value (production had drifted to #857662) */
+  --tea-text-dim: #9a8c78;
+  --tea-text-dim-rgb: 154 140 120;
   --tea-gold: #6b4f28;
   --tea-gold-rgb: 107 79 40;
   --tea-gold-lt: #7a5c2e;
   --tea-gold-lt-rgb: 122 92 46;
+  /* Warm gold for text in light mode */
+  --tea-readgold: #8e6d2e;
+  --tea-readgold-rgb: 142 109 46;
   --tea-border: rgba(107,82,44,0.2);
   --tea-accent-sub: rgba(128,101,56,0.07);
   --tea-leaf: #4a5e4a;
@@ -116,19 +127,21 @@ nav[aria-label="Admin navigation"] * {
   --tea-elevated-rgb: 58 49 38;
   --tea-text: #ede4d4;
   --tea-text-rgb: 237 228 212;
-  --tea-text-sec: #b5a892;
-  --tea-text-sec-rgb: 181 168 146;
-  --tea-text-dim: #917a55;
-  --tea-text-dim-rgb: 145 122 85;
+  --tea-text-sec: #cdc0a8;
+  --tea-text-sec-rgb: 205 192 168;
+  --tea-text-dim: #80735f;
+  --tea-text-dim-rgb: 128 115 95;
   --tea-gold: #a8874d;
   --tea-gold-rgb: 168 135 77;
   --tea-gold-lt: #bfa06a;
   --tea-gold-lt-rgb: 191 160 106;
+  --tea-readgold: #a8874d;
+  --tea-readgold-rgb: 168 135 77;
   --tea-border: rgba(139,110,68,0.28);
   --tea-accent-sub: rgba(168,135,77,0.1);
   --tea-leaf: #5A6E5A;
-  --tea-error: #8a3a32;
-  --tea-error-rgb: 138 58 50;
+  --tea-error: #c46a5a;
+  --tea-error-rgb: 196 106 90;
 }
 
 /* ============================================
