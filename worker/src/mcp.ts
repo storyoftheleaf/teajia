@@ -276,7 +276,16 @@ type PendingMutation =
   | { kind: 'update_tea_pricing'; accountId: string; userEmail: string; productId: string; costAmount: number | null; costCurrency: string | null; retailPriceUsd: number | null }
   | { kind: 'set_low_stock_threshold'; accountId: string; userEmail: string; productId: string; thresholdGrams: number }
   | { kind: 'update_invoice'; accountId: string; userEmail: string; invoiceId: string; fields: Record<string, string | null> }
-  | { kind: 'void_invoice'; accountId: string; userEmail: string; invoiceId: string; reason: string | null };
+  | { kind: 'void_invoice'; accountId: string; userEmail: string; invoiceId: string; reason: string | null }
+  // ── Wave 3 ──
+  | { kind: 'tag_customer'; accountId: string; userEmail: string; customerId: string; tag: string }
+  | { kind: 'untag_customer'; accountId: string; userEmail: string; customerId: string; tag: string }
+  | { kind: 'link_vendor'; accountId: string; userEmail: string; customerId: string; productId: string; note: string | null }
+  | { kind: 'unlink_vendor'; accountId: string; userEmail: string; customerId: string; productId: string }
+  | { kind: 'set_archive_status'; accountId: string; userEmail: string; productId: string; archived: boolean; reason: string | null }
+  | { kind: 'fulfill_invoice'; accountId: string; userEmail: string; invoiceId: string }
+  | { kind: 'update_account_settings'; accountId: string; userEmail: string; fields: Record<string, string | null> }
+  | { kind: 'update_exchange_rate'; accountId: string; userEmail: string; currency: string; rateVsUsd: number; previousRate: number };
 
 type PendingEntry = { mutation: PendingMutation; expiresAt: number };
 const PENDING = new Map<string, PendingEntry>();
@@ -1403,6 +1412,787 @@ async function commitVoidInvoice(
   };
 }
 
+// ── Wave 3 tools ──
+
+// Helper: normalize a tag the same way the REST API does.
+function normalizeTagMcp(raw: unknown): string | null {
+  if (typeof raw !== 'string') return null;
+  const t = raw.trim().toLowerCase();
+  if (!t) return null;
+  return t.length > 50 ? t.slice(0, 50) : t;
+}
+
+// ── tool: tag_customer (preview / confirm) ──
+async function toolTagCustomer(env: Env, auth: McpAuth, args: any) {
+  const customerId = String(args?.customer_id || '').trim();
+  const rawTag = args?.tag;
+  const confirm = args?.confirm ? String(args.confirm) : null;
+
+  if (!customerId) throw new Error('customer_id is required');
+  const tag = normalizeTagMcp(rawTag);
+  if (!tag) throw new Error('tag must be a non-empty string');
+
+  const customer = await env.DB.prepare(
+    'SELECT id, name FROM customers WHERE id = ? AND account_id = ?'
+  ).bind(customerId, auth.accountId).first() as { id: string; name: string } | null;
+  if (!customer) return { error: 'customer_not_found' };
+
+  const { results: existingTags } = await env.DB.prepare(
+    'SELECT tag FROM customer_tags WHERE account_id = ? AND customer_id = ? ORDER BY tag ASC'
+  ).bind(auth.accountId, customerId).all();
+  const currentTags = (existingTags as any[]).map(r => r.tag as string);
+
+  const alreadyPresent = currentTags.includes(tag);
+
+  if (!confirm) {
+    const token = issueConfirmationToken({
+      kind: 'tag_customer', accountId: auth.accountId, userEmail: auth.userEmail,
+      customerId, tag,
+    });
+    return {
+      preview: {
+        action: 'tag_customer',
+        customer: { id: customerId, name: customer.name },
+        current_tags: currentTags,
+        tag_to_add: tag,
+        already_present: alreadyPresent,
+        note: alreadyPresent ? 'Tag already exists — confirming is a safe no-op.' : null,
+      },
+      confirmation_token: token,
+      expires_in_seconds: PENDING_TTL_MS / 1000,
+    };
+  }
+
+  const pending = consumeConfirmationToken(confirm);
+  if (!pending || pending.kind !== 'tag_customer' || pending.customerId !== customerId) {
+    return { error: 'invalid_or_expired_confirmation_token' };
+  }
+  return commitTagCustomer(env, pending);
+}
+
+async function commitTagCustomer(env: Env, m: Extract<PendingMutation, { kind: 'tag_customer' }>) {
+  // INSERT OR IGNORE so idempotent — no error if tag already exists
+  await env.DB.batch([
+    env.DB.prepare(
+      'INSERT OR IGNORE INTO customer_tags (id, account_id, customer_id, tag) VALUES (?, ?, ?, ?)'
+    ).bind(crypto.randomUUID(), m.accountId, m.customerId, m.tag),
+    env.DB.prepare(
+      `INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id, account_id)
+       VALUES (?, 'CUSTOMER_TAGGED_MCP', ?, ?, 'customer', ?, ?)`
+    ).bind(
+      crypto.randomUUID(),
+      `Tag "${m.tag}" added to customer ${m.customerId} via MCP`,
+      m.userEmail, m.customerId, m.accountId,
+    ),
+  ]);
+  return { committed: true, action: 'tag_customer', customer_id: m.customerId, tag: m.tag };
+}
+
+// ── tool: untag_customer (preview / confirm) ──
+async function toolUntagCustomer(env: Env, auth: McpAuth, args: any) {
+  const customerId = String(args?.customer_id || '').trim();
+  const rawTag = args?.tag;
+  const confirm = args?.confirm ? String(args.confirm) : null;
+
+  if (!customerId) throw new Error('customer_id is required');
+  const tag = normalizeTagMcp(rawTag);
+  if (!tag) throw new Error('tag must be a non-empty string');
+
+  const customer = await env.DB.prepare(
+    'SELECT id, name FROM customers WHERE id = ? AND account_id = ?'
+  ).bind(customerId, auth.accountId).first() as { id: string; name: string } | null;
+  if (!customer) return { error: 'customer_not_found' };
+
+  const { results: existingTags } = await env.DB.prepare(
+    'SELECT tag FROM customer_tags WHERE account_id = ? AND customer_id = ? ORDER BY tag ASC'
+  ).bind(auth.accountId, customerId).all();
+  const currentTags = (existingTags as any[]).map(r => r.tag as string);
+  const tagPresent = currentTags.includes(tag);
+
+  if (!confirm) {
+    const token = issueConfirmationToken({
+      kind: 'untag_customer', accountId: auth.accountId, userEmail: auth.userEmail,
+      customerId, tag,
+    });
+    return {
+      preview: {
+        action: 'untag_customer',
+        customer: { id: customerId, name: customer.name },
+        current_tags: currentTags,
+        tag_to_remove: tag,
+        tag_present: tagPresent,
+        note: tagPresent ? null : 'Tag is not currently applied — confirming is a safe no-op.',
+      },
+      confirmation_token: token,
+      expires_in_seconds: PENDING_TTL_MS / 1000,
+    };
+  }
+
+  const pending = consumeConfirmationToken(confirm);
+  if (!pending || pending.kind !== 'untag_customer' || pending.customerId !== customerId) {
+    return { error: 'invalid_or_expired_confirmation_token' };
+  }
+  return commitUntagCustomer(env, pending);
+}
+
+async function commitUntagCustomer(env: Env, m: Extract<PendingMutation, { kind: 'untag_customer' }>) {
+  await env.DB.batch([
+    env.DB.prepare(
+      'DELETE FROM customer_tags WHERE account_id = ? AND customer_id = ? AND tag = ?'
+    ).bind(m.accountId, m.customerId, m.tag),
+    env.DB.prepare(
+      `INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id, account_id)
+       VALUES (?, 'CUSTOMER_UNTAGGED_MCP', ?, ?, 'customer', ?, ?)`
+    ).bind(
+      crypto.randomUUID(),
+      `Tag "${m.tag}" removed from customer ${m.customerId} via MCP`,
+      m.userEmail, m.customerId, m.accountId,
+    ),
+  ]);
+  return { committed: true, action: 'untag_customer', customer_id: m.customerId, tag: m.tag };
+}
+
+// ── tool: link_vendor (preview / confirm) ──
+// Links an existing customer record as the vendor for a product by setting
+// products.vendor_id = customer.id.
+async function toolLinkVendor(env: Env, auth: McpAuth, args: any) {
+  const customerId = String(args?.customer_id || '').trim();
+  const productId = String(args?.product_id || '').trim();
+  const note = args?.note ? String(args.note).slice(0, 500) : null;
+  const confirm = args?.confirm ? String(args.confirm) : null;
+
+  if (!customerId) throw new Error('customer_id is required');
+  if (!productId) throw new Error('product_id is required');
+
+  const [customer, product] = await Promise.all([
+    env.DB.prepare('SELECT id, name FROM customers WHERE id = ? AND account_id = ?')
+      .bind(customerId, auth.accountId).first() as Promise<{ id: string; name: string } | null>,
+    env.DB.prepare('SELECT id, given_name, product_name, vendor_id FROM products WHERE id = ? AND account_id = ?')
+      .bind(productId, auth.accountId).first() as Promise<{ id: string; given_name: string | null; product_name: string; vendor_id: string | null } | null>,
+  ]);
+
+  if (!customer) return { error: 'customer_not_found' };
+  if (!product) return { error: 'product_not_found' };
+
+  const existingLink = product.vendor_id === customerId;
+
+  if (!confirm) {
+    const token = issueConfirmationToken({
+      kind: 'link_vendor', accountId: auth.accountId, userEmail: auth.userEmail,
+      customerId, productId, note,
+    });
+    return {
+      preview: {
+        action: 'link_vendor',
+        customer: { id: customerId, name: customer.name },
+        product: { id: productId, name: product.given_name || product.product_name },
+        already_linked: existingLink,
+        current_vendor_id: product.vendor_id,
+        note,
+        warning: existingLink
+          ? 'This customer is already the vendor for this product.'
+          : (product.vendor_id
+            ? `Product currently has a different vendor (id: ${product.vendor_id}). This will replace it.`
+            : null),
+      },
+      confirmation_token: token,
+      expires_in_seconds: PENDING_TTL_MS / 1000,
+    };
+  }
+
+  const pending = consumeConfirmationToken(confirm);
+  if (!pending || pending.kind !== 'link_vendor' || pending.customerId !== customerId || pending.productId !== productId) {
+    return { error: 'invalid_or_expired_confirmation_token' };
+  }
+  return commitLinkVendor(env, pending, customer.name, product.given_name || product.product_name);
+}
+
+async function commitLinkVendor(
+  env: Env,
+  m: Extract<PendingMutation, { kind: 'link_vendor' }>,
+  customerName: string,
+  productName: string,
+) {
+  await env.DB.batch([
+    env.DB.prepare(
+      "UPDATE products SET vendor_id = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ?"
+    ).bind(m.customerId, m.productId, m.accountId),
+    env.DB.prepare(
+      `INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id, account_id)
+       VALUES (?, 'VENDOR_LINKED_MCP', ?, ?, 'product', ?, ?)`
+    ).bind(
+      crypto.randomUUID(),
+      `Vendor "${customerName}" linked to product "${productName}" via MCP${m.note ? ': ' + m.note : ''}`,
+      m.userEmail, m.productId, m.accountId,
+    ),
+  ]);
+  return {
+    committed: true,
+    action: 'link_vendor',
+    customer_name: customerName,
+    product_name: productName,
+    customer_id: m.customerId,
+    product_id: m.productId,
+  };
+}
+
+// ── tool: unlink_vendor (preview / confirm) ──
+async function toolUnlinkVendor(env: Env, auth: McpAuth, args: any) {
+  const customerId = String(args?.customer_id || '').trim();
+  const productId = String(args?.product_id || '').trim();
+  const confirm = args?.confirm ? String(args.confirm) : null;
+
+  if (!customerId) throw new Error('customer_id is required');
+  if (!productId) throw new Error('product_id is required');
+
+  const [customer, product] = await Promise.all([
+    env.DB.prepare('SELECT id, name FROM customers WHERE id = ? AND account_id = ?')
+      .bind(customerId, auth.accountId).first() as Promise<{ id: string; name: string } | null>,
+    env.DB.prepare('SELECT id, given_name, product_name, vendor_id FROM products WHERE id = ? AND account_id = ?')
+      .bind(productId, auth.accountId).first() as Promise<{ id: string; given_name: string | null; product_name: string; vendor_id: string | null } | null>,
+  ]);
+
+  if (!customer) return { error: 'customer_not_found' };
+  if (!product) return { error: 'product_not_found' };
+
+  if (product.vendor_id !== customerId) {
+    return {
+      error: 'link_not_found',
+      message: `Customer "${customer.name}" is not currently linked as the vendor for "${product.given_name || product.product_name}".`,
+      current_vendor_id: product.vendor_id,
+    };
+  }
+
+  if (!confirm) {
+    const token = issueConfirmationToken({
+      kind: 'unlink_vendor', accountId: auth.accountId, userEmail: auth.userEmail,
+      customerId, productId,
+    });
+    return {
+      preview: {
+        action: 'unlink_vendor',
+        customer: { id: customerId, name: customer.name },
+        product: { id: productId, name: product.given_name || product.product_name },
+      },
+      confirmation_token: token,
+      expires_in_seconds: PENDING_TTL_MS / 1000,
+    };
+  }
+
+  const pending = consumeConfirmationToken(confirm);
+  if (!pending || pending.kind !== 'unlink_vendor' || pending.customerId !== customerId || pending.productId !== productId) {
+    return { error: 'invalid_or_expired_confirmation_token' };
+  }
+  return commitUnlinkVendor(env, pending, customer.name, product.given_name || product.product_name);
+}
+
+async function commitUnlinkVendor(
+  env: Env,
+  m: Extract<PendingMutation, { kind: 'unlink_vendor' }>,
+  customerName: string,
+  productName: string,
+) {
+  await env.DB.batch([
+    env.DB.prepare(
+      "UPDATE products SET vendor_id = NULL, updated_at = datetime('now') WHERE id = ? AND account_id = ?"
+    ).bind(m.productId, m.accountId),
+    env.DB.prepare(
+      `INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id, account_id)
+       VALUES (?, 'VENDOR_UNLINKED_MCP', ?, ?, 'product', ?, ?)`
+    ).bind(
+      crypto.randomUUID(),
+      `Vendor "${customerName}" unlinked from product "${productName}" via MCP`,
+      m.userEmail, m.productId, m.accountId,
+    ),
+  ]);
+  return {
+    committed: true,
+    action: 'unlink_vendor',
+    customer_id: m.customerId,
+    product_id: m.productId,
+  };
+}
+
+// ── tool: set_archive_status (preview / confirm) ──
+async function toolSetArchiveStatus(env: Env, auth: McpAuth, args: any) {
+  const productId = String(args?.product_id || '').trim();
+  const archived = Boolean(args?.archived);
+  const reason = args?.reason ? String(args.reason).slice(0, 500) : null;
+  const confirm = args?.confirm ? String(args.confirm) : null;
+
+  if (!productId) throw new Error('product_id is required');
+
+  const product = await env.DB.prepare(
+    'SELECT id, given_name, product_name, status FROM products WHERE id = ? AND account_id = ?'
+  ).bind(productId, auth.accountId).first() as { id: string; given_name: string | null; product_name: string; status: string | null } | null;
+  if (!product) return { error: 'not_found' };
+
+  const currentlyArchived = product.status === 'Archived';
+  const newStatus = archived ? 'Archived' : 'Active';
+
+  if (!confirm) {
+    const token = issueConfirmationToken({
+      kind: 'set_archive_status', accountId: auth.accountId, userEmail: auth.userEmail,
+      productId, archived, reason,
+    });
+    return {
+      preview: {
+        action: 'set_archive_status',
+        product: { id: productId, name: product.given_name || product.product_name },
+        current_status: product.status,
+        new_status: newStatus,
+        already_in_target_state: currentlyArchived === archived,
+        public_shop_effect: archived
+          ? 'Product will be removed from all public shop listings.'
+          : 'Product will be restored to public shop listings with Active status.',
+        reason,
+      },
+      confirmation_token: token,
+      expires_in_seconds: PENDING_TTL_MS / 1000,
+    };
+  }
+
+  const pending = consumeConfirmationToken(confirm);
+  if (!pending || pending.kind !== 'set_archive_status' || pending.productId !== productId) {
+    return { error: 'invalid_or_expired_confirmation_token' };
+  }
+  return commitSetArchiveStatus(env, pending, product.given_name || product.product_name);
+}
+
+async function commitSetArchiveStatus(
+  env: Env,
+  m: Extract<PendingMutation, { kind: 'set_archive_status' }>,
+  productName: string,
+) {
+  const newStatus = m.archived ? 'Archived' : 'Active';
+  const newListingStatus = m.archived ? 'archived' : 'active';
+
+  await env.DB.batch([
+    env.DB.prepare(
+      "UPDATE products SET status = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ?"
+    ).bind(newStatus, m.productId, m.accountId),
+    env.DB.prepare(
+      "UPDATE product_listings SET status = ?, updated_at = datetime('now') WHERE id = ?"
+    ).bind(newListingStatus, `list_${m.productId}`),
+    env.DB.prepare(
+      `INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id, account_id)
+       VALUES (?, 'ARCHIVE_STATUS_SET_MCP', ?, ?, 'product', ?, ?)`
+    ).bind(
+      crypto.randomUUID(),
+      `Product "${productName}" ${m.archived ? 'archived' : 'unarchived'} via MCP${m.reason ? ': ' + m.reason : ''}`,
+      m.userEmail, m.productId, m.accountId,
+    ),
+  ]);
+  return {
+    committed: true,
+    action: 'set_archive_status',
+    product_id: m.productId,
+    product_name: productName,
+    new_status: newStatus,
+  };
+}
+
+// ── tool: fulfill_invoice (preview / confirm) ──
+// Deducts stock for all unfulfilled line items on a Draft invoice. Refuses
+// if any line would underflow stock (negative balance).
+async function toolFulfillInvoice(env: Env, auth: McpAuth, args: any) {
+  const invoiceId = String(args?.invoice_id || '').trim();
+  const confirm = args?.confirm ? String(args.confirm) : null;
+
+  if (!invoiceId) throw new Error('invoice_id is required');
+
+  const invoice = await env.DB.prepare(
+    'SELECT id, invoice_number, customer_name, status, inventory_deducted FROM invoices WHERE id = ? AND account_id = ?'
+  ).bind(invoiceId, auth.accountId).first() as Record<string, any> | null;
+  if (!invoice) return { error: 'invoice_not_found' };
+  if (invoice.status === 'Void') return { error: 'void_invoice_cannot_be_fulfilled' };
+  if (invoice.inventory_deducted) return { error: 'inventory_already_deducted', invoice_status: invoice.status };
+
+  const { results: rawItems } = await env.DB.prepare(
+    `SELECT ili.product_id, ili.quantity, p.given_name, p.product_name, p.stock_grams
+       FROM invoice_line_items ili
+       LEFT JOIN products p ON p.id = ili.product_id AND p.account_id = ?
+      WHERE ili.invoice_id = ? AND ili.account_id = ?`
+  ).bind(auth.accountId, invoiceId, auth.accountId).all();
+
+  const items = rawItems as any[];
+
+  // Build per-line summary + check for underflows.
+  type LineCheck = {
+    product_id: string | null;
+    product_name: string;
+    quantity_grams: number;
+    stock_before: number;
+    stock_after: number;
+    underflow: boolean;
+  };
+
+  const lineChecks: LineCheck[] = items.map(item => {
+    const qty = Number(item.quantity) || 0;
+    const stock = Number(item.stock_grams) || 0;
+    return {
+      product_id: item.product_id ?? null,
+      product_name: item.given_name || item.product_name || '(custom item)',
+      quantity_grams: qty,
+      stock_before: stock,
+      stock_after: item.product_id ? stock - qty : 0,
+      underflow: Boolean(item.product_id) && qty > stock,
+    };
+  });
+
+  const underflowLines = lineChecks.filter(l => l.underflow);
+  if (underflowLines.length > 0) {
+    // Refuse even the preview — this is a hard block.
+    return {
+      error: 'stock_underflow',
+      message: 'One or more line items would result in negative stock. Restock those products first.',
+      underflow_lines: underflowLines.map(l => ({
+        product_id: l.product_id,
+        product_name: l.product_name,
+        quantity_grams: l.quantity_grams,
+        available_grams: l.stock_before,
+        shortfall_grams: l.quantity_grams - l.stock_before,
+      })),
+    };
+  }
+
+  if (!confirm) {
+    const token = issueConfirmationToken({
+      kind: 'fulfill_invoice', accountId: auth.accountId, userEmail: auth.userEmail,
+      invoiceId,
+    });
+    return {
+      preview: {
+        action: 'fulfill_invoice',
+        invoice: {
+          id: invoiceId,
+          invoice_number: invoice.invoice_number,
+          customer_name: invoice.customer_name,
+          status: invoice.status,
+        },
+        line_deductions: lineChecks.map(l => ({
+          product_name: l.product_name,
+          quantity_grams: l.quantity_grams,
+          stock_before: l.stock_before,
+          stock_after: l.stock_after,
+        })),
+      },
+      confirmation_token: token,
+      expires_in_seconds: PENDING_TTL_MS / 1000,
+    };
+  }
+
+  const pending = consumeConfirmationToken(confirm);
+  if (!pending || pending.kind !== 'fulfill_invoice' || pending.invoiceId !== invoiceId) {
+    return { error: 'invalid_or_expired_confirmation_token' };
+  }
+  return commitFulfillInvoice(env, pending, invoice, items);
+}
+
+async function commitFulfillInvoice(
+  env: Env,
+  m: Extract<PendingMutation, { kind: 'fulfill_invoice' }>,
+  invoice: Record<string, any>,
+  lineItems: any[],
+) {
+  const stmts: D1PreparedStatement[] = [];
+
+  for (const item of lineItems) {
+    if (!item.product_id) continue; // custom items have no stock
+
+    // Re-read stock at commit time for race-condition safety.
+    const product = await env.DB.prepare(
+      'SELECT id, stock_grams, given_name, product_name, status, low_stock_threshold, source_compass_entry_id FROM products WHERE id = ? AND account_id = ?'
+    ).bind(item.product_id, m.accountId).first() as any;
+    if (!product) continue;
+
+    const currentStock = Number(product.stock_grams || 0);
+    const qty = Number(item.quantity) || 0;
+    if (qty > currentStock) {
+      // Abort — stock changed between preview and confirm.
+      return {
+        error: 'stock_underflow_at_commit',
+        product_id: item.product_id,
+        product_name: product.given_name || product.product_name,
+        requested_grams: qty,
+        available_grams: currentStock,
+        message: 'Stock changed between preview and commit. Re-run fulfill_invoice to get a fresh preview.',
+      };
+    }
+
+    const newBalance = currentStock - qty;
+    const threshold = Number(product.low_stock_threshold || 0);
+
+    stmts.push(
+      env.DB.prepare('UPDATE products SET stock_grams = stock_grams - ? WHERE id = ? AND account_id = ?')
+        .bind(qty, item.product_id, m.accountId)
+    );
+    stmts.push(
+      env.DB.prepare(
+        "UPDATE product_listings SET stock_grams = stock_grams - ?, updated_at = datetime('now') WHERE id = ?"
+      ).bind(qty, `list_${item.product_id}`)
+    );
+    stmts.push(
+      env.DB.prepare(
+        `INSERT INTO stock_ledger (id, product_id, delta, balance_after, reason, source_invoice_id, source_invoice_number, user_email, note, account_id)
+         VALUES (?, ?, ?, ?, 'FULFILLMENT', ?, ?, ?, ?, ?)`
+      ).bind(
+        crypto.randomUUID(), item.product_id, -qty, newBalance,
+        m.invoiceId, invoice.invoice_number as string, m.userEmail,
+        'MCP fulfill_invoice', m.accountId,
+      )
+    );
+
+    if (newBalance <= 0 && product.status !== 'Sold Out') {
+      stmts.push(
+        env.DB.prepare("UPDATE products SET status = 'Sold Out', sold_out_at = datetime('now') WHERE id = ? AND account_id = ?")
+          .bind(item.product_id, m.accountId)
+      );
+      stmts.push(
+        env.DB.prepare("UPDATE product_listings SET status = 'Sold Out', updated_at = datetime('now') WHERE id = ?")
+          .bind(`list_${item.product_id}`)
+      );
+      if (product.source_compass_entry_id) {
+        stmts.push(
+          env.DB.prepare("UPDATE tea_compass_entries SET status = 'depleted', updated_at = datetime('now') WHERE id = ? AND status = 'in_stock'")
+            .bind(product.source_compass_entry_id)
+        );
+      }
+    } else if (threshold > 0 && newBalance < threshold && currentStock >= threshold) {
+      stmts.push(
+        env.DB.prepare(
+          `INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id, account_id)
+           VALUES (?, 'low_stock_alert', ?, ?, 'product', ?, ?)`
+        ).bind(
+          crypto.randomUUID(),
+          JSON.stringify({ productName: product.given_name || product.product_name, stockGrams: newBalance, threshold }),
+          m.userEmail, item.product_id, m.accountId,
+        )
+      );
+    }
+  }
+
+  stmts.push(
+    env.DB.prepare('DELETE FROM stock_holds WHERE invoice_id = ? AND account_id = ?')
+      .bind(m.invoiceId, m.accountId)
+  );
+  stmts.push(
+    env.DB.prepare("UPDATE invoices SET status = 'Filled', inventory_deducted = 1 WHERE id = ? AND account_id = ?")
+      .bind(m.invoiceId, m.accountId)
+  );
+  stmts.push(
+    env.DB.prepare(
+      `INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id, account_id)
+       VALUES (?, 'INVOICE_FULFILLED_MCP', ?, ?, 'invoice', ?, ?)`
+    ).bind(
+      crypto.randomUUID(),
+      `Invoice ${invoice.invoice_number as string} fulfilled via MCP for ${invoice.customer_name as string} (${lineItems.length} item(s))`,
+      m.userEmail, m.invoiceId, m.accountId,
+    )
+  );
+
+  await env.DB.batch(stmts);
+
+  return {
+    committed: true,
+    action: 'fulfill_invoice',
+    invoice_id: m.invoiceId,
+    invoice_number: invoice.invoice_number,
+    status: 'Filled',
+    items_fulfilled: lineItems.filter(i => i.product_id).length,
+  };
+}
+
+// ── tool: update_account_settings (preview / confirm) ──
+// Wraps PUT /api/accounts/:id for the active account. Owner-tier only.
+const ACCOUNT_SETTINGS_FIELDS = ['account_name', 'default_currency', 'contact_email', 'contact_phone'] as const;
+type AccountSettingsField = typeof ACCOUNT_SETTINGS_FIELDS[number];
+
+// Maps our MCP-friendly field names to the actual accounts table columns.
+const ACCOUNT_FIELD_MAP: Record<AccountSettingsField, string> = {
+  account_name: 'name',
+  default_currency: 'currency_default',
+  contact_email: 'contact_email',
+  contact_phone: 'whatsapp_number',
+};
+
+async function toolUpdateAccountSettings(env: Env, auth: McpAuth, args: any) {
+  const targetAccountId = args?.account_id ? String(args.account_id).trim() : auth.accountId;
+  const confirm = args?.confirm ? String(args.confirm) : null;
+
+  // Collect provided fields (skip undefined).
+  const requestedFields: Partial<Record<AccountSettingsField, string | null>> = {};
+  for (const f of ACCOUNT_SETTINGS_FIELDS) {
+    if (f in (args || {})) {
+      requestedFields[f] = args[f] ? String(args[f]).trim() : null;
+    }
+  }
+  if (Object.keys(requestedFields).length === 0) {
+    throw new Error('At least one setting field is required (account_name, default_currency, contact_email, contact_phone)');
+  }
+
+  // Only allow editing the auth token's own account (or if platform_owner, any account).
+  if (targetAccountId !== auth.accountId && auth.creatorTier !== 'platform_owner') {
+    return {
+      error: 'cross_account_denied',
+      message: 'Only platform_owner tokens may update a different account.',
+    };
+  }
+
+  const account = await env.DB.prepare(
+    'SELECT id, name, currency_default, contact_email, whatsapp_number FROM accounts WHERE id = ?'
+  ).bind(targetAccountId).first() as Record<string, any> | null;
+  if (!account) return { error: 'account_not_found' };
+
+  const changes: Record<string, { old: any; new: any }> = {};
+  for (const [f, val] of Object.entries(requestedFields) as [AccountSettingsField, string | null][]) {
+    const col = ACCOUNT_FIELD_MAP[f];
+    changes[f] = { old: account[col] ?? null, new: val };
+  }
+
+  if (!confirm) {
+    const fields: Record<string, string | null> = {};
+    for (const [k, v] of Object.entries(requestedFields) as [AccountSettingsField, string | null][]) {
+      fields[k] = v;
+    }
+    const token = issueConfirmationToken({
+      kind: 'update_account_settings', accountId: auth.accountId, userEmail: auth.userEmail,
+      fields,
+    });
+    return {
+      preview: {
+        action: 'update_account_settings',
+        account: { id: targetAccountId, name: account.name },
+        changes,
+      },
+      confirmation_token: token,
+      expires_in_seconds: PENDING_TTL_MS / 1000,
+    };
+  }
+
+  const pending = consumeConfirmationToken(confirm);
+  if (!pending || pending.kind !== 'update_account_settings') {
+    return { error: 'invalid_or_expired_confirmation_token' };
+  }
+  return commitUpdateAccountSettings(env, pending, targetAccountId, account.name as string);
+}
+
+async function commitUpdateAccountSettings(
+  env: Env,
+  m: Extract<PendingMutation, { kind: 'update_account_settings' }>,
+  targetAccountId: string,
+  accountName: string,
+) {
+  const setClauses: string[] = [];
+  const vals: any[] = [];
+
+  for (const [f, val] of Object.entries(m.fields) as [AccountSettingsField, string | null][]) {
+    const col = ACCOUNT_FIELD_MAP[f];
+    if (!col) continue;
+    setClauses.push(`${col} = ?`);
+    vals.push(val);
+  }
+
+  if (setClauses.length === 0) return { committed: true, action: 'update_account_settings', changes: 0 };
+
+  const updatedFields = Object.keys(m.fields);
+  await env.DB.batch([
+    env.DB.prepare(
+      `UPDATE accounts SET ${setClauses.join(', ')}, updated_at = datetime('now') WHERE id = ?`
+    ).bind(...vals, targetAccountId),
+    env.DB.prepare(
+      `INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id, account_id)
+       VALUES (?, 'ACCOUNT_SETTINGS_UPDATED_MCP', ?, ?, 'account', ?, ?)`
+    ).bind(
+      crypto.randomUUID(),
+      `Account "${accountName}" settings updated via MCP: ${updatedFields.join(', ')}`,
+      m.userEmail, targetAccountId, m.accountId,
+    ),
+  ]);
+
+  return {
+    committed: true,
+    action: 'update_account_settings',
+    account_id: targetAccountId,
+    updated_fields: updatedFields,
+  };
+}
+
+// ── tool: update_exchange_rate (preview / confirm) ──
+// Platform-owner only. Cross-account effect: changes the rate used by ALL
+// accounts for this currency. Extra guard: creator_tier must be 'platform_owner'.
+async function toolUpdateExchangeRate(env: Env, auth: McpAuth, args: any) {
+  // Extra platform-owner-only guard beyond the admin:write owner-tier gate.
+  if (auth.creatorTier !== 'platform_owner') {
+    return {
+      error: 'platform_owner_required',
+      message: 'update_exchange_rate requires a token minted by a platform_owner. This tool affects all accounts.',
+    };
+  }
+
+  const currency = args?.currency ? String(args.currency).toUpperCase().trim() : '';
+  const rateVsUsd = Number(args?.rate_vs_usd);
+  const confirm = args?.confirm ? String(args.confirm) : null;
+
+  if (!currency || !/^[A-Z]{3}$/.test(currency)) throw new Error('currency must be a valid 3-letter ISO code (e.g. CNY, AUD)');
+  if (!Number.isFinite(rateVsUsd) || rateVsUsd <= 0) throw new Error('rate_vs_usd must be a positive number (units of currency per 1 USD)');
+
+  const existing = await env.DB.prepare(
+    'SELECT currency, rate_to_usd FROM exchange_rates WHERE currency = ?'
+  ).bind(currency).first() as { currency: string; rate_to_usd: number } | null;
+  if (!existing) return { error: 'currency_not_found', message: `Currency ${currency} is not in the exchange_rates table. Use the admin UI to create it first.` };
+
+  const previousRate = Number(existing.rate_to_usd);
+
+  if (!confirm) {
+    const token = issueConfirmationToken({
+      kind: 'update_exchange_rate', accountId: auth.accountId, userEmail: auth.userEmail,
+      currency, rateVsUsd, previousRate,
+    });
+    return {
+      preview: {
+        action: 'update_exchange_rate',
+        currency,
+        rate_old: previousRate,
+        rate_new: rateVsUsd,
+        example: `1 USD = ${rateVsUsd} ${currency}`,
+        WARNING: 'This change affects all accounts using this currency. Proceed only if rates are confirmed.',
+      },
+      confirmation_token: token,
+      expires_in_seconds: PENDING_TTL_MS / 1000,
+    };
+  }
+
+  const pending = consumeConfirmationToken(confirm);
+  if (!pending || pending.kind !== 'update_exchange_rate' || pending.currency !== currency) {
+    return { error: 'invalid_or_expired_confirmation_token' };
+  }
+  return commitUpdateExchangeRate(env, pending);
+}
+
+async function commitUpdateExchangeRate(env: Env, m: Extract<PendingMutation, { kind: 'update_exchange_rate' }>) {
+  await env.DB.batch([
+    env.DB.prepare(
+      "UPDATE exchange_rates SET rate_to_usd = ?, last_updated = datetime('now') WHERE currency = ?"
+    ).bind(m.rateVsUsd, m.currency),
+    env.DB.prepare(
+      `INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id, account_id)
+       VALUES (?, 'EXCHANGE_RATE_UPDATED_MCP', ?, ?, 'exchange_rate', ?, ?)`
+    ).bind(
+      crypto.randomUUID(),
+      `Exchange rate for ${m.currency} updated from ${m.previousRate} → ${m.rateVsUsd} via MCP`,
+      m.userEmail, m.currency, m.accountId,
+    ),
+  ]);
+  return {
+    committed: true,
+    action: 'update_exchange_rate',
+    currency: m.currency,
+    rate_old: m.previousRate,
+    rate_new: m.rateVsUsd,
+  };
+}
+
 // ── tool registry / JSON-RPC dispatch ──
 
 const TOOL_DEFS = [
@@ -1602,6 +2392,122 @@ const TOOL_DEFS = [
       required: ['invoice_id'],
     },
   },
+  // ── Wave 3 additions ──
+  {
+    name: 'tag_customer',
+    scope: 'customers:write',
+    description: 'Add a tag to a customer record. Two-step preview/confirm. Idempotent — safe to call even if the tag already exists. Use find_customer first to locate the customer id.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        customer_id: { type: 'string', description: 'Customer id from find_customer.' },
+        tag: { type: 'string', description: 'Tag to add (normalised to lowercase, max 50 chars).' },
+        confirm: { type: 'string', description: 'Confirmation token from preview response.' },
+      },
+      required: ['customer_id', 'tag'],
+    },
+  },
+  {
+    name: 'untag_customer',
+    scope: 'customers:write',
+    description: 'Remove a tag from a customer record. Two-step preview/confirm. Idempotent — safe if the tag is already absent.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        customer_id: { type: 'string', description: 'Customer id from find_customer.' },
+        tag: { type: 'string', description: 'Tag to remove.' },
+        confirm: { type: 'string', description: 'Confirmation token from preview response.' },
+      },
+      required: ['customer_id', 'tag'],
+    },
+  },
+  {
+    name: 'link_vendor',
+    scope: 'customers:write',
+    description: 'Link a customer as the vendor (supplier) for a product. Two-step preview/confirm. Warns if the product already has a different vendor. Use search_tea and find_customer first.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        customer_id: { type: 'string', description: 'Customer id of the vendor/supplier.' },
+        product_id: { type: 'string', description: 'Product id from search_tea/get_tea.' },
+        note: { type: 'string', description: 'Optional note about the sourcing relationship.' },
+        confirm: { type: 'string', description: 'Confirmation token from preview response.' },
+      },
+      required: ['customer_id', 'product_id'],
+    },
+  },
+  {
+    name: 'unlink_vendor',
+    scope: 'customers:write',
+    description: 'Remove the vendor link between a customer and a product. Two-step preview/confirm. Returns an error if the customer is not currently linked as the vendor.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        customer_id: { type: 'string', description: 'Customer id of the vendor to unlink.' },
+        product_id: { type: 'string', description: 'Product id from search_tea/get_tea.' },
+        confirm: { type: 'string', description: 'Confirmation token from preview response.' },
+      },
+      required: ['customer_id', 'product_id'],
+    },
+  },
+  {
+    name: 'set_archive_status',
+    scope: 'catalog:write',
+    description: 'Archive or un-archive a tea product. Archiving removes it from public shop listings. Two-step preview/confirm. Shows current and new status before committing.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        product_id: { type: 'string', description: 'Product id from search_tea/get_tea.' },
+        archived: { type: 'boolean', description: 'true to archive (remove from shop); false to restore.' },
+        reason: { type: 'string', description: 'Optional reason (logged to activity history).' },
+        confirm: { type: 'string', description: 'Confirmation token from preview response.' },
+      },
+      required: ['product_id', 'archived'],
+    },
+  },
+  {
+    name: 'fulfill_invoice',
+    scope: 'sales:write',
+    description: 'Deduct stock for all line items on an existing Draft invoice and mark it Filled. Refuses with a clear error if any line would result in negative stock — fix stock first. Two-step preview/confirm.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        invoice_id: { type: 'string', description: 'Invoice id to fulfill (must be in Draft status with inventory_deducted = 0).' },
+        confirm: { type: 'string', description: 'Confirmation token from preview response.' },
+      },
+      required: ['invoice_id'],
+    },
+  },
+  {
+    name: 'update_account_settings',
+    scope: 'admin:write',
+    description: 'Update basic account settings (name, default currency, contact email/phone). Two-step preview/confirm. Owner-tier only. Defaults to the active account if account_id is not specified.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        account_id: { type: 'string', description: 'Account id to update. Defaults to the token\'s account if omitted.' },
+        account_name: { type: 'string', description: 'Display name for the account.' },
+        default_currency: { type: 'string', description: '3-letter ISO currency code, e.g. AUD.' },
+        contact_email: { type: 'string', description: 'Primary contact email for the account.' },
+        contact_phone: { type: 'string', description: 'WhatsApp / primary phone number for the account.' },
+        confirm: { type: 'string', description: 'Confirmation token from preview response.' },
+      },
+    },
+  },
+  {
+    name: 'update_exchange_rate',
+    scope: 'admin:write',
+    description: 'Update the USD exchange rate for a platform currency. Platform-owner tokens only — this change affects all accounts. Two-step preview/confirm with a clear warning.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        currency: { type: 'string', description: '3-letter ISO currency code, e.g. CNY. Must already exist in the platform exchange rates table.' },
+        rate_vs_usd: { type: 'number', description: 'How many units of the currency equal 1 USD (e.g. 7.25 for CNY).' },
+        confirm: { type: 'string', description: 'Confirmation token from preview response.' },
+      },
+      required: ['currency', 'rate_vs_usd'],
+    },
+  },
 ] as const;
 
 function mcpContent(payload: unknown) {
@@ -1636,6 +2542,9 @@ const AUDITED_TOOLS = new Set([
   'create_customer', 'update_customer',
   'update_tea_pricing', 'set_low_stock_threshold',
   'update_invoice', 'void_invoice',
+  // Wave 3
+  'tag_customer', 'untag_customer', 'link_vendor', 'unlink_vendor',
+  'set_archive_status', 'fulfill_invoice', 'update_account_settings', 'update_exchange_rate',
 ]);
 
 async function logMcpToolCall(env: Env, auth: McpAuth, toolName: string, args: any, result: unknown) {
@@ -1697,6 +2606,15 @@ async function dispatchTool(env: Env, auth: McpAuth, name: string, args: any) {
     case 'set_low_stock_threshold': result = mcpContent(await toolSetLowStockThreshold(env, auth, args)); break;
     case 'update_invoice': result = mcpContent(await toolUpdateInvoice(env, auth, args)); break;
     case 'void_invoice': result = mcpContent(await toolVoidInvoice(env, auth, args)); break;
+    // Wave 3
+    case 'tag_customer': result = mcpContent(await toolTagCustomer(env, auth, args)); break;
+    case 'untag_customer': result = mcpContent(await toolUntagCustomer(env, auth, args)); break;
+    case 'link_vendor': result = mcpContent(await toolLinkVendor(env, auth, args)); break;
+    case 'unlink_vendor': result = mcpContent(await toolUnlinkVendor(env, auth, args)); break;
+    case 'set_archive_status': result = mcpContent(await toolSetArchiveStatus(env, auth, args)); break;
+    case 'fulfill_invoice': result = mcpContent(await toolFulfillInvoice(env, auth, args)); break;
+    case 'update_account_settings': result = mcpContent(await toolUpdateAccountSettings(env, auth, args)); break;
+    case 'update_exchange_rate': result = mcpContent(await toolUpdateExchangeRate(env, auth, args)); break;
     default: throw new Error(`Unknown tool: ${name}`);
   }
   await logMcpToolCall(env, auth, name, args, result);
@@ -1705,8 +2623,8 @@ async function dispatchTool(env: Env, auth: McpAuth, name: string, args: any) {
 
 const SERVER_INFO = {
   name: 'teajia-inventory',
-  version: '0.2.0',
-  description: 'Voice-controlled inventory + invoicing for Teajia. Tools cover tea search, stock adjustments, customer lookup, creating and voiding invoices, and (with owner-tier tokens) pricing and customer management.',
+  version: '0.3.0',
+  description: 'Voice-controlled inventory + invoicing for Teajia. Tools cover tea search, stock adjustments, customer lookup, creating/voiding/fulfilling invoices, customer tags, vendor linking, catalog archive control, and (with owner-tier tokens) account settings and exchange rates.',
 };
 
 const PROTOCOL_VERSION = '2024-11-05';
