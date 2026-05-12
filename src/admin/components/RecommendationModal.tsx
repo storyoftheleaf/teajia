@@ -93,7 +93,7 @@ export const RecommendationModal: React.FC<RecommendationModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-modal flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-md p-0 sm:p-4">
-      <div className="bg-tea-bg border border-tea-border rounded-t-2xl sm:rounded-2xl w-full sm:max-w-3xl max-h-[92vh] sm:max-h-[88vh] flex flex-col shadow-2xl">
+      <div className="bg-tea-bg border border-tea-border rounded-t-xl sm:rounded-xl w-full sm:max-w-3xl max-h-[92vh] sm:max-h-[88vh] flex flex-col shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-tea-border flex-shrink-0">
           <div>

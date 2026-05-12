@@ -106,7 +106,7 @@ const NewPoForm: React.FC<{ onClose: () => void; onSubmit: (data: Parameters<typ
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 20 }}
         transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-        className="bg-tea-surface rounded-t-2xl sm:rounded-2xl w-full max-w-lg max-h-[90dvh] flex flex-col overflow-hidden shadow-2xl"
+        className="bg-tea-surface rounded-t-xl sm:rounded-xl w-full max-w-lg max-h-[90dvh] flex flex-col overflow-hidden shadow-2xl"
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-tea-border flex-shrink-0">
@@ -228,7 +228,7 @@ const ReceiveStockPrompt: React.FC<{
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
           transition={{ duration: 0.2 }}
-          className="bg-tea-surface rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl"
+          className="bg-tea-surface rounded-xl p-6 max-w-sm w-full mx-4 shadow-2xl"
           onClick={e => e.stopPropagation()}
         >
           <p className="text-sm text-tea-text-sec text-center">No line items to receive.</p>
@@ -252,7 +252,7 @@ const ReceiveStockPrompt: React.FC<{
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 20 }}
         transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-        className="bg-tea-surface rounded-t-2xl sm:rounded-2xl w-full max-w-md overflow-hidden shadow-2xl"
+        className="bg-tea-surface rounded-t-xl sm:rounded-xl w-full max-w-md overflow-hidden shadow-2xl"
         onClick={e => e.stopPropagation()}
       >
         <div className="px-5 py-4 border-b border-tea-border flex items-center justify-between">

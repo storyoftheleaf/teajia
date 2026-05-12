@@ -699,10 +699,10 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
 
   const shellClass = isPlaybookSurface
     ? 'bg-tea-surface border border-tea-border rounded-md p-5 md:p-6 space-y-5'
-    : 'bg-tea-surface border border-tea-border rounded-2xl px-4 py-4 space-y-4';
+    : 'bg-tea-surface border border-tea-border rounded-xl px-4 py-4 space-y-4';
   const sourceShellClass = isPlaybookSurface
     ? 'rounded-md border border-tea-border bg-tea-bg px-3 py-3'
-    : 'rounded-2xl border border-tea-border bg-tea-gold/[0.025] px-3 py-2.5';
+    : 'rounded-xl border border-tea-border bg-tea-gold/[0.025] px-3 py-2.5';
   const fieldClass = isPlaybookSurface
     ? 'bg-tea-bg text-tea-text text-base rounded-md px-3 py-2.5 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder:text-tea-text-dim'
     : 'bg-tea-gold/[0.06] text-tea-text text-base rounded-xl px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder:text-tea-text-sec/70';
@@ -747,7 +747,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
       (v) => Array.isArray(v) ? v.length > 0 : v != null
     );
     return (
-      <div className={isPlaybookSurface ? 'bg-tea-surface border border-tea-border rounded-md px-4 py-3 space-y-2' : 'bg-tea-surface rounded-2xl px-4 py-2.5 space-y-2'}>
+      <div className={isPlaybookSurface ? 'bg-tea-surface border border-tea-border rounded-md px-4 py-3 space-y-2' : 'bg-tea-surface rounded-xl px-4 py-2.5 space-y-2'}>
         <div className="flex items-center gap-2">
           <input
             type="text"
@@ -1304,7 +1304,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                     type="button"
                     onClick={() => handleClayPick(clay.name)}
                     aria-pressed={sel}
-                    className={`group relative flex flex-col items-start gap-2 p-3 rounded-2xl border transition-all duration-200 text-left ${
+                    className={`group relative flex flex-col items-start gap-2 p-3 rounded-xl border transition-all duration-200 text-left ${
                       sel
                         ? 'border-tea-gold/60 bg-tea-gold/[0.10]'
                         : 'border-tea-border bg-tea-elevated/40 hover:border-tea-gold/40 hover:bg-tea-gold/[0.05]'

@@ -209,7 +209,7 @@ const LinkCustomerModal: React.FC<LinkCustomerModalProps> = ({ attendee, onClose
       <div className="absolute inset-0 bg-tea-bg/80 backdrop-blur-sm" onClick={onClose} />
 
       {/* Modal panel */}
-      <div className="relative z-10 bg-tea-surface border border-tea-border rounded-2xl shadow-2xl w-full max-w-sm flex flex-col max-h-[80vh]">
+      <div className="relative z-10 bg-tea-surface border border-tea-border rounded-xl shadow-2xl w-full max-w-sm flex flex-col max-h-[80vh]">
         {/* Header */}
         <div className="flex items-center justify-between gap-3 px-4 pt-4 pb-3 border-b border-tea-border shrink-0">
           <div>

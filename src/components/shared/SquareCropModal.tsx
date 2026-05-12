@@ -118,7 +118,7 @@ export const SquareCropModal: React.FC<SquareCropModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-in fade-in duration-200">
-      <div className="bg-tea-bg border border-tea-border rounded-2xl w-full max-w-lg shadow-2xl relative flex flex-col max-h-[90vh]">
+      <div className="bg-tea-bg border border-tea-border rounded-xl w-full max-w-lg shadow-2xl relative flex flex-col max-h-[90vh]">
         {/* Header — close on the left per project Cancel/Close rules.
             Just one icon-button on the right (Rotate) so the toolbar reads
             clearly; Reset moved to the slider row where it belongs. */}

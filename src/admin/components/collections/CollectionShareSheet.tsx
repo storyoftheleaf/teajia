@@ -292,7 +292,7 @@ export const CollectionShareSheet: React.FC<CollectionShareSheetProps> = ({
         onClick={submitting ? undefined : (phase === 'success' ? handleDone : onClose)}
       />
 
-      <div className="relative w-full max-w-md bg-tea-surface border border-tea-border rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
+      <div className="relative w-full max-w-md bg-tea-surface border border-tea-border rounded-xl shadow-2xl flex flex-col max-h-[90vh]">
         {phase === 'form' ? (
           <FormPhase
             mode={mode} setMode={setMode}

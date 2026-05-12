@@ -444,7 +444,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
             <p className="text-sm text-gray-500 uppercase tracking-widest mb-8">Fine Tea Inventory & Sales</p>
             <div className="border-b border-tea-border mb-8" />
           </div>
-          <div className="bg-tea-surface border border-tea-border p-8 rounded-2xl shadow-2xl text-center w-full print:border-none print:shadow-none print:bg-white print:p-0 print:text-left">
+          <div className="bg-tea-surface border border-tea-border p-8 rounded-xl shadow-2xl text-center w-full print:border-none print:shadow-none print:bg-white print:p-0 print:text-left">
             <div className="mx-auto bg-tea-gold/10 text-tea-gold w-16 h-16 rounded-full flex items-center justify-center mb-6 border border-tea-border print:hidden">
               <Clock size={32} />
             </div>
