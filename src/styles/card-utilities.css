@@ -2325,6 +2325,36 @@ input[type="number"]::-webkit-outer-spin-button {
 @media (min-width: 1024px) { .bottom-nav-gap { bottom: 1rem; } }
 
 /* ============================================
+   Page chrome — canonical wide / narrow wrappers
+   Per DESIGN_SYSTEM.md §4 "Promote both to named utilities".
+   Wide pages (tables/hubs/dashboards): .admin-page  → px-4 md:px-6 lg:px-10, max-w-7xl
+   Narrow pages (forms/settings/reading): .admin-page-narrow → px-4 md:px-6, max-w-3xl
+   ============================================ */
+.admin-page {
+  width: 100%;
+  max-width: 80rem; /* 7xl */
+  margin-inline: auto;
+  padding-inline: 1rem;
+}
+.admin-page-narrow {
+  width: 100%;
+  max-width: 48rem; /* 3xl */
+  margin-inline: auto;
+  padding-inline: 1rem;
+}
+@media (min-width: 768px) {
+  .admin-page,
+  .admin-page-narrow {
+    padding-inline: 1.5rem;
+  }
+}
+@media (min-width: 1024px) {
+  .admin-page {
+    padding-inline: 2.5rem;
+  }
+}
+
+/* ============================================
    Admin Neutral Surface
    ============================================
    A separate, intentionally-cool palette for admin work surfaces
