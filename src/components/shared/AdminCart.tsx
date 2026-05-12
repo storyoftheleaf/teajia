@@ -169,7 +169,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
     newCart.splice(index, 1);
     setCart(newCart);
     if (undoState) clearTimeout(undoState.timeout);
-    const timeout = setTimeout(() => setUndoState(null), 5000);
+    const timeout = setTimeout(() => setUndoState(null), 8000);
     setUndoState({ prevCart, label: removed.product.givenName, timeout });
   };
 
