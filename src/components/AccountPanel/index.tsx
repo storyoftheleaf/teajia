@@ -20,10 +20,8 @@ import type { TeaEvent } from '../../types/events';
 
 import type { PanelView } from './types';
 import { TastingJournalView } from './TastingJournalView';
-import { OperatorView } from './OperatorView';
-import { MemberView } from './MemberView';
 import { ReaderView } from './ReaderView';
-import { StaffView } from './StaffView';
+import { LaunchpadView } from './LaunchpadView';
 import { buildFirstDoorReadiness } from './workflows';
 
 interface AccountPanelProps {
@@ -889,10 +887,13 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
         onClick={onClose}
       />
 
-      {/* Panel */}
+      {/* Panel — full-screen at all sizes (launchpad, not side drawer).
+          Was md:w-[400px] right-anchored drawer; now fills the viewport so
+          the tile grid has stage. The bottom bar gets covered while open;
+          X (top-left), Escape, and backdrop-click all close. */}
       <div
         ref={focusTrapRef}
-        className="fixed top-0 right-0 h-full w-full md:w-[400px] bg-tea-bg z-panel-modal shadow-2xl flex flex-col"
+        className="fixed inset-0 bg-tea-bg z-panel-modal flex flex-col"
         style={{
           opacity: isVisible ? 1 : 0,
           pointerEvents: isVisible ? undefined : 'none',
@@ -1248,109 +1249,41 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
             {/* ══════════════════════════════════════════════════════════════
                 MAIN VIEW — three zones
             ══════════════════════════════════════════════════════════════ */}
-            {panelView === 'main' && (membershipRole === 'owner' || auth.isAdmin) && (
-              <OperatorView
+            {/* MAIN — Launchpad for any authenticated tier (member, staff, owner).
+                Tier gates which tiles appear inside LaunchpadView. ReaderView
+                still handles the signed-out case below. */}
+            {panelView === 'main' && auth.isAuthenticated && (
+              <LaunchpadView
                 user={auth.user}
                 avatarDataUrl={avatarDataUrl}
                 onAvatarClick={handleAvatarClick}
                 roleBadgeLabel={roleBadgeLabel}
                 accountName={activeAccount?.name ?? null}
                 locationLabel={activeLocationStr || null}
-                activeStoreSlug={activeSlug}
-                currencyLabel={activeDisplayCurrency || getCurrencyFromSlug(activeSlug)}
-                isFirstDoorCandidate={isFirstDoorCandidate}
-                firstDoorReadiness={firstDoorReadiness}
-                isPlatform={!!platformRole}
                 isOwner={membershipRole === 'owner' || auth.isAdmin}
+                isStaffOrOwner={isStaff}
+                membershipsCount={memberships.length}
                 pendingInvoiceCount={pendingCount}
                 todayEventCount={todayEventCount}
-                unsyncedJournalCount={0}
                 inboundUnreadCount={inboundUnreadCount}
                 journalLastAt={tastingJournal[0]?.createdAt ?? null}
                 journalLastTea={tastingJournal[0]?.productName ?? null}
-                journalLastExcerpt={(() => {
-                  const head = tastingJournal[0];
-                  if (!head) return null;
-                  const firstNote = head.note.tasting?.notes?.[0];
-                  return (
-                    head.note.personalNote
-                    ?? (typeof firstNote === 'string' ? firstNote : firstNote?.text)
-                    ?? head.note.tasting?.voiceNote
-                    ?? null
-                  );
-                })()}
-                journalCount={tastingJournal.length}
                 collectionCount={favoriteTeas.length}
-                compassProfile={compassProfile}
-                journey={myJourney}
                 nextEvent={nextEvent ?? null}
-                nextEventWithin24h={nextEventWithin24h}
                 onClose={onClose}
                 onOpenJournal={() => setPanelView('journal')}
                 onOpenEvents={() => setPanelView('events')}
                 onOpenLocationSwitcher={() => setPanelView('location-switcher')}
                 onSignOut={handleSignOut}
-                memberCount={memberships.length}
               />
             )}
 
-            {panelView === 'main' && !(membershipRole === 'owner' || auth.isAdmin) && !auth.isAuthenticated && (
+            {panelView === 'main' && !auth.isAuthenticated && (
               <ReaderView
                 onClose={onClose}
                 onOpenSignIn={() => setPanelView('signin')}
                 onOpenSignUp={() => setPanelView('signup')}
                 onOpenEvents={() => setPanelView('events')}
-              />
-            )}
-
-            {panelView === 'main' && membershipRole === 'staff' && (
-              <StaffView
-                user={auth.user}
-                avatarDataUrl={avatarDataUrl}
-                onAvatarClick={handleAvatarClick}
-                roleBadgeLabel={roleBadgeLabel}
-                accountName={activeAccount?.name ?? null}
-                locationLabel={activeLocationStr || null}
-                todayEventCount={todayEventCount}
-                onClose={onClose}
-                onOpenEvents={() => setPanelView('events')}
-                onSignOut={handleSignOut}
-              />
-            )}
-
-            {panelView === 'main' && auth.isAuthenticated && !(membershipRole === 'owner' || auth.isAdmin) && membershipRole !== 'staff' && (
-              <MemberView
-                user={auth.user}
-                avatarDataUrl={avatarDataUrl}
-                onAvatarClick={handleAvatarClick}
-                roleBadgeLabel={roleBadgeLabel}
-                journey={myJourney}
-                journalLastAt={tastingJournal[0]?.createdAt ?? null}
-                journalLastTea={tastingJournal[0]?.productName ?? null}
-                journalLastExcerpt={(() => {
-                  const head = tastingJournal[0];
-                  if (!head) return null;
-                  const firstNote = head.note.tasting?.notes?.[0];
-                  return (
-                    head.note.personalNote
-                    ?? (typeof firstNote === 'string' ? firstNote : firstNote?.text)
-                    ?? head.note.tasting?.voiceNote
-                    ?? null
-                  );
-                })()}
-                journalCount={tastingJournal.length}
-                collectionCount={favoriteTeas.length}
-                compassProfile={compassProfile}
-                cartCount={cartCount}
-                cartIsNew={cartIsNew}
-                nextEvent={nextEvent ?? null}
-                nextEventWithin24h={nextEventWithin24h}
-                upcomingEventsCount={upcomingEvents.length}
-                onClose={onClose}
-                onOpenJournal={() => setPanelView('journal')}
-                onOpenEvents={() => setPanelView('events')}
-                onOpenCart={handleOpenCart}
-                onSignOut={handleSignOut}
               />
             )}
 
