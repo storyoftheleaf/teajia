@@ -3,16 +3,6 @@
  * Centralized configuration for the admin panel components
  */
 
-// Z-index layers for modals and overlays
-export const ADMIN_Z_INDEX = {
-  PANEL: 50,
-  STUDIO: 100,
-  INVENTORY_EDITOR: 150,
-  TEMPLATE_MODAL: 200,
-  TOAST: 9999,
-  FORMAT_TOOLBAR: 9999,
-} as const;
-
 // Timing intervals in milliseconds
 export const TIMING = {
   EXCHANGE_RATE_REFRESH_MS: 3 * 60 * 60 * 1000, // 3 hours

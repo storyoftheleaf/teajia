@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Icons } from '../Icons';
-import { ADMIN_Z_INDEX } from '../../constants/admin';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
 
 interface ConfirmDialogProps {
@@ -56,8 +55,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
 
   return createPortal(
     <div
-      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-[fadeIn_0.2s_ease-out]"
-      style={{ zIndex: ADMIN_Z_INDEX.TEMPLATE_MODAL }}
+      className="fixed inset-0 z-modal bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-[fadeIn_0.2s_ease-out]"
       onClick={handleCancel}
     >
       <div
