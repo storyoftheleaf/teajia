@@ -56,7 +56,7 @@ const NavButton: React.FC<{
         ? 'text-tea-gold'
         : collapsed
           ? 'text-tea-text-sec group-hover:text-tea-text'
-          : 'text-tea-gold/55 group-hover:text-tea-gold/80'
+          : 'text-tea-text-sec group-hover:text-tea-text'
     }`}>
       {item.icon}
     </div>
@@ -258,14 +258,14 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
       <aside
         className={`hidden lg:flex flex-col ${collapsed ? 'w-14' : 'w-56'} text-tea-text fixed left-0 overflow-y-auto hide-scrollbar border-r border-tea-border transition-all duration-300 z-sticky top-0 h-screen select-none`}
         style={{
-          background: 'linear-gradient(180deg, var(--tea-surface) 0%, rgb(var(--tea-bg-rgb) / 0.96) 100%)',
-          boxShadow: '2px 0 16px rgb(var(--tea-bg-rgb) / 0.18)',
+          background: theme === 'dark' ? '#13100a' : 'var(--tea-surface)',
+          boxShadow: '2px 0 16px rgb(var(--tea-bg-rgb) / 0.22)',
         }}
       >
-        {/* Grain texture — visible but subtle */}
+        {/* Grain texture — minimal in dark mode (narrow surface, pixel-noise risk) */}
         <div
           className="absolute inset-0 pointer-events-none z-0"
-          style={{ opacity: 0.055, backgroundImage: GRAIN, backgroundSize: '120px' }}
+          style={{ opacity: 0.025, backgroundImage: GRAIN, backgroundSize: '120px' }}
         />
 
         <div className="relative z-10 flex flex-col flex-1 min-h-0">
@@ -409,7 +409,14 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
           </div>
 
           {/* ── Browse Nav ────────────────────────────────────────────────── */}
-          <nav className={`flex flex-col py-3 gap-1 ${collapsed ? 'px-1.5' : 'px-3'}`}>
+          {!collapsed && (
+            <div className="px-5 pt-4 pb-1.5">
+              <span className={`${TYPOGRAPHY_CLASSES.navSidebarGroup} text-tea-text-dim`}>
+                Browse
+              </span>
+            </div>
+          )}
+          <nav className={`flex flex-col ${collapsed ? 'pt-3 pb-3 px-1.5' : 'pb-3 px-3'} gap-0.5`}>
             {browseItems.map((item, index) => (
               <NavButton
                 key={item.id}
@@ -465,7 +472,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                   ) : (
                     <>
                       <ShoppingCart
-                        className="w-[18px] h-[18px] text-tea-gold/55 group-hover:text-tea-gold/80 transition-colors duration-200 shrink-0"
+                        className="w-[18px] h-[18px] text-tea-text-sec group-hover:text-tea-text transition-colors duration-200 shrink-0"
                         strokeWidth={1.75}
                       />
                       <span className={`${TYPOGRAPHY_CLASSES.navSidebar} text-tea-text-sec group-hover:text-tea-text transition-colors duration-200`}>
@@ -497,13 +504,22 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
           {/* ── Admin Nav ─────────────────────────────────────────────────── */}
           <AnimatePresence>
             {auth.isAuthenticated && auth.isAdmin && (
-              <motion.nav
+              <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.2 }}
-                className={`flex flex-col gap-1 ${collapsed ? 'px-1.5' : 'px-3'} pt-3 pb-3 border-t border-tea-border`}
               >
+                {!collapsed && (
+                  <div className="px-5 pt-5 pb-1.5">
+                    <span className={`${TYPOGRAPHY_CLASSES.navSidebarGroup} text-tea-text-dim`}>
+                      Manage
+                    </span>
+                  </div>
+                )}
+                <nav
+                  className={`flex flex-col gap-0.5 ${collapsed ? 'px-1.5 pt-3 pb-3' : 'px-3 pb-3'}`}
+                >
                 {adminItems.map((item, index) => {
                   const hasChildren = (item.children?.length ?? 0) > 0;
                   const isAnyChildActive = item.children?.some(c => currentPath === c.path) ?? false;
@@ -522,8 +538,8 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                           when parent or one of its children is active. */}
                       <Link
                         to={item.path!}
-                        className={`relative flex items-center min-h-[44px] ${
-                          collapsed ? 'justify-center px-2' : 'gap-3 px-4'
+                        className={`relative flex items-center min-h-[36px] ${
+                          collapsed ? 'justify-center px-2' : 'gap-2.5 px-4'
                         } rounded-md transition-colors duration-200 group ${
                           (showActive || isAnyChildActive) ? '' : 'hover:bg-tea-gold/6'
                         }`}
@@ -539,15 +555,13 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                         <div className={`shrink-0 transition-colors duration-200 ${
                           (showActive || isAnyChildActive)
                             ? 'text-tea-gold'
-                            : collapsed
-                              ? 'text-tea-text-sec group-hover:text-tea-text'
-                              : 'text-tea-gold/55 group-hover:text-tea-gold/80'
+                            : 'text-tea-text-sec group-hover:text-tea-text'
                         }`}>
-                          {item.icon}
+                          {React.cloneElement(item.icon as React.ReactElement<{ size?: number }>, { size: 16 })}
                         </div>
                         {!collapsed && (
                           <span
-                            className={`${TYPOGRAPHY_CLASSES.navSidebar} text-left transition-colors duration-200 ${
+                            className={`${TYPOGRAPHY_CLASSES.navSidebarChild} text-left transition-colors duration-200 ${
                               (showActive || isAnyChildActive) ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
                             }`}
                           >
@@ -571,7 +585,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                                 <Link
                                   key={child.id}
                                   to={child.path}
-                                  className={`relative flex items-center px-2 py-1.5 rounded-md transition-colors duration-150 min-h-[34px] group ${
+                                  className={`relative flex items-center px-2 py-1 rounded-md transition-colors duration-150 min-h-[30px] group ${
                                     currentPath === child.path
                                       ? 'text-tea-gold bg-tea-gold/8'
                                       : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-gold/5'
@@ -592,60 +606,67 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                     </motion.div>
                   );
                 })}
-              </motion.nav>
+                </nav>
+              </motion.div>
             )}
           </AnimatePresence>
 
           {/* ── Curator Nav (Collections only — for Members with curator capability) ── */}
           <AnimatePresence>
             {auth.isAuthenticated && !auth.isAdmin && canCreateCollections && (
-              <motion.nav
+              <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.2 }}
-                className={`flex flex-col gap-1 ${collapsed ? 'px-1.5' : 'px-3'} pt-3 pb-3 border-t border-tea-border`}
               >
-                <motion.div
-                  initial={{ opacity: 0, x: -6 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0, duration: 0.25, ease: 'easeOut' }}
-                >
-                  <Link
-                    to="/admin/collections"
-                    className={`relative flex items-center min-h-[44px] ${
-                      collapsed ? 'justify-center px-2' : 'gap-3 px-4'
-                    } rounded-md transition-colors duration-200 group ${
-                      currentPath.startsWith('/admin/collections') ? '' : 'hover:bg-tea-gold/6'
-                    }`}
-                    title="Collections"
+                {!collapsed && (
+                  <div className="px-5 pt-5 pb-1.5">
+                    <span className={`${TYPOGRAPHY_CLASSES.navSidebarGroup} text-tea-text-dim`}>
+                      Curate
+                    </span>
+                  </div>
+                )}
+                <nav className={`flex flex-col gap-0.5 ${collapsed ? 'px-1.5 pt-3 pb-3' : 'px-3 pb-3'}`}>
+                  <motion.div
+                    initial={{ opacity: 0, x: -6 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0, duration: 0.25, ease: 'easeOut' }}
                   >
-                    {currentPath.startsWith('/admin/collections') && (
-                      <motion.div
-                        layoutId="nav-indicator"
-                        className="absolute left-0 inset-y-0 w-[2px] bg-tea-gold"
-                        transition={{ type: 'spring', stiffness: 350, damping: 30 }}
-                      />
-                    )}
-                    <div className={`shrink-0 transition-colors duration-200 ${
-                      currentPath.startsWith('/admin/collections')
-                        ? 'text-tea-gold'
-                        : collapsed
-                          ? 'text-tea-text-sec group-hover:text-tea-text'
-                          : 'text-tea-gold/55 group-hover:text-tea-gold/80'
-                    }`}>
-                      <Layers size={18} strokeWidth={1.75} />
-                    </div>
-                    {!collapsed && (
-                      <span className={`${TYPOGRAPHY_CLASSES.navSidebar} text-left transition-colors duration-200 ${
-                        currentPath.startsWith('/admin/collections') ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
+                    <Link
+                      to="/admin/collections"
+                      className={`relative flex items-center min-h-[36px] ${
+                        collapsed ? 'justify-center px-2' : 'gap-2.5 px-4'
+                      } rounded-md transition-colors duration-200 group ${
+                        currentPath.startsWith('/admin/collections') ? '' : 'hover:bg-tea-gold/6'
+                      }`}
+                      title="Collections"
+                    >
+                      {currentPath.startsWith('/admin/collections') && (
+                        <motion.div
+                          layoutId="nav-indicator"
+                          className="absolute left-0 inset-y-0 w-[2px] bg-tea-gold"
+                          transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+                        />
+                      )}
+                      <div className={`shrink-0 transition-colors duration-200 ${
+                        currentPath.startsWith('/admin/collections')
+                          ? 'text-tea-gold'
+                          : 'text-tea-text-sec group-hover:text-tea-text'
                       }`}>
-                        Collections
-                      </span>
-                    )}
-                  </Link>
-                </motion.div>
-              </motion.nav>
+                        <Layers size={16} strokeWidth={1.75} />
+                      </div>
+                      {!collapsed && (
+                        <span className={`${TYPOGRAPHY_CLASSES.navSidebarChild} text-left transition-colors duration-200 ${
+                          currentPath.startsWith('/admin/collections') ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
+                        }`}>
+                          Collections
+                        </span>
+                      )}
+                    </Link>
+                  </motion.div>
+                </nav>
+              </motion.div>
             )}
           </AnimatePresence>
 
@@ -670,7 +691,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                         ? 'text-tea-gold'
                         : collapsed
                           ? 'text-tea-text-sec group-hover:text-tea-text'
-                          : 'text-tea-gold/55 group-hover:text-tea-gold/80'
+                          : 'text-tea-text-sec group-hover:text-tea-text'
                     }`}
                     strokeWidth={1.75}
                   />

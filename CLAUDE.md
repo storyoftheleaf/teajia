@@ -133,11 +133,14 @@ See `docs/ROADMAP.md` for build sequence and `docs/MULTI_STORE_PLAN.md` for mult
 - **Mobile:** AccountPanel (person icon, top-right) is the primary engagement hub — everything personal lives there.
 - **Desktop:** LeftSidebar is the navigation system. Account Identity card sits directly below the logo (top of sidebar), not buried at the bottom. Cart lives in the sidebar utility footer.
 - The sidebar nav (Read, Learn, Consult, Shop) and the mobile bottom tab bar are the same four sections rendered differently — keep them in sync.
-- Sidebar section labels ("Browse", "Admin") are removed — use spacing and dividers only.
-- Nav labels use `var(--font-display)` with `fontWeight: 300` — not generic sans-serif.
-- Hover state on sidebar items: `hover:bg-tea-gold/5`, active: `bg-tea-gold/8`.
+- Sidebar uses micro-caps section labels (`BROWSE`, `MANAGE`, `CURATE`) via `TYPOGRAPHY_CLASSES.navSidebarGroup` in `text-tea-text-dim`. Labels — not dividers — carry grouping; the earlier dividers-only attempt failed legibility in sun.
+- Sidebar nav labels are sans (`TYPOGRAPHY_CLASSES.navSidebar` = `font-sans text-ui-13 font-semibold`). The display serif is reserved for the brand mark and the "Your Table" account label only — serifs at 13–15px on dark brown lose legibility outdoors.
+- Inactive sidebar icons use `text-tea-text-sec`, NEVER `text-tea-gold/55` — gold is reserved for the active state, brand, and badges, so the eye can find the active row without competing brass tint on every icon.
+- Hover state on sidebar items: `hover:bg-tea-gold/6`, active: `bg-tea-gold/8`.
+- Browse rows are `min-h-[44px]` (customer-facing breathing room); admin rows are tighter at `min-h-[36px]` with `text-ui-12` (tool palette density). Same height for both flattens the hierarchy.
+- Sidebar background is flat `#13100a` in dark mode (no gradient) and `var(--tea-surface)` in light. Gradients on a 56–224px wide column read as banding.
 - Collapse toggle: icon only (ChevronsLeft/Right), no text label.
-- Grain texture at `opacity: 0.035` on sidebar matches content area grain.
+- Grain texture at `opacity: 0.025` on sidebar — narrow surface = pixel-noise risk at higher opacities.
 - Homepage hero: emblem 76px mobile, 108px desktop. Headline `lg:text-[48px] lg:max-w-[560px]`.
 - Source/Discover/Deepen/Create lines are navigation buttons — show underline + arrow on hover.
 

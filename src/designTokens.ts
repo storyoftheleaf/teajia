@@ -161,8 +161,9 @@ export const TYPOGRAPHY_CLASSES = {
   nav:       'font-sans text-ui-12 font-normal uppercase tracking-[1px] leading-[1.4]',
   link:      'font-sans text-ui-14 font-normal tracking-[0.2px]',
   mono:      'font-mono text-ui-11 font-normal',
-  navSidebar:      'font-display text-ui-15 font-medium tracking-[0.04em] leading-[1.3]',
-  navSidebarChild: 'font-display text-ui-13 font-normal tracking-[0.04em] leading-[1.3]',
+  navSidebar:      'font-sans text-ui-13 font-semibold tracking-[0.02em] leading-[1.3]',
+  navSidebarChild: 'font-sans text-ui-12 font-medium tracking-[0.02em] leading-[1.3]',
+  navSidebarGroup: 'font-sans text-ui-10 font-semibold uppercase tracking-[0.18em] leading-[1.3]',
   accountMeta:     'font-sans text-ui-12 font-normal tracking-[0.04em] leading-[1.3]',
 } as const;
 

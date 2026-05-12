@@ -47,24 +47,24 @@ nav[aria-label="Admin navigation"] * {
 
 :root {
   color-scheme: dark;
-  --tea-bg: #18130e;
-  --tea-bg-rgb: 24 19 14;
-  --tea-surface: #28211a;
-  --tea-surface-rgb: 40 33 26;
-  --tea-elevated: #3a3126;
-  --tea-elevated-rgb: 58 49 38;
+  --tea-bg: #13100a;
+  --tea-bg-rgb: 19 16 10;
+  --tea-surface: #221c15;
+  --tea-surface-rgb: 34 28 21;
+  --tea-elevated: #322a20;
+  --tea-elevated-rgb: 50 42 32;
   --tea-text: #ede4d4;
   --tea-text-rgb: 237 228 212;
   --tea-text-sec: #b5a892;
   --tea-text-sec-rgb: 181 168 146;
-  --tea-text-dim: #917a55;
-  --tea-text-dim-rgb: 145 122 85;
-  --tea-gold: #a8874d;
-  --tea-gold-rgb: 168 135 77;
-  --tea-gold-lt: #bfa06a;
-  --tea-gold-lt-rgb: 191 160 106;
-  --tea-border: rgba(139,110,68,0.28);
-  --tea-accent-sub: rgba(168,135,77,0.1);
+  --tea-text-dim: #8a7656;
+  --tea-text-dim-rgb: 138 118 86;
+  --tea-gold: #8a6f3e;
+  --tea-gold-rgb: 138 111 62;
+  --tea-gold-lt: #a08962;
+  --tea-gold-lt-rgb: 160 137 98;
+  --tea-border: rgba(122,99,62,0.28);
+  --tea-accent-sub: rgba(138,111,62,0.1);
   --tea-leaf: #5A6E5A;
   /* Muted oxblood — sits with bronze/espresso, never bright */
   --tea-error: #8a3a32;
@@ -108,24 +108,24 @@ nav[aria-label="Admin navigation"] * {
 /* Force dark tokens on any nested .dark wrapper (e.g. Journal — always dark) */
 :root.light .dark, .light .dark {
   color-scheme: dark;
-  --tea-bg: #18130e;
-  --tea-bg-rgb: 24 19 14;
-  --tea-surface: #28211a;
-  --tea-surface-rgb: 40 33 26;
-  --tea-elevated: #3a3126;
-  --tea-elevated-rgb: 58 49 38;
+  --tea-bg: #13100a;
+  --tea-bg-rgb: 19 16 10;
+  --tea-surface: #221c15;
+  --tea-surface-rgb: 34 28 21;
+  --tea-elevated: #322a20;
+  --tea-elevated-rgb: 50 42 32;
   --tea-text: #ede4d4;
   --tea-text-rgb: 237 228 212;
   --tea-text-sec: #b5a892;
   --tea-text-sec-rgb: 181 168 146;
-  --tea-text-dim: #917a55;
-  --tea-text-dim-rgb: 145 122 85;
-  --tea-gold: #a8874d;
-  --tea-gold-rgb: 168 135 77;
-  --tea-gold-lt: #bfa06a;
-  --tea-gold-lt-rgb: 191 160 106;
-  --tea-border: rgba(139,110,68,0.28);
-  --tea-accent-sub: rgba(168,135,77,0.1);
+  --tea-text-dim: #8a7656;
+  --tea-text-dim-rgb: 138 118 86;
+  --tea-gold: #8a6f3e;
+  --tea-gold-rgb: 138 111 62;
+  --tea-gold-lt: #a08962;
+  --tea-gold-lt-rgb: 160 137 98;
+  --tea-border: rgba(122,99,62,0.28);
+  --tea-accent-sub: rgba(138,111,62,0.1);
   --tea-leaf: #5A6E5A;
   --tea-error: #8a3a32;
   --tea-error-rgb: 138 58 50;
