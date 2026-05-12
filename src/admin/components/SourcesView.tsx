@@ -603,7 +603,7 @@ export const SourcesView = () => {
     switch (colKey) {
       case 'name':
         return (
-          <td className="px-4 py-3 align-middle overflow-hidden">
+          <td className="px-4 py-2 align-middle overflow-hidden">
             <div className="flex flex-col justify-center h-full">
               {isEditMode ? (
                 <GhostInput
@@ -621,7 +621,7 @@ export const SourcesView = () => {
         );
       case 'company':
         return (
-          <td className="px-4 py-3 align-middle overflow-hidden">
+          <td className="px-4 py-2 align-middle overflow-hidden">
             {isEditMode ? (
               <GhostInput value={source.company || ''} onSave={(val) => handleSourceUpdate(source.id, 'company', val)} className="text-ui-12 text-tea-text-sec truncate" placeholder="Company" />
             ) : <span className="text-ui-12 text-tea-text-sec truncate block">{source.company || '—'}</span>}
@@ -629,7 +629,7 @@ export const SourcesView = () => {
         );
       case 'country':
         return (
-          <td className="px-4 py-3 align-middle overflow-hidden">
+          <td className="px-4 py-2 align-middle overflow-hidden">
             {isEditMode ? (
               <GhostInput value={source.country || ''} onSave={(val) => handleSourceUpdate(source.id, 'country', val)} className="text-ui-12 text-tea-text-sec truncate" placeholder="Country" />
             ) : (
@@ -643,7 +643,7 @@ export const SourcesView = () => {
         );
       case 'contact':
         return (
-          <td className="px-4 py-3 align-middle overflow-hidden">
+          <td className="px-4 py-2 align-middle overflow-hidden">
             <div className="flex items-center gap-2 text-ui-12 text-tea-text-sec truncate">
               {source.email && <span className="truncate">{source.email}</span>}
               {!source.email && source.phone && <span>{source.phone}</span>}
@@ -654,7 +654,7 @@ export const SourcesView = () => {
         );
       case 'teaCount':
         return (
-          <td className="px-4 py-3 align-middle overflow-hidden text-center">
+          <td className="px-4 py-2 align-middle overflow-hidden text-center">
             <span className={`inline-flex items-center gap-1 text-ui-12 tabular-nums ${source.teaCount > 0 ? 'text-tea-gold' : 'text-tea-text-dim'}`}>
               <Leaf size={11} /> {source.teaCount}
             </span>
@@ -662,14 +662,14 @@ export const SourcesView = () => {
         );
       case 'created':
         return (
-          <td className="px-4 py-3 align-middle overflow-hidden">
+          <td className="px-4 py-2 align-middle overflow-hidden">
             <span className="text-ui-12 text-tea-text-sec tabular-nums">
               {source.createdAt ? new Date(source.createdAt).toLocaleDateString() : '—'}
             </span>
           </td>
         );
       default:
-        return <td className="px-4 py-3 align-middle text-ui-12 text-tea-text-sec">—</td>;
+        return <td className="px-4 py-2 align-middle text-ui-12 text-tea-text-sec">—</td>;
     }
   };
 
@@ -685,7 +685,7 @@ export const SourcesView = () => {
       onClick={() => !isEditMode && setExpandedSourceId(isExpanded ? null : source.id)}
     >
       {visibleCols.map(col => renderCell(source, col.key))}
-      <td className="px-3 py-3 align-middle">
+      <td className="px-3 py-2 align-middle">
         <div className="flex items-center justify-end gap-2">
           <StatusPill variant={status.variant} className="opacity-90">{status.label}</StatusPill>
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
@@ -1351,7 +1351,7 @@ export const SourcesView = () => {
             style={{ boxShadow: '-12px 0 40px -8px rgba(24,19,14,0.35)' }}
           >
             {/* Panel Header — close X top-LEFT, nav toolbar right (panel-with-toolbar exception) */}
-            <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-tea-border bg-tea-surface flex-shrink-0">
+            <div className="flex items-center justify-between gap-2 px-4 py-2 border-b border-tea-border bg-tea-surface flex-shrink-0">
               <button
                 onClick={() => setPanelSource(null)}
                 className="tap-target p-1 text-tea-text-sec hover:text-tea-text transition-colors"

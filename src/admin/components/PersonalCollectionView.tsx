@@ -59,7 +59,7 @@ export const PersonalCollectionView = ({ products, isLoading, onRefresh }: { pro
 
   const SortHeader = ({ colKey, label, align = 'left' }: { colKey: keyof Product, label: string, align?: 'left' | 'right' | 'center' }) => (
       <th
-        className={`px-4 py-3 cursor-pointer hover:text-tea-text transition-colors select-none border-b border-tea-border group font-serif text-ui-11 uppercase tracking-display font-normal text-tea-text-sec text-${align} truncate`}
+        className={`px-4 py-2 cursor-pointer hover:text-tea-text transition-colors select-none border-b border-tea-border group font-serif text-ui-11 uppercase tracking-display font-normal text-tea-text-sec text-${align} truncate`}
         onClick={() => handleSort(colKey)}
       >
         <div className={`flex items-center gap-1 ${align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : ''}`}>
@@ -176,8 +176,8 @@ export const PersonalCollectionView = ({ products, isLoading, onRefresh }: { pro
                             <SortHeader colKey="vendor" label="Source" />
                             <SortHeader colKey="stockGrams" label="Stock" align="right" />
                             <SortHeader colKey="costAmount" label="Batch Cost" align="right" />
-                            <th className="px-4 py-3 border-b border-tea-border text-right font-serif text-ui-11 uppercase tracking-display font-normal text-tea-text-sec">Asset Value</th>
-                            <th className="px-4 py-3 border-b border-tea-border"></th>
+                            <th className="px-4 py-2 border-b border-tea-border text-right font-serif text-ui-11 uppercase tracking-display font-normal text-tea-text-sec">Asset Value</th>
+                            <th className="px-4 py-2 border-b border-tea-border"></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -192,7 +192,7 @@ export const PersonalCollectionView = ({ products, isLoading, onRefresh }: { pro
                                     className="border-b border-tea-border last:border-b-0 transition-colors hover:bg-tea-accent-sub group cursor-pointer"
                                     style={{ height: ROW_HEIGHT }}
                                 >
-                                    <td className="px-4 py-3 align-middle overflow-hidden">
+                                    <td className="px-4 py-2 align-middle overflow-hidden">
                                         <div className="flex flex-col justify-center h-full">
                                             <span className="font-display text-ui-17 leading-tight text-tea-text group-hover:text-tea-readgold transition-colors truncate flex items-center gap-2">
                                                 {product.productName || '—'}
@@ -213,33 +213,33 @@ export const PersonalCollectionView = ({ products, isLoading, onRefresh }: { pro
                                             )}
                                         </div>
                                     </td>
-                                    <td className="px-4 py-3 align-middle overflow-hidden">
+                                    <td className="px-4 py-2 align-middle overflow-hidden">
                                         <span className="flex items-center gap-2 font-sans text-ui-11 uppercase tracking-caps text-tea-text-sec truncate">
                                             <span style={{ color: dotColor, fontSize: '10px' }}>&#9679;</span> {product.type}
                                         </span>
                                     </td>
-                                    <td className="px-4 py-3 align-middle overflow-hidden">
+                                    <td className="px-4 py-2 align-middle overflow-hidden">
                                         <span className="font-serif text-ui-15 text-tea-text-sec">{product.year || 'N.V.'}</span>
                                     </td>
-                                    <td className="px-4 py-3 align-middle overflow-hidden">
+                                    <td className="px-4 py-2 align-middle overflow-hidden">
                                         {product.vendor ? (
                                           <button onClick={(e) => { e.stopPropagation(); navigate(`/admin/people?tab=sources&search=${encodeURIComponent(product.vendor!)}`); }} className="font-serif text-ui-15 text-tea-text-sec hover:text-tea-readgold truncate block text-left transition-colors">{product.vendor}</button>
                                         ) : <span className="font-serif text-ui-15 text-tea-text-dim italic">Unknown</span>}
                                     </td>
-                                    <td className="px-4 py-3 align-middle overflow-hidden text-right">
+                                    <td className="px-4 py-2 align-middle overflow-hidden text-right">
                                         <span className="font-serif text-ui-15 text-right tabular-nums text-tea-text">{Math.round(product.stockGrams)}g</span>
                                     </td>
-                                    <td className="px-4 py-3 align-middle overflow-hidden text-right">
+                                    <td className="px-4 py-2 align-middle overflow-hidden text-right">
                                         <span className="font-serif text-ui-15 text-right tabular-nums text-tea-text-sec">
                                             {product.costAmount > 0
                                                 ? `${product.costAmount} ${product.costCurrency}`
                                                 : '—'}
                                         </span>
                                     </td>
-                                    <td className="px-4 py-3 align-middle overflow-hidden text-right">
+                                    <td className="px-4 py-2 align-middle overflow-hidden text-right">
                                         <span className="font-serif text-ui-15 text-right tabular-nums text-tea-text">{formatCurrency(estValue, 'USD', rates)}</span>
                                     </td>
-                                    <td className="px-4 py-3 align-middle text-right">
+                                    <td className="px-4 py-2 align-middle text-right">
                                         <button
                                             onClick={(e) => { e.stopPropagation(); setEditingProduct(product); }}
                                             className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity text-tea-text-sec hover:text-tea-text min-w-[44px] min-h-[44px] flex items-center justify-center"

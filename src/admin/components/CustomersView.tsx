@@ -1678,7 +1678,7 @@ export const CustomersView = () => {
       onClick={() => setViewingCustomer(customer)}
     >
       {visibleCols.map(col => renderCell(customer, col.key))}
-      <td className="px-3 py-3 align-middle text-right">
+      <td className="px-3 py-2 align-middle text-right">
         <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
           <button
             onClick={() => openEdit(customer)}
@@ -2008,7 +2008,7 @@ export const CustomersView = () => {
                       const SORTABLE = new Set<string>(['name', 'company', 'country', 'spent', 'orders', 'added']);
                       if (!SORTABLE.has(col.key)) {
                         return (
-                          <th key={col.key} className="px-4 py-3 border-b border-tea-border font-serif text-ui-11 uppercase tracking-display text-tea-text-sec font-normal text-left truncate">
+                          <th key={col.key} className="px-4 py-2 border-b border-tea-border font-serif text-ui-11 uppercase tracking-display text-tea-text-sec font-normal text-left truncate">
                             {col.label}
                           </th>
                         );

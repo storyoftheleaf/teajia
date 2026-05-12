@@ -47,12 +47,14 @@ nav[aria-label="Admin navigation"] * {
 
 :root {
   color-scheme: dark;
-  --tea-bg: #18130e;
-  --tea-bg-rgb: 24 19 14;
-  --tea-surface: #28211a;
-  --tea-surface-rgb: 40 33 26;
-  --tea-elevated: #3a3126;
-  --tea-elevated-rgb: 58 49 38;
+  /* Cooler espresso — reduced yellow/orange undertone (was #18130e / #28211a / #3a3126
+     which had warm bronze cast inherited from gold-rgb 168,135,77). */
+  --tea-bg: #1a1714;
+  --tea-bg-rgb: 26 23 20;
+  --tea-surface: #2a2622;
+  --tea-surface-rgb: 42 38 34;
+  --tea-elevated: #3a3530;
+  --tea-elevated-rgb: 58 53 48;
   --tea-text: #ede4d4;
   --tea-text-rgb: 237 228 212;
   /* Raised floor for outdoor / low-light legibility (was #b5a892) */
@@ -121,12 +123,12 @@ nav[aria-label="Admin navigation"] * {
 /* Force dark tokens on any nested .dark wrapper (e.g. Journal — always dark) */
 :root.light .dark, .light .dark {
   color-scheme: dark;
-  --tea-bg: #18130e;
-  --tea-bg-rgb: 24 19 14;
-  --tea-surface: #28211a;
-  --tea-surface-rgb: 40 33 26;
-  --tea-elevated: #3a3126;
-  --tea-elevated-rgb: 58 49 38;
+  --tea-bg: #1a1714;
+  --tea-bg-rgb: 26 23 20;
+  --tea-surface: #2a2622;
+  --tea-surface-rgb: 42 38 34;
+  --tea-elevated: #3a3530;
+  --tea-elevated-rgb: 58 53 48;
   --tea-text: #ede4d4;
   --tea-text-rgb: 237 228 212;
   --tea-text-sec: #cdc0a8;

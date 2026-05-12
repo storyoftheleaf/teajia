@@ -293,9 +293,9 @@ export const Z_INDEX = {
 
 export const COLORS = {
   dark: {
-    bg:        '#18130e',                  // Rich espresso — page background
-    surface:   '#28211a',                  // Primary surface — cards, panels
-    elevated:  '#3a3126',                  // Elevated surfaces — modals, popovers
+    bg:        '#1a1714',                  // Cooler espresso — reduced yellow undertone
+    surface:   '#2a2622',                  // Primary surface — cards, panels
+    elevated:  '#3a3530',                  // Elevated surfaces — modals, popovers
     text:      '#ede4d4',                  // Primary text — cream white
     textSec:   '#cdc0a8',                  // Secondary text — RAISED floor for outdoor legibility (was #b5a892)
     textDim:   '#80735f',                  // Dimmed text — labels, captions

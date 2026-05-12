@@ -442,8 +442,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
   // --- VIRTUALIZATION LOGIC (TABLE BASED) ---
   // Canonical row sizing — px-4 py-3 + name (17px) + optional 11px subtitle.
-  const ROW_HEIGHT = 56;
-  const SPLIT_ROW_HEIGHT = 52;
+  const ROW_HEIGHT = 44;
+  const SPLIT_ROW_HEIGHT = 40;
   const BUFFER_ROWS = 5;
   const splitView = !!panelProduct;
   const effectiveRowHeight = splitView ? SPLIT_ROW_HEIGHT : ROW_HEIGHT;

@@ -41,9 +41,9 @@ All colors are stored as CSS variables that switch with mode. Components referen
 
 | Token | Hex | Role |
 |---|---|---|
-| `--tea-bg` | `#18130e` | Page background — rich espresso |
-| `--tea-surface` | `#28211a` | Primary surface — cards, panels, table backgrounds |
-| `--tea-elevated` | `#3a3126` | Elevated surfaces — popovers, modal interiors, hover lifts |
+| `--tea-bg` | `#1a1714` | Page background — cooler espresso (reduced yellow undertone) |
+| `--tea-surface` | `#2a2622` | Primary surface — cards, panels, table backgrounds |
+| `--tea-elevated` | `#3a3530` | Elevated surfaces — popovers, modal interiors, hover lifts |
 | `--tea-text` | `#ede4d4` | Primary text — cream white |
 | `--tea-text-sec` | `#cdc0a8` | Secondary text — **raised floor** for outdoor / low-light legibility (was `#b5a892`) |
 | `--tea-text-dim` | `#80735f` | Dimmed text — eyebrow labels, helper text, meta |
