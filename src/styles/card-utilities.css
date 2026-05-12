@@ -1,4 +1,123 @@
 /* ============================================
+   Typography helpers — match TYPOGRAPHY_CLASSES in src/designTokens.ts
+   Use `<h2 className="h2">` etc. instead of long Tailwind chains.
+   Source of truth: docs/DESIGN_SYSTEM.md §3
+   ============================================ */
+.h1 {
+  font-family: 'Cormorant Garamond', 'Cormorant Garamond Fallback', 'Noto Serif SC', Georgia, serif;
+  font-weight: 300;
+  font-size: clamp(32px, 4.8vw, 48px);
+  line-height: 1.12;
+  letter-spacing: 0.01em;
+  color: rgb(var(--tea-text-rgb));
+}
+.h2 {
+  font-family: 'Cormorant Garamond', 'Cormorant Garamond Fallback', 'Noto Serif SC', Georgia, serif;
+  font-weight: 500;
+  font-size: clamp(24px, 3.5vw, 32px);
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+  color: rgb(var(--tea-text-rgb));
+}
+.h3 {
+  font-family: 'Cormorant Garamond', 'Cormorant Garamond Fallback', 'Noto Serif SC', Georgia, serif;
+  font-weight: 400;
+  font-size: 19px;
+  line-height: 1.3;
+  letter-spacing: 0.01em;
+  color: rgb(var(--tea-text-rgb));
+}
+.subtitle {
+  font-family: 'Lora', 'Lora Fallback', 'Noto Serif SC', Georgia, serif;
+  font-weight: 400;
+  font-style: italic;
+  font-size: 17px;
+  line-height: 1.4;
+  color: rgb(var(--tea-text-sec-rgb));
+}
+.body-prose {
+  font-family: 'Lora', 'Lora Fallback', 'Noto Serif SC', Georgia, serif;
+  font-weight: 400;
+  font-size: 17px;
+  line-height: 1.7;
+  color: rgb(var(--tea-text-rgb));
+}
+.body-light {
+  font-family: 'Lora', 'Lora Fallback', 'Noto Serif SC', Georgia, serif;
+  font-weight: 300;
+  font-size: 15px;
+  line-height: 1.65;
+  color: rgb(var(--tea-text-sec-rgb));
+}
+.label-caps {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-weight: 400;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: rgb(var(--tea-text-sec-rgb));
+}
+.nav-caps {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-weight: 400;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: rgb(var(--tea-text-sec-rgb));
+}
+.link-text {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  letter-spacing: 0.02em;
+  color: rgb(var(--tea-readgold-rgb));
+}
+.mono-text {
+  font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  color: rgb(var(--tea-text-rgb));
+}
+.nav-sidebar {
+  font-family: 'Cormorant Garamond', 'Cormorant Garamond Fallback', Georgia, serif;
+  font-weight: 500;
+  font-size: 17px;
+  letter-spacing: 0.04em;
+  color: rgb(var(--tea-text-sec-rgb));
+}
+.nav-sidebar-child {
+  font-family: 'Cormorant Garamond', 'Cormorant Garamond Fallback', Georgia, serif;
+  font-weight: 400;
+  font-size: 15px;
+  letter-spacing: 0.04em;
+  color: rgb(var(--tea-text-sec-rgb));
+}
+
+/* Bronze CTA glow — only allowed at modal-footer scale (see §11) */
+.shadow-gold-cta {
+  box-shadow: 0 6px 18px -8px rgb(var(--tea-gold-rgb) / 0.45);
+}
+
+/* Anti-pattern demo helpers (used by DesignSystemShowcase only) */
+.hover-lift-bad { transition: transform 200ms, box-shadow 200ms; }
+.hover-lift-bad:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.35);
+}
+@keyframes fade-loop {
+  0%, 100% { opacity: 0.25; }
+  40%, 60% { opacity: 1; }
+}
+.fade-loop { animation: fade-loop 2.4s ease-in-out infinite; }
+@keyframes slide-loop {
+  0%   { transform: translateX(100%); }
+  20%, 80% { transform: translateX(0); }
+  100% { transform: translateX(100%); }
+}
+.slide-loop { animation: slide-loop 3s cubic-bezier(0.4, 0, 0.2, 1) infinite; }
+
+/* ============================================
    Sidebar-aware full-screen panel offset
    Add to any fixed inset-0 full-screen overlay so it
    doesn't cover the desktop left sidebar.
