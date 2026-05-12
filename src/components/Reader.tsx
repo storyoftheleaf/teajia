@@ -654,28 +654,42 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, isSav
     >
       <div className="w-full max-w-sm bg-tea-bg h-full shadow-2xl p-8 overflow-y-auto border-l border-tea-border animate-[slideLeft_0.3s_ease-out]" onClick={e => e.stopPropagation()}>
         <div className="flex justify-between items-center mb-10 border-b border-tea-border pb-4">
-          <span className="text-tea-text font-serif italic text-xl">Journal Index</span>
-          <button onClick={() => setShowNav(false)} className="p-3 hover:bg-tea-surface/20 rounded-full transition-colors">
-            <Icons.Close className="w-5 h-5 text-tea-text-sec" />
+          <span className="h3">Journal Index</span>
+          <button
+            onClick={() => setShowNav(false)}
+            aria-label="Close"
+            className="tap-target text-tea-text-sec hover:text-tea-text transition-colors"
+          >
+            <Icons.Close className="w-5 h-5" />
           </button>
         </div>
-        <div className="space-y-8">
+        <ul className="divide-y divide-tea-border">
           {recommendations.map(s => (
-            <div key={s.id} onClick={() => { onNavigate(s); setShowNav(false); }} className="group cursor-pointer flex gap-5">
-              <div className="w-16 h-20 bg-tea-surface shrink-0 relative overflow-hidden">
-                <img src={s.thumbnailUrl} className="w-full h-full object-cover sepia-[0.3] group-hover:sepia-0 transition-all duration-500" alt="thumb" loading="lazy" />
-              </div>
-              <div className="flex-1">
-                <div className="flex justify-between items-start">
-                  <span className="text-ui-11 uppercase tracking-[0.15em] text-tea-text-dim mb-1 block">{s.type}</span>
-                  {watchedStories?.[s.id] && <Icons.Check className="w-3 h-3 text-tea-green opacity-70" />}
+            <li key={s.id}>
+              <button
+                type="button"
+                onClick={() => { onNavigate(s); setShowNav(false); }}
+                className="group w-full text-left flex gap-5 py-4 px-2 -mx-2 rounded-md hover:bg-tea-accent-sub/40 transition-colors"
+              >
+                <div className="w-16 h-20 bg-tea-surface shrink-0 relative overflow-hidden rounded-sm">
+                  <img src={s.thumbnailUrl} className="w-full h-full object-cover sepia-[0.3] group-hover:sepia-0 transition-all duration-500" alt="" loading="lazy" />
                 </div>
-                <h4 className="text-tea-text font-serif text-lg leading-tight group-hover:text-tea-gold transition-colors mb-1">{s.title}</h4>
-                <p className="text-tea-text-sec text-xs uppercase tracking-wider">{s.subtitle}</p>
-              </div>
-            </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-display text-ui-17 text-tea-text leading-snug" style={{ fontWeight: 400 }}>
+                    {s.title}
+                  </div>
+                  {s.subtitle && (
+                    <p className="text-ui-13 text-tea-text-sec mt-1 line-clamp-2">{s.subtitle}</p>
+                  )}
+                  <div className="flex items-center justify-between mt-2">
+                    <span className="label-caps text-tea-text-dim">{s.type}</span>
+                    {watchedStories?.[s.id] && <Icons.Check className="w-3 h-3 text-tea-green opacity-70" />}
+                  </div>
+                </div>
+              </button>
+            </li>
           ))}
-        </div>
+        </ul>
       </div>
     </div>
   );
@@ -699,14 +713,18 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, isSav
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: '100%', opacity: 0 }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 z-priority bg-tea-elevated border-t border-tea-border rounded-t-2xl p-6 pb-[calc(2.5rem+env(safe-area-inset-bottom,0px))] max-h-[60vh] overflow-y-auto overscroll-contain"
+            className="fixed bottom-0 left-0 right-0 z-priority bg-tea-elevated border-t border-tea-border rounded-t-xl p-6 pb-[calc(2.5rem+env(safe-area-inset-bottom,0px))] max-h-[60vh] overflow-y-auto overscroll-contain"
             onClick={e => e.stopPropagation()}
           >
             <div className="w-10 h-1 bg-tea-border rounded-full mx-auto mb-6" />
             <div className="flex items-center justify-between mb-4">
-              <span className="text-tea-text font-serif text-lg">Chapters</span>
-              <button onClick={() => setShowChapterDrawer(false)} className="p-3 rounded-full hover:bg-tea-surface/40 transition-colors">
-                <Icons.Close className="w-4 h-4 text-tea-text-sec" />
+              <span className="h3">Chapters</span>
+              <button
+                onClick={() => setShowChapterDrawer(false)}
+                aria-label="Close"
+                className="tap-target text-tea-text-sec hover:text-tea-text transition-colors"
+              >
+                <Icons.Close className="w-4 h-4" />
               </button>
             </div>
             <div className="space-y-1">
@@ -714,10 +732,10 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, isSav
                 <button
                   key={i}
                   onClick={() => { goToPage(ch.pageIndex); setShowChapterDrawer(false); }}
-                  className="w-full text-left px-4 py-3 rounded-lg hover:bg-tea-accent-sub transition-colors"
+                  className="w-full text-left flex items-baseline gap-3 px-4 py-3 rounded-md hover:bg-tea-accent-sub/40 transition-colors"
                 >
-                  <span className="text-tea-text-dim text-ui-10 uppercase tracking-[0.15em] mr-3">{String(i + 1).padStart(2, '0')}</span>
-                  <span className="text-tea-text text-sm">{ch.title}</span>
+                  <span className="label-caps text-tea-text-dim shrink-0">{String(i + 1).padStart(2, '0')}</span>
+                  <span className="font-display text-ui-17 text-tea-text" style={{ fontWeight: 400 }}>{ch.title}</span>
                 </button>
               ))}
             </div>
@@ -740,7 +758,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, isSav
           style={{ zIndex: 200 }}
         >
           <div className="reader-keyboard-hint-card">
-            <div className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim mb-4">Keyboard Shortcuts</div>
+            <div className="label-caps text-tea-text-dim mb-4">Keyboard Shortcuts</div>
             {[
               { key: '→ / Space', label: 'Next page' },
               { key: '←', label: 'Previous page' },
@@ -778,7 +796,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, isSav
           </button>
           <button
             onClick={() => setShowShakeConfirm(false)}
-            className="text-tea-text-dim text-sm hover:text-tea-text transition-colors"
+            className="text-tea-text-sec text-sm hover:text-tea-text transition-colors"
           >
             Cancel
           </button>
@@ -858,7 +876,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, isSav
       <div className="absolute top-0 left-0 w-full h-16 z-50 flex items-center justify-between px-6 md:px-10 text-tea-text-sec pointer-events-none bg-gradient-to-b from-tea-bg/40 to-transparent">
         <button
           onClick={onBack}
-          className="flex items-center gap-2 text-xs uppercase tracking-[0.15em] text-tea-text-sec hover:text-tea-text pointer-events-auto transition-colors p-3 -ml-3 rounded-full"
+          className="tap-target flex items-center gap-2 text-xs font-semibold text-tea-text-sec hover:text-tea-text pointer-events-auto transition-colors p-3 -ml-3"
         >
           <Icons.Back className="w-5 h-5" />
           <span className="hidden md:inline">Back</span>
@@ -894,7 +912,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, isSav
             className="hidden lg:flex flex-col justify-between h-full py-20 px-8 pointer-events-none shrink-0"
             style={{ opacity: marginOpacity, transition: 'opacity 0.6s ease' }}
           >
-            <span className="text-ui-11 uppercase tracking-[0.2em] text-tea-text-dim" style={{ fontFamily: 'var(--font-sans)' }}>
+            <span className="label-caps text-tea-text-dim">
               {story.title}
             </span>
           </div>

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Check, Copy } from 'lucide-react';
+import { Check, Copy, X } from 'lucide-react';
 import { api, getTokenClaims } from '../../lib/api';
 import { useAppStore, selectIsOwnerTier } from '../../lib/store';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
@@ -149,12 +149,13 @@ const EditorSheet: React.FC<EditorSheetProps> = ({ member, isViewerOwner, onClos
           <button
             type="button"
             onClick={onClose}
-            className="text-tea-text-sec hover:text-tea-text transition-colors"
+            className="p-1.5 -ml-1.5 rounded-md text-tea-text-sec hover:text-tea-text transition-colors tap-target"
             aria-label="Close"
+            title="Close"
           >
-            ✕
+            <X size={16} />
           </button>
-          <div className="text-tea-text-sec text-ui-11 uppercase tracking-[0.1em]">
+          <div className="label-caps text-tea-text-dim">
             {isOwner ? 'Owner' : member.role === 'staff' ? 'Member' : 'Viewer'}
           </div>
         </div>
@@ -196,7 +197,7 @@ const EditorSheet: React.FC<EditorSheetProps> = ({ member, isViewerOwner, onClos
                   );
                 })}
               </div>
-              <div className="text-ui-10 uppercase tracking-[0.18em] text-tea-text-dim mb-2">
+              <div className="label-caps text-tea-text-dim mb-2">
                 Capabilities
               </div>
               <div className="space-y-1">
@@ -274,11 +275,11 @@ const EditorSheet: React.FC<EditorSheetProps> = ({ member, isViewerOwner, onClos
         </div>
 
         {/* Footer — Cancel left, Save right per CLAUDE.md */}
-        <div className="border-t border-tea-border px-5 py-4 flex items-center justify-between bg-tea-surface">
+        <div className="border-t border-tea-border px-5 py-4 flex items-center justify-between gap-2 bg-tea-bg">
           <button
             type="button"
             onClick={onClose}
-            className="text-tea-text-sec hover:text-tea-text transition-colors text-ui-14"
+            className="px-2 py-1 text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors"
           >
             Cancel
           </button>
@@ -286,7 +287,7 @@ const EditorSheet: React.FC<EditorSheetProps> = ({ member, isViewerOwner, onClos
             type="button"
             onClick={handleSave}
             disabled={!dirty || saving || isOwner}
-            className="text-ui-14 font-display tracking-[0.04em] py-1 px-1 transition-colors disabled:text-tea-text-dim disabled:cursor-not-allowed text-tea-gold hover:text-tea-gold-lt"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {saving ? 'Saving…' : 'Save'}
           </button>
@@ -423,27 +424,28 @@ export const AccessView: React.FC = () => {
   return (
     <div className="px-4 md:px-6 pt-6 pb-nav-gap max-w-3xl mx-auto">
       {/* Header — quiet location name + summary sentence */}
-      <header className="mb-10">
-        <h1 className={`${TYPOGRAPHY_CLASSES.h2} text-tea-text mb-2`}>
+      <header className="mb-8">
+        <h1 className={`${TYPOGRAPHY_CLASSES.h2} text-tea-text`}>
           {activeAccount?.name || 'Access'}
         </h1>
+        <p className="label-caps text-tea-text-dim mt-1">Members & access</p>
         {members && (
-          <p className="text-tea-text-sec italic text-ui-15">
+          <p className="text-tea-text-sec text-ui-14 mt-3">
             {sentenceForCount(totalCount, fullAccessCount)}
           </p>
         )}
       </header>
 
       {error && (
-        <div className="mb-6 text-tea-text-sec italic text-ui-14">{error}</div>
+        <div className="mb-6 text-ui-12 text-tea-error">{error}</div>
       )}
 
       {members === null && !error && (
-        <div className="text-tea-text-sec italic text-ui-14">Loading roster…</div>
+        <div className="text-tea-text-sec text-ui-14">Loading roster…</div>
       )}
 
       {members && members.length === 0 && (
-        <div className="text-tea-text-sec italic text-ui-15 leading-[1.7] mb-8">
+        <div className="text-tea-text-sec text-ui-14 leading-[1.7] mb-8">
           You haven't invited anyone to help run this place yet.
         </div>
       )}
@@ -504,33 +506,36 @@ export const AccessView: React.FC = () => {
         </section>
       )}
 
-      {/* Add member — text-link, not a button */}
+      {/* Add member */}
       {isOwnerTier && (
         <div className="mt-12">
           {!adding ? (
             <button
               type="button"
               onClick={() => setAdding(true)}
-              className="text-tea-text-sec hover:text-tea-gold transition-colors text-ui-14 font-display"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors"
             >
-              Add a member
+              Add Member
             </button>
           ) : (
-            <div className="space-y-3">
-              <input
-                type="email"
-                value={addEmail}
-                onChange={e => setAddEmail(e.target.value)}
-                placeholder="email@example.com"
-                autoFocus
-                className="w-full bg-transparent border-b border-tea-border focus:border-tea-gold outline-none text-tea-text font-body text-ui-15 py-2 transition-colors"
-                onKeyDown={e => {
-                  if (e.key === 'Enter') handleAddMember();
-                  if (e.key === 'Escape') { setAdding(false); setAddEmail(''); setAddPreset('sales'); }
-                }}
-              />
+            <div className="space-y-3 bg-tea-surface border border-tea-border rounded-xl p-5">
+              <div>
+                <label className="label-caps text-tea-text-sec mb-1.5 block">Email</label>
+                <input
+                  type="email"
+                  value={addEmail}
+                  onChange={e => setAddEmail(e.target.value)}
+                  placeholder="email@example.com"
+                  autoFocus
+                  className="w-full bg-tea-bg border border-tea-border rounded-md px-3 py-2 text-ui-14 text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none"
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') handleAddMember();
+                    if (e.key === 'Escape') { setAdding(false); setAddEmail(''); setAddPreset('sales'); }
+                  }}
+                />
+              </div>
               <div className="space-y-2">
-                <div className="text-ui-10 uppercase tracking-[0.18em] text-tea-text-dim">
+                <div className="label-caps text-tea-text-sec">
                   Access preset
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -543,12 +548,12 @@ export const AccessView: React.FC = () => {
                         onClick={() => setAddPreset(preset.id)}
                         className={`text-left rounded-md border px-3 py-2 transition-colors ${
                           active
-                            ? 'border-tea-gold/30 bg-tea-accent-sub text-tea-text'
+                            ? 'border-tea-gold/40 bg-tea-gold/10 text-tea-text'
                             : 'border-tea-border text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub'
                         }`}
                       >
                         <div className="font-display text-ui-14">{preset.label}</div>
-                        <div className="text-ui-11 text-tea-text-sec leading-[1.45] mt-0.5">
+                        <div className="text-ui-11 text-tea-text-dim leading-[1.45] mt-0.5">
                           {formatBundles(preset.bundles)}
                         </div>
                       </button>
@@ -556,11 +561,11 @@ export const AccessView: React.FC = () => {
                   })}
                 </div>
               </div>
-              <div className="flex items-center justify-between text-ui-13">
+              <div className="flex items-center justify-between gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => { setAdding(false); setAddEmail(''); setAddPreset('sales'); }}
-                  className="text-tea-text-sec hover:text-tea-text transition-colors"
+                  className="px-2 py-1 text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors"
                 >
                   Cancel
                 </button>
@@ -568,9 +573,9 @@ export const AccessView: React.FC = () => {
                   type="button"
                   onClick={handleAddMember}
                   disabled={!addEmail.includes('@') || addBusy}
-                  className="text-tea-gold hover:text-tea-gold-lt disabled:text-tea-text-dim disabled:cursor-not-allowed transition-colors"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  {addBusy ? 'Sending…' : 'Send invite'}
+                  {addBusy ? 'Sending…' : 'Send Invite'}
                 </button>
               </div>
             </div>

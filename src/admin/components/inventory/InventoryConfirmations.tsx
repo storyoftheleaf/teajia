@@ -66,7 +66,7 @@ export function InventoryConfirmations({
               <button
                 onClick={onConfirmEnrich}
                 disabled={isEnriching}
-                className="px-4 py-2 bg-tea-gold text-tea-bg text-xs font-bold uppercase tracking-[0.2em] rounded-lg hover:bg-tea-gold/90 disabled:opacity-40 transition-colors"
+                className="px-4 py-2 bg-tea-gold text-tea-bg text-xs font-semibold rounded-lg hover:bg-tea-gold/90 disabled:opacity-40 transition-colors"
               >
                 {isEnriching ? 'Generating...' : 'Generate'}
               </button>
@@ -93,7 +93,7 @@ export function InventoryConfirmations({
               <button onClick={onCloseVerificationResetConfirm} className="px-1 py-2 text-tea-text-sec hover:text-tea-text transition-colors text-xs uppercase tracking-[0.2em]">Cancel</button>
               <button
                 onClick={onConfirmVerificationReset}
-                className="px-4 py-2 bg-tea-gold text-tea-bg text-xs font-bold uppercase tracking-[0.2em] rounded-lg hover:bg-tea-gold/90 transition-colors"
+                className="px-4 py-2 bg-tea-gold text-tea-bg text-xs font-semibold rounded-lg hover:bg-tea-gold/90 transition-colors"
               >
                 Reset
               </button>
@@ -129,7 +129,7 @@ export function InventoryConfirmations({
                 <button
                   onClick={onConfirmDatabaseReset}
                   disabled={resetInput !== 'delete' || isResetting}
-                  className="flex-1 py-3 bg-tea-gold/20 border border-tea-accent-sub text-tea-gold text-xs font-bold uppercase tracking-[0.2em] rounded-lg hover:bg-tea-gold/30 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                  className="flex-1 py-3 bg-tea-gold/20 border border-tea-accent-sub text-tea-gold text-xs font-semibold rounded-lg hover:bg-tea-gold/30 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                 >
                   {isResetting ? 'Deleting...' : 'Confirm Wipe'}
                 </button>
@@ -172,7 +172,7 @@ export function InventoryConfirmations({
             <div className="p-4 border-t border-tea-border flex justify-end bg-tea-surface">
               <button
                 onClick={onCloseMaintenanceModal}
-                className="px-6 py-2 bg-tea-gold text-tea-bg text-xs font-bold uppercase tracking-[0.2em] rounded-lg hover:bg-tea-gold/90 transition-colors"
+                className="px-6 py-2 bg-tea-gold text-tea-bg text-xs font-semibold rounded-lg hover:bg-tea-gold/90 transition-colors"
               >
                 Close
               </button>

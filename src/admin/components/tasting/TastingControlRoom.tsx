@@ -3,6 +3,10 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ChevronLeft } from 'lucide-react';
 import { api } from '../../../lib/api';
+import {
+  STATUS_PILL_BASE,
+  STATUS_PILL_VARIANTS,
+} from '../../constants';
 import { ShareScreen } from './ShareScreen';
 import { LiveMatrix } from './LiveMatrix';
 
@@ -49,77 +53,91 @@ export function TastingControlRoom() {
     navigate(next === 'live' ? `${base}/live` : base, { replace: true });
   };
 
+  const tabs: { key: Tab; label: string }[] = [
+    { key: 'share', label: 'Share' },
+    { key: 'live', label: 'Live' },
+  ];
+
   return (
-    <div className="h-full flex flex-col overflow-hidden">
-      <header className="px-6 py-4 border-b border-tea-border flex items-center gap-4">
+    <div className="h-full flex flex-col overflow-hidden bg-tea-bg">
+      {/* Title bar — narrow chrome */}
+      <div className="px-4 md:px-6 lg:px-10 max-w-5xl w-full mx-auto h-16 flex items-end pb-3 gap-3">
         <button
           type="button"
           onClick={() => navigate('/admin/tasting-events')}
-          className="text-tea-text-sec hover:text-tea-text flex items-center gap-1 tap-target"
+          className="text-tea-text-sec hover:text-tea-text inline-flex items-center gap-1 tap-target -ml-1"
         >
-          <ChevronLeft className="w-4 h-4" />
+          <ChevronLeft size={16} />
           <span className="text-ui-13">Tasting events</span>
         </button>
-
-        <div className="flex-1 min-w-0 text-center">
-          <p className="font-display font-light text-ui-17 text-tea-text truncate">
+        <div className="flex-1 min-w-0 flex items-baseline gap-3 justify-end">
+          <h1 className="h2 text-tea-text truncate">
             {isLoading ? 'Loading…' : session?.title || 'Tasting'}
-          </p>
+          </h1>
           {isCompleted && (
-            <p className="text-ui-10 uppercase tracking-[0.14em] text-tea-text-sec mt-0.5">
+            <span className={`${STATUS_PILL_BASE} ${STATUS_PILL_VARIANTS.archived}`}>
               Completed
-            </p>
+            </span>
           )}
         </div>
+      </div>
 
-        <div className="flex items-center gap-1 rounded-full bg-tea-elevated p-1">
-          {(['share', 'live'] as const).map(t => (
+      {/* Tab strip — bottom-border underline (§6) */}
+      <div className="px-4 md:px-6 lg:px-10 max-w-5xl w-full mx-auto flex items-center gap-5 overflow-x-auto hide-scrollbar border-b border-tea-border">
+        {tabs.map(t => {
+          const isActive = tab === t.key;
+          return (
             <button
-              key={t}
+              key={t.key}
               type="button"
-              onClick={() => setTabAndUrl(t)}
+              onClick={() => setTabAndUrl(t.key)}
               className={[
-                'px-4 py-1.5 rounded-full text-ui-12 tracking-wide transition-colors',
-                tab === t ? 'bg-tea-gold text-tea-bg' : 'text-tea-text-sec hover:text-tea-text',
+                'shrink-0 py-3 text-ui-12 uppercase tracking-caps font-sans border-b transition-colors -mb-px',
+                isActive
+                  ? 'text-tea-text border-tea-gold'
+                  : 'text-tea-text-sec border-transparent hover:text-tea-text',
               ].join(' ')}
             >
-              {t === 'share' ? 'Share' : 'Live'}
+              {t.label}
             </button>
-          ))}
-        </div>
-      </header>
+          );
+        })}
+      </div>
 
+      {/* Body */}
       <div className="flex-1 overflow-auto">
         {tab === 'share' && <ShareScreen sessionId={sessionId} sessionTitle={session?.title} />}
         {tab === 'live' && <LiveMatrix sessionId={sessionId} />}
       </div>
 
       {!isCompleted && (
-        <footer className="px-6 py-3 border-t border-tea-border flex items-center justify-end">
-          <button
-            type="button"
-            onClick={() => setConfirmComplete(true)}
-            className="text-ui-12 text-tea-text-sec hover:text-tea-text"
-          >
-            Complete tasting
-          </button>
+        <footer className="border-t border-tea-border bg-tea-bg">
+          <div className="px-4 md:px-6 lg:px-10 max-w-5xl w-full mx-auto py-3 flex items-center justify-end">
+            <button
+              type="button"
+              onClick={() => setConfirmComplete(true)}
+              className="px-3 py-1.5 rounded-md text-tea-text-sec hover:text-tea-text text-ui-13 transition-colors"
+            >
+              Complete tasting
+            </button>
+          </div>
         </footer>
       )}
 
       {confirmComplete && (
-        <div className="fixed inset-0 z-50 bg-tea-bg/80 backdrop-blur-sm flex items-center justify-center px-6">
-          <div className="max-w-sm w-full rounded-2xl bg-tea-surface border border-tea-border p-6 text-center">
+        <div className="fixed inset-0 z-modal bg-tea-bg/80 backdrop-blur-sm flex items-center justify-center px-6">
+          <div className="max-w-sm w-full rounded-xl bg-tea-surface border border-tea-border p-6">
             <p className="font-display font-light text-ui-17 text-tea-text mb-2">
               End the session for everyone?
             </p>
-            <p className="text-ui-12 text-tea-text-sec mb-6">
+            <p className="text-ui-13 text-tea-text-sec mb-6">
               Notes are kept. Guests can still read them later, but no new verdicts can be saved.
             </p>
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center justify-between gap-2 pt-4 border-t border-tea-border">
               <button
                 type="button"
                 onClick={() => setConfirmComplete(false)}
-                className="text-ui-13 text-tea-text-sec hover:text-tea-text"
+                className="px-3 py-2 rounded-md text-tea-text-sec hover:text-tea-text text-ui-13 transition-colors"
               >
                 Cancel
               </button>
@@ -127,7 +145,7 @@ export function TastingControlRoom() {
                 type="button"
                 disabled={completeMutation.isPending}
                 onClick={() => completeMutation.mutate()}
-                className="rounded-full bg-tea-gold text-tea-bg px-5 py-2 text-ui-13 tracking-wide disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 active:bg-tea-gold/80 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
                 {completeMutation.isPending ? 'Ending…' : 'End session'}
               </button>

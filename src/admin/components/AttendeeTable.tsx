@@ -486,7 +486,7 @@ export const AttendeeTable: React.FC<AttendeeTableProps> = ({ attendees, eventId
               {tab.label}
               {count > 0 && (
                 <span className={`text-ui-9 px-1.5 py-0.5 rounded-full leading-none ${
-                  filter === tab.key ? 'bg-tea-gold/15 text-tea-gold' : 'bg-tea-elevated text-tea-text-dim'
+                  filter === tab.key ? 'bg-tea-gold/10 text-tea-text ring-1 ring-tea-gold/40' : 'bg-tea-elevated text-tea-text-dim'
                 }`}>
                   {count}
                 </span>
@@ -538,7 +538,7 @@ export const AttendeeTable: React.FC<AttendeeTableProps> = ({ attendees, eventId
                     disabled={loadingId === attendee.id || attendee.isDenied}
                     className={`flex items-center gap-1.5 text-ui-11 px-2.5 py-1 rounded transition-colors disabled:opacity-30 ${
                       attendee.attended
-                        ? 'bg-tea-gold/15 text-tea-gold'
+                        ? 'bg-tea-gold/10 text-tea-text ring-1 ring-tea-gold/40'
                         : 'bg-tea-elevated text-tea-text-sec hover:text-tea-text'
                     }`}
                   >

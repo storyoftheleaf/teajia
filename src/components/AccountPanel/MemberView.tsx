@@ -5,10 +5,11 @@ import {
   NeedsAttention,
   PreviewBlock,
   FOOTER_LINK_CLASS,
+  IdentityCard,
+  StatusPill,
   capitalize,
   daysSince,
   daysWord,
-  getInitials,
   truncate,
 } from './primitives';
 import { MEMBER_MEMORY_LINKS } from './workflows';
@@ -146,44 +147,18 @@ export const MemberView: React.FC<MemberViewProps> = ({
 
   return (
     <div>
-      {/* ── Identity — name + role so the member sees they're in their own account ── */}
-      <div className="px-6 pt-5 pb-0 flex items-center gap-3">
-        <button
-          onClick={onAvatarClick}
-          className="w-11 h-11 rounded-full bg-tea-gold/10 flex items-center justify-center border border-tea-border overflow-hidden shrink-0"
-          title={user?.name || user?.email || 'Change photo'}
-          aria-label="Change photo"
-          style={{ WebkitTapHighlightColor: 'transparent' }}
-        >
-          {avatarDataUrl ? (
-            <img src={avatarDataUrl} alt="" className="w-full h-full object-cover" loading="lazy" />
-          ) : (
-            <span className="text-ui-13 font-serif text-tea-gold">
-              {user ? getInitials(user.name || user.email) : '茶'}
-            </span>
-          )}
-        </button>
-        {user && (
-          <div className="flex-1 min-w-0">
-            <div
-              className="text-ui-15 text-tea-text leading-tight truncate"
-              style={{ fontFamily: 'var(--font-display)', fontWeight: 400 }}
-            >
-              {user.name || user.email}
-            </div>
-            <div className="text-ui-11 uppercase tracking-[0.12em] text-tea-gold mt-0.5">
-              {roleBadgeLabel || 'Member'}
-            </div>
-          </div>
-        )}
-      </div>
+      {/* ── Identity card (§19) ── */}
+      <IdentityCard
+        user={user}
+        avatarDataUrl={avatarDataUrl}
+        onAvatarClick={onAvatarClick}
+        fallbackTitle="Member"
+        status={<StatusPill>{roleBadgeLabel || 'Member'}</StatusPill>}
+      />
 
       {/* ── Frontispiece — one editorial line of current state ────────── */}
-      <div className="px-6 pt-3 pb-2">
-        <p
-          className="text-ui-20 leading-snug text-tea-text italic"
-          style={{ fontFamily: 'var(--font-display)', fontWeight: 400 }}
-        >
+      <div className="px-6 pt-5 pb-2">
+        <p className="font-body italic text-ui-17 leading-snug text-tea-text">
           {frontispiece}
         </p>
       </div>
@@ -196,10 +171,7 @@ export const MemberView: React.FC<MemberViewProps> = ({
         {journalCount > 0 ? (
           <>
             {journalLastExcerpt && (
-              <p
-                className="text-ui-15 leading-snug text-tea-text italic mb-2"
-                style={{ fontFamily: 'var(--font-display)' }}
-              >
+              <p className="font-body italic text-ui-15 leading-snug text-tea-text mb-2">
                 “{truncate(journalLastExcerpt, 120)}”
               </p>
             )}
@@ -213,10 +185,7 @@ export const MemberView: React.FC<MemberViewProps> = ({
             </div>
           </>
         ) : (
-          <p
-            className="text-ui-15 italic text-tea-text-sec"
-            style={{ fontFamily: 'var(--font-display)' }}
-          >
+          <p className="font-body italic text-ui-15 text-tea-text-sec">
             begin a note
           </p>
         )}
@@ -263,17 +232,11 @@ export const MemberView: React.FC<MemberViewProps> = ({
           tapping opens the journal where it's built up from. */}
       <PreviewBlock hint="Tasting" icon={<Compass {...ICON_PROPS} />} onClick={() => go('/account/journal')}>
         {compassProfile ? (
-          <p
-            className="text-ui-16 leading-snug text-tea-text italic"
-            style={{ fontFamily: 'var(--font-display)' }}
-          >
+          <p className="font-body italic text-ui-16 leading-snug text-tea-text">
             “{compassProfile}”
           </p>
         ) : (
-          <p
-            className="text-ui-15 italic text-tea-text-sec"
-            style={{ fontFamily: 'var(--font-display)' }}
-          >
+          <p className="font-body italic text-ui-15 text-tea-text-sec">
             find yours
           </p>
         )}
@@ -282,17 +245,11 @@ export const MemberView: React.FC<MemberViewProps> = ({
       {/* ── Collection ────────────────────────────────────────────────── */}
       <PreviewBlock hint="Collection" icon={<Bookmark {...ICON_PROPS} />} onClick={() => go('/account/collection')}>
         {collectionCount > 0 ? (
-          <p
-            className="text-ui-15 text-tea-text"
-            style={{ fontFamily: 'var(--font-display)' }}
-          >
+          <p className="font-display text-ui-15 text-tea-text">
             {collectionCount} tea{collectionCount !== 1 ? 's' : ''} kept.
           </p>
         ) : (
-          <p
-            className="text-ui-15 italic text-tea-text-sec"
-            style={{ fontFamily: 'var(--font-display)' }}
-          >
+          <p className="font-body italic text-ui-15 text-tea-text-sec">
             no tins yet
           </p>
         )}
@@ -326,10 +283,10 @@ export const MemberView: React.FC<MemberViewProps> = ({
 
         <button
           onClick={onSignOut}
-          className="mt-6 py-2 -my-2 text-tea-text-sec hover:text-tea-gold transition-colors text-ui-12 uppercase tracking-[0.2em] font-medium"
+          className="mt-6 py-2 -my-2 text-tea-text-sec hover:text-tea-text transition-colors text-ui-13"
           style={{ WebkitTapHighlightColor: 'transparent' }}
         >
-          Sign Out
+          Sign out
         </button>
       </div>
     </div>

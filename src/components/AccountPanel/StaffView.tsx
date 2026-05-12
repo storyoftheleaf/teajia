@@ -5,9 +5,10 @@ import {
   NeedsAttention,
   PreviewBlock,
   FOOTER_LINK_CLASS,
+  IdentityCard,
+  StatusPill,
   capitalize,
   daysWord,
-  getInitials,
 } from './primitives';
 import { useAppStore } from '../../lib/store';
 import { ADMIN_TOOL_GROUPS, groupTools, toolsForRole, type AdminTool } from '../../admin/toolRegistry';
@@ -83,48 +84,21 @@ export const StaffView: React.FC<StaffViewProps> = ({
 
   return (
     <div>
-      {/* ── Identity — date + account, avatar in corner ─────────────── */}
-      <div className="px-6 pt-5 pb-0 flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <div className="text-ui-11 uppercase tracking-[0.24em] text-tea-text-sec font-medium">
-            {todayLabel}
-          </div>
-          {accountName && (
-            <div className="text-ui-12 text-tea-text-sec truncate mt-1.5 tracking-[0.02em]">
-              {accountName}{locationLabel ? ` · ${locationLabel}` : ''}
-            </div>
-          )}
-        </div>
-        <button
-          onClick={onAvatarClick}
-          className="w-11 h-11 rounded-full bg-tea-gold/10 flex items-center justify-center border border-tea-border overflow-hidden shrink-0"
-          title={user?.name || user?.email || 'Change photo'}
-          aria-label="Change photo"
-          style={{ WebkitTapHighlightColor: 'transparent' }}
-        >
-          {avatarDataUrl ? (
-            <img src={avatarDataUrl} alt="" className="w-full h-full object-cover" loading="lazy" />
-          ) : (
-            <span className="text-ui-13 font-serif text-tea-gold">
-              {user ? getInitials(user.name || user.email) : '茶'}
-            </span>
-          )}
-        </button>
-      </div>
+      {/* ── Identity card (§19) — staff variant: shift meta + role ── */}
+      <IdentityCard
+        user={user}
+        avatarDataUrl={avatarDataUrl}
+        onAvatarClick={onAvatarClick}
+        fallbackTitle="Staff"
+        meta={[todayLabel, accountName, locationLabel].filter(Boolean).join(' · ')}
+        status={roleBadgeLabel ? <StatusPill>{roleBadgeLabel}</StatusPill> : null}
+      />
 
       {/* ── Frontispiece ─────────────────────────────────────────────── */}
-      <div className="px-6 pt-3 pb-2">
-        <p
-          className="text-ui-20 leading-snug text-tea-text italic"
-          style={{ fontFamily: 'var(--font-display)', fontWeight: 400 }}
-        >
+      <div className="px-6 pt-5 pb-2">
+        <p className="font-body italic text-ui-17 leading-snug text-tea-text">
           {frontispiece}
         </p>
-        {roleBadgeLabel && (
-          <div className="text-ui-11 uppercase tracking-[0.18em] text-tea-gold mt-2">
-            {roleBadgeLabel}
-          </div>
-        )}
       </div>
 
       {/* ── Attention ───────────────────────────────────────────────── */}
@@ -133,7 +107,7 @@ export const StaffView: React.FC<StaffViewProps> = ({
       {/* ── Today's sessions preview ────────────────────────────────── */}
       {todayEventCount > 0 && (
         <PreviewBlock hint="On the bench" icon={<Calendar {...ICON_PROPS} />} onClick={onOpenEvents}>
-          <p className="text-ui-15 text-tea-text" style={{ fontFamily: 'var(--font-display)' }}>
+          <p className="font-display text-ui-15 text-tea-text">
             {todayEventCount} session{todayEventCount === 1 ? '' : 's'} to prep.
           </p>
         </PreviewBlock>
@@ -142,8 +116,8 @@ export const StaffView: React.FC<StaffViewProps> = ({
       {/* ── Shift tools — bundle-aware text-link cluster ────────────── */}
       {shiftTools.length > 0 ? (
         <div className="border-t border-tea-border px-6 pt-7 pb-5">
-          <div className="flex items-center gap-2 text-ui-12 uppercase tracking-[0.22em] text-tea-text font-medium">
-            <span className="text-tea-gold/70 shrink-0 flex items-center" aria-hidden="true"><Wrench size={14} strokeWidth={1.5} /></span>
+          <div className="flex items-center gap-2 label-caps text-tea-text-dim">
+            <span className="text-tea-text-sec shrink-0 flex items-center" aria-hidden="true"><Wrench size={14} strokeWidth={1.5} /></span>
             <span>Shift access</span>
           </div>
           <div className="w-8 h-px bg-tea-gold/40 mt-2 mb-3.5 ml-[22px]" aria-hidden="true" />
@@ -153,17 +127,17 @@ export const StaffView: React.FC<StaffViewProps> = ({
               if (list.length === 0) return null;
               return (
                 <div key={group.id}>
-                  <div className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim mb-1.5">
+                  <div className="text-ui-10 uppercase tracking-caps text-tea-text-dim mb-1.5">
                     {group.label}
                   </div>
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-ui-14 text-tea-text-sec tracking-[0.01em]">
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                     {list.map((tool: AdminTool, i: number) => (
                       <React.Fragment key={tool.id}>
-                        {i > 0 && <span className="text-tea-text-sec" aria-hidden="true">·</span>}
+                        {i > 0 && <span className="text-tea-text-dim" aria-hidden="true">·</span>}
                         <button
                           onClick={() => go(tool.route)}
-                          className="py-1 -my-1 hover:text-tea-gold transition-colors"
-                          style={{ fontFamily: 'var(--font-display)', WebkitTapHighlightColor: 'transparent' }}
+                          className="font-display text-ui-15 text-tea-text-sec hover:text-tea-text py-1 -my-1 transition-colors"
+                          style={{ WebkitTapHighlightColor: 'transparent' }}
                         >
                           {tool.label}
                         </button>
@@ -177,11 +151,11 @@ export const StaffView: React.FC<StaffViewProps> = ({
         </div>
       ) : (
         <div className="border-t border-tea-border px-6 pt-7 pb-5">
-          <div className="flex items-center gap-2 text-ui-12 uppercase tracking-[0.22em] text-tea-text font-medium">
-            <span className="text-tea-gold/70 shrink-0 flex items-center" aria-hidden="true"><Wrench size={14} strokeWidth={1.5} /></span>
+          <div className="flex items-center gap-2 label-caps text-tea-text-dim">
+            <span className="text-tea-text-sec shrink-0 flex items-center" aria-hidden="true"><Wrench size={14} strokeWidth={1.5} /></span>
             <span>Shift access</span>
           </div>
-          <p className="mt-3 text-ui-14 text-tea-text-sec leading-relaxed" style={{ fontFamily: 'var(--font-display)' }}>
+          <p className="mt-3 body-light">
             No workflows have been granted yet. Ask an owner to add bundles in Members & Access.
           </p>
         </div>
@@ -189,24 +163,24 @@ export const StaffView: React.FC<StaffViewProps> = ({
 
       {/* ── Learn — quiet text links ────────────────────────────────── */}
       <div className="border-t border-tea-border px-6 pt-7 pb-5">
-        <div className="flex items-center gap-2 text-ui-12 uppercase tracking-[0.22em] text-tea-text font-medium">
-          <span className="text-tea-gold/70 shrink-0 flex items-center" aria-hidden="true"><BookOpen size={14} strokeWidth={1.5} /></span>
+        <div className="flex items-center gap-2 label-caps text-tea-text-dim">
+          <span className="text-tea-text-sec shrink-0 flex items-center" aria-hidden="true"><BookOpen size={14} strokeWidth={1.5} /></span>
           <span>Learn</span>
         </div>
         <div className="w-8 h-px bg-tea-gold/40 mt-2 mb-3.5 ml-[22px]" aria-hidden="true" />
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-ui-14 text-tea-text-sec tracking-[0.01em]">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <button
             onClick={() => go('/magazine')}
-            className="py-1 -my-1 hover:text-tea-gold transition-colors"
-            style={{ fontFamily: 'var(--font-display)', WebkitTapHighlightColor: 'transparent' }}
+            className="font-display text-ui-15 text-tea-text-sec hover:text-tea-text py-1 -my-1 transition-colors"
+            style={{ WebkitTapHighlightColor: 'transparent' }}
           >
             Magazine
           </button>
-          <span className="text-tea-text-sec" aria-hidden="true">·</span>
+          <span className="text-tea-text-dim" aria-hidden="true">·</span>
           <button
             onClick={() => go('/craft')}
-            className="py-1 -my-1 hover:text-tea-gold transition-colors"
-            style={{ fontFamily: 'var(--font-display)', WebkitTapHighlightColor: 'transparent' }}
+            className="font-display text-ui-15 text-tea-text-sec hover:text-tea-text py-1 -my-1 transition-colors"
+            style={{ WebkitTapHighlightColor: 'transparent' }}
           >
             Craft
           </button>
@@ -226,10 +200,10 @@ export const StaffView: React.FC<StaffViewProps> = ({
         </div>
         <button
           onClick={onSignOut}
-          className="mt-6 py-2 -my-2 text-tea-text-sec hover:text-tea-gold transition-colors text-ui-12 uppercase tracking-[0.2em] font-medium"
+          className="mt-6 py-2 -my-2 text-tea-text-sec hover:text-tea-text transition-colors text-ui-13"
           style={{ WebkitTapHighlightColor: 'transparent' }}
         >
-          Sign Out
+          Sign out
         </button>
       </div>
     </div>

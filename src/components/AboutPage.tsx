@@ -2,26 +2,23 @@ import React from 'react';
 
 export default function AboutPage() {
   return (
-    <div className="animate-[fadeIn_0.6s_ease-out] pb-24 md:pb-24">
-      <div className="max-w-2xl mx-auto px-4">
+    <div className="animate-[fadeIn_0.6s_ease-out] pb-nav-gap">
+      <div className="max-w-3xl mx-auto px-4 md:px-6 pt-12 pb-24">
         {/* Header */}
-        <header className="pt-12 mb-12">
-          <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl font-light text-tea-text mb-4">
-            About
-          </h1>
-          <div className="w-12 h-[1px] bg-tea-gold"></div>
+        <header className="mb-12">
+          <p className="label-caps text-tea-text-dim mb-3">About</p>
+          <h1 className="h2 mb-3">Adrian Stone</h1>
+          <p className="subtitle">Twenty years on the road, one quiet practice.</p>
         </header>
 
         {/* Photo placeholder */}
-        <div className="aspect-[4/3] bg-tea-text/5 rounded-lg mb-12 flex items-center justify-center">
-          <span className="text-sm text-tea-text/30 uppercase tracking-[0.15em]">
-            Photo
-          </span>
+        <div className="aspect-[4/3] bg-tea-surface border border-tea-border rounded-xl mb-12 flex items-center justify-center">
+          <span className="label-caps text-tea-text-dim">Photo</span>
         </div>
 
         {/* About Adrian */}
         <section className="mb-16">
-          <div className="font-serif text-lg md:text-xl leading-relaxed text-tea-text space-y-6">
+          <div className="space-y-6 body-prose">
             <p>
               Adrian has spent more than twenty years immersed in Chinese tea culture, traveling through
               Taiwan and China, sourcing tea and building relationships with farmers, masters, and
@@ -42,11 +39,8 @@ export default function AboutPage() {
 
         {/* Your Story section */}
         <section className="mb-16">
-          <h2 className="font-serif text-2xl md:text-3xl text-tea-text mb-6">
-            The Story
-          </h2>
-          <div className="w-12 h-[1px] bg-tea-gold mb-6"></div>
-          <p className="text-tea-text/70 leading-relaxed">
+          <h2 className="h3 mb-6">The Story</h2>
+          <p className="body-light">
             The full story of TeajiA and the journey that created it. This section will be
             expanded with Adrian's personal narrative — the years on the road, the people and
             places that shaped the vision, and the path from tea student to guide.
@@ -55,19 +49,18 @@ export default function AboutPage() {
 
         {/* Art Studio link */}
         <section className="py-12 border-t border-tea-border">
-          <p className="text-tea-text/70 mb-4">
+          <p className="body-light mb-4">
             Adrian is also a visual artist creating laser-cut work, oracle cards, and more.
           </p>
           <a
             href="#"
-            className="text-tea-gold hover:text-tea-gold/80 transition-colors duration-300 uppercase tracking-wider text-xs font-medium inline-flex items-center gap-2"
+            className="inline-flex items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors text-xs font-semibold"
           >
             Explore the full studio
             <span aria-hidden="true">&rarr;</span>
           </a>
         </section>
       </div>
-
     </div>
   );
 }

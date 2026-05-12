@@ -180,19 +180,23 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
   const isValid =
     formData.fullName.trim().length > 0 && contactValue.trim().length > 0;
 
+  const sheetTitle = requiresApproval === false ? 'Reserve your seat' : 'Request your seat';
+  const inputClass =
+    'w-full px-3 py-2.5 bg-tea-bg border border-tea-border rounded-md text-tea-text text-ui-14 placeholder:text-tea-text-dim focus:outline-none focus:border-tea-gold/50 transition-colors';
+
   return (
     <div
       className="fixed inset-0 z-modal animate-[fadeIn_0.2s_ease-out] md:flex md:items-center md:justify-center"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
-      aria-label={requiresApproval === false ? 'Reserve your seat' : 'Request your seat'}
+      aria-label={sheetTitle}
     >
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
 
       <div
         ref={sheetRef}
-        className="absolute bottom-0 left-0 right-0 md:relative md:bottom-auto md:left-auto md:right-auto md:w-full md:max-w-lg bg-tea-bg border-t border-tea-border md:border rounded-t-2xl md:rounded-2xl shadow-2xl h-[calc(100dvh-44px-env(safe-area-inset-bottom,0px))] md:h-auto md:max-h-[85vh] overflow-hidden animate-[slideUp_0.3s_ease-out] flex flex-col"
+        className="absolute bottom-0 left-0 right-0 md:relative md:bottom-auto md:left-auto md:right-auto md:w-full md:max-w-lg bg-tea-surface border-t border-tea-border md:border md:border-tea-border rounded-t-xl md:rounded-xl shadow-2xl h-[calc(100dvh-44px-env(safe-area-inset-bottom,0px))] md:h-auto md:max-h-[85vh] overflow-hidden animate-[slideUp_0.3s_ease-out] flex flex-col"
         style={{ transform: `translateY(${dragY}px)` }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -204,39 +208,44 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
           onTouchEnd={handleTouchEnd}
           aria-hidden="true"
         >
-          <div className="w-10 h-1 bg-tea-text-sec/20 rounded-full" />
+          <div className="w-10 h-1 bg-tea-border rounded-full" />
         </div>
 
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-tea-border shrink-0">
-          <h2 className="font-serif text-xl text-tea-text">{requiresApproval === false ? 'Reserve Your Seat' : 'Request Your Seat'}</h2>
+        {/* Header — close X top-LEFT for sheet/drawer (§15) */}
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-tea-border shrink-0">
           <button
             onClick={onClose}
-            className="p-2 text-tea-text-sec hover:text-tea-gold transition-colors"
+            className="tap-target shrink-0 p-1.5 -ml-1.5 text-tea-text-sec hover:text-tea-text transition-colors"
             aria-label="Close"
           >
             <X className="w-5 h-5" />
           </button>
+          <h2 className="h3 flex-1 truncate">{sheetTitle}</h2>
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto px-6 py-5 pb-[calc(1.25rem+52px+env(safe-area-inset-bottom,0px)+env(keyboard-inset-height,0px))] lg:pb-6">
+        <div className="flex-1 overflow-y-auto px-5 py-5 pb-[calc(1.25rem+52px+env(safe-area-inset-bottom,0px)+env(keyboard-inset-height,0px))] lg:pb-6">
           {submitted ? (
-            <div className="flex flex-col items-center justify-center py-16 animate-[fadeIn_0.5s_ease-out]">
+            <div className="flex flex-col items-center justify-center py-12 animate-[fadeIn_0.5s_ease-out]">
               <div className="w-14 h-14 rounded-full bg-tea-gold/10 flex items-center justify-center mb-6">
-                <span className="text-2xl font-serif text-tea-gold">茶</span>
+                <span
+                  className="text-ui-26 text-tea-gold"
+                  style={{ fontFamily: 'var(--font-display)' }}
+                >
+                  茶
+                </span>
               </div>
               {requiresApproval === false ? (
                 <>
-                  <h3 className="font-serif text-2xl text-tea-text mb-3 text-center">You're confirmed.</h3>
-                  <p className="text-sm text-tea-text-sec text-center max-w-xs leading-relaxed mb-2">
+                  <h3 className="h2 mb-3 text-center">You're confirmed.</h3>
+                  <p className="body-light text-center max-w-xs mb-2">
                     We've reserved your seat.
                   </p>
                 </>
               ) : (
                 <>
-                  <h3 className="font-serif text-2xl text-tea-text mb-3 text-center">Request received.</h3>
-                  <p className="text-sm text-tea-text-sec text-center max-w-xs leading-relaxed mb-2">
+                  <h3 className="h2 mb-3 text-center">Request received.</h3>
+                  <p className="body-light text-center max-w-xs mb-2">
                     {formData.contactMethod === 'whatsapp'
                       ? "We'll send you a WhatsApp message once your seat is confirmed."
                       : formData.contactMethod === 'email'
@@ -245,8 +254,8 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                   </p>
                 </>
               )}
-              <p className="text-sm text-tea-text-sec text-center mb-6">See you at this event.</p>
-              <p className="text-xs text-tea-text-sec text-center max-w-xs leading-relaxed mb-8 px-2">
+              <p className="body-light text-center mb-6">See you at this event.</p>
+              <p className="text-ui-12 text-tea-text-dim text-center max-w-xs leading-relaxed mb-8 px-2">
                 If your plans change, please let us know in advance. You can manage or cancel your RSVP at any time using the link in your confirmation message.
               </p>
               <button
@@ -254,7 +263,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                   queryClient.invalidateQueries({ queryKey: ['event-public', slug] });
                   onClose();
                 }}
-                className="w-full max-w-xs py-4 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.25em] font-semibold rounded-sm hover:bg-tea-gold/90 transition-all duration-300"
+                className="w-full max-w-xs inline-flex items-center justify-center px-4 py-3 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors"
               >
                 Done
               </button>
@@ -264,22 +273,22 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
 
               {/* Member banner / sign-in prompt */}
               {isAuthenticated && user ? (
-                <div className="flex items-center gap-2.5 px-3 py-2.5 bg-tea-gold/8 border border-tea-gold/20 rounded-sm">
+                <div className="flex items-center gap-2.5 px-3 py-2.5 bg-tea-gold/8 border border-tea-gold/20 rounded-md">
                   <div className="w-1.5 h-1.5 rounded-full bg-tea-gold shrink-0" />
-                  <p className="text-xs text-tea-text-sec">
+                  <p className="text-ui-12 text-tea-text-sec">
                     Signed in as <span className="text-tea-text">{user.name}</span>
                   </p>
                 </div>
               ) : showLoginForm ? (
-                <div className="border border-tea-border rounded-sm p-4 space-y-3 animate-[fadeIn_0.2s_ease-out]">
-                  <p className="text-ui-10 uppercase tracking-[0.25em] text-tea-text-sec">Sign in to your account</p>
+                <div className="border border-tea-border rounded-md p-4 space-y-3 animate-[fadeIn_0.2s_ease-out]">
+                  <p className="label-caps">Sign in to your account</p>
                   <input
                     type="text"
                     value={loginIdentifier}
                     onChange={(e) => setLoginIdentifier(e.target.value)}
                     placeholder="Email or username"
                     autoComplete="username"
-                    className="w-full px-3 py-2.5 bg-tea-surface border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-sec/50 focus:outline-none focus:border-tea-gold/50 transition-colors"
+                    className={inputClass}
                   />
                   <input
                     type="password"
@@ -287,26 +296,26 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                     onChange={(e) => setLoginPassword(e.target.value)}
                     placeholder="Password"
                     autoComplete="current-password"
-                    className="w-full px-3 py-2.5 bg-tea-surface border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-sec/50 focus:outline-none focus:border-tea-gold/50 transition-colors"
+                    className={inputClass}
                   />
                   {loginError && (
-                    <p className="text-xs text-red-400">{loginError}</p>
+                    <p className="text-ui-12 text-tea-error">{loginError}</p>
                   )}
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center justify-between gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setShowLoginForm(false)}
+                      className="px-3 py-2 text-xs font-semibold text-tea-text-sec hover:text-tea-text transition-colors"
+                    >
+                      Cancel
+                    </button>
                     <button
                       type="button"
                       onClick={handleInlineLogin}
                       disabled={loginPending || !loginIdentifier || !loginPassword}
-                      className="flex-1 py-2 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.2em] rounded-sm disabled:opacity-50 transition-colors hover:bg-tea-gold/90"
+                      className="inline-flex items-center justify-center px-4 py-2 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold disabled:opacity-50 transition-colors hover:bg-tea-gold/90"
                     >
                       {loginPending ? 'Signing in…' : 'Sign in'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setShowLoginForm(false)}
-                      className="text-xs text-tea-text-sec hover:text-tea-text transition-colors"
-                    >
-                      Cancel
                     </button>
                   </div>
                 </div>
@@ -314,7 +323,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                 <button
                   type="button"
                   onClick={() => setShowLoginForm(true)}
-                  className="flex items-center gap-2 text-xs text-tea-text-sec hover:text-tea-gold transition-colors"
+                  className="inline-flex items-center gap-2 text-ui-12 text-tea-text-sec hover:text-tea-text transition-colors"
                 >
                   <LogIn className="w-3.5 h-3.5" />
                   Already a member? Sign in to pre-fill
@@ -323,10 +332,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
 
               {/* Full Name */}
               <div>
-                <label
-                  htmlFor="rsvp-name"
-                  className="block text-ui-10 uppercase tracking-[0.25em] text-tea-text-sec mb-2"
-                >
+                <label htmlFor="rsvp-name" className="label-caps block mb-2">
                   Your name
                 </label>
                 <input
@@ -337,14 +343,14 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                   placeholder="Your full name"
                   autoComplete="name"
                   required
-                  className="w-full px-4 py-3 bg-tea-surface border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-sec/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold/50 transition-colors"
+                  className={inputClass}
                 />
               </div>
 
               {/* Contact Method — hidden if signed-in user already has contact saved */}
               {isAuthenticated && (user?.phone || user?.email) && !overrideContact ? (
-                <div className="flex items-center justify-between gap-2 px-3 py-2.5 bg-tea-surface border border-tea-border rounded-sm">
-                  <span className="text-xs text-tea-text-sec truncate">
+                <div className="flex items-center justify-between gap-2 px-3 py-2.5 bg-tea-bg border border-tea-border rounded-md">
+                  <span className="text-ui-12 text-tea-text-sec truncate">
                     {user?.phone
                       ? <>We'll reach you on <span className="text-tea-text">WhatsApp</span> at <span className="text-tea-text">{user.phone}</span></>
                       : <>We'll reach you at <span className="text-tea-text">{user?.email}</span></>
@@ -353,44 +359,45 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                   <button
                     type="button"
                     onClick={() => setOverrideContact(true)}
-                    className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec hover:text-tea-gold transition-colors shrink-0"
+                    className="label-caps text-tea-text-sec hover:text-tea-text transition-colors shrink-0"
                   >
                     Change
                   </button>
                 </div>
               ) : (
                 <div>
-                  <label className="block text-ui-10 uppercase tracking-[0.25em] text-tea-text-sec mb-2">
+                  <label className="label-caps block mb-2">
                     How should we reach you?
                   </label>
-                  <div className="flex gap-2 mb-3">
-                    <button
-                      type="button"
-                      onClick={() => setContactMethod('whatsapp')}
-                      className={`flex-1 py-2.5 rounded-sm text-xs uppercase tracking-[0.15em] transition-all duration-200 ${
-                        formData.contactMethod === 'whatsapp'
-                          ? 'bg-tea-gold text-tea-bg'
-                          : 'bg-tea-surface text-tea-text-sec border border-tea-border hover:border-tea-gold/30'
-                      }`}
-                    >
-                      WhatsApp
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setContactMethod('email')}
-                      className={`flex-1 py-2.5 rounded-sm text-xs uppercase tracking-[0.15em] transition-all duration-200 ${
-                        formData.contactMethod === 'email'
-                          ? 'bg-tea-gold text-tea-bg'
-                          : 'bg-tea-surface text-tea-text-sec border border-tea-border hover:border-tea-gold/30'
-                      }`}
-                    >
-                      Email
-                    </button>
+                  {/* Method toggle — underline tabs */}
+                  <div className="flex gap-6 border-b border-tea-border mb-3">
+                    {(['whatsapp', 'email'] as ContactMethod[]).map((m) => {
+                      const isActive = formData.contactMethod === m;
+                      return (
+                        <button
+                          key={m}
+                          type="button"
+                          onClick={() => setContactMethod(m)}
+                          className={`relative -mb-px pb-2 pt-1 transition-colors ${
+                            isActive ? 'text-tea-text' : 'text-tea-text-sec hover:text-tea-text'
+                          }`}
+                        >
+                          <span className="text-ui-12 font-semibold">
+                            {m === 'whatsapp' ? 'WhatsApp' : 'Email'}
+                          </span>
+                          <span
+                            className={`absolute left-0 right-0 -bottom-px h-px transition-colors ${
+                              isActive ? 'bg-tea-gold' : 'bg-transparent'
+                            }`}
+                          />
+                        </button>
+                      );
+                    })}
                   </div>
 
                   {formData.contactMethod === 'whatsapp' ? (
                     <div>
-                      <div className="flex gap-0 border border-tea-border rounded-sm overflow-hidden focus-within:border-tea-gold/50 transition-colors">
+                      <div className="flex gap-0 border border-tea-border rounded-md overflow-hidden focus-within:border-tea-gold/50 transition-colors">
                         <input
                           type="tel"
                           value={countryCode}
@@ -402,7 +409,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                           placeholder="+1"
                           autoComplete="tel-country-code"
                           aria-label="Country code"
-                          className="bg-tea-surface text-tea-text text-sm px-3 py-3 border-r border-tea-border focus:outline-none shrink-0 w-[72px]"
+                          className="bg-tea-bg text-tea-text text-ui-14 px-3 py-2.5 border-r border-tea-border focus:outline-none shrink-0 w-[72px]"
                         />
                         <input
                           id="rsvp-phone"
@@ -412,14 +419,14 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                           placeholder="912 345 678"
                           autoComplete="tel-national"
                           required
-                          className="flex-1 min-w-0 px-4 py-3 bg-tea-surface text-tea-text text-sm placeholder:text-tea-text-sec/50 focus:outline-none"
+                          className="flex-1 min-w-0 px-3 py-2.5 bg-tea-bg text-tea-text text-ui-14 placeholder:text-tea-text-dim focus:outline-none"
                         />
                       </div>
                       <p className="mt-1.5 text-ui-10 text-tea-text-dim">Include the country code (we'll add the + for you)</p>
                       <button
                         type="button"
                         onClick={() => setContactMethod('email')}
-                        className="mt-2 text-xs text-tea-text-sec hover:text-tea-gold transition-colors"
+                        className="mt-2 text-ui-12 text-tea-text-sec hover:text-tea-text transition-colors"
                       >
                         Don't have WhatsApp? Use email instead
                       </button>
@@ -433,7 +440,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                       placeholder="your@email.com"
                       autoComplete="email"
                       required
-                      className="w-full px-4 py-3 bg-tea-surface border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-sec/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold/50 transition-colors"
+                      className={inputClass}
                     />
                   )}
                 </div>
@@ -441,17 +448,17 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
 
               {/* Guest Requests */}
               <div>
-                <label className="block text-ui-10 uppercase tracking-[0.25em] text-tea-text-sec mb-3">
+                <label className="label-caps block mb-3">
                   Bringing anyone?
                 </label>
                 <div className="space-y-3">
                   {(formData.guests ?? []).map((guest, idx) => (
                     <div
                       key={idx}
-                      className="border border-tea-border rounded-sm p-3 space-y-2 animate-[fadeIn_0.25s_ease-out]"
+                      className="border border-tea-border rounded-md p-3 space-y-2 animate-[fadeIn_0.25s_ease-out]"
                     >
                       <div className="flex items-center gap-2">
-                        <span className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec shrink-0">
+                        <span className="label-caps shrink-0">
                           Guest {idx + 1}
                         </span>
                         <input
@@ -459,12 +466,12 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                           value={guest.nameHint}
                           onChange={(e) => updateGuest(idx, { nameHint: e.target.value })}
                           placeholder="e.g. my partner"
-                          className="flex-1 px-3 py-2 bg-tea-surface border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-sec/40 focus:outline-none focus:border-tea-gold/50 transition-colors"
+                          className={inputClass + ' flex-1'}
                         />
                         <button
                           type="button"
                           onClick={() => removeGuest(idx)}
-                          className="p-1.5 text-tea-text-sec hover:text-red-400 transition-colors shrink-0"
+                          className="tap-target p-1.5 text-tea-text-sec hover:text-tea-error transition-colors shrink-0"
                           aria-label={`Remove guest ${idx + 1}`}
                         >
                           <Trash2 className="w-4 h-4" />
@@ -476,7 +483,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                           value={guest.contact ?? ''}
                           onChange={(e) => updateGuest(idx, { contact: e.target.value })}
                           placeholder="Their WhatsApp or email (we'll reach out, or message you if we can't)"
-                          className="w-full px-3 py-2 bg-tea-surface border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-sec/40 focus:outline-none focus:border-tea-gold/50 transition-colors"
+                          className={inputClass}
                         />
                       </div>
                     </div>
@@ -487,7 +494,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                   <button
                     type="button"
                     onClick={addGuest}
-                    className="mt-3 flex items-center gap-2 text-xs text-tea-text-sec hover:text-tea-gold transition-colors py-1"
+                    className="mt-3 inline-flex items-center gap-2 text-ui-12 text-tea-text-sec hover:text-tea-text transition-colors py-1"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     {(formData.guests ?? []).length === 0
@@ -499,12 +506,9 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
 
               {/* Notes */}
               <div>
-                <label
-                  htmlFor="rsvp-notes"
-                  className="block text-ui-10 uppercase tracking-[0.25em] text-tea-text-sec mb-2"
-                >
+                <label htmlFor="rsvp-notes" className="label-caps block mb-2">
                   Anything we should know?{' '}
-                  <span className="normal-case tracking-normal text-tea-text-sec/70">(optional)</span>
+                  <span className="normal-case tracking-normal text-tea-text-dim">(optional)</span>
                 </label>
                 <textarea
                   id="rsvp-notes"
@@ -512,7 +516,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                   onChange={(e) => updateField('notes', e.target.value)}
                   placeholder="Dietary restrictions, questions, anything…"
                   rows={3}
-                  className="w-full px-4 py-3 bg-tea-surface border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-sec/40 focus:outline-none focus:border-tea-gold/50 transition-colors resize-none"
+                  className={inputClass + ' resize-none'}
                 />
               </div>
 
@@ -522,9 +526,9 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                   type="checkbox"
                   checked={!!formData.show_in_guest_list}
                   onChange={(e) => updateField('show_in_guest_list', e.target.checked)}
-                  className="mt-0.5 w-4 h-4 rounded-sm border border-tea-border bg-tea-surface accent-tea-gold cursor-pointer"
+                  className="mt-0.5 w-4 h-4 rounded-sm border border-tea-border bg-tea-bg accent-tea-gold cursor-pointer"
                 />
-                <span className="text-xs text-tea-text-sec leading-relaxed group-hover:text-tea-text transition-colors">
+                <span className="text-ui-12 text-tea-text-sec leading-relaxed group-hover:text-tea-text transition-colors">
                   Show my first name to other confirmed guests
                   <span className="block text-ui-10 text-tea-text-dim mt-0.5">So people can see who's coming</span>
                 </span>
@@ -532,27 +536,36 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
 
               {/* Error */}
               {submitMutation.isError && (
-                <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-sm">
-                  <p className="text-sm text-red-400">
+                <div className="p-3 bg-tea-error/10 border border-tea-error/20 rounded-md">
+                  <p className="text-ui-12 text-tea-error">
                     {submitMutation.error?.message || 'Something went wrong. Please try again.'}
                   </p>
                 </div>
               )}
 
-              {/* Submit */}
-              <button
-                type="submit"
-                disabled={!isValid || submitMutation.isPending}
-                className="w-full py-4 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.25em] font-semibold rounded-sm hover:bg-tea-gold/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-2"
-              >
-                {submitMutation.isPending ? (
-                  <span className="inline-block w-4 h-4 border-2 border-tea-border border-t-tea-gold rounded-full animate-spin" />
-                ) : requiresApproval === false ? (
-                  'Reserve My Seat'
-                ) : (
-                  'Request My Seat'
-                )}
-              </button>
+              {/* Footer — Cancel-left, primary-right */}
+              <div className="flex justify-between items-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-3 py-2 text-xs font-semibold text-tea-text-sec hover:text-tea-text transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!isValid || submitMutation.isPending}
+                  className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors min-w-[180px]"
+                >
+                  {submitMutation.isPending ? (
+                    <span className="inline-block w-4 h-4 border-2 border-tea-bg/40 border-t-tea-bg rounded-full animate-spin" />
+                  ) : requiresApproval === false ? (
+                    'Reserve my seat'
+                  ) : (
+                    'Request my seat'
+                  )}
+                </button>
+              </div>
             </form>
           )}
         </div>

@@ -160,7 +160,7 @@ export const TeaTable: React.FC<TeaTableProps> = ({
           {headerSlot || (
             <div className="flex items-center gap-2 shrink-0">
               <Leaf size={16} className="text-tea-gold" />
-              <h2 className="text-sm font-serif text-tea-text uppercase tracking-[0.15em]">
+              <h2 className="h3">
                 {title || 'Tea Glossary'}
               </h2>
               <span className="text-tea-text-sec text-xs tracking-wide">

@@ -3,10 +3,10 @@
 // as a tab; remove that reference and delete this file when ready. Reference:
 // docs/NETWORK_ROLLOUT_PLAN.md Step 0.6.
 import React, { useEffect, useMemo, useState } from 'react';
-import { Loader2, UserPlus, Trash2, X, ShieldCheck, Shield, Settings } from 'lucide-react';
+import { Loader2, UserPlus, X, ShieldCheck, Shield, MoreHorizontal } from 'lucide-react';
 import { api, getTokenClaims } from '../../lib/api';
 import { useAppStore } from '../store';
-import type { AccountMember, AccountRole, PlatformRole } from '../../types';
+import type { AccountMember, AccountRole } from '../../types';
 
 const ROLES: AccountRole[] = ['owner', 'staff', 'viewer'];
 
@@ -14,6 +14,36 @@ const roleLabel: Record<AccountRole, string> = {
   owner: 'Owner',
   staff: 'Staff',
   viewer: 'Viewer',
+};
+
+// ── Canonical status pill (matches DesignSystemShowcase §8a) ──────────────
+type StatusVariant = 'draft' | 'active' | 'archived' | 'success' | 'error';
+const STATUS_PILL_VARIANTS: Record<StatusVariant, string> = {
+  draft: 'bg-tea-elevated text-tea-text-sec',
+  active: 'bg-tea-gold/10 text-tea-text ring-1 ring-inset ring-tea-gold/40',
+  archived: 'bg-tea-elevated text-tea-text-dim',
+  success: 'bg-tea-green/10 text-tea-green ring-1 ring-inset ring-tea-green/40',
+  error: 'bg-tea-error/10 text-tea-error ring-1 ring-inset ring-tea-error/40',
+};
+const StatusPill: React.FC<{ variant?: StatusVariant; children: React.ReactNode }> = ({ variant = 'draft', children }) => (
+  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-ui-9 uppercase font-sans tracking-caps ${STATUS_PILL_VARIANTS[variant]}`}>
+    {children}
+  </span>
+);
+
+const ROLE_PILL: Record<AccountRole, { variant: StatusVariant; label: string }> = {
+  owner: { variant: 'success', label: 'Owner' },
+  staff: { variant: 'active', label: 'Staff' },
+  viewer: { variant: 'draft', label: 'Viewer' },
+};
+
+const initialsFor = (member: AccountMember): string => {
+  const source = (member.name || member.email || '').trim();
+  if (!source) return '·';
+  const parts = source.split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) return (parts[0]![0] + parts[1]![0]).toUpperCase();
+  const word = parts[0] || source;
+  return word.slice(0, 2).toUpperCase();
 };
 
 const KNOWN_PERMISSIONS: { key: string; label: string; description: string }[] = [
@@ -33,9 +63,12 @@ interface MemberSettingsModalProps {
   accountId: string;
   ownerCount: number;
   currentUserId: string | null;
+  canEditRoles: boolean;
   onClose: () => void;
   onPermissionsUpdated: (userId: string, permissions: Record<string, boolean>) => void;
+  onRoleChanged: (userId: string, role: AccountRole) => void;
   onOwnershipTransferred: () => void;
+  onRemoved: (userId: string) => void;
 }
 
 const MemberSettingsModal: React.FC<MemberSettingsModalProps> = ({
@@ -43,22 +76,45 @@ const MemberSettingsModal: React.FC<MemberSettingsModalProps> = ({
   accountId,
   ownerCount,
   currentUserId,
+  canEditRoles,
   onClose,
   onPermissionsUpdated,
+  onRoleChanged,
   onOwnershipTransferred,
+  onRemoved,
 }) => {
   const [permissions, setPermissions] = useState<Record<string, boolean>>(member.permissions ?? {});
   const [canCreateCollections, setCanCreateCollections] = useState<boolean>(
     !!member.can_create_collections,
   );
+  const [role, setRole] = useState<AccountRole>(member.role);
   const [permBusy, setPermBusy] = useState(false);
+  const [roleBusy, setRoleBusy] = useState(false);
   const [transferBusy, setTransferBusy] = useState(false);
+  const [removeBusy, setRemoveBusy] = useState(false);
+  const [confirmingRemove, setConfirmingRemove] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
   const [curatorBusy, setCuratorBusy] = useState(false);
 
   const isSelf = member.user_id === currentUserId;
   const isLastOwner = member.role === 'owner' && ownerCount <= 1;
+
+  const handleRoleChange = async (next: AccountRole) => {
+    if (next === role) return;
+    setRoleBusy(true);
+    setMsg(null);
+    try {
+      await api.accounts.updateMember(accountId, member.user_id, next);
+      setRole(next);
+      onRoleChanged(member.user_id, next);
+      setMsg('Role saved.');
+    } catch (err: any) {
+      setMsg(err?.message || 'Failed to update role');
+    } finally {
+      setRoleBusy(false);
+    }
+  };
 
   const handlePermissionToggle = async (key: string, value: boolean) => {
     const next = { ...permissions, [key]: value };
@@ -93,7 +149,6 @@ const MemberSettingsModal: React.FC<MemberSettingsModalProps> = ({
   };
 
   const handleTransferOwnership = async () => {
-    if (!confirm(`Transfer account ownership to ${member.name || member.email}? They will become owner and your role will change to staff.`)) return;
     setTransferBusy(true);
     setMsg(null);
     try {
@@ -106,6 +161,41 @@ const MemberSettingsModal: React.FC<MemberSettingsModalProps> = ({
     }
   };
 
+  const handleRemove = async () => {
+    setRemoveBusy(true);
+    setMsg(null);
+    try {
+      await api.accounts.removeMember(accountId, member.user_id);
+      onRemoved(member.user_id);
+      onClose();
+    } catch (err: any) {
+      setMsg(err?.message || 'Failed to remove member');
+      setRemoveBusy(false);
+      setConfirmingRemove(false);
+    }
+  };
+
+  // Toggle row pattern matches AccessView capability toggles
+  const Toggle: React.FC<{ active: boolean; onClick: () => void; disabled?: boolean; label: string }> = ({ active, onClick, disabled, label }) => (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={active}
+      aria-label={`${label} ${active ? 'enabled' : 'disabled'}`}
+      onClick={onClick}
+      disabled={disabled}
+      className={`relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 disabled:opacity-50 ${
+        active ? 'bg-tea-gold' : 'bg-tea-elevated ring-1 ring-inset ring-tea-border'
+      }`}
+    >
+      <span
+        className={`inline-block h-3.5 w-3.5 rounded-full bg-tea-bg transition-transform ${
+          active ? 'translate-x-[18px]' : 'translate-x-[3px]'
+        }`}
+      />
+    </button>
+  );
+
   return (
     <div
       className="fixed inset-0 z-modal flex items-center justify-center bg-tea-bg/80 backdrop-blur-sm p-4"
@@ -113,129 +203,159 @@ const MemberSettingsModal: React.FC<MemberSettingsModalProps> = ({
       aria-modal="true"
       aria-label="Member settings"
     >
-      <div className="w-full max-w-md bg-tea-surface rounded-lg border border-tea-border shadow-2xl">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-tea-border">
-          <div>
-            <h2 className="text-base text-tea-text" style={{ fontFamily: 'var(--font-display)' }}>
+      <div className="w-full max-w-md relative bg-tea-surface rounded-xl border border-tea-border shadow-2xl">
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute top-4 right-4 p-1.5 rounded-md text-tea-text-sec hover:text-tea-text transition-colors tap-target"
+          aria-label="Close"
+          title="Close"
+        >
+          <X size={16} />
+        </button>
+        <div className="px-5 py-4 border-b border-tea-border pr-12 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-tea-elevated text-tea-text-sec font-display text-ui-14 flex items-center justify-center flex-shrink-0">
+            {initialsFor(member)}
+          </div>
+          <div className="min-w-0">
+            <h2 className="h3 text-tea-text truncate">
               {member.name || member.email}
             </h2>
-            <p className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim mt-0.5">
-              {roleLabel[member.role]}
-            </p>
+            {member.name && (
+              <p className="text-ui-12 text-tea-text-dim mt-0.5 truncate">{member.email}</p>
+            )}
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-tea-text-sec hover:text-tea-text transition-colors"
-            aria-label="Close"
-          >
-            <X size={16} />
-          </button>
         </div>
 
-        <div className="p-5 space-y-5">
+        <div className="p-5 space-y-5 max-h-[70vh] overflow-y-auto">
+          {/* Role */}
+          {canEditRoles && !isSelf && (
+            <div>
+              <p className="label-caps text-tea-text-sec mb-2">Role</p>
+              <div className="flex items-center gap-2 flex-wrap">
+                {ROLES.map((r) => {
+                  const active = role === r;
+                  return (
+                    <button
+                      key={r}
+                      type="button"
+                      onClick={() => handleRoleChange(r)}
+                      disabled={roleBusy}
+                      className={`px-3 py-1.5 rounded-md text-ui-12 transition-colors disabled:opacity-50 ${
+                        active
+                          ? 'bg-tea-gold/10 text-tea-text ring-1 ring-inset ring-tea-gold/40'
+                          : 'border border-tea-border text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub'
+                      }`}
+                    >
+                      {roleLabel[r]}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Feature Permissions */}
           <div>
-            <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-3">
-              Feature Access
-            </p>
-            <div className="space-y-3">
+            <p className="label-caps text-tea-text-sec mb-3">Feature Access</p>
+            <div>
               {KNOWN_PERMISSIONS.map(({ key, label, description }) => (
-                <label
+                <div
                   key={key}
-                  className="flex items-start gap-3 cursor-pointer group"
+                  className="flex items-center justify-between gap-3 py-2 border-b border-tea-border last:border-b-0"
                 >
-                  <div className="relative mt-0.5">
-                    <input
-                      type="checkbox"
-                      checked={!!permissions[key]}
-                      onChange={(e) => handlePermissionToggle(key, e.target.checked)}
-                      disabled={permBusy}
-                      className="sr-only"
-                    />
-                    <div
-                      className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${
-                        permissions[key]
-                          ? 'bg-tea-gold border-tea-gold'
-                          : 'bg-tea-bg border-tea-border group-hover:border-tea-gold/50'
-                      }`}
-                      onClick={() => !permBusy && handlePermissionToggle(key, !permissions[key])}
-                    >
-                      {permissions[key] && (
-                        <svg width="8" height="6" viewBox="0 0 8 6" fill="none">
-                          <path d="M1 3L3 5L7 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-tea-bg" />
-                        </svg>
-                      )}
-                    </div>
+                  <div className="min-w-0">
+                    <div className="text-ui-13 text-tea-text">{label}</div>
+                    <div className="text-ui-11 text-tea-text-dim mt-0.5 leading-[1.5]">{description}</div>
                   </div>
-                  <div>
-                    <p className="text-xs text-tea-text leading-tight">{label}</p>
-                    <p className="text-ui-10 text-tea-text-dim mt-0.5 leading-relaxed">{description}</p>
-                  </div>
-                </label>
+                  <Toggle
+                    active={!!permissions[key]}
+                    onClick={() => handlePermissionToggle(key, !permissions[key])}
+                    disabled={permBusy}
+                    label={label}
+                  />
+                </div>
               ))}
             </div>
           </div>
 
           {/* Curator Access */}
-          <div className="pt-2 border-t border-tea-border">
-            <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-3">
-              Curator Access
-            </p>
-            <label className="flex items-start gap-3 cursor-pointer group">
-              <div className="relative mt-0.5">
-                <input
-                  type="checkbox"
-                  checked={canCreateCollections}
-                  onChange={(e) => handleCuratorToggle(e.target.checked)}
-                  disabled={curatorBusy}
-                  className="sr-only"
-                />
-                <div
-                  className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${
-                    canCreateCollections
-                      ? 'bg-tea-gold border-tea-gold'
-                      : 'bg-tea-bg border-tea-border group-hover:border-tea-gold/50'
-                  }`}
-                  onClick={() => !curatorBusy && handleCuratorToggle(!canCreateCollections)}
-                >
-                  {canCreateCollections && (
-                    <svg width="8" height="6" viewBox="0 0 8 6" fill="none">
-                      <path d="M1 3L3 5L7 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-tea-bg" />
-                    </svg>
-                  )}
+          <div>
+            <p className="label-caps text-tea-text-sec mb-3">Curator Access</p>
+            <div className="flex items-center justify-between gap-3 py-2 border-b border-tea-border">
+              <div className="min-w-0">
+                <div className="text-ui-13 text-tea-text">Can create collections</div>
+                <div className="text-ui-11 text-tea-text-dim mt-0.5 leading-[1.5]">
+                  Member can create and publish their own collections. Requests still route to you.
                 </div>
               </div>
-              <div>
-                <p className="text-xs text-tea-text leading-tight">Can create collections</p>
-                <p className="text-ui-10 text-tea-text-dim mt-0.5 leading-relaxed">
-                  Member can create and publish their own collections. Requests still route to you.
-                </p>
-              </div>
-            </label>
+              <Toggle
+                active={canCreateCollections}
+                onClick={() => handleCuratorToggle(!canCreateCollections)}
+                disabled={curatorBusy}
+                label="Can create collections"
+              />
+            </div>
           </div>
 
           {msg && (
-            <div className="text-xs text-tea-text-sec bg-tea-elevated px-3 py-2 rounded-md">
+            <div className="text-ui-12 text-tea-text-sec italic">
               {msg}
             </div>
           )}
 
           {/* Transfer Ownership — only for non-self members who aren't already the only owner */}
-          {!isSelf && !isLastOwner && (
-            <div className="pt-2 border-t border-tea-border">
-              <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-2">
-                Ownership
-              </p>
+          {!isSelf && !isLastOwner && canEditRoles && (
+            <div className="pt-4 border-t border-tea-border">
+              <p className="label-caps text-tea-text-sec mb-2">Ownership</p>
               <button
                 type="button"
                 onClick={handleTransferOwnership}
                 disabled={transferBusy}
-                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-xs text-tea-text-sec border border-tea-border hover:border-tea-gold/50 hover:text-tea-text transition-colors disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-ui-12 text-tea-text-sec border border-tea-border hover:text-tea-text hover:bg-tea-accent-sub transition-colors disabled:opacity-50"
               >
                 {transferBusy && <Loader2 className="animate-spin" size={11} />}
-                Transfer Ownership to {member.name || member.email}
+                Transfer ownership to {member.name || member.email}
               </button>
+            </div>
+          )}
+
+          {/* Remove — destructive with inline confirm */}
+          {!isSelf && !isLastOwner && canEditRoles && (
+            <div className="pt-4 border-t border-tea-border">
+              {!confirmingRemove ? (
+                <button
+                  type="button"
+                  onClick={() => setConfirmingRemove(true)}
+                  className="text-tea-text-sec hover:text-tea-text transition-colors text-ui-13"
+                >
+                  Remove from this account
+                </button>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-tea-text-sec text-ui-13 leading-[1.6] italic">
+                    Remove {member.name || member.email}? They will lose access immediately.
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setConfirmingRemove(false)}
+                      disabled={removeBusy}
+                      className="px-2 py-1 text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors"
+                    >
+                      Keep
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleRemove}
+                      disabled={removeBusy}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-error text-tea-bg text-xs font-semibold hover:bg-tea-error/90 transition-colors disabled:opacity-40"
+                    >
+                      {removeBusy ? 'Removing…' : 'Remove'}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -258,7 +378,6 @@ export const TeamView: React.FC = () => {
   const [inviteRole, setInviteRole] = useState<AccountRole>('staff');
   const [inviteBusy, setInviteBusy] = useState(false);
   const [inviteMsg, setInviteMsg] = useState<string | null>(null);
-  const [rowBusy, setRowBusy] = useState<string | null>(null);
   const [settingsMember, setSettingsMember] = useState<AccountMember | null>(null);
 
   const canManage = currentRole === 'owner';
@@ -288,56 +407,21 @@ export const TeamView: React.FC = () => {
 
   if (!activeAccountId) {
     return (
-      <div className="p-12 text-center text-tea-text-sec font-serif">
-        No active account selected.
+      <div className="px-4 md:px-6 pt-6 pb-nav-gap max-w-3xl mx-auto">
+        <p className="text-tea-text-sec italic">No active account selected.</p>
       </div>
     );
   }
 
   if (!canManage) {
     return (
-      <div className="p-12 text-center text-tea-text-sec font-serif">
-        You don't have permission to view the team.
+      <div className="px-4 md:px-6 pt-6 pb-nav-gap max-w-3xl mx-auto">
+        <p className="text-tea-text-sec italic">You don't have permission to view the team.</p>
       </div>
     );
   }
 
   const ownerCount = members.filter((m) => m.role === 'owner').length;
-
-  const handleRoleChange = async (userId: string, role: AccountRole) => {
-    if (!canEditRoles) return;
-    setRowBusy(userId);
-    try {
-      await api.accounts.updateMember(activeAccountId, userId, role);
-      setMembers((prev) => prev.map((m) => (m.user_id === userId ? { ...m, role } : m)));
-    } catch (err: any) {
-      setError(err?.message || 'Failed to update role');
-    } finally {
-      setRowBusy(null);
-    }
-  };
-
-  const handleRemove = async (member: AccountMember) => {
-    if (!canEditRoles) return;
-    if (member.user_id === currentUserId) {
-      setError("You can't remove yourself.");
-      return;
-    }
-    if (member.role === 'owner' && ownerCount <= 1) {
-      setError("You can't remove the last owner.");
-      return;
-    }
-    if (!confirm(`Remove ${member.name || member.email} from this account?`)) return;
-    setRowBusy(member.user_id);
-    try {
-      await api.accounts.removeMember(activeAccountId, member.user_id);
-      setMembers((prev) => prev.filter((m) => m.user_id !== member.user_id));
-    } catch (err: any) {
-      setError(err?.message || 'Failed to remove member');
-    } finally {
-      setRowBusy(null);
-    }
-  };
 
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -366,16 +450,12 @@ export const TeamView: React.FC = () => {
   };
 
   return (
-    <div className="p-6 md:p-10 max-w-4xl mx-auto">
-      <div className="flex items-start justify-between mb-6 gap-4">
+    <div className="px-4 md:px-6 pt-6 pb-nav-gap max-w-3xl mx-auto">
+      <header className="mb-8 flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl text-tea-text mb-1" style={{ fontFamily: 'var(--font-display)' }}>
-            Team
-          </h1>
+          <h1 className="h2 text-tea-text">Team</h1>
           {activeAccountName && (
-            <p className="text-xs text-tea-text-dim uppercase tracking-[0.15em]">
-              {activeAccountName}
-            </p>
+            <p className="label-caps text-tea-text-dim mt-1">{activeAccountName}</p>
           )}
         </div>
         <button
@@ -384,127 +464,95 @@ export const TeamView: React.FC = () => {
             setInviteOpen(true);
             setInviteMsg(null);
           }}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold uppercase tracking-[0.15em] hover:opacity-90 transition-opacity"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors"
         >
-          <UserPlus size={14} />
+          <UserPlus size={13} />
           Invite
         </button>
-      </div>
+      </header>
 
       {error && (
-        <div className="mb-4 px-4 py-3 rounded-md bg-tea-elevated text-xs text-tea-text-sec">
-          {error}
-        </div>
+        <div className="mb-4 text-ui-12 text-tea-error">{error}</div>
       )}
 
-      <div className="bg-tea-surface rounded-lg overflow-hidden border border-tea-border">
-        {loading ? (
-          <div className="flex items-center justify-center py-16 text-tea-text-dim">
-            <Loader2 className="animate-spin" size={18} />
-          </div>
-        ) : members.length === 0 ? (
-          <div className="py-16 text-center text-tea-text-dim text-sm font-serif italic">
-            No team members yet.
-          </div>
-        ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-ui-9 uppercase tracking-[0.15em] text-tea-text-dim">
-                <th className="text-left font-medium px-4 py-3 border-b border-tea-border">Name</th>
-                <th className="text-left font-medium px-4 py-3 border-b border-tea-border">Email</th>
-                <th className="text-left font-medium px-4 py-3 border-b border-tea-border">Role</th>
-                <th className="text-left font-medium px-4 py-3 border-b border-tea-border">Joined</th>
-                {canEditRoles && (
-                  <th className="text-right font-medium px-4 py-3 border-b border-tea-border"></th>
-                )}
-              </tr>
-            </thead>
-            <tbody>
-              {members.map((m) => {
-                const isSelf = m.user_id === currentUserId;
-                const isLastOwner = m.role === 'owner' && ownerCount <= 1;
-                return (
-                  <tr key={m.user_id} className="hover:bg-tea-elevated/30 transition-colors">
-                    <td className="px-4 py-3 text-tea-text">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        {m.name || '—'}
-                        {isSelf && (
-                          <span className="text-ui-9 uppercase tracking-[0.15em] text-tea-text-dim">you</span>
-                        )}
-                        {m.platform_role === 'platform_owner' && (
-                          <span className="badge-status badge-status-gold flex items-center gap-0.5">
-                            <ShieldCheck size={9} />Super Owner
-                          </span>
-                        )}
-                        {m.platform_role === 'platform_admin' && (
-                          <span className="badge-status badge-status-default flex items-center gap-0.5">
-                            <Shield size={9} />Platform Admin
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-tea-text-sec">{m.email}</td>
-                    <td className="px-4 py-3">
-                      {canEditRoles && !isSelf ? (
-                        <select
-                          value={m.role}
-                          onChange={(e) => handleRoleChange(m.user_id, e.target.value as AccountRole)}
-                          disabled={rowBusy === m.user_id}
-                          className="bg-tea-bg text-tea-text text-xs px-2 py-1 rounded-md outline-none focus:ring-2 focus:ring-tea-gold/40"
-                        >
-                          {ROLES.map((r) => (
-                            <option key={r} value={r}>
-                              {roleLabel[r]}
-                            </option>
-                          ))}
-                        </select>
-                      ) : (
-                        <span className="text-tea-text-sec text-xs uppercase tracking-[0.1em]">
-                          {roleLabel[m.role]}
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-tea-text-dim text-xs">
-                      {m.joined_at ? new Date(m.joined_at).toLocaleDateString() : '—'}
-                    </td>
-                    {canEditRoles && (
-                      <td className="px-4 py-3 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <button
-                            type="button"
-                            onClick={() => setSettingsMember(m)}
-                            className="inline-flex items-center justify-center w-7 h-7 rounded-md text-tea-text-dim hover:text-tea-text hover:bg-tea-elevated/60 transition-colors"
-                            aria-label="Member settings"
-                            title="Permissions & ownership"
-                          >
-                            <Settings size={13} />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleRemove(m)}
-                            disabled={isSelf || isLastOwner || rowBusy === m.user_id}
-                            className="inline-flex items-center justify-center w-7 h-7 rounded-md text-tea-text-dim hover:text-tea-text hover:bg-tea-elevated/60 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                            aria-label="Remove member"
-                            title={
-                              isSelf
-                                ? "You can't remove yourself"
-                                : isLastOwner
-                                  ? "Can't remove the last owner"
-                                  : 'Remove member'
-                            }
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        </div>
-                      </td>
+      {loading ? (
+        <div className="flex items-center justify-center py-16 text-tea-text-dim">
+          <Loader2 className="animate-spin" size={18} />
+        </div>
+      ) : members.length === 0 ? (
+        <div className="text-tea-text-sec text-ui-14 leading-[1.7]">
+          No team members yet.
+        </div>
+      ) : (
+        <ul className="divide-y divide-tea-border bg-tea-surface border border-tea-border rounded-xl overflow-hidden">
+          {members.map((m) => {
+            const isSelf = m.user_id === currentUserId;
+            const pill = ROLE_PILL[m.role] || ROLE_PILL.viewer;
+            const displayName = m.name || m.email;
+            const hasName = !!m.name;
+            const canOpen = canEditRoles && !isSelf;
+            const Inner = (
+              <div className="flex items-center gap-3 w-full">
+                <div className="w-10 h-10 rounded-full bg-tea-elevated text-tea-text-sec font-display text-ui-14 flex items-center justify-center flex-shrink-0">
+                  {initialsFor(m)}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-baseline gap-2 flex-wrap">
+                    <div className="font-display text-ui-15 text-tea-text truncate">{displayName}</div>
+                    {isSelf && (
+                      <span className="text-tea-text-sec italic text-ui-11">You</span>
                     )}
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
-      </div>
+                    {m.platform_role === 'platform_owner' && (
+                      <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-ui-9 uppercase font-sans tracking-caps bg-tea-gold/10 text-tea-text ring-1 ring-inset ring-tea-gold/40">
+                        <ShieldCheck size={9} />Super Owner
+                      </span>
+                    )}
+                    {m.platform_role === 'platform_admin' && (
+                      <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-ui-9 uppercase font-sans tracking-caps bg-tea-elevated text-tea-text-sec">
+                        <Shield size={9} />Platform Admin
+                      </span>
+                    )}
+                  </div>
+                  {hasName && (
+                    <div className="text-ui-12 text-tea-text-dim mt-0.5 truncate">{m.email}</div>
+                  )}
+                  {m.joined_at && (
+                    <div className="text-ui-11 text-tea-text-dim mt-0.5">
+                      Joined {new Date(m.joined_at).toLocaleDateString()}
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <StatusPill variant={pill.variant}>{pill.label}</StatusPill>
+                  {canOpen && (
+                    <span
+                      aria-hidden
+                      className="inline-flex items-center justify-center w-8 h-8 rounded-md text-tea-text-sec group-hover:text-tea-text transition-colors tap-target"
+                    >
+                      <MoreHorizontal size={16} />
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
+            return (
+              <li key={m.user_id}>
+                {canOpen ? (
+                  <button
+                    type="button"
+                    onClick={() => setSettingsMember(m)}
+                    className="w-full text-left px-4 py-3 hover:bg-tea-accent-sub transition-colors group flex items-center"
+                  >
+                    {Inner}
+                  </button>
+                ) : (
+                  <div className="px-4 py-3 flex items-center">{Inner}</div>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
 
       {inviteOpen && (
         <div
@@ -513,67 +561,70 @@ export const TeamView: React.FC = () => {
           aria-modal="true"
           aria-label="Invite team member"
         >
-          <div className="w-full max-w-md bg-tea-surface rounded-lg border border-tea-border shadow-2xl">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-tea-border">
-              <h2 className="text-lg text-tea-text" style={{ fontFamily: 'var(--font-display)' }}>
-                Invite Member
-              </h2>
-              <button
-                type="button"
-                onClick={() => setInviteOpen(false)}
-                className="text-tea-text-dim hover:text-tea-text transition-colors"
-                aria-label="Close"
-              >
-                <X size={16} />
-              </button>
+          <div className="w-full max-w-md relative bg-tea-surface rounded-xl border border-tea-border shadow-2xl">
+            <button
+              type="button"
+              onClick={() => setInviteOpen(false)}
+              className="absolute top-4 right-4 p-1.5 rounded-md text-tea-text-sec hover:text-tea-text transition-colors tap-target"
+              aria-label="Close"
+              title="Close"
+            >
+              <X size={16} />
+            </button>
+            <div className="px-5 py-4 border-b border-tea-border pr-12">
+              <h2 className="h3 text-tea-text">Invite Member</h2>
             </div>
-            <form onSubmit={handleInvite} className="p-5 space-y-4">
+            <form onSubmit={handleInvite} className="p-5 space-y-3">
               <div>
-                <label className="block text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-2">
-                  Email
-                </label>
+                <label className="label-caps text-tea-text-sec mb-1.5 block">Email</label>
                 <input
                   type="email"
                   required
                   value={inviteEmail}
                   onChange={(e) => setInviteEmail(e.target.value)}
-                  placeholder="email"
-                  className="w-full bg-tea-bg text-tea-text text-sm px-3 py-2 rounded-md outline-none focus:ring-2 focus:ring-tea-gold/40"
+                  placeholder="name@example.com"
+                  className="w-full bg-tea-bg border border-tea-border rounded-md px-3 py-2 text-ui-14 text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none"
                 />
               </div>
               <div>
-                <label className="block text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-2">
-                  Role
-                </label>
-                <select
-                  value={inviteRole}
-                  onChange={(e) => setInviteRole(e.target.value as AccountRole)}
-                  className="w-full bg-tea-bg text-tea-text text-sm px-3 py-2 rounded-md outline-none focus:ring-2 focus:ring-tea-gold/40"
-                >
-                  {ROLES.map((r) => (
-                    <option key={r} value={r}>
-                      {roleLabel[r]}
-                    </option>
-                  ))}
-                </select>
+                <label className="label-caps text-tea-text-sec mb-1.5 block">Role</label>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {ROLES.map((r) => {
+                    const active = inviteRole === r;
+                    return (
+                      <button
+                        key={r}
+                        type="button"
+                        onClick={() => setInviteRole(r)}
+                        className={`px-3 py-1.5 rounded-md text-ui-12 transition-colors ${
+                          active
+                            ? 'bg-tea-gold/10 text-tea-text ring-1 ring-inset ring-tea-gold/40'
+                            : 'border border-tea-border text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub'
+                        }`}
+                      >
+                        {roleLabel[r]}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
               {inviteMsg && (
-                <div className="text-xs text-tea-text-sec bg-tea-elevated px-3 py-2 rounded-md">
+                <div className="text-ui-12 text-tea-text-sec italic">
                   {inviteMsg}
                 </div>
               )}
-              <div className="flex items-center justify-end gap-2 pt-2">
+              <div className="flex items-center justify-between gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setInviteOpen(false)}
-                  className="px-4 py-2 text-xs uppercase tracking-[0.15em] text-tea-text-sec hover:text-tea-text transition-colors"
+                  className="px-2 py-1 text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={inviteBusy || !inviteEmail}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold uppercase tracking-[0.15em] hover:opacity-90 transition-opacity disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40"
                 >
                   {inviteBusy && <Loader2 className="animate-spin" size={12} />}
                   Send Invite
@@ -590,11 +641,20 @@ export const TeamView: React.FC = () => {
           accountId={activeAccountId}
           ownerCount={ownerCount}
           currentUserId={currentUserId}
+          canEditRoles={canEditRoles}
           onClose={() => setSettingsMember(null)}
           onPermissionsUpdated={(userId, permissions) => {
             setMembers((prev) =>
               prev.map((m) => (m.user_id === userId ? { ...m, permissions } : m)),
             );
+          }}
+          onRoleChanged={(userId, role) => {
+            setMembers((prev) =>
+              prev.map((m) => (m.user_id === userId ? { ...m, role } : m)),
+            );
+          }}
+          onRemoved={(userId) => {
+            setMembers((prev) => prev.filter((m) => m.user_id !== userId));
           }}
           onOwnershipTransferred={loadMembers}
         />

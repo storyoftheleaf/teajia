@@ -1,10 +1,12 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { ChevronRight } from 'lucide-react';
 import { api } from '../lib/api';
 import type { TeaEvent } from '../types/events';
 import { PageHeader } from '../components/shared/PageHeader';
 
+// ── Date helpers ─────────────────────────────────────────────────────────────
 function formatDate(dateStr: string) {
   const d = new Date(dateStr);
   return {
@@ -16,125 +18,140 @@ function formatDate(dateStr: string) {
   };
 }
 
-const teaGradients: Record<string, string[]> = {
-  'aged-liu-bao-may-2026':    ['#3d2817', '#1a0e08', '#5a3a20'],
-  'yancha-workshop-may-2026': ['#4a2818', '#1f0d05', '#6b3a1e'],
-  'quiet-sitting-may-2026':   ['#1f1a14', '#0c0a08', '#2e2820'],
-  'wild-puerh-may-2026':      ['#3a2a15', '#1a1108', '#544020'],
-};
-
-function gradientFor(slug: string) {
-  const c = teaGradients[slug] ?? ['#3d2817', '#1a0e08', '#5a3a20'];
-  return `radial-gradient(ellipse at 30% 40%, ${c[2]} 0%, ${c[0]} 50%, ${c[1]} 100%)`;
-}
-
-interface EventCardProps {
+// ── List row card (§8 — divide-y list rows) ──────────────────────────────────
+interface EventRowProps {
   event: TeaEvent & { seatsRemaining?: number; confirmedCount?: number };
+  isPast: boolean;
 }
 
-const EventCard: React.FC<EventCardProps> = ({ event }) => {
+const EventRow: React.FC<EventRowProps> = ({ event, isPast }) => {
   const navigate = useNavigate();
-  const { day, num, month, time } = formatDate(event.eventDate);
+  const { num, month, time } = formatDate(event.eventDate);
   const seats = event.seatsRemaining ?? (event.totalCapacity - (event.confirmedCount ?? 0));
-  const isFull = seats <= 0;
+  const isFull = !isPast && seats <= 0;
+
+  const detail =
+    event.areaHint ?? event.locationName ?? (event.moodHints && event.moodHints.length > 0 ? event.moodHints.join(' · ') : null);
 
   return (
     <button
       onClick={() => navigate(`/event/${event.slug}`)}
-      className="w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 rounded-sm"
+      className="group w-full flex items-center gap-4 py-5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/40 rounded-md transition-colors"
     >
-      <div className="relative overflow-hidden rounded-sm" style={{ background: 'var(--color-tea-surface, #1e1710)' }}>
-        {/* Flyer image or gradient hero */}
-        {event.flyerImageUrl ? (
-          <div className="w-full aspect-[16/9] overflow-hidden">
-            <img
-              src={event.flyerImageUrl}
-              alt={event.title}
-              className="w-full h-full object-cover"
-              loading="lazy"
-            />
-            <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-black/40 to-transparent pointer-events-none" />
-            <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-tea-bg to-transparent pointer-events-none" />
-          </div>
-        ) : (
-          <div
-            className="w-full aspect-[16/9]"
-            style={{ background: gradientFor(event.slug) }}
-          >
-            <div
-              className="absolute inset-0"
-              style={{ background: 'radial-gradient(circle at 70% 30%, rgba(184,146,78,0.12) 0%, transparent 40%)' }}
-            />
-            <div
-              className="absolute bottom-0 left-0 right-0"
-              style={{ height: '50%', background: 'linear-gradient(to top, var(--color-tea-bg, #18130e), transparent)' }}
-            />
-          </div>
-        )}
-
-        {/* Availability badge */}
-        <div className="absolute top-3 right-3">
-          {isFull ? (
-            <span className="px-2.5 py-1 text-ui-10 uppercase tracking-[0.2em] bg-tea-bg/80 text-tea-text-dim backdrop-blur-sm rounded-full border border-tea-border">
-              Full
-            </span>
-          ) : (
-            <span className="px-2.5 py-1 text-ui-10 uppercase tracking-[0.2em] bg-tea-bg/80 text-tea-gold backdrop-blur-sm rounded-full border border-tea-gold/20">
-              {seats} {seats === 1 ? 'seat' : 'seats'} open
-            </span>
-          )}
-        </div>
-
-        {/* Content overlay */}
-        <div className="px-4 pb-4 pt-2 relative">
-          {/* Date row */}
-          <div className="flex items-baseline gap-2 mb-2">
-            <span className="text-ui-10 uppercase tracking-[0.25em] text-tea-text-dim">{day}</span>
-            <span className="font-serif text-ui-13 text-tea-text-sec">{num} {month}</span>
-            <span className="text-ui-10 text-tea-text-dim ml-auto">{time}</span>
-          </div>
-
-          {/* Title */}
-          <h2 className="font-serif text-xl text-tea-text leading-snug mb-0.5">{event.title}</h2>
-          {event.subtitle && (
-            <p className="font-serif italic text-sm text-tea-text-sec">{event.subtitle}</p>
-          )}
-
-          {/* Location hint */}
-          {(event.areaHint || event.locationName) && (
-            <p className="text-ui-11 text-tea-text-dim mt-2 flex items-center gap-1.5">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 opacity-60">
-                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 1 1 18 0z"/><circle cx="12" cy="10" r="3"/>
-              </svg>
-              {event.areaHint ?? event.locationName}
-            </p>
-          )}
-
-          {/* Mood hints */}
-          {event.moodHints && event.moodHints.length > 0 && (
-            <p className="text-ui-11 text-tea-text-dim mt-2.5">
-              {event.moodHints.join(' · ')}
-            </p>
-          )}
-        </div>
+      {/* Date column */}
+      <div className="shrink-0 w-14 flex flex-col items-center justify-center">
+        <span className="label-caps text-tea-text-dim">{month}</span>
+        <span
+          className="text-ui-26 leading-none text-tea-text mt-0.5"
+          style={{ fontFamily: 'var(--font-display)', fontWeight: 300 }}
+        >
+          {num}
+        </span>
+        <span className="text-ui-10 text-tea-text-dim mt-1">{time}</span>
       </div>
+
+      {/* Body column */}
+      <div className="flex-1 min-w-0">
+        <h2
+          className="text-ui-17 text-tea-text leading-snug truncate"
+          style={{ fontFamily: 'var(--font-display)' }}
+        >
+          {event.title}
+        </h2>
+        {detail && (
+          <p className="text-ui-13 text-tea-text-sec truncate mt-0.5">
+            {detail}
+          </p>
+        )}
+      </div>
+
+      {/* Status pill */}
+      <div className="shrink-0 hidden sm:block">
+        {isPast ? (
+          <span className="inline-flex px-2 py-0.5 rounded-full text-ui-10 uppercase tracking-[0.15em] bg-tea-elevated text-tea-text-dim">
+            Past
+          </span>
+        ) : isFull ? (
+          <span className="inline-flex px-2 py-0.5 rounded-full text-ui-10 uppercase tracking-[0.15em] bg-tea-elevated text-tea-text-dim">
+            Full
+          </span>
+        ) : (
+          <span className="inline-flex px-2 py-0.5 rounded-full text-ui-10 uppercase tracking-[0.15em] bg-tea-gold/10 text-tea-text ring-1 ring-inset ring-tea-gold/30">
+            Upcoming
+          </span>
+        )}
+      </div>
+
+      <ChevronRight className="shrink-0 w-4 h-4 text-tea-text-dim group-hover:text-tea-text-sec transition-colors" />
     </button>
   );
 };
 
-// ── Skeleton card ──────────────────────────────────────────────────────────────
-const EventCardSkeleton: React.FC = () => (
-  <div className="rounded-sm overflow-hidden animate-pulse bg-tea-surface">
-    <div className="aspect-[16/9] bg-tea-elevated" />
-    <div className="px-4 py-4 space-y-2">
-      <div className="h-3 w-24 bg-tea-elevated rounded-sm" />
-      <div className="h-5 w-48 bg-tea-elevated rounded-sm" />
-      <div className="h-3 w-32 bg-tea-elevated rounded-sm" />
+// ── Skeleton row ─────────────────────────────────────────────────────────────
+const EventRowSkeleton: React.FC = () => (
+  <div className="flex items-center gap-4 py-5 animate-pulse">
+    <div className="shrink-0 w-14 flex flex-col items-center gap-1.5">
+      <div className="h-2 w-8 bg-tea-elevated rounded-sm" />
+      <div className="h-6 w-8 bg-tea-elevated rounded-sm" />
+      <div className="h-2 w-10 bg-tea-elevated rounded-sm" />
     </div>
+    <div className="flex-1 space-y-2">
+      <div className="h-4 w-2/3 bg-tea-elevated rounded-sm" />
+      <div className="h-3 w-1/2 bg-tea-elevated rounded-sm" />
+    </div>
+    <div className="h-5 w-16 bg-tea-elevated rounded-full hidden sm:block" />
   </div>
 );
 
-// ── Page ───────────────────────────────────────────────────────────────────────
+// ── Filter tabs (§6 — bottom-border underline) ──────────────────────────────
+type Filter = 'upcoming' | 'past';
+
+interface FilterTabsProps {
+  active: Filter;
+  onChange: (f: Filter) => void;
+  counts: { upcoming: number; past: number };
+}
+
+const FilterTabs: React.FC<FilterTabsProps> = ({ active, onChange, counts }) => {
+  const tabs: { id: Filter; label: string; count: number }[] = [
+    { id: 'upcoming', label: 'Upcoming', count: counts.upcoming },
+    { id: 'past', label: 'Past', count: counts.past },
+  ];
+  return (
+    <div className="flex gap-6 border-b border-tea-border">
+      {tabs.map((t) => {
+        const isActive = active === t.id;
+        return (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => onChange(t.id)}
+            className={`relative -mb-px pb-3 pt-1 transition-colors ${
+              isActive ? 'text-tea-text' : 'text-tea-text-sec hover:text-tea-text'
+            }`}
+          >
+            <span
+              className="text-ui-13"
+              style={{ fontFamily: 'var(--font-display)', fontWeight: isActive ? 500 : 400 }}
+            >
+              {t.label}
+            </span>
+            {t.count > 0 && (
+              <span className="ml-2 text-ui-10 text-tea-text-dim">{t.count}</span>
+            )}
+            <span
+              className={`absolute left-0 right-0 -bottom-px h-px transition-colors ${
+                isActive ? 'bg-tea-gold' : 'bg-transparent'
+              }`}
+            />
+          </button>
+        );
+      })}
+    </div>
+  );
+};
+
+// ── Page ─────────────────────────────────────────────────────────────────────
 const EventsPage: React.FC = () => {
   const { data: rawEvents = [], isLoading } = useQuery<(TeaEvent & { seats_remaining?: number; confirmed_count?: number })[]>({
     queryKey: ['events-public-list'],
@@ -149,7 +166,6 @@ const EventsPage: React.FC = () => {
       const raw = ev as unknown as Record<string, unknown>;
       return {
         ...ev,
-        // snake_case → camelCase shim (worker returns snake_case)
         flyerImageUrl:  ev.flyerImageUrl  ?? (raw['flyer_image_url']  as string | undefined),
         eventDate:      ev.eventDate      ?? (raw['event_date']       as string),
         locationName:   ev.locationName   ?? (raw['location_name']    as string | undefined),
@@ -162,30 +178,70 @@ const EventsPage: React.FC = () => {
     });
   }, [rawEvents]);
 
+  const [filter, setFilter] = useState<Filter>('upcoming');
+
+  const { upcoming, past } = useMemo(() => {
+    const now = Date.now();
+    const up: TeaEvent[] = [];
+    const pa: TeaEvent[] = [];
+    for (const ev of events) {
+      const t = new Date(ev.eventDate).getTime();
+      if (Number.isFinite(t) && t < now) pa.push(ev);
+      else up.push(ev);
+    }
+    up.sort((a, b) => new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime());
+    pa.sort((a, b) => new Date(b.eventDate).getTime() - new Date(a.eventDate).getTime());
+    return { upcoming: up, past: pa };
+  }, [events]);
+
+  const visible = filter === 'upcoming' ? upcoming : past;
+  const isPastView = filter === 'past';
+
   return (
     <div
-      className="min-h-screen bg-tea-bg pb-[calc(52px+env(safe-area-inset-bottom,0px)+24px)]"
+      className="min-h-screen bg-tea-bg pb-nav-gap-lg"
       style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
     >
       <PageHeader title="Sessions" />
 
-      {/* Event list */}
-      <div className="px-4 space-y-5">
-        {isLoading ? (
-          <>
-            <EventCardSkeleton />
-            <EventCardSkeleton />
-          </>
-        ) : events.length === 0 ? (
-          <div className="text-center py-20 px-6">
-            <p className="font-serif text-2xl text-tea-text mb-3">No upcoming sessions</p>
-            <p className="text-sm text-tea-text-sec leading-relaxed max-w-xs mx-auto">
-              New events are announced through the Teajia community. Check back soon.
-            </p>
-          </div>
-        ) : (
-          events.map((ev) => <EventCard key={ev.id} event={ev} />)
-        )}
+      <div className="px-4 md:px-6 lg:px-10 max-w-3xl mx-auto">
+        {/* Filter tabs */}
+        <div className="mb-2">
+          <FilterTabs
+            active={filter}
+            onChange={setFilter}
+            counts={{ upcoming: upcoming.length, past: past.length }}
+          />
+        </div>
+
+        {/* List */}
+        <div className="divide-y divide-tea-border">
+          {isLoading ? (
+            <>
+              <EventRowSkeleton />
+              <EventRowSkeleton />
+              <EventRowSkeleton />
+            </>
+          ) : visible.length === 0 ? (
+            <div className="flex flex-col items-center text-center max-w-sm mx-auto py-20 px-6">
+              <p
+                className="text-ui-17 text-tea-text mb-2"
+                style={{ fontFamily: 'var(--font-display)' }}
+              >
+                {isPastView ? 'No past sessions yet' : 'No upcoming sessions'}
+              </p>
+              <p className="text-ui-12 text-tea-text-dim leading-relaxed">
+                {isPastView
+                  ? 'Past sessions will appear here once they have wrapped.'
+                  : 'New events are announced through the Teajia community. Check back soon.'}
+              </p>
+            </div>
+          ) : (
+            visible.map((ev) => (
+              <EventRow key={ev.id} event={ev} isPast={isPastView} />
+            ))
+          )}
+        </div>
       </div>
     </div>
   );

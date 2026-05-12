@@ -22,7 +22,7 @@ export interface FeedItem {
   subtitle: string;
   thumbnailUrl?: string;
   durationOrTime: string;
-  category?: Story['category'];
+  category?: string;
   type: ContentType;
   status: 'published';
   author?: Person;
@@ -39,10 +39,12 @@ function dbArticleToFeedItem(a: DbArticle): FeedItem {
     subtitle: a.subtitle ?? '',
     thumbnailUrl: a.cover_image_url,
     durationOrTime: a.reading_time_mins ? `${a.reading_time_mins} min` : '',
-    category: undefined,
+    category: a.category,
     type: ContentType.Article,
     status: 'published',
-    author: a.author_id ? { id: a.author_id, name: a.author_id, role: '', bio: '' } : undefined,
+    author: a.author_id
+      ? { id: a.author_id, name: a.author_name ?? '', role: '', bio: '' }
+      : undefined,
     publishedDate: a.published_at ?? a.created_at,
     isDbArticle: true,
     slug: a.slug,
@@ -68,28 +70,33 @@ function getStoryMark(story: FeedItem): string {
   if (story.type === ContentType.PhotoEssay) return '光';
   if (story.type === ContentType.Reel) return '音';
   if (story.type === ContentType.Audio) return '聲';
-  switch (story.category) {
-    case 'interview':   return '器';
-    case 'tea-feature': return '山';
-    case 'science':     return '水';
-    case 'curated':     return '時';
-    case 'pairing':     return '岩';
-    default:            return '文';
+  const c = (story.category ?? '').toString().toLowerCase();
+  switch (c) {
+    case 'interview':   return '器';  // vessel — conversation
+    case 'teaching':    return '師';  // teacher
+    case 'journey':     return '山';  // mountain
+    case 'reflection':  return '水';  // water
+    case 'story':       return '時';  // time
+    case 'field notes': return '岩';  // stone
+    default:            return '文';  // letters — generic
   }
 }
 
-function getDisplayType(story: FeedItem): string {
-  if (story.type === ContentType.PhotoEssay) return 'Visual';
-  if (story.type === ContentType.Reel) return 'Film';
-  if (story.type === ContentType.Audio) return 'Audio';
-  switch (story.category) {
-    case 'interview':   return 'Interview';
-    case 'tea-feature': return 'Feature';
-    case 'science':     return 'Science';
-    case 'curated':     return 'Guide';
-    case 'pairing':     return 'Pairing';
-    default:            return 'Article';
-  }
+// Editorial register set — kept in sync with ArticleEditorModal CATEGORIES.
+// These describe the *nature* of the reading (Interview, Teaching, Journey,
+// Reflection, Story, Field Notes), not the format. Format previously lived
+// in this switch (PhotoEssay / Reel / Audio) but is now ignored here — it
+// belongs in a separate badge on the article page.
+const EDITORIAL_REGISTERS = ['Interview', 'Teaching', 'Journey', 'Reflection', 'Story', 'Field Notes'] as const;
+
+function getDisplayType(story: FeedItem): string | null {
+  const c = (story.category ?? '').toString().trim();
+  if (!c) return null;
+  // Match case-insensitively against the canonical list; pass through unknowns
+  // unchanged so legacy rows still render their existing label rather than
+  // disappearing while migration is in flight.
+  const match = EDITORIAL_REGISTERS.find(r => r.toLowerCase() === c.toLowerCase());
+  return match ?? c;
 }
 
 const PH_GRADIENT =
@@ -98,21 +105,79 @@ const PH_GRADIENT =
   'radial-gradient(ellipse 60% 70% at 75% 70%,rgba(90,60,30,0.4),transparent 60%),' +
   'linear-gradient(160deg,#3a2c1e,#1f1813 70%)';
 
-const LABEL_STYLE: React.CSSProperties = {
-  fontFamily: 'var(--font-ui)',
-  fontSize: 10.5,
-  fontWeight: 400,
-  letterSpacing: '0.22em',
-  textTransform: 'uppercase',
+// Editorial eyebrow — Cormorant italic small-caps, bronze.
+// Replaces the Jakarta-uppercase chrome that read as dashboard label.
+// Small-caps gives the museum-caption / wine-list register the brand wants.
+const EYEBROW_STYLE: React.CSSProperties = {
+  fontFamily: 'var(--font-display)',
+  fontSize: 15,
+  fontStyle: 'italic',
+  fontWeight: 500,
+  fontVariant: 'all-small-caps',
+  letterSpacing: '0.05em',
   color: 'var(--tea-gold)',
 };
 
+// Technical metadata — read time, dates. Reserved for genuinely technical readout.
 const MONO_STYLE: React.CSSProperties = {
   fontFamily: 'var(--font-mono)',
-  fontSize: 9.5,
+  fontSize: 11,
   letterSpacing: '0.04em',
   color: 'var(--tea-text-dim)',
 };
+
+// Editorial byline — Lora italic, prefixed with "by". Distinct voice from
+// the technical mono readout above.
+const BYLINE_STYLE: React.CSSProperties = {
+  fontFamily: 'var(--font-body)',
+  fontSize: 13,
+  fontStyle: 'italic',
+  fontWeight: 400,
+  color: 'var(--tea-text-sec)',
+};
+
+// Promoted byline — sits above the title as the primary signpost.
+// Clickable name routes to the contributor drawer; click is stopped from
+// bubbling to the parent card click handler.
+//
+// Note: rendered as a span (not button) because it lives inside the card's
+// outer <button>. Nested interactive controls aren't ideal HTML; a future
+// pass should convert the card outer to a clickable div.
+function Byline({
+  author,
+  onAuthorClick,
+  className = '',
+  style,
+}: {
+  author: Person;
+  onAuthorClick: (p: Person) => void;
+  className?: string;
+  style?: React.CSSProperties;
+}) {
+  return (
+    <div className={className} style={{ ...BYLINE_STYLE, ...style }}>
+      <span style={{ color: 'var(--tea-text-dim)' }}>by </span>
+      <span
+        role="link"
+        tabIndex={0}
+        onClick={(e) => { e.stopPropagation(); onAuthorClick(author); }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            e.stopPropagation();
+            onAuthorClick(author);
+          }
+        }}
+        className="cursor-pointer hover:text-tea-gold transition-colors"
+        style={{ borderBottom: '1px solid transparent', paddingBottom: 1 }}
+        onMouseEnter={(e) => { (e.currentTarget as HTMLSpanElement).style.borderBottomColor = 'var(--tea-gold)'; }}
+        onMouseLeave={(e) => { (e.currentTarget as HTMLSpanElement).style.borderBottomColor = 'transparent'; }}
+      >
+        {author.name}
+      </span>
+    </div>
+  );
+}
 
 // ── StoryImage ─────────────────────────────────────────────────
 interface StoryImageProps {
@@ -264,7 +329,7 @@ function MiniBarcode() {
 
 // ── LAYOUT: Editorial Split ────────────────────────────────────
 // Default. Horizontal rows: portrait image left (38%), text right.
-function EditorialSplit({ stories, onCardClick }: { stories: FeedItem[]; onCardClick: (s: FeedItem) => void }) {
+function EditorialSplit({ stories, onCardClick, onAuthorClick }: { stories: FeedItem[]; onCardClick: (s: FeedItem) => void; onAuthorClick: (p: Person) => void }) {
   return (
     <div className="max-w-2xl mx-auto px-5">
       {stories.map((story, i) => (
@@ -285,29 +350,20 @@ function EditorialSplit({ stories, onCardClick }: { stories: FeedItem[]; onCardC
             </div>
           </div>
 
-          {/* Text */}
+          {/* Text — three-line stack: eyebrow / title / byline */}
           <div className="flex flex-col justify-center min-w-0">
-            <div className="flex items-center gap-2 mb-2">
-              <span style={LABEL_STYLE}>{getDisplayType(story)}</span>
-              {story.durationOrTime && <span style={MONO_STYLE}>{story.durationOrTime}</span>}
-            </div>
+            {getDisplayType(story) && (
+              <span style={{ ...EYEBROW_STYLE, marginBottom: 6 }}>{getDisplayType(story)}</span>
+            )}
             <h3 style={{
               fontFamily: 'var(--font-display)', fontStyle: 'italic', fontWeight: 400,
               fontSize: 'clamp(20px,5.5vw,26px)', lineHeight: 1.1,
-              margin: '0 0 8px', letterSpacing: '-0.005em', color: 'var(--tea-text)',
+              margin: 0, letterSpacing: '-0.005em', color: 'var(--tea-text)',
             }}>
               {story.title}
             </h3>
-            {story.subtitle && (
-              <p style={{
-                fontSize: 14, lineHeight: 1.45, color: 'var(--tea-text-sec)', margin: 0,
-                display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden',
-              }}>
-                {story.subtitle}
-              </p>
-            )}
             {story.author?.name && (
-              <div style={{ ...MONO_STYLE, marginTop: 10 }}>{story.author.name}</div>
+              <Byline author={story.author} onAuthorClick={onAuthorClick} style={{ marginTop: 8 }} />
             )}
           </div>
         </button>
@@ -318,7 +374,7 @@ function EditorialSplit({ stories, onCardClick }: { stories: FeedItem[]; onCardC
 
 // ── LAYOUT: Hero Cards ─────────────────────────────────────────
 // Full-bleed portrait cards, title overlaid at bottom.
-function HeroCards({ stories, onCardClick }: { stories: FeedItem[]; onCardClick: (s: FeedItem) => void }) {
+function HeroCards({ stories, onCardClick, onAuthorClick }: { stories: FeedItem[]; onCardClick: (s: FeedItem) => void; onAuthorClick: (p: Person) => void }) {
   return (
     <div className="flex flex-col gap-5 px-5 max-w-2xl mx-auto">
       {stories.map((story, i) => (
@@ -337,26 +393,20 @@ function HeroCards({ stories, onCardClick }: { stories: FeedItem[]; onCardClick:
           >
             {getStoryMark(story)}
           </div>
-          {/* Overlay content */}
+          {/* Overlay content — eyebrow / title / byline */}
           <div className="absolute left-0 right-0 bottom-0" style={{ padding: '18px 20px 22px' }}>
-            <div className="flex items-center gap-2 mb-2">
-              <span style={LABEL_STYLE}>{getDisplayType(story)}</span>
-              {story.durationOrTime && <span style={{ ...MONO_STYLE, fontSize: 10 }}>{story.durationOrTime}</span>}
-            </div>
+            {getDisplayType(story) && (
+              <span style={{ ...EYEBROW_STYLE, marginBottom: 8, display: 'inline-block' }}>{getDisplayType(story)}</span>
+            )}
             <h2 style={{
               fontFamily: 'var(--font-display)', fontStyle: 'italic', fontWeight: 400,
               fontSize: 'clamp(28px,8vw,40px)', lineHeight: 1.05,
-              margin: '0 0 8px', letterSpacing: '-0.005em', color: 'var(--tea-text)',
+              margin: 0, letterSpacing: '-0.005em', color: 'var(--tea-text)',
             }}>
               {story.title}
             </h2>
-            {story.subtitle && (
-              <p style={{ fontSize: 15, lineHeight: 1.45, color: 'var(--tea-text-sec)', margin: 0, maxWidth: '34ch' }}>
-                {story.subtitle}
-              </p>
-            )}
             {story.author?.name && (
-              <div style={{ ...MONO_STYLE, fontSize: 10, marginTop: 12 }}>{story.author.name}</div>
+              <Byline author={story.author} onAuthorClick={onAuthorClick} style={{ marginTop: 10 }} />
             )}
           </div>
         </button>
@@ -367,7 +417,7 @@ function HeroCards({ stories, onCardClick }: { stories: FeedItem[]; onCardClick:
 
 // ── LAYOUT: Mixed Grid ─────────────────────────────────────────
 // First article is a hero, rest are a 2-col grid.
-function MixedGrid({ stories, onCardClick }: { stories: FeedItem[]; onCardClick: (s: FeedItem) => void }) {
+function MixedGrid({ stories, onCardClick, onAuthorClick }: { stories: FeedItem[]; onCardClick: (s: FeedItem) => void; onAuthorClick: (p: Person) => void }) {
   const [hero, ...rest] = stories;
   return (
     <div className="max-w-2xl mx-auto px-5">
@@ -380,17 +430,19 @@ function MixedGrid({ stories, onCardClick }: { stories: FeedItem[]; onCardClick:
           <StoryImage src={hero.thumbnailUrl} aspectRatio="3/4" />
           <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg,transparent 40%,rgba(18,13,9,0.9))' }} />
           <div className="absolute left-0 right-0 bottom-0" style={{ padding: '18px 20px 22px' }}>
-            <span style={{ ...LABEL_STYLE, marginBottom: 8, display: 'inline-block' }}>
-              {getDisplayType(hero)}{hero.durationOrTime ? ` · ${hero.durationOrTime}` : ''}
-            </span>
+            {getDisplayType(hero) && (
+              <span style={{ ...EYEBROW_STYLE, marginBottom: 8, display: 'inline-block' }}>{getDisplayType(hero)}</span>
+            )}
             <h2 style={{
               fontFamily: 'var(--font-display)', fontStyle: 'italic', fontWeight: 400,
               fontSize: 'clamp(28px,8vw,40px)', lineHeight: 1.05,
-              margin: '0 0 6px', color: 'var(--tea-text)',
+              margin: 0, color: 'var(--tea-text)',
             }}>
               {hero.title}
             </h2>
-            <p style={{ fontSize: 14.5, lineHeight: 1.4, color: 'var(--tea-text-sec)', margin: 0 }}>{hero.subtitle}</p>
+            {hero.author?.name && (
+              <Byline author={hero.author} onAuthorClick={onAuthorClick} style={{ marginTop: 10 }} />
+            )}
           </div>
         </button>
       )}
@@ -404,16 +456,18 @@ function MixedGrid({ stories, onCardClick }: { stories: FeedItem[]; onCardClick:
           >
             <StoryImage src={story.thumbnailUrl} aspectRatio="1/1" />
             <div style={{ padding: '12px 14px 16px', flex: 1, display: 'flex', flexDirection: 'column' }}>
-              <span style={{ ...LABEL_STYLE, marginBottom: 8, display: 'inline-block' }}>{getDisplayType(story)}</span>
+              {getDisplayType(story) && (
+                <span style={{ ...EYEBROW_STYLE, marginBottom: 4 }}>{getDisplayType(story)}</span>
+              )}
               <h3 style={{
                 fontFamily: 'var(--font-display)', fontStyle: 'italic', fontWeight: 400,
-                fontSize: 20, lineHeight: 1.12, margin: '0 0 6px', flex: 1, color: 'var(--tea-text)',
+                fontSize: 20, lineHeight: 1.12, margin: 0, color: 'var(--tea-text)',
               }}>
                 {story.title}
               </h3>
-              <span style={MONO_STYLE}>
-                {story.durationOrTime}{story.author?.name ? ` · ${story.author.name}` : ''}
-              </span>
+              {story.author?.name && (
+                <Byline author={story.author} onAuthorClick={onAuthorClick} style={{ marginTop: 6 }} />
+              )}
             </div>
           </button>
         ))}
@@ -424,7 +478,7 @@ function MixedGrid({ stories, onCardClick }: { stories: FeedItem[]; onCardClick:
 
 // ── LAYOUT: Stacked Covers ─────────────────────────────────────
 // Each card looks like a mini magazine cover with masthead, mark, and barcode.
-function StackedCovers({ stories, onCardClick }: { stories: FeedItem[]; onCardClick: (s: FeedItem) => void }) {
+function StackedCovers({ stories, onCardClick, onAuthorClick }: { stories: FeedItem[]; onCardClick: (s: FeedItem) => void; onAuthorClick: (p: Person) => void }) {
   return (
     <div className="flex flex-col gap-6 px-5 max-w-2xl mx-auto">
       {stories.map((story, i) => (
@@ -446,7 +500,7 @@ function StackedCovers({ stories, onCardClick }: { stories: FeedItem[]; onCardCl
             style={{ padding: '14px 16px 10px', borderBottom: '1px solid var(--tea-border)' }}
           >
             <span style={{ ...MONO_STYLE, fontSize: 9.5, color: 'var(--tea-gold)', letterSpacing: '0.2em' }}>TEAJIA</span>
-            <span style={MONO_STYLE}>The Journal</span>
+            <span style={MONO_STYLE}>The Magazine</span>
           </div>
           {/* Centered mark */}
           <div
@@ -459,24 +513,25 @@ function StackedCovers({ stories, onCardClick }: { stories: FeedItem[]; onCardCl
           >
             {getStoryMark(story)}
           </div>
-          {/* Bottom content */}
+          {/* Bottom content — eyebrow / title / byline, with cover barcode below */}
           <div className="absolute left-0 right-0 bottom-0" style={{ padding: '16px 18px 20px' }}>
-            <div className="flex items-center gap-2 mb-2">
-              <div style={{ width: 18, height: 1, background: 'var(--tea-gold)' }} />
-              <span style={LABEL_STYLE}>{getDisplayType(story)}</span>
-            </div>
+            {getDisplayType(story) && (
+              <div className="flex items-center gap-2" style={{ marginBottom: 8 }}>
+                <div style={{ width: 18, height: 1, background: 'var(--tea-gold)' }} />
+                <span style={EYEBROW_STYLE}>{getDisplayType(story)}</span>
+              </div>
+            )}
             <h2 style={{
               fontFamily: 'var(--font-display)', fontStyle: 'italic', fontWeight: 400,
               fontSize: 'clamp(26px,7.5vw,38px)', lineHeight: 1.05,
-              margin: '0 0 8px', color: 'var(--tea-text)',
+              margin: 0, color: 'var(--tea-text)',
             }}>
               {story.title}
             </h2>
-            <p style={{ fontSize: 14, lineHeight: 1.4, color: 'var(--tea-text-sec)', margin: '0 0 12px', maxWidth: '32ch' }}>
-              {story.subtitle}
-            </p>
-            <div className="flex justify-between items-end">
-              <span style={MONO_STYLE}>{story.author?.name}{story.durationOrTime ? ` · ${story.durationOrTime}` : ''}</span>
+            {story.author?.name && (
+              <Byline author={story.author} onAuthorClick={onAuthorClick} style={{ marginTop: 8 }} />
+            )}
+            <div className="flex justify-end" style={{ marginTop: 12 }}>
               <MiniBarcode />
             </div>
           </div>
@@ -488,7 +543,7 @@ function StackedCovers({ stories, onCardClick }: { stories: FeedItem[]; onCardCl
 
 // ── LAYOUT: Offset Inset ───────────────────────────────────────
 // Small image floated right, text wraps naturally. Asymmetric warmth.
-function OffsetInset({ stories, onCardClick }: { stories: FeedItem[]; onCardClick: (s: FeedItem) => void }) {
+function OffsetInset({ stories, onCardClick, onAuthorClick }: { stories: FeedItem[]; onCardClick: (s: FeedItem) => void; onAuthorClick: (p: Person) => void }) {
   return (
     <div className="max-w-2xl mx-auto px-5">
       {stories.map((story, i) => (
@@ -516,21 +571,18 @@ function OffsetInset({ stories, onCardClick }: { stories: FeedItem[]; onCardClic
             </div>
           </div>
 
-          <div className="flex items-center gap-2 mb-2">
-            <div style={{ width: 16, height: 1, background: 'var(--tea-gold)', flexShrink: 0 }} />
-            <span style={LABEL_STYLE}>{getDisplayType(story)}</span>
-            {story.durationOrTime && <span style={MONO_STYLE}>{story.durationOrTime}</span>}
-          </div>
+          {getDisplayType(story) && (
+            <span style={{ ...EYEBROW_STYLE, marginBottom: 6, display: 'inline-block' }}>{getDisplayType(story)}</span>
+          )}
           <h3 style={{
             fontFamily: 'var(--font-display)', fontStyle: 'italic', fontWeight: 400,
             fontSize: 'clamp(22px,6vw,30px)', lineHeight: 1.08,
-            margin: '0 0 10px', letterSpacing: '-0.005em', color: 'var(--tea-text)',
+            margin: 0, letterSpacing: '-0.005em', color: 'var(--tea-text)', clear: 'both',
           }}>
             {story.title}
           </h3>
-          <p style={{ fontSize: 15, lineHeight: 1.5, color: 'var(--tea-text-sec)', margin: 0 }}>{story.subtitle}</p>
           {story.author?.name && (
-            <div style={{ ...MONO_STYLE, marginTop: 12, clear: 'both' }}>{story.author.name}</div>
+            <Byline author={story.author} onAuthorClick={onAuthorClick} style={{ marginTop: 8, clear: 'both' }} />
           )}
         </button>
       ))}
@@ -540,7 +592,7 @@ function OffsetInset({ stories, onCardClick }: { stories: FeedItem[]; onCardClic
 
 // ── LAYOUT: Alternating Margin ─────────────────────────────────
 // Zig-zag: even rows image-left/text-right, odd rows text-left/image-right.
-function AlternatingMargin({ stories, onCardClick }: { stories: FeedItem[]; onCardClick: (s: FeedItem) => void }) {
+function AlternatingMargin({ stories, onCardClick, onAuthorClick }: { stories: FeedItem[]; onCardClick: (s: FeedItem) => void; onAuthorClick: (p: Person) => void }) {
   return (
     <div className="max-w-2xl mx-auto px-5">
       {stories.map((story, i) => {
@@ -568,25 +620,18 @@ function AlternatingMargin({ stories, onCardClick }: { stories: FeedItem[]; onCa
               </div>
             )}
             <div className="flex flex-col justify-center min-w-0">
-              <div className="flex items-center gap-2 mb-2">
-                <span style={LABEL_STYLE}>{getDisplayType(story)}</span>
-                {story.durationOrTime && <span style={MONO_STYLE}>{story.durationOrTime}</span>}
-              </div>
+              {getDisplayType(story) && (
+                <span style={{ ...EYEBROW_STYLE, marginBottom: 6 }}>{getDisplayType(story)}</span>
+              )}
               <h3 style={{
                 fontFamily: 'var(--font-display)', fontStyle: 'italic', fontWeight: 400,
                 fontSize: 'clamp(20px,5.8vw,28px)', lineHeight: 1.08,
-                margin: '0 0 8px', letterSpacing: '-0.005em', color: 'var(--tea-text)',
+                margin: 0, letterSpacing: '-0.005em', color: 'var(--tea-text)',
               }}>
                 {story.title}
               </h3>
-              <p style={{
-                fontSize: 14.5, lineHeight: 1.45, color: 'var(--tea-text-sec)', margin: 0,
-                display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden',
-              }}>
-                {story.subtitle}
-              </p>
               {story.author?.name && (
-                <div style={{ ...MONO_STYLE, marginTop: 10 }}>{story.author.name}</div>
+                <Byline author={story.author} onAuthorClick={onAuthorClick} style={{ marginTop: 8 }} />
               )}
             </div>
             {!imgLeft && (
@@ -645,7 +690,7 @@ function TweaksPanel({
       <div className="flex justify-between items-center mb-3.5">
         <div className="flex items-center gap-2">
           <LogoEmblem size={14} className="text-tea-gold opacity-80" />
-          <span style={{ ...LABEL_STYLE, color: 'var(--tea-gold)' }}>Layout</span>
+          <span style={{ ...EYEBROW_STYLE, color: 'var(--tea-gold)' }}>Layout</span>
         </div>
         <button onClick={onClose} className="text-tea-text-dim hover:text-tea-text transition-colors text-sm">✕</button>
       </div>
@@ -743,10 +788,13 @@ export const MagazineTabbed: React.FC<MagazineTabbedProps> = ({
     });
   }, [dbArticles]);
 
-  // Unique filter pill labels derived from content
+  // Unique filter labels derived from content (skip uncategorized)
   const filterTypes = useMemo(() => {
     const seen = new Set<string>();
-    allPublished.forEach(s => seen.add(getDisplayType(s)));
+    allPublished.forEach(s => {
+      const t = getDisplayType(s);
+      if (t) seen.add(t);
+    });
     return ['All', ...Array.from(seen)];
   }, [allPublished]);
 
@@ -759,7 +807,10 @@ export const MagazineTabbed: React.FC<MagazineTabbedProps> = ({
     if (item.slug) navigate(`/article/${item.slug}`);
   };
 
-  const FEEDS: Record<CardStyle, React.FC<{ stories: FeedItem[]; onCardClick: (s: FeedItem) => void }>> = {
+  const FEEDS: Record<
+    CardStyle,
+    React.FC<{ stories: FeedItem[]; onCardClick: (s: FeedItem) => void; onAuthorClick: (p: Person) => void }>
+  > = {
     split:  EditorialSplit,
     hero:   HeroCards,
     mixed:  MixedGrid,
@@ -772,7 +823,7 @@ export const MagazineTabbed: React.FC<MagazineTabbedProps> = ({
   return (
     <div className="dark w-full min-h-screen flex flex-col">
       <Helmet>
-        <title>Journal — Teajia</title>
+        <title>Magazine — Teajia</title>
         <meta name="description" content="Long-form stories, photo essays, and deep dives into tea culture, craft, and the people behind the leaf." />
       </Helmet>
 
@@ -789,7 +840,7 @@ export const MagazineTabbed: React.FC<MagazineTabbedProps> = ({
           className="font-serif font-normal text-2xl lg:text-3xl text-tea-text leading-tight tracking-[0.02em]"
           style={{ fontFamily: 'var(--font-display)' }}
         >
-          Journal
+          Magazine
         </h1>
 
         <div className="flex items-center">
@@ -830,7 +881,7 @@ export const MagazineTabbed: React.FC<MagazineTabbedProps> = ({
       <div className="px-5 pt-5 max-w-2xl mx-auto w-full">
         <div className="flex items-center gap-2.5 mb-3.5">
           <div style={{ width: 24, height: 1, background: 'var(--tea-gold)', flexShrink: 0 }} />
-          <span style={{ ...LABEL_STYLE, color: 'var(--tea-gold)' }}>The Journal · Spring 2026</span>
+          <span style={{ ...EYEBROW_STYLE, fontSize: 16, letterSpacing: '0.08em' }}>The Magazine · Spring 2026</span>
         </div>
         <h1 style={{
           fontFamily: 'var(--font-display)', fontStyle: 'italic', fontWeight: 400,
@@ -839,58 +890,71 @@ export const MagazineTabbed: React.FC<MagazineTabbedProps> = ({
         }}>
           Voices in Tea
         </h1>
-        <p style={{ fontSize: 16.5, lineHeight: 1.55, color: 'var(--tea-text-sec)', margin: '0 0 24px', maxWidth: '36ch' }}>
+        <p style={{ fontSize: 17, lineHeight: 1.55, color: 'var(--tea-text-sec)', margin: '0 0 24px', maxWidth: '36ch', fontFamily: 'var(--font-body)' }}>
           Stories of the people, places, and practices behind the cup.
         </p>
       </div>
 
-      {/* ── Filter pills ── */}
-      <div
-        className="flex gap-2 max-w-2xl mx-auto w-full"
-        style={{ padding: '0 20px 20px', overflowX: 'auto', scrollbarWidth: 'none' }}
+      {/* ── Filter row ── Typographic, not pill-shaped: museum-caption register.
+          Items separated by a hairline; active item is bronze + underlined. */}
+      <nav
+        aria-label="Filter articles"
+        className="flex items-baseline max-w-2xl mx-auto w-full"
+        style={{ padding: '0 20px 22px', overflowX: 'auto', scrollbarWidth: 'none' }}
       >
-        {filterTypes.map(t => (
-          <button
-            key={t}
-            onClick={() => setFilter(t)}
-            className="flex-none transition-all duration-200"
-            style={{
-              padding: '7px 16px',
-              borderRadius: 99,
-              border: `1px solid ${filter === t ? 'var(--tea-gold)' : 'var(--tea-border)'}`,
-              background: filter === t ? 'var(--tea-accent-sub)' : 'transparent',
-              fontFamily: 'var(--font-ui)',
-              fontSize: 11,
-              letterSpacing: '0.14em',
-              textTransform: 'uppercase',
-              fontWeight: filter === t ? 500 : 400,
-              color: filter === t ? 'var(--tea-gold)' : 'var(--tea-text-sec)',
-              whiteSpace: 'nowrap',
-            }}
-            onMouseEnter={e => {
-              if (filter !== t) {
-                (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--tea-gold)';
-                (e.currentTarget as HTMLButtonElement).style.color = 'var(--tea-text)';
-              }
-            }}
-            onMouseLeave={e => {
-              if (filter !== t) {
-                (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--tea-border)';
-                (e.currentTarget as HTMLButtonElement).style.color = 'var(--tea-text-sec)';
-              }
-            }}
-          >
-            {t}
-          </button>
-        ))}
-      </div>
+        {filterTypes.map((t, i) => {
+          const active = filter === t;
+          return (
+            <React.Fragment key={t}>
+              {i > 0 && (
+                <span
+                  aria-hidden="true"
+                  className="flex-none"
+                  style={{
+                    width: 1,
+                    height: 12,
+                    background: 'var(--tea-border)',
+                    margin: '0 14px',
+                    alignSelf: 'center',
+                  }}
+                />
+              )}
+              <button
+                onClick={() => setFilter(t)}
+                className="flex-none transition-colors duration-200"
+                style={{
+                  fontFamily: 'var(--font-display)',
+                  fontStyle: 'italic',
+                  fontWeight: active ? 500 : 400,
+                  fontVariant: 'all-small-caps',
+                  fontSize: 15,
+                  letterSpacing: '0.04em',
+                  color: active ? 'var(--tea-gold)' : 'var(--tea-text-sec)',
+                  borderBottom: `1px solid ${active ? 'var(--tea-gold)' : 'transparent'}`,
+                  paddingBottom: 2,
+                  whiteSpace: 'nowrap',
+                  background: 'transparent',
+                }}
+                onMouseEnter={e => {
+                  if (!active) (e.currentTarget as HTMLButtonElement).style.color = 'var(--tea-text)';
+                }}
+                onMouseLeave={e => {
+                  if (!active) (e.currentTarget as HTMLButtonElement).style.color = 'var(--tea-text-sec)';
+                }}
+              >
+                {t}
+              </button>
+            </React.Fragment>
+          );
+        })}
+      </nav>
 
       {/* ── Article feed ── */}
-      <div className="flex-1 pb-[calc(52px+env(safe-area-inset-bottom,0px))] lg:pb-12">
+      <div className="flex-1 pb-[calc(44px+env(safe-area-inset-bottom,0px))] lg:pb-12">
         {isContentLoading ? (
           <LoadingSkeleton />
         ) : filtered.length > 0 ? (
-          <Feed stories={filtered} onCardClick={handleCardClick} />
+          <Feed stories={filtered} onCardClick={handleCardClick} onAuthorClick={setSelectedAuthor} />
         ) : (
           <div className="flex flex-col items-center justify-center py-24 px-4">
             <p className="font-display text-xl italic text-tea-text mb-2">Nothing here yet</p>

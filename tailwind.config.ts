@@ -19,12 +19,29 @@ const config: Config = {
         'tea-text-dim': 'rgb(var(--tea-text-dim-rgb) / <alpha-value>)',
         'tea-gold': 'rgb(var(--tea-gold-rgb) / <alpha-value>)',
         'tea-gold-lt': 'rgb(var(--tea-gold-lt-rgb) / <alpha-value>)',
+        // Warm gold pinned for text — type token names, eyebrow markers,
+        // inline code, hover links. Use this when `tea-gold` would be too dim
+        // or when accent shifts toward aged brass for structural primary.
+        'tea-readgold': 'rgb(var(--tea-readgold-rgb) / <alpha-value>)',
         'tea-error': 'rgb(var(--tea-error-rgb) / <alpha-value>)',
         'tea-border': 'var(--tea-border)',
         'tea-accent-sub': 'var(--tea-accent-sub)',
         'tea-green': '#5A6E5A',
         'tea-moss': '#2A3430',
         'tea-shadow': 'rgba(0,0,0,0.15)',
+        // Admin neutral palette — see card-utilities.css for the full
+        // rationale. Intentionally NOT alpha-channel-aware so /N modifiers
+        // don't accidentally produce off-system colors.
+        'admin-bg':           'var(--admin-bg)',
+        'admin-surface':      'var(--admin-surface)',
+        'admin-elevated':     'var(--admin-elevated)',
+        'admin-input':        'var(--admin-input-bg)',
+        'admin-border':       'var(--admin-border)',
+        'admin-border-hover': 'var(--admin-border-hover)',
+        'admin-text':         'var(--admin-text)',
+        'admin-text-sec':     'var(--admin-text-sec)',
+        'admin-text-dim':     'var(--admin-text-dim)',
+        'admin-text-faint':   'var(--admin-text-faint)',
       },
       fontFamily: {
         display: DESIGN_TOKENS.fontFamily.display as string[],

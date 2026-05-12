@@ -12740,11 +12740,13 @@ const handleGetPublicArticles: Handler = async (request, env) => {
   const offset = parseInt(url.searchParams.get('offset') || '0', 10);
 
   const rows = await env.DB.prepare(
-    `SELECT id, account_id, title, subtitle, author_id, slug, status, category, tags,
-            cover_image_url, layout_template, reading_time_mins, published_at, created_at, updated_at
-     FROM articles
-     WHERE status = 'published'
-     ORDER BY published_at DESC
+    `SELECT a.id, a.account_id, a.title, a.subtitle, a.author_id, a.slug, a.status, a.category, a.tags,
+            a.cover_image_url, a.layout_template, a.reading_time_mins, a.published_at, a.created_at, a.updated_at,
+            u.name AS author_name
+     FROM articles a
+     LEFT JOIN users u ON u.id = a.author_id
+     WHERE a.status = 'published'
+     ORDER BY a.published_at DESC
      LIMIT ? OFFSET ?`
   ).bind(limit, offset).all();
 

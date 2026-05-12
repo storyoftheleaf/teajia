@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, MessageCircle, Leaf, Loader2, ShoppingBag,
-  Calendar, Edit3, Star, Package, Search, Check, Copy, X,
+  Calendar, Edit3, Package, Search, Check, Copy, X,
   Lock, Save,
 } from 'lucide-react';
 import { api } from '../../lib/api';
@@ -13,6 +13,7 @@ import { useToast } from './Toast';
 import { RecommendationModal } from './RecommendationModal';
 import { QuickInvoiceModal } from './QuickInvoiceModal';
 import { ContactTagEditor } from './contactTags/ContactTagEditor';
+import { STATUS_PILL_BASE, STATUS_PILL_VARIANTS, type StatusPillVariant } from '../constants';
 
 interface CustomerTea {
   id: string;
@@ -50,17 +51,32 @@ interface CustomerJourney {
 const fmtUSD = (v?: number | null) =>
   v == null ? '—' : `$${v.toFixed(0)}`;
 
-const RELATIONSHIP_BADGE_CLASSES: Record<ContactRelationshipKind, string> = {
-  buyer: 'bg-tea-gold-lt text-tea-text',
-  vendor: 'bg-tea-elevated text-tea-gold',
-  event_guest: 'bg-tea-surface text-tea-text',
-  collection_recipient: 'bg-tea-elevated text-tea-text-sec',
-  contributor: 'bg-tea-surface text-tea-text-sec',
-  personal_connection: 'bg-tea-bg text-tea-text-sec border border-tea-border',
+const RELATIONSHIP_PILL_VARIANT: Record<ContactRelationshipKind, StatusPillVariant> = {
+  buyer: 'active',
+  vendor: 'success',
+  event_guest: 'draft',
+  collection_recipient: 'draft',
+  contributor: 'draft',
+  personal_connection: 'draft',
 };
 
 const relationshipLabel = (kind: ContactRelationshipKind) =>
   CONTACT_RELATIONSHIP_TAXONOMY[kind]?.shortLabel ?? kind;
+
+const initialsFromName = (name: string) =>
+  name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map(part => part[0]?.toUpperCase() ?? '')
+    .join('') || '·';
+
+const StatusPill: React.FC<{ variant?: StatusPillVariant; children: React.ReactNode }> = ({
+  variant = 'draft',
+  children,
+}) => (
+  <span className={`${STATUS_PILL_BASE} ${STATUS_PILL_VARIANTS[variant]}`}>{children}</span>
+);
 
 const OwnerPrivateNote: React.FC<{
   customerId: string;
@@ -114,21 +130,21 @@ const OwnerPrivateNote: React.FC<{
   const dirty = body !== savedBody;
 
   return (
-    <div className="bg-tea-surface border border-tea-border rounded-xl p-5">
+    <section className="bg-tea-surface border border-tea-border rounded-xl p-5">
       <div className="flex items-start justify-between gap-3 mb-3">
         <div>
           <div className="flex items-center gap-2">
-            <Lock size={14} className="text-tea-gold" />
-            <p className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec">Owner private note</p>
+            <Lock size={13} className="text-tea-gold" />
+            <h3 className="h3">Owner Private Note</h3>
           </div>
-          <p className="text-ui-11 text-tea-text-sec mt-1">
+          <p className="text-ui-12 text-tea-text-dim mt-1">
             Visible only to owner-tier accounts.
           </p>
         </div>
         <button
           onClick={save}
           disabled={!dirty || saving}
-          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-tea-gold text-tea-bg text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
           Save
@@ -138,10 +154,10 @@ const OwnerPrivateNote: React.FC<{
         value={body}
         onChange={e => setBody(e.target.value)}
         rows={4}
-        placeholder="Context that belongs with the relationship, not in public or staff-facing notes..."
-        className="w-full bg-tea-bg border border-tea-border rounded-lg p-3 text-sm text-tea-text resize-y min-h-[112px] focus:outline-none focus:border-tea-gold/50 placeholder:text-tea-text-sec"
+        placeholder="Context that belongs with the relationship, not in public or staff-facing notes…"
+        className="w-full bg-tea-bg border border-tea-border rounded-lg p-3 text-ui-13 text-tea-text resize-y min-h-[112px] focus:outline-none focus:border-tea-gold placeholder:text-tea-text-sec"
       />
-    </div>
+    </section>
   );
 };
 
@@ -171,7 +187,7 @@ const SampleOfferModal: React.FC<{
 
   const message = selected
     ? [
-        `Hi ${firstName}! 🍵`,
+        `Hi ${firstName}!`,
         '',
         `I have a sample of ${selected.givenName || selected.productName} I'd love to send you — ${[selected.type, selected.originRegion].filter(Boolean).join(', ')}.`,
         note.trim() ? note.trim() : '',
@@ -191,10 +207,17 @@ const SampleOfferModal: React.FC<{
 
   return (
     <div className="fixed inset-0 z-modal flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-md p-0 sm:p-4">
-      <div className="bg-tea-bg border border-tea-border rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg shadow-2xl flex flex-col max-h-[88vh]">
+      <div className="bg-tea-bg border border-tea-border rounded-t-xl sm:rounded-xl w-full sm:max-w-lg shadow-2xl flex flex-col max-h-[88vh]">
         <div className="flex items-center justify-between px-5 py-4 border-b border-tea-border flex-shrink-0">
-          <h3 className="font-serif text-tea-text text-lg">Send sample to {firstName}</h3>
-          <button onClick={onClose} className="text-tea-text-sec hover:text-tea-text transition-colors p-1"><X size={20} /></button>
+          <button
+            onClick={onClose}
+            className="text-tea-text-sec hover:text-tea-text transition-colors p-1 tap-target"
+            aria-label="Close"
+          >
+            <X size={18} />
+          </button>
+          <h3 className="h3">Send Sample to {firstName}</h3>
+          <span className="w-7" aria-hidden="true" />
         </div>
         <div className="p-4 flex-1 overflow-y-auto space-y-4">
           <div className="relative">
@@ -203,7 +226,7 @@ const SampleOfferModal: React.FC<{
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Pick a tea to sample…"
-              className="w-full bg-tea-surface border border-tea-border rounded-lg pl-8 pr-3 py-1.5 text-sm text-tea-text focus:outline-none focus:border-tea-gold/50 placeholder:text-tea-text-dim"
+              className="w-full bg-tea-surface border border-tea-border rounded-lg pl-8 pr-3 py-1.5 text-ui-13 text-tea-text focus:outline-none focus:border-tea-gold placeholder:text-tea-text-dim"
             />
           </div>
           <div className="space-y-1.5 max-h-44 overflow-y-auto">
@@ -211,14 +234,26 @@ const SampleOfferModal: React.FC<{
               <button
                 key={p.id}
                 onClick={() => setSelectedId(p.id === selectedId ? null : p.id)}
-                className={`w-full flex items-center gap-3 p-2.5 rounded-xl border transition-all text-left ${
-                  selectedId === p.id ? 'bg-tea-gold/8 border-tea-gold/25' : 'bg-tea-surface border-tea-border hover:bg-tea-elevated'
+                className={`w-full flex items-center gap-3 p-2.5 rounded-lg border transition-all text-left ${
+                  selectedId === p.id
+                    ? 'bg-tea-gold/8 border-tea-gold'
+                    : 'bg-tea-surface border-tea-border hover:bg-tea-elevated'
                 }`}
               >
-                {p.imageUrl && <img src={p.imageUrl} alt="" className="w-8 h-8 rounded-lg object-cover shrink-0" />}
+                {p.imageUrl && (
+                  <img
+                    src={p.imageUrl}
+                    alt=""
+                    className="w-8 h-8 rounded-md object-cover shrink-0"
+                  />
+                )}
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-tea-text truncate">{p.givenName || p.productName}</p>
-                  <p className="text-ui-11 text-tea-text-sec">{[p.type, p.originRegion].filter(Boolean).join(' · ')}</p>
+                  <p className="text-ui-13 text-tea-text truncate">
+                    {p.givenName || p.productName}
+                  </p>
+                  <p className="text-ui-11 text-tea-text-sec">
+                    {[p.type, p.originRegion].filter(Boolean).join(' · ')}
+                  </p>
                 </div>
                 {selectedId === p.id && <Check size={14} className="text-tea-gold shrink-0" />}
               </button>
@@ -231,19 +266,28 @@ const SampleOfferModal: React.FC<{
                 onChange={e => setNote(e.target.value)}
                 placeholder="Add a personal note…"
                 rows={2}
-                className="w-full bg-tea-surface border border-tea-border rounded-lg p-2.5 text-sm text-tea-text resize-none focus:outline-none focus:border-tea-gold/50 placeholder:text-tea-text-dim"
+                className="w-full bg-tea-surface border border-tea-border rounded-lg p-2.5 text-ui-13 text-tea-text resize-none focus:outline-none focus:border-tea-gold placeholder:text-tea-text-dim"
               />
               <pre className="text-ui-11 text-tea-text-sec leading-relaxed whitespace-pre-wrap bg-tea-surface rounded-lg p-3 font-sans">
                 {message}
               </pre>
               <div className="flex gap-2">
-                <button onClick={handleCopy} className="flex-1 flex items-center justify-center gap-2 py-2 rounded-xl bg-tea-elevated text-tea-text-sec hover:text-tea-text text-sm transition-colors">
-                  <Copy size={13} />{copied ? 'Copied!' : 'Copy'}
+                <button
+                  onClick={handleCopy}
+                  className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-md bg-tea-surface border border-tea-border text-tea-text-sec hover:text-tea-text text-xs font-semibold transition-colors"
+                >
+                  <Copy size={13} />
+                  {copied ? 'Copied' : 'Copy'}
                 </button>
                 {whatsappUrl && (
-                  <a href={whatsappUrl} target="_blank" rel="noopener noreferrer"
-                    className="flex-1 flex items-center justify-center gap-2 py-2 rounded-xl bg-green-500/10 text-green-400 hover:bg-green-500/15 text-sm transition-colors">
-                    <MessageCircle size={13} />WhatsApp
+                  <a
+                    href={whatsappUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-md bg-tea-gold text-tea-bg hover:bg-tea-gold/90 text-xs font-semibold transition-colors"
+                  >
+                    <MessageCircle size={13} />
+                    WhatsApp
                   </a>
                 )}
               </div>
@@ -301,16 +345,62 @@ export const CustomerProfilePage: React.FC = () => {
       .catch(() => {});
   }, [customerId]);
 
+  // Build a unified activity timeline from orders, events, and impressions.
+  const timeline = useMemo(() => {
+    const items: Array<{ date: string; iso: string; label: string; body: string; system?: boolean }> = [];
+
+    orders.forEach((order: any) => {
+      const iso = order.created_at || order.createdAt || '';
+      items.push({
+        iso,
+        date: iso
+          ? new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+          : '—',
+        label: 'Order',
+        body: `Invoice #${order.invoice_number}${order.status ? ` — ${order.status}` : ''}`,
+      });
+    });
+
+    events.forEach((evt) => {
+      if (!evt.event_date) return;
+      items.push({
+        iso: evt.event_date,
+        date: new Date(evt.event_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        label: evt.attended === 1 ? 'Session attended' : 'Event',
+        body: evt.title,
+      });
+    });
+
+    journey?.impressions?.forEach((imp) => {
+      items.push({
+        iso: imp.date,
+        date: new Date(imp.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        label: 'Tasting note',
+        body: `"${imp.text}" — ${imp.teaName}`,
+        system: true,
+      });
+    });
+
+    return items
+      .filter(i => i.iso)
+      .sort((a, b) => (b.iso || '').localeCompare(a.iso || ''))
+      .slice(0, 10);
+  }, [orders, events, journey]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full bg-tea-bg">
-        <Loader2 className="animate-spin text-tea-text-sec" size={24} />
+        <Loader2 className="animate-spin text-tea-text-sec" size={20} />
       </div>
     );
   }
 
   if (!customer) {
-    return <div className="p-8 text-tea-text-sec text-center bg-tea-bg h-full">Customer not found.</div>;
+    return (
+      <div className="p-8 text-tea-text-sec text-center bg-tea-bg h-full">
+        Customer not found.
+      </div>
+    );
   }
 
   const whatsappHandle =
@@ -332,163 +422,273 @@ export const CustomerProfilePage: React.FC = () => {
   const lastEvent = attendedEvents[0];
 
   const sessionsCount = journey?.sessionsAttended ?? customer.eventCount ?? attendedEvents.length;
+  const initials = initialsFromName(customer.name);
+
+  const orderedRelationshipKinds = CONTACT_RELATIONSHIP_ORDER.filter(
+    kind => customer.relationshipKinds?.includes(kind),
+  );
+
+  const primaryContact =
+    customer.email ||
+    customer.contacts.find(c => c.channel === 'whatsapp')?.handle ||
+    customer.whatsapp ||
+    customer.phone ||
+    '';
+
+  const memberSinceText = journey?.memberSince
+    ? `Member since ${new Date(journey.memberSince).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`
+    : customer.company
+      ? customer.company
+      : '';
 
   return (
     <>
       <div className="h-full overflow-y-auto bg-tea-bg pb-nav-gap">
-        {/* Sticky top bar */}
-        <div className="sticky top-0 z-10 bg-tea-bg/95 backdrop-blur-sm border-b border-tea-border px-4 md:px-8 py-3 flex items-center justify-between flex-shrink-0">
-          <button
-            onClick={() => navigate(-1)}
-            className="flex items-center gap-1.5 text-tea-text-sec hover:text-tea-text transition-colors text-sm"
-          >
-            <ArrowLeft size={15} />
-            Back
-          </button>
-          <button
-            onClick={() => navigate(`/admin/people?customerId=${customerId}`)}
-            className="flex items-center gap-1.5 text-tea-text-sec hover:text-tea-text transition-colors text-sm"
-          >
-            <Edit3 size={13} />
-            Edit profile
-          </button>
+        {/* Narrow chrome */}
+        <div className="max-w-3xl mx-auto px-4 md:px-6 pt-6 pb-3">
+          <div className="flex items-center justify-between">
+            <button
+              onClick={() => navigate(-1)}
+              className="inline-flex items-center gap-1.5 text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors"
+            >
+              <ArrowLeft size={14} />
+              <span>Back</span>
+            </button>
+            <button
+              onClick={() => navigate(`/admin/people?customerId=${customerId}`)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-surface border border-tea-border text-tea-text-sec hover:text-tea-text text-xs font-semibold transition-colors"
+            >
+              <Edit3 size={13} />
+              <span>Edit Profile</span>
+            </button>
+          </div>
         </div>
 
-        <div className="max-w-4xl mx-auto px-4 md:px-8 py-8 space-y-8">
-          {/* Identity */}
-          <div>
-            <h1 className="font-serif text-3xl text-tea-text">{customer.name}</h1>
-            {customer.company && <p className="text-tea-text-sec mt-1">{customer.company}</p>}
-            {(customer.relationshipKinds?.length ?? 0) > 0 && (
-              <div className="flex flex-wrap gap-1.5 mt-3">
-                {CONTACT_RELATIONSHIP_ORDER
-                  .filter(kind => customer.relationshipKinds?.includes(kind))
-                  .map(kind => (
-                    <span key={kind} className={`text-ui-11 px-2 py-1 rounded-full ${RELATIONSHIP_BADGE_CLASSES[kind] || 'bg-tea-elevated text-tea-text-sec'}`}>
-                      {relationshipLabel(kind)}
-                    </span>
-                  ))}
+        <div className="max-w-3xl mx-auto px-4 md:px-6 pb-12 space-y-6">
+          {/* Identity card */}
+          <section className="bg-tea-surface border border-tea-border rounded-xl p-5">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-full bg-tea-elevated text-tea-text-sec font-display text-ui-15 flex items-center justify-center flex-shrink-0">
+                {initials}
               </div>
-            )}
-            {journey?.memberSince && (
-              <p className="text-tea-text-dim text-sm mt-1">
-                Member since {new Date(journey.memberSince).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-              </p>
-            )}
-            {journey?.portrait && (
-              <p className="text-tea-text-sec text-sm mt-2 italic font-serif leading-relaxed">
-                {journey.portrait}
-              </p>
-            )}
-            {preferredTypes.length > 0 && (
-              <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                <Leaf size={11} className="text-tea-text-dim" />
-                {preferredTypes.map(t => (
-                  <span key={t} className="text-ui-11 bg-tea-elevated text-tea-text-sec px-2 py-0.5 rounded">{t}</span>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Contact tags */}
-          <ContactTagEditor customerId={customer.id} />
-
-          <OwnerPrivateNote
-            customerId={customer.id}
-            onRelationshipKinds={(kinds) => setCustomer(prev => prev ? ({ ...prev, relationshipKinds: kinds }) : prev)}
-          />
-
-          {(customer.relationshipKinds?.length ?? 0) > 0 && (
-            <div className="bg-tea-surface border border-tea-border rounded-xl p-5">
-              <p className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec mb-3">Relationship portrait</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {CONTACT_RELATIONSHIP_ORDER
-                  .filter(kind => customer.relationshipKinds?.includes(kind))
-                  .map(kind => (
-                    <div key={kind} className="bg-tea-bg border border-tea-border rounded-lg p-3">
-                      <div className="text-sm font-serif text-tea-text mb-1">{CONTACT_RELATIONSHIP_TAXONOMY[kind].label}</div>
-                      <div className="text-ui-11 text-tea-text-sec leading-relaxed">
-                        {CONTACT_RELATIONSHIP_TAXONOMY[kind].description}
-                      </div>
-                    </div>
-                  ))}
+              <div className="flex-1 min-w-0">
+                <h3 className="h3">{customer.name}</h3>
+                {primaryContact && (
+                  <p className="text-ui-13 text-tea-text-sec mt-0.5 truncate">{primaryContact}</p>
+                )}
+                {memberSinceText && (
+                  <p className="text-ui-12 text-tea-text-dim mt-0.5">{memberSinceText}</p>
+                )}
+                {orderedRelationshipKinds.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mt-3">
+                    {orderedRelationshipKinds.map(kind => (
+                      <StatusPill key={kind} variant={RELATIONSHIP_PILL_VARIANT[kind] ?? 'draft'}>
+                        {relationshipLabel(kind)}
+                      </StatusPill>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
+
+            {/* Quick action bar */}
+            <div className="flex flex-wrap gap-2 mt-5 pt-5 border-t border-tea-border">
+              <button
+                onClick={() => setShowRecommend(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg hover:bg-tea-gold/90 text-xs font-semibold transition-colors"
+              >
+                <Leaf size={13} />
+                <span>Recommend Teas</span>
+              </button>
+              <button
+                onClick={() => setShowSample(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-surface border border-tea-border text-tea-text-sec hover:text-tea-text text-xs font-semibold transition-colors"
+              >
+                <Package size={13} />
+                <span>Send Sample</span>
+              </button>
+              <button
+                onClick={() => setShowInvoice(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-surface border border-tea-border text-tea-text-sec hover:text-tea-text text-xs font-semibold transition-colors"
+              >
+                <ShoppingBag size={13} />
+                <span>Create Invoice</span>
+              </button>
+              {whatsappHandle && (
+                <a
+                  href={`https://wa.me/${whatsappHandle.replace(/\D/g, '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-surface border border-tea-border text-tea-text-sec hover:text-tea-text text-xs font-semibold transition-colors"
+                >
+                  <MessageCircle size={13} />
+                  <span>WhatsApp</span>
+                </a>
+              )}
+            </div>
+          </section>
+
+          {/* Portrait — editorial detail */}
+          {(journey?.portrait || preferredTypes.length > 0 || (journey?.milestones?.length ?? 0) > 0) && (
+            <section className="bg-tea-surface border border-tea-border rounded-xl p-5">
+              <h3 className="h3 mb-1">Portrait</h3>
+              <p className="label-caps text-tea-text-dim mb-4">Tea preferences & history</p>
+              {journey?.portrait && (
+                <p className="text-ui-13 text-tea-text-sec italic leading-relaxed">
+                  {journey.portrait}
+                </p>
+              )}
+              {preferredTypes.length > 0 && (
+                <div className="flex items-center gap-1.5 mt-4 flex-wrap">
+                  <Leaf size={11} className="text-tea-text-dim" />
+                  {preferredTypes.map(t => (
+                    <StatusPill key={t} variant="draft">{t}</StatusPill>
+                  ))}
+                </div>
+              )}
+              {journey?.milestones && journey.milestones.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-3">
+                  {journey.milestones.map((m) => (
+                    <StatusPill key={m} variant="active">{m}</StatusPill>
+                  ))}
+                </div>
+              )}
+            </section>
           )}
 
-          {/* Stats */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {[
-              { value: sessionsCount, label: 'Sessions' },
-              { value: teas.length, label: 'Teas tried' },
-              { value: customer.orderCount ?? orders.length, label: 'Orders' },
-              { value: fmtUSD(customer.totalSpentUSD), label: 'Total spent' },
-            ].map(({ value, label }) => (
-              <div key={label} className="bg-tea-surface border border-tea-border rounded-xl p-4 text-center">
-                <div className="text-2xl font-serif text-tea-text leading-tight">{value}</div>
-                <div className="text-ui-10 text-tea-text-sec uppercase tracking-wider mt-1">{label}</div>
-              </div>
-            ))}
-          </div>
-
-          {/* Milestones */}
-          {journey?.milestones && journey.milestones.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {journey.milestones.map((m) => (
-                <span
-                  key={m}
-                  className="text-ui-10 uppercase tracking-[0.12em] bg-tea-gold/10 text-tea-gold px-2.5 py-1 rounded-full"
-                >
-                  {m}
-                </span>
+          {/* Stats row */}
+          <section className="bg-tea-surface border border-tea-border rounded-xl p-5">
+            <h3 className="h3 mb-4">At a Glance</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {[
+                { value: String(sessionsCount), label: 'Sessions' },
+                { value: String(teas.length), label: 'Teas tried' },
+                { value: String(customer.orderCount ?? orders.length), label: 'Orders' },
+                { value: fmtUSD(customer.totalSpentUSD), label: 'Total spent' },
+              ].map(({ value, label }) => (
+                <div key={label} className="bg-tea-bg border border-tea-border rounded-xl p-4">
+                  <div className="font-mono text-ui-28 text-tea-text tabular-nums leading-none">
+                    {value}
+                  </div>
+                  <div className="label-caps text-tea-text-dim mt-2">{label}</div>
+                </div>
               ))}
             </div>
+          </section>
+
+          {/* Tags row */}
+          <section className="bg-tea-surface border border-tea-border rounded-xl p-5">
+            <h3 className="h3 mb-4">Tags</h3>
+            <ContactTagEditor customerId={customer.id} />
+          </section>
+
+          {/* Relationship portrait */}
+          {orderedRelationshipKinds.length > 0 && (
+            <section className="bg-tea-surface border border-tea-border rounded-xl p-5">
+              <h3 className="h3 mb-1">Relationship Portrait</h3>
+              <p className="label-caps text-tea-text-dim mb-4">How we know them</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {orderedRelationshipKinds.map(kind => (
+                  <div key={kind} className="bg-tea-bg border border-tea-border rounded-lg p-3">
+                    <div className="h3 mb-1">{CONTACT_RELATIONSHIP_TAXONOMY[kind].label}</div>
+                    <div className="text-ui-12 text-tea-text-sec leading-relaxed">
+                      {CONTACT_RELATIONSHIP_TAXONOMY[kind].description}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
           )}
 
-          {/* Action bar */}
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => setShowRecommend(true)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-tea-gold/10 text-tea-gold hover:bg-tea-gold/15 text-sm font-medium transition-colors"
-            >
-              <Leaf size={14} />
-              Recommend teas
-            </button>
-            <button
-              onClick={() => setShowSample(true)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-tea-surface border border-tea-border text-tea-text-sec hover:text-tea-text text-sm transition-colors"
-            >
-              <Package size={14} />
-              Send sample
-            </button>
-            <button
-              onClick={() => setShowInvoice(true)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-tea-surface border border-tea-border text-tea-text-sec hover:text-tea-text text-sm transition-colors"
-            >
-              <ShoppingBag size={14} />
-              Create invoice
-            </button>
-            {whatsappHandle && (
-              <a
-                href={`https://wa.me/${whatsappHandle.replace(/\D/g, '')}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-green-500/10 text-green-400 hover:bg-green-500/15 text-sm transition-colors"
-              >
-                <MessageCircle size={14} />
-                WhatsApp
-              </a>
-            )}
-          </div>
+          {/* Recent orders */}
+          {orders.length > 0 && (
+            <section className="bg-tea-surface border border-tea-border rounded-xl p-5">
+              <div className="flex items-baseline justify-between mb-4">
+                <h3 className="h3">Recent Orders</h3>
+                <span className="label-caps text-tea-text-dim">{orders.length}</span>
+              </div>
+              <div className="border-t border-tea-border">
+                {orders.slice(0, 8).map((order: any) => (
+                  <div
+                    key={order.id}
+                    className="flex items-center justify-between gap-3 py-3 border-b border-tea-border last:border-0"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="font-mono text-ui-13 text-tea-text tabular-nums truncate">
+                        #{order.invoice_number}
+                      </p>
+                      {order.created_at && (
+                        <p className="label-caps text-tea-text-dim mt-0.5">
+                          {new Date(order.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </p>
+                      )}
+                    </div>
+                    {order.total != null && (
+                      <span className="font-mono text-ui-13 text-tea-text tabular-nums">
+                        ${Number(order.total).toFixed(2)}
+                      </span>
+                    )}
+                    <StatusPill
+                      variant={
+                        order.payment_status === 'paid'
+                          ? 'success'
+                          : order.payment_status === 'partial'
+                            ? 'active'
+                            : order.status === 'Filled'
+                              ? 'active'
+                              : 'draft'
+                      }
+                    >
+                      {order.payment_status || order.status || '—'}
+                    </StatusPill>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
 
-          {/* Last session context */}
+          {/* Teas tried */}
+          {teas.length > 0 && (
+            <section className="bg-tea-surface border border-tea-border rounded-xl p-5">
+              <div className="flex items-baseline justify-between mb-4">
+                <h3 className="h3">Teas Tried</h3>
+                <span className="label-caps text-tea-text-dim">{teas.length}</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {teas.map(tea => (
+                  <div
+                    key={tea.id}
+                    className="flex items-center gap-3 bg-tea-bg border border-tea-border rounded-lg p-3"
+                  >
+                    {tea.image_url ? (
+                      <img src={tea.image_url} alt="" className="w-9 h-9 rounded-md object-cover shrink-0" />
+                    ) : (
+                      <div className="w-9 h-9 rounded-md bg-tea-elevated shrink-0" />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="text-ui-13 text-tea-text truncate">{tea.given_name || tea.product_name}</p>
+                      <p className="label-caps text-tea-text-dim mt-0.5 truncate">
+                        {[tea.type, tea.origin_region].filter(Boolean).join(' · ')}
+                      </p>
+                    </div>
+                    {tea.source === 'tasted_at_event' && (
+                      <StatusPill variant="draft">Session</StatusPill>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Last session highlight */}
           {lastEvent && (
-            <div className="bg-tea-surface border border-tea-border rounded-xl p-5">
-              <p className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec mb-3">Last session</p>
+            <section className="bg-tea-surface border border-tea-border rounded-xl p-5">
+              <h3 className="h3 mb-1">Last Session</h3>
+              <p className="label-caps text-tea-text-dim mb-4">Most recent event attended</p>
               <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="font-medium text-tea-text">{lastEvent.title}</p>
-                  <p className="text-sm text-tea-text-sec mt-0.5">
+                <div className="min-w-0">
+                  <p className="text-ui-14 text-tea-text">{lastEvent.title}</p>
+                  <p className="text-ui-12 text-tea-text-sec mt-0.5">
                     {lastEvent.event_date &&
                       new Date(lastEvent.event_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
                     {lastEvent.location_name && ` · ${lastEvent.location_name}`}
@@ -496,165 +696,61 @@ export const CustomerProfilePage: React.FC = () => {
                 </div>
                 <button
                   onClick={() => navigate(`/admin/events/${lastEvent.slug || lastEvent.id}`)}
-                  className="flex items-center gap-1.5 text-xs text-tea-text-sec hover:text-tea-gold transition-colors shrink-0"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-bg border border-tea-border text-tea-text-sec hover:text-tea-text text-xs font-semibold transition-colors shrink-0"
                 >
-                  <Calendar size={12} />
-                  View event
+                  <Calendar size={13} />
+                  <span>View Event</span>
                 </button>
               </div>
               {attendedEvents.length > 1 && (
-                <p className="text-ui-11 text-tea-text-dim mt-3">
-                  +{attendedEvents.length - 1} earlier session{attendedEvents.length > 2 ? 's' : ''} — see Event history below
+                <p className="text-ui-12 text-tea-text-dim mt-3">
+                  +{attendedEvents.length - 1} earlier session{attendedEvents.length > 2 ? 's' : ''} — see Activity below
                 </p>
               )}
-            </div>
+            </section>
           )}
 
-          {/* Teas tried */}
-          {teas.length > 0 && (
-            <div>
-              <p className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec mb-3">
-                Teas tried <span className="ml-1 normal-case text-tea-text-dim">({teas.length})</span>
-              </p>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                {teas.map(tea => (
-                  <div key={tea.id} className="flex items-center gap-2 bg-tea-surface border border-tea-border rounded-lg p-2.5">
-                    {tea.image_url ? (
-                      <img src={tea.image_url} alt="" className="w-8 h-8 rounded object-cover shrink-0" />
-                    ) : (
-                      <div className="w-8 h-8 rounded bg-tea-elevated shrink-0" />
-                    )}
-                    <div className="min-w-0">
-                      <p className="text-xs font-medium text-tea-text truncate">{tea.given_name || tea.product_name}</p>
-                      <p className="text-ui-10 text-tea-text-sec">{[tea.type, tea.origin_region].filter(Boolean).join(' · ')}</p>
-                      {tea.source === 'tasted_at_event' && (
-                        <p className="text-ui-9 text-tea-text-dim">at session</p>
-                      )}
-                    </div>
-                  </div>
+          {/* Activity timeline */}
+          {timeline.length > 0 && (
+            <section className="bg-tea-surface border border-tea-border rounded-xl p-5">
+              <h3 className="h3 mb-1">Activity</h3>
+              <p className="text-ui-12 text-tea-text-dim mb-5">Customer audit thread</p>
+              <ul className="relative pl-5 border-l border-tea-border space-y-5">
+                {timeline.map((e, i) => (
+                  <li key={i} className="relative">
+                    <span
+                      className={`absolute -left-[22px] top-1.5 w-2 h-2 rounded-full ${e.system ? 'bg-tea-text-dim' : 'bg-tea-gold'}`}
+                    />
+                    <div className="label-caps text-tea-text-dim mb-0.5">{e.date} · {e.label}</div>
+                    <div className="text-ui-13 text-tea-text-sec">{e.body}</div>
+                  </li>
                 ))}
-              </div>
-            </div>
+              </ul>
+            </section>
           )}
 
-          {/* Event history */}
-          {events.length > 0 && (
-            <div>
-              <p className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec mb-3">
-                Event history <span className="ml-1 normal-case text-tea-text-dim">({events.length})</span>
-              </p>
-              <div className="space-y-1.5">
-                {events
-                  .slice()
-                  .sort((a, b) => (b.event_date || '').localeCompare(a.event_date || ''))
-                  .map(evt => (
-                    <div key={evt.id}
-                      className="flex items-center justify-between gap-3 px-3 py-2.5 bg-tea-surface border border-tea-border rounded-lg"
-                    >
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${evt.attended === 1 ? 'bg-green-400' : 'bg-tea-text-dim'}`} />
-                        <span className="text-sm text-tea-text truncate">{evt.title}</span>
-                        {evt.attendee_status && evt.attendee_status !== 'confirmed' && (
-                          <span className="text-ui-10 text-tea-text-dim shrink-0">({evt.attendee_status})</span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-3 shrink-0">
-                        {evt.event_date && (
-                          <span className="text-ui-11 text-tea-text-sec">
-                            {new Date(evt.event_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                          </span>
-                        )}
-                        <button
-                          onClick={() => navigate(`/admin/events/${evt.slug || evt.id}`)}
-                          className="text-tea-text-dim hover:text-tea-gold text-xs transition-colors"
-                        >
-                          →
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            </div>
-          )}
-
-          {/* Impressions */}
-          {journey?.impressions && journey.impressions.length > 0 && (
-            <div>
-              <p className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec mb-3">
-                Tasting notes <span className="ml-1 normal-case text-tea-text-dim">({journey.impressions.length})</span>
-              </p>
-              <div className="space-y-2">
-                {journey.impressions.slice(0, 8).map((imp, i) => (
-                  <div key={i} className="bg-tea-surface border border-tea-border rounded-lg px-4 py-3">
-                    <p className="text-sm text-tea-text italic leading-relaxed">"{imp.text}"</p>
-                    <div className="flex items-center justify-between mt-1.5">
-                      <p className="text-ui-10 text-tea-text-sec">
-                        {imp.teaName} · {imp.eventTitle} ·{' '}
-                        {new Date(imp.date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
-                      </p>
-                      {imp.eventSlug && (
-                        <button
-                          onClick={() => navigate(`/admin/events/${imp.eventSlug}`)}
-                          className="text-tea-text-dim hover:text-tea-gold text-xs transition-colors shrink-0 ml-3"
-                        >
-                          →
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Orders */}
-          {orders.length > 0 && (
-            <div>
-              <p className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec mb-3">
-                Orders <span className="ml-1 normal-case text-tea-text-dim">({orders.length})</span>
-              </p>
-              <div className="space-y-1.5">
-                {orders.map((order: any) => (
-                  <div key={order.id}
-                    className="flex items-center justify-between px-3 py-2.5 bg-tea-surface border border-tea-border rounded-lg text-sm"
-                  >
-                    <span className="text-tea-text">
-                      #{order.invoice_number}
-                      {order.source_event_title && (
-                        <span className="text-tea-text-dim ml-2 text-ui-11">· {order.source_event_title}</span>
-                      )}
-                    </span>
-                    <div className="flex items-center gap-3">
-                      <span className="text-ui-11 text-tea-text-sec">{order.status}</span>
-                      {order.payment_status && (
-                        <span className={`text-ui-10 px-1.5 py-0.5 rounded ${
-                          order.payment_status === 'paid' ? 'bg-green-500/10 text-green-400'
-                          : order.payment_status === 'partial' ? 'bg-amber-500/10 text-amber-400'
-                          : 'bg-tea-elevated text-tea-text-dim'
-                        }`}>
-                          {order.payment_status}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Notes */}
+          {/* Notes (staff-facing) */}
           {customer.notes && (
-            <div>
-              <p className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec mb-2">Notes</p>
-              <p className="text-sm text-tea-text-sec leading-relaxed">{customer.notes}</p>
-            </div>
+            <section className="bg-tea-surface border border-tea-border rounded-xl p-5">
+              <h3 className="h3 mb-1">Notes</h3>
+              <p className="label-caps text-tea-text-dim mb-4">Staff-facing</p>
+              <p className="text-ui-13 text-tea-text-sec leading-relaxed">{customer.notes}</p>
+            </section>
           )}
+
+          {/* Owner private note */}
+          <OwnerPrivateNote
+            customerId={customer.id}
+            onRelationshipKinds={(kinds) => setCustomer(prev => prev ? ({ ...prev, relationshipKinds: kinds }) : prev)}
+          />
 
           {/* Empty state */}
-          {!lastEvent && teas.length === 0 && orders.length === 0 && (
-            <div className="text-center py-12 text-tea-text-dim text-sm">
+          {!lastEvent && teas.length === 0 && orders.length === 0 && timeline.length === 0 && (
+            <div className="text-center py-12 text-tea-text-dim text-ui-13">
               <p>No session history yet.</p>
-              <p className="mt-1">When {customer.name.split(' ')[0]} attends an event and their record is linked, everything will appear here.</p>
+              <p className="mt-1">
+                When {customer.name.split(' ')[0]} attends an event and their record is linked, everything will appear here.
+              </p>
             </div>
           )}
         </div>

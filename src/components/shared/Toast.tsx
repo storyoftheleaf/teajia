@@ -2,7 +2,6 @@ import React from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Icons } from '../Icons';
-import { ADMIN_Z_INDEX } from '../../constants/admin';
 import type { Toast as ToastType } from '../../hooks/useToast';
 
 interface ToastProps {
@@ -58,8 +57,7 @@ interface ToastContainerProps {
 export const ToastContainer: React.FC<ToastContainerProps> = ({ toasts, onDismiss }) => {
   return createPortal(
     <div
-      className="fixed bottom-20 md:bottom-6 right-4 md:right-6 flex flex-col gap-2"
-      style={{ zIndex: ADMIN_Z_INDEX.TOAST }}
+      className="fixed bottom-20 md:bottom-6 right-4 md:right-6 z-toast flex flex-col gap-2"
       aria-live="polite"
       aria-atomic="true"
       role="status"
