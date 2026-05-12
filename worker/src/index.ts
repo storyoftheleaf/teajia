@@ -601,6 +601,32 @@ async function requireOwnerTier(
   return { error: json({ error: 'Owner-tier access required for this action' }, 403) };
 }
 
+// Require an active (non-suspended) account. Used for mutating operations.
+// Reads are allowed on suspended accounts so the operator can see their data.
+// Platform Owner / Admin bypass this check (they may need to fix suspended accounts).
+async function requireActiveAccount(
+  request: Request,
+  env: Env
+): Promise<AccountCtx | { error: Response }> {
+  const ctx = await getActiveAccount(request, env);
+  if ('error' in ctx) return ctx;
+
+  // Platform-tier users can write to any account (including suspended ones for recovery).
+  if (ctx.isPlatform) return ctx;
+
+  // Regular users cannot write to suspended accounts.
+  try {
+    const acct = await env.DB.prepare('SELECT status FROM accounts WHERE id = ?').bind(ctx.accountId).first();
+    if (acct && acct.status === 'suspended') {
+      return { error: json({ error: 'account_suspended' }, 403) };
+    }
+  } catch {
+    return { error: json({ error: 'Account check failed', reason: 'db_unavailable' }, 503) };
+  }
+
+  return ctx;
+}
+
 // Resolve platform_role from the DB rather than trusting the JWT claim,
 // so a demoted user loses platform powers immediately rather than at token
 // expiry. Returns null if the user row is missing or DB is unavailable.
@@ -1467,7 +1493,9 @@ const handleRequestAdmin: Handler = async (request, env) => {
   const claims = parseToken(token);
   if (!claims) return json({ error: 'Invalid token' }, 401);
 
-  if (claims.role === 'admin' || claims.role === 'owner') {
+  const dbRole = await resolveDbPlatformRole(env, claims.sub);
+  if (dbRole === 'db_error') return json({ error: 'Auth check failed', reason: 'db_unavailable' }, 503);
+  if (dbRole === 'platform_admin' || dbRole === 'platform_owner') {
     return json({ error: 'You already have admin access' }, 400);
   }
 
@@ -1484,7 +1512,7 @@ const handleRequestAdmin: Handler = async (request, env) => {
 
 // ── List All Users (admin/owner) ──
 const handleListUsers: Handler = async (request, env) => {
-  const authErr = await requireAdmin(request, env);
+  const authErr = await requirePlatformAdmin(request, env);
   if (authErr) return authErr;
 
   const users = await env.DB.prepare(
@@ -1496,17 +1524,17 @@ const handleListUsers: Handler = async (request, env) => {
 
 // ── Approve/Deny Admin Request (owner only) ──
 const handleUpdateUserRole: Handler = async (request, env, params) => {
-  const authErr = await requireOwner(request, env);
+  const authErr = await requirePlatformOwner(request, env);
   if (authErr) return authErr;
 
   const userId = params.id;
   const { role, admin_request_status } = await request.json() as { role?: string; admin_request_status?: string };
 
-  const user = await env.DB.prepare('SELECT id, role FROM users WHERE id = ?').bind(userId).first();
+  const user = await env.DB.prepare('SELECT id, platform_role FROM users WHERE id = ?').bind(userId).first();
   if (!user) return json({ error: 'User not found' }, 404);
 
-  // Prevent changing owner role
-  if (user.role === 'owner') return json({ error: 'Cannot modify owner account' }, 403);
+  // Prevent changing platform owner role
+  if (user.platform_role === 'platform_owner') return json({ error: 'Cannot modify platform owner account' }, 403);
 
   const updates: string[] = [];
   const binds: any[] = [];
@@ -1534,13 +1562,13 @@ const handleUpdateUserRole: Handler = async (request, env, params) => {
 
 // ── Delete User (owner only) ──
 const handleDeleteUser: Handler = async (request, env, params) => {
-  const authErr = await requireOwner(request, env);
+  const authErr = await requirePlatformOwner(request, env);
   if (authErr) return authErr;
 
   const userId = params.id;
-  const user = await env.DB.prepare('SELECT id, role FROM users WHERE id = ?').bind(userId).first();
+  const user = await env.DB.prepare('SELECT id, platform_role FROM users WHERE id = ?').bind(userId).first();
   if (!user) return json({ error: 'User not found' }, 404);
-  if (user.role === 'owner') return json({ error: 'Cannot delete owner account' }, 403);
+  if (user.platform_role === 'platform_owner') return json({ error: 'Cannot delete platform owner account' }, 403);
 
   await env.DB.prepare('DELETE FROM users WHERE id = ?').bind(userId).run();
   return json({ ok: true });
@@ -1548,7 +1576,7 @@ const handleDeleteUser: Handler = async (request, env, params) => {
 
 // ── Generate Password Reset Token (admin/owner) ──
 const handleCreateResetToken: Handler = async (request, env) => {
-  const authErr = await requireAdmin(request, env);
+  const authErr = await requirePlatformAdmin(request, env);
   if (authErr) return authErr;
 
   const { userId } = await request.json() as { userId?: string };
@@ -4636,7 +4664,7 @@ const handleAutoLinkVendors: Handler = async (request, env) => {
 
 // ── AI Wisdom Generation ──
 const handleGenerateWisdom: Handler = async (request, env) => {
-  const authErr = await requireAdmin(request, env);
+  const authErr = await requirePlatformAdmin(request, env);
   if (authErr) return authErr;
 
   if (!env.ANTHROPIC_API_KEY) {
