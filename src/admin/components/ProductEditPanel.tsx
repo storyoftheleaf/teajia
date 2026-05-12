@@ -294,7 +294,7 @@ export const CollapsibleSection = ({ title, defaultOpen = true, mobileDefault, c
     return defaultOpen;
   });
   return (
-    <div className={`mx-3 mb-2 rounded-lg transition-colors ${open ? 'bg-tea-surface/70' : 'bg-tea-surface/40 hover:bg-tea-surface/60'}`}>
+    <div className={`mx-3 mb-2 rounded-lg transition-colors ${open ? 'bg-tea-elevated/70' : 'bg-tea-elevated/40 hover:bg-tea-elevated/60'}`}>
       <button onClick={() => setOpen(!open)} aria-expanded={open} className="w-full flex items-center justify-between px-4 py-3 group">
         <span className={`text-xs font-serif italic transition-colors ${open ? 'text-tea-text-sec' : 'text-tea-text-dim group-hover:text-tea-text-sec'}`}>{title}</span>
         <ChevronRight size={12} aria-hidden="true" className={`text-tea-text-dim/70 transition-transform duration-200 group-hover:text-tea-text-sec ${open ? 'rotate-90' : ''}`} />
@@ -904,7 +904,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
         aria-labelledby={titleId}
         aria-hidden={!product}
         style={{ willChange: 'transform' }}
-        className={`fixed inset-0 bottom-[calc(52px+env(safe-area-inset-bottom))] md:inset-auto md:right-0 md:top-0 md:bottom-0 md:w-[360px] lg:w-[420px] xl:w-[440px] z-drawer bg-tea-bg md:border-l md:border-tea-border shadow-2xl flex flex-col panel-sidebar transition-transform duration-300 ease-out ${product ? 'translate-x-0' : 'translate-x-full'}`}
+        className={`fixed inset-0 bottom-[calc(52px+env(safe-area-inset-bottom))] md:inset-auto md:right-0 md:top-0 md:bottom-0 md:w-[360px] lg:w-[420px] xl:w-[440px] z-drawer bg-tea-surface md:border-l md:border-tea-border shadow-2xl flex flex-col panel-sidebar transition-transform duration-300 ease-out ${product ? 'translate-x-0' : 'translate-x-full'}`}
       >
         {product && (<>
           {/* Header — Row 1: Nav */}
@@ -994,7 +994,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
             {/* 1. QUICK ENTRY. Required fields, single dense block, no header chrome.
                   Identity, origin, vendor, pricing, stock, status all live here so a
                   product can be entered top-to-bottom without expanding sections. */}
-            <div className="mx-3 mb-4 rounded-lg bg-tea-surface/60 px-4 pt-3.5 pb-4">
+            <div className="mx-3 mb-4 rounded-lg bg-tea-elevated/60 px-4 pt-3.5 pb-4">
               {/* Name (full row, autocomplete + autofill) */}
               <FieldRowFull label="Name">
                 <GhostAutocompleteInput
@@ -1216,7 +1216,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
             <button
               onClick={() => setTastingEditorProduct(product)}
               aria-label={flattenedTastingCount > 0 ? `Edit tasting profile (${flattenedTastingCount} notes)` : 'Add tasting profile'}
-              className="w-[calc(100%-1.5rem)] mx-3 mb-4 px-4 py-3.5 flex items-baseline justify-between gap-3 rounded-lg bg-tea-surface/60 hover:bg-tea-surface/90 transition-colors group"
+              className="w-[calc(100%-1.5rem)] mx-3 mb-4 px-4 py-3.5 flex items-baseline justify-between gap-3 rounded-lg bg-tea-elevated/60 hover:bg-tea-elevated/90 transition-colors group"
             >
               <span className="text-sm font-serif italic text-tea-text-sec group-hover:text-tea-text-sec transition-colors">Tasting Profile</span>
               <span className="flex items-baseline gap-2.5 shrink-0">
