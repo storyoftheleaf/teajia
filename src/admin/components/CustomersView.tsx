@@ -176,12 +176,14 @@ const CustomerModal = ({
   const [customTagInput, setCustomTagInput] = useState('');
   const [newChannel, setNewChannel] = useState<ContactChannel>('whatsapp');
   const [newHandle, setNewHandle] = useState('');
+  const [showOptional, setShowOptional] = useState(false);
 
   React.useEffect(() => {
     setForm(initialData || emptyForm);
     setCustomTagInput('');
     setNewChannel('whatsapp');
     setNewHandle('');
+    setShowOptional(false);
   }, [initialData, isOpen]);
 
   if (!isOpen) return null;
@@ -292,11 +294,6 @@ const CustomerModal = ({
 
           <Field label="Name *" name="name" placeholder="Full name" />
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field label="Company" name="company" placeholder="Business name" />
-            <Field label="Source" name="source" placeholder="e.g. Referral, Online" />
-          </div>
-
           <div className="h-px bg-tea-border my-2" />
           <h4 className="text-xs text-tea-text-sec uppercase tracking-wider">Contact</h4>
 
@@ -363,93 +360,115 @@ const CustomerModal = ({
             </button>
           </div>
 
-          <div className="h-px bg-tea-border my-2" />
-          <h4 className="text-xs text-tea-text-sec uppercase tracking-wider">Location</h4>
+          {/* More details toggle */}
+          <button
+            type="button"
+            onClick={() => setShowOptional(s => !s)}
+            className="w-full mt-4 text-left flex items-center justify-between text-xs text-tea-text-sec hover:text-tea-text transition-colors font-medium uppercase tracking-wider py-2"
+          >
+            <span>More details</span>
+            <span className="text-ui-14">{showOptional ? '▴' : '▾'}</span>
+          </button>
 
-          <Field label="Address" name="address" placeholder="Street address" />
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field label="City" name="city" placeholder="City" />
-            <Field label="Country" name="country" placeholder="Country" />
-          </div>
+          {/* Optional fields - collapsed by default */}
+          {showOptional && (
+            <>
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <Field label="Company" name="company" placeholder="Business name" />
+                  <Field label="Source" name="source" placeholder="e.g. Referral, Online" />
+                </div>
 
-          <div className="h-px bg-tea-border my-2" />
+                <div className="h-px bg-tea-border" />
+                <h4 className="text-xs text-tea-text-sec uppercase tracking-wider">Location</h4>
 
-          <div>
-            <label className="block text-xs text-tea-text-sec mb-2 uppercase tracking-wider">Tags</label>
-            <div className="flex flex-wrap gap-2 mb-2">
-              {TAG_OPTIONS.map(tag => {
-                const isActive = form.tags.includes(tag);
-                return (
-                  <button
-                    key={tag}
-                    type="button"
-                    onClick={() => toggleTag(tag)}
-                    className={`text-xs px-3 py-1.5 rounded-full transition-all ${
-                      isActive
-                        ? TAG_ACTIVE_COLORS[tag]
-                        : 'bg-tea-elevated/60 text-tea-text-dim hover:bg-tea-elevated hover:text-tea-text-sec'
-                    }`}
+                <Field label="Address" name="address" placeholder="Street address" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <Field label="City" name="city" placeholder="City" />
+                  <Field label="Country" name="country" placeholder="Country" />
+                </div>
+
+                <div className="h-px bg-tea-border" />
+
+                <div>
+                  <label className="block text-xs text-tea-text-sec mb-2 uppercase tracking-wider">Tags</label>
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {TAG_OPTIONS.map(tag => {
+                      const isActive = form.tags.includes(tag);
+                      return (
+                        <button
+                          key={tag}
+                          type="button"
+                          onClick={() => toggleTag(tag)}
+                          className={`text-xs px-3 py-1.5 rounded-full transition-all ${
+                            isActive
+                              ? TAG_ACTIVE_COLORS[tag]
+                              : 'bg-tea-elevated/60 text-tea-text-dim hover:bg-tea-elevated hover:text-tea-text-sec'
+                          }`}
+                        >
+                          {isActive && <span className="mr-1 opacity-60">✓</span>}{tag}
+                        </button>
+                      );
+                    })}
+                    {/* Custom tags already on the customer */}
+                    {customTags.map(tag => (
+                      <button
+                        key={tag}
+                        type="button"
+                        onClick={() => toggleTag(tag)}
+                        className="text-xs px-3 py-1.5 rounded-full bg-tea-elevated text-tea-text transition-all"
+                      >
+                        <span className="mr-1 opacity-60">✓</span>{tag}
+                      </button>
+                    ))}
+                  </div>
+                  {/* Custom tag input */}
+                  <div className="flex items-center gap-2 mt-1">
+                    <input
+                      type="text"
+                      value={customTagInput}
+                      onChange={e => setCustomTagInput(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addCustomTag(); } }}
+                      placeholder="Add custom tag…"
+                      className="flex-1 bg-tea-bg border border-tea-border rounded-lg px-3 py-1.5 text-xs text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-text-sec transition-colors placeholder-tea-text-dim"
+                    />
+                    <button
+                      type="button"
+                      onClick={addCustomTag}
+                      disabled={!customTagInput.trim()}
+                      className="px-3 py-1.5 text-xs bg-tea-elevated text-tea-text-sec rounded-lg hover:text-tea-text transition-colors disabled:opacity-40"
+                    >
+                      Add
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs text-tea-text-sec mb-1 uppercase tracking-wider">Preferred Currency</label>
+                  <select
+                    value={form.preferred_currency}
+                    onChange={e => setForm(prev => ({ ...prev, preferred_currency: e.target.value }))}
+                    className="w-full bg-tea-bg border border-tea-border rounded-lg px-3 py-2 text-base md:text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-text-sec transition-colors"
                   >
-                    {isActive && <span className="mr-1 opacity-60">✓</span>}{tag}
-                  </button>
-                );
-              })}
-              {/* Custom tags already on the customer */}
-              {customTags.map(tag => (
-                <button
-                  key={tag}
-                  type="button"
-                  onClick={() => toggleTag(tag)}
-                  className="text-xs px-3 py-1.5 rounded-full bg-tea-elevated text-tea-text transition-all"
-                >
-                  <span className="mr-1 opacity-60">✓</span>{tag}
-                </button>
-              ))}
-            </div>
-            {/* Custom tag input */}
-            <div className="flex items-center gap-2 mt-1">
-              <input
-                type="text"
-                value={customTagInput}
-                onChange={e => setCustomTagInput(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addCustomTag(); } }}
-                placeholder="Add custom tag…"
-                className="flex-1 bg-tea-bg border border-tea-border rounded-lg px-3 py-1.5 text-xs text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-text-sec transition-colors placeholder-tea-text-dim"
-              />
-              <button
-                type="button"
-                onClick={addCustomTag}
-                disabled={!customTagInput.trim()}
-                className="px-3 py-1.5 text-xs bg-tea-elevated text-tea-text-sec rounded-lg hover:text-tea-text transition-colors disabled:opacity-40"
-              >
-                Add
-              </button>
-            </div>
-          </div>
+                    {['USD', 'NT', 'Yuan', 'IDR', 'JPY', 'MYR', 'HKD'].map(c => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                </div>
 
-          <div>
-            <label className="block text-xs text-tea-text-sec mb-1 uppercase tracking-wider">Preferred Currency</label>
-            <select
-              value={form.preferred_currency}
-              onChange={e => setForm(prev => ({ ...prev, preferred_currency: e.target.value }))}
-              className="w-full bg-tea-bg border border-tea-border rounded-lg px-3 py-2 text-base md:text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-text-sec transition-colors"
-            >
-              {['USD', 'NT', 'Yuan', 'IDR', 'JPY', 'MYR', 'HKD'].map(c => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-xs text-tea-text-sec mb-1 uppercase tracking-wider">Notes</label>
-            <textarea
-              value={form.notes}
-              onChange={e => setForm(prev => ({ ...prev, notes: e.target.value }))}
-              placeholder="Private notes about this customer..."
-              rows={3}
-              className="w-full bg-tea-bg border border-tea-border rounded-lg px-3 py-2 text-base md:text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-text-sec transition-colors resize-none"
-            />
-          </div>
+                <div>
+                  <label className="block text-xs text-tea-text-sec mb-1 uppercase tracking-wider">Notes</label>
+                  <textarea
+                    value={form.notes}
+                    onChange={e => setForm(prev => ({ ...prev, notes: e.target.value }))}
+                    placeholder="Private notes about this customer..."
+                    rows={3}
+                    className="w-full bg-tea-bg border border-tea-border rounded-lg px-3 py-2 text-base md:text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-text-sec transition-colors resize-none"
+                  />
+                </div>
+              </div>
+            </>
+          )}
 
           <button
             type="submit"
