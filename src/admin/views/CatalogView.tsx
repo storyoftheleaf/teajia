@@ -79,10 +79,10 @@ export const CatalogView: React.FC = () => {
   const isEmpty = products.length === 0;
 
   return (
-    <div className="px-4 pb-16 space-y-6">
+    <div className="admin-page pb-nav-gap-lg space-y-6">
       <div className="pt-6 space-y-1">
-        <h1 className="text-base font-medium text-tea-text tracking-wide">Teajia Catalog</h1>
-        <p className="text-xs text-tea-text-dim">Products available to source from Teajia Bali</p>
+        <h1 className="h2">Teajia Catalog</h1>
+        <p className="text-ui-11 uppercase tracking-[0.15em] text-tea-text-dim">Products available to source from Teajia Bali</p>
       </div>
 
       {isEmpty ? (

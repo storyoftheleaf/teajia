@@ -152,7 +152,7 @@ export default function ContributorProfilePage() {
 
   return (
     <article
-      className="w-full min-h-screen flex-1 mx-auto px-4 md:px-6 max-w-3xl"
+      className="w-full min-h-screen flex-1 mx-auto px-4 md:px-6 max-w-3xl pb-nav-gap-lg"
     >
       <style>{`
         @keyframes contribFade {
