@@ -5,20 +5,44 @@ import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 // MCP tokens — voice/agent control of this account's inventory through the
 // /mcp endpoint on the worker. Each token authenticates a single MCP client
 // (Claude desktop, Claude mobile, an external script) as a specific user
-// against this account, with full inventory + invoicing rights.
+// against this account with the selected scope permissions.
 //
 // The plaintext secret is shown ONCE on creation and never recoverable. The
 // admin only ever sees the prefix afterwards.
+//
+// Scopes: inventory:read and customers:read are always enabled (read). Operator
+// write scopes (stock:write, sales:write) are default-on. Owner-tier scopes
+// (catalog:write, customers:write, admin:write) are off by default and should
+// only be granted to trusted automation.
 
 interface TokenRow {
   id: string;
   user_email: string;
   label: string;
   token_prefix: string;
+  scopes: string[] | string | null;
   created_at: string;
   last_used_at: string | null;
   revoked_at: string | null;
 }
+
+interface ScopeDef {
+  scope: string;
+  label: string;
+  description: string;
+  group: 'read' | 'operator' | 'owner';
+  defaultChecked: boolean;
+}
+
+const SCOPE_DEFS: ScopeDef[] = [
+  { scope: 'inventory:read', label: 'inventory:read', description: 'Search teas, view stock levels', group: 'read', defaultChecked: true },
+  { scope: 'customers:read', label: 'customers:read', description: 'Look up customers', group: 'read', defaultChecked: true },
+  { scope: 'stock:write', label: 'stock:write', description: 'Add / remove stock', group: 'operator', defaultChecked: true },
+  { scope: 'sales:write', label: 'sales:write', description: 'Create and void invoices', group: 'operator', defaultChecked: true },
+  { scope: 'catalog:write', label: 'catalog:write', description: 'Update pricing, thresholds, archive', group: 'owner', defaultChecked: false },
+  { scope: 'customers:write', label: 'customers:write', description: 'Create and update customer records', group: 'owner', defaultChecked: false },
+  { scope: 'admin:write', label: 'admin:write', description: 'Account settings, exchange rates', group: 'owner', defaultChecked: false },
+];
 
 const API_URL = (import.meta as any).env?.VITE_API_URL || '';
 
@@ -162,8 +186,8 @@ export const MCPTokensView: React.FC = () => {
   }
 }`}</pre>
             <p className="text-tea-text-sec text-ui-13 leading-[1.6] mt-3">
-              Restart Claude. You should see seven Teajia tools (search_tea, get_tea, list_low_stock,
-              find_customer, add_stock, remove_stock, record_sale) available in any conversation.
+              Restart Claude. You&apos;ll see Teajia tools available in any conversation — the exact
+              set depends on the scopes you selected when minting the token.
               Mobile voice mode works the same way once the desktop config syncs.
             </p>
           </div>
@@ -201,6 +225,12 @@ const TokenRowView: React.FC<TokenRowViewProps> = ({ row, onChange }) => {
     }
   };
 
+  const scopeList: string[] = (() => {
+    if (!row.scopes) return [];
+    if (Array.isArray(row.scopes)) return row.scopes as string[];
+    try { return JSON.parse(row.scopes as string) as string[]; } catch { return []; }
+  })();
+
   return (
     <div className={`py-4 border-b border-tea-border ${revoked ? 'opacity-50' : ''}`}>
       <div className="flex items-baseline justify-between gap-4 flex-wrap">
@@ -213,6 +243,15 @@ const TokenRowView: React.FC<TokenRowViewProps> = ({ row, onChange }) => {
             last used {formatDate(row.last_used_at)}
             {revoked && <> · <span className="text-tea-text">revoked {formatDate(row.revoked_at)}</span></>}
           </div>
+          {scopeList.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-1">
+              {scopeList.map(s => (
+                <span key={s} className="text-ui-11 text-tea-text-sec bg-tea-bg border border-tea-border px-1.5 py-0.5 rounded-sm font-mono">
+                  {s}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
         {!revoked && (
           <div>
@@ -262,18 +301,32 @@ const MintForm: React.FC<MintFormProps> = ({ onCancel, onMinted }) => {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Scope selection state — keyed by scope string
+  const [selectedScopes, setSelectedScopes] = useState<Record<string, boolean>>(
+    () => Object.fromEntries(SCOPE_DEFS.map(s => [s.scope, s.defaultChecked]))
+  );
+
+  const toggleScope = (scope: string) => {
+    setSelectedScopes(prev => ({ ...prev, [scope]: !prev[scope] }));
+  };
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = label.trim();
     if (!trimmed) {
-      setError('Give the token a label so you remember what it&apos;s for.');
+      setError('Give the token a label so you remember what it\'s for.');
+      return;
+    }
+    const scopes = Object.entries(selectedScopes).filter(([, v]) => v).map(([k]) => k);
+    if (scopes.length === 0) {
+      setError('Select at least one scope.');
       return;
     }
     setBusy(true);
     setError(null);
     try {
       const res = await fetch(`${API_URL}/api/admin/mcp-tokens`, {
-        method: 'POST', headers: authHeaders(), body: JSON.stringify({ label: trimmed }),
+        method: 'POST', headers: authHeaders(), body: JSON.stringify({ label: trimmed, scopes }),
       });
       if (!res.ok) throw new Error(await res.text());
       const data = await res.json();
@@ -285,6 +338,12 @@ const MintForm: React.FC<MintFormProps> = ({ onCancel, onMinted }) => {
     }
   };
 
+  const scopeGroups: { key: ScopeDef['group']; title: string; note?: string }[] = [
+    { key: 'read', title: 'Read' },
+    { key: 'operator', title: 'Write — Operator' },
+    { key: 'owner', title: 'Write — Owner', note: 'Owner / admin tools — grant with care' },
+  ];
+
   return (
     <form onSubmit={submit}>
       <label className="block text-tea-text-sec text-ui-12 uppercase tracking-[0.12em] mb-2">
@@ -295,9 +354,45 @@ const MintForm: React.FC<MintFormProps> = ({ onCancel, onMinted }) => {
         value={label}
         onChange={e => setLabel(e.target.value)}
         placeholder="e.g. Claude desktop on MBP"
-        className="w-full bg-tea-bg border border-tea-border text-tea-text px-3 py-2 text-ui-14 mb-3"
+        className="w-full bg-tea-bg border border-tea-border text-tea-text px-3 py-2 text-ui-14 mb-5"
         autoFocus
       />
+
+      <div className="mb-5">
+        <div className="text-tea-text-sec text-ui-12 uppercase tracking-[0.12em] mb-3">Scopes</div>
+        <div className="space-y-4">
+          {scopeGroups.map(group => {
+            const defs = SCOPE_DEFS.filter(s => s.group === group.key);
+            return (
+              <div key={group.key}>
+                <div className="text-tea-text-sec text-ui-11 mb-1.5 flex items-center gap-2">
+                  <span>{group.title}</span>
+                  {group.note && (
+                    <span className="text-tea-text-dim text-ui-10 italic">{group.note}</span>
+                  )}
+                </div>
+                <div className="space-y-1.5">
+                  {defs.map(def => (
+                    <label key={def.scope} className="flex items-start gap-2.5 cursor-pointer tap-target">
+                      <input
+                        type="checkbox"
+                        checked={selectedScopes[def.scope] ?? def.defaultChecked}
+                        onChange={() => toggleScope(def.scope)}
+                        className="mt-0.5 accent-tea-gold"
+                      />
+                      <div>
+                        <code className="text-ui-12 text-tea-text">{def.label}</code>
+                        <span className="text-tea-text-sec text-ui-11 ml-2">{def.description}</span>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       {error && <div className="text-tea-text-sec italic text-ui-12 mb-3">{error}</div>}
       <div className="flex justify-between items-center">
         <button

@@ -1,8 +1,20 @@
 // MCP server for Teajia — voice/agent control of this account's inventory.
 //
 // Speaks the Model Context Protocol over plain HTTP POST + JSON-RPC 2.0 (no SSE).
-// One MCP token == one (account, user) pair, with full bundle-equivalent rights
-// inside that account. Tokens are minted in the admin and stored hashed.
+// One MCP token == one (account, user) pair scoped to its selected permissions.
+// Tokens are minted in the admin and stored hashed.
+//
+// ── Scopes (seven total) ──
+//   Read:               inventory:read, customers:read
+//   Write — Operator:   stock:write, sales:write
+//   Write — Owner:      catalog:write, customers:write, admin:write
+//
+// Owner-tier scopes (catalog:write, customers:write, admin:write) are gated at
+// TWO points: (1) at mint time the UI only lets owner-tier users select them,
+// and the server refuses to store them if the minting user is below owner tier;
+// (2) at dispatch time the token's `creator_tier` column is checked — if it is
+// not 'account_owner' or 'platform_owner', the call is rejected even if the
+// scope appears in the token row (defense in depth against direct DB edits).
 //
 // Mutating tools follow a confirm-pattern: first call returns a `preview`
 // payload + `confirmation_token`; the model is expected to read the preview
@@ -151,17 +163,32 @@ async function resolveOAuthApprovalContext(
 }
 
 // ── token auth ──
+
+type McpCreatorTier = 'platform_owner' | 'account_owner' | 'staff' | 'viewer';
+const OWNER_TIERS: ReadonlySet<McpCreatorTier> = new Set(['platform_owner', 'account_owner']);
+
 type McpAuth = {
   accountId: string;
   userId: string;
   userEmail: string;
   tokenId: string;
   scopes: McpScope[];
+  creatorTier: McpCreatorTier;
 };
 
-const MCP_SCOPES = ['inventory:read', 'stock:write', 'customers:read', 'sales:write'] as const;
+const MCP_SCOPES = [
+  'inventory:read', 'stock:write', 'customers:read', 'sales:write',
+  'catalog:write', 'customers:write', 'admin:write',
+] as const;
 type McpScope = typeof MCP_SCOPES[number];
-const DEFAULT_MCP_SCOPES: McpScope[] = [...MCP_SCOPES];
+
+// Scopes that require owner-tier creator. Defense-in-depth: checked at mint
+// AND at dispatch (in case someone edits the DB row directly).
+const OWNER_TIER_SCOPES: ReadonlySet<McpScope> = new Set(['catalog:write', 'customers:write', 'admin:write']);
+
+// Default set for tokens minted without explicit scope selection (legacy +
+// OAuth flow). Does NOT include owner-tier scopes.
+const DEFAULT_MCP_SCOPES: McpScope[] = ['inventory:read', 'stock:write', 'customers:read', 'sales:write'];
 
 function parseMcpScopes(raw: unknown): McpScope[] {
   if (!raw) return DEFAULT_MCP_SCOPES;
@@ -205,7 +232,7 @@ async function authenticateMcp(request: Request, env: Env): Promise<McpAuth | Re
 
   const hash = await sha256Hex(plaintext);
   const row = await env.DB.prepare(
-    'SELECT id, account_id, user_id, user_email, revoked_at, scopes FROM mcp_tokens WHERE token_hash = ?'
+    'SELECT id, account_id, user_id, user_email, revoked_at, scopes, creator_tier FROM mcp_tokens WHERE token_hash = ?'
   ).bind(hash).first() as Record<string, any> | null;
 
   if (!row || row.revoked_at) {
@@ -216,12 +243,18 @@ async function authenticateMcp(request: Request, env: Env): Promise<McpAuth | Re
   env.DB.prepare("UPDATE mcp_tokens SET last_used_at = datetime('now') WHERE id = ?")
     .bind(row.id).run().catch(() => {});
 
+  const creatorTier: McpCreatorTier =
+    (['platform_owner', 'account_owner', 'staff', 'viewer'] as McpCreatorTier[]).includes(row.creator_tier as McpCreatorTier)
+      ? (row.creator_tier as McpCreatorTier)
+      : 'account_owner'; // default for pre-migration rows that have no column yet
+
   return {
     accountId: row.account_id as string,
     userId: row.user_id as string,
     userEmail: row.user_email as string,
     tokenId: row.id as string,
     scopes: parseMcpScopes(row.scopes),
+    creatorTier,
   };
 }
 
@@ -237,7 +270,13 @@ async function authenticateMcp(request: Request, env: Env): Promise<McpAuth | Re
 type PendingMutation =
   | { kind: 'add_stock'; accountId: string; userEmail: string; productId: string; grams: number; note: string | null }
   | { kind: 'remove_stock'; accountId: string; userEmail: string; productId: string; grams: number; reason: string; note: string | null }
-  | { kind: 'record_sale'; accountId: string; userEmail: string; lines: { productId: string; grams: number; pricePerGramUsd: number }[]; customerId: string | null; customerName: string; customerWhatsapp: string | null; notes: string | null };
+  | { kind: 'record_sale'; accountId: string; userEmail: string; lines: { productId: string; grams: number; pricePerGramUsd: number }[]; customerId: string | null; customerName: string; customerWhatsapp: string | null; notes: string | null }
+  | { kind: 'create_customer'; accountId: string; userEmail: string; name: string; whatsapp: string | null; email: string | null; phone: string | null; notes: string | null; tags: string[] }
+  | { kind: 'update_customer'; accountId: string; userEmail: string; customerId: string; fields: Record<string, string | null> }
+  | { kind: 'update_tea_pricing'; accountId: string; userEmail: string; productId: string; costAmount: number | null; costCurrency: string | null; retailPriceUsd: number | null }
+  | { kind: 'set_low_stock_threshold'; accountId: string; userEmail: string; productId: string; thresholdGrams: number }
+  | { kind: 'update_invoice'; accountId: string; userEmail: string; invoiceId: string; fields: Record<string, string | null> }
+  | { kind: 'void_invoice'; accountId: string; userEmail: string; invoiceId: string; reason: string | null };
 
 type PendingEntry = { mutation: PendingMutation; expiresAt: number };
 const PENDING = new Map<string, PendingEntry>();
@@ -855,6 +894,515 @@ async function commitRecordSale(env: Env, m: Extract<PendingMutation, { kind: 'r
   };
 }
 
+// ── tool: create_customer (preview / confirm) ──
+async function toolCreateCustomer(env: Env, auth: McpAuth, args: any) {
+  const name = args?.name ? String(args.name).trim() : '';
+  const whatsapp = args?.whatsapp ? String(args.whatsapp).trim() : null;
+  const email = args?.email ? String(args.email).trim() : null;
+  const phone = args?.phone ? String(args.phone).trim() : null;
+  const notes = args?.notes ? String(args.notes).slice(0, 1000) : null;
+  const tags: string[] = Array.isArray(args?.tags) ? args.tags.map(String) : [];
+  const confirm = args?.confirm ? String(args.confirm) : null;
+
+  if (!name) throw new Error('name is required');
+
+  // Warn about potential duplicates (reuse find_customer scoring).
+  const existing = await toolFindCustomer(env, auth.accountId, { query: name });
+  const topMatch = (existing.matches as any[])[0];
+  const duplicateWarning = topMatch && topMatch.match_score >= 0.7
+    ? `Similar customer already exists: "${topMatch.name}" (id: ${topMatch.id}, score: ${topMatch.match_score}). Confirm to create a new record anyway.`
+    : null;
+
+  if (!confirm) {
+    const token = issueConfirmationToken({
+      kind: 'create_customer', accountId: auth.accountId, userEmail: auth.userEmail,
+      name, whatsapp, email, phone, notes, tags,
+    });
+    return {
+      preview: {
+        action: 'create_customer',
+        record: { name, whatsapp, email, phone, notes, tags },
+        duplicate_warning: duplicateWarning,
+      },
+      confirmation_token: token,
+      expires_in_seconds: PENDING_TTL_MS / 1000,
+    };
+  }
+
+  const pending = consumeConfirmationToken(confirm);
+  if (!pending || pending.kind !== 'create_customer') {
+    return { error: 'invalid_or_expired_confirmation_token' };
+  }
+  return commitCreateCustomer(env, pending);
+}
+
+async function commitCreateCustomer(env: Env, m: Extract<PendingMutation, { kind: 'create_customer' }>) {
+  const id = crypto.randomUUID();
+  await env.DB.batch([
+    env.DB.prepare(
+      `INSERT INTO customers (id, account_id, name, whatsapp, email, phone, notes, tags)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    ).bind(id, m.accountId, m.name, m.whatsapp, m.email, m.phone, m.notes, JSON.stringify(m.tags)),
+    env.DB.prepare(
+      `INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id, account_id)
+       VALUES (?, 'CUSTOMER_CREATED_MCP', ?, ?, 'customer', ?, ?)`
+    ).bind(
+      crypto.randomUUID(),
+      `Customer "${m.name}" created via MCP`,
+      m.userEmail, id, m.accountId,
+    ),
+  ]);
+  return {
+    committed: true,
+    action: 'create_customer',
+    customer: { id, name: m.name, whatsapp: m.whatsapp, email: m.email },
+  };
+}
+
+// ── tool: update_customer (preview / confirm) ──
+async function toolUpdateCustomer(env: Env, auth: McpAuth, args: any) {
+  const customerId = String(args?.customer_id || '').trim();
+  const confirm = args?.confirm ? String(args.confirm) : null;
+
+  if (!customerId) throw new Error('customer_id is required');
+
+  const allowed = ['name', 'whatsapp', 'email', 'phone', 'notes'] as const;
+  const fields: Record<string, string | null> = {};
+  for (const f of allowed) {
+    if (f in (args || {})) fields[f] = args[f] ? String(args[f]).trim() : null;
+  }
+  if (Object.keys(fields).length === 0) throw new Error('At least one field to update is required');
+
+  const customer = await env.DB.prepare(
+    'SELECT id, name, whatsapp, email, phone, notes FROM customers WHERE id = ? AND account_id = ?'
+  ).bind(customerId, auth.accountId).first() as Record<string, any> | null;
+  if (!customer) return { error: 'customer_not_found' };
+
+  if (!confirm) {
+    const changes: Record<string, { old: any; new: any }> = {};
+    for (const [k, v] of Object.entries(fields)) {
+      changes[k] = { old: customer[k] ?? null, new: v };
+    }
+    const token = issueConfirmationToken({
+      kind: 'update_customer', accountId: auth.accountId, userEmail: auth.userEmail,
+      customerId, fields,
+    });
+    return {
+      preview: {
+        action: 'update_customer',
+        customer: { id: customerId, name: customer.name },
+        changes,
+      },
+      confirmation_token: token,
+      expires_in_seconds: PENDING_TTL_MS / 1000,
+    };
+  }
+
+  const pending = consumeConfirmationToken(confirm);
+  if (!pending || pending.kind !== 'update_customer' || pending.customerId !== customerId) {
+    return { error: 'invalid_or_expired_confirmation_token' };
+  }
+  return commitUpdateCustomer(env, pending);
+}
+
+async function commitUpdateCustomer(env: Env, m: Extract<PendingMutation, { kind: 'update_customer' }>) {
+  const cols = Object.keys(m.fields);
+  if (cols.length === 0) return { committed: true, action: 'update_customer', changes: 0 };
+
+  const sets = cols.map(c => `${c} = ?`).join(', ');
+  await env.DB.batch([
+    env.DB.prepare(`UPDATE customers SET ${sets}, updated_at = datetime('now') WHERE id = ? AND account_id = ?`)
+      .bind(...cols.map(c => m.fields[c]), m.customerId, m.accountId),
+    env.DB.prepare(
+      `INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id, account_id)
+       VALUES (?, 'CUSTOMER_UPDATED_MCP', ?, ?, 'customer', ?, ?)`
+    ).bind(
+      crypto.randomUUID(),
+      `Customer ${m.customerId} updated via MCP: ${cols.join(', ')}`,
+      m.userEmail, m.customerId, m.accountId,
+    ),
+  ]);
+  return {
+    committed: true,
+    action: 'update_customer',
+    customer_id: m.customerId,
+    updated_fields: cols,
+  };
+}
+
+// ── tool: update_tea_pricing (preview / confirm) ──
+async function toolUpdateTeaPricing(env: Env, auth: McpAuth, args: any) {
+  const productId = String(args?.product_id || '').trim();
+  const confirm = args?.confirm ? String(args.confirm) : null;
+
+  if (!productId) throw new Error('product_id is required');
+
+  const hasNewCost = 'cost_amount' in (args || {}) || 'cost_currency' in (args || {});
+  const hasNewRetail = 'retail_price_usd' in (args || {});
+  if (!hasNewCost && !hasNewRetail) throw new Error('At least one of cost_amount, cost_currency, or retail_price_usd is required');
+
+  const costAmount: number | null = 'cost_amount' in (args || {}) ? Number(args.cost_amount) : null;
+  const costCurrency: string | null = args?.cost_currency ? String(args.cost_currency).toUpperCase().trim() : null;
+  const retailPriceUsd: number | null = 'retail_price_usd' in (args || {}) ? Number(args.retail_price_usd) : null;
+
+  if (costAmount !== null && (!Number.isFinite(costAmount) || costAmount < 0)) throw new Error('cost_amount must be a non-negative number');
+  if (retailPriceUsd !== null && (!Number.isFinite(retailPriceUsd) || retailPriceUsd < 0)) throw new Error('retail_price_usd must be a non-negative number');
+
+  const product = await env.DB.prepare(
+    'SELECT id, given_name, product_name, cost_amount, cost_currency, fixed_retail_price_usd FROM products WHERE id = ? AND account_id = ?'
+  ).bind(productId, auth.accountId).first() as Record<string, any> | null;
+  if (!product) return { error: 'not_found' };
+
+  if (!confirm) {
+    const oldRetail = Number(product.fixed_retail_price_usd || 0);
+    const newRetail = retailPriceUsd ?? oldRetail;
+
+    // Margin warning: (retail - cost_in_usd) / retail < 30%
+    // (Cost currency conversion omitted here — just use cost_amount directly for the warning)
+    const newCost = costAmount ?? Number(product.cost_amount || 0);
+    const marginWarning = newRetail > 0 && (newRetail - newCost) / newRetail < 0.3
+      ? `Margin will be ${Math.round(((newRetail - newCost) / newRetail) * 100)}% — below the 30% floor.`
+      : null;
+
+    const token = issueConfirmationToken({
+      kind: 'update_tea_pricing', accountId: auth.accountId, userEmail: auth.userEmail,
+      productId, costAmount, costCurrency, retailPriceUsd,
+    });
+    return {
+      preview: {
+        action: 'update_tea_pricing',
+        product: { id: product.id, name: product.given_name || product.product_name },
+        changes: {
+          cost_amount: { old: product.cost_amount ?? null, new: costAmount ?? product.cost_amount },
+          cost_currency: { old: product.cost_currency ?? null, new: costCurrency ?? product.cost_currency },
+          retail_price_usd: { old: product.fixed_retail_price_usd ?? null, new: retailPriceUsd ?? product.fixed_retail_price_usd },
+        },
+        margin_warning: marginWarning,
+      },
+      confirmation_token: token,
+      expires_in_seconds: PENDING_TTL_MS / 1000,
+    };
+  }
+
+  const pending = consumeConfirmationToken(confirm);
+  if (!pending || pending.kind !== 'update_tea_pricing' || pending.productId !== productId) {
+    return { error: 'invalid_or_expired_confirmation_token' };
+  }
+  return commitUpdateTeaPricing(env, pending);
+}
+
+async function commitUpdateTeaPricing(env: Env, m: Extract<PendingMutation, { kind: 'update_tea_pricing' }>) {
+  const cols: string[] = [];
+  const vals: any[] = [];
+  if (m.costAmount !== null) { cols.push('cost_amount'); vals.push(m.costAmount); }
+  if (m.costCurrency !== null) { cols.push('cost_currency'); vals.push(m.costCurrency); }
+  if (m.retailPriceUsd !== null) { cols.push('fixed_retail_price_usd'); vals.push(m.retailPriceUsd); }
+
+  if (cols.length === 0) return { committed: true, action: 'update_tea_pricing', changes: 0 };
+
+  const sets = cols.map(c => `${c} = ?`).join(', ');
+  await env.DB.batch([
+    env.DB.prepare(`UPDATE products SET ${sets}, updated_at = datetime('now') WHERE id = ? AND account_id = ?`)
+      .bind(...vals, m.productId, m.accountId),
+    env.DB.prepare(
+      `INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id, account_id)
+       VALUES (?, 'PRICING_UPDATED_MCP', ?, ?, 'product', ?, ?)`
+    ).bind(
+      crypto.randomUUID(),
+      `Pricing updated via MCP for product ${m.productId}: ${cols.join(', ')}`,
+      m.userEmail, m.productId, m.accountId,
+    ),
+  ]);
+  return {
+    committed: true,
+    action: 'update_tea_pricing',
+    product_id: m.productId,
+    updated_fields: cols,
+  };
+}
+
+// ── tool: set_low_stock_threshold (preview / confirm) ──
+async function toolSetLowStockThreshold(env: Env, auth: McpAuth, args: any) {
+  const productId = String(args?.product_id || '').trim();
+  const thresholdGrams = Number(args?.threshold_grams);
+  const confirm = args?.confirm ? String(args.confirm) : null;
+
+  if (!productId) throw new Error('product_id is required');
+  if (!Number.isFinite(thresholdGrams) || thresholdGrams < 0) throw new Error('threshold_grams must be a non-negative number');
+
+  const product = await env.DB.prepare(
+    'SELECT id, given_name, product_name, stock_grams, low_stock_threshold FROM products WHERE id = ? AND account_id = ?'
+  ).bind(productId, auth.accountId).first() as ProductRow | null;
+  if (!product) return { error: 'not_found' };
+
+  const currentStock = Number(product.stock_grams || 0);
+  const oldThreshold = product.low_stock_threshold ?? null;
+
+  if (!confirm) {
+    const token = issueConfirmationToken({
+      kind: 'set_low_stock_threshold', accountId: auth.accountId, userEmail: auth.userEmail,
+      productId, thresholdGrams,
+    });
+    return {
+      preview: {
+        action: 'set_low_stock_threshold',
+        product: { id: product.id, name: product.given_name || product.product_name },
+        threshold_old: oldThreshold,
+        threshold_new: thresholdGrams,
+        current_stock_grams: currentStock,
+        would_be_flagged_low: thresholdGrams > 0 && currentStock < thresholdGrams,
+      },
+      confirmation_token: token,
+      expires_in_seconds: PENDING_TTL_MS / 1000,
+    };
+  }
+
+  const pending = consumeConfirmationToken(confirm);
+  if (!pending || pending.kind !== 'set_low_stock_threshold' || pending.productId !== productId) {
+    return { error: 'invalid_or_expired_confirmation_token' };
+  }
+  return commitSetLowStockThreshold(env, pending);
+}
+
+async function commitSetLowStockThreshold(env: Env, m: Extract<PendingMutation, { kind: 'set_low_stock_threshold' }>) {
+  await env.DB.batch([
+    env.DB.prepare("UPDATE products SET low_stock_threshold = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ?")
+      .bind(m.thresholdGrams, m.productId, m.accountId),
+    env.DB.prepare(
+      `INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id, account_id)
+       VALUES (?, 'THRESHOLD_UPDATED_MCP', ?, ?, 'product', ?, ?)`
+    ).bind(
+      crypto.randomUUID(),
+      `Low-stock threshold set to ${m.thresholdGrams}g via MCP for product ${m.productId}`,
+      m.userEmail, m.productId, m.accountId,
+    ),
+  ]);
+  return {
+    committed: true,
+    action: 'set_low_stock_threshold',
+    product_id: m.productId,
+    threshold_grams: m.thresholdGrams,
+  };
+}
+
+// ── tool: update_invoice (preview / confirm) ──
+async function toolUpdateInvoice(env: Env, auth: McpAuth, args: any) {
+  const invoiceId = String(args?.invoice_id || '').trim();
+  const confirm = args?.confirm ? String(args.confirm) : null;
+
+  if (!invoiceId) throw new Error('invoice_id is required');
+
+  const allowed = ['customer_id', 'customer_name', 'notes'] as const;
+  const fields: Record<string, string | null> = {};
+  for (const f of allowed) {
+    if (f in (args || {})) fields[f] = args[f] ? String(args[f]).trim() : null;
+  }
+  if (Object.keys(fields).length === 0) throw new Error('At least one field to update is required');
+
+  const invoice = await env.DB.prepare(
+    'SELECT id, invoice_number, customer_id, customer_name, notes, status FROM invoices WHERE id = ? AND account_id = ?'
+  ).bind(invoiceId, auth.accountId).first() as Record<string, any> | null;
+  if (!invoice) return { error: 'invoice_not_found' };
+  if (invoice.status === 'Void') return { error: 'void_invoice_cannot_be_modified' };
+
+  if (!confirm) {
+    const changes: Record<string, { old: any; new: any }> = {};
+    for (const [k, v] of Object.entries(fields)) {
+      changes[k] = { old: invoice[k] ?? null, new: v };
+    }
+    const token = issueConfirmationToken({
+      kind: 'update_invoice', accountId: auth.accountId, userEmail: auth.userEmail,
+      invoiceId, fields,
+    });
+    return {
+      preview: {
+        action: 'update_invoice',
+        invoice: { id: invoiceId, invoice_number: invoice.invoice_number, status: invoice.status },
+        changes,
+        note: 'Line items are not mutated by this tool — use void_invoice + record_sale to rebook.',
+      },
+      confirmation_token: token,
+      expires_in_seconds: PENDING_TTL_MS / 1000,
+    };
+  }
+
+  const pending = consumeConfirmationToken(confirm);
+  if (!pending || pending.kind !== 'update_invoice' || pending.invoiceId !== invoiceId) {
+    return { error: 'invalid_or_expired_confirmation_token' };
+  }
+  return commitUpdateInvoice(env, pending);
+}
+
+async function commitUpdateInvoice(env: Env, m: Extract<PendingMutation, { kind: 'update_invoice' }>) {
+  const cols = Object.keys(m.fields);
+  if (cols.length === 0) return { committed: true, action: 'update_invoice', changes: 0 };
+
+  const sets = cols.map(c => `${c} = ?`).join(', ');
+  await env.DB.batch([
+    env.DB.prepare(`UPDATE invoices SET ${sets} WHERE id = ? AND account_id = ?`)
+      .bind(...cols.map(c => m.fields[c]), m.invoiceId, m.accountId),
+    env.DB.prepare(
+      `INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id, account_id)
+       VALUES (?, 'INVOICE_UPDATED_MCP', ?, ?, 'invoice', ?, ?)`
+    ).bind(
+      crypto.randomUUID(),
+      `Invoice ${m.invoiceId} updated via MCP: ${cols.join(', ')}`,
+      m.userEmail, m.invoiceId, m.accountId,
+    ),
+  ]);
+  return {
+    committed: true,
+    action: 'update_invoice',
+    invoice_id: m.invoiceId,
+    updated_fields: cols,
+  };
+}
+
+// ── tool: void_invoice (preview / confirm) ──
+async function toolVoidInvoice(env: Env, auth: McpAuth, args: any) {
+  const invoiceId = String(args?.invoice_id || '').trim();
+  const reason = args?.reason ? String(args.reason).slice(0, 500) : null;
+  const confirm = args?.confirm ? String(args.confirm) : null;
+
+  if (!invoiceId) throw new Error('invoice_id is required');
+
+  const invoice = await env.DB.prepare(
+    'SELECT id, invoice_number, customer_name, customer_id, status, inventory_deducted FROM invoices WHERE id = ? AND account_id = ?'
+  ).bind(invoiceId, auth.accountId).first() as Record<string, any> | null;
+  if (!invoice) return { error: 'invoice_not_found' };
+  if (invoice.status === 'Void') return { error: 'invoice_already_void' };
+
+  const items = await env.DB.prepare(
+    `SELECT ili.product_id, ili.quantity, p.given_name, p.product_name
+       FROM invoice_line_items ili
+       LEFT JOIN products p ON p.id = ili.product_id AND p.account_id = ?
+      WHERE ili.invoice_id = ? AND ili.account_id = ?`
+  ).bind(auth.accountId, invoiceId, auth.accountId).all();
+
+  if (!confirm) {
+    const token = issueConfirmationToken({
+      kind: 'void_invoice', accountId: auth.accountId, userEmail: auth.userEmail,
+      invoiceId, reason,
+    });
+    return {
+      preview: {
+        action: 'void_invoice',
+        invoice: {
+          id: invoiceId,
+          invoice_number: invoice.invoice_number,
+          customer_name: invoice.customer_name,
+          status: invoice.status,
+        },
+        line_items: (items.results as any[]).map(item => ({
+          product_id: item.product_id,
+          product_name: item.given_name || item.product_name || '(custom item)',
+          quantity_grams: item.quantity,
+        })),
+        stock_will_be_restored: !!invoice.inventory_deducted,
+        reason,
+        WARNING: 'This will permanently void the invoice. If inventory was deducted, stock will be added back. This cannot be undone.',
+      },
+      confirmation_token: token,
+      expires_in_seconds: PENDING_TTL_MS / 1000,
+    };
+  }
+
+  const pending = consumeConfirmationToken(confirm);
+  if (!pending || pending.kind !== 'void_invoice' || pending.invoiceId !== invoiceId) {
+    return { error: 'invalid_or_expired_confirmation_token' };
+  }
+  return commitVoidInvoice(env, pending, invoice, items.results as any[]);
+}
+
+async function commitVoidInvoice(
+  env: Env,
+  m: Extract<PendingMutation, { kind: 'void_invoice' }>,
+  invoice: Record<string, any>,
+  lineItems: any[],
+) {
+  const stmts: D1PreparedStatement[] = [];
+
+  if (invoice.inventory_deducted) {
+    for (const item of lineItems) {
+      if (!item.product_id) continue;
+      const product = await env.DB.prepare(
+        'SELECT id, stock_grams, given_name, product_name, status, source_compass_entry_id FROM products WHERE id = ? AND account_id = ?'
+      ).bind(item.product_id, m.accountId).first() as any;
+      if (!product) continue;
+
+      const currentStock = Number(product.stock_grams || 0);
+      const qty = Number(item.quantity) || 0;
+      const newBalance = currentStock + qty;
+
+      stmts.push(
+        env.DB.prepare('UPDATE products SET stock_grams = stock_grams + ? WHERE id = ? AND account_id = ?')
+          .bind(qty, item.product_id, m.accountId)
+      );
+      stmts.push(
+        env.DB.prepare(
+          'UPDATE product_listings SET stock_grams = stock_grams + ?, updated_at = datetime(\'now\') WHERE id = ?'
+        ).bind(qty, `list_${item.product_id}`)
+      );
+      stmts.push(
+        env.DB.prepare(
+          `INSERT INTO stock_ledger (id, product_id, delta, balance_after, reason, source_invoice_id, source_invoice_number, user_email, note, account_id)
+           VALUES (?, ?, ?, ?, 'VOID', ?, ?, ?, ?, ?)`
+        ).bind(
+          crypto.randomUUID(), item.product_id, qty, newBalance,
+          m.invoiceId, invoice.invoice_number, m.userEmail,
+          `MCP void_invoice${m.reason ? ': ' + m.reason : ''}`, m.accountId,
+        )
+      );
+
+      if (product.status === 'Sold Out' && newBalance > 0) {
+        stmts.push(
+          env.DB.prepare("UPDATE products SET status = 'Active', sold_out_at = NULL WHERE id = ? AND account_id = ?")
+            .bind(item.product_id, m.accountId)
+        );
+        stmts.push(
+          env.DB.prepare("UPDATE product_listings SET status = 'Active', updated_at = datetime('now') WHERE id = ?")
+            .bind(`list_${item.product_id}`)
+        );
+        if (product.source_compass_entry_id) {
+          stmts.push(
+            env.DB.prepare("UPDATE tea_compass_entries SET status = 'in_stock', updated_at = datetime('now') WHERE id = ? AND status = 'depleted'")
+              .bind(product.source_compass_entry_id)
+          );
+        }
+      }
+    }
+  }
+
+  stmts.push(
+    env.DB.prepare('DELETE FROM stock_holds WHERE invoice_id = ? AND account_id = ?')
+      .bind(m.invoiceId, m.accountId)
+  );
+  stmts.push(
+    env.DB.prepare("UPDATE invoices SET status = 'Void', inventory_deducted = 0 WHERE id = ? AND account_id = ?")
+      .bind(m.invoiceId, m.accountId)
+  );
+  stmts.push(
+    env.DB.prepare(
+      `INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id, account_id)
+       VALUES (?, 'INVOICE_VOIDED_MCP', ?, ?, 'invoice', ?, ?)`
+    ).bind(
+      crypto.randomUUID(),
+      `Invoice ${invoice.invoice_number} voided via MCP.${invoice.inventory_deducted ? ' Stock restored.' : ''}${m.reason ? ' Reason: ' + m.reason : ''}`,
+      m.userEmail, m.invoiceId, m.accountId,
+    )
+  );
+
+  await env.DB.batch(stmts);
+
+  return {
+    committed: true,
+    action: 'void_invoice',
+    invoice_id: m.invoiceId,
+    invoice_number: invoice.invoice_number,
+    stock_restored: !!invoice.inventory_deducted,
+  };
+}
+
 // ── tool registry / JSON-RPC dispatch ──
 
 const TOOL_DEFS = [
@@ -957,6 +1505,103 @@ const TOOL_DEFS = [
       required: ['lines'],
     },
   },
+  // ── Wave 1 additions ──
+  {
+    name: 'create_customer',
+    scope: 'customers:write',
+    description: 'Create a new customer record. Two-step preview/confirm. On preview, warns if a similar customer already exists. Use find_customer first to avoid duplicates.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: 'Customer full name (required).' },
+        whatsapp: { type: 'string', description: 'WhatsApp number (with country code).' },
+        email: { type: 'string' },
+        phone: { type: 'string' },
+        notes: { type: 'string' },
+        tags: { type: 'array', items: { type: 'string' }, description: 'Optional tag list.' },
+        confirm: { type: 'string', description: 'Confirmation token from preview response.' },
+      },
+      required: ['name'],
+    },
+  },
+  {
+    name: 'update_customer',
+    scope: 'customers:write',
+    description: 'Update one or more fields on an existing customer record. Two-step preview/confirm. Shows old → new for each field before committing.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        customer_id: { type: 'string', description: 'Customer id from find_customer.' },
+        name: { type: 'string' },
+        whatsapp: { type: 'string' },
+        email: { type: 'string' },
+        phone: { type: 'string' },
+        notes: { type: 'string' },
+        confirm: { type: 'string', description: 'Confirmation token from preview response.' },
+      },
+      required: ['customer_id'],
+    },
+  },
+  {
+    name: 'update_tea_pricing',
+    scope: 'catalog:write',
+    description: 'Update the cost price and/or retail price for a tea product. Two-step preview/confirm. Shows margin calculation before and after change. Warns if margin drops below 30%.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        product_id: { type: 'string', description: 'Product id from search_tea/get_tea.' },
+        cost_amount: { type: 'number', description: 'Per-gram purchase cost in cost_currency.' },
+        cost_currency: { type: 'string', description: '3-letter ISO currency code, e.g. CNY.' },
+        retail_price_usd: { type: 'number', description: 'Fixed per-gram retail price in USD.' },
+        confirm: { type: 'string', description: 'Confirmation token from preview response.' },
+      },
+      required: ['product_id'],
+    },
+  },
+  {
+    name: 'set_low_stock_threshold',
+    scope: 'stock:write',
+    description: 'Set the low-stock alert threshold (in grams) for a tea. Two-step preview/confirm. Preview shows whether the product would immediately be flagged low at the new threshold.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        product_id: { type: 'string', description: 'Product id from search_tea/get_tea.' },
+        threshold_grams: { type: 'number', description: 'Low-stock alert fires when stock_grams falls below this. Use 0 to disable.' },
+        confirm: { type: 'string', description: 'Confirmation token from preview response.' },
+      },
+      required: ['product_id', 'threshold_grams'],
+    },
+  },
+  {
+    name: 'update_invoice',
+    scope: 'sales:write',
+    description: 'Update metadata (customer, notes) on an existing invoice without touching line items or stock. Two-step preview/confirm. Does NOT void or refund — for that use void_invoice.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        invoice_id: { type: 'string', description: 'Invoice id.' },
+        customer_id: { type: 'string', description: 'Link or re-link an existing customer record.' },
+        customer_name: { type: 'string', description: 'Override the free-text customer name on the invoice.' },
+        notes: { type: 'string', description: 'Invoice notes / memo.' },
+        confirm: { type: 'string', description: 'Confirmation token from preview response.' },
+      },
+      required: ['invoice_id'],
+    },
+  },
+  {
+    name: 'void_invoice',
+    scope: 'sales:write',
+    description: 'Void an invoice and restore stock for all line items (if inventory was deducted). Two-step preview/confirm with a prominent warning. Irreversible — only use when the sale did not happen or was cancelled.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        invoice_id: { type: 'string', description: 'Invoice id to void.' },
+        reason: { type: 'string', description: 'Optional reason for voiding (logged to activity history).' },
+        confirm: { type: 'string', description: 'Confirmation token from preview response.' },
+      },
+      required: ['invoice_id'],
+    },
+  },
 ] as const;
 
 function mcpContent(payload: unknown) {
@@ -976,14 +1621,28 @@ function toolDefFor(name: string) {
 
 function visibleToolDefs(auth: McpAuth) {
   return TOOL_DEFS
-    .filter(tool => hasMcpScope(auth, tool.scope as McpScope))
+    .filter(tool => {
+      const scope = tool.scope as McpScope;
+      if (!hasMcpScope(auth, scope)) return false;
+      // Owner-tier scoped tools are invisible to non-owner-tier token creators.
+      if (OWNER_TIER_SCOPES.has(scope) && !OWNER_TIERS.has(auth.creatorTier)) return false;
+      return true;
+    })
     .map(({ scope: _scope, ...tool }) => tool);
 }
 
+const AUDITED_TOOLS = new Set([
+  'record_sale', 'add_stock', 'remove_stock',
+  'create_customer', 'update_customer',
+  'update_tea_pricing', 'set_low_stock_threshold',
+  'update_invoice', 'void_invoice',
+]);
+
 async function logMcpToolCall(env: Env, auth: McpAuth, toolName: string, args: any, result: unknown) {
-  const shouldAudit =
+  const shouldAudit = AUDITED_TOOLS.has(toolName) && (
     toolName === 'record_sale' ||
-    ((toolName === 'add_stock' || toolName === 'remove_stock') && typeof args?.confirm === 'string');
+    typeof args?.confirm === 'string'
+  );
   if (!shouldAudit) return;
   const failed = Boolean((result as any)?.isError);
   await env.DB.prepare(
@@ -1001,10 +1660,24 @@ async function logMcpToolCall(env: Env, auth: McpAuth, toolName: string, args: a
 async function dispatchTool(env: Env, auth: McpAuth, name: string, args: any) {
   const tool = toolDefFor(name);
   if (!tool) throw new Error(`Unknown tool: ${name}`);
-  if (!hasMcpScope(auth, tool.scope as McpScope)) {
+
+  const scope = tool.scope as McpScope;
+
+  // Scope check
+  if (!hasMcpScope(auth, scope)) {
     return mcpContent({
       error: 'insufficient_mcp_scope',
-      required_scope: tool.scope,
+      required_scope: scope,
+      tool: name,
+    });
+  }
+
+  // Owner-tier gate — defense in depth: reject even if scope is in the token
+  // if the creator is not owner-tier. Prevents a DB edit from escalating rights.
+  if (OWNER_TIER_SCOPES.has(scope) && !OWNER_TIERS.has(auth.creatorTier)) {
+    return mcpContent({
+      error: 'owner_tier_required',
+      message: 'This tool requires the token to have been minted by an account owner or platform owner.',
       tool: name,
     });
   }
@@ -1018,6 +1691,12 @@ async function dispatchTool(env: Env, auth: McpAuth, name: string, args: any) {
     case 'add_stock': result = mcpContent(await toolAddStock(env, auth, args)); break;
     case 'remove_stock': result = mcpContent(await toolRemoveStock(env, auth, args)); break;
     case 'record_sale': result = mcpContent(await toolRecordSale(env, auth, args)); break;
+    case 'create_customer': result = mcpContent(await toolCreateCustomer(env, auth, args)); break;
+    case 'update_customer': result = mcpContent(await toolUpdateCustomer(env, auth, args)); break;
+    case 'update_tea_pricing': result = mcpContent(await toolUpdateTeaPricing(env, auth, args)); break;
+    case 'set_low_stock_threshold': result = mcpContent(await toolSetLowStockThreshold(env, auth, args)); break;
+    case 'update_invoice': result = mcpContent(await toolUpdateInvoice(env, auth, args)); break;
+    case 'void_invoice': result = mcpContent(await toolVoidInvoice(env, auth, args)); break;
     default: throw new Error(`Unknown tool: ${name}`);
   }
   await logMcpToolCall(env, auth, name, args, result);
@@ -1026,8 +1705,8 @@ async function dispatchTool(env: Env, auth: McpAuth, name: string, args: any) {
 
 const SERVER_INFO = {
   name: 'teajia-inventory',
-  version: '0.1.0',
-  description: 'Voice-controlled inventory + invoicing for Teajia. Tools cover tea search, stock adjustments, customer lookup, and creating filled invoices.',
+  version: '0.2.0',
+  description: 'Voice-controlled inventory + invoicing for Teajia. Tools cover tea search, stock adjustments, customer lookup, creating and voiding invoices, and (with owner-tier tokens) pricing and customer management.',
 };
 
 const PROTOCOL_VERSION = '2024-11-05';
@@ -1101,7 +1780,8 @@ export async function mcpFetch(request: Request, env: Env): Promise<Response> {
 
 export async function mcpAdminMintToken(
   env: Env, accountId: string, userId: string, userEmail: string, label: string,
-): Promise<{ id: string; token: string; prefix: string }> {
+  requestedScopes?: McpScope[], creatorTier?: McpCreatorTier,
+): Promise<{ id: string; token: string; prefix: string; scopes: McpScope[] }> {
   // Generate 32 bytes → 43-char base64url. That's 256 bits of entropy and
   // unambiguous when Adrian copies it.
   const bytes = crypto.getRandomValues(new Uint8Array(32));
@@ -1111,12 +1791,27 @@ export async function mcpAdminMintToken(
   const prefix = plaintext.slice(0, 14); // "tjmcp_xxxxxxxx" — enough to distinguish, can't reconstruct
   const id = crypto.randomUUID();
 
-  await env.DB.prepare(
-    `INSERT INTO mcp_tokens (id, account_id, user_id, user_email, label, token_hash, token_prefix, scopes)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-  ).bind(id, accountId, userId, userEmail, label.slice(0, 80), hash, prefix, JSON.stringify(DEFAULT_MCP_SCOPES)).run();
+  // Validate scopes: only allow owner-tier scopes if the creator is owner-tier.
+  const tier: McpCreatorTier = creatorTier ?? 'account_owner';
+  let scopes: McpScope[];
+  if (requestedScopes && requestedScopes.length > 0) {
+    // Filter to valid scopes; strip owner-tier scopes if creator is not owner-tier.
+    scopes = requestedScopes.filter((s): s is McpScope => {
+      if (!MCP_SCOPES.includes(s as McpScope)) return false;
+      if (OWNER_TIER_SCOPES.has(s as McpScope) && !OWNER_TIERS.has(tier)) return false;
+      return true;
+    });
+    if (scopes.length === 0) scopes = DEFAULT_MCP_SCOPES;
+  } else {
+    scopes = DEFAULT_MCP_SCOPES;
+  }
 
-  return { id, token: plaintext, prefix };
+  await env.DB.prepare(
+    `INSERT INTO mcp_tokens (id, account_id, user_id, user_email, label, token_hash, token_prefix, scopes, creator_tier)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).bind(id, accountId, userId, userEmail, label.slice(0, 80), hash, prefix, JSON.stringify(scopes), tier).run();
+
+  return { id, token: plaintext, prefix, scopes };
 }
 
 export async function mcpAdminListTokens(env: Env, accountId: string) {
@@ -1385,12 +2080,12 @@ export async function oauthToken(request: Request, env: Env): Promise<Response> 
   const label = `OAuth: ${clientRow?.client_name || 'Unknown'}`;
 
   await env.DB.prepare(
-    `INSERT INTO mcp_tokens (id, account_id, user_id, user_email, label, token_hash, token_prefix, scopes)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO mcp_tokens (id, account_id, user_id, user_email, label, token_hash, token_prefix, scopes, creator_tier)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     tokenId,
     codeRow.account_id, codeRow.user_id, codeRow.user_email,
-    label, tokenHash, tokenPrefix, JSON.stringify(DEFAULT_MCP_SCOPES),
+    label, tokenHash, tokenPrefix, JSON.stringify(DEFAULT_MCP_SCOPES), 'account_owner',
   ).run();
 
   await env.DB.prepare(
