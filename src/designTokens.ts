@@ -302,8 +302,8 @@ export const COLORS = {
     gold:      '#a8874d',                  // Structural accent — primary buttons, active borders, focus rings
     goldLt:    '#bfa06a',                  // Light gold — hover states, highlights
     readGold:  '#a8874d',                  // Reading gold — pinned for text (type token names, eyebrow markers, inline code, hover links)
-    border:    'rgba(184,146,78,0.08)',    // Subtle gold borders
-    accentSub: 'rgba(184,146,78,0.1)',     // Subtle gold backgrounds
+    border:    'rgba(168,135,77,0.08)',    // Subtle gold borders — derived from tea-gold-rgb @ 8%
+    accentSub: 'rgba(168,135,77,0.10)',    // Subtle gold backgrounds — derived from tea-gold-rgb @ 10%
     error:     '#c46a5a',                  // Warm terracotta — reds that read on espresso (was #8a3a32 oxblood)
     leaf:      '#5a6e5a',                  // Success only — never decorative
   },

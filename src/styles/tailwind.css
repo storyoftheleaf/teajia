@@ -68,8 +68,9 @@ nav[aria-label="Admin navigation"] * {
   /* Warm gold pinned for text — keeps reading gold even if --tea-gold shifts toward aged brass */
   --tea-readgold: #a8874d;
   --tea-readgold-rgb: 168 135 77;
-  --tea-border: rgba(139,110,68,0.28);
-  --tea-accent-sub: rgba(168,135,77,0.1);
+  /* Derived from --tea-gold-rgb at canonical alpha — keeps border/glow in sync with accent */
+  --tea-border: rgb(var(--tea-gold-rgb) / 0.08);
+  --tea-accent-sub: rgb(var(--tea-gold-rgb) / 0.10);
   --tea-leaf: #5A6E5A;
   /* Warmed from oxblood #8a3a32 to terracotta — reds now read on espresso */
   --tea-error: #c46a5a;
@@ -102,15 +103,16 @@ nav[aria-label="Admin navigation"] * {
   /* Spec value (production had drifted to #857662) */
   --tea-text-dim: #9a8c78;
   --tea-text-dim-rgb: 154 140 120;
-  --tea-gold: #6b4f28;
-  --tea-gold-rgb: 107 79 40;
-  --tea-gold-lt: #7a5c2e;
-  --tea-gold-lt-rgb: 122 92 46;
-  /* Warm gold for text in light mode */
+  /* Spec says #8e6d2e for light gold (was production-drift #6b4f28 — too dark on parchment) */
+  --tea-gold: #8e6d2e;
+  --tea-gold-rgb: 142 109 46;
+  --tea-gold-lt: #a88340;
+  --tea-gold-lt-rgb: 168 131 64;
   --tea-readgold: #8e6d2e;
   --tea-readgold-rgb: 142 109 46;
-  --tea-border: rgba(107,82,44,0.2);
-  --tea-accent-sub: rgba(128,101,56,0.07);
+  /* Derived from --tea-gold-rgb at canonical alpha (light mode uses slightly higher to read on parchment) */
+  --tea-border: rgb(var(--tea-gold-rgb) / 0.10);
+  --tea-accent-sub: rgb(var(--tea-gold-rgb) / 0.07);
   --tea-leaf: #4a5e4a;
   --tea-error: #732a23;
   --tea-error-rgb: 115 42 35;
@@ -137,8 +139,8 @@ nav[aria-label="Admin navigation"] * {
   --tea-gold-lt-rgb: 191 160 106;
   --tea-readgold: #a8874d;
   --tea-readgold-rgb: 168 135 77;
-  --tea-border: rgba(139,110,68,0.28);
-  --tea-accent-sub: rgba(168,135,77,0.1);
+  --tea-border: rgb(var(--tea-gold-rgb) / 0.08);
+  --tea-accent-sub: rgb(var(--tea-gold-rgb) / 0.10);
   --tea-leaf: #5A6E5A;
   --tea-error: #c46a5a;
   --tea-error-rgb: 196 106 90;

@@ -50,8 +50,8 @@ All colors are stored as CSS variables that switch with mode. Components referen
 | `--tea-gold` | `#a8874d` | **Structural** accent — primary buttons, active borders, focus rings, dots, button fills |
 | `--tea-gold-lt` | `#bfa06a` | Light gold — hover states only |
 | `--tea-readgold` | `#a8874d` | **Reading** gold — pinned for text. Type token names, eyebrow `§` markers, inline code, hover links |
-| `--tea-border` | `rgba(184,146,78,0.08)` | Subtle gold borders — all divider lines |
-| `--tea-accent-sub` | `rgba(184,146,78,0.10)` | Subtle gold backgrounds — pill backgrounds, focus glows |
+| `--tea-border` | `rgb(var(--tea-gold-rgb) / 0.08)` ≈ `rgba(168,135,77,0.08)` | Subtle gold borders — derived from tea-gold so they shift with accent palette |
+| `--tea-accent-sub` | `rgb(var(--tea-gold-rgb) / 0.10)` ≈ `rgba(168,135,77,0.10)` | Subtle gold backgrounds — pill backgrounds, focus glows |
 | `--tea-leaf` | `#5A6E5A` | Success — never decorative |
 | `--tea-error` | `#c46a5a` | Error — **warm terracotta**, reads on espresso (was `#8a3a32` oxblood — too dim on brown) |
 
@@ -70,7 +70,7 @@ Same token names, different values:
 | `--tea-gold` | `#8e6d2e` |
 | `--tea-gold-lt` | `#a88340` |
 | `--tea-readgold` | `#8e6d2e` |
-| `--tea-border` | `rgba(142,109,46,0.10)` |
+| `--tea-border` | `rgb(var(--tea-gold-rgb) / 0.10)` ≈ `rgba(142,109,46,0.10)` |
 | `--tea-leaf` | `#4a5e4a` |
 | `--tea-error` | `#732a23` |
 
