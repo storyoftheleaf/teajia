@@ -807,6 +807,26 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     // 3. Fire & Forget (with Error Revert)
     try {
       await api.products.updateByDomain(id, dbPayload);
+      // Show saved pill feedback for this cell
+      const cellId = `${id}-${String(field)}`;
+      setRecentlySavedCells(prev => new Set([...prev, cellId]));
+
+      // Clear any existing timeout for this cell
+      if (timeoutRefsMap.current.has(cellId)) {
+        clearTimeout(timeoutRefsMap.current.get(cellId)!);
+      }
+
+      // Schedule removal after 1500ms
+      const timeout = setTimeout(() => {
+        setRecentlySavedCells(prev => {
+          const next = new Set(prev);
+          next.delete(cellId);
+          return next;
+        });
+        timeoutRefsMap.current.delete(cellId);
+      }, 1500);
+
+      timeoutRefsMap.current.set(cellId, timeout);
     } catch (err: any) {
       showToast(`Update failed: ${err.message}`, 'error');
       onRefresh();
@@ -2400,13 +2420,16 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                     <>
                                       <div className="flex items-center justify-between gap-2">
                                         <span className="text-ui-11 text-tea-text-sec uppercase tracking-[0.06em] shrink-0">Units</span>
-                                        <GhostInput
-                                          value={product.quantityUnits ?? ''}
-                                          onSave={(val) => handleProductUpdate(product.id, 'quantityUnits', val)}
-                                          type="number"
-                                          align="right"
-                                          className="num text-ui-13 text-tea-text font-medium"
-                                        />
+                                        <div className="flex items-center gap-1">
+                                          <GhostInput
+                                            value={product.quantityUnits ?? ''}
+                                            onSave={(val) => handleProductUpdate(product.id, 'quantityUnits', val)}
+                                            type="number"
+                                            align="right"
+                                            className="num text-ui-13 text-tea-text font-medium"
+                                          />
+                                          <SavedPill isVisible={recentlySavedCells.has(`${product.id}-quantityUnits`)} />
+                                        </div>
                                       </div>
                                       {priceMode === 'retail' ? (
                                       <div className="flex items-center justify-between gap-2">
