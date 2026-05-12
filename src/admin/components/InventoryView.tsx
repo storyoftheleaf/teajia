@@ -1988,20 +1988,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         }}
       >
 
-        {/* ACTIVE FILTER LABEL — shows for icon-only views */}
-        {VIEW_FILTER_LABELS[filterType] && (
-          <div className="px-4 md:px-0 pt-4 pb-2 max-w-7xl mx-auto">
-            <div className="flex items-center gap-2.5">
-              {(() => {
-                const activeView = [...(savedViews.length > 0 ? savedViews : (inventoryCategory === 'teaware' ? DEFAULT_TEAWARE_VIEWS : DEFAULT_TEA_VIEWS))].find(v => v.id === activeViewId);
-                const IconComp = activeView?.icon ? VIEW_ICON_MAP[activeView.icon] : null;
-                return IconComp ? <IconComp size={14} className="text-tea-text-sec" /> : null;
-              })()}
-              <span className="text-xs text-tea-text">{VIEW_FILTER_LABELS[filterType]}</span>
-              <span className="ml-auto text-ui-10 text-tea-text-dim uppercase tracking-[0.15em]">{processedProducts.length} item{processedProducts.length !== 1 ? 's' : ''}</span>
-            </div>
-          </div>
-        )}
+        {/* Active filter label was here — removed; count + label now live inside
+            the bordered table card's top strip (canonical §20). */}
 
         {/* STOCK VERIFICATION BANNER */}
         {filterType === 'Unverified' && (
@@ -2641,20 +2629,33 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               absolutely so toggling selection never reflows the table. */}
           <AnimatePresence>{renderActionDrawer()}</AnimatePresence>
 
-          {/* Top strip — canonical: stock-history link (left) + item counter (right). */}
+          {/* Top strip — canonical: stock-history link + active-view label (left) + item counter (right). */}
           {processedProducts.length > 0 && (
-            <div className="flex items-center justify-between px-5 py-2.5 border-b border-tea-border">
-              <button
-                type="button"
-                onClick={() => {
-                  const target = panelProduct ?? processedProducts[0];
-                  if (target) setStockHistoryProduct({ id: target.id, name: target.givenName || target.productName });
-                }}
-                className="text-ui-11 uppercase tracking-caps font-sans text-tea-text-sec hover:text-tea-text transition-colors inline-flex items-center gap-1.5"
-              >
-                <History size={12} aria-hidden="true" /> View stock history
-              </button>
-              <span className="label-caps text-tea-text-dim tabular-nums">{processedProducts.length} items</span>
+            <div className="flex items-center justify-between gap-3 px-5 py-2.5 border-b border-tea-border">
+              <div className="flex items-center gap-3 min-w-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const target = panelProduct ?? processedProducts[0];
+                    if (target) setStockHistoryProduct({ id: target.id, name: target.givenName || target.productName });
+                  }}
+                  className="text-ui-11 uppercase tracking-caps font-sans text-tea-text-sec hover:text-tea-text transition-colors inline-flex items-center gap-1.5 shrink-0"
+                >
+                  <History size={12} aria-hidden="true" /> View stock history
+                </button>
+                {VIEW_FILTER_LABELS[filterType] && (() => {
+                  const activeView = [...(savedViews.length > 0 ? savedViews : (inventoryCategory === 'teaware' ? DEFAULT_TEAWARE_VIEWS : DEFAULT_TEA_VIEWS))].find(v => v.id === activeViewId);
+                  const IconComp = activeView?.icon ? VIEW_ICON_MAP[activeView.icon] : null;
+                  return (
+                    <span className="inline-flex items-center gap-1.5 label-caps text-tea-text-dim truncate">
+                      <span className="text-tea-text-dim">·</span>
+                      {IconComp && <IconComp size={12} className="text-tea-text-dim shrink-0" />}
+                      <span className="truncate">{VIEW_FILTER_LABELS[filterType]}</span>
+                    </span>
+                  );
+                })()}
+              </div>
+              <span className="label-caps text-tea-text-dim tabular-nums shrink-0">{processedProducts.length} items</span>
             </div>
           )}
 
