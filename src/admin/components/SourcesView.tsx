@@ -195,18 +195,18 @@ const GhostInput = ({
   );
 };
 
-// --- COLLAPSIBLE SECTION ---
+// --- COLLAPSIBLE SECTION (canonical card §§19 — bg-tea-bg border rounded-xl) ---
 const CollapsibleSection = ({ title, defaultOpen = true, children }: {
   title: string, defaultOpen?: boolean, children: React.ReactNode
 }) => {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="mx-3 mb-2 rounded-lg bg-tea-surface">
-      <button onClick={() => setOpen(!open)} className="w-full flex items-center justify-between px-4 py-3 group">
-        <span className="text-ui-12 text-tea-gold uppercase tracking-[0.15em] font-bold">{title}</span>
+    <div className="mx-4 mb-3 rounded-xl bg-tea-bg border border-tea-border overflow-hidden">
+      <button onClick={() => setOpen(!open)} className="w-full flex items-center justify-between px-4 py-3 group hover:bg-tea-accent-sub transition-colors">
+        <span className="text-ui-12 text-tea-text-sec uppercase tracking-caps font-sans">{title}</span>
         <ChevronRight size={14} className={`text-tea-text-dim transition-transform duration-200 ${open ? 'rotate-90' : ''}`} />
       </button>
-      {open && <div className="px-4 pb-4">{children}</div>}
+      {open && <div className="px-4 pb-4 pt-1">{children}</div>}
     </div>
   );
 };
@@ -1600,9 +1600,9 @@ export const SourcesView = () => {
                                     <span className="text-ui-10 text-tea-text-sec uppercase tracking-wider">
                                       {tx.direction} · {tx.items.length} item{tx.items.length !== 1 ? 's' : ''}
                                     </span>
-                                    <span className={`text-ui-9 px-1.5 py-0.5 rounded-full ${tx.status === 'confirmed' ? 'bg-tea-green/10 text-tea-green ring-1 ring-inset ring-tea-green/40' : 'bg-tea-gold/10 text-tea-text ring-1 ring-inset ring-tea-gold/40'}`}>
+                                    <StatusPill variant={tx.status === 'confirmed' ? 'success' : 'active'}>
                                       {tx.status}
-                                    </span>
+                                    </StatusPill>
                                   </div>
                                   <span className="text-xs text-tea-text tabular-nums font-medium">
                                     {fmtPrice(txTotal, tx.currency)}
@@ -2081,10 +2081,10 @@ export const SourcesView = () => {
                 if (events.length === 0) return null;
 
                 const typeColors: Record<string, string> = {
-                  compass: 'bg-blue-400',
+                  compass: 'bg-tea-text-sec',
                   ledger: 'bg-tea-readgold',
                   product: 'bg-tea-green',
-                  sale: 'bg-purple-400',
+                  sale: 'bg-tea-gold',
                 };
 
                 return (
@@ -2127,23 +2127,24 @@ export const SourcesView = () => {
               })()}
             </div>
 
-            {/* Panel Footer */}
-            <div className="px-5 py-3 border-t border-tea-accent-sub bg-tea-surface/30 flex items-center justify-between">
-              <button
-                onClick={() => { setEditingSource(panelSource); setIsModalOpen(true); }}
-                className="inline-flex items-center gap-1.5 px-2 py-1 text-xs text-tea-text-sec hover:text-tea-text transition-colors"
-              >
-                <Edit3 size={13} /> <span>Full Edit</span>
-              </button>
+            {/* Panel Footer — destructive secondary left, primary right (§ button rules) */}
+            <div className="px-5 py-3 border-t border-tea-border bg-tea-surface flex items-center justify-between flex-shrink-0">
               <button
                 onClick={() => handleDelete(panelSource)}
                 className="inline-flex items-center gap-1.5 px-2 py-1 text-xs text-tea-text-sec hover:text-tea-error transition-colors"
               >
                 <Trash2 size={13} /> <span>Delete</span>
               </button>
+              <button
+                onClick={() => { setEditingSource(panelSource); setIsModalOpen(true); }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors"
+              >
+                <Edit3 size={13} /> <span>Full Edit</span>
+              </button>
             </div>
           </motion.div>
-        )}
+          );
+        })()}
       </AnimatePresence>
 
       {/* Modal */}

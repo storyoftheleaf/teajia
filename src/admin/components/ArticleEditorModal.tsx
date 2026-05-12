@@ -91,7 +91,7 @@ const Field = ({ label, children, className = '' }: { label: string; children: R
 // ─── Rich text toolbar ──────────────────────────────────────────────────────
 
 interface RichTextToolbarProps {
-  textareaRef: React.RefObject<HTMLTextAreaElement>;
+  textareaRef: React.RefObject<HTMLTextAreaElement | null>;
   value: string;
   onChange: (next: string) => void;
 }

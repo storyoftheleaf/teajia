@@ -2285,69 +2285,67 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                             className="inv-row-accent w-full flex items-center transition-colors active:bg-tea-surface/60"
                             style={{ '--row-type-color': dotColor } as React.CSSProperties}
                         >
-                            {/* Tappable name area — expands card */}
+                            {/* Tappable name area — expands card. Canonical mobile signature:
+                                font-display 17px name + font-sans 11px type/year/origin subtitle,
+                                font-serif 15px tabular-nums stock + retail. */}
                             <button
-                                className="flex-1 min-w-0 text-left px-4 py-2 flex items-center gap-2"
+                                className="flex-1 min-w-0 text-left px-4 py-3 flex items-center gap-2"
                                 onClick={() => setExpandedCardId(isExpanded ? null : product.id)}
                             >
                                 {/* Name + metadata */}
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-1.5">
-                                        <span className="text-tea-text text-ui-15 font-sans font-medium truncate leading-tight">{product.productName}</span>
+                                        <span className={`font-display text-ui-17 leading-tight truncate ${isOutOfStock ? 'text-tea-text-sec' : isLowStock ? 'text-tea-readgold' : 'text-tea-text'}`}>{product.productName}</span>
                                         {product.isFeatured && (
                           <>
-                            <Star size={11} className="flex-shrink-0 text-tea-gold fill-tea-gold" />
+                            <Star size={11} className="flex-shrink-0 text-tea-readgold" style={{ fill: 'currentColor' }} />
                             {isFeaturedButHidden(product) && <span className="font-body italic text-ui-10 text-tea-text-sec leading-none">hidden</span>}
                           </>
                         )}
                                         {!product.isPublic && <EyeOff size={10} className="flex-shrink-0 text-tea-text-dim" />}
                                     </div>
-                                    <div className="flex items-center gap-1.5 mt-0.5 text-ui-12">
-                                        <span className="font-medium text-tea-text-sec">{product.type}</span>
+                                    <div className="flex items-center gap-1.5 mt-0.5 font-sans text-ui-11 text-tea-text-dim" style={{ letterSpacing: '0.02em' }}>
+                                        <span className="inline-flex items-center gap-1.5">
+                                          <span className="w-1.5 h-1.5 rounded-full inline-block flex-shrink-0" style={{ backgroundColor: dotColor }} />
+                                          {product.type}
+                                        </span>
                                         {product.originRegion && (
                                             <>
-                                                <span className="text-tea-text-dim">·</span>
-                                                <span className="truncate text-tea-text-dim">{product.originRegion}</span>
+                                                <span>·</span>
+                                                <span className="truncate">{product.originRegion}</span>
                                             </>
                                         )}
                                         {product.year && (
                                             <>
-                                                <span className="text-tea-text-dim">·</span>
-                                                <span className="text-tea-text-dim">{product.year}</span>
+                                                <span>·</span>
+                                                <span className="font-serif tabular-nums">{product.year}</span>
                                             </>
                                         )}
                                     </div>
                                 </div>
 
-                                {/* Stock + Price */}
+                                {/* Stock + Price — canonical serif numerics */}
                                 <div className="flex-shrink-0 text-right min-w-[64px]">
                                     {inventoryCategory === 'teaware' ? (
                                       <>
-                                        <div className="text-ui-13 text-tea-text font-sans font-medium tabular-nums">
-                                          {product.quantityUnits ?? '-'} <span className="text-tea-text-dim text-ui-11">units</span>
+                                        <div className="font-serif text-ui-15 text-tea-text tabular-nums">
+                                          {product.quantityUnits ?? '—'} <span className="font-sans text-tea-text-dim text-ui-11">u</span>
                                         </div>
-                                        <div className="text-ui-12 text-tea-text-sec tabular-nums">
-                                          {product.material || product.teawareCategory || '-'}
+                                        <div className="font-sans text-ui-11 text-tea-text-dim">
+                                          {product.material || product.teawareCategory || '—'}
                                         </div>
                                       </>
                                     ) : (
                                       <>
-                                        {isOutOfStock ? (
-                                          <div className="text-ui-11 font-medium text-tea-text-dim tabular-nums">0g</div>
-                                        ) : isLowStock ? (
-                                          <div className="text-ui-13 font-sans font-medium tabular-nums text-tea-gold">
-                                              {Math.round(product.stockGrams)}
-                                          </div>
-                                        ) : (
-                                          <div className="text-ui-13 font-sans font-medium tabular-nums text-tea-text">
-                                              {Math.round(product.stockGrams)}
-                                          </div>
-                                        )}
-                                        <div className="text-ui-12 text-tea-text-dim tabular-nums">
+                                        <div className={`font-serif text-ui-15 tabular-nums ${isOutOfStock ? 'text-tea-text-dim' : isLowStock ? 'text-tea-readgold' : 'text-tea-text'}`}>
+                                            {isOutOfStock ? '0' : Math.round(product.stockGrams)}
+                                        </div>
+                                        <div className={`font-serif text-ui-13 tabular-nums ${isOutOfStock ? 'text-tea-text-dim' : isLowStock ? 'text-tea-readgold' : 'text-tea-text-sec'}`}>
                                             {priceMode === 'cost'
-                                              ? `${product.costPerGramUSD > 0 ? fmtNum(product.costPerGramUSD) : '0.00'}/g`
-                                              : `${fmtNum(product.fixedRetailPriceUSD ?? product.pricePerGramUSD)}/g`
+                                              ? `${product.costPerGramUSD > 0 ? fmtNum(product.costPerGramUSD) : '0.00'}`
+                                              : `${fmtNum(product.fixedRetailPriceUSD ?? product.pricePerGramUSD)}`
                                             }
+                                            <span className="font-sans text-ui-11 text-tea-text-dim ml-0.5">/g</span>
                                         </div>
                                       </>
                                     )}
@@ -2629,8 +2627,10 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             })()}
 
             {processedProducts.length === 0 && (
-              <div className="text-center py-16 text-tea-text-sec font-serif italic">
-                Nothing here yet.
+              <div className="flex flex-col items-center text-center max-w-sm mx-auto py-20 px-6">
+                <Leaf size={28} strokeWidth={1.25} className="text-tea-text-dim mb-3" />
+                <div className="font-display text-ui-17 text-tea-text">Nothing here yet</div>
+                <p className="text-ui-13 text-tea-text-sec leading-relaxed mt-2">No products match the current filter.</p>
               </div>
             )}
         </div>}
@@ -2806,6 +2806,27 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     })}
                 </tbody>
             </table>
+          )}
+
+          {/* Canonical bottom strip — counter + (placeholder for) load-more. The data
+              source is already virtualized, so we simply restate the total. */}
+          {processedProducts.length > 0 && (
+            <div className="px-5 py-3 border-t border-tea-border flex items-center justify-between bg-tea-surface">
+              <span className="font-serif text-ui-13 text-tea-text-dim tabular-nums">
+                {processedProducts.length} of {localProducts.length}
+              </span>
+              {processedProducts.length < localProducts.length && (
+                <span className="text-ui-12 text-tea-text-dim">Refine filters to surface more</span>
+              )}
+            </div>
+          )}
+
+          {processedProducts.length === 0 && (
+            <div className="flex flex-col items-center text-center max-w-sm mx-auto py-20 px-6">
+              <Leaf size={28} strokeWidth={1.25} className="text-tea-text-dim mb-3" />
+              <div className="font-display text-ui-17 text-tea-text">Nothing here yet</div>
+              <p className="text-ui-13 text-tea-text-sec leading-relaxed mt-2">No products match the current filter.</p>
+            </div>
           )}
         </div>}
 

@@ -121,7 +121,7 @@ export const PostSessionEditor: React.FC<PostSessionEditorProps> = ({ eventId })
     <div className="space-y-6">
       {/* Tea Ledger */}
       <div>
-        <label className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec block mb-2 flex items-center gap-1.5">
+        <label className="label-caps text-tea-text-sec block mb-2 flex items-center gap-1.5">
           <FileText size={10} /> Tea Ledger (JSON)
         </label>
         <textarea
@@ -135,7 +135,7 @@ export const PostSessionEditor: React.FC<PostSessionEditorProps> = ({ eventId })
 
       {/* Playlist URL */}
       <div>
-        <label className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec block mb-2 flex items-center gap-1.5">
+        <label className="label-caps text-tea-text-sec block mb-2 flex items-center gap-1.5">
           <Music size={10} /> Playlist URL
         </label>
         <input
@@ -161,7 +161,7 @@ export const PostSessionEditor: React.FC<PostSessionEditorProps> = ({ eventId })
 
       {/* Gallery */}
       <div>
-        <label className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec block mb-2 flex items-center gap-1.5">
+        <label className="label-caps text-tea-text-sec block mb-2 flex items-center gap-1.5">
           <ImageIcon size={10} /> Gallery
         </label>
 

@@ -13,9 +13,9 @@ interface NotificationPanelProps {
 }
 
 const STATUS_STYLES: Record<NotificationStatus, { icon: React.ReactNode; className: string }> = {
-  pending: { icon: <Clock size={10} />, className: 'bg-tea-surface text-tea-text-sec' },
-  sent: { icon: <CheckCircle size={10} />, className: 'bg-tea-surface text-tea-text-sec' },
-  failed: { icon: <AlertCircle size={10} />, className: 'bg-tea-surface text-tea-text-sec' },
+  pending: { icon: <Clock size={10} />, className: 'bg-tea-surface text-tea-readgold' },
+  sent: { icon: <CheckCircle size={10} />, className: 'bg-tea-surface text-tea-green' },
+  failed: { icon: <AlertCircle size={10} />, className: 'bg-tea-surface text-tea-error' },
 };
 
 function formatEventTime(dateStr: string): string {
@@ -139,7 +139,7 @@ const SendConfirmModal: React.FC<SendConfirmModalProps> = ({
           </p>
         </div>
 
-        <div className="flex justify-between gap-2 px-6 py-4 border-t border-tea-border">
+        <div className="flex justify-between gap-2 px-5 py-3 border-t border-tea-border bg-tea-bg/40 rounded-b-xl">
           <button
             onClick={onClose}
             className="px-2 py-1 text-xs text-tea-text-sec hover:text-tea-text transition-colors"
@@ -152,7 +152,7 @@ const SendConfirmModal: React.FC<SendConfirmModalProps> = ({
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-tea-gold/10"
           >
             {isSending ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
-            {isSending ? 'Sending...' : 'Send Now'}
+            {isSending ? 'Sending…' : 'Send Now'}
           </button>
         </div>
       </div>
@@ -370,7 +370,7 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({ eventId, e
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-sm text-tea-text font-medium">{notif.attendeeName || 'Guest'}</span>
-                      <span className={`inline-flex items-center gap-1 text-ui-9 uppercase tracking-[1.2px] px-2 py-0.5 rounded-full ring-1 ring-inset ring-tea-border ${statusStyle.className}`}>
+                      <span className={`inline-flex items-center gap-1 label-caps px-2 py-0.5 rounded-full ring-1 ring-inset ring-tea-border ${statusStyle.className}`}>
                         {statusStyle.icon}
                         {notif.status}
                       </span>

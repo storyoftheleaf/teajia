@@ -5,7 +5,7 @@ import { api, setToken } from '../lib/api';
 import { ArrowLeft, AlertCircle, Loader2 } from 'lucide-react';
 
 const inputClass = "w-full bg-tea-surface border border-tea-border rounded-md px-3 py-2 text-ui-14 text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors";
-const labelClass = "block text-ui-11 uppercase tracking-[1.2px] text-tea-text-sec mb-1.5";
+const labelClass = "block label-caps text-tea-text-sec mb-1.5";
 const helperClass = "text-ui-12 text-tea-text-dim mt-1";
 
 function FormError({ error }: { error: string }) {
@@ -242,7 +242,7 @@ export default function AccountSettingsPage() {
             >
               Cancel
             </button>
-            <PrimarySubmit label="Save Changes" loading={profileLoading} />
+            <PrimarySubmit label="Save changes" loading={profileLoading} />
           </div>
         </form>
       </section>
@@ -257,7 +257,7 @@ export default function AccountSettingsPage() {
         </div>
         <form onSubmit={handleChangePassword} className="space-y-3">
           <div>
-            <label className={labelClass}>Current Password</label>
+            <label className={labelClass}>Current password</label>
             <input
               type="password"
               value={currentPassword}
@@ -267,7 +267,7 @@ export default function AccountSettingsPage() {
             />
           </div>
           <div>
-            <label className={labelClass}>New Password</label>
+            <label className={labelClass}>New password</label>
             <input
               type="password"
               value={newPassword}
@@ -278,7 +278,7 @@ export default function AccountSettingsPage() {
             />
           </div>
           <div>
-            <label className={labelClass}>Confirm New Password</label>
+            <label className={labelClass}>Confirm new password</label>
             <input
               type="password"
               value={confirmNewPassword}
@@ -297,7 +297,7 @@ export default function AccountSettingsPage() {
             >
               Cancel
             </button>
-            <PrimarySubmit label="Update Password" loading={passwordLoading} />
+            <PrimarySubmit label="Update password" loading={passwordLoading} />
           </div>
         </form>
       </section>
@@ -350,7 +350,7 @@ export default function AccountSettingsPage() {
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-error text-tea-bg text-xs font-semibold hover:bg-tea-error/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {deleteLoading ? <Loader2 size={13} className="animate-spin" /> : null}
-              Permanently Delete Account
+              Permanently delete account
             </button>
           </div>
         </form>
