@@ -997,7 +997,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                   <div className="relative">
                     <input type="checkbox" name="recheckStock" checked={formData.recheckStock} onChange={handleChange} className="peer sr-only" />
                     <div className={`w-3.5 h-3.5 rounded-sm border transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-tea-gold/50 peer-focus-visible:ring-offset-1 peer-focus-visible:ring-offset-tea-bg ${formData.recheckStock ? 'bg-tea-gold border-tea-gold' : 'border-tea-border group-hover:border-tea-gold/40'}`}>
-                      {formData.recheckStock && <svg className="w-3.5 h-3.5 text-tea-bg" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M3.5 7L6 9.5L10.5 4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                      {formData.recheckStock && <svg className="w-3.5 h-3.5 text-tea-bg" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M3.5 7L6 9.5L10.5 4.5" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                     </div>
                   </div>
                   <span className="text-xs text-tea-text-sec group-hover:text-tea-text transition-colors">Flag for stock recheck</span>
@@ -1007,7 +1007,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                   <div className="relative">
                     <input type="checkbox" name="inTransit" checked={formData.inTransit} onChange={handleChange} className="peer sr-only" />
                     <div className={`w-3.5 h-3.5 rounded-sm border transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-tea-gold/50 peer-focus-visible:ring-offset-1 peer-focus-visible:ring-offset-tea-bg ${formData.inTransit ? 'bg-tea-gold border-tea-gold' : 'border-tea-border group-hover:border-tea-gold/40'}`}>
-                      {formData.inTransit && <svg className="w-3.5 h-3.5 text-tea-bg" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M3.5 7L6 9.5L10.5 4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                      {formData.inTransit && <svg className="w-3.5 h-3.5 text-tea-bg" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M3.5 7L6 9.5L10.5 4.5" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                     </div>
                   </div>
                   <span className="text-xs text-tea-text-sec group-hover:text-tea-text transition-colors">In transit</span>

@@ -381,7 +381,7 @@ const EventRecapPage: React.FC = () => {
           aria-label="Back to event"
         >
           {event.flyer_image_url ? (
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <path d="M19 12H5m7-7l-7 7 7 7" />
             </svg>
           ) : (

@@ -277,7 +277,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
                 {soldOutProducts.length === 0 ? (
                   <tr><td colSpan={7} className="text-center py-16">
                     <div className="flex flex-col items-center gap-3 text-tea-text-sec">
-                      <Archive size={32} strokeWidth={1} className="opacity-40" />
+                      <Archive size={32} className="opacity-40" />
                       <span className="font-serif italic text-ui-15">No sold out products.</span>
                     </div>
                   </td></tr>
@@ -341,7 +341,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
           <div className="md:hidden pb-nav">
             {soldOutProducts.length === 0 ? (
               <div className="flex flex-col items-center gap-3 py-16 text-tea-text-sec">
-                <Archive size={32} strokeWidth={1} className="opacity-40" />
+                <Archive size={32} className="opacity-40" />
                 <span className="font-serif italic text-ui-15">No sold out products.</span>
               </div>
             ) : (
@@ -397,7 +397,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
                       <tr>
                         <td colSpan={4} className="text-center py-16">
                           <div className="flex flex-col items-center gap-3 text-tea-text-sec">
-                            <AlertCircle size={28} strokeWidth={1} className="opacity-40" />
+                            <AlertCircle size={28} className="opacity-40" />
                             <span className="font-serif italic text-ui-15">No activity recorded yet.</span>
                             {(logAction || logSearch) && (
                               <button
@@ -546,7 +546,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
                       <tr>
                         <td colSpan={7} className="text-center py-16">
                           <div className="flex flex-col items-center gap-3 text-tea-text-sec">
-                            <BarChart3 size={28} strokeWidth={1} className="opacity-40" />
+                            <BarChart3 size={28} className="opacity-40" />
                             <span className="font-serif italic text-ui-15">No stock movements recorded.</span>
                           </div>
                         </td>
@@ -642,7 +642,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
               <div className="md:hidden pb-nav">
                 {ledgerEntries.length === 0 ? (
                   <div className="flex flex-col items-center gap-3 py-16 text-tea-text-sec">
-                    <BarChart3 size={32} strokeWidth={1} className="opacity-40" />
+                    <BarChart3 size={32} className="opacity-40" />
                     <span className="font-serif italic text-ui-15">No stock movements recorded.</span>
                   </div>
                 ) : (

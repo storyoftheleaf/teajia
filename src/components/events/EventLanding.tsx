@@ -350,7 +350,7 @@ const EventLanding: React.FC = () => {
           className="tap-target absolute top-3 left-4 z-dropdown flex items-center justify-center w-9 h-9 rounded-full bg-tea-bg/60 text-tea-text-sec hover:text-tea-text transition-colors backdrop-blur-md"
           aria-label="Back"
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
             <path d="M19 12H5m7-7l-7 7 7 7"/>
           </svg>
         </button>

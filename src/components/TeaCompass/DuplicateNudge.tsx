@@ -68,7 +68,7 @@ export const DuplicateNudge: React.FC<DuplicateNudgeProps> = ({
             onClick={onDismiss}
             className="ml-0.5 text-tea-text-dim hover:text-tea-text-sec transition-colors"
           >
-            <X size={12} strokeWidth={2} />
+            <X size={12} />
           </button>
         </div>
       </div>

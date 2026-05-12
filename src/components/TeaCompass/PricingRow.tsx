@@ -167,7 +167,7 @@ export const PricingRow: React.FC<PricingRowProps> = ({
                 aria-label="Tea form"
               >
                 <span className="truncate text-base font-medium">{unit.form || 'Form'}</span>
-                <ChevronDown size={14} strokeWidth={2} className={unit.form ? 'text-tea-gold shrink-0' : 'text-tea-text-sec shrink-0'} />
+                <ChevronDown size={14} className={unit.form ? 'text-tea-gold shrink-0' : 'text-tea-text-sec shrink-0'} />
               </button>
             )}
           </>

@@ -584,7 +584,7 @@ const VideoPosterFrame: React.FC<{
             className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-tea-text/10 flex items-center justify-center hover:bg-tea-text/20 transition-colors"
             onClick={() => setShowPlayer(false)}
           >
-            <svg className="w-5 h-5 text-tea-text" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg className="w-5 h-5 text-tea-text" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <path d="M18 6L6 18M6 6l12 12" />
             </svg>
           </button>

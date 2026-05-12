@@ -695,9 +695,9 @@ export const AdminCart: React.FC<AdminCartProps> = ({
         {isEmpty ? (
           <div className="h-full flex flex-col items-center justify-center text-tea-text-sec space-y-4 min-h-[300px]">
             {isPurchase ? (
-              <ArrowDownLeft size={40} strokeWidth={1} className="opacity-50" />
+              <ArrowDownLeft size={40} className="opacity-50" />
             ) : (
-              <Package size={40} strokeWidth={1} className="opacity-50" />
+              <Package size={40} className="opacity-50" />
             )}
             <div className="text-center">
               <p className="font-serif italic text-base mb-1">{isPurchase ? 'Purchase Order Empty' : 'Registry Empty'}</p>

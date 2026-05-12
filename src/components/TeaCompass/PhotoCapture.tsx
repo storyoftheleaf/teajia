@@ -645,7 +645,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
             aria-label="Scan label"
             title="Scan label"
           >
-            {justExtracted ? <Check size={btnIcon} strokeWidth={2} /> : <Sparkles size={btnIcon} strokeWidth={1.5} />}
+            {justExtracted ? <Check size={btnIcon} /> : <Sparkles size={btnIcon} strokeWidth={1.5} />}
           </button>
 
           {/* Camera icon = plain gallery picker. Quieter visual weight so

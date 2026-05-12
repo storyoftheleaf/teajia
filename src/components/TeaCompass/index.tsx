@@ -68,7 +68,7 @@ const CompassRightEmptyState: React.FC<{
           className="flex items-center gap-1.5 px-4 py-2 rounded-full border border-tea-gold/40 text-tea-gold text-ui-12 font-semibold hover:bg-tea-gold/10 transition-colors"
           style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.06em' }}
         >
-          <Plus size={12} strokeWidth={2} />
+          <Plus size={12} />
           New Entry
         </button>
       )}
@@ -573,7 +573,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
             {currentTab?.badge != null && (
               <span className="text-ui-9 px-1.5 py-px rounded-full bg-tea-gold/20 text-tea-gold tabular-nums">{currentTab.badge}</span>
             )}
-            <ChevronDown size={13} strokeWidth={2} className="text-tea-text-sec -mr-0.5" />
+            <ChevronDown size={13} className="text-tea-text-sec -mr-0.5" />
           </button>
 
           {/* Hairline divider between the screen-switcher chip and the
@@ -632,7 +632,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
               className="pill pill-active flex items-center gap-1 text-ui-10 mr-2 self-center"
               style={{ fontFamily: 'var(--font-display)' }}
             >
-              <Plus size={11} strokeWidth={2} />
+              <Plus size={11} />
               New
             </button>
           )}
@@ -744,7 +744,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                   : 'tap-target shrink-0 inline-flex items-center justify-center w-9 h-8 rounded-md text-tea-text-sec border border-tea-border bg-tea-elevated/40 hover:text-tea-text hover:border-tea-gold/40 transition-colors'
                 }
               >
-                <Plus size={14} strokeWidth={2} />
+                <Plus size={14} />
               </button>
               {/* Batch — text-only, no icon. Same visual weight as the
                   entry chips so the strip reads as one consistent row. */}
@@ -1500,7 +1500,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                   className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-lg border border-tea-gold/40 text-tea-gold bg-tea-gold/5 hover:bg-tea-gold/10 text-ui-12 font-semibold tracking-[0.06em] transition-colors"
                   style={{ fontFamily: 'var(--font-display)' }}
                 >
-                  <Plus size={13} strokeWidth={2} />
+                  <Plus size={13} />
                   New Entry
                 </button>
               </div>

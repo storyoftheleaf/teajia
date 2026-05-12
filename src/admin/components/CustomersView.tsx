@@ -1917,7 +1917,7 @@ export const CustomersView = () => {
         {/* Empty state */}
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center gap-3 py-16 text-tea-text-sec">
-            <Users size={32} strokeWidth={1} className="opacity-40" />
+            <Users size={32} className="opacity-40" />
             <span className="font-serif italic">{search || filterTags.length > 0 || filterAttendedEvents ? 'Nothing matched — try different words.' : 'No customers yet.'}</span>
             {(search || filterTags.length > 0 || filterAttendedEvents) && (
               <button onClick={() => { setSearch(''); setFilterTags([]); setFilterAttendedEvents(false); }} className="text-xs text-tea-gold hover:text-tea-gold/80 transition-colors">
