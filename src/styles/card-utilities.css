@@ -2223,8 +2223,10 @@ input[type="number"]::-webkit-outer-spin-button {
   --admin-border-hover: rgba(255, 230, 190, 0.22);
   --admin-text:         #EDE4D4;  /* warm cream — primary */
   --admin-text-sec:     #B5A892;  /* warm sand — body */
-  --admin-text-dim:     #847868;  /* muted warm — labels (less saturated than tea-text-dim so it doesn't read gold) */
-  --admin-text-faint:   #5C5045;  /* very low priority */
+  /* text-dim was #847868 which fell to ~3.5:1 against the card surface
+     — below WCAG AA. Bumped to ~5:1 while staying clearly secondary. */
+  --admin-text-dim:     #A19682;  /* muted warm — labels (AA contrast) */
+  --admin-text-faint:   #75695A;  /* very low priority */
 }
 
 /* Card surface — three concurrent moves create the "milled object" feel:

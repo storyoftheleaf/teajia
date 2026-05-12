@@ -69,6 +69,16 @@ if (await scrollContainer.count() > 0) {
   await scrollContainer.evaluate((el) => { el.scrollTop = 600; });
   await page.waitForTimeout(400);
   await page.screenshot({ path: '/tmp/panel-mid.png', clip: clipPanel });
+
+  // Open the Placement section to capture its consolidated layout.
+  const placementBtn = page.getByRole('button', { name: /Placement/i }).first();
+  if (await placementBtn.count() > 0) {
+    await placementBtn.click().catch(() => {});
+    await page.waitForTimeout(500);
+    await scrollContainer.evaluate((el) => { el.scrollTop = el.scrollHeight; });
+    await page.waitForTimeout(400);
+    await page.screenshot({ path: '/tmp/panel-low.png', clip: clipPanel });
+  }
 }
 
 console.log('saved /tmp/panel.png and /tmp/panel-mid.png');

@@ -1257,46 +1257,9 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                 );
               })()}
 
-              <FieldGroupDivider />
-
-              {/* Visibility pills. Quiet variant: no fill, no border. Active state via color only. */}
-              <div className="space-y-3">
-                <div className="grid grid-cols-[78px_1fr] gap-x-3 items-start">
-                  <span className="text-ui-11 text-admin-text-dim uppercase tracking-[0.06em] pt-1">Visible</span>
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <button onClick={() => handleUpdate(product.id, 'isPublic', !product.isPublic)} className={`admin-pill ${product.isPublic ? 'admin-pill-on' : ''}`}>
-                      {product.isPublic ? <Eye size={10} /> : <EyeOff size={10} />} In Shop
-                    </button>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-[78px_1fr] gap-x-3 items-start">
-                  <span className="text-ui-11 text-admin-text-dim uppercase tracking-[0.06em] pt-1">Promote</span>
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <button onClick={() => handleUpdate(product.id, 'isFeatured', !product.isFeatured)} className={`admin-pill ${product.isFeatured ? 'admin-pill-on' : ''}`}>
-                      <Star size={10} className={product.isFeatured ? 'fill-current' : ''} /> Starred
-                    </button>
-                    <button onClick={() => handleUpdate(product.id, 'isCurated', !product.isCurated)} className={`admin-pill ${product.isCurated ? 'admin-pill-on' : ''}`}>
-                      <Sparkles size={10} /> Top Pick
-                    </button>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-[78px_1fr] gap-x-3 items-start">
-                  <span className="text-ui-11 text-admin-text-dim uppercase tracking-[0.06em] pt-1">Classify</span>
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <button onClick={() => handleUpdate(product.id, 'isSample', !product.isSample)} className={`admin-pill ${product.isSample ? 'admin-pill-on' : ''}`}>
-                      <FlaskConical size={10} /> Sample
-                    </button>
-                    <button onClick={() => handleUpdate(product.id, 'canReorder', !product.canReorder)} className={`admin-pill ${product.canReorder ? 'admin-pill-on' : ''}`}>
-                      <RefreshCw size={10} /> Restockable
-                    </button>
-                    <button onClick={() => handleUpdate(product.id, 'isPersonal', !product.isPersonal)} className={`admin-pill ${product.isPersonal ? 'admin-pill-on' : ''}`}>
-                      <User size={10} /> Mine
-                    </button>
-                  </div>
-                </div>
-              </div>
+              {/* Visibility / promote / classify pills moved to the consolidated
+                  "Placement" section below — colocated with collections and outbound
+                  links since they all answer "where does this product appear?" */}
               </div>
             </div>
 
@@ -1388,43 +1351,77 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
               </div>
             </CollapsibleSection>
 
-            {/* 7b. Links. Outbound navigation, kept out of the data-entry flow. */}
-            <CollapsibleSection title="Links" description="Jump to the source encounter, order history, or full story page." defaultOpen={false}>
-              <div className="divide-y divide-admin-border border-y border-admin-border">
-                {(() => {
-                  const compassEntryId = product.sourceCompassEntryId;
-                  const compassEntry = compassEntryId
-                    ? compassEntries.find(e => e.id === compassEntryId)
-                    : compassEntries.find(e => e.draftProductId === product.id);
-                  if (!compassEntry && !compassEntryId) return null;
-                  const linkId = compassEntry?.id || compassEntryId!;
-                  return (
-                    <button onClick={() => navigate(`/admin/compass?tab=buying&entry=${encodeURIComponent(linkId)}`)} className="w-full flex items-center justify-between gap-3 py-3 text-ui-13 text-admin-text-sec hover:text-admin-text transition-colors group">
-                      <span className="flex items-center gap-2 min-w-0">
-                        <Globe size={12} className="text-admin-text-dim group-hover:text-admin-text-sec shrink-0" />
-                        <span className="truncate">
-                          Encounter <span className="text-admin-text-dim">·</span> {compassEntry?.vendorName || 'Entry'}
-                          {compassEntry && <span className="text-admin-text-dim"> · {new Date(compassEntry.createdAt).toLocaleDateString()}</span>}
+            {/* Placement. Everything that answers "where does this product appear
+                and what does it connect to?" — visibility toggles, collections,
+                and outbound links — in one section so they're not scattered. */}
+            <CollapsibleSection title="Placement" description="Visibility, collections, and outbound links." defaultOpen={false}>
+              {/* Toggles — flat row of admin-pills, no per-row caps labels. */}
+              <div className="flex flex-wrap gap-1.5">
+                <button onClick={() => handleUpdate(product.id, 'isPublic', !product.isPublic)} className={`admin-pill ${product.isPublic ? 'admin-pill-on' : ''}`}>
+                  {product.isPublic ? <Eye size={10} /> : <EyeOff size={10} />} In Shop
+                </button>
+                <button onClick={() => handleUpdate(product.id, 'isFeatured', !product.isFeatured)} className={`admin-pill ${product.isFeatured ? 'admin-pill-on' : ''}`}>
+                  <Star size={10} className={product.isFeatured ? 'fill-current' : ''} /> Starred
+                </button>
+                <button onClick={() => handleUpdate(product.id, 'isCurated', !product.isCurated)} className={`admin-pill ${product.isCurated ? 'admin-pill-on' : ''}`}>
+                  <Sparkles size={10} /> Top Pick
+                </button>
+                <button onClick={() => handleUpdate(product.id, 'isSample', !product.isSample)} className={`admin-pill ${product.isSample ? 'admin-pill-on' : ''}`}>
+                  <FlaskConical size={10} /> Sample
+                </button>
+                <button onClick={() => handleUpdate(product.id, 'canReorder', !product.canReorder)} className={`admin-pill ${product.canReorder ? 'admin-pill-on' : ''}`}>
+                  <RefreshCw size={10} /> Restockable
+                </button>
+                <button onClick={() => handleUpdate(product.id, 'isPersonal', !product.isPersonal)} className={`admin-pill ${product.isPersonal ? 'admin-pill-on' : ''}`}>
+                  <User size={10} /> Mine
+                </button>
+              </div>
+
+              {/* Collections — curated bundles this product is in. */}
+              <div className="mt-5 pt-4 border-t border-admin-border">
+                <div className="text-ui-11 text-admin-text-dim uppercase tracking-[0.06em] mb-2">Collections</div>
+                {product?.id && <ProductCollectionsSection productId={product.id} />}
+              </div>
+
+              {/* Outbound links — same divider-list pattern as before. */}
+              <div className="mt-5 pt-4 border-t border-admin-border">
+                <div className="text-ui-11 text-admin-text-dim uppercase tracking-[0.06em] mb-1">Links</div>
+                <div className="divide-y divide-admin-border border-y border-admin-border">
+                  {(() => {
+                    const compassEntryId = product.sourceCompassEntryId;
+                    const compassEntry = compassEntryId
+                      ? compassEntries.find(e => e.id === compassEntryId)
+                      : compassEntries.find(e => e.draftProductId === product.id);
+                    if (!compassEntry && !compassEntryId) return null;
+                    const linkId = compassEntry?.id || compassEntryId!;
+                    return (
+                      <button onClick={() => navigate(`/admin/compass?tab=buying&entry=${encodeURIComponent(linkId)}`)} className="w-full flex items-center justify-between gap-3 py-3 text-ui-13 text-admin-text-sec hover:text-admin-text transition-colors group">
+                        <span className="flex items-center gap-2 min-w-0">
+                          <Globe size={12} className="text-admin-text-dim group-hover:text-admin-text-sec shrink-0" />
+                          <span className="truncate">
+                            Encounter <span className="text-admin-text-dim">·</span> {compassEntry?.vendorName || 'Entry'}
+                            {compassEntry && <span className="text-admin-text-dim"> · {new Date(compassEntry.createdAt).toLocaleDateString()}</span>}
+                          </span>
                         </span>
-                      </span>
-                      <ChevronRight size={12} className="text-admin-text-dim shrink-0" />
-                    </button>
-                  );
-                })()}
-                <button onClick={() => navigate(`/admin/activity?tab=orders&search=${encodeURIComponent(product.givenName || product.productName)}`)} className="w-full flex items-center justify-between gap-3 py-3 text-ui-13 text-admin-text-sec hover:text-admin-text transition-colors group">
-                  <span className="flex items-center gap-2">
-                    <Receipt size={12} className="text-admin-text-dim group-hover:text-admin-text-sec" />
-                    Order history
-                  </span>
-                  <ChevronRight size={12} className="text-admin-text-dim" />
-                </button>
-                <button onClick={() => navigate(`/admin/products/${product.id}/story`)} className="w-full flex items-center justify-between gap-3 py-3 text-ui-13 text-admin-text-sec hover:text-admin-text transition-colors group">
-                  <span className="flex items-center gap-2">
-                    <BookOpen size={12} className="text-admin-text-dim group-hover:text-admin-text-sec" />
-                    Full story page
-                  </span>
-                  <ChevronRight size={12} className="text-admin-text-dim" />
-                </button>
+                        <ChevronRight size={12} className="text-admin-text-dim shrink-0" />
+                      </button>
+                    );
+                  })()}
+                  <button onClick={() => navigate(`/admin/activity?tab=orders&search=${encodeURIComponent(product.givenName || product.productName)}`)} className="w-full flex items-center justify-between gap-3 py-3 text-ui-13 text-admin-text-sec hover:text-admin-text transition-colors group">
+                    <span className="flex items-center gap-2">
+                      <Receipt size={12} className="text-admin-text-dim group-hover:text-admin-text-sec" />
+                      Order history
+                    </span>
+                    <ChevronRight size={12} className="text-admin-text-dim" />
+                  </button>
+                  <button onClick={() => navigate(`/admin/products/${product.id}/story`)} className="w-full flex items-center justify-between gap-3 py-3 text-ui-13 text-admin-text-sec hover:text-admin-text transition-colors group">
+                    <span className="flex items-center gap-2">
+                      <BookOpen size={12} className="text-admin-text-dim group-hover:text-admin-text-sec" />
+                      Full story page
+                    </span>
+                    <ChevronRight size={12} className="text-admin-text-dim" />
+                  </button>
+                </div>
               </div>
             </CollapsibleSection>
 
@@ -1484,9 +1481,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
               )}
             </CollapsibleSection>
 
-            <CollapsibleSection title="Collections" description="Curated bundles this product belongs to." defaultOpen={false}>
-              {product?.id && <ProductCollectionsSection productId={product.id} />}
-            </CollapsibleSection>
+            {/* Collections moved into the Placement section above. */}
 
             <div className="pb-16" />
           </div>
