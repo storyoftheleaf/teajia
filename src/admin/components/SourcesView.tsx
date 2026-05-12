@@ -52,7 +52,7 @@ const SourceModal = ({
 
   return (
     <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
-      <form onSubmit={handleSubmit} className="bg-tea-bg border border-tea-border rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl">
+      <form onSubmit={handleSubmit} className="bg-tea-bg border border-tea-border rounded-xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl">
         <div className="flex justify-between items-center p-6 border-b border-tea-border">
           <h3 className="text-lg font-serif text-tea-text">{isEditing ? 'Edit Source' : 'New Source'}</h3>
           <button type="button" onClick={onClose} className="text-tea-text-sec hover:text-tea-text"><XIcon size={20} /></button>
@@ -652,7 +652,7 @@ export const SourcesView = () => {
               ><Pencil size={13} /></button>
               <button
                 onClick={() => handleDelete(source)}
-                className="text-tea-text-sec hover:text-red-400 p-1 transition-colors"
+                className="text-tea-text-sec hover:text-tea-error p-1 transition-colors"
                 title="Delete"
               ><Trash2 size={13} /></button>
             </>
@@ -805,7 +805,7 @@ export const SourcesView = () => {
       </div>
 
       {/* --- MOBILE CONTROL BAR --- */}
-      <div className={`md:hidden sticky top-0 z-30 transition-colors flex-shrink-0 ${isEditMode ? 'bg-tea-surface/95' : 'bg-tea-bg/95 backdrop-blur-md'}`}>
+      <div className={`md:hidden sticky top-0 z-sticky transition-colors flex-shrink-0 ${isEditMode ? 'bg-tea-surface/95' : 'bg-tea-bg/95 backdrop-blur-md'}`}>
         <div className="flex items-center px-2 py-1.5 gap-1">
           <Users size={14} className="text-tea-gold shrink-0 ml-1" />
           <span className="text-ui-11 text-tea-text-sec uppercase tracking-[0.08em] shrink-0">
@@ -837,7 +837,7 @@ export const SourcesView = () => {
             {showMobileSort && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setShowMobileSort(false)} />
-                <div className="absolute right-0 top-9 w-40 bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-50 py-1" role="menu">
+                <div className="absolute right-0 top-9 w-40 bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-popover py-1" role="menu">
                   {([
                     { key: 'name' as SourceSortKey, label: 'Name' },
                     { key: 'company' as SourceSortKey, label: 'Company' },
@@ -885,7 +885,7 @@ export const SourcesView = () => {
             {showOptions && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setShowOptions(false)} />
-                <div className="absolute right-0 top-9 w-48 bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-50 py-1 max-h-[calc(100dvh-100px)] overflow-y-auto">
+                <div className="absolute right-0 top-9 w-48 bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-popover py-1 max-h-[calc(100dvh-100px)] overflow-y-auto">
                   {/* Saved views */}
                   <div className="px-3 py-1.5 text-ui-9 text-tea-text-sec/60 uppercase tracking-[0.2em]">Views</div>
                   {savedViews.map(view => (
@@ -987,7 +987,7 @@ export const SourcesView = () => {
                 {showColumnsPopover && (
                   <>
                     <div className="fixed inset-0 z-40" onClick={() => setShowColumnsPopover(false)} />
-                    <div className="absolute right-0 top-full mt-2 w-44 bg-tea-surface border border-tea-border shadow-xl rounded-xl z-50 py-2">
+                    <div className="absolute right-0 top-full mt-2 w-44 bg-tea-surface border border-tea-border shadow-xl rounded-xl z-popover py-2">
                       <div className="px-3 pb-1.5 text-ui-9 text-tea-text-sec/60 uppercase tracking-[0.2em]">Visible Columns</div>
                       {SOURCE_COLUMN_DEFS.map(col => (
                         <label key={col.key} className={`flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-tea-bg transition-colors cursor-pointer ${'alwaysVisible' in col && col.alwaysVisible ? 'opacity-50 cursor-not-allowed' : ''}`}>
@@ -1019,7 +1019,7 @@ export const SourcesView = () => {
                   <Layers size={14} />
                   <span className="hidden xl:inline tracking-wide">Group</span>
                 </button>
-                <div id="sources-groupby-dropdown" className="hidden absolute right-0 top-full mt-2 w-40 bg-tea-surface border border-tea-border shadow-xl rounded-xl z-50 py-1">
+                <div id="sources-groupby-dropdown" className="hidden absolute right-0 top-full mt-2 w-40 bg-tea-surface border border-tea-border shadow-xl rounded-xl z-popover py-1">
                   {GROUPBY_OPTIONS.map(opt => (
                     <button
                       key={opt.value}
@@ -1046,7 +1046,7 @@ export const SourcesView = () => {
               {showOptions && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setShowOptions(false)}></div>
-                  <div className="absolute right-0 top-full mt-2 w-48 bg-tea-surface border border-tea-border shadow-xl rounded-xl z-50 py-1 flex flex-col">
+                  <div className="absolute right-0 top-full mt-2 w-48 bg-tea-surface border border-tea-border shadow-xl rounded-xl z-popover py-1 flex flex-col">
                     <button onClick={() => { handleExport(); setShowOptions(false); }} className="px-4 py-2 text-left text-xs text-tea-text-sec hover:text-tea-text hover:bg-tea-bg flex items-center gap-2 transition-colors">
                       <Download size={14} /> Export CSV
                     </button>
@@ -1147,7 +1147,7 @@ export const SourcesView = () => {
                         </button>
                         <button
                           onClick={() => handleDelete(source)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec hover:text-red-400 bg-tea-bg/60 hover:bg-tea-bg rounded-md transition-colors"
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec hover:text-tea-error bg-tea-bg/60 hover:bg-tea-bg rounded-md transition-colors"
                         >
                           <Trash2 size={12} /> Delete
                         </button>
@@ -1198,7 +1198,7 @@ export const SourcesView = () => {
                   {visibleCols.map(col => <col key={col.key} className={col.defaultWidth} />)}
                   <col className="w-[10%]" />
                 </colgroup>
-                <thead className="sticky top-0 z-20 bg-tea-bg shadow-sm">
+                <thead className="sticky top-0 z-sticky bg-tea-bg shadow-sm">
                   <tr>
                     {visibleCols.map(col => (
                       <SortHeader key={col.key} colKey={col.key as SourceSortKey} label={col.label} align={col.key === 'teaCount' ? 'center' : 'left'} />
@@ -1250,7 +1250,7 @@ export const SourcesView = () => {
                 <col className="w-[10%]" />
               </colgroup>
 
-              <thead className="sticky top-0 z-20 bg-tea-bg shadow-sm">
+              <thead className="sticky top-0 z-sticky bg-tea-bg shadow-sm">
                 <tr>
                   {visibleCols.map(col => (
                     <SortHeader key={col.key} colKey={col.key as SourceSortKey} label={col.label} align={col.key === 'teaCount' ? 'center' : 'left'} />
@@ -1281,7 +1281,7 @@ export const SourcesView = () => {
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-            className="fixed inset-0 md:inset-auto md:right-0 md:top-0 md:bottom-0 md:w-[420px] z-50 bg-tea-bg flex flex-col"
+            className="fixed inset-0 md:inset-auto md:right-0 md:top-0 md:bottom-0 md:w-[420px] z-drawer bg-tea-bg flex flex-col"
             style={{ boxShadow: '-12px 0 40px -8px rgba(24,19,14,0.35), inset 1px 0 0 var(--tea-accent-sub)' }}
           >
             {/* Panel Header */}
@@ -1434,7 +1434,7 @@ export const SourcesView = () => {
                                       refreshSupplied();
                                       showToast('Unlinked', 'info');
                                     }}
-                                    className="text-tea-text-sec hover:text-red-400 transition-colors"
+                                    className="text-tea-text-sec hover:text-tea-error transition-colors"
                                     title="Unlink"
                                   >
                                     <XIcon size={12} />
@@ -1560,7 +1560,7 @@ export const SourcesView = () => {
                                     <span className="text-ui-10 text-tea-text-sec uppercase tracking-wider">
                                       {tx.direction} · {tx.items.length} item{tx.items.length !== 1 ? 's' : ''}
                                     </span>
-                                    <span className={`text-ui-9 px-1.5 py-0.5 rounded-full ${tx.status === 'confirmed' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'}`}>
+                                    <span className={`text-ui-9 px-1.5 py-0.5 rounded-full ${tx.status === 'confirmed' ? 'bg-tea-green/10 text-tea-green ring-1 ring-inset ring-tea-green/40' : 'bg-tea-gold/10 text-tea-text ring-1 ring-inset ring-tea-gold/40'}`}>
                                       {tx.status}
                                     </span>
                                   </div>
@@ -1708,8 +1708,8 @@ export const SourcesView = () => {
                               </div>
                               <div className="text-ui-10 text-tea-text-dim flex items-center gap-1">
                                 {entry.type && <span className="uppercase">{entry.type}</span>}
-                                {entry.status === 'in_stock' && <span className="text-emerald-400">in stock</span>}
-                                {entry.status === 'want' && <span className="text-amber-400">want</span>}
+                                {entry.status === 'in_stock' && <span className="text-tea-green">in stock</span>}
+                                {entry.status === 'want' && <span className="text-tea-readgold">want</span>}
                               </div>
                             </div>
                             {entry.priceAmount != null && entry.priceAmount > 0 && (
@@ -1943,7 +1943,7 @@ export const SourcesView = () => {
                   <CollapsibleSection title={`Pipeline (${pipeline.length})`}>
                     {wants.length > 0 && (
                       <div className="mb-2">
-                        <div className="text-ui-9 text-amber-400/70 uppercase tracking-wider mb-1 flex items-center gap-1">
+                        <div className="text-ui-9 text-tea-readgold/70 uppercase tracking-wider mb-1 flex items-center gap-1">
                           <Star size={9} /> Want List
                         </div>
                         {wants.map((e) => (
@@ -2042,8 +2042,8 @@ export const SourcesView = () => {
 
                 const typeColors: Record<string, string> = {
                   compass: 'bg-blue-400',
-                  ledger: 'bg-amber-400',
-                  product: 'bg-emerald-400',
+                  ledger: 'bg-tea-readgold',
+                  product: 'bg-tea-green',
                   sale: 'bg-purple-400',
                 };
 
@@ -2097,7 +2097,7 @@ export const SourcesView = () => {
               </button>
               <button
                 onClick={() => handleDelete(panelSource)}
-                className="flex items-center gap-1.5 text-ui-10 text-tea-text-sec hover:text-red-400 uppercase tracking-[0.2em] transition-colors"
+                className="flex items-center gap-1.5 text-ui-10 text-tea-text-sec hover:text-tea-error uppercase tracking-[0.2em] transition-colors"
               >
                 <Trash2 size={11} /> Delete
               </button>
