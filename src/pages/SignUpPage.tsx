@@ -130,7 +130,7 @@ export default function SignUpPage() {
             <button
               type="button"
               onClick={() => setShowPassword(v => !v)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-tea-text/30 hover:text-tea-text transition-colors"
+              className="tap-target absolute right-3 top-1/2 -translate-y-1/2 p-1 text-tea-text/30 hover:text-tea-text transition-colors"
             >
               {showPassword ? <Icons.EyeSlash className="w-4 h-4" /> : <Icons.Eye className="w-4 h-4" />}
             </button>

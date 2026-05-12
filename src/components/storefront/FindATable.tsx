@@ -131,7 +131,7 @@ export const FindATable: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setSearchName('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-tea-text-dim hover:text-tea-text transition-colors"
+                  className="tap-target absolute right-3 top-1/2 -translate-y-1/2 text-tea-text-dim hover:text-tea-text transition-colors"
                   aria-label="Clear name search"
                 >
                   <Icons.Close className="w-3.5 h-3.5" />
