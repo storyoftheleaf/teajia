@@ -38,13 +38,13 @@ export const VIEW_FILTER_LABELS: Record<string, string> = {
 };
 
 export const TEA_COLUMN_DEFS = [
-  { key: 'productName', label: 'Product', defaultWidth: 'w-[28%]', alwaysVisible: true },
-  { key: 'type', label: 'Type', defaultWidth: 'w-[12%]' },
-  { key: 'year', label: 'Year', defaultWidth: 'w-[6%]' },
-  { key: 'originRegion', label: 'Origin', defaultWidth: 'w-[15%]' },
-  { key: 'stockGrams', label: 'Grams', defaultWidth: 'w-[6%]' },
+  { key: 'productName', label: 'Product', defaultWidth: 'w-[26%]', alwaysVisible: true },
+  { key: 'type', label: 'Type', defaultWidth: 'w-[11%]' },
+  { key: 'year', label: 'Year', defaultWidth: 'w-[9%]' },
+  { key: 'originRegion', label: 'Origin', defaultWidth: 'w-[14%]' },
+  { key: 'stockGrams', label: 'Grams', defaultWidth: 'w-[9%]' },
   { key: 'verified', label: 'Verified', defaultWidth: 'w-[7%]' },
-  { key: 'costAmount', label: 'Cost', defaultWidth: 'w-[9%]' },
+  { key: 'costAmount', label: 'Cost', defaultWidth: 'w-[8%]' },
   { key: 'costPerGramUSD', label: 'Cost/g', defaultWidth: 'w-[8%]' },
   { key: 'pricePerGramUSD', label: 'Retail/g', defaultWidth: 'w-[8%]' },
 ] as const satisfies readonly ColDef[];

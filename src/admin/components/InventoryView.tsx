@@ -1071,7 +1071,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       return (
         <th
           aria-sort={ariaSort}
-          className={`font-serif text-ui-11 uppercase tracking-display text-tea-text-sec font-normal px-4 py-3 border-b border-tea-border ${align === 'right' ? 'text-right' : align === 'center' ? 'text-center' : 'text-left'}`}
+          className={`font-serif text-ui-11 uppercase tracking-caps text-tea-text-sec font-normal px-4 py-2 border-b border-tea-border ${align === 'right' ? 'text-right' : align === 'center' ? 'text-center' : 'text-left'}`}
         >
           <button
             type="button"
