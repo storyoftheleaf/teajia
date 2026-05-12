@@ -1549,7 +1549,7 @@ export const CustomersView = () => {
     const showBadge = sortConfig.length > 1 && sortEntry;
     return (
       <th
-        className={`px-4 py-2 cursor-pointer hover:text-tea-text transition-colors select-none border-b border-tea-border group text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec text-${align} truncate`}
+        className={`px-4 py-2 cursor-pointer hover:text-tea-text transition-colors select-none border-b border-tea-border group font-serif text-ui-11 uppercase tracking-display text-tea-text-sec font-normal text-${align} truncate`}
         onClick={() => handleSort(colKey)}
       >
         <div className={`flex items-center gap-1 ${align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : ''}`}>
@@ -1678,7 +1678,7 @@ export const CustomersView = () => {
       onClick={() => setViewingCustomer(customer)}
     >
       {visibleCols.map(col => renderCell(customer, col.key))}
-      <td className="px-2 align-middle text-right">
+      <td className="px-3 py-3 align-middle text-right">
         <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
           <button
             onClick={() => openEdit(customer)}
@@ -1700,16 +1700,9 @@ export const CustomersView = () => {
   return (
     <div className="h-full flex flex-col overflow-hidden bg-tea-bg">
 
-      {/* --- STICKY HEADER --- */}
+      {/* --- STICKY HEADER (filter + actions only; parent PeopleView owns the page title) --- */}
       <div className="sticky top-0 z-sticky bg-tea-bg/90 backdrop-blur-md border-b border-tea-border flex-shrink-0">
-        {/* Title row */}
-        <div className="px-4 md:px-6 lg:px-10 max-w-5xl mx-auto pt-6 pb-3 hidden md:block">
-          <h1 className="h2 text-tea-text">Contacts</h1>
-          <div className="label-caps text-tea-text-dim mt-1">
-            {filtered.length} contact{filtered.length !== 1 ? 's' : ''}
-          </div>
-        </div>
-        <div className="px-3 md:px-6 lg:px-10 max-w-5xl mx-auto flex items-center gap-3 md:gap-4 py-2">
+        <div className="px-3 md:px-6 lg:px-10 max-w-5xl mx-auto flex items-center gap-3 md:gap-4 py-3">
           <div className="flex items-center gap-2 shrink-0 md:hidden">
             <Users size={16} className="text-tea-gold" />
             <span className="text-tea-text-sec text-xs">
@@ -2015,7 +2008,7 @@ export const CustomersView = () => {
                       const SORTABLE = new Set<string>(['name', 'company', 'country', 'spent', 'orders', 'added']);
                       if (!SORTABLE.has(col.key)) {
                         return (
-                          <th key={col.key} className="px-4 py-2 border-b border-tea-border text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec text-left truncate">
+                          <th key={col.key} className="px-4 py-3 border-b border-tea-border font-serif text-ui-11 uppercase tracking-display text-tea-text-sec font-normal text-left truncate">
                             {col.label}
                           </th>
                         );

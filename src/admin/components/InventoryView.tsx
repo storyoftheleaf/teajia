@@ -1711,17 +1711,23 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       {/* --- HEADER CONTROLS --- */}
       <div className={`sticky top-0 z-sticky border-b border-tea-border py-2 transition-colors hidden md:block ${isEditMode ? 'bg-tea-surface/95' : 'bg-tea-bg/90 backdrop-blur-md'}`}>
 
-        {/* Desktop header — unchanged */}
-        <div className="flex px-6 max-w-7xl mx-auto items-center gap-4">
-            <div className="flex items-center gap-2 shrink-0">
-                <Settings size={16} className={isEditMode ? "text-tea-text-sec" : "text-tea-gold"} />
-                <h2 className="h3">
-                    {isEditMode ? 'Editing' : (VIEW_FILTER_LABELS[filterType] || 'Inventory')}
-                </h2>
-                <span className="text-tea-text-sec text-xs tracking-wide">
-                    {isEditMode ? '— click cells to edit' : `— ${processedProducts.length} items`}
-                </span>
-            </div>
+        {/* Desktop toolbar — filter label + actions only; outer chrome owns the page title */}
+        <div className="flex px-6 max-w-7xl mx-auto items-center gap-4 py-3">
+            <span className="label-caps text-tea-text-dim shrink-0">
+                {isEditMode ? 'CLICK CELLS TO EDIT' : `${processedProducts.length} ITEMS`}
+            </span>
+            {!isEditMode && processedProducts.length > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  const target = panelProduct ?? processedProducts[0];
+                  if (target) setStockHistoryProduct({ id: target.id, name: target.givenName || target.productName });
+                }}
+                className="label-caps text-tea-text-sec hover:text-tea-text transition-colors inline-flex items-center gap-1.5 shrink-0"
+              >
+                <History size={12} aria-hidden="true" /> View stock history
+              </button>
+            )}
 
             <div className="flex items-center gap-4 ml-auto">
                 {/* Actions Group */}
@@ -2642,22 +2648,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               absolutely so toggling selection never reflows the table. */}
           <AnimatePresence>{renderActionDrawer()}</AnimatePresence>
 
-          {/* Canonical top strip: stock-history link (left) + item counter (right). */}
-          {processedProducts.length > 0 && (
-            <div className="flex items-center justify-between px-5 py-2.5 border-b border-tea-border bg-tea-surface">
-              <button
-                type="button"
-                onClick={() => {
-                  const target = panelProduct ?? processedProducts[0];
-                  if (target) setStockHistoryProduct({ id: target.id, name: target.givenName || target.productName });
-                }}
-                className="text-ui-11 uppercase tracking-caps font-sans text-tea-text-sec hover:text-tea-text transition-colors inline-flex items-center gap-1.5"
-              >
-                <History size={12} aria-hidden="true" /> View stock history
-              </button>
-              <span className="label-caps text-tea-text-dim tabular-nums">{processedProducts.length} items</span>
-            </div>
-          )}
+          {/* (Item counter and stock-history link now live in the outer chrome — kept minimal here.) */}
 
           {/* --- GROUPED VIEW --- */}
           {groupedProducts ? (

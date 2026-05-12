@@ -368,12 +368,12 @@ export const OrdersView = () => {
             </colgroup>
             <thead className="sticky top-0 z-sticky bg-tea-bg shadow-sm">
               <tr>
-                <th className="px-4 py-2 border-b border-tea-border text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec text-left">Date</th>
-                <th className="px-4 py-2 border-b border-tea-border text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec text-left">Invoice #</th>
-                <th className="px-4 py-2 border-b border-tea-border text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec text-left">Customer</th>
-                <th className="px-4 py-2 border-b border-tea-border text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec text-right">Total</th>
-                <th className="px-4 py-2 border-b border-tea-border text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec text-center">Status</th>
-                <th className="px-4 py-2 border-b border-tea-border text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec text-center">Actions</th>
+                <th className="px-4 py-3 border-b border-tea-border font-serif text-ui-11 uppercase tracking-display text-tea-text-sec font-normal text-left">Date</th>
+                <th className="px-4 py-3 border-b border-tea-border font-serif text-ui-11 uppercase tracking-display text-tea-text-sec font-normal text-left">Invoice #</th>
+                <th className="px-4 py-3 border-b border-tea-border font-serif text-ui-11 uppercase tracking-display text-tea-text-sec font-normal text-left">Customer</th>
+                <th className="px-4 py-3 border-b border-tea-border font-serif text-ui-11 uppercase tracking-display text-tea-text-sec font-normal text-right">Total</th>
+                <th className="px-4 py-3 border-b border-tea-border font-serif text-ui-11 uppercase tracking-display text-tea-text-sec font-normal text-center">Status</th>
+                <th className="px-4 py-3 border-b border-tea-border font-serif text-ui-11 uppercase tracking-display text-tea-text-sec font-normal text-center">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -406,11 +406,11 @@ export const OrdersView = () => {
                   const variant = statusToVariant(order.status);
 
                   return (
-                    <tr key={order.id} className="transition-colors border-b border-tea-border group hover:bg-tea-bg/50" style={{ height: ROW_HEIGHT }}>
-                      <td className="px-4 align-middle overflow-hidden">
+                    <tr key={order.id} className="transition-colors border-b border-tea-border last:border-b-0 group hover:bg-tea-accent-sub">
+                      <td className="px-4 py-3 align-middle overflow-hidden">
                         <span className="text-ui-12 text-tea-text-sec font-mono tabular-nums">{new Date(order.created_at).toLocaleDateString()}</span>
                       </td>
-                      <td className="px-4 align-middle overflow-hidden">
+                      <td className="px-4 py-3 align-middle overflow-hidden">
                         <button
                           onClick={() => handleView(order)}
                           className="font-mono tabular-nums text-ui-12 text-tea-text group-hover:text-tea-text transition-colors"
@@ -418,7 +418,7 @@ export const OrdersView = () => {
                           {order.invoice_number}
                         </button>
                       </td>
-                      <td className="px-4 align-middle overflow-hidden">
+                      <td className="px-4 py-3 align-middle overflow-hidden">
                         <button
                           onClick={() => order.customer_id
                             ? navigate(`/admin/people/${order.customer_id}`)
@@ -430,7 +430,7 @@ export const OrdersView = () => {
                           <span className="truncate">{order.customer_name}</span>
                         </button>
                       </td>
-                      <td className="px-4 align-middle overflow-hidden text-right">
+                      <td className="px-4 py-3 align-middle overflow-hidden text-right">
                         <div className="font-mono tabular-nums text-ui-13 text-tea-text">
                           ${total.toFixed(2)}
                           <span className="text-ui-10 text-tea-text-dim ml-1">{order.display_currency}</span>
@@ -439,7 +439,7 @@ export const OrdersView = () => {
                           <div className="text-ui-10 text-tea-text-dim font-mono tabular-nums">+${Number(order.shipping_cost_usd).toFixed(2)} ship</div>
                         )}
                       </td>
-                      <td className="px-4 align-middle text-center">
+                      <td className="px-4 py-3 align-middle text-center">
                         <div className="flex items-center justify-center gap-1.5">
                           <span className={`${STATUS_PILL_BASE} ${STATUS_PILL_VARIANTS[variant]}`}>
                             {order.status}
@@ -459,7 +459,7 @@ export const OrdersView = () => {
                           )}
                         </div>
                       </td>
-                      <td className="px-4 align-middle">
+                      <td className="px-4 py-3 align-middle">
                         <div className="flex justify-center gap-1">
                           {isPending && (
                             <>

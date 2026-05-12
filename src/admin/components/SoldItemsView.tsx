@@ -284,7 +284,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
                 ) : (
                   soldOutProducts.map(product => (
                     <tr key={product.id} className="border-b border-tea-border last:border-b-0 transition-colors hover:bg-tea-accent-sub group" style={{ height: ROW_HEIGHT }}>
-                      <td className="px-4 align-middle overflow-hidden">
+                      <td className="px-4 py-3 align-middle overflow-hidden">
                         <div className="flex flex-col justify-center h-full">
                           <button
                             onClick={() => navigate(`/admin/catalog?search=${encodeURIComponent(product.givenName || product.productName)}`)}
@@ -297,24 +297,24 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
                           )}
                         </div>
                       </td>
-                      <td className="px-4 align-middle overflow-hidden">
+                      <td className="px-4 py-3 align-middle overflow-hidden">
                         <span className="font-sans text-ui-11 uppercase tracking-caps text-tea-text-dim truncate block">{product.type}</span>
                       </td>
-                      <td className="px-4 align-middle overflow-hidden">
+                      <td className="px-4 py-3 align-middle overflow-hidden">
                         <span className="font-serif text-ui-15 text-tea-text-sec truncate block">{product.vendor || '—'}</span>
                       </td>
-                      <td className="px-4 align-middle overflow-hidden text-right">
+                      <td className="px-4 py-3 align-middle overflow-hidden text-right">
                         <span className="font-serif text-ui-15 text-right tabular-nums text-tea-text-dim">{product.costPerGramUSD != null ? `$${fmtNum(product.costPerGramUSD)}` : '—'}</span>
                       </td>
-                      <td className="px-4 align-middle overflow-hidden text-right">
+                      <td className="px-4 py-3 align-middle overflow-hidden text-right">
                         <span className="font-serif text-ui-15 text-right tabular-nums text-tea-text-sec">{product.pricePerGramUSD != null ? `$${fmtNum(product.pricePerGramUSD)}` : '—'}</span>
                       </td>
-                      <td className="px-4 align-middle text-center">
+                      <td className="px-4 py-3 align-middle text-center">
                         <span className="font-serif text-ui-13 text-tea-text-dim tabular-nums">
                           {(product as any).soldOutAt ? new Date((product as any).soldOutAt).toLocaleDateString() : '—'}
                         </span>
                       </td>
-                      <td className="px-4 align-middle text-center">
+                      <td className="px-4 py-3 align-middle text-center">
                         <button
                           onClick={() => handleReactivate(product)}
                           disabled={reactivating === product.id}
@@ -413,16 +413,16 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
                     ) : (
                       logs.map((log: any) => (
                         <tr key={log.id} className="border-b border-tea-border last:border-b-0 transition-colors hover:bg-tea-accent-sub group" style={{ height: ROW_HEIGHT }}>
-                          <td className="px-4 align-middle overflow-hidden">
+                          <td className="px-4 py-3 align-middle overflow-hidden">
                             <span className="font-serif text-ui-13 text-tea-text-sec tabular-nums">{new Date(log.created_at).toLocaleString()}</span>
                           </td>
-                          <td className="px-4 align-middle overflow-hidden">
+                          <td className="px-4 py-3 align-middle overflow-hidden">
                             <span className="font-serif text-ui-15 text-tea-text truncate block">{log.user_email || 'System'}</span>
                           </td>
-                          <td className="px-4 align-middle overflow-hidden">
+                          <td className="px-4 py-3 align-middle overflow-hidden">
                             <span className="badge-status badge-status-default text-ui-9">{log.action}</span>
                           </td>
-                          <td className="px-4 align-middle overflow-hidden">
+                          <td className="px-4 py-3 align-middle overflow-hidden">
                             <span className="font-serif text-ui-15 text-tea-text-sec truncate block">{log.details}</span>
                           </td>
                         </tr>
@@ -556,10 +556,10 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
                         const isPositive = entry.delta > 0;
                         return (
                           <tr key={entry.id} className="border-b border-tea-border last:border-b-0 transition-colors hover:bg-tea-accent-sub group" style={{ height: ROW_HEIGHT }}>
-                            <td className="px-4 align-middle overflow-hidden">
+                            <td className="px-4 py-3 align-middle overflow-hidden">
                               <span className="font-serif text-ui-13 text-tea-text-sec tabular-nums">{new Date(entry.created_at).toLocaleString()}</span>
                             </td>
-                            <td className="px-4 align-middle overflow-hidden">
+                            <td className="px-4 py-3 align-middle overflow-hidden">
                               <button
                                 onClick={() => navigate(`/admin/catalog?search=${encodeURIComponent(entry.product_name || '')}`)}
                                 className="font-display text-ui-17 leading-tight text-tea-text hover:text-tea-readgold transition-colors truncate block text-left"
@@ -567,21 +567,21 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
                                 {entry.product_name || entry.product_id}
                               </button>
                             </td>
-                            <td className="px-4 align-middle text-right">
+                            <td className="px-4 py-3 align-middle text-right">
                               <span className="font-serif text-ui-15 text-right tabular-nums text-tea-text inline-flex items-center justify-end gap-0.5">
                                 {isPositive ? <ArrowUpRight size={11} /> : <ArrowDownRight size={11} />}
                                 {isPositive ? '+' : ''}{entry.delta}g
                               </span>
                             </td>
-                            <td className="px-4 align-middle text-right">
+                            <td className="px-4 py-3 align-middle text-right">
                               <span className="font-serif text-ui-15 text-right tabular-nums text-tea-text-sec">{entry.balance_after}g</span>
                             </td>
-                            <td className="px-4 align-middle text-center">
+                            <td className="px-4 py-3 align-middle text-center">
                               <span className="badge-status badge-status-default text-ui-9">
                                 {REASON_LABELS[entry.reason] || entry.reason}
                               </span>
                             </td>
-                            <td className="px-4 align-middle overflow-hidden">
+                            <td className="px-4 py-3 align-middle overflow-hidden">
                               {entry.source_invoice_number ? (
                                 <button
                                   onClick={() => navigate(`/admin/orders?search=${encodeURIComponent(entry.source_invoice_number)}`)}
@@ -593,7 +593,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
                                 <span className="font-serif text-ui-15 text-tea-text-dim">—</span>
                               )}
                             </td>
-                            <td className="px-4 align-middle overflow-hidden">
+                            <td className="px-4 py-3 align-middle overflow-hidden">
                               <span className="font-serif text-ui-15 text-tea-text-sec truncate block">{entry.user_email || 'System'}</span>
                             </td>
                           </tr>

@@ -580,7 +580,7 @@ export const SourcesView = () => {
     const showBadge = sortConfig.length > 1 && sortEntry;
     return (
       <th
-        className={`px-4 py-2 cursor-pointer hover:text-tea-text transition-colors select-none border-b border-tea-border group text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec text-${align} truncate`}
+        className={`px-4 py-2 cursor-pointer hover:text-tea-text transition-colors select-none border-b border-tea-border group font-serif text-ui-11 uppercase tracking-display text-tea-text-sec font-normal text-${align} truncate`}
         onClick={() => handleSort(colKey)}
       >
         <div className={`flex items-center gap-1 ${align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : ''}`}>
@@ -603,7 +603,7 @@ export const SourcesView = () => {
     switch (colKey) {
       case 'name':
         return (
-          <td className="px-4 align-middle overflow-hidden">
+          <td className="px-4 py-3 align-middle overflow-hidden">
             <div className="flex flex-col justify-center h-full">
               {isEditMode ? (
                 <GhostInput
@@ -621,7 +621,7 @@ export const SourcesView = () => {
         );
       case 'company':
         return (
-          <td className="px-4 align-middle overflow-hidden">
+          <td className="px-4 py-3 align-middle overflow-hidden">
             {isEditMode ? (
               <GhostInput value={source.company || ''} onSave={(val) => handleSourceUpdate(source.id, 'company', val)} className="text-ui-12 text-tea-text-sec truncate" placeholder="Company" />
             ) : <span className="text-ui-12 text-tea-text-sec truncate block">{source.company || '—'}</span>}
@@ -629,7 +629,7 @@ export const SourcesView = () => {
         );
       case 'country':
         return (
-          <td className="px-4 align-middle overflow-hidden">
+          <td className="px-4 py-3 align-middle overflow-hidden">
             {isEditMode ? (
               <GhostInput value={source.country || ''} onSave={(val) => handleSourceUpdate(source.id, 'country', val)} className="text-ui-12 text-tea-text-sec truncate" placeholder="Country" />
             ) : (
@@ -643,7 +643,7 @@ export const SourcesView = () => {
         );
       case 'contact':
         return (
-          <td className="px-4 align-middle overflow-hidden">
+          <td className="px-4 py-3 align-middle overflow-hidden">
             <div className="flex items-center gap-2 text-ui-12 text-tea-text-sec truncate">
               {source.email && <span className="truncate">{source.email}</span>}
               {!source.email && source.phone && <span>{source.phone}</span>}
@@ -654,7 +654,7 @@ export const SourcesView = () => {
         );
       case 'teaCount':
         return (
-          <td className="px-4 align-middle overflow-hidden text-center">
+          <td className="px-4 py-3 align-middle overflow-hidden text-center">
             <span className={`inline-flex items-center gap-1 text-ui-12 tabular-nums ${source.teaCount > 0 ? 'text-tea-gold' : 'text-tea-text-dim'}`}>
               <Leaf size={11} /> {source.teaCount}
             </span>
@@ -662,14 +662,14 @@ export const SourcesView = () => {
         );
       case 'created':
         return (
-          <td className="px-4 align-middle overflow-hidden">
+          <td className="px-4 py-3 align-middle overflow-hidden">
             <span className="text-ui-12 text-tea-text-sec tabular-nums">
               {source.createdAt ? new Date(source.createdAt).toLocaleDateString() : '—'}
             </span>
           </td>
         );
       default:
-        return <td className="px-4 align-middle text-ui-12 text-tea-text-sec">—</td>;
+        return <td className="px-4 py-3 align-middle text-ui-12 text-tea-text-sec">—</td>;
     }
   };
 
@@ -685,7 +685,7 @@ export const SourcesView = () => {
       onClick={() => !isEditMode && setExpandedSourceId(isExpanded ? null : source.id)}
     >
       {visibleCols.map(col => renderCell(source, col.key))}
-      <td className="px-2 align-middle">
+      <td className="px-3 py-3 align-middle">
         <div className="flex items-center justify-end gap-2">
           <StatusPill variant={status.variant} className="opacity-90">{status.label}</StatusPill>
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
@@ -981,17 +981,12 @@ export const SourcesView = () => {
         </div>
       </div>
 
-      {/* --- DESKTOP HEADER CONTROLS --- */}
+      {/* --- DESKTOP HEADER CONTROLS (filter + actions only; parent PeopleView owns the page title) --- */}
       <div className={`hidden md:block sticky top-0 z-sticky border-b border-tea-border transition-colors flex-shrink-0 ${isEditMode ? 'bg-tea-surface/95 border-b-tea-gold/20' : 'bg-tea-bg/90 backdrop-blur-md'}`}>
-        <div className="px-4 md:px-8 pt-6 md:pt-8 pb-3 flex items-end justify-between gap-4 flex-wrap">
-          <div className="min-w-0">
-            <h1 className="h2">{isEditMode ? 'Editing sources' : 'Sources'}</h1>
-            <p className="label-caps text-tea-text-dim mt-1">
-              {isEditMode ? 'CLICK CELLS TO EDIT' : `ALL VENDORS · ${processedSources.length}`}
-            </p>
-          </div>
-        </div>
-        <div className="px-4 md:px-8 pb-2 flex items-center gap-4 flex-wrap">
+        <div className="px-4 md:px-8 py-3 flex items-center gap-4 flex-wrap">
+          <span className="label-caps text-tea-text-dim shrink-0">
+            {isEditMode ? 'CLICK CELLS TO EDIT' : `${processedSources.length} VENDORS`}
+          </span>
 
           <div className="flex items-center gap-4 ml-auto">
             {/* Search */}
