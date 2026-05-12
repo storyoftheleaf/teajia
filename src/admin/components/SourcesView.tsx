@@ -20,7 +20,50 @@ import { resolveTermLabel, flattenTastingNotes, LIQUOR_COLORS } from '../../data
 import { useLedgerStore, type LedgerTransaction, type LedgerLineItem } from '../../lib/ledgerStore';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { useSampleStore } from '../../samples/sampleStore';
+import { STATUS_PILL_BASE, STATUS_PILL_VARIANTS, type StatusPillVariant } from '../constants';
 import type { Currency } from '../types';
+
+/** Canonical status pill — see DesignSystemShowcase §8 */
+const StatusPill: React.FC<{ variant?: StatusPillVariant; className?: string; children: React.ReactNode }> = ({
+  variant = 'draft',
+  className = '',
+  children,
+}) => (
+  <span className={`${STATUS_PILL_BASE} ${STATUS_PILL_VARIANTS[variant]} ${className}`}>{children}</span>
+);
+
+/** Two-letter initials for the identity-card avatar (matches §19) */
+function vendorInitials(name: string | undefined): string {
+  if (!name) return '·';
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '·';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+/** Gradient avatar swatch — canonical from §19 showcase */
+const VendorAvatar: React.FC<{ name: string; size?: number; className?: string }> = ({
+  name,
+  size = 40,
+  className = '',
+}) => (
+  <div
+    className={`relative rounded-full overflow-hidden border border-tea-border flex-shrink-0 ${className}`}
+    style={{ width: size, height: size }}
+  >
+    <div
+      className="absolute inset-0"
+      style={{ background: 'radial-gradient(circle at 30% 30%, #c6a473, #8e6d2e 55%, #3a3126)' }}
+      aria-hidden="true"
+    />
+    <div
+      className="absolute inset-0 flex items-center justify-center font-display text-tea-bg/90"
+      style={{ fontSize: Math.max(10, Math.round(size * 0.32)), letterSpacing: '0.04em' }}
+    >
+      {vendorInitials(name)}
+    </div>
+  </div>
+);
 
 // ── Add/Edit Source Modal ──
 const SourceModal = ({
@@ -214,6 +257,13 @@ const CollapsibleSection = ({ title, defaultOpen = true, children }: {
 // --- SOURCE WITH TEA COUNT ---
 interface SourceRow extends Customer {
   teaCount: number;
+}
+
+/** Map source state (tea count + tags) to a canonical StatusPill variant */
+function sourceStatus(source: SourceRow): { variant: StatusPillVariant; label: string } {
+  if (source.tags?.includes('inactive')) return { variant: 'archived', label: 'Inactive' };
+  if (source.teaCount > 0) return { variant: 'success', label: 'Verified' };
+  return { variant: 'draft', label: 'Source' };
 }
 
 // ── Currency formatting ──

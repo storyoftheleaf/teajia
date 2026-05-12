@@ -207,7 +207,7 @@ const SampleCard: React.FC<{ sample: SampleEntry; index: number }> = ({ sample, 
       </div>
     </div>
     {sample.note && (
-      <p className="font-body italic text-ui-14 text-tea-text-sec leading-relaxed border-l border-tea-border pl-4">
+      <p className="subtitle text-tea-text-sec border-l border-tea-border pl-4">
         "{sample.note}"
       </p>
     )}
@@ -315,9 +315,10 @@ const SealModal: React.FC<{ seal: JourneySeal; onClose: () => void }> = ({ seal,
       <p className="text-ui-13 text-tea-text-sec">
         {new Date(seal.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
       </p>
-      <div className="mt-5 flex items-center justify-center gap-4">
+      {/* Cancel-left, confirm/link-right — matches Cancel/Back/Close rules */}
+      <div className="mt-5 flex items-center justify-between gap-4">
         <button onClick={onClose} className="px-2 py-1 text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors">Close</button>
-        {seal.slug && (
+        {seal.slug ? (
           <Link
             to={`/event/${seal.slug}`}
             onClick={onClose}
@@ -326,7 +327,7 @@ const SealModal: React.FC<{ seal: JourneySeal; onClose: () => void }> = ({ seal,
             <ExternalLink size={11} />
             View event
           </Link>
-        )}
+        ) : <span />}
       </div>
     </motion.div>
   </motion.div>
@@ -566,15 +567,15 @@ const AccountJourneyPage: React.FC = () => {
 
           {hasCompass && (
             <section className="mb-16">
-              <div className="flex items-baseline justify-between mb-6">
-                <div>
+              <div className="flex items-baseline justify-between mb-6 gap-3">
+                <div className="min-w-0">
                   <p className="label-caps text-tea-text-dim mb-2">Your Collection</p>
-                  <h2 className="h3 mb-1">The Journal</h2>
-                  <p className="text-ui-12 text-tea-text-sec">Teas you've chosen to keep.</p>
+                  <h2 className="h2 mb-1">The journal</h2>
+                  <p className="text-ui-13 text-tea-text-sec">Teas you've chosen to keep.</p>
                 </div>
                 <Link
                   to="/account/journal"
-                  className="inline-flex items-center gap-1 text-ui-12 text-tea-text-sec hover:text-tea-text transition-colors shrink-0"
+                  className="inline-flex items-center gap-1 text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors shrink-0"
                 >
                   Open journal
                   <ExternalLink size={11} />
@@ -588,7 +589,7 @@ const AccountJourneyPage: React.FC = () => {
 
           {hasPortrait ? (
             <div className="border-t border-tea-border pt-10 pb-4">
-              <p className="font-body italic text-ui-16 text-tea-text-sec leading-relaxed text-center max-w-sm mx-auto">
+              <p className="subtitle text-center max-w-sm mx-auto">
                 {journey.portrait}
               </p>
             </div>

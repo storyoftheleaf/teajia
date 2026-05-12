@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, lazy, Suspense } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ChevronDown, Clock, AlertCircle, Copy, Check, Bookmark, Save } from 'lucide-react';
+import { ChevronDown, Clock, AlertCircle, Copy, Check, Bookmark, Save, X } from 'lucide-react';
 import {
   useGuestManagement,
   useCancelRSVP,
@@ -220,15 +220,15 @@ const GuestManagement: React.FC = () => {
     return (
       <div className="min-h-screen bg-tea-bg flex items-center justify-center px-6">
         <div className="text-center max-w-md">
-          <h1 className="font-serif text-3xl text-tea-text mb-4">Reservation Not Found</h1>
-          <p className="text-sm text-tea-text-sec mb-8">
+          <h1 className="h1 mb-4">Reservation not found</h1>
+          <p className="body-light mb-8">
             {(error as Error)?.message || 'This link may be invalid or expired.'}
           </p>
           <button
             onClick={() => navigate('/')}
-            className="px-8 py-3 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.2em] hover:bg-tea-gold/90 transition-colors"
+            className="inline-flex items-center justify-center px-4 py-3 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors"
           >
-            Return Home
+            Return home
           </button>
         </div>
       </div>
@@ -309,7 +309,7 @@ const GuestManagement: React.FC = () => {
             </Suspense>
             <button
               onClick={() => setShowTasting(false)}
-              className="w-full mt-4 py-3 text-xs uppercase tracking-[0.2em] text-tea-text-dim hover:text-tea-text-sec transition-colors"
+              className="w-full mt-4 py-3 text-xs font-semibold text-tea-text-sec hover:text-tea-text transition-colors"
             >
               Skip
             </button>
@@ -406,7 +406,7 @@ const GuestManagement: React.FC = () => {
               <div className="border-t border-tea-border pt-10">
                 <button
                   onClick={() => setShowTasting(true)}
-                  className="text-xs uppercase tracking-[0.2em] text-tea-text-sec hover:text-tea-gold transition-colors"
+                  className="text-xs font-semibold text-tea-text-sec hover:text-tea-text transition-colors"
                 >
                   Rate the session
                 </button>
@@ -634,17 +634,17 @@ const GuestManagement: React.FC = () => {
                 <button
                   onClick={() => claimSeat.mutate()}
                   disabled={claimSeat.isPending}
-                  className="w-full py-4 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.25em] font-semibold rounded-sm hover:bg-tea-gold/90 disabled:opacity-50 transition-all duration-300 flex items-center justify-center gap-2 shadow-lg shadow-tea-gold/20"
+                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 disabled:opacity-50 transition-colors"
                 >
                   {claimSeat.isPending ? (
-                    <span className="inline-block w-4 h-4 border-2 border-tea-border border-t-tea-gold rounded-full animate-spin" />
+                    <span className="inline-block w-4 h-4 border-2 border-tea-bg/40 border-t-tea-bg rounded-full animate-spin" />
                   ) : (
-                    'Claim My Seat'
+                    'Claim my seat'
                   )}
                 </button>
 
                 {claimSeat.isError && (
-                  <p className="text-sm text-red-400 mt-3">
+                  <p className="text-ui-12 text-tea-error mt-3">
                     {(claimSeat.error as Error)?.message || 'Failed to claim seat. Please try again.'}
                   </p>
                 )}
@@ -693,7 +693,7 @@ const GuestManagement: React.FC = () => {
           <div className="text-center">
             <button
               onClick={() => setShowCancelConfirm(true)}
-              className="text-xs text-tea-text-sec hover:text-red-400 transition-colors uppercase tracking-[0.15em]"
+              className="text-xs font-semibold text-tea-text-sec hover:text-tea-error transition-colors"
             >
               Cancel my waitlist spot
             </button>
@@ -717,8 +717,8 @@ const GuestManagement: React.FC = () => {
     return (
       <div className="min-h-screen bg-tea-bg flex items-center justify-center px-6 animate-[fadeIn_0.5s_ease-out]">
         <div className="text-center max-w-md">
-          <h1 className="font-serif text-3xl text-tea-text mb-4">Reservation Cancelled</h1>
-          <p className="text-sm text-tea-text-sec mb-8">
+          <h1 className="h1 mb-4">Reservation cancelled</h1>
+          <p className="body-light mb-8">
             Your reservation for <span className="text-tea-text">{event.title}</span> has been cancelled.
             {attendee.cancellationNote && (
               <span className="block mt-2">{attendee.cancellationNote}</span>
@@ -726,9 +726,9 @@ const GuestManagement: React.FC = () => {
           </p>
           <button
             onClick={() => navigate(`/event/${event.slug}`)}
-            className="px-8 py-3 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.2em] hover:bg-tea-gold/90 transition-colors"
+            className="inline-flex items-center justify-center px-4 py-3 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors"
           >
-            View Event
+            View event
           </button>
         </div>
       </div>
@@ -779,18 +779,15 @@ const GuestManagement: React.FC = () => {
           <CalendarDownload event={event} />
         </div>
 
-        {/* Guest invite links */}
+        {/* Guest invite links — divide-y list rows with identity miniatures */}
         {approvedGuests.length > 0 && (
-          <div className="mb-10 p-5 bg-tea-surface border border-tea-border rounded-md">
-            <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-4">
+          <div className="mb-10 bg-tea-surface border border-tea-border rounded-xl overflow-hidden">
+            <p className="label-caps px-5 pt-5 pb-3">
               Your guests
             </p>
-            <div className="space-y-3">
-              {approvedGuests.map((invite, idx) => (
-                <div key={invite.id} className="flex items-start gap-3">
-                  <span className="text-xs text-tea-text-sec w-12 shrink-0 pt-0.5">
-                    Slot {idx + 1}
-                  </span>
+            <div className="divide-y divide-tea-border">
+              {approvedGuests.map((invite) => (
+                <div key={invite.id} className="flex items-center gap-3 px-5 py-4">
                   <CopyInviteLink
                     inviteToken={invite.inviteToken}
                     nameHint={invite.nameHint}
@@ -930,7 +927,7 @@ const GuestManagement: React.FC = () => {
                 <span className="text-xs text-tea-text-dim">Updating...</span>
               )}
               {updateGuests.isError && (
-                <span className="text-xs text-red-400">
+                <span className="text-xs text-tea-error">
                   {(updateGuests.error as Error)?.message || 'Could not update'}
                 </span>
               )}
@@ -978,7 +975,7 @@ const GuestManagement: React.FC = () => {
               </button>
             </div>
             {updateNotes.isError && (
-              <p className="text-xs text-red-400 mt-1">
+              <p className="text-xs text-tea-error mt-1">
                 {(updateNotes.error as Error)?.message || 'Could not save notes'}
               </p>
             )}
@@ -1016,7 +1013,7 @@ const GuestManagement: React.FC = () => {
         <div className="text-center pt-6 pb-12 border-t border-tea-border">
           <button
             onClick={() => setShowCancelConfirm(true)}
-            className="text-xs text-tea-text-sec hover:text-red-400 transition-colors uppercase tracking-[0.15em] py-3"
+            className="text-xs font-semibold text-tea-text-sec hover:text-tea-error transition-colors py-3"
           >
             Cancel my reservation
           </button>
@@ -1057,38 +1054,52 @@ const CancelConfirmModal: React.FC<CancelConfirmModalProps> = ({
       onClick={onClose}
       role="dialog"
       aria-modal="true"
+      aria-label="Cancel reservation"
     >
       <div
-        className="bg-tea-bg border border-tea-border rounded-md p-6 max-w-sm w-full shadow-2xl animate-[scaleIn_0.25s_ease-out]"
+        className="relative bg-tea-surface border border-tea-border rounded-xl p-6 max-w-sm w-full shadow-2xl animate-[scaleIn_0.25s_ease-out]"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-start gap-3 mb-5">
-          <AlertCircle className="w-5 h-5 text-red-400 mt-0.5 shrink-0" />
+        {/* Close X — top-right for centered modal (§15) */}
+        <button
+          type="button"
+          onClick={onClose}
+          className="tap-target absolute top-3 right-3 p-1.5 text-tea-text-sec hover:text-tea-text transition-colors"
+          aria-label="Close"
+        >
+          <X className="w-4 h-4" />
+        </button>
+
+        <div className="flex items-start gap-3 mb-5 pr-6">
+          <AlertCircle className="w-5 h-5 text-tea-error mt-0.5 shrink-0" />
           <div>
-            <h3 className="font-serif text-lg text-tea-text mb-2">Cancel Reservation?</h3>
-            <p className="text-sm text-tea-text-sec">
+            <h3 className="h3 mb-2">Cancel reservation?</h3>
+            <p className="body-light">
               Are you sure you want to cancel{' '}
               <span className="text-tea-text">{attendeeName}'s</span> reservation?
             </p>
           </div>
         </div>
 
-        <div className="flex gap-3">
+        {/* Footer — Cancel-left ghost, primary-right destructive */}
+        <div className="flex justify-between items-center gap-3">
           <button
+            type="button"
             onClick={onClose}
-            className="flex-1 py-3 bg-tea-surface border border-tea-border text-tea-text text-xs rounded-sm hover:bg-tea-elevated transition-colors"
+            className="px-3 py-2 text-xs font-semibold text-tea-text-sec hover:text-tea-text transition-colors"
           >
-            Keep My Seat
+            Keep my seat
           </button>
           <button
+            type="button"
             onClick={onConfirm}
             disabled={isPending}
-            className="flex-1 py-3 bg-red-500/10 border border-red-500/20 text-red-400 text-xs rounded-sm hover:bg-red-500/20 disabled:opacity-50 transition-colors flex items-center justify-center"
+            className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-md bg-tea-error text-tea-bg text-xs font-semibold hover:bg-tea-error/90 disabled:opacity-50 transition-colors min-w-[140px]"
           >
             {isPending ? (
-              <span className="inline-block w-4 h-4 border-2 border-red-400/30 border-t-red-400 rounded-full animate-spin" />
+              <span className="inline-block w-4 h-4 border-2 border-tea-bg/40 border-t-tea-bg rounded-full animate-spin" />
             ) : (
-              'Cancel'
+              'Cancel reservation'
             )}
           </button>
         </div>
