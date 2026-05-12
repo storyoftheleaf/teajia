@@ -42,10 +42,32 @@ export const FONT_STACKS = {
   body:    ['Lora', 'Noto Serif SC', 'Georgia', 'serif'],
   caption: ['Plus Jakarta Sans', 'system-ui', 'sans-serif'],
   sans:    ['Plus Jakarta Sans', 'system-ui', 'sans-serif'],
+  // `nav` resolves dynamically to whichever sidebar font is selected via the
+  // in-app cycler. The CSS variable `--font-nav` is set on :root by the sidebar.
+  nav:     ['var(--font-nav)', 'Plus Jakarta Sans', 'system-ui', 'sans-serif'],
   mono:    ['IBM Plex Mono', 'Menlo', 'Courier New', 'monospace'],
   chinese: ['Noto Serif SC', 'serif'],
   chineseCalligraphy: ['Ma Shan Zheng', 'cursive'],
 } as const;
+
+/** Nav font candidates exposed via the sidebar font-cycle button.
+ *  Order matters — index 0 is the default.
+ *  When picking the winner, set `--font-nav` to its `family` and remove this list.
+ */
+export const NAV_FONT_CANDIDATES = [
+  { id: 'general-sans',      label: 'General Sans',      family: "'General Sans', system-ui, sans-serif" },
+  { id: 'switzer',           label: 'Switzer',           family: "'Switzer', system-ui, sans-serif" },
+  { id: 'inter',             label: 'Inter',             family: "'Inter', system-ui, sans-serif" },
+  { id: 'mona-sans',         label: 'Mona Sans',         family: "'Mona Sans', system-ui, sans-serif" },
+  { id: 'geist',             label: 'Geist',             family: "'Geist', system-ui, sans-serif" },
+  { id: 'manrope',           label: 'Manrope',           family: "'Manrope', system-ui, sans-serif" },
+  { id: 'dm-sans',           label: 'DM Sans',           family: "'DM Sans', system-ui, sans-serif" },
+  { id: 'outfit',            label: 'Outfit',            family: "'Outfit', system-ui, sans-serif" },
+  { id: 'schibsted-grotesk', label: 'Schibsted Grotesk', family: "'Schibsted Grotesk', system-ui, sans-serif" },
+  { id: 'plus-jakarta-sans', label: 'Plus Jakarta Sans', family: "'Plus Jakarta Sans', system-ui, sans-serif" },
+] as const;
+
+export type NavFontId = typeof NAV_FONT_CANDIDATES[number]['id'];
 
 /**
  * Google Fonts import URL (for index.html <link>):
@@ -161,9 +183,9 @@ export const TYPOGRAPHY_CLASSES = {
   nav:       'font-sans text-ui-12 font-normal uppercase tracking-[1px] leading-[1.4]',
   link:      'font-sans text-ui-14 font-normal tracking-[0.2px]',
   mono:      'font-mono text-ui-11 font-normal',
-  navSidebar:      'font-sans text-ui-13 font-semibold tracking-[0.02em] leading-[1.3]',
-  navSidebarChild: 'font-sans text-ui-12 font-medium tracking-[0.02em] leading-[1.3]',
-  navSidebarGroup: 'font-sans text-ui-10 font-semibold uppercase tracking-[0.18em] leading-[1.3]',
+  navSidebar:      'font-nav text-ui-13 font-semibold tracking-[0.02em] leading-[1.3]',
+  navSidebarChild: 'font-nav text-ui-12 font-medium tracking-[0.02em] leading-[1.3]',
+  navSidebarGroup: 'font-nav text-ui-10 font-semibold uppercase tracking-[0.18em] leading-[1.3]',
   accountMeta:     'font-sans text-ui-12 font-normal tracking-[0.04em] leading-[1.3]',
 } as const;
 
@@ -903,6 +925,7 @@ export const DESIGN_TOKENS = {
     body:    FONT_STACKS.body,
     caption: FONT_STACKS.caption,
     sans:    FONT_STACKS.sans,
+    nav:     FONT_STACKS.nav,
     mono:    FONT_STACKS.mono,
   },
   typeScale:       TYPE_SCALE,

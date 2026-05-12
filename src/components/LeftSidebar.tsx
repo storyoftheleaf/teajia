@@ -7,15 +7,19 @@ import { Section } from '../types';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../hooks/useAuth';
 import { useAppStore, selectHasBundle } from '../lib/store';
-import { TYPOGRAPHY_CLASSES } from '../designTokens';
+import { TYPOGRAPHY_CLASSES, NAV_FONT_CANDIDATES } from '../designTokens';
+// Phosphor (Light weight) — refined hairlines, replaces the generic lucide
+// stock icons in the admin nav. Browse keeps its hand-drawn brand icons.
 import {
-  Calendar, LayoutDashboard, Briefcase, Leaf, Coffee, Store, Users,
-  FolderOpen, ChevronLeft, ChevronRight, UserCheck, MapPin,
-  BookOpen, Package, ShoppingCart, Sun, Moon, Layers, Camera, Compass,
-  Settings as SettingsIcon, Globe,
-} from 'lucide-react';
+  CalendarBlank, SquaresFour, Briefcase, Leaf, Coffee, Storefront, UsersThree,
+  FolderOpen, CaretLeft, CaretRight, UserCheck, MapPin,
+  BookOpen, Package, ShoppingCart, Sun, Moon, Stack, Camera, Compass,
+  GearSix, Globe, ArrowsClockwise,
+} from '@phosphor-icons/react';
 import { SampleIcon } from './Icons';
 import { useSampleCartStore } from '../samples/sampleCartStore';
+
+const PHOSPHOR_WEIGHT = 'light' as const;
 
 const GRAIN = `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`;
 
@@ -159,6 +163,21 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   const canCreateCollections = auth.user?.canCreateCollections ?? false;
   const sampleCount = useSampleCartStore(s => s.items.length);
 
+  // Nav font cycler — temporary preview UI. Persisted via Zustand so the
+  // chosen font survives reload while we're picking the winner.
+  const navFontId = useAppStore(s => s.navFontId);
+  const setNavFontId = useAppStore(s => s.setNavFontId);
+  const currentFont =
+    NAV_FONT_CANDIDATES.find(f => f.id === navFontId) ?? NAV_FONT_CANDIDATES[0];
+  const cycleNavFont = () => {
+    const idx = NAV_FONT_CANDIDATES.findIndex(f => f.id === currentFont.id);
+    const next = NAV_FONT_CANDIDATES[(idx + 1) % NAV_FONT_CANDIDATES.length];
+    setNavFontId(next.id);
+  };
+  useEffect(() => {
+    document.documentElement.style.setProperty('--font-nav', currentFont.family);
+  }, [currentFont.family]);
+
   // Sync sidebar width to CSS variable for full-screen panel offsets
   useEffect(() => {
     document.documentElement.style.setProperty('--teajia-sidebar-w', collapsed ? '3.5rem' : '14rem');
@@ -188,56 +207,56 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   const adminItems: NavItem[] = [
     {
       id: 'dashboard', label: 'Dashboard',
-      icon: <LayoutDashboard size={18} strokeWidth={1.75} />,
+      icon: <SquaresFour size={18} weight={PHOSPHOR_WEIGHT} />,
       path: '/admin/dashboard',
     },
     {
       id: 'inventory', label: 'Inventory',
-      icon: <Package size={18} strokeWidth={1.75} />,
+      icon: <Package size={18} weight={PHOSPHOR_WEIGHT} />,
       path: '/admin/inventory',
       children: [
-        { id: 'catalog',  path: '/admin/catalog',  label: 'Tea Glossary', icon: <Leaf      className="w-3.5 h-3.5" strokeWidth={1.75} /> },
-        { id: 'teaware',  path: '/admin/teaware',  label: 'Equipment',    icon: <Coffee    className="w-3.5 h-3.5" strokeWidth={1.75} /> },
-        { id: 'sources',  path: '/admin/sources',  label: 'Sources',      icon: <Store     className="w-3.5 h-3.5" strokeWidth={1.75} /> },
-        { id: 'personal', path: '/admin/personal', label: 'Collection',   icon: <UserCheck className="w-3.5 h-3.5" strokeWidth={1.75} /> },
-        { id: 'capture',  path: '/admin/capture',  label: 'Quick Capture', icon: <Camera   className="w-3.5 h-3.5" strokeWidth={1.75} /> },
-        { id: 'compass',  path: '/admin/compass',  label: 'Compass',      icon: <Compass   className="w-3.5 h-3.5" strokeWidth={1.75} /> },
+        { id: 'catalog',  path: '/admin/catalog',  label: 'Tea Glossary', icon: <Leaf       size={14} weight={PHOSPHOR_WEIGHT} /> },
+        { id: 'teaware',  path: '/admin/teaware',  label: 'Equipment',    icon: <Coffee     size={14} weight={PHOSPHOR_WEIGHT} /> },
+        { id: 'sources',  path: '/admin/sources',  label: 'Sources',      icon: <Storefront size={14} weight={PHOSPHOR_WEIGHT} /> },
+        { id: 'personal', path: '/admin/personal', label: 'Collection',   icon: <UserCheck  size={14} weight={PHOSPHOR_WEIGHT} /> },
+        { id: 'capture',  path: '/admin/capture',  label: 'Quick Capture', icon: <Camera    size={14} weight={PHOSPHOR_WEIGHT} /> },
+        { id: 'compass',  path: '/admin/compass',  label: 'Compass',      icon: <Compass    size={14} weight={PHOSPHOR_WEIGHT} /> },
       ],
     },
     {
       id: 'collections', label: 'Collections',
-      icon: <Layers size={18} strokeWidth={1.75} />,
+      icon: <Stack size={18} weight={PHOSPHOR_WEIGHT} />,
       path: '/admin/collections',
     },
     {
       id: 'business', label: 'Business',
-      icon: <Briefcase size={18} strokeWidth={1.75} />,
+      icon: <Briefcase size={18} weight={PHOSPHOR_WEIGHT} />,
       path: '/admin/activity',
       children: [
-        { id: 'activity', path: '/admin/activity', label: 'Activity', icon: <FolderOpen className="w-3.5 h-3.5" strokeWidth={1.75} /> },
-        { id: 'people',   path: '/admin/people',   label: 'People',   icon: <Users      className="w-3.5 h-3.5" strokeWidth={1.75} /> },
+        { id: 'activity', path: '/admin/activity', label: 'Activity', icon: <FolderOpen  size={14} weight={PHOSPHOR_WEIGHT} /> },
+        { id: 'people',   path: '/admin/people',   label: 'People',   icon: <UsersThree  size={14} weight={PHOSPHOR_WEIGHT} /> },
       ],
     },
     {
       id: 'events', label: 'Events',
-      icon: <Calendar size={18} strokeWidth={1.75} />,
+      icon: <CalendarBlank size={18} weight={PHOSPHOR_WEIGHT} />,
       path: '/admin/events',
     },
     {
       id: 'magazine', label: 'Magazine',
-      icon: <BookOpen size={18} strokeWidth={1.75} />,
+      icon: <BookOpen size={18} weight={PHOSPHOR_WEIGHT} />,
       path: '/admin/magazine',
     },
     // Network — single hub entry. Catalog, suggestions, wholesale, adoptions
     // live inside as tabs. Render only if caller has at least one capability.
     ...(hasCatalog || hasSell || platformRole ? [{
       id: 'network', label: 'Network',
-      icon: <Globe size={18} strokeWidth={1.75} />,
+      icon: <Globe size={18} weight={PHOSPHOR_WEIGHT} />,
       path: '/admin/network',
     }] : []),
     {
       id: 'settings', label: 'Settings',
-      icon: <SettingsIcon size={18} strokeWidth={1.75} />,
+      icon: <GearSix size={18} weight={PHOSPHOR_WEIGHT} />,
       path: '/admin/settings',
     },
   ];
@@ -316,7 +335,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                 title="Collapse sidebar"
                 aria-label="Collapse sidebar"
               >
-                <ChevronLeft size={14} strokeWidth={2} />
+                <CaretLeft size={14} weight="bold" />
               </button>
             )}
           </div>
@@ -330,7 +349,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
               title="Expand sidebar"
               aria-label="Expand sidebar"
             >
-              <ChevronRight size={14} strokeWidth={2} />
+              <CaretRight size={14} weight="bold" />
             </button>
           )}
 
@@ -455,8 +474,9 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                   {collapsed ? (
                     <div className="relative shrink-0">
                       <ShoppingCart
-                        className="w-[18px] h-[18px] text-tea-text-sec group-hover:text-tea-text transition-colors duration-200"
-                        strokeWidth={1.75}
+                        size={18}
+                        weight={PHOSPHOR_WEIGHT}
+                        className="text-tea-text-sec group-hover:text-tea-text transition-colors duration-200"
                       />
                       {cartItemCount > 0 && (
                         <div
@@ -472,8 +492,9 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                   ) : (
                     <>
                       <ShoppingCart
-                        className="w-[18px] h-[18px] text-tea-text-sec group-hover:text-tea-text transition-colors duration-200 shrink-0"
-                        strokeWidth={1.75}
+                        size={18}
+                        weight={PHOSPHOR_WEIGHT}
+                        className="text-tea-text-sec group-hover:text-tea-text transition-colors duration-200 shrink-0"
                       />
                       <span className={`${TYPOGRAPHY_CLASSES.navSidebar} text-tea-text-sec group-hover:text-tea-text transition-colors duration-200`}>
                         Cart
@@ -654,7 +675,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                           ? 'text-tea-gold'
                           : 'text-tea-text-sec group-hover:text-tea-text'
                       }`}>
-                        <Layers size={16} strokeWidth={1.75} />
+                        <Stack size={16} weight={PHOSPHOR_WEIGHT} />
                       </div>
                       {!collapsed && (
                         <span className={`${TYPOGRAPHY_CLASSES.navSidebarChild} text-left transition-colors duration-200 ${
@@ -672,9 +693,37 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 
           <div className="flex-1" />
 
+          {/* ── Font cycler (preview UI — remove after picking the winner) ─ */}
+          {!collapsed && (
+            <div className="px-3 pt-2 pb-1 border-t border-tea-border shrink-0">
+              <button
+                type="button"
+                onClick={cycleNavFont}
+                className="w-full flex items-center gap-2 min-h-[36px] px-3 rounded-md hover:bg-tea-gold/6 transition-colors duration-200 group"
+                title="Cycle nav font"
+                aria-label={`Nav font: ${currentFont.label}. Click to cycle.`}
+              >
+                <ArrowsClockwise
+                  size={14}
+                  weight={PHOSPHOR_WEIGHT}
+                  className="text-tea-text-dim group-hover:text-tea-text-sec transition-colors shrink-0"
+                />
+                <span
+                  className="text-ui-12 text-tea-text-sec group-hover:text-tea-text transition-colors flex-1 text-left truncate"
+                  style={{ fontFamily: currentFont.family }}
+                >
+                  {currentFont.label}
+                </span>
+                <span className="text-ui-10 text-tea-text-dim font-mono shrink-0">
+                  {NAV_FONT_CANDIDATES.findIndex(f => f.id === currentFont.id) + 1}/{NAV_FONT_CANDIDATES.length}
+                </span>
+              </button>
+            </div>
+          )}
+
           {/* ── Utility footer ────────────────────────────────────────────── */}
           <div
-            className={`py-3 ${collapsed ? 'px-1.5' : 'px-3'} border-t border-tea-border shrink-0`}
+            className={`py-3 ${collapsed ? 'px-1.5 border-t border-tea-border' : 'px-3'} shrink-0`}
           >
             {/* Our Spaces + theme toggle */}
             <div className={`flex items-center ${collapsed ? 'flex-col gap-1' : 'justify-between gap-2'}`}>
@@ -686,14 +735,13 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                   title="Our spaces"
                 >
                   <MapPin
-                    className={`shrink-0 w-[18px] h-[18px] transition-colors duration-200 ${
+                    size={18}
+                    weight={PHOSPHOR_WEIGHT}
+                    className={`shrink-0 transition-colors duration-200 ${
                       currentPath === '/spaces'
                         ? 'text-tea-gold'
-                        : collapsed
-                          ? 'text-tea-text-sec group-hover:text-tea-text'
-                          : 'text-tea-text-sec group-hover:text-tea-text'
+                        : 'text-tea-text-sec group-hover:text-tea-text'
                     }`}
-                    strokeWidth={1.75}
                   />
                   {!collapsed && (
                     <span
@@ -715,9 +763,9 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                   aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
                 >
                   {theme === 'dark' ? (
-                    <Sun className="w-[18px] h-[18px]" strokeWidth={1.75} />
+                    <Sun size={18} weight={PHOSPHOR_WEIGHT} />
                   ) : (
-                    <Moon className="w-[18px] h-[18px]" strokeWidth={1.75} />
+                    <Moon size={18} weight={PHOSPHOR_WEIGHT} />
                   )}
                 </button>
             </div>

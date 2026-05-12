@@ -75,6 +75,8 @@ nav[aria-label="Admin navigation"] * {
   --font-serif: 'Lora', 'Lora Fallback', 'Noto Serif SC', Georgia, serif;
   --font-body: 'Lora', 'Lora Fallback', 'Noto Serif SC', Georgia, serif;
   --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
+  /* Nav font — overridden at runtime by the sidebar font-cycle button. */
+  --font-nav: 'General Sans', 'Plus Jakarta Sans', system-ui, sans-serif;
   --font-mono: 'IBM Plex Mono', 'Menlo', 'Courier New', monospace;
 
 }
