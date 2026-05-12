@@ -128,14 +128,14 @@ export default function JoinPage() {
   })();
 
   return (
-    <div className="min-h-dvh bg-tea-bg text-tea-text flex flex-col px-6 pt-14 pb-12">
-      <div className="text-center text-ui-11 tracking-[0.18em] uppercase text-tea-text-sec">
+    <div className="min-h-dvh bg-tea-bg text-tea-text flex flex-col px-4 md:px-6 max-w-3xl mx-auto pt-14 pb-12 w-full">
+      <div className="text-center label-caps text-tea-text-dim">
         Tasting · Tea Jia
       </div>
 
       {step === 'code' && (
         <div className="flex-1 flex flex-col justify-center max-w-sm mx-auto w-full">
-          <h1 className="font-display font-light text-[36px] leading-tight text-center mb-12">
+          <h1 className="h2 text-center mb-12">
             Enter your code
           </h1>
 
@@ -146,7 +146,7 @@ export default function JoinPage() {
           />
 
           {error && (
-            <p className="mt-6 text-center text-ui-13 text-red-400">{error}</p>
+            <p className="mt-6 text-center text-ui-13 text-tea-error">{error}</p>
           )}
 
           <div className="mt-12 flex justify-center">
@@ -154,7 +154,7 @@ export default function JoinPage() {
               type="button"
               disabled={code.length !== CODE_LENGTH}
               onClick={goToIdentity}
-              className="text-tea-gold-lt hover:text-tea-gold disabled:opacity-30 text-ui-15 tracking-wide transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Continue →
             </button>
@@ -164,7 +164,7 @@ export default function JoinPage() {
 
       {step === 'identity' && (
         <div className="flex-1 flex flex-col justify-center max-w-sm mx-auto w-full">
-          <h1 className="font-display font-light text-[36px] leading-tight text-center mb-2">
+          <h1 className="h2 text-center mb-2">
             Your name
           </h1>
           <p className="text-center text-ui-13 text-tea-text-sec mb-10">
@@ -172,7 +172,7 @@ export default function JoinPage() {
           </p>
 
           <label className="block mb-8">
-            <span className="block text-ui-11 uppercase tracking-[0.14em] text-tea-text-sec mb-2">
+            <span className="block label-caps text-tea-text-sec mb-2">
               First name
             </span>
             <input
@@ -185,7 +185,7 @@ export default function JoinPage() {
           </label>
 
           <label className="block mb-3">
-            <span className="block text-ui-11 uppercase tracking-[0.14em] text-tea-text-sec mb-2">
+            <span className="block label-caps text-tea-text-sec mb-2">
               Email
             </span>
             <input
@@ -197,26 +197,35 @@ export default function JoinPage() {
               className="w-full bg-transparent border-b border-tea-border focus:border-tea-gold focus:outline-none py-2 text-tea-text text-ui-17 lowercase"
             />
             {emailPreview && (
-              <span className="mt-2 block text-ui-12 text-tea-text-sec">{emailPreview}</span>
+              <span className="mt-2 block text-ui-12 text-tea-text-dim">{emailPreview}</span>
             )}
           </label>
 
-          <p className="text-ui-12 text-tea-text-sec mb-10">
+          <p className="text-ui-12 text-tea-text-dim mb-10">
             We will save your notes to this email so you can come back to them later.
           </p>
 
           {error && (
-            <p className="mb-4 text-center text-ui-13 text-red-400">{error}</p>
+            <p className="mb-4 text-center text-ui-13 text-tea-error">{error}</p>
           )}
 
-          <button
-            type="button"
-            disabled={submitting || !firstName.trim() || !email.includes('@')}
-            onClick={submit}
-            className="w-full rounded-full bg-tea-gold text-tea-bg py-3 text-ui-15 tracking-wide disabled:opacity-40 transition-opacity"
-          >
-            {submitting ? 'Joining…' : 'Join the tasting →'}
-          </button>
+          <div className="flex justify-between gap-3">
+            <button
+              type="button"
+              onClick={() => setStep('code')}
+              className="px-3 py-2 text-xs text-tea-text-sec hover:text-tea-text transition-colors"
+            >
+              Back
+            </button>
+            <button
+              type="button"
+              disabled={submitting || !firstName.trim() || !email.includes('@')}
+              onClick={submit}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {submitting ? 'Joining…' : 'Join the tasting →'}
+            </button>
+          </div>
 
           <button
             type="button"
@@ -224,14 +233,6 @@ export default function JoinPage() {
             className="mt-6 mx-auto block text-ui-12 text-tea-text-sec hover:text-tea-text transition-colors"
           >
             Already on Teajia? Sign in
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setStep('code')}
-            className="mt-3 mx-auto block text-ui-11 uppercase tracking-[0.14em] text-tea-text-sec hover:text-tea-text transition-colors"
-          >
-            Back
           </button>
         </div>
       )}

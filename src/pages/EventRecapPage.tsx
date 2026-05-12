@@ -55,13 +55,13 @@ const TeaLedgerSection: React.FC<TeaLedgerSectionProps> = ({ items }) => {
     <div className="mb-10">
       <div className="flex items-center gap-2 mb-5">
         <TeaLeafIcon className="w-4 h-4 text-tea-gold" />
-        <h2 className="text-ui-11 uppercase tracking-[0.2em] text-tea-text-sec">Teas Served</h2>
+        <h2 className="label-caps text-tea-text-sec">Teas Served</h2>
       </div>
       <div className="space-y-3">
         {sorted.map((item, idx) => (
           <div
             key={item.id}
-            className="p-4 bg-tea-surface border border-tea-border rounded-sm"
+            className="p-4 bg-tea-surface border border-tea-border rounded-xl"
           >
             <div className="flex items-start justify-between gap-3">
               <div className="flex-1 min-w-0">
@@ -73,7 +73,7 @@ const TeaLedgerSection: React.FC<TeaLedgerSectionProps> = ({ items }) => {
                     </span>
                   )}
                 </div>
-                <h3 className="font-serif text-base text-tea-text mt-0.5">
+                <h3 className="h3 mt-0.5">
                   {item.customName || item.productName || 'Unknown tea'}
                 </h3>
                 {item.customDescription && (
@@ -85,7 +85,7 @@ const TeaLedgerSection: React.FC<TeaLedgerSectionProps> = ({ items }) => {
               {item.productId && (
                 <a
                   href={`/shop?product=${encodeURIComponent(item.productId)}`}
-                  className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-tea-surface border border-tea-border rounded-sm text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec hover:border-tea-gold/40 hover:text-tea-gold transition-all duration-300 group"
+                  className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-tea-surface border border-tea-border rounded-xl text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec hover:border-tea-gold/40 hover:text-tea-gold transition-all duration-300 group"
                   aria-label={`Buy ${item.customName || item.productName}`}
                 >
                   <ShoppingBag className="w-3 h-3 group-hover:text-tea-gold transition-colors" />
@@ -110,7 +110,7 @@ const HostNotesSection: React.FC<HostNotesSectionProps> = ({ notes }) => (
       <BookOpen className="w-4 h-4 text-tea-gold" />
       <h2 className="text-ui-11 uppercase tracking-[0.2em] text-tea-text-sec">From the Host</h2>
     </div>
-    <div className="bg-tea-surface border border-tea-border rounded-sm p-5">
+    <div className="bg-tea-surface border border-tea-border rounded-xl p-5">
       <p className="text-sm text-tea-text leading-relaxed whitespace-pre-line">{notes}</p>
     </div>
   </div>
@@ -126,7 +126,7 @@ const SharedNotesSection: React.FC<SharedNotesSectionProps> = ({ notes }) => (
       <MessageCircle className="w-4 h-4 text-tea-gold" />
       <h2 className="text-ui-11 uppercase tracking-[0.2em] text-tea-text-sec">Guests Said</h2>
     </div>
-    <div className="bg-tea-surface border border-tea-border rounded-sm p-5">
+    <div className="bg-tea-surface border border-tea-border rounded-xl p-5">
       <div className="space-y-3">
         {notes.map((note, idx) => (
           <p key={idx} className="text-sm text-tea-text-sec italic leading-relaxed">
@@ -149,7 +149,7 @@ const PlaylistSection: React.FC<PlaylistSectionProps> = ({ playlistUrl }) => (
       <h2 className="text-ui-11 uppercase tracking-[0.2em] text-tea-text-sec">Session Playlist</h2>
     </div>
     {playlistUrl.includes('spotify.com') ? (
-      <div className="rounded-sm overflow-hidden border border-tea-border">
+      <div className="rounded-xl overflow-hidden border border-tea-border">
         <iframe
           src={playlistUrl.replace('/playlist/', '/embed/playlist/')}
           width="100%"
@@ -161,7 +161,7 @@ const PlaylistSection: React.FC<PlaylistSectionProps> = ({ playlistUrl }) => (
         />
       </div>
     ) : playlistUrl.includes('youtube.com') || playlistUrl.includes('youtu.be') ? (
-      <div className="rounded-sm overflow-hidden border border-tea-border aspect-video">
+      <div className="rounded-xl overflow-hidden border border-tea-border aspect-video">
         <iframe
           src={playlistUrl.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/')}
           width="100%"
@@ -178,7 +178,7 @@ const PlaylistSection: React.FC<PlaylistSectionProps> = ({ playlistUrl }) => (
         href={playlistUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex items-center gap-3 px-5 py-3 bg-tea-surface border border-tea-border rounded-sm text-tea-text hover:border-tea-gold/40 hover:text-tea-gold transition-all duration-300 group"
+        className="inline-flex items-center gap-3 px-5 py-3 bg-tea-surface border border-tea-border rounded-xl text-tea-text hover:border-tea-gold/40 hover:text-tea-gold transition-all duration-300 group"
       >
         <Music className="w-4 h-4 text-tea-text-sec group-hover:text-tea-gold transition-colors" />
         <span className="text-sm">Listen to the session playlist</span>
@@ -199,14 +199,14 @@ const GallerySection: React.FC<GallerySectionProps> = ({ images }) => {
     <div className="mb-10">
       <div className="flex items-center gap-2 mb-5">
         <Image className="w-4 h-4 text-tea-gold" />
-        <h2 className="text-ui-11 uppercase tracking-[0.2em] text-tea-text-sec">Gallery</h2>
+        <h2 className="label-caps text-tea-text-sec">Gallery</h2>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
         {images.map((url, idx) => (
           <button
             key={idx}
             onClick={() => setLightboxImage(url)}
-            className="aspect-square overflow-hidden rounded-sm border border-tea-border hover:border-tea-gold/30 transition-all duration-300 group"
+            className="aspect-square overflow-hidden rounded-xl border border-tea-border hover:border-tea-gold/30 transition-all duration-300 group"
             aria-label={`View photo ${idx + 1}`}
           >
             <img
@@ -260,9 +260,9 @@ const PersonalNoteSection: React.FC<PersonalNoteProps> = ({ eventSlug }) => {
     <div className="mb-10">
       <div className="flex items-center gap-2 mb-5">
         <span className="text-ui-10 uppercase tracking-[0.3em] text-tea-gold">✦</span>
-        <h2 className="text-ui-11 uppercase tracking-[0.2em] text-tea-text-sec">What stayed with you?</h2>
+        <h2 className="label-caps text-tea-text-sec">What stayed with you?</h2>
       </div>
-      <div className="bg-tea-surface border border-tea-border rounded-sm p-5">
+      <div className="bg-tea-surface border border-tea-border rounded-xl p-5">
         <textarea
           value={note}
           onChange={(e) => { setNote(e.target.value); setSaved(false); }}
@@ -313,7 +313,7 @@ const EventRecapPage: React.FC = () => {
       <div className="min-h-screen bg-tea-bg flex items-center justify-center">
         <div className="text-center animate-pulse">
           <div className="w-12 h-12 rounded-full bg-tea-gold/10 mx-auto mb-4" />
-          <div className="h-3 w-32 bg-tea-text-sec/10 rounded-sm mx-auto" />
+          <div className="h-3 w-32 bg-tea-text-sec/10 rounded-xl mx-auto" />
         </div>
       </div>
     );
@@ -322,15 +322,15 @@ const EventRecapPage: React.FC = () => {
   if (isError || !data) {
     return (
       <div className="min-h-screen bg-tea-bg flex items-center justify-center px-6">
-        <div className="text-center max-w-md">
-          <p className="text-ui-10 uppercase tracking-[0.3em] text-tea-gold mb-4">Session Archive</p>
-          <h1 className="font-serif text-3xl text-tea-text mb-3">Recap Not Available</h1>
-          <p className="text-sm text-tea-text-sec mb-8 leading-relaxed">
+        <div className="flex flex-col items-center text-center max-w-sm mx-auto py-20 px-6">
+          <p className="label-caps text-tea-readgold mb-4">Session Archive</p>
+          <h1 className="h2 mb-3">Recap not available</h1>
+          <p className="text-ui-12 text-tea-text-dim leading-relaxed mb-8">
             The host hasn't published a recap for this session yet, or this session is still upcoming.
           </p>
           <button
             onClick={() => navigate(`/event/${slug}`)}
-            className="text-sm text-tea-text-sec hover:text-tea-text transition-colors flex items-center gap-2 mx-auto"
+            className="inline-flex items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors text-ui-14"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to event
@@ -391,19 +391,19 @@ const EventRecapPage: React.FC = () => {
       </div>
 
       {/* Main content */}
-      <div className="max-w-xl mx-auto px-6 py-10">
+      <div className="max-w-3xl mx-auto px-4 md:px-6 pt-12 pb-24">
         {/* Header */}
         <div className="text-center mb-10">
-          <p className="text-ui-10 uppercase tracking-[0.3em] text-tea-gold mb-3">Session Recap</p>
-          <h1 className="font-serif text-ui-26 md:text-3xl text-tea-text leading-[1.15] tracking-[-0.3px] mb-2">
+          <p className="label-caps text-tea-readgold mb-3">Session Recap</p>
+          <h1 className="h2 mb-2">
             {event.title}
           </h1>
           {event.subtitle && (
-            <p className="font-serif italic text-sm text-tea-text-sec mt-1 mb-4 leading-snug">
+            <p className="subtitle mt-1 mb-4">
               {event.subtitle}
             </p>
           )}
-          <p className="text-xs text-tea-text-dim mt-3">
+          <p className="text-ui-12 text-tea-text-dim mt-3">
             {formatEventDate(event.event_date)}
           </p>
         </div>
@@ -430,12 +430,12 @@ const EventRecapPage: React.FC = () => {
 
         {/* Footer */}
         <div className="text-center pt-4 pb-4 border-t border-tea-border mt-4">
-          <p className="text-ui-10 uppercase tracking-[0.3em] text-tea-text-sec/50 mb-4">
+          <p className="label-caps text-tea-text-dim mb-4">
             Hosted by Teajia
           </p>
           <button
             onClick={() => navigate(`/event/${slug}`)}
-            className="text-xs text-tea-text-sec hover:text-tea-text transition-colors flex items-center gap-2 mx-auto"
+            className="inline-flex items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors text-ui-12"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             Back to event page

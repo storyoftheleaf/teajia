@@ -192,11 +192,11 @@ const SamplePage: React.FC = () => {
   if (error || !sample) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-tea-bg text-tea-text px-6">
-        <Leaf className="w-12 h-12 text-tea-text-dim mb-4" />
-        <h1 className="text-xl font-serif mb-2">Sample not found</h1>
-        <p className="text-tea-text-sec text-sm mb-6">This QR code may have expired or the sample was removed.</p>
-        <button onClick={() => navigate('/')} className="px-6 py-2 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.2em]">
-          Go Home
+        <Leaf size={28} strokeWidth={1.25} className="text-tea-text-dim mb-3" />
+        <h1 className="h3 mb-2">Sample not found</h1>
+        <p className="text-ui-12 text-tea-text-dim leading-relaxed mb-6">This QR code may have expired or the sample was removed.</p>
+        <button onClick={() => navigate('/')} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors">
+          Go home
         </button>
       </div>
     );
@@ -207,20 +207,20 @@ const SamplePage: React.FC = () => {
   const latestTasting = hasTastings ? sample.tastings[sample.tastings.length - 1] : null;
 
   return (
-    <div className="min-h-screen bg-tea-bg text-tea-text pb-[60px]">
+    <div className="min-h-screen bg-tea-bg text-tea-text pb-nav-gap">
       {/* Header */}
-      <div className="sticky top-0 z-30 bg-tea-bg/95 backdrop-blur-sm border-b border-tea-border">
-        <div className="flex items-center px-4 py-3 max-w-2xl mx-auto">
-          <button onClick={() => navigate(-1)} className="p-1 -ml-1 text-tea-text-sec hover:text-tea-text transition-colors" aria-label="Go back">
-            <ChevronLeft size={24} />
+      <div className="sticky top-0 z-sticky bg-tea-bg/90 backdrop-blur-md border-b border-tea-border">
+        <div className="flex items-center px-4 py-3 max-w-3xl mx-auto">
+          <button onClick={() => navigate(-1)} className="tap-target p-1.5 -ml-1.5 rounded-md text-tea-text-sec hover:text-tea-text transition-colors" aria-label="Go back">
+            <ChevronLeft size={20} />
           </button>
           <div className="flex-1 min-w-0 ml-2">
-            <p className="text-xs text-tea-text-dim">Tea Sample</p>
+            <p className="label-caps text-tea-text-dim">Tea Sample</p>
           </div>
           {isAdmin && (
             <button
               onClick={() => editing ? handleSaveEdit() : setEditing(true)}
-              className="p-2 text-tea-text-sec hover:text-tea-gold transition-colors"
+              className="tap-target p-1.5 rounded-md text-tea-text-sec hover:text-tea-text transition-colors"
               aria-label={editing ? 'Save changes' : 'Edit sample'}
             >
               {editing ? <Check size={18} /> : <Edit3 size={18} />}
@@ -229,7 +229,7 @@ const SamplePage: React.FC = () => {
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
+      <div className="max-w-3xl mx-auto px-4 md:px-6 py-6 space-y-6">
         {/* Identity */}
         <motion.div
           initial={{ opacity: 0, y: 12 }}
@@ -240,44 +240,44 @@ const SamplePage: React.FC = () => {
             <input
               value={editName}
               onChange={(e) => setEditName(e.target.value)}
-              className="text-2xl font-serif font-bold bg-transparent border-b border-tea-border w-full outline-none text-tea-text pb-1"
+              className="h2 bg-transparent border-b border-tea-border w-full outline-none text-tea-text pb-1"
               autoFocus
             />
           ) : (
-            <h1 className="text-2xl font-serif font-bold text-tea-text">{sample.name || 'Unnamed Sample'}</h1>
+            <h1 className="h2">{sample.name || 'Unnamed Sample'}</h1>
           )}
           {sample.chineseName && (
-            <p className="font-serif italic text-tea-text-sec mt-1" style={{ fontSize: '1.2rem' /* text-lg=1.125rem + ~8% for Noto Serif SC optical correction */ }}>{sample.chineseName}</p>
+            <p className="subtitle mt-1" style={{ fontSize: '1.2rem' /* Noto Serif SC optical correction */ }}>{sample.chineseName}</p>
           )}
 
           <div className="flex flex-wrap items-center gap-2 mt-3">
             {sample.type && (
-              <span className="px-3 py-1 text-xs uppercase tracking-[0.1em] rounded-full bg-tea-gold/10 text-tea-gold font-medium">
+              <span className="inline-flex px-2 py-0.5 rounded-full text-ui-10 uppercase tracking-[1.2px] bg-tea-gold/10 text-tea-text ring-1 ring-inset ring-tea-gold/40">
                 {sample.type}
               </span>
             )}
             {sample.year && (
-              <span className="px-3 py-1 text-xs rounded-full bg-tea-surface text-tea-text-sec">
+              <span className="inline-flex px-2 py-0.5 rounded-full text-ui-10 uppercase tracking-[1.2px] bg-tea-elevated text-tea-text-sec">
                 {sample.year}
               </span>
             )}
             {sample.originRegion && (
-              <span className="px-3 py-1 text-xs rounded-full bg-tea-surface text-tea-text-sec">
+              <span className="inline-flex px-2 py-0.5 rounded-full text-ui-10 uppercase tracking-[1.2px] bg-tea-elevated text-tea-text-sec">
                 {sample.originRegion}
               </span>
             )}
             {sample.form && (
-              <span className="px-3 py-1 text-xs rounded-full bg-tea-surface text-tea-text-sec">
+              <span className="inline-flex px-2 py-0.5 rounded-full text-ui-10 uppercase tracking-[1.2px] bg-tea-elevated text-tea-text-sec">
                 {sample.form}
               </span>
             )}
-            <span className={`px-3 py-1 text-xs rounded-full font-medium ${statusCfg.color}`}>
+            <span className={`inline-flex px-2 py-0.5 rounded-full text-ui-10 uppercase tracking-[1.2px] ${statusCfg.color}`}>
               {statusCfg.label}
             </span>
           </div>
 
           {sample.grams > 0 && (
-            <p className="text-xs text-tea-text-dim mt-2">{sample.grams}g sample</p>
+            <p className="text-ui-11 text-tea-text-dim mt-2">{sample.grams}g sample</p>
           )}
         </motion.div>
 
@@ -290,7 +290,7 @@ const SamplePage: React.FC = () => {
             className="flex gap-2 overflow-x-auto scrollbar-hide"
           >
             {sample.photos.map((url, i) => (
-              <img key={i} src={url} alt="" className="h-32 w-32 rounded-lg object-cover flex-shrink-0" loading="lazy" />
+              <img key={i} src={url} alt="" className="h-32 w-32 rounded-xl object-cover flex-shrink-0" loading="lazy" />
             ))}
           </motion.div>
         )}
@@ -312,18 +312,18 @@ const SamplePage: React.FC = () => {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="bg-tea-surface rounded-lg p-4 space-y-3"
+            className="bg-tea-surface border border-tea-border rounded-xl p-4 space-y-3"
           >
             <div>
-              <p className="text-xs uppercase tracking-[0.1em] text-tea-text-dim mb-1">Source</p>
-              <p className="font-serif text-tea-text">{sample.sourceName}</p>
+              <p className="label-caps text-tea-text-dim mb-1">Source</p>
+              <p className="h3">{sample.sourceName}</p>
             </div>
 
             <div className="flex flex-wrap gap-2">
               {sample.sourceContact?.whatsapp && (
                 <button
                   onClick={handleWhatsAppAsk}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-500/10 text-emerald-400 text-xs font-medium hover:bg-emerald-500/20 transition-colors"
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md bg-tea-green/10 text-tea-green text-xs font-semibold hover:bg-tea-green/20 transition-colors"
                 >
                   <MessageCircle size={14} /> WhatsApp
                 </button>
@@ -331,18 +331,18 @@ const SamplePage: React.FC = () => {
               {sample.sourceContact?.phone && (
                 <a
                   href={`tel:${sample.sourceContact.phone}`}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-tea-surface text-tea-text-sec text-xs font-medium hover:bg-tea-elevated transition-colors"
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md border border-tea-border text-tea-text-sec text-xs font-semibold hover:text-tea-text hover:bg-tea-accent-sub transition-colors"
                 >
                   <Phone size={14} /> Call
                 </a>
               )}
               {sample.sourceContact?.wechat && (
-                <span className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-tea-surface text-tea-text-sec text-xs">
+                <span className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md bg-tea-elevated text-tea-text-sec text-ui-12">
                   WeChat: {sample.sourceContact.wechat}
                 </span>
               )}
               {sample.sourceContact?.line && (
-                <span className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-tea-surface text-tea-text-sec text-xs">
+                <span className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md bg-tea-elevated text-tea-text-sec text-ui-12">
                   LINE: {sample.sourceContact.line}
                 </span>
               )}
@@ -357,7 +357,7 @@ const SamplePage: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.25 }}
           >
-            <p className="text-xs uppercase tracking-[0.1em] text-tea-text-dim mb-2">Status</p>
+            <p className="label-caps text-tea-text-dim mb-2">Status</p>
             <div className="flex flex-wrap gap-1.5" role="group" aria-label="Status selector">
               {STATUS_FLOW.map((s) => {
                 const cfg = SAMPLE_STATUS_CONFIG[s];
@@ -366,10 +366,10 @@ const SamplePage: React.FC = () => {
                   <button
                     key={s}
                     onClick={() => handleStatusChange(s)}
-                    className={`px-3 py-1.5 text-xs rounded-full font-medium transition-all ${
+                    className={`inline-flex px-2 py-0.5 rounded-full text-ui-10 uppercase tracking-[1.2px] transition-colors ${
                       active
-                        ? `${cfg.color} ring-1 ring-tea-gold/30`
-                        : 'bg-tea-surface/50 text-tea-text-dim hover:bg-tea-surface'
+                        ? `${cfg.color} ring-1 ring-inset ring-tea-gold/40`
+                        : 'bg-tea-elevated text-tea-text-dim hover:bg-tea-accent-sub'
                     }`}
                   >
                     {cfg.label}
@@ -387,17 +387,17 @@ const SamplePage: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
           >
-            <p className="text-xs uppercase tracking-[0.1em] text-tea-text-dim mb-2">Notes</p>
+            <p className="label-caps text-tea-text-dim mb-2">Notes</p>
             {editing ? (
               <textarea
                 value={editNotes}
                 onChange={(e) => setEditNotes(e.target.value)}
                 rows={3}
-                className="w-full bg-tea-surface rounded-lg p-3 text-sm text-tea-text outline-none resize-none border border-tea-border focus:border-tea-gold/50 transition-colors"
+                className="w-full bg-tea-surface rounded-md p-3 text-ui-14 text-tea-text outline-none resize-none border border-tea-border focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 transition-colors"
                 placeholder="Private notes about this sample..."
               />
             ) : (
-              <p className="text-sm text-tea-text-sec">
+              <p className="body-light">
                 {sample.notes || <span className="italic text-tea-text-dim">No notes yet. Your first session starts here.</span>}
               </p>
             )}
@@ -411,7 +411,7 @@ const SamplePage: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.35 }}
           >
-            <p className="text-xs uppercase tracking-[0.1em] text-tea-text-dim mb-3">
+            <p className="label-caps text-tea-text-dim mb-3">
               Tastings ({sample.tastings.length})
             </p>
             <div className="space-y-2">
@@ -419,24 +419,24 @@ const SamplePage: React.FC = () => {
                 const vCfg = VERDICT_CONFIG[t.verdict];
                 const VIcon = VERDICT_ICONS[t.verdict];
                 return (
-                  <div key={t.id} className="bg-tea-surface rounded-lg p-3">
+                  <div key={t.id} className="bg-tea-surface border border-tea-border rounded-xl p-3">
                     <div className="flex items-center justify-between mb-1">
                       <div className="flex items-center gap-2">
                         {t.tasterName && (
-                          <span className="text-xs font-medium text-tea-text">{t.tasterName}</span>
+                          <span className="text-ui-12 font-semibold text-tea-text">{t.tasterName}</span>
                         )}
-                        <span className={`flex items-center gap-1 text-xs font-medium ${vCfg.color}`}>
+                        <span className={`flex items-center gap-1 text-ui-12 font-semibold ${vCfg.color}`}>
                           <VIcon size={12} /> {vCfg.label}
                         </span>
                       </div>
                       {t.rating && (
-                        <div className="flex items-center gap-1 text-xs text-tea-gold">
+                        <div className="flex items-center gap-1 text-ui-12 text-tea-readgold">
                           <Star size={12} fill="currentColor" /> {t.rating}/10
                         </div>
                       )}
                     </div>
                     {t.personalNote && (
-                      <p className="text-xs text-tea-text-sec mt-1">{t.personalNote}</p>
+                      <p className="text-ui-12 text-tea-text-sec mt-1">{t.personalNote}</p>
                     )}
                     <p className="text-ui-10 text-tea-text-dim mt-1">
                       {new Date(t.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
@@ -456,7 +456,7 @@ const SamplePage: React.FC = () => {
         >
           <button
             onClick={() => setShowTasting(true)}
-            className="w-full flex items-center justify-between px-4 py-3 bg-tea-surface rounded-lg text-sm font-medium text-tea-text hover:bg-tea-elevated transition-colors"
+            className="w-full inline-flex items-center justify-between px-4 py-3 bg-tea-surface border border-tea-border rounded-xl text-ui-14 font-semibold text-tea-text hover:bg-tea-accent-sub transition-colors"
           >
             <span className="flex items-center gap-2">
               <Leaf size={16} className="text-tea-gold" />
@@ -494,9 +494,9 @@ const SamplePage: React.FC = () => {
           >
             <button
               onClick={handleOrderInquiry}
-              className="w-full flex items-center justify-center gap-2 py-3 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.2em] font-bold rounded-lg hover:bg-tea-gold/90 transition-colors"
+              className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-3 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors"
             >
-              <ShoppingCart size={16} />
+              <ShoppingCart size={14} />
               I'd like to order this
             </button>
           </motion.div>
@@ -524,9 +524,9 @@ const SamplePage: React.FC = () => {
           >
             <button
               onClick={() => navigate(`/admin/compass?tab=sourcing&fromSample=${sample.id}`)}
-              className="w-full flex items-center justify-center gap-2 py-3 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.2em] font-bold rounded-lg hover:bg-tea-gold/90 transition-colors"
+              className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-3 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors"
             >
-              <ExternalLink size={16} />
+              <ExternalLink size={14} />
               Promote to Tea Compass
             </button>
           </motion.div>

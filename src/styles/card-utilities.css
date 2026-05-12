@@ -1583,7 +1583,20 @@ input[type="number"]::-webkit-outer-spin-button {
 /* ============================================
    Drop Cap — Gold Treatment
    Apply .drop-cap-gold to the article container.
+   Apply .drop-cap to opening paragraph of long-form prose
+   (Magazine, ContributorProfilePage). See DESIGN_SYSTEM.md §33.
    ============================================ */
+
+.drop-cap::first-letter {
+  font-family: 'Cormorant Garamond', 'Cormorant Garamond Fallback', Georgia, serif;
+  font-size: 2.5em;
+  font-weight: 700;
+  float: left;
+  color: rgb(var(--tea-gold-rgb));
+  line-height: 1;
+  padding-right: 8px;
+  padding-top: 4px;
+}
 
 .drop-cap-gold::after {
   content: '';

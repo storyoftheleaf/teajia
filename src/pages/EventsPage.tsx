@@ -41,9 +41,9 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
   return (
     <button
       onClick={() => navigate(`/event/${event.slug}`)}
-      className="w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 rounded-sm"
+      className="w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 rounded-xl bg-tea-surface border border-tea-border hover:bg-tea-accent-sub transition-colors overflow-hidden"
     >
-      <div className="relative overflow-hidden rounded-sm" style={{ background: 'var(--color-tea-surface, #1e1710)' }}>
+      <div className="relative overflow-hidden">
         {/* Flyer image or gradient hero */}
         {event.flyerImageUrl ? (
           <div className="w-full aspect-[16/9] overflow-hidden">
@@ -53,70 +53,66 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
               className="w-full h-full object-cover"
               loading="lazy"
             />
-            <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-black/40 to-transparent pointer-events-none" />
-            <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-tea-bg to-transparent pointer-events-none" />
+            <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-tea-bg/40 to-transparent pointer-events-none" />
+            <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-tea-surface to-transparent pointer-events-none" />
           </div>
         ) : (
           <div
-            className="w-full aspect-[16/9]"
+            className="w-full aspect-[16/9] relative"
             style={{ background: gradientFor(event.slug) }}
           >
             <div
               className="absolute inset-0"
               style={{ background: 'radial-gradient(circle at 70% 30%, rgba(184,146,78,0.12) 0%, transparent 40%)' }}
             />
-            <div
-              className="absolute bottom-0 left-0 right-0"
-              style={{ height: '50%', background: 'linear-gradient(to top, var(--color-tea-bg, #18130e), transparent)' }}
-            />
           </div>
         )}
 
-        {/* Availability badge */}
+        {/* Availability badge — status pill (§8) */}
         <div className="absolute top-3 right-3">
           {isFull ? (
-            <span className="px-2.5 py-1 text-ui-10 uppercase tracking-[0.2em] bg-tea-bg/80 text-tea-text-dim backdrop-blur-sm rounded-full border border-tea-border">
+            <span className="inline-flex px-2 py-0.5 rounded-full text-ui-10 uppercase tracking-[1.2px] bg-tea-elevated text-tea-text-dim">
               Full
             </span>
           ) : (
-            <span className="px-2.5 py-1 text-ui-10 uppercase tracking-[0.2em] bg-tea-bg/80 text-tea-gold backdrop-blur-sm rounded-full border border-tea-gold/20">
+            <span className="inline-flex px-2 py-0.5 rounded-full text-ui-10 uppercase tracking-[1.2px] bg-tea-gold/10 text-tea-text ring-1 ring-inset ring-tea-gold/40">
               {seats} {seats === 1 ? 'seat' : 'seats'} open
             </span>
           )}
         </div>
+      </div>
 
-        {/* Content overlay */}
-        <div className="px-4 pb-4 pt-2 relative">
-          {/* Date row */}
-          <div className="flex items-baseline gap-2 mb-2">
-            <span className="text-ui-10 uppercase tracking-[0.25em] text-tea-text-dim">{day}</span>
-            <span className="font-serif text-ui-13 text-tea-text-sec">{num} {month}</span>
-            <span className="text-ui-10 text-tea-text-dim ml-auto">{time}</span>
-          </div>
-
-          {/* Title */}
-          <h2 className="font-serif text-xl text-tea-text leading-snug mb-0.5">{event.title}</h2>
-          {event.subtitle && (
-            <p className="font-serif italic text-sm text-tea-text-sec">{event.subtitle}</p>
-          )}
-
-          {/* Location hint */}
-          {(event.areaHint || event.locationName) && (
-            <p className="text-ui-11 text-tea-text-dim mt-2 flex items-center gap-1.5">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 opacity-60">
-                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 1 1 18 0z"/><circle cx="12" cy="10" r="3"/>
-              </svg>
-              {event.areaHint ?? event.locationName}
-            </p>
-          )}
-
-          {/* Mood hints */}
-          {event.moodHints && event.moodHints.length > 0 && (
-            <p className="text-ui-11 text-tea-text-dim mt-2.5">
-              {event.moodHints.join(' · ')}
-            </p>
-          )}
+      {/* Content */}
+      <div className="p-5">
+        {/* Date row */}
+        <div className="flex items-baseline gap-2 mb-2">
+          <span className="label-caps text-tea-text-dim">{day}</span>
+          <span className="text-ui-13 text-tea-text-sec" style={{ fontFamily: 'var(--font-display)' }}>{num} {month}</span>
+          <span className="text-ui-10 text-tea-text-dim ml-auto">{time}</span>
         </div>
+
+        {/* Title */}
+        <h2 className="h3 leading-snug mb-0.5">{event.title}</h2>
+        {event.subtitle && (
+          <p className="subtitle text-ui-14">{event.subtitle}</p>
+        )}
+
+        {/* Location hint */}
+        {(event.areaHint || event.locationName) && (
+          <p className="text-ui-12 text-tea-text-dim mt-2 flex items-center gap-1.5">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 opacity-60">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 1 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+            </svg>
+            {event.areaHint ?? event.locationName}
+          </p>
+        )}
+
+        {/* Mood hints */}
+        {event.moodHints && event.moodHints.length > 0 && (
+          <p className="text-ui-12 text-tea-text-dim mt-2">
+            {event.moodHints.join(' · ')}
+          </p>
+        )}
       </div>
     </button>
   );
@@ -124,9 +120,9 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
 
 // ── Skeleton card ──────────────────────────────────────────────────────────────
 const EventCardSkeleton: React.FC = () => (
-  <div className="rounded-sm overflow-hidden animate-pulse bg-tea-surface">
+  <div className="rounded-xl overflow-hidden animate-pulse bg-tea-surface border border-tea-border">
     <div className="aspect-[16/9] bg-tea-elevated" />
-    <div className="px-4 py-4 space-y-2">
+    <div className="p-5 space-y-2">
       <div className="h-3 w-24 bg-tea-elevated rounded-sm" />
       <div className="h-5 w-48 bg-tea-elevated rounded-sm" />
       <div className="h-3 w-32 bg-tea-elevated rounded-sm" />
@@ -164,22 +160,22 @@ const EventsPage: React.FC = () => {
 
   return (
     <div
-      className="min-h-screen bg-tea-bg pb-[calc(52px+env(safe-area-inset-bottom,0px)+24px)]"
+      className="min-h-screen bg-tea-bg pb-nav-gap-lg"
       style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
     >
       <PageHeader title="Sessions" />
 
       {/* Event list */}
-      <div className="px-4 space-y-5">
+      <div className="px-4 md:px-6 lg:px-10 max-w-3xl mx-auto space-y-5">
         {isLoading ? (
           <>
             <EventCardSkeleton />
             <EventCardSkeleton />
           </>
         ) : events.length === 0 ? (
-          <div className="text-center py-20 px-6">
-            <p className="font-serif text-2xl text-tea-text mb-3">No upcoming sessions</p>
-            <p className="text-sm text-tea-text-sec leading-relaxed max-w-xs mx-auto">
+          <div className="flex flex-col items-center text-center max-w-sm mx-auto py-20 px-6">
+            <p className="text-sm text-tea-text mb-2" style={{ fontFamily: 'var(--font-display)' }}>No upcoming sessions</p>
+            <p className="text-ui-12 text-tea-text-dim leading-relaxed">
               New events are announced through the Teajia community. Check back soon.
             </p>
           </div>

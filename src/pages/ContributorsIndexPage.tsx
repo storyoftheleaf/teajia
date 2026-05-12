@@ -36,10 +36,7 @@ export default function ContributorsIndexPage() {
   const isEmpty = !data || data.length === 0;
 
   return (
-    <article
-      className="w-full min-h-screen flex-1 mx-auto px-4 md:px-6 lg:px-10"
-      style={{ maxWidth: 'min(880px, 100%)' }}
-    >
+    <article className="w-full min-h-screen flex-1 mx-auto px-4 md:px-6 lg:px-10 max-w-3xl">
       <style>{`
         @keyframes contribIndexFade {
           from { opacity: 0; }
@@ -56,53 +53,34 @@ export default function ContributorsIndexPage() {
         }
       `}</style>
 
-      <header className="pt-12 md:pt-20 lg:pt-24">
-        <h1
-          className="contrib-index-heading text-tea-text"
-          style={{
-            fontFamily: 'var(--font-display)',
-            fontWeight: 300,
-            fontSize: 'clamp(40px, 6vw, 72px)',
-            letterSpacing: '-0.01em',
-            lineHeight: 1,
-          }}
-        >
+      <header className="pt-12 pb-3">
+        <h1 className="contrib-index-heading h2">
           People
         </h1>
+        <p className="label-caps text-tea-text-dim mt-1">
+          Contributors, sources, and table-keepers
+        </p>
       </header>
 
       {isEmpty ? (
-        <div
-          className="flex justify-center"
-          style={{ marginTop: 'clamp(80px, 14vh, 160px)', marginBottom: 'clamp(96px, 18vh, 200px)' }}
-        >
-          <p
-            className="text-tea-text-sec italic text-center"
-            style={{ fontFamily: 'var(--font-body)', fontWeight: 300, fontSize: '15px', lineHeight: 1.6 }}
-          >
+        <div className="flex flex-col items-center text-center max-w-sm mx-auto py-20 px-6">
+          <p className="subtitle">
             No profiles yet.
           </p>
         </div>
       ) : (
         <>
-          <div style={{ marginTop: 'clamp(48px, 8vh, 96px)' }}>
+          <div className="mt-10">
             {groups.map(([letter, rows], gi) => (
               <section
                 key={letter}
-                className={gi === 0 ? '' : 'mt-[clamp(48px,8vh,80px)]'}
+                className={gi === 0 ? '' : 'mt-16 md:mt-20'}
               >
-                <h2
-                  className="text-tea-gold/40 uppercase text-ui-13 mb-6"
-                  style={{
-                    fontFamily: 'var(--font-display)',
-                    fontWeight: 400,
-                    letterSpacing: '0.3em',
-                  }}
-                >
+                <h2 className="label-caps text-tea-readgold/60 mb-6">
                   {letter}
                 </h2>
 
-                <ul className="flex flex-col" style={{ gap: 'clamp(20px, 3vh, 36px)' }}>
+                <ul className="flex flex-col gap-6 md:gap-8">
                   {rows.map((r) => (
                     <li key={r.id}>
                       <Link
@@ -123,16 +101,7 @@ export default function ContributorsIndexPage() {
                           {r.display_name}
                         </span>
                         {r.role && (
-                          <span
-                            className="block text-tea-text-sec italic"
-                            style={{
-                              fontFamily: 'var(--font-body)',
-                              fontWeight: 400,
-                              fontSize: '14px',
-                              marginTop: '4px',
-                              lineHeight: 1.5,
-                            }}
-                          >
+                          <span className="block subtitle text-ui-14 mt-1">
                             {r.role}
                           </span>
                         )}
@@ -144,7 +113,7 @@ export default function ContributorsIndexPage() {
             ))}
           </div>
 
-          <div style={{ height: 'clamp(64px, 10vh, 120px)' }} />
+          <div className="h-20 md:h-28" />
         </>
       )}
     </article>
