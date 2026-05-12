@@ -128,7 +128,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
         /* Slim contextual header: just the action controls for the active tab */
         (activeTab === 'logs' || activeTab === 'archive') ? (
           <div className="sticky top-0 z-sticky bg-tea-bg/90 backdrop-blur-md border-b border-tea-border py-2 flex-shrink-0">
-            <div className="px-3 md:px-6 max-w-5xl mx-auto flex items-center gap-2">
+            <div className="px-3 md:px-6 max-w-7xl mx-auto flex items-center gap-2">
               {activeTab === 'logs' && (
                 <>
                   <div className="flex items-center gap-1 overflow-x-auto hide-scrollbar flex-1 min-w-0">
@@ -173,7 +173,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
       ) : (
         /* Standalone mode: full header with tab bar */
         <div className="sticky top-0 z-sticky bg-tea-bg/90 backdrop-blur-md border-b border-tea-border flex-shrink-0">
-          <div className="px-4 md:px-6 lg:px-10 pt-6 pb-3 max-w-5xl mx-auto flex items-end justify-between gap-4 flex-wrap">
+          <div className="px-4 md:px-6 lg:px-10 pt-6 pb-3 max-w-7xl mx-auto flex items-end justify-between gap-4 flex-wrap">
             <div>
               <h1 className="h2 text-tea-text">System Records</h1>
               <div className="label-caps text-tea-text-dim mt-1">Archive · Log · Stock ledger</div>
@@ -191,7 +191,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
           </div>
 
           {/* Tab strip — bottom-border underline */}
-          <div className="flex items-center gap-6 px-4 md:px-6 lg:px-10 max-w-5xl mx-auto border-b border-tea-border">
+          <div className="flex items-center gap-6 px-4 md:px-6 lg:px-10 max-w-7xl mx-auto border-b border-tea-border">
             {([
               { id: 'archive', label: 'Archive', icon: <Archive size={13} /> },
               { id: 'logs', label: 'Log', icon: <ScrollText size={13} /> },
@@ -214,7 +214,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
           </div>
 
           {activeTab === 'logs' && (
-            <div className="px-3 md:px-6 max-w-5xl mx-auto flex items-center gap-2 mt-2">
+            <div className="px-3 md:px-6 max-w-7xl mx-auto flex items-center gap-2 mt-2">
               <div className="flex items-center gap-1 overflow-x-auto hide-scrollbar flex-1 min-w-0">
                 {ACTION_TYPES.map(at => (
                   <button
@@ -240,7 +240,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
           )}
 
           {/* Top strip — counter (right-aligned) */}
-          <div className="px-4 md:px-6 lg:px-10 max-w-5xl mx-auto flex items-center justify-end py-2">
+          <div className="px-4 md:px-6 lg:px-10 max-w-7xl mx-auto flex items-center justify-end py-2">
             <span className="label-caps text-tea-text-dim tabular-nums">{activeCount} {activeLabel}</span>
           </div>
         </div>
@@ -251,7 +251,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
 
         {/* TAB: ARCHIVE */}
         {activeTab === 'archive' && (
-          <div className="w-full max-w-5xl mx-auto bg-tea-surface min-h-full hidden md:block">
+          <div className="w-full max-w-7xl mx-auto bg-tea-surface min-h-full hidden md:block">
             <table className="w-full table-fixed border-collapse">
               <colgroup>
                 <col className="w-[26%]" />
@@ -376,7 +376,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
                 <span className="font-serif italic text-ui-15">Fetching logs...</span>
               </div>
             ) : (
-              <div className="w-full max-w-5xl mx-auto bg-tea-surface min-h-full hidden md:block">
+              <div className="w-full max-w-7xl mx-auto bg-tea-surface min-h-full hidden md:block">
                 <table className="w-full table-fixed border-collapse">
                   <colgroup>
                     <col className="w-[18%]" />
@@ -519,7 +519,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
                 <span className="font-serif italic text-ui-15">Loading ledger...</span>
               </div>
             ) : (
-              <div className="w-full max-w-5xl mx-auto bg-tea-surface min-h-full hidden md:block">
+              <div className="w-full max-w-7xl mx-auto bg-tea-surface min-h-full hidden md:block">
                 <table className="w-full table-fixed border-collapse">
                   <colgroup>
                     <col className="w-[15%]" />

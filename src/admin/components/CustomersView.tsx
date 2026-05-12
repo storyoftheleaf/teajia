@@ -1702,7 +1702,7 @@ export const CustomersView = () => {
 
       {/* --- STICKY HEADER (filter + actions only; parent PeopleView owns the page title) --- */}
       <div className="sticky top-0 z-sticky bg-tea-bg/90 backdrop-blur-md border-b border-tea-border flex-shrink-0">
-        <div className="px-3 md:px-6 lg:px-10 max-w-5xl mx-auto flex items-center gap-3 md:gap-4 py-3">
+        <div className="px-3 md:px-6 lg:px-10 max-w-7xl mx-auto flex items-center gap-3 md:gap-4 py-3">
           <div className="flex items-center gap-2 shrink-0 md:hidden">
             <Users size={16} className="text-tea-gold" />
             <span className="text-tea-text-sec text-xs">
@@ -1996,7 +1996,7 @@ export const CustomersView = () => {
             </div>
 
             {/* DESKTOP TABLE */}
-            <div className="w-full max-w-5xl mx-auto bg-tea-surface min-h-full hidden md:block">
+            <div className="w-full max-w-7xl mx-auto bg-tea-surface min-h-full hidden md:block">
               <table className="w-full table-fixed border-collapse">
                 <colgroup>
                   {visibleCols.map(col => <col key={col.key} className={col.defaultWidth} />)}

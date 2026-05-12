@@ -1251,7 +1251,7 @@ export const SourcesView = () => {
         </div>
 
         {/* DESKTOP TABLE */}
-        <div className="w-full max-w-5xl mx-auto bg-tea-surface min-h-full hidden md:block">
+        <div className="w-full max-w-7xl mx-auto bg-tea-surface min-h-full hidden md:block">
 
           {/* --- GROUPED VIEW --- */}
           {groupedSources ? (

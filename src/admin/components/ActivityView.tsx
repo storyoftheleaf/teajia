@@ -60,12 +60,15 @@ export const ActivityView: React.FC<ActivityViewProps> = ({ products }) => {
     <div className="h-full flex flex-col overflow-hidden bg-tea-bg">
       {/* Page header */}
       <div className="px-4 md:px-6 lg:px-10 pt-6 pb-3 flex-shrink-0">
-        <h1 className="h2 text-tea-text">Activity</h1>
-        <div className="label-caps text-tea-text-dim mt-1">Orders, payments, and customer inquiries</div>
+        <div className="max-w-7xl mx-auto">
+          <h1 className="h2 text-tea-text">Activity</h1>
+          <div className="label-caps text-tea-text-dim mt-1">Orders, payments, and customer inquiries</div>
+        </div>
       </div>
 
       {/* Tab bar — bottom-border underline (§6) */}
-      <div className="flex items-center gap-6 px-4 md:px-6 lg:px-10 border-b border-tea-border bg-tea-bg overflow-x-auto hide-scrollbar flex-shrink-0">
+      <div className="border-b border-tea-border bg-tea-bg flex-shrink-0">
+        <div className="flex items-center gap-6 px-4 md:px-6 lg:px-10 max-w-7xl mx-auto overflow-x-auto hide-scrollbar">
         {tabs.map(tab => {
           const isActive = activeTab === tab.id;
           return (
@@ -88,6 +91,7 @@ export const ActivityView: React.FC<ActivityViewProps> = ({ products }) => {
             </button>
           );
         })}
+        </div>
       </div>
 
       {/* Content — RecordsView already has Archive/Log/Ledger as internal tabs,

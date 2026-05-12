@@ -270,7 +270,7 @@ export const OrdersView = () => {
       {/* Header — sticky h-16 chrome row + filter rail */}
       <div className="sticky top-0 z-sticky bg-tea-bg/90 backdrop-blur-md border-b border-tea-border flex-shrink-0">
         {/* Title row — h-16, .h2 title left + .label-caps subtitle below */}
-        <div className="px-4 md:px-6 lg:px-10 max-w-5xl mx-auto h-16 flex items-center justify-between gap-4">
+        <div className="px-4 md:px-6 lg:px-10 max-w-7xl mx-auto h-16 flex items-center justify-between gap-4">
           <div className="min-w-0">
             <h1 className="h2 text-tea-text">Orders</h1>
             <div className="label-caps text-tea-text-dim mt-0.5">
@@ -290,7 +290,7 @@ export const OrdersView = () => {
         </div>
 
         {/* Filter rail — underline tabs (canonical pattern, no shadow) */}
-        <div className="px-3 md:px-6 lg:px-10 max-w-5xl mx-auto">
+        <div className="px-3 md:px-6 lg:px-10 max-w-7xl mx-auto">
           <div className="flex items-center gap-6 border-b border-tea-border overflow-x-auto hide-scrollbar min-w-0">
             {([
               { id: 'all',     label: 'All' },
@@ -337,7 +337,7 @@ export const OrdersView = () => {
 
         {/* Search — desktop (inline, right-aligned) */}
         <div className="hidden md:block px-6 py-2">
-          <div className="max-w-5xl mx-auto flex justify-end">
+          <div className="max-w-7xl mx-auto flex justify-end">
             <div className="relative w-48">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-tea-text-sec" size={14} />
               <input
@@ -356,7 +356,7 @@ export const OrdersView = () => {
       <div className="flex-1 overflow-auto custom-scrollbar bg-tea-bg md:px-6">
 
         {/* Desktop table */}
-        <div className="w-full max-w-5xl mx-auto bg-tea-surface min-h-full hidden md:block">
+        <div className="w-full max-w-7xl mx-auto bg-tea-surface min-h-full hidden md:block">
           <table className="w-full table-fixed border-collapse">
             <colgroup>
               <col className="w-[11%]" />

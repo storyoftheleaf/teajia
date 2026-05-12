@@ -60,13 +60,16 @@ export const PeopleView: React.FC<PeopleViewProps> = ({
   return (
     <div className="h-full flex flex-col overflow-hidden bg-tea-bg">
       <div className="px-4 md:px-6 lg:px-10 pt-6 pb-3 flex-shrink-0">
-        <h1 className={`${TYPOGRAPHY_CLASSES.h2} text-tea-text`}>People</h1>
-        <p className="text-ui-11 uppercase tracking-[0.15em] text-tea-text-dim mt-1">
-          Buyers, sources, guests, contributors, and team
-        </p>
+        <div className="max-w-7xl mx-auto">
+          <h1 className={`${TYPOGRAPHY_CLASSES.h2} text-tea-text`}>People</h1>
+          <p className="text-ui-11 uppercase tracking-[0.15em] text-tea-text-dim mt-1">
+            Buyers, sources, guests, contributors, and team
+          </p>
+        </div>
       </div>
 
-      <nav className="flex items-center gap-6 px-4 md:px-6 lg:px-10 border-b border-tea-border overflow-x-auto scrollbar-hide flex-shrink-0">
+      <nav className="border-b border-tea-border flex-shrink-0">
+        <div className="flex items-center gap-6 px-4 md:px-6 lg:px-10 max-w-7xl mx-auto overflow-x-auto scrollbar-hide">
         {visibleTabs.map(tab => {
           const isActive = activeTab === tab.id;
           return (
@@ -84,6 +87,7 @@ export const PeopleView: React.FC<PeopleViewProps> = ({
             </button>
           );
         })}
+        </div>
       </nav>
 
       <div className="flex-1 overflow-auto min-h-0">
