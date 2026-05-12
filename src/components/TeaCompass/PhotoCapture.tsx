@@ -350,7 +350,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
             <button
               type="button"
               onClick={closeScanner}
-              className="mt-2 px-4 py-2 rounded-lg border border-tea-border/20 text-tea-text/70 text-ui-12 hover:bg-tea-text/10 transition-colors"
+              className="mt-2 px-4 py-2 rounded-lg border border-tea-border text-tea-text/70 text-ui-12 hover:bg-tea-text/10 transition-colors"
             >
               Close
             </button>
@@ -442,7 +442,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
           <button
             type="button"
             onClick={handleCapture}
-            className="w-16 h-16 rounded-full border-4 border-tea-border/80 bg-tea-text/20 hover:bg-tea-text/30 active:scale-95 transition-all flex items-center justify-center"
+            className="w-16 h-16 rounded-full border-4 border-tea-border bg-tea-text/20 hover:bg-tea-text/30 active:scale-95 transition-all flex items-center justify-center"
             aria-label="Capture"
           >
             <div className="w-10 h-10 rounded-full bg-tea-text/90" />
@@ -609,7 +609,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
             />
             {preview.uploading && (
               <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-black/20">
-                <div className="w-4 h-4 border border-tea-border/60 border-t-transparent rounded-full animate-spin" />
+                <div className="w-4 h-4 border border-tea-border border-t-transparent rounded-full animate-spin" />
               </div>
             )}
             {preview.failed && (
