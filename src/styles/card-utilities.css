@@ -2212,20 +2212,19 @@ input[type="number"]::-webkit-outer-spin-button {
    ============================================ */
 
 :root, .light, .dark {
-  /* Warm dark grays — R > G > B by 2-3 points so the bg reads as
-     warm-neutral dark (slight espresso cast) rather than blue-cool.
-     Borders are sharper (~15% white) for crisp 1px edges.
-     Text colors brighter for stronger heading/body contrast. */
-  --admin-bg:           #181613;  /* page background — warm dark */
-  --admin-surface:      #25221E;  /* card surface */
-  --admin-elevated:     #312D28;  /* hover / active / selected card */
-  --admin-input-bg:     #322E29;  /* input fill — LIGHTER than card */
-  --admin-border:       rgba(255, 248, 240, 0.14);  /* crisp 1px edge */
-  --admin-border-hover: rgba(255, 248, 240, 0.22);
-  --admin-text:         #F2F0EC;  /* primary — brighter for contrast */
-  --admin-text-sec:     #B5ADA1;  /* body / description */
-  --admin-text-dim:     #7A7268;  /* labels / meta */
-  --admin-text-faint:   #524A42;  /* very low priority hints */
+  /* Tea-brown palette mapped onto the admin-card structural system.
+     The structural hierarchy (bg → surface → input, each lighter) is
+     preserved; the hues swap from neutral cool gray to warm brown. */
+  --admin-bg:           #18130E;  /* tea-bg dark — page background */
+  --admin-surface:      #282119;  /* tea-surface — card surface */
+  --admin-elevated:     #3A3126;  /* tea-elevated — hover / active */
+  --admin-input-bg:     #3F362A;  /* slightly lighter than elevated so inputs read raised */
+  --admin-border:       rgba(255, 230, 190, 0.13);  /* warm cream edge, sharp 1px */
+  --admin-border-hover: rgba(255, 230, 190, 0.22);
+  --admin-text:         #EDE4D4;  /* warm cream — primary */
+  --admin-text-sec:     #B5A892;  /* warm sand — body */
+  --admin-text-dim:     #847868;  /* muted warm — labels (less saturated than tea-text-dim so it doesn't read gold) */
+  --admin-text-faint:   #5C5045;  /* very low priority */
 }
 
 /* Card surface — three concurrent moves create the "milled object" feel:
