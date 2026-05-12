@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
   X as XIcon, ChevronLeft, ChevronRight, ChevronDown, QrCode, Eye, EyeOff, Star, Sparkles,
   FlaskConical, RefreshCw, User, Pencil, Plus, Loader2, Check, Globe, Receipt, BookOpen,
-  Camera, Upload, Crop, Download, MoreHorizontal, Trash2, Wand2,
+  Camera, Upload, Crop, Download, MoreHorizontal, Trash2, Wand2, Mic, Square,
 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { SquareCropModal } from '../../components/shared/SquareCropModal';
@@ -382,6 +383,222 @@ export const FieldRowFull = ({ label, labelAdornment, children }: {
 export const FieldGroupDivider = () => (
   <div className="mt-5 mb-1 border-t border-admin-border" />
 );
+
+/* ------------------------------------------------------------------ */
+/* Tasting notes editor — listed inside the Story & background section */
+/* ------------------------------------------------------------------ */
+
+/** Inline microphone button. Mirrors the standalone VoiceRecorder logic
+ *  but renders as a compact inline pill so it can sit alongside an
+ *  "Add note" button instead of as a fixed floating action button. */
+const InlineMicButton: React.FC<{ onTranscript: (text: string) => void }> = ({ onTranscript }) => {
+  const [state, setState] = useState<'idle' | 'recording' | 'transcribing'>('idle');
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const streamRef = useRef<MediaStream | null>(null);
+  const mountedRef = useRef(true);
+  useEffect(() => () => {
+    mountedRef.current = false;
+    streamRef.current?.getTracks().forEach(t => t.stop());
+  }, []);
+
+  const pickMime = () => {
+    if (typeof MediaRecorder === 'undefined') return 'audio/mp4';
+    for (const m of ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/wav']) {
+      if (MediaRecorder.isTypeSupported(m)) return m;
+    }
+    return 'audio/mp4';
+  };
+
+  const start = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      if (!mountedRef.current) { stream.getTracks().forEach(t => t.stop()); return; }
+      streamRef.current = stream;
+      const mime = pickMime();
+      const rec = new MediaRecorder(stream, { mimeType: mime });
+      recorderRef.current = rec;
+      chunksRef.current = [];
+      rec.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
+      rec.onstop = async () => {
+        stream.getTracks().forEach(t => t.stop());
+        streamRef.current = null;
+        const blob = new Blob(chunksRef.current, { type: mime });
+        chunksRef.current = [];
+        if (blob.size < 100) { if (mountedRef.current) setState('idle'); return; }
+        if (mountedRef.current) setState('transcribing');
+        try {
+          const result = await api.transcribeAudio(blob);
+          if (!mountedRef.current) return;
+          if (result.text && result.text.trim()) onTranscript(result.text.trim());
+        } catch { /* silent */ }
+        finally { if (mountedRef.current) setState('idle'); }
+      };
+      rec.start(250);
+      setState('recording');
+    } catch {
+      setState('idle');
+    }
+  };
+  const stop = () => recorderRef.current?.stop();
+
+  const recording = state === 'recording';
+  const transcribing = state === 'transcribing';
+
+  return (
+    <button
+      type="button"
+      onClick={recording ? stop : start}
+      disabled={transcribing}
+      aria-label={recording ? 'Stop recording' : transcribing ? 'Transcribing' : 'Record voice note'}
+      className={`admin-pill ${recording ? 'admin-pill-on' : ''}`}
+    >
+      {recording ? <Square size={10} fill="currentColor" /> : transcribing ? <Loader2 size={10} className="animate-spin" /> : <Mic size={10} />}
+      {recording ? 'Stop' : transcribing ? 'Transcribing' : 'Record'}
+    </button>
+  );
+};
+
+/** One row in the notes list — textarea with inline save on blur + delete. */
+const TastingNoteRow: React.FC<{
+  value: string;
+  onSave: (text: string) => void;
+  onDelete: () => void;
+  autoFocus?: boolean;
+}> = ({ value, onSave, onDelete, autoFocus }) => {
+  const [local, setLocal] = useState(value);
+  const ref = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => setLocal(value), [value]);
+  useEffect(() => {
+    const el = ref.current;
+    if (el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }
+  }, [local]);
+  useEffect(() => { if (autoFocus) ref.current?.focus(); }, [autoFocus]);
+  return (
+    <div className="flex items-start gap-2">
+      <textarea
+        ref={ref}
+        value={local}
+        onChange={(e) => setLocal(e.target.value)}
+        onBlur={() => { if (local !== value) onSave(local); }}
+        rows={1}
+        placeholder="Note…"
+        className="admin-input flex-1 py-1.5 px-2.5 text-ui-13 leading-[1.45] resize-none min-h-0"
+      />
+      <button
+        type="button"
+        onClick={onDelete}
+        aria-label="Delete note"
+        title="Delete note"
+        className="shrink-0 p-1 mt-0.5 text-admin-text-dim hover:text-admin-text rounded-md transition-colors"
+      >
+        <XIcon size={13} />
+      </button>
+    </div>
+  );
+};
+
+const TastingNotesEditor: React.FC<{
+  product: Product;
+  onUpdate?: (id: string, field: keyof Product, value: any) => void | Promise<void>;
+  onOpenFullEditor: () => void;
+}> = ({ product, onUpdate, onOpenFullEditor }) => {
+  const { showToast } = useToast();
+  const queryClient = useQueryClient();
+  const [autoFocusIdx, setAutoFocusIdx] = useState<number | null>(null);
+
+  // Normalize current notes to {text} entries so editing has stable shape.
+  const tasting = (product as any).tasting as Record<string, any> | null | undefined;
+  const sourceNotes: any[] = useMemo(() => (
+    Array.isArray(tasting?.notes) ? tasting!.notes : []
+  ), [tasting]);
+
+  // Hoist any legacy single voiceNote into the notes array so the editor
+  // can manage it uniformly — saved out via the same pipeline.
+  const initialDisplay = useMemo(() => {
+    const arr = sourceNotes.map((n: any) => typeof n === 'string' ? { text: n } : { ...n, text: n?.text ?? '' });
+    const legacy = typeof tasting?.voiceNote === 'string' && tasting.voiceNote.trim() ? tasting.voiceNote.trim() : null;
+    if (legacy && !arr.some((n: any) => n.text === legacy)) arr.push({ text: legacy });
+    return arr;
+  }, [sourceNotes, tasting]);
+
+  const writeNotes = useCallback(async (nextNotes: any[]) => {
+    const nextTasting = { ...(tasting || {}), notes: nextNotes };
+    // Optimistic: patch local query cache so the panel reflects immediately.
+    queryClient.setQueriesData<Product[]>(
+      { predicate: q => Array.isArray(q.queryKey) && q.queryKey[0] === 'products' && q.queryKey[1] !== 'public' },
+      (old) => old?.map(p => p.id === product.id ? { ...p, tasting: nextTasting as any } : p),
+    );
+    try {
+      await api.products.updateByDomain(product.id, { tasting: nextTasting });
+      if (onUpdate) await onUpdate(product.id, 'tasting' as any, nextTasting);
+    } catch (err: any) {
+      showToast(`Failed to save note: ${err?.message || 'unknown error'}`, 'error');
+    }
+  }, [tasting, product.id, queryClient, onUpdate, showToast]);
+
+  const onChangeAt = (i: number, text: string) => {
+    const next = [...initialDisplay];
+    next[i] = { ...next[i], text };
+    writeNotes(next);
+  };
+  const onDeleteAt = (i: number) => writeNotes(initialDisplay.filter((_, idx) => idx !== i));
+  const onAddBlank = () => {
+    writeNotes([...initialDisplay, { text: '' }]);
+    setAutoFocusIdx(initialDisplay.length);
+  };
+  const onTranscribed = (text: string) => {
+    writeNotes([...initialDisplay, { text }]);
+  };
+
+  return (
+    <div className="rounded-md border border-admin-border bg-admin-input-bg/40 px-3 py-2.5 space-y-2">
+      <div className="flex items-center justify-between">
+        <span className="text-ui-11 text-admin-text-dim uppercase tracking-[0.06em]">Tasting notes</span>
+        <button
+          type="button"
+          onClick={onOpenFullEditor}
+          className="text-ui-11 text-admin-text-sec hover:text-admin-text transition-colors"
+          title="Open the full tasting profile editor"
+        >
+          Full editor ›
+        </button>
+      </div>
+
+      {product.mood && (
+        <p className="text-ui-12 text-admin-text-sec">{product.mood}</p>
+      )}
+
+      {initialDisplay.length === 0 ? (
+        <p className="text-ui-12 text-admin-text-dim leading-[1.5]">No notes yet. Add one below or tap the mic to record.</p>
+      ) : (
+        <div className="space-y-1.5">
+          {initialDisplay.map((n, i) => (
+            <TastingNoteRow
+              key={i}
+              value={n.text}
+              onSave={(text) => onChangeAt(i, text)}
+              onDelete={() => onDeleteAt(i)}
+              autoFocus={autoFocusIdx === i}
+            />
+          ))}
+        </div>
+      )}
+
+      <div className="flex items-center gap-1.5 pt-1">
+        <button
+          type="button"
+          onClick={onAddBlank}
+          className="admin-pill"
+          aria-label="Add note"
+        >
+          <Plus size={10} /> Add note
+        </button>
+        <InlineMicButton onTranscript={onTranscribed} />
+      </div>
+    </div>
+  );
+};
 
 // Slot index → stable R2 slot key the worker uses for in-place writes.
 const SLOT_KEYS = ['main', '1', '2'] as const;
@@ -1336,46 +1553,17 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
             {/* 7. Story & Background */}
             <CollapsibleSection title="Story & background" description="Personal voice, terroir, processing, and lore." defaultOpen={false}>
               <div className="space-y-5">
-                {/* Tasting notes preview — only the writer-facing content:
-                    free-form notes from the tasting session and the derived
-                    mood line. Taxonomy chips (flavor / body / finish / feeling /
-                    liquor) intentionally not shown here — they're for structured
-                    filtering, not for the writer drafting prose. */}
-                {(() => {
-                  const t = (product as any).tasting as Record<string, any> | null | undefined;
-                  const rawNotes = Array.isArray(t?.notes) ? t!.notes : [];
-                  const noteTexts: string[] = rawNotes
-                    .map((n: any) => typeof n === 'string' ? n : (n?.text ?? ''))
-                    .filter((s: string) => s && s.trim().length > 0);
-                  const legacyVoice = typeof t?.voiceNote === 'string' && t.voiceNote.trim() ? t.voiceNote.trim() : null;
-                  const hasAny = noteTexts.length || legacyVoice || product.mood;
-                  if (!hasAny) return null;
-
-                  return (
-                    <div className="rounded-md border border-admin-border bg-admin-input-bg/40 px-3 py-2.5 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-ui-11 text-admin-text-dim uppercase tracking-[0.06em]">Tasting notes</span>
-                        <button
-                          type="button"
-                          onClick={() => setTastingEditorProduct(product)}
-                          className="text-ui-11 text-admin-text-sec hover:text-admin-text transition-colors"
-                          title="Open the full tasting profile editor"
-                        >
-                          Edit ›
-                        </button>
-                      </div>
-                      {product.mood && (
-                        <p className="text-ui-12 text-admin-text-sec">{product.mood}</p>
-                      )}
-                      {noteTexts.map((n, i) => (
-                        <p key={i} className="text-ui-12 text-admin-text leading-[1.5]">"{n}"</p>
-                      ))}
-                      {legacyVoice && (
-                        <p className="text-ui-12 text-admin-text leading-[1.5]">"{legacyVoice}"</p>
-                      )}
-                    </div>
-                  );
-                })()}
+                {/* Inline tasting-notes editor. Lists every voice / written note
+                    captured in the tasting session, allows editing each in place,
+                    deletion, adding a new written note, and recording a new voice
+                    note (mic → backend transcription). Changes write back to
+                    product.tasting.notes globally so they appear everywhere the
+                    tasting profile is read. */}
+                <TastingNotesEditor
+                  product={product}
+                  onUpdate={onUpdate}
+                  onOpenFullEditor={() => setTastingEditorProduct(product)}
+                />
 
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
