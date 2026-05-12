@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { api, setToken } from '../lib/api';
-import { ChevronLeft, AlertCircle, Loader2 } from 'lucide-react';
+import { ArrowLeft, AlertCircle, Loader2 } from 'lucide-react';
 
 const inputClass = "w-full bg-tea-surface border border-tea-border rounded-md px-3 py-2 text-ui-14 text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors";
 const labelClass = "block text-ui-11 uppercase tracking-[1.2px] text-tea-text-sec mb-1.5";
@@ -152,8 +152,8 @@ export default function AccountSettingsPage() {
         className="inline-flex items-center gap-1.5 text-tea-text-sec hover:text-tea-text transition-colors"
         aria-label="Back"
       >
-        <ChevronLeft size={14} />
-        <span className="text-ui-12 uppercase tracking-[0.15em]">Back</span>
+        <ArrowLeft size={14} />
+        <span className="text-ui-12">Back</span>
       </button>
 
       {/* Header */}

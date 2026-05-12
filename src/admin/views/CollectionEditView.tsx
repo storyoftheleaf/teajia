@@ -11,6 +11,7 @@ import { useAppStore } from '../../lib/store';
 import { useToast } from '../components/Toast';
 import { useProducts } from '../hooks/useAdminData';
 import { RecipientTypeahead } from '../components/collections/RecipientTypeahead';
+import { STATUS_PILL_VARIANTS, STATUS_PILL_BASE, type StatusPillVariant } from '../constants';
 import type {
   CollectionDetail, CollectionItem, CollectionPublication,
   CollectionRecipient, CollectionStatus,
@@ -193,19 +194,21 @@ export const CollectionEditView: React.FC = () => {
 
   return (
     <div className="h-full flex flex-col overflow-hidden bg-tea-bg">
-      <div className="flex items-center gap-2 px-4 md:px-6 py-4 border-b border-tea-border bg-tea-bg flex-shrink-0">
-        <button
-          onClick={() => navigate('/admin/collections')}
-          className="flex items-center gap-1.5 text-xs text-tea-text-sec hover:text-tea-text transition-colors"
-        >
-          <ArrowLeft size={14} /> Collections
-        </button>
-        <div className="flex-1" />
-        <StatusPill status={detail.collection.status} onSet={setStatus} />
+      {/* Top bar — back link left, status pill right */}
+      <div className="max-w-3xl mx-auto w-full px-4 md:px-6 pt-6 md:pt-8 flex-shrink-0">
+        <div className="flex items-center justify-between gap-3">
+          <button
+            onClick={() => navigate('/admin/collections')}
+            className="inline-flex items-center gap-1.5 text-xs text-tea-text-sec hover:text-tea-text transition-colors"
+          >
+            <ArrowLeft size={14} /> Collections
+          </button>
+          <StatusPill status={detail.collection.status} onSet={setStatus} />
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto pb-nav-gap-lg">
-        <div className="max-w-3xl mx-auto px-4 md:px-6 py-6 flex flex-col gap-6">
+        <div className="max-w-3xl mx-auto px-4 md:px-6 py-6 flex flex-col gap-8">
 
           {/* Title + note */}
           <section className="flex flex-col gap-3">
@@ -215,8 +218,7 @@ export const CollectionEditView: React.FC = () => {
               onChange={e => setTitleDraft(e.target.value)}
               onBlur={() => titleChanged && titleDraft.trim() && saveMeta({ title: titleDraft.trim() })}
               placeholder="Untitled collection"
-              className="w-full bg-transparent border-b border-tea-border focus:border-tea-gold outline-none py-2 font-display text-[clamp(24px,3.5vw,32px)] leading-[1.2] text-tea-text placeholder:text-tea-text-dim"
-              style={{ fontWeight: 500 }}
+              className="h2 w-full bg-transparent border-b border-tea-border focus:border-tea-gold outline-none py-2 placeholder:text-tea-text-dim"
             />
             <textarea
               value={noteDraft}
@@ -224,16 +226,17 @@ export const CollectionEditView: React.FC = () => {
               onBlur={() => noteChanged && saveMeta({ note: noteDraft })}
               placeholder="A short note for whoever opens the link — this shows above the product list on the public page."
               rows={2}
-              className="w-full bg-transparent border-none outline-none resize-none font-body text-ui-15 leading-[1.65] text-tea-text placeholder:text-tea-text-dim italic"
+              className="body-light w-full bg-transparent border-none outline-none resize-none italic placeholder:text-tea-text-dim"
             />
             {savingMeta && <p className="text-ui-10 text-tea-text-dim">Saving…</p>}
           </section>
 
           {/* Hero image */}
           <section className="flex flex-col gap-2">
-            <label className="text-ui-10 uppercase tracking-[1.2px] text-tea-text-dim">Hero image</label>
+            <h3 className="h3">Hero image</h3>
+            <p className="label-caps text-tea-text-dim">Optional — appears at the top of the public collection page.</p>
             {detail.collection.hero_image_url ? (
-              <div className="relative group rounded-lg overflow-hidden bg-tea-elevated">
+              <div className="relative group rounded-xl overflow-hidden bg-tea-elevated border border-tea-border">
                 <img
                   src={detail.collection.hero_image_url}
                   alt=""
@@ -248,9 +251,9 @@ export const CollectionEditView: React.FC = () => {
                 </button>
               </div>
             ) : (
-              <label className="cursor-pointer flex items-center gap-2 px-3 py-3 border border-dashed border-tea-border rounded-lg text-xs text-tea-text-sec hover:text-tea-text hover:border-tea-gold transition-colors w-fit">
+              <label className="cursor-pointer inline-flex items-center gap-2 px-3 py-3 border border-dashed border-tea-border rounded-xl text-xs text-tea-text-sec hover:text-tea-text hover:border-tea-gold transition-colors w-fit">
                 {uploadingHero ? <Loader2 size={14} className="animate-spin" /> : <ImagePlus size={14} />}
-                {uploadingHero ? 'Uploading…' : 'Upload hero (optional)'}
+                {uploadingHero ? 'Uploading…' : 'Upload hero image'}
                 <input
                   type="file"
                   accept="image/*"
@@ -262,24 +265,36 @@ export const CollectionEditView: React.FC = () => {
           </section>
 
           {/* Items */}
-          <section className="flex flex-col gap-2">
-            <div className="flex items-center justify-between">
-              <label className="text-ui-10 uppercase tracking-[1.2px] text-tea-text-dim">
-                Products <span className="text-tea-text-dim/70">({detail.items.length})</span>
-              </label>
+          <section className="flex flex-col gap-3">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div>
+                <h3 className="h3">Products</h3>
+                <p className="label-caps text-tea-text-dim mt-0.5">
+                  {detail.items.length} ITEM{detail.items.length === 1 ? '' : 'S'}
+                </p>
+              </div>
               <button
                 onClick={() => setAddOpen(true)}
-                className="flex items-center gap-1 px-2.5 py-1 text-ui-11 text-tea-text-sec hover:text-tea-text transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors"
               >
-                <Plus size={11} /> Add products
+                <Plus size={13} /> Add products
               </button>
             </div>
             {detail.items.length === 0 ? (
-              <p className="text-xs text-tea-text-dim py-6 text-center border border-dashed border-tea-border rounded-lg">
-                No products yet. Add some to make this collection shareable.
-              </p>
+              <div className="bg-tea-surface border border-tea-border rounded-xl">
+                <div className="flex flex-col items-center justify-center py-12 px-6 gap-3 text-center">
+                  <p className="font-display text-ui-16 text-tea-text">No products yet</p>
+                  <p className="text-ui-12 text-tea-text-dim">Add some to make this collection shareable.</p>
+                  <button
+                    onClick={() => setAddOpen(true)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors"
+                  >
+                    <Plus size={13} /> Add products
+                  </button>
+                </div>
+              </div>
             ) : (
-              <ul className="flex flex-col gap-1">
+              <ul className="divide-y divide-tea-border bg-tea-surface border border-tea-border rounded-xl overflow-hidden">
                 {detail.items.map((item, idx) => {
                   const oos = productIsOOS(item);
                   const archived = item.product_status && item.product_status !== 'Active';
@@ -288,8 +303,8 @@ export const CollectionEditView: React.FC = () => {
                     <li
                       key={item.id}
                       ref={focused ? focusRef : undefined}
-                      className={`flex items-center gap-3 px-2.5 py-2 rounded-md transition-colors ${
-                        focused ? 'bg-tea-gold-lt' : 'hover:bg-tea-surface'
+                      className={`flex items-center gap-3 px-4 md:px-6 py-3 transition-colors ${
+                        focused ? 'bg-tea-gold-lt' : 'hover:bg-tea-accent-sub'
                       }`}
                     >
                       <span className="w-5 text-right text-ui-11 text-tea-text-dim font-mono tabular-nums">
@@ -301,29 +316,29 @@ export const CollectionEditView: React.FC = () => {
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm text-tea-text truncate">
+                        <div className="font-display text-ui-15 text-tea-text truncate">
                           {item.product_name || 'Untitled'}
-                          {item.chinese_name && <span className="text-tea-text-dim ml-1.5 text-xs">{item.chinese_name}</span>}
-                        </p>
-                        <p className="text-ui-11 text-tea-text-dim truncate flex items-center gap-1.5">
+                          {item.chinese_name && <span className="text-tea-text-dim ml-1.5 text-ui-12">{item.chinese_name}</span>}
+                        </div>
+                        <div className="text-ui-12 text-tea-text-dim mt-1 truncate flex items-center gap-1.5">
                           {[item.origin_region, item.origin_country].filter(Boolean).join(', ') || item.product_type}
                           {archived && (
-                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-tea-elevated text-tea-text-dim text-ui-9 uppercase tracking-wider">
+                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-tea-elevated text-tea-text-dim text-ui-9 uppercase tracking-caps">
                               <Archive size={8} /> Archived
                             </span>
                           )}
                           {!archived && oos && (
-                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-tea-elevated text-tea-text-sec text-ui-9 uppercase tracking-wider">
+                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-tea-elevated text-tea-text-sec text-ui-9 uppercase tracking-caps">
                               <AlertTriangle size={8} /> Out of stock
                             </span>
                           )}
-                        </p>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-0.5 opacity-60 hover:opacity-100 transition-opacity">
+                      <div className="flex items-center gap-0.5 shrink-0">
                         <button
                           onClick={() => reorder(item.id, 'up')}
                           disabled={idx === 0 || working}
-                          className="p-1.5 text-tea-text-sec hover:text-tea-text disabled:opacity-30 transition-colors"
+                          className="tap-target p-1.5 text-tea-text-sec hover:text-tea-text disabled:opacity-30 transition-colors"
                           aria-label="Move up"
                         >
                           <ChevronUp size={13} />
@@ -331,7 +346,7 @@ export const CollectionEditView: React.FC = () => {
                         <button
                           onClick={() => reorder(item.id, 'down')}
                           disabled={idx === detail.items.length - 1 || working}
-                          className="p-1.5 text-tea-text-sec hover:text-tea-text disabled:opacity-30 transition-colors"
+                          className="tap-target p-1.5 text-tea-text-sec hover:text-tea-text disabled:opacity-30 transition-colors"
                           aria-label="Move down"
                         >
                           <ChevronDown size={13} />
@@ -339,7 +354,7 @@ export const CollectionEditView: React.FC = () => {
                         <button
                           onClick={() => removeItem(item.id)}
                           disabled={working}
-                          className="p-1.5 text-tea-text-sec hover:text-red-400 transition-colors"
+                          className="tap-target p-1.5 text-tea-text-sec hover:text-tea-error transition-colors"
                           aria-label="Remove"
                         >
                           <Trash2 size={13} />
@@ -354,46 +369,55 @@ export const CollectionEditView: React.FC = () => {
 
           {/* Shared with */}
           <section className="flex flex-col gap-3">
-            <label className="text-ui-10 uppercase tracking-[1.2px] text-tea-text-dim">
-              Shared with {detail.publications.filter(p => !p.unpublished_at).length > 0 && (
-                <span className="text-tea-text-dim/70 num">({detail.publications.filter(p => !p.unpublished_at).length})</span>
-              )}
-            </label>
-
-            {detail.publications.length === 0 ? (
-              <button
-                onClick={() => canPublish && setPublishOpen(true)}
-                disabled={!canPublish}
-                className="group flex items-center justify-center gap-2 py-6 rounded-lg border border-dashed border-tea-border hover:border-tea-gold/40 hover:bg-tea-gold/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-tea-border disabled:hover:bg-transparent"
-                title={!canPublish ? 'Add at least one product first' : undefined}
-              >
-                <UserPlus size={14} className="text-tea-text-sec group-hover:text-tea-gold group-disabled:text-tea-text-dim transition-colors" />
-                <span className="text-ui-12 text-tea-text-sec group-hover:text-tea-text group-disabled:text-tea-text-dim transition-colors">
-                  {canPublish ? 'Share with people' : 'Add a product before sharing'}
-                </span>
-              </button>
-            ) : (
-              <>
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div>
+                <h3 className="h3">Shared with</h3>
+                <p className="label-caps text-tea-text-dim mt-0.5">
+                  {detail.publications.filter(p => !p.unpublished_at).length} ACTIVE LINK{detail.publications.filter(p => !p.unpublished_at).length === 1 ? '' : 'S'}
+                </p>
+              </div>
+              {detail.publications.length > 0 && (
                 <button
                   onClick={() => setPublishOpen(true)}
                   disabled={!canPublish}
-                  className="flex items-center justify-center gap-2 py-2.5 rounded-lg bg-tea-gold/10 hover:bg-tea-gold/10 text-tea-text ring-1 ring-tea-gold/40 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   title={!canPublish ? 'Add at least one product first' : 'Share with new people, by tag, or with a store'}
                 >
-                  <UserPlus size={13} />
-                  <span className="text-ui-12 font-medium tracking-wide">Share with people</span>
+                  <UserPlus size={13} /> Share
                 </button>
-                <ul className="flex flex-col gap-1.5">
-                  {detail.publications.map(pub => (
-                    <PublicationRow
-                      key={pub.id}
-                      pub={pub}
-                      storeNameById={storeNameById}
-                      onUnpublish={() => unpublish(pub.id)}
-                    />
-                  ))}
-                </ul>
-              </>
+              )}
+            </div>
+
+            {detail.publications.length === 0 ? (
+              <div className="bg-tea-surface border border-tea-border rounded-xl">
+                <div className="flex flex-col items-center justify-center py-12 px-6 gap-3 text-center">
+                  <UserPlus size={28} strokeWidth={1.25} className="text-tea-text-dim" />
+                  <p className="font-display text-ui-16 text-tea-text">Not shared yet</p>
+                  <p className="text-ui-12 text-tea-text-dim">
+                    {canPublish
+                      ? 'Share with people, a tag, or a partner store.'
+                      : 'Add at least one product before sharing.'}
+                  </p>
+                  <button
+                    onClick={() => canPublish && setPublishOpen(true)}
+                    disabled={!canPublish}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <UserPlus size={13} /> Share with people
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <ul className="divide-y divide-tea-border bg-tea-surface border border-tea-border rounded-xl overflow-hidden">
+                {detail.publications.map(pub => (
+                  <PublicationRow
+                    key={pub.id}
+                    pub={pub}
+                    storeNameById={storeNameById}
+                    onUnpublish={() => unpublish(pub.id)}
+                  />
+                ))}
+              </ul>
             )}
           </section>
 
@@ -427,16 +451,13 @@ export const CollectionEditView: React.FC = () => {
 const StatusPill: React.FC<{ status: CollectionStatus; onSet: (s: CollectionStatus) => void }> = ({ status, onSet }) => {
   const [open, setOpen] = useState(false);
   const label: Record<CollectionStatus, string> = { draft: 'Draft', active: 'Active', archived: 'Archived' };
-  const cls: Record<CollectionStatus, string> = {
-    draft:    'bg-tea-elevated text-tea-text-sec',
-    active:   'bg-tea-gold/10 text-tea-text ring-1 ring-inset ring-tea-gold/40',
-    archived: 'bg-tea-elevated text-tea-text-dim',
-  };
+  const variantFor = (s: CollectionStatus): StatusPillVariant =>
+    s === 'active' ? 'active' : s === 'archived' ? 'archived' : 'draft';
   return (
     <div className="relative">
       <button
         onClick={() => setOpen(v => !v)}
-        className={`px-2.5 py-1 rounded-full text-ui-10 uppercase tracking-[1.2px] ${cls[status]}`}
+        className={`${STATUS_PILL_BASE} ${STATUS_PILL_VARIANTS[variantFor(status)]} cursor-pointer`}
       >
         {label[status]}
       </button>

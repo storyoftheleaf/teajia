@@ -182,14 +182,14 @@ const PlaylistSection: React.FC<PlaylistSectionProps> = ({ playlistUrl }) => (
         href={playlistUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex items-center gap-3 px-5 py-3 bg-tea-surface border border-tea-border rounded-xl text-tea-text hover:border-tea-gold/40 hover:text-tea-gold transition-all duration-300 group"
+        className="inline-flex items-center gap-3 px-4 py-3 bg-tea-surface border border-tea-border rounded-md text-xs font-semibold text-tea-text-sec hover:border-tea-gold/40 hover:text-tea-text transition-colors group"
       >
-        <Music className="w-4 h-4 text-tea-text-sec group-hover:text-tea-gold transition-colors" />
-        <span className="text-sm">Listen to the session playlist</span>
+        <Music className="w-3.5 h-3.5 text-tea-text-sec group-hover:text-tea-gold transition-colors" />
+        <span>Listen to the session playlist</span>
         <ExternalLink className="w-3 h-3 text-tea-text-sec ml-auto" />
       </a>
     )}
-  </div>
+  </section>
 );
 
 interface GallerySectionProps {
@@ -200,17 +200,17 @@ const GallerySection: React.FC<GallerySectionProps> = ({ images }) => {
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
   return (
-    <div className="mb-10">
+    <section className="mb-12">
       <div className="flex items-center gap-2 mb-5">
         <Image className="w-4 h-4 text-tea-gold" />
-        <h2 className="label-caps text-tea-text-sec">Gallery</h2>
+        <h2 className="h2">Gallery</h2>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
         {images.map((url, idx) => (
           <button
             key={idx}
             onClick={() => setLightboxImage(url)}
-            className="aspect-square overflow-hidden rounded-xl border border-tea-border hover:border-tea-gold/30 transition-all duration-300 group"
+            className="aspect-square overflow-hidden rounded-md border border-tea-border hover:border-tea-gold/30 transition-colors group"
             aria-label={`View photo ${idx + 1}`}
           >
             <img
@@ -235,7 +235,7 @@ const GallerySection: React.FC<GallerySectionProps> = ({ images }) => {
           />
         </div>
       )}
-    </div>
+    </section>
   );
 };
 
@@ -261,10 +261,10 @@ const PersonalNoteSection: React.FC<PersonalNoteProps> = ({ eventSlug }) => {
   };
 
   return (
-    <div className="mb-10">
+    <section className="mb-12">
       <div className="flex items-center gap-2 mb-5">
-        <span className="text-ui-10 uppercase tracking-[0.3em] text-tea-gold">✦</span>
-        <h2 className="label-caps text-tea-text-sec">What stayed with you?</h2>
+        <span className="text-ui-10 text-tea-gold">✦</span>
+        <h2 className="h3">What stayed with you?</h2>
       </div>
       <div className="bg-tea-surface border border-tea-border rounded-xl p-5">
         <textarea
@@ -272,7 +272,7 @@ const PersonalNoteSection: React.FC<PersonalNoteProps> = ({ eventSlug }) => {
           onChange={(e) => { setNote(e.target.value); setSaved(false); }}
           placeholder="A quiet thought, a memory, a taste that lingered..."
           rows={4}
-          className="w-full bg-transparent text-sm text-tea-text placeholder-tea-text-dim resize-none focus:outline-none leading-relaxed"
+          className="w-full bg-transparent text-ui-14 text-tea-text placeholder-tea-text-dim resize-none focus:outline-none leading-relaxed"
           aria-label="Personal note about this session"
         />
         <div className="flex items-center justify-between mt-4 pt-4 border-t border-tea-border">
@@ -280,13 +280,13 @@ const PersonalNoteSection: React.FC<PersonalNoteProps> = ({ eventSlug }) => {
           <button
             onClick={handleSave}
             disabled={!note.trim()}
-            className="px-4 py-1.5 text-ui-10 uppercase tracking-[0.15em] border border-tea-border text-tea-text-sec hover:border-tea-gold/40 hover:text-tea-gold disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-300"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md border border-tea-border text-xs font-semibold text-tea-text-sec hover:border-tea-gold/40 hover:text-tea-text disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             {saved ? 'Saved' : 'Keep this'}
           </button>
         </div>
       </div>
-    </div>
+    </section>
   );
 };
 

@@ -252,7 +252,7 @@ const TastingNotesTab: React.FC<TastingNotesTabProps> = ({ notes }) => {
                   type="button"
                   onClick={() => handlePromote(confirmNote, selectedVisibility)}
                   disabled={!!promoting}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-tea-gold/10"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {promoting ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}
                   Publish
@@ -790,9 +790,9 @@ export const EventDetail: React.FC = () => {
                       <p className="text-xs text-tea-text-sec mt-0.5">{s.phone || s.email || '—'}</p>
                     </div>
                     {s.converted_at ? (
-                      <span className="text-ui-10 text-tea-text-dim uppercase tracking-[0.15em] shrink-0">Converted</span>
+                      <span className={`${STATUS_PILL_BASE} ${STATUS_PILL_VARIANTS.archived} shrink-0`}>Converted</span>
                     ) : (
-                      <span className="text-ui-10 text-tea-gold uppercase tracking-[0.15em] shrink-0">Pending</span>
+                      <span className={`${STATUS_PILL_BASE} ${STATUS_PILL_VARIANTS.active} shrink-0`}>Pending</span>
                     )}
                   </div>
                 ))}
@@ -972,15 +972,16 @@ export const EventDetail: React.FC = () => {
             {/* Inline Venue Manager overlay */}
             {isVenueManagerOpen && (
               <div className="absolute inset-0 bg-tea-bg z-toast flex flex-col" style={{ minHeight: '60vh' }}>
-                <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b border-tea-border">
-                  <h3 className="text-base font-serif text-tea-text">Manage Venues</h3>
+                <div className="flex-shrink-0 flex items-center gap-3 px-4 py-3 border-b border-tea-border">
                   <button
                     type="button"
                     onClick={() => { setIsVenueManagerOpen(false); loadVenues(); }}
-                    className="text-tea-text-sec hover:text-tea-text transition-colors"
+                    aria-label="Close"
+                    className="text-tea-text-sec hover:text-tea-text transition-colors rounded-md p-1.5 tap-target"
                   >
-                    <X size={18} />
+                    <X size={16} />
                   </button>
+                  <h3 className="h3 text-tea-text">Manage Venues</h3>
                 </div>
                 <div className="flex-1 overflow-y-auto">
                   <VenueManager />
@@ -1042,7 +1043,7 @@ export const EventDetail: React.FC = () => {
                     }
                   }}
                   disabled={closingRsvp}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-tea-gold/10"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {closingRsvp ? <Loader2 size={13} className="animate-spin" /> : <Lock size={13} />}
                   Confirm

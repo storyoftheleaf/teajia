@@ -77,17 +77,17 @@ export const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
           <X size={16} />
         </button>
 
-        <div className="px-6 pt-6 pb-3">
+        <div className="px-5 pt-5 pb-3">
           <div className="flex items-center gap-2">
             <Scissors size={14} className="text-tea-gold" />
             <h3 className="h3 text-tea-text">Split Order</h3>
           </div>
-          <p className="text-ui-12 text-tea-text-dim mt-1">
+          <p className="text-ui-13 text-tea-text-sec mt-1">
             Select items to move to a new invoice. Remaining items stay on {invoice?.invoice_number}.
           </p>
         </div>
 
-        <div className="px-6 pb-4">
+        <div className="px-5 py-4">
           {fetching ? (
             <div className="py-8 text-center text-tea-text-sec"><Loader2 className="animate-spin inline" size={20} /></div>
           ) : (

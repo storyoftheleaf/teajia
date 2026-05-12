@@ -9,6 +9,54 @@ import { CONTACT_RELATIONSHIP_ORDER, CONTACT_RELATIONSHIP_TAXONOMY } from '../..
 import { Customer, CustomerTag, ContactType, ContactChannel, ContactEntry, ContactRelationshipKind, Product, Invoice } from '../types';
 import { useSampleStore } from '../../samples/sampleStore';
 import { SAMPLE_STATUS_CONFIG } from '../../samples/types';
+import { STATUS_PILL_BASE, STATUS_PILL_VARIANTS, type StatusPillVariant } from '../constants';
+
+/** Canonical status pill — see DesignSystemShowcase §8 */
+const StatusPill: React.FC<{ variant?: StatusPillVariant; className?: string; children: React.ReactNode }> = ({
+  variant = 'draft',
+  className = '',
+  children,
+}) => (
+  <span className={`${STATUS_PILL_BASE} ${STATUS_PILL_VARIANTS[variant]} ${className}`}>{children}</span>
+);
+
+/** Two-letter initials for the identity-card avatar */
+function customerInitials(name: string | undefined): string {
+  if (!name) return '·';
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '·';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+/** Map a CustomerTag to a canonical StatusPill variant */
+function tagVariant(tag: CustomerTag | string): StatusPillVariant {
+  switch (tag) {
+    case 'vip':
+    case 'wholesale':
+    case 'friend':
+    case 'vendor':
+      return 'active';
+    case 'inactive':
+      return 'archived';
+    default:
+      return 'draft';
+  }
+}
+
+/** Map a ContactRelationshipKind to a canonical StatusPill variant */
+function relationshipVariant(kind: ContactRelationshipKind): StatusPillVariant {
+  switch (kind) {
+    case 'buyer':
+    case 'vendor':
+      return 'active';
+    case 'event_guest':
+    case 'collection_recipient':
+    case 'contributor':
+    default:
+      return 'draft';
+  }
+}
 
 /** Vendor-supplied product row from api.customers.getSuppliedProducts() */
 interface SuppliedProduct {

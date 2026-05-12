@@ -292,34 +292,34 @@ export default function ContributorProfilePage() {
           {data.articles.length > 0 && (
             <Reveal>
               <SectionLabel>Words</SectionLabel>
-              <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+              <ul className="divide-y divide-tea-border">
                 {data.articles.map((article) => (
                   <li key={article.slug}>
                     <a
                       href={`/article/${article.slug}`}
-                      className="group flex items-baseline gap-6 py-6 border-b border-tea-border hover:bg-tea-accent-sub transition-colors px-2 -mx-2 rounded-md"
+                      className="group flex items-baseline gap-6 py-5 px-2 -mx-2 rounded-md hover:bg-tea-accent-sub/40 transition-colors"
+                      style={{ textDecoration: 'none' }}
                     >
                       <div className="flex-1 min-w-0">
-                        <div className="label-caps text-tea-text-dim mb-2">
-                          {formatSeason(article.published_at)}
-                        </div>
-                        <div className="text-ui-17 text-tea-text leading-snug" style={{ fontFamily: 'var(--font-display)' }}>
+                        <div className="font-display text-ui-17 text-tea-text leading-snug" style={{ fontWeight: 400 }}>
                           {article.title}
                         </div>
                         {article.subtitle && (
-                          <div className="subtitle mt-2">
+                          <div className="text-ui-13 text-tea-text-sec mt-1">
                             {article.subtitle}
                           </div>
                         )}
+                        <div className="label-caps text-tea-text-dim mt-2">
+                          {formatSeason(article.published_at)}
+                        </div>
                       </div>
                       <span
-                        className="text-tea-text-sec group-hover:text-tea-readgold transition-colors"
+                        className="text-tea-text-dim group-hover:text-tea-readgold transition-colors shrink-0"
                         aria-hidden="true"
                         style={{
                           fontFamily: 'var(--font-display)',
-                          fontSize: '20px',
+                          fontSize: 18,
                           fontWeight: 300,
-                          flex: '0 0 auto',
                         }}
                       >
                         →

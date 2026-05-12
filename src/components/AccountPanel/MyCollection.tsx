@@ -8,7 +8,7 @@ import { useInventory } from '../../context/InventoryContext';
 import type { InventoryItem } from '../../types';
 import { fmtPricePerGram } from '../../utils/formatNumber';
 import { TastingSession, type TastingItem } from '../tasting/TastingSession';
-import { ListShell, ListRow } from './primitives';
+import { ListShell } from './primitives';
 
 interface MyCollectionProps {
   onBack: () => void;
@@ -140,30 +140,36 @@ export const MyCollection: React.FC<MyCollectionProps> = ({ onBack, onViewItem }
         )}
       </AnimatePresence>
 
-      {/* Tea list — canonical §19 ListShell/ListRow */}
+      {/* Tea list — canonical §19 ListShell/ListRow.
+          We use `as="div"` because each row has inline action buttons
+          (tasting + favorite); nesting buttons inside a button is invalid HTML. */}
       <ListShell>
         {favoriteItems.map((item) => {
           const meta = [item.type, item.origin].filter(Boolean).join(' · ');
           const price = fmtPricePerGram(parseFloat(item.price_per_gram || '0'));
 
           const leading = item.image ? (
-            <div className="w-10 h-10 rounded-md bg-tea-bg/5 overflow-hidden">
+            <button
+              onClick={() => onViewItem?.(item)}
+              className="w-10 h-10 rounded-md bg-tea-bg/5 overflow-hidden block"
+              title={item.name}
+            >
               <img src={item.image} alt={item.name} className="w-full h-full object-cover" loading="lazy" />
-            </div>
+            </button>
           ) : null;
 
           const trailing = (
             <div className="flex items-center gap-2">
               <span className="text-ui-12 font-mono tabular-nums text-tea-text-sec">{price}</span>
               <button
-                onClick={(e) => { e.stopPropagation(); setTastingItem(item); }}
+                onClick={() => setTastingItem(item)}
                 className="p-2 text-tea-text-sec hover:text-tea-text transition-colors tap-target"
                 title="Add to your note"
               >
                 <Icons.Sparkles className="w-3.5 h-3.5" />
               </button>
               <button
-                onClick={(e) => { e.stopPropagation(); toggleFavoriteTea(item.id); }}
+                onClick={() => toggleFavoriteTea(item.id)}
                 className="p-2 text-tea-gold hover:text-tea-error transition-colors tap-target"
                 title="Remove from collection"
               >
@@ -173,14 +179,20 @@ export const MyCollection: React.FC<MyCollectionProps> = ({ onBack, onViewItem }
           );
 
           return (
-            <ListRow
-              key={item.id}
-              title={item.name}
-              meta={meta}
-              leading={leading}
-              trailing={trailing}
-              onClick={onViewItem ? () => onViewItem(item) : undefined}
-            />
+            <li key={item.id}>
+              <div className="w-full px-4 md:px-6 py-4 flex items-center gap-3 transition-colors hover:bg-tea-accent-sub">
+                {leading && <div className="shrink-0">{leading}</div>}
+                <button
+                  onClick={() => onViewItem?.(item)}
+                  className="flex-1 min-w-0 text-left"
+                  style={{ WebkitTapHighlightColor: 'transparent' }}
+                >
+                  <div className="font-display text-ui-15 text-tea-text truncate">{item.name}</div>
+                  {meta && <div className="text-ui-12 text-tea-text-dim mt-1 truncate">{meta}</div>}
+                </button>
+                <div className="shrink-0 ml-2">{trailing}</div>
+              </div>
+            </li>
           );
         })}
       </ListShell>

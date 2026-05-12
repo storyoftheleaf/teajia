@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useLayoutEffect, useRef, useCallba
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import {
   Loader2, FileSpreadsheet, Plus, Download,
-  AlertTriangle, Archive, Pencil, ArrowUpDown, ArrowUp, ArrowDown, Layers, Settings, MoreHorizontal, Check, X as XIcon, Eye, EyeOff, Star, Sparkles, FlaskConical, RefreshCw, ChevronDown, ChevronRight, ChevronLeft, MapPin, Save, Columns, Square, CheckSquare, Leaf, Image as ImageIcon, Globe, Tag, FileText, User, Receipt
+  AlertTriangle, Archive, Pencil, ArrowUpDown, ArrowUp, ArrowDown, Layers, Settings, MoreHorizontal, Check, X as XIcon, Eye, EyeOff, Star, Sparkles, FlaskConical, RefreshCw, ChevronDown, ChevronRight, ChevronLeft, MapPin, Save, Columns, Square, CheckSquare, Leaf, Image as ImageIcon, Globe, Tag, FileText, User, Receipt, History
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Papa from 'papaparse';
@@ -441,8 +441,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   }, [filterType, localProducts]);
 
   // --- VIRTUALIZATION LOGIC (TABLE BASED) ---
-  const ROW_HEIGHT = 42;
-  const SPLIT_ROW_HEIGHT = 42;
+  // Canonical row sizing — px-4 py-3 + name (17px) + optional 11px subtitle.
+  const ROW_HEIGHT = 56;
+  const SPLIT_ROW_HEIGHT = 52;
   const BUFFER_ROWS = 5;
   const splitView = !!panelProduct;
   const effectiveRowHeight = splitView ? SPLIT_ROW_HEIGHT : ROW_HEIGHT;
@@ -1056,7 +1057,13 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   };
 
   // --- COMPONENTS ---
-  const SortHeader = ({ colKey, label, align = 'left' }: { colKey: keyof Product, label: string, align?: 'left' | 'right' | 'center' }) => {
+  // Canonical column header — font-serif text-ui-11 uppercase tracking-display text-tea-text-sec.
+  // Numeric columns (grams, retail/g, cost, capacity, units) right-align; everything else left.
+  const RIGHT_ALIGN_KEYS = new Set([
+    'stockGrams', 'pricePerGramUSD', 'costAmount', 'costPerGramUSD', 'capacityMl', 'quantityUnits',
+  ]);
+  const SortHeader = ({ colKey, label, align: alignProp }: { colKey: keyof Product, label: string, align?: 'left' | 'right' | 'center' }) => {
+      const align: 'left' | 'right' | 'center' = alignProp ?? (RIGHT_ALIGN_KEYS.has(colKey as string) ? 'right' : 'left');
       const sortIndex = inventorySortConfig.findIndex(s => s.key === colKey);
       const sortEntry = sortIndex >= 0 ? inventorySortConfig[sortIndex] : null;
       const showBadge = inventorySortConfig.length > 1 && sortEntry;
@@ -1064,23 +1071,23 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       return (
         <th
           aria-sort={ariaSort}
-          className={`px-4 py-2 border-b border-tea-border text-${align} truncate`}
+          className={`font-serif text-ui-11 uppercase tracking-display text-tea-text-sec font-normal px-4 py-3 border-b border-tea-border ${align === 'right' ? 'text-right' : align === 'center' ? 'text-center' : 'text-left'}`}
         >
           <button
             type="button"
             onClick={() => handleSort(colKey)}
-            className={`tap-target group inline-flex w-full items-center gap-1 hover:text-tea-text transition-colors select-none text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec ${align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : 'justify-start'}`}
+            className={`tap-target group inline-flex items-center gap-1 hover:text-tea-text transition-colors select-none ${align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : 'justify-start'}`}
             aria-label={`Sort by ${label}${sortEntry ? `, currently ${sortEntry.direction === 'asc' ? 'ascending' : 'descending'}` : ''}`}
           >
              {label}
-             <div className="flex-shrink-0 relative z-0 flex items-center">
+             <span className="flex-shrink-0 inline-flex items-center">
               {sortEntry ? (
-                <span className="flex items-center">
-                  {sortEntry.direction === 'asc' ? <ArrowUp size={10} className="ml-1 text-tea-text-sec" /> : <ArrowDown size={10} className="ml-1 text-tea-text-sec" />}
-                  {showBadge && <span className="ml-0.5 text-ui-8 text-tea-gold font-bold">{sortIndex + 1}</span>}
-                </span>
-              ) : <ArrowUpDown size={10} className="opacity-0 group-hover:opacity-100 text-tea-text-sec/50 ml-1 transition-opacity" />}
-             </div>
+                <>
+                  {sortEntry.direction === 'asc' ? <ArrowUp size={10} className="ml-1 text-tea-readgold" /> : <ArrowDown size={10} className="ml-1 text-tea-readgold" />}
+                  {showBadge && <span className="ml-0.5 text-ui-9 text-tea-readgold font-bold">{sortIndex + 1}</span>}
+                </>
+              ) : <ArrowUpDown size={10} className="opacity-0 group-hover:opacity-100 text-tea-text-dim ml-1 transition-opacity" />}
+             </span>
           </button>
         </th>
       );

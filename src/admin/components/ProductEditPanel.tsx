@@ -1242,7 +1242,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                   <div className="space-y-0">
                     <div className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
                       <div className="flex items-center gap-1.5 shrink-0 w-20 md:w-24">
-                        <span className="text-ui-11 text-tea-text-sec uppercase tracking-[0.06em]">Override</span>
+                        <span className="text-ui-11 text-tea-text-sec uppercase tracking-caps">Override</span>
                         {product.fixedRetailPriceUSD && product.fixedRetailPriceUSD < calc.trueCostUSD && (
                           <span className="text-ui-10 text-tea-error italic" title="Below true cost">Below cost</span>
                         )}
@@ -1410,7 +1410,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                   const linkId = compassEntry?.id || compassEntryId!;
                   return (
                     <div className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
-                      <span className="text-ui-11 text-tea-text-sec uppercase tracking-[0.06em] shrink-0 w-20 md:w-24">Encounter</span>
+                      <span className="text-ui-11 text-tea-text-sec uppercase tracking-caps shrink-0 w-20 md:w-24">Encounter</span>
                       <button onClick={() => navigate(`/admin/compass?tab=buying&entry=${encodeURIComponent(linkId)}`)} className="text-xs text-tea-gold hover:text-tea-text transition-colors text-right flex items-center gap-1.5">
                         <Globe size={10} />
                         {compassEntry?.vendorName || 'Encounters Entry'}
@@ -1421,7 +1421,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                   );
                 })()}
                 <div className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
-                  <span className="text-ui-11 text-tea-text-sec uppercase tracking-[0.06em] shrink-0 w-20 md:w-24">Orders</span>
+                  <span className="text-ui-11 text-tea-text-sec uppercase tracking-caps shrink-0 w-20 md:w-24">Orders</span>
                   <button onClick={() => navigate(`/admin/activity?tab=orders&search=${encodeURIComponent(product.givenName || product.productName)}`)} className="text-xs text-tea-gold hover:text-tea-text transition-colors text-right flex items-center gap-1.5">
                     <Receipt size={10} />
                     View order history
@@ -1429,7 +1429,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                   </button>
                 </div>
                 <div className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
-                  <span className="text-ui-11 text-tea-text-sec uppercase tracking-[0.06em] shrink-0 w-20 md:w-24">Story page</span>
+                  <span className="text-ui-11 text-tea-text-sec uppercase tracking-caps shrink-0 w-20 md:w-24">Story page</span>
                   <button onClick={() => navigate(`/admin/products/${product.id}/story`)} className="text-xs text-tea-gold hover:text-tea-text transition-colors text-right flex items-center gap-1.5">
                     <BookOpen size={10} />
                     View full story

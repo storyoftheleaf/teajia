@@ -1073,39 +1073,42 @@ export const SourcesView = () => {
         className="flex-1 overflow-auto custom-scrollbar bg-tea-bg md:px-6"
       >
 
-        {/* MOBILE CARDS */}
-        <div className="md:hidden pb-24">
-          {processedSources.map((source, idx) => {
-            const isExpanded = expandedCardId === source.id;
-            return (
-              <div key={source.id}>
-                <button
-                  className={`w-full text-left px-4 py-2.5 flex items-center gap-3 transition-colors active:bg-tea-surface/80 ${isExpanded ? 'bg-tea-surface/60' : idx % 2 === 0 ? 'bg-transparent' : 'bg-tea-surface/20'}`}
-                  onClick={() => setExpandedCardId(isExpanded ? null : source.id)}
-                >
-                  {/* Name + company */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-tea-text text-sm font-serif truncate">{source.name}</span>
+        {/* MOBILE CARDS — canonical list rows §8 + identity-card-in-miniature §19 */}
+        <div className="md:hidden pb-nav-gap">
+          <ul className="divide-y divide-tea-border bg-tea-surface border border-tea-border rounded-xl overflow-hidden mx-3 mt-3">
+            {processedSources.map((source) => {
+              const isExpanded = expandedCardId === source.id;
+              const status = sourceStatus(source);
+              return (
+                <li key={source.id}>
+                  <button
+                    className={`w-full text-left px-4 py-3 flex items-center gap-3 transition-colors active:bg-tea-accent-sub ${isExpanded ? 'bg-tea-accent-sub' : ''}`}
+                    onClick={() => setExpandedCardId(isExpanded ? null : source.id)}
+                  >
+                    <VendorAvatar name={source.name} size={36} />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-display text-ui-15 text-tea-text truncate">{source.name}</div>
+                      <div className="flex items-center gap-1.5 text-ui-12 text-tea-text-dim mt-0.5">
+                        {source.company && <span className="truncate">{source.company}</span>}
+                        {source.company && source.country && <span className="opacity-40">·</span>}
+                        {source.country && (
+                          <span className="flex items-center gap-0.5 truncate"><MapPin size={9} className="flex-shrink-0" /> {source.country}</span>
+                        )}
+                        {!source.company && !source.country && (
+                          <span className="text-tea-text-dim">Vendor</span>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1.5 text-ui-10 text-tea-text-sec/70 mt-0.5">
-                      {source.company && <span className="truncate">{source.company}</span>}
-                      {source.company && source.country && <span className="opacity-40">·</span>}
-                      {source.country && (
-                        <span className="flex items-center gap-0.5"><MapPin size={8} /> {source.country}</span>
-                      )}
-                    </div>
-                  </div>
 
-                  {/* Tea count */}
-                  <div className="flex-shrink-0 text-right">
-                    <div className={`text-xs tabular-nums flex items-center gap-1 ${source.teaCount > 0 ? 'text-tea-gold' : 'text-tea-text-dim'}`}>
-                      <Leaf size={10} /> {source.teaCount}
+                    <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                      <StatusPill variant={status.variant}>{status.label}</StatusPill>
+                      <div className={`text-ui-11 tabular-nums flex items-center gap-1 ${source.teaCount > 0 ? 'text-tea-gold' : 'text-tea-text-dim'}`}>
+                        <Leaf size={10} /> {source.teaCount}
+                      </div>
                     </div>
-                  </div>
 
-                  <ChevronDown size={14} className={`flex-shrink-0 text-tea-text-sec/30 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
-                </button>
+                    <ChevronRight size={14} className={`flex-shrink-0 text-tea-text-dim transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`} />
+                  </button>
 
                 {/* Expanded detail panel */}
                 {isExpanded && (
