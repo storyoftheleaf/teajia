@@ -1022,6 +1022,7 @@ export interface DbArticle {
   title: string;
   subtitle?: string;
   author_id?: string;
+  author_name?: string;
   slug: string;
   status: 'draft' | 'published' | 'archived';
   category?: string;
