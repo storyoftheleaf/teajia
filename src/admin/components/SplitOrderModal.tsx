@@ -118,7 +118,7 @@ export const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
           )}
         </div>
 
-        <div className="flex justify-between items-center gap-2 px-6 py-4 border-t border-tea-border">
+        <div className="flex justify-between items-center gap-2 px-5 py-3 border-t border-tea-border bg-tea-bg/40 rounded-b-xl">
           <div className="flex items-center gap-3">
             <button
               onClick={onClose}
@@ -126,7 +126,7 @@ export const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
             >
               Cancel
             </button>
-            <span className="text-ui-11 text-tea-text-dim">{selected.size} of {items.length} selected</span>
+            <span className="label-caps text-tea-text-dim">{selected.size} of {items.length} selected</span>
           </div>
           <button
             onClick={handleSplit}

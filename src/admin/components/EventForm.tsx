@@ -194,7 +194,7 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
     <form onSubmit={handleCreate} className="flex flex-col h-full min-h-0">
       {/* Scrollable body */}
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-5xl mx-auto px-6 py-8 grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8">
+        <div className="max-w-3xl mx-auto px-6 py-8 grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-8">
 
           {/* ── Left column: details ── */}
           <div className="divide-y divide-tea-border">
@@ -622,7 +622,7 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
         <button
           type="submit"
           disabled={saving || uploading}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-tea-gold/10"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
           Create Event
@@ -633,15 +633,16 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
     {/* Inline Venue Manager overlay — slides over form without losing state */}
     {isVenueManagerOpen && (
       <div className="absolute inset-0 bg-tea-bg z-toast flex flex-col">
-        <div className="flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-tea-border">
-          <h2 className="text-base font-serif text-tea-text">Manage Venues</h2>
+        <div className="flex-shrink-0 flex items-center gap-3 px-6 py-4 border-b border-tea-border">
           <button
             type="button"
             onClick={() => { setIsVenueManagerOpen(false); loadVenues(); }}
-            className="text-tea-text-sec hover:text-tea-text transition-colors"
+            aria-label="Close"
+            className="text-tea-text-sec hover:text-tea-text transition-colors rounded-md p-1.5 tap-target"
           >
-            <X size={18} />
+            <X size={16} />
           </button>
+          <h3 className="h3 text-tea-text">Manage Venues</h3>
         </div>
         <div className="flex-1 overflow-y-auto">
           <VenueManager />
@@ -1410,10 +1411,10 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
                     type="button"
                     onClick={handleSaveLocation}
                     disabled={savingLocation}
-                    className="flex items-center gap-1.5 text-xs bg-tea-gold text-tea-bg px-3 py-1.5 hover:bg-tea-gold-lt transition-colors disabled:opacity-50"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   >
-                    {savingLocation ? <Loader2 size={10} className="animate-spin" /> : <Bookmark size={10} />}
-                    Save location
+                    {savingLocation ? <Loader2 size={11} className="animate-spin" /> : <Bookmark size={11} />}
+                    Save Location
                   </button>
                 </div>
               </div>
@@ -1622,7 +1623,7 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
         <button
           type="submit"
           disabled={saving}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-tea-gold/10"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
           Update Event

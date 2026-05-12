@@ -513,29 +513,29 @@ const PublicationRow: React.FC<{
       : 'No recipients';
 
   return (
-    <li className={`flex items-center gap-3 px-3 py-2.5 rounded-md ${active ? 'bg-tea-surface' : 'bg-tea-elevated opacity-60'}`}>
-      <div className="w-7 h-7 rounded-md bg-tea-elevated flex items-center justify-center flex-shrink-0 text-tea-text-sec">
-        {isStore ? <Building2 size={13} /> : <UserIcon size={13} />}
+    <li className={`flex items-center gap-3 px-4 md:px-6 py-3 transition-colors ${active ? 'hover:bg-tea-accent-sub' : 'opacity-60'}`}>
+      <div className="w-8 h-8 rounded-md bg-tea-elevated flex items-center justify-center flex-shrink-0 text-tea-text-sec">
+        {isStore ? <Building2 size={14} /> : <UserIcon size={14} />}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-xs text-tea-text truncate">
+        <div className="font-display text-ui-15 text-tea-text truncate flex items-center gap-1.5">
           {headline}
           {isStore && (
-            <span className="ml-1.5 text-ui-10 uppercase tracking-[1.2px] text-tea-text-dim">store</span>
+            <span className="text-ui-9 uppercase tracking-caps text-tea-text-dim">store</span>
           )}
-        </p>
-        <p className="text-ui-10 text-tea-text-dim truncate mt-0.5 font-mono">
+        </div>
+        <div className="text-ui-12 text-tea-text-dim truncate mt-1">
           {isStore
             ? `${active ? `shared ${formatWhen(pub.published_at)}` : `unpublished ${formatWhen(pub.unpublished_at)}`}`
             : `/c/${pub.slug} · ${pub.view_count} view${pub.view_count !== 1 ? 's' : ''} · ${active ? `shared ${formatWhen(pub.published_at)}` : `unpublished ${formatWhen(pub.unpublished_at)}`}`}
-        </p>
+        </div>
       </div>
       {active && (
-        <>
+        <div className="flex items-center gap-1 shrink-0">
           {!isStore && (
             <button
               onClick={copy}
-              className="p-1.5 text-tea-text-sec hover:text-tea-text transition-colors"
+              className="tap-target p-1.5 text-tea-text-sec hover:text-tea-text transition-colors"
               title="Copy link"
             >
               {copied ? <Check size={13} className="text-tea-gold" /> : <Copy size={13} />}
@@ -543,11 +543,11 @@ const PublicationRow: React.FC<{
           )}
           <button
             onClick={onUnpublish}
-            className="text-ui-10 uppercase tracking-[1.2px] text-tea-text-sec hover:text-red-400 transition-colors"
+            className="text-ui-11 text-tea-text-sec hover:text-tea-error transition-colors px-2 py-1"
           >
             {isStore ? 'Stop sharing' : 'Unpublish'}
           </button>
-        </>
+        </div>
       )}
     </li>
   );

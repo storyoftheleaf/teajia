@@ -1110,89 +1110,96 @@ export const SourcesView = () => {
                     <ChevronRight size={14} className={`flex-shrink-0 text-tea-text-dim transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`} />
                   </button>
 
-                {/* Expanded detail panel */}
-                {isExpanded && (
-                  <div className="bg-tea-surface/40 px-4 pb-3 pt-1 border-b border-tea-border">
-                    <div className="grid grid-cols-3 gap-x-4 gap-y-2 py-2">
-                      {source.company && (
+                  {/* Expanded detail panel */}
+                  {isExpanded && (
+                    <div className="bg-tea-bg/60 px-4 pb-3 pt-2 border-t border-tea-border">
+                      <div className="grid grid-cols-3 gap-x-4 gap-y-3 py-2">
+                        {source.company && (
+                          <div>
+                            <div className="text-ui-10 text-tea-text-dim uppercase tracking-caps">Company</div>
+                            <div className="text-ui-13 text-tea-text mt-0.5 truncate">{source.company}</div>
+                          </div>
+                        )}
+                        {source.country && (
+                          <div>
+                            <div className="text-ui-10 text-tea-text-dim uppercase tracking-caps">Country</div>
+                            <div className="text-ui-13 text-tea-text mt-0.5 truncate">{source.country}</div>
+                          </div>
+                        )}
                         <div>
-                          <div className="text-ui-9 text-tea-text-sec/50 uppercase tracking-wider">Company</div>
-                          <div className="text-sm text-tea-text">{source.company}</div>
+                          <div className="text-ui-10 text-tea-text-dim uppercase tracking-caps">Teas</div>
+                          <div className="text-ui-13 text-tea-text tabular-nums mt-0.5">{source.teaCount}</div>
                         </div>
-                      )}
-                      {source.country && (
-                        <div>
-                          <div className="text-ui-9 text-tea-text-sec/50 uppercase tracking-wider">Country</div>
-                          <div className="text-sm text-tea-text">{source.country}</div>
-                        </div>
-                      )}
-                      <div>
-                        <div className="text-ui-9 text-tea-text-sec/50 uppercase tracking-wider">Teas</div>
-                        <div className="text-sm text-tea-text tabular-nums">{source.teaCount}</div>
+                        {source.email && (
+                          <div className="col-span-2">
+                            <div className="text-ui-10 text-tea-text-dim uppercase tracking-caps">Email</div>
+                            <div className="text-ui-13 text-tea-text truncate mt-0.5">{source.email}</div>
+                          </div>
+                        )}
+                        {source.phone && (
+                          <div>
+                            <div className="text-ui-10 text-tea-text-dim uppercase tracking-caps">Phone</div>
+                            <div className="text-ui-13 text-tea-text mt-0.5">{source.phone}</div>
+                          </div>
+                        )}
                       </div>
-                      {source.email && (
-                        <div className="col-span-2">
-                          <div className="text-ui-9 text-tea-text-sec/50 uppercase tracking-wider">Email</div>
-                          <div className="text-sm text-tea-text truncate">{source.email}</div>
-                        </div>
+
+                      {source.notes && (
+                        <p className="text-ui-12 text-tea-text-sec font-serif italic leading-relaxed mt-1 mb-2">{source.notes}</p>
                       )}
-                      {source.phone && (
-                        <div>
-                          <div className="text-ui-9 text-tea-text-sec/50 uppercase tracking-wider">Phone</div>
-                          <div className="text-sm text-tea-text">{source.phone}</div>
+
+                      {/* Action buttons */}
+                      <div className="flex items-center gap-2 mt-2 pt-3 border-t border-tea-border">
+                        <button
+                          onClick={() => navigate(`/admin/vendors/${source.id}`)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs text-tea-text-sec hover:text-tea-text hover:bg-tea-surface transition-colors"
+                        >
+                          <ExternalLink size={12} /> Profile
+                        </button>
+                        <div className="ml-auto flex items-center gap-2">
+                          <button
+                            onClick={() => { setEditingSource(source); setIsModalOpen(true); }}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-tea-border text-xs text-tea-text-sec hover:text-tea-text hover:bg-tea-surface transition-colors"
+                          >
+                            <Pencil size={12} /> Edit
+                          </button>
+                          <button
+                            onClick={() => handleDelete(source)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-tea-border text-xs text-tea-text-sec hover:text-tea-error transition-colors"
+                          >
+                            <Trash2 size={12} /> Delete
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Inline tea inventory */}
+                      {source.teaCount > 0 && (
+                        <div className="mt-3 -mx-4 border-t border-tea-accent-sub">
+                          <TeaTable
+                            products={getSourceProducts(source.name)}
+                            currency={currency}
+                            rates={rates}
+                            onAdd={() => {}}
+                            isAdmin={true}
+                            isLoading={false}
+                            showAll={true}
+                            inline={true}
+                            title={`${source.name}'s Teas`}
+                            onEdit={(product) => {
+                              navigate(`/admin/inventory?panel=${encodeURIComponent(product.id)}`);
+                            }}
+                          />
                         </div>
                       )}
                     </div>
-
-                    {source.notes && (
-                      <p className="text-xs text-tea-text-sec/70 font-serif italic leading-relaxed mt-1 mb-2">{source.notes}</p>
-                    )}
-
-                    {/* Action buttons */}
-                    <div className="flex items-center gap-2 mt-2 pt-2 border-t border-tea-border">
-                      <div className="ml-auto flex items-center gap-2">
-                        <button
-                          onClick={() => { setEditingSource(source); setIsModalOpen(true); }}
-                          className="flex items-center gap-1.5 px-3 py-1.5 text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec hover:text-tea-text bg-tea-bg/60 hover:bg-tea-bg rounded-md transition-colors"
-                        >
-                          <Pencil size={12} /> Edit
-                        </button>
-                        <button
-                          onClick={() => handleDelete(source)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-tea-border text-tea-text-sec hover:text-tea-error hover:bg-tea-accent-sub transition-colors text-xs"
-                        >
-                          <Trash2 size={12} /> Delete
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Inline tea inventory */}
-                    {source.teaCount > 0 && (
-                      <div className="mt-3 -mx-4 border-t border-tea-accent-sub">
-                        <TeaTable
-                          products={getSourceProducts(source.name)}
-                          currency={currency}
-                          rates={rates}
-                          onAdd={() => {}}
-                          isAdmin={true}
-                          isLoading={false}
-                          showAll={true}
-                          inline={true}
-                          title={`${source.name}'s Teas`}
-                          onEdit={(product) => {
-                            navigate(`/admin/inventory?panel=${encodeURIComponent(product.id)}`);
-                          }}
-                        />
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+                  )}
+                </li>
+              );
+            })}
+          </ul>
 
           {processedSources.length === 0 && (
-            <div className="text-center py-16 text-tea-text-sec font-serif italic">
+            <div className="bg-tea-surface border border-tea-border rounded-xl mx-3 mt-3 text-center py-16 text-ui-13 text-tea-text-sec font-serif italic">
               {searchQuery ? 'No sources match your search.' : 'No sources yet. Add your first vendor.'}
             </div>
           )}
@@ -1285,32 +1292,33 @@ export const SourcesView = () => {
         </div>
       </div>
 
-      {/* --- SIDE PANEL --- */}
+      {/* --- SIDE PANEL — canonical drawer §15 (close X top-LEFT, w-full max-w-md, bg-tea-surface) --- */}
       <AnimatePresence>
-        {panelSource && (
+        {panelSource && (() => {
+          const panelStatus = sourceStatus(panelSource);
+          return (
           <motion.div
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-            className="fixed inset-0 md:inset-auto md:right-0 md:top-0 md:bottom-0 md:w-[420px] z-drawer bg-tea-bg flex flex-col"
-            style={{ boxShadow: '-12px 0 40px -8px rgba(24,19,14,0.35), inset 1px 0 0 var(--tea-accent-sub)' }}
+            className="fixed inset-y-0 right-0 z-drawer w-full md:max-w-md bg-tea-surface border-l border-tea-border flex flex-col"
+            style={{ boxShadow: '-12px 0 40px -8px rgba(24,19,14,0.35)' }}
           >
-            {/* Panel Header */}
-            <div className="flex items-center gap-3 px-5 py-3 border-b border-tea-accent-sub bg-tea-surface/30">
-              <div className="flex-1 min-w-0">
-                <h3 className="text-sm font-serif text-tea-text truncate">{panelSource.name}</h3>
-                <span className="text-ui-10 text-tea-text-dim">
-                  {panelSource.company || 'Vendor'}{panelSource.country ? ` · ${panelSource.country}` : ''}
-                </span>
-              </div>
+            {/* Panel Header — close X top-LEFT, nav toolbar right (panel-with-toolbar exception) */}
+            <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-tea-border bg-tea-surface flex-shrink-0">
+              <button
+                onClick={() => setPanelSource(null)}
+                className="tap-target p-1 text-tea-text-sec hover:text-tea-text transition-colors"
+                title="Close"
+              ><XIcon size={18} /></button>
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => {
                     const idx = processedSources.findIndex(s => s.id === panelSource.id);
                     if (idx > 0) setPanelSource(processedSources[idx - 1]);
                   }}
-                  className="p-1 text-tea-text-sec hover:text-tea-text transition-colors"
+                  className="tap-target p-1 text-tea-text-sec hover:text-tea-text transition-colors"
                   title="Previous"
                 ><ChevronUp size={16} /></button>
                 <button
@@ -1318,10 +1326,30 @@ export const SourcesView = () => {
                     const idx = processedSources.findIndex(s => s.id === panelSource.id);
                     if (idx < processedSources.length - 1) setPanelSource(processedSources[idx + 1]);
                   }}
-                  className="p-1 text-tea-text-sec hover:text-tea-text transition-colors"
+                  className="tap-target p-1 text-tea-text-sec hover:text-tea-text transition-colors"
                   title="Next"
                 ><ChevronDown size={16} /></button>
-                <button onClick={() => setPanelSource(null)} className="p-1 text-tea-text-sec hover:text-tea-text transition-colors ml-1"><XIcon size={16} /></button>
+              </div>
+            </div>
+
+            {/* Identity card — canonical from §19 */}
+            <div className="px-5 py-5 border-b border-tea-border flex items-start gap-4 flex-shrink-0">
+              <VendorAvatar name={panelSource.name} size={48} />
+              <div className="flex-1 min-w-0">
+                <h3 className="h3 truncate">{panelSource.name}</h3>
+                {panelSource.email && (
+                  <p className="text-ui-13 text-tea-text-sec mt-0.5 truncate">{panelSource.email}</p>
+                )}
+                <p className="text-ui-12 text-tea-text-dim mt-0.5 truncate">
+                  {panelSource.company || 'Vendor'}{panelSource.country ? ` · ${panelSource.country}` : ''}
+                  {panelSource.teaCount > 0 && ` · ${panelSource.teaCount} tea${panelSource.teaCount !== 1 ? 's' : ''}`}
+                </p>
+                <div className="flex flex-wrap gap-1.5 mt-3">
+                  <StatusPill variant={panelStatus.variant}>{panelStatus.label}</StatusPill>
+                  {panelSource.tags?.filter(t => t !== 'vendor').map(t => (
+                    <StatusPill key={t} variant="draft">{t}</StatusPill>
+                  ))}
+                </div>
               </div>
             </div>
 

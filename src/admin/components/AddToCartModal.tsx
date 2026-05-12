@@ -62,14 +62,16 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
           <X size={16} />
         </button>
 
-        <div className="px-6 pt-6 pb-3">
-          <h3 className="h3 text-tea-text">Add to Order</h3>
-          <p className="label-caps text-tea-text-dim mt-1">
-            {product.givenName} · {product.productName}
-          </p>
+        <div className="flex items-start justify-between gap-3 px-5 pt-5 pb-3">
+          <div>
+            <h3 className="h3 text-tea-text">Add to Order</h3>
+            <p className="label-caps text-tea-text-dim mt-1">
+              {product.givenName} · {product.productName}
+            </p>
+          </div>
         </div>
 
-        <div className="px-6 pb-4 space-y-6">
+        <div className="px-5 py-4 space-y-6">
           <div>
             <label className="block label-caps text-tea-text-sec mb-1.5">
               Quantity ({product.type === 'Teaware' ? 'Units' : 'Grams'})
@@ -111,7 +113,7 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
           </div>
         </div>
 
-        <div className="flex justify-between gap-2 px-6 py-4 border-t border-tea-border">
+        <div className="flex justify-between gap-2 px-5 py-3 border-t border-tea-border bg-tea-bg/40 rounded-b-xl">
           <button
             onClick={onClose}
             className="px-2 py-1 text-xs text-tea-text-sec hover:text-tea-text transition-colors focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none rounded-md"

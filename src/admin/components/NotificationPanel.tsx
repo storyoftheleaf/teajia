@@ -100,19 +100,21 @@ const SendConfirmModal: React.FC<SendConfirmModalProps> = ({
           <X size={16} />
         </button>
 
-        <div className="px-6 pt-6 pb-3">
-          <div className="flex items-center gap-2">
-            <Mail size={14} className="text-tea-gold" />
-            <h3 className="h3 text-tea-text">Send Event Invites</h3>
+        <div className="flex items-start justify-between gap-3 px-5 pt-5 pb-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <Mail size={14} className="text-tea-gold" />
+              <h3 className="h3 text-tea-text">Send Event Invites</h3>
+            </div>
+            <p className="text-ui-13 text-tea-text-sec mt-1">
+              This will send WhatsApp/email invites to{' '}
+              <span className="text-tea-text">{approvedCount} approved</span>{' '}
+              {approvedCount === 1 ? 'attendee' : 'attendees'}.
+            </p>
           </div>
-          <p className="text-ui-13 text-tea-text-sec mt-1">
-            This will send WhatsApp/email invites to{' '}
-            <span className="text-tea-text">{approvedCount} approved</span>{' '}
-            {approvedCount === 1 ? 'attendee' : 'attendees'}.
-          </p>
         </div>
 
-        <div className="px-6 pb-4 space-y-3">
+        <div className="px-5 py-4 space-y-3">
           <button
             onClick={() => setShowPreview(v => !v)}
             className="inline-flex items-center gap-1.5 text-ui-12 text-tea-text-sec hover:text-tea-gold transition-colors"

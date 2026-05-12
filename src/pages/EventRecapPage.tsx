@@ -328,8 +328,8 @@ const EventRecapPage: React.FC = () => {
       <div className="min-h-screen bg-tea-bg flex items-center justify-center px-6">
         <div className="flex flex-col items-center text-center max-w-sm mx-auto py-20 px-6">
           <p className="label-caps text-tea-readgold mb-4">Session Archive</p>
-          <h1 className="h2 mb-3">Recap not available</h1>
-          <p className="text-ui-12 text-tea-text-dim leading-relaxed mb-8">
+          <h1 className="h1 mb-3">Recap not available</h1>
+          <p className="body-light mb-8">
             The host hasn't published a recap for this session yet, or this session is still upcoming.
           </p>
           <button
@@ -375,14 +375,13 @@ const EventRecapPage: React.FC = () => {
           onClick={() => navigate(`/event/${slug}`)}
           className={
             event.flyer_image_url
-              ? 'flex items-center justify-center w-9 h-9 rounded-full'
-              : 'flex items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors text-sm'
+              ? 'tap-target flex items-center justify-center w-9 h-9 rounded-full bg-tea-bg/60 text-tea-text-sec hover:text-tea-text transition-colors backdrop-blur-md'
+              : 'inline-flex items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors text-ui-14'
           }
-          style={event.flyer_image_url ? { background: 'rgba(24,19,14,0.6)', backdropFilter: 'blur(8px)' } : undefined}
           aria-label="Back to event"
         >
           {event.flyer_image_url ? (
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M19 12H5m7-7l-7 7 7 7" />
             </svg>
           ) : (
@@ -394,12 +393,12 @@ const EventRecapPage: React.FC = () => {
         </button>
       </div>
 
-      {/* Main content */}
-      <div className="max-w-3xl mx-auto px-4 md:px-6 pt-12 pb-24">
+      {/* Main content — editorial reader chrome */}
+      <div className="max-w-2xl mx-auto px-4 md:px-6 pt-12 pb-24">
         {/* Header */}
         <div className="text-center mb-10">
           <p className="label-caps text-tea-readgold mb-3">Session Recap</p>
-          <h1 className="h2 mb-2">
+          <h1 className="h1 mb-3">
             {event.title}
           </h1>
           {event.subtitle && (
@@ -407,12 +406,12 @@ const EventRecapPage: React.FC = () => {
               {event.subtitle}
             </p>
           )}
-          <p className="text-ui-12 text-tea-text-dim mt-3">
+          <p className="label-caps text-tea-text-dim mt-3">
             {formatEventDate(event.event_date)}
           </p>
         </div>
 
-        <div className="w-8 h-px bg-tea-border mx-auto mb-10" />
+        <div className="w-8 h-px bg-tea-border mx-auto mb-12" />
 
         {/* Tea Ledger */}
         {hasTeaMenu && <TeaLedgerSection items={tea_menu} />}
@@ -433,7 +432,7 @@ const EventRecapPage: React.FC = () => {
         {slug && <PersonalNoteSection eventSlug={slug} />}
 
         {/* Footer */}
-        <div className="text-center pt-4 pb-4 border-t border-tea-border mt-4">
+        <div className="text-center pt-6 pb-4 border-t border-tea-border mt-4">
           <p className="label-caps text-tea-text-dim mb-4">
             Hosted by Teajia
           </p>

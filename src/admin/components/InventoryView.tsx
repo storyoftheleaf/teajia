@@ -1314,7 +1314,13 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   };
 
   if (isLoading) {
-    return <div className="p-12 text-center text-tea-text-sec font-serif italic"><Loader2 className="animate-spin inline mr-2" /> Loading inventory...</div>;
+    return (
+      <div className="flex flex-col items-center text-center max-w-sm mx-auto py-20 px-6">
+        <Loader2 size={20} className="animate-spin text-tea-text-dim mb-3" aria-hidden="true" />
+        <div className="font-display text-ui-17 text-tea-text">Loading inventory</div>
+        <p className="font-sans text-ui-11 text-tea-text-dim uppercase mt-1.5" style={{ letterSpacing: '0.08em' }}>Reading the ledger</p>
+      </div>
+    );
   }
 
   if (isError) {
@@ -2636,21 +2642,38 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               absolutely so toggling selection never reflows the table. */}
           <AnimatePresence>{renderActionDrawer()}</AnimatePresence>
 
+          {/* Canonical top strip: stock-history link (left) + item counter (right). */}
+          {processedProducts.length > 0 && (
+            <div className="flex items-center justify-between px-5 py-2.5 border-b border-tea-border bg-tea-surface">
+              <button
+                type="button"
+                onClick={() => {
+                  const target = panelProduct ?? processedProducts[0];
+                  if (target) setStockHistoryProduct({ id: target.id, name: target.givenName || target.productName });
+                }}
+                className="text-ui-11 uppercase tracking-caps font-sans text-tea-text-sec hover:text-tea-text transition-colors inline-flex items-center gap-1.5"
+              >
+                <History size={12} aria-hidden="true" /> View stock history
+              </button>
+              <span className="label-caps text-tea-text-dim tabular-nums">{processedProducts.length} items</span>
+            </div>
+          )}
+
           {/* --- GROUPED VIEW --- */}
           {groupedProducts ? (
             <div>
-              {/* Table header (sticky) */}
+              {/* Table header (sticky) — canonical font-serif uppercase tracking-display */}
               <table className="w-full table-fixed border-collapse">
                 <colgroup>
                   {visibleCols.map(col => <col key={col.key} className={col.defaultWidth} />)}
                   <col className="w-[200px]" />
                 </colgroup>
-                <thead className="sticky top-0 z-sticky bg-tea-bg shadow-sm">
+                <thead className="sticky top-0 z-sticky bg-tea-bg/95 backdrop-blur-sm">
                   <tr>
                     {visibleCols.map(col => (
-                      <SortHeader key={col.key} colKey={col.key as keyof Product} label={col.label} align="left" />
+                      <SortHeader key={col.key} colKey={col.key as keyof Product} label={col.label} />
                     ))}
-                    <th className="px-2 py-2 border-b border-tea-border"></th>
+                    <th className="px-3 py-3 border-b border-tea-border" aria-hidden="true"></th>
                   </tr>
                 </thead>
               </table>
@@ -2666,13 +2689,13 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         if (next.has(groupKey)) next.delete(groupKey); else next.add(groupKey);
                         return next;
                       })}
-                      className="w-full flex items-center gap-3 px-5 py-2 bg-tea-bg/70 border-b border-tea-border hover:bg-tea-bg transition-colors text-left"
+                      className="w-full flex items-center gap-3 px-5 py-2.5 bg-tea-bg/60 border-b border-tea-border hover:bg-tea-accent-sub transition-colors text-left"
                     >
                       {isCollapsed ? <ChevronRight size={14} className="text-tea-text-sec" /> : <ChevronDown size={14} className="text-tea-text-sec" />}
-                      <span className="text-sm font-serif text-tea-text">{groupKey}</span>
-                      <span className="text-ui-10 text-tea-text-sec uppercase tracking-[0.15em]">{items.length} items</span>
-                      <span className="text-ui-10 text-tea-text-sec tabular-nums ml-auto">{totalStock}g total</span>
-                      <span className="text-ui-10 text-tea-text-sec tabular-nums">${fmtNum(totalRetail)} value</span>
+                      <span className="font-display text-ui-15 text-tea-text">{groupKey}</span>
+                      <span className="label-caps text-tea-text-dim">{items.length} items</span>
+                      <span className="font-serif text-ui-13 text-tea-text-sec tabular-nums ml-auto">{totalStock}g</span>
+                      <span className="font-serif text-ui-13 text-tea-text-sec tabular-nums">${fmtNum(totalRetail)}</span>
                     </button>
                     {!isCollapsed && (
                       <table className="w-full table-fixed border-collapse">
@@ -2734,18 +2757,19 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     <col className={splitView ? 'w-[100px]' : 'w-[200px]'} />
                 </colgroup>
 
-                <thead className="sticky top-0 z-sticky bg-tea-bg shadow-sm">
+                {/* Canonical header — auto-aligned: numerics right, others left. */}
+                <thead className="sticky top-0 z-sticky bg-tea-bg/95 backdrop-blur-sm">
                     <tr>
                         {splitView ? (
                           splitViewCols.map(col => (
-                            <SortHeader key={col.key} colKey={col.key as keyof Product} label={col.label} align="left" />
+                            <SortHeader key={col.key} colKey={col.key as keyof Product} label={col.label} />
                           ))
                         ) : (
                           visibleCols.map(col => (
-                            <SortHeader key={col.key} colKey={col.key as keyof Product} label={col.label} align="left" />
+                            <SortHeader key={col.key} colKey={col.key as keyof Product} label={col.label} />
                           ))
                         )}
-                        <th className="px-2 py-2 border-b border-tea-border"></th>
+                        <th className="px-3 py-3 border-b border-tea-border" aria-hidden="true"></th>
                     </tr>
                 </thead>
 

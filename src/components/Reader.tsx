@@ -796,7 +796,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, isSav
           </button>
           <button
             onClick={() => setShowShakeConfirm(false)}
-            className="text-tea-text-dim text-sm hover:text-tea-text transition-colors"
+            className="text-tea-text-sec text-sm hover:text-tea-text transition-colors"
           >
             Cancel
           </button>
@@ -876,7 +876,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, isSav
       <div className="absolute top-0 left-0 w-full h-16 z-50 flex items-center justify-between px-6 md:px-10 text-tea-text-sec pointer-events-none bg-gradient-to-b from-tea-bg/40 to-transparent">
         <button
           onClick={onBack}
-          className="flex items-center gap-2 text-xs uppercase tracking-[0.15em] text-tea-text-sec hover:text-tea-text pointer-events-auto transition-colors p-3 -ml-3 rounded-full"
+          className="tap-target flex items-center gap-2 text-xs font-semibold text-tea-text-sec hover:text-tea-text pointer-events-auto transition-colors p-3 -ml-3"
         >
           <Icons.Back className="w-5 h-5" />
           <span className="hidden md:inline">Back</span>
@@ -912,7 +912,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, isSav
             className="hidden lg:flex flex-col justify-between h-full py-20 px-8 pointer-events-none shrink-0"
             style={{ opacity: marginOpacity, transition: 'opacity 0.6s ease' }}
           >
-            <span className="text-ui-11 uppercase tracking-[0.2em] text-tea-text-dim" style={{ fontFamily: 'var(--font-sans)' }}>
+            <span className="label-caps text-tea-text-dim">
               {story.title}
             </span>
           </div>
