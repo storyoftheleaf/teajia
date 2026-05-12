@@ -98,7 +98,7 @@ export const AdminToolbar: React.FC<AdminToolbarProps> = ({ collapsed: controlle
         </button>
         <button
           onClick={() => setCollapsed(true)}
-          className="p-1 text-tea-text/30 hover:text-tea-text/60 transition-colors"
+          className="p-1 text-tea-text-sec hover:text-tea-text transition-colors"
           title="Collapse admin bar"
         >
           <Icons.Close className="w-3 h-3" />

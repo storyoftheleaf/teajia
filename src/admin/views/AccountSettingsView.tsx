@@ -655,33 +655,35 @@ const LaunchReadinessPanel: React.FC<{
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-[1fr_auto] gap-4">
         <div className="min-w-0">
           <p className="text-ui-10 uppercase tracking-[0.18em] text-tea-text-dim mb-2">Storefront</p>
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <code className="flex-1 min-w-0 bg-tea-bg border border-tea-border rounded-md px-3 py-2 text-ui-11 text-tea-text-sec font-mono truncate">
               {storefrontUrl}
             </code>
-            <button
-              type="button"
-              onClick={onCopy}
-              className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-md border border-tea-border text-tea-text-sec hover:text-tea-text transition-colors text-ui-12 tap-target"
-            >
-              <Copy size={12} />
-              {copied ? 'Copied' : 'Copy'}
-            </button>
-            <a
-              href={storefrontUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-md border border-tea-border text-tea-text-sec hover:text-tea-text transition-colors text-ui-12 tap-target"
-            >
-              <ExternalLink size={12} />
-              Open
-            </a>
+            <div className="flex gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={onCopy}
+                className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-md border border-tea-border text-tea-text-sec hover:text-tea-text transition-colors text-ui-12 tap-target"
+              >
+                <Copy size={12} />
+                {copied ? 'Copied' : 'Copy'}
+              </button>
+              <a
+                href={storefrontUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-md border border-tea-border text-tea-text-sec hover:text-tea-text transition-colors text-ui-12 tap-target"
+              >
+                <ExternalLink size={12} />
+                Open
+              </a>
+            </div>
           </div>
         </div>
-        <div className="flex flex-wrap gap-2 lg:justify-end lg:self-end">
+        <div className="flex flex-wrap gap-2 justify-start md:justify-end lg:self-end">
           {[
             { label: 'Open playbook', href: '/admin/launch-playbook' },
             { label: 'Import stock', href: '/admin/inventory' },

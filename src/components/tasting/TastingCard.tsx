@@ -335,7 +335,7 @@ export const TastingCardModal: React.FC<TastingCardModalProps> = ({ entry, onClo
           <button
             type="button"
             onClick={onClose}
-            className="text-tea-text-dim hover:text-tea-text transition-colors p-1"
+            className="text-tea-text-sec hover:text-tea-text transition-colors p-1"
           >
             <X size={18} />
           </button>

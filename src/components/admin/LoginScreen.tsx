@@ -17,7 +17,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onClose }) =>
     <div className="w-full h-full bg-tea-bg flex items-center justify-center p-6 md:pb-6">
       <button
         onClick={onClose}
-        className="absolute top-6 left-6 text-tea-text/60 hover:text-tea-text"
+        className="absolute top-6 left-6 text-tea-text-sec hover:text-tea-text"
         aria-label="Close login screen"
       >
         <Icons.Close className="w-6 h-6" />

@@ -208,6 +208,7 @@ const SupplierConfirmArea: React.FC<SupplierConfirmAreaProps> = ({ orderId, onTr
   const [replyNotes, setReplyNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const replyNotesRef = useRef<HTMLTextAreaElement>(null);
 
   const handleConfirm = async () => {
     setSubmitting(true);
@@ -330,14 +331,18 @@ const SupplierConfirmArea: React.FC<SupplierConfirmAreaProps> = ({ orderId, onTr
       {mode === 'reply' && (
         <div className="space-y-5">
           <div className="text-tea-text-sec text-ui-12 uppercase tracking-[0.1em]">Reply with adjustments</div>
-          <div>
+          <div className="pb-nav-gap">
             <label className="text-tea-text-sec text-ui-12 block mb-1.5" htmlFor="reply-notes">
               Your note
             </label>
             <textarea
+              ref={replyNotesRef}
               id="reply-notes"
               value={replyNotes}
               onChange={e => setReplyNotes(e.target.value)}
+              onFocus={e => {
+                e.target.scrollIntoView({ block: 'center', behavior: 'smooth' });
+              }}
               placeholder="What needs adjusting? The buyer will see this and can resubmit."
               rows={3}
               disabled={submitting}
