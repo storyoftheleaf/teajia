@@ -150,7 +150,7 @@ const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, cla
         {onClose && (
           <button
             onClick={onClose}
-            className="px-8 py-3 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.2em] font-semibold hover:bg-tea-gold/90 transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors"
           >
             Done
           </button>
@@ -256,7 +256,7 @@ const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, cla
           onClick={() => updateNote(currentItem.id, 'isFavorite', !currentNote.isFavorite)}
           className={`inline-flex items-center gap-2 min-h-[44px] px-3 py-1.5 rounded-full text-xs transition-all duration-200 ${
             currentNote.isFavorite
-              ? 'bg-tea-gold/15 text-tea-gold'
+              ? 'bg-tea-gold/10 text-tea-text ring-1 ring-inset ring-tea-gold/40'
               : 'bg-tea-elevated/50 text-tea-text-sec hover:bg-tea-elevated'
           }`}
         >

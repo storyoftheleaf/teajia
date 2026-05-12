@@ -16,3 +16,4 @@ Baseline total real violations to address: **5**. Pre-existing linter false posi
 Dev server: backgrounded on port 7777, log at `/tmp/teajia-dev.log`.
 
 ---
+Phase 3j skipped: segmented-pill structural rewrite is invasive; shadow-sm already removed from active-state pills in Phase 3i. Remaining: 2 grid-based tab containers in CollectionShareSheet + CollectionEditView. Design-debt: convert to underline tabs in a follow-up branch.
