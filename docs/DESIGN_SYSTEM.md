@@ -930,3 +930,705 @@ To generate or evaluate a page in a separate design tool:
 Different page jobs will produce different layouts. That's correct. What stays constant: the color tokens, the type scale, the spacing rhythm, the button shapes, the tab pattern, the z-index discipline, the cancel/back/close placement, the hover language, the elevation tiers.
 
 > Rules are universal. Layouts vary. Visual language is consistent.
+
+---
+
+# Part II — Domain components & specialized widgets
+
+Part I covers structural primitives. This part covers Teajia-specific components and widgets that the generic primitives compose into. Every domain component still obeys Part I — these are recipes, not exceptions.
+
+---
+
+## 25. Hub pages (multi-tab pages with embedded sub-views)
+
+A **hub** is a page that hosts several sub-views as siblings under one title (e.g. People → Contacts / Sources / Purchase Orders / Audit / Team / Tags). Hub pages are distinct from data-table pages: the hub itself is just chrome + tab strip, with the active sub-view filling the rest.
+
+### Anatomy
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  People                                                 │  ← h2 title
+│  BUYERS, SOURCES, GUESTS, CONTRIBUTORS, AND TEAM        │  ← eyebrow subtitle
+│                                                         │
+│  Contacts · Sources · Purchase Orders · Audit · Team    │  ← underline tab strip
+│  ───────                                                │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│  (active sub-view fills remaining height)               │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Rules
+
+- Use the canonical **underline tab strip** (§6) — never the segmented pill.
+- Tab labels are title case. Icons (lucide, 14-16px) sit left of the label inside each tab.
+- Tab state syncs to URL `?tab=...` so back-button works.
+- The active sub-view is responsible for its own internal chrome (filters, search, secondary tabs). The hub does not double-stack a sub-toolbar.
+- Hub content area uses `flex-1 overflow-auto` so each sub-view scrolls independently — height contract per CLAUDE.md.
+- Permission-gated tabs (`canSeeSources`, `canSeeTeam`, etc.) compute `visibleTabs` before render. Fall back to `visibleTabs[0]` if the URL points to a hidden tab.
+
+### Canonical class strings
+
+```
+HUB ROOT
+  h-full flex flex-col overflow-hidden bg-tea-bg
+
+HUB HEADER
+  px-4 md:px-6 lg:px-10 pt-6 pb-3 flex-shrink-0
+  // title:
+  font-display text-[clamp(24px,3.5vw,32px)] font-medium leading-[1.2] tracking-[0.01em] text-tea-text
+  // subtitle:
+  text-ui-11 uppercase tracking-[0.15em] text-tea-text-dim mt-1
+
+HUB TAB STRIP
+  flex items-center gap-6 px-4 md:px-6 lg:px-10 border-b border-tea-border
+  overflow-x-auto scrollbar-hide flex-shrink-0
+
+HUB TAB (inactive)
+  inline-flex items-center gap-1.5 py-2.5
+  text-ui-12 uppercase tracking-[0.15em]
+  text-tea-text-sec hover:text-tea-text
+  border-b border-transparent whitespace-nowrap transition-colors
+
+HUB TAB (active)
+  inline-flex items-center gap-1.5 py-2.5
+  text-ui-12 uppercase tracking-[0.15em]
+  text-tea-text border-b border-tea-gold
+
+HUB CONTENT
+  flex-1 overflow-auto
+```
+
+---
+
+## 26. Identity card (customer / vendor / team member)
+
+Used at the top of any profile drawer or detail page. One per profile.
+
+### Anatomy
+
+```
+┌─────────────────────────────────────────┐
+│  [AS]    Adrian Stone                   │  ← avatar + name
+│          adrian@teajia.com              │  ← contact line
+│          Member since March 2024        │  ← meta line
+│          [CUSTOMER]  [WHOLESALE]        │  ← tags
+└─────────────────────────────────────────┘
+```
+
+### Rules
+
+- Avatar: 48×48 rounded-full; if no photo, initials on `bg-tea-elevated text-tea-text-sec` using `font-display`.
+- Name: `h3` typography class. Title case.
+- Contact line: `text-ui-13 text-tea-text-sec`.
+- Meta line (member-since, last-active): `text-ui-12 text-tea-text-dim`.
+- Tags: status pill style (§8), max 3 visible; rest behind a `+N more` chip.
+- Card surface: `bg-tea-surface border border-tea-border rounded-xl p-5`.
+- Hover: none (it's identity, not an action).
+
+### Canonical class string
+
+```
+IDENTITY CARD
+  bg-tea-surface border border-tea-border rounded-xl p-5
+  flex items-start gap-4
+
+AVATAR (with photo)
+  w-12 h-12 rounded-full overflow-hidden border border-tea-border flex-shrink-0
+
+AVATAR (initials)
+  w-12 h-12 rounded-full bg-tea-elevated text-tea-text-sec
+  font-display text-ui-15 flex items-center justify-center flex-shrink-0
+```
+
+---
+
+## 27. Avatar — full size scale
+
+| Size | px | Use |
+|---|---|---|
+| `xs` | 20 | Inline in dense rows, comment threads |
+| `sm` | 28 | List rows, table cells |
+| `md` | 36 | Compact identity, drawer headers |
+| `lg` | 48 | Full identity card (canonical) |
+| `xl` | 72 | Profile hero |
+
+Always rounded-full. Always uses `font-display` for initials. Photo variant adds `border border-tea-border` to prevent merging into the surface.
+
+---
+
+## 28. Tags & tag chips
+
+Two patterns: **display chip** (read-only label) and **input chip** (with × to remove).
+
+### Display chip
+
+```
+  [WHOLESALE]
+```
+
+- `inline-flex px-2 py-0.5 rounded-full text-ui-10 uppercase tracking-[1.2px]`
+- Variants (color-coded by category):
+  - Customer-segment: `bg-tea-accent-sub text-tea-text-sec` (default)
+  - Status-positive: `bg-tea-green/10 text-tea-green ring-1 ring-inset ring-tea-green/40`
+  - Status-warning: `bg-tea-gold/10 text-tea-text ring-1 ring-inset ring-tea-gold/40`
+  - Status-error: `bg-tea-error/10 text-tea-error ring-1 ring-inset ring-tea-error/40`
+- Truncate at ~16 characters. Beyond that, use `+N` aggregator.
+
+### Tag input
+
+```
+  [wholesale ×]  [vip ×]  Add tag…
+```
+
+- Container: `flex flex-wrap items-center gap-1.5 bg-tea-surface border border-tea-border rounded-md px-2 py-1.5`
+- Chip with remove: `inline-flex items-center gap-1 bg-tea-accent-sub text-tea-text px-2 py-0.5 rounded-full text-ui-11`
+- Remove × icon: `<X size={11} className="text-tea-text-sec hover:text-tea-text" />`
+- Inline input: `flex-1 min-w-[100px] bg-transparent border-0 text-ui-13 placeholder:text-tea-text-dim focus:outline-none`
+
+---
+
+## 29. Activity timeline
+
+Used in customer profiles, audit logs, order history threads.
+
+### Anatomy
+
+```
+  ┊
+  ●  Mar 12 · 2:14 PM
+  │  Placed order — $124.00
+  │
+  ●  Mar 11 · 4:02 PM
+  │  Sent invoice INV-0042
+  │
+  ●  Mar 11 · 3:58 PM
+  │  Created order — 3 items
+```
+
+### Rules
+
+- Vertical rail: `border-l border-tea-border` running through the whole timeline; events hang to the right at `pl-4`.
+- Dot: 8×8, `rounded-full bg-tea-gold absolute -left-[5px]`. For "system" events (auto-generated), use `bg-tea-text-dim` instead.
+- Timestamp: `text-ui-11 uppercase tracking-[1.2px] text-tea-text-dim mb-0.5`.
+- Event body: `text-ui-13 text-tea-text-sec`. Reference numbers, amounts, and IDs use the `font-mono` class.
+- Group consecutive same-day events under a single date header (`text-ui-12 font-display text-tea-text-sec mb-3`).
+
+---
+
+## 30. Order / invoice line items
+
+For invoices, order summaries, cart contents.
+
+### Anatomy
+
+```
+┌─────────────────────────────────────────────────────┐
+│  Hojicha Aki 2026          50 g × $0.48      $24.00 │
+│  Koicha Spring             20 g × $1.80      $36.00 │
+│  Sample Set (3)             1 × $12.00       $12.00 │
+├─────────────────────────────────────────────────────┤
+│  Subtotal                                    $72.00 │
+│  Shipping                                     $9.00 │
+│  Tax (GST 10%)                                $7.20 │
+├─────────────────────────────────────────────────────┤
+│  Total                                       $88.20 │
+└─────────────────────────────────────────────────────┘
+```
+
+### Rules
+
+- Line items: each row `flex justify-between py-2 text-ui-14 text-tea-text`.
+- Item name: `flex-1` truncate.
+- Quantity-price block: `text-tea-text-sec text-ui-13 mx-4 font-mono tabular-nums`.
+- Line total: `font-mono tabular-nums w-20 text-right`.
+- Totals block: same layout but `text-tea-text-sec` for labels, `text-tea-text` for amounts.
+- Final total: `font-display text-ui-17 font-medium` on a top border line.
+- All numerics: `font-mono tabular-nums`. Never proportional.
+- Currency symbol stays attached to the number, no extra space.
+
+---
+
+## 31. Tea card (shop tile)
+
+The most-rendered card in the app — appears in product grids, search results, collection contents.
+
+### Anatomy
+
+```
+┌────────────────────┐
+│                    │
+│      [photo]       │   ← aspect 1:1, scale 1.06 on hover
+│                    │
+├────────────────────┤
+│  Hojicha Aki       │   ← font-display, transitions to gold on hover
+│  KYOTO · 50g       │   ← uppercase eyebrow
+│  $24.00            │   ← mono price
+└────────────────────┘
+```
+
+### Rules
+
+- Surface: `bg-tea-surface` + `cardWarmth` gradient + 1px radius (intentionally minimal).
+- Shadow: resting `SHADOWS.card`, hover `SHADOWS.cardHover` (per designTokens.ts).
+- Photo: `aspect-ratio: 1/1, object-cover, opacity 0.9 → 1` on hover, scale `1.06`.
+- Title: `font-display text-ui-17 text-tea-text` → `text-tea-gold` on hover.
+- Eyebrow line: `text-ui-10 uppercase tracking-[1.2px] text-tea-text-dim mt-1`.
+- Price: `.num` class (IBM Plex Mono, tabular-nums).
+- Type-color accent (optional): a 4px tea-type colored bar at the bottom — pull from `TEA_TYPE_COLORS` in designTokens.
+
+The full-fidelity recipe lives in `src/styles/card-utilities.css` under `.card-grid-item`. Use that class; do not reinvent.
+
+---
+
+## 32. Alcove card (premium product display)
+
+Used when a tea is featured (story/lore/heritage), not just listed. One alcove per page max — they're the editorial centerpiece.
+
+### Rules (high level — full spec in §12 of designTokens.ts)
+
+- Uses the **Alcove texture system** (`SURFACE_TREATMENTS` constant) — radial warmth, fine grain noise, recessed inset panels, scroll fades, image masks.
+- Color palette: drawn from the main token set, **not** a separate alcove palette.
+- Image: ~60% of card width, gradient-masked into the surface (`alcovePhotoMaskH`, `alcovePhotoMaskV`).
+- Text column: title in `font-display`, descriptive body in `font-body italic`, prices in `font-mono`.
+- Commerce bar: pinned bottom strip with quantity, preset chips, order CTA. Border-top `rgba(200,170,120,0.06)`.
+- This is the single component that's allowed to use texture layering. Everywhere else: borders and surfaces only.
+
+**Do not build a new alcove from scratch.** Use `src/components/shop/AlcoveCard.tsx` as the source of truth. If you need a variant, propose changes to that component.
+
+---
+
+## 33. Magazine article patterns
+
+Used inside `MagazinePageReader` and any long-form prose surface.
+
+### Drop cap (article opening)
+
+- First letter of opening paragraph: `font-size: 2.5em, font-weight: 700, float: left, color: var(--tea-gold), line-height: 1, padding-right: 8px, padding-top: 4px`.
+- Use sparingly — opening of major sections only, never every paragraph.
+
+### Pull quote
+
+```
+  ┃  "A roast that hovers between fire and decay —
+  ┃   the smell of autumn in a cup."
+  ┃                              — adrian, march 2026
+```
+
+- Container: `font-body italic text-ui-17 text-tea-text-sec leading-relaxed my-8`.
+- Left accent: `border-l-[3px] border-tea-gold pl-6` + `pullQuote` gradient background (from designTokens).
+- Attribution: `text-ui-12 text-tea-text-dim not-italic mt-2`.
+
+### Body pagination
+
+- Article body is paginated at `MAX_CHARS_PER_PAGE = 600` chars per page.
+- Each page is a fixed-height surface — `overflowY: hidden`. Content that doesn't fit goes on the next page, not behind a scroll. These pages get screenshotted for social sharing.
+- Q&A pages: 1 question/answer pair per page.
+
+### Section break ornament
+
+- Use `.divider-ornament` (already in card-utilities.css) — never `<hr />`.
+
+---
+
+## 34. Tasting session card
+
+Used in `TastingControlRoom` and tasting event lists.
+
+### Rules
+
+- Card surface: same as regular card (`bg-tea-surface border rounded-xl`).
+- Header strip: tea name (`font-display text-ui-17`), session number (`text-ui-11 uppercase tracking-[0.15em] text-tea-text-dim`), live indicator (red dot + "LIVE" pill when active).
+- Sensory inputs: radio chip groups for aroma/flavor/finish — use the `.tasting-segment-toggle` utility (already defined).
+- Voice capture button: `.tasting-voice-btn` (defined). Recording state: `.tasting-voice-btn-recording`.
+- Submit row: sticky bottom inside the card, primary "Submit" button on the right.
+
+Most patterns here are pre-baked utility classes. Compose them — don't redefine.
+
+---
+
+## 35. Tooltip
+
+```
+   button
+     ▲
+   ┌─────────────────┐
+   │ helpful detail  │
+   └─────────────────┘
+```
+
+- Surface: `bg-tea-elevated border border-tea-border rounded-md shadow-lg`
+- Padding: `px-2.5 py-1.5`
+- Text: `text-ui-12 text-tea-text whitespace-nowrap`
+- Position: above the trigger by default (`-translate-y-full -translate-x-1/2 -mt-1`).
+- Arrow: optional 6px triangle, same `bg-tea-elevated border-tea-border`.
+- Z-index: `z-popover` (45).
+- Show delay: 400ms; hide instant.
+- Reserved for genuinely helpful detail — never repeat the visible label.
+
+---
+
+## 36. Toast
+
+```
+  ┌──────────────────────────────────────┐
+  │  ✓  Saved.                       ×   │
+  └──────────────────────────────────────┘
+```
+
+- Position: fixed bottom-right on desktop, top-center on mobile (above safe-area).
+- Z-index: `z-toast` (50).
+- Surface: `bg-tea-elevated border border-tea-border rounded-lg shadow-lg`
+- Padding: `px-4 py-3`
+- Icon (leading): 14px lucide — `Check` (success, tea-green), `AlertCircle` (error, tea-error), `Info` (neutral, tea-text-sec).
+- Body: `text-ui-13 text-tea-text`.
+- Close × on the right, `text-tea-text-dim hover:text-tea-text`.
+- Auto-dismiss: 4s for info/success, 8s for error, never for "action required".
+- Stack: max 3 visible; older ones collapse.
+
+---
+
+## 37. Popover menu (dropdowns inside chrome)
+
+The most-misused element in the app. Canonical rule: **same DOM block, equal z, click-out backdrop at the same z.**
+
+### Anatomy
+
+```
+   button ⌄
+   ┌─────────────────┐
+   │ Item one        │
+   │ Item two        │
+   │ ───────         │
+   │ Destructive     │
+   └─────────────────┘
+```
+
+- Anchor wrapper: `relative inline-block`.
+- Click-out backdrop: `<button className="fixed inset-0 z-popover" onClick={close} aria-hidden />` (same z as the menu).
+- Menu: `absolute right-0 mt-1 min-w-[180px] z-popover bg-tea-elevated border border-tea-border rounded-md shadow-lg overflow-hidden`.
+- Item: `w-full text-left px-3 py-2 text-ui-13 text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub transition-colors flex items-center gap-2`.
+- Destructive item: `text-tea-error hover:bg-tea-error/10`.
+- Divider: `<div className="h-px bg-tea-border my-1" />`.
+
+**Banned:** raw `z-50` menus with `z-40` backdrops. Use `z-popover` for both.
+
+---
+
+## 38. Pagination & load-more
+
+Two patterns. Pick by content density.
+
+### Load-more button (infinite list)
+
+```
+              [ Show 20 more ]
+                  N of M shown
+```
+
+- Centered below the list, `py-6`.
+- Button: secondary style (§7).
+- Helper line: `text-ui-11 text-tea-text-dim mt-2`.
+
+### Page-numbered pagination (long indexed lists)
+
+```
+   ‹  1  2  [3]  4  5  …  12  ›
+```
+
+- Container: `flex items-center justify-center gap-1 py-6`.
+- Page button: `w-8 h-8 rounded-md text-ui-12 text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub`.
+- Active page: `bg-tea-gold/10 text-tea-text`.
+- Prev/Next chevrons: 14px lucide, same button shape. Disabled at boundaries (opacity-40).
+
+---
+
+## 39. Breadcrumbs
+
+Use sparingly — only when navigation depth > 2 and the user can't infer parent from context.
+
+```
+  People  ›  Adrian Stone  ›  Order INV-0042
+```
+
+- Container: `flex items-center gap-1.5 text-ui-12 mb-4`.
+- Crumb (inactive): `text-tea-text-sec hover:text-tea-text transition-colors`.
+- Crumb (current): `text-tea-text` (no link).
+- Separator: `<ChevronRight size={12} className="text-tea-text-dim" />`.
+- Never combine breadcrumbs with a top-left back button — pick one. Inside drawers/panels, prefer the back button.
+
+---
+
+## 40. Date / time picker
+
+Use the native `<input type="date">` styled to match. Custom calendars are over-engineered for our needs.
+
+```
+  [ 2026-03-12 ▢ ]
+```
+
+- Wrapper: same as boxed input (§13).
+- Add `[color-scheme:dark]` (Tailwind arbitrary) so the browser picker is themed correctly in dark mode.
+- For date *ranges*, render two `<input type="date">` side-by-side with a "→" between, never one custom popover.
+
+---
+
+## 41. File upload zone
+
+```
+┌─────────────────────────────────────────┐
+│            ⬆                            │
+│                                         │
+│       Drag photos here, or              │
+│       [ Choose file ]                   │
+│                                         │
+│       PNG, JPG, up to 10MB              │
+└─────────────────────────────────────────┘
+```
+
+- Container: `border-2 border-dashed border-tea-border rounded-xl p-10 text-center hover:border-tea-gold/40 transition-colors`.
+- Drag-over: `border-tea-gold bg-tea-gold/5`.
+- Icon: `Upload` lucide 28px, `text-tea-text-dim`.
+- Headline: `text-sm text-tea-text mt-3`.
+- "Choose file" inline button: secondary style.
+- Constraints line: `text-ui-11 text-tea-text-dim mt-2`.
+- Error state: red border + `text-tea-error` headline.
+- Active upload: replace center icon with progress bar (`h-2 bg-tea-border rounded-full overflow-hidden`, fill `bg-tea-gold transition-all`).
+
+---
+
+## 42. Image gallery / lightbox
+
+- Thumbnail strip: horizontal scroll on mobile (with `scrollbar-hide`), grid on desktop. Each thumb `aspect-ratio: 1/1, rounded-md, object-cover, opacity 0.85 → 1 on hover`.
+- Active thumb: `ring-2 ring-tea-gold` (no border — preserves layout).
+- Lightbox: full-screen overlay at `z-panel-modal` with `bg-tea-bg/95 backdrop-blur-md`.
+- Lightbox image: `max-w-full max-h-full object-contain`.
+- Lightbox controls: Close × top-right (centered-modal rule), prev/next arrows at left-center / right-center, all using `IconButton` style on `bg-tea-elevated/80 backdrop-blur`.
+- Pinch-to-zoom on mobile via standard browser behavior — do not custom-implement zoom controls.
+
+---
+
+## 43. Rich text editor toolbar
+
+Used inside the Magazine editor.
+
+- Toolbar bar: `flex items-center gap-1 px-3 py-2 border-b border-tea-border bg-tea-bg/50 backdrop-blur-sm sticky top-0 z-dropdown`.
+- Tool button: `tap-target p-1.5 rounded-md text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub transition-colors`.
+- Active tool: `bg-tea-gold/10 text-tea-gold`.
+- Group separator: `<div className="w-px h-4 bg-tea-border mx-1" />`.
+- Use lucide icons at 14px throughout (`Bold`, `Italic`, `Underline`, `Link`, `Quote`, `Image`, `List`, `Heading1`, `Heading2`).
+- Format dropdown (Heading, Quote, Code): popover menu (§37).
+
+---
+
+## 44. Multi-step wizard
+
+Used in CSV import, onboarding flows, complex add-product modals.
+
+```
+   ① Choose file → ② Map columns → ③ Review → ④ Commit
+   ───────────────                                       ← progress fill
+```
+
+- Stepper bar: `flex items-center gap-2 mb-6` at the top of the wizard surface.
+- Step circle: `w-7 h-7 rounded-full flex items-center justify-center text-ui-11 font-mono`.
+- States:
+  - Completed: `bg-tea-gold text-tea-bg` (number replaced by `<Check size={12} />`).
+  - Current: `bg-tea-gold/10 text-tea-gold ring-1 ring-tea-gold`.
+  - Future: `bg-tea-elevated text-tea-text-dim`.
+- Step label: `text-ui-11 uppercase tracking-[0.15em]` next to each circle. Current step = `text-tea-text`; others = `text-tea-text-dim`.
+- Connector line: `flex-1 h-px bg-tea-border` between circles, filled with `bg-tea-gold` for completed segments.
+- Footer: always `flex justify-between` — left has "Back" (ghost button, hidden on step 1); right has primary "Next" or "Commit".
+
+---
+
+## 45. Inline editing
+
+Use when the field is part of a list/row and a full modal is overkill.
+
+### Rest state
+
+```
+   Display name                         Adrian Stone   ✎
+```
+
+- The field reads as plain text with a tiny `Edit3` icon at 12px, `text-tea-text-dim`, only visible on row hover.
+- Click anywhere on the row enters edit mode.
+
+### Edit state
+
+```
+   Display name              [ Adrian Stone        ]
+                             [ Save ]  [ Cancel ]
+```
+
+- Replace the text with the canonical boxed input (§13).
+- Show inline `Save` (primary, py-1.5) and `Cancel` (ghost) below the input.
+- Enter commits; Escape cancels.
+- Saving: replace `Save` with `<Loader2 className="animate-spin" />`; disable both buttons.
+
+---
+
+## 46. Sticky bottom action bar (mobile commit bars)
+
+Used in long forms or detail drawers where the primary action would scroll off-screen.
+
+```
+┌─────────────────────────────────────────┐
+│  (form content scrolling above)         │
+│                                         │
+├─────────────────────────────────────────┤
+│  [ Cancel ]               [ Save ]      │  ← sticky bottom
+└─────────────────────────────────────────┘
+```
+
+- Container: `sticky bottom-0 z-sticky bg-tea-bg/95 backdrop-blur-md border-t border-tea-border px-4 py-3 flex justify-between gap-2 pb-nav-gap`.
+- Cancel left (ghost or secondary), primary right.
+- On mobile inside a `fixed inset-0` panel, use `pb-nav-gap` so it sits above the bottom tab bar.
+- Drops to `pb-3` on `lg+` automatically.
+
+---
+
+## 47. QR code display
+
+Used on share cards, invoice receipts, table cards.
+
+- Container: `bg-tea-bg p-4 rounded-md inline-block` (white-on-warm only for the QR area; everything else stays warm-toned).
+- QR svg: render at 144px or 192px depending on context. Never smaller than 96px.
+- Caption beneath: `text-ui-11 uppercase tracking-[0.15em] text-tea-text-dim mt-2 text-center`.
+- For print: ensure the QR has `bg-white` and 12px+ padding (quiet zone) so scanners read it.
+
+---
+
+## 48. Charts (sparklines, bar, line)
+
+Charts are **muted in tone**. They are data backdrops, not focal points.
+
+### Color rules
+
+| Element | Color |
+|---|---|
+| Primary series | `var(--tea-gold)` |
+| Comparison series | `var(--tea-text-sec)` |
+| Negative / shortfall | `var(--tea-error)` |
+| Axes & gridlines | `var(--tea-border)` (faint) |
+| Axis labels | `var(--tea-text-dim)` text-ui-10 uppercase tracking-[1.2px] |
+| Tooltip on hover | use Tooltip (§35) shape |
+
+### Type-specific
+
+- **Sparkline (in-card trend)**: single gold line, 1.5px stroke, no axes, no fill. Height 40-60px.
+- **Bar chart**: bars are `fill: var(--tea-gold)` with `opacity: 0.85`. No gradient. 16px gap between bars on desktop, 8px on mobile.
+- **Line chart**: 2px stroke. If the line crosses zero, the below-axis portion shifts to `var(--tea-error)`.
+- **Pie/donut**: discouraged. Use a stacked horizontal bar instead.
+
+### Behavior
+
+- Always include a numeric callout above/below the chart (`font-display text-ui-26`) showing the current value.
+- Animate the line/bar draw on mount with 300ms ease-out — never longer.
+- Mobile: charts collapse to vertically-stacked bars or single-value KPIs. Don't ship miniature 4-axis charts at 390px wide.
+
+---
+
+## 49. Print styles (invoices, share cards)
+
+When a surface must look identical in browser and on paper:
+
+- Wrap in `<div className="print:bg-white print:text-black">` and override token colors at print time via `@media print` CSS.
+- Hide chrome: `<header className="print:hidden">`.
+- Force page breaks for multi-page invoices: `<div className="print:break-before-page">`.
+- Use the warm palette during preview; switch to black-on-white only when actually printing — never print the dark mode as-is.
+
+---
+
+## 50. Map embeds (store locator, venue picker)
+
+Use a third-party tile provider; do **not** render full-color satellite tiles. Use a custom Mapbox/Leaflet style tuned to the palette:
+- Background: `--tea-bg`
+- Land: `--tea-surface`
+- Water: `--tea-elevated`
+- Roads: `--tea-border` at 60% alpha
+- Pins: `--tea-gold` filled circle, 12px diameter, no shadow.
+
+Map height: 280px on mobile, 480px on desktop. Always paired with a list of locations below — never map-only.
+
+---
+
+## 51. Composition examples
+
+How the components compose into real pages.
+
+### Customer profile drawer
+
+```
+┌──────────────────────────────────────────────┐
+│  ←  Profile                             ⋯    │  ← drawer header
+├──────────────────────────────────────────────┤
+│                                              │
+│  [ Identity card (§26) ]                     │
+│                                              │
+│  Tabs: Activity · Orders · Notes  (§6)       │
+│  ─────                                       │
+│                                              │
+│  [ Activity timeline (§29) ]                 │
+│                                              │
+└──────────────────────────────────────────────┘
+```
+
+### Invoice page
+
+```
+┌──────────────────────────────────────────────┐
+│  ← Back                                       │
+│                                              │
+│  Invoice INV-0042                            │
+│  ISSUED MARCH 12, 2026                       │
+│                                              │
+│  [ Identity card — billed to ]               │
+│                                              │
+│  [ Line items (§30) ]                        │
+│                                              │
+│  Notes…                                      │
+│  [ QR code (§47) ]                           │
+│                                              │
+├──────────────────────────────────────────────┤
+│  [ Print ]      [ Cancel ]    [ Send ]       │  ← sticky bottom (§46)
+└──────────────────────────────────────────────┘
+```
+
+### Magazine article
+
+```
+┌──────────────────────────────────────────────┐
+│  ← Back to Magazine                          │
+│                                              │
+│  The Quiet Roast                             │
+│  AKI HOJICHA · 2026 VINTAGE                  │
+│                                              │
+│  Tthe leaves are roasted... (drop cap, §33)  │
+│                                              │
+│  [ pull quote (§33) ]                        │
+│                                              │
+│  ◆ ◆ ◆  (section break ornament)             │
+│                                              │
+│  ...body continues, paginated (§33)          │
+└──────────────────────────────────────────────┘
+```
+
+---
+
+## 52. Extending this spec
+
+When you build a component that's truly new (not already covered above):
+
+1. Sketch it with the **Part I rules** only — color tokens, type scale, spacing, z, hover, elevation.
+2. If it works inside those rules, add it to Part II as its own section. Match the format: anatomy + rules + canonical class string.
+3. If it requires breaking a Part I rule, **don't build it.** Re-scope until it fits — or propose a Part I amendment with reasoning.
+
+Part II is not a closed list. It's the set of recipes we've crystallized so far. Domain growth is expected.
+
+---
+
+> Universal rules (Part I). Concrete recipes (Part II). One visual language.
+
