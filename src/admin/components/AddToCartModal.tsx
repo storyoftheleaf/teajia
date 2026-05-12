@@ -1,18 +1,19 @@
 import React, { useState, useEffect } from 'react';
+import { X } from 'lucide-react';
 import { Product, Currency, ExchangeRate } from '../types';
 import { formatCurrency } from '../utils';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
 
-interface AddToCartModalProps { 
-  isOpen: boolean; 
-  onClose: () => void; 
-  onConfirm: (quantity: number) => void; 
+interface AddToCartModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: (quantity: number) => void;
   product: Product | null;
   currency: Currency;
   rates: ExchangeRate[];
 }
 
-export const AddToCartModal: React.FC<AddToCartModalProps> = ({ 
+export const AddToCartModal: React.FC<AddToCartModalProps> = ({
   isOpen, onClose, onConfirm, product, currency, rates
 }) => {
   const [quantity, setQuantity] = useState<string>('');
@@ -38,50 +39,92 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
   ];
 
   return (
-    <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={onClose}>
-      <div ref={focusTrapRef} role="dialog" aria-modal="true" aria-label="Add to order" className="bg-tea-surface border border-tea-border rounded-lg w-full max-w-sm p-8 shadow-lg" onClick={(e) => e.stopPropagation()}>
-        <h3 className="text-2xl font-serif text-tea-text mb-2">Add to Order</h3>
-        <p className="text-tea-text-sec text-sm mb-6 font-serif italic">{product.givenName} <span className="text-tea-border mx-2">•</span> {product.productName}</p>
+    <div className="fixed inset-0 z-modal flex items-center justify-center p-4">
+      <button
+        type="button"
+        aria-hidden
+        onClick={onClose}
+        className="absolute inset-0 bg-tea-bg/70 backdrop-blur-[2px]"
+      />
+      <div
+        ref={focusTrapRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Add to order"
+        className="relative bg-tea-surface border border-tea-border rounded-xl shadow-2xl w-full max-w-md"
+      >
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+          className="absolute top-4 right-4 text-tea-text-sec hover:text-tea-text transition-colors rounded-md p-1.5 tap-target"
+        >
+          <X size={16} />
+        </button>
 
-        <div className="space-y-6">
+        <div className="px-6 pt-6 pb-3">
+          <h3 className="h3 text-tea-text">Add to Order</h3>
+          <p className="label-caps text-tea-text-dim mt-1">
+            {product.givenName} · {product.productName}
+          </p>
+        </div>
+
+        <div className="px-6 pb-4 space-y-6">
           <div>
-            <label className="block text-ui-10 font-semibold text-tea-text-sec mb-2">Quantity ({product.type === 'Teaware' ? 'Units' : 'Grams'})</label>
+            <label className="block label-caps text-tea-text-sec mb-1.5">
+              Quantity ({product.type === 'Teaware' ? 'Units' : 'Grams'})
+            </label>
             <input
-              type="number" autoFocus value={quantity} onChange={(e) => setQuantity(e.target.value)}
+              type="number"
+              autoFocus
+              value={quantity}
+              onChange={(e) => setQuantity(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter' && Number(quantity) > 0) onConfirm(Number(quantity)); }}
               inputMode="numeric"
               onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 300); }}
-              className="w-full bg-tea-surface border border-tea-border rounded-lg p-3 text-tea-text focus:border-tea-text-sec outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg text-lg transition-colors placeholder-tea-text-sec/50"
+              className="w-full bg-tea-surface border border-tea-border rounded-md px-3 py-2 text-ui-14 text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors"
               placeholder="0"
             />
             {product.type !== 'Teaware' && (
-                <div className="grid grid-cols-3 gap-2 mt-3">
-                    {teaPresets.map(preset => (
-                        <button key={preset.value} onClick={() => setQuantity(preset.value.toString())} className="min-h-[44px] px-4 py-2.5 bg-tea-surface text-tea-text-sec text-xs rounded-md border border-tea-border hover:bg-tea-border/50 hover:text-tea-text hover:border-tea-text-sec/50 transition-all num">
-                            {preset.label}
-                        </button>
-                    ))}
-                </div>
+              <div className="grid grid-cols-3 gap-2 mt-3">
+                {teaPresets.map(preset => (
+                  <button
+                    key={preset.value}
+                    onClick={() => setQuantity(preset.value.toString())}
+                    className="min-h-[44px] px-3 py-2 rounded-md border border-tea-border text-tea-text-sec text-ui-12 hover:text-tea-text hover:bg-tea-accent-sub transition-colors num"
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
             )}
           </div>
-          <div className="flex justify-between items-center text-sm border-b border-tea-border pb-4">
-            <span className="text-tea-text-sec">Price per unit:</span>
+
+          <div className="flex justify-between items-center text-ui-13 border-b border-tea-border pb-3">
+            <span className="text-tea-text-sec">Price per unit</span>
             <span className="text-tea-text num">{formatCurrency(sellingPrice, currency, rates)}</span>
           </div>
-          <div className="flex justify-between items-center pt-2">
-            <span className="text-tea-text font-medium text-sm">Total Price:</span>
-            <span className="text-2xl font-serif text-tea-gold">{formatCurrency(totalUSD, currency, rates)}</span>
+
+          <div className="flex justify-between items-center">
+            <span className="text-tea-text-sec text-ui-13">Total price</span>
+            <span className="font-display text-ui-26 text-tea-gold">{formatCurrency(totalUSD, currency, rates)}</span>
           </div>
-          <div className="pt-6 flex gap-4">
-            <button onClick={onClose} className="flex-1 py-3 text-xs font-semibold text-tea-text-sec hover:text-tea-text transition-colors border border-transparent hover:border-tea-border rounded-lg focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none">Cancel</button>
-            <button 
-              onClick={() => { if (Number(quantity) > 0) onConfirm(Number(quantity)); }}
-              className="flex-1 py-3 bg-tea-gold text-tea-bg text-xs font-semibold rounded-lg hover:bg-tea-gold/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-tea-gold/10 focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none"
-              disabled={!quantity || Number(quantity) <= 0}
-            >
-              Add Item
-            </button>
-          </div>
+        </div>
+
+        <div className="flex justify-between gap-2 px-6 py-4 border-t border-tea-border">
+          <button
+            onClick={onClose}
+            className="px-2 py-1 text-xs text-tea-text-sec hover:text-tea-text transition-colors focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none rounded-md"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => { if (Number(quantity) > 0) onConfirm(Number(quantity)); }}
+            disabled={!quantity || Number(quantity) <= 0}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-tea-gold/10 focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none"
+          >
+            Add Item
+          </button>
         </div>
       </div>
     </div>

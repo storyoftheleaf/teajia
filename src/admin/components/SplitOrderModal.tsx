@@ -56,60 +56,85 @@ export const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
-      <div className="bg-tea-bg border border-tea-border rounded-2xl w-full max-w-md p-6 shadow-2xl relative">
-        <button onClick={onClose} className="absolute top-4 right-4 text-tea-text-sec hover:text-tea-text transition-colors" aria-label="Close">
-          <X size={20} />
+    <div className="fixed inset-0 z-modal flex items-center justify-center p-4 animate-in fade-in duration-200">
+      <button
+        type="button"
+        aria-hidden
+        onClick={onClose}
+        className="absolute inset-0 bg-tea-bg/70 backdrop-blur-[2px]"
+      />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Split order"
+        className="relative bg-tea-surface border border-tea-border rounded-xl shadow-2xl w-full max-w-md"
+      >
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-tea-text-sec hover:text-tea-text transition-colors rounded-md p-1.5 tap-target"
+          aria-label="Close"
+        >
+          <X size={16} />
         </button>
 
-        <div className="flex items-center gap-2 mb-1">
-          <Scissors size={18} className="text-tea-gold" />
-          <h3 className="text-lg font-serif text-tea-text">Split Order</h3>
+        <div className="px-6 pt-6 pb-3">
+          <div className="flex items-center gap-2">
+            <Scissors size={14} className="text-tea-gold" />
+            <h3 className="h3 text-tea-text">Split Order</h3>
+          </div>
+          <p className="text-ui-12 text-tea-text-dim mt-1">
+            Select items to move to a new invoice. Remaining items stay on {invoice?.invoice_number}.
+          </p>
         </div>
-        <p className="text-xs text-tea-text-sec mb-4">Select items to move to a new invoice. Remaining items stay on {invoice?.invoice_number}.</p>
 
-        {fetching ? (
-          <div className="py-8 text-center text-tea-text-sec"><Loader2 className="animate-spin inline" /></div>
-        ) : (
-          <div className="space-y-2 max-h-64 overflow-y-auto custom-scrollbar mb-6">
-            {items.map((item: any) => {
-              const isChecked = selected.has(item.id);
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => toggleItem(item.id)}
-                  className={`w-full flex items-center gap-3 p-3 rounded-lg border transition-colors text-left ${
-                    isChecked ? 'bg-tea-gold/8 border-tea-border' : 'bg-tea-surface border-tea-border hover:bg-tea-elevated/50'
-                  }`}
-                >
-                  <div className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
-                    isChecked ? 'bg-tea-gold border-tea-gold' : 'border-tea-border'
-                  }`}>
-                    {isChecked && <Check size={12} className="text-tea-bg" />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm text-tea-text font-medium truncate">{item.given_name || item.product_name || 'Unknown'}</div>
-                    <div className="text-ui-10 text-tea-text-sec">{item.quantity}g/u @ ${Number(item.price_at_sale).toFixed(2)}</div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        )}
+        <div className="px-6 pb-4">
+          {fetching ? (
+            <div className="py-8 text-center text-tea-text-sec"><Loader2 className="animate-spin inline" size={20} /></div>
+          ) : (
+            <div className="space-y-2 max-h-64 overflow-y-auto custom-scrollbar">
+              {items.map((item: any) => {
+                const isChecked = selected.has(item.id);
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => toggleItem(item.id)}
+                    className={`w-full flex items-center gap-3 p-3 rounded-md border transition-colors text-left ${
+                      isChecked ? 'bg-tea-gold/8 border-tea-border' : 'bg-tea-surface border-tea-border hover:bg-tea-accent-sub'
+                    }`}
+                  >
+                    <div className={`w-5 h-5 rounded border flex items-center justify-center shrink-0 transition-colors ${
+                      isChecked ? 'bg-tea-gold border-tea-gold' : 'border-tea-border'
+                    }`}>
+                      {isChecked && <Check size={12} className="text-tea-bg" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-ui-14 text-tea-text truncate">{item.given_name || item.product_name || 'Unknown'}</div>
+                      <div className="text-ui-11 text-tea-text-dim mt-0.5">{item.quantity}g/u @ ${Number(item.price_at_sale).toFixed(2)}</div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
 
-        <div className="flex justify-between items-center pt-4 border-t border-tea-border">
-          <span className="text-xs text-tea-text-sec">{selected.size} of {items.length} selected</span>
-          <div className="flex gap-3">
-            <button onClick={onClose} className="px-4 py-2 text-sm text-tea-text-sec hover:text-tea-text transition-colors">Cancel</button>
+        <div className="flex justify-between items-center gap-2 px-6 py-4 border-t border-tea-border">
+          <div className="flex items-center gap-3">
             <button
-              onClick={handleSplit}
-              disabled={!canSplit || loading}
-              className="px-5 py-2 text-sm font-medium bg-tea-gold text-tea-bg rounded-lg hover:bg-tea-gold/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              onClick={onClose}
+              className="px-2 py-1 text-xs text-tea-text-sec hover:text-tea-text transition-colors"
             >
-              {loading && <Loader2 size={14} className="animate-spin" />}
-              <Scissors size={14} /> Split
+              Cancel
             </button>
+            <span className="text-ui-11 text-tea-text-dim">{selected.size} of {items.length} selected</span>
           </div>
+          <button
+            onClick={handleSplit}
+            disabled={!canSplit || loading}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-tea-gold/10"
+          >
+            {loading ? <Loader2 size={13} className="animate-spin" /> : <Scissors size={13} />} Split
+          </button>
         </div>
       </div>
     </div>

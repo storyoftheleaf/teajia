@@ -19,29 +19,57 @@ export const QrCodeModal: React.FC<QrCodeModalProps> = ({ isOpen, onClose, produ
   };
 
   return (
-    <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 print:bg-white print:p-0">
-      <div role="dialog" aria-modal="true" aria-label="QR code" className="bg-tea-surface border border-tea-border rounded-lg w-full max-w-sm p-8 shadow-lg relative print:border-none print:shadow-none print:w-full print:max-w-none print:bg-white">
-        <button onClick={onClose} className="absolute top-4 right-4 text-tea-text-sec hover:text-tea-text transition-colors print:hidden focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none rounded-lg" aria-label="Close">
-          <X size={20} />
+    <div className="fixed inset-0 z-modal flex items-center justify-center p-4 print:bg-white print:p-0">
+      <button
+        type="button"
+        aria-hidden
+        onClick={onClose}
+        className="absolute inset-0 bg-tea-bg/70 backdrop-blur-[2px] print:hidden"
+      />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="QR code"
+        className="relative bg-tea-surface border border-tea-border rounded-xl shadow-2xl w-full max-w-sm print:border-none print:shadow-none print:w-full print:max-w-none print:bg-white"
+      >
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-tea-text-sec hover:text-tea-text transition-colors print:hidden focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none rounded-md p-1.5 tap-target"
+          aria-label="Close"
+        >
+          <X size={16} />
         </button>
-        
-        <div className="text-center space-y-4">
-          <h3 className="text-xl font-serif text-tea-text print:text-black">{product.givenName}</h3>
-          <p className="text-tea-text-sec text-sm font-serif italic print:text-tea-text-sec">{product.productName} ({product.year})</p>
-          
-          <div className="flex justify-center p-4 bg-white rounded-xl mx-auto w-fit border border-tea-border shadow-sm">
-            <QRCodeCanvas value={qrValue} size={200} />
-          </div>
-          
-          <div className="pt-4 text-ui-10 text-tea-text-sec font-mono uppercase tracking-[0.2em] print:text-black">
-            ID: {product.id}
+
+        <div className="px-6 pt-6 pb-3 text-center">
+          <h3 className="h3 text-tea-text print:text-black">{product.givenName}</h3>
+          <p className="text-ui-13 text-tea-text-sec mt-1 font-serif italic print:text-tea-text-sec">
+            {product.productName} ({product.year})
+          </p>
+        </div>
+
+        <div className="px-6 pb-6 space-y-4">
+          <div className="flex justify-center bg-tea-bg p-4 rounded-md mx-auto w-fit border border-tea-border">
+            <QRCodeCanvas value={qrValue} size={192} />
           </div>
 
-          <button 
-            onClick={handlePrint}
-            className="w-full flex items-center justify-center gap-2 py-3 bg-tea-gold text-tea-bg text-xs font-semibold rounded-lg hover:bg-tea-gold/90 transition-colors print:hidden mt-6"
+          <div className="text-ui-11 uppercase tracking-[0.15em] text-tea-text-dim text-center print:text-black">
+            ID: {product.id}
+          </div>
+        </div>
+
+        <div className="flex justify-between gap-2 px-6 py-4 border-t border-tea-border print:hidden">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-2 py-1 text-xs text-tea-text-sec hover:text-tea-text transition-colors"
           >
-            <Printer size={16} /> Print Label
+            Cancel
+          </button>
+          <button
+            onClick={handlePrint}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors shadow-lg shadow-tea-gold/10"
+          >
+            <Printer size={13} /> Print Label
           </button>
         </div>
       </div>

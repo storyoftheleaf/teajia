@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Loader2, Pencil, Search, Trash2 } from 'lucide-react';
+import { ArrowLeft, Loader2, Pencil, Search, Tag as TagIcon, Trash2 } from 'lucide-react';
+import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { api } from '../../lib/api';
 import { useToast } from '../components/Toast';
 
@@ -93,7 +94,7 @@ export const ContactTagsView: React.FC<ContactTagsViewProps> = ({ embedded = fal
   return (
     <div className="h-full overflow-y-auto bg-tea-bg pb-nav-gap">
       {!embedded && (
-        <div className="sticky top-0 z-10 bg-tea-bg/95 backdrop-blur-sm border-b border-tea-border px-4 md:px-8 py-3 flex items-center justify-between">
+        <div className="sticky top-0 z-sticky bg-tea-bg/95 backdrop-blur-sm border-b border-tea-border px-4 md:px-8 py-3 flex items-center justify-between">
           <button
             onClick={() => navigate(-1)}
             className="flex items-center gap-1.5 text-tea-text-sec hover:text-tea-text transition-colors text-sm"
@@ -106,8 +107,9 @@ export const ContactTagsView: React.FC<ContactTagsViewProps> = ({ embedded = fal
       <div className="max-w-3xl mx-auto px-4 md:px-8 py-8 space-y-6">
         {!embedded && (
           <header>
-            <h1 className="font-serif text-3xl text-tea-text">Contact tags</h1>
-            <p className="text-tea-text-sec text-sm mt-1">
+            <h1 className={`${TYPOGRAPHY_CLASSES.h2} text-tea-text`}>Contact tags</h1>
+            <div className="label-caps text-tea-text-dim mt-2">Tag dictionary</div>
+            <p className="text-tea-text-sec text-ui-14 leading-[1.6] mt-3">
               Rename, merge, or delete tags across every contact at once.
             </p>
           </header>
@@ -129,11 +131,17 @@ export const ContactTagsView: React.FC<ContactTagsViewProps> = ({ embedded = fal
             <Loader2 size={18} className="animate-spin text-tea-text-dim" />
           </div>
         ) : filtered.length === 0 ? (
-          <p className="text-center text-tea-text-dim text-sm py-8">
-            {tags.length === 0
-              ? 'No tags yet. Tag contacts on their profile pages.'
-              : 'No tags match that filter.'}
-          </p>
+          <div className="flex flex-col items-center text-center max-w-sm mx-auto py-20 px-6">
+            <TagIcon size={28} strokeWidth={1.25} className="text-tea-text-dim mb-3" />
+            <div className="font-display text-ui-17 text-tea-text">
+              {tags.length === 0 ? 'No tags yet' : 'No matching tags'}
+            </div>
+            <p className="text-ui-12 text-tea-text-sec leading-relaxed mt-2">
+              {tags.length === 0
+                ? 'Tag contacts on their profile pages to start building the dictionary.'
+                : 'Try a different filter, or clear the search to see all tags.'}
+            </p>
+          </div>
         ) : (
           <ul className="divide-y divide-tea-border border border-tea-border rounded-xl overflow-hidden bg-tea-surface">
             {filtered.map(t => {
