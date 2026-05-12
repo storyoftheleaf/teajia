@@ -366,7 +366,7 @@ export const OrdersView = () => {
               <col className="w-[14%]" />
               <col className="w-[28%]" />
             </colgroup>
-            <thead className="sticky top-0 z-sticky bg-tea-bg shadow-sm">
+            <thead className="sticky top-0 z-sticky bg-tea-bg">
               <tr>
                 <th className="px-4 py-2 border-b border-tea-border font-serif text-ui-11 uppercase tracking-display text-tea-text-sec font-normal text-left">Date</th>
                 <th className="px-4 py-2 border-b border-tea-border font-serif text-ui-11 uppercase tracking-display text-tea-text-sec font-normal text-left">Invoice #</th>

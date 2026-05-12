@@ -1041,7 +1041,7 @@ export const SourcesView = () => {
                 {showColumnsPopover && (
                   <>
                     <div className="fixed inset-0 z-40" onClick={() => setShowColumnsPopover(false)} />
-                    <div className="absolute right-0 top-full mt-2 w-44 bg-tea-surface border border-tea-border shadow-xl rounded-xl z-popover py-2">
+                    <div className="absolute right-0 top-full mt-2 w-44 bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-popover py-2">
                       <div className="px-3 pb-1.5 text-ui-9 text-tea-text-sec/60 uppercase tracking-[0.2em]">Visible Columns</div>
                       {SOURCE_COLUMN_DEFS.map(col => (
                         <label key={col.key} className={`flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-tea-bg transition-colors cursor-pointer ${'alwaysVisible' in col && col.alwaysVisible ? 'opacity-50 cursor-not-allowed' : ''}`}>
@@ -1073,7 +1073,7 @@ export const SourcesView = () => {
                   <Layers size={14} />
                   <span className="hidden xl:inline tracking-wide">Group</span>
                 </button>
-                <div id="sources-groupby-dropdown" className="hidden absolute right-0 top-full mt-2 w-40 bg-tea-surface border border-tea-border shadow-xl rounded-xl z-popover py-1">
+                <div id="sources-groupby-dropdown" className="hidden absolute right-0 top-full mt-2 w-40 bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-popover py-1">
                   {GROUPBY_OPTIONS.map(opt => (
                     <button
                       key={opt.value}
@@ -1100,7 +1100,7 @@ export const SourcesView = () => {
               {showOptions && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setShowOptions(false)}></div>
-                  <div className="absolute right-0 top-full mt-2 w-48 bg-tea-surface border border-tea-border shadow-xl rounded-xl z-popover py-1 flex flex-col">
+                  <div className="absolute right-0 top-full mt-2 w-48 bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-popover py-1 flex flex-col">
                     <button onClick={() => { handleExport(); setShowOptions(false); }} className="px-4 py-2 text-left text-xs text-tea-text-sec hover:text-tea-text hover:bg-tea-bg flex items-center gap-2 transition-colors">
                       <Download size={14} /> Export CSV
                     </button>
@@ -1262,7 +1262,7 @@ export const SourcesView = () => {
                   {visibleCols.map(col => <col key={col.key} className={col.defaultWidth} />)}
                   <col className="w-[18%]" />
                 </colgroup>
-                <thead className="sticky top-0 z-sticky bg-tea-bg shadow-sm">
+                <thead className="sticky top-0 z-sticky bg-tea-bg">
                   <tr>
                     {visibleCols.map(col => (
                       <SortHeader key={col.key} colKey={col.key as SourceSortKey} label={col.label} align={col.key === 'teaCount' ? 'center' : 'left'} />
@@ -1314,7 +1314,7 @@ export const SourcesView = () => {
                 <col className="w-[18%]" />
               </colgroup>
 
-              <thead className="sticky top-0 z-sticky bg-tea-bg shadow-sm">
+              <thead className="sticky top-0 z-sticky bg-tea-bg">
                 <tr>
                   {visibleCols.map(col => (
                     <SortHeader key={col.key} colKey={col.key as SourceSortKey} label={col.label} align={col.key === 'teaCount' ? 'center' : 'left'} />

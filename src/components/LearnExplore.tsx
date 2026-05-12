@@ -204,7 +204,7 @@ export const LearnExplore: React.FC<LearnExploreProps> = ({ watchedStories, onNa
                 <div key={collection.id}>
                   <CardContainer
                    
-                    className={`cursor-pointer overflow-hidden transition-all duration-500 ease-out ${isExpanded ? 'shadow-lg' : 'shadow-sm '}`}
+                    className={`cursor-pointer overflow-hidden transition-all duration-500 ease-out ${isExpanded ? 'shadow-lg' : ''}`}
                     onClick={() => toggleJourney(collection.id)}
                   >
                     <div className="p-5 flex items-start gap-5">
@@ -483,7 +483,7 @@ export const LearnExplore: React.FC<LearnExploreProps> = ({ watchedStories, onNa
                   onClick={() => toggleSpace(space.id)}
                   className="text-left w-full"
                 >
-                  <CardContainer className={`transition-all h-full ${expandedSpace === space.id ? 'shadow-md' : ''}`}>
+                  <CardContainer className={`transition-all h-full ${expandedSpace === space.id ? '' : ''}`}>
                     <div className="p-4">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-ui-9 uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-tea-gold/10 text-tea-gold border border-tea-border">

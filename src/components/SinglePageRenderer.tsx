@@ -1106,7 +1106,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                                  return (
                                      <div key={i} className="absolute z-10 flex items-start gap-2" style={{ top: pos.top, left: pos.left }}>
                                          <div className="flex flex-col items-center">
-                                             <div className="w-3 h-3 rounded-full bg-tea-gold/60 border-2 border-tea-surface shadow-sm"></div>
+                                             <div className="w-3 h-3 rounded-full bg-tea-gold/60 border-2 border-tea-surface"></div>
                                              <div className="w-[1px] h-4 bg-tea-gold/30"></div>
                                          </div>
                                          <div className="-mt-1">
@@ -1558,7 +1558,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                             const rotations = ['-rotate-[3deg]', 'rotate-[2deg]', '-rotate-[1deg]'];
                             const positions = ['top-[15%] left-[10%]', 'top-[25%] right-[8%]', 'bottom-[15%] left-[25%]'];
                             return (
-                                <div key={i} className={`absolute ${positions[i]} ${rotations[i]} w-[40%] bg-tea-surface p-3 pb-12 shadow-xl`}>
+                                <div key={i} className={`absolute ${positions[i]} ${rotations[i]} w-[40%] bg-tea-surface p-3 pb-12 shadow-2xl`}>
                                     <div className="aspect-square overflow-hidden"><SafeImage index={i} className="w-full h-full object-cover" /></div>
                                 </div>
                             );
@@ -1827,7 +1827,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                                     return (
                                         <div key={i} className="relative flex items-start gap-6">
                                             {/* Gold dot on the line */}
-                                            <div className="absolute -left-[2.15rem] top-2 w-3 h-3 rounded-full bg-tea-gold border-[3px] border-tea-bg shadow-sm"></div>
+                                            <div className="absolute -left-[2.15rem] top-2 w-3 h-3 rounded-full bg-tea-gold border-[3px] border-tea-bg"></div>
                                             <div className="ml-2">
                                                 {descParts.length > 0 && <span className={`${TYPE.caption} font-caption opacity-40 block mb-1`}>{date}</span>}
                                                 <span className={`${TYPE.bodyDense} font-body opacity-90`}>{descParts.length > 0 ? desc : date}</span>
@@ -2163,7 +2163,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                                     const isLast = i === tlEvents.length - 1;
                                     return (
                                         <div key={i} className="relative flex items-start gap-4">
-                                            <div className={`absolute -left-[1.8rem] top-1.5 w-4 h-4 rounded-full ${isLast ? 'bg-tea-gold' : 'bg-tea-gold/50 border-2 border-tea-bg'} shadow-sm`}></div>
+                                            <div className={`absolute -left-[1.8rem] top-1.5 w-4 h-4 rounded-full ${isLast ? 'bg-tea-gold' : 'bg-tea-gold/50 border-2 border-tea-bg'} `}></div>
                                             <div>
                                                 {descParts.length > 0 && <span className={`${TYPE.caption} ${LH.tight} font-mono opacity-40 block mb-1`}>{date}</span>}
                                                 <span className={`${TYPE.body} ${LH.relaxed} font-body opacity-90`}>{descParts.length > 0 ? desc : date}</span>

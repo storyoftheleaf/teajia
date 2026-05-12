@@ -1777,7 +1777,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                       {showColumnsPopover && (
                         <>
                           <div className="fixed inset-0 z-40" onClick={() => setShowColumnsPopover(false)} />
-                          <div className="absolute right-0 top-full mt-2 w-44 bg-tea-surface border border-tea-border shadow-xl rounded-xl z-popover py-2" role="menu">
+                          <div className="absolute right-0 top-full mt-2 w-44 bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-popover py-2" role="menu">
                             <div className="px-3 pb-1 text-ui-9 text-tea-text-sec/60 uppercase tracking-[0.2em]">Price View</div>
                             <div className="flex items-center gap-1 px-3 pb-2">
                               <button
@@ -1829,7 +1829,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                       {showGroupByDropdown && (
                         <>
                           <div className="fixed inset-0 z-40" onClick={() => setShowGroupByDropdown(false)} />
-                          <div className="absolute right-0 top-full mt-2 w-40 bg-tea-surface border border-tea-border shadow-xl rounded-xl z-popover py-1" role="menu">
+                          <div className="absolute right-0 top-full mt-2 w-40 bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-popover py-1" role="menu">
                             {GROUPBY_OPTIONS.map(opt => (
                               <button
                                 key={opt.value}
@@ -1864,7 +1864,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                       {showVendorDropdown && (
                         <>
                           <div className="fixed inset-0 z-40" onClick={() => setShowVendorDropdown(false)} />
-                          <div className="absolute right-0 top-full mt-2 w-48 bg-tea-surface border border-tea-border shadow-xl rounded-xl z-popover py-1 max-h-60 overflow-y-auto" role="menu">
+                          <div className="absolute right-0 top-full mt-2 w-48 bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-popover py-1 max-h-60 overflow-y-auto" role="menu">
                             <button
                               role="menuitem"
                               onClick={() => { setSearchParams({}); setShowVendorDropdown(false); }}
@@ -1901,7 +1901,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     {showOptions && (
                         <>
                         <div className="fixed inset-0 z-40" onClick={() => setShowOptions(false)}></div>
-                        <div className="absolute right-0 top-full mt-2 w-48 bg-tea-surface border border-tea-border shadow-xl rounded-xl z-popover py-1 flex flex-col" role="menu">
+                        <div className="absolute right-0 top-full mt-2 w-48 bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-popover py-1 flex flex-col" role="menu">
                             <button
                                 role="menuitem"
                                 onClick={() => { setFilterType(filterType === 'Alerts' ? 'All' : 'Alerts'); setShowOptions(false); }}

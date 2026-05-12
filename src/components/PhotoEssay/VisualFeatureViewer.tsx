@@ -190,7 +190,7 @@ export const VisualFeatureViewer: React.FC<VisualFeatureViewerProps> = ({
         className="fixed inset-0 z-50 bg-tea-surface overflow-y-auto animate-[fadeIn_0.3s_ease-out]"
       >
         {/* Sticky Header - Elevated with touch targets */}
-        <div className="sticky top-0 z-20 bg-tea-bg/95 backdrop-blur-md border-b border-tea-text/5 ">
+        <div className="sticky top-0 z-20 bg-tea-bg/95 backdrop-blur-md border-b border-tea-text/5">
           <div className="flex items-center justify-between px-4 md:px-6 py-3 md:py-4">
             <button
               onClick={onBack}
@@ -331,7 +331,7 @@ export const VisualFeatureViewer: React.FC<VisualFeatureViewerProps> = ({
                   {group.items.map(({ image, index }) => (
                     <div key={index} className="flex-1 relative">
                       <div
-                        className="relative overflow-hidden shadow-md ring-1 ring-tea-border active:scale-[0.98] transition-transform cursor-pointer"
+                        className="relative overflow-hidden ring-1 ring-tea-border active:scale-[0.98] transition-transform cursor-pointer"
                         onClick={() => handleImageClick(index)}
                       >
                         {/* Subtle texture overlay */}
@@ -379,7 +379,7 @@ export const VisualFeatureViewer: React.FC<VisualFeatureViewerProps> = ({
               <div className="w-full h-[1px] bg-tea-text/10/10" />
             </div>
 
-            <div className="px-5 md:px-8 lg:px-12 py-10 md:py-14 bg-tea-text/[0.02] ">
+            <div className="px-5 md:px-8 lg:px-12 py-10 md:py-14 bg-tea-text/[0.02]">
               <div className="flex items-start gap-5">
                 <div className="w-16 h-16 md:w-20 md:h-20 rounded-full overflow-hidden bg-tea-text/10 flex-shrink-0 ring-2 ring-tea-gold/20">
                   {story.author.avatarUrl ? (
@@ -449,7 +449,7 @@ export const VisualFeatureViewer: React.FC<VisualFeatureViewerProps> = ({
         <div className="px-5 md:px-8 lg:px-12 pb-16">
           <button
             onClick={handleShareFeature}
-            className="w-full max-w-sm mx-auto py-4 min-h-[56px] bg-tea-elevated text-tea-text font-medium text-sm uppercase tracking-[0.15em] rounded-full shadow-md active:scale-[0.98] active:shadow-sm transition-all flex items-center justify-center gap-3"
+            className="w-full max-w-sm mx-auto py-4 min-h-[56px] bg-tea-elevated text-tea-text font-medium text-sm uppercase tracking-[0.15em] rounded-full active:scale-[0.98] transition-all flex items-center justify-center gap-3"
           >
             <Icons.Share className="w-4 h-4" />
             Share this Feature

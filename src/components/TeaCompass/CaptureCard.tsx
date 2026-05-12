@@ -1340,7 +1340,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                         />
                       )}
                       {sel && (
-                        <span className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-tea-gold flex items-center justify-center shadow-md">
+                        <span className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-tea-gold flex items-center justify-center">
                           <Check size={12} strokeWidth={3} className="text-tea-bg" />
                         </span>
                       )}

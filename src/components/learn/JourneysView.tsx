@@ -38,7 +38,7 @@ export const JourneysView: React.FC<JourneysViewProps> = ({ onBack }) => {
             <div key={collection.id}>
               <button onClick={() => toggleJourney(collection.id)} className="text-left w-full">
                 <CardContainer
-                  className={`cursor-pointer overflow-hidden transition-all duration-500 ease-out ${isExpanded ? 'shadow-lg' : 'shadow-sm '}`}
+                  className={`cursor-pointer overflow-hidden transition-all duration-500 ease-out ${isExpanded ? 'shadow-lg' : ''}`}
                 >
                   <div className="p-5 flex items-start gap-5">
                     <div className="font-serif text-5xl text-tea-text/5 leading-none shrink-0 select-none">

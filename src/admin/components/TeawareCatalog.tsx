@@ -260,7 +260,7 @@ export const TeawareCatalog = ({ products, currency, rates, onAdd, loading, isAd
                   <col className="w-[10%]" />
                   <col className="w-[7%]" />
                 </colgroup>
-                <thead className="sticky top-0 z-sticky bg-tea-bg shadow-sm">
+                <thead className="sticky top-0 z-sticky bg-tea-bg">
                   <tr>
                     <SortHeader colKey="productName" label="Product" />
                     <SortHeader colKey="teawareCategory" label="Category" />

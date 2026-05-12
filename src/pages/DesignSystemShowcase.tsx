@@ -664,13 +664,13 @@ function TabStripSection() {
         <Demo banned label="The segmented pill" caption="OS-control aesthetic — fights editorial type">
           <div className="inline-flex bg-tea-elevated rounded-lg border border-tea-border p-0.5">
             {['All', 'Drafts', 'Published'].map((t, i) => (
-              <span key={t} className={`px-3 py-1.5 text-ui-12 rounded-md ${i === 1 ? 'bg-tea-bg text-tea-text shadow-sm' : 'text-tea-text-sec'}`}>
+              <span key={t} className={`px-3 py-1.5 text-ui-12 rounded-md ${i === 1 ? 'bg-tea-bg text-tea-text ' : 'text-tea-text-sec'}`}>
                 {t}
               </span>
             ))}
           </div>
           <p className="text-ui-11 text-tea-error mt-3">
-            Banned: <code className="font-mono">bg-tea-bg shadow-sm</code> on the active tab — see §22.
+            Banned: <code className="font-mono">bg-tea-bg </code> on the active tab — see §22.
           </p>
         </Demo>
       </div>
@@ -1725,7 +1725,7 @@ function AntiPatternsSection() {
         <Demo banned label="Segmented pill tabs" caption="OS-control aesthetic, fights serif type">
           <div className="inline-flex bg-tea-elevated rounded-lg border border-tea-border p-0.5">
             {['All', 'Drafts', 'Live'].map((t, i) => (
-              <span key={t} className={`px-3 py-1.5 text-ui-12 rounded-md ${i === 0 ? 'bg-tea-bg text-tea-text shadow-sm' : 'text-tea-text-sec'}`}>{t}</span>
+              <span key={t} className={`px-3 py-1.5 text-ui-12 rounded-md ${i === 0 ? 'bg-tea-bg text-tea-text ' : 'text-tea-text-sec'}`}>{t}</span>
             ))}
           </div>
         </Demo>

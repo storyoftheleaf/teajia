@@ -57,7 +57,7 @@ const AnnotatedImage: React.FC<AnnotatedImageProps> = ({
                 aria-expanded={isActive}
                 animate={{ scale: isActive ? 1.25 : 1 }}
                 transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-                className="w-6 h-6 rounded-full bg-tea-gold flex items-center justify-center shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
+                className="w-6 h-6 rounded-full bg-tea-gold flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
               >
                 <span className="text-tea-bg text-xs font-bold leading-none select-none">
                   {ann.id}
@@ -72,7 +72,7 @@ const AnnotatedImage: React.FC<AnnotatedImageProps> = ({
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.85, y: 4 }}
                     transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-                    className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-tea-surface text-tea-text text-xs rounded-lg px-3 py-2 shadow-xl whitespace-nowrap max-w-40 text-center"
+                    className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-tea-surface text-tea-text text-xs rounded-lg px-3 py-2 shadow-2xl whitespace-nowrap max-w-40 text-center"
                     style={{
                       backdropFilter: 'blur(8px)',
                       WebkitBackdropFilter: 'blur(8px)',

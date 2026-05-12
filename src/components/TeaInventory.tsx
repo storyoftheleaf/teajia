@@ -569,7 +569,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
             {openFilter && (
                <>
                   <div className="fixed inset-0 z-overlay" onClick={() => setOpenFilter(null)} />
-                  <div className="absolute left-0 right-0 top-full mt-1 z-drawer bg-tea-bg border border-tea-border rounded-lg shadow-xl p-3 animate-[fadeIn_0.15s_ease-out]">
+                  <div className="absolute left-0 right-0 top-full mt-1 z-drawer bg-tea-bg border border-tea-border rounded-lg shadow-2xl p-3 animate-[fadeIn_0.15s_ease-out]">
                      {openFilter === 'type' && (
                         <div className="flex flex-wrap gap-1.5">
                            <button

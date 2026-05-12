@@ -172,7 +172,7 @@ const CanonicalDrawer: React.FC<CanonicalDrawerProps> = ({ profile, onClose }) =
         role="dialog"
         aria-modal="true"
         aria-label={`${profile.name} curator's content`}
-        className="fixed inset-0 md:inset-auto md:right-0 md:top-0 md:bottom-0 md:w-[480px] z-modal bg-tea-surface flex flex-col overflow-hidden shadow-xl surface-warm"
+        className="fixed inset-0 md:inset-auto md:right-0 md:top-0 md:bottom-0 md:w-[480px] z-modal bg-tea-surface flex flex-col overflow-hidden shadow-2xl surface-warm"
       >
         {/* Header */}
         <div className="px-6 pt-6 pb-4 border-b border-tea-border shrink-0">

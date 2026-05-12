@@ -61,7 +61,7 @@ const Toggle: React.FC<{ enabled: boolean; onChange: (v: boolean) => void; busy?
     className={`relative w-10 h-5 rounded-full transition-colors shrink-0 disabled:opacity-40 ${enabled ? 'bg-tea-gold' : 'bg-tea-surface'}`}>
     {busy
       ? <Loader2 size={10} className="absolute inset-0 m-auto animate-spin text-tea-text-dim" />
-      : <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-tea-bg shadow-sm transition-all ${enabled ? 'left-[22px]' : 'left-0.5'}`} />}
+      : <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-tea-bg  transition-all ${enabled ? 'left-[22px]' : 'left-0.5'}`} />}
   </button>
 );
 

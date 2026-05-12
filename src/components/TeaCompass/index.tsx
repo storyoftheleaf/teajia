@@ -1196,7 +1196,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                     {/* 3-way toggle: Tea / Teaware / Samples */}
                     <div className="flex gap-0 rounded-md bg-tea-surface/30 p-0.5 relative">
                       <motion.div
-                        className="absolute top-0.5 bottom-0.5 rounded-[5px] bg-tea-surface shadow-sm"
+                        className="absolute top-0.5 bottom-0.5 rounded-[5px] bg-tea-surface"
                         animate={{
                           left: captureOption === 'tea' ? '2px' : captureOption === 'teaware' ? '33.33%' : '66.66%',
                           right: captureOption === 'samples' ? '2px' : captureOption === 'teaware' ? '33.33%' : '66.66%',

@@ -214,7 +214,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ story, onClose }) => {
 
            {/* Featured Article Preview */}
            <div className="w-full mb-4">
-             <div className="bg-tea-surface rounded-sm shadow-md overflow-hidden border border-tea-border">
+             <div className="bg-tea-surface rounded-sm overflow-hidden border border-tea-border">
                {/* Image Section */}
                <div className="w-full h-32 bg-tea-bg overflow-hidden relative">
                  {story.thumbnailUrl ? (

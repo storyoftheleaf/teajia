@@ -112,7 +112,7 @@ export const ShopSearch: React.FC<ShopSearchProps> = ({
 
         {/* Inline preview dropdown */}
         {showPreview && (
-          <div className="absolute top-full left-0 right-0 mt-1 bg-tea-elevated border border-tea-border rounded-lg shadow-xl z-30 overflow-hidden">
+          <div className="absolute top-full left-0 right-0 mt-1 bg-tea-elevated border border-tea-border rounded-lg shadow-2xl z-30 overflow-hidden">
             {previewResults.map((item, idx) => (
               <button
                 key={item.id}

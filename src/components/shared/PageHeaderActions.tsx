@@ -34,7 +34,7 @@ export const PageHeaderActions: React.FC<PageHeaderActionsProps> = ({
           onClick={() => onViewModeChange('LIST')}
           className={`p-1.5 rounded-lg transition-all ${
             viewMode === 'LIST'
-              ? 'bg-tea-elevated text-tea-text shadow-sm'
+              ? 'bg-tea-elevated text-tea-text '
               : 'text-tea-text/40 hover:text-tea-text'
           }`}
           title="List View"
@@ -45,7 +45,7 @@ export const PageHeaderActions: React.FC<PageHeaderActionsProps> = ({
           onClick={() => onViewModeChange('GRID')}
           className={`p-1.5 rounded-lg transition-all ${
             viewMode === 'GRID'
-              ? 'bg-tea-elevated text-tea-text shadow-sm'
+              ? 'bg-tea-elevated text-tea-text '
               : 'text-tea-text/40 hover:text-tea-text'
           }`}
           title="Grid View"

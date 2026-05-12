@@ -103,7 +103,7 @@ export const CompassShareModal: React.FC<CompassShareModalProps> = ({
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 40, opacity: 0 }}
         transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-        className="relative z-10 w-full sm:max-w-sm bg-tea-elevated rounded-t-2xl sm:rounded-xl border border-tea-border p-5 pb-5 shadow-xl"
+        className="relative z-10 w-full sm:max-w-sm bg-tea-elevated rounded-t-2xl sm:rounded-xl border border-tea-border p-5 pb-5 shadow-2xl"
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
@@ -128,7 +128,7 @@ export const CompassShareModal: React.FC<CompassShareModalProps> = ({
             type="button"
             onClick={() => setTab('direct')}
             className={`flex-1 py-1.5 rounded-[5px] text-ui-11 font-medium transition-colors ${
-              tab === 'direct' ? 'bg-tea-surface text-tea-text shadow-sm' : 'text-tea-text-dim'
+              tab === 'direct' ? 'bg-tea-surface text-tea-text ' : 'text-tea-text-dim'
             }`}
           >
             Account
@@ -137,7 +137,7 @@ export const CompassShareModal: React.FC<CompassShareModalProps> = ({
             type="button"
             onClick={() => setTab('link')}
             className={`flex-1 py-1.5 rounded-[5px] text-ui-11 font-medium transition-colors ${
-              tab === 'link' ? 'bg-tea-surface text-tea-text shadow-sm' : 'text-tea-text-dim'
+              tab === 'link' ? 'bg-tea-surface text-tea-text ' : 'text-tea-text-dim'
             }`}
           >
             Link
@@ -146,7 +146,7 @@ export const CompassShareModal: React.FC<CompassShareModalProps> = ({
             type="button"
             onClick={() => setTab('table')}
             className={`flex-1 py-1.5 rounded-[5px] text-ui-11 font-medium transition-colors ${
-              tab === 'table' ? 'bg-tea-surface text-tea-text shadow-sm' : 'text-tea-text-dim'
+              tab === 'table' ? 'bg-tea-surface text-tea-text ' : 'text-tea-text-dim'
             }`}
           >
             Follow-up
@@ -269,7 +269,7 @@ export const CompassShareModal: React.FC<CompassShareModalProps> = ({
                         transition={{ duration: 0.2 }}
                         className="flex justify-center pt-1"
                       >
-                        <div className="p-3 bg-tea-text rounded-xl shadow-sm">
+                        <div className="p-3 bg-tea-text rounded-xl">
                           <QRCodeSVG value={inviteLink} size={180} bgColor="transparent" fgColor="var(--tea-bg)" />
                         </div>
                       </motion.div>
@@ -313,7 +313,7 @@ export const CompassShareModal: React.FC<CompassShareModalProps> = ({
               {tableUrl ? (
                 <div className="space-y-3">
                   <div className="flex justify-center">
-                    <div className="p-3 bg-tea-text rounded-xl shadow-sm">
+                    <div className="p-3 bg-tea-text rounded-xl">
                       <QRCodeSVG value={tableUrl} size={180} bgColor="transparent" fgColor="var(--tea-bg)" />
                     </div>
                   </div>
