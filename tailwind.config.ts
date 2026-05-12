@@ -31,7 +31,6 @@ const config: Config = {
         serif: DESIGN_TOKENS.fontFamily.serif as string[],
         body: DESIGN_TOKENS.fontFamily.body as string[],
         sans: DESIGN_TOKENS.fontFamily.sans as string[],
-        nav: DESIGN_TOKENS.fontFamily.nav as string[],
         mono: DESIGN_TOKENS.fontFamily.mono as string[],
       },
       fontSize: {

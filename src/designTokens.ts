@@ -42,32 +42,10 @@ export const FONT_STACKS = {
   body:    ['Lora', 'Noto Serif SC', 'Georgia', 'serif'],
   caption: ['Plus Jakarta Sans', 'system-ui', 'sans-serif'],
   sans:    ['Plus Jakarta Sans', 'system-ui', 'sans-serif'],
-  // `nav` resolves dynamically to whichever sidebar font is selected via the
-  // in-app cycler. The CSS variable `--font-nav` is set on :root by the sidebar.
-  nav:     ['var(--font-nav)', 'Plus Jakarta Sans', 'system-ui', 'sans-serif'],
   mono:    ['IBM Plex Mono', 'Menlo', 'Courier New', 'monospace'],
   chinese: ['Noto Serif SC', 'serif'],
   chineseCalligraphy: ['Ma Shan Zheng', 'cursive'],
 } as const;
-
-/** Nav font candidates exposed via the sidebar font-cycle button.
- *  Order matters — index 0 is the default.
- *  When picking the winner, set `--font-nav` to its `family` and remove this list.
- */
-export const NAV_FONT_CANDIDATES = [
-  { id: 'fraunces',           label: 'Fraunces',           family: "'Fraunces', Georgia, serif" },
-  { id: 'instrument-serif',   label: 'Instrument Serif',   family: "'Instrument Serif', Georgia, serif" },
-  { id: 'dm-serif-text',      label: 'DM Serif Text',      family: "'DM Serif Text', Georgia, serif" },
-  { id: 'bricolage-grotesque', label: 'Bricolage Grotesque', family: "'Bricolage Grotesque', system-ui, sans-serif" },
-  { id: 'familjen-grotesk',   label: 'Familjen Grotesk',   family: "'Familjen Grotesk', system-ui, sans-serif" },
-  { id: 'sentient',           label: 'Sentient',           family: "'Sentient', Georgia, serif" },
-  { id: 'erode',              label: 'Erode',              family: "'Erode', Georgia, serif" },
-  { id: 'synonym',            label: 'Synonym',            family: "'Synonym', system-ui, sans-serif" },
-  { id: 'gambarino',          label: 'Gambarino',          family: "'Gambarino', Georgia, serif" },
-  { id: 'cabinet-grotesk',    label: 'Cabinet Grotesk',    family: "'Cabinet Grotesk', system-ui, sans-serif" },
-] as const;
-
-export type NavFontId = typeof NAV_FONT_CANDIDATES[number]['id'];
 
 /**
  * Google Fonts import URL (for index.html <link>):
@@ -183,9 +161,9 @@ export const TYPOGRAPHY_CLASSES = {
   nav:       'font-sans text-ui-12 font-normal uppercase tracking-[1px] leading-[1.4]',
   link:      'font-sans text-ui-14 font-normal tracking-[0.2px]',
   mono:      'font-mono text-ui-11 font-normal',
-  navSidebar:      'font-nav text-ui-13 font-semibold tracking-[0.02em] leading-[1.3]',
-  navSidebarChild: 'font-nav text-ui-12 font-medium tracking-[0.02em] leading-[1.3]',
-  navSidebarGroup: 'font-nav text-ui-10 font-semibold uppercase tracking-[0.18em] leading-[1.3]',
+  navSidebar:      'font-display text-ui-15 font-medium tracking-[0.04em] leading-[1.3]',
+  navSidebarChild: 'font-display text-ui-13 font-normal tracking-[0.04em] leading-[1.3]',
+  navSidebarGroup: 'font-sans text-ui-10 font-semibold uppercase tracking-[0.18em] leading-[1.3]',
   accountMeta:     'font-sans text-ui-12 font-normal tracking-[0.04em] leading-[1.3]',
 } as const;
 
@@ -925,7 +903,6 @@ export const DESIGN_TOKENS = {
     body:    FONT_STACKS.body,
     caption: FONT_STACKS.caption,
     sans:    FONT_STACKS.sans,
-    nav:     FONT_STACKS.nav,
     mono:    FONT_STACKS.mono,
   },
   typeScale:       TYPE_SCALE,

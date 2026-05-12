@@ -134,7 +134,7 @@ See `docs/ROADMAP.md` for build sequence and `docs/MULTI_STORE_PLAN.md` for mult
 - **Desktop:** LeftSidebar is the navigation system. Account Identity card sits directly below the logo (top of sidebar), not buried at the bottom. Cart lives in the sidebar utility footer.
 - The sidebar nav (Read, Learn, Consult, Shop) and the mobile bottom tab bar are the same four sections rendered differently — keep them in sync.
 - Sidebar uses micro-caps section labels (`BROWSE`, `MANAGE`, `CURATE`) via `TYPOGRAPHY_CLASSES.navSidebarGroup` in `text-tea-text-dim`. Labels — not dividers — carry grouping; the earlier dividers-only attempt failed legibility in sun.
-- Sidebar nav labels are sans (`TYPOGRAPHY_CLASSES.navSidebar` = `font-sans text-ui-13 font-semibold`). The display serif is reserved for the brand mark and the "Your Table" account label only — serifs at 13–15px on dark brown lose legibility outdoors.
+- Sidebar nav labels are Cormorant Garamond display serif (`TYPOGRAPHY_CLASSES.navSidebar` = `font-display text-ui-15 font-medium`). The serif carries the editorial-tea-brand feel — the sans-serif experiment lost soul. Outdoor-sun legibility is a real tradeoff accepted for this surface.
 - Inactive sidebar icons use `text-tea-text-sec`, NEVER `text-tea-gold/55` — gold is reserved for the active state, brand, and badges, so the eye can find the active row without competing brass tint on every icon.
 - Hover state on sidebar items: `hover:bg-tea-gold/6`, active: `bg-tea-gold/8`.
 - Browse rows are `min-h-[44px]` (customer-facing breathing room); admin rows are tighter at `min-h-[36px]` with `text-ui-12` (tool palette density). Same height for both flattens the hierarchy.

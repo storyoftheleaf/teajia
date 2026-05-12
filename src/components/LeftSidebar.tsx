@@ -7,14 +7,14 @@ import { Section } from '../types';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../hooks/useAuth';
 import { useAppStore, selectHasBundle } from '../lib/store';
-import { TYPOGRAPHY_CLASSES, NAV_FONT_CANDIDATES } from '../designTokens';
+import { TYPOGRAPHY_CLASSES } from '../designTokens';
 // Phosphor (Light weight) — refined hairlines, replaces the generic lucide
 // stock icons in the admin nav. Browse keeps its hand-drawn brand icons.
 import {
   CalendarBlank, SquaresFour, Briefcase, Leaf, Coffee, Storefront, UsersThree,
   FolderOpen, CaretLeft, CaretRight, UserCheck, MapPin,
   BookOpen, Package, ShoppingCart, Sun, Moon, Stack, Camera, Compass,
-  GearSix, Globe, ArrowsClockwise,
+  GearSix, Globe,
 } from '@phosphor-icons/react';
 import { SampleIcon } from './Icons';
 import { useSampleCartStore } from '../samples/sampleCartStore';
@@ -162,21 +162,6 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   const platformRole = useAppStore(s => s.platformRole);
   const canCreateCollections = auth.user?.canCreateCollections ?? false;
   const sampleCount = useSampleCartStore(s => s.items.length);
-
-  // Nav font cycler — temporary preview UI. Persisted via Zustand so the
-  // chosen font survives reload while we're picking the winner.
-  const navFontId = useAppStore(s => s.navFontId);
-  const setNavFontId = useAppStore(s => s.setNavFontId);
-  const currentFont =
-    NAV_FONT_CANDIDATES.find(f => f.id === navFontId) ?? NAV_FONT_CANDIDATES[0];
-  const cycleNavFont = () => {
-    const idx = NAV_FONT_CANDIDATES.findIndex(f => f.id === currentFont.id);
-    const next = NAV_FONT_CANDIDATES[(idx + 1) % NAV_FONT_CANDIDATES.length];
-    setNavFontId(next.id);
-  };
-  useEffect(() => {
-    document.documentElement.style.setProperty('--font-nav', currentFont.family);
-  }, [currentFont.family]);
 
   // Sync sidebar width to CSS variable for full-screen panel offsets
   useEffect(() => {
@@ -693,37 +678,9 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 
           <div className="flex-1" />
 
-          {/* ── Font cycler (preview UI — remove after picking the winner) ─ */}
-          {!collapsed && (
-            <div className="px-3 pt-2 pb-1 border-t border-tea-border shrink-0">
-              <button
-                type="button"
-                onClick={cycleNavFont}
-                className="w-full flex items-center gap-2 min-h-[36px] px-3 rounded-md hover:bg-tea-gold/6 transition-colors duration-200 group"
-                title="Cycle nav font"
-                aria-label={`Nav font: ${currentFont.label}. Click to cycle.`}
-              >
-                <ArrowsClockwise
-                  size={14}
-                  weight={PHOSPHOR_WEIGHT}
-                  className="text-tea-text-dim group-hover:text-tea-text-sec transition-colors shrink-0"
-                />
-                <span
-                  className="text-ui-12 text-tea-text-sec group-hover:text-tea-text transition-colors flex-1 text-left truncate"
-                  style={{ fontFamily: currentFont.family }}
-                >
-                  {currentFont.label}
-                </span>
-                <span className="text-ui-10 text-tea-text-dim font-mono shrink-0">
-                  {NAV_FONT_CANDIDATES.findIndex(f => f.id === currentFont.id) + 1}/{NAV_FONT_CANDIDATES.length}
-                </span>
-              </button>
-            </div>
-          )}
-
           {/* ── Utility footer ────────────────────────────────────────────── */}
           <div
-            className={`py-3 ${collapsed ? 'px-1.5 border-t border-tea-border' : 'px-3'} shrink-0`}
+            className={`py-3 ${collapsed ? 'px-1.5' : 'px-3'} border-t border-tea-border shrink-0`}
           >
             {/* Our Spaces + theme toggle */}
             <div className={`flex items-center ${collapsed ? 'flex-col gap-1' : 'justify-between gap-2'}`}>

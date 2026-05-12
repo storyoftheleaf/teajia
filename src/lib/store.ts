@@ -154,11 +154,6 @@ interface AppState {
   setAuthUser: (u: AuthUser | null) => void;
   setIsSessionReady: (ready: boolean) => void;
 
-  // Sidebar nav font candidate (id from NAV_FONT_CANDIDATES). Persisted so the
-  // user's preview survives reload while we're picking the winner.
-  navFontId: string;
-  setNavFontId: (id: string) => void;
-
   // Notification state (for bottom nav dot + cart badge)
   upcomingEventsCount: number;
   setUpcomingEventsCount: (count: number) => void;
@@ -547,10 +542,6 @@ export const useAppStore = create<AppState>()(
       setAuthUser: (authUser) => set({ authUser }),
       setIsSessionReady: (isSessionReady) => set({ isSessionReady }),
 
-      // Sidebar nav font candidate
-      navFontId: 'fraunces',
-      setNavFontId: (navFontId) => set({ navFontId }),
-
       // Notifications
       upcomingEventsCount: 0,
       setUpcomingEventsCount: (count) => set({ upcomingEventsCount: count }),
@@ -591,7 +582,6 @@ export const useAppStore = create<AppState>()(
         shopSavedOnly: state.shopSavedOnly,
         upcomingEventsCount: state.upcomingEventsCount,
         cartLastAddedAt: state.cartLastAddedAt,
-        navFontId: state.navFontId,
       }),
     }
   )
