@@ -91,53 +91,62 @@ const CopyInviteLink: React.FC<{
       })()
     : null;
 
+  // Identity miniature: small monogram avatar + name/hint
+  const monogram = (claimedByName || nameHint || '?').trim().charAt(0).toUpperCase();
+
   if (claimedByName) {
     return (
-      <div className="flex items-center gap-2 text-sm text-tea-text-sec">
-        <Check className="w-3.5 h-3.5 text-tea-gold shrink-0" />
-        <span className="font-medium text-tea-text">{claimedByName}</span>
-        {nameHint && <span className="text-tea-text-sec">({nameHint})</span>}
+      <div className="flex items-center gap-3 min-w-0 flex-1">
+        <span className="shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-full bg-tea-gold/10 ring-1 ring-inset ring-tea-gold/30 text-tea-gold text-ui-14" style={{ fontFamily: 'var(--font-display)' }}>
+          {monogram}
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-ui-14 text-tea-text truncate" style={{ fontFamily: 'var(--font-display)' }}>{claimedByName}</p>
+          {nameHint && <p className="text-ui-12 text-tea-text-sec italic truncate">{nameHint}</p>}
+        </div>
+        <span className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-ui-10 uppercase tracking-[0.15em] bg-tea-gold/10 text-tea-text ring-1 ring-inset ring-tea-gold/30">
+          <Check className="w-3 h-3" /> Claimed
+        </span>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      {nameHint && (
-        <span className="text-sm text-tea-text-sec italic">{nameHint}</span>
-      )}
-      {whatsappUrl ? (
-        <a
-          href={whatsappUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-colors"
-        >
-          Send via WhatsApp
-        </a>
-      ) : (
-        <button
-          onClick={handleCopy}
-          className="flex items-center gap-1.5 text-xs text-tea-gold hover:text-tea-gold/80 transition-colors"
-        >
-          {copied ? (
-            <><Check className="w-3.5 h-3.5" />Copied</>
-          ) : (
-            <><Copy className="w-3.5 h-3.5" />Copy invite link</>
-          )}
-        </button>
-      )}
-      {!whatsappUrl && (
-        <span className="text-xs text-tea-text-sec/50">unclaimed</span>
-      )}
-      {whatsappUrl && (
-        <button
-          onClick={handleCopy}
-          className="flex items-center gap-1.5 text-xs text-tea-text-dim hover:text-tea-text-sec transition-colors"
-        >
-          {copied ? <><Check className="w-3 h-3" />Copied</> : <><Copy className="w-3 h-3" />Copy link</>}
-        </button>
-      )}
+    <div className="flex items-center gap-3 min-w-0 flex-1">
+      <span className="shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-full bg-tea-elevated text-tea-text-dim text-ui-14" style={{ fontFamily: 'var(--font-display)' }}>
+        {monogram}
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-ui-14 text-tea-text-sec italic truncate">
+          {nameHint || 'Guest'}
+        </p>
+        <div className="flex flex-wrap items-center gap-3 mt-0.5">
+          {whatsappUrl ? (
+            <a
+              href={whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-ui-11 font-semibold text-tea-readgold hover:text-tea-text transition-colors"
+            >
+              Send via WhatsApp
+            </a>
+          ) : null}
+          <button
+            type="button"
+            onClick={handleCopy}
+            className="inline-flex items-center gap-1 text-ui-11 font-semibold text-tea-text-sec hover:text-tea-text transition-colors"
+          >
+            {copied ? (
+              <><Check className="w-3 h-3" />Copied</>
+            ) : (
+              <><Copy className="w-3 h-3" />Copy link</>
+            )}
+          </button>
+        </div>
+      </div>
+      <span className="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-ui-10 uppercase tracking-[0.15em] bg-tea-elevated text-tea-text-dim">
+        Unclaimed
+      </span>
     </div>
   );
 };

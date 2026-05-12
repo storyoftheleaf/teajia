@@ -139,7 +139,7 @@ const ImpressionFeed: React.FC<{ impressions: JourneyImpression[] }> = ({ impres
     <div className="space-y-6">
       {impressions.map((imp, i) => (
         <motion.div key={i} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, delay: i * 0.04 }} className="border-l border-tea-border pl-5">
-          <p className="font-body italic text-ui-16 text-tea-text leading-relaxed mb-2">"{imp.text}"</p>
+          <p className="subtitle mb-2">"{imp.text}"</p>
           <p className="text-ui-12 text-tea-text-sec">
             {imp.teaName}
             <span className="mx-1.5 text-tea-text-dim">·</span>
@@ -286,8 +286,8 @@ const CompassThread: React.FC<{ entries: CompassEntry[] }> = ({ entries }) => {
 
 const SectionHeader: React.FC<{ title: string; subtitle?: string }> = ({ title, subtitle }) => (
   <div className="mb-6">
-    <h2 className="h3 mb-1">{title}</h2>
-    {subtitle && <p className="text-ui-12 text-tea-text-sec">{subtitle}</p>}
+    <h2 className="h2 mb-1">{title}</h2>
+    {subtitle && <p className="text-ui-13 text-tea-text-sec">{subtitle}</p>}
   </div>
 );
 
@@ -421,12 +421,12 @@ const AccountJourneyPage: React.FC = () => {
         <div className="max-w-3xl mx-auto px-4 md:px-6 pt-6 pb-3 pb-nav-gap">
           <button onClick={() => navigate(-1)} className="inline-flex items-center gap-1.5 text-tea-text-sec hover:text-tea-text transition-colors mb-6" aria-label="Back">
             <ArrowLeft size={14} />
-            <span className="text-ui-12 uppercase tracking-[0.15em]">Back</span>
+            <span className="text-ui-13">Back</span>
           </button>
           <p className="label-caps text-tea-text-dim mb-2">Your Journey</p>
-          <h1 className="h2 mb-4">It begins at the table</h1>
+          <h1 className="h1 mb-4">It begins at the table.</h1>
           <div className="w-10 h-[1px] bg-tea-gold mb-8" />
-          <p className="text-ui-15 text-tea-text-sec leading-relaxed mb-4">
+          <p className="body-prose mb-4">
             Your session record lives here once your first gathering is complete and your account is linked.
           </p>
 
@@ -481,13 +481,13 @@ const AccountJourneyPage: React.FC = () => {
           {/* Back */}
           <button onClick={() => navigate(-1)} className="inline-flex items-center gap-1.5 text-tea-text-sec hover:text-tea-text transition-colors mb-6" aria-label="Back">
             <ArrowLeft size={14} />
-            <span className="text-ui-12 uppercase tracking-[0.15em]">Back</span>
+            <span className="text-ui-13">Back</span>
           </button>
 
           {/* Header */}
           <div className="mb-12">
             <p className="label-caps text-tea-text-dim mb-2">Your Journey</p>
-            <h1 className="h2 mb-2">
+            <h1 className="h1 mb-2">
               {journey.sessionsAttended} gathering{journey.sessionsAttended !== 1 ? 's' : ''}
             </h1>
             {statParts.length > 0 && (
@@ -550,8 +550,8 @@ const AccountJourneyPage: React.FC = () => {
           <section className="mb-16">
             <div className="mb-6">
               <p className="label-caps text-tea-text-dim mb-2">At Home</p>
-              <h2 className="h3 mb-1">What You've Explored</h2>
-              <p className="text-ui-12 text-tea-text-sec">Samples tasted outside the session.</p>
+              <h2 className="h2 mb-1">What you've explored</h2>
+              <p className="text-ui-13 text-tea-text-sec">Samples tasted outside the session.</p>
             </div>
             {hasSamples
               ? <SampleThread samples={journey.samples} />

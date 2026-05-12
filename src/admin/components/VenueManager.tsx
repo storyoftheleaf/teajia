@@ -18,7 +18,7 @@ const textareaClass = 'w-full border border-tea-border bg-transparent focus:bord
 
 const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
   <div>
-    <label className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec block mb-1.5">{label}</label>
+    <label className="label-caps text-tea-text-sec block mb-1.5">{label}</label>
     {children}
   </div>
 );
@@ -159,7 +159,7 @@ const SpaceForm: React.FC<SpaceFormProps> = ({ venueId, space, onSaved, onCancel
         <button type="button" onClick={onCancel} className="px-3 py-1.5 text-sm text-tea-text-sec hover:text-tea-text transition-colors">
           Cancel
         </button>
-        <button type="button" onClick={handleSave} disabled={saving || uploading} className="flex items-center gap-1.5 bg-tea-gold text-tea-bg px-4 py-1.5 rounded-md text-sm font-medium hover:bg-tea-gold-lt transition-colors disabled:opacity-50">
+        <button type="button" onClick={handleSave} disabled={saving || uploading} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-tea-gold/10">
           {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
           {space ? 'Update' : 'Add Space'}
         </button>
@@ -367,7 +367,7 @@ const VenueCard: React.FC<VenueCardProps> = ({ venue, onRefresh }) => {
                 </Field>
               </div>
               <div>
-                <label className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec block mb-1">Venue Photos</label>
+                <label className="label-caps text-tea-text-sec block mb-1">Venue Photos</label>
                 <p className="text-ui-10 text-tea-text-dim mb-2">First photo is the hero. Add more to show the vibe from past events.</p>
                 <PhotoStrip photos={photos} onAdd={handleUpload} onRemove={handleRemovePhoto} uploading={uploading} />
               </div>
@@ -380,7 +380,7 @@ const VenueCard: React.FC<VenueCardProps> = ({ venue, onRefresh }) => {
                   <button type="button" onClick={() => setEditing(false)} className="px-3 py-1.5 text-sm text-tea-text-sec hover:text-tea-text transition-colors">
                     Cancel
                   </button>
-                  <button type="button" onClick={handleSave} disabled={saving} className="flex items-center gap-1.5 bg-tea-gold text-tea-bg px-4 py-1.5 rounded-md text-sm font-medium hover:bg-tea-gold-lt transition-colors disabled:opacity-50">
+                  <button type="button" onClick={handleSave} disabled={saving} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-tea-gold/10">
                     {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
                     Save
                   </button>
@@ -391,7 +391,7 @@ const VenueCard: React.FC<VenueCardProps> = ({ venue, onRefresh }) => {
 
           {/* Spaces list */}
           <div className="p-4 space-y-3">
-            <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim">Spaces</p>
+            <p className="label-caps text-tea-text-dim">Spaces</p>
 
             {venue.spaces.length === 0 && !addingSpace && (
               <p className="text-xs text-tea-text-dim py-2">No spaces yet — add a tea table or room below.</p>
@@ -480,7 +480,7 @@ const VenueCard: React.FC<VenueCardProps> = ({ venue, onRefresh }) => {
           <div className="p-4 border-t border-tea-border space-y-2">
             <div className="flex items-center gap-2">
               <Calendar size={12} className="text-tea-text-dim" />
-              <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim">Events Hosted Here</p>
+              <p className="label-caps text-tea-text-dim">Events Hosted Here</p>
             </div>
             {loadingEvents ? (
               <Loader2 size={14} className="animate-spin text-tea-text-dim" />
@@ -552,7 +552,7 @@ const NewVenueForm: React.FC<NewVenueFormProps> = ({ onSaved, onCancel }) => {
 
   return (
     <div className="border border-tea-gold/30 rounded-lg p-4 space-y-4">
-      <p className="text-xs uppercase tracking-widest text-tea-text-sec font-medium">New Venue</p>
+      <p className="label-caps text-tea-text-sec">New Venue</p>
       <div className="grid grid-cols-2 gap-4">
         <Field label="Venue Name *">
           <input type="text" value={name} onChange={e => setName(e.target.value)} className={inputClass} placeholder="Adrian's Flat" autoFocus />
@@ -571,7 +571,7 @@ const NewVenueForm: React.FC<NewVenueFormProps> = ({ onSaved, onCancel }) => {
         <button type="button" onClick={onCancel} className="px-3 py-1.5 text-sm text-tea-text-sec hover:text-tea-text transition-colors">
           Cancel
         </button>
-        <button type="button" onClick={handleSave} disabled={saving} className="flex items-center gap-1.5 bg-tea-gold text-tea-bg px-4 py-1.5 rounded-md text-sm font-medium hover:bg-tea-gold-lt transition-colors disabled:opacity-50">
+        <button type="button" onClick={handleSave} disabled={saving} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-tea-gold/10">
           {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
           Create Venue
         </button>
