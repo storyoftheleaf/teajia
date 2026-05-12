@@ -209,7 +209,7 @@ export const AlcoveModal: React.FC<AlcoveModalProps> = ({
       role="dialog"
       aria-modal="true"
       aria-labelledby={`alcove-title-${item.id}`}
-      className={`fixed inset-0 z-[80] transition-all duration-300 ${isVisible ? 'bg-black/85 backdrop-blur-sm' : 'bg-black/0 pointer-events-none'}`}
+      className={`fixed inset-0 z-panel-modal transition-all duration-300 ${isVisible ? 'bg-black/85 backdrop-blur-sm' : 'bg-black/0 pointer-events-none'}`}
       onClick={handleBackdropClick}
       onKeyDown={handleDialogKeyDown}
     >

@@ -990,7 +990,7 @@ const AppContent = () => {
           style={{
             height: 'calc(env(safe-area-inset-bottom, 0px) + 112px)',
             background: 'linear-gradient(to top, var(--tea-bg) 0%, var(--tea-bg) 60%, transparent 100%)',
-            zIndex: 70,
+            /* z-panel-modal */ zIndex: 70,
           }}
         />
       )}

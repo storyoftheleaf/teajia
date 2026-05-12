@@ -755,7 +755,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, isSav
           exit={{ opacity: 0 }}
           transition={{ duration: 0.4 }}
           className="reader-keyboard-hint"
-          style={{ zIndex: 200 }}
+          className="z-panel-modal"
         >
           <div className="reader-keyboard-hint-card">
             <div className="label-caps text-tea-text-dim mb-4">Keyboard Shortcuts</div>
