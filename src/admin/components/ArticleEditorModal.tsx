@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   X, Save, Loader2, Plus, Trash2, ArrowUp, ArrowDown,
   ChevronDown, ChevronUp, Eye, EyeOff,
+  Bold, Italic, Underline, Link as LinkIcon, Quote, Heading1, Heading2, List, Image as ImageIcon,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../../lib/api';
@@ -54,7 +55,7 @@ function parsePasteFormat(raw: string): {
       blocks.push({ type: 'section_heading', text: heading });
       if (body) blocks.push({ type: 'paragraph', text: body });
     } else if (section.startsWith('QUOTE:')) {
-      const text = section.replace(/^QUOTE:\s*["\u201C]?/, '').replace(/["\u201D]$/, '').trim();
+      const text = section.replace(/^QUOTE:\s*["“]?/, '').replace(/["”]$/, '').trim();
       blocks.push({ type: 'quote', text });
     } else if (section.startsWith('IMAGE:')) {
       const lines = section.split('\n');
@@ -71,21 +72,93 @@ function parsePasteFormat(raw: string): {
   return { blocks, title, subtitle, author };
 }
 
-// ─── Shared input styles ─────────────────────────────────────────────────────
+// ─── Shared input styles (boxed, design system) ─────────────────────────────
 
 const inputClass =
-  'w-full border-b border-tea-border bg-transparent focus:border-tea-gold outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg text-sm text-tea-text py-2 placeholder:text-tea-text-sec/50 [color-scheme:dark]';
+  'w-full bg-tea-bg border border-tea-border rounded-md px-3 py-2 text-ui-14 text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/40 transition-colors [color-scheme:dark]';
 const textareaClass =
-  'w-full border border-tea-border bg-transparent focus:border-tea-gold outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg text-sm text-tea-text p-2 rounded-md placeholder:text-tea-text-sec/50 resize-y';
+  'w-full bg-tea-bg border border-tea-border rounded-md px-3 py-2 text-ui-14 text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/40 transition-colors resize-y';
 const selectClass =
-  'w-full border-b border-tea-border bg-transparent focus:border-tea-gold outline-none text-sm text-tea-text py-2 appearance-none cursor-pointer [color-scheme:dark]';
+  'w-full bg-tea-bg border border-tea-border rounded-md px-3 py-2 text-ui-14 text-tea-text focus:border-tea-gold focus:outline-none appearance-none cursor-pointer pr-8 [color-scheme:dark]';
 
 const Field = ({ label, children, className = '' }: { label: string; children: React.ReactNode; className?: string }) => (
   <div className={className}>
-    <label className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec block mb-1.5">{label}</label>
+    <label className="block label-caps text-tea-text-sec mb-1.5">{label}</label>
     {children}
   </div>
 );
+
+// ─── Rich text toolbar ──────────────────────────────────────────────────────
+
+interface RichTextToolbarProps {
+  textareaRef: React.RefObject<HTMLTextAreaElement | null>;
+  value: string;
+  onChange: (next: string) => void;
+}
+
+const RichTextToolbar: React.FC<RichTextToolbarProps> = ({ textareaRef, value, onChange }) => {
+  const wrap = (before: string, after: string = before) => {
+    const ta = textareaRef.current;
+    if (!ta) { onChange(value + before + after); return; }
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    const selected = value.slice(start, end);
+    const next = value.slice(0, start) + before + selected + after + value.slice(end);
+    onChange(next);
+    requestAnimationFrame(() => {
+      ta.focus();
+      ta.setSelectionRange(start + before.length, end + before.length);
+    });
+  };
+
+  const linePrefix = (prefix: string) => {
+    const ta = textareaRef.current;
+    if (!ta) { onChange(prefix + value); return; }
+    const start = ta.selectionStart;
+    const before = value.slice(0, start);
+    const lineStart = before.lastIndexOf('\n') + 1;
+    const next = value.slice(0, lineStart) + prefix + value.slice(lineStart);
+    onChange(next);
+    requestAnimationFrame(() => {
+      ta.focus();
+      ta.setSelectionRange(start + prefix.length, start + prefix.length);
+    });
+  };
+
+  const insertLink = () => {
+    const url = window.prompt('Link URL');
+    if (!url) return;
+    wrap('[', `](${url})`);
+  };
+
+  const tools: { icon: React.ComponentType<{ size?: number }>; title: string; action: () => void }[] = [
+    { icon: Bold, title: 'Bold', action: () => wrap('**') },
+    { icon: Italic, title: 'Italic', action: () => wrap('*') },
+    { icon: Underline, title: 'Underline', action: () => wrap('<u>', '</u>') },
+    { icon: LinkIcon, title: 'Link', action: insertLink },
+    { icon: Quote, title: 'Quote', action: () => linePrefix('> ') },
+    { icon: Heading1, title: 'Heading 1', action: () => linePrefix('# ') },
+    { icon: Heading2, title: 'Heading 2', action: () => linePrefix('## ') },
+    { icon: List, title: 'List', action: () => linePrefix('- ') },
+    { icon: ImageIcon, title: 'Image', action: () => wrap('![', '](url)') },
+  ];
+
+  return (
+    <div className="flex items-center gap-0.5 px-1 py-1 border border-tea-border rounded-md bg-tea-bg/60 flex-wrap">
+      {tools.map(({ icon: Icon, title, action }) => (
+        <button
+          key={title}
+          type="button"
+          onClick={action}
+          title={title}
+          className="tap-target p-1.5 rounded-md text-tea-text-dim hover:text-tea-text-sec transition-colors"
+        >
+          <Icon size={13} />
+        </button>
+      ))}
+    </div>
+  );
+};
 
 // ─── Single block editor ─────────────────────────────────────────────────────
 
@@ -100,27 +173,45 @@ interface BlockEditorProps {
 }
 
 const BlockEditor: React.FC<BlockEditorProps> = ({ block, index, total, onChange, onDelete, onMoveUp, onMoveDown }) => {
+  const textRef = useRef<HTMLTextAreaElement>(null);
+
   const renderFields = () => {
     switch (block.type) {
       case 'intro':
         return (
-          <textarea
-            value={block.text}
-            onChange={e => onChange({ ...block, text: e.target.value })}
-            placeholder="Introductory paragraph…"
-            className={`${textareaClass} min-h-[80px] text-ui-15 leading-relaxed italic`}
-            rows={4}
-          />
+          <div className="space-y-2">
+            <RichTextToolbar
+              textareaRef={textRef}
+              value={block.text}
+              onChange={next => onChange({ ...block, text: next })}
+            />
+            <textarea
+              ref={textRef}
+              value={block.text}
+              onChange={e => onChange({ ...block, text: e.target.value })}
+              placeholder="Introductory paragraph…"
+              className={`${textareaClass} min-h-[96px] text-ui-15 leading-relaxed italic`}
+              rows={4}
+            />
+          </div>
         );
       case 'paragraph':
         return (
-          <textarea
-            value={block.text}
-            onChange={e => onChange({ ...block, text: e.target.value })}
-            placeholder="Paragraph text…"
-            className={`${textareaClass} min-h-[64px]`}
-            rows={3}
-          />
+          <div className="space-y-2">
+            <RichTextToolbar
+              textareaRef={textRef}
+              value={block.text}
+              onChange={next => onChange({ ...block, text: next })}
+            />
+            <textarea
+              ref={textRef}
+              value={block.text}
+              onChange={e => onChange({ ...block, text: e.target.value })}
+              placeholder="Paragraph text…"
+              className={`${textareaClass} min-h-[80px]`}
+              rows={3}
+            />
+          </div>
         );
       case 'section_heading':
         return (
@@ -129,7 +220,7 @@ const BlockEditor: React.FC<BlockEditorProps> = ({ block, index, total, onChange
             value={block.text}
             onChange={e => onChange({ ...block, text: e.target.value })}
             placeholder="Section heading…"
-            className={`${inputClass} text-base font-semibold`}
+            className={`${inputClass} text-ui-16 font-semibold`}
           />
         );
       case 'quote':
@@ -139,7 +230,7 @@ const BlockEditor: React.FC<BlockEditorProps> = ({ block, index, total, onChange
               value={block.text}
               onChange={e => onChange({ ...block, text: e.target.value })}
               placeholder="Quote text…"
-              className={`${textareaClass} min-h-[56px] italic`}
+              className={`${textareaClass} min-h-[64px] italic`}
               rows={2}
             />
             <input
@@ -147,7 +238,7 @@ const BlockEditor: React.FC<BlockEditorProps> = ({ block, index, total, onChange
               value={block.attribution ?? ''}
               onChange={e => onChange({ ...block, attribution: e.target.value })}
               placeholder="Attribution (optional)"
-              className={`${inputClass} text-xs`}
+              className={`${inputClass} text-ui-12`}
             />
           </div>
         );
@@ -173,7 +264,7 @@ const BlockEditor: React.FC<BlockEditorProps> = ({ block, index, total, onChange
               value={block.caption ?? ''}
               onChange={e => onChange({ ...block, caption: e.target.value })}
               placeholder="Caption (optional)"
-              className={`${inputClass} text-xs`}
+              className={`${inputClass} text-ui-12`}
             />
             {block.url && (
               <div className="mt-2">
@@ -202,14 +293,14 @@ const BlockEditor: React.FC<BlockEditorProps> = ({ block, index, total, onChange
     <div className="group relative bg-tea-elevated/40 border border-tea-border rounded-lg p-3 space-y-2">
       {/* Block header row */}
       <div className="flex items-center justify-between">
-        <span className="text-ui-9 uppercase tracking-[0.2em] text-tea-text-dim font-medium">
+        <span className="label-caps text-tea-text-dim">
           {getArticleBlockLabel(block.type)}
         </span>
         <div className="flex items-center gap-0.5">
           <button
             onClick={onMoveUp}
             disabled={index === 0}
-            className="p-1 rounded text-tea-text-dim hover:text-tea-text-sec transition-colors disabled:opacity-30"
+            className="tap-target p-1.5 rounded-md text-tea-text-dim hover:text-tea-text-sec transition-colors disabled:opacity-40"
             title="Move up"
           >
             <ArrowUp size={12} />
@@ -217,14 +308,14 @@ const BlockEditor: React.FC<BlockEditorProps> = ({ block, index, total, onChange
           <button
             onClick={onMoveDown}
             disabled={index === total - 1}
-            className="p-1 rounded text-tea-text-dim hover:text-tea-text-sec transition-colors disabled:opacity-30"
+            className="tap-target p-1.5 rounded-md text-tea-text-dim hover:text-tea-text-sec transition-colors disabled:opacity-40"
             title="Move down"
           >
             <ArrowDown size={12} />
           </button>
           <button
             onClick={onDelete}
-            className="p-1 rounded text-tea-text-dim hover:text-red-400 transition-colors ml-1"
+            className="tap-target p-1.5 rounded-md text-tea-text-dim hover:text-tea-error transition-colors ml-1"
             title="Delete block"
           >
             <Trash2 size={12} />
@@ -445,325 +536,296 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-modal flex flex-col bg-tea-bg text-tea-text">
-      {/* ── Header ─────────────────────────────────────────────────── */}
-      <div className="flex items-center gap-2 px-4 md:px-6 py-3 border-b border-tea-border bg-tea-surface/90 backdrop-blur-xl flex-shrink-0">
-        {/* Close — top-left per panel convention */}
-        <button
-          onClick={onClose}
-          className="p-1.5 rounded-md text-tea-text-sec hover:text-tea-text transition-colors shrink-0"
-          title="Close"
-        >
-          <X size={17} />
-        </button>
+    <div className="fixed inset-0 z-modal flex items-center justify-center p-3 sm:p-6">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        onClick={onClose}
+        aria-hidden
+      />
 
-        {/* Title input */}
-        <input
-          type="text"
-          value={title}
-          onChange={e => { setTitle(e.target.value); scheduleAutoSave(); }}
-          placeholder="Article title"
-          className="flex-1 min-w-0 bg-transparent text-base font-semibold text-tea-text placeholder:text-tea-text-sec/40 outline-none focus:placeholder:text-tea-text-sec/20 transition-colors"
-        />
-
-        {/* Status badge */}
-        <span className={`text-ui-9 uppercase tracking-[0.15em] px-2 py-0.5 rounded-full font-medium shrink-0 ${STATUS_BADGE_STYLES[status] ?? STATUS_BADGE_STYLES.draft}`}>
-          {status}
-        </span>
-
-        {/* Save state */}
-        <span className="text-ui-10 text-tea-text-dim shrink-0 hidden sm:block">
-          {saveState === 'saving' ? 'Saving…' : saveState === 'saved' ? 'Saved' : ''}
-        </span>
-
-        {/* Publish/Unpublish toggle */}
-        <button
-          onClick={handlePublishToggle}
-          disabled={publishing || !articleId}
-          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors disabled:opacity-40 shrink-0 ${
-            status === 'published'
-              ? 'text-tea-text-sec hover:text-tea-text bg-tea-elevated'
-              : 'text-tea-bg bg-tea-gold hover:bg-tea-gold/90'
-          }`}
-          title={status === 'published' ? 'Unpublish' : 'Publish'}
-        >
-          {publishing ? <Loader2 size={12} className="animate-spin" /> : status === 'published' ? <EyeOff size={12} /> : <Eye size={12} />}
-          <span className="hidden sm:inline">{status === 'published' ? 'Unpublish' : 'Publish'}</span>
-        </button>
-
-        {/* Manual save */}
-        <button
-          onClick={() => { void save(); }}
-          disabled={saveState === 'saving' || !title.trim()}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-medium hover:bg-tea-gold/90 transition-colors disabled:opacity-40 shrink-0"
-        >
-          {saveState === 'saving' ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
-          <span className="hidden sm:inline">Save</span>
-        </button>
-      </div>
-
-      {/* ── Body ───────────────────────────────────────────────────── */}
-      <div className="flex-1 flex overflow-hidden">
-
-        {/* Left panel — Block editor (55%) */}
-        <div className="flex-1 lg:w-[55%] overflow-y-auto pb-[calc(1rem+52px+env(safe-area-inset-bottom,0px))] lg:pb-4">
-          <div className="max-w-2xl mx-auto px-4 md:px-6 py-5 space-y-3">
-
-            {blocks.length === 0 && (
-              <div className="py-12 text-center text-tea-text-dim text-sm border border-dashed border-tea-border rounded-lg">
-                No blocks yet. Add one below or paste from Claude.
-              </div>
-            )}
-
-            <AnimatePresence initial={false}>
-              {blocks.map((block, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.15 }}
-                >
-                  <BlockEditor
-                    block={block}
-                    index={i}
-                    total={blocks.length}
-                    onChange={updated => updateBlock(i, updated)}
-                    onDelete={() => deleteBlock(i)}
-                    onMoveUp={() => moveBlock(i, 'up')}
-                    onMoveDown={() => moveBlock(i, 'down')}
-                  />
-                </motion.div>
-              ))}
-            </AnimatePresence>
-
-            {/* Add block */}
-            <div className="relative" ref={addBlockRef}>
-              <button
-                onClick={() => setAddBlockOpen(v => !v)}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-md border border-dashed border-tea-border text-tea-text-sec hover:text-tea-text hover:border-tea-text-sec transition-colors text-xs w-full justify-center"
-              >
-                <Plus size={13} />
-                Add block
-                <ChevronDown size={12} className={`ml-1 transition-transform ${addBlockOpen ? 'rotate-180' : ''}`} />
-              </button>
-              <AnimatePresence>
-                {addBlockOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -4 }}
-                    className="absolute top-full left-0 right-0 mt-1 bg-tea-surface border border-tea-border rounded-lg shadow-lg z-10 overflow-hidden"
-                  >
-                    {ADD_BLOCK_OPTIONS.map(opt => (
-                      <button
-                        key={opt.type}
-                        onClick={() => addBlock(opt.type)}
-                        className="w-full text-left px-4 py-2.5 text-sm text-tea-text hover:bg-tea-elevated transition-colors"
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+      {/* Centered modal: rounded-xl + shadow-2xl per design system */}
+      <div
+        className="relative w-full max-w-3xl max-h-[90vh] flex flex-col bg-tea-surface border border-tea-border rounded-xl shadow-2xl overflow-hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Article editor"
+      >
+        {/* Header: .h3 title left, close-X top-RIGHT */}
+        <div className="flex items-start justify-between gap-4 px-5 md:px-6 py-4 border-b border-tea-border flex-shrink-0">
+          <div className="min-w-0 flex-1">
+            <h2 className="h3 truncate">
+              {articleId ? 'Edit Article' : 'New Article'}
+            </h2>
+            <p className="label-caps text-tea-text-dim mt-1">
+              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-ui-9 font-sans uppercase tracking-caps mr-2 ${STATUS_BADGE_STYLES[status] ?? STATUS_BADGE_STYLES.draft}`}>
+                {status}
+              </span>
+              {saveState === 'saving' ? 'Saving…' : saveState === 'saved' ? 'Saved' : articleId ? 'Auto-saves on edit' : 'Unsaved'}
+            </p>
           </div>
+          <button
+            onClick={onClose}
+            className="tap-target p-1.5 rounded-md text-tea-text-sec hover:text-tea-text transition-colors shrink-0"
+            title="Close"
+            aria-label="Close"
+          >
+            <X size={18} />
+          </button>
         </div>
 
-        {/* Right panel — Metadata + Smart Paste (45%) */}
-        <div className="hidden lg:flex flex-col w-[45%] max-w-sm border-l border-tea-border overflow-y-auto">
-          <div className="flex-1 overflow-y-auto px-4 py-5 space-y-5">
+        {/* Body (scrollable) */}
+        <div className="flex-1 overflow-y-auto px-5 md:px-6 py-5 space-y-6">
 
-            {/* ── Metadata ── */}
-            <section>
-              <h3 className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim font-medium mb-3">Metadata</h3>
-              <div className="space-y-4">
-                <Field label="Subtitle">
-                  <input
-                    type="text"
-                    value={subtitle}
-                    onChange={e => { setSubtitle(e.target.value); scheduleAutoSave(); }}
-                    placeholder="Short subtitle…"
-                    className={inputClass}
-                  />
-                </Field>
+          {/* Title + Subtitle */}
+          <section className="space-y-4">
+            <Field label="Title">
+              <input
+                type="text"
+                value={title}
+                onChange={e => { setTitle(e.target.value); scheduleAutoSave(); }}
+                placeholder="Article title"
+                className={`${inputClass} text-ui-16 font-semibold`}
+              />
+            </Field>
 
-                <Field label="Author">
-                  <input
-                    type="text"
-                    value={author}
-                    onChange={e => { setAuthor(e.target.value); scheduleAutoSave(); }}
-                    placeholder="Author name or ID…"
-                    className={inputClass}
-                  />
-                </Field>
+            <Field label="Subtitle">
+              <input
+                type="text"
+                value={subtitle}
+                onChange={e => { setSubtitle(e.target.value); scheduleAutoSave(); }}
+                placeholder="Short subtitle…"
+                className={inputClass}
+              />
+            </Field>
+          </section>
 
-                <Field label="Category">
-                  <div className="relative">
-                    <select
-                      value={category}
-                      onChange={e => { setCategory(e.target.value); scheduleAutoSave(); }}
-                      className={selectClass}
-                    >
-                      {CATEGORIES.map(c => (
-                        <option key={c} value={c} className="bg-tea-surface text-tea-text">
-                          {c || '— Select category —'}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown size={12} className="absolute right-0 top-1/2 -translate-y-1/2 text-tea-text-dim pointer-events-none" />
-                  </div>
-                </Field>
-
-                <Field label="Tags (comma-separated)">
-                  <input
-                    type="text"
-                    value={tagsInput}
-                    onChange={e => { setTagsInput(e.target.value); scheduleAutoSave(); }}
-                    placeholder="oolong, taiwan, high mountain"
-                    className={inputClass}
-                  />
-                  {tagsInput.trim() && (
-                    <div className="flex flex-wrap gap-1 mt-2">
-                      {tagsInput.split(',').map(t => t.trim()).filter(Boolean).map(tag => (
-                        <span key={tag} className="text-ui-10 px-2 py-0.5 rounded-full bg-tea-elevated text-tea-text-sec">{tag}</span>
-                      ))}
-                    </div>
-                  )}
-                </Field>
-
-                <Field label="Cover image URL">
-                  <input
-                    type="url"
-                    value={coverImageUrl}
-                    onChange={e => { setCoverImageUrl(e.target.value); scheduleAutoSave(); }}
-                    placeholder="https://…"
-                    className={inputClass}
-                  />
-                  {coverImageUrl && (
-                    <img
-                      src={coverImageUrl}
-                      alt="Cover preview"
-                      className="mt-2 w-full h-28 object-cover rounded-md border border-tea-border"
-                      onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                    />
-                  )}
-                </Field>
-
-                <Field label="Layout template">
-                  <div className="relative">
-                    <select
-                      value={layoutTemplate}
-                      onChange={e => { setLayoutTemplate(e.target.value); scheduleAutoSave(); }}
-                      className={selectClass}
-                    >
-                      {LAYOUT_TEMPLATES.map(t => (
-                        <option key={t.value} value={t.value} className="bg-tea-surface text-tea-text">{t.label}</option>
-                      ))}
-                    </select>
-                    <ChevronDown size={12} className="absolute right-0 top-1/2 -translate-y-1/2 text-tea-text-dim pointer-events-none" />
-                  </div>
-                </Field>
-              </div>
-            </section>
-
-            {/* ── Smart Paste ── */}
-            <section>
-              <button
-                onClick={() => setPasteOpen(v => !v)}
-                className="flex items-center gap-2 w-full text-left"
-              >
-                <h3 className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim font-medium flex-1">Paste from Claude</h3>
-                {pasteOpen ? <ChevronUp size={13} className="text-tea-text-dim" /> : <ChevronDown size={13} className="text-tea-text-dim" />}
-              </button>
+          {/* Blocks */}
+          <section>
+            <h3 className="label-caps text-tea-text-sec mb-1.5">Blocks</h3>
+            <div className="space-y-3">
+              {blocks.length === 0 && (
+                <div className="py-12 text-center text-tea-text-dim text-ui-13 border border-dashed border-tea-border rounded-lg">
+                  No blocks yet. Add one below or paste from Claude.
+                </div>
+              )}
 
               <AnimatePresence initial={false}>
-                {pasteOpen && (
+                {blocks.map((block, i) => (
                   <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    className="overflow-hidden"
+                    key={i}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.15 }}
                   >
-                    <div className="pt-3 space-y-3">
-                      <p className="text-ui-10 text-tea-text-dim leading-relaxed">
-                        Structure with AI first, then paste here. Use the block format:
-                        <code className="ml-1 px-1 bg-tea-elevated rounded text-tea-text-sec">INTRO</code>,{' '}
-                        <code className="px-1 bg-tea-elevated rounded text-tea-text-sec">SECTION:</code>,{' '}
-                        <code className="px-1 bg-tea-elevated rounded text-tea-text-sec">QUOTE:</code> separated by{' '}
-                        <code className="px-1 bg-tea-elevated rounded text-tea-text-sec">---</code>
-                      </p>
-                      <textarea
-                        value={pasteText}
-                        onChange={e => setPasteText(e.target.value)}
-                        placeholder={`TITLE: My Article\n---\nINTRO\nAn opening paragraph…\n---\nSECTION: First heading\nBody text here.\n---\nQUOTE: A memorable line\n---`}
-                        className={`${textareaClass} min-h-[160px] text-xs font-mono`}
-                        rows={10}
-                      />
-                      <button
-                        onClick={handleParse}
-                        disabled={!pasteText.trim()}
-                        className="w-full py-2 rounded-md bg-tea-gold text-tea-bg text-xs font-medium hover:bg-tea-gold/90 transition-colors disabled:opacity-40"
-                      >
-                        Parse into blocks
-                      </button>
-                    </div>
+                    <BlockEditor
+                      block={block}
+                      index={i}
+                      total={blocks.length}
+                      onChange={updated => updateBlock(i, updated)}
+                      onDelete={() => deleteBlock(i)}
+                      onMoveUp={() => moveBlock(i, 'up')}
+                      onMoveDown={() => moveBlock(i, 'down')}
+                    />
                   </motion.div>
-                )}
+                ))}
               </AnimatePresence>
-            </section>
 
-          </div>
+              {/* Add block */}
+              <div className="relative" ref={addBlockRef}>
+                <button
+                  onClick={() => setAddBlockOpen(v => !v)}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-md border border-dashed border-tea-border text-tea-text-sec hover:text-tea-text hover:border-tea-text-sec transition-colors text-ui-12 w-full justify-center"
+                >
+                  <Plus size={13} />
+                  Add Block
+                  <ChevronDown size={12} className={`ml-1 transition-transform ${addBlockOpen ? 'rotate-180' : ''}`} />
+                </button>
+                <AnimatePresence>
+                  {addBlockOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -4 }}
+                      className="absolute top-full left-0 right-0 mt-1 bg-tea-surface border border-tea-border rounded-lg shadow-lg z-10 overflow-hidden"
+                    >
+                      {ADD_BLOCK_OPTIONS.map(opt => (
+                        <button
+                          key={opt.type}
+                          onClick={() => addBlock(opt.type)}
+                          className="w-full text-left px-4 py-2.5 text-ui-14 text-tea-text hover:bg-tea-elevated transition-colors"
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
+          </section>
 
-          {/* Mobile right panel — shown below left panel on mobile via media query isn't needed here since we hide lg:flex,
-              but the metadata is accessible via scroll on the mobile layout below */}
+          {/* Metadata */}
+          <section>
+            <h3 className="label-caps text-tea-text-sec mb-1.5">Metadata</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Field label="Author">
+                <input
+                  type="text"
+                  value={author}
+                  onChange={e => { setAuthor(e.target.value); scheduleAutoSave(); }}
+                  placeholder="Author name or ID…"
+                  className={inputClass}
+                />
+              </Field>
+
+              <Field label="Category">
+                <div className="relative">
+                  <select
+                    value={category}
+                    onChange={e => { setCategory(e.target.value); scheduleAutoSave(); }}
+                    className={selectClass}
+                  >
+                    {CATEGORIES.map(c => (
+                      <option key={c} value={c} className="bg-tea-surface text-tea-text">
+                        {c || '— Select category —'}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-tea-text-dim pointer-events-none" />
+                </div>
+              </Field>
+
+              <Field label="Layout template">
+                <div className="relative">
+                  <select
+                    value={layoutTemplate}
+                    onChange={e => { setLayoutTemplate(e.target.value); scheduleAutoSave(); }}
+                    className={selectClass}
+                  >
+                    {LAYOUT_TEMPLATES.map(t => (
+                      <option key={t.value} value={t.value} className="bg-tea-surface text-tea-text">{t.label}</option>
+                    ))}
+                  </select>
+                  <ChevronDown size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-tea-text-dim pointer-events-none" />
+                </div>
+              </Field>
+
+              <Field label="Tags (comma-separated)">
+                <input
+                  type="text"
+                  value={tagsInput}
+                  onChange={e => { setTagsInput(e.target.value); scheduleAutoSave(); }}
+                  placeholder="oolong, taiwan, high mountain"
+                  className={inputClass}
+                />
+              </Field>
+
+              <Field label="Cover image URL" className="sm:col-span-2">
+                <input
+                  type="url"
+                  value={coverImageUrl}
+                  onChange={e => { setCoverImageUrl(e.target.value); scheduleAutoSave(); }}
+                  placeholder="https://…"
+                  className={inputClass}
+                />
+                {coverImageUrl && (
+                  <img
+                    src={coverImageUrl}
+                    alt="Cover preview"
+                    className="mt-2 w-full max-h-40 object-cover rounded-md border border-tea-border"
+                    onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                  />
+                )}
+              </Field>
+            </div>
+            {tagsInput.trim() && (
+              <div className="flex flex-wrap gap-1 mt-3">
+                {tagsInput.split(',').map(t => t.trim()).filter(Boolean).map(tag => (
+                  <span key={tag} className="text-ui-10 px-2 py-0.5 rounded-full bg-tea-elevated text-tea-text-sec">{tag}</span>
+                ))}
+              </div>
+            )}
+          </section>
+
+          {/* Smart Paste (collapsible) */}
+          <section className="border-t border-tea-border pt-5">
+            <button
+              onClick={() => setPasteOpen(v => !v)}
+              className="flex items-center gap-2 w-full text-left"
+            >
+              <h3 className="label-caps text-tea-text-sec flex-1">Paste from Claude</h3>
+              {pasteOpen ? <ChevronUp size={13} className="text-tea-text-dim" /> : <ChevronDown size={13} className="text-tea-text-dim" />}
+            </button>
+
+            <AnimatePresence initial={false}>
+              {pasteOpen && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="overflow-hidden"
+                >
+                  <div className="pt-3 space-y-3">
+                    <p className="text-ui-11 text-tea-text-dim leading-relaxed">
+                      Structure with AI first, then paste here. Use the block format:
+                      <code className="ml-1 px-1 bg-tea-elevated rounded text-tea-text-sec">INTRO</code>,{' '}
+                      <code className="px-1 bg-tea-elevated rounded text-tea-text-sec">SECTION:</code>,{' '}
+                      <code className="px-1 bg-tea-elevated rounded text-tea-text-sec">QUOTE:</code> separated by{' '}
+                      <code className="px-1 bg-tea-elevated rounded text-tea-text-sec">---</code>
+                    </p>
+                    <textarea
+                      value={pasteText}
+                      onChange={e => setPasteText(e.target.value)}
+                      placeholder={`TITLE: My Article\n---\nINTRO\nAn opening paragraph…\n---\nSECTION: First heading\nBody text here.\n---\nQUOTE: A memorable line\n---`}
+                      className={`${textareaClass} min-h-[160px] text-ui-12 font-mono`}
+                      rows={10}
+                    />
+                    <button
+                      onClick={handleParse}
+                      disabled={!pasteText.trim()}
+                      className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      Parse Into Blocks
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </section>
         </div>
 
-      </div>
+        {/* Footer: Cancel-left ghost + Save-right primary (justify-between) */}
+        <div className="flex items-center justify-between gap-3 px-5 md:px-6 py-3 border-t border-tea-border bg-tea-bg/40 flex-shrink-0">
+          <button
+            onClick={onClose}
+            className="text-xs font-semibold text-tea-text-sec hover:text-tea-text px-3 py-1.5 rounded-md transition-colors"
+          >
+            Cancel
+          </button>
 
-      {/* Mobile metadata panel (shown below blocks on mobile) */}
-      <div className="lg:hidden border-t border-tea-border bg-tea-surface/80">
-        <details className="px-4">
-          <summary className="py-3 text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec font-medium cursor-pointer list-none flex items-center justify-between">
-            Article Metadata
-            <ChevronDown size={13} className="text-tea-text-dim" />
-          </summary>
-          <div className="pb-4 space-y-4">
-            <Field label="Subtitle">
-              <input type="text" value={subtitle} onChange={e => { setSubtitle(e.target.value); scheduleAutoSave(); }} placeholder="Short subtitle…" className={inputClass} />
-            </Field>
-            <Field label="Author">
-              <input type="text" value={author} onChange={e => { setAuthor(e.target.value); scheduleAutoSave(); }} placeholder="Author name or ID…" className={inputClass} />
-            </Field>
-            <Field label="Category">
-              <div className="relative">
-                <select value={category} onChange={e => { setCategory(e.target.value); scheduleAutoSave(); }} className={selectClass}>
-                  {CATEGORIES.map(c => (<option key={c} value={c} className="bg-tea-surface text-tea-text">{c || '— Select category —'}</option>))}
-                </select>
-                <ChevronDown size={12} className="absolute right-0 top-1/2 -translate-y-1/2 text-tea-text-dim pointer-events-none" />
-              </div>
-            </Field>
-            <Field label="Tags (comma-separated)">
-              <input type="text" value={tagsInput} onChange={e => { setTagsInput(e.target.value); scheduleAutoSave(); }} placeholder="oolong, taiwan" className={inputClass} />
-            </Field>
-            <Field label="Cover image URL">
-              <input type="url" value={coverImageUrl} onChange={e => { setCoverImageUrl(e.target.value); scheduleAutoSave(); }} placeholder="https://…" className={inputClass} />
-            </Field>
-          </div>
-        </details>
-        <details className="px-4 border-t border-tea-border">
-          <summary className="py-3 text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec font-medium cursor-pointer list-none flex items-center justify-between">
-            Paste from Claude
-            <ChevronDown size={13} className="text-tea-text-dim" />
-          </summary>
-          <div className="pb-4 space-y-3">
-            <textarea value={pasteText} onChange={e => setPasteText(e.target.value)} placeholder="Paste structured content here…" className={`${textareaClass} min-h-[120px] text-xs font-mono`} rows={6} />
-            <button onClick={handleParse} disabled={!pasteText.trim()} className="w-full py-2 rounded-md bg-tea-gold text-tea-bg text-xs font-medium hover:bg-tea-gold/90 transition-colors disabled:opacity-40">
-              Parse into blocks
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handlePublishToggle}
+              disabled={publishing || !articleId}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-colors disabled:opacity-40 border border-tea-border text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub"
+              title={!articleId ? 'Save the article first' : status === 'published' ? 'Unpublish' : 'Publish'}
+            >
+              {publishing ? <Loader2 size={13} className="animate-spin" /> : status === 'published' ? <EyeOff size={13} /> : <Eye size={13} />}
+              <span>{status === 'published' ? 'Unpublish' : 'Publish'}</span>
+            </button>
+
+            <button
+              onClick={() => { void save(); }}
+              disabled={saveState === 'saving' || !title.trim()}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {saveState === 'saving' ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
+              <span>Save</span>
             </button>
           </div>
-        </details>
+        </div>
       </div>
     </div>
   );

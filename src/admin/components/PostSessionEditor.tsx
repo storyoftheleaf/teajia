@@ -121,7 +121,7 @@ export const PostSessionEditor: React.FC<PostSessionEditorProps> = ({ eventId })
     <div className="space-y-6">
       {/* Tea Ledger */}
       <div>
-        <label className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec block mb-2 flex items-center gap-1.5">
+        <label className="label-caps text-tea-text-sec block mb-2 flex items-center gap-1.5">
           <FileText size={10} /> Tea Ledger (JSON)
         </label>
         <textarea
@@ -135,7 +135,7 @@ export const PostSessionEditor: React.FC<PostSessionEditorProps> = ({ eventId })
 
       {/* Playlist URL */}
       <div>
-        <label className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec block mb-2 flex items-center gap-1.5">
+        <label className="label-caps text-tea-text-sec block mb-2 flex items-center gap-1.5">
           <Music size={10} /> Playlist URL
         </label>
         <input
@@ -161,7 +161,7 @@ export const PostSessionEditor: React.FC<PostSessionEditorProps> = ({ eventId })
 
       {/* Gallery */}
       <div>
-        <label className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec block mb-2 flex items-center gap-1.5">
+        <label className="label-caps text-tea-text-sec block mb-2 flex items-center gap-1.5">
           <ImageIcon size={10} /> Gallery
         </label>
 
@@ -204,7 +204,7 @@ export const PostSessionEditor: React.FC<PostSessionEditorProps> = ({ eventId })
 
       {/* Session Notes */}
       <div>
-        <label className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec block mb-2">Session Notes</label>
+        <label className="label-caps text-tea-text-sec block mb-2">Session Notes</label>
         <textarea
           value={sessionNotes}
           onChange={(e) => setSessionNotes(e.target.value)}
@@ -218,9 +218,9 @@ export const PostSessionEditor: React.FC<PostSessionEditorProps> = ({ eventId })
         <button
           onClick={handleSave}
           disabled={saving}
-          className="flex items-center gap-2 bg-tea-gold text-tea-bg px-4 py-2 rounded-md text-sm font-medium hover:bg-tea-gold-lt transition-colors disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-tea-gold/10"
         >
-          {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+          {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
           Save Post-Session
         </button>
       </div>
@@ -228,17 +228,17 @@ export const PostSessionEditor: React.FC<PostSessionEditorProps> = ({ eventId })
       {/* Tasting Notes (read-only) */}
       {tastingNotes.length > 0 && (
         <div className="pt-4 border-t border-tea-border">
-          <h3 className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-3 flex items-center gap-1.5">
+          <h3 className="label-caps text-tea-text-sec mb-3 flex items-center gap-1.5">
             <Leaf size={10} /> Submitted Tasting Notes
           </h3>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-tea-border">
-                  <th className="text-left text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec font-medium py-2 px-2">Guest</th>
-                  <th className="text-left text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec font-medium py-2 px-2">Tea</th>
-                  <th className="text-left text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec font-medium py-2 px-2">Rating</th>
-                  <th className="text-left text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec font-medium py-2 px-2">Impression</th>
+                  <th className="text-left label-caps text-tea-text-dim py-2 px-2">Guest</th>
+                  <th className="text-left label-caps text-tea-text-dim py-2 px-2">Tea</th>
+                  <th className="text-left label-caps text-tea-text-dim py-2 px-2">Rating</th>
+                  <th className="text-left label-caps text-tea-text-dim py-2 px-2">Impression</th>
                 </tr>
               </thead>
               <tbody>

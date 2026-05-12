@@ -86,23 +86,20 @@ export const FindATable: React.FC = () => {
         />
       </Helmet>
 
-      <header className="text-center pt-10 pb-8 px-6 max-w-3xl mx-auto">
-        <p className="text-ui-11 uppercase tracking-[0.3em] text-tea-text-dim mb-3">
+      <header className="text-center pt-12 pb-6 px-4 md:px-6 max-w-3xl mx-auto">
+        <p className="label-caps text-tea-text-dim mb-3">
           The Teajia network
         </p>
-        <h1
-          className="text-3xl md:text-5xl text-tea-text mb-4"
-          style={{ fontFamily: 'var(--font-display)' }}
-        >
+        <h1 className="h1 mb-4">
           Find a table
         </h1>
-        <p className="text-base md:text-lg text-tea-text-sec leading-relaxed">
+        <p className="subtitle">
           Teajia is a lineage of tea houses — each independent, each with its own voice.
           Choose a table.
         </p>
       </header>
 
-      <section className="max-w-5xl mx-auto px-4 pb-16">
+      <section className="max-w-5xl mx-auto px-4 md:px-6 lg:px-10 pb-16">
         {/* Filter bar */}
         {!isLoading && !isError && stores.length > 0 && (
           <div className="mb-6 space-y-3">
@@ -125,7 +122,7 @@ export const FindATable: React.FC = () => {
                 value={searchName}
                 onChange={e => setSearchName(e.target.value)}
                 placeholder="Search by name…"
-                className="w-full bg-tea-surface border border-tea-border rounded-lg pl-9 pr-4 py-2.5 text-sm text-tea-text outline-none focus:ring-2 focus:ring-tea-gold/40 placeholder-tea-text-dim"
+                className="w-full bg-tea-surface border border-tea-border rounded-md pl-9 pr-4 py-2 text-ui-14 text-tea-text outline-none focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 placeholder:text-tea-text-dim transition-colors"
               />
               {searchName && (
                 <button
@@ -148,10 +145,10 @@ export const FindATable: React.FC = () => {
                     key={city}
                     type="button"
                     onClick={() => setFilterCity(prev => prev === city ? '' : city)}
-                    className={`text-ui-10 uppercase tracking-[0.15em] px-2.5 py-1 rounded-full transition-colors ${
+                    className={`inline-flex px-2 py-0.5 rounded-full text-ui-10 uppercase tracking-caps transition-colors ${
                       filterCity === city
-                        ? 'bg-tea-gold/20 text-tea-gold'
-                        : 'bg-tea-surface text-tea-text-dim hover:text-tea-text border border-tea-border'
+                        ? 'bg-tea-gold/10 text-tea-text ring-1 ring-inset ring-tea-gold/40'
+                        : 'bg-tea-elevated text-tea-text-sec hover:text-tea-text'
                     }`}
                   >
                     {city}
@@ -164,10 +161,10 @@ export const FindATable: React.FC = () => {
                     key={country}
                     type="button"
                     onClick={() => setFilterCountry(prev => prev === country ? '' : country)}
-                    className={`text-ui-10 uppercase tracking-[0.15em] px-2.5 py-1 rounded-full transition-colors flex items-center gap-1 ${
+                    className={`inline-flex px-2 py-0.5 rounded-full text-ui-10 uppercase tracking-caps transition-colors flex items-center gap-1 ${
                       filterCountry === country
-                        ? 'bg-tea-gold-lt text-tea-text'
-                        : 'bg-tea-surface text-tea-text-dim hover:text-tea-text border border-tea-border'
+                        ? 'bg-tea-gold/10 text-tea-text ring-1 ring-inset ring-tea-gold/40'
+                        : 'bg-tea-elevated text-tea-text-sec hover:text-tea-text'
                     }`}
                   >
                     <Icons.Location className="w-2.5 h-2.5" />
@@ -180,13 +177,13 @@ export const FindATable: React.FC = () => {
             {/* Active filter summary */}
             {hasFilters && (
               <div className="flex items-center justify-between">
-                <p className="text-xs text-tea-text-dim">
+                <p className="text-ui-12 text-tea-text-dim">
                   {filtered.length} {filtered.length === 1 ? 'store' : 'stores'} found
                 </p>
                 <button
                   type="button"
                   onClick={clearFilters}
-                  className="text-xs text-tea-text-dim hover:text-tea-text transition-colors uppercase tracking-[0.15em]"
+                  className="text-ui-12 text-tea-text-sec hover:text-tea-text transition-colors"
                 >
                   Clear filters
                 </button>
@@ -198,71 +195,61 @@ export const FindATable: React.FC = () => {
         {isLoading && <SectionSkeleton variant="grid" />}
 
         {isError && (
-          <p className="text-center text-sm text-tea-text-dim italic py-12">
+          <p className="text-center subtitle py-12">
             Could not load the network right now.
           </p>
         )}
 
         {!isLoading && !isError && stores.length === 0 && (
-          <p className="text-center text-sm text-tea-text-dim italic py-12">
+          <p className="text-center subtitle py-12">
             No public tables yet — the first are being set.
           </p>
         )}
 
         {!isLoading && !isError && stores.length > 0 && filtered.length === 0 && (
-          <p className="text-center text-sm text-tea-text-dim italic py-12">
+          <p className="text-center subtitle py-12">
             No stores match your filters.
           </p>
         )}
 
         {filtered.length > 0 && (
-          <ul className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
-            {filtered.map(store => (
-              <li key={store.id}>
-                <Link
-                  to={`/store/${store.slug}`}
-                  className="card-grid-item block p-5 md:p-6 group transition-colors hover:border-tea-gold"
-                >
-                  <div className="flex items-start gap-4">
+          <ul className="divide-y divide-tea-border bg-tea-surface border border-tea-border rounded-xl overflow-hidden">
+            {filtered.map(store => {
+              const location = [store.location_city, store.location_country].filter(Boolean).join(', ');
+              const reviewCount = reviewCountByAccount[store.id] ?? 0;
+              const statusLabel = reviewCount > 0 ? 'Hosting' : 'Verified';
+              return (
+                <li key={store.id}>
+                  <Link
+                    to={`/store/${store.slug}`}
+                    className="flex items-center gap-4 px-4 md:px-5 py-4 group hover:bg-tea-accent-sub transition-colors"
+                  >
                     {store.logo_url ? (
                       <img
                         src={store.logo_url}
                         alt=""
-                        className="w-14 h-14 object-contain flex-shrink-0"
+                        className="w-11 h-11 rounded-full object-cover flex-shrink-0 bg-tea-elevated"
                       />
                     ) : (
-                      <div className="w-14 h-14 flex items-center justify-center flex-shrink-0 text-tea-gold">
-                        <Icons.Seal className="w-8 h-8" />
+                      <div className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 bg-tea-elevated text-tea-gold">
+                        <Icons.Seal className="w-6 h-6" />
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
-                      <h2
-                        className="text-xl text-tea-text mb-1 group-hover:text-tea-gold transition-colors"
-                        style={{ fontFamily: 'var(--font-display)' }}
-                      >
+                      <h2 className="font-display text-ui-15 text-tea-text leading-snug truncate group-hover:text-tea-readgold transition-colors">
                         {store.name}
                       </h2>
-                      {(store.location_city || store.location_country) && (
-                        <p className="text-ui-11 uppercase tracking-[0.2em] text-tea-text-dim mb-2 flex items-center gap-1.5">
-                          <Icons.Location className="w-3 h-3 text-tea-gold" />
-                          {[store.location_city, store.location_country].filter(Boolean).join(', ')}
-                        </p>
-                      )}
-                      {store.tagline && (
-                        <p className="text-sm text-tea-text-sec italic leading-snug">
-                          {store.tagline}
-                        </p>
-                      )}
-                      {(reviewCountByAccount[store.id] ?? 0) > 0 && (
-                        <p className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim mt-2">
-                          {reviewCountByAccount[store.id]} network {reviewCountByAccount[store.id] === 1 ? 'review' : 'reviews'}
-                        </p>
-                      )}
+                      <p className="text-ui-12 text-tea-text-dim truncate mt-0.5">
+                        {location || (store.tagline ?? 'A Teajia table')}
+                      </p>
                     </div>
-                  </div>
-                </Link>
-              </li>
-            ))}
+                    <span className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-ui-10 uppercase tracking-caps bg-tea-gold/10 text-tea-readgold ring-1 ring-inset ring-tea-gold/30">
+                      {statusLabel}
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>

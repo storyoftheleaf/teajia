@@ -44,16 +44,17 @@ export const CurrencyRatesView: React.FC = () => {
   if (!platformRole) {
     return (
       <div className="px-4 md:px-6 pt-6 pb-nav-gap max-w-3xl mx-auto">
-        <p className="text-tea-text-sec italic">This view is for platform tier only.</p>
+        <p className="text-tea-text-sec text-ui-14">This view is for platform tier only.</p>
       </div>
     );
   }
 
   return (
     <div className="px-4 md:px-6 pt-6 pb-nav-gap max-w-3xl mx-auto">
-      <header className="mb-10">
-        <h1 className={`${TYPOGRAPHY_CLASSES.h2} text-tea-text mb-2`}>Exchange rates</h1>
-        <p className="text-tea-text-sec text-ui-14 leading-[1.6] max-w-xl">
+      <header className="mb-8">
+        <h1 className={`${TYPOGRAPHY_CLASSES.h2} text-tea-text`}>Exchange rates</h1>
+        <p className="label-caps text-tea-text-dim mt-1">USD base · per-currency rates</p>
+        <p className="text-tea-text-sec text-ui-14 leading-[1.6] max-w-xl mt-4">
           USD is the base currency. Each rate is the number of foreign units that
           equal one US dollar (e.g. NT 32.3 means 32.3 NT per 1 USD). All product
           costs, invoice totals, and wholesale lines convert through this table.
@@ -61,7 +62,7 @@ export const CurrencyRatesView: React.FC = () => {
       </header>
 
       {error && (
-        <div className="mb-6 text-tea-text-sec italic text-ui-14">{error}</div>
+        <div className="mb-6 text-ui-12 text-tea-error">{error}</div>
       )}
 
       {rates === null && !error && (
@@ -70,7 +71,7 @@ export const CurrencyRatesView: React.FC = () => {
 
       {rates !== null && (
         <div>
-          <div className="text-tea-text-sec text-ui-11 uppercase tracking-[0.12em] mb-4">
+          <div className="label-caps text-tea-text-sec mb-4">
             Currencies
           </div>
           <div>
@@ -84,9 +85,9 @@ export const CurrencyRatesView: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setAdding(true)}
-                className="text-tea-text-sec hover:text-tea-gold transition-colors text-ui-14 font-display"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors"
               >
-                Add a currency
+                Add Currency
               </button>
             ) : (
               <AddRateForm
@@ -153,12 +154,12 @@ const RateRowView: React.FC<RateRowViewProps> = ({ row, onChange }) => {
         <div className="font-display text-ui-17 text-tea-text min-w-[80px]">
           {row.currency}
           {isUSD && (
-            <span className="ml-2 text-tea-text-sec text-ui-11 uppercase tracking-[0.1em]">Base</span>
+            <span className="ml-2 label-caps text-tea-text-dim">Base</span>
           )}
         </div>
 
         <label className="flex items-baseline gap-2 text-ui-14">
-          <span className="text-tea-text-sec text-ui-12 uppercase tracking-[0.08em]">per 1 USD</span>
+          <span className="label-caps text-tea-text-sec">per 1 USD</span>
           <input
             type="number"
             inputMode="decimal"
@@ -172,7 +173,7 @@ const RateRowView: React.FC<RateRowViewProps> = ({ row, onChange }) => {
           />
         </label>
 
-        <div className="text-tea-text-sec text-ui-12">
+        <div className="text-ui-12 text-tea-text-dim">
           {inUse ? `${row.usage_count} in use` : 'Unused'}
         </div>
 
@@ -202,14 +203,14 @@ const RateRowView: React.FC<RateRowViewProps> = ({ row, onChange }) => {
       </div>
 
       {row.last_updated && (
-        <div className="mt-1 text-tea-text-sec text-ui-12">
+        <div className="mt-1 text-ui-12 text-tea-text-dim">
           Last updated {formatDate(row.last_updated)}
         </div>
       )}
 
       {confirmingDelete && (
         <div className="mt-3 flex items-center justify-between gap-4">
-          <p className="text-tea-text-sec italic text-ui-13">
+          <p className="text-ui-13 text-tea-text-sec">
             Delete {row.currency}? This cannot be undone.
           </p>
           <div className="flex items-baseline gap-5 text-ui-13 shrink-0">
@@ -225,7 +226,7 @@ const RateRowView: React.FC<RateRowViewProps> = ({ row, onChange }) => {
               type="button"
               onClick={handleDelete}
               disabled={busy !== null}
-              className="text-tea-text-sec hover:text-tea-text transition-colors"
+              className="text-tea-error hover:text-tea-error/80 transition-colors"
             >
               {busy === 'delete' ? 'Deleting' : 'Confirm delete'}
             </button>
@@ -234,7 +235,7 @@ const RateRowView: React.FC<RateRowViewProps> = ({ row, onChange }) => {
       )}
 
       {error && (
-        <p className="mt-2 text-tea-text-sec italic text-ui-13">{error}</p>
+        <p className="mt-2 text-ui-12 text-tea-error">{error}</p>
       )}
     </div>
   );
@@ -275,35 +276,41 @@ const AddRateForm: React.FC<AddRateFormProps> = ({ onCancel, onSaved }) => {
   };
 
   return (
-    <div className="space-y-4 max-w-md">
-      <div className="text-tea-text-sec text-ui-11 uppercase tracking-[0.12em]">
+    <div className="space-y-3 max-w-md bg-tea-surface border border-tea-border rounded-xl p-5">
+      <div className="label-caps text-tea-text-sec">
         New currency
       </div>
-      <input
-        type="text"
-        value={currency}
-        onChange={e => setCurrency(e.target.value)}
-        placeholder="Code (e.g. EUR, GBP)"
-        autoFocus
-        maxLength={12}
-        className="w-full bg-transparent border-b border-tea-border focus:border-tea-gold outline-none text-tea-text font-body text-ui-15 py-2 transition-colors"
-      />
-      <input
-        type="number"
-        inputMode="decimal"
-        step="any"
-        min="0"
-        value={rate}
-        onChange={e => setRate(e.target.value)}
-        placeholder="Rate per 1 USD (e.g. 0.92)"
-        className="w-full bg-transparent border-b border-tea-border focus:border-tea-gold outline-none text-tea-text font-body text-ui-15 py-2 transition-colors"
-      />
-      <div className="flex items-center justify-between text-ui-13 pt-1">
+      <div>
+        <label className="label-caps text-tea-text-sec mb-1.5 block">Code</label>
+        <input
+          type="text"
+          value={currency}
+          onChange={e => setCurrency(e.target.value)}
+          placeholder="EUR, GBP"
+          autoFocus
+          maxLength={12}
+          className="w-full bg-tea-bg border border-tea-border rounded-md px-3 py-2 text-ui-14 text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none"
+        />
+      </div>
+      <div>
+        <label className="label-caps text-tea-text-sec mb-1.5 block">Rate per 1 USD</label>
+        <input
+          type="number"
+          inputMode="decimal"
+          step="any"
+          min="0"
+          value={rate}
+          onChange={e => setRate(e.target.value)}
+          placeholder="0.92"
+          className="w-full bg-tea-bg border border-tea-border rounded-md px-3 py-2 text-ui-14 text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none"
+        />
+      </div>
+      <div className="flex items-center justify-between gap-2 pt-2">
         <button
           type="button"
           onClick={onCancel}
           disabled={busy}
-          className="text-tea-text-sec hover:text-tea-text transition-colors"
+          className="px-2 py-1 text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors"
         >
           Cancel
         </button>
@@ -311,13 +318,13 @@ const AddRateForm: React.FC<AddRateFormProps> = ({ onCancel, onSaved }) => {
           type="button"
           onClick={handleSubmit}
           disabled={!canSubmit || busy}
-          className="text-tea-gold hover:text-tea-gold-lt disabled:text-tea-text-sec disabled:cursor-not-allowed transition-colors"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >
-          {busy ? 'Adding' : 'Add currency'}
+          {busy ? 'Adding' : 'Add Currency'}
         </button>
       </div>
       {error && (
-        <p className="text-tea-text-sec italic text-ui-13">{error}</p>
+        <p className="text-ui-12 text-tea-error">{error}</p>
       )}
     </div>
   );

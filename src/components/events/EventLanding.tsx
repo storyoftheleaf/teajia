@@ -19,21 +19,21 @@ const PublicTeaMenuSection: React.FC<PublicTeaMenuProps> = ({ items }) => {
   const sorted = [...items].sort((a, b) => (a.brewOrder ?? 0) - (b.brewOrder ?? 0));
   return (
     <div className="mb-10">
-      <h3 className="font-serif text-xl text-tea-text mb-1">What we'll be tasting</h3>
-      <p className="text-xs text-tea-text-sec uppercase tracking-[0.2em] mb-6">
+      <h3 className="h3 mb-1">What we'll be tasting</h3>
+      <p className="label-caps text-tea-text-dim mb-6">
         {sorted.length} {sorted.length === 1 ? 'selection' : 'selections'} curated for this session
       </p>
       <div className="space-y-3">
         {sorted.map((item, idx) => (
-          <div key={item.id} className="flex items-start gap-4 p-4 bg-tea-surface border border-tea-border rounded-sm">
-            <span className="font-serif text-xl text-tea-gold/30 leading-none shrink-0 mt-0.5">{idx + 1}</span>
+          <div key={item.id} className="flex items-start gap-4 p-4 bg-tea-surface border border-tea-border rounded-xl">
+            <span className="text-ui-20 text-tea-gold/30 leading-none shrink-0 mt-0.5" style={{ fontFamily: 'var(--font-display)' }}>{idx + 1}</span>
             <div className="flex-1 min-w-0">
               {item.productType && (
-                <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-gold mb-0.5">{item.productType}</p>
+                <p className="text-ui-10 uppercase tracking-[1.2px] text-tea-readgold mb-0.5">{item.productType}</p>
               )}
-              <p className="font-serif text-base text-tea-text">{item.customName || item.productName}</p>
+              <p className="text-ui-16 text-tea-text" style={{ fontFamily: 'var(--font-display)' }}>{item.customName || item.productName}</p>
               {item.customDescription && (
-                <p className="text-sm text-tea-text-sec leading-relaxed mt-1">{item.customDescription}</p>
+                <p className="body-light mt-1">{item.customDescription}</p>
               )}
             </div>
           </div>
@@ -53,10 +53,10 @@ const VenuePhotosSection: React.FC<VenuePhotosProps> = ({ photos }) => {
   if (visible.length === 0) return null;
   return (
     <div className="mb-10">
-      <p className="text-ui-10 uppercase tracking-[0.3em] text-tea-text-sec mb-4">The Space</p>
+      <p className="label-caps text-tea-text-dim mb-4">The Space</p>
       <div className={`grid gap-2 ${visible.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
         {visible.map((url, idx) => (
-          <div key={idx} className="rounded-sm overflow-hidden border border-tea-border aspect-[4/3]">
+          <div key={idx} className="rounded-xl overflow-hidden border border-tea-border aspect-[4/3]">
             <img
               src={url}
               alt={`Venue photo ${idx + 1}`}
@@ -255,16 +255,16 @@ const EventLanding: React.FC = () => {
   if (isError || !event) {
     return (
       <div className="min-h-screen bg-tea-bg flex items-center justify-center px-6">
-        <div className="text-center max-w-md">
-          <h1 className="font-serif text-4xl text-tea-text mb-4">Event Not Found</h1>
-          <p className="text-sm text-tea-text-sec mb-8">
+        <div className="flex flex-col items-center text-center max-w-sm mx-auto py-20 px-6">
+          <h1 className="h2 mb-3">Event not found</h1>
+          <p className="text-ui-12 text-tea-text-dim leading-relaxed mb-6">
             {(error as Error)?.message || 'This event may have been removed or the link is incorrect.'}
           </p>
           <button
             onClick={() => navigate('/')}
-            className="px-8 py-3 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.2em] hover:bg-tea-gold/90 transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors"
           >
-            Return Home
+            Return home
           </button>
         </div>
       </div>
@@ -341,14 +341,13 @@ const EventLanding: React.FC = () => {
           </div>
         )}
 
-        {/* Back button — history-aware: prefers in-app back, else home */}
+        {/* Back button — top-left, text-tea-text-sec hover floor (§15) */}
         <button
           onClick={() => {
             if (window.history.length > 1) navigate(-1);
             else navigate('/');
           }}
-          className="tap-target absolute top-3 left-4 z-10 flex items-center justify-center w-9 h-9 rounded-full bg-tea-bg/60 text-tea-text"
-          style={{ backdropFilter: 'blur(8px)', border: 'none' }}
+          className="tap-target absolute top-3 left-4 z-dropdown flex items-center justify-center w-9 h-9 rounded-full bg-tea-bg/60 text-tea-text-sec hover:text-tea-text transition-colors backdrop-blur-md"
           aria-label="Back"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -360,10 +359,9 @@ const EventLanding: React.FC = () => {
         {isAdmin && (
           <button
             onClick={() => navigate(`/admin/events/${event.id}`)}
-            className="absolute top-3 right-4 z-10 flex items-center gap-1.5 px-3 h-9 rounded-full text-ui-11 font-medium text-tea-bg bg-tea-bg/60"
-            style={{ backdropFilter: 'blur(8px)' }}
+            className="absolute top-3 right-4 z-dropdown inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-tea-gold text-tea-bg hover:bg-tea-gold/90 transition-colors backdrop-blur-md"
           >
-            <Edit3 size={12} /> Edit
+            <Edit3 size={13} /> Edit
           </button>
         )}
 
@@ -373,59 +371,65 @@ const EventLanding: React.FC = () => {
         </div>
       </div>
 
-      {/* Content */}
-      <div className="max-w-xl mx-auto px-6 py-10">
+      {/* Content — editorial reader chrome */}
+      <div className="max-w-2xl mx-auto px-4 md:px-6 pt-12 pb-24">
         {/* Title block */}
         <div className="text-center mb-10">
           {isCancelled && (
-            <p className="text-xs uppercase tracking-[0.3em] text-red-400 mb-4">Event Cancelled</p>
+            <p className="label-caps text-tea-error mb-4">Event Cancelled</p>
           )}
           {isCompleted && (
-            <p className="text-xs uppercase tracking-[0.3em] text-tea-text-sec mb-4">Session Complete</p>
+            <p className="label-caps text-tea-text-dim mb-4">Session Complete</p>
           )}
 
-          <h1 className="font-serif text-ui-28 md:text-4xl text-tea-text leading-[1.1] tracking-[-0.3px] mb-2">
+          {/* Date eyebrow */}
+          <p className="label-caps text-tea-text-dim mb-4">
+            {formattedDay} · {formattedDate}
+          </p>
+
+          {/* Title — .h1 hero */}
+          <h1 className="h1 mb-3">
             {event.title}
           </h1>
 
+          {/* Descriptor — italic subtitle */}
           {event.subtitle && (
-            <p className="font-serif italic text-ui-14 text-tea-text-sec mb-6 leading-snug">
+            <p className="subtitle mb-5">
               {event.subtitle}
             </p>
           )}
 
-          {/* Gathering type label */}
+          {/* Gathering type / format — .label-caps */}
           {(eventFormat || gatheringType) && (
             <div className="flex items-center justify-center gap-2 mb-4">
               {eventFormat && (
-                <span className="text-ui-9 uppercase tracking-[0.3em] text-tea-text-sec">
+                <span className="label-caps text-tea-text-sec">
                   {EVENT_FORMAT_LABELS[eventFormat] ?? eventFormat}
                 </span>
               )}
               {eventFormat && gatheringType && (
-                <span className="text-ui-9 text-tea-text-dim">·</span>
+                <span className="text-ui-10 text-tea-text-dim">·</span>
               )}
               {gatheringType && (
-                <span className="text-ui-9 uppercase tracking-[0.3em] text-tea-text-sec">
+                <span className="label-caps text-tea-text-sec">
                   {GATHERING_TYPE_LABELS[gatheringType] ?? gatheringType}
                 </span>
               )}
             </div>
           )}
 
-          {/* Date & Time */}
-          <div className="mt-5 mb-4">
-            <p className="text-ui-9 uppercase tracking-[0.3em] text-tea-text-dim mb-1.5">{formattedDay}</p>
-            <p className="font-serif text-ui-17 text-tea-text">{formattedDate}</p>
-            <p className="font-serif text-ui-15 text-tea-gold mt-1">{formattedTime}</p>
-          </div>
+          {/* Time */}
+          <p
+            className="text-ui-15 text-tea-readgold mb-4"
+            style={{ fontFamily: 'var(--font-display)' }}
+          >
+            {formattedTime}
+          </p>
 
-          {/* Area hint (not full address) or location name. Falls back to a
-              soft "shared after RSVP" line so guests are never left wondering
-              whether the event has a location at all. */}
-          <div className="flex items-center justify-center gap-1.5 text-tea-text-sec mt-3.5 mb-5">
-            <MapPin className="w-[11px] h-[11px] shrink-0" />
-            <span className="text-xs">
+          {/* Area hint (not full address) or location name — .label-caps */}
+          <div className="flex items-center justify-center gap-1.5 mb-5">
+            <MapPin className="w-[11px] h-[11px] shrink-0 text-tea-text-dim" />
+            <span className="label-caps text-tea-text-sec">
               {areaHint ?? locationName ?? 'Location shared after RSVP'}
             </span>
           </div>
@@ -438,15 +442,15 @@ const EventLanding: React.FC = () => {
               <div className="flex flex-col items-center gap-1 mb-6">
                 <div className="flex items-center gap-2 text-tea-text-sec">
                   <Users className="w-3.5 h-3.5" />
-                  <span className="text-xs">
+                  <span className="text-ui-12">
                     {confirmedCount} {confirmedCount === 1 ? 'seat' : 'seats'} confirmed
                     {seatsRemaining > 0 && seatsRemaining <= 3 && !isFull && !isCompleted && !isCancelled && (
-                      <span className="text-tea-gold"> · only {seatsRemaining} {seatsRemaining === 1 ? 'seat' : 'seats'} left</span>
+                      <span className="text-tea-readgold"> · only {seatsRemaining} {seatsRemaining === 1 ? 'seat' : 'seats'} left</span>
                     )}
                   </span>
                 </div>
                 {confirmedNames.length > 0 && (
-                  <p className="text-ui-10 text-tea-text-dim text-center">
+                  <p className="text-ui-11 text-tea-text-dim text-center">
                     {confirmedNames.join(', ')}{extra > 0 ? ` +${extra} more` : ''}
                   </p>
                 )}
@@ -466,7 +470,7 @@ const EventLanding: React.FC = () => {
               <div className="space-y-3">
                 <div className="flex items-center justify-center gap-2 mb-1">
                   <UserCheck size={14} className="text-tea-gold" />
-                  <p className="text-xs text-tea-text-sec">
+                  <p className="text-ui-12 text-tea-text-sec">
                     You're {myAttendee.status === 'confirmed' ? 'confirmed' : myAttendee.status === 'waitlist' ? 'on the waitlist' : 'registered'} for this session
                   </p>
                 </div>
@@ -474,28 +478,28 @@ const EventLanding: React.FC = () => {
                   {myAttendee.status === 'confirmed' && (
                     <button
                       onClick={() => navigate(`/m/${myAttendee.magic_token || myAttendee.magicToken}`)}
-                      className="py-[13px] bg-tea-surface border border-tea-border text-tea-text text-ui-11 uppercase tracking-[0.2em] rounded-sm hover:border-tea-gold/40 transition-colors"
+                      className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-md border border-tea-border text-tea-text-sec text-xs font-semibold hover:text-tea-text hover:bg-tea-accent-sub transition-colors"
                     >
                       Invite a Friend
                     </button>
                   )}
                   <button
                     onClick={() => setShowCancelConfirm(true)}
-                    className="py-[13px] bg-tea-surface border border-tea-border text-tea-text-sec text-ui-11 uppercase tracking-[0.2em] rounded-sm hover:border-red-400/30 hover:text-red-400 transition-colors"
+                    className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-md border border-tea-border text-tea-text-sec text-xs font-semibold hover:text-tea-error hover:bg-tea-error/10 transition-colors"
                   >
                     Cancel {myAttendee.status === 'confirmed' ? 'My Seat' : 'Registration'}
                   </button>
                 </div>
                 {showCancelConfirm && (
-                  <div className="bg-tea-surface border border-tea-border rounded-sm p-4 space-y-3">
-                    <p className="text-sm font-serif text-tea-text text-center">Cancel your spot?</p>
-                    <p className="text-ui-11 text-tea-text-sec text-center">This can't be undone. We'll let the host know.</p>
-                    {cancelFeedback && <p className="text-ui-11 text-red-400 text-center">{cancelFeedback}</p>}
-                    <div className="flex gap-2">
+                  <div className="bg-tea-surface border border-tea-border rounded-xl p-5 space-y-3">
+                    <p className="text-ui-15 text-tea-text text-center" style={{ fontFamily: 'var(--font-display)' }}>Cancel your spot?</p>
+                    <p className="text-ui-12 text-tea-text-sec text-center">This can't be undone. We'll let the host know.</p>
+                    {cancelFeedback && <p className="text-ui-12 text-tea-error text-center">{cancelFeedback}</p>}
+                    <div className="flex justify-between items-center gap-2 pt-1">
                       <button
                         onClick={() => { setShowCancelConfirm(false); setCancelFeedback(''); }}
                         disabled={cancelling}
-                        className="flex-1 py-2.5 text-ui-11 text-tea-text-sec hover:text-tea-text transition-colors"
+                        className="px-3 py-2 text-xs font-semibold text-tea-text-sec hover:text-tea-text transition-colors"
                       >
                         Keep my seat
                       </button>
@@ -514,7 +518,7 @@ const EventLanding: React.FC = () => {
                           }
                         }}
                         disabled={cancelling}
-                        className="flex-1 py-2.5 text-ui-11 uppercase tracking-[0.15em] text-red-400 hover:text-red-300 border border-red-400/30 rounded-sm hover:border-red-400/50 transition-colors disabled:opacity-50"
+                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md bg-tea-error text-tea-bg text-xs font-semibold hover:bg-tea-error/90 transition-colors disabled:opacity-40"
                       >
                         {cancelling ? 'Cancelling…' : 'Yes, cancel'}
                       </button>
@@ -523,13 +527,13 @@ const EventLanding: React.FC = () => {
                 )}
               </div>
             ) : (
-              // Default CTA
+              // Default CTA — canonical primary button
               <div className="space-y-2.5">
                 <button
                   onClick={() => setShowRSVP(true)}
-                  className="w-full py-[15px] bg-tea-gold text-tea-bg text-ui-11 uppercase tracking-[0.25em] font-semibold rounded-sm hover:bg-tea-gold/90 transition-all duration-300 shadow-[0_6px_20px_rgba(184,146,78,0.3)]"
+                  className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-3 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors"
                 >
-                  {isInstantConfirm ? 'Reserve My Seat' : 'Request Your Seat'}
+                  {isInstantConfirm ? 'Reserve my seat' : 'Request your seat'}
                 </button>
                 {isInstantConfirm && (
                   <p className="text-center text-ui-11 text-tea-text-dim">
@@ -540,7 +544,7 @@ const EventLanding: React.FC = () => {
                   Already registered?{' '}
                   <button
                     onClick={() => setShowFindRSVP(true)}
-                    className="tap-target text-tea-gold hover:text-tea-gold-lt transition-colors"
+                    className="tap-target text-tea-readgold hover:text-tea-gold-lt transition-colors font-semibold"
                   >
                     Find my RSVP
                   </button>
@@ -552,17 +556,17 @@ const EventLanding: React.FC = () => {
           {/* Full / waitlist state */}
           {showWaitlist && (
             <div className="space-y-4">
-              <p className="font-serif text-base text-tea-text-sec">
+              <p className="subtitle">
                 This session is fully gathered.
               </p>
               <button
                 onClick={() => setShowRSVP(true)}
-                className="w-full py-[15px] bg-tea-surface border border-tea-border text-tea-text text-ui-11 uppercase tracking-[0.25em] rounded-sm hover:border-tea-gold/40 transition-colors"
+                className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-3 rounded-md border border-tea-border text-tea-text-sec text-xs font-semibold hover:text-tea-text hover:bg-tea-accent-sub transition-colors"
               >
-                Join the Waitlist
+                Join the waitlist
               </button>
               <div className="pt-2">
-                <p className="text-xs text-tea-text-sec mb-3">Or notify me of the next session:</p>
+                <p className="text-ui-12 text-tea-text-sec mb-3">Or notify me of the next session:</p>
                 <Suspense fallback={null}>
                   <InterestCapture slug={slug!} />
                 </Suspense>
@@ -577,13 +581,13 @@ const EventLanding: React.FC = () => {
               {isCompleted && slug && (
                 <button
                   onClick={() => navigate(`/event/${slug}/recap`)}
-                  className="w-full flex items-center justify-center gap-2.5 py-[13px] bg-tea-surface border border-tea-border text-tea-text text-ui-11 uppercase tracking-[0.2em] rounded-sm hover:border-tea-gold/40 hover:text-tea-gold transition-all duration-300 group"
+                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-md border border-tea-border text-tea-text-sec text-xs font-semibold hover:text-tea-text hover:bg-tea-accent-sub transition-colors group"
                 >
-                  <BookOpen className="w-3.5 h-3.5 text-tea-text-sec group-hover:text-tea-gold transition-colors" />
+                  <BookOpen className="w-3.5 h-3.5" />
                   View session recap
                 </button>
               )}
-              <p className="text-xs text-tea-text-sec">Notify me of the next one:</p>
+              <p className="text-ui-12 text-tea-text-sec">Notify me of the next one:</p>
               <Suspense fallback={null}>
                 <InterestCapture slug={slug!} />
               </Suspense>
@@ -594,10 +598,10 @@ const EventLanding: React.FC = () => {
         {/* Divider */}
         <div className="w-8 h-px bg-tea-border mx-auto mb-8" />
 
-        {/* Description */}
+        {/* Description — body-prose */}
         {event.description && (
-          <div className="mb-8">
-            <p className="font-serif text-ui-14 text-tea-text-sec leading-[1.7] whitespace-pre-line">
+          <div className="mb-10">
+            <p className="body-prose whitespace-pre-line">
               {event.description}
             </p>
           </div>
@@ -607,7 +611,7 @@ const EventLanding: React.FC = () => {
         {moodHints && moodHints.length > 0 && (
           <div className="mb-10 flex flex-wrap gap-0 justify-center">
             {moodHints.map((hint, i) => (
-              <span key={i} className="font-serif italic text-ui-13 text-tea-text-sec">
+              <span key={i} className="subtitle text-ui-13">
                 {i > 0 && <span className="mx-2 opacity-40">·</span>}
                 {hint}
               </span>
@@ -634,7 +638,7 @@ const EventLanding: React.FC = () => {
               onClick={() => setGuidelinesExpanded(!guidelinesExpanded)}
               className="flex items-center justify-between w-full py-3 text-left group"
             >
-              <h3 className="font-serif text-lg text-tea-text group-hover:text-tea-gold transition-colors">
+              <h3 className="h3 group-hover:text-tea-readgold transition-colors">
                 Session Guidelines
               </h3>
               <ChevronDown
@@ -647,7 +651,7 @@ const EventLanding: React.FC = () => {
               <div className="animate-[fadeIn_0.3s_ease-out] pt-2">
                 <ul className="space-y-3">
                   {guidelinesText.split('\n').filter(Boolean).map((guideline, idx) => (
-                    <li key={idx} className="flex items-start gap-3 text-sm text-tea-text-sec">
+                    <li key={idx} className="flex items-start gap-3 body-light">
                       <span className="w-1.5 h-1.5 rounded-full bg-tea-gold/40 mt-1.5 shrink-0" />
                       {guideline}
                     </li>
@@ -663,7 +667,7 @@ const EventLanding: React.FC = () => {
 
         {/* Footer */}
         <div className="text-center pt-6 pb-12">
-          <p className="text-ui-10 uppercase tracking-[0.3em] text-tea-text-dim">
+          <p className="label-caps text-tea-text-dim">
             Hosted by {ev.account_name ?? ev.accountName ?? 'Teajia'}
           </p>
         </div>

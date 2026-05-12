@@ -42,7 +42,11 @@ export const FONT_STACKS = {
   body:    ['Lora', 'Noto Serif SC', 'Georgia', 'serif'],
   caption: ['Plus Jakarta Sans', 'system-ui', 'sans-serif'],
   sans:    ['Plus Jakarta Sans', 'system-ui', 'sans-serif'],
-  mono:    ['IBM Plex Mono', 'Menlo', 'Courier New', 'monospace'],
+  // Mono rebound: Plus Jakarta Sans 500 with tabular-nums.
+  // Clean geometric numerals — no dotted zero. The `.num` helper and
+  // `font-mono` utility both resolve to this stack; numerics get
+  // weight 500 + tabular-nums via the .num class in card-utilities.css.
+  mono:    ['Plus Jakarta Sans', 'ui-sans-serif', 'system-ui', 'sans-serif'],
   chinese: ['Noto Serif SC', 'serif'],
   chineseCalligraphy: ['Ma Shan Zheng', 'cursive'],
 } as const;
@@ -161,8 +165,9 @@ export const TYPOGRAPHY_CLASSES = {
   nav:       'font-sans text-ui-12 font-normal uppercase tracking-[1px] leading-[1.4]',
   link:      'font-sans text-ui-14 font-normal tracking-[0.2px]',
   mono:      'font-mono text-ui-11 font-normal',
-  navSidebar:      'font-display text-ui-15 font-medium tracking-[0.04em] leading-[1.3]',
-  navSidebarChild: 'font-display text-ui-13 font-normal tracking-[0.04em] leading-[1.3]',
+  // Adrian feedback: sidebar text was too small. Lifted from 15/13 to 17/15.
+  navSidebar:      'font-display text-ui-17 font-medium tracking-[0.04em] leading-[1.3]',
+  navSidebarChild: 'font-display text-ui-15 font-normal tracking-[0.04em] leading-[1.3]',
   accountMeta:     'font-sans text-ui-12 font-normal tracking-[0.04em] leading-[1.3]',
 } as const;
 
@@ -288,28 +293,34 @@ export const Z_INDEX = {
 
 export const COLORS = {
   dark: {
-    bg:        '#18130e',                  // Rich espresso — page background
-    surface:   '#28211a',                  // Primary surface — cards, panels
-    elevated:  '#3a3126',                  // Elevated surfaces — modals, popovers
+    bg:        '#1a1714',                  // Cooler espresso — reduced yellow undertone
+    surface:   '#2a2622',                  // Primary surface — cards, panels
+    elevated:  '#3a3530',                  // Elevated surfaces — modals, popovers
     text:      '#ede4d4',                  // Primary text — cream white
-    textSec:   '#b5a892',                  // Secondary text — warm gray
+    textSec:   '#cdc0a8',                  // Secondary text — RAISED floor for outdoor legibility (was #b5a892)
     textDim:   '#80735f',                  // Dimmed text — labels, captions
-    gold:      '#a8874d',                  // Accent gold — links, accents, active states
+    gold:      '#a8874d',                  // Structural accent — primary buttons, active borders, focus rings
     goldLt:    '#bfa06a',                  // Light gold — hover states, highlights
-    border:    'rgba(184,146,78,0.08)',     // Subtle gold borders
-    accentSub: 'rgba(184,146,78,0.1)',     // Subtle gold backgrounds
+    readGold:  '#a8874d',                  // Reading gold — pinned for text (type token names, eyebrow markers, inline code, hover links)
+    border:    'rgba(168,135,77,0.08)',    // Subtle gold borders — derived from tea-gold-rgb @ 8%
+    accentSub: 'rgba(168,135,77,0.10)',    // Subtle gold backgrounds — derived from tea-gold-rgb @ 10%
+    error:     '#c46a5a',                  // Warm terracotta — reds that read on espresso (was #8a3a32 oxblood)
+    leaf:      '#5a6e5a',                  // Success only — never decorative
   },
   light: {
     bg:        '#f4ece0',                  // Warm parchment — page background
     surface:   '#e6dbcc',                  // Tinted surface — cards, panels
     elevated:  '#d5c8b4',                  // Elevated surfaces
     text:      '#18130e',                  // Dark espresso text
-    textSec:   '#5e5342',                  // Secondary text — warm brown
+    textSec:   '#443a2c',                  // Secondary text — RAISED floor (was #5e5342)
     textDim:   '#9a8c78',                  // Dimmed text
     gold:      '#8e6d2e',                  // Darker gold for light backgrounds
     goldLt:    '#a88340',                  // Light gold variant
-    border:    'rgba(142,109,46,0.1)',      // Warm borders
+    readGold:  '#8e6d2e',                  // Reading gold — pinned for text
+    border:    'rgba(142,109,46,0.1)',     // Warm borders
     accentSub: 'rgba(142,109,46,0.07)',    // Subtle accent backgrounds
+    error:     '#732a23',                  // Muted oxblood (works on parchment)
+    leaf:      '#4a5e4a',                  // Success only
   },
 } as const;
 

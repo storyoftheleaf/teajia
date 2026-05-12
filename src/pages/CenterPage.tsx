@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../hooks/useAuth';
 import { api } from '../lib/api';
 import type { TeaCompassEntry } from '../components/TeaCompass/types';
-import { ChevronLeft, ChevronRight, Settings } from 'lucide-react';
+import { ArrowLeft, ChevronRight } from 'lucide-react';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -25,16 +25,8 @@ interface MemberResult {
 
 function membershipLabel(role?: string): string {
   if (!role) return 'Member';
-  if (role === 'owner' || role === 'staff') return 'Teajia Team';
+  if (role === 'owner' || role === 'staff') return 'Teajia team';
   return 'Member';
-}
-
-function SectionHeading({ children }: { children: React.ReactNode }) {
-  return (
-    <h2 className="text-ui-10 font-bold uppercase tracking-[0.2em] text-tea-text-sec mb-4">
-      {children}
-    </h2>
-  );
 }
 
 // ─── Queue / Wishlist card ────────────────────────────────────────────────────
@@ -55,18 +47,18 @@ function QueueCard({ entry }: { entry: TeaCompassEntry }) {
   const photo = entry.photos?.[0];
 
   return (
-    <div className="shrink-0 w-40 bg-tea-surface rounded-sm overflow-hidden">
+    <div className="shrink-0 w-40 bg-tea-bg border border-tea-border rounded-md overflow-hidden">
       {photo ? (
         <img src={photo} alt={entry.name} className="w-full h-24 object-cover" loading="lazy" />
       ) : (
         <div className="w-full h-24 bg-tea-elevated flex items-center justify-center">
-          <span className="text-ui-10 uppercase tracking-[0.12em] text-tea-text-dim">No photo</span>
+          <span className="label-caps text-tea-text-dim">No photo</span>
         </div>
       )}
       <div className="p-2.5">
-        <p className="text-ui-13 font-medium text-tea-text leading-tight line-clamp-2">{entry.name}</p>
+        <p className="font-display text-ui-14 text-tea-text leading-tight line-clamp-2">{entry.name}</p>
         {entry.type && (
-          <p className="text-ui-10 uppercase tracking-[0.1em] text-tea-text-sec mt-0.5">{entry.type}</p>
+          <p className="label-caps text-tea-text-sec mt-0.5">{entry.type}</p>
         )}
 
         {open ? (
@@ -76,7 +68,7 @@ function QueueCard({ entry }: { entry: TeaCompassEntry }) {
                 key={v}
                 onClick={() => { setVerdict(v); setOpen(false); }}
                 className={[
-                  'text-ui-10 px-2 py-0.5 rounded-sm transition-colors duration-100',
+                  'text-ui-10 px-2 py-0.5 rounded-md transition-colors',
                   verdict === v
                     ? 'bg-tea-gold text-tea-bg'
                     : 'bg-tea-elevated text-tea-text-sec hover:text-tea-text',
@@ -89,7 +81,7 @@ function QueueCard({ entry }: { entry: TeaCompassEntry }) {
         ) : (
           <button
             onClick={() => setOpen(true)}
-            className="mt-2 text-ui-10 uppercase tracking-[0.12em] text-tea-gold hover:text-tea-gold-lt transition-colors"
+            className="mt-2 text-ui-11 text-tea-readgold hover:text-tea-gold-lt transition-colors"
           >
             {verdict ? VERDICT_LABELS[verdict] : 'Rate'}
           </button>
@@ -99,26 +91,20 @@ function QueueCard({ entry }: { entry: TeaCompassEntry }) {
   );
 }
 
-function WishlistCard({ entry }: { entry: TeaCompassEntry }) {
+function WishlistRow({ entry }: { entry: TeaCompassEntry }) {
   return (
-    <div className="py-3 border-b border-tea-border last:border-b-0">
-      <p className="text-ui-14 text-tea-text leading-snug">{entry.name}</p>
-      <div className="flex items-center gap-2 mt-0.5">
-        {entry.type && (
-          <span className="text-ui-10 uppercase tracking-[0.1em] text-tea-text-sec">{entry.type}</span>
-        )}
-        {entry.type && entry.vendorName && (
-          <span className="text-tea-text-dim text-ui-10">&middot;</span>
-        )}
-        {entry.vendorName && (
-          <span className="text-ui-10 text-tea-text-dim">{entry.vendorName}</span>
-        )}
+    <li className="px-4 md:px-5 py-3 border-b border-tea-border last:border-b-0">
+      <p className="font-display text-ui-15 text-tea-text leading-snug">{entry.name}</p>
+      <div className="flex items-center gap-2 mt-0.5 text-ui-12 text-tea-text-dim">
+        {entry.type && <span>{entry.type}</span>}
+        {entry.type && entry.vendorName && <span>·</span>}
+        {entry.vendorName && <span>{entry.vendorName}</span>}
       </div>
-    </div>
+    </li>
   );
 }
 
-// ─── Stats card ──────────────────────────────────────────────────────────────
+// ─── Stat card ──────────────────────────────────────────────────────────────
 
 function StatCard({
   label,
@@ -130,9 +116,9 @@ function StatCard({
   href?: string;
 }) {
   const inner = (
-    <div className="flex-1 min-w-[88px] bg-tea-surface px-4 py-4 rounded-sm text-center">
-      <p className="text-2xl font-display text-tea-text">{value}</p>
-      <p className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec mt-1">{label}</p>
+    <div className="flex-1 min-w-[88px] bg-tea-surface border border-tea-border rounded-xl px-4 py-4 text-center transition-colors hover:bg-tea-accent-sub">
+      <p className="font-display text-ui-28 text-tea-text leading-none">{value}</p>
+      <p className="label-caps text-tea-text-dim mt-2">{label}</p>
     </div>
   );
 
@@ -156,25 +142,55 @@ function NavRow({
   danger?: boolean;
 }) {
   const cls = [
-    'flex items-center justify-between py-4 border-b border-tea-border',
-    'last:border-b-0 transition-colors duration-100',
-    danger ? 'text-red-500 hover:text-red-400' : 'text-tea-text hover:text-tea-gold',
+    'w-full flex items-center justify-between px-4 md:px-5 py-3 border-b border-tea-border',
+    'last:border-b-0 transition-colors hover:bg-tea-accent-sub',
+    danger ? 'text-tea-error hover:text-tea-error' : 'text-tea-text',
   ].join(' ');
 
   if (to) {
     return (
       <Link to={to} className={cls}>
         <span className="text-ui-14">{label}</span>
-        <ChevronRight className="w-4 h-4 text-tea-text-dim shrink-0" />
+        <ChevronRight size={14} className="text-tea-text-dim shrink-0" />
       </Link>
     );
   }
 
   return (
-    <button onClick={onClick} className={`${cls} w-full text-left`}>
+    <button onClick={onClick} className={`${cls} text-left`}>
       <span className="text-ui-14">{label}</span>
-      <ChevronRight className="w-4 h-4 text-tea-text-dim shrink-0" />
+      <ChevronRight size={14} className="text-tea-text-dim shrink-0" />
     </button>
+  );
+}
+
+// ─── Section card wrapper ───────────────────────────────────────────────────
+
+function SectionCard({
+  id,
+  title,
+  subtitle,
+  children,
+  bodyPadding = true,
+}: {
+  id?: string;
+  title: string;
+  subtitle?: string;
+  children: React.ReactNode;
+  bodyPadding?: boolean;
+}) {
+  return (
+    <section id={id} className="bg-tea-surface border border-tea-border rounded-xl overflow-hidden">
+      <div className="px-4 md:px-5 pt-5 pb-3">
+        <h2 className="h3">{title}</h2>
+        {subtitle && (
+          <p className="text-ui-12 text-tea-text-dim mt-1">{subtitle}</p>
+        )}
+      </div>
+      <div className={bodyPadding ? 'px-4 md:px-5 pb-5' : 'pb-1'}>
+        {children}
+      </div>
+    </section>
   );
 }
 
@@ -253,150 +269,166 @@ export default function CenterPage() {
   // Auth guard
   if (!auth.isAuthenticated) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 px-6 text-center">
-        <p className="text-tea-text-sec text-sm">Sign in to access your personal center.</p>
-        <button
-          onClick={() => navigate('/signin')}
-          className="text-sm text-tea-gold hover:text-tea-gold-lt transition-colors underline underline-offset-2"
-        >
-          Sign in
-        </button>
+      <div className="max-w-3xl mx-auto px-4 md:px-6 pt-6 pb-3 pb-nav-gap">
+        <div className="flex flex-col items-center text-center max-w-sm mx-auto py-20 px-6">
+          <p className="text-ui-13 text-tea-text-sec mb-4">Sign in to access your personal center.</p>
+          <button
+            onClick={() => navigate('/signin')}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors"
+          >
+            Sign in
+          </button>
+        </div>
       </div>
     );
   }
 
   const tier = membershipLabel(auth.user?.role);
+  const initials = (auth.user?.name || auth.user?.email || '?').slice(0, 2).toUpperCase();
 
   return (
-    <div className="min-h-screen bg-tea-bg">
-      <div className="max-w-md mx-auto px-5 pt-6 pb-[calc(52px+env(safe-area-inset-bottom,0px))]">
+    <div className="max-w-3xl mx-auto px-4 md:px-6 pt-6 pb-3 pb-nav-gap space-y-6">
+      {/* Back */}
+      <button
+        onClick={() => navigate(-1)}
+        className="inline-flex items-center gap-1.5 text-tea-text-sec hover:text-tea-text transition-colors"
+        aria-label="Back"
+      >
+        <ArrowLeft size={14} />
+        <span className="text-ui-12">Back</span>
+      </button>
 
-        {/* Back */}
-        <button
-          onClick={() => navigate(-1)}
-          className="flex items-center gap-1.5 text-tea-text-sec hover:text-tea-text transition-colors mb-8"
-        >
-          <ChevronLeft className="w-4 h-4" />
-          <span className="text-ui-11 uppercase tracking-[0.15em]">Back</span>
-        </button>
+      {/* Header */}
+      <div>
+        <h1 className="h2">{auth.user?.name ?? 'Your center'}</h1>
+        <p className="label-caps text-tea-text-dim mt-1">
+          {tier}
+          {auth.user?.username ? ` · @${auth.user.username}` : ''}
+        </p>
+      </div>
 
-        {/* Identity */}
-        <div className="mb-8">
-          <div className="inline-block text-ui-10 uppercase tracking-[0.2em] text-tea-gold bg-tea-gold/8 px-2.5 py-1 rounded-sm mb-3">
-            {tier}
-          </div>
-          <h1 className="font-display text-4xl text-tea-text leading-tight">
-            {auth.user?.name ?? 'Your Center'}
-          </h1>
+      {/* Identity card — §19 */}
+      <div className="bg-tea-surface border border-tea-border rounded-xl p-5 flex items-start gap-4">
+        <div className="w-12 h-12 rounded-full bg-tea-elevated text-tea-text-sec font-display text-ui-15 flex items-center justify-center flex-shrink-0">
+          {initials}
+        </div>
+        <div className="flex-1 min-w-0">
+          <h3 className="h3">{auth.user?.name || 'Member'}</h3>
+          <p className="text-ui-13 text-tea-text-sec mt-0.5 truncate">{auth.user?.email}</p>
           {auth.user?.username && (
-            <p className="text-tea-text-dim text-sm mt-1">@{auth.user.username}</p>
+            <p className="text-ui-12 text-tea-text-dim mt-0.5">@{auth.user.username}</p>
           )}
-        </div>
-
-        {/* Stats row */}
-        <div className="flex gap-2.5 mb-10">
-          <StatCard label="Queue" value={queueCount} href="#queue" />
-          <StatCard label="Want list" value={wishlistCount} href="#wishlist" />
-          <StatCard label="Connections" value={connectionCount} />
-        </div>
-
-        {/* ── Tasting Queue ──────────────────────────────────────────────── */}
-        <section id="queue" className="mb-10">
-          <SectionHeading>Available to Taste</SectionHeading>
-
-          {queueEntries.length > 0 ? (
-            <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-none">
-              {queueEntries.map((entry) => (
-                <QueueCard key={entry.id} entry={entry} />
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-tea-text-dim leading-relaxed">
-              Nothing queued yet. Teas shared with you or from purchases will appear here.
-            </p>
-          )}
-        </section>
-
-        {/* ── Wishlist ───────────────────────────────────────────────────── */}
-        <section id="wishlist" className="mb-10">
-          <SectionHeading>Want List</SectionHeading>
-
-          {wishlistEntries.length > 0 ? (
-            <div>
-              {wishlistEntries.map((entry) => (
-                <WishlistCard key={entry.id} entry={entry} />
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-tea-text-dim leading-relaxed">
-              Teas you've marked as 'want' in your compass.
-            </p>
-          )}
-        </section>
-
-        {/* ── Tea Circle ─────────────────────────────────────────────────── */}
-        <section className="mb-10">
-          <SectionHeading>Tea Circle</SectionHeading>
-
-          {connections.length > 0 ? (
-            <div className="mb-5">
-              {connections.map((c) => (
-                <div key={c.id} className="flex items-center justify-between py-3 border-b border-tea-border last:border-b-0">
-                  <div>
-                    <p className="text-ui-14 text-tea-text">{c.name}</p>
-                    {c.username && (
-                      <p className="text-ui-11 text-tea-text-dim mt-0.5">@{c.username}</p>
-                    )}
-                  </div>
-                  <span className="text-ui-10 uppercase tracking-[0.12em] text-tea-text-dim">
-                    {membershipLabel(c.role)}
-                  </span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-tea-text-dim leading-relaxed mb-5">
-              No connections yet.
-            </p>
-          )}
-
-          {/* Find members */}
-          <div className="relative">
-            <input
-              type="text"
-              value={memberSearch}
-              onChange={(e) => setMemberSearch(e.target.value)}
-              placeholder="Find members"
-              className="w-full bg-tea-surface border border-tea-border px-4 py-3 text-tea-text text-sm rounded-sm outline-none focus:border-tea-gold transition-colors placeholder-tea-text-dim"
-            />
+          <div className="flex flex-wrap gap-1.5 mt-3">
+            <span className="inline-flex px-2 py-0.5 rounded-full text-ui-10 uppercase tracking-[0.15em] bg-tea-gold/10 text-tea-text ring-1 ring-inset ring-tea-gold/40">
+              {tier}
+            </span>
           </div>
+        </div>
+      </div>
 
-          {memberResults.length > 0 && (
-            <div className="mt-1 bg-tea-surface border border-tea-border rounded-sm overflow-hidden">
-              {memberResults.map((m) => (
-                <div
-                  key={m.id}
-                  className="px-4 py-3 text-sm text-tea-text border-b border-tea-border last:border-b-0 hover:bg-tea-elevated transition-colors cursor-default"
-                >
-                  <span>{m.name}</span>
-                  {m.username && (
-                    <span className="ml-2 text-tea-text-dim text-ui-12">@{m.username}</span>
+      {/* Stats row */}
+      <div className="flex gap-3">
+        <StatCard label="Queue" value={queueCount} href="#queue" />
+        <StatCard label="Want list" value={wishlistCount} href="#wishlist" />
+        <StatCard label="Connections" value={connectionCount} href="#circle" />
+      </div>
+
+      {/* Tasting queue */}
+      <SectionCard id="queue" title="Available to taste" subtitle="Teas shared with you or from recent purchases.">
+        {queueEntries.length > 0 ? (
+          <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-none">
+            {queueEntries.map((entry) => (
+              <QueueCard key={entry.id} entry={entry} />
+            ))}
+          </div>
+        ) : (
+          <p className="text-ui-12 text-tea-text-sec leading-relaxed">
+            Nothing queued yet.
+          </p>
+        )}
+      </SectionCard>
+
+      {/* Wishlist */}
+      <SectionCard
+        id="wishlist"
+        title="Want list"
+        subtitle="Teas you've marked as 'want' in your compass."
+        bodyPadding={wishlistEntries.length === 0}
+      >
+        {wishlistEntries.length > 0 ? (
+          <ul className="divide-y divide-tea-border -mx-4 md:-mx-5">
+            {wishlistEntries.map((entry) => (
+              <WishlistRow key={entry.id} entry={entry} />
+            ))}
+          </ul>
+        ) : (
+          <p className="text-ui-12 text-tea-text-sec leading-relaxed px-4 md:px-5 pb-5">
+            Nothing on your want list yet.
+          </p>
+        )}
+      </SectionCard>
+
+      {/* Tea circle */}
+      <SectionCard
+        id="circle"
+        title="Tea circle"
+        subtitle="Your connections and other members."
+      >
+        {connections.length > 0 ? (
+          <ul className="divide-y divide-tea-border mb-4 -mx-4 md:-mx-5">
+            {connections.map((c) => (
+              <li key={c.id} className="flex items-center justify-between px-4 md:px-5 py-3">
+                <div>
+                  <p className="text-ui-14 text-tea-text">{c.name}</p>
+                  {c.username && (
+                    <p className="text-ui-12 text-tea-text-dim mt-0.5">@{c.username}</p>
                   )}
                 </div>
-              ))}
-            </div>
-          )}
-        </section>
+                <span className="label-caps text-tea-text-dim">
+                  {membershipLabel(c.role)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-ui-12 text-tea-text-sec leading-relaxed mb-4">
+            No connections yet.
+          </p>
+        )}
 
-        {/* ── Navigation ─────────────────────────────────────────────────── */}
-        <section className="mb-10">
-          <SectionHeading>More</SectionHeading>
+        <input
+          type="text"
+          value={memberSearch}
+          onChange={(e) => setMemberSearch(e.target.value)}
+          placeholder="Find members"
+          className="w-full bg-tea-bg border border-tea-border rounded-md px-3 py-2 text-ui-14 text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors"
+        />
 
-          <div>
-            <NavRow label="Tea Sessions" to="/events" />
-            <NavRow label="Tasting Journal" to="/account/journal" />
-            <NavRow label="Collection" to="/account/collection" />
-            <NavRow label="Settings" to="/account/settings" />
+        {memberResults.length > 0 && (
+          <ul className="mt-2 bg-tea-bg border border-tea-border rounded-md overflow-hidden divide-y divide-tea-border">
+            {memberResults.map((m) => (
+              <li
+                key={m.id}
+                className="px-3 py-2 text-ui-13 text-tea-text"
+              >
+                <span>{m.name}</span>
+                {m.username && (
+                  <span className="ml-2 text-ui-12 text-tea-text-dim">@{m.username}</span>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </SectionCard>
+
+      {/* Navigation */}
+      <SectionCard title="More" bodyPadding={false}>
+        <ul className="divide-y divide-tea-border">
+          <li><NavRow label="Tea sessions" to="/events" /></li>
+          <li><NavRow label="Tasting journal" to="/account/journal" /></li>
+          <li><NavRow label="Collection" to="/account/collection" /></li>
+          <li><NavRow label="Settings" to="/account/settings" /></li>
+          <li>
             <NavRow
               label="Sign out"
               danger
@@ -405,10 +437,9 @@ export default function CenterPage() {
                 navigate('/');
               }}
             />
-          </div>
-        </section>
-
-      </div>
+          </li>
+        </ul>
+      </SectionCard>
     </div>
   );
 }

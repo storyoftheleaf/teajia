@@ -384,40 +384,48 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
 
   if (!isOpen) return null;
 
+  const stepNumber = stage === 'upload' ? 1 : stage === 'staging' ? 2 : 3;
+  const stepLabel = stage === 'upload' ? 'Upload' : stage === 'staging' ? 'Review' : 'Import';
+
   return (
-    <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-      <div ref={focusTrapRef} role="dialog" aria-modal="true" aria-label="CSV import" className="bg-tea-surface border border-tea-border rounded-lg w-full max-w-7xl h-[85vh] flex flex-col shadow-lg relative">
-        <div className="p-6 border-b border-tea-border flex justify-between items-center bg-tea-surface rounded-t-xl">
-          {stage !== 'uploading' && <button onClick={onClose} className="text-tea-text-sec hover:text-tea-text transition-colors shrink-0" aria-label="Close"><X size={24} /></button>}
-          <div className={stage !== 'uploading' ? 'ml-4' : ''}>
-            <h3 className="text-2xl font-serif text-tea-text">Import Inventory</h3>
-            <p className="text-tea-text-sec text-sm mt-1">
-              {stage === 'upload' && "Select your CSV file."}
-              {stage === 'staging' && "Review data before importing."}
-              {stage === 'uploading' && `Importing ${uploadProgress} of ${totalRecords} records...`}
+    <div className="fixed inset-0 z-modal flex items-center justify-center p-4">
+      <button type="button" aria-hidden onClick={onClose} className="absolute inset-0 bg-tea-bg/70 backdrop-blur-[2px]" />
+      <div ref={focusTrapRef} role="dialog" aria-modal="true" aria-label="CSV import" className="relative bg-tea-surface border border-tea-border rounded-xl shadow-2xl w-full max-w-7xl h-[85vh] flex flex-col">
+        <div className="px-5 pt-5 pb-3 border-b border-tea-border flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <p className="label-caps text-tea-text-dim mb-1">Step {stepNumber} of 3 · {stepLabel}</p>
+            <h3 className="h3 text-tea-text">Import Inventory</h3>
+            <p className="text-ui-13 text-tea-text-sec mt-1">
+              {stage === 'upload' && 'Select your CSV file.'}
+              {stage === 'staging' && 'Review data before importing.'}
+              {stage === 'uploading' && `Importing ${uploadProgress} of ${totalRecords} records…`}
             </p>
           </div>
-          <div className="w-6 shrink-0" />
+          {stage !== 'uploading' && (
+            <button onClick={onClose} className="text-tea-text-sec hover:text-tea-text transition-colors rounded-md p-1.5 tap-target shrink-0" aria-label="Close">
+              <X size={16} />
+            </button>
+          )}
         </div>
 
         <div className="flex-1 overflow-hidden p-6 relative">
           {stage === 'upload' && (
             <div className="h-full flex flex-col items-center justify-center gap-6">
-              <div className="w-full max-w-md border-2 border-dashed border-tea-border rounded-xl hover:border-tea-text-sec transition-colors p-10 flex flex-col items-center bg-tea-surface/50">
-                <Upload size={48} className="text-tea-text-sec mb-4" />
-                <label className="cursor-pointer bg-tea-gold text-tea-bg px-6 py-3 rounded-lg font-bold uppercase tracking-[0.2em] text-xs hover:bg-tea-gold/90 transition-colors">
+              <div className="w-full max-w-md border-2 border-dashed border-tea-border rounded-xl hover:border-tea-text-sec transition-colors p-10 flex flex-col items-center bg-tea-bg">
+                <Upload size={48} className="text-tea-text-sec mb-4" strokeWidth={1.25} />
+                <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors shadow-lg shadow-tea-gold/10">
                   Select CSV File
                   <input type="file" accept=".csv" className="hidden" onChange={handleFileUpload} />
                 </label>
-                <p className="mt-4 text-tea-text-sec text-sm text-center font-serif italic">
+                <p className="mt-4 text-tea-text-sec text-ui-13 text-center font-serif italic">
                     Required: Product Name, Type<br/>
                     Optional: Stock, Cost, Year, Vendor
                 </p>
               </div>
 
               <div className="flex flex-col items-center gap-2">
-                 <button onClick={handleDownloadTemplate} className="text-tea-text-sec hover:text-tea-text flex items-center gap-2 text-xs uppercase tracking-[0.2em] border border-tea-border px-4 py-2 rounded-lg hover:bg-tea-surface transition-colors">
-                    <Download size={14} /> Download Template
+                 <button onClick={handleDownloadTemplate} className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md border border-tea-border text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub text-xs transition-colors">
+                    <Download size={13} /> Download Template
                  </button>
               </div>
             </div>
@@ -434,7 +442,7 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
 
               {/* Mobile card list */}
               <div className="block md:hidden flex-1 overflow-auto pb-24">
-                <div className="text-ui-10 text-tea-text-sec uppercase tracking-[0.2em] px-1 pb-2">
+                <div className="label-caps text-tea-text-sec px-1 pb-2">
                   Reviewing {stagingData.length} item{stagingData.length !== 1 ? 's' : ''}
                 </div>
                 {stagingData.map((row, idx) => {
@@ -493,47 +501,47 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
                           )}
                           <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
                             <div>
-                              <dt className="text-ui-9 text-tea-text-sec/50 uppercase tracking-wider">Product Name</dt>
+                              <dt className="label-caps text-tea-text-dim">Product Name</dt>
                               <dd className="text-tea-text font-serif mt-0.5">{row.productName || '—'}</dd>
                             </div>
                             <div>
-                              <dt className="text-ui-9 text-tea-text-sec/50 uppercase tracking-wider">Type</dt>
+                              <dt className="label-caps text-tea-text-dim">Type</dt>
                               <dd className={`mt-0.5 ${isMissingOrUnknown(row.type) ? 'text-tea-gold/80 italic' : 'text-tea-text'}`}>{row.type || '—'}</dd>
                             </div>
                             {row.year && (
                               <div>
-                                <dt className="text-ui-9 text-tea-text-sec/50 uppercase tracking-wider">Year</dt>
+                                <dt className="label-caps text-tea-text-dim">Year</dt>
                                 <dd className="text-tea-text-sec font-serif italic mt-0.5">{row.year}</dd>
                               </div>
                             )}
                             <div>
-                              <dt className="text-ui-9 text-tea-text-sec/50 uppercase tracking-wider">Grams Purchased</dt>
+                              <dt className="label-caps text-tea-text-dim">Grams Purchased</dt>
                               <dd className={`font-mono mt-0.5 ${isMissingOrUnknown(row.grams) ? 'text-tea-text-sec/50 italic' : 'text-tea-text'}`}>{row.grams || '—'}</dd>
                             </div>
                             <div>
-                              <dt className="text-ui-9 text-tea-text-sec/50 uppercase tracking-wider">Stock</dt>
+                              <dt className="label-caps text-tea-text-dim">Stock</dt>
                               <dd className={`font-mono mt-0.5 ${isMissingOrUnknown(row.stockAmount) ? 'text-tea-text-sec/50 italic' : 'text-tea-text'}`}>{row.stockAmount || '—'}</dd>
                             </div>
                             <div>
-                              <dt className="text-ui-9 text-tea-text-sec/50 uppercase tracking-wider">Cost</dt>
+                              <dt className="label-caps text-tea-text-dim">Cost</dt>
                               <dd className={`font-mono mt-0.5 ${isMissingOrUnknown(row.costAmount) ? 'text-tea-text-sec/50 italic' : 'text-tea-text'}`}>{row.costAmount || '—'}</dd>
                             </div>
                             <div>
-                              <dt className="text-ui-9 text-tea-text-sec/50 uppercase tracking-wider">Currency</dt>
+                              <dt className="label-caps text-tea-text-dim">Currency</dt>
                               <dd className={`font-mono mt-0.5 ${isMissingOrUnknown(row.currency) ? 'text-tea-text-sec/50 italic' : 'text-tea-text'}`}>{row.currency || '—'}</dd>
                             </div>
                             {row.vendor && (
                               <div>
-                                <dt className="text-ui-9 text-tea-text-sec/50 uppercase tracking-wider">Vendor</dt>
+                                <dt className="label-caps text-tea-text-dim">Vendor</dt>
                                 <dd className="text-tea-text-sec mt-0.5">{row.vendor}</dd>
                               </div>
                             )}
                             <div>
-                              <dt className="text-ui-9 text-tea-text-sec/50 uppercase tracking-wider">Restock</dt>
+                              <dt className="label-caps text-tea-text-dim">Restock</dt>
                               <dd className="mt-0.5">{row.canReorder ? <span className="text-tea-text font-serif italic">Yes</span> : <span className="text-tea-text-sec/50">—</span>}</dd>
                             </div>
                             <div>
-                              <dt className="text-ui-9 text-tea-text-sec/50 uppercase tracking-wider">Personal</dt>
+                              <dt className="label-caps text-tea-text-dim">Personal</dt>
                               <dd className="mt-0.5">{row.isPersonal ? <span className="text-tea-text font-serif italic">Yes</span> : <span className="text-tea-text-sec/50">—</span>}</dd>
                             </div>
                           </dl>
@@ -555,7 +563,7 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
               {/* Desktop table */}
               <div className="hidden md:block flex-1 overflow-auto border border-tea-border rounded-xl bg-tea-surface">
                 <table className="w-full text-left text-xs whitespace-nowrap">
-                  <thead className="bg-tea-bg text-tea-text-sec font-serif uppercase tracking-[0.2em] text-ui-10 sticky top-0 z-10">
+                  <thead className="bg-tea-bg label-caps text-tea-text-dim sticky top-0 z-sticky">
                     <tr>
                       <th className="p-3 border-b border-tea-border">State</th>
                       <th className="p-3 border-b border-tea-border">Type</th>
@@ -630,12 +638,12 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
         </div>
 
         {stage === 'staging' && (
-          <div className="p-6 border-t border-tea-border bg-tea-surface flex justify-between items-center rounded-b-xl">
-            <div className="flex gap-4">
-              <button onClick={() => setStage('upload')} className="text-tea-text-sec hover:text-tea-text transition-colors text-xs uppercase tracking-[0.2em]">Back</button>
-              <button onClick={onClose} className="text-tea-text-sec hover:text-tea-text transition-colors text-xs uppercase tracking-[0.2em]">Cancel</button>
+          <div className="flex justify-between gap-2 px-5 py-3 border-t border-tea-border bg-tea-bg/40 rounded-b-xl flex-shrink-0">
+            <div className="flex items-center gap-3">
+              <button onClick={onClose} className="px-2 py-1 text-xs text-tea-text-sec hover:text-tea-text transition-colors">Cancel</button>
+              <button onClick={() => setStage('upload')} className="px-2 py-1 text-xs text-tea-text-sec hover:text-tea-text transition-colors">Back</button>
             </div>
-            <button onClick={handleCommit} disabled={stagingData.length === 0} className="px-6 py-3 bg-tea-gold text-tea-bg rounded-lg font-bold text-xs uppercase tracking-[0.2em] hover:bg-tea-gold/90 disabled:opacity-50 transition-colors">
+            <button onClick={handleCommit} disabled={stagingData.length === 0} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-tea-gold/10">
                 Import All ({stagingData.length})
             </button>
           </div>

@@ -272,7 +272,7 @@ export const SampleOrderModal: React.FC<SampleOrderModalProps> = ({
                   <div className="flex flex-col gap-2">
                     <button
                       onClick={handleWhatsAppResend}
-                      className="w-full flex items-center justify-center gap-2 py-3 border border-tea-border text-tea-text-sec text-xs uppercase tracking-[0.15em] rounded-sm hover:bg-tea-surface transition-colors"
+                      className="w-full flex items-center justify-center gap-2 py-3 border border-tea-border text-tea-text-sec text-xs rounded-sm hover:bg-tea-surface transition-colors"
                     >
                       <MessageCircle size={14} />
                       Resend message

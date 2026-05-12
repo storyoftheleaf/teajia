@@ -20,7 +20,50 @@ import { resolveTermLabel, flattenTastingNotes, LIQUOR_COLORS } from '../../data
 import { useLedgerStore, type LedgerTransaction, type LedgerLineItem } from '../../lib/ledgerStore';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { useSampleStore } from '../../samples/sampleStore';
+import { STATUS_PILL_BASE, STATUS_PILL_VARIANTS, type StatusPillVariant } from '../constants';
 import type { Currency } from '../types';
+
+/** Canonical status pill — see DesignSystemShowcase §8 */
+const StatusPill: React.FC<{ variant?: StatusPillVariant; className?: string; children: React.ReactNode }> = ({
+  variant = 'draft',
+  className = '',
+  children,
+}) => (
+  <span className={`${STATUS_PILL_BASE} ${STATUS_PILL_VARIANTS[variant]} ${className}`}>{children}</span>
+);
+
+/** Two-letter initials for the identity-card avatar (matches §19) */
+function vendorInitials(name: string | undefined): string {
+  if (!name) return '·';
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '·';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+/** Gradient avatar swatch — canonical from §19 showcase */
+const VendorAvatar: React.FC<{ name: string; size?: number; className?: string }> = ({
+  name,
+  size = 40,
+  className = '',
+}) => (
+  <div
+    className={`relative rounded-full overflow-hidden border border-tea-border flex-shrink-0 ${className}`}
+    style={{ width: size, height: size }}
+  >
+    <div
+      className="absolute inset-0"
+      style={{ background: 'radial-gradient(circle at 30% 30%, #c6a473, #8e6d2e 55%, #3a3126)' }}
+      aria-hidden="true"
+    />
+    <div
+      className="absolute inset-0 flex items-center justify-center font-display text-tea-bg/90"
+      style={{ fontSize: Math.max(10, Math.round(size * 0.32)), letterSpacing: '0.04em' }}
+    >
+      {vendorInitials(name)}
+    </div>
+  </div>
+);
 
 // ── Add/Edit Source Modal ──
 const SourceModal = ({
@@ -52,7 +95,7 @@ const SourceModal = ({
 
   return (
     <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
-      <form onSubmit={handleSubmit} className="bg-tea-bg border border-tea-border rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl">
+      <form onSubmit={handleSubmit} className="bg-tea-bg border border-tea-border rounded-xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl">
         <div className="flex justify-between items-center p-6 border-b border-tea-border">
           <h3 className="text-lg font-serif text-tea-text">{isEditing ? 'Edit Source' : 'New Source'}</h3>
           <button type="button" onClick={onClose} className="text-tea-text-sec hover:text-tea-text"><XIcon size={20} /></button>
@@ -195,18 +238,18 @@ const GhostInput = ({
   );
 };
 
-// --- COLLAPSIBLE SECTION ---
+// --- COLLAPSIBLE SECTION (canonical card §§19 — bg-tea-bg border rounded-xl) ---
 const CollapsibleSection = ({ title, defaultOpen = true, children }: {
   title: string, defaultOpen?: boolean, children: React.ReactNode
 }) => {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="mx-3 mb-2 rounded-lg bg-tea-surface">
-      <button onClick={() => setOpen(!open)} className="w-full flex items-center justify-between px-4 py-3 group">
-        <span className="text-ui-12 text-tea-gold uppercase tracking-[0.15em] font-bold">{title}</span>
+    <div className="mx-4 mb-3 rounded-xl bg-tea-bg border border-tea-border overflow-hidden">
+      <button onClick={() => setOpen(!open)} className="w-full flex items-center justify-between px-4 py-3 group hover:bg-tea-accent-sub transition-colors">
+        <span className="text-ui-12 text-tea-text-sec uppercase tracking-caps font-sans">{title}</span>
         <ChevronRight size={14} className={`text-tea-text-dim transition-transform duration-200 ${open ? 'rotate-90' : ''}`} />
       </button>
-      {open && <div className="px-4 pb-4">{children}</div>}
+      {open && <div className="px-4 pb-4 pt-1">{children}</div>}
     </div>
   );
 };
@@ -214,6 +257,13 @@ const CollapsibleSection = ({ title, defaultOpen = true, children }: {
 // --- SOURCE WITH TEA COUNT ---
 interface SourceRow extends Customer {
   teaCount: number;
+}
+
+/** Map source state (tea count + tags) to a canonical StatusPill variant */
+function sourceStatus(source: SourceRow): { variant: StatusPillVariant; label: string } {
+  if (source.tags?.includes('inactive')) return { variant: 'archived', label: 'Inactive' };
+  if (source.teaCount > 0) return { variant: 'success', label: 'Verified' };
+  return { variant: 'draft', label: 'Source' };
 }
 
 // ── Currency formatting ──
@@ -530,7 +580,7 @@ export const SourcesView = () => {
     const showBadge = sortConfig.length > 1 && sortEntry;
     return (
       <th
-        className={`px-4 py-2 cursor-pointer hover:text-tea-text transition-colors select-none border-b border-tea-border group text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec text-${align} truncate`}
+        className={`px-4 py-2 cursor-pointer hover:text-tea-text transition-colors select-none border-b border-tea-border group font-serif text-ui-11 uppercase tracking-display text-tea-text-sec font-normal text-${align} truncate`}
         onClick={() => handleSort(colKey)}
       >
         <div className={`flex items-center gap-1 ${align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : ''}`}>
@@ -553,7 +603,7 @@ export const SourcesView = () => {
     switch (colKey) {
       case 'name':
         return (
-          <td className="px-4 align-middle overflow-hidden">
+          <td className="px-4 py-2 align-middle overflow-hidden">
             <div className="flex flex-col justify-center h-full">
               {isEditMode ? (
                 <GhostInput
@@ -571,30 +621,30 @@ export const SourcesView = () => {
         );
       case 'company':
         return (
-          <td className="px-4 align-middle overflow-hidden">
+          <td className="px-4 py-2 align-middle overflow-hidden">
             {isEditMode ? (
-              <GhostInput value={source.company || ''} onSave={(val) => handleSourceUpdate(source.id, 'company', val)} className="font-sans text-xs text-tea-text-sec truncate" placeholder="Company" />
-            ) : <span className="text-xs text-tea-text-sec font-sans truncate block">{source.company || '—'}</span>}
+              <GhostInput value={source.company || ''} onSave={(val) => handleSourceUpdate(source.id, 'company', val)} className="text-ui-12 text-tea-text-sec truncate" placeholder="Company" />
+            ) : <span className="text-ui-12 text-tea-text-sec truncate block">{source.company || '—'}</span>}
           </td>
         );
       case 'country':
         return (
-          <td className="px-4 align-middle overflow-hidden">
+          <td className="px-4 py-2 align-middle overflow-hidden">
             {isEditMode ? (
-              <GhostInput value={source.country || ''} onSave={(val) => handleSourceUpdate(source.id, 'country', val)} className="font-sans text-xs text-tea-text-sec truncate" placeholder="Country" />
+              <GhostInput value={source.country || ''} onSave={(val) => handleSourceUpdate(source.id, 'country', val)} className="text-ui-12 text-tea-text-sec truncate" placeholder="Country" />
             ) : (
               source.country ? (
-                <span className="text-xs text-tea-text-sec flex items-center gap-1 truncate"><MapPin size={10} className="flex-shrink-0" /> {source.country}</span>
+                <span className="text-ui-12 text-tea-text-sec flex items-center gap-1 truncate"><MapPin size={10} className="flex-shrink-0 text-tea-text-dim" /> {source.country}</span>
               ) : (
-                <span className="text-xs text-tea-text-dim">—</span>
+                <span className="text-ui-12 text-tea-text-dim">—</span>
               )
             )}
           </td>
         );
       case 'contact':
         return (
-          <td className="px-4 align-middle overflow-hidden">
-            <div className="flex items-center gap-2 text-xs text-tea-text-sec truncate">
+          <td className="px-4 py-2 align-middle overflow-hidden">
+            <div className="flex items-center gap-2 text-ui-12 text-tea-text-sec truncate">
               {source.email && <span className="truncate">{source.email}</span>}
               {!source.email && source.phone && <span>{source.phone}</span>}
               {!source.email && !source.phone && source.whatsapp && <span>WA: {source.whatsapp}</span>}
@@ -604,59 +654,64 @@ export const SourcesView = () => {
         );
       case 'teaCount':
         return (
-          <td className="px-4 align-middle overflow-hidden text-center">
-            <span className={`inline-flex items-center gap-1 text-xs font-medium ${source.teaCount > 0 ? 'text-tea-gold' : 'text-tea-text-dim'}`}>
+          <td className="px-4 py-2 align-middle overflow-hidden text-center">
+            <span className={`inline-flex items-center gap-1 text-ui-12 tabular-nums ${source.teaCount > 0 ? 'text-tea-gold' : 'text-tea-text-dim'}`}>
               <Leaf size={11} /> {source.teaCount}
             </span>
           </td>
         );
       case 'created':
         return (
-          <td className="px-4 align-middle overflow-hidden">
-            <span className="text-xs text-tea-text-sec font-sans tabular-nums">
+          <td className="px-4 py-2 align-middle overflow-hidden">
+            <span className="text-ui-12 text-tea-text-sec tabular-nums">
               {source.createdAt ? new Date(source.createdAt).toLocaleDateString() : '—'}
             </span>
           </td>
         );
       default:
-        return <td className="px-4 align-middle text-xs text-tea-text-sec">—</td>;
+        return <td className="px-4 py-2 align-middle text-ui-12 text-tea-text-sec">—</td>;
     }
   };
 
   // --- ROW COMPONENT ---
   const renderRow = (source: SourceRow) => {
     const isExpanded = expandedSourceId === source.id;
+    const status = sourceStatus(source);
     return (
     <React.Fragment key={source.id}>
     <tr
-      className={`transition-colors border-b border-tea-border group ${isEditMode ? '' : 'hover:bg-tea-bg/50 cursor-pointer'} ${isExpanded ? 'bg-tea-gold/5' : ''} ${panelSource?.id === source.id ? 'bg-tea-gold/5' : ''}`}
-      style={{ height: ROW_HEIGHT }}
+      className={`transition-colors border-b border-tea-border group ${isEditMode ? '' : 'hover:bg-tea-accent-sub cursor-pointer'} ${isExpanded ? 'bg-tea-gold/5' : ''} ${panelSource?.id === source.id ? 'bg-tea-gold/5' : ''}`}
+      style={{ height: ROW_HEIGHT + 8 }}
       onClick={() => !isEditMode && setExpandedSourceId(isExpanded ? null : source.id)}
     >
       {visibleCols.map(col => renderCell(source, col.key))}
-      <td className="px-2 align-middle text-right">
-        <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
-          {!isEditMode && (
-            <>
-              {source.id && (
+      <td className="px-3 py-2 align-middle">
+        <div className="flex items-center justify-end gap-2">
+          <StatusPill variant={status.variant} className="opacity-90">{status.label}</StatusPill>
+          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+            {!isEditMode && (
+              <>
+                {source.id && (
+                  <button
+                    onClick={() => navigate(`/admin/vendors/${source.id}`)}
+                    className="tap-target text-tea-text-sec hover:text-tea-gold p-1 transition-colors"
+                    title="View vendor profile"
+                  ><ExternalLink size={13} /></button>
+                )}
                 <button
-                  onClick={() => navigate(`/admin/vendors/${source.id}`)}
-                  className="text-tea-text-sec hover:text-tea-gold p-1 transition-colors"
-                  title="View vendor profile"
-                ><ExternalLink size={13} /></button>
-              )}
-              <button
-                onClick={() => { setEditingSource(source); setIsModalOpen(true); }}
-                className="text-tea-text-sec hover:text-tea-text p-1 transition-colors"
-                title="Edit"
-              ><Pencil size={13} /></button>
-              <button
-                onClick={() => handleDelete(source)}
-                className="text-tea-text-sec hover:text-red-400 p-1 transition-colors"
-                title="Delete"
-              ><Trash2 size={13} /></button>
-            </>
-          )}
+                  onClick={() => { setEditingSource(source); setIsModalOpen(true); }}
+                  className="tap-target text-tea-text-sec hover:text-tea-text p-1 transition-colors"
+                  title="Edit"
+                ><Pencil size={13} /></button>
+                <button
+                  onClick={() => handleDelete(source)}
+                  className="tap-target text-tea-text-sec hover:text-tea-error p-1 transition-colors"
+                  title="Delete"
+                ><Trash2 size={13} /></button>
+              </>
+            )}
+          </div>
+          <ChevronRight size={13} className={`text-tea-text-dim flex-shrink-0 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
         </div>
       </td>
     </tr>
@@ -676,7 +731,7 @@ export const SourcesView = () => {
               headerSlot={
                 <div className="flex items-center gap-2 shrink-0">
                   <Leaf size={16} className="text-tea-gold" />
-                  <h2 className="text-sm font-serif text-tea-text uppercase tracking-[0.15em]">
+                  <h2 className="h3">
                     {source.name}
                   </h2>
                   <span className="text-tea-text-sec text-xs tracking-wide">
@@ -742,70 +797,74 @@ export const SourcesView = () => {
   return (
     <div className={`h-full flex flex-col overflow-hidden bg-tea-bg ${panelSource ? 'md:mr-[420px]' : ''} transition-all duration-300`}>
 
-      {/* --- SAVED VIEWS TAB BAR (desktop only — mobile uses options menu) --- */}
-      <div className="hidden md:flex items-center gap-1 px-6 py-1.5 border-b border-tea-border bg-tea-bg overflow-x-auto hide-scrollbar flex-shrink-0">
-        {savedViews.map(view => (
-          <button
-            key={view.id}
-            onClick={() => {
-              setActiveViewId(view.id);
-              setVisibleColumns(view.columns);
-              setSortConfig(view.sortConfig);
-              setGroupBy(view.groupBy);
-            }}
-            className={`flex items-center gap-1.5 px-3 py-1 text-ui-10 uppercase tracking-[0.15em] rounded-md whitespace-nowrap transition-colors ${
-              activeViewId === view.id
-                ? 'bg-tea-gold/15 text-tea-gold border border-tea-accent-sub'
-                : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface border border-transparent'
-            }`}
-          >
-            {view.name}
-            {!view.id.startsWith('default-') && (
-              <span
-                onClick={(e) => { e.stopPropagation(); deleteView(view.id); }}
-                className="ml-1 text-tea-text-sec/40 hover:text-tea-gold transition-colors"
+      {/* --- SAVED VIEWS TAB BAR (desktop only — underline tabs, §6 canonical) --- */}
+      <div className="hidden md:block px-4 md:px-8 border-b border-tea-border bg-tea-bg flex-shrink-0">
+        <div className="flex items-center gap-5 overflow-x-auto hide-scrollbar flex-wrap">
+          {savedViews.map(view => {
+            const isActive = activeViewId === view.id;
+            return (
+              <button
+                key={view.id}
+                onClick={() => {
+                  setActiveViewId(view.id);
+                  setVisibleColumns(view.columns);
+                  setSortConfig(view.sortConfig);
+                  setGroupBy(view.groupBy);
+                }}
+                className={`whitespace-nowrap py-2.5 text-ui-12 uppercase tracking-caps font-sans border-b transition-colors flex items-center gap-1.5 ${
+                  isActive
+                    ? 'text-tea-text border-tea-gold'
+                    : 'text-tea-text-sec hover:text-tea-text border-transparent'
+                }`}
               >
-                <XIcon size={10} />
-              </span>
-            )}
-          </button>
-        ))}
-        <div className="w-px h-4 bg-tea-border/30 mx-1" />
-        {showSaveViewPrompt ? (
-          <div className="flex items-center gap-1">
-            <input
-              autoFocus
-              value={newViewName}
-              onChange={(e) => setNewViewName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && newViewName.trim()) {
-                  const id = `custom-${Date.now()}`;
-                  saveView({ id, name: newViewName.trim(), columns: visibleColumns, sortConfig, groupBy });
-                  setActiveViewId(id);
-                  setNewViewName('');
-                  setShowSaveViewPrompt(false);
-                } else if (e.key === 'Escape') {
-                  setShowSaveViewPrompt(false);
-                  setNewViewName('');
-                }
-              }}
-              placeholder="View name..."
-              className="bg-transparent border-b border-tea-border text-ui-10 text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg w-24 py-0.5 px-1"
-            />
-            <button onClick={() => { setShowSaveViewPrompt(false); setNewViewName(''); }} className="text-tea-text-sec/40 hover:text-tea-text-sec"><XIcon size={10} /></button>
-          </div>
-        ) : (
-          <button
-            onClick={() => setShowSaveViewPrompt(true)}
-            className="flex items-center gap-1 px-2 py-1 text-ui-10 text-tea-text-sec/50 hover:text-tea-text-sec uppercase tracking-[0.15em] transition-colors"
-          >
-            <Save size={10} /> Save View
-          </button>
-        )}
+                {view.name}
+                {!view.id.startsWith('default-') && (
+                  <span
+                    onClick={(e) => { e.stopPropagation(); deleteView(view.id); }}
+                    className="text-tea-text-sec hover:text-tea-text transition-colors"
+                  >
+                    <XIcon size={10} />
+                  </span>
+                )}
+              </button>
+            );
+          })}
+          {showSaveViewPrompt ? (
+            <div className="flex items-center gap-1 py-2.5">
+              <input
+                autoFocus
+                value={newViewName}
+                onChange={(e) => setNewViewName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && newViewName.trim()) {
+                    const id = `custom-${Date.now()}`;
+                    saveView({ id, name: newViewName.trim(), columns: visibleColumns, sortConfig, groupBy });
+                    setActiveViewId(id);
+                    setNewViewName('');
+                    setShowSaveViewPrompt(false);
+                  } else if (e.key === 'Escape') {
+                    setShowSaveViewPrompt(false);
+                    setNewViewName('');
+                  }
+                }}
+                placeholder="View name..."
+                className="bg-transparent border-b border-tea-border text-ui-12 text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg w-28 py-0.5 px-1"
+              />
+              <button onClick={() => { setShowSaveViewPrompt(false); setNewViewName(''); }} className="text-tea-text-sec hover:text-tea-text"><XIcon size={10} /></button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowSaveViewPrompt(true)}
+              className="flex items-center gap-1 py-2.5 text-ui-12 text-tea-text-sec hover:text-tea-text uppercase tracking-caps transition-colors"
+            >
+              <Save size={10} /> Save View
+            </button>
+          )}
+        </div>
       </div>
 
       {/* --- MOBILE CONTROL BAR --- */}
-      <div className={`md:hidden sticky top-0 z-30 transition-colors flex-shrink-0 ${isEditMode ? 'bg-tea-surface/95' : 'bg-tea-bg/95 backdrop-blur-md'}`}>
+      <div className={`md:hidden sticky top-0 z-sticky transition-colors flex-shrink-0 ${isEditMode ? 'bg-tea-surface/95' : 'bg-tea-bg/95 backdrop-blur-md'}`}>
         <div className="flex items-center px-2 py-1.5 gap-1">
           <Users size={14} className="text-tea-gold shrink-0 ml-1" />
           <span className="text-ui-11 text-tea-text-sec uppercase tracking-[0.08em] shrink-0">
@@ -837,7 +896,7 @@ export const SourcesView = () => {
             {showMobileSort && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setShowMobileSort(false)} />
-                <div className="absolute right-0 top-9 w-40 bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-50 py-1" role="menu">
+                <div className="absolute right-0 top-9 w-40 bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-popover py-1" role="menu">
                   {([
                     { key: 'name' as SourceSortKey, label: 'Name' },
                     { key: 'company' as SourceSortKey, label: 'Company' },
@@ -885,7 +944,7 @@ export const SourcesView = () => {
             {showOptions && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setShowOptions(false)} />
-                <div className="absolute right-0 top-9 w-48 bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-50 py-1 max-h-[calc(100dvh-100px)] overflow-y-auto">
+                <div className="absolute right-0 top-9 w-48 bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-popover py-1 max-h-[calc(100dvh-100px)] overflow-y-auto">
                   {/* Saved views */}
                   <div className="px-3 py-1.5 text-ui-9 text-tea-text-sec/60 uppercase tracking-[0.2em]">Views</div>
                   {savedViews.map(view => (
@@ -922,18 +981,12 @@ export const SourcesView = () => {
         </div>
       </div>
 
-      {/* --- DESKTOP HEADER CONTROLS --- */}
-      <div className={`hidden md:block sticky top-0 z-30 border-b border-tea-border py-2.5 transition-colors flex-shrink-0 ${isEditMode ? 'bg-tea-surface/95 border-b-tea-gold/20' : 'bg-tea-bg/90 backdrop-blur-md'}`}>
-        <div className="px-6 max-w-5xl mx-auto flex items-center gap-4">
-          <div className="flex items-center gap-2 shrink-0">
-            <Users size={16} className={isEditMode ? "text-tea-text-sec" : "text-tea-gold"} />
-            <h2 className="text-sm font-serif text-tea-text uppercase tracking-[0.15em]">
-              {isEditMode ? 'Editing' : 'Sources'}
-            </h2>
-            <span className="text-tea-text-sec text-xs tracking-wide">
-              {isEditMode ? '— click cells to edit' : `— ${processedSources.length} vendor${processedSources.length !== 1 ? 's' : ''}`}
-            </span>
-          </div>
+      {/* --- DESKTOP HEADER CONTROLS (filter + actions only; parent PeopleView owns the page title) --- */}
+      <div className={`hidden md:block sticky top-0 z-sticky border-b border-tea-border transition-colors flex-shrink-0 ${isEditMode ? 'bg-tea-surface/95 border-b-tea-gold/20' : 'bg-tea-bg/90 backdrop-blur-md'}`}>
+        <div className="px-4 md:px-8 py-3 flex items-center gap-4 flex-wrap">
+          <span className="label-caps text-tea-text-dim shrink-0">
+            {isEditMode ? 'CLICK CELLS TO EDIT' : `${processedSources.length} VENDORS`}
+          </span>
 
           <div className="flex items-center gap-4 ml-auto">
             {/* Search */}
@@ -953,23 +1006,24 @@ export const SourcesView = () => {
               {/* Toggle Edit Mode */}
               <button
                 onClick={() => setIsEditMode(!isEditMode)}
-                className={`flex items-center gap-2 text-xs uppercase tracking-[0.2em] font-bold transition-all px-3 py-1.5 border rounded-lg ${
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs transition-colors ${
                   isEditMode
-                    ? 'bg-tea-gold text-tea-bg border-tea-gold hover:bg-tea-gold/90'
-                    : 'text-tea-text-sec border-transparent hover:border-tea-border hover:text-tea-text'
+                    ? 'bg-tea-gold text-tea-bg font-semibold hover:bg-tea-gold/90 active:bg-tea-gold/80'
+                    : 'border border-tea-border text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub'
                 }`}
               >
-                {isEditMode ? <Check size={14} /> : <Pencil size={14} />}
-                {isEditMode ? 'Done' : 'Edit'}
+                {isEditMode ? <Check size={13} /> : <Pencil size={13} />}
+                <span>{isEditMode ? 'Done' : 'Edit'}</span>
               </button>
 
               <div className="w-px h-4 bg-tea-border mx-1"></div>
 
               <button
                 onClick={() => { setEditingSource(null); setIsModalOpen(true); }}
-                className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] font-bold text-tea-text-sec hover:text-tea-text transition-colors px-3 py-1.5 border border-transparent hover:border-tea-border rounded-lg"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 active:bg-tea-gold/80 transition-colors"
               >
-                <Plus size={14} /> New
+                <Plus size={13} />
+                <span>New</span>
               </button>
 
               <div className="w-px h-4 bg-tea-border mx-1"></div>
@@ -978,7 +1032,7 @@ export const SourcesView = () => {
               <div className="relative">
                 <button
                   onClick={() => setShowColumnsPopover(!showColumnsPopover)}
-                  className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs transition-colors ${showColumnsPopover ? 'text-tea-gold bg-tea-surface' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'}`}
+                  className={`tap-target flex items-center gap-1 px-2 py-1.5 rounded-md text-xs transition-colors ${showColumnsPopover ? 'text-tea-gold bg-tea-surface' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'}`}
                   title="Show/Hide Columns"
                 >
                   <Columns size={14} />
@@ -987,7 +1041,7 @@ export const SourcesView = () => {
                 {showColumnsPopover && (
                   <>
                     <div className="fixed inset-0 z-40" onClick={() => setShowColumnsPopover(false)} />
-                    <div className="absolute right-0 top-full mt-2 w-44 bg-tea-surface border border-tea-border shadow-xl rounded-xl z-50 py-2">
+                    <div className="absolute right-0 top-full mt-2 w-44 bg-tea-surface border border-tea-border shadow-xl rounded-xl z-popover py-2">
                       <div className="px-3 pb-1.5 text-ui-9 text-tea-text-sec/60 uppercase tracking-[0.2em]">Visible Columns</div>
                       {SOURCE_COLUMN_DEFS.map(col => (
                         <label key={col.key} className={`flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-tea-bg transition-colors cursor-pointer ${'alwaysVisible' in col && col.alwaysVisible ? 'opacity-50 cursor-not-allowed' : ''}`}>
@@ -1013,13 +1067,13 @@ export const SourcesView = () => {
                     const el = document.getElementById('sources-groupby-dropdown');
                     if (el) el.classList.toggle('hidden');
                   }}
-                  className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs transition-colors ${groupBy ? 'text-tea-gold bg-tea-surface' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'}`}
+                  className={`tap-target flex items-center gap-1 px-2 py-1.5 rounded-md text-xs transition-colors ${groupBy ? 'text-tea-gold bg-tea-surface' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'}`}
                   title="Group By"
                 >
                   <Layers size={14} />
                   <span className="hidden xl:inline tracking-wide">Group</span>
                 </button>
-                <div id="sources-groupby-dropdown" className="hidden absolute right-0 top-full mt-2 w-40 bg-tea-surface border border-tea-border shadow-xl rounded-xl z-50 py-1">
+                <div id="sources-groupby-dropdown" className="hidden absolute right-0 top-full mt-2 w-40 bg-tea-surface border border-tea-border shadow-xl rounded-xl z-popover py-1">
                   {GROUPBY_OPTIONS.map(opt => (
                     <button
                       key={opt.value}
@@ -1037,7 +1091,7 @@ export const SourcesView = () => {
 
               <button
                 onClick={() => setShowOptions(!showOptions)}
-                className="p-1.5 text-tea-text-sec hover:text-tea-text transition-colors rounded-lg hover:bg-tea-surface"
+                className="tap-target p-1.5 text-tea-text-sec hover:text-tea-text transition-colors rounded-md hover:bg-tea-surface"
               >
                 <MoreHorizontal size={16} />
               </button>
@@ -1046,7 +1100,7 @@ export const SourcesView = () => {
               {showOptions && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setShowOptions(false)}></div>
-                  <div className="absolute right-0 top-full mt-2 w-48 bg-tea-surface border border-tea-border shadow-xl rounded-xl z-50 py-1 flex flex-col">
+                  <div className="absolute right-0 top-full mt-2 w-48 bg-tea-surface border border-tea-border shadow-xl rounded-xl z-popover py-1 flex flex-col">
                     <button onClick={() => { handleExport(); setShowOptions(false); }} className="px-4 py-2 text-left text-xs text-tea-text-sec hover:text-tea-text hover:bg-tea-bg flex items-center gap-2 transition-colors">
                       <Download size={14} /> Export CSV
                     </button>
@@ -1064,130 +1118,140 @@ export const SourcesView = () => {
         className="flex-1 overflow-auto custom-scrollbar bg-tea-bg md:px-6"
       >
 
-        {/* MOBILE CARDS */}
-        <div className="md:hidden pb-24">
-          {processedSources.map((source, idx) => {
-            const isExpanded = expandedCardId === source.id;
-            return (
-              <div key={source.id}>
-                <button
-                  className={`w-full text-left px-4 py-2.5 flex items-center gap-3 transition-colors active:bg-tea-surface/80 ${isExpanded ? 'bg-tea-surface/60' : idx % 2 === 0 ? 'bg-transparent' : 'bg-tea-surface/20'}`}
-                  onClick={() => setExpandedCardId(isExpanded ? null : source.id)}
-                >
-                  {/* Name + company */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-tea-text text-sm font-serif truncate">{source.name}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-ui-10 text-tea-text-sec/70 mt-0.5">
-                      {source.company && <span className="truncate">{source.company}</span>}
-                      {source.company && source.country && <span className="opacity-40">·</span>}
-                      {source.country && (
-                        <span className="flex items-center gap-0.5"><MapPin size={8} /> {source.country}</span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Tea count */}
-                  <div className="flex-shrink-0 text-right">
-                    <div className={`text-xs tabular-nums flex items-center gap-1 ${source.teaCount > 0 ? 'text-tea-gold' : 'text-tea-text-dim'}`}>
-                      <Leaf size={10} /> {source.teaCount}
-                    </div>
-                  </div>
-
-                  <ChevronDown size={14} className={`flex-shrink-0 text-tea-text-sec/30 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
-                </button>
-
-                {/* Expanded detail panel */}
-                {isExpanded && (
-                  <div className="bg-tea-surface/40 px-4 pb-3 pt-1 border-b border-tea-border">
-                    <div className="grid grid-cols-3 gap-x-4 gap-y-2 py-2">
-                      {source.company && (
-                        <div>
-                          <div className="text-ui-9 text-tea-text-sec/50 uppercase tracking-wider">Company</div>
-                          <div className="text-sm text-tea-text">{source.company}</div>
-                        </div>
-                      )}
-                      {source.country && (
-                        <div>
-                          <div className="text-ui-9 text-tea-text-sec/50 uppercase tracking-wider">Country</div>
-                          <div className="text-sm text-tea-text">{source.country}</div>
-                        </div>
-                      )}
-                      <div>
-                        <div className="text-ui-9 text-tea-text-sec/50 uppercase tracking-wider">Teas</div>
-                        <div className="text-sm text-tea-text tabular-nums">{source.teaCount}</div>
+        {/* MOBILE CARDS — canonical list rows §8 + identity-card-in-miniature §19 */}
+        <div className="md:hidden pb-nav-gap">
+          <ul className="divide-y divide-tea-border bg-tea-surface border border-tea-border rounded-xl overflow-hidden mx-3 mt-3">
+            {processedSources.map((source) => {
+              const isExpanded = expandedCardId === source.id;
+              const status = sourceStatus(source);
+              return (
+                <li key={source.id}>
+                  <button
+                    className={`w-full text-left px-4 py-3 flex items-center gap-3 transition-colors active:bg-tea-accent-sub ${isExpanded ? 'bg-tea-accent-sub' : ''}`}
+                    onClick={() => setExpandedCardId(isExpanded ? null : source.id)}
+                  >
+                    <VendorAvatar name={source.name} size={36} />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-display text-ui-15 text-tea-text truncate">{source.name}</div>
+                      <div className="flex items-center gap-1.5 text-ui-12 text-tea-text-dim mt-0.5">
+                        {source.company && <span className="truncate">{source.company}</span>}
+                        {source.company && source.country && <span className="opacity-40">·</span>}
+                        {source.country && (
+                          <span className="flex items-center gap-0.5 truncate"><MapPin size={9} className="flex-shrink-0" /> {source.country}</span>
+                        )}
+                        {!source.company && !source.country && (
+                          <span className="text-tea-text-dim">Vendor</span>
+                        )}
                       </div>
-                      {source.email && (
-                        <div className="col-span-2">
-                          <div className="text-ui-9 text-tea-text-sec/50 uppercase tracking-wider">Email</div>
-                          <div className="text-sm text-tea-text truncate">{source.email}</div>
-                        </div>
-                      )}
-                      {source.phone && (
-                        <div>
-                          <div className="text-ui-9 text-tea-text-sec/50 uppercase tracking-wider">Phone</div>
-                          <div className="text-sm text-tea-text">{source.phone}</div>
-                        </div>
-                      )}
                     </div>
 
-                    {source.notes && (
-                      <p className="text-xs text-tea-text-sec/70 font-serif italic leading-relaxed mt-1 mb-2">{source.notes}</p>
-                    )}
+                    <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                      <StatusPill variant={status.variant}>{status.label}</StatusPill>
+                      <div className={`text-ui-11 tabular-nums flex items-center gap-1 ${source.teaCount > 0 ? 'text-tea-gold' : 'text-tea-text-dim'}`}>
+                        <Leaf size={10} /> {source.teaCount}
+                      </div>
+                    </div>
 
-                    {/* Action buttons */}
-                    <div className="flex items-center gap-2 mt-2 pt-2 border-t border-tea-border">
-                      <div className="ml-auto flex items-center gap-2">
+                    <ChevronRight size={14} className={`flex-shrink-0 text-tea-text-dim transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`} />
+                  </button>
+
+                  {/* Expanded detail panel */}
+                  {isExpanded && (
+                    <div className="bg-tea-bg/60 px-4 pb-3 pt-2 border-t border-tea-border">
+                      <div className="grid grid-cols-3 gap-x-4 gap-y-3 py-2">
+                        {source.company && (
+                          <div>
+                            <div className="text-ui-10 text-tea-text-dim uppercase tracking-caps">Company</div>
+                            <div className="text-ui-13 text-tea-text mt-0.5 truncate">{source.company}</div>
+                          </div>
+                        )}
+                        {source.country && (
+                          <div>
+                            <div className="text-ui-10 text-tea-text-dim uppercase tracking-caps">Country</div>
+                            <div className="text-ui-13 text-tea-text mt-0.5 truncate">{source.country}</div>
+                          </div>
+                        )}
+                        <div>
+                          <div className="text-ui-10 text-tea-text-dim uppercase tracking-caps">Teas</div>
+                          <div className="text-ui-13 text-tea-text tabular-nums mt-0.5">{source.teaCount}</div>
+                        </div>
+                        {source.email && (
+                          <div className="col-span-2">
+                            <div className="text-ui-10 text-tea-text-dim uppercase tracking-caps">Email</div>
+                            <div className="text-ui-13 text-tea-text truncate mt-0.5">{source.email}</div>
+                          </div>
+                        )}
+                        {source.phone && (
+                          <div>
+                            <div className="text-ui-10 text-tea-text-dim uppercase tracking-caps">Phone</div>
+                            <div className="text-ui-13 text-tea-text mt-0.5">{source.phone}</div>
+                          </div>
+                        )}
+                      </div>
+
+                      {source.notes && (
+                        <p className="text-ui-12 text-tea-text-sec font-serif italic leading-relaxed mt-1 mb-2">{source.notes}</p>
+                      )}
+
+                      {/* Action buttons */}
+                      <div className="flex items-center gap-2 mt-2 pt-3 border-t border-tea-border">
                         <button
-                          onClick={() => { setEditingSource(source); setIsModalOpen(true); }}
-                          className="flex items-center gap-1.5 px-3 py-1.5 text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec hover:text-tea-text bg-tea-bg/60 hover:bg-tea-bg rounded-md transition-colors"
+                          onClick={() => navigate(`/admin/vendors/${source.id}`)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs text-tea-text-sec hover:text-tea-text hover:bg-tea-surface transition-colors"
                         >
-                          <Pencil size={12} /> Edit
+                          <ExternalLink size={12} /> Profile
                         </button>
-                        <button
-                          onClick={() => handleDelete(source)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec hover:text-red-400 bg-tea-bg/60 hover:bg-tea-bg rounded-md transition-colors"
-                        >
-                          <Trash2 size={12} /> Delete
-                        </button>
+                        <div className="ml-auto flex items-center gap-2">
+                          <button
+                            onClick={() => { setEditingSource(source); setIsModalOpen(true); }}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-tea-border text-xs text-tea-text-sec hover:text-tea-text hover:bg-tea-surface transition-colors"
+                          >
+                            <Pencil size={12} /> Edit
+                          </button>
+                          <button
+                            onClick={() => handleDelete(source)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-tea-border text-xs text-tea-text-sec hover:text-tea-error transition-colors"
+                          >
+                            <Trash2 size={12} /> Delete
+                          </button>
+                        </div>
                       </div>
-                    </div>
 
-                    {/* Inline tea inventory */}
-                    {source.teaCount > 0 && (
-                      <div className="mt-3 -mx-4 border-t border-tea-accent-sub">
-                        <TeaTable
-                          products={getSourceProducts(source.name)}
-                          currency={currency}
-                          rates={rates}
-                          onAdd={() => {}}
-                          isAdmin={true}
-                          isLoading={false}
-                          showAll={true}
-                          inline={true}
-                          title={`${source.name}'s Teas`}
-                          onEdit={(product) => {
-                            navigate(`/admin/inventory?panel=${encodeURIComponent(product.id)}`);
-                          }}
-                        />
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+                      {/* Inline tea inventory */}
+                      {source.teaCount > 0 && (
+                        <div className="mt-3 -mx-4 border-t border-tea-accent-sub">
+                          <TeaTable
+                            products={getSourceProducts(source.name)}
+                            currency={currency}
+                            rates={rates}
+                            onAdd={() => {}}
+                            isAdmin={true}
+                            isLoading={false}
+                            showAll={true}
+                            inline={true}
+                            title={`${source.name}'s Teas`}
+                            onEdit={(product) => {
+                              navigate(`/admin/inventory?panel=${encodeURIComponent(product.id)}`);
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
 
           {processedSources.length === 0 && (
-            <div className="text-center py-16 text-tea-text-sec font-serif italic">
+            <div className="bg-tea-surface border border-tea-border rounded-xl mx-3 mt-3 text-center py-16 text-ui-13 text-tea-text-sec font-serif italic">
               {searchQuery ? 'No sources match your search.' : 'No sources yet. Add your first vendor.'}
             </div>
           )}
         </div>
 
         {/* DESKTOP TABLE */}
-        <div className="w-full max-w-5xl mx-auto bg-tea-surface min-h-full hidden md:block">
+        <div className="w-full max-w-7xl mx-auto bg-tea-surface min-h-full hidden md:block">
 
           {/* --- GROUPED VIEW --- */}
           {groupedSources ? (
@@ -1196,9 +1260,9 @@ export const SourcesView = () => {
               <table className="w-full table-fixed border-collapse">
                 <colgroup>
                   {visibleCols.map(col => <col key={col.key} className={col.defaultWidth} />)}
-                  <col className="w-[10%]" />
+                  <col className="w-[18%]" />
                 </colgroup>
-                <thead className="sticky top-0 z-20 bg-tea-bg shadow-sm">
+                <thead className="sticky top-0 z-sticky bg-tea-bg shadow-sm">
                   <tr>
                     {visibleCols.map(col => (
                       <SortHeader key={col.key} colKey={col.key as SourceSortKey} label={col.label} align={col.key === 'teaCount' ? 'center' : 'left'} />
@@ -1231,7 +1295,7 @@ export const SourcesView = () => {
                       <table className="w-full table-fixed border-collapse">
                         <colgroup>
                           {visibleCols.map(col => <col key={col.key} className={col.defaultWidth} />)}
-                          <col className="w-[10%]" />
+                          <col className="w-[18%]" />
                         </colgroup>
                         <tbody>
                           {items.map(source => renderRow(source))}
@@ -1247,10 +1311,10 @@ export const SourcesView = () => {
             <table className="w-full table-fixed border-collapse">
               <colgroup>
                 {visibleCols.map(col => <col key={col.key} className={col.defaultWidth} />)}
-                <col className="w-[10%]" />
+                <col className="w-[18%]" />
               </colgroup>
 
-              <thead className="sticky top-0 z-20 bg-tea-bg shadow-sm">
+              <thead className="sticky top-0 z-sticky bg-tea-bg shadow-sm">
                 <tr>
                   {visibleCols.map(col => (
                     <SortHeader key={col.key} colKey={col.key as SourceSortKey} label={col.label} align={col.key === 'teaCount' ? 'center' : 'left'} />
@@ -1273,32 +1337,33 @@ export const SourcesView = () => {
         </div>
       </div>
 
-      {/* --- SIDE PANEL --- */}
+      {/* --- SIDE PANEL — canonical drawer §15 (close X top-LEFT, w-full max-w-md, bg-tea-surface) --- */}
       <AnimatePresence>
-        {panelSource && (
+        {panelSource && (() => {
+          const panelStatus = sourceStatus(panelSource);
+          return (
           <motion.div
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-            className="fixed inset-0 md:inset-auto md:right-0 md:top-0 md:bottom-0 md:w-[420px] z-50 bg-tea-bg flex flex-col"
-            style={{ boxShadow: '-12px 0 40px -8px rgba(24,19,14,0.35), inset 1px 0 0 var(--tea-accent-sub)' }}
+            className="fixed inset-y-0 right-0 z-drawer w-full md:max-w-md bg-tea-surface border-l border-tea-border flex flex-col"
+            style={{ boxShadow: '-12px 0 40px -8px rgba(24,19,14,0.35)' }}
           >
-            {/* Panel Header */}
-            <div className="flex items-center gap-3 px-5 py-3 border-b border-tea-accent-sub bg-tea-surface/30">
-              <div className="flex-1 min-w-0">
-                <h3 className="text-sm font-serif text-tea-text truncate">{panelSource.name}</h3>
-                <span className="text-ui-10 text-tea-text-dim">
-                  {panelSource.company || 'Vendor'}{panelSource.country ? ` · ${panelSource.country}` : ''}
-                </span>
-              </div>
+            {/* Panel Header — close X top-LEFT, nav toolbar right (panel-with-toolbar exception) */}
+            <div className="flex items-center justify-between gap-2 px-4 py-2 border-b border-tea-border bg-tea-surface flex-shrink-0">
+              <button
+                onClick={() => setPanelSource(null)}
+                className="tap-target p-1 text-tea-text-sec hover:text-tea-text transition-colors"
+                title="Close"
+              ><XIcon size={18} /></button>
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => {
                     const idx = processedSources.findIndex(s => s.id === panelSource.id);
                     if (idx > 0) setPanelSource(processedSources[idx - 1]);
                   }}
-                  className="p-1 text-tea-text-sec hover:text-tea-text transition-colors"
+                  className="tap-target p-1 text-tea-text-sec hover:text-tea-text transition-colors"
                   title="Previous"
                 ><ChevronUp size={16} /></button>
                 <button
@@ -1306,10 +1371,30 @@ export const SourcesView = () => {
                     const idx = processedSources.findIndex(s => s.id === panelSource.id);
                     if (idx < processedSources.length - 1) setPanelSource(processedSources[idx + 1]);
                   }}
-                  className="p-1 text-tea-text-sec hover:text-tea-text transition-colors"
+                  className="tap-target p-1 text-tea-text-sec hover:text-tea-text transition-colors"
                   title="Next"
                 ><ChevronDown size={16} /></button>
-                <button onClick={() => setPanelSource(null)} className="p-1 text-tea-text-sec hover:text-tea-text transition-colors ml-1"><XIcon size={16} /></button>
+              </div>
+            </div>
+
+            {/* Identity card — canonical from §19 */}
+            <div className="px-5 py-5 border-b border-tea-border flex items-start gap-4 flex-shrink-0">
+              <VendorAvatar name={panelSource.name} size={48} />
+              <div className="flex-1 min-w-0">
+                <h3 className="h3 truncate">{panelSource.name}</h3>
+                {panelSource.email && (
+                  <p className="text-ui-13 text-tea-text-sec mt-0.5 truncate">{panelSource.email}</p>
+                )}
+                <p className="text-ui-12 text-tea-text-dim mt-0.5 truncate">
+                  {panelSource.company || 'Vendor'}{panelSource.country ? ` · ${panelSource.country}` : ''}
+                  {panelSource.teaCount > 0 && ` · ${panelSource.teaCount} tea${panelSource.teaCount !== 1 ? 's' : ''}`}
+                </p>
+                <div className="flex flex-wrap gap-1.5 mt-3">
+                  <StatusPill variant={panelStatus.variant}>{panelStatus.label}</StatusPill>
+                  {panelSource.tags?.filter(t => t !== 'vendor').map(t => (
+                    <StatusPill key={t} variant="draft">{t}</StatusPill>
+                  ))}
+                </div>
               </div>
             </div>
 
@@ -1434,7 +1519,7 @@ export const SourcesView = () => {
                                       refreshSupplied();
                                       showToast('Unlinked', 'info');
                                     }}
-                                    className="text-tea-text-sec hover:text-red-400 transition-colors"
+                                    className="text-tea-text-sec hover:text-tea-error transition-colors"
                                     title="Unlink"
                                   >
                                     <XIcon size={12} />
@@ -1560,9 +1645,9 @@ export const SourcesView = () => {
                                     <span className="text-ui-10 text-tea-text-sec uppercase tracking-wider">
                                       {tx.direction} · {tx.items.length} item{tx.items.length !== 1 ? 's' : ''}
                                     </span>
-                                    <span className={`text-ui-9 px-1.5 py-0.5 rounded-full ${tx.status === 'confirmed' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'}`}>
+                                    <StatusPill variant={tx.status === 'confirmed' ? 'success' : 'active'}>
                                       {tx.status}
-                                    </span>
+                                    </StatusPill>
                                   </div>
                                   <span className="text-xs text-tea-text tabular-nums font-medium">
                                     {fmtPrice(txTotal, tx.currency)}
@@ -1708,8 +1793,8 @@ export const SourcesView = () => {
                               </div>
                               <div className="text-ui-10 text-tea-text-dim flex items-center gap-1">
                                 {entry.type && <span className="uppercase">{entry.type}</span>}
-                                {entry.status === 'in_stock' && <span className="text-emerald-400">in stock</span>}
-                                {entry.status === 'want' && <span className="text-amber-400">want</span>}
+                                {entry.status === 'in_stock' && <span className="text-tea-green">in stock</span>}
+                                {entry.status === 'want' && <span className="text-tea-readgold">want</span>}
                               </div>
                             </div>
                             {entry.priceAmount != null && entry.priceAmount > 0 && (
@@ -1943,7 +2028,7 @@ export const SourcesView = () => {
                   <CollapsibleSection title={`Pipeline (${pipeline.length})`}>
                     {wants.length > 0 && (
                       <div className="mb-2">
-                        <div className="text-ui-9 text-amber-400/70 uppercase tracking-wider mb-1 flex items-center gap-1">
+                        <div className="text-ui-9 text-tea-readgold/70 uppercase tracking-wider mb-1 flex items-center gap-1">
                           <Star size={9} /> Want List
                         </div>
                         {wants.map((e) => (
@@ -2041,10 +2126,10 @@ export const SourcesView = () => {
                 if (events.length === 0) return null;
 
                 const typeColors: Record<string, string> = {
-                  compass: 'bg-blue-400',
-                  ledger: 'bg-amber-400',
-                  product: 'bg-emerald-400',
-                  sale: 'bg-purple-400',
+                  compass: 'bg-tea-text-sec',
+                  ledger: 'bg-tea-readgold',
+                  product: 'bg-tea-green',
+                  sale: 'bg-tea-gold',
                 };
 
                 return (
@@ -2087,23 +2172,24 @@ export const SourcesView = () => {
               })()}
             </div>
 
-            {/* Panel Footer */}
-            <div className="px-5 py-3 border-t border-tea-accent-sub bg-tea-surface/30 flex items-center justify-between">
-              <button
-                onClick={() => { setEditingSource(panelSource); setIsModalOpen(true); }}
-                className="flex items-center gap-1.5 text-ui-10 text-tea-text-sec hover:text-tea-text uppercase tracking-[0.2em] transition-colors"
-              >
-                <Edit3 size={11} /> Full Edit
-              </button>
+            {/* Panel Footer — destructive secondary left, primary right (§ button rules) */}
+            <div className="px-5 py-3 border-t border-tea-border bg-tea-surface flex items-center justify-between flex-shrink-0">
               <button
                 onClick={() => handleDelete(panelSource)}
-                className="flex items-center gap-1.5 text-ui-10 text-tea-text-sec hover:text-red-400 uppercase tracking-[0.2em] transition-colors"
+                className="inline-flex items-center gap-1.5 px-2 py-1 text-xs text-tea-text-sec hover:text-tea-error transition-colors"
               >
-                <Trash2 size={11} /> Delete
+                <Trash2 size={13} /> <span>Delete</span>
+              </button>
+              <button
+                onClick={() => { setEditingSource(panelSource); setIsModalOpen(true); }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors"
+              >
+                <Edit3 size={13} /> <span>Full Edit</span>
               </button>
             </div>
           </motion.div>
-        )}
+          );
+        })()}
       </AnimatePresence>
 
       {/* Modal */}

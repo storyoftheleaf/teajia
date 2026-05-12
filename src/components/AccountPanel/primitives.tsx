@@ -31,10 +31,10 @@ export function truncate(s: string, max: number): string {
 // system sits at 17px body / 11px label; the panel runs slightly tighter
 // because it is a 400px drawer, but never below WCAG-safe sizes.
 
-export const HINT_CLASS = 'text-ui-11 uppercase tracking-[0.24em] text-tea-text-sec font-medium';
-export const META_CLASS = 'text-ui-12 text-tea-text-sec tracking-[0.02em]';
-export const META_DIM_CLASS = 'text-ui-12 text-tea-text-dim tracking-[0.02em]';
-export const FOOTER_LINK_CLASS = 'py-2 -my-2 hover:text-tea-gold transition-colors';
+export const HINT_CLASS = 'text-ui-11 uppercase tracking-[0.15em] text-tea-text-dim';
+export const META_CLASS = 'text-ui-12 text-tea-text-sec';
+export const META_DIM_CLASS = 'text-ui-12 text-tea-text-dim';
+export const FOOTER_LINK_CLASS = 'py-2 -my-2 text-tea-text-sec hover:text-tea-text transition-colors';
 
 // ── Building blocks ────────────────────────────────────────────────────────
 
@@ -48,7 +48,7 @@ export const NewDot: React.FC<{ title?: string }> = ({ title = 'Recently added' 
 
 export const Hint: React.FC<{ children: React.ReactNode; icon?: React.ReactNode }> = ({ children, icon }) => (
   <div className={`${HINT_CLASS} mb-3 flex items-center gap-2`}>
-    {icon && <span className="text-tea-gold/70 shrink-0 flex items-center" aria-hidden="true">{icon}</span>}
+    {icon && <span className="text-tea-text-sec shrink-0 flex items-center" aria-hidden="true">{icon}</span>}
     <span>{children}</span>
   </div>
 );
@@ -72,17 +72,17 @@ interface RowProps {
 export const Row: React.FC<RowProps> = ({ label, onClick, meta, isNew, trailing, subdued }) => (
   <button
     onClick={onClick}
-    className={`w-full flex items-center gap-3 px-6 py-3 text-left transition-colors border-b border-tea-border last:border-0 hover:bg-tea-surface/40 ${
+    className={`w-full flex items-center gap-3 px-6 py-3 text-left transition-colors border-b border-tea-border last:border-0 hover:bg-tea-accent-sub ${
       subdued ? 'opacity-80' : ''
     }`}
     style={{ WebkitTapHighlightColor: 'transparent' }}
   >
     <span className="flex-1 min-w-0 flex items-center gap-2">
-      <span className="font-serif text-ui-15 text-tea-text leading-tight truncate">{label}</span>
+      <span className="font-display text-ui-15 text-tea-text leading-tight truncate">{label}</span>
       {isNew && <NewDot />}
     </span>
     {meta != null && (
-      <span className="text-ui-12 text-tea-text-sec tabular-nums shrink-0 font-sans">{meta}</span>
+      <span className="text-ui-12 text-tea-text-sec font-mono tabular-nums shrink-0">{meta}</span>
     )}
     {trailing}
   </button>
@@ -104,14 +104,14 @@ export const NeedsAttention: React.FC<{ items: AttentionItem[] }> = ({ items }) 
         <button
           key={item.id}
           onClick={item.onClick}
-          className="w-full flex items-center gap-3 py-3 text-left hover:bg-tea-surface/40 transition-colors px-1"
+          className="w-full flex items-center gap-3 py-3 text-left hover:bg-tea-accent-sub transition-colors px-1"
           style={{ WebkitTapHighlightColor: 'transparent' }}
         >
           <span
             className={`w-1.5 h-1.5 rounded-full shrink-0 ${item.urgent ? 'bg-tea-gold' : 'bg-tea-text-sec'}`}
             aria-hidden="true"
           />
-          <span className="flex-1 min-w-0 font-serif text-ui-14 text-tea-text leading-snug truncate">
+          <span className="flex-1 min-w-0 font-display text-ui-15 text-tea-text leading-snug truncate">
             {item.label}
           </span>
           {item.meta && (
@@ -279,10 +279,160 @@ export const PreviewBlock: React.FC<{
 }> = ({ hint, onClick, children, icon }) => (
   <button
     onClick={onClick}
-    className="w-full text-left px-6 py-6 hover:bg-tea-surface/40 transition-colors border-t border-tea-border"
+    className="w-full text-left px-6 py-6 hover:bg-tea-accent-sub transition-colors border-t border-tea-border"
     style={{ WebkitTapHighlightColor: 'transparent' }}
   >
     <Hint icon={icon}>{hint}</Hint>
     {children}
   </button>
 );
+
+// ── Identity card (§19) ───────────────────────────────────────────────────
+// Canonical bordered identity block. Avatar 48px (initials in font-display
+// text-ui-15 text-tea-text-sec on bg-tea-elevated). Name as .h3, email as
+// text-ui-13 text-tea-text-sec mt-0.5, meta as text-ui-12 text-tea-text-dim
+// mt-0.5. Optional status pill row at bottom. `avatarBadge` is an optional
+// small mark stamped onto the avatar's bottom-right corner (e.g. SealIcon
+// for owner/platform roles).
+
+interface IdentityCardProps {
+  user: { name?: string; email: string } | null;
+  avatarDataUrl: string | null;
+  onAvatarClick: () => void;
+  fallbackTitle?: string;
+  meta?: React.ReactNode;
+  status?: React.ReactNode;
+  avatarBadge?: React.ReactNode;
+}
+
+export const IdentityCard: React.FC<IdentityCardProps> = ({
+  user,
+  avatarDataUrl,
+  onAvatarClick,
+  fallbackTitle = 'Welcome',
+  meta,
+  status,
+  avatarBadge,
+}) => {
+  const displayName = user?.name?.trim() || user?.email?.split('@')[0] || fallbackTitle;
+  const showEmail = !!user?.email && (!user.name || user.name.trim() !== user.email);
+  return (
+    <div className="mx-6 mt-5 bg-tea-surface border border-tea-border rounded-xl p-5 flex items-start gap-4">
+      <button
+        onClick={onAvatarClick}
+        className="relative w-12 h-12 rounded-full bg-tea-elevated flex items-center justify-center border border-tea-border overflow-hidden shrink-0"
+        title={user?.name || user?.email || 'Change photo'}
+        aria-label="Change photo"
+        style={{ WebkitTapHighlightColor: 'transparent' }}
+      >
+        {avatarDataUrl ? (
+          <img src={avatarDataUrl} alt="" className="w-full h-full object-cover" loading="lazy" />
+        ) : (
+          <span className="font-display text-ui-15 text-tea-text-sec">
+            {user ? getInitials(user.name || user.email) : '茶'}
+          </span>
+        )}
+        {avatarBadge && (
+          <span
+            className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-tea-bg border border-tea-border flex items-center justify-center"
+            aria-hidden="true"
+          >
+            {avatarBadge}
+          </span>
+        )}
+      </button>
+      <div className="flex-1 min-w-0">
+        <h2 className="h3 truncate">{displayName}</h2>
+        {showEmail && (
+          <p className="text-ui-13 text-tea-text-sec mt-0.5 truncate">{user!.email}</p>
+        )}
+        {meta && (
+          <p className="text-ui-12 text-tea-text-dim mt-0.5 truncate">{meta}</p>
+        )}
+        {status && <div className="mt-3 flex flex-wrap items-center gap-1.5">{status}</div>}
+      </div>
+    </div>
+  );
+};
+
+// ── Status pill (§19 identity card row) ───────────────────────────────────
+// A small inset pill for role/seal/status. Default tone is bronze; pass
+// `tone="muted"` for a quieter inactive pill.
+
+export const StatusPill: React.FC<{
+  children: React.ReactNode;
+  tone?: 'gold' | 'muted';
+  icon?: React.ReactNode;
+}> = ({ children, tone = 'gold', icon }) => (
+  <span
+    className={[
+      'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-ui-9 uppercase tracking-caps shrink-0',
+      tone === 'gold'
+        ? 'bg-tea-gold/10 text-tea-text ring-1 ring-inset ring-tea-gold/40'
+        : 'bg-tea-elevated text-tea-text-sec',
+    ].join(' ')}
+  >
+    {icon}
+    {children}
+  </span>
+);
+
+// ── ListShell / ListRow (§19 list rows for orders, samples, saved, reading)
+// Canonical sub-view list: bordered, rounded-xl surface that divides between
+// rows. Title in font-display text-ui-15 text-tea-text; meta in
+// text-ui-12 text-tea-text-dim mt-1; right-aligned status pill or chevron
+// via `trailing`. Use `as="div"` when the row contains nested interactive
+// elements (nesting buttons is invalid HTML).
+
+export const ListShell: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className }) => (
+  <ul
+    className={[
+      'divide-y divide-tea-border bg-tea-surface border border-tea-border rounded-xl overflow-hidden',
+      className ?? '',
+    ].join(' ')}
+  >
+    {children}
+  </ul>
+);
+
+interface ListRowProps {
+  title: string;
+  meta?: React.ReactNode;
+  onClick?: () => void;
+  trailing?: React.ReactNode;
+  leading?: React.ReactNode;
+  as?: 'button' | 'div';
+  children?: React.ReactNode;
+}
+
+export const ListRow: React.FC<ListRowProps> = ({
+  title,
+  meta,
+  onClick,
+  trailing,
+  leading,
+  as = 'button',
+  children,
+}) => {
+  const Tag = as === 'button' ? 'button' : 'div';
+  return (
+    <li>
+      <Tag
+        onClick={onClick}
+        className={[
+          'w-full text-left px-4 md:px-6 py-4 flex items-center gap-3 transition-colors',
+          onClick ? 'hover:bg-tea-accent-sub' : '',
+        ].join(' ')}
+        style={onClick ? { WebkitTapHighlightColor: 'transparent' } : undefined}
+      >
+        {leading && <div className="shrink-0">{leading}</div>}
+        <div className="flex-1 min-w-0">
+          <div className="font-display text-ui-15 text-tea-text truncate">{title}</div>
+          {meta && <div className="text-ui-12 text-tea-text-dim mt-1 truncate">{meta}</div>}
+          {children}
+        </div>
+        {trailing && <div className="shrink-0 ml-2">{trailing}</div>}
+      </Tag>
+    </li>
+  );
+};

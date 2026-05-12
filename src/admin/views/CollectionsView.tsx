@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { BookOpen, Plus, Loader2, RefreshCw, Package, Inbox, Building2 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useToast } from '../components/Toast';
+import { STATUS_PILL_VARIANTS, STATUS_PILL_BASE, type StatusPillVariant } from '../constants';
 import type { CollectionListRow, CollectionStatus, InboundCollectionRow } from '../../types';
 
 type ListMode = 'mine' | 'inbound';
@@ -14,17 +15,17 @@ function formatDate(iso?: string | null): string {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-const STATUS_STYLES: Record<CollectionStatus, string> = {
-  draft:    'bg-tea-elevated text-tea-text-sec',
-  active:   'bg-tea-gold/10 text-tea-text ring-1 ring-inset ring-tea-gold/40',
-  archived: 'bg-tea-elevated text-tea-text-dim',
-};
-
 const STATUS_LABEL: Record<CollectionStatus, string> = {
   draft: 'Draft',
   active: 'Active',
   archived: 'Archived',
 };
+
+function statusVariant(s: CollectionStatus): StatusPillVariant {
+  if (s === 'active') return 'active';
+  if (s === 'archived') return 'archived';
+  return 'draft';
+}
 
 export const CollectionsView: React.FC = () => {
   const navigate = useNavigate();
@@ -75,187 +76,256 @@ export const CollectionsView: React.FC = () => {
     }
   };
 
+  const subtitleCount = mode === 'inbound'
+    ? inbound.length
+    : (tab === 'all' ? collections.length : filtered.length);
+  const subtitleScope = mode === 'inbound'
+    ? 'INBOUND'
+    : (tab === 'all' ? 'ALL' : tab.toUpperCase());
+  const subtitle = `${subtitleScope} · ${subtitleCount} COLLECTION${subtitleCount === 1 ? '' : 'S'}`;
+
+  const handleRefresh = () => {
+    if (mode === 'mine') refetch();
+    else inboundQuery.refetch();
+  };
+  const refreshSpinning = isRefetching || inboundQuery.isRefetching;
+
   return (
     <div className="h-full flex flex-col overflow-hidden bg-tea-bg">
-      <div className="flex items-center gap-3 px-4 md:px-6 py-4 border-b border-tea-border bg-tea-bg flex-shrink-0">
-        <BookOpen size={17} className="text-tea-text-sec shrink-0" />
-        <h1 className="text-sm font-semibold text-tea-text tracking-wide flex-1">Collections</h1>
-        <button
-          onClick={() => {
-            if (mode === 'mine') refetch();
-            else inboundQuery.refetch();
-          }}
-          disabled={isRefetching || inboundQuery.isRefetching}
-          className="p-1.5 rounded-md text-tea-text-dim hover:text-tea-text-sec transition-colors disabled:opacity-50"
-          title="Refresh"
-        >
-          <RefreshCw size={14} className={(isRefetching || inboundQuery.isRefetching) ? 'animate-spin' : ''} />
-        </button>
-        {mode === 'mine' && (
-          <button
-            onClick={() => setCreating(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-tea-gold text-tea-bg rounded-md text-xs font-semibold tracking-wide hover:bg-tea-gold/90 transition-colors"
-          >
-            <Plus size={12} /> New
-          </button>
-        )}
+      {/* Page chrome — narrow */}
+      <div className="max-w-3xl mx-auto w-full px-4 md:px-6 pt-6 md:pt-8 pb-4 flex-shrink-0">
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div className="min-w-0">
+            <h1 className="h2">Collections</h1>
+            <p className="label-caps text-tea-text-dim mt-1">{subtitle}</p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={handleRefresh}
+              disabled={refreshSpinning}
+              className="tap-target p-1.5 rounded-md text-tea-text-dim hover:text-tea-text-sec transition-colors disabled:opacity-50"
+              title="Refresh"
+            >
+              <RefreshCw size={14} className={refreshSpinning ? 'animate-spin' : ''} />
+            </button>
+            {mode === 'mine' && (
+              <button
+                onClick={() => setCreating(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors"
+              >
+                <Plus size={13} /> New Collection
+              </button>
+            )}
+          </div>
+        </div>
       </div>
 
-      {/* Mine vs Inbound */}
-      <div className="flex items-center gap-1 px-4 md:px-6 pt-3 pb-2 border-b border-tea-border flex-shrink-0">
-        <button
-          onClick={() => setMode('mine')}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-ui-11 uppercase tracking-wide transition-colors ${
-            mode === 'mine' ? 'bg-tea-elevated text-tea-text' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'
-          }`}
-        >
-          <BookOpen size={11} /> Mine
-          <span className="text-tea-text-dim">{collections.length}</span>
-        </button>
-        <button
-          onClick={() => setMode('inbound')}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-ui-11 uppercase tracking-wide transition-colors ${
-            mode === 'inbound' ? 'bg-tea-elevated text-tea-text' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'
-          }`}
-        >
-          <Inbox size={11} /> Inbound
-          <span className="text-tea-text-dim">{inbound.length}</span>
-          {unreadCount > 0 && (
-            <span className="ml-0.5 inline-flex items-center justify-center min-w-[16px] h-[16px] px-1 rounded-full bg-tea-gold text-tea-bg text-ui-9 font-semibold tabular-nums">
-              {unreadCount}
-            </span>
-          )}
-        </button>
-      </div>
-
-      {mode === 'mine' && (
-      <div className="flex items-center gap-1 px-4 md:px-6 py-3 border-b border-tea-border flex-shrink-0 overflow-x-auto">
-        {TABS.map(t => (
+      {/* Mine vs Inbound — underline tabs §6 */}
+      <div className="max-w-3xl mx-auto w-full px-4 md:px-6 flex-shrink-0">
+        <div className="flex items-center gap-6 border-b border-tea-border flex-wrap">
           <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            className={`px-3 py-1.5 rounded-md text-ui-11 uppercase tracking-wide transition-colors ${
-              tab === t.id
-                ? 'bg-tea-elevated text-tea-text'
-                : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'
+            onClick={() => setMode('mine')}
+            className={`whitespace-nowrap py-2.5 text-ui-12 uppercase tracking-caps font-sans border-b transition-colors inline-flex items-center gap-1.5 ${
+              mode === 'mine'
+                ? 'text-tea-text border-tea-gold'
+                : 'text-tea-text-sec hover:text-tea-text border-transparent'
             }`}
           >
-            {t.label}
-            {t.id !== 'all' && (
-              <span className="ml-1.5 text-tea-text-dim">
-                {collections.filter(c => c.status === t.id).length}
+            <BookOpen size={12} /> Mine
+            <span className="text-tea-text-dim normal-case tracking-normal">({collections.length})</span>
+          </button>
+          <button
+            onClick={() => setMode('inbound')}
+            className={`whitespace-nowrap py-2.5 text-ui-12 uppercase tracking-caps font-sans border-b transition-colors inline-flex items-center gap-1.5 ${
+              mode === 'inbound'
+                ? 'text-tea-text border-tea-gold'
+                : 'text-tea-text-sec hover:text-tea-text border-transparent'
+            }`}
+          >
+            <Inbox size={12} /> Inbound
+            <span className="text-tea-text-dim normal-case tracking-normal">({inbound.length})</span>
+            {unreadCount > 0 && (
+              <span className="ml-0.5 inline-flex items-center justify-center min-w-[16px] h-[16px] px-1 rounded-full bg-tea-gold text-tea-bg text-ui-9 font-semibold tabular-nums normal-case tracking-normal">
+                {unreadCount}
               </span>
             )}
           </button>
-        ))}
+        </div>
       </div>
+
+      {/* Status filter — only for mine */}
+      {mode === 'mine' && (
+        <div className="max-w-3xl mx-auto w-full px-4 md:px-6 flex-shrink-0 mt-3">
+          <div className="flex items-center gap-6 border-b border-tea-border flex-wrap">
+            {TABS.map(t => {
+              const count = t.id === 'all'
+                ? collections.length
+                : collections.filter(c => c.status === t.id).length;
+              const isActive = tab === t.id;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => setTab(t.id)}
+                  className={`whitespace-nowrap py-2.5 text-ui-12 uppercase tracking-caps font-sans border-b transition-colors ${
+                    isActive
+                      ? 'text-tea-text border-tea-gold'
+                      : 'text-tea-text-sec hover:text-tea-text border-transparent'
+                  }`}
+                >
+                  {t.label}
+                  <span className="ml-1.5 text-tea-text-dim normal-case tracking-normal">({count})</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
       )}
 
       <div className="flex-1 overflow-y-auto pb-nav-gap-lg">
-        {mode === 'inbound' ? (
-          inboundQuery.isLoading ? (
-            <div className="flex items-center justify-center gap-2 py-20 text-tea-text-dim text-xs">
-              <Loader2 size={14} className="animate-spin" /> Loading inbound…
-            </div>
-          ) : inboundQuery.isError ? (
-            <p className="py-20 text-center text-xs text-red-400">Failed to load inbound collections.</p>
-          ) : inbound.length === 0 ? (
-            <div className="py-20 text-center max-w-sm mx-auto px-6">
-              <Inbox size={28} className="text-tea-text-dim mx-auto mb-4" strokeWidth={1.25} />
-              <p className="text-sm text-tea-text mb-1.5">No inbound collections</p>
-              <p className="text-ui-12 text-tea-text-dim leading-relaxed">
-                When another store shares a collection with you, it appears here.
-              </p>
-            </div>
-          ) : (
-            <ul className="divide-y divide-tea-border">
-              {inbound.map(row => (
-                <li key={row.publication_id}>
-                  <button
-                    onClick={() => navigate(`/admin/collections/inbound/${row.publication_id}`)}
-                    className="w-full flex items-center gap-4 px-4 md:px-6 py-4 hover:bg-tea-surface transition-colors text-left"
-                  >
-                    <ThumbnailStrip urls={row.thumbnails} />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-baseline gap-2 flex-wrap">
-                        <h3 className="text-sm text-tea-text truncate font-display" style={{ fontWeight: 400 }}>
-                          {row.title}
-                        </h3>
+        <div className="max-w-3xl mx-auto w-full px-4 md:px-6 py-6">
+          {mode === 'inbound' ? (
+            inboundQuery.isLoading ? (
+              <div className="flex items-center justify-center h-40 text-tea-text-dim text-ui-13 gap-2">
+                <Loader2 size={16} className="animate-spin" /> Loading inbound…
+              </div>
+            ) : inboundQuery.isError ? (
+              <div className="flex flex-col items-center justify-center h-40 gap-2 text-tea-text-dim">
+                <p className="text-ui-13 text-tea-error">Failed to load inbound collections.</p>
+                <button
+                  onClick={() => inboundQuery.refetch()}
+                  className="text-xs font-semibold text-tea-gold hover:underline"
+                >
+                  Retry
+                </button>
+              </div>
+            ) : inbound.length === 0 ? (
+              <div className="bg-tea-surface border border-tea-border rounded-xl">
+                <div className="flex flex-col items-center justify-center py-16 px-6 gap-4 text-center">
+                  <Inbox size={32} strokeWidth={1.25} className="text-tea-text-dim" />
+                  <div>
+                    <p className="font-display text-ui-16 text-tea-text">No inbound collections</p>
+                    <p className="text-ui-12 text-tea-text-dim mt-1">
+                      When another store shares a collection with you, it appears here.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <ul className="divide-y divide-tea-border bg-tea-surface border border-tea-border rounded-xl overflow-hidden">
+                {inbound.map(row => (
+                  <li key={row.publication_id}>
+                    <button
+                      onClick={() => navigate(`/admin/collections/inbound/${row.publication_id}`)}
+                      className="w-full text-left px-4 md:px-6 py-4 hover:bg-tea-accent-sub transition-colors flex items-center justify-between gap-4"
+                    >
+                      <div className="flex items-center gap-4 min-w-0 flex-1">
+                        <ThumbnailStrip urls={row.thumbnails} />
+                        <div className="min-w-0 flex-1">
+                          <div className="font-display text-ui-15 text-tea-text truncate">
+                            {row.title}
+                          </div>
+                          <div className="text-ui-12 text-tea-text-dim mt-1 truncate flex items-center gap-1">
+                            <Building2 size={11} className="opacity-70 shrink-0" />
+                            From {row.publisher_account_name}
+                            {' · '}
+                            {row.item_count} product{row.item_count !== 1 ? 's' : ''}
+                            {row.imported_count > 0 && ` · ${row.imported_count} imported`}
+                            {' · shared '}{formatDate(row.published_at)}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
                         {!row.recipient_seen_at && (
-                          <span className="px-2 py-0.5 rounded-full text-ui-9 uppercase tracking-[1.2px] bg-tea-gold/10 text-tea-text ring-1 ring-inset ring-tea-gold/40">
+                          <span className={`${STATUS_PILL_BASE} ${STATUS_PILL_VARIANTS.active}`}>
                             New
                           </span>
                         )}
                       </div>
-                      <p className="text-ui-11 text-tea-text-dim mt-1 flex items-center gap-1">
-                        <Building2 size={10} className="opacity-70" />
-                        From {row.publisher_account_name}
-                        {' · '}
-                        {row.item_count} product{row.item_count !== 1 ? 's' : ''}
-                        {row.imported_count > 0 && ` · ${row.imported_count} imported`}
-                        {' · shared '}{formatDate(row.published_at)}
-                      </p>
-                    </div>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )
+          ) : isLoading ? (
+            <div className="flex items-center justify-center h-40 text-tea-text-dim text-ui-13 gap-2">
+              <Loader2 size={16} className="animate-spin" /> Loading collections…
+            </div>
+          ) : isError ? (
+            <div className="flex flex-col items-center justify-center h-40 gap-2 text-tea-text-dim">
+              <p className="text-ui-13 text-tea-error">Failed to load collections.</p>
+              <button
+                onClick={() => refetch()}
+                className="text-xs font-semibold text-tea-gold hover:underline"
+              >
+                Retry
+              </button>
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="bg-tea-surface border border-tea-border rounded-xl">
+              <div className="flex flex-col items-center justify-center py-16 px-6 gap-4 text-center">
+                <BookOpen size={32} strokeWidth={1.25} className="text-tea-text-dim" />
+                <div>
+                  <p className="font-display text-ui-16 text-tea-text">
+                    {tab === 'all' ? 'No collections yet' : `No ${STATUS_LABEL[tab as CollectionStatus].toLowerCase()} collections`}
+                  </p>
+                  <p className="text-ui-12 text-tea-text-dim mt-1">
+                    {tab === 'all'
+                      ? 'Collections are curated sets of products. Start one from the inventory list or create an empty draft.'
+                      : 'Switch to "All" to see your other collections.'}
+                  </p>
+                </div>
+                {tab === 'all' && (
+                  <button
+                    onClick={() => setCreating(true)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors"
+                  >
+                    <Plus size={13} /> New Collection
                   </button>
-                </li>
-              ))}
-            </ul>
-          )
-        ) : isLoading ? (
-          <div className="flex items-center justify-center gap-2 py-20 text-tea-text-dim text-xs">
-            <Loader2 size={14} className="animate-spin" /> Loading collections…
-          </div>
-        ) : isError ? (
-          <p className="py-20 text-center text-xs text-red-400">Failed to load collections.</p>
-        ) : filtered.length === 0 ? (
-          <div className="py-20 text-center max-w-sm mx-auto px-6">
-            <BookOpen size={28} className="text-tea-text-dim mx-auto mb-4" strokeWidth={1.25} />
-            <p className="text-sm text-tea-text mb-1.5">
-              {tab === 'all' ? 'No collections yet' : `No ${STATUS_LABEL[tab as CollectionStatus].toLowerCase()} collections`}
-            </p>
-            <p className="text-ui-12 text-tea-text-dim leading-relaxed">
-              {tab === 'all'
-                ? 'Collections are curated sets of products. Start one from the inventory list or create an empty draft.'
-                : 'Switch to "All" to see your other collections.'}
-            </p>
-          </div>
-        ) : (
-          <ul className="divide-y divide-tea-border">
-            {filtered.map(c => (
-              <li key={c.id}>
-                <button
-                  onClick={() => navigate(`/admin/collections/${c.id}`)}
-                  className="w-full flex items-center gap-4 px-4 md:px-6 py-4 hover:bg-tea-surface transition-colors text-left"
-                >
-                  <ThumbnailStrip urls={c.thumbnails} />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-baseline gap-2 flex-wrap">
-                      <h3 className="text-sm text-tea-text truncate font-display" style={{ fontWeight: 400 }}>
-                        {c.title}
-                      </h3>
-                      <span className={`px-2 py-0.5 rounded-full text-ui-9 uppercase tracking-[1.2px] ${STATUS_STYLES[c.status]}`}>
-                        {STATUS_LABEL[c.status]}
-                      </span>
-                    </div>
-                    <p className="text-ui-11 text-tea-text-dim mt-1">
-                      {c.item_count} product{c.item_count !== 1 ? 's' : ''}
-                      {' · '}
-                      {c.active_publication_count > 0
-                        ? `${c.active_publication_count} active link${c.active_publication_count !== 1 ? 's' : ''}`
-                        : 'no active links'}
-                      {c.last_published_at && ` · last shared ${formatDate(c.last_published_at)}`}
-                      {(c as any).curator_display_name && (
-                        <span className="ml-1 text-ui-11 text-tea-text-dim">
-                          {' · '}Curated by {(c as any).curator_display_name}
+                )}
+              </div>
+            </div>
+          ) : (
+            <ul className="divide-y divide-tea-border bg-tea-surface border border-tea-border rounded-xl overflow-hidden">
+              {filtered.map(c => {
+                const variant = statusVariant(c.status);
+                const metaParts: string[] = [];
+                metaParts.push(`${c.item_count} product${c.item_count !== 1 ? 's' : ''}`);
+                metaParts.push(
+                  c.active_publication_count > 0
+                    ? `${c.active_publication_count} active link${c.active_publication_count !== 1 ? 's' : ''}`
+                    : 'no active links'
+                );
+                if (c.last_published_at) metaParts.push(`last shared ${formatDate(c.last_published_at)}`);
+                if ((c as any).curator_display_name) metaParts.push(`Curated by ${(c as any).curator_display_name}`);
+                return (
+                  <li key={c.id}>
+                    <button
+                      onClick={() => navigate(`/admin/collections/${c.id}`)}
+                      className="w-full text-left px-4 md:px-6 py-4 hover:bg-tea-accent-sub transition-colors flex items-center justify-between gap-4"
+                    >
+                      <div className="flex items-center gap-4 min-w-0 flex-1">
+                        <ThumbnailStrip urls={c.thumbnails} />
+                        <div className="min-w-0 flex-1">
+                          <div className="font-display text-ui-15 text-tea-text truncate">
+                            {c.title}
+                          </div>
+                          <div className="text-ui-12 text-tea-text-dim mt-1 truncate">
+                            {metaParts.join(' · ')}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className={`${STATUS_PILL_BASE} ${STATUS_PILL_VARIANTS[variant]}`}>
+                          {STATUS_LABEL[c.status]}
                         </span>
-                      )}
-                    </p>
-                  </div>
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
+                      </div>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
       </div>
 
       {creating && (
@@ -266,18 +336,19 @@ export const CollectionsView: React.FC = () => {
             className="absolute inset-0 bg-tea-bg/80 backdrop-blur-sm"
             onClick={() => !creatingSubmitting && setCreating(false)}
           />
-          <div className="relative w-full max-w-sm bg-tea-surface border border-tea-border rounded-2xl shadow-2xl p-5">
-            <h2 className="text-sm font-medium text-tea-text mb-3">New collection</h2>
+          <div className="relative w-full max-w-sm bg-tea-surface border border-tea-border rounded-xl shadow-2xl p-5">
+            <h2 className="h3 mb-3">New collection</h2>
+            <label className="label-caps text-tea-text-sec mb-1.5 block">Title</label>
             <input
               type="text"
               value={newTitle}
               onChange={e => setNewTitle(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') handleCreateDraft(); }}
-              placeholder="Title"
+              placeholder="Untitled collection"
               autoFocus
-              className="w-full px-3 py-2 text-sm bg-tea-bg border border-tea-border rounded-lg outline-none text-tea-text placeholder:text-tea-text-dim focus:ring-1 focus:ring-tea-gold/40 mb-4"
+              className="w-full px-3 py-2 text-ui-14 bg-tea-bg border border-tea-border rounded-md outline-none text-tea-text placeholder:text-tea-text-dim focus:ring-1 focus:ring-tea-gold/40 mb-4"
             />
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex justify-between items-center gap-3">
               <button
                 type="button"
                 onClick={() => setCreating(false)}
@@ -290,7 +361,7 @@ export const CollectionsView: React.FC = () => {
                 type="button"
                 onClick={handleCreateDraft}
                 disabled={!newTitle.trim() || creatingSubmitting}
-                className="flex items-center gap-2 px-4 py-2 bg-tea-gold text-tea-bg rounded-lg text-xs font-semibold tracking-wide hover:bg-tea-gold/90 transition-colors disabled:opacity-40"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40"
               >
                 {creatingSubmitting ? <Loader2 size={12} className="animate-spin" /> : null}
                 Create draft

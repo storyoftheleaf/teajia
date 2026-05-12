@@ -107,9 +107,9 @@ function extractFlavorWords(notes: TastingNote[]): string[] {
 }
 
 function stockStatusLabel(g: number): { label: string; color: string } {
-  if (g <= 0) return { label: 'Out of stock', color: 'text-red-400' };
-  if (g < 100) return { label: 'Low stock', color: 'text-amber-400' };
-  return { label: 'In stock', color: 'text-emerald-400' };
+  if (g <= 0) return { label: 'Out of stock', color: 'text-tea-error' };
+  if (g < 100) return { label: 'Low stock', color: 'text-tea-gold' };
+  return { label: 'In stock', color: 'text-tea-text' };
 }
 
 // ────────────────────────────────────────────────────────
@@ -175,7 +175,7 @@ const Divider: React.FC = () => (
 );
 
 const SectionLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <p className="text-ui-10 uppercase tracking-[0.3em] text-tea-text-sec mb-4">
+  <p className="label-caps text-tea-text-sec mb-4">
     {children}
   </p>
 );
@@ -198,12 +198,12 @@ const TimelineEntry: React.FC<{
       <div className="w-[1px] bg-tea-border flex-1 mt-1" />
     </div>
     <div className="pb-6 min-w-0 flex-1">
-      <p className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim mb-0.5">
+      <p className="label-caps text-tea-text-dim mb-0.5">
         {date}
       </p>
-      <p className="text-sm text-tea-text">{label}</p>
+      <p className="text-ui-14 text-tea-text">{label}</p>
       {note && (
-        <p className="text-xs text-tea-text-sec mt-1 italic">{note}</p>
+        <p className="text-ui-12 text-tea-text-sec mt-1 italic">{note}</p>
       )}
     </div>
   </motion.div>
@@ -217,9 +217,9 @@ const FlavorCloud: React.FC<{ words: string[] }> = ({ words }) => (
         initial={{ opacity: 0, scale: 0.85 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: i * 0.04 }}
-        className={`px-3 py-1.5 text-xs font-serif italic rounded-sm ${
+        className={`px-3 py-1.5 text-ui-12 font-serif italic rounded-md ${
           i === 0
-            ? 'bg-tea-gold/15 text-tea-gold'
+            ? 'bg-tea-gold/10 text-tea-text ring-1 ring-tea-gold/40'
             : i < 4
             ? 'bg-tea-surface text-tea-text'
             : 'bg-tea-bg text-tea-text-sec border border-tea-border'
@@ -337,12 +337,13 @@ export const ProductStoryView: React.FC = () => {
     return (
       <div className="h-full flex items-center justify-center px-6">
         <div className="text-center">
-          <p className="font-serif text-lg text-tea-text mb-2">Tea not found</p>
+          <p className="h3 mb-2">Tea not found</p>
           <button
             onClick={() => navigate(-1)}
-            className="text-xs text-tea-text-sec hover:text-tea-gold transition-colors uppercase tracking-[0.15em]"
+            className="inline-flex items-center gap-1.5 text-ui-12 text-tea-text-sec hover:text-tea-text transition-colors"
           >
-            Go back
+            <ArrowLeft size={13} />
+            <span>Go back</span>
           </button>
         </div>
       </div>
@@ -351,12 +352,12 @@ export const ProductStoryView: React.FC = () => {
 
   return (
     <div className="h-full overflow-y-auto bg-tea-bg">
-      <div className="max-w-2xl mx-auto px-4 md:px-8 py-8 md:py-12">
+      <div className="max-w-3xl mx-auto px-4 md:px-8 py-8 md:py-12">
 
         {/* Back */}
         <button
           onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-xs text-tea-text-sec hover:text-tea-gold transition-colors uppercase tracking-[0.15em] mb-10"
+          className="inline-flex items-center gap-1.5 text-ui-12 text-tea-text-sec hover:text-tea-text transition-colors mb-10"
         >
           <ArrowLeft size={13} />
           <span>Back</span>
@@ -369,8 +370,8 @@ export const ProductStoryView: React.FC = () => {
           transition={{ duration: 0.45 }}
           className="mb-12"
         >
-          <p className="text-ui-10 uppercase tracking-[0.4em] text-tea-text-sec mb-4">
-            The full story
+          <p className="label-caps text-tea-text-dim mb-3">
+            Product{product.givenName ? ` · ${product.givenName}` : ''}
           </p>
 
           {product.imageUrl && (
@@ -383,16 +384,17 @@ export const ProductStoryView: React.FC = () => {
             </div>
           )}
 
-          <h1 className="font-serif text-4xl md:text-5xl text-tea-text font-light leading-tight mb-2">
+          <h1 className="h1 mb-2">The story</h1>
+          <p className="h2 text-tea-text-sec mb-2">
             {product.givenName}
-          </h1>
+          </p>
           {product.chineseName && (
-            <p className="font-serif text-xl text-tea-text-sec mb-2">
+            <p className="subtitle mb-2">
               {product.chineseName}
             </p>
           )}
           <div className="w-8 h-[1px] bg-tea-gold mb-5" />
-          <p className="text-sm text-tea-text-sec">
+          <p className="text-ui-14 text-tea-text-sec">
             {[product.type, product.year, product.originRegion, product.originCountry]
               .filter(Boolean)
               .join(' · ')}
@@ -407,7 +409,7 @@ export const ProductStoryView: React.FC = () => {
             transition={{ delay: 0.2 }}
             className="mb-12"
           >
-            <p className="font-serif text-lg text-tea-text leading-relaxed">
+            <p className="body-prose">
               {narrative}
             </p>
           </motion.div>
@@ -424,19 +426,19 @@ export const ProductStoryView: React.FC = () => {
               <div className="space-y-4">
                 {compass.origin && (
                   <div>
-                    <p className="text-xs text-tea-text-dim mb-0.5">Location found</p>
-                    <p className="font-serif text-base text-tea-text">{compass.origin}</p>
+                    <p className="label-caps text-tea-text-dim mb-1">Location found</p>
+                    <p className="text-ui-16 font-serif text-tea-text">{compass.origin}</p>
                   </div>
                 )}
                 {compass.vendor && (
                   <div>
-                    <p className="text-xs text-tea-text-dim mb-0.5">Vendor</p>
-                    <p className="font-serif text-base text-tea-text">{compass.vendor}</p>
+                    <p className="label-caps text-tea-text-dim mb-1">Vendor</p>
+                    <p className="text-ui-16 font-serif text-tea-text">{compass.vendor}</p>
                   </div>
                 )}
                 {compass.fieldQuality !== undefined && (
                   <div>
-                    <p className="text-xs text-tea-text-dim mb-1">Field quality</p>
+                    <p className="label-caps text-tea-text-dim mb-1">Field quality</p>
                     <div className="flex gap-1">
                       {Array.from({ length: 5 }).map((_, i) => (
                         <span
@@ -451,14 +453,14 @@ export const ProductStoryView: React.FC = () => {
                 )}
                 {(compass.sourcingNotes || compass.notes) && (
                   <div>
-                    <p className="text-xs text-tea-text-dim mb-1">Sourcing notes</p>
-                    <p className="text-sm text-tea-text-sec leading-relaxed italic font-serif">
+                    <p className="label-caps text-tea-text-dim mb-1">Sourcing notes</p>
+                    <p className="subtitle">
                       {compass.sourcingNotes || compass.notes}
                     </p>
                   </div>
                 )}
                 {(compass.createdAt || compass.created_at) && (
-                  <p className="text-xs text-tea-text-dim">
+                  <p className="text-ui-12 text-tea-text-dim">
                     First encountered {formatDate(compass.createdAt || compass.created_at || '')}
                   </p>
                 )}
@@ -466,13 +468,13 @@ export const ProductStoryView: React.FC = () => {
             )}
 
             {!compass && (product.originRegion || product.originCountry) && (
-              <p className="font-serif text-base text-tea-text">
+              <p className="text-ui-16 font-serif text-tea-text">
                 {[product.originRegion, product.originCountry].filter(Boolean).join(', ')}
               </p>
             )}
 
             {product.terroir && (
-              <p className="mt-4 text-sm text-tea-text-sec leading-relaxed italic">
+              <p className="mt-4 subtitle">
                 {product.terroir}
               </p>
             )}
@@ -500,7 +502,7 @@ export const ProductStoryView: React.FC = () => {
                   ))}
               </div>
               {ledger.length > 8 && (
-                <p className="text-xs text-tea-text-dim ml-6 mt-2">
+                <p className="text-ui-12 text-tea-text-dim ml-6 mt-2">
                   + {ledger.length - 8} more movements
                 </p>
               )}
@@ -519,14 +521,14 @@ export const ProductStoryView: React.FC = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
               >
-                <p className="font-serif text-2xl text-tea-text mb-1">
+                <p className="h2 mb-1">
                   {firstEvent.title}
                 </p>
-                <p className="text-sm text-tea-text-sec">
+                <p className="text-ui-14 text-tea-text-sec">
                   {formatDate(firstEvent.eventDate)}
                 </p>
                 {events.length > 1 && (
-                  <p className="text-xs text-tea-text-dim mt-3">
+                  <p className="text-ui-12 text-tea-text-dim mt-3">
                     Also served at {events.length - 1} other gathering{events.length - 1 !== 1 ? 's' : ''}.
                   </p>
                 )}
@@ -544,7 +546,7 @@ export const ProductStoryView: React.FC = () => {
 
               {flavorWords.length > 0 && (
                 <div className="mb-8">
-                  <p className="text-xs text-tea-text-dim mb-4">
+                  <p className="text-ui-12 text-tea-text-dim mb-4">
                     Most common words across {allTastingNotes.length} tasting note{allTastingNotes.length !== 1 ? 's' : ''}
                   </p>
                   <FlavorCloud words={flavorWords} />
@@ -560,12 +562,12 @@ export const ProductStoryView: React.FC = () => {
                     transition={{ delay: i * 0.06 }}
                     className="border-l border-tea-border pl-5"
                   >
-                    <p className="font-serif italic text-sm text-tea-text leading-relaxed mb-2">
+                    <p className="subtitle text-tea-text mb-2">
                       "{note.impression}"
                     </p>
                     <div className="flex items-center gap-3">
                       {note.attendeeName && (
-                        <p className="text-xs text-tea-text-dim">{note.attendeeName}</p>
+                        <p className="text-ui-12 text-tea-text-dim">{note.attendeeName}</p>
                       )}
                       {note.rating !== undefined && note.rating !== null && (
                         <div className="flex gap-0.5">
@@ -583,7 +585,7 @@ export const ProductStoryView: React.FC = () => {
                   </motion.div>
                 ))}
                 {allTastingNotes.filter(n => n.impression).length > 6 && (
-                  <p className="text-xs text-tea-text-dim">
+                  <p className="text-ui-12 text-tea-text-dim">
                     + {allTastingNotes.filter(n => n.impression).length - 6} more notes
                   </p>
                 )}
@@ -597,23 +599,23 @@ export const ProductStoryView: React.FC = () => {
         <section className="mb-12">
           <SectionLabel>Available now</SectionLabel>
 
-          <div className="bg-tea-surface border border-tea-border rounded-sm p-6">
+          <div className="bg-tea-surface border border-tea-border rounded-xl p-6">
             <div className="grid grid-cols-2 md:grid-cols-3 gap-6 mb-6">
               <div>
-                <p className="text-xs text-tea-text-dim mb-1">Current stock</p>
-                <p className="font-serif text-2xl text-tea-text num">
+                <p className="label-caps text-tea-text-dim mb-1">Current stock</p>
+                <p className="font-serif text-ui-26 text-tea-text num">
                   {(product.stockGrams ?? 0).toLocaleString()}g
                 </p>
               </div>
               <div>
-                <p className="text-xs text-tea-text-dim mb-1">Price/g</p>
-                <p className="font-serif text-2xl text-tea-text num">
+                <p className="label-caps text-tea-text-dim mb-1">Price/g</p>
+                <p className="font-serif text-ui-26 text-tea-text num">
                   ${product.pricePerGramUSD.toFixed(3)}
                 </p>
               </div>
               <div>
-                <p className="text-xs text-tea-text-dim mb-1">Status</p>
-                <p className={`font-serif text-base ${stockStatus?.color ?? 'text-tea-text'}`}>
+                <p className="label-caps text-tea-text-dim mb-1">Status</p>
+                <p className={`font-serif text-ui-16 ${stockStatus?.color ?? 'text-tea-text'}`}>
                   {stockStatus?.label}
                 </p>
               </div>
@@ -624,7 +626,7 @@ export const ProductStoryView: React.FC = () => {
                 onClick={() => {
                   openPurchaseOrder();
                 }}
-                className="flex items-center gap-2 px-5 py-2.5 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.15em] hover:bg-tea-gold-lt transition-colors"
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-tea-gold text-tea-bg text-ui-12 rounded-md hover:bg-tea-gold-lt transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/40"
               >
                 <ShoppingBag size={13} />
                 Add to invoice
@@ -633,7 +635,7 @@ export const ProductStoryView: React.FC = () => {
           </div>
 
           {product.processingNotes && (
-            <p className="mt-4 text-xs text-tea-text-sec leading-relaxed">
+            <p className="mt-4 text-ui-12 text-tea-text-sec leading-relaxed">
               {product.processingNotes}
             </p>
           )}
@@ -645,7 +647,7 @@ export const ProductStoryView: React.FC = () => {
             <Divider />
             <section className="mb-12">
               <SectionLabel>{product.lore ? 'Lore' : 'Description'}</SectionLabel>
-              <p className="font-serif text-sm text-tea-text-sec leading-relaxed">
+              <p className="body-prose text-tea-text-sec">
                 {product.lore || product.description}
               </p>
             </section>
@@ -654,7 +656,7 @@ export const ProductStoryView: React.FC = () => {
 
         {/* Footer */}
         <div className="border-t border-tea-border pt-8 text-center">
-          <p className="text-ui-10 uppercase tracking-[0.3em] text-tea-text-sec/30">
+          <p className="label-caps text-tea-text-dim">
             Teajia · Product Archive
           </p>
         </div>

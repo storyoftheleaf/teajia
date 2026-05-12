@@ -90,16 +90,16 @@ export const Storefront: React.FC<StorefrontProps> = ({
   if (storeError || !store) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-6 animate-[fadeIn_0.5s_ease-out]">
-        <h1 className="text-4xl md:text-5xl font-serif text-tea-gold mb-4">Store not found</h1>
-        <p className="text-sm text-tea-text-sec mb-2 max-w-md">
+        <h1 className="h2 mb-4">Store not found</h1>
+        <p className="text-ui-13 text-tea-text-sec mb-2 max-w-md">
           {(storeErrorObj as Error | undefined)?.message || 'We could not find a Teajia table at that address.'}
         </p>
-        <p className="text-sm text-tea-text-dim mb-8 max-w-md">
+        <p className="text-ui-13 text-tea-text-dim mb-8 max-w-md">
           It may have moved, or the link may be mistyped.
         </p>
         <Link
           to="/find-a-table"
-          className="px-8 py-3 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.2em] hover:bg-tea-gold/90 transition-colors"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors"
         >
           Browse the network
         </Link>
@@ -139,22 +139,19 @@ export const Storefront: React.FC<StorefrontProps> = ({
               className="w-16 h-16 md:w-20 md:h-20 object-contain mb-5"
             />
           )}
-          <p className="text-ui-11 uppercase tracking-[0.3em] text-tea-text-dim mb-3">
+          <p className="label-caps text-tea-text-dim mb-3">
             A Teajia table
           </p>
-          <h1
-            className="text-3xl md:text-5xl text-tea-text mb-3"
-            style={{ fontFamily: 'var(--font-display)' }}
-          >
+          <h1 className="h1 mb-3">
             {store.name}
           </h1>
           {store.tagline && (
-            <p className="max-w-xl text-base md:text-lg text-tea-text-sec italic mb-4">
+            <p className="subtitle max-w-xl mb-4">
               {store.tagline}
             </p>
           )}
           {location && (
-            <p className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-tea-text-dim">
+            <p className="label-caps flex items-center gap-2">
               <Icons.Location className="w-3.5 h-3.5 text-tea-gold" />
               {location}
             </p>
@@ -162,19 +159,23 @@ export const Storefront: React.FC<StorefrontProps> = ({
         </div>
       </header>
 
-      {/* Tab nav */}
+      {/* Tab nav — bottom-border underline (§6) */}
       <nav
-        className="sticky top-0 z-10 bg-tea-bg/95 backdrop-blur-sm border-b border-tea-border"
+        className="sticky top-0 z-sticky bg-tea-bg/90 backdrop-blur-md border-b border-tea-border"
         aria-label="Storefront sections"
       >
-        <div className="max-w-5xl mx-auto flex items-center justify-center gap-1 md:gap-2 px-4 flex-wrap">
+        <div className="max-w-5xl mx-auto flex items-center justify-center gap-6 px-4">
           {TABS.map(tab => {
             const isActive = activeTab === tab.id;
             return (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`pill whitespace-nowrap my-3 ${isActive ? 'pill-active' : ''}`}
+                className={`tap-target py-2.5 text-ui-12 uppercase tracking-caps font-sans transition-colors border-b ${
+                  isActive
+                    ? 'text-tea-text border-tea-gold'
+                    : 'text-tea-text-sec hover:text-tea-text border-transparent'
+                }`}
                 aria-pressed={isActive}
               >
                 {tab.label}
@@ -208,13 +209,12 @@ export const Storefront: React.FC<StorefrontProps> = ({
 
       {/* Network footer */}
       <footer className="border-t border-tea-border mt-8 pt-8 pb-6 text-center">
-        <p className="text-ui-11 uppercase tracking-[0.3em] text-tea-text-dim mb-2">
+        <p className="label-caps text-tea-text-dim mb-2">
           Part of the Teajia network
         </p>
         <Link
           to="/find-a-table"
-          className="text-sm text-tea-gold hover:text-tea-gold-lt transition-colors"
-          style={{ fontFamily: 'var(--font-body)' }}
+          className="link-text hover:text-tea-text transition-colors"
         >
           Find another table &rarr;
         </Link>
@@ -257,11 +257,9 @@ const StorefrontShopSection: React.FC<StorefrontShopSectionProps> = ({
 
   if (!hasTea && !hasWare) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-center px-6 max-w-md mx-auto">
-        <h2 className="font-display text-ui-26 text-tea-text mb-2">
-          Stock is being prepared
-        </h2>
-        <p className="text-ui-14 text-tea-text-sec leading-[1.6]">
+      <div className="flex flex-col items-center text-center max-w-sm mx-auto py-20 px-6">
+        <h2 className="h3">Stock is being prepared</h2>
+        <p className="text-ui-12 text-tea-text-sec leading-relaxed mt-2">
           {store.name} has not published tea or teaware yet. Use the contact tab for questions, or check back after the opening inventory is added.
         </p>
       </div>
@@ -271,17 +269,25 @@ const StorefrontShopSection: React.FC<StorefrontShopSectionProps> = ({
   return (
     <div>
       {hasTea && hasWare && (
-        <div className="flex items-center justify-center gap-2 mb-6 px-4">
+        <div className="flex items-center justify-center gap-6 mb-6 px-4 border-b border-tea-border">
           <button
             onClick={() => setPane('tea')}
-            className={`pill ${pane === 'tea' ? 'pill-active' : ''}`}
+            className={`tap-target py-2.5 text-ui-12 uppercase tracking-caps font-sans transition-colors border-b ${
+              pane === 'tea'
+                ? 'text-tea-text border-tea-gold'
+                : 'text-tea-text-sec hover:text-tea-text border-transparent'
+            }`}
             aria-pressed={pane === 'tea'}
           >
             Tea
           </button>
           <button
             onClick={() => setPane('teaware')}
-            className={`pill ${pane === 'teaware' ? 'pill-active' : ''}`}
+            className={`tap-target py-2.5 text-ui-12 uppercase tracking-caps font-sans transition-colors border-b ${
+              pane === 'teaware'
+                ? 'text-tea-text border-tea-gold'
+                : 'text-tea-text-sec hover:text-tea-text border-transparent'
+            }`}
             aria-pressed={pane === 'teaware'}
           >
             Teaware
@@ -351,7 +357,7 @@ const StorefrontEventsSection: React.FC<{ events: TeaEvent[] }> = ({ events }) =
   if (events.length === 0) {
     return (
       <div className="py-16 text-center px-6">
-        <p className="text-sm text-tea-text-sec font-serif italic">
+        <p className="font-body italic text-ui-14 text-tea-text-sec">
           No upcoming gatherings at this table.
         </p>
       </div>
@@ -359,16 +365,16 @@ const StorefrontEventsSection: React.FC<{ events: TeaEvent[] }> = ({ events }) =
   }
 
   return (
-    <div className="max-w-xl mx-auto px-6 pt-4 pb-10">
+    <div className="max-w-3xl mx-auto px-4 md:px-6 pt-6 pb-10">
       {/* Header */}
       <div className="mb-6">
-        <p className="text-ui-10 uppercase tracking-[0.3em] text-tea-text-dim mb-2">
+        <p className="label-caps text-tea-text-dim mb-2">
           Sessions · {monthLabel}
         </p>
-        <h2 className="font-serif text-4xl font-normal text-tea-text leading-[1.05] tracking-[-0.5px]">
+        <h2 className="h2">
           Gather <em className="text-tea-gold italic">around tea.</em>
         </h2>
-        <div className="flex gap-1.5 mt-4 flex-wrap">
+        <div className="flex items-center gap-6 mt-4 border-b border-tea-border">
           {([
             { id: 'upcoming', label: 'Upcoming' },
             ...(openSeats.length > 0 ? [{ id: 'open-seats', label: 'Open seats' }] : []),
@@ -377,7 +383,11 @@ const StorefrontEventsSection: React.FC<{ events: TeaEvent[] }> = ({ events }) =
             <button
               key={id}
               onClick={() => setFilter(id as typeof filter)}
-              className={filter === id ? 'pill-active' : 'pill'}
+              className={`tap-target py-2.5 text-ui-12 uppercase tracking-caps font-sans transition-colors border-b ${
+                filter === id
+                  ? 'text-tea-text border-tea-gold'
+                  : 'text-tea-text-sec hover:text-tea-text border-transparent'
+              }`}
             >
               {label}
             </button>
@@ -387,12 +397,12 @@ const StorefrontEventsSection: React.FC<{ events: TeaEvent[] }> = ({ events }) =
 
       {/* Event list */}
       {displayed.length === 0 ? (
-        <p className="text-sm text-tea-text-sec font-serif italic py-8">
+        <p className="font-body italic text-ui-14 text-tea-text-sec py-8">
           {filter === 'open-seats' ? 'All sessions are currently full.' : 'Nothing to show yet.'}
         </p>
       ) : (
-        <div>
-          {displayed.map((ev, i) => {
+        <ul className="divide-y divide-tea-border bg-tea-surface border border-tea-border rounded-xl overflow-hidden mt-4">
+          {displayed.map((ev) => {
             const d = new Date(ev.eventDate);
             const day = d.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
             const dateNum = String(d.getDate()).padStart(2, '0');
@@ -406,42 +416,43 @@ const StorefrontEventsSection: React.FC<{ events: TeaEvent[] }> = ({ events }) =
             const isFull = seats === 0;
 
             return (
-              <Link
-                key={ev.id}
-                to={`/event/${ev.slug}`}
-                className={`flex gap-3.5 py-4${i < displayed.length - 1 ? ' border-b border-tea-border' : ''} hover:opacity-80 transition-opacity`}
-              >
-                {/* Date column */}
-                <div className="w-12 shrink-0 text-center pt-0.5">
-                  <div className="text-ui-9 tracking-[0.25em] text-tea-text-dim uppercase">{day}</div>
-                  <div className="font-serif text-[32px] font-normal text-tea-text leading-none mt-0.5">{dateNum}</div>
-                  <div className="text-ui-9 tracking-[0.2em] text-tea-text-dim mt-0.5">{month}</div>
-                </div>
-                {/* Content */}
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-serif text-base font-medium text-tea-text leading-snug">{ev.title}</h3>
-                  {ev.subtitle && (
-                    <p className="font-serif italic text-ui-13 text-tea-text-sec mt-0.5">{ev.subtitle}</p>
-                  )}
-                  <div className="flex items-center gap-2.5 mt-2 text-ui-11 text-tea-text-dim flex-wrap">
-                    <span>{time}</span>
-                    {(ev.areaHint || ev.locationName) && (
-                      <>
-                        <span className="w-1 h-1 rounded-full bg-tea-text-dim shrink-0" />
-                        <span>{ev.areaHint ?? ev.locationName}</span>
-                      </>
-                    )}
-                    {seats != null && (
-                      <span className={`ml-auto font-medium tabular-nums${isFull ? ' text-red-400' : ' text-tea-gold'}`}>
-                        {isFull ? 'Full' : `${seats}/${ev.totalCapacity} seats`}
-                      </span>
-                    )}
+              <li key={ev.id}>
+                <Link
+                  to={`/event/${ev.slug}`}
+                  className="flex gap-4 px-4 md:px-6 py-4 hover:bg-tea-accent-sub transition-colors"
+                >
+                  {/* Date column */}
+                  <div className="w-12 shrink-0 text-center pt-0.5">
+                    <div className="text-ui-9 tracking-caps text-tea-text-dim uppercase">{day}</div>
+                    <div className="font-display text-ui-28 text-tea-text leading-none mt-0.5">{dateNum}</div>
+                    <div className="text-ui-9 tracking-caps text-tea-text-dim mt-0.5">{month}</div>
                   </div>
-                </div>
-              </Link>
+                  {/* Content */}
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-display text-ui-15 text-tea-text leading-snug">{ev.title}</h3>
+                    {ev.subtitle && (
+                      <p className="font-body italic text-ui-13 text-tea-text-sec mt-0.5">{ev.subtitle}</p>
+                    )}
+                    <div className="flex items-center gap-2.5 mt-2 text-ui-11 text-tea-text-dim flex-wrap">
+                      <span className="font-mono tabular-nums">{time}</span>
+                      {(ev.areaHint || ev.locationName) && (
+                        <>
+                          <span className="w-1 h-1 rounded-full bg-tea-text-dim shrink-0" />
+                          <span>{ev.areaHint ?? ev.locationName}</span>
+                        </>
+                      )}
+                      {seats != null && (
+                        <span className={`ml-auto font-mono tabular-nums${isFull ? ' text-tea-error' : ' text-tea-gold'}`}>
+                          {isFull ? 'Full' : `${seats}/${ev.totalCapacity} seats`}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </Link>
+              </li>
             );
           })}
-        </div>
+        </ul>
       )}
     </div>
   );
@@ -494,19 +505,19 @@ const StoreNetworkReviews: React.FC<{ storeId: string }> = ({ storeId }) => {
   }, {});
 
   return (
-    <div className="max-w-2xl mx-auto px-6 py-6">
-      <h3 className="text-ui-10 uppercase tracking-[0.25em] text-tea-text-dim mb-4">
+    <div className="max-w-3xl mx-auto px-4 md:px-6 py-6">
+      <h3 className="label-caps text-tea-text-dim mb-4">
         Network Reviews
       </h3>
       <ul className="space-y-3">
         {Object.entries(grouped).map(([key, reviews]) => {
           const avg = reviews.reduce((s, r) => s + (r.rating ?? 0), 0) / reviews.filter(r => r.rating).length;
           return (
-            <li key={key} className="inset-panel p-4">
+            <li key={key} className="bg-tea-surface border border-tea-border rounded-xl p-4">
               <div className="flex items-center justify-between gap-2 mb-1">
-                <p className="text-sm text-tea-text font-medium font-mono truncate">{key}</p>
+                <p className="text-ui-14 text-tea-text font-mono truncate">{key}</p>
                 {!Number.isNaN(avg) && avg > 0 && (
-                  <span className="text-xs text-tea-gold shrink-0">
+                  <span className="text-ui-12 text-tea-gold shrink-0 font-mono tabular-nums">
                     {'★'.repeat(Math.round(avg))}{'☆'.repeat(5 - Math.round(avg))} {avg.toFixed(1)}
                   </span>
                 )}
@@ -526,16 +537,13 @@ const StoreNetworkReviews: React.FC<{ storeId: string }> = ({ storeId }) => {
 
 const StorefrontAboutSection: React.FC<{ store: Account }> = ({ store }) => {
   return (
-    <div className="max-w-2xl mx-auto px-6 py-8">
+    <div className="max-w-3xl mx-auto px-4 md:px-6 py-8">
       {store.description ? (
-        <div
-          className="text-base md:text-lg leading-relaxed text-tea-text-sec whitespace-pre-line"
-          style={{ fontFamily: 'var(--font-body)' }}
-        >
+        <div className="body-prose whitespace-pre-line">
           {store.description}
         </div>
       ) : (
-        <p className="text-sm text-tea-text-dim italic text-center">
+        <p className="body-light italic text-center">
           This table is still finding its voice.
         </p>
       )}
@@ -553,22 +561,22 @@ const StorefrontContactSection: React.FC<{ store: Account }> = ({ store }) => {
     : null;
 
   return (
-    <div className="max-w-lg mx-auto px-6 py-8 space-y-6 text-center">
+    <div className="max-w-3xl mx-auto px-4 md:px-6 py-8 space-y-6 text-center">
       {location && (
         <div>
-          <p className="text-ui-11 uppercase tracking-[0.25em] text-tea-text-dim mb-1">Location</p>
-          <p className="text-base text-tea-text">{location}</p>
+          <p className="label-caps text-tea-text-dim mb-1">Location</p>
+          <p className="text-ui-15 text-tea-text">{location}</p>
         </div>
       )}
 
       {waHref && (
         <div>
-          <p className="text-ui-11 uppercase tracking-[0.25em] text-tea-text-dim mb-1">WhatsApp</p>
+          <p className="label-caps text-tea-text-dim mb-1">WhatsApp</p>
           <a
             href={waHref}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-base text-tea-gold hover:text-tea-gold-lt transition-colors"
+            className="link-text hover:text-tea-text transition-colors"
           >
             Message {store.name}
           </a>
@@ -577,10 +585,10 @@ const StorefrontContactSection: React.FC<{ store: Account }> = ({ store }) => {
 
       {store.contact_email && (
         <div>
-          <p className="text-ui-11 uppercase tracking-[0.25em] text-tea-text-dim mb-1">Email</p>
+          <p className="label-caps text-tea-text-dim mb-1">Email</p>
           <a
             href={`mailto:${store.contact_email}`}
-            className="text-base text-tea-gold hover:text-tea-gold-lt transition-colors"
+            className="link-text hover:text-tea-text transition-colors"
           >
             {store.contact_email}
           </a>
@@ -588,7 +596,7 @@ const StorefrontContactSection: React.FC<{ store: Account }> = ({ store }) => {
       )}
 
       {!waHref && !store.contact_email && !location && (
-        <p className="text-sm text-tea-text-dim italic">No contact details yet.</p>
+        <p className="body-light italic">No contact details yet.</p>
       )}
     </div>
   );

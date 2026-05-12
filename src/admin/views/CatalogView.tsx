@@ -100,7 +100,7 @@ export const CatalogView: React.FC = () => {
                 onClick={() => setTypeFilter(t)}
                 className={`px-2.5 py-1 rounded-md text-ui-11 font-medium transition-colors whitespace-nowrap ${
                   typeFilter === t
-                    ? 'bg-tea-gold/15 text-tea-gold font-semibold'
+                    ? 'bg-tea-gold/10 text-tea-text ring-1 ring-tea-gold/40 font-semibold'
                     : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-surface/60'
                 }`}
               >

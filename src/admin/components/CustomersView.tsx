@@ -9,6 +9,54 @@ import { CONTACT_RELATIONSHIP_ORDER, CONTACT_RELATIONSHIP_TAXONOMY } from '../..
 import { Customer, CustomerTag, ContactType, ContactChannel, ContactEntry, ContactRelationshipKind, Product, Invoice } from '../types';
 import { useSampleStore } from '../../samples/sampleStore';
 import { SAMPLE_STATUS_CONFIG } from '../../samples/types';
+import { STATUS_PILL_BASE, STATUS_PILL_VARIANTS, type StatusPillVariant } from '../constants';
+
+/** Canonical status pill — see DesignSystemShowcase §8 */
+const StatusPill: React.FC<{ variant?: StatusPillVariant; className?: string; children: React.ReactNode }> = ({
+  variant = 'draft',
+  className = '',
+  children,
+}) => (
+  <span className={`${STATUS_PILL_BASE} ${STATUS_PILL_VARIANTS[variant]} ${className}`}>{children}</span>
+);
+
+/** Two-letter initials for the identity-card avatar */
+function customerInitials(name: string | undefined): string {
+  if (!name) return '·';
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '·';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+/** Map a CustomerTag to a canonical StatusPill variant */
+function tagVariant(tag: CustomerTag | string): StatusPillVariant {
+  switch (tag) {
+    case 'vip':
+    case 'wholesale':
+    case 'friend':
+    case 'vendor':
+      return 'active';
+    case 'inactive':
+      return 'archived';
+    default:
+      return 'draft';
+  }
+}
+
+/** Map a ContactRelationshipKind to a canonical StatusPill variant */
+function relationshipVariant(kind: ContactRelationshipKind): StatusPillVariant {
+  switch (kind) {
+    case 'buyer':
+    case 'vendor':
+      return 'active';
+    case 'event_guest':
+    case 'collection_recipient':
+    case 'contributor':
+    default:
+      return 'draft';
+  }
+}
 
 /** Vendor-supplied product row from api.customers.getSuppliedProducts() */
 interface SuppliedProduct {
@@ -243,7 +291,7 @@ const CustomerModal = ({
 
   return (
     <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
-      <div className="bg-tea-bg border border-tea-border rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto overscroll-contain shadow-2xl relative">
+      <div className="bg-tea-bg border border-tea-border rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto overscroll-contain shadow-2xl relative">
         <div className="sticky top-0 bg-tea-bg border-b border-tea-border p-6 flex justify-between items-center z-10">
           <button onClick={onClose} className="text-tea-text-sec hover:text-tea-text transition-colors" aria-label="Close"><X size={20} /></button>
           <h3 className="text-xl font-serif text-tea-text">
@@ -454,7 +502,7 @@ const CustomerModal = ({
           <button
             type="submit"
             disabled={saving || !form.name.trim()}
-            className="w-full py-3 bg-tea-gold hover:bg-tea-gold/90 text-tea-bg font-bold uppercase tracking-[0.2em] text-xs rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-3 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 active:bg-tea-gold/80 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {saving ? 'Saving...' : isEditing ? 'Update Customer' : 'Add Customer'}
           </button>
@@ -567,45 +615,77 @@ export const CustomerDetail = ({
     );
   };
 
+  const allRelationships = customer.relationshipKinds ?? [];
+  const allLegacyTags = customer.tags ?? [];
+
   return (
-    <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
-      <div className="bg-tea-bg border border-tea-border rounded-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto overscroll-contain shadow-2xl relative">
-        <div className="sticky top-0 bg-tea-bg border-b border-tea-border p-6 flex justify-between items-center z-10">
-          <div>
-            <h3 className="text-2xl font-serif text-tea-text">{customer.name}</h3>
-            {customer.company && <p className="text-tea-text-sec text-sm">{customer.company}</p>}
-          </div>
-          <div className="flex items-center gap-2">
+    <>
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 z-drawer bg-black/60 backdrop-blur-sm animate-in fade-in duration-150"
+        onClick={onClose}
+      />
+
+      {/* Drawer */}
+      <aside
+        className="fixed inset-y-0 right-0 z-drawer w-full max-w-md bg-tea-surface border-l border-tea-border flex flex-col shadow-2xl animate-in slide-in-from-right duration-200"
+        role="dialog"
+        aria-label={`${customer.name} details`}
+      >
+        {/* Header — close X top-LEFT per panel rule §15, toolbar on the right */}
+        <div className="flex items-center justify-between gap-2 px-4 h-14 border-b border-tea-border flex-shrink-0">
+          <button
+            onClick={onClose}
+            className="text-tea-text-sec hover:text-tea-text transition-colors tap-target"
+            aria-label="Close"
+          >
+            <X size={20} />
+          </button>
+          <div className="flex items-center gap-1">
             <button
               onClick={() => { onClose(); navigate(`/admin/people/${customer.id}`); }}
-              className="p-2 text-tea-text-sec hover:text-tea-text transition-colors"
+              className="p-2 text-tea-text-sec hover:text-tea-text transition-colors tap-target"
               title="View full profile"
             >
               <ExternalLink size={16} />
             </button>
-            <button onClick={onEdit} className="p-2 text-tea-text-sec hover:text-tea-text transition-colors" title="Edit">
+            <button onClick={onEdit} className="p-2 text-tea-text-sec hover:text-tea-text transition-colors tap-target" title="Edit">
               <Edit3 size={16} />
             </button>
-            <button onClick={onDelete} className="p-2 text-tea-text-sec hover:text-red-400 transition-colors" title="Delete">
+            <button onClick={onDelete} className="p-2 text-tea-text-sec hover:text-tea-error transition-colors tap-target" title="Delete">
               <Trash2 size={16} />
-            </button>
-            <button onClick={onClose} className="p-2 text-tea-text-sec hover:text-tea-text transition-colors" aria-label="Close">
-              <X size={20} />
             </button>
           </div>
         </div>
 
-        <div className="p-6 space-y-6">
-          {/* Tags */}
-          {customer.tags.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {customer.tags.map(tag => (
-                <span key={tag} className={`text-xs px-2.5 py-1 rounded-full ${TAG_COLORS[tag]}`}>
-                  {tag}
-                </span>
-              ))}
+        <div className="flex-1 overflow-y-auto overscroll-contain p-5 space-y-5 pb-nav-gap">
+          {/* Identity card */}
+          <div className="bg-tea-surface border border-tea-border rounded-xl p-5 flex items-start gap-4">
+            <div className="w-12 h-12 rounded-full bg-tea-elevated text-tea-text-sec font-display text-ui-15 flex items-center justify-center flex-shrink-0">
+              {customerInitials(customer.name)}
             </div>
-          )}
+            <div className="min-w-0 flex-1">
+              <h3 className="h3 text-tea-text truncate">{customer.name}</h3>
+              {customer.company && (
+                <p className="text-ui-13 text-tea-text-sec mt-0.5 truncate">{customer.company}</p>
+              )}
+              {(customer.country || customer.city) && (
+                <p className="text-ui-12 text-tea-text-dim mt-0.5 truncate">
+                  {[customer.city, customer.country].filter(Boolean).join(', ')}
+                </p>
+              )}
+              {(allRelationships.length > 0 || allLegacyTags.length > 0) && (
+                <div className="flex items-center gap-1 flex-wrap mt-3">
+                  {allRelationships.map(kind => (
+                    <StatusPill key={`r-${kind}`} variant={relationshipVariant(kind)}>{relationshipLabel(kind)}</StatusPill>
+                  ))}
+                  {allLegacyTags.map(tag => (
+                    <StatusPill key={`t-${tag}`} variant={tagVariant(tag)}>{tag}</StatusPill>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
 
           {/* Stats summary card */}
           <div className={`grid gap-3 grid-cols-2 ${(customer.eventCount || 0) > 0 ? 'sm:grid-cols-4' : 'sm:grid-cols-3'}`}>
@@ -614,25 +694,25 @@ export const CustomerDetail = ({
               className="bg-tea-surface border border-tea-border rounded-xl p-4 text-center hover:bg-tea-elevated transition-colors group"
               title="View orders for this customer"
             >
-              <div className="text-2xl font-serif text-tea-gold group-hover:text-tea-gold transition-colors">{customer.orderCount || 0}</div>
+              <div className="font-mono tabular-nums text-2xl text-tea-gold">{customer.orderCount || 0}</div>
               <div className="text-ui-10 text-tea-text-sec uppercase tracking-wider mt-1">Orders</div>
             </button>
             <div className="bg-tea-surface border border-tea-border rounded-xl p-4 text-center">
-              <div className="text-lg font-serif text-tea-gold leading-tight">{formatUSD(customer.totalSpentUSD)}</div>
+              <div className="font-mono tabular-nums text-ui-15 text-tea-gold leading-tight">{formatUSD(customer.totalSpentUSD)}</div>
               <div className="text-ui-10 text-tea-text-sec uppercase tracking-wider mt-1">Total Spent</div>
             </div>
             {(customer.eventCount || 0) > 0 && (
               <div className="bg-tea-surface border border-tea-border rounded-xl p-4 text-center">
-                <div className="text-2xl font-serif text-tea-gold">{customer.eventCount}</div>
+                <div className="font-mono tabular-nums text-2xl text-tea-gold">{customer.eventCount}</div>
                 <div className="text-ui-10 text-tea-text-sec uppercase tracking-wider mt-1">Events</div>
               </div>
             )}
             <div className="bg-tea-surface border border-tea-border rounded-xl p-4 text-center">
-              <div className="text-sm font-serif text-tea-text leading-tight">
+              <div className="font-display text-ui-13 text-tea-text leading-tight">
                 {relativeTime(customer.lastOrderDate)}
               </div>
               {customer.lastOrderDate && (
-                <div className="text-ui-9 text-tea-text-dim mt-0.5">{new Date(customer.lastOrderDate).toLocaleDateString()}</div>
+                <div className="font-mono tabular-nums text-ui-10 text-tea-text-dim mt-0.5">{new Date(customer.lastOrderDate).toLocaleDateString()}</div>
               )}
               <div className="text-ui-10 text-tea-text-sec uppercase tracking-wider mt-1">Last Order</div>
             </div>
@@ -874,13 +954,13 @@ export const CustomerDetail = ({
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0 ml-3">
                         {evt.attended === 1 && (
-                          <span className="badge-status badge-status-default">Attended</span>
+                          <StatusPill variant="success">Attended</StatusPill>
                         )}
                         {evt.attended === 0 && (
-                          <span className="badge-status badge-status-muted">No-show</span>
+                          <StatusPill variant="archived">No-show</StatusPill>
                         )}
                         {evt.attended == null && (
-                          <span className="badge-status badge-status-gold">{evt.attendee_status}</span>
+                          <StatusPill variant="active">{evt.attendee_status}</StatusPill>
                         )}
                       </div>
                     </div>
@@ -1159,13 +1239,15 @@ export const CustomerDetail = ({
                         </span>
                         <span className="text-tea-text-sec text-xs ml-2">{new Date(order.created_at).toLocaleDateString()}</span>
                       </div>
-                      <span className={`badge-status ${
-                        order.status === 'Void' ? 'badge-status-muted' :
-                        order.status === 'Pending' ? 'badge-status-gold' :
-                        'badge-status-default'
-                      }`}>
+                      <StatusPill
+                        variant={
+                          order.status === 'Void' ? 'archived' :
+                          order.status === 'Pending' ? 'active' :
+                          'success'
+                        }
+                      >
                         {order.status}
-                      </span>
+                      </StatusPill>
                     </button>
                   ))
                 )}
@@ -1187,7 +1269,7 @@ export const CustomerDetail = ({
                     showToast('Account unlinked', 'info');
                     onClose();
                   }}
-                  className="text-ui-10 text-tea-text-sec hover:text-red-400 transition-colors uppercase tracking-wider"
+                  className="text-ui-10 text-tea-text-sec hover:text-tea-error transition-colors uppercase tracking-wider"
                 >
                   Unlink
                 </button>
@@ -1261,24 +1343,15 @@ export const CustomerDetail = ({
           </div>
 
           {/* Meta */}
-          <div className="text-xs text-tea-text-sec/50 space-y-1">
-            {(customer.relationshipKinds?.length ?? 0) > 0 && (
-              <div className="flex flex-wrap gap-1 pb-1">
-                {customer.relationshipKinds!.map(kind => (
-                  <span key={kind} className={`text-ui-9 px-1.5 py-0.5 rounded-full ${RELATIONSHIP_BADGE_CLASSES[kind] || 'bg-tea-elevated text-tea-text-sec'}`}>
-                    {relationshipLabel(kind)}
-                  </span>
-                ))}
-              </div>
-            )}
-            <p>Type: {customer.type || 'customer'}</p>
-            {customer.source && <p>Source: {customer.source}</p>}
-            <p>Added: {new Date(customer.createdAt).toLocaleDateString()}</p>
-            <p>Currency: {customer.preferredCurrency}</p>
+          <div className="text-ui-11 text-tea-text-dim space-y-1 pt-2 border-t border-tea-border">
+            <p>Type: <span className="text-tea-text-sec">{customer.type || 'customer'}</span></p>
+            {customer.source && <p>Source: <span className="text-tea-text-sec">{customer.source}</span></p>}
+            <p>Added: <span className="text-tea-text-sec font-mono tabular-nums">{new Date(customer.createdAt).toLocaleDateString()}</span></p>
+            <p>Currency: <span className="text-tea-text-sec font-mono">{customer.preferredCurrency}</span></p>
           </div>
         </div>
-      </div>
-    </div>
+      </aside>
+    </>
   );
 };
 
@@ -1476,7 +1549,7 @@ export const CustomersView = () => {
     const showBadge = sortConfig.length > 1 && sortEntry;
     return (
       <th
-        className={`px-4 py-2 cursor-pointer hover:text-tea-text transition-colors select-none border-b border-tea-border group text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec text-${align} truncate`}
+        className={`px-4 py-2 cursor-pointer hover:text-tea-text transition-colors select-none border-b border-tea-border group font-serif text-ui-11 uppercase tracking-display text-tea-text-sec font-normal text-${align} truncate`}
         onClick={() => handleSort(colKey)}
       >
         <div className={`flex items-center gap-1 ${align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : ''}`}>
@@ -1605,7 +1678,7 @@ export const CustomersView = () => {
       onClick={() => setViewingCustomer(customer)}
     >
       {visibleCols.map(col => renderCell(customer, col.key))}
-      <td className="px-2 align-middle text-right">
+      <td className="px-3 py-2 align-middle text-right">
         <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
           <button
             onClick={() => openEdit(customer)}
@@ -1614,7 +1687,7 @@ export const CustomersView = () => {
           ><Edit3 size={13} /></button>
           <button
             onClick={() => handleDelete(customer)}
-            className="text-tea-text-sec hover:text-red-400 p-1 transition-colors"
+            className="text-tea-text-sec hover:text-tea-error p-1 transition-colors"
             title="Delete"
           ><Trash2 size={13} /></button>
         </div>
@@ -1627,14 +1700,13 @@ export const CustomersView = () => {
   return (
     <div className="h-full flex flex-col overflow-hidden bg-tea-bg">
 
-      {/* --- STICKY HEADER --- */}
-      <div className="sticky top-0 z-30 bg-tea-bg/90 backdrop-blur-md border-b border-tea-border py-2.5 flex-shrink-0">
-        <div className="px-3 md:px-6 max-w-5xl mx-auto flex items-center gap-3 md:gap-4">
-          <div className="flex items-center gap-2 shrink-0">
+      {/* --- STICKY HEADER (filter + actions only; parent PeopleView owns the page title) --- */}
+      <div className="sticky top-0 z-sticky bg-tea-bg/90 backdrop-blur-md border-b border-tea-border flex-shrink-0">
+        <div className="px-3 md:px-6 lg:px-10 max-w-7xl mx-auto flex items-center gap-3 md:gap-4 py-3">
+          <div className="flex items-center gap-2 shrink-0 md:hidden">
             <Users size={16} className="text-tea-gold" />
-            <h2 className="text-sm font-serif text-tea-text uppercase tracking-[0.15em] hidden md:block">Contacts</h2>
-            <span className="text-tea-text-sec text-xs tracking-wide hidden md:inline">
-              — {filtered.length} contact{filtered.length !== 1 ? 's' : ''}
+            <span className="text-tea-text-sec text-xs">
+              {filtered.length} contact{filtered.length !== 1 ? 's' : ''}
             </span>
           </div>
 
@@ -1721,8 +1793,8 @@ export const CustomersView = () => {
               </button>
               {showMobileSort && (
                 <>
-                  <div className="fixed inset-0 z-40" onClick={() => setShowMobileSort(false)} />
-                  <div className="absolute right-0 top-9 w-40 bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-50 py-1" role="menu">
+                  <div className="fixed inset-0 z-modal" onClick={() => setShowMobileSort(false)} />
+                  <div className="absolute right-0 top-9 w-40 bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-popover py-1" role="menu">
                     {([
                       { key: 'name'    as CustomerSortKey, label: 'Name' },
                       { key: 'added'   as CustomerSortKey, label: 'Recent' },
@@ -1774,8 +1846,8 @@ export const CustomersView = () => {
               </button>
               {showColumnsPopover && (
                 <>
-                  <div className="fixed inset-0 z-40" onClick={() => setShowColumnsPopover(false)} />
-                  <div className="absolute right-0 top-full mt-2 w-44 bg-tea-surface border border-tea-border shadow-xl rounded-xl z-50 py-2">
+                  <div className="fixed inset-0 z-modal" onClick={() => setShowColumnsPopover(false)} />
+                  <div className="absolute right-0 top-full mt-2 w-44 bg-tea-surface border border-tea-border shadow-xl rounded-xl z-popover py-2">
                     <div className="px-3 pb-1.5 text-ui-9 text-tea-text-sec/60 uppercase tracking-[0.2em]">Visible Columns</div>
                     {CUSTOMER_COLUMN_DEFS.map(col => (
                       <label
@@ -1807,8 +1879,8 @@ export const CustomersView = () => {
               </button>
               {showOptions && (
                 <>
-                  <div className="fixed inset-0 z-40" onClick={() => setShowOptions(false)} />
-                  <div className="absolute right-0 top-full mt-2 w-48 bg-tea-surface border border-tea-border shadow-xl rounded-xl z-50 py-1 flex flex-col">
+                  <div className="fixed inset-0 z-modal" onClick={() => setShowOptions(false)} />
+                  <div className="absolute right-0 top-full mt-2 w-48 bg-tea-surface border border-tea-border shadow-xl rounded-xl z-popover py-1 flex flex-col">
                     <button
                       onClick={() => { handleExport(); setShowOptions(false); }}
                       className="px-4 py-2 text-left text-xs text-tea-text-sec hover:text-tea-text hover:bg-tea-bg flex items-center gap-2 transition-colors"
@@ -1830,9 +1902,10 @@ export const CustomersView = () => {
             </button>
             <button
               onClick={() => { setEditingCustomer(null); setIsModalOpen(true); }}
-              className="hidden md:flex items-center gap-2 text-xs uppercase tracking-[0.2em] font-bold text-tea-text-sec hover:text-tea-text transition-colors px-3 py-1.5 border border-transparent hover:border-tea-border rounded-lg"
+              className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 active:bg-tea-gold/80 transition-colors"
             >
-              <Plus size={14} /> New
+              <Plus size={13} />
+              <span>New</span>
             </button>
           </div>
         </div>
@@ -1923,19 +1996,19 @@ export const CustomersView = () => {
             </div>
 
             {/* DESKTOP TABLE */}
-            <div className="w-full max-w-5xl mx-auto bg-tea-surface min-h-full hidden md:block">
+            <div className="w-full max-w-7xl mx-auto bg-tea-surface min-h-full hidden md:block">
               <table className="w-full table-fixed border-collapse">
                 <colgroup>
                   {visibleCols.map(col => <col key={col.key} className={col.defaultWidth} />)}
                   <col className="w-[6%]" />
                 </colgroup>
-                <thead className="sticky top-0 z-20 bg-tea-bg shadow-sm">
+                <thead className="sticky top-0 z-sticky bg-tea-bg shadow-sm">
                   <tr>
                     {visibleCols.map(col => {
                       const SORTABLE = new Set<string>(['name', 'company', 'country', 'spent', 'orders', 'added']);
                       if (!SORTABLE.has(col.key)) {
                         return (
-                          <th key={col.key} className="px-4 py-2 border-b border-tea-border text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec text-left truncate">
+                          <th key={col.key} className="px-4 py-2 border-b border-tea-border font-serif text-ui-11 uppercase tracking-display text-tea-text-sec font-normal text-left truncate">
                             {col.label}
                           </th>
                         );

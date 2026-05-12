@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, lazy, Suspense } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ChevronDown, Clock, AlertCircle, Copy, Check, Bookmark, Save } from 'lucide-react';
+import { ChevronDown, Clock, AlertCircle, Copy, Check, Bookmark, Save, X } from 'lucide-react';
 import {
   useGuestManagement,
   useCancelRSVP,
@@ -91,53 +91,62 @@ const CopyInviteLink: React.FC<{
       })()
     : null;
 
+  // Identity miniature: small monogram avatar + name/hint
+  const monogram = (claimedByName || nameHint || '?').trim().charAt(0).toUpperCase();
+
   if (claimedByName) {
     return (
-      <div className="flex items-center gap-2 text-sm text-tea-text-sec">
-        <Check className="w-3.5 h-3.5 text-tea-gold shrink-0" />
-        <span className="font-medium text-tea-text">{claimedByName}</span>
-        {nameHint && <span className="text-tea-text-sec">({nameHint})</span>}
+      <div className="flex items-center gap-3 min-w-0 flex-1">
+        <span className="shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-full bg-tea-gold/10 ring-1 ring-inset ring-tea-gold/30 text-tea-gold text-ui-14" style={{ fontFamily: 'var(--font-display)' }}>
+          {monogram}
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-ui-14 text-tea-text truncate" style={{ fontFamily: 'var(--font-display)' }}>{claimedByName}</p>
+          {nameHint && <p className="text-ui-12 text-tea-text-sec italic truncate">{nameHint}</p>}
+        </div>
+        <span className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-ui-10 uppercase tracking-[0.15em] bg-tea-gold/10 text-tea-text ring-1 ring-inset ring-tea-gold/30">
+          <Check className="w-3 h-3" /> Claimed
+        </span>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      {nameHint && (
-        <span className="text-sm text-tea-text-sec italic">{nameHint}</span>
-      )}
-      {whatsappUrl ? (
-        <a
-          href={whatsappUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-colors"
-        >
-          Send via WhatsApp
-        </a>
-      ) : (
-        <button
-          onClick={handleCopy}
-          className="flex items-center gap-1.5 text-xs text-tea-gold hover:text-tea-gold/80 transition-colors"
-        >
-          {copied ? (
-            <><Check className="w-3.5 h-3.5" />Copied</>
-          ) : (
-            <><Copy className="w-3.5 h-3.5" />Copy invite link</>
-          )}
-        </button>
-      )}
-      {!whatsappUrl && (
-        <span className="text-xs text-tea-text-sec/50">unclaimed</span>
-      )}
-      {whatsappUrl && (
-        <button
-          onClick={handleCopy}
-          className="flex items-center gap-1.5 text-xs text-tea-text-dim hover:text-tea-text-sec transition-colors"
-        >
-          {copied ? <><Check className="w-3 h-3" />Copied</> : <><Copy className="w-3 h-3" />Copy link</>}
-        </button>
-      )}
+    <div className="flex items-center gap-3 min-w-0 flex-1">
+      <span className="shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-full bg-tea-elevated text-tea-text-dim text-ui-14" style={{ fontFamily: 'var(--font-display)' }}>
+        {monogram}
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-ui-14 text-tea-text-sec italic truncate">
+          {nameHint || 'Guest'}
+        </p>
+        <div className="flex flex-wrap items-center gap-3 mt-0.5">
+          {whatsappUrl ? (
+            <a
+              href={whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-ui-11 font-semibold text-tea-readgold hover:text-tea-text transition-colors"
+            >
+              Send via WhatsApp
+            </a>
+          ) : null}
+          <button
+            type="button"
+            onClick={handleCopy}
+            className="inline-flex items-center gap-1 text-ui-11 font-semibold text-tea-text-sec hover:text-tea-text transition-colors"
+          >
+            {copied ? (
+              <><Check className="w-3 h-3" />Copied</>
+            ) : (
+              <><Copy className="w-3 h-3" />Copy link</>
+            )}
+          </button>
+        </div>
+      </div>
+      <span className="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-ui-10 uppercase tracking-[0.15em] bg-tea-elevated text-tea-text-dim">
+        Unclaimed
+      </span>
     </div>
   );
 };
@@ -211,15 +220,15 @@ const GuestManagement: React.FC = () => {
     return (
       <div className="min-h-screen bg-tea-bg flex items-center justify-center px-6">
         <div className="text-center max-w-md">
-          <h1 className="font-serif text-3xl text-tea-text mb-4">Reservation Not Found</h1>
-          <p className="text-sm text-tea-text-sec mb-8">
+          <h1 className="h1 mb-4">Reservation not found</h1>
+          <p className="body-light mb-8">
             {(error as Error)?.message || 'This link may be invalid or expired.'}
           </p>
           <button
             onClick={() => navigate('/')}
-            className="px-8 py-3 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.2em] hover:bg-tea-gold/90 transition-colors"
+            className="inline-flex items-center justify-center px-4 py-3 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors"
           >
-            Return Home
+            Return home
           </button>
         </div>
       </div>
@@ -300,7 +309,7 @@ const GuestManagement: React.FC = () => {
             </Suspense>
             <button
               onClick={() => setShowTasting(false)}
-              className="w-full mt-4 py-3 text-xs uppercase tracking-[0.2em] text-tea-text-dim hover:text-tea-text-sec transition-colors"
+              className="w-full mt-4 py-3 text-xs font-semibold text-tea-text-sec hover:text-tea-text transition-colors"
             >
               Skip
             </button>
@@ -397,7 +406,7 @@ const GuestManagement: React.FC = () => {
               <div className="border-t border-tea-border pt-10">
                 <button
                   onClick={() => setShowTasting(true)}
-                  className="text-xs uppercase tracking-[0.2em] text-tea-text-sec hover:text-tea-gold transition-colors"
+                  className="text-xs font-semibold text-tea-text-sec hover:text-tea-text transition-colors"
                 >
                   Rate the session
                 </button>
@@ -428,10 +437,10 @@ const GuestManagement: React.FC = () => {
 
   // ---- STATUS-TRANSITION BANNER (injected at top of any status screen) ----
   const StatusBanner = transitionBanner ? (
-    <div className={`sticky top-0 z-10 px-4 py-3 text-center text-xs font-medium animate-[fadeIn_0.4s_ease-out] ${
+    <div className={`sticky top-0 z-10 px-4 py-3 text-center text-xs font-medium animate-[fadeIn_0.4s_ease-out] border-b border-tea-border ${
       transitionBanner === 'confirmed'
-        ? 'bg-tea-gold/15 text-tea-gold border-b border-tea-gold/20'
-        : 'bg-tea-elevated text-tea-text-sec border-b border-tea-border'
+        ? 'bg-tea-gold/15 text-tea-gold'
+        : 'bg-tea-elevated text-tea-text-sec'
     }`}>
       {transitionBanner === 'confirmed'
         ? "You've been approved — your seat is confirmed."
@@ -616,7 +625,7 @@ const GuestManagement: React.FC = () => {
                 {attendee.claimExpiresAt && (
                   <div className="flex items-center justify-center gap-2 mb-6 text-tea-gold">
                     <Clock className="w-4 h-4" />
-                    <span className="text-xs uppercase tracking-[0.15em] font-medium">
+                    <span className="text-xs font-medium">
                       {getClaimTimeRemaining(attendee.claimExpiresAt)}
                     </span>
                   </div>
@@ -625,17 +634,17 @@ const GuestManagement: React.FC = () => {
                 <button
                   onClick={() => claimSeat.mutate()}
                   disabled={claimSeat.isPending}
-                  className="w-full py-4 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.25em] font-semibold rounded-sm hover:bg-tea-gold/90 disabled:opacity-50 transition-all duration-300 flex items-center justify-center gap-2 shadow-lg shadow-tea-gold/20"
+                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 disabled:opacity-50 transition-colors"
                 >
                   {claimSeat.isPending ? (
-                    <span className="inline-block w-4 h-4 border-2 border-tea-border border-t-tea-gold rounded-full animate-spin" />
+                    <span className="inline-block w-4 h-4 border-2 border-tea-bg/40 border-t-tea-bg rounded-full animate-spin" />
                   ) : (
-                    'Claim My Seat'
+                    'Claim my seat'
                   )}
                 </button>
 
                 {claimSeat.isError && (
-                  <p className="text-sm text-red-400 mt-3">
+                  <p className="text-ui-12 text-tea-error mt-3">
                     {(claimSeat.error as Error)?.message || 'Failed to claim seat. Please try again.'}
                   </p>
                 )}
@@ -684,7 +693,7 @@ const GuestManagement: React.FC = () => {
           <div className="text-center">
             <button
               onClick={() => setShowCancelConfirm(true)}
-              className="text-xs text-tea-text-sec hover:text-red-400 transition-colors uppercase tracking-[0.15em]"
+              className="text-xs font-semibold text-tea-text-sec hover:text-tea-error transition-colors"
             >
               Cancel my waitlist spot
             </button>
@@ -708,8 +717,8 @@ const GuestManagement: React.FC = () => {
     return (
       <div className="min-h-screen bg-tea-bg flex items-center justify-center px-6 animate-[fadeIn_0.5s_ease-out]">
         <div className="text-center max-w-md">
-          <h1 className="font-serif text-3xl text-tea-text mb-4">Reservation Cancelled</h1>
-          <p className="text-sm text-tea-text-sec mb-8">
+          <h1 className="h1 mb-4">Reservation cancelled</h1>
+          <p className="body-light mb-8">
             Your reservation for <span className="text-tea-text">{event.title}</span> has been cancelled.
             {attendee.cancellationNote && (
               <span className="block mt-2">{attendee.cancellationNote}</span>
@@ -717,9 +726,9 @@ const GuestManagement: React.FC = () => {
           </p>
           <button
             onClick={() => navigate(`/event/${event.slug}`)}
-            className="px-8 py-3 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.2em] hover:bg-tea-gold/90 transition-colors"
+            className="inline-flex items-center justify-center px-4 py-3 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors"
           >
-            View Event
+            View event
           </button>
         </div>
       </div>
@@ -770,18 +779,15 @@ const GuestManagement: React.FC = () => {
           <CalendarDownload event={event} />
         </div>
 
-        {/* Guest invite links */}
+        {/* Guest invite links — divide-y list rows with identity miniatures */}
         {approvedGuests.length > 0 && (
-          <div className="mb-10 p-5 bg-tea-surface border border-tea-border rounded-md">
-            <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-4">
+          <div className="mb-10 bg-tea-surface border border-tea-border rounded-xl overflow-hidden">
+            <p className="label-caps px-5 pt-5 pb-3">
               Your guests
             </p>
-            <div className="space-y-3">
-              {approvedGuests.map((invite, idx) => (
-                <div key={invite.id} className="flex items-start gap-3">
-                  <span className="text-xs text-tea-text-sec w-12 shrink-0 pt-0.5">
-                    Slot {idx + 1}
-                  </span>
+            <div className="divide-y divide-tea-border">
+              {approvedGuests.map((invite) => (
+                <div key={invite.id} className="flex items-center gap-3 px-5 py-4">
                   <CopyInviteLink
                     inviteToken={invite.inviteToken}
                     nameHint={invite.nameHint}
@@ -908,7 +914,7 @@ const GuestManagement: React.FC = () => {
                   updateGuests.mutate({ plusOne: next });
                 }}
                 disabled={updateGuests.isPending}
-                className={`flex items-center gap-2 px-4 py-2 rounded-sm text-xs uppercase tracking-[0.15em] border transition-all duration-200 ${
+                className={`flex items-center gap-2 px-4 py-2 rounded-sm text-xs border transition-all duration-200 ${
                   currentPlusOne
                     ? 'bg-tea-gold/10 border-tea-border text-tea-gold'
                     : 'bg-tea-surface border-tea-border text-tea-text-sec hover:border-tea-gold/30 hover:text-tea-text'
@@ -921,7 +927,7 @@ const GuestManagement: React.FC = () => {
                 <span className="text-xs text-tea-text-dim">Updating...</span>
               )}
               {updateGuests.isError && (
-                <span className="text-xs text-red-400">
+                <span className="text-xs text-tea-error">
                   {(updateGuests.error as Error)?.message || 'Could not update'}
                 </span>
               )}
@@ -969,7 +975,7 @@ const GuestManagement: React.FC = () => {
               </button>
             </div>
             {updateNotes.isError && (
-              <p className="text-xs text-red-400 mt-1">
+              <p className="text-xs text-tea-error mt-1">
                 {(updateNotes.error as Error)?.message || 'Could not save notes'}
               </p>
             )}
@@ -1007,7 +1013,7 @@ const GuestManagement: React.FC = () => {
         <div className="text-center pt-6 pb-12 border-t border-tea-border">
           <button
             onClick={() => setShowCancelConfirm(true)}
-            className="text-xs text-tea-text-sec hover:text-red-400 transition-colors uppercase tracking-[0.15em] py-3"
+            className="text-xs font-semibold text-tea-text-sec hover:text-tea-error transition-colors py-3"
           >
             Cancel my reservation
           </button>
@@ -1048,38 +1054,52 @@ const CancelConfirmModal: React.FC<CancelConfirmModalProps> = ({
       onClick={onClose}
       role="dialog"
       aria-modal="true"
+      aria-label="Cancel reservation"
     >
       <div
-        className="bg-tea-bg border border-tea-border rounded-md p-6 max-w-sm w-full shadow-2xl animate-[scaleIn_0.25s_ease-out]"
+        className="relative bg-tea-surface border border-tea-border rounded-xl p-6 max-w-sm w-full shadow-2xl animate-[scaleIn_0.25s_ease-out]"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-start gap-3 mb-5">
-          <AlertCircle className="w-5 h-5 text-red-400 mt-0.5 shrink-0" />
+        {/* Close X — top-right for centered modal (§15) */}
+        <button
+          type="button"
+          onClick={onClose}
+          className="tap-target absolute top-3 right-3 p-1.5 text-tea-text-sec hover:text-tea-text transition-colors"
+          aria-label="Close"
+        >
+          <X className="w-4 h-4" />
+        </button>
+
+        <div className="flex items-start gap-3 mb-5 pr-6">
+          <AlertCircle className="w-5 h-5 text-tea-error mt-0.5 shrink-0" />
           <div>
-            <h3 className="font-serif text-lg text-tea-text mb-2">Cancel Reservation?</h3>
-            <p className="text-sm text-tea-text-sec">
+            <h3 className="h3 mb-2">Cancel reservation?</h3>
+            <p className="body-light">
               Are you sure you want to cancel{' '}
               <span className="text-tea-text">{attendeeName}'s</span> reservation?
             </p>
           </div>
         </div>
 
-        <div className="flex gap-3">
+        {/* Footer — Cancel-left ghost, primary-right destructive */}
+        <div className="flex justify-between items-center gap-3">
           <button
+            type="button"
             onClick={onClose}
-            className="flex-1 py-3 bg-tea-surface border border-tea-border text-tea-text text-xs uppercase tracking-[0.15em] rounded-sm hover:bg-tea-elevated transition-colors"
+            className="px-3 py-2 text-xs font-semibold text-tea-text-sec hover:text-tea-text transition-colors"
           >
-            Keep My Seat
+            Keep my seat
           </button>
           <button
+            type="button"
             onClick={onConfirm}
             disabled={isPending}
-            className="flex-1 py-3 bg-red-500/10 border border-red-500/20 text-red-400 text-xs uppercase tracking-[0.15em] rounded-sm hover:bg-red-500/20 disabled:opacity-50 transition-colors flex items-center justify-center"
+            className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-md bg-tea-error text-tea-bg text-xs font-semibold hover:bg-tea-error/90 disabled:opacity-50 transition-colors min-w-[140px]"
           >
             {isPending ? (
-              <span className="inline-block w-4 h-4 border-2 border-red-400/30 border-t-red-400 rounded-full animate-spin" />
+              <span className="inline-block w-4 h-4 border-2 border-tea-bg/40 border-t-tea-bg rounded-full animate-spin" />
             ) : (
-              'Cancel'
+              'Cancel reservation'
             )}
           </button>
         </div>

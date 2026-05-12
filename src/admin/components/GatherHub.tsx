@@ -19,23 +19,22 @@ export const GatherHub: React.FC = () => {
 
   return (
     <div className="h-full flex flex-col overflow-hidden bg-tea-bg">
-      <div className="flex items-center gap-1 px-3 md:px-6 py-2 border-b border-tea-border bg-tea-bg overflow-x-auto hide-scrollbar flex-shrink-0">
-        <div className="flex items-center bg-tea-surface rounded-lg border border-tea-border p-0.5">
-          {tabs.map(tab => (
+      <div className="flex items-center gap-6 px-4 md:px-6 lg:px-10 border-b border-tea-border bg-tea-bg flex-shrink-0 overflow-x-auto scrollbar-hide">
+        {tabs.map(tab => {
+          const isActive = activeTab === tab.id;
+          return (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-ui-10 uppercase tracking-[0.15em] rounded-md whitespace-nowrap transition-colors ${
-                activeTab === tab.id
-                  ? 'bg-tea-bg text-tea-text shadow-sm'
-                  : 'text-tea-text-sec hover:text-tea-text'
+              className={`inline-flex items-center gap-1.5 py-2.5 text-ui-12 uppercase tracking-caps font-sans border-b transition-colors whitespace-nowrap shrink-0 ${
+                isActive ? 'text-tea-text border-tea-gold' : 'text-tea-text-sec hover:text-tea-text border-transparent'
               }`}
             >
               {tab.icon}
               {tab.label}
             </button>
-          ))}
-        </div>
+          );
+        })}
       </div>
 
       <div className="flex-1 overflow-auto">

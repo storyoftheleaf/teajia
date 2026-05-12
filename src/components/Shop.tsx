@@ -216,7 +216,7 @@ export const Shop: React.FC<ShopProps> = ({
     return (
       <article
         key={set.id}
-        className="group bg-tea-surface rounded-[6px] overflow-hidden border border-tea-border transition-colors duration-200 hover:border-tea-gold/30"
+        className="group bg-tea-surface rounded-xl overflow-hidden border border-tea-border transition-colors duration-200 hover:bg-tea-elevated"
       >
         <div className="flex flex-col md:flex-row">
           {/* Image side */}
@@ -230,43 +230,43 @@ export const Shop: React.FC<ShopProps> = ({
             {set.tags.length > 0 && (
               <div className="flex flex-wrap gap-1.5 mb-3">
                 {set.tags.map(tag => (
-                  <span key={tag} className="tag text-[0.5625rem]">{tag}</span>
+                  <span key={tag} className="inline-flex px-2 py-0.5 rounded-full text-ui-9 uppercase tracking-caps bg-tea-elevated text-tea-text-sec">{tag}</span>
                 ))}
               </div>
             )}
 
             {/* Title */}
-            <h3 className="font-display text-lg md:text-xl text-tea-text leading-tight mb-1 group-hover:text-tea-gold transition-colors duration-150">
+            <h3 className="font-display text-ui-20 text-tea-text leading-tight mb-1 group-hover:text-tea-gold transition-colors duration-150">
               {set.name}
             </h3>
 
             {/* Ideal for */}
             {set.idealFor && (
-              <p className="font-body text-xs text-tea-text-sec italic mb-3">
+              <p className="font-body text-ui-12 text-tea-text-sec italic mb-3">
                 {set.idealFor}
               </p>
             )}
 
             {/* Full description */}
-            <p className="font-body text-sm text-tea-text-sec leading-relaxed mb-4">
+            <p className="body-light mb-4">
               {set.description}
             </p>
 
             {/* What's inside */}
             <div className="mb-4">
-              <p className="font-sans text-[0.625rem] uppercase tracking-[0.12em] text-tea-text-dim mb-2">
+              <p className="label-caps text-tea-text-dim mb-2">
                 What's inside
               </p>
-              <div className="divide-y divide-tea-gold/[0.08]">
+              <div className="divide-y divide-tea-border">
                 {resolvedItems.map((item) => (
                   <div
                     key={item.itemId}
-                    className="flex items-center gap-2 py-1.5 text-[0.8125rem] text-tea-text leading-snug"
+                    className="flex items-center gap-2 py-1.5 text-ui-13 text-tea-text leading-snug"
                   >
                     {/* dot */}
-                    <span className="w-1 h-1 rounded-full bg-tea-gold/50 flex-shrink-0" />
+                    <span className="w-1 h-1 rounded-full bg-tea-gold flex-shrink-0" />
                     <span className="flex-1">{item.name}{item.type === 'tea' ? ` · ${item.quantity}${item.unit}` : ''}</span>
-                    <span className="font-sans text-[0.625rem] uppercase tracking-[0.06em] text-tea-text-dim flex-shrink-0 ml-auto">
+                    <span className="text-ui-9 uppercase tracking-caps text-tea-text-dim flex-shrink-0 ml-auto">
                       {item.type === 'tea' ? 'Tea' : 'Teaware'}
                     </span>
                   </div>
@@ -278,18 +278,17 @@ export const Shop: React.FC<ShopProps> = ({
             <div className="mt-auto flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
               <div>
                 <div className="flex items-baseline gap-2">
-                  {/* original/retail price — inline, no .set-price-original */}
                   {showComparison && (
-                    <span className="font-mono text-[0.8125rem] text-tea-text-dim line-through opacity-60">
+                    <span className="font-mono tabular-nums text-ui-13 text-tea-text-dim line-through">
                       ${retailTotal}
                     </span>
                   )}
-                  <span className="font-mono text-lg text-tea-text font-semibold">
+                  <span className="font-mono tabular-nums text-ui-17 text-tea-text font-semibold">
                     {set.price}
                   </span>
                 </div>
                 {set.discount && (
-                  <p className="font-body text-[0.6875rem] text-tea-text-sec italic mt-0.5">
+                  <p className="font-body italic text-ui-11 text-tea-text-sec mt-0.5">
                     {set.discount}
                   </p>
                 )}
@@ -297,9 +296,9 @@ export const Shop: React.FC<ShopProps> = ({
               <button
                 onClick={(e) => { e.stopPropagation(); handleAddStarterSet(set); }}
                 disabled={isAddingToCart[set.id]}
-                className="bg-tea-gold hover:bg-tea-gold-lt text-tea-bg text-xs uppercase tracking-[0.15em] font-medium py-2.5 px-6 rounded-lg transition-all active:scale-95 flex items-center justify-center gap-3 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 active:bg-tea-gold/80 transition-colors disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
               >
-                {isAddingToCart[set.id] && <Loader2 className="w-4 h-4 animate-spin" />}
+                {isAddingToCart[set.id] && <Loader2 size={13} className="animate-spin" />}
                 <span>{isAddingToCart[set.id] ? 'Adding...' : 'Add Set to Cart'}</span>
               </button>
             </div>
@@ -312,9 +311,10 @@ export const Shop: React.FC<ShopProps> = ({
   const renderSets = () => (
     <div className="max-w-full mx-auto px-3 md:px-4 lg:px-6 pt-4 animate-[fadeIn_0.5s_ease-out]">
       {STARTER_TEA_SETS.length === 0 && STARTER_TEAWARE_SETS.length === 0 ? (
-        <div className="py-16 text-center">
-          <p className="font-display text-2xl text-tea-text-dim mb-2">Nothing here yet.</p>
-          <p className="font-body italic text-sm text-tea-text-dim">
+        <div className="flex flex-col items-center text-center max-w-sm mx-auto py-20 px-6">
+          <Icons.Box className="w-7 h-7 text-tea-text-dim" strokeWidth={1.25} />
+          <h3 className="font-display text-ui-17 text-tea-text mt-4">Nothing here yet</h3>
+          <p className="text-ui-12 text-tea-text-sec leading-relaxed mt-2">
             Try a different filter, or explore the full catalog.
           </p>
         </div>
@@ -353,14 +353,14 @@ export const Shop: React.FC<ShopProps> = ({
               aria-haspopup="listbox"
               aria-expanded={storePickerOpen}
               aria-label={`Choose store, currently ${activeStoreLabel}`}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs text-tea-text-sec hover:bg-tea-surface transition-colors"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-ui-12 text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub transition-colors"
             >
               <Icons.Location className="w-3.5 h-3.5 text-tea-text-sec" />
               <span className="tracking-wide">{activeStoreLabel}</span>
               <ChevronDown className={`w-3 h-3 transition-transform ${storePickerOpen ? 'rotate-180' : ''}`} />
             </button>
             {storePickerOpen && (
-              <div role="listbox" className="absolute right-0 top-full mt-1 bg-tea-elevated border border-tea-border rounded-lg shadow-lg py-1 min-w-[180px] z-50 animate-[fadeIn_0.15s_ease-out]">
+              <div role="listbox" className="absolute right-0 top-full mt-1 bg-tea-elevated border border-tea-border rounded-md shadow-lg py-1 min-w-[180px] z-popover animate-[fadeIn_0.15s_ease-out]">
                 {networkStores.map(store => {
                   const isActive = store.slug === (shopStoreSlug || 'teajia-bali');
                   return (
@@ -373,15 +373,15 @@ export const Shop: React.FC<ShopProps> = ({
                         setShopStoreSlug(store.slug === 'teajia-bali' ? null : store.slug);
                         setStorePickerOpen(false);
                       }}
-                      className={`w-full text-left px-3 py-2 flex items-center gap-2.5 text-sm transition-colors ${
+                      className={`w-full text-left px-3 py-2 flex items-center gap-2.5 text-ui-13 transition-colors ${
                         isActive
-                          ? 'text-tea-text bg-tea-surface'
-                          : 'text-tea-text hover:bg-tea-surface/60'
+                          ? 'text-tea-text bg-tea-accent-sub'
+                          : 'text-tea-text hover:bg-tea-accent-sub'
                       }`}
                     >
                       <Icons.Location className="w-3.5 h-3.5 shrink-0 text-tea-text-dim" />
                       <div className="flex-1 min-w-0">
-                        <div className="truncate font-medium text-xs">{store.location_city || store.name}</div>
+                        <div className="truncate text-ui-13">{store.location_city || store.name}</div>
                         {store.location_country && (
                           <div className="text-ui-10 text-tea-text-dim truncate">{store.location_country}</div>
                         )}
@@ -421,20 +421,18 @@ export const Shop: React.FC<ShopProps> = ({
         )}
 
         {isError && (
-          <div className="flex flex-col items-center justify-center py-20 px-4 text-center animate-[fadeIn_0.5s_ease-out]">
-            <div className="w-14 h-14 border border-tea-border rounded-full flex items-center justify-center mb-5">
-              <Icons.Leaf className="w-6 h-6 text-tea-gold/60" />
-            </div>
-            <h3 className="text-lg text-tea-text mb-2" style={{ fontFamily: 'var(--font-display)' }}>Unable to load teas</h3>
-            <p className="text-tea-text/50 text-sm mb-6 max-w-sm">
+          <div className="flex flex-col items-center text-center max-w-sm mx-auto py-20 px-6 animate-[fadeIn_0.5s_ease-out]">
+            <Icons.AlertCircle className="w-7 h-7 text-tea-error" strokeWidth={1.25} />
+            <h3 className="font-display text-ui-17 text-tea-text mt-4">Unable to load teas</h3>
+            <p className="text-ui-12 text-tea-text-sec leading-relaxed mt-2 mb-6">
               {error?.message || 'We couldn\'t reach the server. Please check your connection and try again.'}
             </p>
             {onRetry && (
               <button
                 onClick={onRetry}
-                className="bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.15em] font-medium py-2.5 px-6 rounded-lg hover:bg-tea-gold-lt transition-all active:scale-95"
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md border border-tea-border text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub transition-colors text-xs"
               >
-                Try Again
+                Try again
               </button>
             )}
           </div>
@@ -480,7 +478,7 @@ export const Shop: React.FC<ShopProps> = ({
           if (recentItems.length === 0) return null;
           return (
             <div className="px-3 md:px-4 lg:px-6 pb-8 pt-6">
-              <p className="text-ui-11 uppercase tracking-[0.15em] text-tea-text-dim mb-3 font-sans">Recently Viewed</p>
+              <p className="label-caps text-tea-text-dim mb-3">Recently Viewed</p>
               <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none snap-x snap-mandatory">
                 {recentItems.map(item => {
                   const isTea = item.category === 'tea';
@@ -492,18 +490,18 @@ export const Shop: React.FC<ShopProps> = ({
                       key={item.id}
                       onClick={() => onAddToCart(item, qty, unitPrice * qty)}
                       aria-label={`Add ${item.name} to cart`}
-                      className="text-left flex-shrink-0 snap-start w-28 group focus:outline-none focus-visible:ring-1 focus-visible:ring-tea-gold/40 rounded-lg"
+                      className="text-left flex-shrink-0 snap-start w-28 group focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-2 focus-visible:ring-offset-tea-bg rounded-md"
                     >
-                      <div className="w-28 h-28 bg-tea-surface rounded-lg overflow-hidden mb-2 group-hover:opacity-90 transition-opacity">
+                      <div className="w-28 h-28 bg-tea-surface border border-tea-border rounded-md overflow-hidden mb-2">
                         {item.image ? (
-                          <img src={item.image} alt="" className="w-full h-full object-cover sepia-[0.2]" loading="lazy" />
+                          <img src={item.image} alt="" className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.06]" loading="lazy" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center">
                             <Icons.Leaf className="w-8 h-8 text-tea-text-dim" aria-hidden="true" />
                           </div>
                         )}
                       </div>
-                      <p className="text-xs text-tea-text leading-snug line-clamp-2" style={{ fontFamily: 'var(--font-display)' }}>{item.name}</p>
+                      <p className="font-display text-ui-13 text-tea-text leading-snug line-clamp-2">{item.name}</p>
                       <p className="text-ui-10 text-tea-text-sec mt-0.5 font-mono tabular-nums">
                         {isTea
                           ? fmtShopPricePerGram(unitPrice)

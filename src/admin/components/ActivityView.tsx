@@ -60,36 +60,37 @@ export const ActivityView: React.FC<ActivityViewProps> = ({ products }) => {
     <div className="h-full flex flex-col overflow-hidden bg-tea-bg">
       {/* Page header */}
       <div className="px-4 md:px-6 lg:px-10 pt-6 pb-3 flex-shrink-0">
-        <h1 className="text-2xl text-tea-text mb-1" style={{ fontFamily: 'var(--font-display)' }}>
-          Activity
-        </h1>
-        <p className="text-xs text-tea-text-dim uppercase tracking-[0.15em]">
-          Orders, payments, and customer inquiries
-        </p>
+        <div className="max-w-7xl mx-auto">
+          <h1 className="h2 text-tea-text">Activity</h1>
+          <div className="label-caps text-tea-text-dim mt-1">Orders, payments, and customer inquiries</div>
+        </div>
       </div>
 
-      {/* Tab bar */}
-      <div className="flex items-center gap-1 px-3 md:px-6 py-2 border-b border-tea-border bg-tea-bg overflow-x-auto hide-scrollbar flex-shrink-0">
-        <div className="flex items-center bg-tea-surface rounded-lg border border-tea-border p-0.5">
-          {tabs.map(tab => (
+      {/* Tab bar — bottom-border underline (§6) */}
+      <div className="border-b border-tea-border bg-tea-bg flex-shrink-0">
+        <div className="flex items-center gap-6 px-4 md:px-6 lg:px-10 max-w-7xl mx-auto overflow-x-auto hide-scrollbar">
+        {tabs.map(tab => {
+          const isActive = activeTab === tab.id;
+          return (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-ui-10 uppercase tracking-[0.15em] rounded-md whitespace-nowrap transition-colors ${
-                activeTab === tab.id
-                  ? 'bg-tea-bg text-tea-text shadow-sm'
-                  : 'text-tea-text-sec hover:text-tea-text'
+              className={`flex items-center gap-1.5 py-2.5 text-ui-12 uppercase tracking-caps font-sans whitespace-nowrap transition-colors border-b ${
+                isActive
+                  ? 'text-tea-text border-tea-gold'
+                  : 'text-tea-text-sec hover:text-tea-text border-transparent'
               }`}
             >
               {tab.icon}
               {tab.label}
               {tab.badge != null && tab.badge > 0 && (
-                <span className="ml-0.5 text-ui-9 bg-amber-400/20 text-amber-600 dark:text-amber-400 px-1 py-0 rounded-full num leading-4">
-                  {tab.badge}
+                <span className="ml-1.5 text-tea-text-dim font-mono tabular-nums">
+                  ({tab.badge})
                 </span>
               )}
             </button>
-          ))}
+          );
+        })}
         </div>
       </div>
 
@@ -116,10 +117,10 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  new: 'bg-amber-400/20 text-amber-700 dark:text-amber-400',
-  seen: 'bg-tea-surface text-tea-text-sec',
-  replied: 'bg-emerald-400/20 text-emerald-700 dark:text-emerald-400',
-  closed: 'bg-tea-surface text-tea-text-dim',
+  new: 'bg-tea-gold/10 text-tea-text ring-1 ring-inset ring-tea-gold/40',
+  seen: 'bg-tea-elevated text-tea-text-sec',
+  replied: 'bg-tea-green/10 text-tea-green ring-1 ring-inset ring-tea-green/40',
+  closed: 'bg-tea-elevated text-tea-text-dim',
 };
 
 function InquiriesView() {
@@ -148,22 +149,25 @@ function InquiriesView() {
 
   return (
     <div className="p-4 md:p-6 space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="font-serif text-lg text-tea-text">Inquiries</h2>
-        <div className="flex gap-1">
-          {['all', 'new', 'seen', 'replied', 'closed'].map(s => (
-            <button
-              key={s}
-              onClick={() => setFilter(s)}
-              className={`px-2.5 py-1 text-ui-10 uppercase tracking-wider rounded transition-colors ${
-                filter === s
-                  ? 'bg-tea-gold/20 text-tea-gold font-semibold'
-                  : 'bg-tea-surface text-tea-text-sec hover:text-tea-text'
-              }`}
-            >
-              {s === 'all' ? 'All' : STATUS_LABELS[s]}
-            </button>
-          ))}
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <h2 className="h3 text-tea-text">Inquiries</h2>
+        <div className="flex items-center gap-6 border-b border-tea-border">
+          {['all', 'new', 'seen', 'replied', 'closed'].map(s => {
+            const isActive = filter === s;
+            return (
+              <button
+                key={s}
+                onClick={() => setFilter(s)}
+                className={`py-2 text-ui-12 uppercase tracking-caps font-sans whitespace-nowrap transition-colors border-b ${
+                  isActive
+                    ? 'text-tea-text border-tea-gold'
+                    : 'text-tea-text-sec hover:text-tea-text border-transparent'
+                }`}
+              >
+                {s === 'all' ? 'All' : STATUS_LABELS[s]}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -172,7 +176,13 @@ function InquiriesView() {
       )}
 
       {!isLoading && inquiries.length === 0 && (
-        <p className="text-tea-text-sec text-sm">No inquiries{filter !== 'all' ? ` with status "${STATUS_LABELS[filter]}"` : ''}.</p>
+        <div className="flex flex-col items-center text-center max-w-sm mx-auto py-20 px-6">
+          <MessageSquare size={28} strokeWidth={1.25} className="text-tea-text-dim mb-3" />
+          <div className="font-display text-ui-17 text-tea-text">No inquiries</div>
+          <p className="text-ui-12 text-tea-text-sec leading-relaxed mt-2">
+            {filter !== 'all' ? `Nothing with status "${STATUS_LABELS[filter]}" right now.` : 'New customer inquiries will appear here.'}
+          </p>
+        </div>
       )}
 
       <div className="space-y-3">
@@ -186,7 +196,7 @@ function InquiriesView() {
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
                 {inq.source && inq.source !== 'cart' && (
-                  <span className="text-ui-10 px-2 py-0.5 rounded-full bg-tea-gold/15 text-tea-gold uppercase tracking-wider">
+                  <span className="text-ui-10 px-2 py-0.5 rounded-full bg-tea-gold/10 text-tea-text ring-1 ring-tea-gold/40 uppercase tracking-wider">
                     {inq.source}
                   </span>
                 )}

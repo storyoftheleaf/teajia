@@ -1,11 +1,13 @@
 
 import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Sparkles } from 'lucide-react';
 import { Icons } from '../Icons';
 import { useAppStore } from '../../lib/store';
 import { entryEvent } from '../../lib/tastingAccessors';
 import { TastingSession, type TastingItem } from '../tasting/TastingSession';
 import type { CustomerTasting } from '../../types';
+import { ListShell } from './primitives';
 
 interface TastingJournalViewProps {
   onBack: () => void;
@@ -53,11 +55,11 @@ function DescriptorPills({ entry, max = 6 }: { entry: CustomerTasting; max?: num
   if (descriptors.length === 0) return null;
 
   return (
-    <div className="flex flex-wrap gap-1 mt-1.5">
+    <div className="flex flex-wrap gap-1 mt-2">
       {descriptors.map((tag) => (
         <span
           key={tag}
-          className="inline-block px-2 py-0.5 text-ui-11 uppercase tracking-[0.08em] bg-tea-elevated text-tea-text-sec rounded-sm"
+          className="inline-block px-2 py-0.5 text-ui-11 tracking-caps bg-tea-elevated text-tea-text-sec rounded-sm"
         >
           {tag}
         </span>
@@ -65,6 +67,18 @@ function DescriptorPills({ entry, max = 6 }: { entry: CustomerTasting; max?: num
     </div>
   );
 }
+
+// Back button shared across the three states.
+const BackButton: React.FC<{ onClick: () => void; label?: string }> = ({ onClick, label = 'Back' }) => (
+  <button
+    onClick={onClick}
+    className="inline-flex items-center gap-1.5 text-tea-text-sec hover:text-tea-text transition-colors mb-5"
+    aria-label="Back"
+  >
+    <Icons.Back className="w-4 h-4" />
+    <span className="text-ui-13">{label}</span>
+  </button>
+);
 
 /**
  * Entry detail. The primary surface in the destination per the brief:
@@ -84,7 +98,6 @@ const EntryDetail: React.FC<{
   const blurSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const ev = entryEvent(entry);
   const rating = entry.note.rating ?? entry.note.tasting.rating ?? 0;
 
   const commit = useCallback(() => {
@@ -126,38 +139,29 @@ const EntryDetail: React.FC<{
       transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
       className="animate-[fadeIn_0.24s_ease-out]"
     >
-      {/* Back to list */}
-      <button
-        onClick={onClose}
-        className="flex items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors mb-4"
-      >
-        <Icons.Back className="w-4 h-4" />
-        <span className="text-ui-12 uppercase tracking-[0.18em]">Tasting Journal</span>
-      </button>
+      <BackButton onClick={onClose} label="Tasting Journal" />
 
-      {/* Tea identity */}
-      <div className="mb-5">
-        <div className="flex items-start gap-3">
-          {entry.productImage ? (
-            <img src={entry.productImage} alt="" className="w-14 h-14 rounded-md object-cover shrink-0" loading="lazy" />
-          ) : (
-            <div className="w-14 h-14 rounded-md bg-tea-surface flex items-center justify-center shrink-0">
-              <span className="font-serif text-tea-gold/60 text-lg">茶</span>
+      {/* Tea identity — sensory card pattern §34 */}
+      <div className="bg-tea-surface border border-tea-border rounded-xl p-5 mb-5 flex items-start gap-4">
+        {entry.productImage ? (
+          <img src={entry.productImage} alt="" className="w-14 h-14 rounded-md object-cover shrink-0" loading="lazy" />
+        ) : (
+          <div className="w-14 h-14 rounded-md bg-tea-elevated flex items-center justify-center shrink-0">
+            <span className="font-serif text-tea-gold/60 text-ui-20">茶</span>
+          </div>
+        )}
+        <div className="min-w-0 flex-1">
+          <h3 className="h3 leading-tight">{entry.productName}</h3>
+          {entry.productType && (
+            <div className="text-ui-12 text-tea-text-dim mt-1">
+              {entry.productType}
             </div>
           )}
-          <div className="min-w-0 flex-1">
-            <h3 className="font-serif text-lg text-tea-text leading-tight">{entry.productName}</h3>
-            {entry.productType && (
-              <div className="text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec mt-1">
-                {entry.productType}
-              </div>
-            )}
-            <div className="flex items-center gap-2 mt-1.5">
-              {rating > 0 && <StarRating rating={rating} />}
-              <span className="text-ui-11 text-tea-text-sec">
-                Last touched {formatDate(entry.note.updatedAt || entry.createdAt)}
-              </span>
-            </div>
+          <div className="flex items-center gap-2 mt-2">
+            {rating > 0 && <StarRating rating={rating} />}
+            <span className="text-ui-12 text-tea-text-sec">
+              Last touched {formatDate(entry.note.updatedAt || entry.createdAt)}
+            </span>
           </div>
         </div>
       </div>
@@ -179,30 +183,31 @@ const EntryDetail: React.FC<{
             }}
             placeholder="Write your note here."
             rows={6}
-            className="w-full bg-tea-surface/60 text-tea-text font-serif italic text-ui-14 leading-relaxed rounded-md p-3 outline-none border border-tea-border focus:border-tea-gold transition-colors resize-y"
+            className="w-full bg-tea-surface text-tea-text font-body italic text-ui-14 leading-relaxed rounded-md p-3 outline-none border border-tea-border focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 transition-colors resize-y"
           />
         ) : (
           <button
             type="button"
             onClick={() => { setDraft(entry.note.personalNote ?? ''); setEditing(true); }}
-            className="w-full text-left rounded-md p-3 -mx-3 hover:bg-tea-surface/40 transition-colors"
+            className="w-full text-left rounded-md p-3 -mx-3 hover:bg-tea-accent-sub transition-colors"
           >
             {entry.note.personalNote ? (
-              <p className="font-serif italic text-ui-14 leading-relaxed text-tea-text">
+              <p className="font-body italic text-ui-14 leading-relaxed text-tea-text">
                 {entry.note.personalNote}
               </p>
             ) : (
-              <p className="font-serif italic text-ui-13 leading-relaxed text-tea-text-sec">
+              <p className="font-body italic text-ui-13 leading-relaxed text-tea-text-sec">
                 Write your note here.
               </p>
             )}
           </button>
         )}
-        <div className="mt-1 flex items-center gap-3 text-ui-11 text-tea-text-sec h-4">
+        <div className="mt-1 flex items-center gap-3 text-ui-12 text-tea-text-sec h-4">
           {editing && (
             <>
-              <button onClick={commit} className="text-tea-gold hover:text-tea-gold-lt transition-colors">Save</button>
+              {/* Cancel-left, Save-right ordering inside the inline editor */}
               <button onClick={() => { setDraft(entry.note.personalNote ?? ''); setEditing(false); }} className="text-tea-text-sec hover:text-tea-text transition-colors">Cancel</button>
+              <button onClick={commit} className="ml-auto text-tea-gold hover:text-tea-gold/80 transition-colors">Save</button>
             </>
           )}
           {!editing && savedFlash && <span className="text-tea-text-sec">Saved</span>}
@@ -215,7 +220,7 @@ const EntryDetail: React.FC<{
       {/* Past tastings list */}
       {entry.tastings.length > 1 && (
         <div className="mt-6">
-          <div className="text-ui-10 uppercase tracking-[0.18em] text-tea-text-sec mb-3" style={{ fontFamily: 'var(--font-display)' }}>
+          <div className="label-caps text-tea-text-dim mb-3">
             Past tastings
           </div>
           <div className="space-y-3 pl-3 border-l border-tea-border">
@@ -226,7 +231,7 @@ const EntryDetail: React.FC<{
                   {t.eventTitle && <span className="text-ui-11 italic text-tea-text-sec">at {t.eventTitle}</span>}
                 </div>
                 {t.reason && (
-                  <div className="font-serif italic text-tea-text mt-0.5">
+                  <div className="font-body italic text-tea-text mt-0.5">
                     "{t.reason}"
                   </div>
                 )}
@@ -237,7 +242,7 @@ const EntryDetail: React.FC<{
       )}
 
       {/* Actions footer */}
-      <div className="mt-8 pt-4 border-t border-tea-border flex items-center gap-5 text-ui-12">
+      <div className="mt-8 pt-4 border-t border-tea-border flex items-center gap-5 text-ui-13">
         <button
           onClick={() => setTastingItem({
             id: entry.productId,
@@ -245,7 +250,7 @@ const EntryDetail: React.FC<{
             type: entry.productType,
             image: entry.productImage,
           })}
-          className="text-tea-gold hover:text-tea-gold-lt transition-colors"
+          className="text-tea-text-sec hover:text-tea-text transition-colors"
         >
           Open tasting
         </button>
@@ -302,24 +307,15 @@ export const TastingJournalView: React.FC<TastingJournalViewProps> = ({ onBack, 
     return <EntryDetail entry={openEntry} onClose={() => setOpenId(null)} onOpenTea={onOpenTea} />;
   }
 
-  // Empty state
+  // Empty state — §19
   if (entries.length === 0) {
     return (
       <div className="animate-[fadeIn_0.3s_ease-out]">
-        <button
-          onClick={onBack}
-          className="flex items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors mb-6"
-        >
-          <Icons.Back className="w-4 h-4" />
-          <span className="text-ui-12 uppercase tracking-[0.18em]">Back</span>
-        </button>
-
-        <div className="flex flex-col items-center justify-center py-16">
-          <div className="w-16 h-16 rounded-full bg-tea-gold/10 flex items-center justify-center mb-4">
-            <Icons.Sparkles className="w-7 h-7 text-tea-gold/70" />
-          </div>
-          <h3 className="font-serif text-lg text-tea-text mb-2">No teas yet</h3>
-          <p className="text-sm text-tea-text-sec text-center max-w-[260px] leading-relaxed">
+        <BackButton onClick={onBack} />
+        <div className="flex flex-col items-center text-center max-w-sm mx-auto py-20 px-6">
+          <Sparkles size={28} strokeWidth={1.25} className="text-tea-text-dim" />
+          <h3 className="font-display text-ui-17 text-tea-text mt-4">No teas yet</h3>
+          <p className="text-ui-12 text-tea-text-sec leading-relaxed mt-2">
             The teas you taste will show up here. Come back to write what you noticed.
           </p>
         </div>
@@ -327,7 +323,7 @@ export const TastingJournalView: React.FC<TastingJournalViewProps> = ({ onBack, 
     );
   }
 
-  // List view
+  // List view — canonical ListShell + sensory list rows
   return (
     <AnimatePresence mode="wait">
       <motion.div
@@ -337,96 +333,80 @@ export const TastingJournalView: React.FC<TastingJournalViewProps> = ({ onBack, 
         exit={{ opacity: 0 }}
         transition={{ duration: 0.18 }}
       >
-        <button
-          onClick={onBack}
-          className="flex items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors mb-4"
-        >
-          <Icons.Back className="w-4 h-4" />
-          <span className="text-ui-12 uppercase tracking-[0.18em]">Back</span>
-        </button>
+        <BackButton onClick={onBack} />
 
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h3 className="font-serif text-lg text-tea-text">Tasting Journal</h3>
-            <span className="text-ui-12 uppercase tracking-[0.15em] text-tea-text-sec">
-              {entries.length} {entries.length === 1 ? 'tea' : 'teas'}
-            </span>
+        <div className="flex items-end justify-between mb-5 gap-3">
+          <div className="min-w-0">
+            <h3 className="h3">Tasting Journal</h3>
+            <p className="text-ui-12 text-tea-text-dim mt-0.5">
+              {entries.length} {entries.length === 1 ? 'tea' : 'teas'} kept
+            </p>
           </div>
           {unsyncedCount > 0 && (
-            <span className="inline-flex items-center gap-1.5 px-2 py-1 text-ui-11 uppercase tracking-[0.1em] bg-tea-gold/10 text-tea-gold border border-tea-gold/20 rounded">
+            <span className="inline-flex items-center gap-1.5 px-2 py-1 text-ui-11 tracking-caps bg-tea-gold/10 text-tea-gold border border-tea-gold/20 rounded shrink-0">
               <span className="w-1.5 h-1.5 rounded-full bg-tea-gold animate-pulse shrink-0" />
               {unsyncedCount} unsynced
             </span>
           )}
         </div>
 
-        {/* Entry list */}
-        <div className="border border-tea-border overflow-hidden">
-          {entries.map((entry, i) => {
+        {/* Entry list — §34 sensory list pattern: date caps + display name +
+            body excerpt. Wrapped in ListShell for canonical bordered surface. */}
+        <ListShell>
+          {entries.map((entry) => {
             const displayName = entry.productName?.trim() || 'Untitled';
             const ev = entryEvent(entry);
             const rating = entry.note.rating ?? entry.note.tasting.rating ?? 0;
             const noteText = entry.note.personalNote;
             const tastingsCount = entry.tastings.length;
+            const dateText = formatDate(entry.note.updatedAt || entry.createdAt);
+            const subMeta = [
+              entry.productType,
+              tastingsCount > 1 ? `${tastingsCount} tastings` : null,
+              ev.eventTitle ? `at ${ev.eventTitle}` : null,
+            ].filter(Boolean).join(' · ');
 
             return (
-              <button
-                key={entry.id}
-                onClick={() => setOpenId(entry.id)}
-                aria-label={`Open ${displayName}`}
-                className={`group/entry relative w-full text-left px-3 py-3 hover:bg-tea-elevated cursor-pointer transition-colors ${
-                  i < entries.length - 1 ? 'border-b border-tea-border' : ''
-                }`}
-              >
-                {/* Row 1: tea name + date */}
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0 flex-1">
-                    <h4 className="font-serif text-sm truncate text-tea-text group-hover/entry:text-tea-gold transition-colors">
-                      {displayName}
-                    </h4>
-                    <div className="flex items-center gap-1.5 text-ui-12 text-tea-text-sec mt-1">
-                      {entry.productType && <span>{entry.productType}</span>}
-                      {tastingsCount > 1 && (
-                        <>
-                          <span className="text-tea-text-sec">·</span>
-                          <span>{tastingsCount} tastings</span>
-                        </>
-                      )}
-                      {ev.eventTitle && (
-                        <>
-                          <span className="text-tea-text-sec">·</span>
-                          <span className="truncate italic">{ev.eventTitle}</span>
-                        </>
+              <li key={entry.id}>
+                <button
+                  onClick={() => setOpenId(entry.id)}
+                  aria-label={`Open ${displayName}`}
+                  className="group/entry w-full text-left px-4 md:px-6 py-4 hover:bg-tea-accent-sub transition-colors"
+                  style={{ WebkitTapHighlightColor: 'transparent' }}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      {/* Date caps — §34 label-caps */}
+                      <div className="label-caps text-tea-text-dim">{dateText}</div>
+                      {/* Tea name — font-display text-ui-15 */}
+                      <h4 className="font-display text-ui-15 text-tea-text mt-1 truncate group-hover/entry:text-tea-gold transition-colors">
+                        {displayName}
+                      </h4>
+                      {subMeta && (
+                        <div className="text-ui-12 text-tea-text-dim mt-0.5 truncate">{subMeta}</div>
                       )}
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <div className="flex flex-col items-end gap-1">
-                      <span className="text-ui-12 text-tea-text-sec whitespace-nowrap">
-                        {formatDate(entry.note.updatedAt || entry.createdAt)}
-                      </span>
-                      {rating > 0 && (
-                        <StarRating rating={rating} />
-                      )}
+                    <div className="flex items-center gap-2 shrink-0">
+                      {rating > 0 && <StarRating rating={rating} />}
+                      <Icons.ChevronRight className="w-3.5 h-3.5 text-tea-text-sec shrink-0" aria-hidden="true" />
                     </div>
-                    <Icons.ChevronRight className="w-3.5 h-3.5 text-tea-text-sec shrink-0" aria-hidden="true" />
                   </div>
-                </div>
 
-                {/* Descriptors */}
-                <DescriptorPills entry={entry} />
+                  {/* Descriptors */}
+                  <DescriptorPills entry={entry} />
 
-                {/* Personal note preview */}
-                {noteText && (
-                  <p className="text-ui-13 text-tea-text-sec mt-2 leading-relaxed line-clamp-2 italic">
-                    "{noteText}"
-                  </p>
-                )}
-              </button>
+                  {/* Personal note excerpt — body-light italic */}
+                  {noteText && (
+                    <p className="font-body italic text-ui-13 text-tea-text-sec mt-2 leading-relaxed line-clamp-2">
+                      "{noteText}"
+                    </p>
+                  )}
+                </button>
+              </li>
             );
           })}
-        </div>
+        </ListShell>
       </motion.div>
     </AnimatePresence>
   );

@@ -46,47 +46,45 @@ export const StartHerePage: React.FC = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen flex flex-col items-center pb-[calc(1rem+52px+env(safe-area-inset-bottom,0px))]">
+    <div className="min-h-screen flex flex-col items-center pb-nav-gap-lg">
       <Helmet>
         <title>Start Here — Teajia</title>
         <meta name="description" content="Find your path into Teajia — whether you're new to tea, building a practice, or running a business." />
       </Helmet>
 
       {/* Header */}
-      <div className="flex flex-col items-center pt-12 pb-8 px-6 text-center">
+      <div className="flex flex-col items-center pt-12 pb-10 px-6 text-center max-w-2xl">
         <LogoEmblem
           size={48}
           color="var(--tea-gold)"
           className="opacity-70 mb-6"
         />
-        <h1
-          className="text-tea-text text-[22px] md:text-ui-26 font-normal leading-snug tracking-[0.01em]"
-          style={{ fontFamily: 'var(--font-display)', fontWeight: 300 }}
-        >
+        <p className="label-caps text-tea-text-dim mb-3">Start here</p>
+        <h1 className="h1 mb-3">
           Where would you like to begin?
         </h1>
+        <p className="subtitle">
+          Six paths into the practice — choose the one that meets you where you are.
+        </p>
       </div>
 
-      {/* 2-column grid */}
-      <div className="w-full max-w-2xl px-4 grid grid-cols-2 gap-3">
-        {PATHS.map((path) => (
+      {/* Numbered steps list */}
+      <div className="w-full max-w-2xl px-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+        {PATHS.map((path, idx) => (
           <button
             key={path.route}
             onClick={() => navigate(path.route)}
-            className="group relative flex flex-col justify-between text-left bg-tea-surface border border-tea-border p-5 transition-all duration-200 hover:border-tea-gold/40 hover:bg-tea-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1"
-            style={{ minHeight: '100px' }}
+            className="group relative flex flex-col justify-between text-left bg-tea-surface border border-tea-border rounded-xl p-5 transition-colors duration-200 hover:border-tea-gold/40 hover:bg-tea-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1"
+            style={{ minHeight: '108px' }}
           >
             <div className="flex-1">
-              <p
-                className="text-tea-text text-ui-15 md:text-ui-16 leading-snug mb-1.5"
-                style={{ fontFamily: 'var(--font-display)', fontWeight: 300 }}
-              >
+              <p className="label-caps text-tea-readgold mb-2">
+                {String(idx + 1).padStart(2, '0')}
+              </p>
+              <p className="font-display text-ui-16 text-tea-text leading-snug mb-1.5" style={{ fontWeight: 400 }}>
                 {path.label}
               </p>
-              <p
-                className="text-tea-text-sec text-ui-12 md:text-ui-13 leading-relaxed"
-                style={{ fontFamily: 'var(--font-body)' }}
-              >
+              <p className="font-body text-ui-13 text-tea-text-sec leading-relaxed">
                 {path.desc}
               </p>
             </div>

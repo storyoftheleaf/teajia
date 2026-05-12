@@ -94,29 +94,20 @@ const LoadingState: React.FC = () => (
   <div className="min-h-screen bg-tea-bg flex items-center justify-center">
     <div className="text-center">
       <div className="w-10 h-10 rounded-full bg-tea-gold/10 mx-auto mb-4 animate-pulse" />
-      <p className="text-xs uppercase tracking-[0.2em] text-tea-text-sec animate-pulse">
-        Opening your passport
-      </p>
+      <p className="label-caps animate-pulse">Opening your passport</p>
     </div>
   </div>
 );
 
 const ErrorState: React.FC<{ message: string }> = ({ message }) => (
-  <div className="min-h-screen bg-tea-bg flex items-center justify-center px-6">
-    <div className="text-center max-w-sm">
-      <p className="text-ui-10 uppercase tracking-[0.3em] text-tea-text-sec mb-4">
-        Tea Passport
-      </p>
-      <h1 className="font-serif text-2xl text-tea-text mb-3">
-        Passport not found
-      </h1>
-      <p className="text-sm text-tea-text-sec mb-8 leading-relaxed">
-        {message}
-      </p>
-      <Link
-        to="/"
-        className="text-xs uppercase tracking-[0.2em] text-tea-text-sec hover:text-tea-gold transition-colors"
-      >
+  <div className="max-w-md mx-auto px-4 pt-12 pb-24">
+    <div className="text-center mb-8">
+      <p className="label-caps text-tea-text-dim mb-4">Tea Passport</p>
+      <h1 className="h2">Passport not found</h1>
+      <p className="subtitle mt-2">{message}</p>
+    </div>
+    <div className="text-center">
+      <Link to="/" className="link-text hover:opacity-80 transition-opacity">
         Return home
       </Link>
     </div>
@@ -293,14 +284,10 @@ const PassportPage: React.FC = () => {
           transition={{ duration: 0.5 }}
           className="mb-14"
         >
-          <p className="text-ui-10 uppercase tracking-[0.4em] text-tea-text-sec mb-5">
-            Tea Passport
-          </p>
-          <h1 className="font-serif text-4xl md:text-5xl text-tea-text font-light leading-tight mb-4">
-            {attendee.fullName}
-          </h1>
+          <p className="label-caps text-tea-text-dim mb-5">Tea Passport</p>
+          <h1 className="h1 mb-4">{attendee.fullName}</h1>
           <div className="w-8 h-[1px] bg-tea-gold mb-6" />
-          <p className="text-sm text-tea-text-sec">
+          <p className="subtitle">
             A record of gatherings attended, teas tasted, and impressions noted.
           </p>
         </motion.div>

@@ -28,13 +28,10 @@ function issueNumberFromId(id: string): string {
 function SectionLabel({ children }: { children: string }) {
   return (
     <div
-      className="border-t border-tea-border/40 pt-6 mb-8"
+      className="border-t border-tea-border pt-6 mb-8"
       style={{ marginTop: 'clamp(80px, 12vh, 128px)' }}
     >
-      <h2
-        className="text-tea-text text-ui-13"
-        style={{ fontFamily: 'var(--font-display)', fontWeight: 400, letterSpacing: '0.01em' }}
-      >
+      <h2 className="h3">
         {children}
       </h2>
     </div>
@@ -49,12 +46,8 @@ function Paragraphs({ text }: { text: string }) {
       {paras.map((p, i) => (
         <p
           key={i}
-          className="text-tea-text"
+          className="body-prose"
           style={{
-            fontFamily: 'var(--font-body)',
-            fontWeight: 400,
-            fontSize: '17px',
-            lineHeight: 1.7,
             maxWidth: '60ch',
             marginBottom: i < paras.length - 1 ? '1.5rem' : 0,
           }}
@@ -132,13 +125,9 @@ export default function ContributorProfilePage() {
   if (isError || !data) {
     return (
       <article
-        className="w-full min-h-screen flex-1 mx-auto px-4 md:px-6 lg:px-10 flex items-center justify-center"
-        style={{ maxWidth: 'min(880px, 100%)' }}
+        className="w-full min-h-screen flex-1 mx-auto px-4 md:px-6 max-w-3xl flex items-center justify-center"
       >
-        <p
-          className="text-tea-text-sec italic text-center"
-          style={{ fontFamily: 'var(--font-body)', fontSize: '15px', lineHeight: 1.6 }}
-        >
+        <p className="subtitle text-center">
           This profile is not yet on file.
         </p>
       </article>
@@ -163,8 +152,7 @@ export default function ContributorProfilePage() {
 
   return (
     <article
-      className="w-full min-h-screen flex-1 mx-auto px-4 md:px-6 lg:px-10"
-      style={{ maxWidth: 'min(880px, 100%)' }}
+      className="w-full min-h-screen flex-1 mx-auto px-4 md:px-6 max-w-3xl"
     >
       <style>{`
         @keyframes contribFade {
@@ -201,12 +189,8 @@ export default function ContributorProfilePage() {
       {/* ── Masthead ───────────────────────────────────────────────── */}
       <header className="pt-12 md:pt-20 lg:pt-24">
         <p
-          className="contrib-anim contrib-issue text-ui-11 text-tea-gold/60 uppercase"
-          style={{
-            fontFamily: 'var(--font-display)',
-            letterSpacing: '0.18em',
-            fontWeight: 400,
-          }}
+          className="contrib-anim contrib-issue label-caps text-tea-readgold/60"
+          style={{ letterSpacing: '0.18em' }}
         >
           {issueLine}
         </p>
@@ -227,7 +211,7 @@ export default function ContributorProfilePage() {
 
         {data.chinese_name && (
           <p
-            className="contrib-anim contrib-chinese text-tea-gold/70"
+            className="contrib-anim contrib-chinese text-tea-readgold/70"
             style={{
               fontFamily: CHINESE_FONT_STACK,
               fontSize: 'clamp(28px, 3.6vw, 48px)',
@@ -242,12 +226,8 @@ export default function ContributorProfilePage() {
 
         {data.location_line && (
           <p
-            className="contrib-anim contrib-loc text-tea-text-sec italic"
+            className="contrib-anim contrib-loc subtitle"
             style={{
-              fontFamily: 'var(--font-body)',
-              fontWeight: 300,
-              fontSize: '15px',
-              lineHeight: 1.6,
               maxWidth: '52ch',
               marginTop: 'clamp(32px, 5vh, 56px)',
             }}
@@ -258,13 +238,8 @@ export default function ContributorProfilePage() {
 
         {data.seasonal_line && (
           <p
-            className="contrib-anim contrib-season text-tea-text-sec"
-            style={{
-              fontFamily: 'var(--font-body)',
-              fontSize: '14px',
-              opacity: 0.75,
-              marginTop: '12px',
-            }}
+            className="contrib-anim contrib-season body-light text-ui-14"
+            style={{ marginTop: '12px' }}
           >
             {data.seasonal_line}
           </p>
@@ -274,12 +249,8 @@ export default function ContributorProfilePage() {
       {/* ── Editorial body ─────────────────────────────────────────── */}
       {!hasBody ? (
         <p
-          className="contrib-anim contrib-season text-tea-gold/50 italic"
+          className="contrib-anim contrib-season subtitle"
           style={{
-            fontFamily: 'var(--font-body)',
-            fontWeight: 300,
-            fontSize: '15px',
-            lineHeight: 1.6,
             marginTop: 'clamp(96px, 16vh, 160px)',
             marginBottom: 'clamp(64px, 10vh, 120px)',
           }}
@@ -302,15 +273,7 @@ export default function ContributorProfilePage() {
               <SectionLabel>Now</SectionLabel>
               <Paragraphs text={data.now_text} />
               {(data.now_stamp || data.now_updated_at) && (
-                <p
-                  className="text-tea-text-sec italic"
-                  style={{
-                    fontFamily: 'var(--font-display)',
-                    fontWeight: 400,
-                    fontSize: '12px',
-                    marginTop: '1rem',
-                  }}
-                >
+                <p className="label-caps text-tea-text-dim mt-4">
                   {data.now_stamp || (data.now_updated_at ? `Updated ${formatSeason(data.now_updated_at)}` : '')}
                 </p>
               )}
@@ -329,60 +292,34 @@ export default function ContributorProfilePage() {
           {data.articles.length > 0 && (
             <Reveal>
               <SectionLabel>Words</SectionLabel>
-              <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+              <ul className="divide-y divide-tea-border">
                 {data.articles.map((article) => (
                   <li key={article.slug}>
                     <a
                       href={`/article/${article.slug}`}
-                      className="group flex items-baseline gap-6 py-6 border-b border-tea-border/30 hover:border-tea-gold/40 transition-[border-color] duration-300"
+                      className="group flex items-baseline gap-6 py-5 px-2 -mx-2 rounded-md hover:bg-tea-accent-sub/40 transition-colors"
+                      style={{ textDecoration: 'none' }}
                     >
                       <div className="flex-1 min-w-0">
-                        <div
-                          className="text-tea-text-sec mb-2"
-                          style={{
-                            fontFamily: 'var(--font-display)',
-                            fontSize: '13px',
-                            fontStyle: 'italic',
-                            fontWeight: 400,
-                            letterSpacing: '0.01em',
-                          }}
-                        >
-                          {formatSeason(article.published_at)}
-                        </div>
-                        <div
-                          className="text-tea-text"
-                          style={{
-                            fontFamily: 'var(--font-body)',
-                            fontSize: '18px',
-                            fontWeight: 400,
-                            lineHeight: 1.4,
-                          }}
-                        >
+                        <div className="font-display text-ui-17 text-tea-text leading-snug" style={{ fontWeight: 400 }}>
                           {article.title}
                         </div>
                         {article.subtitle && (
-                          <div
-                            className="text-tea-text-sec mt-2"
-                            style={{
-                              fontFamily: 'var(--font-body)',
-                              fontStyle: 'italic',
-                              fontWeight: 300,
-                              fontSize: '15px',
-                              lineHeight: 1.5,
-                            }}
-                          >
+                          <div className="text-ui-13 text-tea-text-sec mt-1">
                             {article.subtitle}
                           </div>
                         )}
+                        <div className="label-caps text-tea-text-dim mt-2">
+                          {formatSeason(article.published_at)}
+                        </div>
                       </div>
                       <span
-                        className="text-tea-text-sec group-hover:text-tea-gold/80 transition-transform duration-300 group-hover:translate-x-1.5"
+                        className="text-tea-text-dim group-hover:text-tea-readgold transition-colors shrink-0"
                         aria-hidden="true"
                         style={{
                           fontFamily: 'var(--font-display)',
-                          fontSize: '20px',
+                          fontSize: 18,
                           fontWeight: 300,
-                          flex: '0 0 auto',
                         }}
                       >
                         →
@@ -397,23 +334,15 @@ export default function ContributorProfilePage() {
           {data.links.length > 0 && (
             <Reveal>
               <SectionLabel>Elsewhere</SectionLabel>
-              <p
-                style={{
-                  fontFamily: 'var(--font-body)',
-                  fontWeight: 400,
-                  fontSize: '15px',
-                  lineHeight: 1.7,
-                }}
-                className="text-tea-text"
-              >
+              <p className="body-prose text-ui-15">
                 {data.links.map((link, i) => (
                   <span key={`${link.url}-${i}`}>
-                    {i > 0 && <span className="text-tea-text-sec mx-2">·</span>}
+                    {i > 0 && <span className="text-tea-text-dim mx-2">·</span>}
                     <a
                       href={link.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="border-b border-transparent hover:border-tea-gold/40 transition-[border-color] duration-200"
+                      className="border-b border-transparent hover:border-tea-gold transition-colors"
                       style={{ color: 'inherit', textDecoration: 'none' }}
                     >
                       {link.label}
@@ -427,23 +356,13 @@ export default function ContributorProfilePage() {
           {data.closing && (
             <Reveal>
               <div
-                className="border-t border-tea-gold/20"
-                style={{ marginTop: 'clamp(80px, 12vh, 128px)' }}
-              />
-              <p
-                className="text-tea-text-sec italic"
-                style={{
-                  fontFamily: 'var(--font-body)',
-                  fontWeight: 300,
-                  fontSize: '18px',
-                  lineHeight: 1.5,
-                  maxWidth: '50ch',
-                  marginTop: 'clamp(32px, 5vh, 56px)',
-                  marginBottom: 'clamp(96px, 16vh, 160px)',
-                }}
+                className="border-l-2 border-tea-gold pl-4"
+                style={{ marginTop: 'clamp(80px, 12vh, 128px)', marginBottom: 'clamp(96px, 16vh, 160px)' }}
               >
-                {data.closing}
-              </p>
+                <p className="subtitle text-ui-17" style={{ maxWidth: '50ch' }}>
+                  {data.closing}
+                </p>
+              </div>
             </Reveal>
           )}
         </>

@@ -31,65 +31,97 @@ const InterestCapture: React.FC<InterestCaptureProps> = ({ slug, className = '' 
 
   if (submitted) {
     return (
-      <div className={`flex items-center gap-2 text-tea-text-sec text-sm animate-[fadeIn_0.4s_ease-out] ${className}`}>
-        <Check className="w-4 h-4 text-tea-gold shrink-0" />
-        <span>We'll let you know.</span>
+      <div
+        className={`flex items-center gap-2.5 px-4 py-3 rounded-md bg-tea-gold/10 border border-tea-gold/20 animate-[fadeIn_0.4s_ease-out] ${className}`}
+      >
+        <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-tea-gold/15 shrink-0">
+          <Check className="w-3.5 h-3.5 text-tea-gold" />
+        </span>
+        <span className="label-caps text-tea-text-sec">We'll let you know.</span>
       </div>
     );
   }
 
   return (
-    <div className={className}>
-      {/* Method toggle */}
-      <div className="flex gap-2 mb-3">
-        <button
-          type="button"
-          onClick={() => setMethod('whatsapp')}
-          className={`px-3 py-1.5 text-xs rounded-sm transition-colors ${
-            method === 'whatsapp'
-              ? 'bg-tea-gold/10 text-tea-gold'
-              : 'bg-tea-surface text-tea-text-sec hover:text-tea-text'
-          }`}
-        >
-          WhatsApp
-        </button>
-        <button
-          type="button"
-          onClick={() => setMethod('email')}
-          className={`px-3 py-1.5 text-xs rounded-sm transition-colors ${
-            method === 'email'
-              ? 'bg-tea-gold/10 text-tea-gold'
-              : 'bg-tea-surface text-tea-text-sec hover:text-tea-text'
-          }`}
-        >
-          Email
-        </button>
+    <div className={`space-y-3 ${className}`}>
+      {/* Method toggle — bottom-border underline style */}
+      <div className="flex gap-6 border-b border-tea-border">
+        {(['whatsapp', 'email'] as ContactMethod[]).map((m) => {
+          const isActive = method === m;
+          return (
+            <button
+              key={m}
+              type="button"
+              onClick={() => setMethod(m)}
+              className={`relative -mb-px pb-2 pt-1 transition-colors ${
+                isActive ? 'text-tea-text' : 'text-tea-text-sec hover:text-tea-text'
+              }`}
+            >
+              <span className="text-ui-12 font-semibold">
+                {m === 'whatsapp' ? 'WhatsApp' : 'Email'}
+              </span>
+              <span
+                className={`absolute left-0 right-0 -bottom-px h-px transition-colors ${
+                  isActive ? 'bg-tea-gold' : 'bg-transparent'
+                }`}
+              />
+            </button>
+          );
+        })}
       </div>
 
-      <div className="flex gap-2">
+      {/* Optional name */}
+      <div>
+        <label
+          htmlFor={`interest-name-${slug}`}
+          className="label-caps block mb-1.5"
+        >
+          Your name <span className="normal-case tracking-normal text-tea-text-dim">(optional)</span>
+        </label>
         <input
+          id={`interest-name-${slug}`}
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="So we know who to greet"
+          autoComplete="name"
+          className="w-full px-3 py-2.5 bg-tea-surface border border-tea-border rounded-md text-tea-text text-ui-14 placeholder:text-tea-text-dim focus:outline-none focus:border-tea-gold/50 transition-colors"
+        />
+      </div>
+
+      {/* Contact field */}
+      <div>
+        <label
+          htmlFor={`interest-contact-${slug}`}
+          className="label-caps block mb-1.5"
+        >
+          {method === 'whatsapp' ? 'WhatsApp number' : 'Email address'}
+        </label>
+        <input
+          id={`interest-contact-${slug}`}
           type={method === 'email' ? 'email' : 'tel'}
           value={contact}
           onChange={(e) => setContact(e.target.value)}
-          placeholder={method === 'email' ? 'your@email.com' : '0912-345-678'}
-          className="flex-1 px-3 py-2.5 bg-tea-surface border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-sec/50 focus:outline-none focus:border-tea-gold/50 transition-colors"
+          placeholder={method === 'email' ? 'your@email.com' : '+1 555 123 4567'}
+          className="w-full px-3 py-2.5 bg-tea-surface border border-tea-border rounded-md text-tea-text text-ui-14 placeholder:text-tea-text-dim focus:outline-none focus:border-tea-gold/50 transition-colors"
         />
-        <button
-          type="button"
-          disabled={!isValid || mutation.isPending}
-          onClick={() => mutation.mutate()}
-          className="px-4 py-2.5 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.15em] rounded-sm hover:bg-tea-gold/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
-        >
-          {mutation.isPending ? (
-            <span className="inline-block w-3.5 h-3.5 border-2 border-tea-border border-t-tea-gold rounded-full animate-spin" />
-          ) : (
-            'Notify Me'
-          )}
-        </button>
       </div>
 
+      <button
+        type="button"
+        disabled={!isValid || mutation.isPending}
+        onClick={() => mutation.mutate()}
+        className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+      >
+        {mutation.isPending ? (
+          <span className="inline-block w-3.5 h-3.5 border-2 border-tea-bg/40 border-t-tea-bg rounded-full animate-spin" />
+        ) : (
+          'Express interest'
+        )}
+      </button>
+
       {mutation.isError && (
-        <p className="text-xs text-red-400 mt-2">
+        <p className="text-ui-12 text-tea-error">
           {(mutation.error as Error)?.message || 'Something went wrong. Please try again.'}
         </p>
       )}

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { KeyRound, Loader2, Plus } from 'lucide-react';
 import { useAppStore } from '../../lib/store';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 
@@ -60,8 +61,9 @@ export const MCPTokensView: React.FC = () => {
   return (
     <div className="px-4 md:px-6 pt-6 pb-nav-gap max-w-3xl mx-auto">
       <header className="mb-10">
-        <h1 className={`${TYPOGRAPHY_CLASSES.h2} text-tea-text mb-2`}>Voice & agent access (MCP)</h1>
-        <p className="text-tea-text-sec text-ui-14 leading-[1.6] max-w-xl">
+        <h1 className={`${TYPOGRAPHY_CLASSES.h2} text-tea-text`}>Voice & agent access</h1>
+        <div className="label-caps text-tea-text-dim mt-2">MCP · Owner-tier access</div>
+        <p className="text-tea-text-sec text-ui-14 leading-[1.6] max-w-xl mt-4">
           Mint a token to connect Claude desktop, Claude mobile, or any MCP-compatible
           client to this account&apos;s inventory. Tools cover tea search, stock adjustments,
           customer lookup, and creating filled invoices — every mutating action requires
@@ -71,11 +73,11 @@ export const MCPTokensView: React.FC = () => {
       </header>
 
       {error && (
-        <div className="mb-6 text-tea-text-sec italic text-ui-14">{error}</div>
+        <div className="mb-6 text-tea-error text-ui-13">{error}</div>
       )}
 
       {justMinted && (
-        <div className="mb-8 border border-tea-gold/40 bg-tea-gold-lt/30 p-4 rounded">
+        <div className="mb-8 border border-tea-gold/40 bg-tea-gold/10 p-4 rounded-xl">
           <div className="text-tea-text font-display mb-2">New token: {justMinted.label}</div>
           <p className="text-tea-text-sec text-ui-13 leading-[1.5] mb-3">
             Copy this now — you won&apos;t see it again. If you lose it, revoke and mint a new one.
@@ -85,14 +87,14 @@ export const MCPTokensView: React.FC = () => {
             <button
               type="button"
               onClick={() => { navigator.clipboard?.writeText(justMinted.token); }}
-              className="text-tea-gold hover:text-tea-text text-ui-13 font-display"
+              className="text-tea-readgold hover:text-tea-gold-lt text-ui-13 transition-colors"
             >
               Copy to clipboard
             </button>
             <button
               type="button"
               onClick={() => setJustMinted(null)}
-              className="text-tea-text-sec hover:text-tea-text text-ui-13 font-display ml-auto"
+              className="text-tea-text-sec hover:text-tea-text text-ui-13 transition-colors ml-auto"
             >
               I&apos;ve saved it
             </button>
@@ -101,18 +103,22 @@ export const MCPTokensView: React.FC = () => {
       )}
 
       {tokens === null && !error && (
-        <div className="text-tea-text-sec italic text-ui-14">Loading tokens.</div>
+        <div className="flex items-center justify-center py-12 text-tea-text-dim">
+          <Loader2 size={20} className="animate-spin" />
+        </div>
       )}
 
       {tokens !== null && (
         <div>
-          <div className="text-tea-text-sec text-ui-11 uppercase tracking-[0.12em] mb-4">
-            Tokens
-          </div>
+          <div className="label-caps text-tea-text-dim mb-4">Tokens</div>
 
           {tokens.length === 0 && (
-            <div className="text-tea-text-sec text-ui-14 italic mb-6">
-              No tokens yet. Mint one to start using voice control.
+            <div className="flex flex-col items-center text-center max-w-sm mx-auto py-12 px-6">
+              <KeyRound size={28} strokeWidth={1.25} className="text-tea-text-dim mb-3" />
+              <div className="font-display text-ui-17 text-tea-text">No tokens yet</div>
+              <p className="text-ui-12 text-tea-text-sec leading-relaxed mt-2">
+                Mint one to start using voice control through Claude.
+              </p>
             </div>
           )}
 
@@ -125,9 +131,10 @@ export const MCPTokensView: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setShowMint(true)}
-                className="text-tea-text-sec hover:text-tea-gold transition-colors text-ui-14 font-display"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 active:bg-tea-gold/80 transition-colors"
               >
-                Mint a new token
+                <Plus size={13} />
+                <span>Mint a new token</span>
               </button>
             ) : (
               <MintForm
@@ -221,7 +228,7 @@ const TokenRowView: React.FC<TokenRowViewProps> = ({ row, onChange }) => {
                 type="button"
                 disabled={busy}
                 onClick={() => setConfirming(true)}
-                className="text-tea-text-sec hover:text-tea-text text-ui-13 font-display"
+                className="text-tea-text-sec hover:text-tea-text text-ui-13 transition-colors"
               >
                 Revoke
               </button>
@@ -230,7 +237,7 @@ const TokenRowView: React.FC<TokenRowViewProps> = ({ row, onChange }) => {
                 <button
                   type="button"
                   onClick={() => setConfirming(false)}
-                  className="text-tea-text-sec hover:text-tea-text text-ui-13 font-display"
+                  className="text-tea-text-sec hover:text-tea-text text-ui-13 transition-colors"
                 >
                   Cancel
                 </button>
@@ -238,7 +245,7 @@ const TokenRowView: React.FC<TokenRowViewProps> = ({ row, onChange }) => {
                   type="button"
                   disabled={busy}
                   onClick={revoke}
-                  className="text-tea-gold hover:text-tea-text text-ui-13 font-display"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-error text-tea-bg text-xs font-semibold hover:bg-tea-error/90 active:bg-tea-error/80 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   Confirm revoke
                 </button>
@@ -247,7 +254,7 @@ const TokenRowView: React.FC<TokenRowViewProps> = ({ row, onChange }) => {
           </div>
         )}
       </div>
-      {error && <div className="text-tea-text-sec italic text-ui-12 mt-2">{error}</div>}
+      {error && <div className="text-tea-error text-ui-12 mt-2">{error}</div>}
     </div>
   );
 };
@@ -287,7 +294,7 @@ const MintForm: React.FC<MintFormProps> = ({ onCancel, onMinted }) => {
 
   return (
     <form onSubmit={submit}>
-      <label className="block text-tea-text-sec text-ui-12 uppercase tracking-[0.12em] mb-2">
+      <label className="label-caps text-tea-text-dim mb-2 block">
         Label
       </label>
       <input
@@ -295,25 +302,26 @@ const MintForm: React.FC<MintFormProps> = ({ onCancel, onMinted }) => {
         value={label}
         onChange={e => setLabel(e.target.value)}
         placeholder="e.g. Claude desktop on MBP"
-        className="w-full bg-tea-bg border border-tea-border text-tea-text px-3 py-2 text-ui-14 mb-3"
+        className="w-full bg-tea-bg border border-tea-border rounded-md text-tea-text px-3 py-2 text-ui-14 mb-3 focus:outline-none focus:border-tea-gold/40"
         autoFocus
       />
-      {error && <div className="text-tea-text-sec italic text-ui-12 mb-3">{error}</div>}
+      {error && <div className="text-tea-error text-ui-12 mb-3">{error}</div>}
       <div className="flex justify-between items-center">
         <button
           type="button"
           onClick={onCancel}
           disabled={busy}
-          className="text-tea-text-sec hover:text-tea-text text-ui-13 font-display"
+          className="text-tea-text-sec hover:text-tea-text text-ui-13 transition-colors"
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={busy || !label.trim()}
-          className="text-tea-gold hover:text-tea-text text-ui-13 font-display disabled:text-tea-text-dim"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 active:bg-tea-gold/80 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >
-          {busy ? 'Minting…' : 'Mint token'}
+          {busy && <Loader2 size={13} className="animate-spin" />}
+          <span>{busy ? 'Minting…' : 'Mint token'}</span>
         </button>
       </div>
     </form>

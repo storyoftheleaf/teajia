@@ -9,11 +9,11 @@ import { fmtDollars, fmtPct, fmtNum } from '../../utils/formatNumber';
 import { api } from '../../lib/api';
 
 const TooltipWrapper = (props: TooltipProps<number, string>) => (
-    <RechartsTooltip 
+    <RechartsTooltip
         {...props}
-        contentStyle={{ backgroundColor: '#141210', borderColor: '#26221D', color: '#E8E3D9', fontSize: '12px', borderRadius: '8px' }}
-        itemStyle={{ color: '#E8E3D9' }}
-        cursor={{fill: '#26221D', opacity: 0.4}}
+        contentStyle={{ backgroundColor: 'var(--tea-bg)', borderColor: 'var(--tea-surface)', color: 'var(--tea-text)', fontSize: '12px', borderRadius: '8px' }}
+        itemStyle={{ color: 'var(--tea-text)' }}
+        cursor={{ fill: 'var(--tea-surface)', opacity: 0.4 }}
     />
 );
 
@@ -145,7 +145,7 @@ export const DashboardView = ({ products = [], isLoading }: { products?: Product
   }, [customers]);
 
   if (isLoading || !metrics) {
-    return <div className="p-12 text-center text-tea-text-sec flex justify-center items-center"><Loader2 className="animate-spin mr-2" /> Analyzing financial data...</div>;
+    return <div className="p-12 text-center text-tea-text-sec flex justify-center items-center text-ui-13"><Loader2 className="animate-spin mr-2" size={18} /> Analyzing financial data...</div>;
   }
 
   // Colors
@@ -154,45 +154,45 @@ export const DashboardView = ({ products = [], isLoading }: { products?: Product
 
   return (
     <>
-    <div className="sticky top-0 z-dropdown bg-tea-bg/90 backdrop-blur-md border-b border-tea-border flex-shrink-0 flex items-center h-16 px-4 md:px-6 lg:px-10">
-      <h1 className="font-serif font-normal text-2xl lg:text-3xl text-tea-text leading-tight tracking-[0.02em]" style={{ fontFamily: 'var(--font-display)' }}>Dashboard</h1>
+    <div className="sticky top-0 z-sticky bg-tea-bg/90 backdrop-blur-md border-b border-tea-border flex-shrink-0 flex items-center h-16 px-4 md:px-6 lg:px-10">
+      <h1 className="h2 text-tea-text">Dashboard</h1>
     </div>
-    <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-6 md:space-y-8 pb-24">
+    <div className="px-4 md:px-6 lg:px-10 pt-6 max-w-7xl mx-auto space-y-6 md:space-y-8 pb-nav-gap-lg">
 
       {/* KPI Cards — horizontal scroll on mobile, grid on desktop */}
       <div className="flex md:grid md:grid-cols-3 gap-3 md:gap-6 overflow-x-auto pb-2 md:pb-0 snap-x snap-mandatory -mx-4 px-4 md:mx-0 md:px-0">
-        <div className="bg-tea-surface border border-tea-border p-5 md:p-8 rounded-lg relative overflow-hidden group hover:border-tea-gold/30 transition-colors duration-200 min-w-[260px] md:min-w-0 snap-center flex-shrink-0 md:flex-shrink">
-          <div className="absolute top-0 right-0 p-4 md:p-6 opacity-5 group-hover:opacity-10 transition-opacity text-tea-gold">
+        <div className="bg-tea-surface border border-tea-border p-5 md:p-8 rounded-xl relative overflow-hidden min-w-[260px] md:min-w-0 snap-center flex-shrink-0 md:flex-shrink">
+          <div className="absolute top-0 right-0 p-4 md:p-6 opacity-5 text-tea-gold">
              <DollarSign size={60} strokeWidth={1} className="md:w-20 md:h-20" />
           </div>
-          <p className="text-tea-text-sec text-ui-10 md:text-xs uppercase tracking-[0.2em] mb-2 md:mb-4 font-bold">Total Asset Cost</p>
-          <h3 className="text-2xl md:text-5xl font-serif font-light text-tea-text num">{fmtDollars(metrics.totalCostUSD)}</h3>
-          <p className="text-ui-10 md:text-xs text-tea-text-sec/70 mt-2 md:mt-4 num">Capital deployed</p>
+          <p className="label-caps text-tea-text-dim mb-2 md:mb-4">Total Asset Cost</p>
+          <h3 className="font-display font-light text-tea-text num text-ui-28 md:text-[44px] leading-tight">{fmtDollars(metrics.totalCostUSD)}</h3>
+          <p className="text-ui-11 md:text-ui-12 text-tea-text-sec mt-2 md:mt-4 num">Capital deployed</p>
         </div>
 
-        <div className="bg-tea-surface border border-tea-border p-5 md:p-8 rounded-lg relative overflow-hidden group hover:border-tea-gold/30 transition-colors duration-200 min-w-[260px] md:min-w-0 snap-center flex-shrink-0 md:flex-shrink">
-          <div className="absolute top-0 right-0 p-4 md:p-6 opacity-5 group-hover:opacity-10 transition-opacity text-tea-gold">
+        <div className="bg-tea-surface border border-tea-border p-5 md:p-8 rounded-xl relative overflow-hidden min-w-[260px] md:min-w-0 snap-center flex-shrink-0 md:flex-shrink">
+          <div className="absolute top-0 right-0 p-4 md:p-6 opacity-5 text-tea-gold">
              <PieIcon size={60} strokeWidth={1} className="md:w-20 md:h-20" />
           </div>
-          <p className="text-tea-text-sec text-ui-10 md:text-xs uppercase tracking-[0.2em] mb-2 md:mb-4 font-bold">Retail Valuation</p>
-          <h3 className="text-2xl md:text-5xl font-serif font-light text-tea-text num">{fmtDollars(metrics.totalRetailUSD)}</h3>
-          <p className="text-ui-10 md:text-xs text-tea-text-sec/70 mt-2 md:mt-4 num">At current prices</p>
+          <p className="label-caps text-tea-text-dim mb-2 md:mb-4">Retail Valuation</p>
+          <h3 className="font-display font-light text-tea-text num text-ui-28 md:text-[44px] leading-tight">{fmtDollars(metrics.totalRetailUSD)}</h3>
+          <p className="text-ui-11 md:text-ui-12 text-tea-text-sec mt-2 md:mt-4 num">At current prices</p>
         </div>
 
-        <div className="bg-tea-surface border border-tea-border p-5 md:p-8 rounded-lg relative overflow-hidden group hover:border-tea-gold/30 transition-colors duration-200 min-w-[260px] md:min-w-0 snap-center flex-shrink-0 md:flex-shrink">
-          <p className="text-tea-text-sec text-ui-10 md:text-xs uppercase tracking-[0.2em] mb-2 md:mb-4 font-bold">Unrealized P&L</p>
-          <h3 className="text-2xl md:text-5xl font-serif font-light text-tea-gold num">+{fmtDollars(metrics.potentialProfit)}</h3>
-          <p className="text-ui-10 md:text-xs text-tea-text-sec/70 mt-2 md:mt-4 num">Margin: {fmtPct(metrics.totalCostUSD > 0 ? (metrics.potentialProfit / metrics.totalCostUSD) * 100 : 0)}</p>
+        <div className="bg-tea-surface border border-tea-border p-5 md:p-8 rounded-xl relative overflow-hidden min-w-[260px] md:min-w-0 snap-center flex-shrink-0 md:flex-shrink">
+          <p className="label-caps text-tea-text-dim mb-2 md:mb-4">Unrealized P&L</p>
+          <h3 className="font-display font-light text-tea-gold num text-ui-28 md:text-[44px] leading-tight">+{fmtDollars(metrics.potentialProfit)}</h3>
+          <p className="text-ui-11 md:text-ui-12 text-tea-text-sec mt-2 md:mt-4 num">Margin: {fmtPct(metrics.totalCostUSD > 0 ? (metrics.potentialProfit / metrics.totalCostUSD) * 100 : 0)}</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
 
         {/* CHART 1: Currency Exposure */}
-        <div className="bg-tea-surface border border-tea-border p-5 md:p-8 rounded-lg h-72 md:h-96">
+        <div className="bg-tea-surface border border-tea-border p-5 md:p-8 rounded-xl h-72 md:h-96">
           <div className="flex justify-between items-center mb-4 md:mb-6">
-            <h4 className="text-sm font-medium text-tea-text font-serif">Capital Exposure by Currency</h4>
-            <div className="text-ui-10 md:text-xs text-tea-text-sec uppercase tracking-wider">USD Equiv.</div>
+            <h4 className="h3 text-tea-text">Capital Exposure by Currency</h4>
+            <div className="label-caps text-tea-text-dim">USD Equiv.</div>
           </div>
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
@@ -227,25 +227,25 @@ export const DashboardView = ({ products = [], isLoading }: { products?: Product
         </div>
 
         {/* CHART 2: Live Exchange Rates */}
-        <div className="bg-tea-surface border border-tea-border p-5 md:p-8 rounded-lg h-auto md:h-96 flex flex-col">
+        <div className="bg-tea-surface border border-tea-border p-5 md:p-8 rounded-xl h-auto md:h-96 flex flex-col">
           <div className="flex justify-between items-center mb-4 md:mb-6">
             <div>
-              <h4 className="text-sm font-medium text-tea-text font-serif">Live Exchange Rates</h4>
-              <div className="text-ui-10 md:text-xs text-tea-text-sec uppercase tracking-wider">Base: 1 USD</div>
+              <h4 className="h3 text-tea-text">Live Exchange Rates</h4>
+              <div className="label-caps text-tea-text-dim">Base: 1 USD</div>
             </div>
-            <div className="text-ui-10 md:text-xs text-tea-gold bg-tea-gold/10 px-2 py-1 rounded-full flex items-center gap-1 border border-tea-border">
+            <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-ui-10 uppercase tracking-caps bg-tea-gold/10 text-tea-text ring-1 ring-inset ring-tea-gold/40">
               <span className="w-1.5 h-1.5 rounded-full bg-tea-gold animate-pulse"></span>
               Live
             </div>
           </div>
           <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 md:pr-2 space-y-2 md:space-y-3">
             {rates.filter(r => r.currency !== 'USD' && r.currency !== 'UNK').map(rate => (
-              <div key={rate.currency} className="flex justify-between items-center p-2.5 md:p-3 bg-tea-bg/50 border border-tea-border rounded-lg">
+              <div key={rate.currency} className="flex justify-between items-center p-2.5 md:p-3 bg-tea-bg/50 border border-tea-border rounded-md">
                 <div className="flex items-center gap-2 md:gap-3">
-                  <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-tea-surface border border-tea-border flex items-center justify-center text-ui-10 md:text-xs font-bold text-tea-text-sec">
+                  <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-tea-elevated text-tea-text-sec font-display flex items-center justify-center text-ui-11">
                     {rate.currency}
                   </div>
-                  <span className="text-xs md:text-sm text-tea-text font-medium">
+                  <span className="text-ui-13 md:text-ui-14 text-tea-text">
                     {rate.currency === 'NT' ? 'TWD' :
                      rate.currency === 'Yuan' ? 'CNY' :
                      rate.currency === 'IDR' ? 'IDR' :
@@ -261,8 +261,8 @@ export const DashboardView = ({ products = [], isLoading }: { products?: Product
                   </span>
                 </div>
                 <div className="text-right">
-                  <div className="num text-tea-text text-sm md:text-base">{fmtNum(rate.rateToUSD)}</div>
-                  <div className="text-ui-10 md:text-xs text-tea-text-sec">per USD</div>
+                  <div className="num text-tea-text text-ui-14 md:text-ui-16">{fmtNum(rate.rateToUSD)}</div>
+                  <div className="text-ui-11 text-tea-text-dim">per USD</div>
                 </div>
               </div>
             ))}
@@ -270,9 +270,9 @@ export const DashboardView = ({ products = [], isLoading }: { products?: Product
         </div>
 
         {/* CHART 3: Value by Region */}
-        <div className="bg-tea-surface border border-tea-border p-5 md:p-8 rounded-lg h-72 md:h-96">
+        <div className="bg-tea-surface border border-tea-border p-5 md:p-8 rounded-xl h-72 md:h-96">
           <div className="flex justify-between items-center mb-4 md:mb-6">
-            <h4 className="text-sm font-medium text-tea-text font-serif">Asset Value by Terroir</h4>
+            <h4 className="h3 text-tea-text">Asset Value by Terroir</h4>
             <MapPin className="w-4 h-4 text-tea-text-sec" />
           </div>
           <ResponsiveContainer width="100%" height="100%">
@@ -291,8 +291,8 @@ export const DashboardView = ({ products = [], isLoading }: { products?: Product
         </div>
 
         {/* CHART 4: Portfolio Composition */}
-        <div className="bg-tea-surface border border-tea-border p-5 md:p-8 rounded-lg h-72 md:h-96 lg:col-span-2">
-           <h4 className="text-sm font-medium text-tea-text font-serif mb-4 md:mb-6">Portfolio Distribution (Retail Value)</h4>
+        <div className="bg-tea-surface border border-tea-border p-5 md:p-8 rounded-xl h-72 md:h-96 lg:col-span-2">
+           <h4 className="h3 text-tea-text mb-4 md:mb-6">Portfolio Distribution (Retail Value)</h4>
            <ResponsiveContainer width="100%" height="90%">
             <BarChart data={metrics.typeValue}>
               <CartesianGrid strokeDasharray="3 3" stroke="#26221D" vertical={false} />
@@ -311,8 +311,8 @@ export const DashboardView = ({ products = [], isLoading }: { products?: Product
 
       {/* Analytics error state */}
       {analyticsError && (
-        <div className="mt-8 flex items-center gap-2 text-xs text-tea-text-sec bg-tea-surface border border-tea-border rounded-md px-4 py-3">
-          <AlertCircle className="w-3.5 h-3.5 shrink-0 text-tea-text-dim" />
+        <div className="mt-8 flex items-center gap-2 text-ui-12 text-tea-text-sec bg-tea-surface border border-tea-border rounded-md px-4 py-3">
+          <AlertCircle className="w-3.5 h-3.5 shrink-0 text-tea-error" />
           Revenue and customer analytics failed to load. Check your session or try refreshing.
         </div>
       )}
@@ -320,10 +320,10 @@ export const DashboardView = ({ products = [], isLoading }: { products?: Product
       {/* Revenue over time */}
       {revenueData && revenueData.weekly_revenue.length > 0 && (
         <div className="mt-8">
-          <div className="bg-tea-surface border border-tea-border p-5 md:p-8 rounded-lg h-64 md:h-80">
+          <div className="bg-tea-surface border border-tea-border p-5 md:p-8 rounded-xl h-64 md:h-80">
             <div className="flex items-center gap-2 mb-4 md:mb-6">
               <TrendingUp className="w-4 h-4 text-tea-gold" />
-              <h4 className="text-sm font-medium text-tea-text font-serif">Weekly Revenue (Last 6 Months)</h4>
+              <h4 className="h3 text-tea-text">Weekly Revenue (Last 6 Months)</h4>
             </div>
             <ResponsiveContainer width="100%" height="80%">
               <LineChart data={revenueData.weekly_revenue} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
@@ -344,10 +344,10 @@ export const DashboardView = ({ products = [], isLoading }: { products?: Product
 
           {/* Inventory age alerts */}
           {revenueData.inventory_age_alerts.length > 0 && (
-            <div className="mt-4 bg-tea-surface border border-tea-border rounded-lg p-5">
+            <div className="mt-4 bg-tea-surface border border-tea-border rounded-xl p-5">
               <div className="flex items-center gap-2 mb-3">
-                <AlertCircle className="w-4 h-4 text-amber-500/70" />
-                <h4 className="text-xs font-sans text-tea-text-sec uppercase tracking-wider">Inventory Not Sold in 90+ Days</h4>
+                <AlertCircle className="w-4 h-4 text-tea-error" />
+                <h4 className="label-caps text-tea-text-dim">Inventory Not Sold in 90+ Days</h4>
               </div>
               <div className="space-y-2">
                 {revenueData.inventory_age_alerts.map((p) => (
@@ -356,10 +356,10 @@ export const DashboardView = ({ products = [], isLoading }: { products?: Product
                     onClick={() => navigate(`/admin/inventory?search=${encodeURIComponent(p.product_name)}`)}
                     className="flex items-center justify-between w-full px-2 py-1.5 rounded hover:bg-tea-accent-sub transition-colors text-left group"
                   >
-                    <span className="text-sm text-tea-text group-hover:text-tea-gold transition-colors truncate">{p.product_name}</span>
+                    <span className="text-ui-14 text-tea-text group-hover:text-tea-gold transition-colors truncate">{p.product_name}</span>
                     <div className="flex items-center gap-3 shrink-0 ml-3">
-                      <span className="text-xs text-tea-text-dim num">{p.stock_grams}g in stock</span>
-                      <span className="text-ui-10 text-amber-500/70">{p.last_sold_at ? 'stale' : 'never sold'}</span>
+                      <span className="text-ui-12 text-tea-text-dim num">{p.stock_grams}g in stock</span>
+                      <span className="text-ui-10 text-tea-error">{p.last_sold_at ? 'stale' : 'never sold'}</span>
                     </div>
                   </button>
                 ))}
@@ -372,28 +372,28 @@ export const DashboardView = ({ products = [], isLoading }: { products?: Product
       {/* Customer Intelligence — RFM */}
       {(customerMetrics || rfmData) && (
         <div className="mt-8">
-          <h2 className="text-sm font-sans font-medium uppercase tracking-wider text-tea-text-sec mb-4">
+          <h2 className="label-caps text-tea-text-dim mb-4">
             Customer Intelligence
           </h2>
 
           {/* KPI cards */}
           {customerMetrics && (
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-              <div className="bg-tea-surface border border-tea-border rounded-lg p-4">
-                <p className="text-xs font-sans text-tea-text-dim uppercase tracking-wider">Total Customers</p>
-                <p className="text-2xl font-serif font-light text-tea-text mt-1 num">{customerMetrics.totalCustomers}</p>
+              <div className="bg-tea-surface border border-tea-border rounded-xl p-4">
+                <p className="label-caps text-tea-text-dim">Total Customers</p>
+                <p className="font-display font-light text-tea-text mt-1 num text-ui-26">{customerMetrics.totalCustomers}</p>
               </div>
-              <div className="bg-tea-surface border border-tea-border rounded-lg p-4">
-                <p className="text-xs font-sans text-tea-text-dim uppercase tracking-wider">Active Buyers</p>
-                <p className="text-2xl font-serif font-light text-tea-text mt-1 num">{customerMetrics.activeCustomers}</p>
+              <div className="bg-tea-surface border border-tea-border rounded-xl p-4">
+                <p className="label-caps text-tea-text-dim">Active Buyers</p>
+                <p className="font-display font-light text-tea-text mt-1 num text-ui-26">{customerMetrics.activeCustomers}</p>
               </div>
-              <div className="bg-tea-surface border border-tea-border rounded-lg p-4">
-                <p className="text-xs font-sans text-tea-text-dim uppercase tracking-wider">Total Revenue</p>
-                <p className="text-2xl font-serif font-light text-tea-gold mt-1 num">${customerMetrics.totalRevenue.toFixed(0)}</p>
+              <div className="bg-tea-surface border border-tea-border rounded-xl p-4">
+                <p className="label-caps text-tea-text-dim">Total Revenue</p>
+                <p className="font-display font-light text-tea-gold mt-1 num text-ui-26">${customerMetrics.totalRevenue.toFixed(0)}</p>
               </div>
-              <div className="bg-tea-surface border border-tea-border rounded-lg p-4">
-                <p className="text-xs font-sans text-tea-text-dim uppercase tracking-wider">Avg Order Value</p>
-                <p className="text-2xl font-serif font-light text-tea-text mt-1 num">${customerMetrics.avgOrderValue.toFixed(0)}</p>
+              <div className="bg-tea-surface border border-tea-border rounded-xl p-4">
+                <p className="label-caps text-tea-text-dim">Avg Order Value</p>
+                <p className="font-display font-light text-tea-text mt-1 num text-ui-26">${customerMetrics.avgOrderValue.toFixed(0)}</p>
               </div>
             </div>
           )}
@@ -401,10 +401,10 @@ export const DashboardView = ({ products = [], isLoading }: { products?: Product
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             {/* Top 10 by spend */}
             {rfmData && rfmData.top10.length > 0 && (
-              <div className="bg-tea-surface border border-tea-border rounded-lg p-4 lg:col-span-1">
+              <div className="bg-tea-surface border border-tea-border rounded-xl p-4 lg:col-span-1">
                 <div className="flex items-center gap-2 mb-3">
                   <DollarSign className="w-3.5 h-3.5 text-tea-gold" />
-                  <h3 className="text-xs font-sans text-tea-text-sec uppercase tracking-wider">Top by Spend</h3>
+                  <h3 className="label-caps text-tea-text-dim">Top by Spend</h3>
                 </div>
                 <div className="space-y-2">
                   {rfmData.top10.map((c, i) => (
@@ -412,9 +412,9 @@ export const DashboardView = ({ products = [], isLoading }: { products?: Product
                       className="flex items-center justify-between w-full px-1 py-1 rounded hover:bg-tea-accent-sub transition-colors text-left group">
                       <div className="flex items-center gap-2 min-w-0">
                         <span className="text-ui-10 font-mono text-tea-text-dim w-4 shrink-0">{i + 1}</span>
-                        <span className="text-sm text-tea-text group-hover:text-tea-gold transition-colors truncate">{c.name}</span>
+                        <span className="text-ui-14 text-tea-text group-hover:text-tea-gold transition-colors truncate">{c.name}</span>
                       </div>
-                      <span className="text-sm font-mono text-tea-gold shrink-0 ml-2">${c.lifetime_usd.toFixed(0)}</span>
+                      <span className="text-ui-14 font-mono text-tea-gold shrink-0 ml-2">${c.lifetime_usd.toFixed(0)}</span>
                     </button>
                   ))}
                 </div>
@@ -423,16 +423,16 @@ export const DashboardView = ({ products = [], isLoading }: { products?: Product
 
             {/* Lapsed (>90 days) */}
             {rfmData && rfmData.lapsed.length > 0 && (
-              <div className="bg-tea-surface border border-tea-border rounded-lg p-4">
+              <div className="bg-tea-surface border border-tea-border rounded-xl p-4">
                 <div className="flex items-center gap-2 mb-3">
-                  <Clock className="w-3.5 h-3.5 text-amber-500/70" />
-                  <h3 className="text-xs font-sans text-tea-text-sec uppercase tracking-wider">Lapsed · 90+ Days</h3>
+                  <Clock className="w-3.5 h-3.5 text-tea-text-sec" />
+                  <h3 className="label-caps text-tea-text-dim">Lapsed · 90+ Days</h3>
                 </div>
                 <div className="space-y-2">
                   {rfmData.lapsed.slice(0, 8).map((c) => (
                     <button key={c.id} onClick={() => navigate(`/admin/people?search=${encodeURIComponent(c.name)}`)}
                       className="flex items-center justify-between w-full px-1 py-1 rounded hover:bg-tea-accent-sub transition-colors text-left group">
-                      <span className="text-sm text-tea-text group-hover:text-tea-gold transition-colors truncate">{c.name}</span>
+                      <span className="text-ui-14 text-tea-text group-hover:text-tea-gold transition-colors truncate">{c.name}</span>
                       <span className="text-ui-10 text-tea-text-dim shrink-0 ml-2">
                         {c.last_order_at ? new Date(c.last_order_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}
                       </span>
@@ -444,17 +444,17 @@ export const DashboardView = ({ products = [], isLoading }: { products?: Product
 
             {/* New this month */}
             {rfmData && rfmData.new_this_month.length > 0 && (
-              <div className="bg-tea-surface border border-tea-border rounded-lg p-4">
+              <div className="bg-tea-surface border border-tea-border rounded-xl p-4">
                 <div className="flex items-center gap-2 mb-3">
-                  <UserPlus className="w-3.5 h-3.5 text-emerald-500/70" />
-                  <h3 className="text-xs font-sans text-tea-text-sec uppercase tracking-wider">New This Month</h3>
+                  <UserPlus className="w-3.5 h-3.5 text-tea-green" />
+                  <h3 className="label-caps text-tea-text-dim">New This Month</h3>
                 </div>
                 <div className="space-y-2">
                   {rfmData.new_this_month.slice(0, 8).map((c) => (
                     <button key={c.id} onClick={() => navigate(`/admin/people?search=${encodeURIComponent(c.name)}`)}
                       className="flex items-center justify-between w-full px-1 py-1 rounded hover:bg-tea-accent-sub transition-colors text-left group">
-                      <span className="text-sm text-tea-text group-hover:text-tea-gold transition-colors truncate">{c.name}</span>
-                      <span className="text-ui-10 text-tea-gold/70 shrink-0 ml-2">${c.lifetime_usd.toFixed(0)}</span>
+                      <span className="text-ui-14 text-tea-text group-hover:text-tea-gold transition-colors truncate">{c.name}</span>
+                      <span className="text-ui-10 text-tea-gold shrink-0 ml-2">${c.lifetime_usd.toFixed(0)}</span>
                     </button>
                   ))}
                 </div>

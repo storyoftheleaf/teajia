@@ -197,7 +197,7 @@ export const ApprovalCard: React.FC<ApprovalCardProps> = ({ attendee, onRefresh 
             type="button"
             onClick={handleApprove}
             disabled={!!loading}
-            className="flex items-center gap-1.5 text-xs bg-tea-gold/15 text-tea-gold hover:bg-tea-gold/25 px-3 py-1.5 rounded transition-colors disabled:opacity-50"
+            className="flex items-center gap-1.5 text-xs bg-tea-gold/10 text-tea-text ring-1 ring-tea-gold/40 hover:bg-tea-gold/25 px-3 py-1.5 rounded transition-colors disabled:opacity-50"
           >
             {loading === 'approve' ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}
             Approve
