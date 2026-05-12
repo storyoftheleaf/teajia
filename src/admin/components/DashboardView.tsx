@@ -9,11 +9,11 @@ import { fmtDollars, fmtPct, fmtNum } from '../../utils/formatNumber';
 import { api } from '../../lib/api';
 
 const TooltipWrapper = (props: TooltipProps<number, string>) => (
-    <RechartsTooltip 
+    <RechartsTooltip
         {...props}
-        contentStyle={{ backgroundColor: '#141210', borderColor: '#26221D', color: '#E8E3D9', fontSize: '12px', borderRadius: '8px' }}
-        itemStyle={{ color: '#E8E3D9' }}
-        cursor={{fill: '#26221D', opacity: 0.4}}
+        contentStyle={{ backgroundColor: 'var(--tea-bg)', borderColor: 'var(--tea-surface)', color: 'var(--tea-text)', fontSize: '12px', borderRadius: '8px' }}
+        itemStyle={{ color: 'var(--tea-text)' }}
+        cursor={{ fill: 'var(--tea-surface)', opacity: 0.4 }}
     />
 );
 

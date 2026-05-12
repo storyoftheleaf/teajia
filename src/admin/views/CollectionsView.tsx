@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { BookOpen, Plus, Loader2, RefreshCw, Package, Inbox, Building2 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useToast } from '../components/Toast';
+import { STATUS_PILL_STYLES } from '../constants';
 import type { CollectionListRow, CollectionStatus, InboundCollectionRow } from '../../types';
 
 type ListMode = 'mine' | 'inbound';
@@ -13,12 +14,6 @@ function formatDate(iso?: string | null): string {
   if (!iso) return '—';
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
-
-const STATUS_STYLES: Record<CollectionStatus, string> = {
-  draft:    'bg-tea-elevated text-tea-text-sec',
-  active:   'bg-tea-gold/10 text-tea-text ring-1 ring-inset ring-tea-gold/40',
-  archived: 'bg-tea-elevated text-tea-text-dim',
-};
 
 const STATUS_LABEL: Record<CollectionStatus, string> = {
   draft: 'Draft',
@@ -233,7 +228,7 @@ export const CollectionsView: React.FC = () => {
                       <h3 className="text-sm text-tea-text truncate font-display" style={{ fontWeight: 400 }}>
                         {c.title}
                       </h3>
-                      <span className={`px-2 py-0.5 rounded-full text-ui-9 uppercase tracking-[1.2px] ${STATUS_STYLES[c.status]}`}>
+                      <span className={`px-2 py-0.5 rounded-full text-ui-9 uppercase tracking-[1.2px] ${STATUS_PILL_STYLES[c.status]}`}>
                         {STATUS_LABEL[c.status]}
                       </span>
                     </div>

@@ -4,6 +4,7 @@ import { BookOpen, Plus, Loader2, RefreshCw, FileText } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useToast } from '../components/Toast';
 import { ArticleEditorModal } from '../components/ArticleEditorModal';
+import { STATUS_PILL_STYLES } from '../constants';
 import type { DbArticle } from '../../types';
 
 type TabFilter = 'all' | 'draft' | 'published';
@@ -12,12 +13,6 @@ function formatDate(iso?: string): string {
   if (!iso) return '';
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
-
-const STATUS_STYLES: Record<string, string> = {
-  draft: 'bg-tea-elevated text-tea-text-sec',
-  published: 'bg-tea-gold/10 text-tea-text ring-1 ring-inset ring-tea-gold/40',
-  archived: 'bg-tea-elevated text-tea-text-dim',
-};
 
 export const MagazineView: React.FC = () => {
   const { showToast } = useToast();
@@ -91,7 +86,7 @@ export const MagazineView: React.FC = () => {
 
         <button
           onClick={handleNewArticle}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-medium hover:bg-tea-gold/90 transition-colors shrink-0"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors shrink-0"
         >
           <Plus size={13} />
           New Article
@@ -163,7 +158,7 @@ export const MagazineView: React.FC = () => {
                       <span className="text-sm font-medium text-tea-text leading-snug group-hover:text-tea-gold transition-colors">
                         {article.title || <span className="italic text-tea-text-sec">Untitled</span>}
                       </span>
-                      <span className={`text-ui-9 uppercase tracking-[0.15em] px-2 py-0.5 rounded-full font-medium ${STATUS_STYLES[article.status] ?? STATUS_STYLES.draft}`}>
+                      <span className={`text-ui-9 uppercase tracking-[0.15em] px-2 py-0.5 rounded-full font-medium ${STATUS_PILL_STYLES[article.status] ?? STATUS_PILL_STYLES.draft}`}>
                         {article.status}
                       </span>
                       {article.category && (
