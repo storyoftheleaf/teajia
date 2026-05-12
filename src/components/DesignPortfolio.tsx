@@ -62,7 +62,7 @@ export const DesignPortfolio: React.FC<DesignPortfolioProps> = ({
 
               {/* Status Badge */}
               {project.status === 'in-progress' && (
-                <span className="absolute top-3 left-3 px-2 py-1 bg-amber-500/90 text-tea-bg text-ui-10 uppercase tracking-wider rounded">
+                <span className="absolute top-3 left-3 px-2 py-1 bg-tea-gold/90 text-tea-bg text-ui-10 uppercase tracking-wider rounded">
                   In Progress
                 </span>
               )}

@@ -128,7 +128,7 @@ export const CompareView: React.FC<CompareViewProps> = ({ entries, onClose, onRe
                       <button
                         type="button"
                         onClick={() => onRemove(entry.id)}
-                        className="float-right -mt-0.5 text-tea-text-dim hover:text-red-400 transition-colors"
+                        className="float-right -mt-0.5 text-tea-text-dim hover:text-tea-error transition-colors"
                       >
                         <X size={12} />
                       </button>

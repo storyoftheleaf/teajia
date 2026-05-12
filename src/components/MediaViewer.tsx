@@ -128,7 +128,7 @@ const ReelLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => void
     return (
       <div className="fixed inset-0 sidebar-inset bg-black z-modal">
         {/* Video Background */}
-        <div className="absolute inset-0 bg-zinc-900">
+        <div className="absolute inset-0 bg-tea-bg">
            {renderPlayer()}
         </div>
         

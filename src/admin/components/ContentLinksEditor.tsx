@@ -210,7 +210,7 @@ export const ContentLinksEditor: React.FC<ContentLinksEditorProps> = ({ products
                       <button
                         onClick={() => handleUnlink(p.id)}
                         disabled={!!busy}
-                        className="shrink-0 text-tea-text-dim hover:text-red-400 transition-colors disabled:opacity-40 p-1"
+                        className="shrink-0 text-tea-text-dim hover:text-tea-error transition-colors disabled:opacity-40 p-1"
                         title="Remove link"
                       >
                         {busy === p.id ? (

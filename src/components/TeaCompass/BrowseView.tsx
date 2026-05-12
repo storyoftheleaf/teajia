@@ -336,7 +336,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
                     <div className="flex items-center gap-2.5">
                       {verdictCounts['love'] && (
                         <span className="flex items-center gap-1 text-ui-11 text-tea-text-sec">
-                          <Heart size={10} className="text-red-400/70" fill="currentColor" /> {verdictCounts['love']}
+                          <Heart size={10} className="text-tea-error/70" fill="currentColor" /> {verdictCounts['love']}
                         </span>
                       )}
                       {verdictCounts['like'] && (
@@ -585,7 +585,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
               <button
                 type="button"
                 onClick={handleCleanup}
-                className="text-red-400 hover:text-red-300 font-medium transition-colors shrink-0"
+                className="text-tea-error hover:text-tea-error font-medium transition-colors shrink-0"
               >
                 Clean up
               </button>

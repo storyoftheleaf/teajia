@@ -39,7 +39,7 @@ export const StoryModal: React.FC<StoryModalProps> = ({ story, onClose, onRead }
         <div className="w-full md:w-1/2 bg-black flex items-center justify-center relative min-h-[300px] md:min-h-[600px]">
            {/* Media Placeholder Logic */}
            {(story.type === ContentType.Reel || story.type === ContentType.Film) && (
-             <div className="w-full h-full flex items-center justify-center bg-zinc-900 relative group">
+             <div className="w-full h-full flex items-center justify-center bg-tea-bg relative group">
                 <img src={story.thumbnailUrl} className="w-full h-full object-cover opacity-50" alt="video thumb" loading="lazy" />
                 <div className="absolute inset-0 flex items-center justify-center">
                    <div className="w-16 h-16 border border-tea-border rounded-full flex items-center justify-center hover:bg-tea-bg/10 transition-all cursor-pointer">
@@ -52,7 +52,7 @@ export const StoryModal: React.FC<StoryModalProps> = ({ story, onClose, onRead }
            )}
 
            {story.type === ContentType.Audio && (
-             <div className="w-full h-full bg-zinc-800 flex flex-col items-center justify-center p-8 relative overflow-hidden">
+             <div className="w-full h-full bg-tea-elevated flex flex-col items-center justify-center p-8 relative overflow-hidden">
                {/* Abstract Waveform */}
                <div className="flex space-x-1 h-16 items-center mb-8">
                   {[...Array(20)].map((_, i) => (

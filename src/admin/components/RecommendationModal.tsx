@@ -201,7 +201,7 @@ export const RecommendationModal: React.FC<RecommendationModalProps> = ({
                 onClick={e => { if (!whatsappUrl) e.preventDefault(); }}
                 target="_blank"
                 rel="noopener noreferrer"
-                className={`flex items-center justify-center gap-2 w-full py-2 rounded-xl bg-green-500/10 text-green-400 hover:bg-green-500/15 text-sm transition-colors ${
+                className={`flex items-center justify-center gap-2 w-full py-2 rounded-xl bg-tea-leaf/10 text-tea-leaf hover:bg-tea-leaf/15 text-sm transition-colors ${
                   !whatsappUrl ? 'pointer-events-none opacity-30' : ''
                 }`}
               >

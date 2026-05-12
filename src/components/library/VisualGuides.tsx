@@ -11,8 +11,8 @@ const ICON_MAP: Record<string, React.ReactNode> = {
 };
 
 const TYPE_COLORS: Record<string, string> = {
-  guide: 'bg-tea-green/10 dark:bg-green-500/20 text-tea-green dark:text-green-300 border border-tea-green/30 dark:border-green-400/40',
-  reference: 'bg-orange-500/10 dark:bg-orange-500/20 text-orange-700 dark:text-orange-300 border border-orange-400/30 dark:border-orange-400/40',
+  guide: 'bg-tea-green/10 dark:bg-tea-leaf/20 text-tea-green dark:text-tea-leaf border border-tea-green/30 dark:border-tea-leaf/40',
+  reference: 'bg-tea-gold/10 dark:bg-tea-gold/20 text-tea-gold dark:text-tea-gold border border-tea-gold/30 dark:border-tea-gold/40',
 };
 
 interface VisualGuidesProps {
@@ -48,7 +48,7 @@ export const VisualGuides: React.FC<VisualGuidesProps> = ({ onBack }) => {
               key={item.id}
               className="flex items-center gap-4 py-3.5 px-1 group text-left hover:bg-tea-elevated/50 transition-colors min-h-[44px]"
             >
-              <div className="w-9 h-9 rounded-sm flex items-center justify-center shrink-0 bg-tea-green/10 dark:bg-green-500/20 text-tea-green dark:text-green-400">
+              <div className="w-9 h-9 rounded-sm flex items-center justify-center shrink-0 bg-tea-green/10 dark:bg-tea-leaf/20 text-tea-green dark:text-tea-leaf">
                 <Icons.Download className="w-4 h-4" />
               </div>
               <div className="flex-1 min-w-0">
@@ -81,7 +81,7 @@ export const VisualGuides: React.FC<VisualGuidesProps> = ({ onBack }) => {
               key={item.id}
               className="group rounded-[1px] p-5 bg-tea-bg-dark/50 hover:bg-tea-bg-dark/80 transition-colors text-left min-h-[44px]"
             >
-              <div className="w-10 h-10 rounded-sm flex items-center justify-center mb-3 bg-orange-500/10 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400">
+              <div className="w-10 h-10 rounded-sm flex items-center justify-center mb-3 bg-tea-gold/10 dark:bg-tea-gold/20 text-tea-gold dark:text-tea-gold">
                 {(item.iconKey && ICON_MAP[item.iconKey]) || <Icons.Book className="w-6 h-6" />}
               </div>
               <h3 className="font-serif text-sm font-medium text-tea-text mb-1">

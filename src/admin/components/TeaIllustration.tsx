@@ -1,5 +1,6 @@
 import React from 'react';
 import { ProductType } from '../types';
+import { getTeaVividColor } from '../../designTokens';
 
 interface TeaIllustrationProps {
   type: ProductType;
@@ -7,23 +8,7 @@ interface TeaIllustrationProps {
 }
 
 export const TeaIllustration: React.FC<TeaIllustrationProps> = ({ type, className = "w-full h-full" }) => {
-  const getColor = (t: ProductType) => {
-    switch (t) {
-      case 'Green': return '#86efac'; // green-300
-      case 'Yellow': return '#fde047'; // yellow-300
-      case 'White': return '#e5e5e5'; // neutral-200
-      case 'Oolong': return '#6ee7b7'; // emerald-300
-      case 'Red': return '#fda4af'; // rose-300
-      case 'Dark': return '#a8a29e'; // stone-400
-      case 'Shou': return '#78716c'; // stone-500
-      case 'Sheng': return '#bef264'; // lime-300
-      case 'Herbal': return '#f9a8d4'; // pink-300
-      case 'Teaware': return '#fdba74'; // orange-300
-      default: return '#d4d4d8';
-    }
-  };
-
-  const color = getColor(type);
+  const color = getTeaVividColor(type);
 
   const renderPath = () => {
     switch (type) {

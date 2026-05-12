@@ -76,7 +76,7 @@ export const AccountActivityView: React.FC = () => {
               <Loader2 size={14} className="animate-spin" /> Loading activity…
             </div>
           ) : error ? (
-            <p className="py-12 text-center text-xs text-red-400">{error}</p>
+            <p className="py-12 text-center text-xs text-tea-error">{error}</p>
           ) : entries.length === 0 ? (
             <div className="py-16 text-center">
               <ShieldCheck size={20} className="text-tea-text-dim mx-auto mb-2" />

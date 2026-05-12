@@ -13,10 +13,10 @@ const ToastItem: React.FC<ToastProps> = ({ toast, onDismiss }) => {
   const { id, message, type } = toast;
 
   const bgColor = {
-    success: 'bg-green-600 dark:bg-green-700',
-    error: 'bg-red-600 dark:bg-red-700',
-    warning: 'bg-yellow-600 dark:bg-yellow-700',
-    info: 'bg-blue-600 dark:bg-blue-700',
+    success: 'bg-tea-leaf dark:bg-tea-leaf',
+    error: 'bg-tea-error dark:bg-tea-error',
+    warning: 'bg-tea-gold dark:bg-tea-gold',
+    info: 'bg-tea-elevated dark:bg-tea-elevated',
   }[type];
 
   const icon = {

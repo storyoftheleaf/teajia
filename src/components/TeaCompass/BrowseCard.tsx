@@ -583,7 +583,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
             <button
               type="button"
               onClick={() => { removeEntry(entry.id); setConfirmDelete(false); }}
-              className="flex items-center gap-1 px-2 py-1.5 rounded-md text-ui-11 font-medium bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors ml-1"
+              className="flex items-center gap-1 px-2 py-1.5 rounded-md text-ui-11 font-medium bg-tea-error/10 text-tea-error hover:bg-tea-error/20 transition-colors ml-1"
             >
               <AlertTriangle size={11} />
               Delete?
@@ -592,7 +592,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
             <button
               type="button"
               onClick={() => setConfirmDelete(true)}
-              className="p-1.5 rounded-md text-tea-text-dim hover:text-red-400 hover:bg-tea-elevated transition-colors ml-1"
+              className="p-1.5 rounded-md text-tea-text-dim hover:text-tea-error hover:bg-tea-elevated transition-colors ml-1"
               title="Delete"
             >
               <Trash2 size={12} />

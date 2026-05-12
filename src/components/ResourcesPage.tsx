@@ -216,7 +216,7 @@ export const ResourcesPage: React.FC<ResourcesPageProps> = ({ resources }) => {
                     <div className="flex justify-center mb-4">
                       <span className={`text-ui-10 uppercase tracking-wider px-3 py-1 rounded-sm ${
                         member.expertise === 'Advanced' ? 'bg-tea-gold/20 text-tea-gold border border-tea-border' :
-                        member.expertise === 'Intermediate' ? 'bg-blue-500/20 text-blue-300 border border-blue-400/40' :
+                        member.expertise === 'Intermediate' ? 'bg-tea-elevated/20 text-tea-text-sec border border-tea-border/40' :
                         'bg-tea-green/20 text-tea-green border border-tea-green/40'
                       }`}>
                         {member.expertise}

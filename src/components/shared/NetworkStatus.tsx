@@ -59,8 +59,8 @@ export const NetworkStatus = () => {
           transition={{ type: 'spring', stiffness: 400, damping: 30 }}
           className={`fixed top-0 left-0 right-0 z-toast flex items-center justify-center gap-2 px-4 py-2.5 text-xs tracking-wide ${
             isOffline
-              ? 'bg-red-950/80 text-red-200'
-              : 'bg-emerald-950/80 text-emerald-200'
+              ? 'bg-tea-error/15 text-tea-error'
+              : 'bg-tea-leaf/80 text-tea-leaf'
           }`}
         >
           {isOffline ? (

@@ -184,7 +184,7 @@ export const ApprovalCard: React.FC<ApprovalCardProps> = ({ attendee, onRefresh 
             href={whatsappNotifyUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1.5 text-xs bg-green-500/10 text-green-400 hover:bg-green-500/20 px-3 py-1.5 rounded transition-colors"
+            className="flex items-center gap-1.5 text-xs bg-tea-leaf/10 text-tea-leaf hover:bg-tea-leaf/20 px-3 py-1.5 rounded transition-colors"
           >
             <Check size={11} />
             Notify via WhatsApp

@@ -300,7 +300,7 @@ export const VendorInfoPanel: React.FC<VendorInfoPanelProps> = ({
       >
         {geoState === 'loading' ? <Loader2 size={14} className="animate-spin" /> :
          geoState === 'done' ? <Check size={14} className="text-tea-gold" /> :
-         geoState === 'error' ? <MapPin size={14} className="text-red-400" /> :
+         geoState === 'error' ? <MapPin size={14} className="text-tea-error" /> :
          <MapPin size={14} />}
         <span>
           {hasLocation ? `Location: ${d.lat!.toFixed(4)}, ${d.lng!.toFixed(4)}` :

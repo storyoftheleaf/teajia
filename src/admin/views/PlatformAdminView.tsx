@@ -669,10 +669,10 @@ const NewAccountPanel: React.FC<{ onCreated: () => void }> = ({ onCreated }) => 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
       {error && (
-        <div className="px-3 py-2.5 rounded-lg bg-red-500/10 border border-red-500/30 flex items-start gap-2">
-          <AlertTriangle size={14} className="text-red-400 shrink-0 mt-0.5" />
-          <p className="text-ui-12 text-red-300 flex-1">{error}</p>
-          <button type="button" onClick={() => setError(null)} className="text-red-300 hover:text-red-200"><X size={12} /></button>
+        <div className="px-3 py-2.5 rounded-lg bg-tea-error/10 border border-tea-error/30 flex items-start gap-2">
+          <AlertTriangle size={14} className="text-tea-error shrink-0 mt-0.5" />
+          <p className="text-ui-12 text-tea-error flex-1">{error}</p>
+          <button type="button" onClick={() => setError(null)} className="text-tea-error hover:text-tea-error"><X size={12} /></button>
         </div>
       )}
 

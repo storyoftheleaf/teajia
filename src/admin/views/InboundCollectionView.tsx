@@ -97,7 +97,7 @@ export const InboundCollectionView: React.FC = () => {
   }
   if (isError || !detail) {
     return (
-      <div className="py-20 text-center text-sm text-red-400">
+      <div className="py-20 text-center text-sm text-tea-error">
         Failed to load inbound collection.
         <button onClick={() => refetch()} className="block mx-auto mt-3 text-xs text-tea-gold underline">Retry</button>
       </div>

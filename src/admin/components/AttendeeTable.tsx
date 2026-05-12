@@ -25,8 +25,8 @@ const STATUS_LABELS: Record<AttendeeStatus, string> = {
 
 // Status chip styles — NO borders on chips per CLAUDE.md
 const STATUS_CHIPS: Record<AttendeeStatus, string> = {
-  requested: 'bg-amber-500/15 text-amber-400',
-  confirmed: 'bg-green-500/10 text-green-400',
+  requested: 'bg-tea-gold/15 text-tea-gold',
+  confirmed: 'bg-tea-leaf/10 text-tea-leaf',
   waitlist: 'bg-tea-gold/10 text-tea-gold',
   cancelled: 'bg-tea-text-sec/10 text-tea-text-sec',
   denied: 'bg-tea-text-sec/10 text-tea-text-dim line-through',
@@ -58,7 +58,7 @@ const AttendeeActions: React.FC<{
     <>
       {attendee.status === 'waitlist' && (
         <button onClick={() => onUpdate(attendee, 'confirmed')} disabled={!!loadingId}
-          className={`text-ui-10 ${px} py-1 rounded bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-colors disabled:opacity-50`}>
+          className={`text-ui-10 ${px} py-1 rounded bg-tea-leaf/10 text-tea-leaf hover:bg-tea-leaf/20 transition-colors disabled:opacity-50`}>
           Promote
         </button>
       )}
@@ -461,7 +461,7 @@ export const AttendeeTable: React.FC<AttendeeTableProps> = ({ attendees, eventId
     <div>
       {/* Count Summary */}
       <div className="flex items-center gap-4 mb-4 text-xs text-tea-text-sec flex-wrap">
-        <span className="text-green-400">{counts.confirmed} confirmed</span>
+        <span className="text-tea-leaf">{counts.confirmed} confirmed</span>
         <span className="text-tea-gold">{counts.waitlist} waitlisted</span>
         <span>{counts.cancelled} cancelled</span>
         {counts.denied > 0 && <span className="text-tea-text-dim">{counts.denied} denied</span>}
@@ -622,9 +622,9 @@ export const AttendeeTable: React.FC<AttendeeTableProps> = ({ attendees, eventId
                             <div className="flex flex-wrap gap-1 mt-1">
                               {attendee.guestRequests.map((gr, i) => (
                                 <span key={i} className={`text-ui-9 px-1.5 py-0.5 rounded-sm ${
-                                  gr.approved === true ? 'bg-green-500/10 text-green-400'
+                                  gr.approved === true ? 'bg-tea-leaf/10 text-tea-leaf'
                                   : gr.approved === false ? 'bg-tea-text-sec/10 text-tea-text-dim'
-                                  : 'bg-amber-500/10 text-amber-400'
+                                  : 'bg-tea-gold/10 text-tea-gold'
                                 }`} title={`${gr.approved === true ? 'Approved' : gr.approved === false ? 'Denied' : 'Pending'}: "${gr.nameHint}"`}>
                                   "{gr.nameHint}"
                                 </span>

@@ -585,7 +585,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
               <SheetOption
                 label="Delete"
                 hint="Remove this photo from the entry"
-                leading={<Trash2 size={18} strokeWidth={1.75} className="text-red-400" />}
+                leading={<Trash2 size={18} strokeWidth={1.75} className="text-tea-error" />}
                 onSelect={() => {
                   if (menuPhotoIndex !== null) {
                     const targetUrl = validPhotos[menuPhotoIndex];
@@ -616,7 +616,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
               <button
                 type="button"
                 onClick={() => setPendingPreviews((prev) => prev.filter((p) => p.localUrl !== preview.localUrl))}
-                className="absolute inset-0 flex items-center justify-center rounded-xl bg-red-500/20 text-red-400"
+                className="absolute inset-0 flex items-center justify-center rounded-xl bg-tea-error/20 text-tea-error"
                 aria-label="Upload failed"
               >
                 <X size={10} />

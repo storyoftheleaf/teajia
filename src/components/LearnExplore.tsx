@@ -48,25 +48,25 @@ const REFERENCE_ICONS: Record<string, React.ReactNode> = {
 };
 
 const TYPE_COLORS: Record<string, string> = {
-  guide: 'bg-tea-green/10 dark:bg-green-500/20 text-tea-green dark:text-green-300 border border-tea-green/30 dark:border-green-400/40',
-  reference: 'bg-orange-500/10 dark:bg-orange-500/20 text-orange-700 dark:text-orange-300 border border-orange-400/30 dark:border-orange-400/40',
+  guide: 'bg-tea-green/10 dark:bg-tea-leaf/20 text-tea-green dark:text-tea-leaf border border-tea-green/30 dark:border-tea-leaf/40',
+  reference: 'bg-tea-gold/10 dark:bg-tea-gold/20 text-tea-gold dark:text-tea-gold border border-tea-gold/30 dark:border-tea-gold/40',
 };
 
 const WISDOM_TYPE_COLORS: Record<string, string> = {
-  reflection: 'bg-blue-500/10 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 border border-blue-400/30',
-  tip: 'bg-green-500/10 dark:bg-green-500/20 text-green-700 dark:text-green-300 border border-green-400/30',
-  ritual: 'bg-purple-500/10 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300 border border-purple-400/30',
-  photo: 'bg-orange-500/10 dark:bg-orange-500/20 text-orange-700 dark:text-orange-300 border border-orange-400/30',
+  reflection: 'bg-tea-elevated/10 dark:bg-tea-elevated/20 text-tea-text-sec dark:text-tea-text-sec border border-tea-border/30',
+  tip: 'bg-tea-leaf/10 dark:bg-tea-leaf/20 text-tea-leaf dark:text-tea-leaf border border-tea-leaf/30',
+  ritual: 'bg-tea-readgold/10 dark:bg-tea-readgold/20 text-tea-readgold dark:text-tea-readgold border border-tea-readgold/30',
+  photo: 'bg-tea-gold/10 dark:bg-tea-gold/20 text-tea-gold dark:text-tea-gold border border-tea-gold/30',
 };
 
 // Grid tile definitions
 const GRID_TILES: { id: ExploreView; title: string; subtitle: string; icon: React.ReactNode; accentBg: string; accentText: string }[] = [
   { id: 'journeys', title: 'Tea Journeys', subtitle: `${CURATED_COLLECTIONS.length} guided paths`, icon: <Icons.Leaf className="w-8 h-8" />, accentBg: 'bg-tea-gold/10', accentText: 'text-tea-gold' },
-  { id: 'wisdom', title: 'Community Wisdom', subtitle: `${COMMUNITY_WISDOM.length} reflections`, icon: <Icons.Users className="w-8 h-8" />, accentBg: 'bg-blue-500/10 dark:bg-blue-500/20', accentText: 'text-blue-500 dark:text-blue-400' },
-  { id: 'glossary', title: 'Tea Glossary', subtitle: '58 essential terms', icon: <Icons.Book className="w-8 h-8" />, accentBg: 'bg-teal-500/10 dark:bg-teal-500/20', accentText: 'text-teal-500 dark:text-teal-400' },
-  { id: 'media', title: 'Media & Playlists', subtitle: '5 curated lists', icon: <Icons.Music className="w-8 h-8" />, accentBg: 'bg-purple-500/10 dark:bg-purple-500/20', accentText: 'text-purple-500 dark:text-purple-400' },
+  { id: 'wisdom', title: 'Community Wisdom', subtitle: `${COMMUNITY_WISDOM.length} reflections`, icon: <Icons.Users className="w-8 h-8" />, accentBg: 'bg-tea-elevated/10 dark:bg-tea-elevated/20', accentText: 'text-tea-text-sec dark:text-tea-text-sec' },
+  { id: 'glossary', title: 'Tea Glossary', subtitle: '58 essential terms', icon: <Icons.Book className="w-8 h-8" />, accentBg: 'bg-tea-leaf/10 dark:bg-tea-leaf/20', accentText: 'text-tea-leaf dark:text-tea-leaf' },
+  { id: 'media', title: 'Media & Playlists', subtitle: '5 curated lists', icon: <Icons.Music className="w-8 h-8" />, accentBg: 'bg-tea-readgold/10 dark:bg-tea-readgold/20', accentText: 'text-tea-readgold dark:text-tea-readgold' },
   { id: 'guides', title: 'Brewing Guides', subtitle: `${GUIDES.length} references`, icon: <Icons.Download className="w-8 h-8" />, accentBg: 'bg-tea-green/10', accentText: 'text-tea-green' },
-  { id: 'reference', title: 'Reference Tools', subtitle: `${REFERENCE.length} templates`, icon: <Icons.Grid className="w-8 h-8" />, accentBg: 'bg-orange-500/10 dark:bg-orange-500/20', accentText: 'text-orange-500 dark:text-orange-400' },
+  { id: 'reference', title: 'Reference Tools', subtitle: `${REFERENCE.length} templates`, icon: <Icons.Grid className="w-8 h-8" />, accentBg: 'bg-tea-gold/10 dark:bg-tea-gold/20', accentText: 'text-tea-gold dark:text-tea-gold' },
   { id: 'spaces', title: 'Tea Spaces', subtitle: `${TEA_SPACES.length} inspirations`, icon: <Icons.Palette className="w-8 h-8" />, accentBg: 'bg-tea-gold/10', accentText: 'text-tea-gold' },
 ];
 
@@ -124,9 +124,9 @@ export const LearnExplore: React.FC<LearnExploreProps> = ({ watchedStories, onNa
 
   const getWisdomCardStyle = (entry: CommunityWisdomEntry) => {
     switch (entry.type) {
-      case 'tip': return 'border-l-2 border-l-green-400/40';
-      case 'ritual': return 'bg-purple-500/[0.02] dark:bg-purple-500/[0.04]';
-      case 'photo': return 'border-l-2 border-l-orange-400/40';
+      case 'tip': return 'border-l-2 border-l-tea-leaf/40';
+      case 'ritual': return 'bg-tea-readgold/[0.02] dark:bg-tea-readgold/[0.04]';
+      case 'photo': return 'border-l-2 border-l-tea-gold/40';
       default: return '';
     }
   };
@@ -454,8 +454,8 @@ export const LearnExplore: React.FC<LearnExploreProps> = ({ watchedStories, onNa
               <div key={item.id} className="cursor-pointer">
                 <CardContainer className="hover:-translate-y-0.5 transition-all h-full">
                   <div className="p-5 flex flex-col items-center text-center">
-                    <div className="w-12 h-12 rounded-sm bg-orange-500/10 dark:bg-orange-500/20 flex items-center justify-center mb-3">
-                      <span className="text-orange-600 dark:text-orange-400">
+                    <div className="w-12 h-12 rounded-sm bg-tea-gold/10 dark:bg-tea-gold/20 flex items-center justify-center mb-3">
+                      <span className="text-tea-gold dark:text-tea-gold">
                         {REFERENCE_ICONS[item.id] || <Icons.Grid className="w-6 h-6" />}
                       </span>
                     </div>

@@ -325,7 +325,7 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
                             {/* Admin: stock indicator */}
                             {isAdmin && adminProductMap?.has(item.id) && (() => {
                               const ap = adminProductMap.get(item.id)!;
-                              const stockColor = ap.stockGrams < 2 ? 'bg-red-400' : ap.stockGrams < 5 ? 'bg-amber-400' : 'bg-emerald-400';
+                              const stockColor = ap.stockGrams < 2 ? 'bg-tea-error' : ap.stockGrams < 5 ? 'bg-tea-gold' : 'bg-tea-leaf';
                               return (
                                 <span className="hidden md:flex items-center gap-1.5" title={`${ap.stockGrams} in stock`}>
                                   <span className={`w-1.5 h-1.5 rounded-full ${stockColor}`} />

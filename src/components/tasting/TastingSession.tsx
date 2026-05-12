@@ -870,7 +870,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
               {/* Save / Cancel */}
               <div className="px-3 pb-3 pt-1.5">
                 {saveState === 'error' && (
-                  <p className="text-ui-11 text-red-400 text-center mb-1.5" style={{ fontFamily: 'var(--font-body)' }}>
+                  <p className="text-ui-11 text-tea-error text-center mb-1.5" style={{ fontFamily: 'var(--font-body)' }}>
                     Save failed — check your connection and try again
                   </p>
                 )}

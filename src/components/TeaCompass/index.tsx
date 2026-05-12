@@ -1114,7 +1114,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                 initial={{ opacity: 0, y: 4 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 4 }}
-                className="lg:hidden fixed left-0 right-0 z-20 bottom-nav text-ui-11 text-red-400 text-center px-4 py-1.5 border-t border-tea-border bg-tea-bg"
+                className="lg:hidden fixed left-0 right-0 z-20 bottom-nav text-ui-11 text-tea-error text-center px-4 py-1.5 border-t border-tea-border bg-tea-bg"
               >
                 {voiceError}
               </motion.p>
@@ -1606,7 +1606,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                       initial={{ opacity: 0, y: 4 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: 4 }}
-                      className="text-ui-11 text-red-400 text-center px-4 py-1.5 border-b border-tea-border bg-tea-bg"
+                      className="text-ui-11 text-tea-error text-center px-4 py-1.5 border-b border-tea-border bg-tea-bg"
                     >
                       {voiceError}
                     </motion.p>

@@ -306,7 +306,7 @@ const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, cla
       </div>
 
       {submitMutation.isError && (
-        <p className="text-sm text-red-400 text-center mt-3">
+        <p className="text-sm text-tea-error text-center mt-3">
           {submitMutation.error?.message || 'Failed to submit. Please try again.'}
         </p>
       )}

@@ -124,8 +124,8 @@ export const SAMPLE_GRAM_PRESETS = [5, 8, 10, 15, 20, 25, 50];
 
 // Verdict display config
 export const VERDICT_CONFIG: Record<TastingVerdict, { label: string; color: string }> = {
-  love: { label: 'Love it', color: 'text-rose-500' },
-  like: { label: 'Like it', color: 'text-emerald-500' },
+  love: { label: 'Love it', color: 'text-tea-readgold' },
+  like: { label: 'Like it', color: 'text-tea-leaf' },
   neutral: { label: 'Neutral', color: 'text-tea-text-sec' },
   pass: { label: 'Pass', color: 'text-tea-text-dim' },
 };

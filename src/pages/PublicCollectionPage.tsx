@@ -106,7 +106,7 @@ const PublicCollectionPage: React.FC = () => {
   if (status === 'error' || !data) {
     return (
       <main className="min-h-screen bg-tea-bg flex items-center justify-center px-6">
-        <p className="text-sm text-red-400">Something went wrong loading this page.</p>
+        <p className="text-sm text-tea-error">Something went wrong loading this page.</p>
       </main>
     );
   }

@@ -49,7 +49,7 @@ export const AdminToolbar: React.FC<AdminToolbarProps> = ({ collapsed: controlle
           className="flex items-center gap-1.5 shrink-0 group"
           title="Pending orders"
         >
-          <span className={`w-1.5 h-1.5 rounded-full ${stats.pendingOrders > 0 ? 'bg-amber-400 animate-pulse' : 'bg-tea-text/20'}`} />
+          <span className={`w-1.5 h-1.5 rounded-full ${stats.pendingOrders > 0 ? 'bg-tea-gold animate-pulse' : 'bg-tea-text/20'}`} />
           <span className="text-ui-10 uppercase tracking-widest text-tea-text/50 group-hover:text-tea-text/80 transition-colors">
             {stats.pendingOrders} pending
           </span>
@@ -62,7 +62,7 @@ export const AdminToolbar: React.FC<AdminToolbarProps> = ({ collapsed: controlle
           className="flex items-center gap-1.5 shrink-0 group"
           title="Low stock items"
         >
-          <span className={`w-1.5 h-1.5 rounded-full ${stats.lowStockItems > 0 ? 'bg-red-400' : 'bg-tea-text/20'}`} />
+          <span className={`w-1.5 h-1.5 rounded-full ${stats.lowStockItems > 0 ? 'bg-tea-error' : 'bg-tea-text/20'}`} />
           <span className="text-ui-10 uppercase tracking-widest text-tea-text/50 group-hover:text-tea-text/80 transition-colors">
             {stats.lowStockItems} low stock
           </span>

@@ -207,7 +207,7 @@ export const CompassShareModal: React.FC<CompassShareModalProps> = ({
                     </button>
                   </div>
                   {directMutation.isError && (
-                    <p className="text-xs text-red-400">
+                    <p className="text-xs text-tea-error">
                       {(directMutation.error as Error)?.message || 'Could not send. Check the slug and try again.'}
                     </p>
                   )}
@@ -293,7 +293,7 @@ export const CompassShareModal: React.FC<CompassShareModalProps> = ({
               )}
 
               {linkMutation.isError && (
-                <p className="text-xs text-red-400">
+                <p className="text-xs text-tea-error">
                   {(linkMutation.error as Error)?.message || 'Could not generate link. Try again.'}
                 </p>
               )}

@@ -442,7 +442,7 @@ function SampleCard({ sample, onEdit, onDelete, onStatusChange, onTaste, onGradu
         <div className="flex items-center gap-1">
           <button
             onClick={() => onDelete(sample.id)}
-            className="p-1 text-red-400 hover:text-red-300 transition-colors"
+            className="p-1 text-tea-error hover:text-tea-error transition-colors"
           >
             <Trash2 size={14} />
           </button>
@@ -457,7 +457,7 @@ function SampleCard({ sample, onEdit, onDelete, onStatusChange, onTaste, onGradu
       ) : (
         <button
           onClick={() => setConfirmDelete(true)}
-          className="p-1 text-tea-text-dim hover:text-red-400 transition-colors"
+          className="p-1 text-tea-text-dim hover:text-tea-error transition-colors"
         >
           <Trash2 size={14} />
         </button>
@@ -1183,7 +1183,7 @@ export default function SampleSetCreator({ embeddedMode }: { embeddedMode?: 'lis
                           if (!embeddedMode) setView('batches');
                         }
                       }}
-                      className="flex items-center gap-1.5 text-ui-11 text-tea-text-dim hover:text-red-400 transition-colors"
+                      className="flex items-center gap-1.5 text-ui-11 text-tea-text-dim hover:text-tea-error transition-colors"
                     >
                       <Trash2 size={12} />
                       Delete batch

@@ -24,8 +24,8 @@ interface TeaReviewsComparisonProps {
 }
 
 const VERDICT_META: Record<string, { icon: React.ComponentType<{ size?: number; className?: string }>; label: string; color: string }> = {
-  love:    { icon: Heart,     label: 'Love',    color: 'text-rose-400' },
-  like:    { icon: ThumbsUp,  label: 'Like',    color: 'text-emerald-400' },
+  love:    { icon: Heart,     label: 'Love',    color: 'text-tea-readgold' },
+  like:    { icon: ThumbsUp,  label: 'Like',    color: 'text-tea-leaf' },
   neutral: { icon: Minus,     label: 'Neutral', color: 'text-tea-text-sec' },
   pass:    { icon: X,         label: 'Pass',    color: 'text-tea-text-dim' },
 };

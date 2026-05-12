@@ -518,7 +518,7 @@ const VideoEmbed: React.FC<VideoEmbedProps> = ({ videoId, instagramId, isVertica
 
           {/* Instagram placeholder background */}
           {isInstagram && (
-            <div className="absolute inset-0 bg-gradient-to-br from-purple-600 via-pink-500 to-orange-400" />
+            <div className="absolute inset-0 bg-gradient-to-br from-tea-readgold via-tea-readgold to-tea-gold" />
           )}
 
           {/* Gradient overlay */}
@@ -1398,7 +1398,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                     <div className={`${paperBase} ${PAD.spacious} flex flex-col pt-16 bg-tea-surface`} data-page-type="text" style={OPENTYPE}>
                         <div className="flex justify-between mb-8">
                             <span className={`${FOLIO_CLASS}`}>{storyTitle || 'Field Notes'}</span>
-                            <span className={`${TYPE.micro} font-caption text-red-800/40`}>Rev. 03</span>
+                            <span className={`${TYPE.micro} font-caption text-tea-error/40`}>Rev. 03</span>
                         </div>
                         <div className="max-w-[600px] mx-auto w-full">
                             {isEditable ? (
@@ -1929,7 +1929,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                         {/* Faint horizontal ruled lines */}
                         <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: 'repeating-linear-gradient(transparent, transparent 38px, rgba(0,0,0,0.06) 38px, rgba(0,0,0,0.06) 39px)', backgroundPosition: '0 28px' }}></div>
                         {/* Red margin line */}
-                        <div className="absolute top-0 bottom-0 left-[15%] w-[1px] bg-red-300/30 pointer-events-none"></div>
+                        <div className="absolute top-0 bottom-0 left-[15%] w-[1px] bg-tea-text-dim/30 pointer-events-none"></div>
                         <div className="p-10 pl-[18%] pt-16">
                             {isEditable ? (
                                 <EditableText value={content} onChange={updateContent} className={`${TYPE.body} font-[Ma_Shan_Zheng] italic leading-[39px] opacity-70 whitespace-pre-wrap`} placeholder="Notes here..." tag="p" readOnly={readOnly} />

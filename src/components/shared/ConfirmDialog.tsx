@@ -50,7 +50,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
 
   const confirmButtonClass =
     confirmVariant === 'danger'
-      ? 'bg-red-600 hover:bg-red-700 dark:bg-red-700'
+      ? 'bg-tea-error hover:bg-tea-error dark:bg-tea-error'
       : 'bg-tea-gold hover:bg-tea-gold/90';
 
   return createPortal(

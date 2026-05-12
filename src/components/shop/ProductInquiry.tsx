@@ -146,7 +146,7 @@ export const ProductInquiry: React.FC<ProductInquiryProps> = ({ isOpen, onClose,
                   value={form.name}
                   onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                 />
-                {errors.name && <p className="text-red-400 text-xs mt-1">{errors.name}</p>}
+                {errors.name && <p className="text-tea-error text-xs mt-1">{errors.name}</p>}
               </div>
               <div>
                 <label className="block text-xs uppercase tracking-wider text-tea-text-sec mb-1.5">
@@ -159,7 +159,7 @@ export const ProductInquiry: React.FC<ProductInquiryProps> = ({ isOpen, onClose,
                   value={form.email}
                   onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
                 />
-                {errors.email && <p className="text-red-400 text-xs mt-1">{errors.email}</p>}
+                {errors.email && <p className="text-tea-error text-xs mt-1">{errors.email}</p>}
               </div>
               <div>
                 <label className="block text-xs uppercase tracking-wider text-tea-text-sec mb-1.5">

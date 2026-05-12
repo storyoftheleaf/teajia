@@ -169,7 +169,7 @@ const ShareCardPage: React.FC = () => {
               )}
             </button>
             {claimMutation.isError && (
-              <p className="text-xs text-red-400 text-center">
+              <p className="text-xs text-tea-error text-center">
                 {(claimMutation.error as Error)?.message || 'Could not save. Please try again.'}
               </p>
             )}
