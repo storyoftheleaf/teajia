@@ -1023,9 +1023,38 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
               </div>
             </div>
 
+            {/* Visibility / promotion / classification toggles.
+                  Lives directly under the identity card — these get toggled
+                  daily and shouldn't be hidden in a collapsible. Single flex-wrap
+                  row, no per-row caps labels (Visible / Promote / Classify) — the
+                  pill icons + names speak for themselves. Ordered by frequency
+                  of use: visibility → promotion → classification. */}
+            <div className="px-3 pb-3 flex flex-wrap gap-1.5">
+              <button onClick={() => handleUpdate(product.id, 'isPublic', !product.isPublic)} className={`admin-pill ${product.isPublic ? 'admin-pill-on' : ''}`} title={product.isPublic ? 'Visible in shop — click to hide' : 'Hidden — click to show in shop'}>
+                {product.isPublic ? <Eye size={10} /> : <EyeOff size={10} />} In Shop
+              </button>
+              <button onClick={() => handleUpdate(product.id, 'isFeatured', !product.isFeatured)} className={`admin-pill ${product.isFeatured ? 'admin-pill-on' : ''}`} title="Starred — promoted on collection pages">
+                <Star size={10} className={product.isFeatured ? 'fill-current' : ''} /> Starred
+              </button>
+              <button onClick={() => handleUpdate(product.id, 'isCurated', !product.isCurated)} className={`admin-pill ${product.isCurated ? 'admin-pill-on' : ''}`} title="Top Pick — featured on the storefront">
+                <Sparkles size={10} /> Top Pick
+              </button>
+              <button onClick={() => handleUpdate(product.id, 'isSample', !product.isSample)} className={`admin-pill ${product.isSample ? 'admin-pill-on' : ''}`} title="Sample-size offering">
+                <FlaskConical size={10} /> Sample
+              </button>
+              <button onClick={() => handleUpdate(product.id, 'canReorder', !product.canReorder)} className={`admin-pill ${product.canReorder ? 'admin-pill-on' : ''}`} title="Restockable when sold out">
+                <RefreshCw size={10} /> Restockable
+              </button>
+              <button onClick={() => handleUpdate(product.id, 'isPersonal', !product.isPersonal)} className={`admin-pill ${product.isPersonal ? 'admin-pill-on' : ''}`} title="Personal stock — not for sale">
+                <User size={10} /> Mine
+              </button>
+            </div>
+
             {/* 1. QUICK ENTRY. Required fields grouped on one bordered card.
-                  Identity, origin, vendor, pricing, stock, visibility all live here so a
-                  product can be entered top-to-bottom without expanding sections. */}
+                  Identity, origin, vendor, pricing, stock all live here so a
+                  product can be entered top-to-bottom without expanding sections.
+                  Visibility/promotion toggles moved out — they live in the
+                  always-visible bar above this card. */}
             <div className="admin-card mx-3 mb-3 px-4 pt-4 pb-4">
               <div className="flex items-baseline justify-between mb-4 pb-2.5 border-b border-admin-border">
                 <span className="font-sans text-ui-14 font-medium text-admin-text leading-[1.35]">Quick entry</span>
@@ -1351,34 +1380,13 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
               </div>
             </CollapsibleSection>
 
-            {/* Placement. Everything that answers "where does this product appear
-                and what does it connect to?" — visibility toggles, collections,
-                and outbound links — in one section so they're not scattered. */}
-            <CollapsibleSection title="Placement" description="Visibility, collections, and outbound links." defaultOpen={false}>
-              {/* Toggles — flat row of admin-pills, no per-row caps labels. */}
-              <div className="flex flex-wrap gap-1.5">
-                <button onClick={() => handleUpdate(product.id, 'isPublic', !product.isPublic)} className={`admin-pill ${product.isPublic ? 'admin-pill-on' : ''}`}>
-                  {product.isPublic ? <Eye size={10} /> : <EyeOff size={10} />} In Shop
-                </button>
-                <button onClick={() => handleUpdate(product.id, 'isFeatured', !product.isFeatured)} className={`admin-pill ${product.isFeatured ? 'admin-pill-on' : ''}`}>
-                  <Star size={10} className={product.isFeatured ? 'fill-current' : ''} /> Starred
-                </button>
-                <button onClick={() => handleUpdate(product.id, 'isCurated', !product.isCurated)} className={`admin-pill ${product.isCurated ? 'admin-pill-on' : ''}`}>
-                  <Sparkles size={10} /> Top Pick
-                </button>
-                <button onClick={() => handleUpdate(product.id, 'isSample', !product.isSample)} className={`admin-pill ${product.isSample ? 'admin-pill-on' : ''}`}>
-                  <FlaskConical size={10} /> Sample
-                </button>
-                <button onClick={() => handleUpdate(product.id, 'canReorder', !product.canReorder)} className={`admin-pill ${product.canReorder ? 'admin-pill-on' : ''}`}>
-                  <RefreshCw size={10} /> Restockable
-                </button>
-                <button onClick={() => handleUpdate(product.id, 'isPersonal', !product.isPersonal)} className={`admin-pill ${product.isPersonal ? 'admin-pill-on' : ''}`}>
-                  <User size={10} /> Mine
-                </button>
-              </div>
-
+            {/* Placement. Toggles moved OUT of this section to the always-visible
+                bar under the identity card. What stays here is what's actually
+                occasional: the collections this product belongs to and the
+                outbound links (encounter, orders, full story page). */}
+            <CollapsibleSection title="Placement" description="Collections and outbound links." defaultOpen={false}>
               {/* Collections — curated bundles this product is in. */}
-              <div className="mt-5 pt-4 border-t border-admin-border">
+              <div>
                 <div className="text-ui-11 text-admin-text-dim uppercase tracking-[0.06em] mb-2">Collections</div>
                 {product?.id && <ProductCollectionsSection productId={product.id} />}
               </div>
