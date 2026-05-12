@@ -109,6 +109,7 @@ import { AccountPanel } from './components/AccountPanel';
 import type { PanelView } from './components/AccountPanel/types';
 import { GlobalSearch } from './components/shared/GlobalSearch';
 import { LeftSidebar } from './components/LeftSidebar';
+import { TopPillNav } from './components/TopPillNav';
 import { BottomTabBar } from './components/BottomTabBar';
 import { MagazineTabbed } from './components/MagazineTabbed';
 import { AdvisePage } from './components/AdvisePage';
@@ -593,6 +594,15 @@ const AppContent = () => {
   const isAdminRoute = location.pathname.startsWith('/admin');
   const isFocusedShareRoute = location.pathname.startsWith('/share/');
 
+  // LeftSidebar only mounts on admin routes now, so its useEffect that sets
+  // --teajia-sidebar-w doesn't fire on public routes — reset to 0px here so
+  // sidebar-inset overlays don't get a phantom offset from the last admin visit.
+  useEffect(() => {
+    if (!isAdminRoute || isFocusedShareRoute) {
+      document.documentElement.style.setProperty('--teajia-sidebar-w', '0px');
+    }
+  }, [isAdminRoute, isFocusedShareRoute]);
+
   return (
     <div className={`${isAdminRoute ? 'h-dvh overflow-hidden' : 'min-h-dvh'} bg-tea-bg text-tea-text relative selection:bg-tea-gold selection:text-tea-bg overflow-x-hidden font-serif flex flex-col lg:flex-row transition-colors duration-300 pt-[env(safe-area-inset-top)]`}>
 
@@ -608,13 +618,40 @@ const AppContent = () => {
       {/* Pull to Refresh Indicator */}
       {!isFocusedShareRoute && <PullToRefreshIndicator pullDistance={pullDistance} isRefreshing={isRefreshing} progress={progress} />}
 
-      {/* Left Sidebar for Desktop */}
-      {!isFocusedShareRoute && (
+      {/* Desktop nav: LeftSidebar for admin tool palette, TopPillNav for
+          public/editorial routes. Different chrome for different intent —
+          the sidebar carries admin density, the pill keeps the brand stage
+          clear for the magazine and shop. Mobile uses BottomTabBar in both
+          cases (rendered below). */}
+      {!isFocusedShareRoute && isAdminRoute && (
         <LeftSidebar activeSection={activeSection} onNavigate={setActiveSection} onAccountClick={handleOpenAccount} onCartClick={handleOpenCart} onSearchClick={() => { window.dispatchEvent(new CustomEvent('dismiss-tasting-overlay')); setShowAccountModal(false); setAccountInitialView(undefined); setShowGlobalSearch(true); }} cartItemCount={cart.length} topOffset={showAdminBar} />
       )}
+      {!isFocusedShareRoute && !isAdminRoute && (
+        <TopPillNav
+          activeSection={activeSection}
+          onNavigate={setActiveSection}
+          onAccountClick={handleOpenAccount}
+          onCartClick={handleOpenCart}
+          onSearchClick={() => { window.dispatchEvent(new CustomEvent('dismiss-tasting-overlay')); setShowAccountModal(false); setAccountInitialView(undefined); setShowGlobalSearch(true); }}
+          cartItemCount={cart.length}
+          isAccountOpen={showAccountModal}
+          isSearchOpen={showGlobalSearch}
+        />
+      )}
 
-      {/* Main Content Area */}
-      <div className={`flex-1 min-w-0 min-h-0 flex flex-col relative ${isFocusedShareRoute ? 'lg:ml-0 lg:max-w-none' : sidebarCollapsed ? 'lg:ml-14 lg:max-w-[calc(100vw-3.5rem)]' : 'lg:ml-56 lg:max-w-[calc(100vw-14rem)]'} transition-[margin,max-width] duration-300`}>
+      {/* Main Content Area — admin keeps the sidebar offset; public goes
+          full-width with the pill floating above. The lg:pt-24 on public
+          desktop clears the floating pill's resting position (60px tall +
+          16px from top + breathing room); pages with hero photography can
+          opt out with a negative margin if they want the photo to extend
+          behind the pill. */}
+      <div className={`flex-1 min-w-0 min-h-0 flex flex-col relative ${
+        isFocusedShareRoute
+          ? 'lg:ml-0 lg:max-w-none'
+          : isAdminRoute
+            ? (sidebarCollapsed ? 'lg:ml-14 lg:max-w-[calc(100vw-3.5rem)]' : 'lg:ml-56 lg:max-w-[calc(100vw-14rem)]')
+            : 'lg:ml-0 lg:max-w-none lg:pt-24'
+      } transition-[margin,max-width] duration-300`}>
 
       {isAdminRoute ? (
         <Suspense fallback={<div className="flex items-center justify-center min-h-screen bg-tea-bg"><div className="w-8 h-8 border-2 border-tea-gold border-t-transparent rounded-full animate-spin" /></div>}>
