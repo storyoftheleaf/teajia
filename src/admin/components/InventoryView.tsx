@@ -447,6 +447,19 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const splitView = !!panelProduct;
   const effectiveRowHeight = splitView ? SPLIT_ROW_HEIGHT : ROW_HEIGHT;
 
+  const splitViewCols = useMemo(() => {
+    const essential = inventoryCategory === 'teaware'
+      ? new Set(['productName', 'quantityUnits', 'pricePerGramUSD', 'costAmount'])
+      : new Set(['productName', 'stockGrams', 'pricePerGramUSD', 'costPerGramUSD', 'costAmount']);
+    return visibleCols.filter(col => essential.has(col.key));
+  }, [visibleCols, inventoryCategory]);
+
+  const splitColWidth = (key: string): string => {
+    if (key === 'productName') return '';
+    if (key === 'stockGrams' || key === 'quantityUnits') return 'w-[60px]';
+    return 'w-[78px]';
+  };
+
   // Autocomplete data for the panel's product name field
   const panelNameSuggestions = useMemo(() => {
     const varieties = panelProduct ? getTeaVarietySuggestions(panelProduct.type as any) : [];
@@ -2652,7 +2665,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                       <table className="w-full table-fixed border-collapse">
                         <colgroup>
                           {splitView ? (
-                            <col />
+                            splitViewCols.map(col => <col key={col.key} className={splitColWidth(col.key)} />)
                           ) : (
                             visibleCols.map(col => <col key={col.key} className={col.defaultWidth} />)
                           )}
@@ -2670,6 +2683,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                   focusedCol={focusedCell?.row === globalIdx ? (focusedCell.col ?? null) : null}
                                   isEditMode={isEditMode}
                                   visibleCols={visibleCols}
+                                  splitViewCols={splitViewCols}
                                   splitView={splitView}
                                   rowHeight={effectiveRowHeight}
                                   isPanelOpen={panelProduct?.id === product.id}
@@ -2700,7 +2714,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             <table className="w-full table-fixed border-collapse">
                 <colgroup>
                     {splitView ? (
-                      <col /> /* auto — full name */
+                      splitViewCols.map(col => <col key={col.key} className={splitColWidth(col.key)} />)
                     ) : (
                       visibleCols.map(col => <col key={col.key} className={col.defaultWidth} />)
                     )}
@@ -2710,7 +2724,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 <thead className="sticky top-0 z-20 bg-tea-bg shadow-sm">
                     <tr>
                         {splitView ? (
-                          <SortHeader colKey={'productName' as keyof Product} label="Product" align="left" />
+                          splitViewCols.map(col => (
+                            <SortHeader key={col.key} colKey={col.key as keyof Product} label={col.label} align="left" />
+                          ))
                         ) : (
                           visibleCols.map(col => (
                             <SortHeader key={col.key} colKey={col.key as keyof Product} label={col.label} align="left" />
@@ -2732,6 +2748,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                               focusedCol={focusedCell?.row === globalIdx ? (focusedCell.col ?? null) : null}
                               isEditMode={isEditMode}
                               visibleCols={visibleCols}
+                              splitViewCols={splitViewCols}
                               splitView={splitView}
                               rowHeight={effectiveRowHeight}
                               isPanelOpen={panelProduct?.id === product.id}

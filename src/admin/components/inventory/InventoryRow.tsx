@@ -15,6 +15,7 @@ export interface InventoryRowProps {
   focusedCol: number | null;
   isEditMode: boolean;
   visibleCols: readonly ColDef[];
+  splitViewCols: readonly ColDef[];
   splitView: boolean;
   rowHeight: number;
   isPanelOpen: boolean;
@@ -33,7 +34,7 @@ export interface InventoryRowProps {
 
 function InventoryRowBase(props: InventoryRowProps) {
   const {
-    product, globalIdx, isSelected, focusedCol, isEditMode, visibleCols,
+    product, globalIdx, isSelected, focusedCol, isEditMode, visibleCols, splitViewCols,
     splitView, rowHeight, isPanelOpen, isDropdownOpen,
     onRowClick, onLongPressSelect, onProductUpdate, onSelectionAwareUpdate,
     onOpenPanel, onToggleDropdown, onStockHistory, onRestock, showToast, navigate,
@@ -260,9 +261,7 @@ function InventoryRowBase(props: InventoryRowProps) {
         onRowClick(product.id, globalIdxRef.current, e as unknown as React.MouseEvent);
       }}
     >
-      {splitView
-        ? renderCell('productName', 0)
-        : visibleCols.map((col, colIdx) => renderCell(col.key, colIdx))}
+      {(splitView ? splitViewCols : visibleCols).map((col, colIdx) => renderCell(col.key, colIdx))}
       <td className="px-1 align-middle text-right">
         <div className="flex justify-end gap-0.5" onClick={(e) => e.stopPropagation()}>
           {!isEditMode && !isSelected && (
@@ -299,6 +298,7 @@ export const InventoryRow = React.memo(InventoryRowBase, (prev, next) =>
   prev.focusedCol === next.focusedCol &&
   prev.isEditMode === next.isEditMode &&
   prev.visibleCols === next.visibleCols &&
+  prev.splitViewCols === next.splitViewCols &&
   prev.splitView === next.splitView &&
   prev.rowHeight === next.rowHeight &&
   prev.isPanelOpen === next.isPanelOpen &&
