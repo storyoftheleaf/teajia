@@ -631,9 +631,7 @@ const AppContent = () => {
           activeSection={activeSection}
           onNavigate={setActiveSection}
           onAccountClick={handleOpenAccount}
-          onCartClick={handleOpenCart}
           onSearchClick={() => { window.dispatchEvent(new CustomEvent('dismiss-tasting-overlay')); setShowAccountModal(false); setAccountInitialView(undefined); setShowGlobalSearch(true); }}
-          cartItemCount={cart.length}
           isAccountOpen={showAccountModal}
           isSearchOpen={showGlobalSearch}
         />

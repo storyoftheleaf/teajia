@@ -4,14 +4,13 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { LogoText } from './Logos';
 import { Section } from '../types';
 import { useAppStore } from '../lib/store';
+import { useLongPress } from '../hooks/useLongPress';
 
 interface TopPillNavProps {
   activeSection: Section;
   onNavigate: (section: Section) => void;
   onAccountClick?: () => void;
-  onCartClick?: () => void;
   onSearchClick?: () => void;
-  cartItemCount?: number;
   isAccountOpen?: boolean;
   isSearchOpen?: boolean;
 }
@@ -42,15 +41,30 @@ export const TopPillNav: React.FC<TopPillNavProps> = ({
   activeSection,
   onNavigate,
   onAccountClick,
-  onCartClick,
   onSearchClick,
-  cartItemCount = 0,
   isAccountOpen = false,
   isSearchOpen = false,
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { upcomingEventsCount } = useAppStore();
+
+  // Long-press center brand → admin (mirrors the mobile BottomTabBar).
+  // Tap → home; hold ~500ms → navigate to /admin.
+  const centerLongPress = useLongPress({
+    delay: 500,
+    onLongPress: () => {
+      navigate('/admin');
+    },
+    onClick: () => {
+      if (activeSection === 'HOME') {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        onNavigate('HOME');
+        navigate('/');
+      }
+    },
+  });
 
   // Auto-hide on scroll-down (reveal on scroll-up). Same UX as mobile bar.
   const [hidden, setHidden] = useState(false);
@@ -185,19 +199,14 @@ export const TopPillNav: React.FC<TopPillNavProps> = ({
 
         <div className="w-px h-4 bg-tea-border self-center flex-shrink-0" />
 
-        {/* Center — brand mark, clickable → home */}
+        {/* Center — brand mark. Click → home; long-press (500ms) → /admin.
+            Matches the mobile BottomTabBar's interaction model. */}
         <button
-          onClick={() => {
-            if (activeSection === 'HOME') {
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            } else {
-              onNavigate('HOME');
-              navigate('/');
-            }
-          }}
-          className="flex-1 h-full flex items-center justify-center transition-all duration-300"
-          title="Home"
-          aria-label="Return to home"
+          {...centerLongPress}
+          className="flex-1 h-full flex items-center justify-center transition-all duration-300 select-none"
+          style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', touchAction: 'manipulation' }}
+          title="Home · Long press to enter admin"
+          aria-label="Return to home, long press to open admin"
         >
           <span style={{ display: 'inline-block', transform: 'scale(0.95)', transformOrigin: 'center', lineHeight: 0 }}>
             <LogoText
@@ -244,35 +253,6 @@ export const TopPillNav: React.FC<TopPillNavProps> = ({
           </svg>
           {upcomingEventsCount > 0 && (
             <span className="absolute top-3 right-2 w-1.5 h-1.5 rounded-full bg-tea-gold pointer-events-none" />
-          )}
-        </button>
-
-        <div className="w-px h-4 bg-tea-border self-center flex-shrink-0" />
-
-        {/* Cart */}
-        <button
-          onClick={onCartClick}
-          className="relative w-14 flex-shrink-0 h-full flex items-center justify-center pr-2 group focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-tea-gold/50 focus-visible:outline-none transition-colors duration-300"
-          title={cartItemCount > 0 ? `Cart, ${cartItemCount} item${cartItemCount === 1 ? '' : 's'}` : 'Cart'}
-          aria-label={cartItemCount > 0 ? `Cart, ${cartItemCount} item${cartItemCount === 1 ? '' : 's'}` : 'Cart'}
-        >
-          <svg
-            viewBox="0 0 24 24"
-            className="w-5 h-5 text-tea-text-sec group-hover:text-tea-text transition-colors duration-300 pointer-events-none"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={1.6}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M3 4h2l2.4 11.2A2 2 0 0 0 9.36 17h7.84a2 2 0 0 0 1.96-1.62L21 8H6" />
-            <circle cx="10" cy="20" r="1.2" />
-            <circle cx="17" cy="20" r="1.2" />
-          </svg>
-          {cartItemCount > 0 && (
-            <span className="absolute top-2.5 right-1.5 min-w-[16px] h-4 px-1 bg-tea-gold text-tea-bg text-ui-10 font-bold rounded-full flex items-center justify-center leading-none pointer-events-none">
-              {cartItemCount > 9 ? '9+' : cartItemCount}
-            </span>
           )}
         </button>
       </div>
