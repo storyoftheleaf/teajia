@@ -201,8 +201,8 @@ const EntryDetail: React.FC<{
         <div className="mt-1 flex items-center gap-3 text-ui-11 text-tea-text-sec h-4">
           {editing && (
             <>
-              <button onClick={commit} className="text-tea-gold hover:text-tea-gold-lt transition-colors">Save</button>
               <button onClick={() => { setDraft(entry.note.personalNote ?? ''); setEditing(false); }} className="text-tea-text-sec hover:text-tea-text transition-colors">Cancel</button>
+              <button onClick={commit} className="text-tea-gold hover:text-tea-gold/80 transition-colors">Save</button>
             </>
           )}
           {!editing && savedFlash && <span className="text-tea-text-sec">Saved</span>}
@@ -215,7 +215,7 @@ const EntryDetail: React.FC<{
       {/* Past tastings list */}
       {entry.tastings.length > 1 && (
         <div className="mt-6">
-          <div className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec mb-3" style={{ fontFamily: 'var(--font-display)' }}>
+          <div className="label-caps text-tea-text-dim mb-3">
             Past tastings
           </div>
           <div className="space-y-3 pl-3 border-l border-tea-border">
@@ -226,7 +226,7 @@ const EntryDetail: React.FC<{
                   {t.eventTitle && <span className="text-ui-11 italic text-tea-text-sec">at {t.eventTitle}</span>}
                 </div>
                 {t.reason && (
-                  <div className="font-serif italic text-tea-text mt-0.5">
+                  <div className="font-body italic text-tea-text mt-0.5">
                     "{t.reason}"
                   </div>
                 )}
@@ -245,7 +245,7 @@ const EntryDetail: React.FC<{
             type: entry.productType,
             image: entry.productImage,
           })}
-          className="text-tea-gold hover:text-tea-gold-lt transition-colors"
+          className="text-tea-text-sec hover:text-tea-text transition-colors"
         >
           Open tasting
         </button>
@@ -314,12 +314,10 @@ export const TastingJournalView: React.FC<TastingJournalViewProps> = ({ onBack, 
           <span className="text-ui-12 uppercase tracking-[0.15em]">Back</span>
         </button>
 
-        <div className="flex flex-col items-center justify-center py-16">
-          <div className="w-16 h-16 rounded-full bg-tea-gold/10 flex items-center justify-center mb-4">
-            <Icons.Sparkles className="w-7 h-7 text-tea-gold/70" />
-          </div>
-          <h3 className="font-serif text-lg text-tea-text mb-2">No teas yet</h3>
-          <p className="text-sm text-tea-text-sec text-center max-w-[260px] leading-relaxed">
+        <div className="flex flex-col items-center text-center max-w-sm mx-auto py-20 px-6">
+          <Icons.Sparkles className="w-7 h-7 text-tea-text-dim" strokeWidth={1.25} />
+          <h3 className="font-display text-ui-17 text-tea-text mt-4">No teas yet</h3>
+          <p className="text-ui-12 text-tea-text-sec leading-relaxed mt-2">
             The teas you taste will show up here. Come back to write what you noticed.
           </p>
         </div>
@@ -348,8 +346,8 @@ export const TastingJournalView: React.FC<TastingJournalViewProps> = ({ onBack, 
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h3 className="font-serif text-lg text-tea-text">Tasting Journal</h3>
-            <span className="text-ui-12 uppercase tracking-[0.15em] text-tea-text-sec">
+            <h3 className="h3">Tasting Journal</h3>
+            <span className="label-caps text-tea-text-dim">
               {entries.length} {entries.length === 1 ? 'tea' : 'teas'}
             </span>
           </div>
@@ -382,7 +380,7 @@ export const TastingJournalView: React.FC<TastingJournalViewProps> = ({ onBack, 
                 {/* Row 1: tea name + date */}
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
-                    <h4 className="font-serif text-sm truncate text-tea-text group-hover/entry:text-tea-gold transition-colors">
+                    <h4 className="font-display text-ui-15 truncate text-tea-text group-hover/entry:text-tea-gold transition-colors">
                       {displayName}
                     </h4>
                     <div className="flex items-center gap-1.5 text-ui-12 text-tea-text-sec mt-1">

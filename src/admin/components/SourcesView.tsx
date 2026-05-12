@@ -1147,7 +1147,7 @@ export const SourcesView = () => {
                         </button>
                         <button
                           onClick={() => handleDelete(source)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec hover:text-tea-error bg-tea-bg/60 hover:bg-tea-bg rounded-md transition-colors"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-tea-border text-tea-text-sec hover:text-tea-error hover:bg-tea-accent-sub transition-colors text-xs"
                         >
                           <Trash2 size={12} /> Delete
                         </button>
@@ -2091,15 +2091,15 @@ export const SourcesView = () => {
             <div className="px-5 py-3 border-t border-tea-accent-sub bg-tea-surface/30 flex items-center justify-between">
               <button
                 onClick={() => { setEditingSource(panelSource); setIsModalOpen(true); }}
-                className="flex items-center gap-1.5 text-ui-10 text-tea-text-sec hover:text-tea-text uppercase tracking-[0.2em] transition-colors"
+                className="inline-flex items-center gap-1.5 px-2 py-1 text-xs text-tea-text-sec hover:text-tea-text transition-colors"
               >
-                <Edit3 size={11} /> Full Edit
+                <Edit3 size={13} /> <span>Full Edit</span>
               </button>
               <button
                 onClick={() => handleDelete(panelSource)}
-                className="flex items-center gap-1.5 text-ui-10 text-tea-text-sec hover:text-tea-error uppercase tracking-[0.2em] transition-colors"
+                className="inline-flex items-center gap-1.5 px-2 py-1 text-xs text-tea-text-sec hover:text-tea-error transition-colors"
               >
-                <Trash2 size={11} /> Delete
+                <Trash2 size={13} /> <span>Delete</span>
               </button>
             </div>
           </motion.div>
