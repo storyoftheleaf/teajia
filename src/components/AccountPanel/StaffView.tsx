@@ -5,9 +5,10 @@ import {
   NeedsAttention,
   PreviewBlock,
   FOOTER_LINK_CLASS,
+  IdentityCard,
+  StatusPill,
   capitalize,
   daysWord,
-  getInitials,
 } from './primitives';
 import { useAppStore } from '../../lib/store';
 import { ADMIN_TOOL_GROUPS, groupTools, toolsForRole, type AdminTool } from '../../admin/toolRegistry';
@@ -83,45 +84,21 @@ export const StaffView: React.FC<StaffViewProps> = ({
 
   return (
     <div>
-      {/* ── Identity — date + account, avatar in corner ─────────────── */}
-      <div className="px-6 pt-5 pb-0 flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <div className="label-caps text-tea-text-dim">
-            {todayLabel}
-          </div>
-          {accountName && (
-            <div className="text-ui-12 text-tea-text-sec truncate mt-1.5">
-              {accountName}{locationLabel ? ` · ${locationLabel}` : ''}
-            </div>
-          )}
-        </div>
-        <button
-          onClick={onAvatarClick}
-          className="w-12 h-12 rounded-full bg-tea-elevated flex items-center justify-center border border-tea-border overflow-hidden shrink-0"
-          title={user?.name || user?.email || 'Change photo'}
-          aria-label="Change photo"
-          style={{ WebkitTapHighlightColor: 'transparent' }}
-        >
-          {avatarDataUrl ? (
-            <img src={avatarDataUrl} alt="" className="w-full h-full object-cover" loading="lazy" />
-          ) : (
-            <span className="font-display text-ui-15 text-tea-text-sec">
-              {user ? getInitials(user.name || user.email) : '茶'}
-            </span>
-          )}
-        </button>
-      </div>
+      {/* ── Identity card (§19) — staff variant: shift meta + role ── */}
+      <IdentityCard
+        user={user}
+        avatarDataUrl={avatarDataUrl}
+        onAvatarClick={onAvatarClick}
+        fallbackTitle="Staff"
+        meta={[todayLabel, accountName, locationLabel].filter(Boolean).join(' · ')}
+        status={roleBadgeLabel ? <StatusPill>{roleBadgeLabel}</StatusPill> : null}
+      />
 
       {/* ── Frontispiece ─────────────────────────────────────────────── */}
-      <div className="px-6 pt-3 pb-2">
+      <div className="px-6 pt-5 pb-2">
         <p className="font-body italic text-ui-17 leading-snug text-tea-text">
           {frontispiece}
         </p>
-        {roleBadgeLabel && (
-          <span className="inline-flex mt-2 px-2 py-0.5 rounded-full text-ui-9 uppercase tracking-caps bg-tea-gold/10 text-tea-text ring-1 ring-inset ring-tea-gold/40">
-            {roleBadgeLabel}
-          </span>
-        )}
       </div>
 
       {/* ── Attention ───────────────────────────────────────────────── */}
@@ -223,10 +200,10 @@ export const StaffView: React.FC<StaffViewProps> = ({
         </div>
         <button
           onClick={onSignOut}
-          className="mt-6 py-2 -my-2 text-tea-text-sec hover:text-tea-text transition-colors text-ui-12 uppercase tracking-[0.15em]"
+          className="mt-6 py-2 -my-2 text-tea-text-sec hover:text-tea-text transition-colors text-ui-13"
           style={{ WebkitTapHighlightColor: 'transparent' }}
         >
-          Sign Out
+          Sign out
         </button>
       </div>
     </div>

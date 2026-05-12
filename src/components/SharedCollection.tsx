@@ -1,7 +1,7 @@
-
 import React, { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Icons, SealIcon } from './Icons';
+import { ChevronRight } from 'lucide-react';
+import { SealIcon } from './Icons';
 import { useInventory } from '../context/InventoryContext';
 import { AlcoveModal } from './shop/AlcoveModal';
 import type { InventoryItem } from '../types';
@@ -28,20 +28,29 @@ export const SharedCollection: React.FC = () => {
       .filter((item): item is InventoryItem => !!item);
   }, [collectionIds, inventory]);
 
+  // ── Empty / invalid state ───────────────────────────────────────────────────
   if (collectionIds.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-6 animate-[fadeIn_0.5s_ease-out]">
-        <SealIcon className="w-12 h-12 text-tea-gold/30 mb-4" />
-        <h1 className="text-2xl text-tea-text mb-2" style={{ fontFamily: 'var(--font-display)' }}>Collection Not Found</h1>
-        <p className="text-sm text-tea-text/50 max-w-md">
-          This collection link appears to be invalid or expired.
-        </p>
+      <div className="max-w-3xl mx-auto px-4 md:px-6 pt-6 pb-3 pb-nav-gap">
+        <div className="flex flex-col items-center text-center max-w-sm mx-auto py-20 px-6">
+          <SealIcon className="w-7 h-7 text-tea-text-dim" />
+          <h3 className="font-display text-ui-17 text-tea-text mt-4">Collection not found</h3>
+          <p className="text-ui-12 text-tea-text-sec mt-1 leading-relaxed">
+            This collection link appears to be invalid or expired.
+          </p>
+          <a
+            href="/shop"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors mt-6"
+          >
+            Browse Shop
+          </a>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-2xl mx-auto pb-16 animate-[fadeIn_0.5s_ease-out]">
+    <div className="max-w-3xl mx-auto px-4 md:px-6 pt-6 pb-nav-gap">
       <AlcoveModal
         item={viewItem}
         items={collectionItems}
@@ -49,74 +58,73 @@ export const SharedCollection: React.FC = () => {
         onItemChange={setViewItem}
       />
 
-      {/* Header */}
-      <div className="text-center pt-8 pb-8">
-        <SealIcon className="w-8 h-8 text-tea-gold mx-auto mb-3 opacity-60" />
-        <h1 className="text-3xl text-tea-text mb-1" style={{ fontFamily: 'var(--font-display)' }}>Shared Collection</h1>
-        <p className="text-sm text-tea-text/50 italic" style={{ fontFamily: 'var(--font-body)' }}>
-          {collectionItems.length} {collectionItems.length === 1 ? 'selection' : 'selections'} from Teajia
+      {/* Editorial cover */}
+      <div className="text-center pt-8 pb-10">
+        <SealIcon className="w-8 h-8 text-tea-gold mx-auto mb-4 opacity-70" />
+        <p className="label-caps text-tea-text-dim">Curated by Teajia</p>
+        <h1 className="h1 mt-2">Shared Collection</h1>
+        <p className="subtitle mt-2">
+          {collectionItems.length} {collectionItems.length === 1 ? 'selection' : 'selections'} chosen for you
         </p>
       </div>
 
-      {/* Tea Grid */}
-      <div className="space-y-0" style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub)' }}>
+      {/* Tea list */}
+      <ul className="divide-y divide-tea-border bg-tea-surface border border-tea-border rounded-xl overflow-hidden">
         {collectionItems.map((item) => (
-          <div
-            key={item.id}
-            onClick={() => setViewItem(item)}
-            className="flex items-center gap-4 px-4 py-4 hover:bg-tea-elevated/50 cursor-pointer transition-colors group"
-            style={{ boxShadow: '0 1px 0 var(--tea-accent-sub)' }}
-          >
-            {/* Image */}
-            {item.image && (
-              <div className="w-14 h-14 rounded-sm overflow-hidden shrink-0 bg-tea-text/5">
-                <img src={item.image} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
-              </div>
-            )}
-
-            {/* Info */}
-            <div className="flex-1 min-w-0">
-              <h3 className="text-base text-tea-text group-hover:text-tea-gold transition-colors truncate" style={{ fontFamily: 'var(--font-display)' }}>
-                {item.name}
-              </h3>
-              <div className="flex items-center gap-2 text-ui-11 text-tea-text/50 mt-0.5">
-                <span>{item.type}</span>
-                {item.origin && (
-                  <>
-                    <span className="opacity-40">·</span>
-                    <span>{item.origin}</span>
-                  </>
-                )}
-                {item.year && (
-                  <>
-                    <span className="opacity-40">·</span>
-                    <span className="font-mono tabular-nums">{item.year}</span>
-                  </>
-                )}
-              </div>
-              {item.mood && (
-                <p className="text-ui-11 italic text-tea-text/40 mt-1 truncate" style={{ fontFamily: 'var(--font-body)' }}>{item.mood}</p>
+          <li key={item.id}>
+            <button
+              type="button"
+              onClick={() => setViewItem(item)}
+              className="w-full text-left flex items-center gap-4 px-4 md:px-6 py-4 hover:bg-tea-accent-sub transition-colors group"
+            >
+              {item.image ? (
+                <div className="w-14 h-14 rounded-md overflow-hidden shrink-0 bg-tea-elevated">
+                  <img
+                    src={item.image}
+                    alt={item.name}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    loading="lazy"
+                  />
+                </div>
+              ) : (
+                <div className="w-14 h-14 rounded-md bg-tea-elevated shrink-0" />
               )}
-            </div>
 
-            {/* Price */}
-            <div className="shrink-0 text-right">
-              <span className="num text-sm text-tea-text/70">
-                {fmtPricePerGram(parseFloat(item.price_per_gram || '0'))}
-              </span>
-            </div>
-          </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-display text-ui-15 text-tea-text truncate group-hover:text-tea-readgold transition-colors">
+                  {item.name}
+                </h3>
+                <div className="flex flex-wrap items-center gap-1.5 text-ui-12 text-tea-text-dim mt-1">
+                  {item.type && <span>{item.type}</span>}
+                  {item.type && item.origin && <span>·</span>}
+                  {item.origin && <span>{item.origin}</span>}
+                  {(item.type || item.origin) && item.year && <span>·</span>}
+                  {item.year && <span className="font-mono tabular-nums">{item.year}</span>}
+                </div>
+                {item.mood && (
+                  <p className="text-ui-12 text-tea-text-sec mt-1 italic truncate">{item.mood}</p>
+                )}
+              </div>
+
+              <div className="shrink-0 flex items-center gap-2">
+                <span className="mono-text text-ui-13 text-tea-text-sec">
+                  {fmtPricePerGram(parseFloat(item.price_per_gram || '0'))}
+                </span>
+                <ChevronRight size={14} className="text-tea-text-dim" />
+              </div>
+            </button>
+          </li>
         ))}
-      </div>
+      </ul>
 
       {/* Footer CTA */}
-      <div className="text-center pt-8">
+      <div className="text-center pt-10 pb-2">
         <a
           href="/shop"
-          className="inline-flex items-center gap-2 px-6 py-3 bg-tea-gold text-tea-bg text-xs hover:bg-tea-gold/90 transition-colors"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors"
         >
           Browse Full Shop
-          <Icons.ChevronRight className="w-3.5 h-3.5" />
+          <ChevronRight size={14} />
         </a>
       </div>
     </div>

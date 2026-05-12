@@ -573,20 +573,20 @@ export const SourcesView = () => {
         return (
           <td className="px-4 align-middle overflow-hidden">
             {isEditMode ? (
-              <GhostInput value={source.company || ''} onSave={(val) => handleSourceUpdate(source.id, 'company', val)} className="font-sans text-xs text-tea-text-sec truncate" placeholder="Company" />
-            ) : <span className="text-xs text-tea-text-sec font-sans truncate block">{source.company || '—'}</span>}
+              <GhostInput value={source.company || ''} onSave={(val) => handleSourceUpdate(source.id, 'company', val)} className="text-ui-12 text-tea-text-sec truncate" placeholder="Company" />
+            ) : <span className="text-ui-12 text-tea-text-sec truncate block">{source.company || '—'}</span>}
           </td>
         );
       case 'country':
         return (
           <td className="px-4 align-middle overflow-hidden">
             {isEditMode ? (
-              <GhostInput value={source.country || ''} onSave={(val) => handleSourceUpdate(source.id, 'country', val)} className="font-sans text-xs text-tea-text-sec truncate" placeholder="Country" />
+              <GhostInput value={source.country || ''} onSave={(val) => handleSourceUpdate(source.id, 'country', val)} className="text-ui-12 text-tea-text-sec truncate" placeholder="Country" />
             ) : (
               source.country ? (
-                <span className="text-xs text-tea-text-sec flex items-center gap-1 truncate"><MapPin size={10} className="flex-shrink-0" /> {source.country}</span>
+                <span className="text-ui-12 text-tea-text-sec flex items-center gap-1 truncate"><MapPin size={10} className="flex-shrink-0 text-tea-text-dim" /> {source.country}</span>
               ) : (
-                <span className="text-xs text-tea-text-dim">—</span>
+                <span className="text-ui-12 text-tea-text-dim">—</span>
               )
             )}
           </td>
@@ -594,7 +594,7 @@ export const SourcesView = () => {
       case 'contact':
         return (
           <td className="px-4 align-middle overflow-hidden">
-            <div className="flex items-center gap-2 text-xs text-tea-text-sec truncate">
+            <div className="flex items-center gap-2 text-ui-12 text-tea-text-sec truncate">
               {source.email && <span className="truncate">{source.email}</span>}
               {!source.email && source.phone && <span>{source.phone}</span>}
               {!source.email && !source.phone && source.whatsapp && <span>WA: {source.whatsapp}</span>}
@@ -605,7 +605,7 @@ export const SourcesView = () => {
       case 'teaCount':
         return (
           <td className="px-4 align-middle overflow-hidden text-center">
-            <span className={`inline-flex items-center gap-1 text-xs font-medium ${source.teaCount > 0 ? 'text-tea-gold' : 'text-tea-text-dim'}`}>
+            <span className={`inline-flex items-center gap-1 text-ui-12 tabular-nums ${source.teaCount > 0 ? 'text-tea-gold' : 'text-tea-text-dim'}`}>
               <Leaf size={11} /> {source.teaCount}
             </span>
           </td>
@@ -613,50 +613,55 @@ export const SourcesView = () => {
       case 'created':
         return (
           <td className="px-4 align-middle overflow-hidden">
-            <span className="text-xs text-tea-text-sec font-sans tabular-nums">
+            <span className="text-ui-12 text-tea-text-sec tabular-nums">
               {source.createdAt ? new Date(source.createdAt).toLocaleDateString() : '—'}
             </span>
           </td>
         );
       default:
-        return <td className="px-4 align-middle text-xs text-tea-text-sec">—</td>;
+        return <td className="px-4 align-middle text-ui-12 text-tea-text-sec">—</td>;
     }
   };
 
   // --- ROW COMPONENT ---
   const renderRow = (source: SourceRow) => {
     const isExpanded = expandedSourceId === source.id;
+    const status = sourceStatus(source);
     return (
     <React.Fragment key={source.id}>
     <tr
-      className={`transition-colors border-b border-tea-border group ${isEditMode ? '' : 'hover:bg-tea-bg/50 cursor-pointer'} ${isExpanded ? 'bg-tea-gold/5' : ''} ${panelSource?.id === source.id ? 'bg-tea-gold/5' : ''}`}
-      style={{ height: ROW_HEIGHT }}
+      className={`transition-colors border-b border-tea-border group ${isEditMode ? '' : 'hover:bg-tea-accent-sub cursor-pointer'} ${isExpanded ? 'bg-tea-gold/5' : ''} ${panelSource?.id === source.id ? 'bg-tea-gold/5' : ''}`}
+      style={{ height: ROW_HEIGHT + 8 }}
       onClick={() => !isEditMode && setExpandedSourceId(isExpanded ? null : source.id)}
     >
       {visibleCols.map(col => renderCell(source, col.key))}
-      <td className="px-2 align-middle text-right">
-        <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
-          {!isEditMode && (
-            <>
-              {source.id && (
+      <td className="px-2 align-middle">
+        <div className="flex items-center justify-end gap-2">
+          <StatusPill variant={status.variant} className="opacity-90">{status.label}</StatusPill>
+          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+            {!isEditMode && (
+              <>
+                {source.id && (
+                  <button
+                    onClick={() => navigate(`/admin/vendors/${source.id}`)}
+                    className="tap-target text-tea-text-sec hover:text-tea-gold p-1 transition-colors"
+                    title="View vendor profile"
+                  ><ExternalLink size={13} /></button>
+                )}
                 <button
-                  onClick={() => navigate(`/admin/vendors/${source.id}`)}
-                  className="text-tea-text-sec hover:text-tea-gold p-1 transition-colors"
-                  title="View vendor profile"
-                ><ExternalLink size={13} /></button>
-              )}
-              <button
-                onClick={() => { setEditingSource(source); setIsModalOpen(true); }}
-                className="text-tea-text-sec hover:text-tea-text p-1 transition-colors"
-                title="Edit"
-              ><Pencil size={13} /></button>
-              <button
-                onClick={() => handleDelete(source)}
-                className="text-tea-text-sec hover:text-tea-error p-1 transition-colors"
-                title="Delete"
-              ><Trash2 size={13} /></button>
-            </>
-          )}
+                  onClick={() => { setEditingSource(source); setIsModalOpen(true); }}
+                  className="tap-target text-tea-text-sec hover:text-tea-text p-1 transition-colors"
+                  title="Edit"
+                ><Pencil size={13} /></button>
+                <button
+                  onClick={() => handleDelete(source)}
+                  className="tap-target text-tea-text-sec hover:text-tea-error p-1 transition-colors"
+                  title="Delete"
+                ><Trash2 size={13} /></button>
+              </>
+            )}
+          </div>
+          <ChevronRight size={13} className={`text-tea-text-dim flex-shrink-0 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
         </div>
       </td>
     </tr>
@@ -1196,7 +1201,7 @@ export const SourcesView = () => {
               <table className="w-full table-fixed border-collapse">
                 <colgroup>
                   {visibleCols.map(col => <col key={col.key} className={col.defaultWidth} />)}
-                  <col className="w-[10%]" />
+                  <col className="w-[18%]" />
                 </colgroup>
                 <thead className="sticky top-0 z-sticky bg-tea-bg shadow-sm">
                   <tr>
@@ -1231,7 +1236,7 @@ export const SourcesView = () => {
                       <table className="w-full table-fixed border-collapse">
                         <colgroup>
                           {visibleCols.map(col => <col key={col.key} className={col.defaultWidth} />)}
-                          <col className="w-[10%]" />
+                          <col className="w-[18%]" />
                         </colgroup>
                         <tbody>
                           {items.map(source => renderRow(source))}
@@ -1247,7 +1252,7 @@ export const SourcesView = () => {
             <table className="w-full table-fixed border-collapse">
               <colgroup>
                 {visibleCols.map(col => <col key={col.key} className={col.defaultWidth} />)}
-                <col className="w-[10%]" />
+                <col className="w-[18%]" />
               </colgroup>
 
               <thead className="sticky top-0 z-sticky bg-tea-bg shadow-sm">

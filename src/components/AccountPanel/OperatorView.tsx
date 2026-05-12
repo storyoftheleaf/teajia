@@ -16,10 +16,11 @@ import {
   Instrument,
   ConsoleGrid,
   PrimaryVerb,
+  IdentityCard,
+  StatusPill,
   capitalize,
   daysSince,
   daysWord,
-  getInitials,
   truncate,
 } from './primitives';
 import type { TeaEvent } from '../../types/events';

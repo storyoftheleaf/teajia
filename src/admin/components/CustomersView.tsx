@@ -567,45 +567,77 @@ export const CustomerDetail = ({
     );
   };
 
+  const allRelationships = customer.relationshipKinds ?? [];
+  const allLegacyTags = customer.tags ?? [];
+
   return (
-    <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
-      <div className="bg-tea-bg border border-tea-border rounded-xl w-full max-w-xl max-h-[90vh] overflow-y-auto overscroll-contain shadow-2xl relative">
-        <div className="sticky top-0 bg-tea-bg border-b border-tea-border p-6 flex justify-between items-center z-10">
-          <div>
-            <h3 className="text-2xl font-serif text-tea-text">{customer.name}</h3>
-            {customer.company && <p className="text-tea-text-sec text-sm">{customer.company}</p>}
-          </div>
-          <div className="flex items-center gap-2">
+    <>
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 z-drawer bg-black/60 backdrop-blur-sm animate-in fade-in duration-150"
+        onClick={onClose}
+      />
+
+      {/* Drawer */}
+      <aside
+        className="fixed inset-y-0 right-0 z-drawer w-full max-w-md bg-tea-surface border-l border-tea-border flex flex-col shadow-2xl animate-in slide-in-from-right duration-200"
+        role="dialog"
+        aria-label={`${customer.name} details`}
+      >
+        {/* Header — close X top-LEFT per panel rule §15, toolbar on the right */}
+        <div className="flex items-center justify-between gap-2 px-4 h-14 border-b border-tea-border flex-shrink-0">
+          <button
+            onClick={onClose}
+            className="text-tea-text-sec hover:text-tea-text transition-colors tap-target"
+            aria-label="Close"
+          >
+            <X size={20} />
+          </button>
+          <div className="flex items-center gap-1">
             <button
               onClick={() => { onClose(); navigate(`/admin/people/${customer.id}`); }}
-              className="p-2 text-tea-text-sec hover:text-tea-text transition-colors"
+              className="p-2 text-tea-text-sec hover:text-tea-text transition-colors tap-target"
               title="View full profile"
             >
               <ExternalLink size={16} />
             </button>
-            <button onClick={onEdit} className="p-2 text-tea-text-sec hover:text-tea-text transition-colors" title="Edit">
+            <button onClick={onEdit} className="p-2 text-tea-text-sec hover:text-tea-text transition-colors tap-target" title="Edit">
               <Edit3 size={16} />
             </button>
-            <button onClick={onDelete} className="p-2 text-tea-text-sec hover:text-tea-error transition-colors" title="Delete">
+            <button onClick={onDelete} className="p-2 text-tea-text-sec hover:text-tea-error transition-colors tap-target" title="Delete">
               <Trash2 size={16} />
-            </button>
-            <button onClick={onClose} className="p-2 text-tea-text-sec hover:text-tea-text transition-colors" aria-label="Close">
-              <X size={20} />
             </button>
           </div>
         </div>
 
-        <div className="p-6 space-y-6">
-          {/* Tags */}
-          {customer.tags.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {customer.tags.map(tag => (
-                <span key={tag} className={`text-xs px-2.5 py-1 rounded-full ${TAG_COLORS[tag]}`}>
-                  {tag}
-                </span>
-              ))}
+        <div className="flex-1 overflow-y-auto overscroll-contain p-5 space-y-5 pb-nav-gap">
+          {/* Identity card */}
+          <div className="bg-tea-surface border border-tea-border rounded-xl p-5 flex items-start gap-4">
+            <div className="w-12 h-12 rounded-full bg-tea-elevated text-tea-text-sec font-display text-ui-15 flex items-center justify-center flex-shrink-0">
+              {customerInitials(customer.name)}
             </div>
-          )}
+            <div className="min-w-0 flex-1">
+              <h3 className="h3 text-tea-text truncate">{customer.name}</h3>
+              {customer.company && (
+                <p className="text-ui-13 text-tea-text-sec mt-0.5 truncate">{customer.company}</p>
+              )}
+              {(customer.country || customer.city) && (
+                <p className="text-ui-12 text-tea-text-dim mt-0.5 truncate">
+                  {[customer.city, customer.country].filter(Boolean).join(', ')}
+                </p>
+              )}
+              {(allRelationships.length > 0 || allLegacyTags.length > 0) && (
+                <div className="flex items-center gap-1 flex-wrap mt-3">
+                  {allRelationships.map(kind => (
+                    <StatusPill key={`r-${kind}`} variant={relationshipVariant(kind)}>{relationshipLabel(kind)}</StatusPill>
+                  ))}
+                  {allLegacyTags.map(tag => (
+                    <StatusPill key={`t-${tag}`} variant={tagVariant(tag)}>{tag}</StatusPill>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
 
           {/* Stats summary card */}
           <div className={`grid gap-3 grid-cols-2 ${(customer.eventCount || 0) > 0 ? 'sm:grid-cols-4' : 'sm:grid-cols-3'}`}>
@@ -614,25 +646,25 @@ export const CustomerDetail = ({
               className="bg-tea-surface border border-tea-border rounded-xl p-4 text-center hover:bg-tea-elevated transition-colors group"
               title="View orders for this customer"
             >
-              <div className="text-2xl font-serif text-tea-gold group-hover:text-tea-gold transition-colors">{customer.orderCount || 0}</div>
+              <div className="font-mono tabular-nums text-2xl text-tea-gold">{customer.orderCount || 0}</div>
               <div className="text-ui-10 text-tea-text-sec uppercase tracking-wider mt-1">Orders</div>
             </button>
             <div className="bg-tea-surface border border-tea-border rounded-xl p-4 text-center">
-              <div className="text-lg font-serif text-tea-gold leading-tight">{formatUSD(customer.totalSpentUSD)}</div>
+              <div className="font-mono tabular-nums text-ui-15 text-tea-gold leading-tight">{formatUSD(customer.totalSpentUSD)}</div>
               <div className="text-ui-10 text-tea-text-sec uppercase tracking-wider mt-1">Total Spent</div>
             </div>
             {(customer.eventCount || 0) > 0 && (
               <div className="bg-tea-surface border border-tea-border rounded-xl p-4 text-center">
-                <div className="text-2xl font-serif text-tea-gold">{customer.eventCount}</div>
+                <div className="font-mono tabular-nums text-2xl text-tea-gold">{customer.eventCount}</div>
                 <div className="text-ui-10 text-tea-text-sec uppercase tracking-wider mt-1">Events</div>
               </div>
             )}
             <div className="bg-tea-surface border border-tea-border rounded-xl p-4 text-center">
-              <div className="text-sm font-serif text-tea-text leading-tight">
+              <div className="font-display text-ui-13 text-tea-text leading-tight">
                 {relativeTime(customer.lastOrderDate)}
               </div>
               {customer.lastOrderDate && (
-                <div className="text-ui-9 text-tea-text-dim mt-0.5">{new Date(customer.lastOrderDate).toLocaleDateString()}</div>
+                <div className="font-mono tabular-nums text-ui-10 text-tea-text-dim mt-0.5">{new Date(customer.lastOrderDate).toLocaleDateString()}</div>
               )}
               <div className="text-ui-10 text-tea-text-sec uppercase tracking-wider mt-1">Last Order</div>
             </div>
@@ -1261,24 +1293,15 @@ export const CustomerDetail = ({
           </div>
 
           {/* Meta */}
-          <div className="text-xs text-tea-text-sec/50 space-y-1">
-            {(customer.relationshipKinds?.length ?? 0) > 0 && (
-              <div className="flex flex-wrap gap-1 pb-1">
-                {customer.relationshipKinds!.map(kind => (
-                  <span key={kind} className={`text-ui-9 px-1.5 py-0.5 rounded-full ${RELATIONSHIP_BADGE_CLASSES[kind] || 'bg-tea-elevated text-tea-text-sec'}`}>
-                    {relationshipLabel(kind)}
-                  </span>
-                ))}
-              </div>
-            )}
-            <p>Type: {customer.type || 'customer'}</p>
-            {customer.source && <p>Source: {customer.source}</p>}
-            <p>Added: {new Date(customer.createdAt).toLocaleDateString()}</p>
-            <p>Currency: {customer.preferredCurrency}</p>
+          <div className="text-ui-11 text-tea-text-dim space-y-1 pt-2 border-t border-tea-border">
+            <p>Type: <span className="text-tea-text-sec">{customer.type || 'customer'}</span></p>
+            {customer.source && <p>Source: <span className="text-tea-text-sec">{customer.source}</span></p>}
+            <p>Added: <span className="text-tea-text-sec font-mono tabular-nums">{new Date(customer.createdAt).toLocaleDateString()}</span></p>
+            <p>Currency: <span className="text-tea-text-sec font-mono">{customer.preferredCurrency}</span></p>
           </div>
         </div>
-      </div>
-    </div>
+      </aside>
+    </>
   );
 };
 

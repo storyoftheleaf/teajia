@@ -151,7 +151,7 @@ export const Storefront: React.FC<StorefrontProps> = ({
             </p>
           )}
           {location && (
-            <p className="flex items-center gap-2 text-ui-11 uppercase tracking-[0.15em] text-tea-text-dim">
+            <p className="label-caps flex items-center gap-2">
               <Icons.Location className="w-3.5 h-3.5 text-tea-gold" />
               {location}
             </p>
@@ -171,7 +171,7 @@ export const Storefront: React.FC<StorefrontProps> = ({
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`py-2.5 text-ui-12 uppercase tracking-[0.15em] transition-colors border-b ${
+                className={`tap-target py-2.5 text-ui-12 uppercase tracking-caps font-sans transition-colors border-b ${
                   isActive
                     ? 'text-tea-text border-tea-gold'
                     : 'text-tea-text-sec hover:text-tea-text border-transparent'
@@ -272,7 +272,7 @@ const StorefrontShopSection: React.FC<StorefrontShopSectionProps> = ({
         <div className="flex items-center justify-center gap-6 mb-6 px-4 border-b border-tea-border">
           <button
             onClick={() => setPane('tea')}
-            className={`py-2.5 text-ui-12 uppercase tracking-[0.15em] transition-colors border-b ${
+            className={`tap-target py-2.5 text-ui-12 uppercase tracking-caps font-sans transition-colors border-b ${
               pane === 'tea'
                 ? 'text-tea-text border-tea-gold'
                 : 'text-tea-text-sec hover:text-tea-text border-transparent'
@@ -283,7 +283,7 @@ const StorefrontShopSection: React.FC<StorefrontShopSectionProps> = ({
           </button>
           <button
             onClick={() => setPane('teaware')}
-            className={`py-2.5 text-ui-12 uppercase tracking-[0.15em] transition-colors border-b ${
+            className={`tap-target py-2.5 text-ui-12 uppercase tracking-caps font-sans transition-colors border-b ${
               pane === 'teaware'
                 ? 'text-tea-text border-tea-gold'
                 : 'text-tea-text-sec hover:text-tea-text border-transparent'
@@ -383,7 +383,7 @@ const StorefrontEventsSection: React.FC<{ events: TeaEvent[] }> = ({ events }) =
             <button
               key={id}
               onClick={() => setFilter(id as typeof filter)}
-              className={`py-2.5 text-ui-12 uppercase tracking-[0.15em] transition-colors border-b ${
+              className={`tap-target py-2.5 text-ui-12 uppercase tracking-caps font-sans transition-colors border-b ${
                 filter === id
                   ? 'text-tea-text border-tea-gold'
                   : 'text-tea-text-sec hover:text-tea-text border-transparent'

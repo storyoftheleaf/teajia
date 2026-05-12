@@ -86,11 +86,11 @@ export const FindATable: React.FC = () => {
         />
       </Helmet>
 
-      <header className="text-center pt-12 pb-3 px-4 md:px-6 max-w-3xl mx-auto">
+      <header className="text-center pt-12 pb-6 px-4 md:px-6 max-w-3xl mx-auto">
         <p className="label-caps text-tea-text-dim mb-3">
           The Teajia network
         </p>
-        <h1 className="h2 mb-4">
+        <h1 className="h1 mb-4">
           Find a table
         </h1>
         <p className="subtitle">
@@ -145,7 +145,7 @@ export const FindATable: React.FC = () => {
                     key={city}
                     type="button"
                     onClick={() => setFilterCity(prev => prev === city ? '' : city)}
-                    className={`inline-flex px-2 py-0.5 rounded-full text-ui-10 uppercase tracking-[1.2px] transition-colors ${
+                    className={`inline-flex px-2 py-0.5 rounded-full text-ui-10 uppercase tracking-caps transition-colors ${
                       filterCity === city
                         ? 'bg-tea-gold/10 text-tea-text ring-1 ring-inset ring-tea-gold/40'
                         : 'bg-tea-elevated text-tea-text-sec hover:text-tea-text'
@@ -161,7 +161,7 @@ export const FindATable: React.FC = () => {
                     key={country}
                     type="button"
                     onClick={() => setFilterCountry(prev => prev === country ? '' : country)}
-                    className={`inline-flex px-2 py-0.5 rounded-full text-ui-10 uppercase tracking-[1.2px] transition-colors flex items-center gap-1 ${
+                    className={`inline-flex px-2 py-0.5 rounded-full text-ui-10 uppercase tracking-caps transition-colors flex items-center gap-1 ${
                       filterCountry === country
                         ? 'bg-tea-gold/10 text-tea-text ring-1 ring-inset ring-tea-gold/40'
                         : 'bg-tea-elevated text-tea-text-sec hover:text-tea-text'

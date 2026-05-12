@@ -5,10 +5,11 @@ import {
   NeedsAttention,
   PreviewBlock,
   FOOTER_LINK_CLASS,
+  IdentityCard,
+  StatusPill,
   capitalize,
   daysSince,
   daysWord,
-  getInitials,
   truncate,
 } from './primitives';
 import { MEMBER_MEMORY_LINKS } from './workflows';
@@ -146,37 +147,17 @@ export const MemberView: React.FC<MemberViewProps> = ({
 
   return (
     <div>
-      {/* ── Identity card — avatar + name + role pill ── */}
-      <div className="px-6 pt-5 pb-0 flex items-start gap-4">
-        <button
-          onClick={onAvatarClick}
-          className="w-12 h-12 rounded-full bg-tea-elevated flex items-center justify-center border border-tea-border overflow-hidden shrink-0"
-          title={user?.name || user?.email || 'Change photo'}
-          aria-label="Change photo"
-          style={{ WebkitTapHighlightColor: 'transparent' }}
-        >
-          {avatarDataUrl ? (
-            <img src={avatarDataUrl} alt="" className="w-full h-full object-cover" loading="lazy" />
-          ) : (
-            <span className="font-display text-ui-15 text-tea-text-sec">
-              {user ? getInitials(user.name || user.email) : '茶'}
-            </span>
-          )}
-        </button>
-        {user && (
-          <div className="flex-1 min-w-0">
-            <div className="h3 truncate">
-              {user.name || user.email}
-            </div>
-            <span className="inline-flex mt-1 px-2 py-0.5 rounded-full text-ui-9 uppercase tracking-caps bg-tea-gold/10 text-tea-text ring-1 ring-inset ring-tea-gold/40">
-              {roleBadgeLabel || 'Member'}
-            </span>
-          </div>
-        )}
-      </div>
+      {/* ── Identity card (§19) ── */}
+      <IdentityCard
+        user={user}
+        avatarDataUrl={avatarDataUrl}
+        onAvatarClick={onAvatarClick}
+        fallbackTitle="Member"
+        status={<StatusPill>{roleBadgeLabel || 'Member'}</StatusPill>}
+      />
 
       {/* ── Frontispiece — one editorial line of current state ────────── */}
-      <div className="px-6 pt-3 pb-2">
+      <div className="px-6 pt-5 pb-2">
         <p className="font-body italic text-ui-17 leading-snug text-tea-text">
           {frontispiece}
         </p>
@@ -302,10 +283,10 @@ export const MemberView: React.FC<MemberViewProps> = ({
 
         <button
           onClick={onSignOut}
-          className="mt-6 py-2 -my-2 text-tea-text-sec hover:text-tea-text transition-colors text-ui-12 uppercase tracking-[0.15em]"
+          className="mt-6 py-2 -my-2 text-tea-text-sec hover:text-tea-text transition-colors text-ui-13"
           style={{ WebkitTapHighlightColor: 'transparent' }}
         >
-          Sign Out
+          Sign out
         </button>
       </div>
     </div>

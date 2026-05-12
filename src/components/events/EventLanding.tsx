@@ -371,28 +371,35 @@ const EventLanding: React.FC = () => {
         </div>
       </div>
 
-      {/* Content */}
-      <div className="max-w-3xl mx-auto px-4 md:px-6 pt-12 pb-24">
+      {/* Content — editorial reader chrome */}
+      <div className="max-w-2xl mx-auto px-4 md:px-6 pt-12 pb-24">
         {/* Title block */}
         <div className="text-center mb-10">
           {isCancelled && (
-            <p className="text-ui-11 uppercase tracking-[0.15em] text-tea-error mb-4">Event Cancelled</p>
+            <p className="label-caps text-tea-error mb-4">Event Cancelled</p>
           )}
           {isCompleted && (
             <p className="label-caps text-tea-text-dim mb-4">Session Complete</p>
           )}
 
-          <h1 className="h2 mb-2">
+          {/* Date eyebrow */}
+          <p className="label-caps text-tea-text-dim mb-4">
+            {formattedDay} · {formattedDate}
+          </p>
+
+          {/* Title — .h1 hero */}
+          <h1 className="h1 mb-3">
             {event.title}
           </h1>
 
+          {/* Descriptor — italic subtitle */}
           {event.subtitle && (
-            <p className="subtitle mb-6">
+            <p className="subtitle mb-5">
               {event.subtitle}
             </p>
           )}
 
-          {/* Gathering type label */}
+          {/* Gathering type / format — .label-caps */}
           {(eventFormat || gatheringType) && (
             <div className="flex items-center justify-center gap-2 mb-4">
               {eventFormat && (
@@ -411,12 +418,13 @@ const EventLanding: React.FC = () => {
             </div>
           )}
 
-          {/* Date & Time */}
-          <div className="mt-5 mb-4">
-            <p className="label-caps text-tea-text-dim mb-1.5">{formattedDay}</p>
-            <p className="text-ui-17 text-tea-text" style={{ fontFamily: 'var(--font-display)' }}>{formattedDate}</p>
-            <p className="text-ui-15 text-tea-readgold mt-1" style={{ fontFamily: 'var(--font-display)' }}>{formattedTime}</p>
-          </div>
+          {/* Time */}
+          <p
+            className="text-ui-15 text-tea-readgold mb-4"
+            style={{ fontFamily: 'var(--font-display)' }}
+          >
+            {formattedTime}
+          </p>
 
           {/* Area hint (not full address) or location name. Falls back to a
               soft "shared after RSVP" line so guests are never left wondering
