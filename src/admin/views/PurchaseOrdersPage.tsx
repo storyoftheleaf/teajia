@@ -348,13 +348,12 @@ export const PurchaseOrdersPage: React.FC = () => {
 
   return (
     <div className="h-full flex flex-col overflow-hidden bg-tea-bg">
-      {/* Header */}
-      <div className="flex items-center gap-3 px-4 md:px-6 py-4 border-b border-tea-border bg-tea-bg flex-shrink-0">
-        <ShoppingBag size={17} className="text-tea-text-sec shrink-0" />
-        <h1 className="text-sm font-semibold text-tea-text tracking-wide flex-1">Purchase Orders</h1>
+      {/* Header — canonical §5 */}
+      <div className="px-4 md:px-6 lg:px-10 pt-6 pb-3 flex-shrink-0 flex items-center gap-3">
+        <h1 className="h2 flex-1">Purchase Orders</h1>
         <button
           onClick={() => setIsNewFormOpen(true)}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-tea-elevated border border-tea-border rounded-lg text-xs text-tea-text hover:border-tea-gold/40 transition-colors"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors"
         >
           <Plus size={13} />
           New PO
