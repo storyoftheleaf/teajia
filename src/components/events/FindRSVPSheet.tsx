@@ -73,20 +73,26 @@ const FindRSVPSheet: React.FC<FindRSVPSheetProps> = ({ slug, onClose }) => {
   };
 
   const methods: { id: LookupMethod; label: string }[] = [
-    ...(isAuthenticated ? [{ id: 'account' as LookupMethod, label: 'My Account' }] : []),
+    ...(isAuthenticated ? [{ id: 'account' as LookupMethod, label: 'My account' }] : []),
     { id: 'phone', label: 'Phone' },
     { id: 'email', label: 'Email' },
   ];
+
+  const inputClass =
+    'w-full px-3 py-2.5 bg-tea-bg border border-tea-border rounded-md text-tea-text text-ui-14 placeholder:text-tea-text-dim focus:outline-none focus:border-tea-gold/50 transition-colors';
 
   return (
     <div
       className="fixed inset-0 z-modal animate-[fadeIn_0.2s_ease-out] md:flex md:items-center md:justify-center"
       onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Find my RSVP"
     >
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
 
       <div
-        className="absolute bottom-0 left-0 right-0 md:relative md:bottom-auto md:left-auto md:right-auto md:w-full md:max-w-md bg-tea-bg border-t border-tea-border md:border rounded-t-2xl md:rounded-2xl shadow-2xl animate-[slideUp_0.3s_ease-out]"
+        className="absolute bottom-0 left-0 right-0 md:relative md:bottom-auto md:left-auto md:right-auto md:w-full md:max-w-md bg-tea-surface border-t border-tea-border md:border md:border-tea-border rounded-t-xl md:rounded-xl shadow-2xl animate-[slideUp_0.3s_ease-out]"
         style={{ transform: `translateY(${dragY}px)` }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -97,53 +103,59 @@ const FindRSVPSheet: React.FC<FindRSVPSheetProps> = ({ slug, onClose }) => {
           onTouchMove={(e) => handleDragMove(e.touches[0].clientY)}
           onTouchEnd={() => handleDragEnd()}
         >
-          <div className="w-10 h-1 bg-tea-text-sec/20 rounded-full" />
+          <div className="w-10 h-1 bg-tea-border rounded-full" />
         </div>
 
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-tea-border">
-          <h2 className="font-serif text-xl text-tea-text">Find My RSVP</h2>
+        {/* Header — close X top-LEFT (§15) */}
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-tea-border">
           <button
             onClick={onClose}
-            className="p-2 text-tea-text-sec hover:text-tea-gold transition-colors"
+            className="tap-target shrink-0 p-1.5 -ml-1.5 text-tea-text-sec hover:text-tea-text transition-colors"
             aria-label="Close"
           >
             <X className="w-5 h-5" />
           </button>
+          <h2 className="h3 flex-1 truncate">Find my RSVP</h2>
         </div>
 
         {/* Content */}
-        <div className="px-6 py-6">
-          {/* Method tabs */}
+        <div className="px-5 py-5">
+          {/* Method tabs — underline style */}
           {methods.length > 1 && (
-            <div className="flex gap-2 mb-5">
-              {methods.map(({ id, label }) => (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => { setMethod(id); setContact(''); findMutation.reset(); }}
-                  className={`flex-1 py-2.5 text-xs rounded-sm transition-colors ${
-                    method === id
-                      ? 'bg-tea-gold/10 text-tea-gold'
-                      : 'bg-tea-surface text-tea-text-sec hover:text-tea-text border border-tea-border'
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
+            <div className="flex gap-6 border-b border-tea-border mb-5">
+              {methods.map(({ id, label }) => {
+                const isActive = method === id;
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => { setMethod(id); setContact(''); findMutation.reset(); }}
+                    className={`relative -mb-px pb-2 pt-1 transition-colors ${
+                      isActive ? 'text-tea-text' : 'text-tea-text-sec hover:text-tea-text'
+                    }`}
+                  >
+                    <span className="text-ui-12 font-semibold">{label}</span>
+                    <span
+                      className={`absolute left-0 right-0 -bottom-px h-px transition-colors ${
+                        isActive ? 'bg-tea-gold' : 'bg-transparent'
+                      }`}
+                    />
+                  </button>
+                );
+              })}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-5">
             {method === 'account' ? (
-              <p className="text-sm text-tea-text-sec">
+              <p className="body-light">
                 Looking up RSVP for{' '}
                 <span className="text-tea-text">{user?.name || user?.email}</span>.
               </p>
             ) : (
               <div>
-                <label className="block text-ui-10 uppercase tracking-[0.25em] text-tea-text-sec mb-2">
-                  {method === 'phone' ? 'Phone Number' : 'Email Address'}
+                <label className="label-caps block mb-2">
+                  {method === 'phone' ? 'Phone number' : 'Email address'}
                 </label>
                 <input
                   type={method === 'email' ? 'email' : 'tel'}
@@ -151,7 +163,7 @@ const FindRSVPSheet: React.FC<FindRSVPSheetProps> = ({ slug, onClose }) => {
                   onChange={(e) => setContact(e.target.value)}
                   placeholder={method === 'email' ? 'your@email.com' : '+62 812 3456 7890'}
                   autoFocus
-                  className="w-full px-4 py-3 bg-tea-surface border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-sec/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold/50 transition-colors"
+                  className={inputClass}
                 />
               </div>
             )}
@@ -163,26 +175,36 @@ const FindRSVPSheet: React.FC<FindRSVPSheetProps> = ({ slug, onClose }) => {
                 ? "We couldn't find your reservation. Try searching by your other contact method, or message the host directly."
                 : raw || 'Something went wrong. Try again in a moment.';
               return (
-                <div className="p-3 bg-tea-gold/8 border border-tea-gold/20 rounded-sm">
-                  <p className="text-sm text-tea-text-sec leading-relaxed">{friendly}</p>
+                <div className="p-3 bg-tea-gold/8 border border-tea-gold/20 rounded-md">
+                  <p className="text-ui-12 text-tea-text-sec leading-relaxed">{friendly}</p>
                 </div>
               );
             })()}
 
-            <button
-              type="submit"
-              disabled={!canSubmit || findMutation.isPending}
-              className="w-full py-4 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.25em] font-semibold rounded-sm hover:bg-tea-gold/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-2"
-            >
-              {findMutation.isPending ? (
-                <span className="inline-block w-4 h-4 border-2 border-tea-border border-t-tea-gold rounded-full animate-spin" />
-              ) : (
-                <>
-                  <Search className="w-4 h-4" />
-                  Find My RSVP
-                </>
-              )}
-            </button>
+            {/* Footer — Cancel-left, primary-right */}
+            <div className="flex justify-between items-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-3 py-2 text-xs font-semibold text-tea-text-sec hover:text-tea-text transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={!canSubmit || findMutation.isPending}
+                className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {findMutation.isPending ? (
+                  <span className="inline-block w-4 h-4 border-2 border-tea-bg/40 border-t-tea-bg rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <Search className="w-3.5 h-3.5" />
+                    Find my RSVP
+                  </>
+                )}
+              </button>
+            </div>
           </form>
         </div>
 
