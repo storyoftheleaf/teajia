@@ -19,7 +19,19 @@ const FAKE_PRODUCT_API = {
   image_url: '', additional_images: '[]',
   description: '', experience: '', terroir: '', processing_notes: '', lore: '',
   is_custom_wisdom: 0, show_wisdom: 1,
-  mood: '', mood_tags: '[]', flavor_tags: '[]', tasting_notes: '[]', tasting: null,
+  mood: 'grounding, slow',
+  mood_tags: '[]', flavor_tags: '[]', tasting_notes: '[]',
+  tasting: {
+    flavor: ['citrus', 'aged', 'honey', 'dried-fruit'],
+    body: ['warm', 'thick', 'smooth'],
+    finish: ['long', 'sweet', 'lingering'],
+    feeling: ['calm', 'centering'],
+    'liquor-color': ['amber'],
+    notes: [
+      'Unmistakable suan-gan tang on the third infusion.',
+      'Pairs well with late-evening sessions; settles the chest.',
+    ],
+  },
   recheck_stock: 0, stock_verified_at: null,
 };
 
@@ -70,14 +82,14 @@ if (await scrollContainer.count() > 0) {
   await page.waitForTimeout(400);
   await page.screenshot({ path: '/tmp/panel-mid.png', clip: clipPanel });
 
-  // Open the Placement section to capture its consolidated layout.
-  const placementBtn = page.getByRole('button', { name: /Placement/i }).first();
-  if (await placementBtn.count() > 0) {
-    await placementBtn.click().catch(() => {});
+  // Open the Story & background section so the tasting-notes preview renders.
+  const storyBtn = page.getByRole('button', { name: /Story & background/i }).first();
+  if (await storyBtn.count() > 0) {
+    await storyBtn.click().catch(() => {});
     await page.waitForTimeout(500);
-    await scrollContainer.evaluate((el) => { el.scrollTop = el.scrollHeight; });
+    await storyBtn.scrollIntoViewIfNeeded().catch(() => {});
     await page.waitForTimeout(400);
-    await page.screenshot({ path: '/tmp/panel-low.png', clip: clipPanel });
+    await page.screenshot({ path: '/tmp/panel-story.png', clip: clipPanel });
   }
 }
 

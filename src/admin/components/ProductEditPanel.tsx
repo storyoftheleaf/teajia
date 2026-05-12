@@ -1336,6 +1336,76 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
             {/* 7. Story & Background */}
             <CollapsibleSection title="Story & background" description="Personal voice, terroir, processing, and lore." defaultOpen={false}>
               <div className="space-y-5">
+                {/* Tasting notes preview — surfaces anything captured in the
+                    Tasting session so the writer can see what's been recorded
+                    while drafting the story. Read-only here; tap Edit to open
+                    the full Tasting profile editor. */}
+                {(() => {
+                  const t = (product as any).tasting as Record<string, any> | null | undefined;
+                  const flavor: string[] = Array.isArray(t?.flavor) ? t!.flavor : [];
+                  const body: string[] = Array.isArray(t?.body) ? t!.body : [];
+                  const finish: string[] = Array.isArray(t?.finish) ? t!.finish : [];
+                  const feeling: string[] = Array.isArray(t?.feeling) ? t!.feeling : [];
+                  const liquorColor: string[] = Array.isArray(t?.['liquor-color']) ? t!['liquor-color'] : [];
+                  const rawNotes = Array.isArray(t?.notes) ? t!.notes : [];
+                  const noteTexts: string[] = rawNotes
+                    .map((n: any) => typeof n === 'string' ? n : (n?.text ?? ''))
+                    .filter((s: string) => s && s.trim().length > 0);
+                  const legacyVoice = typeof t?.voiceNote === 'string' && t.voiceNote.trim() ? t.voiceNote.trim() : null;
+                  const hasAny = flavor.length || body.length || finish.length || feeling.length ||
+                                 liquorColor.length || noteTexts.length || legacyVoice || product.mood;
+                  if (!hasAny) return null;
+
+                  const Row = ({ label, terms }: { label: string; terms: string[] }) =>
+                    terms.length === 0 ? null : (
+                      <div className="flex gap-2 items-baseline">
+                        <span className="shrink-0 text-ui-10 text-admin-text-dim uppercase tracking-[0.06em] w-14">{label}</span>
+                        <span className="text-ui-12 text-admin-text-sec leading-[1.5]">
+                          {terms.map(id => resolveTermLabel(id)).join(' · ')}
+                        </span>
+                      </div>
+                    );
+
+                  return (
+                    <div className="rounded-md border border-admin-border bg-admin-input-bg/40 px-3 py-3 space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-ui-11 text-admin-text-dim uppercase tracking-[0.06em]">Tasting notes</span>
+                        <button
+                          type="button"
+                          onClick={() => setTastingEditorProduct(product)}
+                          className="text-ui-11 text-admin-text-sec hover:text-admin-text transition-colors"
+                          title="Open the full tasting profile editor"
+                        >
+                          Edit ›
+                        </button>
+                      </div>
+
+                      {product.mood && (
+                        <div className="flex gap-2 items-baseline">
+                          <span className="shrink-0 text-ui-10 text-admin-text-dim uppercase tracking-[0.06em] w-14">Mood</span>
+                          <span className="text-ui-12 text-admin-text">{product.mood}</span>
+                        </div>
+                      )}
+                      <Row label="Flavor" terms={flavor} />
+                      <Row label="Body" terms={body} />
+                      <Row label="Finish" terms={finish} />
+                      <Row label="Feeling" terms={feeling} />
+                      <Row label="Liquor" terms={liquorColor} />
+
+                      {(noteTexts.length > 0 || legacyVoice) && (
+                        <div className="pt-2 mt-1 border-t border-admin-border space-y-1.5">
+                          {noteTexts.map((n, i) => (
+                            <p key={i} className="text-ui-12 text-admin-text-sec leading-[1.5]">"{n}"</p>
+                          ))}
+                          {legacyVoice && (
+                            <p className="text-ui-12 text-admin-text-sec leading-[1.5]">"{legacyVoice}"</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <span className="text-ui-11 text-admin-text-dim uppercase tracking-[0.06em]">Introduction</span>
