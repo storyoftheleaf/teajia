@@ -1711,22 +1711,13 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       {/* --- HEADER CONTROLS --- */}
       <div className={`sticky top-0 z-sticky border-b border-tea-border py-2 transition-colors hidden md:block ${isEditMode ? 'bg-tea-surface/95' : 'bg-tea-bg/90 backdrop-blur-md'}`}>
 
-        {/* Desktop toolbar — filter label + actions only; outer chrome owns the page title */}
+        {/* Desktop toolbar — actions only. Count + stock-history link live INSIDE the table
+            card top strip (see canonical §20 inventory table in /design/system). */}
         <div className="flex px-6 max-w-7xl mx-auto items-center gap-4 py-3">
-            <span className="label-caps text-tea-text-dim shrink-0">
-                {isEditMode ? 'CLICK CELLS TO EDIT' : `${processedProducts.length} ITEMS`}
-            </span>
-            {!isEditMode && processedProducts.length > 0 && (
-              <button
-                type="button"
-                onClick={() => {
-                  const target = panelProduct ?? processedProducts[0];
-                  if (target) setStockHistoryProduct({ id: target.id, name: target.givenName || target.productName });
-                }}
-                className="label-caps text-tea-text-sec hover:text-tea-text transition-colors inline-flex items-center gap-1.5 shrink-0"
-              >
-                <History size={12} aria-hidden="true" /> View stock history
-              </button>
+            {isEditMode && (
+              <span className="label-caps text-tea-text-dim shrink-0">
+                CLICK CELLS TO EDIT
+              </span>
             )}
 
             <div className="flex items-center gap-4 ml-auto">
@@ -2641,14 +2632,31 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             )}
         </div>}
 
-        {/* DESKTOP TABLE */}
-        {!isMobile && filterType !== 'Pending' && !glossaryMode && <div ref={tableWrapperRef} className="relative w-full max-w-7xl mx-auto bg-tea-surface min-h-full">
+        {/* DESKTOP TABLE — canonical §20 inventory table from /design/system:
+            bordered card containing top strip → headers → rows → bottom strip. */}
+        {!isMobile && filterType !== 'Pending' && !glossaryMode && <div ref={tableWrapperRef} className="relative w-full max-w-7xl mx-auto px-4 md:px-6 lg:px-10">
+          <div className="bg-tea-surface border border-tea-border rounded-xl overflow-hidden">
 
           {/* Floating bulk-action popover — anchored to the last-clicked row, positioned
               absolutely so toggling selection never reflows the table. */}
           <AnimatePresence>{renderActionDrawer()}</AnimatePresence>
 
-          {/* (Item counter and stock-history link now live in the outer chrome — kept minimal here.) */}
+          {/* Top strip — canonical: stock-history link (left) + item counter (right). */}
+          {processedProducts.length > 0 && (
+            <div className="flex items-center justify-between px-5 py-2.5 border-b border-tea-border">
+              <button
+                type="button"
+                onClick={() => {
+                  const target = panelProduct ?? processedProducts[0];
+                  if (target) setStockHistoryProduct({ id: target.id, name: target.givenName || target.productName });
+                }}
+                className="text-ui-11 uppercase tracking-caps font-sans text-tea-text-sec hover:text-tea-text transition-colors inline-flex items-center gap-1.5"
+              >
+                <History size={12} aria-hidden="true" /> View stock history
+              </button>
+              <span className="label-caps text-tea-text-dim tabular-nums">{processedProducts.length} items</span>
+            </div>
+          )}
 
           {/* --- GROUPED VIEW --- */}
           {groupedProducts ? (
@@ -2819,6 +2827,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               <p className="text-ui-13 text-tea-text-sec leading-relaxed mt-2">No products match the current filter.</p>
             </div>
           )}
+          </div>
         </div>}
 
       </div>
