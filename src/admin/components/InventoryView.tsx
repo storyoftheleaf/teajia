@@ -74,6 +74,27 @@ interface InventoryViewProps {
 // Shared inline-edit components + ProductEditPanel (extracted for reuse)
 import { GhostInput, GhostTextarea, GhostAutocompleteInput, GhostSelect, VendorPicker, ImageManager, ProductEditPanel, CollapsibleSection, buildProductUpdatePayload } from './ProductEditPanel';
 
+/**
+ * SavedPill — micro feedback for successful inline edits
+ * Renders "✓ Saved" with fade-in animation, pointer-events-none
+ */
+const SavedPill: React.FC<{ isVisible: boolean }> = ({ isVisible }) => {
+  if (!isVisible) return null;
+  return (
+    <span
+      className={`
+        inline-block px-2 py-0.5 rounded-full
+        text-ui-10 text-tea-gold font-medium
+        whitespace-nowrap pointer-events-none
+        animate-fadeIn
+      `}
+      aria-live="polite"
+      aria-atomic="true"
+    >
+      ✓ Saved
+    </span>
+  );
+};
 
 export const InventoryView: React.FC<InventoryViewProps> = ({
   products, isLoading, isError, error, onImportClick, onAddClick, onRefresh,
@@ -393,6 +414,10 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const [showEnrichConfirm, setShowEnrichConfirm] = useState(false);
   const [showVerificationResetConfirm, setShowVerificationResetConfirm] = useState(false);
   const [stockHistoryProduct, setStockHistoryProduct] = useState<{ id: string; name: string } | null>(null);
+
+  // Track recently saved cells for visual feedback
+  const [recentlySavedCells, setRecentlySavedCells] = useState<Set<string>>(new Set());
+  const timeoutRefsMap = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
   const { data: rates = [] } = useRates();
 
@@ -2506,19 +2531,23 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                             align="right"
                                             className={`num text-ui-13 font-medium ${isLowStock ? 'text-tea-gold' : 'text-tea-text'}`}
                                           />
+                                          <SavedPill isVisible={recentlySavedCells.has(`${product.id}-stockGrams`)} />
                                           <span className="text-ui-10 text-tea-text-dim">g</span>
                                         </div>
                                       </div>
                                       {priceMode === 'retail' ? (
                                       <div className="flex items-center justify-between gap-2">
                                         <span className="text-ui-11 text-tea-text-sec uppercase tracking-[0.06em] shrink-0">Retail/g</span>
-                                        <GhostInput
-                                          value={(product.fixedRetailPriceUSD ?? product.pricePerGramUSD)?.toFixed(2) || ''}
-                                          onSave={(val) => handleProductUpdate(product.id, 'fixedRetailPriceUSD', val ? Number(val) : null)}
-                                          type="number"
-                                          align="right"
-                                          className={`num text-ui-13 font-medium ${product.fixedRetailPriceUSD != null ? 'text-tea-gold' : 'text-tea-text'}`}
-                                        />
+                                        <div className="flex items-center gap-1">
+                                          <GhostInput
+                                            value={(product.fixedRetailPriceUSD ?? product.pricePerGramUSD)?.toFixed(2) || ''}
+                                            onSave={(val) => handleProductUpdate(product.id, 'fixedRetailPriceUSD', val ? Number(val) : null)}
+                                            type="number"
+                                            align="right"
+                                            className={`num text-ui-13 font-medium ${product.fixedRetailPriceUSD != null ? 'text-tea-gold' : 'text-tea-text'}`}
+                                          />
+                                          <SavedPill isVisible={recentlySavedCells.has(`${product.id}-fixedRetailPriceUSD`)} />
+                                        </div>
                                       </div>
                                       ) : null}
                                     </>
