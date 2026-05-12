@@ -904,7 +904,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
         aria-labelledby={titleId}
         aria-hidden={!product}
         style={{ willChange: 'transform' }}
-        className={`fixed inset-0 bottom-[calc(52px+env(safe-area-inset-bottom))] md:inset-auto md:right-0 md:top-0 md:bottom-0 md:w-[360px] lg:w-[420px] xl:w-[440px] z-drawer bg-tea-surface md:border-l md:border-tea-border shadow-2xl flex flex-col panel-sidebar transition-transform duration-300 ease-out ${product ? 'translate-x-0' : 'translate-x-full'}`}
+        className={`fixed inset-0 bottom-[calc(52px+env(safe-area-inset-bottom))] md:inset-auto md:right-0 md:top-0 md:bottom-0 md:w-[360px] lg:w-[420px] xl:w-[440px] z-drawer bg-tea-bg md:border-l md:border-tea-border shadow-2xl flex flex-col panel-sidebar transition-transform duration-300 ease-out ${product ? 'translate-x-0' : 'translate-x-full'}`}
       >
         {product && (<>
           {/* Header — Row 1: Nav */}
