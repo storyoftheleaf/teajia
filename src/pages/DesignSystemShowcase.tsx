@@ -96,7 +96,7 @@ const StatusPill: React.FC<{ variant: 'draft' | 'active' | 'archived' | 'error' 
     active:   'bg-tea-gold/10 text-tea-text ring-1 ring-inset ring-tea-gold/40',
     archived: 'bg-tea-elevated text-tea-text-dim',
     error:    'bg-tea-error/10 text-tea-error ring-1 ring-inset ring-tea-error/40',
-    success:  'bg-tea-leaf/10 text-tea-leaf ring-1 ring-inset ring-tea-leaf/40',
+    success:  'bg-tea-green/10 text-tea-green ring-1 ring-inset ring-tea-green/40',
   };
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-ui-9 uppercase tracking-[1.2px] ${styles[variant]}`}>
@@ -184,7 +184,7 @@ export default function DesignSystemShowcase() {
             <Swatch name="Gold"              varName="--tea-gold"     hex="#a8874d" note="Accent, active, primary" />
             <Swatch name="Gold light"        varName="--tea-gold-lt"  hex="#bfa06a" note="Hover only" />
             <Swatch name="Border"            varName="--tea-border"   hex="rgba(184,146,78,0.08)" note="All dividers" />
-            <Swatch name="Leaf"              varName="--tea-leaf"     hex="#5A6E5A" note="Success only" />
+            <Swatch name="Leaf"              varName="--tea-green"     hex="#5A6E5A" note="Success only" />
             <Swatch name="Error"             varName="--tea-error"    hex="#8a3a32" note="Muted oxblood, never bright" />
           </div>
         </Section>
@@ -596,8 +596,8 @@ export default function DesignSystemShowcase() {
         <Section id="avoid" title="Anti-patterns — do not do this" subtitle="Common drift, side-by-side with the canonical version.">
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-tea-surface border border-tea-leaf/30 rounded-xl p-4">
-                <div className="text-ui-11 uppercase tracking-[0.15em] text-tea-leaf mb-3">✓ Canonical primary button</div>
+              <div className="bg-tea-surface border border-tea-green/30 rounded-xl p-4">
+                <div className="text-ui-11 uppercase tracking-[0.15em] text-tea-green mb-3">✓ Canonical primary button</div>
                 <PrimaryButton icon={<Plus size={13} />}>New Article</PrimaryButton>
               </div>
               <div className="bg-tea-surface border border-tea-error/30 rounded-xl p-4 relative">
@@ -609,8 +609,8 @@ export default function DesignSystemShowcase() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-tea-surface border border-tea-leaf/30 rounded-xl p-4">
-                <div className="text-ui-11 uppercase tracking-[0.15em] text-tea-leaf mb-3">✓ Bottom-border underline tab</div>
+              <div className="bg-tea-surface border border-tea-green/30 rounded-xl p-4">
+                <div className="text-ui-11 uppercase tracking-[0.15em] text-tea-green mb-3">✓ Bottom-border underline tab</div>
                 <div className="flex items-center gap-6 border-b border-tea-border">
                   <span className="py-2.5 text-ui-12 uppercase tracking-[0.15em] text-tea-text border-b border-tea-gold">All</span>
                   <span className="py-2.5 text-ui-12 uppercase tracking-[0.15em] text-tea-text-sec border-b border-transparent">Drafts</span>
@@ -626,8 +626,8 @@ export default function DesignSystemShowcase() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-tea-surface border border-tea-leaf/30 rounded-xl p-4">
-                <div className="text-ui-11 uppercase tracking-[0.15em] text-tea-leaf mb-3">✓ Page title with subtitle</div>
+              <div className="bg-tea-surface border border-tea-green/30 rounded-xl p-4">
+                <div className="text-ui-11 uppercase tracking-[0.15em] text-tea-green mb-3">✓ Page title with subtitle</div>
                 <h3 className={`${TYPOGRAPHY_CLASSES.h2} text-tea-text`}>Collections</h3>
                 <div className="text-ui-11 uppercase tracking-[0.15em] text-tea-text-dim mt-1">ALL · 12 COLLECTIONS</div>
               </div>
@@ -638,8 +638,8 @@ export default function DesignSystemShowcase() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-tea-surface border border-tea-leaf/30 rounded-xl p-4">
-                <div className="text-ui-11 uppercase tracking-[0.15em] text-tea-leaf mb-3">✓ Cancel left, primary right</div>
+              <div className="bg-tea-surface border border-tea-green/30 rounded-xl p-4">
+                <div className="text-ui-11 uppercase tracking-[0.15em] text-tea-green mb-3">✓ Cancel left, primary right</div>
                 <div className="flex justify-between gap-2">
                   <button className="px-3 py-2 text-xs text-tea-text-sec hover:text-tea-text">Cancel</button>
                   <PrimaryButton>Save</PrimaryButton>
