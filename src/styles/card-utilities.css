@@ -2190,3 +2190,133 @@ input[type="number"]::-webkit-outer-spin-button {
 /* bottom: offset — positions fixed elements 1rem above the bar */
 .bottom-nav-gap { bottom: calc(1rem + 64px + env(safe-area-inset-bottom, 0px)); }
 @media (min-width: 1024px) { .bottom-nav-gap { bottom: 1rem; } }
+
+/* ============================================
+   Admin Neutral Surface
+   ============================================
+   A separate, intentionally-cool palette for admin work surfaces
+   (inventory panel, etc.) where the operator spends hours editing
+   data. The warm tea palette stays on customer-facing surfaces; admin
+   gets a Linear/Notion/Claude-style neutral that has a wider luminance
+   range and reads as a calm work surface rather than an editorial
+   destination.
+
+   Lightness steps are deliberately small (~6-8 points) so cards sit
+   on each other via the inset-top highlight, not via aggressive
+   background contrast. Borders are barely perceptible — they define
+   the edge without pulling focus.
+
+   Brand gold is preserved as the *single* interactive accent (focus
+   rings, active selections, recommended values). Functional colors
+   (red for empty stock, amber for low) are kept for state signals.
+   ============================================ */
+
+:root, .light, .dark {
+  /* Tea-brown palette mapped onto the admin-card structural system.
+     The structural hierarchy (bg → surface → input, each lighter) is
+     preserved; the hues swap from neutral cool gray to warm brown. */
+  --admin-bg:           #18130E;  /* tea-bg dark — page background */
+  --admin-surface:      #282119;  /* tea-surface — card surface */
+  --admin-elevated:     #3A3126;  /* tea-elevated — hover / active */
+  --admin-input-bg:     #3F362A;  /* slightly lighter than elevated so inputs read raised */
+  --admin-border:       rgba(255, 230, 190, 0.13);  /* warm cream edge, sharp 1px */
+  --admin-border-hover: rgba(255, 230, 190, 0.22);
+  --admin-text:         #EDE4D4;  /* warm cream — primary */
+  --admin-text-sec:     #B5A892;  /* warm sand — body */
+  /* text-dim was #847868 which fell to ~3.5:1 against the card surface
+     — below WCAG AA. Bumped to ~5:1 while staying clearly secondary. */
+  --admin-text-dim:     #A19682;  /* muted warm — labels (AA contrast) */
+  --admin-text-faint:   #75695A;  /* very low priority */
+}
+
+/* Card surface — three concurrent moves create the "milled object" feel:
+   1. Background gradient (subtle 2.5% white fade at top) — ambient lift
+   2. Inset 0 1px 0 white highlight — sharp top bevel that defines the edge
+   3. Outer drop shadow — separates the card from the page beneath it
+   Each move is barely-there individually; together they make the card
+   sit *above* the panel surface instead of being painted onto it. */
+/* Sharper text on admin surfaces. Intentionally NO text-rendering:
+   optimizeLegibility — it causes layout thrashing on dense pages
+   (the inventory table) in Chrome. font-smoothing is cheap. */
+.admin-card,
+.admin-input {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.admin-card {
+  /* Flat surface — no gradient. Card is defined by:
+     1. Solid bg color (one notch lighter than page bg)
+     2. Inset 0 1px 0 white highlight — sharp top bevel
+     3. Drop shadow — gentle separation from the page */
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.20),
+    0 2px 6px rgba(0, 0, 0, 0.50),
+    0 1px 0 rgba(0, 0, 0, 0.30);
+}
+
+.admin-card-elevated {
+  background: var(--admin-elevated);
+  border: 1px solid var(--admin-border-hover);
+  border-radius: 8px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.25),
+    0 3px 8px rgba(0, 0, 0, 0.55),
+    0 1px 0 rgba(0, 0, 0, 0.35);
+}
+
+/* Interactive card hover — bg shift, border lift, no scale. */
+.admin-card-interactive { cursor: pointer; transition: background-color 120ms ease, border-color 120ms ease; }
+.admin-card-interactive:hover {
+  background: var(--admin-elevated);
+  border-color: var(--admin-border-hover);
+}
+
+/* Input surface — sits inside cards. Darker than card on purpose so the
+   input reads as recessed. Border is the same ghosted line. Focus uses
+   the brand gold ring as the single interactive accent. */
+.admin-input {
+  background: var(--admin-input-bg);
+  border: 1px solid var(--admin-border);
+  border-radius: 6px;
+  color: var(--admin-text);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+.admin-input::placeholder { color: var(--admin-text-dim); }
+.admin-input:hover { border-color: var(--admin-border-hover); }
+.admin-input:focus,
+.admin-input:focus-visible {
+  outline: none;
+  border-color: rgba(255, 244, 228, 0.30);
+  box-shadow: 0 0 0 2px rgba(255, 244, 228, 0.10);
+}
+
+/* Quiet pill (inside admin) — ghosted by default, gold-tinted when on. */
+.admin-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--admin-text-sec);
+  background: transparent;
+  transition: background-color 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+.admin-pill:hover { color: var(--admin-text); background: var(--admin-elevated); }
+.admin-pill-on {
+  color: var(--admin-text);
+  background: rgba(255, 244, 228, 0.08);
+  border-color: rgba(255, 244, 228, 0.20);
+}
+
+/* Subtle divider line for in-card lists. Same line weight as borders. */
+.admin-divider { background: var(--admin-border); }

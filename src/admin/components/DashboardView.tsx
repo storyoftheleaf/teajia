@@ -17,7 +17,7 @@ const TooltipWrapper = (props: TooltipProps<number, string>) => (
     />
 );
 
-export const DashboardView = ({ products, isLoading }: { products: Product[], isLoading: boolean }) => {
+export const DashboardView = ({ products = [], isLoading }: { products?: Product[], isLoading: boolean }) => {
   const navigate = useNavigate();
   const { data: rates = [] } = useRates();
 
