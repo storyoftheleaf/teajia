@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import { Icons } from '../components/Icons';
-import { LogoEmblem } from '../components/Logos/LogoEmblem';
+
+const inputClass = "w-full bg-tea-surface border border-tea-border rounded-md px-3 py-2 text-ui-14 text-tea-text focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors placeholder-tea-text-dim";
+const labelClass = "block label-caps text-tea-text-sec mb-1.5";
 
 const ResetPasswordPage: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -45,101 +47,99 @@ const ResetPasswordPage: React.FC = () => {
 
   if (!token) {
     return (
-      <div className="min-h-screen bg-tea-bg flex items-center justify-center p-6">
-        <div className="max-w-sm w-full text-center">
-          <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center mx-auto mb-4">
-            <Icons.AlertCircle className="w-8 h-8 text-red-500" />
+      <div className="max-w-md mx-auto px-4 pt-12 pb-24">
+        <div className="text-center mb-8">
+          <div className="w-12 h-12 rounded-full bg-tea-error/10 flex items-center justify-center mx-auto mb-5">
+            <Icons.AlertCircle className="w-6 h-6 text-tea-error" />
           </div>
-          <h2 className="text-xl font-serif text-tea-text mb-2">Invalid Reset Link</h2>
-          <p className="text-sm text-tea-text-sec mb-6">
+          <h1 className="h2">Invalid reset link</h1>
+          <p className="subtitle mt-2">
             This password reset link is missing or invalid. Please contact your administrator for a new link.
           </p>
-          <button
-            onClick={() => navigate('/')}
-            className="px-6 py-3 bg-tea-gold text-tea-text text-xs uppercase tracking-[0.2em] font-bold hover:bg-tea-gold/90 transition-colors"
-          >
-            Go Home
-          </button>
         </div>
+        <button
+          onClick={() => navigate('/')}
+          className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors"
+        >
+          Go Home
+        </button>
       </div>
     );
   }
 
   if (success) {
     return (
-      <div className="min-h-screen bg-tea-bg flex items-center justify-center p-6">
-        <div className="max-w-sm w-full text-center">
-          <div className="w-16 h-16 rounded-full bg-tea-gold/10 flex items-center justify-center mx-auto mb-4">
-            <Icons.Check className="w-8 h-8 text-tea-gold" />
+      <div className="max-w-md mx-auto px-4 pt-12 pb-24">
+        <div className="text-center mb-8">
+          <div className="w-12 h-12 rounded-full bg-tea-gold/10 flex items-center justify-center mx-auto mb-5">
+            <Icons.Check className="w-7 h-7 text-tea-gold" />
           </div>
-          <h2 className="text-xl font-serif text-tea-text mb-2">Password Reset</h2>
-          <p className="text-sm text-tea-text-sec mb-6">
+          <h1 className="h2">Password reset</h1>
+          <p className="subtitle mt-2">
             Your password has been updated. You can now sign in with your new password.
           </p>
-          <button
-            onClick={() => navigate('/')}
-            className="px-6 py-3 bg-tea-gold text-tea-text text-xs uppercase tracking-[0.2em] font-bold hover:bg-tea-gold/90 transition-colors"
-          >
-            Go to Sign In
-          </button>
         </div>
+        <button
+          onClick={() => navigate('/signin')}
+          className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors"
+        >
+          Go to Sign In
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-tea-bg flex items-center justify-center p-6">
-      <div className="max-w-sm w-full">
-        <div className="flex flex-col items-center mb-8">
-          <LogoEmblem size={48} color="var(--tea-gold)" className="opacity-80 mb-4" />
-          <h2 className="text-xl font-serif text-tea-text mb-1">Reset Password</h2>
-          <p className="text-sm text-tea-text-sec font-serif italic">Choose a new password for your account</p>
+    <div className="max-w-md mx-auto px-4 pt-12 pb-24">
+      <div className="text-center mb-8">
+        <h1 className="h2">Reset password</h1>
+        <p className="subtitle mt-2">Choose a new password for your account.</p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className={labelClass}>New password</label>
+          <input
+            type="password"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            className={inputClass}
+            placeholder="Min 6 characters"
+            required
+            autoFocus
+          />
+          <p className="text-ui-12 text-tea-text-dim mt-1">Must be at least 6 characters.</p>
+        </div>
+        <div>
+          <label className={labelClass}>Confirm new password</label>
+          <input
+            type="password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            className={inputClass}
+            required
+          />
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-ui-10 font-bold uppercase tracking-[0.2em] text-tea-text-sec mb-2">New Password</label>
-            <input
-              type="password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              className="w-full bg-tea-surface border border-tea-border p-3.5 text-tea-text outline-none focus:border-tea-gold transition-colors placeholder-tea-text-sec/50 text-base"
-              placeholder="Min 6 characters"
-              required
-              autoFocus
-            />
+        {error && (
+          <div className="flex items-start gap-2 p-3 rounded-md bg-tea-error/5 border border-tea-error/20">
+            <Icons.AlertCircle className="w-4 h-4 mt-0.5 shrink-0 text-tea-error" />
+            <span className="text-ui-12 text-tea-error">{error}</span>
           </div>
-          <div>
-            <label className="block text-ui-10 font-bold uppercase tracking-[0.2em] text-tea-text-sec mb-2">Confirm New Password</label>
-            <input
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full bg-tea-surface border border-tea-border p-3.5 text-tea-text outline-none focus:border-tea-gold transition-colors text-base"
-              required
-            />
-          </div>
+        )}
 
-          {error && (
-            <div className="flex items-start gap-2 p-3 bg-red-500/5 border border-red-500/20 text-red-600 text-sm">
-              <Icons.AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-              <span>{error}</span>
-            </div>
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-50"
+        >
+          {loading ? (
+            <div className="w-4 h-4 border-2 border-tea-bg/30 border-t-tea-bg rounded-full animate-spin" />
+          ) : (
+            'Reset Password'
           )}
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3.5 bg-tea-gold text-tea-text font-bold text-xs uppercase tracking-[0.2em] hover:bg-tea-gold/90 transition-colors disabled:opacity-50 flex justify-center items-center gap-2 mt-2"
-          >
-            {loading ? (
-              <div className="w-4 h-4 border-2 border-tea-border border-t-tea-text-sec rounded-full animate-spin" />
-            ) : (
-              'Reset Password'
-            )}
-          </button>
-        </form>
-      </div>
+        </button>
+      </form>
     </div>
   );
 };

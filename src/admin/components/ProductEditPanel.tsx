@@ -923,7 +923,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                 {productIndex >= 0 ? `${productIndex + 1} / ${totalCount}` : ''}
               </span>
               {filterLabel && (
-                <span className="text-ui-9 text-tea-text-dim uppercase tracking-[0.1em] leading-none mt-0.5">
+                <span className="text-ui-9 text-tea-text-dim uppercase tracking-caps leading-none mt-0.5">
                   {filterLabel}
                 </span>
               )}
@@ -949,9 +949,9 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
           {/* Keyboard hint bar */}
           {onNavigate && (
             <div className="hidden md:flex items-center justify-center gap-3 px-4 pb-1 bg-tea-surface/30">
-              <span className="text-ui-9 text-tea-text-dim uppercase tracking-[0.15em]">Esc close</span>
+              <span className="text-ui-9 text-tea-text-dim uppercase tracking-caps">Esc close</span>
               <span className="text-ui-9 text-tea-text-dim">·</span>
-              <span className="text-ui-9 text-tea-text-dim uppercase tracking-[0.15em]">← → navigate</span>
+              <span className="text-ui-9 text-tea-text-dim uppercase tracking-caps">← → navigate</span>
             </div>
           )}
 
@@ -976,7 +976,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                   id={`panel-status-${product.id}`}
                   value={product.status}
                   onChange={e => handleUpdate(product.id, 'status', e.target.value)}
-                  className="text-ui-11 uppercase tracking-[0.08em] pl-2.5 pr-6 py-1.5 rounded-md bg-tea-surface cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg appearance-none"
+                  className="text-ui-11 uppercase tracking-caps pl-2.5 pr-6 py-1.5 rounded-md bg-tea-surface cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg appearance-none"
                   style={{ borderColor: statusColor, color: statusColor, border: '1px solid' }}
                 >
                   {['Active', 'Draft', 'Archived', 'Sold Out'].map(s => <option key={s} value={s}>{s}</option>)}
@@ -1470,7 +1470,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                       </div>
                       {productTastingAgg.impressions.length > 0 && (
                         <div className="px-4 py-3 space-y-2.5">
-                          <div className="text-ui-9 text-tea-text-dim uppercase tracking-[0.15em]">Guest Impressions</div>
+                          <div className="text-ui-9 text-tea-text-dim uppercase tracking-caps">Guest Impressions</div>
                           {productTastingAgg.impressions.map((imp, i) => (
                             <p key={i} className="text-xs font-serif italic text-tea-text leading-relaxed">"{imp}"</p>
                           ))}
@@ -1478,7 +1478,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                       )}
                     </div>
                   )}
-                  <div className="text-ui-9 text-tea-text-dim uppercase tracking-[0.15em] mb-2">Appeared at</div>
+                  <div className="text-ui-9 text-tea-text-dim uppercase tracking-caps mb-2">Appeared at</div>
                   <div className="space-y-2">
                     {productEvents.map((event: any) => (
                       <div key={event.id} className="flex items-center justify-between gap-3 py-1">

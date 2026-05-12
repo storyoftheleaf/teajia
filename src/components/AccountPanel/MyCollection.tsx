@@ -1,12 +1,14 @@
 
 import React, { useState, useMemo } from 'react';
-import { Icons, SealIcon } from '../Icons';
+import { Icons } from '../Icons';
 import { AnimatePresence } from 'framer-motion';
+import { Heart } from 'lucide-react';
 import { useAppStore } from '../../lib/store';
 import { useInventory } from '../../context/InventoryContext';
 import type { InventoryItem } from '../../types';
 import { fmtPricePerGram } from '../../utils/formatNumber';
 import { TastingSession, type TastingItem } from '../tasting/TastingSession';
+import { ListShell, ListRow } from './primitives';
 
 interface MyCollectionProps {
   onBack: () => void;
@@ -17,7 +19,6 @@ export const MyCollection: React.FC<MyCollectionProps> = ({ onBack, onViewItem }
   const { favoriteTeas, toggleFavoriteTea } = useAppStore();
   const { inventory } = useInventory();
   const [copied, setCopied] = useState(false);
-  const [shareView, setShareView] = useState(false);
   const [tastingItem, setTastingItem] = useState<InventoryItem | null>(null);
 
   const favoriteItems = useMemo(() => {
@@ -26,11 +27,14 @@ export const MyCollection: React.FC<MyCollectionProps> = ({ onBack, onViewItem }
       .filter((item): item is InventoryItem => !!item);
   }, [favoriteTeas, inventory]);
 
-  const handleShare = async () => {
+  const buildShareUrl = () => {
     const ids = favoriteTeas.join(',');
     const encoded = btoa(ids);
-    const url = `${window.location.origin}/collection?c=${encoded}`;
+    return `${window.location.origin}/collection?c=${encoded}`;
+  };
 
+  const handleShare = async () => {
+    const url = buildShareUrl();
     if (navigator.share) {
       try {
         await navigator.share({
@@ -49,27 +53,31 @@ export const MyCollection: React.FC<MyCollectionProps> = ({ onBack, onViewItem }
   };
 
   const handleCopyLink = async () => {
-    const ids = favoriteTeas.join(',');
-    const encoded = btoa(ids);
-    const url = `${window.location.origin}/collection?c=${encoded}`;
-    await navigator.clipboard.writeText(url);
+    await navigator.clipboard.writeText(buildShareUrl());
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // Back button — top-left, matches Cancel/Back/Close rules
+  const BackButton = (
+    <button
+      onClick={onBack}
+      className="inline-flex items-center gap-1.5 text-tea-text-sec hover:text-tea-text transition-colors mb-6"
+      aria-label="Back"
+    >
+      <Icons.Back className="w-4 h-4" />
+      <span className="text-ui-13">Back</span>
+    </button>
+  );
+
+  // Empty state — §19 pattern: 28px Lucide icon, font-display headline,
+  // text-ui-12 body. No decorative illustrations.
   if (favoriteItems.length === 0) {
     return (
       <div className="animate-[fadeIn_0.3s_ease-out]">
-        <button
-          onClick={onBack}
-          className="flex items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors mb-6"
-        >
-          <Icons.Back className="w-4 h-4" />
-          <span className="text-ui-12 uppercase tracking-[0.15em]">Back</span>
-        </button>
-
+        {BackButton}
         <div className="flex flex-col items-center text-center max-w-sm mx-auto py-20 px-6">
-          <Icons.Heart className="w-7 h-7 text-tea-text-dim" strokeWidth={1.25} />
+          <Heart size={28} strokeWidth={1.25} className="text-tea-text-dim" />
           <h3 className="font-display text-ui-17 text-tea-text mt-4">No favorites yet</h3>
           <p className="text-ui-12 text-tea-text-sec leading-relaxed mt-2">
             Tap the heart icon on any tea in the shop to start building your collection.
@@ -81,48 +89,42 @@ export const MyCollection: React.FC<MyCollectionProps> = ({ onBack, onViewItem }
 
   return (
     <div className="animate-[fadeIn_0.3s_ease-out]">
-      <button
-        onClick={onBack}
-        className="flex items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors mb-4"
-      >
-        <Icons.Back className="w-4 h-4" />
-        <span className="text-ui-12 uppercase tracking-[0.15em]">Back</span>
-      </button>
+      {BackButton}
 
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
+      {/* Header — narrow form chrome, title left, share right */}
+      <div className="flex items-end justify-between mb-5 gap-3">
+        <div className="min-w-0">
           <h3 className="h3">My Collection</h3>
-          <span className="label-caps text-tea-text-dim">
-            {favoriteItems.length} {favoriteItems.length === 1 ? 'tea' : 'teas'}
-          </span>
+          <p className="text-ui-12 text-tea-text-dim mt-0.5">
+            {favoriteItems.length} {favoriteItems.length === 1 ? 'tea' : 'teas'} kept
+          </p>
         </div>
         <button
           onClick={handleShare}
-          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md border border-tea-border text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub transition-colors text-xs"
+          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md border border-tea-border text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub transition-colors text-xs font-semibold shrink-0"
         >
           {copied ? (
             <>
               <Icons.Check className="w-3.5 h-3.5 text-tea-green" />
-              <span className="text-ui-11 uppercase tracking-[0.15em] text-tea-green">Copied</span>
+              <span className="text-tea-green">Copied</span>
             </>
           ) : (
             <>
               <Icons.Share className="w-3.5 h-3.5" />
-              <span className="text-ui-11 uppercase tracking-[0.15em]">Share</span>
+              <span>Share</span>
             </>
           )}
         </button>
       </div>
 
-      {/* Copy link bar */}
+      {/* Copy link bar — quiet utility row */}
       <button
         onClick={handleCopyLink}
         className="w-full flex items-center gap-3 px-3 py-3 mb-4 bg-tea-surface border border-tea-border rounded-md hover:bg-tea-accent-sub transition-colors group"
       >
         <Icons.Link className="w-3.5 h-3.5 text-tea-text-sec group-hover:text-tea-text transition-colors" />
         <span className="text-ui-12 text-tea-text-sec truncate flex-1 text-left">
-          {copied ? 'Link copied to clipboard!' : 'Copy shareable link'}
+          {copied ? 'Link copied to clipboard' : 'Copy shareable link'}
         </span>
         <Icons.Copy className="w-3.5 h-3.5 text-tea-text-sec" />
       </button>
@@ -138,42 +140,21 @@ export const MyCollection: React.FC<MyCollectionProps> = ({ onBack, onViewItem }
         )}
       </AnimatePresence>
 
-      {/* Tea list */}
-      <ul className="divide-y divide-tea-border bg-tea-surface border border-tea-border rounded-xl overflow-hidden">
-        {favoriteItems.map((item) => (
-          <li
-            key={item.id}
-            className="flex items-center gap-3 px-3 py-3 hover:bg-tea-accent-sub transition-colors"
-          >
-            {/* Thumbnail */}
-            {item.image && (
-              <div
-                className="w-10 h-10 rounded-md bg-tea-bg/5 overflow-hidden shrink-0 cursor-pointer"
-                onClick={() => onViewItem?.(item)}
-              >
-                <img src={item.image} alt={item.name} className="w-full h-full object-cover" loading="lazy" />
-              </div>
-            )}
+      {/* Tea list — canonical §19 ListShell/ListRow */}
+      <ListShell>
+        {favoriteItems.map((item) => {
+          const meta = [item.type, item.origin].filter(Boolean).join(' · ');
+          const price = fmtPricePerGram(parseFloat(item.price_per_gram || '0'));
 
-            {/* Info */}
-            <div className="flex-1 min-w-0 cursor-pointer" onClick={() => onViewItem?.(item)}>
-              <h4 className="font-display text-ui-15 text-tea-text truncate">{item.name}</h4>
-              <div className="flex items-center gap-1.5 text-ui-12 text-tea-text-sec mt-0.5">
-                <span>{item.type}</span>
-                {item.origin && (
-                  <>
-                    <span className="text-tea-text-sec">·</span>
-                    <span className="truncate">{item.origin}</span>
-                  </>
-                )}
-              </div>
+          const leading = item.image ? (
+            <div className="w-10 h-10 rounded-md bg-tea-bg/5 overflow-hidden">
+              <img src={item.image} alt={item.name} className="w-full h-full object-cover" loading="lazy" />
             </div>
+          ) : null;
 
-            {/* Actions */}
-            <div className="flex items-center gap-2 shrink-0">
-              <span className="text-ui-12 font-mono tabular-nums text-tea-text-sec">
-                {fmtPricePerGram(parseFloat(item.price_per_gram || '0'))}
-              </span>
+          const trailing = (
+            <div className="flex items-center gap-2">
+              <span className="text-ui-12 font-mono tabular-nums text-tea-text-sec">{price}</span>
               <button
                 onClick={(e) => { e.stopPropagation(); setTastingItem(item); }}
                 className="p-2 text-tea-text-sec hover:text-tea-text transition-colors tap-target"
@@ -182,16 +163,27 @@ export const MyCollection: React.FC<MyCollectionProps> = ({ onBack, onViewItem }
                 <Icons.Sparkles className="w-3.5 h-3.5" />
               </button>
               <button
-                onClick={() => toggleFavoriteTea(item.id)}
+                onClick={(e) => { e.stopPropagation(); toggleFavoriteTea(item.id); }}
                 className="p-2 text-tea-gold hover:text-tea-error transition-colors tap-target"
                 title="Remove from collection"
               >
                 <Icons.Heart filled className="w-3.5 h-3.5" />
               </button>
             </div>
-          </li>
-        ))}
-      </ul>
+          );
+
+          return (
+            <ListRow
+              key={item.id}
+              title={item.name}
+              meta={meta}
+              leading={leading}
+              trailing={trailing}
+              onClick={onViewItem ? () => onViewItem(item) : undefined}
+            />
+          );
+        })}
+      </ListShell>
     </div>
   );
 };

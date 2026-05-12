@@ -628,48 +628,48 @@ function TweaksPanel({
 
   return (
     <div
-      className="fixed right-3.5 bottom-3.5 z-50 overflow-y-auto"
+      className="fixed right-3.5 bottom-3.5 z-50 overflow-y-auto bg-tea-elevated border border-tea-border rounded-xl p-4"
       style={{
         width: 280,
         maxHeight: 'calc(100vh - 100px)',
-        background: 'rgba(28,22,18,0.96)',
-        border: '1px solid var(--tea-border)',
-        borderRadius: 4,
         backdropFilter: 'blur(14px)',
         WebkitBackdropFilter: 'blur(14px)',
         boxShadow: '0 20px 50px rgba(24,19,14,0.6)',
-        padding: 18,
         animation: 'panelReveal 0.3s ease-out',
       }}
     >
-      <div className="flex justify-between items-center mb-3.5">
+      <div className="flex justify-between items-center mb-3">
         <div className="flex items-center gap-2">
           <LogoEmblem size={14} className="text-tea-gold opacity-80" />
-          <span style={{ ...LABEL_STYLE, color: 'var(--tea-gold)' }}>Layout</span>
+          <span className="label-caps text-tea-readgold">Layout</span>
         </div>
-        <button onClick={onClose} className="text-tea-text-dim hover:text-tea-text transition-colors text-sm">✕</button>
-      </div>
-      {options.map(o => (
         <button
-          key={o.k}
-          onClick={() => onSetStyle(o.k)}
-          className="block w-full text-left mb-1.5 transition-colors duration-150"
-          style={{
-            padding: '10px 12px',
-            background: cardStyle === o.k ? 'var(--tea-accent-sub)' : 'transparent',
-            border: `1px solid ${cardStyle === o.k ? 'var(--tea-gold)' : 'var(--tea-border)'}`,
-            borderRadius: 2,
-          }}
+          onClick={onClose}
+          aria-label="Close"
+          className="tap-target text-tea-text-sec hover:text-tea-text transition-colors"
         >
-          <div style={{
-            fontFamily: 'var(--font-display)', fontStyle: 'italic', fontSize: 17,
-            color: cardStyle === o.k ? 'var(--tea-gold)' : 'var(--tea-text)',
-          }}>
-            {o.n}
-          </div>
-          <div style={MONO_STYLE}>{o.d}</div>
+          <Icons.Close className="w-4 h-4" />
         </button>
-      ))}
+      </div>
+      {options.map(o => {
+        const active = cardStyle === o.k;
+        return (
+          <button
+            key={o.k}
+            onClick={() => onSetStyle(o.k)}
+            className={`block w-full text-left mb-1.5 px-3 py-2.5 rounded-md border transition-colors ${
+              active
+                ? 'border-tea-gold bg-tea-accent-sub'
+                : 'border-tea-border hover:bg-tea-accent-sub/40'
+            }`}
+          >
+            <div className={`font-display text-ui-17 ${active ? 'text-tea-readgold' : 'text-tea-text'}`} style={{ fontWeight: 400 }}>
+              {o.n}
+            </div>
+            <div className="body-light text-ui-12 mt-0.5">{o.d}</div>
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -786,8 +786,8 @@ export const MagazineTabbed: React.FC<MagazineTabbedProps> = ({
         }}
       >
         <h1
-          className="font-serif font-normal text-2xl lg:text-3xl text-tea-text leading-tight tracking-[0.02em]"
-          style={{ fontFamily: 'var(--font-display)' }}
+          className="font-display text-ui-20 lg:text-ui-26 text-tea-text leading-tight"
+          style={{ fontWeight: 400, letterSpacing: '0.02em' }}
         >
           Journal
         </h1>
@@ -827,62 +827,37 @@ export const MagazineTabbed: React.FC<MagazineTabbedProps> = ({
       </div>
 
       {/* ── Masthead ── */}
-      <div className="px-5 pt-5 max-w-2xl mx-auto w-full">
-        <div className="flex items-center gap-2.5 mb-3.5">
-          <div style={{ width: 24, height: 1, background: 'var(--tea-gold)', flexShrink: 0 }} />
-          <span style={{ ...LABEL_STYLE, color: 'var(--tea-gold)' }}>The Journal · Spring 2026</span>
-        </div>
-        <h1 style={{
-          fontFamily: 'var(--font-display)', fontStyle: 'italic', fontWeight: 400,
-          fontSize: 'clamp(38px,10vw,56px)', lineHeight: 0.95,
-          margin: '0 0 10px', letterSpacing: '-0.01em', color: 'var(--tea-text)',
-        }}>
+      <div className="px-5 pt-12 max-w-2xl mx-auto w-full">
+        <p className="label-caps text-tea-text-dim mb-3">The Journal · Spring 2026</p>
+        <h1 className="h1">
           Voices in Tea
         </h1>
-        <p style={{ fontSize: 16.5, lineHeight: 1.55, color: 'var(--tea-text-sec)', margin: '0 0 24px', maxWidth: '36ch' }}>
+        <p className="subtitle mt-3 mb-6" style={{ maxWidth: '36ch' }}>
           Stories of the people, places, and practices behind the cup.
         </p>
+        <hr className="border-tea-border my-8" />
       </div>
 
-      {/* ── Filter pills ── */}
+      {/* ── Filter tabs — bottom-border underline §6 ── */}
       <div
-        className="flex gap-2 max-w-2xl mx-auto w-full"
-        style={{ padding: '0 20px 20px', overflowX: 'auto', scrollbarWidth: 'none' }}
+        className="flex flex-wrap gap-x-6 gap-y-2 max-w-2xl mx-auto w-full px-5 pb-6 border-b border-tea-border"
       >
-        {filterTypes.map(t => (
-          <button
-            key={t}
-            onClick={() => setFilter(t)}
-            className="flex-none transition-all duration-200"
-            style={{
-              padding: '7px 16px',
-              borderRadius: 99,
-              border: `1px solid ${filter === t ? 'var(--tea-gold)' : 'var(--tea-border)'}`,
-              background: filter === t ? 'var(--tea-accent-sub)' : 'transparent',
-              fontFamily: 'var(--font-ui)',
-              fontSize: 11,
-              letterSpacing: '0.14em',
-              textTransform: 'uppercase',
-              fontWeight: filter === t ? 500 : 400,
-              color: filter === t ? 'var(--tea-gold)' : 'var(--tea-text-sec)',
-              whiteSpace: 'nowrap',
-            }}
-            onMouseEnter={e => {
-              if (filter !== t) {
-                (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--tea-gold)';
-                (e.currentTarget as HTMLButtonElement).style.color = 'var(--tea-text)';
-              }
-            }}
-            onMouseLeave={e => {
-              if (filter !== t) {
-                (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--tea-border)';
-                (e.currentTarget as HTMLButtonElement).style.color = 'var(--tea-text-sec)';
-              }
-            }}
-          >
-            {t}
-          </button>
-        ))}
+        {filterTypes.map(t => {
+          const active = filter === t;
+          return (
+            <button
+              key={t}
+              onClick={() => setFilter(t)}
+              className={`tap-target text-xs font-semibold pb-2 -mb-[1px] border-b-2 transition-colors ${
+                active
+                  ? 'text-tea-text border-tea-gold'
+                  : 'text-tea-text-sec hover:text-tea-text border-transparent'
+              }`}
+            >
+              {t}
+            </button>
+          );
+        })}
       </div>
 
       {/* ── Article feed ── */}
@@ -892,9 +867,9 @@ export const MagazineTabbed: React.FC<MagazineTabbedProps> = ({
         ) : filtered.length > 0 ? (
           <Feed stories={filtered} onCardClick={handleCardClick} />
         ) : (
-          <div className="flex flex-col items-center justify-center py-24 px-4">
-            <p className="font-display text-xl italic text-tea-text mb-2">Nothing here yet</p>
-            <p className="font-body text-tea-text-sec text-sm text-center max-w-xs leading-relaxed">
+          <div className="flex flex-col items-center justify-center py-24 px-4 text-center">
+            <p className="h3 mb-2">Nothing here yet</p>
+            <p className="body-light max-w-xs">
               Stories are being prepared. Check back soon.
             </p>
           </div>

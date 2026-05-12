@@ -747,66 +747,70 @@ export const SourcesView = () => {
   return (
     <div className={`h-full flex flex-col overflow-hidden bg-tea-bg ${panelSource ? 'md:mr-[420px]' : ''} transition-all duration-300`}>
 
-      {/* --- SAVED VIEWS TAB BAR (desktop only — mobile uses options menu) --- */}
-      <div className="hidden md:flex items-center gap-1 px-6 py-1.5 border-b border-tea-border bg-tea-bg overflow-x-auto hide-scrollbar flex-shrink-0">
-        {savedViews.map(view => (
-          <button
-            key={view.id}
-            onClick={() => {
-              setActiveViewId(view.id);
-              setVisibleColumns(view.columns);
-              setSortConfig(view.sortConfig);
-              setGroupBy(view.groupBy);
-            }}
-            className={`flex items-center gap-1.5 px-3 py-1 text-ui-10 uppercase tracking-[0.15em] rounded-md whitespace-nowrap transition-colors ${
-              activeViewId === view.id
-                ? 'bg-tea-gold/10 text-tea-text ring-1 ring-tea-gold/40 border border-tea-accent-sub'
-                : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface border border-transparent'
-            }`}
-          >
-            {view.name}
-            {!view.id.startsWith('default-') && (
-              <span
-                onClick={(e) => { e.stopPropagation(); deleteView(view.id); }}
-                className="ml-1 text-tea-text-sec/40 hover:text-tea-gold transition-colors"
+      {/* --- SAVED VIEWS TAB BAR (desktop only — underline tabs, §6 canonical) --- */}
+      <div className="hidden md:block px-4 md:px-8 border-b border-tea-border bg-tea-bg flex-shrink-0">
+        <div className="flex items-center gap-5 overflow-x-auto hide-scrollbar flex-wrap">
+          {savedViews.map(view => {
+            const isActive = activeViewId === view.id;
+            return (
+              <button
+                key={view.id}
+                onClick={() => {
+                  setActiveViewId(view.id);
+                  setVisibleColumns(view.columns);
+                  setSortConfig(view.sortConfig);
+                  setGroupBy(view.groupBy);
+                }}
+                className={`whitespace-nowrap py-2.5 text-ui-12 uppercase tracking-caps font-sans border-b transition-colors flex items-center gap-1.5 ${
+                  isActive
+                    ? 'text-tea-text border-tea-gold'
+                    : 'text-tea-text-sec hover:text-tea-text border-transparent'
+                }`}
               >
-                <XIcon size={10} />
-              </span>
-            )}
-          </button>
-        ))}
-        <div className="w-px h-4 bg-tea-border/30 mx-1" />
-        {showSaveViewPrompt ? (
-          <div className="flex items-center gap-1">
-            <input
-              autoFocus
-              value={newViewName}
-              onChange={(e) => setNewViewName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && newViewName.trim()) {
-                  const id = `custom-${Date.now()}`;
-                  saveView({ id, name: newViewName.trim(), columns: visibleColumns, sortConfig, groupBy });
-                  setActiveViewId(id);
-                  setNewViewName('');
-                  setShowSaveViewPrompt(false);
-                } else if (e.key === 'Escape') {
-                  setShowSaveViewPrompt(false);
-                  setNewViewName('');
-                }
-              }}
-              placeholder="View name..."
-              className="bg-transparent border-b border-tea-border text-ui-10 text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg w-24 py-0.5 px-1"
-            />
-            <button onClick={() => { setShowSaveViewPrompt(false); setNewViewName(''); }} className="text-tea-text-sec/40 hover:text-tea-text-sec"><XIcon size={10} /></button>
-          </div>
-        ) : (
-          <button
-            onClick={() => setShowSaveViewPrompt(true)}
-            className="flex items-center gap-1 px-2 py-1 text-ui-10 text-tea-text-sec/50 hover:text-tea-text-sec uppercase tracking-[0.15em] transition-colors"
-          >
-            <Save size={10} /> Save View
-          </button>
-        )}
+                {view.name}
+                {!view.id.startsWith('default-') && (
+                  <span
+                    onClick={(e) => { e.stopPropagation(); deleteView(view.id); }}
+                    className="text-tea-text-sec hover:text-tea-text transition-colors"
+                  >
+                    <XIcon size={10} />
+                  </span>
+                )}
+              </button>
+            );
+          })}
+          {showSaveViewPrompt ? (
+            <div className="flex items-center gap-1 py-2.5">
+              <input
+                autoFocus
+                value={newViewName}
+                onChange={(e) => setNewViewName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && newViewName.trim()) {
+                    const id = `custom-${Date.now()}`;
+                    saveView({ id, name: newViewName.trim(), columns: visibleColumns, sortConfig, groupBy });
+                    setActiveViewId(id);
+                    setNewViewName('');
+                    setShowSaveViewPrompt(false);
+                  } else if (e.key === 'Escape') {
+                    setShowSaveViewPrompt(false);
+                    setNewViewName('');
+                  }
+                }}
+                placeholder="View name..."
+                className="bg-transparent border-b border-tea-border text-ui-12 text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg w-28 py-0.5 px-1"
+              />
+              <button onClick={() => { setShowSaveViewPrompt(false); setNewViewName(''); }} className="text-tea-text-sec hover:text-tea-text"><XIcon size={10} /></button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowSaveViewPrompt(true)}
+              className="flex items-center gap-1 py-2.5 text-ui-12 text-tea-text-sec hover:text-tea-text uppercase tracking-caps transition-colors"
+            >
+              <Save size={10} /> Save View
+            </button>
+          )}
+        </div>
       </div>
 
       {/* --- MOBILE CONTROL BAR --- */}
@@ -929,15 +933,15 @@ export const SourcesView = () => {
 
       {/* --- DESKTOP HEADER CONTROLS --- */}
       <div className={`hidden md:block sticky top-0 z-sticky border-b border-tea-border transition-colors flex-shrink-0 ${isEditMode ? 'bg-tea-surface/95 border-b-tea-gold/20' : 'bg-tea-bg/90 backdrop-blur-md'}`}>
-        <div className="px-4 md:px-6 lg:px-10 max-w-5xl mx-auto pt-6 pb-3 flex items-end justify-between gap-4 flex-wrap">
-          <div>
-            <h1 className="h2 text-tea-text">{isEditMode ? 'Editing sources' : 'Sources'}</h1>
-            <div className="label-caps text-tea-text-dim mt-1">
-              {isEditMode ? 'Click cells to edit' : `${processedSources.length} vendor${processedSources.length !== 1 ? 's' : ''}`}
-            </div>
+        <div className="px-4 md:px-8 pt-6 md:pt-8 pb-3 flex items-end justify-between gap-4 flex-wrap">
+          <div className="min-w-0">
+            <h1 className="h2">{isEditMode ? 'Editing sources' : 'Sources'}</h1>
+            <p className="label-caps text-tea-text-dim mt-1">
+              {isEditMode ? 'CLICK CELLS TO EDIT' : `ALL VENDORS · ${processedSources.length}`}
+            </p>
           </div>
         </div>
-        <div className="px-4 md:px-6 lg:px-10 max-w-5xl mx-auto pb-2 flex items-center gap-4 flex-wrap">
+        <div className="px-4 md:px-8 pb-2 flex items-center gap-4 flex-wrap">
 
           <div className="flex items-center gap-4 ml-auto">
             {/* Search */}
@@ -983,7 +987,7 @@ export const SourcesView = () => {
               <div className="relative">
                 <button
                   onClick={() => setShowColumnsPopover(!showColumnsPopover)}
-                  className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs transition-colors ${showColumnsPopover ? 'text-tea-gold bg-tea-surface' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'}`}
+                  className={`tap-target flex items-center gap-1 px-2 py-1.5 rounded-md text-xs transition-colors ${showColumnsPopover ? 'text-tea-gold bg-tea-surface' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'}`}
                   title="Show/Hide Columns"
                 >
                   <Columns size={14} />
@@ -1018,7 +1022,7 @@ export const SourcesView = () => {
                     const el = document.getElementById('sources-groupby-dropdown');
                     if (el) el.classList.toggle('hidden');
                   }}
-                  className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs transition-colors ${groupBy ? 'text-tea-gold bg-tea-surface' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'}`}
+                  className={`tap-target flex items-center gap-1 px-2 py-1.5 rounded-md text-xs transition-colors ${groupBy ? 'text-tea-gold bg-tea-surface' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'}`}
                   title="Group By"
                 >
                   <Layers size={14} />
@@ -1042,7 +1046,7 @@ export const SourcesView = () => {
 
               <button
                 onClick={() => setShowOptions(!showOptions)}
-                className="p-1.5 text-tea-text-sec hover:text-tea-text transition-colors rounded-lg hover:bg-tea-surface"
+                className="tap-target p-1.5 text-tea-text-sec hover:text-tea-text transition-colors rounded-md hover:bg-tea-surface"
               >
                 <MoreHorizontal size={16} />
               </button>

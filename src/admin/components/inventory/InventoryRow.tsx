@@ -32,6 +32,9 @@ export interface InventoryRowProps {
   navigate: (path: string) => void;
 }
 
+// Canonical inventory row — see DesignSystemShowcase § Inventory list (INV_ROWS).
+// Serif numerics for year/grams/price, dot+label for type, gold-tinted active row,
+// star/eye/edit/more action cluster on the right edge.
 function InventoryRowBase(props: InventoryRowProps) {
   const {
     product, globalIdx, isSelected, focusedCol, isEditMode, visibleCols, splitViewCols,
@@ -49,24 +52,31 @@ function InventoryRowBase(props: InventoryRowProps) {
   const cellId = (colIdx: number) => `cell-${globalIdx}-${colIdx}`;
   const ghostId = (colIdx: number) => `ghost-${globalIdx}-${colIdx}`;
 
+  // Tone tokens — canonical: low-stock → tea-readgold; sold-out name → text-sec, numerics → text-dim.
+  const isOut = (product.stockGrams ?? 0) <= 0;
+  const isLow = !isOut && product.stockGrams <= product.lowStockThreshold;
+  const isSold = product.status === 'Archived' || isOut;
+  const nameTone = isLow ? 'text-tea-readgold' : isSold ? 'text-tea-text-sec' : 'text-tea-text';
+  const numTone = isLow ? 'text-tea-readgold' : isSold ? 'text-tea-text-dim' : 'text-tea-text';
+
   const renderCell = (colKey: string, colIndex: number) => {
     const fr = focusedCol === colIndex ? 'ring-1 ring-tea-gold/50 rounded' : '';
     switch (colKey) {
       case 'productName': return (
-        <td key={colKey} id={cellId(colIndex)} className={`px-4 align-middle overflow-hidden ${fr}`}>
-          <div className="flex flex-col justify-center h-full">
+        <td key={colKey} id={cellId(colIndex)} className={`px-4 py-3 align-middle overflow-hidden ${fr}`}>
+          <div className="flex flex-col justify-center">
             {isEditMode ? (
-              <GhostInput value={product.productName} onSave={(val) => onProductUpdate(product.id, 'productName', val)} className="font-serif text-sm text-tea-text tracking-wide truncate" ariaLabel="Product name" />
+              <GhostInput value={product.productName} onSave={(val) => onProductUpdate(product.id, 'productName', val)} className={`font-display text-ui-17 leading-tight truncate ${nameTone}`} ariaLabel="Product name" />
             ) : (
               <>
-                <span className="text-sm font-serif text-tea-text tracking-wide group-hover:text-tea-gold transition-colors truncate">{product.productName}</span>
+                <span className={`font-display text-ui-17 leading-tight truncate ${nameTone}`}>{product.productName}</span>
                 {product.givenName && (
-                  <span className="text-ui-10 text-tea-text-sec font-sans truncate block">
-                    {product.givenName}{product.form && <span className="ml-1 opacity-50">· {product.form}</span>}
+                  <span className="font-sans text-ui-11 text-tea-text-dim mt-0.5 truncate block" style={{ letterSpacing: '0.02em' }}>
+                    {product.givenName}{product.form && <span className="ml-1 opacity-70">· {product.form}</span>}
                   </span>
                 )}
                 {!product.givenName && product.form && (
-                  <span className="text-ui-10 text-tea-text-sec/50 font-sans truncate block">{product.form}</span>
+                  <span className="font-sans text-ui-11 text-tea-text-dim mt-0.5 truncate block" style={{ letterSpacing: '0.02em' }}>{product.form}</span>
                 )}
               </>
             )}
@@ -76,116 +86,115 @@ function InventoryRowBase(props: InventoryRowProps) {
       case 'type': {
         const dotColor = getThemeColor(product.type);
         return (
-          <td key={colKey} id={cellId(colIndex)} className={`px-4 align-middle overflow-hidden ${fr}`}>
+          <td key={colKey} id={cellId(colIndex)} className={`px-4 py-3 text-ui-13 text-tea-text-sec align-middle overflow-hidden ${fr}`}>
             {isEditMode ? (
-              <label className="flex items-center gap-2 text-xs font-medium tracking-wide text-tea-text-sec truncate cursor-pointer">
-                <span style={{ color: dotColor, fontSize: '10px' }} className="flex-shrink-0">&#9679;</span>
+              <label className="inline-flex items-center gap-2 cursor-pointer">
+                <span className="w-1.5 h-1.5 rounded-full inline-block flex-shrink-0" style={{ backgroundColor: dotColor }} />
                 <select
                   value={product.type}
                   onChange={(e) => onProductUpdate(product.id, 'type', e.target.value)}
                   onClick={(e) => e.stopPropagation()}
-                  className="bg-transparent outline-none appearance-none cursor-pointer text-xs text-tea-text-sec hover:text-tea-text focus-visible:ring-2 focus-visible:ring-tea-gold/50 rounded"
+                  className="bg-transparent outline-none appearance-none cursor-pointer text-ui-13 text-tea-text-sec hover:text-tea-text focus-visible:ring-2 focus-visible:ring-tea-gold/50 rounded"
                   aria-label="Tea type"
                 >
                   {TYPE_OPTIONS.map((t) => <option key={t} value={t} className="bg-tea-surface text-tea-text">{t}</option>)}
                 </select>
               </label>
             ) : (
-              <span className="flex items-center gap-2 text-xs font-medium tracking-wide text-tea-text-sec truncate">
-                <span style={{ color: dotColor, fontSize: '10px' }}>&#9679;</span> {product.type}
+              <span className="inline-flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full inline-block flex-shrink-0" style={{ backgroundColor: dotColor }} />
+                {product.type}
               </span>
             )}
           </td>
         );
       }
       case 'year': return (
-        <td key={colKey} id={cellId(colIndex)} className={`px-4 align-middle overflow-hidden ${fr}`}>
+        <td key={colKey} id={cellId(colIndex)} className={`px-4 py-3 text-ui-15 align-middle font-serif tabular-nums overflow-hidden ${fr} ${isSold ? 'text-tea-text-dim' : 'text-tea-text-sec'}`}>
           {isEditMode
-            ? <GhostInput id={ghostId(colIndex)} ariaLabel="Year" value={product.year || ''} onSave={(val) => onProductUpdate(product.id, 'year', val)} type="number" placeholder="YYYY" className="font-sans text-xs text-tea-text-sec tabular-nums" />
-            : <span className="text-xs text-tea-text-sec font-sans tabular-nums">{product.year || '-'}</span>}
+            ? <GhostInput id={ghostId(colIndex)} ariaLabel="Year" value={product.year || ''} onSave={(val) => onProductUpdate(product.id, 'year', val)} type="number" placeholder="YYYY" className="font-serif text-ui-15 tabular-nums text-tea-text-sec" />
+            : <span>{product.year || '—'}</span>}
         </td>
       );
       case 'originRegion': return (
-        <td key={colKey} id={cellId(colIndex)} className={`px-4 align-middle overflow-hidden ${fr}`}>
+        <td key={colKey} id={cellId(colIndex)} className={`px-4 py-3 text-ui-13 text-tea-text-sec align-middle overflow-hidden ${fr}`}>
           {isEditMode
-            ? <GhostInput id={ghostId(colIndex)} ariaLabel="Origin region" value={product.originRegion} onSave={(val) => onProductUpdate(product.id, 'originRegion', val)} className="font-sans text-xs text-tea-text-sec truncate" />
-            : <span className="text-xs text-tea-text-sec font-sans truncate block">{product.originRegion}</span>}
+            ? <GhostInput id={ghostId(colIndex)} ariaLabel="Origin region" value={product.originRegion} onSave={(val) => onProductUpdate(product.id, 'originRegion', val)} className="font-sans text-ui-13 text-tea-text-sec truncate" />
+            : <span className="truncate block">{product.originRegion}</span>}
         </td>
       );
       case 'stockGrams': {
-        const isOut = (product.stockGrams ?? 0) <= 0;
-        const isLow = !isOut && product.stockGrams <= product.lowStockThreshold;
-        const stockColor = isOut ? 'text-tea-text-dim' : isLow ? 'text-tea-gold font-bold' : 'text-tea-text-sec';
         return (
-          <td key={colKey} id={cellId(colIndex)} className={`px-4 align-middle overflow-hidden ${fr}`}>
+          <td key={colKey} id={cellId(colIndex)} className={`px-4 py-3 text-ui-15 text-right tabular-nums align-middle font-serif overflow-hidden ${fr} ${numTone}`}>
             {isEditMode ? (
-              <div className="flex items-center gap-1">
-                <GhostInput id={ghostId(colIndex)} ariaLabel="Stock grams" value={product.stockGrams} onSave={(val) => onProductUpdate(product.id, 'stockGrams', val)} type="number" className="num text-xs" />
-                <button aria-label={product.recheckStock ? 'Clear recheck flag' : 'Flag for stock recheck'} title={product.recheckStock ? 'Clear recheck flag' : 'Flag for stock recheck'} onClick={(e) => { e.stopPropagation(); onProductUpdate(product.id, 'recheckStock', !product.recheckStock); }} className={`text-ui-10 transition-colors ${product.recheckStock ? 'text-tea-gold hover:text-tea-text-sec' : 'text-tea-border hover:text-tea-gold/70'}`} aria-hidden={false}><span aria-hidden="true">&#9888;</span></button>
+              <div className="inline-flex items-center gap-1 justify-end">
+                <GhostInput id={ghostId(colIndex)} ariaLabel="Stock grams" value={product.stockGrams} onSave={(val) => onProductUpdate(product.id, 'stockGrams', val)} type="number" align="right" className={`font-serif text-ui-15 tabular-nums ${numTone}`} />
+                <button aria-label={product.recheckStock ? 'Clear recheck flag' : 'Flag for stock recheck'} title={product.recheckStock ? 'Clear recheck flag' : 'Flag for stock recheck'} onClick={(e) => { e.stopPropagation(); onProductUpdate(product.id, 'recheckStock', !product.recheckStock); }} className={`text-ui-10 transition-colors ${product.recheckStock ? 'text-tea-readgold hover:text-tea-text-sec' : 'text-tea-border hover:text-tea-readgold'}`}><span aria-hidden="true">&#9888;</span></button>
               </div>
             ) : (
-              <button onClick={(e) => { e.stopPropagation(); onStockHistory(product.id, product.givenName || product.productName); }} className={`tap-target num text-xs flex items-center gap-1 hover:text-tea-gold transition-colors ${stockColor}`} title="View stock history" aria-label={`View stock history for ${product.productName}`}>
-                {product.recheckStock && <span title="Stock needs rechecking" aria-label="Stock needs rechecking" className="text-tea-gold/80 text-ui-10"><span aria-hidden="true">&#9888;</span></span>}
-                {isOut ? '0g' : Math.round(product.stockGrams)}
+              <button onClick={(e) => { e.stopPropagation(); onStockHistory(product.id, product.givenName || product.productName); }} className={`tap-target inline-flex items-center gap-1 justify-end hover:text-tea-gold transition-colors ${numTone}`} title="View stock history" aria-label={`View stock history for ${product.productName}`}>
+                {product.recheckStock && <span title="Stock needs rechecking" aria-label="Stock needs rechecking" className="text-tea-readgold text-ui-10"><span aria-hidden="true">&#9888;</span></span>}
+                {isOut ? '0' : Math.round(product.stockGrams)}
               </button>
             )}
           </td>
         );
       }
       case 'costAmount': return (
-        <td key={colKey} id={cellId(colIndex)} className={`px-4 align-middle overflow-hidden ${fr}`}>
+        <td key={colKey} id={cellId(colIndex)} className={`px-4 py-3 text-ui-15 text-right tabular-nums align-middle font-serif overflow-hidden ${fr} ${numTone}`}>
           {isEditMode
-            ? <GhostInput id={ghostId(colIndex)} ariaLabel="Cost amount" value={product.costAmount} onSave={(val) => onProductUpdate(product.id, 'costAmount', val)} type="number" className="num text-xs" />
-            : <span className="num text-xs text-tea-text-sec">{product.costAmount > 0 ? product.costAmount.toLocaleString() : '-'}</span>}
+            ? <GhostInput id={ghostId(colIndex)} ariaLabel="Cost amount" value={product.costAmount} onSave={(val) => onProductUpdate(product.id, 'costAmount', val)} type="number" align="right" className={`font-serif text-ui-15 tabular-nums ${numTone}`} />
+            : <span>{product.costAmount > 0 ? product.costAmount.toLocaleString() : '—'}</span>}
         </td>
       );
       case 'costPerGramUSD': return (
-        <td key={colKey} id={cellId(colIndex)} className={`px-4 align-middle overflow-hidden ${fr}`}>
-          <span className="num text-xs text-tea-text-sec">{product.costPerGramUSD > 0 ? fmtNum(product.costPerGramUSD) : '-'}</span>
+        <td key={colKey} id={cellId(colIndex)} className={`px-4 py-3 text-ui-15 text-right tabular-nums align-middle font-serif overflow-hidden ${fr} ${numTone}`}>
+          <span>{product.costPerGramUSD > 0 ? fmtNum(product.costPerGramUSD) : '—'}</span>
         </td>
       );
       case 'pricePerGramUSD': {
         const sellingPrice = product.fixedRetailPriceUSD ?? product.pricePerGramUSD;
+        const overrideTone = product.fixedRetailPriceUSD != null && !isLow && !isSold ? 'text-tea-readgold' : numTone;
         return (
-          <td key={colKey} id={cellId(colIndex)} className={`px-4 align-middle overflow-hidden ${fr}`}>
+          <td key={colKey} id={cellId(colIndex)} className={`px-4 py-3 text-ui-15 text-right tabular-nums align-middle font-serif overflow-hidden ${fr} ${overrideTone}`}>
             {isEditMode
-              ? <GhostInput id={ghostId(colIndex)} ariaLabel="Retail price per gram (USD)" value={sellingPrice?.toFixed(2)} onSave={(val) => onProductUpdate(product.id, 'fixedRetailPriceUSD', val ? Number(val) : null)} type="number" className="num text-xs" />
-              : <span className={`num text-xs ${product.fixedRetailPriceUSD != null ? 'text-tea-gold' : 'text-tea-text'}`}>{sellingPrice != null ? fmtNum(sellingPrice) : '-'}</span>}
+              ? <GhostInput id={ghostId(colIndex)} ariaLabel="Retail price per gram (USD)" value={sellingPrice?.toFixed(2)} onSave={(val) => onProductUpdate(product.id, 'fixedRetailPriceUSD', val ? Number(val) : null)} type="number" align="right" className={`font-serif text-ui-15 tabular-nums ${overrideTone}`} />
+              : <span>{sellingPrice != null ? fmtNum(sellingPrice) : '—'}</span>}
           </td>
         );
       }
       case 'material': return (
-        <td key={colKey} id={cellId(colIndex)} className={`px-4 align-middle overflow-hidden ${fr}`}>
+        <td key={colKey} id={cellId(colIndex)} className={`px-4 py-3 text-ui-13 text-tea-text-sec align-middle overflow-hidden ${fr}`}>
           {isEditMode
-            ? <GhostInput id={ghostId(colIndex)} ariaLabel="Material" value={product.material || ''} onSave={(val) => onProductUpdate(product.id, 'material', val)} className="font-sans text-xs text-tea-text-sec truncate" />
-            : <span className="text-xs text-tea-text-sec font-sans truncate block">{product.material || '-'}</span>}
+            ? <GhostInput id={ghostId(colIndex)} ariaLabel="Material" value={product.material || ''} onSave={(val) => onProductUpdate(product.id, 'material', val)} className="font-sans text-ui-13 text-tea-text-sec truncate" />
+            : <span className="truncate block">{product.material || '—'}</span>}
         </td>
       );
       case 'teawareCategory': return (
-        <td key={colKey} id={cellId(colIndex)} className={`px-4 align-middle overflow-hidden ${fr}`}>
+        <td key={colKey} id={cellId(colIndex)} className={`px-4 py-3 text-ui-13 text-tea-text-sec align-middle overflow-hidden ${fr}`}>
           {isEditMode
-            ? <GhostInput id={ghostId(colIndex)} ariaLabel="Teaware category" value={product.teawareCategory || ''} onSave={(val) => onProductUpdate(product.id, 'teawareCategory', val)} className="font-sans text-xs text-tea-text-sec truncate" />
-            : <span className="text-xs text-tea-text-sec font-sans capitalize truncate block">{product.teawareCategory || '-'}</span>}
+            ? <GhostInput id={ghostId(colIndex)} ariaLabel="Teaware category" value={product.teawareCategory || ''} onSave={(val) => onProductUpdate(product.id, 'teawareCategory', val)} className="font-sans text-ui-13 text-tea-text-sec truncate" />
+            : <span className="capitalize truncate block">{product.teawareCategory || '—'}</span>}
         </td>
       );
       case 'capacityMl': return (
-        <td key={colKey} id={cellId(colIndex)} className={`px-4 align-middle overflow-hidden ${fr}`}>
+        <td key={colKey} id={cellId(colIndex)} className={`px-4 py-3 text-ui-15 text-right tabular-nums align-middle font-serif overflow-hidden ${fr} ${numTone}`}>
           {isEditMode
-            ? <GhostInput id={ghostId(colIndex)} ariaLabel="Capacity (ml)" value={product.capacityMl || ''} onSave={(val) => onProductUpdate(product.id, 'capacityMl', val)} type="number" className="num text-xs" />
-            : <span className="num text-xs text-tea-text-sec">{product.capacityMl ? `${product.capacityMl}ml` : '-'}</span>}
+            ? <GhostInput id={ghostId(colIndex)} ariaLabel="Capacity (ml)" value={product.capacityMl || ''} onSave={(val) => onProductUpdate(product.id, 'capacityMl', val)} type="number" align="right" className={`font-serif text-ui-15 tabular-nums ${numTone}`} />
+            : <span>{product.capacityMl ? `${product.capacityMl}ml` : '—'}</span>}
         </td>
       );
       case 'quantityUnits': return (
-        <td key={colKey} id={cellId(colIndex)} className={`px-4 align-middle overflow-hidden ${fr}`}>
+        <td key={colKey} id={cellId(colIndex)} className={`px-4 py-3 text-ui-15 text-right tabular-nums align-middle font-serif overflow-hidden ${fr} ${numTone}`}>
           {isEditMode
-            ? <GhostInput id={ghostId(colIndex)} ariaLabel="Quantity units" value={product.quantityUnits || ''} onSave={(val) => onProductUpdate(product.id, 'quantityUnits', val)} type="number" className="num text-xs" />
-            : <span className="num text-xs text-tea-text-sec">{product.quantityUnits ?? '-'}</span>}
+            ? <GhostInput id={ghostId(colIndex)} ariaLabel="Quantity units" value={product.quantityUnits || ''} onSave={(val) => onProductUpdate(product.id, 'quantityUnits', val)} type="number" align="right" className={`font-serif text-ui-15 tabular-nums ${numTone}`} />
+            : <span>{product.quantityUnits ?? '—'}</span>}
         </td>
       );
       case 'verified': {
         const isVerified = !!product.stockVerifiedAt;
         return (
-          <td key={colKey} id={cellId(colIndex)} className={`px-4 align-middle text-center ${fr}`}>
+          <td key={colKey} id={cellId(colIndex)} className={`px-4 py-3 align-middle text-center ${fr}`}>
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -212,27 +221,27 @@ function InventoryRowBase(props: InventoryRowProps) {
         );
       }
       case 'vendor': return (
-        <td key={colKey} className="px-4 align-middle overflow-hidden">
+        <td key={colKey} className="px-4 py-3 text-ui-13 align-middle overflow-hidden">
           {product.vendor
-            ? <button onClick={(e) => { e.stopPropagation(); navigate(`/admin/people?tab=sources&search=${encodeURIComponent(product.vendor!)}`); }} className="text-xs text-tea-text-sec hover:text-tea-gold transition-colors truncate block text-left">{product.vendor}</button>
-            : <span className="text-xs text-tea-text-dim">—</span>}
+            ? <button onClick={(e) => { e.stopPropagation(); navigate(`/admin/people?tab=sources&search=${encodeURIComponent(product.vendor!)}`); }} className="text-tea-text-sec hover:text-tea-gold transition-colors truncate block text-left">{product.vendor}</button>
+            : <span className="text-tea-text-dim">—</span>}
         </td>
       );
-      default: return <td key={colKey} className="px-4 align-middle text-xs text-tea-text-sec">-</td>;
+      default: return <td key={colKey} className="px-4 py-3 align-middle text-ui-13 text-tea-text-sec">—</td>;
     }
   };
 
-  const borderCls = !isSelected ? getRowBorderClass(product) : '';
+  // Canonical active-row signature: gold-tinted bg + 1px gold outline (selection or panel open).
+  const borderCls = !isSelected && !isPanelOpen ? getRowBorderClass(product) : '';
+  const activeRow = isSelected || isPanelOpen;
   const trCls = [
-    'border-b border-tea-border group cursor-pointer select-none',
+    'border-b border-tea-border last:border-b-0 group cursor-pointer select-none transition-colors',
     borderCls,
-    isSelected
-      ? 'bg-tea-gold/20 border-l-2 border-l-tea-gold'
-      : isPanelOpen
-        ? 'bg-tea-gold/10'
-        : !product.isPublic
-          ? 'opacity-60 hover:opacity-100 hover:bg-tea-bg/50'
-          : 'hover:bg-tea-bg/50',
+    activeRow
+      ? 'bg-tea-gold/8 outline outline-1 -outline-offset-1 outline-tea-gold/40'
+      : !product.isPublic
+        ? 'opacity-60 hover:opacity-100 hover:bg-tea-accent-sub'
+        : 'hover:bg-tea-accent-sub',
   ].join(' ');
 
   return (
@@ -262,23 +271,56 @@ function InventoryRowBase(props: InventoryRowProps) {
       }}
     >
       {(splitView ? splitViewCols : visibleCols).map((col, colIdx) => renderCell(col.key, colIdx))}
-      <td className="px-1 align-middle text-right">
-        <div className="flex justify-end gap-0.5" onClick={(e) => e.stopPropagation()}>
+      {/* Action cluster — canonical: star / eye / edit / more, each p-1.5 Lucide 14px */}
+      <td className="px-3 py-3 align-middle text-right whitespace-nowrap">
+        <div className="inline-flex items-center gap-0.5 text-tea-text-dim" onClick={(e) => e.stopPropagation()}>
           {!isEditMode && !isSelected && (
             <>
-              <span className="inline-flex items-center gap-0.5">
-                <button onClick={(e) => { e.stopPropagation(); onSelectionAwareUpdate(product, 'isFeatured', !product.isFeatured); }} className={`tap-target ${product.isFeatured ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'} p-1 transition-colors`} aria-label={product.isFeatured ? 'Remove featured star' : 'Mark as featured'} aria-pressed={product.isFeatured} title={product.isFeatured ? 'Remove star' : 'Star'}><Star size={12} className={product.isFeatured ? 'fill-tea-gold' : ''} aria-hidden="true" /></button>
-                {isFeaturedButHidden(product) && <span className="font-body italic text-ui-10 text-tea-text-sec leading-none">hidden</span>}
-              </span>
-              <button onClick={(e) => { e.stopPropagation(); onSelectionAwareUpdate(product, 'isPublic', !product.isPublic); }} className={`tap-target ${product.isPublic ? 'text-tea-text-sec hover:text-tea-text' : 'text-tea-text-sec/50 hover:text-tea-text-sec'} p-1 transition-colors`} aria-label={product.isPublic ? 'Hide from shop' : 'Show in shop'} aria-pressed={product.isPublic} title={product.isPublic ? 'Hide' : 'Show'}>{product.isPublic ? <Eye size={12} aria-hidden="true" /> : <EyeOff size={12} aria-hidden="true" />}</button>
-              {!splitView && <button onClick={(e) => { e.stopPropagation(); onOpenPanel(product); }} className="tap-target text-tea-text-sec hover:text-tea-text p-1 transition-colors" aria-label="Edit product" title="Edit"><Pencil size={13} aria-hidden="true" /></button>}
+              <button
+                onClick={(e) => { e.stopPropagation(); onSelectionAwareUpdate(product, 'isFeatured', !product.isFeatured); }}
+                className={`p-1.5 transition-colors ${product.isFeatured ? 'text-tea-readgold' : 'hover:text-tea-readgold'}`}
+                aria-label={product.isFeatured ? 'Remove featured star' : 'Mark as featured'}
+                aria-pressed={product.isFeatured}
+                title={product.isFeatured ? 'Remove star' : 'Star'}
+              >
+                <Star size={14} style={product.isFeatured ? { fill: 'currentColor' } : undefined} aria-hidden="true" />
+              </button>
+              {isFeaturedButHidden(product) && <span className="font-body italic text-ui-10 text-tea-text-sec leading-none">hidden</span>}
+              <button
+                onClick={(e) => { e.stopPropagation(); onSelectionAwareUpdate(product, 'isPublic', !product.isPublic); }}
+                className="p-1.5 hover:text-tea-text-sec transition-colors"
+                aria-label={product.isPublic ? 'Hide from shop' : 'Show in shop'}
+                aria-pressed={product.isPublic}
+                title={product.isPublic ? 'Hide' : 'Show'}
+              >
+                {product.isPublic ? <Eye size={14} aria-hidden="true" /> : <EyeOff size={14} aria-hidden="true" />}
+              </button>
+              {!splitView && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); onOpenPanel(product); }}
+                  className="p-1.5 hover:text-tea-text-sec transition-colors"
+                  aria-label="Edit product"
+                  title="Edit"
+                >
+                  <Pencil size={14} aria-hidden="true" />
+                </button>
+              )}
               {!splitView && (
                 <div className="relative" data-row-dropdown>
-                  <button onClick={() => onToggleDropdown(isDropdownOpen ? null : product.id)} className="tap-target text-tea-text-sec hover:text-tea-text p-1 transition-colors" aria-label="More actions" aria-haspopup="menu" aria-expanded={isDropdownOpen} title="More actions"><MoreHorizontal size={13} aria-hidden="true" /></button>
+                  <button
+                    onClick={() => onToggleDropdown(isDropdownOpen ? null : product.id)}
+                    className="p-1.5 hover:text-tea-text-sec transition-colors"
+                    aria-label="More actions"
+                    aria-haspopup="menu"
+                    aria-expanded={isDropdownOpen}
+                    title="More actions"
+                  >
+                    <MoreHorizontal size={14} aria-hidden="true" />
+                  </button>
                   {isDropdownOpen && (
-                    <div className="absolute right-0 top-full mt-1 z-50 bg-tea-surface rounded-lg shadow-lg py-1 min-w-[140px]" style={{ boxShadow: '0 4px 20px rgba(24,19,14,0.3)' }}>
-                      <button onClick={() => onRestock(product)} className="w-full flex items-center gap-2 px-3 py-2 text-xs text-tea-text hover:bg-tea-bg/60 transition-colors text-left"><Globe size={12} /> Restock via Compass</button>
-                      <button onClick={() => { onProductUpdate(product.id, 'status', product.status === 'Archived' ? 'Active' : 'Archived'); onToggleDropdown(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-xs text-tea-text hover:bg-tea-bg/60 transition-colors text-left"><Archive size={12} /> {product.status === 'Archived' ? 'Unarchive' : 'Archive'}</button>
+                    <div className="absolute right-0 top-full mt-1 z-50 bg-tea-surface rounded-lg shadow-lg py-1 min-w-[160px] border border-tea-border" style={{ boxShadow: '0 4px 20px rgba(24,19,14,0.3)' }}>
+                      <button onClick={() => onRestock(product)} className="w-full flex items-center gap-2 px-3 py-2 text-ui-13 text-tea-text hover:bg-tea-accent-sub transition-colors text-left"><Globe size={12} /> Restock via Compass</button>
+                      <button onClick={() => { onProductUpdate(product.id, 'status', product.status === 'Archived' ? 'Active' : 'Archived'); onToggleDropdown(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-ui-13 text-tea-text hover:bg-tea-accent-sub transition-colors text-left"><Archive size={12} /> {product.status === 'Archived' ? 'Unarchive' : 'Archive'}</button>
                     </div>
                   )}
                 </div>

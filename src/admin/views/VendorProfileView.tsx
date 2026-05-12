@@ -9,10 +9,10 @@
 import React, { useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Package, TrendingUp, Layers, DollarSign } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useAppStore } from '../store';
+import { STATUS_PILL_BASE, STATUS_PILL_VARIANTS, type StatusPillVariant } from '../constants';
 import type { Customer, Product } from '../types';
 
 // ────────────────────────────────────────────────────────
@@ -26,13 +26,6 @@ interface InvoiceRow {
   status: string;
   created_at: string;
   total?: number;
-}
-
-interface InvoiceItemRow {
-  product_id: string;
-  quantity: number;
-  price_at_sale: number;
-  productName?: string;
 }
 
 // ────────────────────────────────────────────────────────
@@ -54,40 +47,24 @@ function formatDate(iso: string): string {
   });
 }
 
-function stockLabel(g: number): { label: string; cls: string } {
-  if (g <= 0) return { label: 'Out', cls: 'text-red-400' };
-  if (g < 100) return { label: 'Low', cls: 'text-amber-400' };
-  return { label: 'In stock', cls: 'text-emerald-400' };
+function stockVariant(g: number): { label: string; variant: StatusPillVariant } {
+  if (g <= 0) return { label: 'Out', variant: 'draft' };
+  if (g < 100) return { label: 'Low', variant: 'active' };
+  return { label: 'In stock', variant: 'success' };
 }
+
+const VENDOR_GRADIENT =
+  'radial-gradient(circle at 30% 30%, #c6a473, #8e6d2e 55%, #3a3126)';
 
 // ────────────────────────────────────────────────────────
 // Sub-components
 // ────────────────────────────────────────────────────────
 
-const StatCard: React.FC<{
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  sub?: string;
-  index: number;
-}> = ({ icon, label, value, sub, index }) => (
-  <motion.div
-    initial={{ opacity: 0, y: 8 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.3, delay: index * 0.06 }}
-    className="bg-tea-surface border border-tea-border rounded-sm p-5 flex flex-col gap-3"
-  >
-    <div className="flex items-center gap-2 text-tea-text-dim">
-      {icon}
-      <span className="text-ui-10 uppercase tracking-[0.2em]">{label}</span>
-    </div>
-    <p className="font-serif text-2xl text-tea-text num leading-none">{value}</p>
-    {sub && <p className="text-xs text-tea-text-dim">{sub}</p>}
-  </motion.div>
-);
-
-const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <h2 className="font-serif text-lg text-tea-text mb-5">{children}</h2>
+const StatusPill: React.FC<{ variant?: StatusPillVariant; children: React.ReactNode }> = ({
+  variant = 'draft',
+  children,
+}) => (
+  <span className={`${STATUS_PILL_BASE} ${STATUS_PILL_VARIANTS[variant]}`}>{children}</span>
 );
 
 // ────────────────────────────────────────────────────────
@@ -97,7 +74,7 @@ const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 export const VendorProfileView: React.FC = () => {
   const { vendorId } = useParams<{ vendorId: string }>();
   const navigate = useNavigate();
-  const { currency } = useAppStore();
+  useAppStore(); // preserve store subscription parity with prior implementation
 
   // ── Vendor data ──────────────────────────────────────
   const { data: vendor, isLoading: vendorLoading } = useQuery<Customer>({
@@ -115,16 +92,15 @@ export const VendorProfileView: React.FC = () => {
     staleTime: 60_000,
   });
 
-  // ── All invoices (we filter client-side by product IDs) ──
+  // ── All invoices (we filter client-side by vendor name) ──
   const { data: invoicesRaw = [] } = useQuery({
     queryKey: ['invoices-all'],
     queryFn: () => api.invoices.list(200, 0),
     staleTime: 60_000,
   });
-  const invoices: InvoiceRow[] = Array.isArray(invoicesRaw) ? invoicesRaw : (invoicesRaw as any)?.invoices ?? [];
-
-  // ── Derived vendor product ID set ────────────────────
-  const vendorProductIds = useMemo(() => new Set(products.map(p => p.id)), [products]);
+  const invoices: InvoiceRow[] = Array.isArray(invoicesRaw)
+    ? invoicesRaw
+    : (invoicesRaw as any)?.invoices ?? [];
 
   // ── Summary statistics ───────────────────────────────
   const stats = useMemo(() => {
@@ -136,27 +112,19 @@ export const VendorProfileView: React.FC = () => {
         : 0;
     const activeStockValue = activeProducts.reduce(
       (s, p) => s + (p.stockGrams ?? 0) * (p.costPerGramUSD ?? 0),
-      0
+      0,
     );
-    // Total purchased value: sum all invoice items where product is in vendor set
-    // (Approximation from available data — full accuracy would need line-item fetch)
-    const totalPurchased = products.reduce(
-      (s, p) => s + (p.costAmount ?? 0),
-      0
-    );
+    const totalPurchased = products.reduce((s, p) => s + (p.costAmount ?? 0), 0);
 
     return { count: activeProducts.length, avgCost, activeStockValue, totalPurchased };
   }, [products]);
 
-  // ── Filter invoices that contain vendor products ──────
-  // We can't cheaply fetch all line items, so we show invoices where
-  // customer_name matches the vendor OR we have data from getOrders.
-  // For a richer view we use products' vendor name match on invoices.
+  // ── Filter invoices by vendor name (presentation-only) ─
   const vendorName = vendor?.name ?? '';
   const relatedInvoices = useMemo(() => {
     if (!vendorName) return [];
-    return invoices.filter(
-      inv => inv.customer_name?.toLowerCase().includes(vendorName.toLowerCase())
+    return invoices.filter(inv =>
+      inv.customer_name?.toLowerCase().includes(vendorName.toLowerCase()),
     );
   }, [invoices, vendorName]);
 
@@ -166,165 +134,157 @@ export const VendorProfileView: React.FC = () => {
 
   if (vendorLoading || productsLoading) {
     return (
-      <div className="h-full flex items-center justify-center">
-        <div className="w-7 h-7 border-2 border-tea-gold border-t-transparent rounded-full animate-spin" />
+      <div className="flex items-center justify-center h-full bg-tea-bg">
+        <Loader2 className="animate-spin text-tea-text-sec" size={20} />
       </div>
     );
   }
 
   if (!vendor) {
     return (
-      <div className="h-full flex items-center justify-center px-6">
-        <div className="text-center">
-          <p className="font-serif text-lg text-tea-text mb-2">Vendor not found</p>
+      <div className="h-full overflow-y-auto bg-tea-bg pb-nav-gap">
+        <div className="max-w-3xl mx-auto px-4 md:px-6 pt-6 pb-3">
           <button
             onClick={() => navigate(-1)}
-            className="text-xs text-tea-text-sec hover:text-tea-gold transition-colors uppercase tracking-[0.15em]"
+            className="inline-flex items-center gap-1.5 text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors"
           >
-            Go back
+            <ArrowLeft size={14} />
+            <span>Back</span>
           </button>
+        </div>
+        <div className="max-w-3xl mx-auto px-4 md:px-6 pb-12">
+          <div className="bg-tea-surface border border-tea-border rounded-xl p-5 text-center">
+            <h3 className="h3 mb-1">Vendor not found</h3>
+            <p className="text-ui-13 text-tea-text-sec">
+              This vendor may have been removed or the link is invalid.
+            </p>
+          </div>
         </div>
       </div>
     );
   }
 
+  const location = [vendor.city, vendor.country].filter(Boolean).join(', ');
+  const primaryContact =
+    vendor.email ||
+    vendor.contacts?.find(c => c.channel === 'whatsapp')?.handle ||
+    vendor.whatsapp ||
+    vendor.phone ||
+    '';
+  const verified = vendor.tags?.some(t => t.toLowerCase().includes('verified'));
+  const extraTags = vendor.tags?.filter(t => !t.toLowerCase().includes('verified')) ?? [];
+
   return (
-    <div className="h-full overflow-y-auto bg-tea-bg">
-      <div className="max-w-4xl mx-auto px-4 md:px-8 py-8 md:py-12">
+    <div className="h-full overflow-y-auto bg-tea-bg pb-nav-gap">
+      {/* Narrow chrome */}
+      <div className="max-w-3xl mx-auto px-4 md:px-6 pt-6 pb-3">
+        <div className="flex items-center justify-between">
+          <button
+            onClick={() => navigate(-1)}
+            className="inline-flex items-center gap-1.5 text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors"
+          >
+            <ArrowLeft size={14} />
+            <span>Back</span>
+          </button>
+        </div>
+      </div>
 
-        {/* Back link */}
-        <button
-          onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-xs text-tea-text-sec hover:text-tea-gold transition-colors uppercase tracking-[0.15em] mb-10"
-        >
-          <ArrowLeft size={13} />
-          <span>People</span>
-        </button>
+      <div className="max-w-3xl mx-auto px-4 md:px-6 pb-12 space-y-6">
+        {/* Identity card */}
+        <section className="bg-tea-surface border border-tea-border rounded-xl p-5">
+          <div className="flex items-start gap-4">
+            <div
+              className="w-12 h-12 rounded-full flex-shrink-0"
+              style={{ background: VENDOR_GRADIENT }}
+              aria-hidden="true"
+            />
+            <div className="flex-1 min-w-0">
+              <h3 className="h3">{vendor.name}</h3>
+              {primaryContact && (
+                <p className="text-ui-13 text-tea-text-sec mt-0.5 truncate">{primaryContact}</p>
+              )}
+              {(location || vendor.company) && (
+                <p className="text-ui-12 text-tea-text-dim mt-0.5">
+                  {[vendor.company, location].filter(Boolean).join(' · ')}
+                </p>
+              )}
+              <div className="flex flex-wrap gap-1.5 mt-3">
+                <StatusPill variant={verified ? 'success' : 'draft'}>
+                  {verified ? 'Source verified' : 'Source unverified'}
+                </StatusPill>
+                {extraTags.map(tag => (
+                  <StatusPill key={tag} variant="draft">{tag}</StatusPill>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
 
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          className="mb-10"
-        >
-          <p className="text-ui-10 uppercase tracking-[0.35em] text-tea-text-sec mb-3">
-            Vendor profile
-          </p>
-          <h1 className="font-serif text-4xl md:text-5xl text-tea-text font-light mb-3">
-            {vendor.name}
-          </h1>
-          <div className="w-8 h-[1px] bg-tea-gold mb-5" />
+        {/* Stats row */}
+        <section className="bg-tea-surface border border-tea-border rounded-xl p-5">
+          <h3 className="h3 mb-4">At a glance</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {[
+              { value: String(stats.count), label: 'Products' },
+              { value: `$${fmt(stats.totalPurchased, 0)}`, label: 'Total cost' },
+              { value: `$${fmt(stats.avgCost, 3)}`, label: 'Avg cost/g' },
+              { value: `$${fmt(stats.activeStockValue, 0)}`, label: 'Stock value' },
+            ].map(({ value, label }) => (
+              <div key={label} className="bg-tea-bg border border-tea-border rounded-xl p-4">
+                <div className="font-mono text-ui-28 text-tea-text tabular-nums leading-none">
+                  {value}
+                </div>
+                <div className="label-caps text-tea-text-dim mt-2">{label}</div>
+              </div>
+            ))}
+          </div>
+        </section>
 
-          <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-tea-text-sec">
-            {(vendor.city || vendor.country) && (
-              <span>
-                {[vendor.city, vendor.country].filter(Boolean).join(', ')}
-              </span>
-            )}
-            {vendor.email && <span>{vendor.email}</span>}
-            {vendor.phone && <span>{vendor.phone}</span>}
-            {vendor.whatsapp && <span>WhatsApp: {vendor.whatsapp}</span>}
+        {/* Products supplied */}
+        <section className="bg-tea-surface border border-tea-border rounded-xl p-5">
+          <div className="flex items-baseline justify-between mb-4">
+            <h3 className="h3">Products supplied</h3>
+            <span className="label-caps text-tea-text-dim">{products.length}</span>
           </div>
 
-          {vendor.tags.length > 0 && (
-            <div className="flex flex-wrap gap-2 mt-4">
-              {vendor.tags.map(tag => (
-                <span
-                  key={tag}
-                  className="text-ui-10 uppercase tracking-[0.15em] px-2.5 py-1 bg-tea-surface text-tea-text-sec rounded-sm"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
-          )}
-
-          {vendor.notes && (
-            <p className="mt-5 text-sm text-tea-text-sec italic leading-relaxed max-w-xl">
-              {vendor.notes}
-            </p>
-          )}
-        </motion.div>
-
-        {/* Summary cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-14">
-          <StatCard
-            icon={<Package size={14} />}
-            label="Products"
-            value={String(stats.count)}
-            sub="active in inventory"
-            index={0}
-          />
-          <StatCard
-            icon={<DollarSign size={14} />}
-            label="Total cost"
-            value={`$${fmt(stats.totalPurchased, 0)}`}
-            sub="USD, all batches"
-            index={1}
-          />
-          <StatCard
-            icon={<TrendingUp size={14} />}
-            label="Avg cost/g"
-            value={`$${fmt(stats.avgCost, 3)}`}
-            sub="across their teas"
-            index={2}
-          />
-          <StatCard
-            icon={<Layers size={14} />}
-            label="Stock value"
-            value={`$${fmt(stats.activeStockValue, 0)}`}
-            sub="current inventory cost"
-            index={3}
-          />
-        </div>
-
-        {/* Products section */}
-        <section className="mb-14">
-          <SectionTitle>Products</SectionTitle>
-
           {products.length === 0 ? (
-            <p className="text-sm text-tea-text-sec italic">
+            <p className="text-ui-13 text-tea-text-sec italic">
               No products linked to this vendor yet.
             </p>
           ) : (
-            <div className="border border-tea-border rounded-sm overflow-hidden">
-              {/* Table header */}
-              <div className="grid grid-cols-[1fr_80px_80px_80px] gap-4 px-5 py-3 bg-tea-surface border-b border-tea-border">
-                <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim">Tea</span>
-                <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim text-right">Stock</span>
-                <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim text-right">Cost/g</span>
-                <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim text-right">Status</span>
-              </div>
-
-              {products.map((p, i) => {
-                const stock = stockLabel(p.stockGrams ?? 0);
+            <div className="border-t border-tea-border">
+              {products.map(p => {
+                const stock = stockVariant(p.stockGrams ?? 0);
                 return (
-                  <motion.div
+                  <div
                     key={p.id}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: i * 0.03 }}
-                    className="grid grid-cols-[1fr_80px_80px_80px] gap-4 px-5 py-4 border-b border-tea-border last:border-0 hover:bg-tea-surface/40 transition-colors"
+                    className="flex items-center gap-3 py-3 border-b border-tea-border last:border-0"
                   >
-                    <div className="min-w-0">
-                      <p className="text-sm font-serif text-tea-text truncate">
+                    {p.imageUrl ? (
+                      <img
+                        src={p.imageUrl}
+                        alt=""
+                        className="w-9 h-9 rounded-md object-cover shrink-0"
+                      />
+                    ) : (
+                      <div className="w-9 h-9 rounded-md bg-tea-elevated shrink-0" />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="text-ui-13 text-tea-text truncate">
                         {p.givenName || p.productName}
                       </p>
-                      <p className="text-ui-10 text-tea-text-dim mt-0.5">
+                      <p className="label-caps text-tea-text-dim mt-0.5 truncate">
                         {[p.type, p.year].filter(Boolean).join(' · ')}
                       </p>
                     </div>
-                    <p className="text-sm text-tea-text-sec text-right num self-center">
+                    <span className="font-mono text-ui-13 text-tea-text-sec tabular-nums">
                       {(p.stockGrams ?? 0).toLocaleString()}g
-                    </p>
-                    <p className="text-sm text-tea-text-sec text-right num self-center">
+                    </span>
+                    <span className="font-mono text-ui-13 text-tea-text-sec tabular-nums">
                       ${fmt(p.costPerGramUSD ?? 0, 3)}
-                    </p>
-                    <p className={`text-xs text-right self-center ${stock.cls}`}>
-                      {stock.label}
-                    </p>
-                  </motion.div>
+                    </span>
+                    <StatusPill variant={stock.variant}>{stock.label}</StatusPill>
+                  </div>
                 );
               })}
             </div>
@@ -332,55 +292,53 @@ export const VendorProfileView: React.FC = () => {
         </section>
 
         {/* Purchase history */}
-        <section className="mb-14">
-          <SectionTitle>Purchase history</SectionTitle>
+        <section className="bg-tea-surface border border-tea-border rounded-xl p-5">
+          <div className="flex items-baseline justify-between mb-4">
+            <h3 className="h3">Purchase history</h3>
+            <span className="label-caps text-tea-text-dim">{relatedInvoices.length}</span>
+          </div>
 
           {relatedInvoices.length === 0 ? (
-            <p className="text-sm text-tea-text-sec italic">
+            <p className="text-ui-13 text-tea-text-sec italic">
               No purchase invoices linked to this vendor.
             </p>
           ) : (
-            <div className="space-y-2">
-              {relatedInvoices.map((inv, i) => (
-                <motion.div
+            <div className="border-t border-tea-border">
+              {relatedInvoices.map(inv => (
+                <div
                   key={inv.id}
-                  initial={{ opacity: 0, x: -6 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.04 }}
-                  className="flex items-center justify-between px-5 py-4 bg-tea-surface border border-tea-border rounded-sm"
+                  className="flex items-center justify-between gap-3 py-3 border-b border-tea-border last:border-0"
                 >
-                  <div>
-                    <p className="text-sm font-serif text-tea-text">
-                      {inv.invoice_number}
+                  <div className="min-w-0 flex-1">
+                    <p className="font-mono text-ui-13 text-tea-text tabular-nums truncate">
+                      #{inv.invoice_number}
                     </p>
-                    <p className="text-xs text-tea-text-dim mt-0.5">
+                    <p className="label-caps text-tea-text-dim mt-0.5">
                       {formatDate(inv.created_at)}
                     </p>
                   </div>
-                  <div className="text-right">
-                    <span
-                      className={`text-ui-10 uppercase tracking-[0.1em] px-2 py-0.5 rounded-sm ${
-                        inv.status === 'Filled'
-                          ? 'bg-tea-gold/10 text-tea-text ring-1 ring-tea-gold/40'
-                          : 'bg-tea-surface text-tea-text-sec border border-tea-border'
-                      }`}
-                    >
-                      {inv.status}
+                  {inv.total != null && (
+                    <span className="font-mono text-ui-13 text-tea-text tabular-nums">
+                      ${Number(inv.total).toFixed(2)}
                     </span>
-                  </div>
-                </motion.div>
+                  )}
+                  <StatusPill variant={inv.status === 'Filled' ? 'success' : 'draft'}>
+                    {inv.status}
+                  </StatusPill>
+                </div>
               ))}
             </div>
           )}
         </section>
 
-        {/* Footer mark */}
-        <div className="border-t border-tea-border pt-8 text-center">
-          <p className="text-ui-10 uppercase tracking-[0.3em] text-tea-text-sec/30">
-            Teajia · Vendor Intelligence
-          </p>
-        </div>
-
+        {/* Notes */}
+        {vendor.notes && (
+          <section className="bg-tea-surface border border-tea-border rounded-xl p-5">
+            <h3 className="h3 mb-1">Notes</h3>
+            <p className="label-caps text-tea-text-dim mb-4">Staff-facing</p>
+            <p className="text-ui-13 text-tea-text-sec leading-relaxed">{vendor.notes}</p>
+          </section>
+        )}
       </div>
     </div>
   );

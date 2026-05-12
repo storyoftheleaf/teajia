@@ -1,8 +1,21 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { MoreHorizontal } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useAppStore } from '../../lib/store';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import type { AccountApplication, AccountKind } from '../../types';
+
+const initialsForName = (raw: string): string => {
+  const source = (raw || '').trim();
+  if (!source) return '·';
+  const parts = source.split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) return (parts[0]![0] + parts[1]![0]).toUpperCase();
+  const word = parts[0] || source;
+  return word.slice(0, 2).toUpperCase();
+};
+
+const TIER_CHIP_ACTIVE = 'bg-tea-gold/10 text-tea-text ring-1 ring-inset ring-tea-gold/40';
+const TIER_CHIP_INACTIVE = 'bg-tea-elevated text-tea-text-sec';
 
 // Platform tier — Members & Access at /admin/access/platform.
 // Per docs/NETWORK_ROLLOUT_PLAN.md §7-9.
@@ -166,23 +179,29 @@ const AccountsRegister: React.FC<AccountsRegisterProps> = ({ accounts, applicati
       {pending.length > 0 && (
         <section className="mb-12">
           <SectionLabel>Pending applications</SectionLabel>
-          {pending.map(app => (
-            <PendingRow key={app.id} application={app} onChange={onChange} />
-          ))}
+          <ul className="divide-y divide-tea-border bg-tea-surface border border-tea-border rounded-xl overflow-hidden">
+            {pending.map(app => (
+              <PendingRow key={app.id} application={app} onChange={onChange} />
+            ))}
+          </ul>
         </section>
       )}
 
       {locations.length > 0 && (
         <section className="mb-12">
           <SectionLabel>Locations</SectionLabel>
-          {locations.map(a => <AccountRow key={a.id} account={a} onChange={onChange} />)}
+          <ul className="divide-y divide-tea-border bg-tea-surface border border-tea-border rounded-xl overflow-hidden">
+            {locations.map(a => <AccountRow key={a.id} account={a} onChange={onChange} />)}
+          </ul>
         </section>
       )}
 
       {masters.length > 0 && (
         <section className="mb-12">
           <SectionLabel>Tea Masters</SectionLabel>
-          {masters.map(a => <AccountRow key={a.id} account={a} onChange={onChange} />)}
+          <ul className="divide-y divide-tea-border bg-tea-surface border border-tea-border rounded-xl overflow-hidden">
+            {masters.map(a => <AccountRow key={a.id} account={a} onChange={onChange} />)}
+          </ul>
         </section>
       )}
 
@@ -234,37 +253,52 @@ const AccountRow: React.FC<{ account: PlatformAccount; onChange: () => Promise<v
     }
   };
 
+  const tierKey = account.trust_tier || '';
+  const tierLabel = TIER_LABEL[tierKey] || tierKey;
+  const tierIsActive = tierKey === 'verified' || tierKey === 'partner';
+
   return (
-    <div className={`py-4 ${isSuspended && !confirming ? 'opacity-50' : ''}`}>
-      <div className="flex items-baseline justify-between gap-4">
+    <li className={`px-4 py-3 ${isSuspended && !confirming ? 'opacity-50' : ''}`}>
+      <div className="flex items-center gap-3 w-full">
+        <div className="w-10 h-10 rounded-full bg-tea-elevated text-tea-text-sec font-display text-ui-14 flex items-center justify-center flex-shrink-0">
+          {initialsForName(account.name)}
+        </div>
         <div className="min-w-0 flex-1">
-          <div className="flex items-baseline gap-3 flex-wrap">
-            <div className="font-display text-ui-17 text-tea-text">{account.name}</div>
-            {account.trust_tier && (
-              <div className="label-caps text-tea-text-dim">
-                {TIER_LABEL[account.trust_tier] || account.trust_tier}
-              </div>
-            )}
-            {isSuspended && (
-              <div className="inline-flex px-2 py-0.5 rounded-full text-ui-9 uppercase tracking-caps bg-tea-error/10 text-tea-error ring-1 ring-inset ring-tea-error/40">Suspended</div>
-            )}
-          </div>
+          <div className="font-display text-ui-15 text-tea-text truncate">{account.name}</div>
           {(account.owner_email || account.contact_email) && (
-            <div className="text-tea-text-sec text-ui-13 mt-1">
+            <div className="text-ui-12 text-tea-text-dim mt-0.5 truncate">
               {account.owner_email || account.contact_email}
             </div>
           )}
         </div>
-        {!confirming && (
-          <button
-            type="button"
-            onClick={() => handleAction(isSuspended ? 'reactivate' : 'suspend')}
-            disabled={busy}
-            className="text-tea-text-sec hover:text-tea-text transition-colors text-ui-13 shrink-0"
-          >
-            {isSuspended ? 'Reactivate' : 'Suspend'}
-          </button>
-        )}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {tierKey && (
+            <span
+              className={`inline-flex items-center px-2 py-0.5 rounded-full text-ui-9 uppercase font-sans tracking-caps ${
+                tierIsActive ? TIER_CHIP_ACTIVE : TIER_CHIP_INACTIVE
+              }`}
+            >
+              {tierLabel}
+            </span>
+          )}
+          {isSuspended && (
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-ui-9 uppercase font-sans tracking-caps bg-tea-error/10 text-tea-error ring-1 ring-inset ring-tea-error/40">
+              Suspended
+            </span>
+          )}
+          {!confirming && (
+            <button
+              type="button"
+              onClick={() => handleAction(isSuspended ? 'reactivate' : 'suspend')}
+              disabled={busy}
+              aria-label={isSuspended ? 'Reactivate account' : 'Suspend account'}
+              title={isSuspended ? 'Reactivate' : 'Suspend'}
+              className="inline-flex items-center justify-center w-8 h-8 rounded-md text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub transition-colors tap-target"
+            >
+              <MoreHorizontal size={16} />
+            </button>
+          )}
+        </div>
       </div>
 
       {confirming && (
@@ -309,7 +343,7 @@ const AccountRow: React.FC<{ account: PlatformAccount; onChange: () => Promise<v
           )}
         </div>
       )}
-    </div>
+    </li>
   );
 };
 
@@ -346,22 +380,35 @@ const PendingRow: React.FC<{ application: AccountApplication; onChange: () => Pr
     }
   };
 
+  const displayName = application.applicant_name || application.applicant_email;
+  const kindLabel = application.proposed_account_kind === 'master' ? 'Tea Master' : 'Location';
+
   return (
-    <div className="py-5 border-b border-tea-border last:border-b-0">
-      <div className="font-body text-ui-15 leading-[1.65] text-tea-text mb-3">
-        <span className="font-display">{application.applicant_name || application.applicant_email}</span>
-        {' '}<span className="text-tea-text-sec">({application.applicant_email})</span>
-        {' '}<span className="text-tea-text-sec text-ui-13">applied {formatDate(application.created_at)}</span>
-        {' '}<span className="text-tea-text-sec text-ui-13">for a {application.proposed_account_kind === 'master' ? 'Tea Master' : 'Location'} account.</span>
+    <li className="px-4 py-3">
+      <div className="flex items-center gap-3 w-full">
+        <div className="w-10 h-10 rounded-full bg-tea-elevated text-tea-text-sec font-display text-ui-14 flex items-center justify-center flex-shrink-0">
+          {initialsForName(displayName)}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="font-display text-ui-15 text-tea-text truncate">{displayName}</div>
+          <div className="text-ui-12 text-tea-text-dim mt-0.5 truncate">{application.applicant_email}</div>
+          <div className="text-ui-12 text-tea-text-sec mt-1">
+            Applied {formatDate(application.created_at)} for a {kindLabel} account.
+          </div>
+        </div>
+        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-ui-9 uppercase font-sans tracking-caps bg-tea-elevated text-tea-text-sec flex-shrink-0">
+          Pending
+        </span>
       </div>
+
       {application.note && (
-        <div className="text-tea-text-sec text-ui-14 leading-[1.6] mb-4 pl-4 border-l border-tea-border italic">
+        <div className="text-tea-text-sec text-ui-13 leading-[1.6] mt-3 pl-4 border-l border-tea-border italic">
           "{application.note}"
         </div>
       )}
 
       {mode === 'idle' && (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 mt-3">
           <button
             type="button"
             onClick={() => { setMode('approve'); setError(null); }}
@@ -374,7 +421,7 @@ const PendingRow: React.FC<{ application: AccountApplication; onChange: () => Pr
             type="button"
             onClick={() => { setMode('decline'); setError(null); }}
             disabled={busy !== null}
-            className="px-3 py-1.5 rounded-md border border-tea-border text-ui-12 text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-error text-tea-bg text-xs font-semibold hover:bg-tea-error/90 transition-colors disabled:opacity-40"
           >
             Decline
           </button>
@@ -460,7 +507,7 @@ const PendingRow: React.FC<{ application: AccountApplication; onChange: () => Pr
       {error && (
         <div className="text-ui-12 text-tea-error mt-3">{error}</div>
       )}
-    </div>
+    </li>
   );
 };
 

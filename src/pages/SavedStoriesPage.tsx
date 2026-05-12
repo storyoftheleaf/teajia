@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, Bookmark } from 'lucide-react';
+import { ArrowLeft, Bookmark, ChevronRight } from 'lucide-react';
 
 const STORAGE_KEY = 'teajia_saved_stories';
 
@@ -29,20 +29,22 @@ export default function SavedStoriesPage() {
         className="inline-flex items-center gap-1.5 text-tea-text-sec hover:text-tea-text transition-colors mb-6"
         aria-label="Back"
       >
-        <ChevronLeft size={14} />
-        <span className="text-ui-12 uppercase tracking-[0.15em]">Back</span>
+        <ArrowLeft size={14} />
+        <span className="text-ui-12">Back</span>
       </button>
 
-      <h1 className="h2">Saved Stories</h1>
-      <p className="label-caps text-tea-text-dim mt-1">
-        {savedIds.length} {savedIds.length === 1 ? 'Story' : 'Stories'} Saved
-      </p>
+      <div>
+        <h1 className="h2">Saved stories</h1>
+        <p className="label-caps text-tea-text-dim mt-1">
+          {savedIds.length} {savedIds.length === 1 ? 'story' : 'stories'} saved
+        </p>
+      </div>
 
       {savedIds.length === 0 ? (
         <div className="flex flex-col items-center text-center max-w-sm mx-auto py-20 px-6">
           <Bookmark size={28} strokeWidth={1.25} className="text-tea-text-dim" />
           <h3 className="font-display text-ui-17 text-tea-text mt-4">No saved stories</h3>
-          <p className="text-ui-12 text-tea-text-sec leading-relaxed mt-2">
+          <p className="text-ui-12 text-tea-text-sec leading-relaxed mt-1">
             Tap the bookmark icon while reading to save stories for later.
           </p>
         </div>
@@ -52,10 +54,13 @@ export default function SavedStoriesPage() {
             <li key={storyId}>
               <button
                 onClick={() => navigate('/magazine')}
-                className="w-full text-left px-4 md:px-6 py-4 hover:bg-tea-accent-sub transition-colors"
+                className="w-full text-left flex items-center gap-3 px-4 md:px-6 py-4 hover:bg-tea-accent-sub transition-colors"
               >
-                <div className="font-display text-ui-15 text-tea-text">Story #{storyId}</div>
-                <div className="text-ui-12 text-tea-text-dim mt-1">Saved · tap to open</div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-display text-ui-15 text-tea-text">Story #{storyId}</div>
+                  <div className="text-ui-12 text-tea-text-dim mt-1">Saved · tap to open</div>
+                </div>
+                <ChevronRight size={14} className="text-tea-text-dim shrink-0" />
               </button>
             </li>
           ))}

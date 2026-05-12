@@ -12,8 +12,34 @@ import { ConfirmModal } from './ConfirmModal';
 import { SplitOrderModal } from './SplitOrderModal';
 import { EditOrderModal } from './EditOrderModal';
 import { QuickInvoiceModal } from './QuickInvoiceModal';
+import { STATUS_PILL_VARIANTS, STATUS_PILL_BASE, type StatusPillVariant } from '../constants';
 
-const ROW_HEIGHT = 36;
+const ROW_HEIGHT = 40;
+
+/** Canonical mapping: order status → 5-variant status pill. */
+const statusToVariant = (status: string | undefined): StatusPillVariant => {
+  if (status === 'Filled') return 'success';
+  if (status === 'Void') return 'archived';
+  return 'draft'; // Pending and unknown fall back to draft (subdued)
+};
+
+/** Format a date like "MAR 12 2026" — used in the invoice detail header. */
+const formatIssuedDate = (dateStr: string) => {
+  const d = new Date(dateStr);
+  const month = d.toLocaleString('en-US', { month: 'short' }).toUpperCase();
+  return `${month} ${d.getDate()} ${d.getFullYear()}`;
+};
+
+/** Format an activity event date like "Mar 12 · 2:14 PM". */
+const formatEventDate = (dateStr: string) => {
+  const d = new Date(dateStr);
+  const month = d.toLocaleString('en-US', { month: 'short' });
+  const time = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  return `${month} ${d.getDate()} · ${time}`;
+};
+
+/** System actions render with a muted dot; everything else uses the gold dot. */
+const SYSTEM_ACTIONS = new Set(['system', 'automation', 'webhook', 'cron']);
 
 type StatusFilter = 'all' | 'Pending' | 'Filled' | 'Void';
 
@@ -217,41 +243,61 @@ export const OrdersView = () => {
     return Math.floor(diff / (1000 * 60 * 60 * 24));
   };
 
-  if (isLoading) return <div className="p-12 text-center text-tea-text-sec font-serif italic"><Loader2 className="animate-spin inline" /></div>;
+  if (isLoading) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center gap-3 bg-tea-bg">
+        <Loader2 size={28} strokeWidth={1.25} className="animate-spin text-tea-text-dim" />
+        <div className="font-display text-ui-17 text-tea-text">Loading orders</div>
+        <div className="text-ui-12 text-tea-text-dim">Pulling pipeline from the worker</div>
+      </div>
+    );
+  }
+
+  // Pre-compute totals for the invoice detail modal (subtotal, shipping, grand total).
+  const invoiceTotals = (() => {
+    if (!viewingInvoice) return { subtotal: 0, shipping: 0, total: 0 };
+    const subtotal = (viewingInvoice.items || []).reduce(
+      (sum, item) => sum + (Number(item.quantity) || 0) * (Number(item.price_at_sale) || 0),
+      0,
+    );
+    const shipping = Number(viewingInvoice.shipping_cost_usd) || 0;
+    return { subtotal, shipping, total: subtotal + shipping };
+  })();
 
   return (
     <div className="h-full flex flex-col overflow-hidden bg-tea-bg">
 
-      {/* Header */}
+      {/* Header — sticky h-16 chrome row + filter rail */}
       <div className="sticky top-0 z-sticky bg-tea-bg/90 backdrop-blur-md border-b border-tea-border flex-shrink-0">
-        {/* Title row */}
-        <div className="px-4 md:px-6 lg:px-10 max-w-5xl mx-auto pt-6 pb-3 flex items-end justify-between gap-4 flex-wrap">
-          <div>
+        {/* Title row — h-16, .h2 title left + .label-caps subtitle below */}
+        <div className="px-4 md:px-6 lg:px-10 max-w-5xl mx-auto h-16 flex items-center justify-between gap-4">
+          <div className="min-w-0">
             <h1 className="h2 text-tea-text">Orders</h1>
-            <div className="label-caps text-tea-text-dim mt-1">
-              {summary.pending} pending · {summary.filled} filled
-              {summary.filledTotal > 0 && <> · ${summary.filledTotal.toFixed(0)} revenue</>}
+            <div className="label-caps text-tea-text-dim mt-0.5">
+              PIPELINE · {orders.length}
+              {summary.filledTotal > 0 && (
+                <> · <span className="font-mono tabular-nums">${summary.filledTotal.toFixed(2)}</span> REVENUE</>
+              )}
             </div>
           </div>
           <button
             onClick={() => setShowQuickInvoice(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 active:bg-tea-gold/80 transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-ui-12 font-semibold hover:bg-tea-gold/90 active:bg-tea-gold/80 transition-colors shrink-0"
           >
             <Plus size={13} />
             <span>New Invoice</span>
           </button>
         </div>
 
-        {/* Row 1: filter + actions */}
-        <div className="px-3 md:px-6 lg:px-10 max-w-5xl mx-auto flex items-center gap-2 md:gap-4 py-2">
-          {/* Pipeline filter — underline tabs (DESIGN_SYSTEM.md §6) */}
+        {/* Filter rail — underline tabs (canonical pattern, no shadow) */}
+        <div className="px-3 md:px-6 lg:px-10 max-w-5xl mx-auto">
           <div className="flex items-center gap-6 border-b border-tea-border overflow-x-auto hide-scrollbar min-w-0">
             {([
-              { id: 'all',     label: 'All',     dot: null },
-              { id: 'Pending', label: 'Pending', dot: 'bg-tea-text-dim' },
-              { id: 'Filled',  label: 'Filled',  dot: 'bg-tea-gold' },
-              { id: 'Void',    label: 'Void',    dot: 'bg-tea-text-dim' },
-            ] as { id: StatusFilter; label: string; dot: string | null }[]).map(({ id, label, dot }) => {
+              { id: 'all',     label: 'All' },
+              { id: 'Pending', label: 'Pending' },
+              { id: 'Filled',  label: 'Filled' },
+              { id: 'Void',    label: 'Void' },
+            ] as { id: StatusFilter; label: string }[]).map(({ id, label }) => {
               const count = id === 'all' ? orders.length
                 : id === 'Pending' ? summary.pending
                 : id === 'Filled' ? summary.filled
@@ -261,47 +307,45 @@ export const OrdersView = () => {
                 <button
                   key={id}
                   onClick={() => setStatusFilter(id)}
-                  className={`flex items-center gap-1.5 py-2.5 text-ui-12 uppercase tracking-caps font-sans border-b transition-colors whitespace-nowrap shrink-0 ${
+                  className={`flex items-baseline gap-1.5 py-2.5 text-ui-12 uppercase tracking-caps font-sans border-b-2 transition-colors whitespace-nowrap shrink-0 ${
                     isActive
                       ? 'text-tea-text border-tea-gold'
                       : 'text-tea-text-sec hover:text-tea-text border-transparent'
                   }`}
                 >
-                  {dot && <span className={`w-1.5 h-1.5 rounded-full ${dot} opacity-70`} />}
-                  {label}
-                  <span className="text-ui-10 tabular-nums text-tea-text-dim">({count})</span>
+                  <span>{label}</span>
+                  <span className="font-mono tabular-nums text-ui-10 text-tea-text-dim">{count}</span>
                 </button>
               );
             })}
           </div>
-
         </div>
 
-        {/* Row 2 (mobile only): search — separated so it doesn't crowd the filter row */}
-        <div className="px-3 pb-2 md:hidden">
+        {/* Search — mobile (full width) */}
+        <div className="px-3 py-2 md:hidden">
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-tea-text-sec" size={14} />
             <input
               type="text"
-              placeholder="Search orders..."
+              placeholder="Search orders…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-transparent border-b border-tea-border rounded-none pl-8 pr-3 py-1.5 text-xs text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-text-sec font-serif placeholder-tea-text-sec/50 transition-colors"
+              className="w-full bg-transparent border-b border-tea-border rounded-none pl-8 pr-3 py-1.5 text-ui-12 text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-text-sec font-serif placeholder-tea-text-sec/50 transition-colors"
             />
           </div>
         </div>
 
-        {/* Row 2 (desktop): search inline */}
-        <div className="hidden md:block px-6 pb-2.5 -mt-1.5">
+        {/* Search — desktop (inline, right-aligned) */}
+        <div className="hidden md:block px-6 py-2">
           <div className="max-w-5xl mx-auto flex justify-end">
             <div className="relative w-48">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-tea-text-sec" size={14} />
               <input
                 type="text"
-                placeholder="Search..."
+                placeholder="Search…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full bg-transparent border-b border-tea-border rounded-none pl-9 pr-3 py-1.5 text-xs text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-text-sec font-serif placeholder-tea-text-sec/50 transition-colors"
+                className="w-full bg-transparent border-b border-tea-border rounded-none pl-9 pr-3 py-1.5 text-ui-12 text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-text-sec font-serif placeholder-tea-text-sec/50 transition-colors"
               />
             </div>
           </div>
@@ -335,11 +379,19 @@ export const OrdersView = () => {
             <tbody>
               {filteredOrders.length === 0 ? (
                 <tr><td colSpan={6} className="text-center py-16">
-                  <div className="flex flex-col items-center gap-3 text-tea-text-sec">
-                    <Package size={32} strokeWidth={1} className="opacity-40" />
-                    <span className="font-serif italic">{search || statusFilter !== 'all' ? 'Nothing matched — try different words.' : 'No orders yet.'}</span>
+                  <div className="flex flex-col items-center gap-3">
+                    <Package size={28} strokeWidth={1.25} className="text-tea-text-dim" />
+                    <div className="font-display text-ui-17 text-tea-text">
+                      {search || statusFilter !== 'all' ? 'No matching orders' : 'No orders yet'}
+                    </div>
+                    <div className="text-ui-12 text-tea-text-dim">
+                      {search || statusFilter !== 'all' ? 'Try a different search or status filter.' : 'New invoices will appear here.'}
+                    </div>
                     {(search || statusFilter !== 'all') && (
-                      <button onClick={() => { setSearch(''); setStatusFilter('all'); }} className="text-xs text-tea-readgold hover:text-tea-text transition-colors">
+                      <button
+                        onClick={() => { setSearch(''); setStatusFilter('all'); }}
+                        className="mt-1 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-tea-border text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub transition-colors text-ui-12"
+                      >
                         Clear filters
                       </button>
                     )}
@@ -349,24 +401,29 @@ export const OrdersView = () => {
                 filteredOrders.map((order) => {
                   const isPending = order.status === 'Pending';
                   const isVoid = order.status === 'Void';
-                  const isFilled = order.status === 'Filled';
                   const total = (Number(order.computed_total) || 0) + (Number(order.shipping_cost_usd) || 0);
                   const daysAge = isPending ? getDaysAge(order.created_at) : 0;
+                  const variant = statusToVariant(order.status);
 
                   return (
                     <tr key={order.id} className="transition-colors border-b border-tea-border group hover:bg-tea-bg/50" style={{ height: ROW_HEIGHT }}>
                       <td className="px-4 align-middle overflow-hidden">
-                        <span className="text-xs text-tea-text-sec">{new Date(order.created_at).toLocaleDateString()}</span>
+                        <span className="text-ui-12 text-tea-text-sec font-mono tabular-nums">{new Date(order.created_at).toLocaleDateString()}</span>
                       </td>
                       <td className="px-4 align-middle overflow-hidden">
-                        <span className="num text-xs text-tea-text group-hover:text-tea-readgold cursor-pointer transition-colors" onClick={() => handleView(order)}>{order.invoice_number}</span>
+                        <button
+                          onClick={() => handleView(order)}
+                          className="font-mono tabular-nums text-ui-12 text-tea-text group-hover:text-tea-text transition-colors"
+                        >
+                          {order.invoice_number}
+                        </button>
                       </td>
                       <td className="px-4 align-middle overflow-hidden">
                         <button
                           onClick={() => order.customer_id
                             ? navigate(`/admin/people/${order.customer_id}`)
                             : navigate(`/admin/people?search=${encodeURIComponent(order.customer_name || '')}`)}
-                          className="text-xs text-tea-text hover:text-tea-readgold transition-colors flex items-center gap-1.5 group/cust truncate"
+                          className="font-display text-ui-15 text-tea-text hover:text-tea-text-sec transition-colors flex items-center gap-1.5 group/cust truncate text-left w-full"
                           title="View customer profile"
                         >
                           <Users size={12} className="opacity-0 group-hover/cust:opacity-100 transition-opacity text-tea-text-sec flex-shrink-0" />
@@ -374,25 +431,21 @@ export const OrdersView = () => {
                         </button>
                       </td>
                       <td className="px-4 align-middle overflow-hidden text-right">
-                        <div>
-                          <span className="num text-xs text-tea-text">${total.toFixed(2)}</span>
-                          <span className="text-ui-9 text-tea-text-sec ml-1">{order.display_currency}</span>
+                        <div className="font-mono tabular-nums text-ui-13 text-tea-text">
+                          ${total.toFixed(2)}
+                          <span className="text-ui-10 text-tea-text-dim ml-1">{order.display_currency}</span>
                         </div>
                         {Number(order.shipping_cost_usd) > 0 && (
-                          <div className="text-ui-9 text-tea-text-sec/60 num">+${Number(order.shipping_cost_usd).toFixed(0)} ship</div>
+                          <div className="text-ui-10 text-tea-text-dim font-mono tabular-nums">+${Number(order.shipping_cost_usd).toFixed(2)} ship</div>
                         )}
                       </td>
                       <td className="px-4 align-middle text-center">
                         <div className="flex items-center justify-center gap-1.5">
-                          <span className={`badge-status ${
-                            isVoid ? 'badge-status-muted' :
-                            isPending ? 'badge-status-gold' :
-                            'badge-status-default'
-                          }`}>
+                          <span className={`${STATUS_PILL_BASE} ${STATUS_PILL_VARIANTS[variant]}`}>
                             {order.status}
                           </span>
                           {isPending && daysAge >= 7 && (
-                            <span className="text-ui-9 text-tea-gold/80 num">{daysAge}d</span>
+                            <span className="text-ui-10 text-tea-gold/80 font-mono tabular-nums">{daysAge}d</span>
                           )}
                           {order.notes && (
                             <span className="text-tea-text-dim" title={order.notes}><StickyNote size={10} /></span>
@@ -400,7 +453,7 @@ export const OrdersView = () => {
                           {order.source_event_title && (
                             <button
                               onClick={() => navigate(`/admin/events?search=${encodeURIComponent(order.source_event_title)}`)}
-                              className="text-tea-text-dim hover:text-tea-text-sec transition-colors cursor-pointer"
+                              className="text-tea-text-dim hover:text-tea-text-sec transition-colors cursor-pointer tap-target"
                               title={`Attributed to: ${order.source_event_title}`}
                             ><Leaf size={10} /></button>
                           )}
@@ -429,12 +482,12 @@ export const OrdersView = () => {
                             <Eye size={14} />
                           </button>
                           {!isVoid && (
-                            <button onClick={() => setConfirmState({ type: 'void', invoice: order })} className="p-1 min-h-[36px] min-w-[36px] flex items-center justify-center text-tea-text-sec hover:text-tea-text-sec/80 transition-colors" title="Void Order">
+                            <button onClick={() => setConfirmState({ type: 'void', invoice: order })} className="p-1 min-h-[36px] min-w-[36px] flex items-center justify-center text-tea-text-sec hover:text-tea-text transition-colors" title="Void Order">
                               <XCircle size={14} />
                             </button>
                           )}
                           {isVoid && (
-                            <button onClick={() => setConfirmState({ type: 'delete', invoice: order })} className="p-1 min-h-[36px] min-w-[36px] flex items-center justify-center text-tea-text-sec hover:text-tea-text-sec/80 transition-colors" title="Delete Record">
+                            <button onClick={() => setConfirmState({ type: 'delete', invoice: order })} className="p-1 min-h-[36px] min-w-[36px] flex items-center justify-center text-tea-text-sec hover:text-tea-text transition-colors" title="Delete Record">
                               <Trash2 size={14} />
                             </button>
                           )}
@@ -449,11 +502,24 @@ export const OrdersView = () => {
         </div>
 
         {/* Mobile list */}
-        <div className="md:hidden pb-24">
+        <div className="md:hidden pb-nav-gap-lg">
           {filteredOrders.length === 0 ? (
-            <div className="flex flex-col items-center gap-3 py-16 text-tea-text-sec">
-              <Package size={32} strokeWidth={1} className="opacity-40" />
-              <span className="font-serif italic">{search || statusFilter !== 'all' ? 'Nothing matched — try different words.' : 'No orders yet.'}</span>
+            <div className="flex flex-col items-center gap-3 py-16">
+              <Package size={28} strokeWidth={1.25} className="text-tea-text-dim" />
+              <div className="font-display text-ui-17 text-tea-text">
+                {search || statusFilter !== 'all' ? 'No matching orders' : 'No orders yet'}
+              </div>
+              <div className="text-ui-12 text-tea-text-dim">
+                {search || statusFilter !== 'all' ? 'Try a different search or status filter.' : 'New invoices will appear here.'}
+              </div>
+              {(search || statusFilter !== 'all') && (
+                <button
+                  onClick={() => { setSearch(''); setStatusFilter('all'); }}
+                  className="mt-1 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-tea-border text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub transition-colors text-ui-12"
+                >
+                  Clear filters
+                </button>
+              )}
             </div>
           ) : (
             filteredOrders.map((order, idx) => {
@@ -461,6 +527,7 @@ export const OrdersView = () => {
               const isVoid = order.status === 'Void';
               const total = (Number(order.computed_total) || 0) + (Number(order.shipping_cost_usd) || 0);
               const daysAge = isPending ? getDaysAge(order.created_at) : 0;
+              const variant = statusToVariant(order.status);
 
               return (
                 <div
@@ -468,33 +535,37 @@ export const OrdersView = () => {
                   className={`px-4 py-2.5 ${idx % 2 === 0 ? 'bg-transparent' : 'bg-tea-surface/20'}`}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-ui-10 text-tea-text-sec">{new Date(order.created_at).toLocaleDateString()}</span>
-                    <span className="text-xs text-tea-text num cursor-pointer hover:text-tea-readgold transition-colors" onClick={() => handleView(order)}>{order.invoice_number}</span>
+                    <span className="text-ui-10 text-tea-text-dim label-caps">{new Date(order.created_at).toLocaleDateString()}</span>
+                    <button
+                      onClick={() => handleView(order)}
+                      className="font-mono tabular-nums text-ui-12 text-tea-text hover:text-tea-text-sec transition-colors"
+                    >
+                      {order.invoice_number}
+                    </button>
                   </div>
                   <div className="flex items-center justify-between mt-1">
-                    <span className="text-sm text-tea-text font-serif truncate">{order.customer_name}</span>
+                    <span className="font-display text-ui-15 text-tea-text truncate">{order.customer_name}</span>
                     <div className="flex items-center gap-1.5">
-                      <span className={`badge-status ${
-                        isVoid ? 'badge-status-muted' :
-                        isPending ? 'badge-status-gold' :
-                        'badge-status-default'
-                      }`}>
+                      <span className={`${STATUS_PILL_BASE} ${STATUS_PILL_VARIANTS[variant]}`}>
                         {order.status}
                       </span>
                       {isPending && daysAge >= 7 && (
-                        <span className="text-ui-9 text-tea-gold/80 num">{daysAge}d</span>
+                        <span className="text-ui-10 text-tea-gold/80 font-mono tabular-nums">{daysAge}d</span>
                       )}
                       {order.source_event_title && (
                         <button
                           onClick={() => navigate(`/admin/events?search=${encodeURIComponent(order.source_event_title)}`)}
-                          className="text-tea-text-dim hover:text-tea-text-sec transition-colors cursor-pointer"
+                          className="text-tea-text-dim hover:text-tea-text-sec transition-colors cursor-pointer tap-target"
                           title={`Attributed to: ${order.source_event_title}`}
                         ><Leaf size={10} /></button>
                       )}
                     </div>
                   </div>
                   <div className="flex items-center gap-2 mt-2 pt-2 border-t border-tea-border">
-                    <span className="text-xs text-tea-text num">${total.toFixed(2)} {order.display_currency}</span>
+                    <span className="font-mono tabular-nums text-ui-13 text-tea-text">
+                      ${total.toFixed(2)}
+                      <span className="text-ui-10 text-tea-text-dim ml-1">{order.display_currency}</span>
+                    </span>
                     <div className="flex-1" />
                     {isPending && (
                       <button onClick={() => openFulfillConfirm(order)} className="pill-action">
@@ -530,205 +601,251 @@ export const OrdersView = () => {
         )}
       </div>
 
-      {/* INVOICE DETAILS MODAL */}
-      {viewingInvoice && (
+      {/* INVOICE DETAILS MODAL — canonical invoice block + activity timeline */}
+      {viewingInvoice && (() => {
+        const inv = viewingInvoice;
+        const statusVariant = statusToVariant(inv.status);
+        return (
         <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
-            <div className="bg-tea-bg border border-tea-border rounded-xl w-full max-w-lg p-8 shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scrollbar">
-                <button onClick={() => { setViewingInvoice(null); setInvoiceTimeline([]); }} className="absolute top-6 right-6 text-tea-text-sec hover:text-tea-text transition-colors" aria-label="Close">
-                    <X size={24} />
+            <div className="bg-tea-bg border border-tea-border rounded-xl w-full max-w-lg p-6 md:p-8 shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scrollbar">
+                <button
+                  onClick={() => { setViewingInvoice(null); setInvoiceTimeline([]); }}
+                  className="absolute top-5 right-5 text-tea-text-sec hover:text-tea-text transition-colors tap-target"
+                  aria-label="Close"
+                >
+                    <X size={20} />
                 </button>
 
-                <div className="mb-8">
-                    <h3 className="text-2xl font-serif text-tea-text mb-1">Invoice Details</h3>
-                    <p className="text-tea-text-sec text-sm num">{viewingInvoice.invoice_number}</p>
+                {/* Invoice block — canonical signature (bg-tea-surface border rounded-xl p-5) */}
+                <div className="bg-tea-surface border border-tea-border rounded-xl p-5 mb-6">
+                    <div className="flex items-baseline justify-between mb-3 gap-3 flex-wrap">
+                        <h3 className="h3 text-tea-text">Invoice {inv.invoice_number}</h3>
+                        <span className="label-caps text-tea-text-dim">
+                          {inv.status.toUpperCase()} · {formatIssuedDate(inv.created_at)}
+                        </span>
+                    </div>
+
+                    {/* Line items — name (truncated) + mono qty + right-aligned mono total */}
+                    <div className="border-t border-tea-border">
+                        {(inv.items || []).map((item, i) => {
+                            const lineTotal = (Number(item.quantity) || 0) * (Number(item.price_at_sale) || 0);
+                            const qtyUnit = item.product?.type === 'Teaware' ? 'u' : 'g';
+                            const displayName = item.product_id
+                              ? (item.given_name || item.product_name || 'Unknown')
+                              : (item.custom_name || item.given_name || 'Custom Item');
+                            return (
+                              <div key={i} className="py-2 border-b border-tea-border">
+                                <div className="flex justify-between items-baseline text-ui-14 text-tea-text">
+                                    {item.product_id ? (
+                                      <button
+                                        onClick={() => { setViewingInvoice(null); navigate(`/admin/inventory?panel=${encodeURIComponent(item.product_id!)}`); }}
+                                        className="flex-1 truncate text-left hover:text-tea-text-sec transition-colors"
+                                      >
+                                        {displayName}
+                                      </button>
+                                    ) : (
+                                      <span className="flex-1 truncate">{displayName}</span>
+                                    )}
+                                    <span className="text-tea-text-sec text-ui-13 mx-4 font-mono tabular-nums">
+                                      {item.quantity}{qtyUnit} × ${Number(item.price_at_sale).toFixed(2)}
+                                    </span>
+                                    <span className="font-mono tabular-nums w-20 text-right">${lineTotal.toFixed(2)}</span>
+                                </div>
+                                {!item.product_id && (
+                                  <div className="mt-1.5">
+                                    {linkState?.itemIndex === i ? (
+                                      <div className="relative">
+                                        <input
+                                          autoFocus
+                                          type="text"
+                                          value={linkState.query}
+                                          onChange={e => setLinkState(s => s ? { ...s, query: e.target.value } : null)}
+                                          placeholder="Search inventory…"
+                                          className="w-full bg-tea-bg border border-tea-border rounded-md px-2 py-1 text-ui-12 text-tea-text outline-none focus:border-tea-text-sec transition-colors"
+                                        />
+                                        {linkSuggestions.length > 0 && (
+                                          <div className="absolute top-full left-0 right-0 mt-0.5 bg-tea-elevated border border-tea-border rounded-md shadow-lg z-popover max-h-32 overflow-y-auto custom-scrollbar">
+                                            {linkSuggestions.map((p) => (
+                                              <button
+                                                key={p.id}
+                                                onMouseDown={() => handleLinkProduct(p)}
+                                                className="w-full text-left px-3 py-1.5 text-ui-12 hover:bg-tea-surface transition-colors flex justify-between items-baseline"
+                                              >
+                                                <span className="text-tea-text truncate font-display">{p.givenName || p.productName}</span>
+                                                <span className="text-tea-text-dim font-mono tabular-nums shrink-0 ml-2">{p.stockGrams}g</span>
+                                              </button>
+                                            ))}
+                                          </div>
+                                        )}
+                                        <button
+                                          onClick={() => setLinkState(null)}
+                                          className="absolute -top-1 -right-1 text-tea-text-sec hover:text-tea-text tap-target"
+                                          aria-label="Cancel link"
+                                        >
+                                          <X size={10} />
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <button
+                                        onClick={() => setLinkState({ itemIndex: i, query: item.custom_name || item.given_name || '' })}
+                                        className="inline-flex items-center gap-1 text-ui-11 text-tea-text-dim hover:text-tea-text-sec transition-colors"
+                                      >
+                                        <Link2 size={10} /> Link to inventory
+                                      </button>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                        })}
+                    </div>
+
+                    {/* Subtotal / shipping */}
+                    <div className="pt-3 space-y-1.5 text-ui-13">
+                        <div className="flex justify-between">
+                            <span className="text-tea-text-sec">Subtotal</span>
+                            <span className="text-tea-text font-mono tabular-nums">${invoiceTotals.subtotal.toFixed(2)}</span>
+                        </div>
+                        {invoiceTotals.shipping > 0 && (
+                          <div className="flex justify-between">
+                              <span className="text-tea-text-sec">Shipping</span>
+                              <span className="text-tea-text font-mono tabular-nums">${invoiceTotals.shipping.toFixed(2)}</span>
+                          </div>
+                        )}
+                    </div>
+
+                    {/* Total — canonical signature */}
+                    <div className="flex justify-between items-baseline pt-3 mt-2 border-t border-tea-border">
+                        <span className="font-display text-ui-17 font-medium text-tea-text">Total</span>
+                        <span className="font-mono text-ui-17 text-tea-text tabular-nums">
+                          ${invoiceTotals.total.toFixed(2)}
+                          <span className="text-ui-12 text-tea-text-dim ml-1">{inv.display_currency || 'USD'}</span>
+                        </span>
+                    </div>
                 </div>
 
-                <div className="space-y-4 mb-8">
-                    <div className="flex justify-between border-b border-tea-border pb-3">
-                        <span className="text-tea-text-sec">Customer</span>
-                        <button
-                          onClick={() => { setViewingInvoice(null); navigate(`/admin/people?search=${encodeURIComponent(viewingInvoice.customer_name || '')}`); }}
-                          className="text-tea-text font-medium hover:text-tea-readgold transition-colors"
-                        >
-                          {viewingInvoice.customer_name}
-                        </button>
+                {/* Meta strip — customer / date / status / inventory */}
+                <div className="grid grid-cols-2 gap-x-4 gap-y-3 mb-6 text-ui-13">
+                    <div>
+                      <div className="label-caps text-tea-text-dim mb-0.5">Customer</div>
+                      <button
+                        onClick={() => { setViewingInvoice(null); navigate(`/admin/people?search=${encodeURIComponent(inv.customer_name || '')}`); }}
+                        className="font-display text-ui-15 text-tea-text hover:text-tea-text-sec transition-colors text-left truncate block w-full"
+                      >
+                        {inv.customer_name}
+                      </button>
                     </div>
-                    <div className="flex justify-between border-b border-tea-border pb-3">
-                        <span className="text-tea-text-sec">Date</span>
-                        <span className="text-tea-text font-medium">{new Date(viewingInvoice.created_at).toLocaleString()}</span>
+                    <div>
+                      <div className="label-caps text-tea-text-dim mb-0.5">Date</div>
+                      <div className="text-tea-text font-mono tabular-nums">{new Date(inv.created_at).toLocaleString()}</div>
                     </div>
-                    <div className="flex justify-between border-b border-tea-border pb-3">
-                        <span className="text-tea-text-sec">Status</span>
-                        <span className={`font-medium ${viewingInvoice.status === 'Void' ? 'text-tea-text-sec' : viewingInvoice.status === 'Pending' ? 'text-tea-gold' : 'text-tea-text'}`}>{viewingInvoice.status}</span>
+                    <div>
+                      <div className="label-caps text-tea-text-dim mb-0.5">Status</div>
+                      <span className={`${STATUS_PILL_BASE} ${STATUS_PILL_VARIANTS[statusVariant]}`}>
+                        {inv.status}
+                      </span>
                     </div>
-                    <div className="flex justify-between border-b border-tea-border pb-3">
-                        <span className="text-tea-text-sec">Inventory Deducted</span>
-                        <span className={`font-medium ${viewingInvoice.inventory_deducted ? 'text-tea-text' : 'text-tea-gold'}`}>{viewingInvoice.inventory_deducted ? 'Yes' : 'No'}</span>
+                    <div>
+                      <div className="label-caps text-tea-text-dim mb-0.5">Inventory</div>
+                      <span className={`${STATUS_PILL_BASE} ${inv.inventory_deducted ? STATUS_PILL_VARIANTS.success : STATUS_PILL_VARIANTS.draft}`}>
+                        {inv.inventory_deducted ? 'Deducted' : 'Reserved'}
+                      </span>
                     </div>
                 </div>
 
                 {/* Source Event */}
-                {viewingInvoice.source_event_title && (
-                  <div className="bg-tea-surface border border-tea-border rounded-xl p-4 mb-6">
-                    <h4 className="text-xs uppercase tracking-[0.2em] text-tea-text-sec mb-2">Source Event</h4>
+                {inv.source_event_title && (
+                  <div className="bg-tea-surface border border-tea-border rounded-xl p-4 mb-4">
+                    <div className="label-caps text-tea-text-dim mb-1.5">Source Event</div>
                     <button
-                      onClick={() => { setViewingInvoice(null); navigate(`/admin/events?search=${encodeURIComponent(viewingInvoice.source_event_title)}`); }}
-                      className="text-sm text-tea-text hover:text-tea-readgold transition-colors"
+                      onClick={() => { setViewingInvoice(null); navigate(`/admin/events?search=${encodeURIComponent(inv.source_event_title)}`); }}
+                      className="font-display text-ui-14 text-tea-text hover:text-tea-text-sec transition-colors"
                     >
-                      {viewingInvoice.source_event_title}
+                      {inv.source_event_title}
                     </button>
                   </div>
                 )}
 
                 {/* Notes */}
-                {viewingInvoice.notes && (
-                  <div className="bg-tea-surface border border-tea-border rounded-xl p-4 mb-6">
-                    <h4 className="text-xs uppercase tracking-[0.2em] text-tea-text-sec mb-2">Notes</h4>
-                    <p className="text-sm text-tea-text whitespace-pre-wrap">{viewingInvoice.notes}</p>
+                {inv.notes && (
+                  <div className="bg-tea-surface border border-tea-border rounded-xl p-4 mb-4">
+                    <div className="label-caps text-tea-text-dim mb-1.5">Notes</div>
+                    <p className="text-ui-13 text-tea-text whitespace-pre-wrap">{inv.notes}</p>
                   </div>
                 )}
 
-                <div className="bg-tea-surface border border-tea-border rounded-xl p-6 mb-8">
-                    <h4 className="text-xs uppercase tracking-[0.2em] text-tea-text-sec mb-4">Items</h4>
-                    <div className="space-y-3 max-h-56 overflow-y-auto custom-scrollbar pr-2">
-                        {viewingInvoice.items?.map((item, i) => (
-                            <div key={i} className="text-sm">
-                              <div className="flex justify-between items-start">
-                                <div className="flex-1 min-w-0">
-                                    {item.product_id ? (
-                                      <button
-                                        onClick={() => { setViewingInvoice(null); navigate(`/admin/inventory?panel=${encodeURIComponent(item.product_id)}`); }}
-                                        className="text-tea-text font-medium hover:text-tea-readgold transition-colors text-left truncate block"
-                                      >
-                                        {item.given_name || item.product_name || 'Unknown'}
-                                      </button>
-                                    ) : (
-                                      <span className="text-tea-text font-medium">{item.custom_name || item.given_name || 'Custom Item'}</span>
-                                    )}
-                                    {item.product_name && item.product_id && <div className="text-ui-10 text-tea-text-sec">{item.product_name}</div>}
-                                    {!item.product_id && (
-                                      <div className="mt-1">
-                                        {linkState?.itemIndex === i ? (
-                                          <div className="relative">
-                                            <input
-                                              autoFocus
-                                              type="text"
-                                              value={linkState.query}
-                                              onChange={e => setLinkState(s => s ? { ...s, query: e.target.value } : null)}
-                                              placeholder="Search inventory…"
-                                              className="w-full bg-tea-bg border border-tea-border rounded-lg px-2 py-1 text-xs text-tea-text outline-none focus:border-tea-gold/50 transition-colors"
-                                            />
-                                            {linkSuggestions.length > 0 && (
-                                              <div className="absolute top-full left-0 right-0 mt-0.5 bg-tea-elevated border border-tea-border rounded-xl shadow-lg z-10 max-h-32 overflow-y-auto custom-scrollbar">
-                                                {linkSuggestions.map((p) => (
-                                                  <button
-                                                    key={p.id}
-                                                    onMouseDown={() => handleLinkProduct(p)}
-                                                    className="w-full text-left px-3 py-1.5 text-xs hover:bg-tea-surface transition-colors flex justify-between"
-                                                  >
-                                                    <span className="text-tea-text truncate">{p.givenName || p.productName}</span>
-                                                    <span className="text-tea-text-dim shrink-0 ml-2">{p.stockGrams}g</span>
-                                                  </button>
-                                                ))}
-                                              </div>
-                                            )}
-                                            <button onClick={() => setLinkState(null)} className="absolute -top-1 -right-1 text-tea-text-dim hover:text-tea-text">
-                                              <X size={10} />
-                                            </button>
-                                          </div>
-                                        ) : (
-                                          <button
-                                            onClick={() => setLinkState({ itemIndex: i, query: item.custom_name || item.given_name || '' })}
-                                            className="flex items-center gap-1 text-ui-10 text-tea-text-dim hover:text-tea-readgold transition-colors"
-                                          >
-                                            <Link2 size={9} /> Link to inventory
-                                          </button>
-                                        )}
-                                      </div>
-                                    )}
-                                </div>
-                                <div className="text-right ml-4 shrink-0">
-                                    <div className="text-tea-text num">{item.quantity}g/u</div>
-                                    <div className="text-tea-text-sec text-xs num">@ {item.price_at_sale} USD</div>
-                                </div>
-                              </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
-                <div className="flex justify-between items-end text-lg font-bold text-tea-text border-t border-tea-border pt-6">
-                    <span className="text-sm font-normal text-tea-text-sec">Total (Shipping included)</span>
-                    <span className="font-serif text-2xl text-tea-gold">
-                      ${((viewingInvoice.items || []).reduce((sum, item) => sum + (item.quantity * item.price_at_sale), 0) + (Number(viewingInvoice.shipping_cost_usd) || 0)).toFixed(2)} USD
-                    </span>
-                </div>
-
-                {/* Timeline */}
+                {/* Activity timeline — canonical border-l + offset dots */}
                 {invoiceTimeline.length > 0 && (
-                  <div className="mt-8 pt-6 border-t border-tea-border">
-                    <h4 className="text-xs uppercase tracking-[0.2em] text-tea-text-sec mb-4">Activity</h4>
-                    <div className="space-y-3">
-                      {invoiceTimeline.map((log, i) => (
-                        <div key={log.id || i} className="flex items-start gap-3">
-                          <div className="relative flex flex-col items-center">
-                            <div className="w-2 h-2 rounded-full bg-tea-gold/60 mt-1.5" />
-                            {i < invoiceTimeline.length - 1 && <div className="w-px flex-1 bg-tea-border mt-1" />}
-                          </div>
-                          <div className="pb-3">
-                            <div className="text-xs text-tea-gold font-mono uppercase">{log.action}</div>
-                            <div className="text-xs text-tea-text-sec">{log.details}</div>
-                            <div className="text-ui-10 text-tea-text-sec/50 mt-0.5">
-                              {new Date(log.created_at).toLocaleString()}
-                              {log.user_email && ` · ${log.user_email}`}
+                  <div className="bg-tea-surface border border-tea-border rounded-xl p-5 mb-6">
+                    <h4 className="h3 mb-1">Activity</h4>
+                    <p className="text-ui-12 text-tea-text-dim mb-5">Customer audit thread</p>
+                    <ul className="relative pl-5 border-l border-tea-border space-y-5">
+                      {invoiceTimeline.map((log, i) => {
+                        const isSystem = SYSTEM_ACTIONS.has((log.action || '').toLowerCase()) || /^(system|automation|webhook|cron)\./i.test(log.action || '');
+                        const body = (log.details && log.details.trim()) ? log.details : log.action;
+                        return (
+                          <li key={log.id || i} className="relative">
+                            <span className={`absolute -left-[22px] top-1.5 w-2 h-2 rounded-full ${isSystem ? 'bg-tea-text-dim' : 'bg-tea-gold'}`} />
+                            <div className="label-caps text-tea-text-dim mb-0.5">
+                              {formatEventDate(log.created_at)}
+                              {log.user_email && (
+                                <> · <span className="font-mono normal-case tracking-normal text-tea-text-dim">{log.user_email}</span></>
+                              )}
                             </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                            <div className="text-ui-13 text-tea-text-sec">
+                              {body.split(/(\$[0-9.]+|INV-[0-9]+)/).map((part, k) =>
+                                /\$|INV-/.test(part) ? (
+                                  <code key={k} className="font-mono text-tea-text">{part}</code>
+                                ) : (
+                                  <React.Fragment key={k}>{part}</React.Fragment>
+                                )
+                              )}
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
                   </div>
                 )}
 
-                {viewingInvoice.status === 'Pending' && (
-                     <div className="mt-8 pt-6 border-t border-tea-border">
-                        <button
-                            onClick={() => { setViewingInvoice(null); openFulfillConfirm(viewingInvoice); }}
-                            className="w-full inline-flex items-center justify-center gap-2 px-3 py-3 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 active:bg-tea-gold/80 transition-colors shadow-lg shadow-tea-gold/10"
-                        >
-                            <PackageCheck size={16} /> Confirm Order & Deduct Stock
-                        </button>
-                     </div>
-                )}
+                {/* Footer actions */}
+                <div className="space-y-2">
+                  {inv.status === 'Pending' && (
+                      <button
+                          onClick={() => { setViewingInvoice(null); openFulfillConfirm(inv); }}
+                          className="w-full inline-flex items-center justify-center gap-2 px-3 py-3 rounded-md bg-tea-gold text-tea-bg text-ui-12 font-semibold hover:bg-tea-gold/90 active:bg-tea-gold/80 transition-colors"
+                      >
+                          <PackageCheck size={16} /> Confirm Order & Deduct Stock
+                      </button>
+                  )}
 
-                {/* WhatsApp status notification — available for Pending/Filled orders with phone */}
-                {viewingInvoice.customer_phone && viewingInvoice.status !== 'Void' && (
-                  <div className="mt-4">
+                  {inv.customer_phone && inv.status !== 'Void' && (
                     <button
                       onClick={() => {
-                        const items = (viewingInvoice.items || []).map((it) => ({
+                        const items = (inv.items || []).map((it) => ({
                           name: it.product?.givenName || it.product_name || 'Item',
                           quantity: it.quantity,
                           unit: it.product?.type === 'Teaware' ? 'u' : 'g',
                           price: '', total: '',
                         }));
-                        const total = ((viewingInvoice.items || []).reduce((sum, it) => sum + (it.quantity * it.price_at_sale), 0) + (Number(viewingInvoice.shipping_cost_usd) || 0)).toFixed(2);
-                        openWhatsAppStatus(viewingInvoice.customer_phone, {
-                          status: viewingInvoice.status === 'Filled' ? 'filled' : 'confirmed',
-                          ref: viewingInvoice.invoice_number,
-                          customerName: viewingInvoice.customer_name,
+                        openWhatsAppStatus(inv.customer_phone!, {
+                          status: inv.status === 'Filled' ? 'filled' : 'confirmed',
+                          ref: inv.invoice_number,
+                          customerName: inv.customer_name,
                           items,
-                          total: `$${total} USD`,
+                          total: `$${invoiceTotals.total.toFixed(2)} USD`,
                         });
                       }}
-                      className="w-full inline-flex items-center justify-center gap-2 px-3 py-3 rounded-md border border-tea-border text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub transition-colors text-xs"
+                      className="w-full inline-flex items-center justify-center gap-2 px-3 py-3 rounded-md border border-tea-border text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub transition-colors text-ui-12"
                     >
                       <MessageCircle size={14} /> Notify Customer via WhatsApp
                     </button>
-                  </div>
-                )}
+                  )}
+                </div>
             </div>
         </div>
-      )}
+        );
+      })()}
 
       {/* CONFIRM MODAL */}
       <ConfirmModal

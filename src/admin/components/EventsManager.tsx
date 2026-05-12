@@ -8,14 +8,20 @@ import { api } from '../../lib/api';
 import { useAppStore } from '../store';
 import { EventForm } from './EventForm';
 import { TeaEvent, EventStatus } from '../../types/events';
+import { STATUS_PILL_BASE, STATUS_PILL_VARIANTS, type StatusPillVariant } from '../constants';
 
-const STATUS_STYLES: Record<EventStatus, string> = {
-  draft: 'text-tea-text-sec',
-  active: 'text-tea-gold',
-  closed: 'text-tea-text-sec',
-  archived: 'text-tea-text-dim line-through',
-  completed: 'text-tea-text-sec',
+const statusToVariant = (status: EventStatus): StatusPillVariant => {
+  switch (status) {
+    case 'active': return 'active';
+    case 'archived': return 'archived';
+    case 'completed': return 'success';
+    case 'closed': return 'archived';
+    case 'draft':
+    default: return 'draft';
+  }
 };
+
+type EventFilter = 'upcoming' | 'past' | 'drafts';
 
 function formatEventDate(dateStr: string): string {
   try {
@@ -37,6 +43,7 @@ export const EventsManager: React.FC = () => {
   const [duplicateDialog, setDuplicateDialog] = useState<{ event: TeaEvent; slug: string } | null>(null);
   const [searchRaw, setSearchRaw] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [filter, setFilter] = useState<EventFilter>('upcoming');
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -45,8 +52,20 @@ export const EventsManager: React.FC = () => {
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [searchRaw]);
 
+  const now = new Date();
+  const upcomingCount = events.filter(ev => ev.status !== 'draft' && new Date(ev.eventDate) >= now).length;
+  const pastCount = events.filter(ev => new Date(ev.eventDate) < now).length;
+  const draftCount = events.filter(ev => ev.status === 'draft').length;
+
+  const filteredByTab = events.filter(ev => {
+    const isPast = new Date(ev.eventDate) < now;
+    if (filter === 'drafts') return ev.status === 'draft';
+    if (filter === 'past') return isPast;
+    return ev.status !== 'draft' && !isPast;
+  });
+
   const filteredEvents = searchQuery
-    ? events.filter(ev => {
+    ? filteredByTab.filter(ev => {
         const dateStr = formatEventDate(ev.eventDate).toLowerCase();
         return (
           ev.title.toLowerCase().includes(searchQuery) ||
@@ -57,7 +76,7 @@ export const EventsManager: React.FC = () => {
           ev.status.toLowerCase().includes(searchQuery)
         );
       })
-    : events;
+    : filteredByTab;
 
   const handleDuplicate = async (e: React.MouseEvent, event: TeaEvent) => {
     e.stopPropagation();
@@ -87,48 +106,80 @@ export const EventsManager: React.FC = () => {
 
   return (
     <>
-    <div className="sticky top-0 z-dropdown bg-tea-bg/90 backdrop-blur-md border-b border-tea-border flex-shrink-0 flex items-center justify-between h-16 px-4 md:px-6 lg:px-10">
-      <h1 className="font-serif font-normal text-2xl lg:text-3xl text-tea-text leading-tight tracking-[0.02em]" style={{ fontFamily: 'var(--font-display)' }}>Events</h1>
-      <div className="flex items-center gap-2">
-        {activeMembership && (
-          <span className="hidden sm:block label-caps text-tea-text-sec truncate max-w-[120px]">
-            {activeMembership.account_name}
-          </span>
-        )}
-        <button
-          onClick={() => navigate('/admin/venues')}
-          className="flex items-center gap-1.5 text-sm text-tea-text-sec hover:text-tea-text transition-colors"
-        >
-          <MapPin size={13} />
-          Venues
-        </button>
-        <button
-          onClick={() => setIsFormOpen(true)}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors"
-        >
-          <Plus size={13} />
-          New Event
-        </button>
+    {/* Sticky header — title + subtitle counts */}
+    <div className="sticky top-0 z-dropdown bg-tea-bg/90 backdrop-blur-md border-b border-tea-border flex-shrink-0">
+      <div className="px-4 md:px-6 lg:px-10 max-w-5xl mx-auto pt-4 pb-3 flex items-end justify-between gap-4">
+        <div className="min-w-0 flex-1">
+          <h1 className="h2 text-tea-text">Events</h1>
+          <div className="label-caps text-tea-text-dim mt-1">
+            UPCOMING · {upcomingCount} · PAST · {pastCount}
+            {activeMembership && (
+              <span className="hidden sm:inline"> · {activeMembership.account_name.toUpperCase()}</span>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => navigate('/admin/venues')}
+            className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs text-tea-text-sec hover:text-tea-text transition-colors"
+          >
+            <MapPin size={13} />
+            Venues
+          </button>
+          <button
+            onClick={() => setIsFormOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 active:bg-tea-gold/80 transition-colors"
+          >
+            <Plus size={13} />
+            <span>New Event</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Filter tabs — bottom-border underline */}
+      <div className="px-4 md:px-6 lg:px-10 max-w-5xl mx-auto flex items-center gap-6 overflow-x-auto hide-scrollbar border-b border-tea-border">
+        {([
+          { key: 'upcoming', label: 'Upcoming', count: upcomingCount },
+          { key: 'past',     label: 'Past',     count: pastCount },
+          { key: 'drafts',   label: 'Drafts',   count: draftCount },
+        ] as { key: EventFilter; label: string; count: number }[]).map(tab => {
+          const active = filter === tab.key;
+          return (
+            <button
+              key={tab.key}
+              onClick={() => setFilter(tab.key)}
+              className={`shrink-0 py-3 text-xs font-semibold border-b transition-colors -mb-px ${
+                active
+                  ? 'text-tea-text border-tea-gold'
+                  : 'text-tea-text-sec border-transparent hover:text-tea-text'
+              }`}
+            >
+              {tab.label}
+              <span className="ml-1.5 text-ui-10 text-tea-text-dim font-mono tabular-nums">{tab.count}</span>
+            </button>
+          );
+        })}
       </div>
     </div>
-    <div className="p-6 max-w-5xl mx-auto overflow-x-hidden">
+
+    <div className="px-4 md:px-6 lg:px-10 py-6 max-w-5xl mx-auto overflow-x-hidden">
 
       {/* Search */}
       {events.length > 0 && (
-        <div className="relative mb-6">
-          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-text-dim pointer-events-none" />
+        <div className="relative mb-5">
+          <Search size={14} className="absolute left-0 top-1/2 -translate-y-1/2 text-tea-text-dim pointer-events-none" />
           <input
             type="text"
             value={searchRaw}
             onChange={e => setSearchRaw(e.target.value)}
             onKeyDown={e => { if (e.key === 'Escape') setSearchRaw(''); }}
             placeholder="Search by title, date, location, or status…"
-            className="w-full pl-9 pr-8 py-2.5 text-sm bg-tea-surface/60 border border-tea-border text-tea-text placeholder:text-tea-text-dim/50 focus:outline-none focus:border-tea-gold/50 transition-colors rounded-sm"
+            className="w-full bg-transparent border-0 border-b border-tea-border rounded-none pl-6 pr-7 py-2 text-ui-14 font-serif text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:outline-none transition-colors"
           />
           {searchRaw && (
             <button
               onClick={() => setSearchRaw('')}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-tea-text-dim hover:text-tea-text transition-colors"
+              className="absolute right-0 top-1/2 -translate-y-1/2 text-tea-text-sec hover:text-tea-text transition-colors"
               aria-label="Clear search"
             >
               <X size={13} />
@@ -139,32 +190,27 @@ export const EventsManager: React.FC = () => {
 
       {/* Event List */}
       {isLoading && events.length === 0 ? (
-        <div className="border-t border-tea-border" aria-busy="true" aria-label="Loading events">
+        <ul className="divide-y divide-tea-border bg-tea-surface border border-tea-border rounded-xl overflow-hidden" aria-busy="true" aria-label="Loading events">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="flex gap-5 py-5 border-b border-tea-border animate-pulse">
-              <div className="w-14 shrink-0 flex flex-col items-center gap-1.5 pt-1">
-                <div className="h-2 w-8 bg-tea-surface/60 rounded-sm" />
-                <div className="h-7 w-10 bg-tea-surface/60 rounded-sm" />
-                <div className="h-2 w-7 bg-tea-surface/60 rounded-sm" />
-              </div>
+            <li key={i} className="px-5 py-4 animate-pulse flex items-center justify-between gap-4">
               <div className="flex-1 min-w-0 space-y-2">
-                <div className="h-4 w-2/3 bg-tea-surface/60 rounded-sm" />
-                <div className="h-3 w-1/2 bg-tea-surface/40 rounded-sm" />
-                <div className="h-2.5 w-1/3 bg-tea-surface/40 rounded-sm mt-3" />
+                <div className="h-4 w-2/3 bg-tea-elevated rounded-sm" />
+                <div className="h-3 w-1/2 bg-tea-elevated/70 rounded-sm" />
               </div>
-            </div>
+              <div className="h-4 w-16 bg-tea-elevated/70 rounded-full shrink-0" />
+            </li>
           ))}
-        </div>
+        </ul>
       ) : events.length === 0 ? (
         <div className="py-20 text-center">
           <Calendar className="mx-auto mb-4 text-tea-text-dim/30" size={28} />
           <p className="font-serif italic text-sm text-tea-text-sec mb-6">No gatherings yet.</p>
           <button
             onClick={() => setIsFormOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors shadow-lg shadow-tea-gold/10"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors"
           >
             <Plus size={13} />
-            Create your first event
+            Create First Event
           </button>
         </div>
       ) : filteredEvents.length === 0 ? (
@@ -173,7 +219,7 @@ export const EventsManager: React.FC = () => {
           <button onClick={() => setSearchRaw('')} className="mt-2 text-xs text-tea-gold hover:text-tea-gold-lt transition-colors">Clear search</button>
         </div>
       ) : (
-        <div className="border-t border-tea-border">
+        <ul className="divide-y divide-tea-border bg-tea-surface border border-tea-border rounded-xl overflow-hidden">
           {filteredEvents.map((event, index) => {
             const confirmed = (event as any).confirmedCount || 0;
             const waitlist = (event as any).waitlistCount || 0;
@@ -184,88 +230,90 @@ export const EventsManager: React.FC = () => {
             const isPast = new Date(event.eventDate) < new Date();
 
             const d = new Date(event.eventDate);
-            const dayName = d.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
-            const dateNum = String(d.getDate()).padStart(2, '0');
-            const monthName = d.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
-            const timeStr = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+            const dateLabel = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+            const timeStr = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+            const variant = statusToVariant(event.status);
+            const location = event.areaHint || event.locationName;
 
             return (
-              <motion.div
+              <motion.li
                 key={event.id}
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.04 }}
-                onClick={() => navigate(`/admin/events/${event.id}`)}
-                aria-label={`${event.title}, ${event.status}, ${formatEventDate(event.eventDate)}`}
-                className={`flex gap-5 py-5 border-b border-tea-border cursor-pointer hover:opacity-75 transition-opacity group${isPast ? ' opacity-50' : ''}`}
               >
-                {/* Date column */}
-                <div className="w-14 shrink-0 text-center pt-0.5">
-                  <div className="text-ui-9 tracking-[0.25em] text-tea-text-dim uppercase">{dayName}</div>
-                  <div className={`font-serif text-[30px] font-normal leading-none mt-0.5 ${isPast ? 'text-tea-text-sec' : 'text-tea-text'}`}>{dateNum}</div>
-                  <div className="text-ui-9 tracking-[0.2em] text-tea-text-dim mt-0.5">{monthName}</div>
-                </div>
-
-                {/* Content */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2.5 flex-wrap mb-0.5">
-                        <h3 className="font-serif text-base font-medium text-tea-text leading-snug">{event.title}</h3>
-                        <span className={`text-ui-9 uppercase tracking-[0.2em] font-semibold ${STATUS_STYLES[event.status]}`}>
-                          {event.status}
-                        </span>
-                        {requested > 0 && (
-                          <button
-                            onClick={(e) => { e.stopPropagation(); navigate(`/admin/events/${event.id}?tab=requests`); }}
-                            className="flex items-center gap-1 text-ui-9 text-tea-gold hover:text-tea-gold/90 transition-colors"
-                          >
-                            <Bell size={8} className="shrink-0" />
-                            {requested} pending
-                          </button>
-                        )}
-                        {interest > 0 && (
-                          <button
-                            onClick={(e) => { e.stopPropagation(); navigate(`/admin/events/${event.id}?tab=interest`); }}
-                            className="flex items-center gap-1 text-ui-9 text-tea-text-sec hover:text-tea-text transition-colors"
-                            title="Interest signups"
-                          >
-                            {interest} interested
-                          </button>
-                        )}
-                      </div>
-                      {event.subtitle && (
-                        <p className="font-serif italic text-ui-13 text-tea-text-sec leading-snug">{event.subtitle}</p>
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => navigate(`/admin/events/${event.id}`)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') navigate(`/admin/events/${event.id}`); }}
+                  aria-label={`${event.title}, ${event.status}, ${formatEventDate(event.eventDate)}`}
+                  className={`w-full px-5 py-4 hover:bg-tea-accent-sub transition-colors flex items-center justify-between gap-4 group cursor-pointer ${isPast ? 'opacity-60' : ''}`}
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="font-display text-ui-15 text-tea-text truncate">{event.title}</div>
+                    <div className="text-ui-12 text-tea-text-dim mt-1 flex items-center gap-1.5 flex-wrap">
+                      <span>{dateLabel} · {timeStr}</span>
+                      {location && (
+                        <>
+                          <span className="w-[3px] h-[3px] rounded-full bg-tea-text-dim shrink-0" />
+                          <span className="truncate">{location}</span>
+                        </>
                       )}
-                      <div className="flex items-center gap-2 mt-2 text-ui-11 text-tea-text-dim flex-wrap">
-                        <span>{timeStr}</span>
-                        {(event.areaHint || event.locationName) && (
-                          <>
-                            <span className="w-[3px] h-[3px] rounded-full bg-tea-text-dim shrink-0" />
-                            <span>{event.areaHint ?? event.locationName}</span>
-                          </>
-                        )}
-                        <span className={`ml-auto font-medium tabular-nums ${isFull ? 'text-tea-error' : 'text-tea-gold'}`}>
-                          {isFull ? 'Full' : `${seatsRemaining}/${event.totalCapacity} seats`}
-                          {waitlist > 0 && <span className="text-tea-text-dim ml-1">+{waitlist}</span>}
+                      <span className={`tabular-nums ${isFull ? 'text-tea-error' : 'text-tea-text-sec'}`}>
+                        · {isFull ? 'Full' : `${seatsRemaining}/${event.totalCapacity} seats`}
+                        {waitlist > 0 && <span className="text-tea-text-dim ml-1">+{waitlist}</span>}
+                      </span>
+                      {requested > 0 && (
+                        <span
+                          role="link"
+                          tabIndex={0}
+                          onClick={(e) => { e.stopPropagation(); navigate(`/admin/events/${event.id}?tab=requests`); }}
+                          onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); navigate(`/admin/events/${event.id}?tab=requests`); } }}
+                          className="flex items-center gap-1 text-tea-gold"
+                          title={`${requested} pending requests`}
+                        >
+                          <Bell size={9} className="shrink-0" />
+                          {requested} pending
                         </span>
-                      </div>
+                      )}
+                      {interest > 0 && (
+                        <span
+                          role="link"
+                          tabIndex={0}
+                          onClick={(e) => { e.stopPropagation(); navigate(`/admin/events/${event.id}?tab=interest`); }}
+                          onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); navigate(`/admin/events/${event.id}?tab=interest`); } }}
+                          className="text-tea-text-sec"
+                          title="Interest signups"
+                        >
+                          · {interest} interested
+                        </span>
+                      )}
                     </div>
+                    {event.subtitle && (
+                      <p className="font-body italic text-ui-12 text-tea-text-sec leading-snug mt-1 truncate">{event.subtitle}</p>
+                    )}
+                  </div>
 
-                    {/* Duplicate button */}
+                  <div className="flex items-center gap-3 shrink-0">
+                    <span className={`${STATUS_PILL_BASE} ${STATUS_PILL_VARIANTS[variant]}`}>
+                      {event.status}
+                    </span>
                     <button
+                      type="button"
                       onClick={(e) => handleDuplicate(e, event)}
-                      className="p-2 text-tea-text-dim hover:text-tea-text-sec transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100 shrink-0 mt-0.5"
+                      className="p-2 text-tea-text-dim hover:text-tea-text-sec transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100 tap-target"
                       title="Duplicate event"
+                      aria-label="Duplicate event"
                     >
                       <Copy size={13} />
                     </button>
                   </div>
                 </div>
-              </motion.div>
+              </motion.li>
             );
           })}
-        </div>
+        </ul>
       )}
 
       {/* Create Event Modal */}
@@ -279,7 +327,7 @@ export const EventsManager: React.FC = () => {
       {duplicateDialog && (
         <div className="fixed inset-0 z-modal flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Duplicate event">
           <button type="button" aria-hidden onClick={() => setDuplicateDialog(null)} className="absolute inset-0 bg-tea-bg/70 backdrop-blur-[2px]" />
-          <div className="relative bg-tea-surface border border-tea-border rounded-xl shadow-2xl w-full max-w-sm">
+          <div className="relative bg-tea-surface border border-tea-border rounded-xl shadow-2xl w-full max-w-md">
             <button
               onClick={() => setDuplicateDialog(null)}
               aria-label="Close"
@@ -289,7 +337,7 @@ export const EventsManager: React.FC = () => {
             </button>
             <div className="px-6 pt-6 pb-3">
               <h3 className="h3 text-tea-text">Duplicate Event</h3>
-              <p className="label-caps text-tea-text-dim mt-1">Choose a unique slug</p>
+              <p className="text-ui-12 text-tea-text-dim mt-1">Choose a unique slug for the duplicate.</p>
             </div>
             <div className="px-6 pb-4">
               <input
@@ -304,7 +352,7 @@ export const EventsManager: React.FC = () => {
             </div>
             <div className="flex justify-between gap-2 px-6 py-4 border-t border-tea-border">
               <button onClick={() => setDuplicateDialog(null)} className="px-2 py-1 text-xs text-tea-text-sec hover:text-tea-text transition-colors">Cancel</button>
-              <button onClick={handleConfirmDuplicate} disabled={!duplicateDialog.slug.trim()} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-tea-gold/10">Duplicate</button>
+              <button onClick={handleConfirmDuplicate} disabled={!duplicateDialog.slug.trim()} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">Duplicate</button>
             </div>
           </div>
         </div>

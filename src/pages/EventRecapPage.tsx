@@ -52,10 +52,10 @@ interface TeaLedgerSectionProps {
 const TeaLedgerSection: React.FC<TeaLedgerSectionProps> = ({ items }) => {
   const sorted = [...items].sort((a, b) => (a.brewOrder ?? 0) - (b.brewOrder ?? 0));
   return (
-    <div className="mb-10">
+    <section className="mb-12">
       <div className="flex items-center gap-2 mb-5">
         <TeaLeafIcon className="w-4 h-4 text-tea-gold" />
-        <h2 className="label-caps text-tea-text-sec">Teas Served</h2>
+        <h2 className="h2">Teas served</h2>
       </div>
       <div className="space-y-3">
         {sorted.map((item, idx) => (
@@ -66,9 +66,14 @@ const TeaLedgerSection: React.FC<TeaLedgerSectionProps> = ({ items }) => {
             <div className="flex items-start justify-between gap-3">
               <div className="flex-1 min-w-0">
                 <div className="flex items-baseline gap-2 mb-0.5">
-                  <span className="font-serif text-lg text-tea-gold/30 leading-none shrink-0">{idx + 1}</span>
+                  <span
+                    className="text-ui-20 text-tea-gold/30 leading-none shrink-0"
+                    style={{ fontFamily: 'var(--font-display)' }}
+                  >
+                    {idx + 1}
+                  </span>
                   {item.productType && (
-                    <span className="text-ui-10 uppercase tracking-[0.2em] text-tea-gold">
+                    <span className="label-caps text-tea-readgold">
                       {item.productType}
                     </span>
                   )}
@@ -77,7 +82,7 @@ const TeaLedgerSection: React.FC<TeaLedgerSectionProps> = ({ items }) => {
                   {item.customName || item.productName || 'Unknown tea'}
                 </h3>
                 {item.customDescription && (
-                  <p className="text-sm text-tea-text-sec leading-relaxed mt-2">
+                  <p className="body-light mt-2">
                     {item.customDescription}
                   </p>
                 )}
@@ -85,10 +90,10 @@ const TeaLedgerSection: React.FC<TeaLedgerSectionProps> = ({ items }) => {
               {item.productId && (
                 <a
                   href={`/shop?product=${encodeURIComponent(item.productId)}`}
-                  className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-tea-surface border border-tea-border rounded-xl text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec hover:border-tea-gold/40 hover:text-tea-gold transition-all duration-300 group"
+                  className="flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-md border border-tea-border text-xs font-semibold text-tea-text-sec hover:border-tea-gold/40 hover:text-tea-text transition-colors group"
                   aria-label={`Buy ${item.customName || item.productName}`}
                 >
-                  <ShoppingBag className="w-3 h-3 group-hover:text-tea-gold transition-colors" />
+                  <ShoppingBag className="w-3.5 h-3.5 group-hover:text-tea-gold transition-colors" />
                   <span className="hidden sm:inline">Buy this tea</span>
                 </a>
               )}
@@ -96,7 +101,7 @@ const TeaLedgerSection: React.FC<TeaLedgerSectionProps> = ({ items }) => {
           </div>
         ))}
       </div>
-    </div>
+    </section>
   );
 };
 
@@ -105,15 +110,13 @@ interface HostNotesSectionProps {
 }
 
 const HostNotesSection: React.FC<HostNotesSectionProps> = ({ notes }) => (
-  <div className="mb-10">
+  <section className="mb-12">
     <div className="flex items-center gap-2 mb-5">
       <BookOpen className="w-4 h-4 text-tea-gold" />
-      <h2 className="text-ui-11 uppercase tracking-[0.2em] text-tea-text-sec">From the Host</h2>
+      <h2 className="h2">From the host</h2>
     </div>
-    <div className="bg-tea-surface border border-tea-border rounded-xl p-5">
-      <p className="text-sm text-tea-text leading-relaxed whitespace-pre-line">{notes}</p>
-    </div>
-  </div>
+    <p className="body-prose whitespace-pre-line">{notes}</p>
+  </section>
 );
 
 interface SharedNotesSectionProps {
@@ -121,21 +124,22 @@ interface SharedNotesSectionProps {
 }
 
 const SharedNotesSection: React.FC<SharedNotesSectionProps> = ({ notes }) => (
-  <div className="mb-10">
+  <section className="mb-12">
     <div className="flex items-center gap-2 mb-5">
       <MessageCircle className="w-4 h-4 text-tea-gold" />
-      <h2 className="text-ui-11 uppercase tracking-[0.2em] text-tea-text-sec">Guests Said</h2>
+      <h2 className="h2">Guests said</h2>
     </div>
-    <div className="bg-tea-surface border border-tea-border rounded-xl p-5">
-      <div className="space-y-3">
-        {notes.map((note, idx) => (
-          <p key={idx} className="text-sm text-tea-text-sec italic leading-relaxed">
-            "{note}"
-          </p>
-        ))}
-      </div>
+    <div className="space-y-5">
+      {notes.map((note, idx) => (
+        <blockquote
+          key={idx}
+          className="subtitle border-l-2 border-tea-gold/30 pl-4"
+        >
+          "{note}"
+        </blockquote>
+      ))}
     </div>
-  </div>
+  </section>
 );
 
 interface PlaylistSectionProps {
@@ -143,10 +147,10 @@ interface PlaylistSectionProps {
 }
 
 const PlaylistSection: React.FC<PlaylistSectionProps> = ({ playlistUrl }) => (
-  <div className="mb-10">
+  <section className="mb-12">
     <div className="flex items-center gap-2 mb-5">
       <Music className="w-4 h-4 text-tea-gold" />
-      <h2 className="text-ui-11 uppercase tracking-[0.2em] text-tea-text-sec">Session Playlist</h2>
+      <h2 className="h3">Session playlist</h2>
     </div>
     {playlistUrl.includes('spotify.com') ? (
       <div className="rounded-xl overflow-hidden border border-tea-border">

@@ -546,7 +546,7 @@ export const ProductStoryView: React.FC = () => {
 
               {flavorWords.length > 0 && (
                 <div className="mb-8">
-                  <p className="text-xs text-tea-text-dim mb-4">
+                  <p className="text-ui-12 text-tea-text-dim mb-4">
                     Most common words across {allTastingNotes.length} tasting note{allTastingNotes.length !== 1 ? 's' : ''}
                   </p>
                   <FlavorCloud words={flavorWords} />
@@ -562,12 +562,12 @@ export const ProductStoryView: React.FC = () => {
                     transition={{ delay: i * 0.06 }}
                     className="border-l border-tea-border pl-5"
                   >
-                    <p className="font-serif italic text-sm text-tea-text leading-relaxed mb-2">
+                    <p className="subtitle text-tea-text mb-2">
                       "{note.impression}"
                     </p>
                     <div className="flex items-center gap-3">
                       {note.attendeeName && (
-                        <p className="text-xs text-tea-text-dim">{note.attendeeName}</p>
+                        <p className="text-ui-12 text-tea-text-dim">{note.attendeeName}</p>
                       )}
                       {note.rating !== undefined && note.rating !== null && (
                         <div className="flex gap-0.5">
@@ -585,7 +585,7 @@ export const ProductStoryView: React.FC = () => {
                   </motion.div>
                 ))}
                 {allTastingNotes.filter(n => n.impression).length > 6 && (
-                  <p className="text-xs text-tea-text-dim">
+                  <p className="text-ui-12 text-tea-text-dim">
                     + {allTastingNotes.filter(n => n.impression).length - 6} more notes
                   </p>
                 )}
@@ -599,23 +599,23 @@ export const ProductStoryView: React.FC = () => {
         <section className="mb-12">
           <SectionLabel>Available now</SectionLabel>
 
-          <div className="bg-tea-surface border border-tea-border rounded-sm p-6">
+          <div className="bg-tea-surface border border-tea-border rounded-xl p-6">
             <div className="grid grid-cols-2 md:grid-cols-3 gap-6 mb-6">
               <div>
-                <p className="text-xs text-tea-text-dim mb-1">Current stock</p>
-                <p className="font-serif text-2xl text-tea-text num">
+                <p className="label-caps text-tea-text-dim mb-1">Current stock</p>
+                <p className="font-serif text-ui-26 text-tea-text num">
                   {(product.stockGrams ?? 0).toLocaleString()}g
                 </p>
               </div>
               <div>
-                <p className="text-xs text-tea-text-dim mb-1">Price/g</p>
-                <p className="font-serif text-2xl text-tea-text num">
+                <p className="label-caps text-tea-text-dim mb-1">Price/g</p>
+                <p className="font-serif text-ui-26 text-tea-text num">
                   ${product.pricePerGramUSD.toFixed(3)}
                 </p>
               </div>
               <div>
-                <p className="text-xs text-tea-text-dim mb-1">Status</p>
-                <p className={`font-serif text-base ${stockStatus?.color ?? 'text-tea-text'}`}>
+                <p className="label-caps text-tea-text-dim mb-1">Status</p>
+                <p className={`font-serif text-ui-16 ${stockStatus?.color ?? 'text-tea-text'}`}>
                   {stockStatus?.label}
                 </p>
               </div>
@@ -626,7 +626,7 @@ export const ProductStoryView: React.FC = () => {
                 onClick={() => {
                   openPurchaseOrder();
                 }}
-                className="flex items-center gap-2 px-5 py-2.5 bg-tea-gold text-tea-bg text-xs hover:bg-tea-gold-lt transition-colors"
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-tea-gold text-tea-bg text-ui-12 rounded-md hover:bg-tea-gold-lt transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/40"
               >
                 <ShoppingBag size={13} />
                 Add to invoice
@@ -635,7 +635,7 @@ export const ProductStoryView: React.FC = () => {
           </div>
 
           {product.processingNotes && (
-            <p className="mt-4 text-xs text-tea-text-sec leading-relaxed">
+            <p className="mt-4 text-ui-12 text-tea-text-sec leading-relaxed">
               {product.processingNotes}
             </p>
           )}
@@ -647,7 +647,7 @@ export const ProductStoryView: React.FC = () => {
             <Divider />
             <section className="mb-12">
               <SectionLabel>{product.lore ? 'Lore' : 'Description'}</SectionLabel>
-              <p className="font-serif text-sm text-tea-text-sec leading-relaxed">
+              <p className="body-prose text-tea-text-sec">
                 {product.lore || product.description}
               </p>
             </section>
@@ -656,7 +656,7 @@ export const ProductStoryView: React.FC = () => {
 
         {/* Footer */}
         <div className="border-t border-tea-border pt-8 text-center">
-          <p className="text-ui-10 uppercase tracking-[0.3em] text-tea-text-sec/30">
+          <p className="label-caps text-tea-text-dim">
             Teajia · Product Archive
           </p>
         </div>

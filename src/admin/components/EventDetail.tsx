@@ -17,6 +17,18 @@ import { ReminderTimeline } from './ReminderTimeline';
 import { ShareSheet } from './ShareSheet';
 import { EventStatus, BriefingCard, TastingNote, Venue } from '../../types/events';
 import { VenueManager } from './VenueManager';
+import { STATUS_PILL_BASE, STATUS_PILL_VARIANTS, type StatusPillVariant } from '../constants';
+
+const statusToVariant = (status: EventStatus): StatusPillVariant => {
+  switch (status) {
+    case 'active': return 'active';
+    case 'archived': return 'archived';
+    case 'completed': return 'success';
+    case 'closed': return 'archived';
+    case 'draft':
+    default: return 'draft';
+  }
+};
 
 type TabKey = 'requests' | 'attendees' | 'briefing' | 'tea-menu' | 'tasting-notes' | 'reminders' | 'notifications' | 'post-session' | 'venue' | 'interest';
 
@@ -256,14 +268,6 @@ const TastingNotesTab: React.FC<TastingNotesTabProps> = ({ notes }) => {
 
 // ── End Feature 1 ────────────────────────────────────────────────────────────
 
-const STATUS_STYLES: Record<EventStatus, string> = {
-  draft: 'text-tea-text-sec',
-  active: 'text-tea-gold',
-  closed: 'text-tea-text-sec',
-  archived: 'text-tea-text-dim line-through',
-  completed: 'text-tea-gold',
-};
-
 function formatEventDate(dateStr: string): string {
   try {
     const d = new Date(dateStr);
@@ -430,77 +434,78 @@ export const EventDetail: React.FC = () => {
   const overflowActive = OVERFLOW_TABS.some(t => t.key === activeTab);
 
   return (
-    <div className="p-6 max-w-5xl mx-auto overflow-x-hidden">
+    <div className="p-6 max-w-3xl mx-auto overflow-x-hidden">
       {/* Back button */}
       <button
         onClick={() => navigate('/admin/events')}
         className="flex items-center gap-1.5 text-xs text-tea-text-sec hover:text-tea-text transition-colors mb-4"
       >
-        <ArrowLeft size={14} /> <span>Events</span><span className="text-tea-text-dim mx-1">/</span><span className="text-tea-text truncate max-w-[200px] inline-block align-bottom">{event.title}</span>
+        <ArrowLeft size={14} /> <span>Events</span>
       </button>
 
-      {/* Header — editorial, no surface box */}
-      <div className="mb-6">
-        <div className="flex items-start justify-between gap-4 mb-3">
+      {/* Hero block — surface card */}
+      <div className="bg-tea-surface border border-tea-border rounded-xl p-5 mb-6">
+        <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
-            <div className="flex items-baseline gap-3 flex-wrap mb-1">
-              <h1 className="font-display text-[clamp(22px,3vw,30px)] font-normal leading-[1.15] tracking-[0.01em] text-tea-text">{event.title}</h1>
-              <span className={`text-ui-9 uppercase tracking-[0.2em] font-semibold shrink-0 ${STATUS_STYLES[event.status]}`}>
-                {event.status}
-              </span>
-              {requestedCount > 0 && (
-                <span className="flex items-center gap-1 text-ui-9 text-tea-gold shrink-0">
-                  <Bell size={8} className="shrink-0" />
-                  {requestedCount} pending
-                </span>
-              )}
+            <div className="label-caps text-tea-text-dim mb-1">
+              {new Date(event.eventDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase()}
             </div>
+            <h1 className="h2 text-tea-text mb-1">{event.title}</h1>
             {event.subtitle && (
               <p className="font-body italic text-ui-15 text-tea-text-sec mb-2 leading-snug">{event.subtitle}</p>
             )}
-            <div className="flex items-center gap-4 text-xs text-tea-text-sec flex-wrap font-mono">
+            <div className="flex items-center gap-4 text-ui-12 text-tea-text-dim flex-wrap mt-2">
               <span className="flex items-center gap-1">
                 <Clock size={12} />
                 {formatEventDate(event.eventDate)}
               </span>
-              {event.areaHint ? (
-                <span className="flex items-center gap-1 font-sans">
+              {(event.areaHint || event.locationName) && (
+                <span className="flex items-center gap-1">
                   <MapPin size={12} />
-                  {event.areaHint}
+                  {event.areaHint ?? event.locationName}
                 </span>
-              ) : event.locationName ? (
-                <span className="flex items-center gap-1 font-sans">
-                  <MapPin size={12} />
-                  {event.locationName}
+              )}
+              {requestedCount > 0 && (
+                <span className="flex items-center gap-1 text-tea-gold">
+                  <Bell size={10} className="shrink-0" />
+                  {requestedCount} pending
                 </span>
-              ) : null}
+              )}
             </div>
           </div>
 
-          <div className="flex items-center gap-3 flex-wrap shrink-0">
-            <a
-              href={`/event/${event.slug}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1.5 text-xs text-tea-text-sec hover:text-tea-text transition-colors"
-            >
-              <ExternalLink size={12} /> Preview
-            </a>
-            <button
-              onClick={() => setIsShareOpen(true)}
-              className="flex items-center gap-1.5 text-xs text-tea-text-sec hover:text-tea-text transition-colors"
-            >
-              <Share2 size={12} /> Share
-            </button>
-            <button
-              onClick={() => setIsEditOpen(true)}
-              className="flex items-center gap-1.5 text-xs text-tea-text-sec hover:text-tea-text transition-colors"
-            >
-              <Edit3 size={12} /> Edit
-            </button>
+          <div className="flex flex-col items-end gap-3 shrink-0">
+            <span className={`${STATUS_PILL_BASE} ${STATUS_PILL_VARIANTS[statusToVariant(event.status)]}`}>
+              {event.status}
+            </span>
+            <div className="flex items-center gap-3 flex-wrap justify-end">
+              <a
+                href={`/event/${event.slug}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 text-xs text-tea-text-sec hover:text-tea-text transition-colors"
+              >
+                <ExternalLink size={12} /> Preview
+              </a>
+              <button
+                onClick={() => setIsShareOpen(true)}
+                className="flex items-center gap-1.5 text-xs text-tea-text-sec hover:text-tea-text transition-colors"
+              >
+                <Share2 size={12} /> Share
+              </button>
+              <button
+                onClick={() => setIsEditOpen(true)}
+                className="flex items-center gap-1.5 text-xs text-tea-text-sec hover:text-tea-text transition-colors"
+              >
+                <Edit3 size={12} /> Edit
+              </button>
+            </div>
           </div>
         </div>
+      </div>
 
+      {/* Header — capacity + quick actions */}
+      <div className="mb-6">
         {/* Capacity bar */}
         <div className="mb-4 space-y-2">
           <div className="flex items-center gap-3">
@@ -703,9 +708,9 @@ export const EventDetail: React.FC = () => {
                   type="button"
                   onClick={handleSaveBriefing}
                   disabled={savingBriefing}
-                  className="flex items-center gap-2 bg-tea-gold text-tea-bg px-4 py-2 text-xs font-medium hover:bg-tea-gold-lt transition-colors disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  {savingBriefing ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+                  {savingBriefing ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
                   Save Briefing Cards
                 </button>
               </div>
@@ -957,9 +962,9 @@ export const EventDetail: React.FC = () => {
                 type="button"
                 onClick={handleSaveVenue}
                 disabled={savingVenue}
-                className="flex items-center gap-2 bg-tea-gold text-tea-bg px-4 py-2 text-xs font-medium hover:bg-tea-gold-lt transition-colors disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                {savingVenue ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
+                {savingVenue ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
                 Save Venue
               </button>
             </div>

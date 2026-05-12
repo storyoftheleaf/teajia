@@ -385,7 +385,7 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
   if (!isOpen) return null;
 
   const stepNumber = stage === 'upload' ? 1 : stage === 'staging' ? 2 : 3;
-  const stepLabel = stage === 'upload' ? 'UPLOAD' : stage === 'staging' ? 'REVIEW' : 'IMPORT';
+  const stepLabel = stage === 'upload' ? 'Upload' : stage === 'staging' ? 'Review' : 'Import';
 
   return (
     <div className="fixed inset-0 z-modal flex items-center justify-center p-4">

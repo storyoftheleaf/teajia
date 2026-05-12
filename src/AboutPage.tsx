@@ -12,9 +12,9 @@ export default function AboutPage() {
         <meta name="description" content="The story behind Teajia — twenty years of tea culture, sourcing, and design practice rooted in Taiwan and mainland China." />
       </Helmet>
       {/* Header */}
-      <header className="mb-12 md:mb-16">
+      <header className="mb-12 md:mb-16 text-center">
         <p className="label-caps mb-3">About Teajia</p>
-        <h1 className="h2 mb-4">
+        <h1 className="h1 mb-4">
           139 teas. One curator.
         </h1>
         <p className="subtitle">Twenty years of tea, distilled into a single curated practice.</p>
@@ -31,7 +31,7 @@ export default function AboutPage() {
 
       {/* What TeajiA is */}
       <section className="mb-16 md:mb-20 space-y-6">
-        <p className="body-prose">
+        <p className="body-prose first-letter:font-display first-letter:text-[3em] first-letter:leading-[0.9] first-letter:float-left first-letter:mr-2 first-letter:mt-1 first-letter:text-tea-readgold">
           TeajiA is a space for tea culture — the stories, the craft, the knowledge, and the people who carry it forward. It grew out of more than twenty years spent inside the world of Chinese tea: sourcing from farmers, learning from masters, and building relationships with the artisans who shape the vessels, the leaf, and the practice.
         </p>
         <p className="body-light">
@@ -104,7 +104,7 @@ export default function AboutPage() {
       {/* Pull quote */}
       <section className="mb-16 md:mb-20 border-t border-tea-border pt-10">
         <blockquote className="border-l-2 border-tea-gold pl-4 italic text-tea-text-sec">
-          <p className="font-display text-ui-20 md:text-[26px] leading-relaxed">
+          <p className="font-display text-ui-20 md:text-ui-26 leading-relaxed">
             "Tea is not a product to be optimized. It is a relationship — between farmer, season, and the hands that prepare it."
           </p>
           <footer className="label-caps mt-4 not-italic">Adrian — founder</footer>

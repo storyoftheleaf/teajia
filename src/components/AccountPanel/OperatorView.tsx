@@ -233,45 +233,23 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
 
   return (
     <div>
-      {/* ── Identity — small corner mark with role + account/location ── */}
-      <div className="px-6 pt-5 pb-0 flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <div className="label-caps text-tea-text-dim">
-            {todayLabel}
-          </div>
-          {accountName && (
-            <div className="text-ui-12 text-tea-text-sec truncate mt-1.5">
-              {accountName}{locationLabel ? ` · ${locationLabel}` : ''}
-            </div>
-          )}
-        </div>
-        <button
-          onClick={onAvatarClick}
-          className="w-12 h-12 rounded-full bg-tea-elevated flex items-center justify-center border border-tea-border overflow-hidden shrink-0 relative"
-          title={user?.name || user?.email || 'Change photo'}
-          aria-label="Change photo"
-          style={{ WebkitTapHighlightColor: 'transparent' }}
-        >
-          {avatarDataUrl ? (
-            <img src={avatarDataUrl} alt="" className="w-full h-full object-cover" loading="lazy" />
-          ) : (
-            <span className="font-display text-ui-15 text-tea-text-sec">
-              {user ? getInitials(user.name || user.email) : '茶'}
-            </span>
-          )}
-          {roleBadgeLabel && (isOwner || isPlatform) && (
-            <span
-              className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-tea-bg border border-tea-border flex items-center justify-center"
-              aria-label={roleBadgeLabel}
-            >
-              <SealIcon className="w-2.5 h-2.5 text-tea-gold" />
-            </span>
-          )}
-        </button>
-      </div>
+      {/* ── Identity card (§19) — operator variant: shift meta + seal badge ── */}
+      <IdentityCard
+        user={user}
+        avatarDataUrl={avatarDataUrl}
+        onAvatarClick={onAvatarClick}
+        fallbackTitle="Operator"
+        meta={[todayLabel, accountName, locationLabel].filter(Boolean).join(' · ')}
+        status={roleBadgeLabel ? <StatusPill icon={<SealIcon className="w-2.5 h-2.5" />}>{roleBadgeLabel}</StatusPill> : null}
+        avatarBadge={
+          roleBadgeLabel && (isOwner || isPlatform)
+            ? <SealIcon className="w-2.5 h-2.5 text-tea-gold" />
+            : null
+        }
+      />
 
       {/* ── Frontispiece — one editorial line synthesizing current state ── */}
-      <div className="px-6 pt-3 pb-2">
+      <div className="px-6 pt-5 pb-2">
         <p className="font-body italic text-ui-17 leading-snug text-tea-text">
           {frontispiece}
         </p>
@@ -647,10 +625,10 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
         <div className="px-6 pt-5 pb-[calc(52px+env(safe-area-inset-bottom,0px))] lg:pb-8">
           <button
             onClick={onSignOut}
-            className="text-ui-12 uppercase tracking-[0.15em] text-tea-text-sec hover:text-tea-text transition-colors py-2 -my-2"
+            className="text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors py-2 -my-2"
             style={{ WebkitTapHighlightColor: 'transparent' }}
           >
-            Sign Out
+            Sign out
           </button>
         </div>
       </section>

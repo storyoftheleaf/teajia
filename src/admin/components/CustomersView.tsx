@@ -906,13 +906,13 @@ export const CustomerDetail = ({
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0 ml-3">
                         {evt.attended === 1 && (
-                          <span className="badge-status badge-status-default">Attended</span>
+                          <StatusPill variant="success">Attended</StatusPill>
                         )}
                         {evt.attended === 0 && (
-                          <span className="badge-status badge-status-muted">No-show</span>
+                          <StatusPill variant="archived">No-show</StatusPill>
                         )}
                         {evt.attended == null && (
-                          <span className="badge-status badge-status-gold">{evt.attendee_status}</span>
+                          <StatusPill variant="active">{evt.attendee_status}</StatusPill>
                         )}
                       </div>
                     </div>
@@ -1191,13 +1191,15 @@ export const CustomerDetail = ({
                         </span>
                         <span className="text-tea-text-sec text-xs ml-2">{new Date(order.created_at).toLocaleDateString()}</span>
                       </div>
-                      <span className={`badge-status ${
-                        order.status === 'Void' ? 'badge-status-muted' :
-                        order.status === 'Pending' ? 'badge-status-gold' :
-                        'badge-status-default'
-                      }`}>
+                      <StatusPill
+                        variant={
+                          order.status === 'Void' ? 'archived' :
+                          order.status === 'Pending' ? 'active' :
+                          'success'
+                        }
+                      >
                         {order.status}
-                      </span>
+                      </StatusPill>
                     </button>
                   ))
                 )}

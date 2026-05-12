@@ -213,50 +213,43 @@ export const FindATable: React.FC = () => {
         )}
 
         {filtered.length > 0 && (
-          <ul className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
-            {filtered.map(store => (
-              <li key={store.id}>
-                <Link
-                  to={`/store/${store.slug}`}
-                  className="block bg-tea-surface border border-tea-border rounded-xl p-5 group hover:bg-tea-accent-sub transition-colors"
-                >
-                  <div className="flex items-start gap-4">
+          <ul className="divide-y divide-tea-border bg-tea-surface border border-tea-border rounded-xl overflow-hidden">
+            {filtered.map(store => {
+              const location = [store.location_city, store.location_country].filter(Boolean).join(', ');
+              const reviewCount = reviewCountByAccount[store.id] ?? 0;
+              const statusLabel = reviewCount > 0 ? 'Hosting' : 'Verified';
+              return (
+                <li key={store.id}>
+                  <Link
+                    to={`/store/${store.slug}`}
+                    className="flex items-center gap-4 px-4 md:px-5 py-4 group hover:bg-tea-accent-sub transition-colors"
+                  >
                     {store.logo_url ? (
                       <img
                         src={store.logo_url}
                         alt=""
-                        className="w-14 h-14 object-contain flex-shrink-0"
+                        className="w-11 h-11 rounded-full object-cover flex-shrink-0 bg-tea-elevated"
                       />
                     ) : (
-                      <div className="w-14 h-14 flex items-center justify-center flex-shrink-0 text-tea-gold">
-                        <Icons.Seal className="w-8 h-8" />
+                      <div className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 bg-tea-elevated text-tea-gold">
+                        <Icons.Seal className="w-6 h-6" />
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
-                      <h2 className="h3 mb-1 group-hover:text-tea-readgold transition-colors">
+                      <h2 className="font-display text-ui-15 text-tea-text leading-snug truncate group-hover:text-tea-readgold transition-colors">
                         {store.name}
                       </h2>
-                      {(store.location_city || store.location_country) && (
-                        <p className="label-caps text-tea-text-dim mb-2 flex items-center gap-1.5">
-                          <Icons.Location className="w-3 h-3 text-tea-gold" />
-                          {[store.location_city, store.location_country].filter(Boolean).join(', ')}
-                        </p>
-                      )}
-                      {store.tagline && (
-                        <p className="subtitle text-ui-14">
-                          {store.tagline}
-                        </p>
-                      )}
-                      {(reviewCountByAccount[store.id] ?? 0) > 0 && (
-                        <p className="label-caps text-tea-text-dim mt-2">
-                          {reviewCountByAccount[store.id]} network {reviewCountByAccount[store.id] === 1 ? 'review' : 'reviews'}
-                        </p>
-                      )}
+                      <p className="text-ui-12 text-tea-text-dim truncate mt-0.5">
+                        {location || (store.tagline ?? 'A Teajia table')}
+                      </p>
                     </div>
-                  </div>
-                </Link>
-              </li>
-            ))}
+                    <span className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-ui-10 uppercase tracking-caps bg-tea-gold/10 text-tea-readgold ring-1 ring-inset ring-tea-gold/30">
+                      {statusLabel}
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>
