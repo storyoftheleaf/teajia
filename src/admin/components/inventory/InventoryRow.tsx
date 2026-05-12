@@ -62,27 +62,29 @@ function InventoryRowBase(props: InventoryRowProps) {
   const renderCell = (colKey: string, colIndex: number) => {
     const fr = focusedCol === colIndex ? 'ring-1 ring-tea-gold/50 rounded' : '';
     switch (colKey) {
-      case 'productName': return (
-        <td key={colKey} id={cellId(colIndex)} className={`px-4 py-3 align-middle overflow-hidden ${fr}`}>
-          <div className="flex flex-col justify-center">
-            {isEditMode ? (
-              <GhostInput value={product.productName} onSave={(val) => onProductUpdate(product.id, 'productName', val)} className={`font-display text-ui-17 leading-tight truncate ${nameTone}`} ariaLabel="Product name" />
-            ) : (
-              <>
+      case 'productName': {
+        // Subtitle slot is always rendered (with &nbsp; fallback) so every row
+        // has the same height regardless of whether a givenName/form is present.
+        const subtitle = product.givenName
+          ? <>{product.givenName}{product.form && <span className="ml-1 opacity-70">· {product.form}</span>}</>
+          : product.form
+            ? product.form
+            : ' ';
+        return (
+          <td key={colKey} id={cellId(colIndex)} className={`px-4 py-3 align-middle overflow-hidden ${fr}`}>
+            <div className="flex flex-col justify-center">
+              {isEditMode ? (
+                <GhostInput value={product.productName} onSave={(val) => onProductUpdate(product.id, 'productName', val)} className={`font-display text-ui-17 leading-tight truncate ${nameTone}`} ariaLabel="Product name" />
+              ) : (
                 <span className={`font-display text-ui-17 leading-tight truncate ${nameTone}`}>{product.productName}</span>
-                {product.givenName && (
-                  <span className="font-sans text-ui-11 text-tea-text-dim mt-0.5 truncate block" style={{ letterSpacing: '0.02em' }}>
-                    {product.givenName}{product.form && <span className="ml-1 opacity-70">· {product.form}</span>}
-                  </span>
-                )}
-                {!product.givenName && product.form && (
-                  <span className="font-sans text-ui-11 text-tea-text-dim mt-0.5 truncate block" style={{ letterSpacing: '0.02em' }}>{product.form}</span>
-                )}
-              </>
-            )}
-          </div>
-        </td>
-      );
+              )}
+              <span className="font-sans text-ui-11 text-tea-text-dim mt-0.5 truncate block" style={{ letterSpacing: '0.02em' }}>
+                {subtitle}
+              </span>
+            </div>
+          </td>
+        );
+      }
       case 'type': {
         const dotColor = getThemeColor(product.type);
         return (
