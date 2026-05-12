@@ -3,6 +3,15 @@ import { persist } from 'zustand/middleware';
 import { CartItem as AdminCartItem, Currency, Product } from '../admin/types';
 import { Account, AccountMembership, CartItem as PublicCartItem, CustomerTasting, PlatformRole } from '../types';
 
+export interface AuthUser {
+  email: string;
+  username: string | null;
+  name: string;
+  role: string;
+  phone?: string | null;
+  canCreateCollections?: boolean;
+}
+
 interface InventoryViewConfig {
   id: string;
   name: string;
@@ -138,6 +147,12 @@ interface AppState {
   setActiveAccount: (a: Account | null) => void;
   setPlatformRole: (role: PlatformRole) => void;
   clearAccountState: () => void;
+
+  // Auth — shared across all components. NOT persisted (JWT is source of truth).
+  authUser: AuthUser | null;
+  isSessionReady: boolean;
+  setAuthUser: (u: AuthUser | null) => void;
+  setIsSessionReady: (ready: boolean) => void;
 
   // Notification state (for bottom nav dot + cart badge)
   upcomingEventsCount: number;
@@ -520,6 +535,12 @@ export const useAppStore = create<AppState>()(
           activeAccount: null,
           platformRole: null,
         }),
+
+      // Auth (shared; not persisted — see partialize)
+      authUser: null,
+      isSessionReady: false,
+      setAuthUser: (authUser) => set({ authUser }),
+      setIsSessionReady: (isSessionReady) => set({ isSessionReady }),
 
       // Notifications
       upcomingEventsCount: 0,

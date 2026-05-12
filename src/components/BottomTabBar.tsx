@@ -284,12 +284,10 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
       <nav
         aria-label="Main navigation"
         onContextMenu={(e) => e.preventDefault()}
-        className={`lg:hidden fixed z-nav flex animate-[slideUp_0.4s_ease-out] transition-transform duration-200 select-none overflow-hidden ${
-          shouldHide ? 'translate-y-[calc(100%+24px)]' : 'translate-y-0'
-        }`}
+        className={`fixed z-nav flex transition-transform duration-200 select-none overflow-hidden left-4 right-4 lg:left-1/2 lg:right-auto lg:w-[min(760px,calc(100vw-64px))] lg:-translate-x-1/2 animate-[slideUp_0.4s_ease-out] lg:animate-none ${
+          isOnAdmin ? 'lg:hidden' : ''
+        } ${shouldHide ? 'translate-y-[calc(100%+24px)]' : 'translate-y-0'}`}
         style={{
-          left: '16px',
-          right: '16px',
           bottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)',
           height: '52px',
           borderRadius: '9999px',

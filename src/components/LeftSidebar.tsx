@@ -8,14 +8,18 @@ import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../hooks/useAuth';
 import { useAppStore, selectHasBundle } from '../lib/store';
 import { TYPOGRAPHY_CLASSES } from '../designTokens';
+// Phosphor (Light weight) — refined hairlines, replaces the generic lucide
+// stock icons in the admin nav. Browse keeps its hand-drawn brand icons.
 import {
-  Calendar, LayoutDashboard, Briefcase, Leaf, Coffee, Store, Users,
-  FolderOpen, ChevronLeft, ChevronRight, UserCheck, MapPin,
-  BookOpen, Package, ShoppingCart, Sun, Moon, Layers, Camera, Compass,
-  Settings as SettingsIcon, Globe,
-} from 'lucide-react';
+  CalendarBlank, SquaresFour, Briefcase, Leaf, Coffee, Storefront, UsersThree,
+  FolderOpen, CaretLeft, CaretRight, UserCheck, MapPin,
+  BookOpen, Package, ShoppingCart, Sun, Moon, Stack, Camera, Compass,
+  GearSix, Globe,
+} from '@phosphor-icons/react';
 import { SampleIcon } from './Icons';
 import { useSampleCartStore } from '../samples/sampleCartStore';
+
+const PHOSPHOR_WEIGHT = 'light' as const;
 
 const GRAIN = `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`;
 
@@ -56,7 +60,7 @@ const NavButton: React.FC<{
         ? 'text-tea-gold'
         : collapsed
           ? 'text-tea-text-sec group-hover:text-tea-text'
-          : 'text-tea-gold/55 group-hover:text-tea-gold/80'
+          : 'text-tea-text-sec group-hover:text-tea-text'
     }`}>
       {item.icon}
     </div>
@@ -188,56 +192,56 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   const adminItems: NavItem[] = [
     {
       id: 'dashboard', label: 'Dashboard',
-      icon: <LayoutDashboard size={18} strokeWidth={1.75} />,
+      icon: <SquaresFour size={18} weight={PHOSPHOR_WEIGHT} />,
       path: '/admin/dashboard',
     },
     {
       id: 'inventory', label: 'Inventory',
-      icon: <Package size={18} strokeWidth={1.75} />,
+      icon: <Package size={18} weight={PHOSPHOR_WEIGHT} />,
       path: '/admin/inventory',
       children: [
-        { id: 'catalog',  path: '/admin/catalog',  label: 'Tea Glossary', icon: <Leaf      className="w-3.5 h-3.5" strokeWidth={1.75} /> },
-        { id: 'teaware',  path: '/admin/teaware',  label: 'Equipment',    icon: <Coffee    className="w-3.5 h-3.5" strokeWidth={1.75} /> },
-        { id: 'sources',  path: '/admin/sources',  label: 'Sources',      icon: <Store     className="w-3.5 h-3.5" strokeWidth={1.75} /> },
-        { id: 'personal', path: '/admin/personal', label: 'Collection',   icon: <UserCheck className="w-3.5 h-3.5" strokeWidth={1.75} /> },
-        { id: 'capture',  path: '/admin/capture',  label: 'Quick Capture', icon: <Camera   className="w-3.5 h-3.5" strokeWidth={1.75} /> },
-        { id: 'compass',  path: '/admin/compass',  label: 'Compass',      icon: <Compass   className="w-3.5 h-3.5" strokeWidth={1.75} /> },
+        { id: 'catalog',  path: '/admin/catalog',  label: 'Tea Glossary', icon: <Leaf       size={14} weight={PHOSPHOR_WEIGHT} /> },
+        { id: 'teaware',  path: '/admin/teaware',  label: 'Equipment',    icon: <Coffee     size={14} weight={PHOSPHOR_WEIGHT} /> },
+        { id: 'sources',  path: '/admin/sources',  label: 'Sources',      icon: <Storefront size={14} weight={PHOSPHOR_WEIGHT} /> },
+        { id: 'personal', path: '/admin/personal', label: 'Collection',   icon: <UserCheck  size={14} weight={PHOSPHOR_WEIGHT} /> },
+        { id: 'capture',  path: '/admin/capture',  label: 'Quick Capture', icon: <Camera    size={14} weight={PHOSPHOR_WEIGHT} /> },
+        { id: 'compass',  path: '/admin/compass',  label: 'Compass',      icon: <Compass    size={14} weight={PHOSPHOR_WEIGHT} /> },
       ],
     },
     {
       id: 'collections', label: 'Collections',
-      icon: <Layers size={18} strokeWidth={1.75} />,
+      icon: <Stack size={18} weight={PHOSPHOR_WEIGHT} />,
       path: '/admin/collections',
     },
     {
       id: 'business', label: 'Business',
-      icon: <Briefcase size={18} strokeWidth={1.75} />,
+      icon: <Briefcase size={18} weight={PHOSPHOR_WEIGHT} />,
       path: '/admin/activity',
       children: [
-        { id: 'activity', path: '/admin/activity', label: 'Activity', icon: <FolderOpen className="w-3.5 h-3.5" strokeWidth={1.75} /> },
-        { id: 'people',   path: '/admin/people',   label: 'People',   icon: <Users      className="w-3.5 h-3.5" strokeWidth={1.75} /> },
+        { id: 'activity', path: '/admin/activity', label: 'Activity', icon: <FolderOpen  size={14} weight={PHOSPHOR_WEIGHT} /> },
+        { id: 'people',   path: '/admin/people',   label: 'People',   icon: <UsersThree  size={14} weight={PHOSPHOR_WEIGHT} /> },
       ],
     },
     {
       id: 'events', label: 'Events',
-      icon: <Calendar size={18} strokeWidth={1.75} />,
+      icon: <CalendarBlank size={18} weight={PHOSPHOR_WEIGHT} />,
       path: '/admin/events',
     },
     {
       id: 'magazine', label: 'Magazine',
-      icon: <BookOpen size={18} strokeWidth={1.75} />,
+      icon: <BookOpen size={18} weight={PHOSPHOR_WEIGHT} />,
       path: '/admin/magazine',
     },
     // Network — single hub entry. Catalog, suggestions, wholesale, adoptions
     // live inside as tabs. Render only if caller has at least one capability.
     ...(hasCatalog || hasSell || platformRole ? [{
       id: 'network', label: 'Network',
-      icon: <Globe size={18} strokeWidth={1.75} />,
+      icon: <Globe size={18} weight={PHOSPHOR_WEIGHT} />,
       path: '/admin/network',
     }] : []),
     {
       id: 'settings', label: 'Settings',
-      icon: <SettingsIcon size={18} strokeWidth={1.75} />,
+      icon: <GearSix size={18} weight={PHOSPHOR_WEIGHT} />,
       path: '/admin/settings',
     },
   ];
@@ -258,14 +262,14 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
       <aside
         className={`hidden lg:flex flex-col ${collapsed ? 'w-14' : 'w-56'} text-tea-text fixed left-0 overflow-y-auto hide-scrollbar border-r border-tea-border transition-all duration-300 z-sticky top-0 h-screen select-none`}
         style={{
-          background: 'linear-gradient(180deg, var(--tea-surface) 0%, rgb(var(--tea-bg-rgb) / 0.96) 100%)',
-          boxShadow: '2px 0 16px rgb(var(--tea-bg-rgb) / 0.18)',
+          background: theme === 'dark' ? '#13100a' : 'var(--tea-surface)',
+          boxShadow: '2px 0 16px rgb(var(--tea-bg-rgb) / 0.22)',
         }}
       >
-        {/* Grain texture — visible but subtle */}
+        {/* Grain texture — minimal in dark mode (narrow surface, pixel-noise risk) */}
         <div
           className="absolute inset-0 pointer-events-none z-0"
-          style={{ opacity: 0.055, backgroundImage: GRAIN, backgroundSize: '120px' }}
+          style={{ opacity: 0.025, backgroundImage: GRAIN, backgroundSize: '120px' }}
         />
 
         <div className="relative z-10 flex flex-col flex-1 min-h-0">
@@ -316,7 +320,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                 title="Collapse sidebar"
                 aria-label="Collapse sidebar"
               >
-                <ChevronLeft size={14} strokeWidth={2} />
+                <CaretLeft size={14} weight="bold" />
               </button>
             )}
           </div>
@@ -330,7 +334,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
               title="Expand sidebar"
               aria-label="Expand sidebar"
             >
-              <ChevronRight size={14} strokeWidth={2} />
+              <CaretRight size={14} weight="bold" />
             </button>
           )}
 
@@ -409,7 +413,14 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
           </div>
 
           {/* ── Browse Nav ────────────────────────────────────────────────── */}
-          <nav className={`flex flex-col py-3 gap-1 ${collapsed ? 'px-1.5' : 'px-3'}`}>
+          {!collapsed && (
+            <div className="px-5 pt-4 pb-1.5">
+              <span className={`${TYPOGRAPHY_CLASSES.navSidebarGroup} text-tea-text-dim`}>
+                Browse
+              </span>
+            </div>
+          )}
+          <nav className={`flex flex-col ${collapsed ? 'pt-3 pb-3 px-1.5' : 'pb-3 px-3'} gap-0.5`}>
             {browseItems.map((item, index) => (
               <NavButton
                 key={item.id}
@@ -448,8 +459,9 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                   {collapsed ? (
                     <div className="relative shrink-0">
                       <ShoppingCart
-                        className="w-[18px] h-[18px] text-tea-text-sec group-hover:text-tea-text transition-colors duration-200"
-                        strokeWidth={1.75}
+                        size={18}
+                        weight={PHOSPHOR_WEIGHT}
+                        className="text-tea-text-sec group-hover:text-tea-text transition-colors duration-200"
                       />
                       {cartItemCount > 0 && (
                         <div
@@ -465,8 +477,9 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                   ) : (
                     <>
                       <ShoppingCart
-                        className="w-[18px] h-[18px] text-tea-gold/55 group-hover:text-tea-gold/80 transition-colors duration-200 shrink-0"
-                        strokeWidth={1.75}
+                        size={18}
+                        weight={PHOSPHOR_WEIGHT}
+                        className="text-tea-text-sec group-hover:text-tea-text transition-colors duration-200 shrink-0"
                       />
                       <span className={`${TYPOGRAPHY_CLASSES.navSidebar} text-tea-text-sec group-hover:text-tea-text transition-colors duration-200`}>
                         Cart
@@ -497,13 +510,22 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
           {/* ── Admin Nav ─────────────────────────────────────────────────── */}
           <AnimatePresence>
             {auth.isAuthenticated && auth.isAdmin && (
-              <motion.nav
+              <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.2 }}
-                className={`flex flex-col gap-1 ${collapsed ? 'px-1.5' : 'px-3'} pt-3 pb-3 border-t border-tea-border`}
               >
+                {!collapsed && (
+                  <div className="px-5 pt-5 pb-1.5">
+                    <span className={`${TYPOGRAPHY_CLASSES.navSidebarGroup} text-tea-text-dim`}>
+                      Manage
+                    </span>
+                  </div>
+                )}
+                <nav
+                  className={`flex flex-col gap-0.5 ${collapsed ? 'px-1.5 pt-3 pb-3' : 'px-3 pb-3'}`}
+                >
                 {adminItems.map((item, index) => {
                   const hasChildren = (item.children?.length ?? 0) > 0;
                   const isAnyChildActive = item.children?.some(c => currentPath === c.path) ?? false;
@@ -522,8 +544,8 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                           when parent or one of its children is active. */}
                       <Link
                         to={item.path!}
-                        className={`relative flex items-center min-h-[44px] ${
-                          collapsed ? 'justify-center px-2' : 'gap-3 px-4'
+                        className={`relative flex items-center min-h-[36px] ${
+                          collapsed ? 'justify-center px-2' : 'gap-2.5 px-4'
                         } rounded-md transition-colors duration-200 group ${
                           (showActive || isAnyChildActive) ? '' : 'hover:bg-tea-gold/6'
                         }`}
@@ -539,15 +561,13 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                         <div className={`shrink-0 transition-colors duration-200 ${
                           (showActive || isAnyChildActive)
                             ? 'text-tea-gold'
-                            : collapsed
-                              ? 'text-tea-text-sec group-hover:text-tea-text'
-                              : 'text-tea-gold/55 group-hover:text-tea-gold/80'
+                            : 'text-tea-text-sec group-hover:text-tea-text'
                         }`}>
-                          {item.icon}
+                          {React.cloneElement(item.icon as React.ReactElement<{ size?: number }>, { size: 16 })}
                         </div>
                         {!collapsed && (
                           <span
-                            className={`${TYPOGRAPHY_CLASSES.navSidebar} text-left transition-colors duration-200 ${
+                            className={`${TYPOGRAPHY_CLASSES.navSidebarChild} text-left transition-colors duration-200 ${
                               (showActive || isAnyChildActive) ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
                             }`}
                           >
@@ -571,7 +591,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                                 <Link
                                   key={child.id}
                                   to={child.path}
-                                  className={`relative flex items-center px-2 py-1.5 rounded-md transition-colors duration-150 min-h-[34px] group ${
+                                  className={`relative flex items-center px-2 py-1 rounded-md transition-colors duration-150 min-h-[30px] group ${
                                     currentPath === child.path
                                       ? 'text-tea-gold bg-tea-gold/8'
                                       : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-gold/5'
@@ -592,60 +612,67 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                     </motion.div>
                   );
                 })}
-              </motion.nav>
+                </nav>
+              </motion.div>
             )}
           </AnimatePresence>
 
           {/* ── Curator Nav (Collections only — for Members with curator capability) ── */}
           <AnimatePresence>
             {auth.isAuthenticated && !auth.isAdmin && canCreateCollections && (
-              <motion.nav
+              <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.2 }}
-                className={`flex flex-col gap-1 ${collapsed ? 'px-1.5' : 'px-3'} pt-3 pb-3 border-t border-tea-border`}
               >
-                <motion.div
-                  initial={{ opacity: 0, x: -6 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0, duration: 0.25, ease: 'easeOut' }}
-                >
-                  <Link
-                    to="/admin/collections"
-                    className={`relative flex items-center min-h-[44px] ${
-                      collapsed ? 'justify-center px-2' : 'gap-3 px-4'
-                    } rounded-md transition-colors duration-200 group ${
-                      currentPath.startsWith('/admin/collections') ? '' : 'hover:bg-tea-gold/6'
-                    }`}
-                    title="Collections"
+                {!collapsed && (
+                  <div className="px-5 pt-5 pb-1.5">
+                    <span className={`${TYPOGRAPHY_CLASSES.navSidebarGroup} text-tea-text-dim`}>
+                      Curate
+                    </span>
+                  </div>
+                )}
+                <nav className={`flex flex-col gap-0.5 ${collapsed ? 'px-1.5 pt-3 pb-3' : 'px-3 pb-3'}`}>
+                  <motion.div
+                    initial={{ opacity: 0, x: -6 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0, duration: 0.25, ease: 'easeOut' }}
                   >
-                    {currentPath.startsWith('/admin/collections') && (
-                      <motion.div
-                        layoutId="nav-indicator"
-                        className="absolute left-0 inset-y-0 w-[2px] bg-tea-gold"
-                        transition={{ type: 'spring', stiffness: 350, damping: 30 }}
-                      />
-                    )}
-                    <div className={`shrink-0 transition-colors duration-200 ${
-                      currentPath.startsWith('/admin/collections')
-                        ? 'text-tea-gold'
-                        : collapsed
-                          ? 'text-tea-text-sec group-hover:text-tea-text'
-                          : 'text-tea-gold/55 group-hover:text-tea-gold/80'
-                    }`}>
-                      <Layers size={18} strokeWidth={1.75} />
-                    </div>
-                    {!collapsed && (
-                      <span className={`${TYPOGRAPHY_CLASSES.navSidebar} text-left transition-colors duration-200 ${
-                        currentPath.startsWith('/admin/collections') ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
+                    <Link
+                      to="/admin/collections"
+                      className={`relative flex items-center min-h-[36px] ${
+                        collapsed ? 'justify-center px-2' : 'gap-2.5 px-4'
+                      } rounded-md transition-colors duration-200 group ${
+                        currentPath.startsWith('/admin/collections') ? '' : 'hover:bg-tea-gold/6'
+                      }`}
+                      title="Collections"
+                    >
+                      {currentPath.startsWith('/admin/collections') && (
+                        <motion.div
+                          layoutId="nav-indicator"
+                          className="absolute left-0 inset-y-0 w-[2px] bg-tea-gold"
+                          transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+                        />
+                      )}
+                      <div className={`shrink-0 transition-colors duration-200 ${
+                        currentPath.startsWith('/admin/collections')
+                          ? 'text-tea-gold'
+                          : 'text-tea-text-sec group-hover:text-tea-text'
                       }`}>
-                        Collections
-                      </span>
-                    )}
-                  </Link>
-                </motion.div>
-              </motion.nav>
+                        <Stack size={16} weight={PHOSPHOR_WEIGHT} />
+                      </div>
+                      {!collapsed && (
+                        <span className={`${TYPOGRAPHY_CLASSES.navSidebarChild} text-left transition-colors duration-200 ${
+                          currentPath.startsWith('/admin/collections') ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
+                        }`}>
+                          Collections
+                        </span>
+                      )}
+                    </Link>
+                  </motion.div>
+                </nav>
+              </motion.div>
             )}
           </AnimatePresence>
 
@@ -665,14 +692,13 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                   title="Our spaces"
                 >
                   <MapPin
-                    className={`shrink-0 w-[18px] h-[18px] transition-colors duration-200 ${
+                    size={18}
+                    weight={PHOSPHOR_WEIGHT}
+                    className={`shrink-0 transition-colors duration-200 ${
                       currentPath === '/spaces'
                         ? 'text-tea-gold'
-                        : collapsed
-                          ? 'text-tea-text-sec group-hover:text-tea-text'
-                          : 'text-tea-gold/55 group-hover:text-tea-gold/80'
+                        : 'text-tea-text-sec group-hover:text-tea-text'
                     }`}
-                    strokeWidth={1.75}
                   />
                   {!collapsed && (
                     <span
@@ -694,9 +720,9 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                   aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
                 >
                   {theme === 'dark' ? (
-                    <Sun className="w-[18px] h-[18px]" strokeWidth={1.75} />
+                    <Sun size={18} weight={PHOSPHOR_WEIGHT} />
                   ) : (
-                    <Moon className="w-[18px] h-[18px]" strokeWidth={1.75} />
+                    <Moon size={18} weight={PHOSPHOR_WEIGHT} />
                   )}
                 </button>
             </div>

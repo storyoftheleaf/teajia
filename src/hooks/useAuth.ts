@@ -11,16 +11,30 @@ import {
   isTokenExpired,
   ensureTokenRefreshed,
 } from '../lib/api';
-import { useAppStore } from '../lib/store';
+import { useAppStore, type AuthUser } from '../lib/store';
 
-export interface AuthUser {
-  email: string;
-  username: string | null;
-  name: string;
-  role: string;
-  phone?: string | null;
-  canCreateCollections?: boolean;
-}
+export type { AuthUser };
+
+// Hydrate auth user from local JWT claims once, on module load. This runs
+// before any component mounts, so every `useAuth()` call sees the same
+// initial state — fixes the per-component useState hydration race that
+// hid the admin sidebar nav on first render after login.
+(() => {
+  const store = useAppStore.getState();
+  if (store.authUser) return;
+  const claims = getTokenClaims();
+  if (claims) {
+    store.setAuthUser({
+      email: claims.email,
+      username: claims.username ?? null,
+      name: claims.name,
+      role: claims.role,
+    });
+  }
+  if (!hasToken()) {
+    store.setIsSessionReady(true);
+  }
+})();
 
 interface UseAuthReturn {
   user: AuthUser | null;
@@ -39,19 +53,13 @@ interface UseAuthReturn {
 }
 
 export function useAuth(): UseAuthReturn {
-  const [user, setUser] = useState<AuthUser | null>(() => {
-    // Initialize from token claims if available (local decode, no server round-trip)
-    const claims = getTokenClaims();
-    if (claims) {
-      return { email: claims.email, username: claims.username ?? null, name: claims.name, role: claims.role };
-    }
-    return null;
-  });
+  // Shared via Zustand — every component sees the same user/session state.
+  // Selectors (not destructure of getState) so updates trigger re-renders.
+  const user = useAppStore(s => s.authUser);
+  const isSessionReady = useAppStore(s => s.isSessionReady);
+  const setUser = useAppStore(s => s.setAuthUser);
+  const setIsSessionReady = useAppStore(s => s.setIsSessionReady);
   const [isLoading, setIsLoading] = useState(false);
-  // Ready immediately when there is no token — nothing to verify with the server.
-  // Stays false until checkSession() completes so sync hooks don't fire
-  // authenticated API calls before the stored token has been validated.
-  const [isSessionReady, setIsSessionReady] = useState(!hasToken());
 
   const checkSession = useCallback(async () => {
     if (!hasToken()) {

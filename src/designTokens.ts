@@ -165,9 +165,11 @@ export const TYPOGRAPHY_CLASSES = {
   nav:       'font-sans text-ui-12 font-normal uppercase tracking-[1px] leading-[1.4]',
   link:      'font-sans text-ui-14 font-normal tracking-[0.2px]',
   mono:      'font-mono text-ui-11 font-normal',
-  // Adrian feedback: sidebar text was too small. Lifted from 15/13 to 17/15.
+  // Sidebar nav — Adrian feedback: 15/13 was too small, lifted to 17/15.
+  // Group labels (BROWSE / MANAGE / CURATE micro-caps) are sans 10 semibold.
   navSidebar:      'font-display text-ui-17 font-medium tracking-[0.04em] leading-[1.3]',
   navSidebarChild: 'font-display text-ui-15 font-normal tracking-[0.04em] leading-[1.3]',
+  navSidebarGroup: 'font-sans text-ui-10 font-semibold uppercase tracking-[0.18em] leading-[1.3]',
   accountMeta:     'font-sans text-ui-12 font-normal tracking-[0.04em] leading-[1.3]',
 } as const;
 
