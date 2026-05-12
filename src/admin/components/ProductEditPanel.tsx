@@ -265,7 +265,7 @@ export const VendorPicker = ({ value, onChange, productId, className }: {
         placeholder="Type or pick a source..."
       />
       {open && (filtered.length > 0 || (query.trim() && isNew)) && (
-        <div className="absolute z-popover top-full left-0 right-0 mt-1 bg-tea-surface border border-tea-border rounded-md shadow-lg max-h-48 overflow-y-auto">
+        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-tea-surface border border-tea-accent-sub rounded-lg shadow-lg max-h-48 overflow-y-auto">
           {isNew && query.trim() && (
             <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => handleSelectVendor(query.trim())}
               className="w-full text-left px-3 py-2 text-xs text-tea-gold hover:bg-tea-bg transition-colors border-b border-tea-accent-sub">
@@ -294,7 +294,7 @@ export const CollapsibleSection = ({ title, defaultOpen = true, mobileDefault, c
     return defaultOpen;
   });
   return (
-    <div className={`mx-3 mb-2 rounded-lg transition-colors ${open ? 'bg-tea-elevated/70' : 'bg-tea-elevated/40 hover:bg-tea-elevated/60'}`}>
+    <div className={`mx-3 mb-2 rounded-lg transition-colors ${open ? 'bg-tea-surface/70' : 'bg-tea-surface/40 hover:bg-tea-surface/60'}`}>
       <button onClick={() => setOpen(!open)} aria-expanded={open} className="w-full flex items-center justify-between px-4 py-3 group">
         <span className={`text-xs font-serif italic transition-colors ${open ? 'text-tea-text-sec' : 'text-tea-text-dim group-hover:text-tea-text-sec'}`}>{title}</span>
         <ChevronRight size={12} aria-hidden="true" className={`text-tea-text-dim/70 transition-transform duration-200 group-hover:text-tea-text-sec ${open ? 'rotate-90' : ''}`} />
@@ -904,7 +904,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
         aria-labelledby={titleId}
         aria-hidden={!product}
         style={{ willChange: 'transform' }}
-        className={`fixed inset-0 bottom-[calc(52px+env(safe-area-inset-bottom))] md:inset-auto md:right-0 md:top-0 md:bottom-0 md:w-[360px] lg:w-[420px] xl:w-[440px] z-drawer bg-tea-surface md:border-l md:border-tea-border shadow-2xl flex flex-col panel-sidebar transition-transform duration-300 ease-out ${product ? 'translate-x-0' : 'translate-x-full'}`}
+        className={`fixed inset-0 bottom-[calc(52px+env(safe-area-inset-bottom))] md:inset-auto md:right-0 md:top-0 md:bottom-0 md:w-[360px] lg:w-[420px] xl:w-[440px] z-30 bg-tea-bg flex flex-col panel-sidebar transition-transform duration-300 ease-out ${product ? 'translate-x-0' : 'translate-x-full'}`}
       >
         {product && (<>
           {/* Header — Row 1: Nav */}
@@ -923,7 +923,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                 {productIndex >= 0 ? `${productIndex + 1} / ${totalCount}` : ''}
               </span>
               {filterLabel && (
-                <span className="text-ui-9 text-tea-text-dim uppercase tracking-caps leading-none mt-0.5">
+                <span className="text-ui-9 text-tea-text-dim uppercase tracking-[0.1em] leading-none mt-0.5">
                   {filterLabel}
                 </span>
               )}
@@ -949,9 +949,9 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
           {/* Keyboard hint bar */}
           {onNavigate && (
             <div className="hidden md:flex items-center justify-center gap-3 px-4 pb-1 bg-tea-surface/30">
-              <span className="text-ui-9 text-tea-text-dim uppercase tracking-caps">Esc close</span>
+              <span className="text-ui-9 text-tea-text-dim uppercase tracking-[0.15em]">Esc close</span>
               <span className="text-ui-9 text-tea-text-dim">·</span>
-              <span className="text-ui-9 text-tea-text-dim uppercase tracking-caps">← → navigate</span>
+              <span className="text-ui-9 text-tea-text-dim uppercase tracking-[0.15em]">← → navigate</span>
             </div>
           )}
 
@@ -976,7 +976,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                   id={`panel-status-${product.id}`}
                   value={product.status}
                   onChange={e => handleUpdate(product.id, 'status', e.target.value)}
-                  className="text-ui-11 uppercase tracking-caps pl-2.5 pr-6 py-1.5 rounded-md bg-tea-surface cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg appearance-none"
+                  className="text-ui-11 uppercase tracking-[0.08em] pl-2.5 pr-6 py-1.5 rounded-md bg-tea-surface cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg appearance-none"
                   style={{ borderColor: statusColor, color: statusColor, border: '1px solid' }}
                 >
                   {['Active', 'Draft', 'Archived', 'Sold Out'].map(s => <option key={s} value={s}>{s}</option>)}
@@ -994,7 +994,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
             {/* 1. QUICK ENTRY. Required fields, single dense block, no header chrome.
                   Identity, origin, vendor, pricing, stock, status all live here so a
                   product can be entered top-to-bottom without expanding sections. */}
-            <div className="mx-3 mb-4 rounded-lg bg-tea-elevated/60 px-4 pt-3.5 pb-4">
+            <div className="mx-3 mb-4 rounded-lg bg-tea-surface/60 px-4 pt-3.5 pb-4">
               {/* Name (full row, autocomplete + autofill) */}
               <FieldRowFull label="Name">
                 <GhostAutocompleteInput
@@ -1216,7 +1216,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
             <button
               onClick={() => setTastingEditorProduct(product)}
               aria-label={flattenedTastingCount > 0 ? `Edit tasting profile (${flattenedTastingCount} notes)` : 'Add tasting profile'}
-              className="w-[calc(100%-1.5rem)] mx-3 mb-4 px-4 py-3.5 flex items-baseline justify-between gap-3 rounded-lg bg-tea-elevated/60 hover:bg-tea-elevated/90 transition-colors group"
+              className="w-[calc(100%-1.5rem)] mx-3 mb-4 px-4 py-3.5 flex items-baseline justify-between gap-3 rounded-lg bg-tea-surface/60 hover:bg-tea-surface/90 transition-colors group"
             >
               <span className="text-sm font-serif italic text-tea-text-sec group-hover:text-tea-text-sec transition-colors">Tasting Profile</span>
               <span className="flex items-baseline gap-2.5 shrink-0">
@@ -1242,7 +1242,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                   <div className="space-y-0">
                     <div className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
                       <div className="flex items-center gap-1.5 shrink-0 w-20 md:w-24">
-                        <span className="text-ui-11 text-tea-text-sec uppercase tracking-caps">Override</span>
+                        <span className="text-ui-11 text-tea-text-sec uppercase tracking-[0.06em]">Override</span>
                         {product.fixedRetailPriceUSD && product.fixedRetailPriceUSD < calc.trueCostUSD && (
                           <span className="text-ui-10 text-tea-error italic" title="Below true cost">Below cost</span>
                         )}
@@ -1410,7 +1410,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                   const linkId = compassEntry?.id || compassEntryId!;
                   return (
                     <div className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
-                      <span className="text-ui-11 text-tea-text-sec uppercase tracking-caps shrink-0 w-20 md:w-24">Encounter</span>
+                      <span className="text-ui-11 text-tea-text-sec uppercase tracking-[0.06em] shrink-0 w-20 md:w-24">Encounter</span>
                       <button onClick={() => navigate(`/admin/compass?tab=buying&entry=${encodeURIComponent(linkId)}`)} className="text-xs text-tea-gold hover:text-tea-text transition-colors text-right flex items-center gap-1.5">
                         <Globe size={10} />
                         {compassEntry?.vendorName || 'Encounters Entry'}
@@ -1421,7 +1421,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                   );
                 })()}
                 <div className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
-                  <span className="text-ui-11 text-tea-text-sec uppercase tracking-caps shrink-0 w-20 md:w-24">Orders</span>
+                  <span className="text-ui-11 text-tea-text-sec uppercase tracking-[0.06em] shrink-0 w-20 md:w-24">Orders</span>
                   <button onClick={() => navigate(`/admin/activity?tab=orders&search=${encodeURIComponent(product.givenName || product.productName)}`)} className="text-xs text-tea-gold hover:text-tea-text transition-colors text-right flex items-center gap-1.5">
                     <Receipt size={10} />
                     View order history
@@ -1429,7 +1429,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                   </button>
                 </div>
                 <div className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
-                  <span className="text-ui-11 text-tea-text-sec uppercase tracking-caps shrink-0 w-20 md:w-24">Story page</span>
+                  <span className="text-ui-11 text-tea-text-sec uppercase tracking-[0.06em] shrink-0 w-20 md:w-24">Story page</span>
                   <button onClick={() => navigate(`/admin/products/${product.id}/story`)} className="text-xs text-tea-gold hover:text-tea-text transition-colors text-right flex items-center gap-1.5">
                     <BookOpen size={10} />
                     View full story
@@ -1470,7 +1470,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                       </div>
                       {productTastingAgg.impressions.length > 0 && (
                         <div className="px-4 py-3 space-y-2.5">
-                          <div className="text-ui-9 text-tea-text-dim uppercase tracking-caps">Guest Impressions</div>
+                          <div className="text-ui-9 text-tea-text-dim uppercase tracking-[0.15em]">Guest Impressions</div>
                           {productTastingAgg.impressions.map((imp, i) => (
                             <p key={i} className="text-xs font-serif italic text-tea-text leading-relaxed">"{imp}"</p>
                           ))}
@@ -1478,7 +1478,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                       )}
                     </div>
                   )}
-                  <div className="text-ui-9 text-tea-text-dim uppercase tracking-caps mb-2">Appeared at</div>
+                  <div className="text-ui-9 text-tea-text-dim uppercase tracking-[0.15em] mb-2">Appeared at</div>
                   <div className="space-y-2">
                     {productEvents.map((event: any) => (
                       <div key={event.id} className="flex items-center justify-between gap-3 py-1">
