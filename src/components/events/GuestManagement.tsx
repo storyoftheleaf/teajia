@@ -437,10 +437,10 @@ const GuestManagement: React.FC = () => {
 
   // ---- STATUS-TRANSITION BANNER (injected at top of any status screen) ----
   const StatusBanner = transitionBanner ? (
-    <div className={`sticky top-0 z-10 px-4 py-3 text-center text-xs font-medium animate-[fadeIn_0.4s_ease-out] ${
+    <div className={`sticky top-0 z-10 px-4 py-3 text-center text-xs font-medium animate-[fadeIn_0.4s_ease-out] border-b border-tea-border ${
       transitionBanner === 'confirmed'
-        ? 'bg-tea-gold/15 text-tea-gold border-b border-tea-gold/20'
-        : 'bg-tea-elevated text-tea-text-sec border-b border-tea-border'
+        ? 'bg-tea-gold/15 text-tea-gold'
+        : 'bg-tea-elevated text-tea-text-sec'
     }`}>
       {transitionBanner === 'confirmed'
         ? "You've been approved — your seat is confirmed."
