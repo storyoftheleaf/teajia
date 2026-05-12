@@ -1312,18 +1312,18 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
   if (isError) {
     return (
-      <div className="flex flex-col items-center justify-center p-16 text-center" role="alert">
-        <AlertTriangle className="text-tea-error/70 mb-5" size={28} aria-hidden="true" />
-        <h2 className="text-lg font-serif text-tea-text mb-2">Failed to load inventory</h2>
-        <p className="text-tea-text-sec text-sm mb-6 max-w-md font-serif italic">
+      <div className="flex flex-col items-center text-center max-w-sm mx-auto py-20 px-6" role="alert">
+        <AlertTriangle size={28} strokeWidth={1.25} className="text-tea-error mb-3" aria-hidden="true" />
+        <div className="font-display text-ui-17 text-tea-text">Failed to load inventory</div>
+        <p className="text-ui-12 text-tea-text-sec leading-relaxed mt-2">
           {error?.message || 'Could not connect to the server. Please check your connection and try again.'}
         </p>
         <button
           onClick={onRefresh}
-          className="flex items-center gap-2 text-sm text-tea-text-sec hover:text-tea-text border-b border-tea-border hover:border-tea-text-sec pb-1 transition-colors"
+          className="mt-4 inline-flex items-center gap-1.5 px-3 py-2 rounded-md border border-tea-border text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub transition-colors text-xs"
         >
-          <RefreshCw size={14} aria-hidden="true" />
-          Try again
+          <RefreshCw size={13} aria-hidden="true" />
+          <span>Try again</span>
         </button>
       </div>
     );
@@ -2164,8 +2164,10 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             })}
 
             {processedProducts.length === 0 && (
-              <div className="text-center py-16 text-tea-text-sec font-serif italic">
-                All caught up — no pending wisdom to review.
+              <div className="flex flex-col items-center text-center max-w-sm mx-auto py-20 px-6">
+                <Sparkles size={28} strokeWidth={1.25} className="text-tea-text-dim mb-3" />
+                <div className="font-display text-ui-17 text-tea-text">All caught up</div>
+                <p className="text-ui-12 text-tea-text-sec leading-relaxed mt-2">No pending wisdom to review.</p>
               </div>
             )}
             {processedProducts.length > pendingLimit && (
@@ -2220,13 +2222,16 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               })}
             </div>
             {processedProducts.length === 0 && (
-              <div className="text-center py-16 text-tea-text-sec font-serif italic">Nothing here yet.</div>
+              <div className="flex flex-col items-center text-center max-w-sm mx-auto py-20 px-6">
+                <Leaf size={28} strokeWidth={1.25} className="text-tea-text-dim mb-3" />
+                <div className="font-display text-ui-17 text-tea-text">Nothing here yet</div>
+              </div>
             )}
             {processedProducts.length > glossaryLimit && (
               <div className="pt-6 pb-8 flex justify-center">
                 <button
                   onClick={() => setGlossaryLimit(n => n + 48)}
-                  className="px-6 py-2 text-ui-11 text-tea-text-sec hover:text-tea-text uppercase tracking-[0.2em] border border-tea-border rounded-xl transition-colors hover:bg-tea-surface/50"
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md border border-tea-border text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub transition-colors text-xs"
                 >
                   Show more ({processedProducts.length - glossaryLimit} remaining)
                 </button>
