@@ -2434,13 +2434,16 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                       {priceMode === 'retail' ? (
                                       <div className="flex items-center justify-between gap-2">
                                         <span className="text-ui-11 text-tea-text-sec uppercase tracking-[0.06em] shrink-0">Retail</span>
-                                        <GhostInput
-                                          value={(product.fixedRetailPriceUSD ?? product.pricePerGramUSD)?.toFixed(2) || ''}
-                                          onSave={(val) => handleProductUpdate(product.id, 'fixedRetailPriceUSD', val ? Number(val) : null)}
-                                          type="number"
-                                          align="right"
-                                          className="num text-ui-13 text-tea-text font-medium"
-                                        />
+                                        <div className="flex items-center gap-1">
+                                          <GhostInput
+                                            value={(product.fixedRetailPriceUSD ?? product.pricePerGramUSD)?.toFixed(2) || ''}
+                                            onSave={(val) => handleProductUpdate(product.id, 'fixedRetailPriceUSD', val ? Number(val) : null)}
+                                            type="number"
+                                            align="right"
+                                            className="num text-ui-13 text-tea-text font-medium"
+                                          />
+                                          <SavedPill isVisible={recentlySavedCells.has(`${product.id}-fixedRetailPriceUSD`)} />
+                                        </div>
                                       </div>
                                       ) : (
                                       <div className="flex items-center justify-between gap-2">
@@ -2453,6 +2456,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                             align="right"
                                             className="num text-ui-13 text-tea-text-sec"
                                           />
+                                          <SavedPill isVisible={recentlySavedCells.has(`${product.id}-costAmount`)} />
                                           <span className="text-ui-10 text-tea-text-dim">{product.costCurrency || 'USD'}</span>
                                         </div>
                                       </div>
@@ -2472,6 +2476,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                             align="right"
                                             className="num text-ui-13 text-tea-text-sec"
                                           />
+                                          <SavedPill isVisible={recentlySavedCells.has(`${product.id}-costAmount`)} />
                                           <span className="text-ui-10 text-tea-text-dim">{product.costCurrency || 'USD'}</span>
                                         </div>
                                       </div>
@@ -2485,6 +2490,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                             align="right"
                                             className="num text-ui-13 text-tea-text-sec"
                                           />
+                                          <SavedPill isVisible={recentlySavedCells.has(`${product.id}-quantityPurchased`)} />
                                           <span className="text-ui-10 text-tea-text-dim">g</span>
                                         </div>
                                       </div>
