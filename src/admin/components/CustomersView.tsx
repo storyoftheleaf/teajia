@@ -1608,10 +1608,10 @@ export const CustomersView = () => {
                 </span>
               ))}
               {legacyShown.map(tag => (
-                <span key={`l-${tag}`} className={`text-ui-9 px-1.5 py-0.5 rounded-full ${TAG_COLORS[tag as CustomerTag] || 'bg-tea-elevated text-tea-text-sec'}`}>{tag}</span>
+                <span key={`l-${tag}`} className="text-ui-9 text-tea-text-sec uppercase tracking-[0.08em] truncate max-w-[120px]">{tag}</span>
               ))}
               {contactShown.map(tag => (
-                <span key={`c-${tag}`} className="text-ui-9 px-1.5 py-0.5 rounded-md bg-tea-elevated text-tea-text-sec truncate max-w-[120px]">{tag}</span>
+                <span key={`c-${tag}`} className="text-ui-9 text-tea-text-sec uppercase tracking-[0.08em] truncate max-w-[120px]">{tag}</span>
               ))}
               {extra > 0 && <span className="text-ui-9 text-tea-text-dim">+{extra}</span>}
               {empty && <span className="text-xs text-tea-text-dim">—</span>}
@@ -1947,7 +1947,7 @@ export const CustomersView = () => {
                     <div className="flex items-center gap-1.5">
                       <span className="text-tea-text text-sm font-serif truncate">{customer.name}</span>
                       {customer.tags.length > 0 && (
-                        <span className={`text-ui-9 px-1.5 py-0 rounded-full ${TAG_COLORS[customer.tags[0]]}`}>
+                        <span className="text-ui-9 text-tea-text-sec uppercase tracking-[0.08em]">
                           {customer.tags[0]}
                         </span>
                       )}

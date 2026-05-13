@@ -759,14 +759,16 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 
 .pill-active {
-  background: transparent;
-  color: var(--tea-gold);
-  font-weight: 600;
-  box-shadow: inset 0 -1px 0 var(--tea-gold);
+  /* Unified with InventoryView's active filter chip — ring pattern, no
+     underline shadow — so People and Inventory feel like one surface. */
+  background: rgb(var(--tea-gold-rgb) / 0.10);
+  color: rgb(var(--tea-text-rgb));
+  font-weight: 500;
+  box-shadow: inset 0 0 0 1px rgb(var(--tea-gold-rgb) / 0.40);
 }
 
 .pill-active:hover {
-  background: rgb(var(--tea-gold-rgb) / 0.06);
+  background: rgb(var(--tea-gold-rgb) / 0.14);
 }
 
 /* Amber variant (warnings, stock alerts) */
