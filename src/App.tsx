@@ -82,6 +82,7 @@ const PublicCollectionPage = lazy(() => import('./pages/PublicCollectionPage'));
 const ContributorProfilePage = lazy(() => import('./pages/ContributorProfilePage'));
 const ContributorsIndexPage = lazy(() => import('./pages/ContributorsIndexPage'));
 const StoreLaunchPlaybookPage = lazy(() => import('./pages/StoreLaunchPlaybookPage'));
+const McpPage = lazy(() => import('./pages/McpPage'));
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchStore } from './lib/storefrontApi';
@@ -770,6 +771,7 @@ const AppContent = () => {
                   </ErrorBoundary>
                 } />
                 <Route path="/about" element={<ErrorBoundary><AboutPage /></ErrorBoundary>} />
+                <Route path="/mcp" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><McpPage /></Suspense></ErrorBoundary>} />
                 {/* /compass is admin-only at /admin/compass — public route removed.
                     Members use /account/journal for tasting; Compass is sourcing + ledger only. */}
                 <Route path="/compass" element={<Navigate to="/account/journal" replace />} />

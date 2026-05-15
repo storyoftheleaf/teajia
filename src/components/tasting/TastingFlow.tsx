@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Circle, Leaf, Moon, Palette,
@@ -109,43 +109,43 @@ export const TastingFlow: React.FC<TastingFlowProps> = ({
 
   /* ─── Count helpers ─── */
 
+  const sectionCounts = useMemo<Record<SectionId, number>>(() => ({
+    body:
+      (value.body?.length ?? 0) +
+      (value.finish?.length ?? 0) +
+      (value.cleanliness ? 1 : 0) +
+      (value.huiGan ? 1 : 0) +
+      (value.tangGan ? 1 : 0),
+    state:
+      (value.feeling?.length ?? 0) +
+      (value.quality != null ? 1 : 0),
+    flavor: value.flavor?.length ?? 0,
+    appearance:
+      (value['liquor-color']?.length ?? 0) +
+      (value.clarity ? 1 : 0),
+  }), [
+    value.body,
+    value.finish,
+    value.cleanliness,
+    value.huiGan,
+    value.tangGan,
+    value.feeling,
+    value.quality,
+    value.flavor,
+    value['liquor-color'],
+    value.clarity,
+  ]);
+
   const getSectionCount = useCallback(
-    (sectionId: SectionId): number => {
-      switch (sectionId) {
-        case 'body':
-          return (
-            flow.getCategoryCount('body') +
-            flow.getCategoryCount('finish') +
-            (value.cleanliness ? 1 : 0) +
-            (value.huiGan ? 1 : 0) +
-            (value.tangGan ? 1 : 0)
-          );
-        case 'state':
-          return (
-            flow.getCategoryCount('feeling') +
-            (value.quality != null ? 1 : 0)
-          );
-        case 'flavor':
-          return flow.getCategoryCount('flavor');
-        case 'appearance':
-          return flow.getCategoryCount('liquor-color') + (value.clarity ? 1 : 0);
-        default:
-          return 0;
-      }
-    },
-    [flow, value]
+    (sectionId: SectionId): number => sectionCounts[sectionId] ?? 0,
+    [sectionCounts]
   );
 
   // Push counts to parent whenever they change
   useEffect(() => {
     if (!onCountsChange) return;
-    onCountsChange({
-      body:       getSectionCount('body'),
-      state:      getSectionCount('state'),
-      flavor:     getSectionCount('flavor'),
-      appearance: getSectionCount('appearance'),
-    });
-  }, [getSectionCount, onCountsChange]);
+    onCountsChange(sectionCounts);
+  }, [onCountsChange, sectionCounts]);
 
   /* ─── Swipe ─── */
 

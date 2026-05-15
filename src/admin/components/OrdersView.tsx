@@ -42,6 +42,64 @@ const formatEventDate = (dateStr: string) => {
 const SYSTEM_ACTIONS = new Set(['system', 'automation', 'webhook', 'cron']);
 
 type StatusFilter = 'all' | 'Pending' | 'Filled' | 'Void';
+type QuickInvoiceUrlPrefill = React.ComponentProps<typeof QuickInvoiceModal>['prefill'];
+
+const VALID_DRAFT_CURRENCIES = new Set(['USD', 'NT', 'Yuan', 'IDR', 'JPY', 'MYR', 'HKD', 'AUD']);
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === 'object' && !Array.isArray(value));
+}
+
+function decodeBase64UrlJson(value: string): unknown {
+  const normalized = value.replace(/-/g, '+').replace(/_/g, '/');
+  const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
+  const bytes = Uint8Array.from(atob(padded), (char) => char.charCodeAt(0));
+  return JSON.parse(new TextDecoder().decode(bytes));
+}
+
+function parseQuickInvoiceDraft(value: string | null): QuickInvoiceUrlPrefill | null {
+  if (!value) return null;
+  try {
+    const draft = decodeBase64UrlJson(value);
+    if (!isRecord(draft)) return null;
+    const items = Array.isArray(draft.items)
+      ? draft.items
+        .filter(isRecord)
+        .map((item) => ({
+          name: typeof item.name === 'string' ? item.name : 'Item',
+          productId: typeof item.productId === 'string' ? item.productId : undefined,
+          quantity: typeof item.quantity === 'number' ? item.quantity : undefined,
+          unit: item.unit === 'pcs' ? 'pcs' as const : 'g' as const,
+          price: typeof item.price === 'number' ? item.price : undefined,
+        }))
+      : undefined;
+    const currency = typeof draft.currency === 'string' && VALID_DRAFT_CURRENCIES.has(draft.currency)
+      ? draft.currency as QuickInvoiceUrlPrefill extends { currency?: infer C } ? C : never
+      : undefined;
+    return {
+      customerName: typeof draft.customerName === 'string' ? draft.customerName : undefined,
+      vendorName: typeof draft.vendorName === 'string' ? draft.vendorName : undefined,
+      currency,
+      shipping: typeof draft.shipping === 'number' ? draft.shipping : undefined,
+      notes: typeof draft.notes === 'string' ? draft.notes : undefined,
+      items,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function paymentLabel(order: Pick<DbOrder, 'payment_status' | 'payment_method'>): string {
+  const status = order.payment_status || 'unpaid';
+  if (status === 'paid') return order.payment_method ? `Paid · ${order.payment_method}` : 'Paid';
+  if (status === 'partial') return 'Partial';
+  return 'Unpaid';
+}
+
+function stockLabel(order: Pick<DbOrder, 'inventory_deducted' | 'status'>): string {
+  if (order.status === 'Void') return 'Void';
+  return order.inventory_deducted ? 'Stock gone' : 'Stock pending';
+}
 
 /** DB row shape returned by GET /api/invoices — extends InvoiceWithItems with computed fields */
 interface DbOrder extends InvoiceWithItems {
@@ -94,13 +152,23 @@ export const OrdersView = () => {
 
   // Quick Invoice + link-later state
   const [showQuickInvoice, setShowQuickInvoice] = useState(false);
+  const [quickInvoicePrefill, setQuickInvoicePrefill] = useState<QuickInvoiceUrlPrefill | null>(null);
 
   useEffect(() => {
-    if (searchParams.get('qi') === '1') {
+    const draftParam = searchParams.get('draft');
+    if (searchParams.get('qi') === '1' || draftParam) {
+      const prefill = parseQuickInvoiceDraft(draftParam);
+      setQuickInvoicePrefill(prefill);
+      if (draftParam && !prefill) showToast('Could not read invoice draft link.', 'error');
       setShowQuickInvoice(true);
-      setSearchParams(prev => { const n = new URLSearchParams(prev); n.delete('qi'); return n; }, { replace: true });
+      setSearchParams(prev => {
+        const n = new URLSearchParams(prev);
+        n.delete('qi');
+        n.delete('draft');
+        return n;
+      }, { replace: true });
     }
-  }, [searchParams]);
+  }, [searchParams, setSearchParams, showToast]);
   const [linkState, setLinkState] = useState<{ itemIndex: number; query: string } | null>(null);
 
   const productFuse = useMemo(() => new Fuse(products, {
@@ -440,9 +508,19 @@ export const OrdersView = () => {
                         )}
                       </td>
                       <td className="px-4 py-2 align-middle text-center">
-                        <div className="flex items-center justify-center gap-1.5">
+                        <div className="flex flex-wrap items-center justify-center gap-1.5">
                           <span className={`${STATUS_PILL_BASE} ${STATUS_PILL_VARIANTS[variant]}`}>
                             {order.status}
+                          </span>
+                          <span className={`${STATUS_PILL_BASE} ${
+                            order.payment_status === 'paid' ? STATUS_PILL_VARIANTS.success :
+                            order.payment_status === 'partial' ? STATUS_PILL_VARIANTS.active :
+                            STATUS_PILL_VARIANTS.draft
+                          }`}>
+                            {paymentLabel(order)}
+                          </span>
+                          <span className={`${STATUS_PILL_BASE} ${order.inventory_deducted ? STATUS_PILL_VARIANTS.success : STATUS_PILL_VARIANTS.active}`}>
+                            {stockLabel(order)}
                           </span>
                           {isPending && daysAge >= 7 && (
                             <span className="text-ui-10 text-tea-gold/80 font-mono tabular-nums">{daysAge}d</span>
@@ -746,6 +824,22 @@ export const OrdersView = () => {
                       </span>
                     </div>
                     <div>
+                      <div className="label-caps text-tea-text-dim mb-0.5">Payment</div>
+                      <span className={`${STATUS_PILL_BASE} ${
+                        inv.payment_status === 'paid' ? STATUS_PILL_VARIANTS.success :
+                        inv.payment_status === 'partial' ? STATUS_PILL_VARIANTS.active :
+                        STATUS_PILL_VARIANTS.draft
+                      }`}>
+                        {paymentLabel(inv)}
+                      </span>
+                    </div>
+                    {inv.payment_date && (
+                      <div>
+                        <div className="label-caps text-tea-text-dim mb-0.5">Paid At</div>
+                        <div className="text-tea-text font-mono tabular-nums">{new Date(inv.payment_date).toLocaleString()}</div>
+                      </div>
+                    )}
+                    <div>
                       <div className="label-caps text-tea-text-dim mb-0.5">Inventory</div>
                       <span className={`${STATUS_PILL_BASE} ${inv.inventory_deducted ? STATUS_PILL_VARIANTS.success : STATUS_PILL_VARIANTS.draft}`}>
                         {inv.inventory_deducted ? 'Deducted' : 'Reserved'}
@@ -919,10 +1013,17 @@ export const OrdersView = () => {
       {/* QUICK INVOICE MODAL */}
       <QuickInvoiceModal
         isOpen={showQuickInvoice}
-        onClose={() => setShowQuickInvoice(false)}
-        onSuccess={() => { refetch(); }}
+        onClose={() => {
+          setShowQuickInvoice(false);
+          setQuickInvoicePrefill(null);
+        }}
+        onSuccess={() => {
+          setQuickInvoicePrefill(null);
+          refetch();
+        }}
         products={products}
         showToast={showToast}
+        prefill={quickInvoicePrefill ?? undefined}
       />
     </div>
   );

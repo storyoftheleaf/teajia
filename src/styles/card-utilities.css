@@ -2060,7 +2060,6 @@ input[type="number"]::-webkit-outer-spin-button {
 .alcove-thumb-btn-single:focus-visible,
 .alcove-source-link:focus-visible,
 .alcove-magazine-link:focus-visible,
-.alcove-rec-btn:focus-visible,
 .alcove-learn-link:focus-visible,
 .alcove-event-btn:focus-visible {
   outline: 2px solid rgb(var(--tea-gold-rgb) / 0.55);
@@ -2240,24 +2239,6 @@ input[type="number"]::-webkit-outer-spin-button {
   display: block;
 }
 .alcove-magazine-link:hover { color: var(--tea-text); }
-
-/* Recommendation pill in "You might also like". */
-.alcove-rec-btn {
-  background: none;
-  border: none;
-  min-height: 44px;
-  padding: 6px 0;
-  cursor: pointer;
-  font-family: var(--font-body);
-  font-size: 12px;
-  font-weight: 300;
-  color: var(--tea-text-sec);
-  line-height: 1.4;
-  transition: color 200ms ease;
-  display: inline-flex;
-  align-items: center;
-}
-.alcove-rec-btn:hover { color: var(--tea-gold); }
 
 .alcove-learn-link {
   min-height: 44px;

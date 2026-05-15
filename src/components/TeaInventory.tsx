@@ -244,9 +244,16 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
     setAdminTastingItem(item);
   }, []);
   const handleTaste = useCallback((item: TeaItem) => {
-    // If we're on a product path, return to /shop so useProductUrl doesn't re-open the modal
+    // Clear Alcove URL state so useProductUrl does not re-open the modal
+    // behind the tasting session.
     if (window.location.pathname.startsWith('/shop/product/')) {
       window.history.replaceState(null, '', '/shop');
+    } else {
+      const url = new URL(window.location.href);
+      if (url.searchParams.has('product')) {
+        url.searchParams.delete('product');
+        window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
+      }
     }
     // Admins editing their own shop almost always want to update the product's
     // tasting profile, not file a personal journal entry. Route them into the

@@ -190,8 +190,16 @@ export const CollectionTab: React.FC<CollectionTabProps> = ({ inventory, onAddTo
   const toggleFavoriteTea = useAppStore(state => state.toggleFavoriteTea);
 
   const handleTaste = useCallback((item: InventoryItem) => {
+    // Clear Alcove URL state so useProductUrl does not re-open the modal
+    // behind the tasting session.
     if (window.location.pathname.startsWith('/shop/product/')) {
       window.history.replaceState(null, '', '/shop');
+    } else {
+      const url = new URL(window.location.href);
+      if (url.searchParams.has('product')) {
+        url.searchParams.delete('product');
+        window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
+      }
     }
     setViewItem(null);
     setTastingItem(item);
