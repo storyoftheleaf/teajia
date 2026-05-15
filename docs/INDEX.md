@@ -13,6 +13,10 @@
 | **VISION.md** | What Teajia is, who uses it, why it exists | New to the platform; need the philosophy |
 | **ROADMAP.md** | What's being built next, by phase | Want to know what's coming |
 | **STATE_OF_THE_SITE.md** | Current state: what works, what doesn't | Prioritizing work or fixing something broken |
+| **AUDIT_2026-05.md** | Pre-launch status audit: shipped / partial / not-started checklist | Doing the final pre-launch run-through |
+| **FRICTION_REVIEW.md** | Customer + operator friction sweep with a prioritized fix list | Deciding what to fix before launch |
+| **UI_CONSISTENCY.md** | Visual contract: button / corner-radius / input rules + lint enforcement | Touching buttons, radii, or form inputs |
+| **FIX_QUEUE.md** | Ordered work queue for the autonomous pre-launch fix run | Running or reviewing the autofix script |
 | **CHANGELOG.md** | What shipped, by date | Need to know when something went live |
 | **POST_AUDIT_ROADMAP.md** | Three-body forward plan after audit close | Picking the next project |
 | **DESIGN_SYSTEM_PHASING.md** | 4-phase plan for closing finding #36 | Touching tokens, themes, or visual scales |
