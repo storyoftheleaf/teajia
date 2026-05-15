@@ -9,7 +9,7 @@
 // back to the user and then re-call with `confirm: <token>` to commit. The
 // commit step short-circuits to a no-op if the token is unknown or expired.
 //
-// Stock + invoice writes go through the existing fulfillment path (so the
+// Stock + invoice writes reuse the existing fulfillment math (so the
 // `stock_ledger` audit trail, low-stock detection, and listing mirror all
 // still fire). Nothing in this file touches D1 in a way that bypasses the
 // admin UI's invariants.
@@ -228,33 +228,82 @@ async function authenticateMcp(request: Request, env: Env): Promise<McpAuth | Re
 // ── confirmation token store ──
 //
 // Mutating tools issue a confirmation token on the first call (a preview),
-// and require the model to re-call with that token to commit. We hold them in
-// the worker's per-isolate memory with a 5-minute TTL — long enough for a
-// voice round-trip, short enough that a stale token can't be replayed days
-// later. If the isolate is recycled mid-confirm the user just runs the tool
-// again; the cost of that is one re-confirm, not a wrong write.
+// and require the model to re-call with that token to commit. Tokens are stored
+// in D1 when the migration is present so preview/confirm works across
+// Cloudflare isolates. The in-memory map remains a dev/fallback path.
 
 type PendingMutation =
   | { kind: 'add_stock'; accountId: string; userEmail: string; productId: string; grams: number; note: string | null }
   | { kind: 'remove_stock'; accountId: string; userEmail: string; productId: string; grams: number; reason: string; note: string | null }
-  | { kind: 'record_sale'; accountId: string; userEmail: string; lines: { productId: string; grams: number; pricePerGramUsd: number }[]; customerId: string | null; customerName: string; customerWhatsapp: string | null; notes: string | null };
+  | { kind: 'record_sale'; accountId: string; userEmail: string; lines: SaleLineInput[]; customerId: string | null; customerName: string; customerWhatsapp: string | null; notes: string | null }
+  | { kind: 'create_tea'; accountId: string; userEmail: string; product: NewTeaInput }
+  | { kind: 'fulfill_invoice'; accountId: string; userEmail: string; invoiceId: string; invoiceNumber: string }
+  | { kind: 'mark_invoice_paid'; accountId: string; userEmail: string; invoiceId: string; invoiceNumber: string; paymentMethod: string; fulfillStock: boolean };
 
 type PendingEntry = { mutation: PendingMutation; expiresAt: number };
 const PENDING = new Map<string, PendingEntry>();
 const PENDING_TTL_MS = 5 * 60 * 1000;
 
-function issueConfirmationToken(mutation: PendingMutation): string {
+type SaleLineInput = {
+  productId: string | null;
+  customName: string | null;
+  quantity: number;
+  unit: 'g' | 'pcs';
+  priceUsd: number;
+  kind: 'tea' | 'teaware' | 'custom';
+};
+
+function issueMemoryConfirmationToken(token: string, mutation: PendingMutation, expiresAt: number): void {
   // Sweep expired entries opportunistically so the map doesn't grow unbounded
   // in a long-lived isolate.
   const now = Date.now();
   for (const [k, v] of PENDING) if (v.expiresAt < now) PENDING.delete(k);
+  PENDING.set(token, { mutation, expiresAt });
+}
 
+async function issueConfirmationToken(env: Env, mutation: PendingMutation): Promise<string> {
   const token = crypto.randomUUID();
-  PENDING.set(token, { mutation, expiresAt: now + PENDING_TTL_MS });
+  const expiresAt = Date.now() + PENDING_TTL_MS;
+  issueMemoryConfirmationToken(token, mutation, expiresAt);
+  try {
+    await env.DB.prepare(
+      `INSERT INTO mcp_confirmation_tickets
+         (token_hash, account_id, kind, payload_json, expires_at)
+       VALUES (?, ?, ?, ?, ?)`
+    ).bind(
+      await sha256Hex(token),
+      mutation.accountId,
+      mutation.kind,
+      JSON.stringify(mutation),
+      expiresAt,
+    ).run();
+  } catch {
+    // Older local/preview databases may not have the table yet. In that case
+    // the memory fallback still keeps the two-step guard working in one
+    // isolate, and production D1 gets durability once migration 074 is applied.
+  }
   return token;
 }
 
-function consumeConfirmationToken(token: string): PendingMutation | null {
+async function consumeConfirmationToken(env: Env, token: string): Promise<PendingMutation | null> {
+  try {
+    const row = await env.DB.prepare(
+      `UPDATE mcp_confirmation_tickets
+          SET consumed_at = ?
+        WHERE token_hash = ?
+          AND consumed_at IS NULL
+          AND expires_at > ?
+      RETURNING payload_json`
+    ).bind(Date.now(), await sha256Hex(token), Date.now()).first() as { payload_json?: string } | null;
+    if (row?.payload_json) {
+      PENDING.delete(token);
+      return JSON.parse(row.payload_json) as PendingMutation;
+    }
+  } catch {
+    // Fall back to the in-memory ticket below when the durable table does not
+    // exist yet, such as in old dev databases.
+  }
+
   const entry = PENDING.get(token);
   if (!entry) return null;
   PENDING.delete(token);
@@ -268,8 +317,8 @@ function consumeConfirmationToken(token: string): PendingMutation | null {
 // a dependency, but the corpus per account is in the low thousands at most,
 // so a hand-rolled prefix/contains/word-overlap scorer is plenty for voice.
 
-function normalize(s: string | null | undefined): string {
-  return (s || '').toLowerCase().replace(/[^a-z0-9一-鿿\s]/g, ' ').replace(/\s+/g, ' ').trim();
+function normalize(s: unknown): string {
+  return String(s ?? '').toLowerCase().replace(/[^a-z0-9一-鿿\s]/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
 function scoreMatch(query: string, fields: (string | null | undefined)[]): number {
@@ -330,6 +379,82 @@ function productSummary(p: ProductRow, score?: number) {
     status: p.status,
     ...(typeof score === 'number' ? { match_score: Math.round(score * 100) / 100 } : {}),
   };
+}
+
+type NewTeaInput = {
+  productName: string;
+  givenName: string | null;
+  chineseName: string | null;
+  type: string;
+  form: string | null;
+  year: string | null;
+  originCountry: string | null;
+  originRegion: string | null;
+  vendor: string | null;
+  stockGrams: number;
+  costAmount: number;
+  costCurrency: string;
+  fixedRetailPriceUsd: number | null;
+  lowStockThreshold: number;
+  notes: string | null;
+  status: string;
+};
+
+function asciiPdfText(input: string): string {
+  return input.replace(/[^\x20-\x7E]/g, '?');
+}
+
+function pdfEscape(input: string): string {
+  return asciiPdfText(input).replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+}
+
+function makeSimpleInvoicePdfBase64(args: {
+  invoiceNumber: string;
+  customerName: string;
+  lines: Array<{ name: string; quantity: number; unit: string; priceUsd: number; totalUsd: number }>;
+  totalUsd: number;
+}): string {
+  const textLines = [
+    `Teajia Invoice ${args.invoiceNumber}`,
+    `Customer: ${args.customerName}`,
+    `Created: ${new Date().toISOString()}`,
+    '',
+    ...args.lines.map(line =>
+      `${line.name} - ${line.quantity}${line.unit} x $${line.priceUsd.toFixed(2)}/${line.unit} = $${line.totalUsd.toFixed(2)}`,
+    ),
+    '',
+    `Total USD: $${args.totalUsd.toFixed(2)}`,
+  ];
+  const content = [
+    'BT',
+    '/F1 12 Tf',
+    '72 740 Td',
+    ...textLines.map((line, index) =>
+      `${index === 0 ? '' : '0 -18 Td\n'}(${pdfEscape(line)}) Tj`,
+    ),
+    'ET',
+  ].join('\n');
+  const objects = [
+    '1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n',
+    '2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n',
+    '3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>\nendobj\n',
+    '4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n',
+    `5 0 obj\n<< /Length ${content.length} >>\nstream\n${content}\nendstream\nendobj\n`,
+  ];
+  let pdf = '%PDF-1.4\n';
+  const offsets = [0];
+  for (const object of objects) {
+    offsets.push(pdf.length);
+    pdf += object;
+  }
+  const xrefAt = pdf.length;
+  pdf += `xref\n0 ${objects.length + 1}\n`;
+  pdf += '0000000000 65535 f \n';
+  for (const offset of offsets.slice(1)) {
+    pdf += `${String(offset).padStart(10, '0')} 00000 n \n`;
+  }
+  pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefAt}\n%%EOF\n`;
+  return btoa(pdf);
 }
 
 // ── tool: search_tea ──
@@ -454,6 +579,129 @@ async function toolFindCustomer(env: Env, accountId: string, args: any) {
   };
 }
 
+// ── tool: create_tea (preview / confirm) ──
+async function toolCreateTea(env: Env, auth: McpAuth, args: any) {
+  const confirm = args?.confirm ? String(args.confirm) : null;
+  if (confirm) {
+    const pending = await consumeConfirmationToken(env, confirm);
+    if (!pending || pending.kind !== 'create_tea') {
+      return { error: 'invalid_or_expired_confirmation_token' };
+    }
+    return commitCreateTea(env, pending);
+  }
+
+  const productName = String(args?.product_name ?? args?.name ?? '').trim();
+  if (!productName) throw new Error('product_name is required');
+  const stockGrams = Math.max(0, Math.round(Number(args?.stock_grams ?? args?.grams ?? 0) || 0));
+  const costAmount = Math.max(0, Number(args?.cost_amount ?? 0) || 0);
+  const fixedRetailPriceUsd = args?.fixed_retail_price_usd == null
+    ? null
+    : Math.max(0, Number(args.fixed_retail_price_usd) || 0);
+  const lowStockThreshold = Math.max(0, Math.round(Number(args?.low_stock_threshold ?? 100) || 0));
+
+  const product: NewTeaInput = {
+    productName,
+    givenName: args?.given_name ? String(args.given_name).trim() : productName,
+    chineseName: args?.chinese_name ? String(args.chinese_name).trim() : null,
+    type: args?.type ? String(args.type).trim() : 'Tea',
+    form: args?.form ? String(args.form).trim() : null,
+    year: args?.year != null ? String(args.year).trim() : null,
+    originCountry: args?.origin_country ? String(args.origin_country).trim() : null,
+    originRegion: args?.origin_region ? String(args.origin_region).trim() : null,
+    vendor: args?.vendor ? String(args.vendor).trim() : null,
+    stockGrams,
+    costAmount,
+    costCurrency: args?.cost_currency ? String(args.cost_currency).trim().toUpperCase() : 'USD',
+    fixedRetailPriceUsd,
+    lowStockThreshold,
+    notes: args?.notes ? String(args.notes).slice(0, 1000) : null,
+    status: args?.status ? String(args.status).trim() : 'Active',
+  };
+
+  const token = await issueConfirmationToken(env, {
+    kind: 'create_tea',
+    accountId: auth.accountId,
+    userEmail: auth.userEmail,
+    product,
+  });
+  return {
+    preview: {
+      action: 'create_tea',
+      product,
+    },
+    confirmation_token: token,
+    expires_in_seconds: PENDING_TTL_MS / 1000,
+  };
+}
+
+async function commitCreateTea(env: Env, m: Extract<PendingMutation, { kind: 'create_tea' }>) {
+  const id = crypto.randomUUID();
+  const cols: Record<string, any> = {
+    id,
+    account_id: m.accountId,
+    type: m.product.type,
+    form: m.product.form,
+    given_name: m.product.givenName,
+    chinese_name: m.product.chineseName,
+    product_name: m.product.productName,
+    year: m.product.year,
+    origin_country: m.product.originCountry,
+    origin_region: m.product.originRegion,
+    description: m.product.notes,
+    status: m.product.status,
+    vendor: m.product.vendor,
+    stock_grams: m.product.stockGrams,
+    cost_amount: m.product.costAmount,
+    cost_currency: m.product.costCurrency,
+    quantity_purchased: m.product.stockGrams,
+    low_stock_threshold: m.product.lowStockThreshold,
+    fixed_retail_price_usd: m.product.fixedRetailPriceUsd,
+  };
+  const names = Object.keys(cols);
+  await env.DB.prepare(
+    `INSERT INTO products (${names.join(', ')}) VALUES (${names.map(() => '?').join(', ')})`
+  ).bind(...names.map(name => cols[name])).run();
+
+  if (m.product.stockGrams > 0) {
+    await env.DB.prepare(
+      `INSERT INTO stock_ledger (id, product_id, delta, balance_after, reason, user_email, note, account_id)
+       VALUES (?, ?, ?, ?, 'PURCHASE_RECEIPT', ?, ?, ?)`
+    ).bind(
+      crypto.randomUUID(),
+      id,
+      m.product.stockGrams,
+      m.product.stockGrams,
+      m.userEmail,
+      'MCP create_tea opening stock',
+      m.accountId,
+    ).run();
+  }
+
+  await env.DB.prepare(
+    `INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id, account_id)
+     VALUES (?, 'PRODUCT_CREATED_MCP', ?, ?, 'product', ?, ?)`
+  ).bind(
+    crypto.randomUUID(),
+    `Product ${m.product.productName} created via MCP`,
+    m.userEmail,
+    id,
+    m.accountId,
+  ).run();
+
+  const row = await env.DB.prepare(
+    `SELECT id, given_name, product_name, chinese_name, type, form, year,
+            origin_country, origin_region, vendor, stock_grams, quantity_units,
+            low_stock_threshold, fixed_retail_price_usd, status
+       FROM products WHERE id = ? AND account_id = ?`
+  ).bind(id, m.accountId).first() as ProductRow | null;
+
+  return {
+    committed: true,
+    action: 'create_tea',
+    product: row ? productSummary(row) : { id, product_name: m.product.productName },
+  };
+}
+
 // ── tool: add_stock (preview / confirm) ──
 async function toolAddStock(env: Env, auth: McpAuth, args: any) {
   const productId = String(args?.id || '').trim();
@@ -472,7 +720,7 @@ async function toolAddStock(env: Env, auth: McpAuth, args: any) {
 
     const current = Number(product.stock_grams || 0);
     const next = current + grams;
-    const token = issueConfirmationToken({
+    const token = await issueConfirmationToken(env, {
       kind: 'add_stock', accountId: auth.accountId, userEmail: auth.userEmail,
       productId, grams, note,
     });
@@ -490,7 +738,7 @@ async function toolAddStock(env: Env, auth: McpAuth, args: any) {
     };
   }
 
-  const pending = consumeConfirmationToken(confirm);
+  const pending = await consumeConfirmationToken(env, confirm);
   if (!pending || pending.kind !== 'add_stock' || pending.productId !== productId) {
     return { error: 'invalid_or_expired_confirmation_token' };
   }
@@ -563,7 +811,7 @@ async function toolRemoveStock(env: Env, auth: McpAuth, args: any) {
       };
     }
     const next = current - grams;
-    const token = issueConfirmationToken({
+    const token = await issueConfirmationToken(env, {
       kind: 'remove_stock', accountId: auth.accountId, userEmail: auth.userEmail,
       productId, grams, reason, note,
     });
@@ -583,7 +831,7 @@ async function toolRemoveStock(env: Env, auth: McpAuth, args: any) {
     };
   }
 
-  const pending = consumeConfirmationToken(confirm);
+  const pending = await consumeConfirmationToken(env, confirm);
   if (!pending || pending.kind !== 'remove_stock' || pending.productId !== productId) {
     return { error: 'invalid_or_expired_confirmation_token' };
   }
@@ -644,9 +892,8 @@ async function commitRemoveStock(env: Env, m: Extract<PendingMutation, { kind: '
 
 // ── tool: record_sale (preview / confirm) ──
 //
-// Creates an invoice and immediately fills it, going through the existing
-// fulfillment path so stock_ledger, listing mirrors, low-stock alerts, and
-// sold-out auto-archiving all fire correctly.
+// Creates an invoice in Teajia without deducting stock. The operator can later
+// mark stock gone, mark payment received, or do both in one follow-up.
 
 async function toolRecordSale(env: Env, auth: McpAuth, args: any) {
   const lines = Array.isArray(args?.lines) ? args.lines : [];
@@ -661,10 +908,13 @@ async function toolRecordSale(env: Env, auth: McpAuth, args: any) {
 
   // Validate every line and build a preview.
   const previewLines: Array<{
-    product_id: string;
+    product_id: string | null;
+    custom_name: string | null;
     product_name: string;
-    grams: number;
-    price_per_gram_usd: number;
+    quantity: number;
+    unit: 'g' | 'pcs';
+    kind: 'tea' | 'teaware' | 'custom';
+    price_usd: number;
     line_total_usd: number;
     available_grams: number;
     insufficient: boolean;
@@ -680,26 +930,55 @@ async function toolRecordSale(env: Env, auth: McpAuth, args: any) {
 
   for (const raw of lines) {
     const productId = String(raw?.product_id || '').trim();
-    const grams = Number(raw?.grams);
-    const pricePerGramUsd = Number(raw?.price_per_gram_usd);
-    if (!productId) throw new Error('lines[].product_id is required');
-    if (!Number.isFinite(grams) || grams <= 0) throw new Error('lines[].grams must be > 0');
-    if (!Number.isFinite(pricePerGramUsd) || pricePerGramUsd < 0) throw new Error('lines[].price_per_gram_usd must be >= 0');
+    const customName = String(raw?.custom_name ?? raw?.name ?? raw?.description ?? '').trim();
+    const quantity = Number(raw?.quantity ?? raw?.grams ?? raw?.pieces ?? raw?.pcs);
+    const unitRaw = String(raw?.unit ?? (raw?.pcs != null || raw?.pieces != null ? 'pcs' : 'g')).toLowerCase();
+    const unit: 'g' | 'pcs' = ['pcs', 'pc', 'piece', 'pieces', 'unit', 'units'].includes(unitRaw) ? 'pcs' : 'g';
+    const priceUsd = Number(raw?.price_usd ?? raw?.price_per_unit_usd ?? raw?.price_at_sale ?? raw?.price_per_gram_usd);
+    const kindRaw = String(raw?.kind ?? '').toLowerCase();
+    const kind: 'tea' | 'teaware' | 'custom' =
+      kindRaw === 'teaware' ? 'teaware' :
+      productId ? 'tea' :
+      'custom';
+    if (!productId && !customName) throw new Error('lines[].product_id or lines[].custom_name is required');
+    if (!Number.isFinite(quantity) || quantity <= 0) throw new Error('lines[].quantity/grams must be > 0');
+    if (!Number.isFinite(priceUsd) || priceUsd < 0) throw new Error('lines[].price_usd/price_per_gram_usd must be >= 0');
+
+    if (!productId) {
+      previewLines.push({
+        product_id: null,
+        custom_name: customName.slice(0, 180),
+        product_name: customName.slice(0, 180),
+        quantity,
+        unit,
+        kind,
+        price_usd: priceUsd,
+        line_total_usd: Math.round(quantity * priceUsd * 100) / 100,
+        available_grams: 0,
+        insufficient: false,
+      });
+      continue;
+    }
 
     const p = await env.DB.prepare(
-      'SELECT id, given_name, product_name, stock_grams FROM products WHERE id = ? AND account_id = ?'
+      'SELECT id, given_name, product_name, type, stock_grams, quantity_units FROM products WHERE id = ? AND account_id = ?'
     ).bind(productId, auth.accountId).first() as ProductRow | null;
     if (!p) return { error: 'product_not_found', product_id: productId };
 
     const available = Number(p.stock_grams || 0);
+    const productKind = p.type === 'Teaware' ? 'teaware' : kind;
+    const productUnit = p.type === 'Teaware' ? 'pcs' : unit;
     previewLines.push({
       product_id: productId,
+      custom_name: null,
       product_name: p.given_name || p.product_name,
-      grams,
-      price_per_gram_usd: pricePerGramUsd,
-      line_total_usd: Math.round(grams * pricePerGramUsd * 100) / 100,
+      quantity,
+      unit: productUnit,
+      kind: productKind,
+      price_usd: priceUsd,
+      line_total_usd: Math.round(quantity * priceUsd * 100) / 100,
       available_grams: available,
-      insufficient: grams > available,
+      insufficient: productUnit === 'g' && quantity > available,
     });
   }
 
@@ -715,9 +994,16 @@ async function toolRecordSale(env: Env, auth: McpAuth, args: any) {
   const total = previewLines.reduce((s, l) => s + l.line_total_usd, 0);
 
   if (!confirm) {
-    const token = issueConfirmationToken({
+    const token = await issueConfirmationToken(env, {
       kind: 'record_sale', accountId: auth.accountId, userEmail: auth.userEmail,
-      lines: previewLines.map(l => ({ productId: l.product_id, grams: l.grams, pricePerGramUsd: l.price_per_gram_usd })),
+      lines: previewLines.map(l => ({
+        productId: l.product_id,
+        customName: l.custom_name,
+        quantity: l.quantity,
+        unit: l.unit,
+        priceUsd: l.price_usd,
+        kind: l.kind,
+      })),
       customerId, customerName: customerNameResolved, customerWhatsapp, notes,
     });
     return {
@@ -725,9 +1011,15 @@ async function toolRecordSale(env: Env, auth: McpAuth, args: any) {
         action: 'record_sale',
         customer: { id: customerId, name: customerNameResolved, whatsapp: customerWhatsapp },
         lines: previewLines.map(l => ({
-          product: { id: l.product_id, name: l.product_name },
-          grams: l.grams, price_per_gram_usd: l.price_per_gram_usd, line_total_usd: l.line_total_usd,
+          product: l.product_id ? { id: l.product_id, name: l.product_name } : null,
+          custom_name: l.custom_name,
+          quantity: l.quantity,
+          unit: l.unit,
+          kind: l.kind,
+          price_usd: l.price_usd,
+          line_total_usd: l.line_total_usd,
           available_grams_before: l.available_grams,
+          stock_backed: Boolean(l.product_id && l.unit === 'g'),
         })),
         total_usd: Math.round(total * 100) / 100,
         notes,
@@ -737,7 +1029,7 @@ async function toolRecordSale(env: Env, auth: McpAuth, args: any) {
     };
   }
 
-  const pending = consumeConfirmationToken(confirm);
+  const pending = await consumeConfirmationToken(env, confirm);
   if (!pending || pending.kind !== 'record_sale') {
     return { error: 'invalid_or_expired_confirmation_token' };
   }
@@ -745,23 +1037,16 @@ async function toolRecordSale(env: Env, auth: McpAuth, args: any) {
 }
 
 async function commitRecordSale(env: Env, m: Extract<PendingMutation, { kind: 'record_sale' }>) {
-  // Re-validate stock at commit time — the preview window is 5min and stock
-  // could have changed via another channel (admin UI, another tool call).
+  // Re-validate products at commit time. Stock may have changed since preview;
+  // we keep insufficient stock as a warning because invoice creation itself
+  // does not deduct inventory.
   const productCache = new Map<string, { id: string; stock_grams: number; given_name: string | null; product_name: string; status: string; low_stock_threshold: number | null; source_compass_entry_id: string | null }>();
   for (const line of m.lines) {
+    if (!line.productId) continue;
     const p = await env.DB.prepare(
       'SELECT id, stock_grams, given_name, product_name, status, low_stock_threshold, source_compass_entry_id FROM products WHERE id = ? AND account_id = ?'
     ).bind(line.productId, m.accountId).first() as any;
     if (!p) return { error: 'product_not_found', product_id: line.productId };
-    if (Number(p.stock_grams || 0) < line.grams) {
-      return {
-        error: 'insufficient_stock_at_commit',
-        product_id: line.productId,
-        product_name: p.given_name || p.product_name,
-        requested_grams: line.grams,
-        available_grams: Number(p.stock_grams || 0),
-      };
-    }
     productCache.set(line.productId, p);
   }
 
@@ -771,62 +1056,34 @@ async function commitRecordSale(env: Env, m: Extract<PendingMutation, { kind: 'r
   ).bind(m.accountId).first() as { invoice_seq: number; invoice_prefix: string | null } | null;
   const seq = seqRow?.invoice_seq ?? 1;
   const pfx = seqRow?.invoice_prefix || '';
-  const invoiceNumber = pfx ? `${pfx}-${String(seq).padStart(5, '0')}` : String(seq).padStart(5, '0');
+  const invoiceNumber = pfx ? `${pfx}-${seq}` : String(seq);
 
   const invoiceId = crypto.randomUUID();
   const stmts: D1PreparedStatement[] = [];
 
-  // Invoice + line items, written as Filled with inventory_deducted=1 in one pass.
+  // Invoice + line items only. Stock is deducted later by fulfill_invoice.
   stmts.push(env.DB.prepare(
     `INSERT INTO invoices
        (id, account_id, invoice_number, customer_name, customer_whatsapp, customer_id,
         display_currency, shipping_cost_usd, status, inventory_deducted, notes, payment_status)
-     VALUES (?, ?, ?, ?, ?, ?, 'USD', 0, 'Filled', 1, ?, 'unpaid')`
+     VALUES (?, ?, ?, ?, ?, ?, 'USD', 0, 'Pending', 0, ?, 'unpaid')`
   ).bind(
     invoiceId, m.accountId, invoiceNumber,
     m.customerName, m.customerWhatsapp, m.customerId, m.notes,
   ));
 
   for (const line of m.lines) {
-    const p = productCache.get(line.productId)!;
-    const currentStock = Number(p.stock_grams || 0);
-    const balanceAfter = currentStock - line.grams;
-    const threshold = Number(p.low_stock_threshold || 0);
-
     stmts.push(env.DB.prepare(
-      'INSERT INTO invoice_line_items (id, account_id, invoice_id, product_id, quantity, price_at_sale) VALUES (?, ?, ?, ?, ?, ?)'
-    ).bind(crypto.randomUUID(), m.accountId, invoiceId, line.productId, line.grams, line.pricePerGramUsd));
-
-    stmts.push(env.DB.prepare(
-      'UPDATE products SET stock_grams = stock_grams - ? WHERE id = ? AND account_id = ?'
-    ).bind(line.grams, line.productId, m.accountId));
-
-    stmts.push(env.DB.prepare(
-      'UPDATE product_listings SET stock_grams = stock_grams - ?, updated_at = datetime(\'now\') WHERE id = ?'
-    ).bind(line.grams, `list_${line.productId}`));
-
-    stmts.push(env.DB.prepare(
-      `INSERT INTO stock_ledger (id, product_id, delta, balance_after, reason, source_invoice_id, source_invoice_number, user_email, note, account_id)
-       VALUES (?, ?, ?, ?, 'FULFILLMENT', ?, ?, ?, ?, ?)`
+      'INSERT INTO invoice_line_items (id, account_id, invoice_id, product_id, custom_name, quantity, price_at_sale) VALUES (?, ?, ?, ?, ?, ?, ?)'
     ).bind(
-      crypto.randomUUID(), line.productId, -line.grams, balanceAfter,
-      invoiceId, invoiceNumber, m.userEmail, 'MCP record_sale', m.accountId,
+      crypto.randomUUID(),
+      m.accountId,
+      invoiceId,
+      line.productId,
+      line.productId ? null : line.customName,
+      line.quantity,
+      line.priceUsd,
     ));
-
-    if (balanceAfter <= 0 && p.status !== 'Sold Out') {
-      stmts.push(env.DB.prepare(
-        "UPDATE products SET status = 'Sold Out', sold_out_at = datetime('now') WHERE id = ? AND account_id = ?"
-      ).bind(line.productId, m.accountId));
-    } else if (threshold > 0 && balanceAfter < threshold && currentStock >= threshold) {
-      stmts.push(env.DB.prepare(
-        `INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id, account_id)
-         VALUES (?, 'low_stock_alert', ?, ?, 'product', ?, ?)`
-      ).bind(
-        crypto.randomUUID(),
-        JSON.stringify({ productName: p.given_name || p.product_name, stockGrams: balanceAfter, threshold }),
-        m.userEmail, line.productId, m.accountId,
-      ));
-    }
   }
 
   stmts.push(env.DB.prepare(
@@ -834,11 +1091,30 @@ async function commitRecordSale(env: Env, m: Extract<PendingMutation, { kind: 'r
      VALUES (?, 'INVOICE_CREATED_MCP', ?, ?, 'invoice', ?, ?)`
   ).bind(
     crypto.randomUUID(),
-    `Invoice ${invoiceNumber} created + filled via MCP for ${m.customerName} (${m.lines.length} items)`,
+    `Invoice ${invoiceNumber} created via MCP for ${m.customerName} (${m.lines.length} items)`,
     m.userEmail, invoiceId, m.accountId,
   ));
 
   await env.DB.batch(stmts);
+
+  const invoiceLines = m.lines.map(line => {
+    const p = line.productId ? productCache.get(line.productId) : null;
+    const name = p ? (p.given_name || p.product_name) : (line.customName || 'Custom item');
+    return {
+      name,
+      quantity: line.quantity,
+      unit: line.unit,
+      priceUsd: line.priceUsd,
+      totalUsd: Math.round(line.quantity * line.priceUsd * 100) / 100,
+    };
+  });
+  const totalUsd = Math.round(m.lines.reduce((s, l) => s + l.quantity * l.priceUsd, 0) * 100) / 100;
+  const pdfBase64 = makeSimpleInvoicePdfBase64({
+    invoiceNumber,
+    customerName: m.customerName,
+    lines: invoiceLines,
+    totalUsd,
+  });
 
   return {
     committed: true,
@@ -846,12 +1122,379 @@ async function commitRecordSale(env: Env, m: Extract<PendingMutation, { kind: 'r
     invoice: {
       id: invoiceId,
       invoice_number: invoiceNumber,
-      status: 'Filled',
+      status: 'Pending',
+      payment_status: 'unpaid',
+      inventory_deducted: false,
       customer_name: m.customerName,
-      total_usd: Math.round(m.lines.reduce((s, l) => s + l.grams * l.pricePerGramUsd, 0) * 100) / 100,
+      total_usd: totalUsd,
       line_count: m.lines.length,
+      pdf_filename: `${invoiceNumber}.pdf`,
+      pdf_base64: pdfBase64,
     },
-    next_step_hint: 'Phase 2 will add a send_invoice tool to email the PDF; for now download or share from the admin UI.',
+    pdf_filename: `${invoiceNumber}.pdf`,
+    pdf_base64: pdfBase64,
+    next_step_hint: 'Send the returned PDF to the buyer. Later call fulfill_invoice when the stock leaves, mark_invoice_paid when payment arrives, or mark_invoice_paid with fulfill_stock=true to do both.',
+  };
+}
+
+// ── tool: fulfill_invoice (stock is now gone) ──
+async function toolFulfillInvoice(env: Env, auth: McpAuth, args: any) {
+  const confirm = args?.confirm ? String(args.confirm) : null;
+  if (confirm) {
+    const pending = await consumeConfirmationToken(env, confirm);
+    if (!pending || pending.kind !== 'fulfill_invoice') {
+      return { error: 'invalid_or_expired_confirmation_token' };
+    }
+    return commitFulfillInvoice(env, pending);
+  }
+
+  const invoiceId = args?.invoice_id ? String(args.invoice_id).trim() : '';
+  const invoiceNumber = args?.invoice_number ? String(args.invoice_number).trim() : '';
+  const row = await findInvoiceForFulfillment(env, auth.accountId, invoiceId, invoiceNumber);
+  if (row?.__duplicate_invoice_number) return { error: 'duplicate_invoice_number', invoice_number: invoiceNumber, matches: row.matches };
+  if (!row) return { error: 'invoice_not_found', invoice_id: invoiceId || null, invoice_number: invoiceNumber || null };
+
+  const token = await issueConfirmationToken(env, {
+    kind: 'fulfill_invoice',
+    accountId: auth.accountId,
+    userEmail: auth.userEmail,
+    invoiceId: row.id,
+    invoiceNumber: row.invoice_number,
+  });
+  return {
+    preview: {
+      action: 'fulfill_invoice',
+      invoice: row,
+      stock_effect: 'deduct invoice line items and mark invoice Filled',
+    },
+    confirmation_token: token,
+    expires_in_seconds: PENDING_TTL_MS / 1000,
+  };
+}
+
+async function commitFulfillInvoice(env: Env, m: Extract<PendingMutation, { kind: 'fulfill_invoice' }>) {
+  const invoice = await env.DB.prepare(
+    'SELECT id, invoice_number, inventory_deducted, status FROM invoices WHERE id = ? AND account_id = ?'
+  ).bind(m.invoiceId, m.accountId).first() as { id: string; invoice_number: string; inventory_deducted: number | null; status: string | null } | null;
+  if (!invoice) return { error: 'invoice_not_found', invoice_id: m.invoiceId };
+  const inventoryState = Number(invoice.inventory_deducted || 0);
+  if (inventoryState === -1) {
+    return {
+      error: 'fulfillment_in_progress',
+      action: 'fulfill_invoice',
+      invoice_id: m.invoiceId,
+      invoice_number: invoice.invoice_number,
+    };
+  }
+  if (inventoryState === 1) {
+    return {
+      committed: false,
+      already_fulfilled: true,
+      action: 'fulfill_invoice',
+      invoice_id: m.invoiceId,
+      invoice_number: invoice.invoice_number,
+      inventory_deducted: true,
+    };
+  }
+
+  const items = await env.DB.prepare(
+    'SELECT product_id, quantity FROM invoice_line_items WHERE invoice_id = ? AND account_id = ?'
+  ).bind(m.invoiceId, m.accountId).all();
+
+  const quantitiesByProduct = new Map<string, number>();
+  for (const item of items.results as Array<{ product_id?: string | null; quantity?: number | string | null }>) {
+    if (!item.product_id) continue;
+    const qty = Number(item.quantity) || 0;
+    if (qty < 0) return { error: 'invalid_invoice_line_quantity', product_id: item.product_id, quantity: item.quantity };
+    if (qty === 0) continue;
+    quantitiesByProduct.set(item.product_id, (quantitiesByProduct.get(item.product_id) || 0) + qty);
+  }
+
+  const productIds = [...quantitiesByProduct.keys()];
+  const products = new Map<string, any>();
+  for (const pid of productIds) {
+    const p = await env.DB.prepare(
+      'SELECT id, stock_grams, low_stock_threshold, given_name, product_name, status, source_compass_entry_id FROM products WHERE id = ? AND account_id = ?'
+    ).bind(pid, m.accountId).first();
+    if (p) products.set(pid, p);
+  }
+
+  const stmts: D1PreparedStatement[] = [];
+  const deducted: Array<{ product_id: string; grams: number; balance_after: number }> = [];
+
+  for (const [productId, qty] of quantitiesByProduct) {
+    const product = products.get(productId);
+    if (!product) return { error: 'product_not_found', product_id: productId };
+
+    const currentStock = Number(product.stock_grams) || 0;
+    const balanceAfter = currentStock - qty;
+    const threshold = Number(product.low_stock_threshold) || 0;
+    if (balanceAfter < 0) {
+      return {
+        error: 'insufficient_stock_at_fulfillment',
+        product_id: productId,
+        product_name: product.given_name || product.product_name,
+        requested_grams: qty,
+        available_grams: currentStock,
+      };
+    }
+
+    stmts.push(env.DB.prepare(
+      'UPDATE products SET stock_grams = stock_grams - ? WHERE id = ? AND account_id = ?'
+    ).bind(qty, productId, m.accountId));
+    stmts.push(env.DB.prepare(
+      'UPDATE product_listings SET stock_grams = stock_grams - ?, updated_at = datetime(\'now\') WHERE id = ?'
+    ).bind(qty, `list_${productId}`));
+    stmts.push(env.DB.prepare(
+      `INSERT INTO stock_ledger (id, product_id, delta, balance_after, reason, source_invoice_id, source_invoice_number, user_email, note, account_id)
+       VALUES (?, ?, ?, ?, 'FULFILLMENT', ?, ?, ?, ?, ?)`
+    ).bind(
+      crypto.randomUUID(), productId, -qty, balanceAfter,
+      m.invoiceId, invoice.invoice_number, m.userEmail, 'MCP fulfill_invoice', m.accountId,
+    ));
+    deducted.push({ product_id: productId, grams: qty, balance_after: balanceAfter });
+
+    if (balanceAfter <= 0 && product.status !== 'Sold Out') {
+      stmts.push(env.DB.prepare(
+        "UPDATE products SET status = 'Sold Out', sold_out_at = datetime('now') WHERE id = ? AND account_id = ?"
+      ).bind(productId, m.accountId));
+      stmts.push(env.DB.prepare(
+        "UPDATE product_listings SET status = ?, updated_at = datetime('now') WHERE id = ?"
+      ).bind('Sold Out', `list_${productId}`));
+      stmts.push(env.DB.prepare(
+        `INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id, account_id)
+         VALUES (?, 'PRODUCT_SOLD_OUT', ?, ?, 'product', ?, ?)`
+      ).bind(
+        crypto.randomUUID(),
+        `${product.given_name || product.product_name} auto-archived (stock reached ${balanceAfter}g after fulfillment of ${invoice.invoice_number})`,
+        m.userEmail, productId, m.accountId,
+      ));
+      if (product.source_compass_entry_id) {
+        stmts.push(env.DB.prepare(
+          "UPDATE tea_compass_entries SET status = 'depleted', updated_at = datetime('now') WHERE id = ? AND status = 'in_stock'"
+        ).bind(product.source_compass_entry_id));
+      }
+    } else if (threshold > 0 && balanceAfter < threshold && currentStock >= threshold) {
+      stmts.push(env.DB.prepare(
+        `INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id, account_id)
+         VALUES (?, 'low_stock_alert', ?, ?, 'product', ?, ?)`
+      ).bind(
+        crypto.randomUUID(),
+        JSON.stringify({ productName: product.given_name || product.product_name, stockGrams: balanceAfter, threshold }),
+        m.userEmail, productId, m.accountId,
+      ));
+    }
+  }
+
+  const fulfillmentClaim = await env.DB.prepare(
+    "UPDATE invoices SET inventory_deducted = -1 WHERE id = ? AND account_id = ? AND COALESCE(inventory_deducted, 0) = 0"
+  ).bind(m.invoiceId, m.accountId).run();
+  if ((fulfillmentClaim.meta?.changes ?? 0) === 0) {
+    return {
+      committed: false,
+      already_fulfilled: true,
+      action: 'fulfill_invoice',
+      invoice_id: m.invoiceId,
+      invoice_number: invoice.invoice_number,
+      inventory_deducted: true,
+    };
+  }
+
+  stmts.push(env.DB.prepare('DELETE FROM stock_holds WHERE invoice_id = ? AND account_id = ?').bind(m.invoiceId, m.accountId));
+  stmts.push(env.DB.prepare(
+    `INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id, account_id)
+     VALUES (?, 'FULFILLMENT_MCP', ?, ?, 'invoice', ?, ?)`
+  ).bind(
+    crypto.randomUUID(),
+    `Invoice ${invoice.invoice_number} marked stock gone via MCP. Inventory deducted for ${deducted.length} item(s).`,
+    m.userEmail, m.invoiceId, m.accountId,
+  ));
+  // Keep the final invoice marker last so Filled/inventory_deducted=1 is only
+  // written after the stock, listing mirror, and ledger statements have
+  // succeeded. The earlier -1 claim prevents two confirms from deducting the
+  // same invoice at the same time.
+  stmts.push(env.DB.prepare(
+    "UPDATE invoices SET status = 'Filled', inventory_deducted = 1 WHERE id = ? AND account_id = ? AND inventory_deducted = -1"
+  ).bind(m.invoiceId, m.accountId));
+
+  let results: D1Result<unknown>[];
+  try {
+    results = await env.DB.batch(stmts) as D1Result<unknown>[];
+  } catch (err) {
+    await env.DB.prepare(
+      "UPDATE invoices SET inventory_deducted = 0 WHERE id = ? AND account_id = ? AND inventory_deducted = -1"
+    ).bind(m.invoiceId, m.accountId).run();
+    throw err;
+  }
+  const finalClaim = results[results.length - 1] as D1Result<unknown>;
+  if ((finalClaim.meta?.changes ?? 0) === 0) {
+    await env.DB.prepare(
+      "UPDATE invoices SET inventory_deducted = 0 WHERE id = ? AND account_id = ? AND inventory_deducted = -1"
+    ).bind(m.invoiceId, m.accountId).run();
+    return {
+      error: 'fulfillment_claim_lost',
+      action: 'fulfill_invoice',
+      invoice_id: m.invoiceId,
+      invoice_number: invoice.invoice_number,
+    };
+  }
+
+  return {
+    committed: true,
+    action: 'fulfill_invoice',
+    invoice_id: m.invoiceId,
+    invoice_number: invoice.invoice_number,
+    status: 'Filled',
+    inventory_deducted: true,
+    deducted,
+  };
+}
+
+// ── tool: mark_invoice_paid (preview / confirm) ──
+async function toolMarkInvoicePaid(env: Env, auth: McpAuth, args: any) {
+  const confirm = args?.confirm ? String(args.confirm) : null;
+  if (confirm) {
+    const pending = await consumeConfirmationToken(env, confirm);
+    if (!pending || pending.kind !== 'mark_invoice_paid') {
+      return { error: 'invalid_or_expired_confirmation_token' };
+    }
+    return commitMarkInvoicePaid(env, pending);
+  }
+
+  const invoiceId = args?.invoice_id ? String(args.invoice_id).trim() : '';
+  const invoiceNumber = args?.invoice_number ? String(args.invoice_number).trim() : '';
+  const paymentMethod = args?.payment_method ? String(args.payment_method).slice(0, 80) : 'mcp';
+  const fulfillStock = Boolean(args?.fulfill_stock);
+
+  const row = await findInvoiceForPayment(env, auth.accountId, invoiceId, invoiceNumber);
+  if (row?.__duplicate_invoice_number) return { error: 'duplicate_invoice_number', invoice_number: invoiceNumber, matches: row.matches };
+  if (!row) return { error: 'invoice_not_found', invoice_id: invoiceId || null, invoice_number: invoiceNumber || null };
+
+  const token = await issueConfirmationToken(env, {
+    kind: 'mark_invoice_paid',
+    accountId: auth.accountId,
+    userEmail: auth.userEmail,
+    invoiceId: row.id,
+    invoiceNumber: row.invoice_number,
+    paymentMethod,
+    fulfillStock,
+  });
+  return {
+    preview: {
+      action: 'mark_invoice_paid',
+      invoice: row,
+      payment_method: paymentMethod,
+      stock_effect: fulfillStock ? 'also deduct invoice line items and mark invoice Filled' : 'payment only; stock is unchanged',
+    },
+    confirmation_token: token,
+    expires_in_seconds: PENDING_TTL_MS / 1000,
+  };
+}
+
+async function findInvoiceForPayment(
+  env: Env,
+  accountId: string,
+  invoiceId: string,
+  invoiceNumber: string,
+) {
+  if (invoiceId) {
+    return env.DB.prepare(
+      `SELECT id, invoice_number, customer_name, status, payment_status, payment_date
+         FROM invoices WHERE id = ? AND account_id = ?`
+    ).bind(invoiceId, accountId).first() as Promise<any | null>;
+  }
+  if (invoiceNumber) {
+    const rows = await env.DB.prepare(
+      `SELECT id, invoice_number, customer_name, status, payment_status, payment_date
+         FROM invoices WHERE invoice_number = ? AND account_id = ?`
+    ).bind(invoiceNumber, accountId).all();
+    const matches = (rows.results ?? []) as any[];
+    if (matches.length > 1) return { __duplicate_invoice_number: true, matches: matches.slice(0, 5) };
+    return matches[0] ?? null;
+  }
+  return env.DB.prepare(
+    `SELECT id, invoice_number, customer_name, status, payment_status, payment_date
+       FROM invoices
+      WHERE account_id = ? AND COALESCE(payment_status, 'unpaid') != 'paid'
+      ORDER BY created_at DESC
+      LIMIT 1`
+  ).bind(accountId).first() as Promise<any | null>;
+}
+
+async function findInvoiceForFulfillment(
+  env: Env,
+  accountId: string,
+  invoiceId: string,
+  invoiceNumber: string,
+) {
+  if (invoiceId) {
+    return env.DB.prepare(
+      `SELECT id, invoice_number, customer_name, status, payment_status, payment_date, inventory_deducted
+         FROM invoices WHERE id = ? AND account_id = ?`
+    ).bind(invoiceId, accountId).first() as Promise<any | null>;
+  }
+  if (invoiceNumber) {
+    const rows = await env.DB.prepare(
+      `SELECT id, invoice_number, customer_name, status, payment_status, payment_date, inventory_deducted
+         FROM invoices WHERE invoice_number = ? AND account_id = ?`
+    ).bind(invoiceNumber, accountId).all();
+    const matches = (rows.results ?? []) as any[];
+    if (matches.length > 1) return { __duplicate_invoice_number: true, matches: matches.slice(0, 5) };
+    return matches[0] ?? null;
+  }
+  return env.DB.prepare(
+    `SELECT id, invoice_number, customer_name, status, payment_status, payment_date, inventory_deducted
+       FROM invoices
+      WHERE account_id = ? AND COALESCE(inventory_deducted, 0) = 0
+      ORDER BY created_at DESC
+      LIMIT 1`
+  ).bind(accountId).first() as Promise<any | null>;
+}
+
+async function commitMarkInvoicePaid(env: Env, m: Extract<PendingMutation, { kind: 'mark_invoice_paid' }>) {
+  const now = new Date().toISOString();
+  const paymentResult = await env.DB.prepare(
+    `UPDATE invoices
+        SET payment_status = 'paid',
+            payment_date = ?,
+            payment_method = ?
+      WHERE id = ? AND account_id = ? AND COALESCE(payment_status, 'unpaid') != 'paid'`
+  ).bind(now, m.paymentMethod, m.invoiceId, m.accountId).run();
+  const alreadyPaid = (paymentResult.meta?.changes ?? 0) === 0;
+
+  if (!alreadyPaid) {
+    await env.DB.prepare(
+      `INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id, account_id)
+       VALUES (?, 'INVOICE_MARKED_PAID_MCP', ?, ?, 'invoice', ?, ?)`
+    ).bind(
+      crypto.randomUUID(),
+      `Invoice ${m.invoiceNumber} marked paid via MCP`,
+      m.userEmail,
+      m.invoiceId,
+      m.accountId,
+    ).run();
+  }
+
+  const fulfillment = m.fulfillStock
+    ? await commitFulfillInvoice(env, {
+      kind: 'fulfill_invoice',
+      accountId: m.accountId,
+      userEmail: m.userEmail,
+      invoiceId: m.invoiceId,
+      invoiceNumber: m.invoiceNumber,
+    })
+    : null;
+
+  return {
+    committed: true,
+    action: 'mark_invoice_paid',
+    invoice_id: m.invoiceId,
+    invoice_number: m.invoiceNumber,
+    payment_status: 'paid',
+    payment_date: now,
+    payment_method: m.paymentMethod,
+    already_paid: alreadyPaid,
+    fulfillment,
   };
 }
 
@@ -898,6 +1541,34 @@ const TOOL_DEFS = [
     },
   },
   {
+    name: 'create_tea',
+    scope: 'stock:write',
+    description: 'Create a new tea/product row in Teajia inventory. Two-step preview/confirm. Use this when the tea does not already exist, then use add_stock for later restocks.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        product_name: { type: 'string', description: 'Required display/product name.' },
+        given_name: { type: 'string' },
+        chinese_name: { type: 'string' },
+        type: { type: 'string', default: 'Tea' },
+        form: { type: 'string' },
+        year: { type: 'string' },
+        origin_country: { type: 'string' },
+        origin_region: { type: 'string' },
+        vendor: { type: 'string' },
+        stock_grams: { type: 'number', description: 'Opening stock in grams.' },
+        cost_amount: { type: 'number' },
+        cost_currency: { type: 'string', default: 'USD' },
+        fixed_retail_price_usd: { type: 'number' },
+        low_stock_threshold: { type: 'number', default: 100 },
+        notes: { type: 'string' },
+        status: { type: 'string', default: 'Active' },
+        confirm: { type: 'string' },
+      },
+      required: ['product_name'],
+    },
+  },
+  {
     name: 'add_stock',
     scope: 'stock:write',
     description: 'Add grams to a tea\'s stock. Two-step: first call returns a preview + confirmation_token; re-call with the token in `confirm` to commit. Use reason "PURCHASE_RECEIPT" when restocking from a vendor.',
@@ -931,21 +1602,27 @@ const TOOL_DEFS = [
   {
     name: 'record_sale',
     scope: 'sales:write',
-    description: 'Create + immediately fill an invoice for a multi-line tea sale. Stock is deducted through the same path the admin UI uses, so the ledger, low-stock alerts, and sold-out auto-archive all fire. Two-step preview/confirm. After commit, the invoice exists in the admin and can be downloaded as PDF there.',
+    description: 'Create a pending unpaid invoice for a multi-line tea sale. This does not deduct stock. Use fulfill_invoice later when the stock leaves, mark_invoice_paid when payment arrives, or mark_invoice_paid with fulfill_stock=true to do both. Two-step preview/confirm.',
     inputSchema: {
       type: 'object',
       properties: {
         lines: {
           type: 'array',
-          description: 'One entry per tea sold.',
+          description: 'One entry per invoice line. Use product_id for stock-backed tea lines, or custom_name for teaware/custom/non-inventory lines.',
           items: {
             type: 'object',
             properties: {
-              product_id: { type: 'string' },
-              grams: { type: 'number' },
-              price_per_gram_usd: { type: 'number' },
+              product_id: { type: 'string', description: 'Stock-backed Teajia product id. Omit for custom/non-inventory lines.' },
+              custom_name: { type: 'string', description: 'Line name for custom, teaware, or non-inventory items.' },
+              quantity: { type: 'number', description: 'Quantity in the chosen unit.' },
+              grams: { type: 'number', description: 'Back-compat alias for quantity when unit is g.' },
+              unit: { type: 'string', enum: ['g', 'pcs'], default: 'g' },
+              kind: { type: 'string', enum: ['tea', 'teaware', 'custom'], default: 'tea' },
+              price_usd: { type: 'number', description: 'Unit price in USD.' },
+              price_per_unit_usd: { type: 'number', description: 'Alias for price_usd.' },
+              price_per_gram_usd: { type: 'number', description: 'Back-compat alias for price_usd when unit is g.' },
             },
-            required: ['product_id', 'grams', 'price_per_gram_usd'],
+            required: [],
           },
         },
         customer_id: { type: 'string', description: 'Existing customer id (preferred). If omitted, supply customer_name.' },
@@ -955,6 +1632,36 @@ const TOOL_DEFS = [
         confirm: { type: 'string' },
       },
       required: ['lines'],
+    },
+  },
+  {
+    name: 'fulfill_invoice',
+    scope: 'sales:write',
+    description: 'Mark an invoice fulfilled when the stock is now gone. Deducts invoice line items, writes stock ledger rows, mirrors listing stock/status, and marks the invoice Filled. Two-step preview/confirm.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        invoice_id: { type: 'string' },
+        invoice_number: { type: 'string' },
+        confirm: { type: 'string' },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'mark_invoice_paid',
+    scope: 'sales:write',
+    description: 'Mark an invoice paid by id, invoice number, or the most recent unpaid invoice. Set fulfill_stock=true when the same message also says the stock is gone. Two-step preview/confirm.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        invoice_id: { type: 'string' },
+        invoice_number: { type: 'string' },
+        payment_method: { type: 'string', default: 'mcp' },
+        fulfill_stock: { type: 'boolean', default: false },
+        confirm: { type: 'string' },
+      },
+      required: [],
     },
   },
 ] as const;
@@ -983,7 +1690,9 @@ function visibleToolDefs(auth: McpAuth) {
 async function logMcpToolCall(env: Env, auth: McpAuth, toolName: string, args: any, result: unknown) {
   const shouldAudit =
     toolName === 'record_sale' ||
-    ((toolName === 'add_stock' || toolName === 'remove_stock') && typeof args?.confirm === 'string');
+    toolName === 'fulfill_invoice' ||
+    toolName === 'mark_invoice_paid' ||
+    ((toolName === 'add_stock' || toolName === 'remove_stock' || toolName === 'create_tea') && typeof args?.confirm === 'string');
   if (!shouldAudit) return;
   const failed = Boolean((result as any)?.isError);
   await env.DB.prepare(
@@ -1015,9 +1724,12 @@ async function dispatchTool(env: Env, auth: McpAuth, name: string, args: any) {
     case 'get_tea': result = mcpContent(await toolGetTea(env, auth.accountId, args)); break;
     case 'list_low_stock': result = mcpContent(await toolListLowStock(env, auth.accountId)); break;
     case 'find_customer': result = mcpContent(await toolFindCustomer(env, auth.accountId, args)); break;
+    case 'create_tea': result = mcpContent(await toolCreateTea(env, auth, args)); break;
     case 'add_stock': result = mcpContent(await toolAddStock(env, auth, args)); break;
     case 'remove_stock': result = mcpContent(await toolRemoveStock(env, auth, args)); break;
     case 'record_sale': result = mcpContent(await toolRecordSale(env, auth, args)); break;
+    case 'fulfill_invoice': result = mcpContent(await toolFulfillInvoice(env, auth, args)); break;
+    case 'mark_invoice_paid': result = mcpContent(await toolMarkInvoicePaid(env, auth, args)); break;
     default: throw new Error(`Unknown tool: ${name}`);
   }
   await logMcpToolCall(env, auth, name, args, result);
@@ -1027,7 +1739,7 @@ async function dispatchTool(env: Env, auth: McpAuth, name: string, args: any) {
 const SERVER_INFO = {
   name: 'teajia-inventory',
   version: '0.1.0',
-  description: 'Voice-controlled inventory + invoicing for Teajia. Tools cover tea search, stock adjustments, customer lookup, and creating filled invoices.',
+  description: 'Voice-controlled inventory + invoicing for Teajia. Tools cover tea search, product creation, stock adjustments, customer lookup, invoice creation, fulfillment, and paid marking.',
 };
 
 const PROTOCOL_VERSION = '2024-11-05';

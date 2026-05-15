@@ -29,6 +29,10 @@ const CONTACT_LABELS: Record<ContactChannel, string> = {
 
 interface QuickInvoiceModalPrefill {
   vendorName?: string;
+  customerName?: string;
+  currency?: Currency;
+  shipping?: number;
+  notes?: string;
   items?: Array<{ name: string; quantity?: number; unit?: 'g' | 'pcs'; productId?: string; price?: number }>;
 }
 
@@ -103,7 +107,7 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
     if (!isOpen) return;
     // Apply prefill if provided, otherwise reset to defaults
     if (prefill) {
-      if (prefill.vendorName) setCustomerQuery(prefill.vendorName);
+      if (prefill.customerName || prefill.vendorName) setCustomerQuery(prefill.customerName || prefill.vendorName || '');
       if (prefill.items && prefill.items.length > 0) {
         setLineItems(prefill.items.map((item) => {
           const product = item.productId ? products.find(p => p.id === item.productId) : undefined;
@@ -120,15 +124,18 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
       } else {
         setLineItems([newItem()]);
       }
+      setCurrency(prefill.currency ?? 'USD');
+      setShipping(prefill.shipping ?? 0);
+      setNotes(prefill.notes ?? '');
     } else {
       setLineItems([newItem()]);
       setCustomerQuery('');
+      setCurrency('USD');
+      setShipping(0);
+      setNotes('');
     }
     setCustomerId(undefined);
     setCustomerInfo(null);
-    setCurrency('USD');
-    setShipping(0);
-    setNotes('');
     setActiveItemId(null);
     api.customers.list('customer').then(setCustomers).catch(() => {});
   }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps

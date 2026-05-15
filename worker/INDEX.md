@@ -7,7 +7,7 @@
 ## Where things live
 
 - **src/index.ts** — every route handler. ~296 endpoints. Single file by design (Worker bundle size limit).
-- **migrations/** — D1 schema, numbered sequentially. Latest: 071_compass_shared_entry_provenance.sql
+- **migrations/** — D1 schema, numbered sequentially. Latest: 075_unique_active_invoice_numbers.sql
 - **wrangler.toml** — deploy config
 
 ## Endpoints by bundle (gated by requireBundle())

@@ -20,7 +20,7 @@ interface TokenRow {
   revoked_at: string | null;
 }
 
-const API_URL = (import.meta as any).env?.VITE_API_URL || '';
+const API_URL = import.meta.env.VITE_API_URL || '';
 
 function authHeaders(): Record<string, string> {
   const token = localStorage.getItem('teajia_token') || '';
@@ -62,11 +62,10 @@ export const MCPTokensView: React.FC = () => {
       <header className="mb-10">
         <h1 className={`${TYPOGRAPHY_CLASSES.h2} text-tea-text mb-2`}>Voice & agent access (MCP)</h1>
         <p className="text-tea-text-sec text-ui-14 leading-[1.6] max-w-xl">
-          Mint a token to connect Claude desktop, Claude mobile, or any MCP-compatible
-          client to this account&apos;s inventory. Tools cover tea search, stock adjustments,
-          customer lookup, and creating filled invoices — every mutating action requires
-          a spoken confirmation in the model. The token grants full owner-level rights
-          on this account; treat it like a password.
+          Mint a token to connect Claude desktop, Claude mobile, Codex, Hermes, or any
+          MCP-compatible client directly to this Teajia account. This does not require
+          i64os access. The token grants owner-level commerce rights on this account;
+          treat it like a password.
         </p>
       </header>
 
@@ -142,9 +141,9 @@ export const MCPTokensView: React.FC = () => {
           </div>
 
           <div className="mt-12 pt-6 border-t border-tea-border">
-            <h2 className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text mb-3`}>How to connect Claude desktop</h2>
+            <h2 className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text mb-3`}>How to connect an MCP client</h2>
             <ol className="text-tea-text-sec text-ui-14 leading-[1.7] list-decimal pl-5 space-y-2">
-              <li>Open Claude desktop &rarr; Settings &rarr; Developer &rarr; Edit MCP config.</li>
+              <li>Open your MCP client settings. In Claude desktop this is Settings &rarr; Developer &rarr; Edit MCP config.</li>
               <li>
                 Add a server entry pointing at this worker&apos;s <code className="text-tea-text">/mcp</code> endpoint
                 with the bearer token from above. Example:
@@ -162,9 +161,10 @@ export const MCPTokensView: React.FC = () => {
   }
 }`}</pre>
             <p className="text-tea-text-sec text-ui-13 leading-[1.6] mt-3">
-              Restart Claude. You should see seven Teajia tools (search_tea, get_tea, list_low_stock,
-              find_customer, add_stock, remove_stock, record_sale) available in any conversation.
-              Mobile voice mode works the same way once the desktop config syncs.
+              Restart the client. You should see Teajia tools such as search_tea, get_tea,
+              list_low_stock, find_customer, create_tea, add_stock, remove_stock,
+              record_sale, fulfill_invoice, and mark_invoice_paid. The public setup page is
+              <a href="/mcp" className="ml-1 text-tea-gold hover:text-tea-text transition-colors">teajia.com/mcp</a>.
             </p>
           </div>
         </div>

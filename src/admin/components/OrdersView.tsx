@@ -16,6 +16,64 @@ import { QuickInvoiceModal } from './QuickInvoiceModal';
 const ROW_HEIGHT = 36;
 
 type StatusFilter = 'all' | 'Pending' | 'Filled' | 'Void';
+type QuickInvoiceUrlPrefill = React.ComponentProps<typeof QuickInvoiceModal>['prefill'];
+
+const VALID_DRAFT_CURRENCIES = new Set(['USD', 'NT', 'Yuan', 'IDR', 'JPY', 'MYR', 'HKD', 'AUD']);
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === 'object' && !Array.isArray(value));
+}
+
+function decodeBase64UrlJson(value: string): unknown {
+  const normalized = value.replace(/-/g, '+').replace(/_/g, '/');
+  const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
+  const bytes = Uint8Array.from(atob(padded), (char) => char.charCodeAt(0));
+  return JSON.parse(new TextDecoder().decode(bytes));
+}
+
+function parseQuickInvoiceDraft(value: string | null): QuickInvoiceUrlPrefill | null {
+  if (!value) return null;
+  try {
+    const draft = decodeBase64UrlJson(value);
+    if (!isRecord(draft)) return null;
+    const items = Array.isArray(draft.items)
+      ? draft.items
+        .filter(isRecord)
+        .map((item) => ({
+          name: typeof item.name === 'string' ? item.name : 'Item',
+          productId: typeof item.productId === 'string' ? item.productId : undefined,
+          quantity: typeof item.quantity === 'number' ? item.quantity : undefined,
+          unit: item.unit === 'pcs' ? 'pcs' as const : 'g' as const,
+          price: typeof item.price === 'number' ? item.price : undefined,
+        }))
+      : undefined;
+    const currency = typeof draft.currency === 'string' && VALID_DRAFT_CURRENCIES.has(draft.currency)
+      ? draft.currency as QuickInvoiceUrlPrefill extends { currency?: infer C } ? C : never
+      : undefined;
+    return {
+      customerName: typeof draft.customerName === 'string' ? draft.customerName : undefined,
+      vendorName: typeof draft.vendorName === 'string' ? draft.vendorName : undefined,
+      currency,
+      shipping: typeof draft.shipping === 'number' ? draft.shipping : undefined,
+      notes: typeof draft.notes === 'string' ? draft.notes : undefined,
+      items,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function paymentLabel(order: Pick<DbOrder, 'payment_status' | 'payment_method'>): string {
+  const status = order.payment_status || 'unpaid';
+  if (status === 'paid') return order.payment_method ? `Paid · ${order.payment_method}` : 'Paid';
+  if (status === 'partial') return 'Partial';
+  return 'Unpaid';
+}
+
+function stockLabel(order: Pick<DbOrder, 'inventory_deducted' | 'status'>): string {
+  if (order.status === 'Void') return 'Void';
+  return order.inventory_deducted ? 'Stock gone' : 'Stock pending';
+}
 
 /** DB row shape returned by GET /api/invoices — extends InvoiceWithItems with computed fields */
 interface DbOrder extends InvoiceWithItems {
@@ -68,13 +126,23 @@ export const OrdersView = () => {
 
   // Quick Invoice + link-later state
   const [showQuickInvoice, setShowQuickInvoice] = useState(false);
+  const [quickInvoicePrefill, setQuickInvoicePrefill] = useState<QuickInvoiceUrlPrefill | null>(null);
 
   useEffect(() => {
-    if (searchParams.get('qi') === '1') {
+    const draftParam = searchParams.get('draft');
+    if (searchParams.get('qi') === '1' || draftParam) {
+      const prefill = parseQuickInvoiceDraft(draftParam);
+      setQuickInvoicePrefill(prefill);
+      if (draftParam && !prefill) showToast('Could not read invoice draft link.', 'error');
       setShowQuickInvoice(true);
-      setSearchParams(prev => { const n = new URLSearchParams(prev); n.delete('qi'); return n; }, { replace: true });
+      setSearchParams(prev => {
+        const n = new URLSearchParams(prev);
+        n.delete('qi');
+        n.delete('draft');
+        return n;
+      }, { replace: true });
     }
-  }, [searchParams]);
+  }, [searchParams, setSearchParams, showToast]);
   const [linkState, setLinkState] = useState<{ itemIndex: number; query: string } | null>(null);
 
   const productFuse = useMemo(() => new Fuse(products, {
@@ -375,18 +443,28 @@ export const OrdersView = () => {
                           <div className="text-ui-9 text-tea-text-sec/60 num">+${Number(order.shipping_cost_usd).toFixed(0)} ship</div>
                         )}
                       </td>
-                      <td className="px-4 align-middle text-center">
-                        <div className="flex items-center justify-center gap-1.5">
-                          <span className={`badge-status ${
-                            isVoid ? 'badge-status-muted' :
-                            isPending ? 'badge-status-gold' :
+	                      <td className="px-4 align-middle text-center">
+	                        <div className="flex flex-wrap items-center justify-center gap-1.5">
+	                          <span className={`badge-status ${
+	                            isVoid ? 'badge-status-muted' :
+	                            isPending ? 'badge-status-gold' :
                             'badge-status-default'
-                          }`}>
-                            {order.status}
-                          </span>
-                          {isPending && daysAge >= 7 && (
-                            <span className="text-ui-9 text-tea-gold/80 num">{daysAge}d</span>
-                          )}
+	                          }`}>
+	                            {order.status}
+	                          </span>
+	                          <span className={`badge-status ${
+	                            order.payment_status === 'paid' ? 'badge-status-default' :
+	                            order.payment_status === 'partial' ? 'badge-status-gold' :
+	                            'badge-status-muted'
+	                          }`}>
+	                            {paymentLabel(order)}
+	                          </span>
+	                          <span className={`badge-status ${order.inventory_deducted ? 'badge-status-default' : 'badge-status-gold'}`}>
+	                            {stockLabel(order)}
+	                          </span>
+	                          {isPending && daysAge >= 7 && (
+	                            <span className="text-ui-9 text-tea-gold/80 num">{daysAge}d</span>
+	                          )}
                           {order.notes && (
                             <span className="text-tea-text-dim" title={order.notes}><StickyNote size={10} /></span>
                           )}
@@ -550,14 +628,26 @@ export const OrdersView = () => {
                         <span className="text-tea-text-sec">Date</span>
                         <span className="text-tea-text font-medium">{new Date(viewingInvoice.created_at).toLocaleString()}</span>
                     </div>
-                    <div className="flex justify-between border-b border-tea-border pb-3">
-                        <span className="text-tea-text-sec">Status</span>
-                        <span className={`font-medium ${viewingInvoice.status === 'Void' ? 'text-tea-text-sec' : viewingInvoice.status === 'Pending' ? 'text-tea-gold' : 'text-tea-text'}`}>{viewingInvoice.status}</span>
-                    </div>
-                    <div className="flex justify-between border-b border-tea-border pb-3">
-                        <span className="text-tea-text-sec">Inventory Deducted</span>
-                        <span className={`font-medium ${viewingInvoice.inventory_deducted ? 'text-tea-text' : 'text-tea-gold'}`}>{viewingInvoice.inventory_deducted ? 'Yes' : 'No'}</span>
-                    </div>
+	                    <div className="flex justify-between border-b border-tea-border pb-3">
+	                        <span className="text-tea-text-sec">Status</span>
+	                        <span className={`font-medium ${viewingInvoice.status === 'Void' ? 'text-tea-text-sec' : viewingInvoice.status === 'Pending' ? 'text-tea-gold' : 'text-tea-text'}`}>{viewingInvoice.status}</span>
+	                    </div>
+	                    <div className="flex justify-between border-b border-tea-border pb-3">
+	                        <span className="text-tea-text-sec">Payment</span>
+	                        <span className={`font-medium ${viewingInvoice.payment_status === 'paid' ? 'text-tea-text' : 'text-tea-gold'}`}>
+	                          {paymentLabel(viewingInvoice)}
+	                        </span>
+	                    </div>
+	                    {viewingInvoice.payment_date && (
+	                      <div className="flex justify-between border-b border-tea-border pb-3">
+	                          <span className="text-tea-text-sec">Paid At</span>
+	                          <span className="text-tea-text font-medium">{new Date(viewingInvoice.payment_date).toLocaleString()}</span>
+	                      </div>
+	                    )}
+	                    <div className="flex justify-between border-b border-tea-border pb-3">
+	                        <span className="text-tea-text-sec">Stock State</span>
+	                        <span className={`font-medium ${viewingInvoice.inventory_deducted ? 'text-tea-text' : 'text-tea-gold'}`}>{stockLabel(viewingInvoice)}</span>
+	                    </div>
                 </div>
 
                 {/* Source Event */}
@@ -795,10 +885,17 @@ export const OrdersView = () => {
       {/* QUICK INVOICE MODAL */}
       <QuickInvoiceModal
         isOpen={showQuickInvoice}
-        onClose={() => setShowQuickInvoice(false)}
-        onSuccess={() => { refetch(); }}
+        onClose={() => {
+          setShowQuickInvoice(false);
+          setQuickInvoicePrefill(null);
+        }}
+        onSuccess={() => {
+          setQuickInvoicePrefill(null);
+          refetch();
+        }}
         products={products}
         showToast={showToast}
+        prefill={quickInvoicePrefill ?? undefined}
       />
     </div>
   );

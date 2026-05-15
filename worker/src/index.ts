@@ -2548,7 +2548,7 @@ const handleCreateInvoice: Handler = async (request, env) => {
   ).bind(accountId).first() as { invoice_seq: number; invoice_prefix: string | null } | null;
   const seq = seqRow?.invoice_seq ?? 1;
   const pfx = seqRow?.invoice_prefix || '';
-  const invoiceNumber = pfx ? `${pfx}-${String(seq).padStart(5, '0')}` : String(seq).padStart(5, '0');
+  const invoiceNumber = pfx ? `${pfx}-${seq}` : String(seq);
   const paymentStatus = body.invoice.payment_status || 'unpaid';
 
   const invoiceStmt = env.DB.prepare(
@@ -2974,7 +2974,7 @@ const handleSplitInvoice: Handler = async (request, env) => {
   ).bind(accountId).first() as { invoice_seq: number; invoice_prefix: string | null } | null;
   const splitSeq = splitSeqRow?.invoice_seq ?? 1;
   const splitPfx = splitSeqRow?.invoice_prefix || '';
-  const newNumber = splitPfx ? `${splitPfx}-${String(splitSeq).padStart(5, '0')}` : String(splitSeq).padStart(5, '0');
+  const newNumber = splitPfx ? `${splitPfx}-${splitSeq}` : String(splitSeq);
 
   const stmts: D1PreparedStatement[] = [];
 
