@@ -39,8 +39,8 @@
 
 | ID | Sev | Friction | Recommended fix |
 |---|---|---|---|
-| **C-P0-1** | **P0** | **No order confirmation after checkout.** Customer sends a WhatsApp message and gets only "WhatsApp opened" — no proof Teajia received it, no order record. `PublicCart.tsx:517-542` | Add a customer-facing confirmation screen with the order reference and clear "we'll reply on WhatsApp" copy. This is a missing *feedback state*, not a checkout replacement |
-| **C-P0-2** | **P0** | **Order-tracking page is a dead stub.** Checkout links to `/order/:ref` but `OrderStatusPage` renders nothing | Build a minimal read-only status page, or remove the link until it exists |
+| **C-P0-1** | **P0** | **Weak order confirmation after checkout.** A `CONFIRM` step and a persistent `successMessage` already exist, but the copy is just "WhatsApp opened. Tap Send to complete." — no order reference shown, no "we'll reply on WhatsApp" assurance. `PublicCart.tsx:516-537` | Strengthen the existing CONFIRM-step success message: surface the order reference prominently, add reassuring "we'll reply on WhatsApp" copy. Refinement of an existing screen, not a new one |
+| **C-P0-2** | **P0** | **Order-tracking page works; the gap is upstream.** `OrderStatusPage.tsx` is a complete 103-line component (fetches `api.inquiries.getByRef`, renders status/items/estimate). It only works if checkout persists an inquiry whose `ref` matches the `/order/:ref` link | Verify `PublicCart` checkout persists an inquiry via `api.inquiries`, and that the `ref` in the WhatsApp message + confirmation matches what `OrderStatusPage` looks up. Fix the persistence/ref wiring only — do NOT rebuild `OrderStatusPage`, it already works |
 | C-P1-4 | P1 | "Inquiry" wording throughout checkout makes customers doubt the order committed | Standardize wording to "order" / "order request" in customer-facing copy |
 | C-P1-5 | P1 | Shipping-location field is free text — no validation; bad addresses fail downstream | Add basic validation / a shipping-zone check |
 | C-P2-4 | P2 | Currency selector shows no exchange rate | Show the rate or converted total on selection |
@@ -116,8 +116,8 @@ This is the master worklist. The autonomous run (`FIX_QUEUE.md`) consumes the au
 **P0 — launch-blockers (do first):**
 1. O-P0-3 — one shared confirmation for all destructive actions
 2. O-P0-1 — add-tea modal reorganization (spec below)
-3. C-P0-1 — customer order-confirmation screen
-4. C-P0-2 — order-tracking page (build minimal, or remove the dead link)
+3. C-P0-1 — strengthen the existing checkout confirmation message
+4. C-P0-2 — verify checkout persists an inquiry `ref` that `OrderStatusPage` can look up
 5. O-P0-2 — collection-item removal confirm (folded into O-P0-3)
 
 **P1 — high friction:**

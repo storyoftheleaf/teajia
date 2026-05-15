@@ -37,8 +37,8 @@ Run these in order — later steps depend on earlier ones.
 |---|---|---|---|---|
 | O-P0-3 | sonnet | Route every destructive action (collection-item remove, article delete, event delete, customer delete) through the existing shared `ConfirmModal`. One consistent pattern | `CollectionEditView.tsx`, `MagazineView.tsx`/`ArticleEditorModal.tsx`, `EventsManager.tsx`, `PeopleView.tsx` | Each delete now shows a confirm; `npm run build` passes |
 | O-P0-1 | opus | Add-tea modal reorganization per `FRICTION_REVIEW.md` § Add-Tea Reorganization Spec — 6 essentials visible, 3 collapsed expanders, label fixes, vendor-create confirm. Single form, all ~45 fields preserved, no API change | `src/admin/components/AddProductModal.tsx`, `src/styles/card-utilities.css` | Every current field still present; `npm run lint` + `build` pass; `npm run test:mobile` add-product path green |
-| C-P0-1 | sonnet | Add a customer-facing order-confirmation screen after WhatsApp send — shows order reference + "we'll reply on WhatsApp" copy | `src/components/shared/PublicCart.tsx` | Confirmation renders after send; `build` passes |
-| C-P0-2 | sonnet | Build a minimal read-only `/order/:ref` status page, OR remove the dead link if data isn't available | `src/pages/OrderStatusPage.tsx`, route in `App.tsx` (no nav-label change) | Link no longer dead; `build` passes |
+| C-P0-1 | sonnet | Strengthen the EXISTING checkout CONFIRM-step success message in `PublicCart.tsx` — surface the order reference prominently and add "we'll reply on WhatsApp" copy. Do not build a new screen | `src/components/shared/PublicCart.tsx` | Confirmation shows the ref + assurance copy; `build` passes |
+| C-P0-2 | sonnet | Verify `PublicCart` checkout persists an inquiry via `api.inquiries` with a `ref` matching the `/order/:ref` link `OrderStatusPage` reads. Fix the persistence/ref wiring ONLY — `OrderStatusPage.tsx` is already complete, do not rebuild it | `src/components/shared/PublicCart.tsx`, `src/lib/api.ts` (inspect only `OrderStatusPage.tsx`) | A submitted order's `ref` resolves on `/order/:ref`; `build` passes |
 
 ## Batch 3 — P1 high friction (parallel: disjoint files)
 
