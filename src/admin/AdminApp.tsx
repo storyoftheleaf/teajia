@@ -118,7 +118,7 @@ import { AddToCartModal } from './components/AddToCartModal';
 import { AddProductModal } from './components/AddProductModal';
 
 /** Reads ?tab= and ?entry= query params and passes them to TeaCompass */
-const CompassWithMode: React.FC<{ onBack: () => void; surfaceVariant?: CompassSurfaceVariant }> = ({ onBack, surfaceVariant = 'classic' }) => {
+const CompassWithMode: React.FC<{ onBack: () => void; surfaceVariant?: CompassSurfaceVariant }> = ({ onBack, surfaceVariant = 'playbook' }) => {
   const [params] = useSearchParams();
   const tab = params.get('tab');
   const entryId = params.get('entry');
@@ -653,7 +653,14 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
               <Route path="compass-playbook" element={
                 <ProtectedRoute hasAccess={hasCatalogBundle} isLoggingIn={isLoginOpen || !isLoggedIn}>
                   <PageTransition>
-                    <CompassWithMode onBack={() => navigate(-1)} surfaceVariant="playbook" />
+                    <CompassWithMode onBack={() => navigate(-1)} />
+                  </PageTransition>
+                </ProtectedRoute>
+              } />
+              <Route path="compass-current" element={
+                <ProtectedRoute hasAccess={hasCatalogBundle} isLoggingIn={isLoginOpen || !isLoggedIn}>
+                  <PageTransition>
+                    <CompassWithMode onBack={() => navigate(-1)} surfaceVariant="classic" />
                   </PageTransition>
                 </ProtectedRoute>
               } />
