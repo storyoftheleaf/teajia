@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { api, setToken } from '../lib/api';
 import { ArrowLeft, AlertCircle, Loader2 } from 'lucide-react';
+import { Icons } from '../components/Icons';
+import { useTheme } from '../context/ThemeContext';
 
 const inputClass = "w-full bg-tea-surface border border-tea-border rounded-md px-3 py-2 text-ui-14 text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors";
 const labelClass = "block label-caps text-tea-text-sec mb-1.5";
@@ -34,6 +36,7 @@ function PrimarySubmit({ label, loading }: { label: string; loading: boolean }) 
 export default function AccountSettingsPage() {
   const navigate = useNavigate();
   const auth = useAuth();
+  const { theme, toggleTheme } = useTheme();
 
   const [editName, setEditName] = useState(auth.user?.name || '');
   const [editEmail, setEditEmail] = useState(auth.user?.email || '');
@@ -248,6 +251,61 @@ export default function AccountSettingsPage() {
       </section>
 
       <hr className="border-tea-border" />
+
+      {/* Appearance */}
+      <section>
+        <div className="flex flex-col items-center pb-8">
+          <div className="w-16 h-16 rounded-full bg-tea-gold/10 flex items-center justify-center mb-4">
+            {theme === 'dark' ? (
+              <Icons.Moon className="w-7 h-7 text-tea-gold" />
+            ) : (
+              <Icons.Sun className="w-7 h-7 text-tea-gold" />
+            )}
+          </div>
+          <h2 className="font-display text-3xl text-tea-text">Appearance</h2>
+          <p className="font-body italic text-sm text-tea-text-dim mt-1">Choose how Teajia looks on this device</p>
+        </div>
+        <div>
+          <label className={labelClass}>Theme</label>
+          <div
+            role="radiogroup"
+            aria-label="Theme"
+            className="grid grid-cols-2 gap-2 p-1 bg-tea-surface border border-tea-border rounded"
+          >
+            <button
+              type="button"
+              role="radio"
+              aria-checked={theme === 'light'}
+              onClick={(e) => { if (theme !== 'light') toggleTheme(e); }}
+              className={`tap-target flex items-center justify-center gap-2 py-2.5 rounded text-sm font-sans transition-colors duration-150 ${
+                theme === 'light'
+                  ? 'bg-tea-gold text-tea-bg'
+                  : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-gold/5'
+              }`}
+            >
+              <Icons.Sun className="w-4 h-4" />
+              Light
+            </button>
+            <button
+              type="button"
+              role="radio"
+              aria-checked={theme === 'dark'}
+              onClick={(e) => { if (theme !== 'dark') toggleTheme(e); }}
+              className={`tap-target flex items-center justify-center gap-2 py-2.5 rounded text-sm font-sans transition-colors duration-150 ${
+                theme === 'dark'
+                  ? 'bg-tea-gold text-tea-bg'
+                  : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-gold/5'
+              }`}
+            >
+              <Icons.Moon className="w-4 h-4" />
+              Dark
+            </button>
+          </div>
+          <p className="text-ui-11 text-tea-text-dim mt-1.5">Your choice is remembered on this device.</p>
+        </div>
+      </section>
+
+      <div className="border-t border-tea-border" />
 
       {/* Change Password */}
       <section className="space-y-4">

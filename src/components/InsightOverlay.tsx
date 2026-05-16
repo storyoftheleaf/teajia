@@ -37,7 +37,7 @@ export const InsightOverlay: React.FC<InsightOverlayProps> = ({ insight, onClose
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 text-tea-text/40 hover:text-tea-gold transition-colors duration-300"
+          className="absolute top-4 right-4 p-2 text-tea-text-sec hover:text-tea-text transition-colors duration-300"
         >
           <Icons.Close className="w-5 h-5" />
         </button>

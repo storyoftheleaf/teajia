@@ -988,97 +988,118 @@ export const WholesaleOrderDraft: React.FC = () => {
       {/* ── FOOTER ACTIONS (editable states only) ─────────────────────────── */}
 
       {isEditable && (
-        <div className="border-t border-tea-border pt-6">
-          {/* Inline save feedback */}
-          {saveStatus === 'saved' && saveTime && (
-            <p className="font-body text-ui-12 text-tea-text-sec mb-4">
-              Saved{' '}
-              <span className="font-mono text-ui-11">{saveTime}</span>
-            </p>
-          )}
-          {saveStatus === 'error' && (
-            <p className="font-body italic text-ui-13 text-tea-text-sec leading-[1.6] mb-4">
-              Couldn't reach the server. Your edits are held{' '}
-              {'—'} try again.
-            </p>
-          )}
-
-          {/* Submit inline confirmation */}
-          {submitConfirming && (
-            <div className="mb-4">
-              <p className="font-body text-ui-14 text-tea-text leading-[1.6] mb-3">
-                Submit this order to{' '}
-                {supplierName ?? 'Adrian'} for{' '}
-                {formatMoney(subtotal, orderCurrency)} + shipping?
+        <>
+          {/* Content footer area with inline feedback */}
+          <div className="border-t border-tea-border pt-6 pb-32 md:pb-0">
+            {/* Inline save feedback */}
+            {saveStatus === 'saved' && saveTime && (
+              <p className="font-body text-ui-12 text-tea-text-sec mb-4">
+                Saved{' '}
+                <span className="font-mono text-ui-11">{saveTime}</span>
               </p>
-              <div className="flex items-center gap-6">
+            )}
+            {saveStatus === 'error' && (
+              <p className="font-body italic text-ui-13 text-tea-text-sec leading-[1.6] mb-4">
+                Couldn't reach the server. Your edits are held{' '}
+                {'—'} try again.
+              </p>
+            )}
+
+            {/* Submit inline confirmation */}
+            {submitConfirming && (
+              <div className="mb-4">
+                <p className="font-body text-ui-14 text-tea-text leading-[1.6] mb-3">
+                  Submit this order to{' '}
+                  {supplierName ?? 'Adrian'} for{' '}
+                  {formatMoney(subtotal, orderCurrency)} + shipping?
+                </p>
+                <div className="flex items-center gap-6">
+                  <button
+                    type="button"
+                    onClick={() => setSubmitConfirming(false)}
+                    disabled={submitting}
+                    className="font-body text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSubmitConfirm}
+                    disabled={submitting}
+                    className="font-body text-ui-14 text-tea-text hover:text-tea-gold transition-colors disabled:text-tea-text-sec group"
+                  >
+                    {submitting ? 'Submitting…' : 'Confirm'}
+                    {!submitting && (
+                      <span className="inline-block transition-transform group-hover:translate-x-0.5 ml-0.5">
+                        {'→'}
+                      </span>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Submit inline error */}
+            {submitError && (
+              <p className="font-body italic text-ui-13 text-tea-text-sec leading-[1.6] mb-4">
+                {submitError}
+              </p>
+            )}
+
+            {/* Submit block reason */}
+            {!submitConfirming && !canSubmit && submitBlockReason && items.length > 0 && (
+              <p className="font-body italic text-ui-13 text-tea-text-sec leading-[1.5] mb-4">
+                {submitBlockReason}
+              </p>
+            )}
+
+            {/* Main footer buttons — Save draft left, Submit right (non-sticky for reference) */}
+            {!submitConfirming && (
+              <div className="flex items-center justify-between gap-4">
                 <button
                   type="button"
-                  onClick={() => setSubmitConfirming(false)}
-                  disabled={submitting}
-                  className="font-body text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors disabled:opacity-50"
+                  onClick={saveDraft}
+                  disabled={saveStatus === 'saving'}
+                  className="font-body text-ui-14 text-tea-text-sec hover:text-tea-text transition-colors disabled:opacity-50"
                 >
-                  Cancel
+                  {saveStatus === 'saving' ? 'Saving…' : 'Save draft'}
                 </button>
                 <button
                   type="button"
-                  onClick={handleSubmitConfirm}
-                  disabled={submitting}
-                  className="font-body text-ui-14 text-tea-text hover:text-tea-gold transition-colors disabled:text-tea-text-sec group"
+                  disabled={!canSubmit || saveStatus === 'saving'}
+                  onClick={() => {
+                    setSubmitError(null);
+                    setSubmitConfirming(true);
+                  }}
+                  className="font-body text-ui-14 text-tea-text hover:text-tea-gold transition-colors disabled:text-tea-text-sec disabled:cursor-not-allowed group"
                 >
-                  {submitting ? 'Submitting…' : 'Confirm'}
-                  {!submitting && (
-                    <span className="inline-block transition-transform group-hover:translate-x-0.5 ml-0.5">
-                      {'→'}
-                    </span>
-                  )}
+                  Submit to {supplierName ?? 'Adrian'}
+                  <span className="inline-block transition-transform group-hover:translate-x-0.5 ml-0.5">
+                    {'→'}
+                  </span>
                 </button>
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
-          {/* Submit inline error */}
-          {submitError && (
-            <p className="font-body italic text-ui-13 text-tea-text-sec leading-[1.6] mb-4">
-              {submitError}
-            </p>
-          )}
-
-          {/* Submit block reason */}
-          {!submitConfirming && !canSubmit && submitBlockReason && items.length > 0 && (
-            <p className="font-body italic text-ui-13 text-tea-text-sec leading-[1.5] mb-4">
-              {submitBlockReason}
-            </p>
-          )}
-
-          {/* Main footer buttons — Save draft left, Submit right */}
-          {!submitConfirming && (
-            <div className="flex items-center justify-between gap-4">
-              <button
-                type="button"
-                onClick={saveDraft}
-                disabled={saveStatus === 'saving'}
-                className="font-body text-ui-14 text-tea-text-sec hover:text-tea-text transition-colors disabled:opacity-50"
-              >
-                {saveStatus === 'saving' ? 'Saving…' : 'Save draft'}
-              </button>
-              <button
-                type="button"
-                disabled={!canSubmit || saveStatus === 'saving'}
-                onClick={() => {
-                  setSubmitError(null);
-                  setSubmitConfirming(true);
-                }}
-                className="font-body text-ui-14 text-tea-text hover:text-tea-gold transition-colors disabled:text-tea-text-sec disabled:cursor-not-allowed group"
-              >
-                Submit to {supplierName ?? 'Adrian'}
-                <span className="inline-block transition-transform group-hover:translate-x-0.5 ml-0.5">
-                  {'→'}
-                </span>
-              </button>
-            </div>
-          )}
-        </div>
+          {/* Sticky submit button footer — sticky to bottom of viewport on mobile */}
+          <div className="sticky bottom-0 md:hidden bg-tea-bg border-t border-tea-border z-10 bottom-nav-gap flex items-center justify-end gap-4 px-4 py-4">
+            <button
+              type="button"
+              disabled={!canSubmit || saveStatus === 'saving'}
+              onClick={() => {
+                setSubmitError(null);
+                setSubmitConfirming(true);
+              }}
+              className="font-body text-ui-14 text-tea-text hover:text-tea-gold transition-colors disabled:text-tea-text-sec disabled:cursor-not-allowed group w-full"
+            >
+              Submit to {supplierName ?? 'Adrian'}
+              <span className="inline-block transition-transform group-hover:translate-x-0.5 ml-0.5">
+                {'→'}
+              </span>
+            </button>
+          </div>
+        </>
       )}
     </div>
   );

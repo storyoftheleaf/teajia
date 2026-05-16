@@ -124,7 +124,7 @@ export default function SignUpPage() {
             <button
               type="button"
               onClick={() => setShowPassword(v => !v)}
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 tap-target text-tea-text-sec hover:text-tea-text transition-colors"
+              className="tap-target absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-tea-text-sec hover:text-tea-text transition-colors"
               aria-label={showPassword ? 'Hide password' : 'Show password'}
             >
               {showPassword ? <Icons.EyeSlash className="w-4 h-4" /> : <Icons.Eye className="w-4 h-4" />}

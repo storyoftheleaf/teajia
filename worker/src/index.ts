@@ -601,6 +601,32 @@ async function requireOwnerTier(
   return { error: json({ error: 'Owner-tier access required for this action' }, 403) };
 }
 
+// Require an active (non-suspended) account. Used for mutating operations.
+// Reads are allowed on suspended accounts so the operator can see their data.
+// Platform Owner / Admin bypass this check (they may need to fix suspended accounts).
+async function requireActiveAccount(
+  request: Request,
+  env: Env
+): Promise<AccountCtx | { error: Response }> {
+  const ctx = await getActiveAccount(request, env);
+  if ('error' in ctx) return ctx;
+
+  // Platform-tier users can write to any account (including suspended ones for recovery).
+  if (ctx.isPlatform) return ctx;
+
+  // Regular users cannot write to suspended accounts.
+  try {
+    const acct = await env.DB.prepare('SELECT status FROM accounts WHERE id = ?').bind(ctx.accountId).first();
+    if (acct && acct.status === 'suspended') {
+      return { error: json({ error: 'account_suspended' }, 403) };
+    }
+  } catch {
+    return { error: json({ error: 'Account check failed', reason: 'db_unavailable' }, 503) };
+  }
+
+  return ctx;
+}
+
 // Resolve platform_role from the DB rather than trusting the JWT claim,
 // so a demoted user loses platform powers immediately rather than at token
 // expiry. Returns null if the user row is missing or DB is unavailable.
@@ -1467,7 +1493,9 @@ const handleRequestAdmin: Handler = async (request, env) => {
   const claims = parseToken(token);
   if (!claims) return json({ error: 'Invalid token' }, 401);
 
-  if (claims.role === 'admin' || claims.role === 'owner') {
+  const dbRole = await resolveDbPlatformRole(env, claims.sub);
+  if (dbRole === 'db_error') return json({ error: 'Auth check failed', reason: 'db_unavailable' }, 503);
+  if (dbRole === 'platform_admin' || dbRole === 'platform_owner') {
     return json({ error: 'You already have admin access' }, 400);
   }
 
@@ -1484,7 +1512,7 @@ const handleRequestAdmin: Handler = async (request, env) => {
 
 // ── List All Users (admin/owner) ──
 const handleListUsers: Handler = async (request, env) => {
-  const authErr = await requireAdmin(request, env);
+  const authErr = await requirePlatformAdmin(request, env);
   if (authErr) return authErr;
 
   const users = await env.DB.prepare(
@@ -1496,17 +1524,17 @@ const handleListUsers: Handler = async (request, env) => {
 
 // ── Approve/Deny Admin Request (owner only) ──
 const handleUpdateUserRole: Handler = async (request, env, params) => {
-  const authErr = await requireOwner(request, env);
+  const authErr = await requirePlatformOwner(request, env);
   if (authErr) return authErr;
 
   const userId = params.id;
   const { role, admin_request_status } = await request.json() as { role?: string; admin_request_status?: string };
 
-  const user = await env.DB.prepare('SELECT id, role FROM users WHERE id = ?').bind(userId).first();
+  const user = await env.DB.prepare('SELECT id, platform_role FROM users WHERE id = ?').bind(userId).first();
   if (!user) return json({ error: 'User not found' }, 404);
 
-  // Prevent changing owner role
-  if (user.role === 'owner') return json({ error: 'Cannot modify owner account' }, 403);
+  // Prevent changing platform owner role
+  if (user.platform_role === 'platform_owner') return json({ error: 'Cannot modify platform owner account' }, 403);
 
   const updates: string[] = [];
   const binds: any[] = [];
@@ -1534,13 +1562,13 @@ const handleUpdateUserRole: Handler = async (request, env, params) => {
 
 // ── Delete User (owner only) ──
 const handleDeleteUser: Handler = async (request, env, params) => {
-  const authErr = await requireOwner(request, env);
+  const authErr = await requirePlatformOwner(request, env);
   if (authErr) return authErr;
 
   const userId = params.id;
-  const user = await env.DB.prepare('SELECT id, role FROM users WHERE id = ?').bind(userId).first();
+  const user = await env.DB.prepare('SELECT id, platform_role FROM users WHERE id = ?').bind(userId).first();
   if (!user) return json({ error: 'User not found' }, 404);
-  if (user.role === 'owner') return json({ error: 'Cannot delete owner account' }, 403);
+  if (user.platform_role === 'platform_owner') return json({ error: 'Cannot delete platform owner account' }, 403);
 
   await env.DB.prepare('DELETE FROM users WHERE id = ?').bind(userId).run();
   return json({ ok: true });
@@ -1548,7 +1576,7 @@ const handleDeleteUser: Handler = async (request, env, params) => {
 
 // ── Generate Password Reset Token (admin/owner) ──
 const handleCreateResetToken: Handler = async (request, env) => {
-  const authErr = await requireAdmin(request, env);
+  const authErr = await requirePlatformAdmin(request, env);
   if (authErr) return authErr;
 
   const { userId } = await request.json() as { userId?: string };
@@ -1881,7 +1909,7 @@ async function resolveVendorId(
 }
 
 const handleCreateProduct: Handler = async (request, env) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'catalog');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -2216,7 +2244,7 @@ async function applyProductUpdate(
 }
 
 const handleUpdateProduct: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'catalog');
   if ('error' in ctx) return ctx.error;
   return applyProductUpdate(request, env, params, ctx);
 };
@@ -2239,7 +2267,7 @@ const handleUpdateProductCommercial = makeProductCommandUpdateHandler('sell', PR
 const handleUpdateProductPublication = makeProductCommandUpdateHandler('publish', PRODUCT_PUBLICATION_UPDATE_COLUMNS, 'product.publication_updated');
 
 const handleDeleteProduct: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'catalog');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -2535,7 +2563,7 @@ async function prefixInvoiceNumber(env: Env, accountId: string, raw: string): Pr
 }
 
 const handleCreateInvoice: Handler = async (request, env) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'sell');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -2603,7 +2631,7 @@ const handleGetInvoiceItems: Handler = async (request, env, params) => {
 };
 
 const handleUpdateInvoice: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'sell');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -2620,7 +2648,7 @@ const handleUpdateInvoice: Handler = async (request, env, params) => {
 };
 
 const handleDeleteInvoice: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'sell');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -2841,13 +2869,22 @@ const handleIncrementStock: Handler = async (request, env) => {
 const handleMcpMintToken: Handler = async (request, env) => {
   const ctx = await requireOwnerTier(request, env);
   if ('error' in ctx) return ctx.error;
-  const body = await request.json() as { label?: string };
+  const body = await request.json() as { label?: string; scopes?: unknown };
   const label = (body.label || '').trim();
   if (!label) return json({ error: 'label is required' }, 400);
 
-  const minted = await mcpAdminMintToken(env, ctx.accountId, ctx.userId, ctx.email, label);
-  await buildActivityLog(env, 'MCP_TOKEN_MINTED', `MCP token minted: ${label}`, ctx.email, 'mcp_token', minted.id, ctx.accountId).run();
-  return json({ id: minted.id, token: minted.token, prefix: minted.prefix }, 201);
+  // Derive creator_tier from account context (isPlatform covers platform_owner + platform_admin).
+  const creatorTier = ctx.isPlatform ? 'platform_owner' as const : 'account_owner' as const;
+
+  // Parse requested scopes from body (validated in mcpAdminMintToken).
+  let requestedScopes: string[] | undefined;
+  if (Array.isArray(body.scopes)) {
+    requestedScopes = (body.scopes as unknown[]).filter((s): s is string => typeof s === 'string');
+  }
+
+  const minted = await mcpAdminMintToken(env, ctx.accountId, ctx.userId, ctx.email, label, requestedScopes as any, creatorTier);
+  await buildActivityLog(env, 'MCP_TOKEN_MINTED', `MCP token minted: ${label} (scopes: ${minted.scopes.join(', ')})`, ctx.email, 'mcp_token', minted.id, ctx.accountId).run();
+  return json({ id: minted.id, token: minted.token, prefix: minted.prefix, scopes: minted.scopes }, 201);
 };
 
 const handleMcpListTokens: Handler = async (request, env) => {
@@ -2949,7 +2986,7 @@ const handleVoidInvoice: Handler = async (request, env) => {
 
 // ── RPC: Split Invoice ──
 const handleSplitInvoice: Handler = async (request, env) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'sell');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -3009,7 +3046,7 @@ const handleSplitInvoice: Handler = async (request, env) => {
 
 // ── Update Invoice Items (edit pending order) ──
 const handleUpdateInvoiceItems: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'sell');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -3068,7 +3105,7 @@ const handleUpdateInvoiceItems: Handler = async (request, env, params) => {
 
 // ── RPC: Link Line Item to Product (with retroactive stock deduction if fulfilled) ──
 const handleLinkLineItem: Handler = async (request, env) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'sell');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
   const userEmail = getUserEmail(request);
@@ -3655,7 +3692,7 @@ const handleGetCustomerRelationships: Handler = async (request, env, params) => 
 };
 
 const handlePutCustomerRelationships: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'gather');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -3846,7 +3883,7 @@ const handlePutAdminContributorContact: Handler = async (request, env, params) =
 };
 
 const handleCreateCustomer: Handler = async (request, env) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'gather');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -3885,7 +3922,7 @@ const handleCreateCustomer: Handler = async (request, env) => {
 };
 
 const handleUpdateCustomer: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'gather');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -3909,7 +3946,7 @@ const handleUpdateCustomer: Handler = async (request, env, params) => {
 };
 
 const handleDeleteCustomer: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'gather');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -4186,7 +4223,7 @@ const handleListCustomerTags: Handler = async (request, env, params) => {
 };
 
 const handleAddCustomerTag: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'gather');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -4220,7 +4257,7 @@ const handleAddCustomerTag: Handler = async (request, env, params) => {
 };
 
 const handleRemoveCustomerTag: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'gather');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -4257,7 +4294,7 @@ const handleListAccountCustomerTags: Handler = async (request, env) => {
 // exists on a customer that also has the old tag, the union is preserved and
 // no duplicates are created. Empty target means delete the tag everywhere.
 const handleRenameOrDeleteCustomerTag: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'gather');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -4498,7 +4535,7 @@ const projectProductXref = makeXrefHandlers('project_products', 'project_id');
 
 // ── Backfill: match existing invoices to customers (scoped) ──
 const handleBackfillCustomerLinks: Handler = async (request, env) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireOwnerTier(request, env);
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -4544,7 +4581,7 @@ const handleBackfillCustomerLinks: Handler = async (request, env) => {
 
 // ── Auto-link vendors: create customer records from product vendor field (scoped) ──
 const handleAutoLinkVendors: Handler = async (request, env) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireOwnerTier(request, env);
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -4627,7 +4664,7 @@ const handleAutoLinkVendors: Handler = async (request, env) => {
 
 // ── AI Wisdom Generation ──
 const handleGenerateWisdom: Handler = async (request, env) => {
-  const authErr = await requireAdmin(request, env);
+  const authErr = await requirePlatformAdmin(request, env);
   if (authErr) return authErr;
 
   if (!env.ANTHROPIC_API_KEY) {
@@ -4731,7 +4768,7 @@ Liquor color: pale-gold, gold, amber, honey-color, copper, orange, reddish-brown
 Brewing: high-temp, medium-temp, low-temp, short-steeps, patient-steeps, flash-steeps, many-infusions, few-infusions, gaiwan, yixing, porcelain, glass, opens-slowly, peaks-mid-session`;
 
 const handleMigrateTasting: Handler = async (request, env) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'catalog');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -6622,7 +6659,7 @@ const handleGetSavedLocations: Handler = async (request, env) => {
 };
 
 const handleCreateSavedLocation: Handler = async (request, env) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'gather');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
   const body = await request.json() as Record<string, any>;
@@ -6636,7 +6673,7 @@ const handleCreateSavedLocation: Handler = async (request, env) => {
 };
 
 const handleUpdateSavedLocation: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'gather');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
   const body = await request.json() as Record<string, any>;
@@ -6652,7 +6689,7 @@ const handleUpdateSavedLocation: Handler = async (request, env, params) => {
 };
 
 const handleDeleteSavedLocation: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'gather');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
   await env.DB.prepare('DELETE FROM saved_locations WHERE id = ? AND account_id = ?')
@@ -6933,7 +6970,7 @@ const handleGetInquiries: Handler = async (request, env) => {
 };
 
 const handleUpdateInquiryStatus: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'gather');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
   const body = await request.json() as { status?: string };
@@ -7068,7 +7105,7 @@ const handleGetTeawareItem: Handler = async (request, env, params) => {
 };
 
 const handleCreateTeawareItem: Handler = async (request, env) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'catalog');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -7092,7 +7129,7 @@ const handleCreateTeawareItem: Handler = async (request, env) => {
 };
 
 const handleUpdateTeawareItem: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'catalog');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -7110,7 +7147,7 @@ const handleUpdateTeawareItem: Handler = async (request, env, params) => {
 };
 
 const handleDeleteTeawareItem: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'catalog');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -7139,7 +7176,7 @@ async function assertTeawareInAccount(env: Env, teawareId: string, accountId: st
 }
 
 const handleAddTeawarePhoto: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'catalog');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
   const guard = await assertTeawareInAccount(env, params.id, accountId);
@@ -7167,7 +7204,7 @@ const handleAddTeawarePhoto: Handler = async (request, env, params) => {
 };
 
 const handleDeleteTeawarePhoto: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'catalog');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
   const guard = await assertTeawareInAccount(env, params.id, accountId);
@@ -7180,7 +7217,7 @@ const handleDeleteTeawarePhoto: Handler = async (request, env, params) => {
 };
 
 const handleUpdateTeawarePhoto: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'catalog');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
   const guard = await assertTeawareInAccount(env, params.id, accountId);
@@ -9391,7 +9428,7 @@ const handleListSamples: Handler = async (request, env) => {
 
 // Admin: POST /api/admin/samples
 const handleCreateSample: Handler = async (request, env) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'gather');
   if ('error' in ctx) return ctx.error;
   const { accountId, userId } = ctx;
 
@@ -9439,7 +9476,7 @@ const handleCreateSample: Handler = async (request, env) => {
 
 // Admin: PUT /api/admin/samples/:id
 const handleUpdateSample: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'gather');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -9475,7 +9512,7 @@ const handleUpdateSample: Handler = async (request, env, params) => {
 
 // Admin: DELETE /api/admin/samples/:id
 const handleDeleteSample: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'gather');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -9509,7 +9546,7 @@ const handleListSampleSets: Handler = async (request, env) => {
 
 // Admin: POST /api/admin/sample-sets
 const handleCreateSampleSet: Handler = async (request, env) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'gather');
   if ('error' in ctx) return ctx.error;
   const { accountId, userId } = ctx;
 
@@ -9550,7 +9587,7 @@ const handleCreateSampleSet: Handler = async (request, env) => {
 
 // Admin: PUT /api/admin/sample-sets/:id
 const handleUpdateSampleSet: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'gather');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -9583,7 +9620,7 @@ const handleUpdateSampleSet: Handler = async (request, env, params) => {
 
 // Admin: DELETE /api/admin/sample-sets/:id
 const handleDeleteSampleSet: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'gather');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
@@ -10073,7 +10110,11 @@ const handleUpdateMemberBundles: Handler = async (request, env, params) => {
   ).bind(updatedPermissions, params.id, params.userId).run();
 
   await logPlatformAction(env, 'member.bundles_updated', ctx.userId, ctx.email, 'member', `${params.id}:${params.userId}`, {
-    previous_bundles: previousBundles,
+    action_type: 'BUNDLE_GRANT_CHANGED',
+    actor_user_id: ctx.userId,
+    target_user_id: params.userId,
+    account_id: params.id,
+    old_bundles: previousBundles,
     new_bundles: newBundles,
   }, params.id);
 
@@ -10650,6 +10691,20 @@ const handleUpdateMemberPermissions: Handler = async (request, env, params) => {
   ).bind(params.id).all();
   const enabledFeatures = new Set((featureRows as any[]).map(r => r.feature as string));
 
+  // Snapshot prior bundles for the audit log so we capture any grant change
+  // that flows through this legacy endpoint (it wholesale-overwrites permissions
+  // and would silently clobber bundles set via the newer /bundles route).
+  const prior = await env.DB.prepare(
+    'SELECT permissions FROM account_members WHERE account_id = ? AND user_id = ?'
+  ).bind(params.id, params.userId).first() as { permissions: string | null } | null;
+  let priorBundles: string[] = [];
+  if (prior?.permissions) {
+    try {
+      const parsed = JSON.parse(prior.permissions);
+      if (Array.isArray(parsed?.bundles)) priorBundles = parsed.bundles as string[];
+    } catch { /* ignore */ }
+  }
+
   const sanitised: Record<string, boolean> = {};
   for (const [feature, enabled] of Object.entries(body)) {
     if (enabledFeatures.has(feature)) sanitised[feature] = Boolean(enabled);
@@ -10658,6 +10713,17 @@ const handleUpdateMemberPermissions: Handler = async (request, env, params) => {
   await env.DB.prepare(
     'UPDATE account_members SET permissions = ? WHERE account_id = ? AND user_id = ?'
   ).bind(JSON.stringify(sanitised), params.id, params.userId).run();
+
+  await logPlatformAction(env, 'member.permissions_updated', ctx.userId, ctx.email, 'member', `${params.id}:${params.userId}`, {
+    action_type: 'BUNDLE_GRANT_CHANGED',
+    actor_user_id: ctx.userId,
+    target_user_id: params.userId,
+    account_id: params.id,
+    old_bundles: priorBundles,
+    // Legacy permissions endpoint wholesale-overwrites — bundles are dropped.
+    new_bundles: [],
+    new_feature_permissions: sanitised,
+  }, params.id);
 
   return json({ success: true, permissions: sanitised });
 };
@@ -11339,6 +11405,134 @@ const handleGetMyWishlist: Handler = async (request, env) => {
   ).bind(userId, accountId).all();
 
   return json({ entries: result.results });
+};
+
+// GET /api/me/orders — invoices belonging to the authed user.
+// Matches invoices to the caller by:
+//   1. customer_id → customers.user_id (canonical link), OR
+//   2. customer email/whatsapp matching users.email / users.phone (legacy invoices
+//      created before a customer record was linked to the user account).
+// Scoped to the active account. Returns a stable shape the UI can render without
+// further lookups (invoice number, status, total, currency, created_at, line count).
+const handleGetMyOrders: Handler = async (request, env) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId, userId } = ctx;
+
+  const userRow = await env.DB.prepare(
+    'SELECT email, phone FROM users WHERE id = ? LIMIT 1'
+  ).bind(userId).first() as { email: string | null; phone: string | null } | null;
+  const userEmail = (userRow?.email || '').trim().toLowerCase();
+  const userPhone = (userRow?.phone || '').trim();
+
+  // Build the WHERE clause: include rows linked via customers.user_id, plus any
+  // fallback match on customer_whatsapp == users.phone. customers.email is the
+  // strongest match — we OR it in via subquery so multiple customer rows linked
+  // to this user all flow through. Empty strings short-circuit to NULL so we
+  // don't match invoices with blank customer fields.
+  const result = await env.DB.prepare(
+    `SELECT i.id, i.invoice_number, i.status, i.display_currency, i.created_at,
+            COALESCE(t.line_total, 0) as line_total,
+            COALESCE(t.line_count, 0) as line_count,
+            i.shipping_cost_usd
+     FROM invoices i
+     LEFT JOIN (
+       SELECT invoice_id,
+              SUM(quantity * price_at_sale) as line_total,
+              COUNT(*) as line_count
+       FROM invoice_line_items
+       GROUP BY invoice_id
+     ) t ON t.invoice_id = i.id
+     WHERE i.account_id = ?
+       AND i.deleted_at IS NULL
+       AND (
+         i.customer_id IN (
+           SELECT id FROM customers WHERE user_id = ? AND account_id = ?
+         )
+         OR (? != '' AND i.customer_id IN (
+           SELECT id FROM customers WHERE LOWER(email) = ? AND account_id = ?
+         ))
+         OR (? != '' AND i.customer_whatsapp = ?)
+       )
+     ORDER BY i.created_at DESC
+     LIMIT 200`
+  ).bind(
+    accountId,
+    userId, accountId,
+    userEmail, userEmail, accountId,
+    userPhone, userPhone
+  ).all();
+
+  const orders = (result.results as Record<string, any>[]).map(r => ({
+    id: r.id as string,
+    invoice_number: r.invoice_number as string,
+    status: (r.status as string) || 'Draft',
+    total_amount_usd: Number(r.line_total || 0) + Number(r.shipping_cost_usd || 0),
+    currency: (r.display_currency as string) || 'USD',
+    created_at: r.created_at as string,
+    line_items_count: Number(r.line_count || 0),
+  }));
+
+  return json({ orders });
+};
+
+// GET /api/me/samples — tea samples whose tasting trail belongs to the authed user.
+// The tea_samples table doesn't carry recipient email/phone — the user link is
+// established two ways:
+//   1. tea_samples.user_id (direct ownership)
+//   2. tea_sample_tastings.taster_id matching either the user_id or user's email
+//      (legacy tasting rows recorded by email before user_id was wired)
+// Scoped to the active account via tea_samples.account_id.
+const handleGetMySamples: Handler = async (request, env) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId, userId } = ctx;
+
+  const userRow = await env.DB.prepare(
+    'SELECT email FROM users WHERE id = ? LIMIT 1'
+  ).bind(userId).first() as { email: string | null } | null;
+  const userEmail = (userRow?.email || '').trim();
+
+  const result = await env.DB.prepare(
+    `SELECT ts.id,
+            ts.name,
+            ts.chinese_name,
+            ts.type,
+            ts.status,
+            ts.notes,
+            ts.created_at,
+            (SELECT MAX(tst.created_at) FROM tea_sample_tastings tst
+              WHERE tst.sample_id = ts.id
+                AND (tst.taster_id = ? OR tst.taster_id = ?)
+            ) as last_tasted_at
+     FROM tea_samples ts
+     WHERE ts.account_id = ?
+       AND (
+         ts.user_id = ?
+         OR ts.id IN (
+           SELECT sample_id FROM tea_sample_tastings
+            WHERE taster_id = ? OR (? != '' AND taster_id = ?)
+         )
+       )
+     ORDER BY COALESCE(last_tasted_at, ts.created_at) DESC
+     LIMIT 200`
+  ).bind(
+    userId, userEmail,
+    accountId,
+    userId,
+    userId,
+    userEmail, userEmail
+  ).all();
+
+  const samples = (result.results as Record<string, any>[]).map(r => ({
+    id: r.id as string,
+    status: (r.status as string) || 'untasted',
+    sent_at: (r.last_tasted_at as string | null) || (r.created_at as string),
+    tea_name: ((r.name as string) || '').trim() || (r.chinese_name as string) || 'Unnamed sample',
+    notes: (r.notes as string | null) || null,
+  }));
+
+  return json({ samples });
 };
 
 const handleMemberSearch: Handler = async (request, env) => {
@@ -13563,7 +13757,7 @@ const handleUnpublishFromShop: Handler = async (request, env, params) => {
 // is_featured_collection=1 (added in migration 054). It then adds/removes the
 // product and publishes/unpublishes the collection to the shop audience as needed.
 const handleSetProductFeatured: Handler = async (request, env, params) => {
-  const ctx = await getActiveAccount(request, env);
+  const ctx = await requireBundle(request, env, 'publish');
   if ('error' in ctx) return ctx.error;
   const { accountId, userId, email } = ctx;
 
@@ -16445,6 +16639,8 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/me/queue', handleGetMyQueue],
   ['GET', '/api/me/wishlist', handleGetMyWishlist],
   ['GET', '/api/me/journey', handleGetMyJourney],
+  ['GET', '/api/me/orders', handleGetMyOrders],
+  ['GET', '/api/me/samples', handleGetMySamples],
   ['GET', '/api/members/search', handleMemberSearch],
 
   // Co-Tasting Sessions

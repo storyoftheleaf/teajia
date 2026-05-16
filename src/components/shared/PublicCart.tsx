@@ -164,7 +164,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
     const item = cart.find(c => c.id === id);
     if (!item) return;
     if (undoItem) clearTimeout(undoItem.timeout);
-    const timeout = setTimeout(() => setUndoItem(null), 5000);
+    const timeout = setTimeout(() => setUndoItem(null), 8000);
     setUndoItem({ item, timeout });
     onRemoveItem(id);
   };
