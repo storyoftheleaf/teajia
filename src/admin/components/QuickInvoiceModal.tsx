@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { X, Plus, Trash2, Search, FileDown, Loader2, Phone, Mail, MessageCircle, AtSign, Send, Lock, Hash, MessagesSquare } from 'lucide-react';
+import { X, Plus, Trash2, Search, FileDown, Loader2, RotateCcw, Phone, Mail, MessageCircle, AtSign, Send, Lock, Hash, MessagesSquare } from 'lucide-react';
 import Fuse from 'fuse.js';
 import { api } from '../../lib/api';
 import { Currency, InvoiceDisplayItem, Product, ContactChannel, ContactEntry } from '../types';
@@ -78,6 +78,7 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
   const [productQuery, setProductQuery] = useState('');
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const [saving, setSaving] = useState(false);
+  const [loadingRepeat, setLoadingRepeat] = useState(false);
 
   const nameInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const latestAddedItemId = useRef<string | null>(null);
@@ -209,6 +210,45 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
       setCurrency(customer.preferredCurrency as Currency);
     }
     setCustomerPickerOpen(false);
+  };
+
+  const handleRepeatLastOrder = async () => {
+    if (!customerId) return;
+    setLoadingRepeat(true);
+    try {
+      const invoices = await api.invoices.list(50) as any[];
+      const lastInvoice = invoices.find(inv => inv.customer_id === customerId && !inv.deleted_at);
+      if (!lastInvoice) {
+        showToast('No previous orders found for this customer', 'error');
+        return;
+      }
+      const items = await api.invoices.getItems(lastInvoice.id) as any[];
+      if (!items.length) {
+        showToast('Previous order has no items', 'error');
+        return;
+      }
+      const mapped: QuickLineItem[] = items.map((item: any) => {
+        const product = item.product_id ? products.find(p => p.id === item.product_id) : undefined;
+        const name = item.product_id
+          ? (item.given_name || item.product_name || item.custom_name || '')
+          : (item.custom_name || '');
+        const unit: 'g' | 'pcs' = product ? (product.type === 'Teaware' ? 'pcs' : 'g') : 'g';
+        return {
+          localId: crypto.randomUUID(),
+          name,
+          productId: item.product_id ?? undefined,
+          quantity: item.quantity,
+          unit,
+          price: item.price_at_sale,
+        };
+      });
+      setLineItems(mapped);
+      showToast(`Copied ${mapped.length} item${mapped.length !== 1 ? 's' : ''} from previous order`, 'success');
+    } catch {
+      showToast('Could not load previous order', 'error');
+    } finally {
+      setLoadingRepeat(false);
+    }
   };
 
   const buildPayload = () => ({
@@ -383,6 +423,21 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
                     );
                   })()}
                 </div>
+              )}
+
+              {customerId && (
+                <button
+                  onClick={handleRepeatLastOrder}
+                  disabled={loadingRepeat}
+                  className="mt-2.5 flex items-center gap-1.5 text-xs text-tea-text-sec hover:text-tea-text transition-colors disabled:opacity-40"
+                >
+                  {loadingRepeat ? (
+                    <Loader2 size={11} className="animate-spin" />
+                  ) : (
+                    <RotateCcw size={11} />
+                  )}
+                  Repeat last order
+                </button>
               )}
 
               {customerPickerOpen && customerSuggestions.length > 0 && (
