@@ -144,7 +144,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   );
 
   const sliderMin = 5;
-  const sliderMax = Math.max(25, Math.floor(item.stock_g || 500));
+  const sliderMax = Math.max(sliderMin, Math.floor(item.stock_g || 0));
   const sliderStep = 5;
   const snapPoints = [25, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500].filter(p => p <= sliderMax);
   const total = formatPrice ? formatPrice(pricePerGram, grams) : fmtNum(Math.ceil(pricePerGram * grams), 0);
