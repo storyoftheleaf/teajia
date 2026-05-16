@@ -12,6 +12,7 @@ import { ConfirmModal } from './ConfirmModal';
 import { SplitOrderModal } from './SplitOrderModal';
 import { EditOrderModal } from './EditOrderModal';
 import { QuickInvoiceModal } from './QuickInvoiceModal';
+import { Button } from '../../components/shared/Button';
 
 const ROW_HEIGHT = 36;
 
@@ -481,33 +482,55 @@ export const OrdersView = () => {
                         <div className="flex justify-center gap-1">
                           {isPending && (
                             <>
-                              <button
+                              <Button
+                                variant="secondary"
+                                size="sm"
                                 onClick={() => openFulfillConfirm(order)}
-                                className="pill-action"
+                                icon={<PackageCheck size={12} />}
                                 title="Mark as Filled (Deduct Stock)"
                               >
-                                <PackageCheck size={12} /> FILL
-                              </button>
-                              <button onClick={() => setEditInvoice(order)} className="p-1 min-h-[36px] min-w-[36px] flex items-center justify-center text-tea-text-sec hover:text-tea-text transition-colors" title="Edit Order">
-                                <Pencil size={14} />
-                              </button>
-                              <button onClick={() => setSplitInvoice(order)} className="p-1 min-h-[36px] min-w-[36px] flex items-center justify-center text-tea-text-sec hover:text-tea-text transition-colors" title="Split Order">
-                                <Scissors size={14} />
-                              </button>
+                                FILL
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setEditInvoice(order)}
+                                icon={<Pencil size={14} />}
+                                title="Edit Order"
+                              />
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setSplitInvoice(order)}
+                                icon={<Scissors size={14} />}
+                                title="Split Order"
+                              />
                             </>
                           )}
-                          <button onClick={() => handleView(order)} className="p-1 min-h-[36px] min-w-[36px] flex items-center justify-center text-tea-text-sec hover:text-tea-text transition-colors" title="View Details">
-                            <Eye size={14} />
-                          </button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleView(order)}
+                            icon={<Eye size={14} />}
+                            title="View Details"
+                          />
                           {!isVoid && (
-                            <button onClick={() => setConfirmState({ type: 'void', invoice: order })} className="p-1 min-h-[36px] min-w-[36px] flex items-center justify-center text-tea-text-sec hover:text-tea-text-sec/80 transition-colors" title="Void Order">
-                              <XCircle size={14} />
-                            </button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setConfirmState({ type: 'void', invoice: order })}
+                              icon={<XCircle size={14} />}
+                              title="Void Order"
+                            />
                           )}
                           {isVoid && (
-                            <button onClick={() => setConfirmState({ type: 'delete', invoice: order })} className="p-1 min-h-[36px] min-w-[36px] flex items-center justify-center text-tea-text-sec hover:text-tea-text-sec/80 transition-colors" title="Delete Record">
-                              <Trash2 size={14} />
-                            </button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setConfirmState({ type: 'delete', invoice: order })}
+                              icon={<Trash2 size={14} />}
+                              title="Delete Record"
+                            />
                           )}
                         </div>
                       </td>
@@ -568,11 +591,21 @@ export const OrdersView = () => {
                     <span className="text-xs text-tea-text num">${total.toFixed(2)} {order.display_currency}</span>
                     <div className="flex-1" />
                     {isPending && (
-                      <button onClick={() => openFulfillConfirm(order)} className="pill-action">
-                        <PackageCheck size={12} /> FILL
-                      </button>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => openFulfillConfirm(order)}
+                        icon={<PackageCheck size={12} />}
+                      >
+                        FILL
+                      </Button>
                     )}
-                    <button onClick={() => handleView(order)} className="p-1 min-h-[36px] min-w-[36px] flex items-center justify-center text-tea-text-sec hover:text-tea-text transition-colors"><Eye size={14} /></button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleView(order)}
+                      icon={<Eye size={14} />}
+                    />
                     {/* Mobile overflow — show ... menu for secondary actions */}
                     <MobileActions
                       isPending={isPending}
@@ -914,9 +947,12 @@ const MobileActions: React.FC<{
 
   return (
     <div className="relative">
-      <button onClick={() => setOpen(!open)} className="p-1 min-h-[36px] min-w-[36px] flex items-center justify-center text-tea-text-sec hover:text-tea-text transition-colors">
-        <MoreHorizontal size={14} />
-      </button>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => setOpen(!open)}
+        icon={<MoreHorizontal size={14} />}
+      />
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
