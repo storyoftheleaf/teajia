@@ -9,6 +9,7 @@ import { CONTACT_RELATIONSHIP_ORDER, CONTACT_RELATIONSHIP_TAXONOMY } from '../..
 import { Customer, CustomerTag, ContactType, ContactChannel, ContactEntry, ContactRelationshipKind, Product, Invoice } from '../types';
 import { useSampleStore } from '../../samples/sampleStore';
 import { SAMPLE_STATUS_CONFIG } from '../../samples/types';
+import { ConfirmModal } from './ConfirmModal';
 
 /** Vendor-supplied product row from api.customers.getSuppliedProducts() */
 interface SuppliedProduct {
@@ -1300,6 +1301,8 @@ export const CustomersView = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [viewingCustomer, setViewingCustomer] = useState<Customer | null>(null);
+  const [pendingDeleteCustomer, setPendingDeleteCustomer] = useState<Customer | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Auto-open a specific customer when navigated from another view (e.g. event attendee)
   useEffect(() => {
@@ -1374,16 +1377,23 @@ export const CustomersView = () => {
     }
   };
 
-  const handleDelete = async (customer: Customer) => {
-    const label = customer.type === 'supplier' ? 'supplier' : 'customer';
-    if (!confirm(`Delete ${label} "${customer.name}"?\n\nTheir invoices will be preserved but unlinked.`)) return;
+  const handleDelete = (customer: Customer) => {
+    setPendingDeleteCustomer(customer);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!pendingDeleteCustomer) return;
+    setDeleteLoading(true);
     try {
-      await api.customers.delete(customer.id);
+      await api.customers.delete(pendingDeleteCustomer.id);
       showToast('Contact deleted', 'success');
       setViewingCustomer(null);
+      setPendingDeleteCustomer(null);
       refetch();
     } catch (err: any) {
       showToast('Error: ' + err.message, 'error');
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -1981,6 +1991,17 @@ export const CustomersView = () => {
           filterAttendedEvents={filterAttendedEvents}
         />
       )}
+
+      <ConfirmModal
+        isOpen={!!pendingDeleteCustomer}
+        onClose={() => setPendingDeleteCustomer(null)}
+        onConfirm={handleConfirmDelete}
+        title={`Delete ${pendingDeleteCustomer?.type === 'supplier' ? 'supplier' : 'customer'}?`}
+        description={`"${pendingDeleteCustomer?.name}" will be removed. Their invoices will be preserved but unlinked.`}
+        confirmLabel="Delete"
+        variant="destructive"
+        isLoading={deleteLoading}
+      />
     </div>
   );
 };

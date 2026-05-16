@@ -11,6 +11,7 @@ import { useAppStore } from '../../lib/store';
 import { useToast } from '../components/Toast';
 import { useProducts } from '../hooks/useAdminData';
 import { RecipientTypeahead } from '../components/collections/RecipientTypeahead';
+import { ConfirmModal } from '../components/ConfirmModal';
 import type {
   CollectionDetail, CollectionItem, CollectionPublication,
   CollectionRecipient, CollectionStatus,
@@ -67,6 +68,7 @@ export const CollectionEditView: React.FC = () => {
   const [addOpen, setAddOpen] = useState(false);
   const [publishOpen, setPublishOpen] = useState(false);
   const [working, setWorking] = useState(false);
+  const [pendingRemoveId, setPendingRemoveId] = useState<string | null>(null);
   const focusRef = useRef<HTMLLIElement | null>(null);
 
   useEffect(() => {
@@ -337,7 +339,7 @@ export const CollectionEditView: React.FC = () => {
                           <ChevronDown size={13} />
                         </button>
                         <button
-                          onClick={() => removeItem(item.id)}
+                          onClick={() => setPendingRemoveId(item.id)}
                           disabled={working}
                           className="p-1.5 text-tea-text-sec hover:text-red-400 transition-colors"
                           aria-label="Remove"
@@ -419,6 +421,22 @@ export const CollectionEditView: React.FC = () => {
           disabled={!canPublish}
         />
       )}
+
+      <ConfirmModal
+        isOpen={!!pendingRemoveId}
+        onClose={() => setPendingRemoveId(null)}
+        onConfirm={async () => {
+          if (pendingRemoveId) {
+            await removeItem(pendingRemoveId);
+            setPendingRemoveId(null);
+          }
+        }}
+        title="Remove from collection?"
+        description="This tea will be removed from the collection. The product itself is not deleted."
+        confirmLabel="Remove"
+        variant="destructive"
+        isLoading={working}
+      />
     </div>
   );
 };

@@ -16,6 +16,7 @@ import { api } from '../../lib/api';
 import { Customer, CustomerTag, Product } from '../types';
 import { useAppStore } from '../store';
 import { TeaTable } from './TeaTable';
+import { ConfirmModal } from './ConfirmModal';
 import { resolveTermLabel, flattenTastingNotes, LIQUOR_COLORS } from '../../data/tastingTaxonomy';
 import { useLedgerStore, type LedgerTransaction, type LedgerLineItem } from '../../lib/ledgerStore';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
@@ -274,6 +275,9 @@ export const SourcesView = () => {
   const [editingSource, setEditingSource] = useState<Customer | null>(null);
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
 
+  const [pendingDeleteSource, setPendingDeleteSource] = useState<Customer | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
   // Side Panel
   const [panelSource, setPanelSource] = useState<SourceRow | null>(null);
   const [panelDirty, setPanelDirty] = useState(false);
@@ -418,15 +422,23 @@ export const SourcesView = () => {
     }
   };
 
-  const handleDelete = async (source: Customer) => {
-    if (!confirm(`Delete source "${source.name}"?\n\nProducts will keep the vendor name but the link will be removed.`)) return;
+  const handleDelete = (source: Customer) => {
+    setPendingDeleteSource(source);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!pendingDeleteSource) return;
+    setDeleteLoading(true);
     try {
-      await api.customers.delete(source.id);
+      await api.customers.delete(pendingDeleteSource.id);
       showToast('Source deleted', 'success');
       setPanelSource(null);
+      setPendingDeleteSource(null);
       refetch();
     } catch (err: any) {
       showToast('Error: ' + err.message, 'error');
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -2121,6 +2133,17 @@ export const SourcesView = () => {
           email: editingSource.email || '',
         } : undefined}
         isEditing={!!editingSource}
+      />
+
+      <ConfirmModal
+        isOpen={!!pendingDeleteSource}
+        onClose={() => setPendingDeleteSource(null)}
+        onConfirm={handleConfirmDelete}
+        title="Delete source?"
+        description={`"${pendingDeleteSource?.name}" will be removed. Products will keep the vendor name but the link will be removed.`}
+        confirmLabel="Delete"
+        variant="destructive"
+        isLoading={deleteLoading}
       />
     </div>
   );

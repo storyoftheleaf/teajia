@@ -5,6 +5,7 @@ import { useTeaMenu } from '../hooks/useEventData';
 import { useProducts } from '../hooks/useAdminData';
 import { useToast } from './Toast';
 import { TeaMenuItem } from '../../types/events';
+import { ConfirmModal } from './ConfirmModal';
 
 interface TeaMenuEditorProps {
   eventId: string;
@@ -22,6 +23,7 @@ export const TeaMenuEditor: React.FC<TeaMenuEditorProps> = ({ eventId }) => {
   const [customTeaType, setCustomTeaType] = useState('');
   const [customOriginRegion, setCustomOriginRegion] = useState('');
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
+  const [pendingRemoveId, setPendingRemoveId] = useState<string | null>(null);
 
   const sortedItems = [...menuItems].sort((a, b) => a.brewOrder - b.brewOrder);
 
@@ -148,7 +150,7 @@ export const TeaMenuEditor: React.FC<TeaMenuEditorProps> = ({ eventId }) => {
   );
 
   return (
-    <div>
+    <div className="relative">
       {/* Menu Items */}
       {sortedItems.length === 0 ? (
         <div className="text-center py-8 text-tea-text-sec text-sm">
@@ -218,7 +220,7 @@ export const TeaMenuEditor: React.FC<TeaMenuEditorProps> = ({ eventId }) => {
 
               {/* Remove */}
               <button
-                onClick={() => handleRemove(item.id)}
+                onClick={() => setPendingRemoveId(item.id)}
                 disabled={loadingAction === item.id}
                 className="text-tea-text-sec hover:text-tea-text p-1 transition-colors shrink-0"
               >
@@ -345,6 +347,22 @@ export const TeaMenuEditor: React.FC<TeaMenuEditorProps> = ({ eventId }) => {
           </button>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={!!pendingRemoveId}
+        onClose={() => setPendingRemoveId(null)}
+        onConfirm={async () => {
+          if (pendingRemoveId) {
+            await handleRemove(pendingRemoveId);
+            setPendingRemoveId(null);
+          }
+        }}
+        title="Remove from menu?"
+        description="This tea will be removed from the session menu."
+        confirmLabel="Remove"
+        variant="destructive"
+        isLoading={loadingAction === pendingRemoveId}
+      />
     </div>
   );
 };
