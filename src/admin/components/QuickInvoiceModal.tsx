@@ -76,6 +76,7 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
 
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
   const [productQuery, setProductQuery] = useState('');
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const [saving, setSaving] = useState(false);
 
   const nameInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
@@ -192,6 +193,7 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
     });
     setActiveItemId(null);
     setProductQuery('');
+    setHighlightedIndex(-1);
   };
 
   const pickCustomer = (customer: any) => {
@@ -467,9 +469,30 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
                               updateItem(item.localId, { name: e.target.value, productId: undefined });
                               setProductQuery(e.target.value);
                               setActiveItemId(item.localId);
+                              setHighlightedIndex(-1);
                             }}
-                            onFocus={() => { setActiveItemId(item.localId); setProductQuery(item.name); }}
-                            onBlur={() => setTimeout(() => setActiveItemId(null), 200)}
+                            onFocus={() => {
+                              setActiveItemId(item.localId);
+                              setProductQuery(item.name);
+                              setHighlightedIndex(-1);
+                            }}
+                            onBlur={() => setTimeout(() => { setActiveItemId(null); setHighlightedIndex(-1); }, 200)}
+                            onKeyDown={e => {
+                              if (activeItemId !== item.localId || productSuggestions.length === 0) return;
+                              if (e.key === 'ArrowDown') {
+                                e.preventDefault();
+                                setHighlightedIndex(i => Math.min(i + 1, productSuggestions.length - 1));
+                              } else if (e.key === 'ArrowUp') {
+                                e.preventDefault();
+                                setHighlightedIndex(i => Math.max(i - 1, -1));
+                              } else if (e.key === 'Enter' && highlightedIndex >= 0) {
+                                e.preventDefault();
+                                pickProduct(item, productSuggestions[highlightedIndex]);
+                              } else if (e.key === 'Escape') {
+                                setActiveItemId(null);
+                                setHighlightedIndex(-1);
+                              }
+                            }}
                             placeholder="Name this item…"
                             className={`w-full bg-transparent border-0 border-b pb-1 text-sm font-serif text-tea-text outline-none transition-colors placeholder:italic placeholder:text-tea-text-dim/50 ${
                               item.productId
@@ -488,15 +511,17 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
                           {/* Product suggestions */}
                           {activeItemId === item.localId && productSuggestions.length > 0 && (
                             <div className="absolute top-full left-0 right-0 mt-1 bg-tea-elevated border border-tea-border rounded-xl shadow-xl z-20 overflow-hidden">
-                              {productSuggestions.map(p => (
+                              {productSuggestions.map((p, idx) => (
                                 <button
                                   key={p.id}
                                   onMouseDown={() => pickProduct(item, p)}
-                                  className="w-full text-left px-3 py-2 text-xs hover:bg-tea-surface transition-colors flex justify-between items-center gap-2"
+                                  className={`w-full text-left px-3 py-2 text-xs transition-colors flex justify-between items-center gap-2 ${
+                                    idx === highlightedIndex ? 'bg-tea-surface' : 'hover:bg-tea-surface'
+                                  }`}
                                 >
                                   <span className="text-tea-text font-serif truncate">{p.givenName || p.productName}</span>
                                   <span className="text-tea-text-dim shrink-0 tabular-nums">
-                                    {p.stockGrams}g · ${p.pricePerGramUSD}/g
+                                    {p.stockGrams != null ? `${p.stockGrams}g` : '—'} · {p.pricePerGramUSD != null ? `$${p.pricePerGramUSD}/g` : '—'}
                                   </span>
                                 </button>
                               ))}
