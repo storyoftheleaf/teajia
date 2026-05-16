@@ -13,6 +13,7 @@ import { useCustomers } from '../hooks/useAdminData';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { TeaReviewsPanel } from './TeaReviewsPanel';
 import { StockLedgerPanel } from './StockLedgerPanel';
+import { ConfirmModal } from './ConfirmModal';
 
 interface AddProductModalProps {
   isOpen: boolean;
@@ -60,6 +61,9 @@ const VendorPicker = ({
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState(value);
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingVendor, setPendingVendor] = useState<string | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
 
   // Get unique vendor names from customers tagged as vendor
   const vendors = useMemo(() => {
@@ -97,23 +101,22 @@ const VendorPicker = ({
 
   const isNew = query.trim() && !vendors.some(v => v.toLowerCase() === query.trim().toLowerCase());
 
-  // Auto-create vendor customer if new, or add vendor tag if existing
-  const handleSelectVendor = async (name: string) => {
-    onChange(name);
-    setOpen(false);
-    if (!name) return;
+  const createVendor = async (name: string) => {
+    try {
+      setIsCreating(true);
+      await api.customers.create({ name, tags: ['vendor'] });
+      refetchCustomers();
+      onChange(name);
+    } catch (err) {
+      console.error('Failed to create vendor customer:', err);
+    } finally {
+      setIsCreating(false);
+    }
+  };
 
-    const existing = customers.find(
-      c => c.name.toLowerCase() === name.toLowerCase()
-    );
-    if (!existing) {
-      try {
-        await api.customers.create({ name, tags: ['vendor'] });
-        refetchCustomers();
-      } catch (err) {
-        console.error('Failed to create vendor customer:', err);
-      }
-    } else if (!existing.tags?.includes('vendor')) {
+  const addVendorTag = async (name: string) => {
+    const existing = customers.find(c => c.name.toLowerCase() === name.toLowerCase());
+    if (existing && !existing.tags?.includes('vendor')) {
       try {
         await api.customers.update(existing.id, {
           tags: [...(existing.tags || []), 'vendor'],
@@ -122,6 +125,28 @@ const VendorPicker = ({
       } catch (err) {
         console.error('Failed to add vendor tag:', err);
       }
+    }
+  };
+
+  const handleSelectVendor = (name: string) => {
+    setOpen(false);
+    if (!name) return;
+
+    const existing = customers.find(c => c.name.toLowerCase() === name.toLowerCase());
+    if (!existing) {
+      setPendingVendor(name);
+      setConfirmOpen(true);
+    } else {
+      onChange(name);
+      addVendorTag(name);
+    }
+  };
+
+  const handleConfirmCreate = async () => {
+    if (pendingVendor) {
+      await createVendor(pendingVendor);
+      setConfirmOpen(false);
+      setPendingVendor(null);
     }
   };
 
@@ -179,6 +204,20 @@ const VendorPicker = ({
           ))}
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={confirmOpen}
+        onClose={() => {
+          setConfirmOpen(false);
+          setPendingVendor(null);
+        }}
+        onConfirm={handleConfirmCreate}
+        title={`Create new vendor "${pendingVendor}"?`}
+        description="This will add a new vendor contact to your directory."
+        confirmLabel="Create vendor"
+        cancelLabel="Cancel"
+        isLoading={isCreating}
+      />
     </div>
   );
 };
