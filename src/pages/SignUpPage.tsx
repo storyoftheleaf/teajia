@@ -171,6 +171,7 @@ export default function SignUpPage() {
             ))}
             <span className="self-center text-ui-11 text-tea-text-dim ml-1">Optional</span>
           </div>
+          <p className="text-ui-11 text-tea-text-dim mb-3">Both platforms work equally well. Choose whichever you use most.</p>
 
           {/* Phone input — shown once a platform is selected */}
           {contactPlatform && (
