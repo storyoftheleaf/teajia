@@ -4,6 +4,7 @@ import {
   ArrowRight,
   CalendarDays,
   CheckCircle2,
+  Circle,
   ClipboardCheck,
   Copy,
   ExternalLink,
@@ -51,6 +52,7 @@ const EMPTY_WORKSHEET: Worksheet = {
 };
 
 const STORAGE_KEY = 'teajia-store-launch-details';
+const COMPLETED_STEPS_KEY = 'teajia-store-launch-completed-steps';
 
 const toWorksheetFromAccount = (account?: Account | null): Partial<Worksheet> => {
   if (!account) return {};
@@ -195,6 +197,14 @@ export const StoreLaunchPlaybook: React.FC<{
 }> = ({ mode, account, storefrontUrl }) => {
   const [storeDetails, setStoreDetails] = useState<Worksheet>(() => ({ ...EMPTY_WORKSHEET, ...toWorksheetFromAccount(account) }));
   const [copied, setCopied] = useState(false);
+  const [completedSteps, setCompletedSteps] = useState<Set<string>>(() => {
+    try {
+      const saved = window.localStorage.getItem(COMPLETED_STEPS_KEY);
+      return new Set(saved ? (JSON.parse(saved) as string[]) : []);
+    } catch {
+      return new Set<string>();
+    }
+  });
 
   useEffect(() => {
     try {
@@ -214,6 +224,22 @@ export const StoreLaunchPlaybook: React.FC<{
       /* Local persistence is optional. */
     }
   }, [storeDetails]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(COMPLETED_STEPS_KEY, JSON.stringify([...completedSteps]));
+    } catch {
+      /* Local persistence is optional. */
+    }
+  }, [completedSteps]);
+
+  const toggleStep = (id: string) => {
+    setCompletedSteps((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
 
   const completedFields = primaryFields.filter((field) => storeDetails[field].trim().length > 0).length;
   const completionLabel = `${completedFields} of ${primaryFields.length} launch basics entered`;
@@ -279,6 +305,21 @@ export const StoreLaunchPlaybook: React.FC<{
             </p>
             <p className="font-display text-ui-28 text-tea-text">{completedFields}/{primaryFields.length}</p>
             <p className="text-ui-12 text-tea-text-sec mt-1">{completionLabel}</p>
+            <div className="mt-4 pt-4 border-t border-tea-border">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-ui-10 uppercase tracking-[0.18em] text-tea-text-dim">Setup steps</p>
+                <p className="text-ui-12 text-tea-text-sec">{completedSteps.size} of {setupSteps.length}</p>
+              </div>
+              <div className="flex items-center gap-1">
+                {setupSteps.map((step) => (
+                  <div
+                    key={step.id}
+                    title={step.title}
+                    className={`h-1.5 flex-1 rounded-full transition-colors ${completedSteps.has(step.id) ? 'bg-tea-gold' : 'bg-tea-border'}`}
+                  />
+                ))}
+              </div>
+            </div>
             {isAdmin && effectiveStorefrontUrl && (
               <a
                 href={effectiveStorefrontUrl}
@@ -309,7 +350,13 @@ export const StoreLaunchPlaybook: React.FC<{
 
         <section className="mt-10 grid gap-4 lg:grid-cols-3">
           {steps.slice(0, 3).map((step, index) => (
-            <PlaybookStep key={step.id} step={step} index={index} />
+            <PlaybookStep
+              key={step.id}
+              step={step}
+              index={index}
+              isComplete={completedSteps.has(step.id)}
+              onToggle={() => toggleStep(step.id)}
+            />
           ))}
         </section>
 
@@ -403,7 +450,13 @@ export const StoreLaunchPlaybook: React.FC<{
 
         <section className="mt-6 grid gap-4 lg:grid-cols-3">
           {steps.slice(3).map((step, index) => (
-            <PlaybookStep key={step.id} step={step} index={index + 3} />
+            <PlaybookStep
+              key={step.id}
+              step={step}
+              index={index + 3}
+              isComplete={completedSteps.has(step.id)}
+              onToggle={() => toggleStep(step.id)}
+            />
           ))}
         </section>
       </div>
@@ -420,18 +473,36 @@ type RenderStep = SetupStep & {
   external: boolean;
 };
 
-const PlaybookStep: React.FC<{ step: RenderStep; index: number }> = ({ step, index }) => {
+const PlaybookStep: React.FC<{
+  step: RenderStep;
+  index: number;
+  isComplete: boolean;
+  onToggle: () => void;
+}> = ({ step, index, isComplete, onToggle }) => {
   const Icon = step.icon;
   return (
-    <article className="bg-tea-surface border border-tea-border rounded-md p-5 flex flex-col min-w-0">
-      <div className="flex items-start gap-3">
-        <div className="h-9 w-9 rounded-md border border-tea-border bg-tea-bg flex items-center justify-center shrink-0 text-tea-text-sec">
-          <Icon size={16} />
+    <article className={`bg-tea-surface border rounded-md p-5 flex flex-col min-w-0 transition-colors ${isComplete ? 'border-tea-gold/30' : 'border-tea-border'}`}>
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-start gap-3 min-w-0">
+          <div className={`h-9 w-9 rounded-md border flex items-center justify-center shrink-0 transition-colors ${isComplete ? 'border-tea-gold/40 bg-tea-accent-sub text-tea-gold' : 'border-tea-border bg-tea-bg text-tea-text-sec'}`}>
+            <Icon size={16} />
+          </div>
+          <div className="min-w-0">
+            <p className="font-mono text-ui-11 text-tea-text-dim">Step {index + 1} of {setupSteps.length}</p>
+            <h2 className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text mt-0.5`}>{step.title}</h2>
+          </div>
         </div>
-        <div className="min-w-0">
-          <p className="font-mono text-ui-11 text-tea-text-dim">{String(index + 1).padStart(2, '0')}</p>
-          <h2 className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text mt-0.5`}>{step.title}</h2>
-        </div>
+        <button
+          type="button"
+          onClick={onToggle}
+          title={isComplete ? 'Mark incomplete' : 'Mark complete'}
+          className="tap-target shrink-0 text-tea-text-dim hover:text-tea-gold transition-colors"
+        >
+          {isComplete
+            ? <CheckCircle2 size={18} className="text-tea-gold" />
+            : <Circle size={18} />
+          }
+        </button>
       </div>
       <p className="text-ui-13 text-tea-text-sec leading-[1.6] mt-4 flex-1">{step.copy}</p>
       <ActionLink href={step.href} label={step.label} external={step.external} prominent />
