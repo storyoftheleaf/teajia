@@ -546,29 +546,35 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
 
          {/* Filter bar — two dropdown buttons */}
          <div ref={filterRef} className="mb-3 relative z-drawer">
-            <div className="flex items-center justify-between">
-               {/* Type button */}
-               <button
-                  onClick={() => setOpenFilter(prev => prev === 'type' ? null : 'type')}
-                  className={`flex items-center gap-1.5 text-ui-10 uppercase tracking-[0.15em] py-1.5 transition-colors ${
-                     activeType !== 'All' ? 'text-tea-gold' : openFilter === 'type' ? 'text-tea-text' : 'text-tea-text-sec hover:text-tea-text'
-                  }`}
-               >
-                  <span>{activeType === 'All' ? 'Type' : activeType}</span>
-                  <Icons.ChevronDown className={`w-3 h-3 transition-transform ${openFilter === 'type' ? 'rotate-180' : ''}`} />
-               </button>
+            <div className="flex flex-col gap-3">
+               {/* Type filter group */}
+               <div className="flex flex-col gap-0.5">
+                  <button
+                     onClick={() => setOpenFilter(prev => prev === 'type' ? null : 'type')}
+                     className={`flex items-center gap-1.5 text-ui-10 uppercase tracking-[0.15em] py-1.5 transition-colors w-fit ${
+                        activeType !== 'All' ? 'text-tea-gold' : openFilter === 'type' ? 'text-tea-text' : 'text-tea-text-sec hover:text-tea-text'
+                     }`}
+                  >
+                     <span>{activeType === 'All' ? 'Type' : activeType}</span>
+                     <Icons.ChevronDown className={`w-3 h-3 transition-transform ${openFilter === 'type' ? 'rotate-180' : ''}`} />
+                  </button>
+                  <span className="text-ui-10 text-tea-text-dim">Classification like green, oolong, or black</span>
+               </div>
 
-               {/* Feeling button */}
+               {/* Feeling filter group */}
                {availableFeelings.length > 0 && (
-               <button
-                  onClick={() => setOpenFilter(prev => prev === 'feeling' ? null : 'feeling')}
-                  className={`flex items-center gap-1.5 text-ui-10 uppercase tracking-[0.15em] py-1.5 transition-colors ${
-                     activeFeeling ? 'text-tea-gold' : openFilter === 'feeling' ? 'text-tea-text' : 'text-tea-text-sec hover:text-tea-text'
-                  }`}
-               >
-                  <span>{activeFeeling ? (FEELING_TERMS.find(f => f.id === activeFeeling)?.label || activeFeeling) : 'Feeling'}</span>
-                  <Icons.ChevronDown className={`w-3 h-3 transition-transform ${openFilter === 'feeling' ? 'rotate-180' : ''}`} />
-               </button>
+               <div className="flex flex-col gap-0.5">
+                  <button
+                     onClick={() => setOpenFilter(prev => prev === 'feeling' ? null : 'feeling')}
+                     className={`flex items-center gap-1.5 text-ui-10 uppercase tracking-[0.15em] py-1.5 transition-colors w-fit ${
+                        activeFeeling ? 'text-tea-gold' : openFilter === 'feeling' ? 'text-tea-text' : 'text-tea-text-sec hover:text-tea-text'
+                     }`}
+                  >
+                     <span>{activeFeeling ? (FEELING_TERMS.find(f => f.id === activeFeeling)?.label || activeFeeling) : 'Feeling'}</span>
+                     <Icons.ChevronDown className={`w-3 h-3 transition-transform ${openFilter === 'feeling' ? 'rotate-180' : ''}`} />
+                  </button>
+                  <span className="text-ui-10 text-tea-text-dim">Sensory characteristics you&apos;ve tasted</span>
+               </div>
                )}
             </div>
 
@@ -642,24 +648,27 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
          {/* Mood and flavor tag filter — collapsible, editorial chip rows */}
          {(availableMoodTagTerms.length > 0 || availableFlavorTagTerms.length > 0) && (
            <div className="mb-4 border-b border-tea-border pb-3">
-             <button
-               type="button"
-               onClick={() => setMoodFlavorOpen(p => !p)}
-               className={`flex items-center gap-1.5 text-ui-10 uppercase tracking-[0.15em] py-1 transition-colors ${
-                 (activeMoodTags.length > 0 || activeFlavorTags.length > 0)
-                   ? 'text-tea-gold'
-                   : moodFlavorOpen
-                     ? 'text-tea-text'
-                     : 'text-tea-text-sec hover:text-tea-text'
-               }`}
-             >
-               <span>
-                 {(activeMoodTags.length > 0 || activeFlavorTags.length > 0)
-                   ? `Mood and flavor (${activeMoodTags.length + activeFlavorTags.length})`
-                   : 'Shop by mood and flavor'}
-               </span>
-               <Icons.ChevronDown className={`w-3 h-3 transition-transform ${moodFlavorOpen ? 'rotate-180' : ''}`} />
-             </button>
+             <div className="flex flex-col gap-0.5">
+               <button
+                 type="button"
+                 onClick={() => setMoodFlavorOpen(p => !p)}
+                 className={`flex items-center gap-1.5 text-ui-10 uppercase tracking-[0.15em] py-1 transition-colors w-fit ${
+                   (activeMoodTags.length > 0 || activeFlavorTags.length > 0)
+                     ? 'text-tea-gold'
+                     : moodFlavorOpen
+                       ? 'text-tea-text'
+                       : 'text-tea-text-sec hover:text-tea-text'
+                 }`}
+               >
+                 <span>
+                   {(activeMoodTags.length > 0 || activeFlavorTags.length > 0)
+                     ? `Mood and flavor (${activeMoodTags.length + activeFlavorTags.length})`
+                     : 'Shop by mood and flavor'}
+                 </span>
+                 <Icons.ChevronDown className={`w-3 h-3 transition-transform ${moodFlavorOpen ? 'rotate-180' : ''}`} />
+               </button>
+               <span className="text-ui-10 text-tea-text-dim">Find teas by the feeling or taste you&apos;re looking for</span>
+             </div>
 
              {moodFlavorOpen && (
                <div className="mt-3 space-y-4 animate-[fadeIn_0.15s_ease-out]">
