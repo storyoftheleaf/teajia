@@ -418,7 +418,7 @@ export const SourcesView = () => {
       setEditingSource(null);
       refetch();
     } catch (err: any) {
-      showToast('Error: ' + err.message, 'error');
+      showToast('Could not save source: ' + err.message, 'error');
     }
   };
 
@@ -436,7 +436,7 @@ export const SourcesView = () => {
       setPendingDeleteSource(null);
       refetch();
     } catch (err: any) {
-      showToast('Error: ' + err.message, 'error');
+      showToast('Could not delete source: ' + err.message, 'error');
     } finally {
       setDeleteLoading(false);
     }
@@ -455,7 +455,7 @@ export const SourcesView = () => {
     try {
       await api.customers.update(id, payload);
     } catch (err: any) {
-      showToast(`Update failed: ${err.message}`, 'error');
+      showToast(`Could not update source field: ${err.message}`, 'error');
       refetch();
     }
   };

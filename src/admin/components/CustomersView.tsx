@@ -1373,7 +1373,7 @@ export const CustomersView = () => {
       setEditingCustomer(null);
       refetch();
     } catch (err: any) {
-      showToast('Error: ' + err.message, 'error');
+      showToast('Could not save contact: ' + err.message, 'error');
     }
   };
 
@@ -1391,7 +1391,7 @@ export const CustomersView = () => {
       setPendingDeleteCustomer(null);
       refetch();
     } catch (err: any) {
-      showToast('Error: ' + err.message, 'error');
+      showToast('Could not delete contact: ' + err.message, 'error');
     } finally {
       setDeleteLoading(false);
     }

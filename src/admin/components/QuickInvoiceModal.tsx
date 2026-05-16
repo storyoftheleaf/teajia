@@ -258,7 +258,7 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
       onSuccess();
       onClose();
     } catch (err: any) {
-      showToast('Failed: ' + err.message, 'error');
+      showToast(`Invoice creation failed: ${err.message}`, 'error');
     }
     setSaving(false);
   };

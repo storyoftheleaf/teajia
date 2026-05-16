@@ -65,7 +65,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
       })));
       setFetching(false);
     }).catch(() => {
-      showToast('Could not load invoice items', 'error');
+      showToast('Could not load invoice items. Refresh and try again.', 'error');
       setFetching(false);
     });
   }, [isOpen, invoice]);
@@ -119,7 +119,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
       onSuccess();
       onClose();
     } catch (err: any) {
-      showToast('Update failed: ' + err.message, 'error');
+      showToast(`Could not save order changes: ${err.message}`, 'error');
     }
     setLoading(false);
   };

@@ -248,7 +248,8 @@ export const OrdersView = () => {
       }
       refetch();
     } catch (err: any) {
-      showToast(`Action failed: ${err.message}`, 'error');
+      const action = confirmState?.type === 'void' ? 'void order' : confirmState?.type === 'delete' ? 'delete invoice' : 'update order status';
+      showToast(`Could not ${action}: ${err.message}`, 'error');
     }
     setConfirmLoading(false);
     setConfirmState(null);
@@ -270,7 +271,7 @@ export const OrdersView = () => {
       showToast(msg, 'success');
       queryClient.invalidateQueries({ queryKey: ['products'] });
     } catch (err: any) {
-      showToast('Link failed: ' + err.message, 'error');
+      showToast(`Could not link item to product: ${err.message}`, 'error');
     }
   };
 

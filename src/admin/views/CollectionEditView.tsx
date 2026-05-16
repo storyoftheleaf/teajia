@@ -94,7 +94,7 @@ export const CollectionEditView: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['admin-collections'] });
       invalidate();
     } catch (err: any) {
-      showToast(err?.message || 'Save failed', 'error');
+      showToast(err?.message || 'Could not save collection details. Try again.', 'error');
     } finally {
       setSavingMeta(false);
     }
@@ -131,7 +131,7 @@ export const CollectionEditView: React.FC = () => {
       await api.collections.reorderItem(id, itemId, direction);
       invalidate();
     } catch (err: any) {
-      showToast(err?.message || 'Reorder failed', 'error');
+      showToast(err?.message || 'Could not reorder collection items. Try again.', 'error');
     } finally {
       setWorking(false);
     }
@@ -144,7 +144,7 @@ export const CollectionEditView: React.FC = () => {
       await api.collections.removeItem(id, itemId);
       invalidate();
     } catch (err: any) {
-      showToast(err?.message || 'Remove failed', 'error');
+      showToast(err?.message || 'Could not remove item from collection. Try again.', 'error');
     } finally {
       setWorking(false);
     }
@@ -156,7 +156,7 @@ export const CollectionEditView: React.FC = () => {
       await api.collections.unpublish(id, pubId);
       invalidate();
     } catch (err: any) {
-      showToast(err?.message || 'Unpublish failed', 'error');
+      showToast(err?.message || 'Could not unpublish this collection. Try again.', 'error');
     }
   };
 
@@ -167,7 +167,7 @@ export const CollectionEditView: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['admin-collections'] });
       invalidate();
     } catch (err: any) {
-      showToast(err?.message || 'Failed to update status', 'error');
+      showToast(err?.message || 'Could not update collection status. Try again.', 'error');
     }
   };
 
@@ -621,7 +621,7 @@ const AddProductsSheet: React.FC<{
       showToast(`Added ${selected.size} product${selected.size !== 1 ? 's' : ''}`, 'success');
       onAdded();
     } catch (err: any) {
-      showToast(err?.message || 'Add failed', 'error');
+      showToast(err?.message || 'Could not add items to collection. Try again.', 'error');
     } finally {
       setSubmitting(false);
     }

@@ -341,7 +341,7 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
       setTimeout(() => setSaveState('idle'), 2000);
     } catch (err: any) {
       setSaveState('idle');
-      showToast(err.message || 'Save failed', 'error');
+      showToast(err.message || 'Article save failed. Try again.', 'error');
     }
   }, [articleId, buildPayload, title, onSaved, showToast]);
 
@@ -374,7 +374,7 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
       }
       onSaved?.();
     } catch (err: any) {
-      showToast(err.message || 'Failed', 'error');
+      showToast(err.message || (status === 'published' ? 'Could not unpublish article. Try again.' : 'Could not publish article. Try again.'), 'error');
     } finally {
       setPublishing(false);
     }
