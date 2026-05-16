@@ -257,43 +257,55 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
   return (
     <>
       {/* Step indicator + currency selector — hairline rules, single bronze for active step */}
-      <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-tea-border bg-tea-surface flex-shrink-0">
-        <div className="flex items-center gap-2 min-w-0 flex-1">
-          {STEPS.map((s, i) => {
-            const isActive = step === s.key;
-            const isPast = currentStepIndex > i;
-            const canJump = isPast;
-            return (
-              <React.Fragment key={s.key}>
-                <button
-                  type="button"
-                  onClick={() => canJump && setStep(s.key)}
-                  disabled={!canJump}
-                  className={`text-ui-11 uppercase tracking-[0.15em] transition-colors duration-300 whitespace-nowrap min-h-[44px] py-3 ${
-                    isActive ? 'text-tea-gold' : isPast ? 'text-tea-text-sec hover:text-tea-text cursor-pointer' : 'text-tea-text-sec/70 cursor-default'
-                  }`}
-                  aria-current={isActive ? 'step' : undefined}
-                >
-                  {s.label}
-                </button>
-                {i < STEPS.length - 1 && (
-                  <span className="block w-4 h-px bg-tea-border" aria-hidden="true" />
-                )}
-              </React.Fragment>
-            );
-          })}
+      <div className="flex-shrink-0 bg-tea-surface border-b border-tea-border">
+        <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-tea-border">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            {STEPS.map((s, i) => {
+              const isActive = step === s.key;
+              const isPast = currentStepIndex > i;
+              const canJump = isPast;
+              return (
+                <React.Fragment key={s.key}>
+                  <button
+                    type="button"
+                    onClick={() => canJump && setStep(s.key)}
+                    disabled={!canJump}
+                    className={`text-ui-11 uppercase tracking-[0.15em] transition-colors duration-300 whitespace-nowrap min-h-[44px] py-3 ${
+                      isActive ? 'text-tea-gold' : isPast ? 'text-tea-text-sec hover:text-tea-text cursor-pointer' : 'text-tea-text-sec/70 cursor-default'
+                    }`}
+                    aria-current={isActive ? 'step' : undefined}
+                  >
+                    {s.label}
+                  </button>
+                  {i < STEPS.length - 1 && (
+                    <span className="block w-4 h-px bg-tea-border" aria-hidden="true" />
+                  )}
+                </React.Fragment>
+              );
+            })}
+          </div>
+          {rates.length > 0 && (
+            <select
+              value={currency}
+              onChange={(e) => setCurrency(e.target.value as any)}
+              className="bg-transparent border-none text-ui-11 text-tea-text-sec outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 cursor-pointer hover:text-tea-text transition-colors shrink-0"
+              aria-label="Currency"
+            >
+              {rates.map(r => (
+                <option key={r.currency} value={r.currency}>{r.currency}</option>
+              ))}
+            </select>
+          )}
         </div>
-        {rates.length > 0 && (
-          <select
-            value={currency}
-            onChange={(e) => setCurrency(e.target.value as any)}
-            className="bg-transparent border-none text-ui-11 text-tea-text-sec outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 cursor-pointer hover:text-tea-text transition-colors shrink-0"
-            aria-label="Currency"
-          >
-            {rates.map(r => (
-              <option key={r.currency} value={r.currency}>{r.currency}</option>
-            ))}
-          </select>
+        {/* Exchange rate info — shown when non-USD currency is selected */}
+        {rates.length > 0 && currency !== 'USD' && (
+          <div className="px-4 py-2 text-right text-ui-10 text-tea-text-sec">
+            <div className="flex items-center justify-end gap-2">
+              <span>1 USD = {rates.find(r => r.currency === currency)?.rateToUSD.toFixed(2)} {currency}</span>
+              <span className="block w-px h-3 bg-tea-border" aria-hidden="true" />
+              <span className="num font-serif">Total: {displayPrice(subtotal)}</span>
+            </div>
+          </div>
         )}
       </div>
 
