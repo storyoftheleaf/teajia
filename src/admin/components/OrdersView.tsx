@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../../lib/api';
 import type { InvoiceWithItems, Product } from '../types';
-import { openWhatsAppStatus } from '../../lib/whatsapp';
+import { openWhatsAppStatus, buildQuickInvoiceDraftParam } from '../../lib/whatsapp';
 import { Loader2, Search, XCircle, Trash2, Eye, X, PackageCheck, Users, Scissors, Pencil, Package, MoreHorizontal, MessageCircle, Plus, Link2, StickyNote, Leaf } from 'lucide-react';
 import Fuse from 'fuse.js';
 import { useProducts } from '../hooks/useAdminData';
@@ -840,6 +840,33 @@ export const OrdersView = () => {
                       className="w-full py-3 border border-tea-border rounded-xl text-xs uppercase tracking-[0.2em] text-tea-text-sec hover:text-tea-text hover:bg-tea-surface flex items-center justify-center gap-2 transition-all"
                     >
                       <MessageCircle size={14} /> Notify Customer via WhatsApp
+                    </button>
+                  </div>
+                )}
+
+                {/* Copy draft link — pre-fills QuickInvoiceModal with this order's items */}
+                {viewingInvoice.items && viewingInvoice.items.length > 0 && (
+                  <div className="mt-3">
+                    <button
+                      onClick={() => {
+                        const param = buildQuickInvoiceDraftParam({
+                          customerName: viewingInvoice.customer_name || undefined,
+                          items: (viewingInvoice.items || []).map((it) => ({
+                            name: it.given_name || it.product_name || it.custom_name || 'Item',
+                            quantity: it.quantity,
+                            unit: it.product?.type === 'Teaware' ? 'pcs' as const : 'g' as const,
+                            productId: it.product_id || undefined,
+                            price: it.price_at_sale,
+                          })),
+                        });
+                        const url = `${window.location.origin}/admin/orders?draft=${param}`;
+                        navigator.clipboard.writeText(url).then(() => {
+                          showToast('Draft link copied.', 'success');
+                        });
+                      }}
+                      className="w-full py-3 border border-tea-border rounded-xl text-xs uppercase tracking-[0.2em] text-tea-text-sec hover:text-tea-text hover:bg-tea-surface flex items-center justify-center gap-2 transition-all"
+                    >
+                      <Link2 size={14} /> Copy Draft Link
                     </button>
                   </div>
                 )}

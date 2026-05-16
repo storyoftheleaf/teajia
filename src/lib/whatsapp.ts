@@ -19,6 +19,27 @@ export interface WhatsAppMessageOptions {
   subtotal: string;
   shipping?: string;
   total: string;
+  /** Admin draft prefill URL — appended to inquiry messages so the operator can tap it to open a pre-filled invoice form. */
+  adminDraftUrl?: string;
+}
+
+function encodeBase64UrlJson(data: unknown): string {
+  const json = JSON.stringify(data);
+  const bytes = new TextEncoder().encode(json);
+  let binary = '';
+  bytes.forEach(b => { binary += String.fromCharCode(b); });
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+/** Encode order data into a base64url `?draft=` param for the admin QuickInvoiceModal prefill. */
+export function buildQuickInvoiceDraftParam(data: {
+  customerName?: string;
+  items?: Array<{ name: string; quantity?: number; unit?: 'g' | 'pcs'; productId?: string; price?: number }>;
+  currency?: string;
+  shipping?: number;
+  notes?: string;
+}): string {
+  return encodeBase64UrlJson(data);
 }
 
 export function buildOrderMessage(opts: WhatsAppMessageOptions): string {
@@ -39,6 +60,7 @@ export function buildOrderMessage(opts: WhatsAppMessageOptions): string {
     if (opts.customerLocation) lines.push(`Shipping to — ${opts.customerLocation}`);
     if (opts.notes) lines.push('', opts.notes);
     if (opts.ref) lines.push('', `Ref: ${opts.ref}`);
+    if (opts.adminDraftUrl) lines.push('', `Draft invoice — ${opts.adminDraftUrl}`);
   } else if (opts.type === 'invoice') {
     lines.push('Teajia Order', '');
     if (opts.ref) lines.push(`Invoice — ${opts.ref}`);
